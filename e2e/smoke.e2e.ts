@@ -44,14 +44,20 @@ test.describe("static build, no Web Serial", () => {
 });
 
 test.describe("the preview gate (D-07)", () => {
-  test.use({ httpCredentials: undefined });
-
+  // Node's own fetch, deliberately, because getting a genuinely
+  // credential-free request out of Playwright turned out to be impossible
+  // here. Two obvious routes were both observed returning 200 where a 401 was
+  // expected: `test.use({ httpCredentials: undefined })` reads as "not
+  // specified", so Playwright falls back to the value in defineConfig, and a
+  // context built from the module-level `request` API picks the same
+  // credentials up under the runner. fetch() inherits nothing, so this really
+  // does send no Authorization header — which is the whole assertion.
   test("refuses a request with no credentials and asks robots to stay away", async ({
-    request,
+    baseURL,
   }) => {
-    const res = await request.get("/");
-    expect(res.status()).toBe(401);
-    expect(res.headers()["www-authenticate"]).toContain("Basic");
-    expect(res.headers()["x-robots-tag"]).toContain("noindex");
+    const res = await fetch(`${baseURL}/`);
+    expect(res.status).toBe(401);
+    expect(res.headers.get("www-authenticate")).toContain("Basic");
+    expect(res.headers.get("x-robots-tag")).toContain("noindex");
   });
 });
