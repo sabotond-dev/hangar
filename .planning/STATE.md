@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-09-02T15:46:32.563Z"
+stopped_at: "Paused at Task 1-05-02 (checkpoint:human-action) — Task 1-05-01 committed as eb9e24e"
+last_updated: "2026-09-02T15:54:13.728Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 8
@@ -98,6 +98,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-02T15:46:07.183Z
-Stopped at: Completed 01-04-PLAN.md
-Resume file: None
+Last session: 2026-09-02T15:54:13.722Z
+Stopped at: Paused at Task 1-05-02 (checkpoint:human-action) — Task 1-05-01 committed as eb9e24e
+Resume file: .planning/phases/01-scaffold-licence-and-pin/01-05-PLAN.md
