@@ -1,42 +1,58 @@
-# sv
+# HANGAR
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A public web playground for Intech Studio's ZONA — the 9x9 XY-pad module.
 
-## Creating a project
+Browse a catalog of pad configurations, watch every one of them animate live in a
+firmware-faithful simulator in the browser, turn a few knobs, and load the result
+straight onto your own ZONA over Web Serial. No Grid Editor, no install, no account,
+and no hardware required to look around.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Requirements
 
-```sh
-# create a new project
-npx sv create my-app
-```
+- Node.js 24 or newer (see `.nvmrc`; `engine-strict=true` makes this a hard check)
+- npm
 
-To recreate this project with the same configuration:
+## Development
 
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --add prettier eslint tailwindcss="plugins:none" playwright vitest="usages:unit" sveltekit-adapter="adapter:static" --no-download-check --no-install .
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+## Scripts
 
-To create a production version of your app:
+| Script              | What it does                           |
+| ------------------- | -------------------------------------- |
+| `npm run dev`       | Vite dev server                        |
+| `npm run build`     | Static build into `build/`             |
+| `npm run check`     | `svelte-check` against `tsconfig.json` |
+| `npm run lint`      | `prettier --check .` then `eslint .`   |
+| `npm run format`    | `prettier --write .`                   |
+| `npm run test:unit` | Vitest                                 |
+| `npm run test:e2e`  | Playwright                             |
 
-```sh
-npm run build
-```
+## Hardware support
 
-You can preview the production build with `npm run preview`.
+Web Serial requires a secure context and exists in Chromium-based browsers and in
+desktop Firefox 151 and newer. Where it is absent the catalog and the simulator still
+work; only installing to hardware is disabled. The capability is detected by feature,
+never by user agent.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Licence
+
+Copyright (C) 2026 Botond Sandor
+
+This program is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software Foundation,
+either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this
+program. If not, see <https://www.gnu.org/licenses/>.
+
+HANGAR reuses code from Intech Studio's Grid Editor, which is GPLv3; HANGAR is
+therefore a derivative work and ships under the same licence with corresponding
+source available from the deployed site.

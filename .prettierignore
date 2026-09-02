@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+src/vendor/
+.planning/
+CLAUDE.md

@@ -1,3 +1,4 @@
+# The preview is de-indexed by the Worker's X-Robots-Tag header, not by this file (D-07).
 # allow crawling everything by default
 User-agent: *
 Disallow:

@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Identity tokens, placeholders only — the real design system is Phase 4 (IDENT-01). */
+@theme {
+  --color-ground: #000000;
+  --color-accent: #d6ff4e;
+}
