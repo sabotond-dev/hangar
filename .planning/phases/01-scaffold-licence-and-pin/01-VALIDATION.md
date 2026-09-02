@@ -11,7 +11,8 @@ reconciled: 2026-09-02
 # Phase 1 — Validation Strategy
 
 > Per-phase validation contract for feedback sampling during execution.
-> Reconciled against the real plan task IDs on 2026-09-02.
+> Reconciled against the real plan task IDs on 2026-09-02, and again after checker iteration 1
+> (wave restructure: 01-03 now depends on 01-02, shifting 03 to wave 3, 04 to wave 4 and 05 to wave 5).
 
 ---
 
@@ -26,10 +27,17 @@ reconciled: 2026-09-02
 | **Full suite command** | `npm run check && npm run lint && npm run test:unit -- --run && npm run test:e2e` |
 | **Estimated runtime** | ~60-90 seconds (the build plus `wrangler dev` startup dominate) |
 
-**Deliberate split (changed during planning):** assertions that require a completed `build/` live in the
-Playwright suite (`e2e/artifacts.e2e.ts`), not in Vitest. The Playwright `webServer` always builds first,
-whereas a Vitest file asserting on `build/` would turn the per-task inner loop red on a clean tree for the
-wrong reason. Vitest therefore stays sub-second and always runnable.
+**Deliberate split (changed during planning):** the exhaustive assertions that require a completed
+`build/` live in the Playwright suite (`e2e/artifacts.e2e.ts`), not in Vitest. The Playwright `webServer`
+always builds first, whereas a Vitest file asserting on `build/` would turn the per-task inner loop red on
+a clean tree for the wrong reason. Vitest therefore stays sub-second and always runnable.
+
+**One deliberate exception (added in checker iteration 1):** `src/lib/licence-notices.spec.ts` carries a
+single `existsSync('build')`-guarded assertion — when a build is present it asserts `build/LICENSE` and
+`build/THIRD-PARTY.md` exist, and when it is absent it asserts that and returns. This exists so that
+success criterion 4's "**both** test runners execute against that build" is literally true rather than
+reinterpreted: without it, Vitest never touches `build/` at all. The guard keeps the inner loop
+build-independent. `requireAssertions` is on, so the no-build branch asserts too.
 
 ---
 
@@ -52,15 +60,15 @@ wrong reason. Vitest therefore stays sub-second and always runnable.
 | 1-02-01 | 02 | 2 | FOUND-03 (3a/3b/3c), D-10 | unit | `npx vitest run src/lib/protocol-pin.spec.ts` | `src/lib/protocol-pin.spec.ts` | ⬜ pending |
 | 1-02-02 | 02 | 2 | criterion 4b, D-11, D-12, D-15, D-16 | unit | `npx vitest run src/lib/config-shape.spec.ts` | `src/lib/config-shape.spec.ts` | ⬜ pending |
 | 1-02-03 | 02 | 2 | D-15 (vendor canary) | unit | `npx vitest run src/lib/format-parity.spec.ts` | `src/lib/format-parity.spec.ts` | ⬜ pending |
-| 1-03-01 | 03 | 2 | FOUND-04 (2a), criterion 1c | CLI assertion | `head -n 1 LICENSE \| grep -q "GNU GENERAL PUBLIC LICENSE" && git ls-files --error-unmatch .gitattributes && tar -tzf build/source-*.tar.gz \| grep -c '\.planning/'` = 0 | n/a + `e2e/artifacts.e2e.ts` | ⬜ pending |
-| 1-03-02 | 03 | 2 | FOUND-04 (2b/2c) | CLI assertion | `npm run licenses && grep -q "@intechstudio/grid-protocol" THIRD-PARTY.md && git diff --quiet -- THIRD-PARTY.md licenses` | n/a (generator gate) | ⬜ pending |
-| 1-03-03 | 03 | 2 | FOUND-04 (2c/2d), criterion 4a | unit + build artefact | `npm run build && npx vitest run src/lib/licence-notices.spec.ts` | `src/lib/licence-notices.spec.ts` | ⬜ pending |
-| 1-04-01 | 04 | 3 | D-07 | CLI assertion | `grep -q "if (!expectedPass) return unauthorized();" worker/index.js && git check-ignore -q .dev.vars`; live: `curl` returns 401 | covered by `e2e/smoke.e2e.ts` | ⬜ pending |
-| 1-04-02 | 04 | 3 | criterion 1b | build artefact | `npm run build && test -f "build/$(grep -oE 'source-[0-9a-f]{40}\.tar\.gz' build/index.html \| head -1)"` | covered by `e2e/smoke.e2e.ts` | ⬜ pending |
-| 1-04-03 | 04 | 3 | criteria 1b, 1c, 2a, 2b, 4b, 4c; D-07, D-14 | e2e | `npm run test:unit -- --run && npm run test:e2e` | `e2e/smoke.e2e.ts`, `e2e/artifacts.e2e.ts` | ⬜ pending |
-| 1-05-01 | 05 | 4 | criterion 1d (gate, not test) | CLI assertion | `node -e "…scripts.deploy === 'node scripts/deploy.mjs'…" && grep -q "status --porcelain" scripts/deploy.mjs`; negative check: dirty tree makes `npm run deploy` exit non-zero | n/a (deploy gate) | ⬜ pending |
-| 1-05-02 | 05 | 4 | D-01, D-07 setup | manual (checkpoint) | `git ls-remote origin \| grep -q "refs/heads/master"`; `npx wrangler secret list` | n/a | ⬜ pending |
-| 1-05-03 | 05 | 4 | criteria 1a, 1b, 2a, 2b live | manual (checkpoint) | `curl -s -o /dev/null -w '%{http_code}' https://hangar.sabotond.workers.dev/` = 401 | n/a | ⬜ pending |
+| 1-03-01 | 03 | 3 | FOUND-04 (2a), criterion 1c | CLI assertion | `head -n 1 LICENSE \| grep -q "GNU GENERAL PUBLIC LICENSE" && git ls-files --error-unmatch .gitattributes && tar -tzf build/source-*.tar.gz \| grep -c '\.planning/'` = 0 | n/a + `e2e/artifacts.e2e.ts` | ⬜ pending |
+| 1-03-02 | 03 | 3 | FOUND-04 (2b/2c) | CLI assertion | `npm run licenses && grep -q "@intechstudio/grid-protocol" THIRD-PARTY.md && git diff --quiet -- THIRD-PARTY.md licenses && npm run lint` | n/a (generator gate) | ⬜ pending |
+| 1-03-03 | 03 | 3 | FOUND-04 (2c/2d), criteria 4a and 4c | unit + build artefact | `npm run build && npx vitest run src/lib/licence-notices.spec.ts` (7 tests; the 7th is the `existsSync('build')`-guarded criterion-4c assertion) | `src/lib/licence-notices.spec.ts` | ⬜ pending |
+| 1-04-01 | 04 | 4 | D-07 | CLI assertion | `grep -q "if (!expectedPass) return unauthorized();" worker/index.js && git check-ignore -q .dev.vars`; live: `curl` returns 401 | covered by `e2e/smoke.e2e.ts` | ⬜ pending |
+| 1-04-02 | 04 | 4 | criterion 1b | build artefact | `npm run build && test -f "build/$(grep -oE 'source-[0-9a-f]{40}\.tar\.gz' build/index.html \| head -1)"` | covered by `e2e/smoke.e2e.ts` | ⬜ pending |
+| 1-04-03 | 04 | 4 | criteria 1b, 1c, 2a, 2b, 4b, 4c; D-07, D-14 | e2e | `npm run test:unit -- --run && npm run test:e2e` | `e2e/smoke.e2e.ts`, `e2e/artifacts.e2e.ts` | ⬜ pending |
+| 1-05-01 | 05 | 5 | criterion 1d (gate, not test) | CLI assertion | `node -e "…scripts.deploy === 'node scripts/deploy.mjs'…" && grep -q "status --porcelain" scripts/deploy.mjs`; negative check: dirty tree makes `npm run deploy` exit non-zero | n/a (deploy gate) | ⬜ pending |
+| 1-05-02 | 05 | 5 | D-01, D-02 setup | manual (checkpoint) | `git ls-remote origin \| grep -q "refs/heads/master"`; `npx wrangler whoami` | n/a | ⬜ pending |
+| 1-05-03 | 05 | 5 | criteria 1a, 1b, 2a, 2b live; D-07 secrets | manual (checkpoint) | `curl -s -o /dev/null -w '%{http_code}' https://hangar.sabotond.workers.dev/` = 401; `npx wrangler secret list` names both secrets (after the first deploy — the Worker does not exist before it) | n/a | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -82,7 +90,7 @@ wrong reason. Vitest therefore stays sub-second and always runnable.
 | 3d | A bump must clear the cost-baseline gate (D-11) | 1-02-01 `it.todo` + `docs/PIN-POLICY.md` — deferred to Phase 3 |
 | 4a | A static build is produced | 1-01-03, 1-03-03, `e2e/artifacts.e2e.ts` |
 | 4b | It previews with no application server | 1-02-02 (no `svelte.config`, no `kit:` wrapper) + the `wrangler dev` harness in 1-04-03 |
-| 4c | Both runners execute against that build | 1-04-03 |
+| 4c | Both runners execute against that build | 1-04-03 (Playwright: `e2e/artifacts.e2e.ts` + `e2e/smoke.e2e.ts` against `build/` through the Worker) **and** 1-03-03 (Vitest: the `existsSync('build')`-guarded assertion in `licence-notices.spec.ts` that `build/LICENSE` and `build/THIRD-PARTY.md` exist). Recorded reinterpretation: the criterion says "both", and the deliberate Vitest/Playwright split above otherwise leaves every `build/` assertion in Playwright. The single guarded Vitest assertion makes "both" literal without making the sub-second inner loop depend on a build having been run |
 | D-14 | Degrade path: `navigator.serial` removed from `Navigator.prototype`, precondition asserted | 1-04-03 (`e2e/smoke.e2e.ts`) |
 | D-15 | Formatting parity with grid-editor (vendor canary) | 1-02-03 |
 | D-07 | The gate actually gates (401 + `WWW-Authenticate` + `X-Robots-Tag`) | 1-04-01, 1-04-03, 1-05-03 |
@@ -118,6 +126,7 @@ Each is run once during its task, reverted, and the observed result recorded in 
 | Install a WTFPL package (`left-pad`) | 1-03-02 | `npm run licenses` exits non-zero, naming the package |
 | Add a production dependency without regenerating notices (`nanoid`) | 1-03-03 | `licence-notices.spec.ts` staleness test goes red |
 | Deploy with a dirty working tree | 1-05-01 | `npm run deploy` exits non-zero **before** building, naming the dirty path |
+| Mangle a copy of a BOTOR canary file into `.tmp-format-parity/` and run `prettier --check` on it | 1-02-03 | Non-zero **with** `--ignore-path .prettierignore`; **zero without it** — `.tmp-format-parity/` is gitignored and Prettier >= 3.0 defaults `--ignore-path` to `[.gitignore, .prettierignore]`, so without the flag the whole D-15 canary passes vacuously. Both exit codes recorded in the SUMMARY |
 
 ---
 
@@ -128,8 +137,8 @@ Each is run once during its task, reverted, and the observed result recorded in 
 | Deployed site loads over HTTPS behind Basic Auth | FOUND-04, criterion 1a | Requires a real deploy to the real Cloudflare account; `wrangler dev` proves the Worker logic, only a deploy proves the account, the subdomain and the secret | Task 1-05-03: `npm run deploy`, open `https://hangar.sabotond.workers.dev`, expect the `HANGAR preview` prompt, sign in, page renders |
 | Source link downloads the archive for the deployed commit and it opens | FOUND-04, criterion 1b | Playwright proves the 200 and the byte length; "opens in the user's archive tool" is a human check | Task 1-05-03: click Source; the filename SHA matches the footer SHA and `git rev-parse HEAD`; the archive opens and contains no `.planning/` |
 | `X-Robots-Tag: noindex` present on live responses | D-07 | Header inspection on the live host | `curl -I -u user:pass https://hangar.sabotond.workers.dev/` shows `x-robots-tag: noindex` |
-| `npx wrangler secret put SITE_PASSWORD` succeeded | D-07 | Interactive prompt; the value must never reach a file or a log | Task 1-05-02: `npx wrangler secret list` shows both secrets |
-| The private GitHub repository exists and `master` is pushed | D-01, D-02 | No `gh` CLI on this machine; repository creation is a web-UI action | Task 1-05-02: `git ls-remote origin` lists `refs/heads/master`; the repo page shows the Private badge |
+| `npx wrangler secret put SITE_PASSWORD` succeeded | D-07 | Interactive prompt; the value must never reach a file or a log. It targets a Worker that does not exist until the first `wrangler deploy`, so it cannot be done in the earlier checkpoint | Task 1-05-03 step 2 (immediately after the first `npm run deploy`): `npx wrangler secret list` shows both secrets |
+| The private GitHub repository exists and `master` is pushed | D-01, D-02 | No `gh` CLI on this machine; repository creation is a web-UI action | Task 1-05-02: `git ls-remote origin` lists `refs/heads/master`; the repo page shows the Private badge; `npx wrangler whoami` names the account |
 
 ---
 
