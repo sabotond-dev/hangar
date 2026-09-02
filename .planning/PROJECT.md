@@ -44,8 +44,9 @@ If everything else fails, browser-to-hardware install must work.
       Timer budgets, with the fit ladder degrading gracefully instead of failing
 - [ ] Shareable URL that encodes the tuned state (the existing base36 stamp), so a tuned config
       travels through a Discord link with no accounts and no backend
-- [ ] Honest degrade where Web Serial does not exist (Firefox, Safari, every iOS browser): the whole
-      catalog still browses and simulates, install is disabled with a plain explanation
+- [ ] Honest degrade where Web Serial does not exist (Safari, every iOS browser, Firefox on Android,
+      desktop Firefox before 151): the whole catalog still browses and simulates, install is disabled
+      with a plain explanation — detected by feature, never by user agent
 - [ ] Ships as a static site — no server, no database, no auth
 
 ### Out of Scope
@@ -97,9 +98,12 @@ across the grid is what makes waves and swirls; a page change destroys the whole
 
 ## Constraints
 
-- **Compatibility**: Web Serial is Chromium-only (Chrome, Edge, Opera) and needs HTTPS plus a user
-  gesture — Firefox, Safari and every iOS browser can never install. A large share of visitors will be
-  browse-only, so the catalog and the simulator have to carry the site on their own.
+- **Compatibility**: Web Serial needs HTTPS plus a user gesture and exists in Chromium (Chrome 89+,
+  Edge, Opera) and, since 2026-05-19, desktop Firefox 151+ (with its own per-site prompt and an
+  enterprise policy that can switch it off). Safari, every iOS browser and Firefox on Android can never
+  install. A large share of visitors will still be browse-only, so the catalog and the simulator have
+  to carry the site on their own. Detect the capability (`"serial" in navigator && isSecureContext`),
+  never the browser.
 - **Budget**: 908 characters for Setup and 908 for Timer, comments included (the minifier does not
   strip them). Every knob a visitor turns has to keep the config inside that.
 - **Licensing**: `grid-editor` is GPLv3. Porting `_pad.ts` and `pad-sim.ts` into HANGAR makes HANGAR a
