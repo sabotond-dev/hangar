@@ -21,7 +21,7 @@ a working simulator and a live budget meter make it an easy job instead of a bli
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Scaffold, Licence and Pin** - Static-site skeleton with GPLv3 obligations and the exact grid-protocol pin settled from commit one
+- [x] **Phase 1: Scaffold, Licence and Pin** - Static-site skeleton with GPLv3 obligations and the exact grid-protocol pin settled from commit one (completed 2026-09-02)
 - [ ] **Phase 2: Walking Skeleton** - A bare page proves the full connect, fetch, write and store cycle on a real ZONA as a provable no-op
 - [ ] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle
 - [ ] **Phase 4: Catalog, Live Simulator and Identity** - Nine presets animating live on a black-and-lime site that is worth opening with no hardware attached
@@ -48,7 +48,7 @@ Plans:
 - [x] 01-02-PLAN.md — PROTOCOL_PIN gate, bump policy, vendor seam, format-parity canary (wave 2)
 - [x] 01-03-PLAN.md — GPLv3 LICENSE, third-party notices, source archive and postbuild (wave 3)
 - [x] 01-04-PLAN.md — Basic Auth Worker, footer source link, Playwright against the static build (wave 4)
-- [ ] 01-05-PLAN.md — Deploy script with a clean-tree gate, then the manual gated deploy (wave 5)
+- [x] 01-05-PLAN.md — Deploy script with a clean-tree gate, then the manual gated deploy (wave 5)
 
 ### Phase 2: Walking Skeleton
 **Goal**: Prove that a bare browser page — no framework, no Grid Editor runtime — can complete the whole write cycle against a real ZONA, using a write that changes nothing.
@@ -150,7 +150,7 @@ Phases 6 and 7.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold, Licence and Pin | 0/5 | Planned | - |
+| 1. Scaffold, Licence and Pin | 5/5 | Complete   | 2026-09-02 |
 | 2. Walking Skeleton | 0/TBD | Not started | - |
 | 3. Vendor the Domain | 0/TBD | Not started | - |
 | 4. Catalog, Live Simulator and Identity | 0/TBD | Not started | - |

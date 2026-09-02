@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Paused at Task 1-05-02 (checkpoint:human-action) — Task 1-05-01 committed as eb9e24e"
-last_updated: "2026-09-02T15:54:13.728Z"
+status: verifying
+stopped_at: "Completed 01-05-PLAN.md — the gated preview is live at https://hangar.sabotond.workers.dev (commit 503964d); both Worker secrets set; Phase 01 ready for verification"
+last_updated: "2026-09-02T16:11:15.156Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 0
+  completed_plans: 5
+  percent: 13
 ---
 
 # Project State
@@ -25,37 +25,38 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 
 ## Current Position
 
-Phase: 01 (scaffold-licence-and-pin) — EXECUTING
+Phase: 01 (scaffold-licence-and-pin) — COMPLETE (all 5 plans executed; awaiting phase verification)
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-02
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 13%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 5
+- Average duration: 20 min
+- Total execution time: 1.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01 | 5 | 100 min | 20 min |
 
 **Recent Trend:**
 
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: 8, 15, 12, 45, 20 min
+- Trend: steady. The two longest carried the most unknowns — 01-04 rebuilt the browser harness onto the real artifact, 01-05 spanned two blocking human checkpoints.
 
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 3 tasks | 22 files |
 | Phase 01 P02 | 15min | 3 tasks | 8 files |
 | Phase 01 P03 | 12min | 3 tasks | 10 files |
 | Phase 01 P04 | 45min | 3 tasks | 9 files |
+| Phase 01 P05 | 20min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase 01]: The unauthenticated gate assertion uses Node fetch, not Playwright's request API — Both Playwright routes were observed returning 200 where 401 was expected: an explicit httpCredentials undefined in test.use reads as "not specified" and falls back to defineConfig, and a context from the module-level request API picks the same credentials up under the runner
 - [Phase 01]: vite.config.ts prerender.handleHttpError suppresses a 404 for exactly /LICENSE, /THIRD-PARTY.md and /source-*.tar.gz and rethrows everything else — scripts/postbuild.mjs writes those three after vite build, so the prerenderer crawling the footer links cannot see them; a global suppression would have silently accepted a genuinely broken internal link
 - [Phase 01]: Killing a stray wrangler dev requires killing the whole process tree (npx-cli to wrangler.js to wrangler-dist/cli.js to workerd.exe); killing workerd alone leaves a listener on 4173 that accepts and never answers — cli.js restarts workerd when it dies; the resulting zombie makes every curl hang until its timeout and Playwright's reuseExistingServer would happily attach to it
+- [Phase 01]: The deploy is one Node script with six refusing gates and no bypass flag; the clean-tree gate exits before the build because git archive ships HEAD while Vite bundles the working tree, so a dirty deploy would serve an archive that is not the source of the bundle beside it
+- [Phase 01]: Worker secrets are set AFTER the first deploy, not before — wrangler secret put targets a Worker that does not exist until an upload creates one, and the fail-closed gate turns the 29-second gap into a 401-to-everything state rather than a window of public exposure
+- [Phase 01]: CLAUDE.md is regenerated with gsd-tools generate-claude-md, never hand-edited — its GSD:project block is rendered from PROJECT.md, so a hand edit silently reverts on the next regeneration and re-introduces the public-source claim D-02 contradicts
 
 ### Pending Todos
 
@@ -98,6 +102,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-02T15:54:13.722Z
-Stopped at: Paused at Task 1-05-02 (checkpoint:human-action) — Task 1-05-01 committed as eb9e24e
-Resume file: .planning/phases/01-scaffold-licence-and-pin/01-05-PLAN.md
+Last session: 2026-09-02T16:11:15.151Z
+Stopped at: Completed 01-05-PLAN.md — the gated preview is live at https://hangar.sabotond.workers.dev (commit 503964d); both Worker secrets set; Phase 01 ready for verification
+Resume file: None
