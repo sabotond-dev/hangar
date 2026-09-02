@@ -13,7 +13,7 @@ feature table in `.planning/research/FEATURES.md`.
 - [ ] **FOUND-01**: A bare browser page (no framework, no Editor) connects to a ZONA over Web Serial, fetches the touch element's existing Setup and Timer configs, writes the identical strings back, and stores — every step acknowledged by the module, the whole run a provable no-op on the hardware (the walking skeleton)
 - [ ] **FOUND-02**: The `_pad.ts` compiler, `pad-sim.ts` simulator and `pad-sim-host.ts` render loop are vendored into HANGAR with their existing test suites passing unchanged, quarantined under a single vendor directory with a written sync procedure back to BOTOR
 - [x] **FOUND-03**: `@intechstudio/grid-protocol` is pinned to the exact version BOTOR's cost baseline was measured against, and any bump is a test-gated change
-- [x] **FOUND-04**: The repository carries a GPLv3 licence, a notices file for third-party licences (grid-protocol is itself GPLv3), and the deployed site links to its public source
+- [x] **FOUND-04**: The repository carries a GPLv3 licence, a notices file for third-party licences (grid-protocol is itself GPLv3), and the deployed site serves a source archive of the deployed commit (GPLv3 section 6(d) — the repository itself stays private, per D-02)
 - [ ] **FOUND-05**: Compile, cost and fit are gated on the Lua formatter WASM being initialised, so no card can ever appear syntactically invalid or fail to measure because the formatter has not loaded yet
 
 ### Connect [A]

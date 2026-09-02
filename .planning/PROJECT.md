@@ -107,8 +107,9 @@ across the grid is what makes waves and swirls; a page change destroys the whole
 - **Budget**: 908 characters for Setup and 908 for Timer, comments included (the minifier does not
   strip them). Every knob a visitor turns has to keep the config inside that.
 - **Licensing**: `grid-editor` is GPLv3. Porting `_pad.ts` and `pad-sim.ts` into HANGAR makes HANGAR a
-  derivative work, so HANGAR ships GPLv3 with public source. Consistent with the BOTOR decision, but it
-  is a decision, not an accident.
+  derivative work, so HANGAR ships GPLv3; the corresponding source is served as a per-deploy archive
+  from the site itself and the repository stays private (D-02, GPLv3 section 6(d)). Consistent with
+  the BOTOR decision, but it is a decision, not an accident.
 - **Safety**: the site talks to hardware people paid for. Nothing writes without an explicit click,
   flash writes stay separate from RAM auditions, and the module's original config is always recoverable.
 - **Hosting**: static only. Cloudflare is the established host on this machine (zona-docs runs there).
@@ -141,7 +142,7 @@ Set by the user's reference images (2026-09-02). This is HANGAR's own identity, 
 | Tune knobs, not full authoring | "Playground" means turning knobs on great configs; a browser layer/zone editor is a different, much larger product | — Pending |
 | Shareable state in the URL via the base36 stamp, no accounts | Keeps the whole thing static and free, and the stamp format already exists and is versioned | — Pending |
 | HANGAR gets its own black and acid-lime identity | The user's reference images; the site is a playground, not an Intech product surface | — Pending |
-| GPLv3, public source | Consequence of reusing the GPLv3 compiler and simulator; already the BOTOR precedent | — Pending |
+| GPLv3, source archive per deploy (repo private) | Consequence of reusing the GPLv3 compiler and simulator; already the BOTOR precedent | — Pending |
 
 ## Evolution
 

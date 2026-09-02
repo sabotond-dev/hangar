@@ -25,8 +25,9 @@ If everything else fails, browser-to-hardware install must work.
 - **Budget**: 908 characters for Setup and 908 for Timer, comments included (the minifier does not
   strip them). Every knob a visitor turns has to keep the config inside that.
 - **Licensing**: `grid-editor` is GPLv3. Porting `_pad.ts` and `pad-sim.ts` into HANGAR makes HANGAR a
-  derivative work, so HANGAR ships GPLv3 with public source. Consistent with the BOTOR decision, but it
-  is a decision, not an accident.
+  derivative work, so HANGAR ships GPLv3; the corresponding source is served as a per-deploy archive
+  from the site itself and the repository stays private (D-02, GPLv3 section 6(d)). Consistent with
+  the BOTOR decision, but it is a decision, not an accident.
 - **Safety**: the site talks to hardware people paid for. Nothing writes without an explicit click,
   flash writes stay separate from RAM auditions, and the module's original config is always recoverable.
 - **Hosting**: static only. Cloudflare is the established host on this machine (zona-docs runs there).
