@@ -12,7 +12,8 @@ reconciled: 2026-09-02
 
 > Per-phase validation contract for feedback sampling during execution.
 > Reconciled against the real plan task IDs on 2026-09-02, and again after checker iteration 1
-> (wave restructure: 01-03 now depends on 01-02, shifting 03 to wave 3, 04 to wave 4 and 05 to wave 5).
+> (wave restructure: 01-03 now depends on 01-02, shifting 03 to wave 3, 04 to wave 4 and 05 to wave 5)
+> and checker iteration 2 (lint scope; see "Lint scope is a sampling precondition" below).
 
 ---
 
@@ -31,6 +32,17 @@ reconciled: 2026-09-02
 `build/` live in the Playwright suite (`e2e/artifacts.e2e.ts`), not in Vitest. The Playwright `webServer`
 always builds first, whereas a Vitest file asserting on `build/` would turn the per-task inner loop red on
 a clean tree for the wrong reason. Vitest therefore stays sub-second and always runnable.
+
+**Lint scope is a sampling precondition (added in checker iteration 2):** `npm run lint` is
+`prettier --check . && eslint .`, and it appears in the per-wave sampling command and in the
+`npm run lint` acceptance criterion of plans 01, 03, 04 and 05. It walks the whole repository, which
+includes tracked, hand-written markdown: `.planning/` is not gitignored, and `CLAUDE.md` is tracked and
+generated. Task 1-01-03 therefore appends `.planning/` and `CLAUDE.md` to `.prettierignore` alongside
+`src/vendor/`, and adds `__COMMIT_SHA__`/`__BUILD_DIRTY__` to `eslint.config.js` as `languageOptions`
+globals (sv's flat config keeps `no-undef` on for `.svelte` files, and plan 04's footer references both
+in markup). Without those two edits, every SUMMARY.md an executor writes re-reds the next plan's lint
+criterion, and `npm run format` would rewrite the PLAN.md files being executed. If a lint sample goes red
+on a file under `.planning/`, the fix is `.prettierignore` — never `npm run format`.
 
 **One deliberate exception (added in checker iteration 1):** `src/lib/licence-notices.spec.ts` carries a
 single `existsSync('build')`-guarded assertion — when a build is present it asserts `build/LICENSE` and
@@ -66,7 +78,7 @@ build-independent. `requireAssertions` is on, so the no-build branch asserts too
 | 1-04-01 | 04 | 4 | D-07 | CLI assertion | `grep -q "if (!expectedPass) return unauthorized();" worker/index.js && git check-ignore -q .dev.vars`; live: `curl` returns 401 | covered by `e2e/smoke.e2e.ts` | ⬜ pending |
 | 1-04-02 | 04 | 4 | criterion 1b | build artefact | `npm run build && test -f "build/$(grep -oE 'source-[0-9a-f]{40}\.tar\.gz' build/index.html \| head -1)"` | covered by `e2e/smoke.e2e.ts` | ⬜ pending |
 | 1-04-03 | 04 | 4 | criteria 1b, 1c, 2a, 2b, 4b, 4c; D-07, D-14 | e2e | `npm run test:unit -- --run && npm run test:e2e` | `e2e/smoke.e2e.ts`, `e2e/artifacts.e2e.ts` | ⬜ pending |
-| 1-05-01 | 05 | 5 | criterion 1d (gate, not test) | CLI assertion | `node -e "…scripts.deploy === 'node scripts/deploy.mjs'…" && grep -q "status --porcelain" scripts/deploy.mjs`; negative check: dirty tree makes `npm run deploy` exit non-zero | n/a (deploy gate) | ⬜ pending |
+| 1-05-01 | 05 | 5 | criterion 1d (gate, not test); D-02 doc amendment | CLI assertion | `node -e "…scripts.deploy === 'node scripts/deploy.mjs'…" && grep -q "status --porcelain" scripts/deploy.mjs`; negative check: dirty tree makes `npm run deploy` exit non-zero; doc amendment: `grep -q "public source" .planning/PROJECT.md` FAILS and `sed -n '/GSD:project-start/,/GSD:project-end/p' CLAUDE.md \| tr -s '[:space:]' ' ' \| grep -q "per-deploy archive"` succeeds after `generate-claude-md` | n/a (deploy gate) | ⬜ pending |
 | 1-05-02 | 05 | 5 | D-01, D-02 setup | manual (checkpoint) | `git ls-remote origin \| grep -q "refs/heads/master"`; `npx wrangler whoami` | n/a | ⬜ pending |
 | 1-05-03 | 05 | 5 | criteria 1a, 1b, 2a, 2b live; D-07 secrets | manual (checkpoint) | `curl -s -o /dev/null -w '%{http_code}' https://hangar.sabotond.workers.dev/` = 401; `npx wrangler secret list` names both secrets (after the first deploy — the Worker does not exist before it) | n/a | ⬜ pending |
 
@@ -113,6 +125,7 @@ Wave 0 is plan 01 in its entirety — this is the first phase and there is no te
 - [ ] `e2e/smoke.e2e.ts` + `e2e/artifacts.e2e.ts` — **Task 1-04-03**
 - [ ] `scripts/gen-licenses.mjs` — **Task 1-03-02**; `scripts/postbuild.mjs` — **Task 1-03-03**; `scripts/deploy.mjs` — **Task 1-05-01**
 - [ ] Delete `src/routes/demo/**` and `src/lib/vitest-examples/**` before they are prerendered — **Task 1-01-01**
+- [ ] `.prettierignore` (`src/vendor/`, `.planning/`, `CLAUDE.md`) + `eslint.config.js` `languageOptions.globals` — `npm run lint` is in every sampling command and is otherwise red for tracked planning markdown and for the footer's `define` constants — **Task 1-01-03**
 
 ---
 
@@ -126,6 +139,7 @@ Each is run once during its task, reverted, and the observed result recorded in 
 | Install a WTFPL package (`left-pad`) | 1-03-02 | `npm run licenses` exits non-zero, naming the package |
 | Add a production dependency without regenerating notices (`nanoid`) | 1-03-03 | `licence-notices.spec.ts` staleness test goes red |
 | Deploy with a dirty working tree | 1-05-01 | `npm run deploy` exits non-zero **before** building, naming the dirty path |
+| Run `npm run format` and diff the planning tree | 1-01-03 | `git diff --stat -- .planning CLAUDE.md` is byte-identical before and after — the formatter rewrote no planning document and not the generated `CLAUDE.md`. Both outputs recorded in the SUMMARY |
 | Mangle a copy of a BOTOR canary file into `.tmp-format-parity/` and run `prettier --check` on it | 1-02-03 | Non-zero **with** `--ignore-path .prettierignore`; **zero without it** — `.tmp-format-parity/` is gitignored and Prettier >= 3.0 defaults `--ignore-path` to `[.gitignore, .prettierignore]`, so without the flag the whole D-15 canary passes vacuously. Both exit codes recorded in the SUMMARY |
 
 ---
