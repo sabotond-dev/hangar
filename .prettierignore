@@ -10,3 +10,9 @@ bun.lockb
 src/vendor/
 .planning/
 CLAUDE.md
+
+# Generated licence artefacts. Both are committed; without these entries
+# `prettier --check .` would fail on output no human wrote, and formatting them
+# would make `npm run licenses` non-deterministic against the deploy gate.
+THIRD-PARTY.md
+licenses/
