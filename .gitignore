@@ -1,0 +1,16 @@
+# Claude Code session artifacts
+.claude/worktrees/
+.claude/settings.local.json
+
+# Environment secrets
+.env
+.env.local
+.env*.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.svelte-kit/
