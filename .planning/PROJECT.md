@@ -142,7 +142,7 @@ Set by the user's reference images (2026-09-02). This is HANGAR's own identity, 
 | Tune knobs, not full authoring | "Playground" means turning knobs on great configs; a browser layer/zone editor is a different, much larger product | — Pending |
 | Shareable state in the URL via the base36 stamp, no accounts | Keeps the whole thing static and free, and the stamp format already exists and is versioned | — Pending |
 | HANGAR gets its own black and acid-lime identity | The user's reference images; the site is a playground, not an Intech product surface | — Pending |
-| GPLv3, source archive per deploy (repo private) | Consequence of reusing the GPLv3 compiler and simulator; already the BOTOR precedent | — Pending |
+| GPLv3, source archive per deploy (repo private) | Consequence of reusing the GPLv3 compiler and simulator; §6(d) discharged by serving `source-<sha>.tar.gz` from the site itself (D-02) | ✓ Good — Phase 1: live at hangar.sabotond.workers.dev behind Basic Auth; archive verified for the deployed commit |
 
 ## Evolution
 
@@ -162,4 +162,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-02 after initialization*
+*Last updated: 2026-09-02 after Phase 1 (Scaffold, Licence and Pin) — deployed preview live, GPLv3 obligations mechanised, protocol pin gated*
