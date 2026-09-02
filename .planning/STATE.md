@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: verifying
 stopped_at: "Completed 01-05-PLAN.md — the gated preview is live at https://hangar.sabotond.workers.dev (commit 503964d); both Worker secrets set; Phase 01 ready for verification"
-last_updated: "2026-09-02T16:11:15.156Z"
+last_updated: "2026-09-02T16:20:39.276Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 8
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 
 ## Current Position
 
-Phase: 01 (scaffold-licence-and-pin) — COMPLETE (all 5 plans executed; awaiting phase verification)
-Plan: 5 of 5
+Phase: 2
+Plan: Not started
 Status: Phase complete — ready for verification
 Last activity: 2026-09-02
 
