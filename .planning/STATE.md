@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-09-02T14:48:44.598Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-09-02T15:06:07.189Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 01 (scaffold-licence-and-pin) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-09-02
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 3 tasks | 22 files |
 | Phase 01 P02 | 15min | 3 tasks | 8 files |
+| Phase 01 P03 | 12min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,10 @@ Recent decisions affecting current work:
 - [Phase 01]: .planning/ and CLAUDE.md are Prettier-ignored but never gitignored, so npm run lint stays green without rewriting tracked planning documents
 - [Phase 01]: The D-15 vendor canary asserts formatter-output parity with grid-editor (HANGAR prettier stdout === grid-editor prettier stdout, byte for byte), not `prettier --check` cleanliness of a copied BOTOR file — Three of the four grid-editor zona files are not Prettier-clean upstream (pad-sim.ts 6 hunks), so the check-based form was permanently red for a reason outside HANGAR control; the D-15 property is a clean re-sync diff, which holds iff the two formatters agree
 - [Phase 01]: The canary runs grid-editor own node_modules/prettier/bin/prettier.cjs with cwd = the BOTOR root, in stdout mode only; the sibling repo is never written to — Catches a Prettier version or plugin divergence between the repos instead of assuming parity
+- [Phase 01]: THIRD-PARTY.md and licenses/ are committed, not gitignored as research suggested — npm run build must be reproducible from a clean clone without first running the licence checker, the source archive should carry the notices it references, and the staleness spec can then read them directly instead of shelling out
+- [Phase 01]: The source archive filename carries the FULL 40-character SHA (the __COMMIT_SHA__ contract) while the archive internal prefix uses the short SHA — The plan-04 footer links at /source-{__COMMIT_SHA__}.tar.gz and __COMMIT_SHA__ is git rev-parse HEAD verbatim; a short-SHA filename would never resolve
+- [Phase 01]: scripts/postbuild.mjs deletes any pre-existing build/source-*.tar.gz before writing the current one — Two archives served side by side leaves a visitor unable to tell which source matches the bundle they ran - the precise silent failure GPLv3 section 6(d) exists to prevent
+- [Phase 01]: npm uninstall does not restore package-lock.json byte-exactly on this machine (tabs become two spaces), so any npm install/uninstall round trip needs an explicit git checkout of package-lock.json — Plan 05 deploy gate refuses to run on a dirty tree; a reformatted lockfile with an identical dependency set would block a deploy for no real reason
 
 ### Pending Todos
 
@@ -88,6 +93,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-02T14:48:28.612Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-09-02T15:05:31.362Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
