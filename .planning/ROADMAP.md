@@ -44,7 +44,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 5 plans in 5 waves
 
 Plans:
-- [ ] 01-01-PLAN.md — Scaffold with sv, install the exact grid-protocol pin, correct sv's output (wave 1)
+- [x] 01-01-PLAN.md — Scaffold with sv, install the exact grid-protocol pin, correct sv's output (wave 1)
 - [ ] 01-02-PLAN.md — PROTOCOL_PIN gate, bump policy, vendor seam, format-parity canary (wave 2)
 - [ ] 01-03-PLAN.md — GPLv3 LICENSE, third-party notices, source archive and postbuild (wave 3)
 - [ ] 01-04-PLAN.md — Basic Auth Worker, footer source link, Playwright against the static build (wave 4)

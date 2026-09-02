@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-09-02T14:19:53.647Z"
-last_activity: 2026-09-02 -- Phase 01 execution started
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-09-02T14:31:34.815Z"
+last_activity: 2026-09-02
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 01 (scaffold-licence-and-pin) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 01
-Last activity: 2026-09-02 -- Phase 01 execution started
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-09-02
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01 P01 | 8min | 3 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - [Roadmap]: Snapshot + PUT BACK ships in the same phase as the first real write (Phase 7). Store-to-flash is a step inside that phase, strictly after audition and PUT BACK both work.
 - [Roadmap]: The fidelity oracle is established in the vendoring phase (Phase 3), before the simulator is trusted to render anything.
 - [Roadmap]: GPLv3 licence and the exact grid-protocol pin land in Phase 1 — free now, miserable to retrofit.
+- [Phase 01]: sv@0.17.0 has no --no-git-check and no -C/--cwd flag, and rejects cfTarget for non-Cloudflare adapters; the scaffold command is 'sv create . --template minimal --types ts --no-install --no-dir-check --no-download-check --add prettier eslint tailwindcss=plugins:none playwright vitest=usages:unit sveltekit-adapter=adapter:static'
+- [Phase 01]: Kit config lives only in vite.config.ts with FLAT options inside the sveltekit() argument; no svelte.config.js and no kit: {} wrapper anywhere
+- [Phase 01]: sv 0.17.0 emits src/routes/layout.css, not src/app.css; HANGAR uses src/app.css imported from +layout.svelte as ../app.css
+- [Phase 01]: .planning/ and CLAUDE.md are Prettier-ignored but never gitignored, so npm run lint stays green without rewriting tracked planning documents
 
 ### Pending Todos
 
@@ -80,6 +85,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-02T12:11:59.928Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-scaffold-licence-and-pin/01-CONTEXT.md
+Last session: 2026-09-02T14:31:34.811Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
