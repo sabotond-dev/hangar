@@ -37,11 +37,18 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Depends on**: Nothing (first phase)
 **Requirements**: FOUND-03, FOUND-04
 **Success Criteria** (what must be TRUE):
-  1. A visitor can load the deployed site over HTTPS and follow a visible Source link to the public repository at the deployed commit.
+  1. **AMENDED by 01-CONTEXT.md (D-02 — the repository is private permanently):** A visitor can load the deployed site over HTTPS and download, from a visible Source link, a source archive of exactly the deployed commit, with the commit SHA shown beside it. (Original wording: "follow a visible Source link to the public repository at the deployed commit".)
   2. A GPLv3 `LICENSE` and a third-party notices file are served from the site root, with `@intechstudio/grid-protocol`'s own GPLv3 listed.
   3. `@intechstudio/grid-protocol` is pinned to the exact version BOTOR's cost baseline was measured against (no caret), and a check fails if that pin is loosened or bumped without going through a test gate.
   4. A developer can produce a static build and preview it with no server running, and both test runners execute against that build.
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
+
+Plans:
+- [ ] 01-01-PLAN.md — Scaffold with sv, install the exact grid-protocol pin, correct sv's output (wave 1)
+- [ ] 01-02-PLAN.md — PROTOCOL_PIN gate, bump policy, vendor seam, format-parity canary (wave 2)
+- [ ] 01-03-PLAN.md — GPLv3 LICENSE, third-party notices, source archive and postbuild (wave 2)
+- [ ] 01-04-PLAN.md — Basic Auth Worker, footer source link, Playwright against the static build (wave 3)
+- [ ] 01-05-PLAN.md — Deploy script with a clean-tree gate, then the manual gated deploy (wave 4)
 
 ### Phase 2: Walking Skeleton
 **Goal**: Prove that a bare browser page — no framework, no Grid Editor runtime — can complete the whole write cycle against a real ZONA, using a write that changes nothing.
@@ -143,7 +150,7 @@ Phases 6 and 7.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold, Licence and Pin | 0/TBD | Not started | - |
+| 1. Scaffold, Licence and Pin | 0/5 | Planned | - |
 | 2. Walking Skeleton | 0/TBD | Not started | - |
 | 3. Vendor the Domain | 0/TBD | Not started | - |
 | 4. Catalog, Live Simulator and Identity | 0/TBD | Not started | - |
