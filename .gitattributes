@@ -1,0 +1,10 @@
+# Keep internal planning and agent material out of the source archive
+# (`git archive`, GPLv3 section 6(d) corresponding source). Planning markdown is not
+# "source code needed to generate, install, or run the object code" (GPLv3 section 1).
+.planning/ export-ignore
+.claude/ export-ignore
+CLAUDE.md export-ignore
+.gitattributes export-ignore
+
+# LF in the index everywhere; this is a Windows checkout with CRLF working copies.
+* text=auto eol=lf
