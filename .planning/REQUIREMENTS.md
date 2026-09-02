@@ -153,62 +153,65 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | — | Pending |
-| FOUND-02 | — | Pending |
-| FOUND-03 | — | Pending |
-| FOUND-04 | — | Pending |
-| FOUND-05 | — | Pending |
-| CONN-01 | — | Pending |
-| CONN-02 | — | Pending |
-| CONN-03 | — | Pending |
-| CONN-04 | — | Pending |
-| CONN-05 | — | Pending |
-| CONN-06 | — | Pending |
-| CONN-07 | — | Pending |
-| CONN-08 | — | Pending |
-| SAFE-01 | — | Pending |
-| SAFE-02 | — | Pending |
-| SAFE-03 | — | Pending |
-| SAFE-04 | — | Pending |
-| SAFE-05 | — | Pending |
-| SAFE-06 | — | Pending |
-| SAFE-07 | — | Pending |
-| SAFE-08 | — | Pending |
-| SAFE-09 | — | Pending |
-| PREV-01 | — | Pending |
-| PREV-02 | — | Pending |
-| PREV-03 | — | Pending |
-| PREV-04 | — | Pending |
-| PREV-05 | — | Pending |
-| PREV-06 | — | Pending |
-| CAT-01 | — | Pending |
-| CAT-02 | — | Pending |
-| CAT-03 | — | Pending |
-| CAT-04 | — | Pending |
-| CONT-01 | — | Pending |
-| CONT-02 | — | Pending |
-| CONT-03 | — | Pending |
-| TUNE-01 | — | Pending |
-| TUNE-02 | — | Pending |
-| TUNE-03 | — | Pending |
-| TUNE-04 | — | Pending |
-| TUNE-05 | — | Pending |
-| TUNE-06 | — | Pending |
-| TUNE-07 | — | Pending |
-| SHARE-01 | — | Pending |
-| SHARE-02 | — | Pending |
-| SHARE-03 | — | Pending |
-| SHARE-04 | — | Pending |
-| DEGR-01 | — | Pending |
-| DEGR-02 | — | Pending |
-| IDENT-01 | — | Pending |
-| IDENT-02 | — | Pending |
+| FOUND-01 | Phase 2 | Pending |
+| FOUND-02 | Phase 3 | Pending |
+| FOUND-03 | Phase 1 | Pending |
+| FOUND-04 | Phase 1 | Pending |
+| FOUND-05 | Phase 3 | Pending |
+| CONN-01 | Phase 6 | Pending |
+| CONN-02 | Phase 6 | Pending |
+| CONN-03 | Phase 6 | Pending |
+| CONN-04 | Phase 6 | Pending |
+| CONN-05 | Phase 6 | Pending |
+| CONN-06 | Phase 6 | Pending |
+| CONN-07 | Phase 6 | Pending |
+| CONN-08 | Phase 6 | Pending |
+| SAFE-01 | Phase 7 | Pending |
+| SAFE-02 | Phase 7 | Pending |
+| SAFE-03 | Phase 7 | Pending |
+| SAFE-04 | Phase 7 | Pending |
+| SAFE-05 | Phase 7 | Pending |
+| SAFE-06 | Phase 7 | Pending |
+| SAFE-07 | Phase 7 | Pending |
+| SAFE-08 | Phase 7 | Pending |
+| SAFE-09 | Phase 7 | Pending |
+| PREV-01 | Phase 4 | Pending |
+| PREV-02 | Phase 4 | Pending |
+| PREV-03 | Phase 4 | Pending |
+| PREV-04 | Phase 4 | Pending |
+| PREV-05 | Phase 4 | Pending |
+| PREV-06 | Phase 3 | Pending |
+| CAT-01 | Phase 4 | Pending |
+| CAT-02 | Phase 4 | Pending |
+| CAT-03 | Phase 4 | Pending |
+| CAT-04 | Phase 4 | Pending |
+| CONT-01 | Phase 4 | Pending |
+| CONT-02 | Phase 8 | Pending |
+| CONT-03 | Phase 4 | Pending |
+| TUNE-01 | Phase 5 | Pending |
+| TUNE-02 | Phase 5 | Pending |
+| TUNE-03 | Phase 5 | Pending |
+| TUNE-04 | Phase 5 | Pending |
+| TUNE-05 | Phase 5 | Pending |
+| TUNE-06 | Phase 5 | Pending |
+| TUNE-07 | Phase 5 | Pending |
+| SHARE-01 | Phase 5 | Pending |
+| SHARE-02 | Phase 5 | Pending |
+| SHARE-03 | Phase 5 | Pending |
+| SHARE-04 | Phase 5 | Pending |
+| DEGR-01 | Phase 5 | Pending |
+| DEGR-02 | Phase 7 | Pending |
+| IDENT-01 | Phase 4 | Pending |
+| IDENT-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 50 total
-- Mapped to phases: 0
-- Unmapped: 50 ⚠️ (populated by roadmap)
+- Mapped to phases: 50 ✓
+- Unmapped: 0
+
+Every v1 requirement maps to exactly one phase. Per-phase counts: Phase 1 (2), Phase 2 (1),
+Phase 3 (3), Phase 4 (13), Phase 5 (12), Phase 6 (8), Phase 7 (10), Phase 8 (1).
 
 ---
 *Requirements defined: 2026-09-02*
-*Last updated: 2026-09-02 after initial definition*
+*Last updated: 2026-09-02 after roadmap creation (traceability populated)*

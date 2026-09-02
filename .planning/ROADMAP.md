@@ -1,0 +1,180 @@
+# Roadmap: HANGAR
+
+## Overview
+
+HANGAR is two nearly-independent products joined at one seam, and this roadmap keeps that seam
+visible. A short scaffold phase settles the licence and the protocol pin, then the project forks:
+a **hardware track** that opens with a deliberately isolated no-op write against a real ZONA (the
+single riskiest unknown, answered in week one, not week six), and a **pure track** that vendors
+BOTOR's compiler and simulator, turns them into a black-and-lime rack of live animating cards, and
+then adds knobs, budget meters and shareable links — none of which needs a module plugged in. The
+two tracks meet at the install flow, where the snapshot taken at connect, the RAM audition and the
+deliberate flash store all land together, because splitting them would mean the first audition
+destroys the state the snapshot exists to protect. Authoring new spectacle configs comes last, when
+a working simulator and a live budget meter make it an easy job instead of a blind one.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Scaffold, Licence and Pin** - Static-site skeleton with GPLv3 obligations and the exact grid-protocol pin settled from commit one
+- [ ] **Phase 2: Walking Skeleton** - A bare page proves the full connect, fetch, write and store cycle on a real ZONA as a provable no-op
+- [ ] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle
+- [ ] **Phase 4: Catalog, Live Simulator and Identity** - Nine presets animating live on a black-and-lime site that is worth opening with no hardware attached
+- [ ] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL
+- [ ] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language
+- [ ] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames
+- [ ] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter
+
+## Phase Details
+
+### Phase 1: Scaffold, Licence and Pin
+**Goal**: The repository exists as a deployable static site whose licence and dependency obligations are already satisfied, so both tracks can start from it without retrofitting anything.
+**Depends on**: Nothing (first phase)
+**Requirements**: FOUND-03, FOUND-04
+**Success Criteria** (what must be TRUE):
+  1. A visitor can load the deployed site over HTTPS and follow a visible Source link to the public repository at the deployed commit.
+  2. A GPLv3 `LICENSE` and a third-party notices file are served from the site root, with `@intechstudio/grid-protocol`'s own GPLv3 listed.
+  3. `@intechstudio/grid-protocol` is pinned to the exact version BOTOR's cost baseline was measured against (no caret), and a check fails if that pin is loosened or bumped without going through a test gate.
+  4. A developer can produce a static build and preview it with no server running, and both test runners execute against that build.
+**Plans**: TBD
+
+### Phase 2: Walking Skeleton
+**Goal**: Prove that a bare browser page — no framework, no Grid Editor runtime — can complete the whole write cycle against a real ZONA, using a write that changes nothing.
+**Depends on**: Phase 1
+**Requirements**: FOUND-01
+**Success Criteria** (what must be TRUE):
+  1. *(hardware — verified by the user on a real ZONA)* User opens a bare page, clicks connect, sees only ZONA's USB identity offered in the browser's port picker (VID 0x303a / PID 0x8123, never a bootloader identity), and the page reports the module identified as a ZONA with its firmware version.
+  2. *(hardware)* The page displays the touch element's existing Setup and Timer strings, fetched from the module.
+  3. *(hardware)* The page writes those exact same strings back and then stores them, and each step is reported as complete only after a matching ACKNOWLEDGE frame arrives from the module — never on a resolved local promise.
+  4. *(hardware)* After the run the module is byte-for-byte unchanged: re-fetching Setup and Timer returns the original strings and the pad behaves exactly as it did before. The entire experiment is a provable no-op.
+  5. The run records written answers to the open questions it exists to settle: whether an outbound host heartbeat is required, whether the 10 ms inter-message pacing is load-bearing at 2 Mbaud, and whether the Lua formatter WASM resolves from a plain static build.
+**Plans**: TBD
+
+### Phase 3: Vendor the Domain
+**Goal**: BOTOR's compiler and simulator run inside HANGAR unmodified, with fidelity pinned by something other than the code that produced it.
+**Depends on**: Phase 1
+**Requirements**: FOUND-02, FOUND-05, PREV-06
+**Success Criteria** (what must be TRUE):
+  1. A developer can run the vendored test suite — ported from BOTOR with only import-path rewrites — and see it green both in dev and against a production static build, proving the WASM asset resolves outside the dev server.
+  2. Every vendored file names its BOTOR origin, and a written sync procedure documents how to re-pull upstream changes against a recorded upstream SHA.
+  3. Compiling each of the nine shelf presets produces character-identical Lua to BOTOR at the pinned protocol version.
+  4. Each preset's simulated output is pinned against an oracle transcribed from cited firmware source (file:line) or hardware capture, derived independently of the compiler — so a shared misreading of firmware fails the suite instead of hiding in it.
+  5. No compile, cost or fit call can run before the Lua formatter WASM has initialised: an attempt waits for the gate rather than silently reporting invalid syntax or an unmeasurable cost.
+**Plans**: TBD
+
+### Phase 4: Catalog, Live Simulator and Identity
+**Goal**: The site is worth opening with no hardware attached — a black-and-lime rack of nine running machines that anyone can browse, play and link to.
+**Depends on**: Phase 3
+**Requirements**: PREV-01, PREV-02, PREV-03, PREV-04, PREV-05, CAT-01, CAT-02, CAT-03, CAT-04, CONT-01, CONT-03, IDENT-01, IDENT-02
+**Success Criteria** (what must be TRUE):
+  1. Visitor opens the site on any browser and sees the nine BOTOR shelf presets (starfield, aurora, pinwheel, radar, faders, ninepads, tpad, dial, joystick) as cards, each animating live in the firmware-faithful simulator running the exact compiled config that would be written to a module — no hand-authored animation anywhere, no hardware attached.
+  2. Visitor can open one configuration in a focus view — also reachable directly by deep link — where it runs at full frame rate and accepts mouse-as-finger input, so the instrument can be played and not only watched. (Knobs, budget meters and install controls dock into this same view in Phases 5 and 7.)
+  3. Visitor can sort by Featured, Newest and Name over a catalog built from a static data file of Profile-Cloud-shaped config objects with no backend; every entry shows a name, a one-line description, feel-based tags and a Featured flag, and no popularity metric is shown or faked.
+  4. The site reads as the reference identity: true-black ground, one acid-lime accent, generative glyph-field wallpaper, wide-tracked uppercase type, and the 9x9 pad outline serving as logo, loading state and card frame at once. Cards animate constantly, and `prefers-reduced-motion` drops them to still frames or play-on-hover.
+  5. A dozen visible cards hold 30 fps, offscreen cards pause and wake before they scroll into view, and one line on the page states what the simulator matches exactly and what it cannot show (physical LED colour, diffusion, touch feel).
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 5: Tuning, Budgets and Shareable Links
+**Goal**: Visitors can turn knobs on any configuration, see the 908-character budgets as a live instrument instead of a write-time failure, and send the result to a friend as a link.
+**Depends on**: Phase 4
+**Requirements**: TUNE-01, TUNE-02, TUNE-03, TUNE-04, TUNE-05, TUNE-06, TUNE-07, SHARE-01, SHARE-02, SHARE-03, SHARE-04, DEGR-01
+**Success Criteria** (what must be TRUE):
+  1. Visitor can turn three to six knobs per configuration — drawn from colour, speed, layout, brightness, MIDI destination and config-specific parameters, using one shared widget vocabulary — and the preview updates live while the recompile is debounced. They can reset one knob by double-click or the whole configuration to defaults, and `SURPRISE ME` randomises into a state that is never over budget.
+  2. Two separate live meters show Setup and Timer usage as `chars / 908` with a percentage, and when the fit ladder trims a feature to stay in budget the visitor is told so in one line rather than watching the preview quietly diverge from what they asked for.
+  3. An over-budget state turns the offending meter red, disables `TRY ON DEVICE`, names the knob that pushed it over and offers a one-click back-off — the failure is surfaced next to the knobs and never travels to the wire to fail there.
+  4. Copying a tuned configuration's link and opening it anywhere restores the knobs exactly (state in the URL hash, never the query string); `COPY LINK` confirms the copy in its own state; a stamp from an older HANGAR version says so plainly and lands on the base configuration rather than a subtly wrong one.
+  5. A shared link unfurls on Discord with a build-time OG image rendered from the simulator, and the whole experience — catalog, simulation, tuning, sharing — works on every browser including iOS Safari.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 6: Device Session
+**Goal**: A visitor with a ZONA can get from a cold page to a verified connection, and every way that can go wrong tells them what to do next in plain language.
+**Depends on**: Phase 2
+**Requirements**: CONN-01, CONN-02, CONN-03, CONN-04, CONN-05, CONN-06, CONN-07, CONN-08
+**Success Criteria** (what must be TRUE):
+  1. Visitor sees one primary `CONNECT` control, enabled only when `"serial" in navigator && isSecureContext` and never gated by user-agent. An unsupported browser and an insecure context produce two different messages, each naming the fix, and the unsupported message names Chrome, Edge and desktop Firefox 151+ as browsers that work without ever saying "Chromium".
+  2. Before clicking, the visitor reads what the browser's port picker is, that the browser asks and not HANGAR, and that HANGAR sees nothing at all until they choose a device.
+  3. *(hardware)* Connecting offers only ZONA's USB identity (0x303a / 0x8123, bootloader identities never offered), verifies from the heartbeat that the module really is a ZONA before enabling any control, refuses any other module with a plain message, and shows the connected module's type and firmware version.
+  4. *(hardware)* Each failure lands in its own named state instead of a raw exception: a port held by another program names Grid Editor as the likely culprit and gives the recovery in order (quit the other app, unplug, wait, replug, reload, connect); a cancelled picker is distinct from an empty picker; an empty picker branches to cable and driver, charge-only USB cable warning included.
+  5. *(hardware)* A returning visitor is reconnected silently from a previously granted port without re-running the picker, and unplugging or replugging the module updates the UI immediately rather than failing on the next write.
+**Plans**: TBD
+
+### Phase 7: Install Flow
+**Goal**: A visitor can put a configuration on their own ZONA in about a second, get their original back with one click at any time, and only commit it to flash on purpose.
+**Depends on**: Phase 5, Phase 6
+**Requirements**: SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, SAFE-07, SAFE-08, SAFE-09, DEGR-02
+**Success Criteria** (what must be TRUE):
+  1. *(hardware)* The connect screen says out loud that nothing is written without an explicit click, and at connect — before any write is possible — HANGAR snapshots the touch element's Setup and Timer strings. Every write control stays disabled until that snapshot is confirmed present and non-empty.
+  2. *(hardware)* `TRY ON DEVICE` is the primary action and writes to RAM only: the pad plays the new configuration in about a second, the site states that speed honestly and confirms a settled state rather than animating a progress bar for a 200 ms operation, and a power cycle brings the original back.
+  3. *(hardware)* `PUT BACK` restores the snapshotted configuration with one click at any time, including in a fresh tab after the browser was closed, because the snapshot persists in `localStorage` keyed by module identity.
+  4. *(hardware)* `KEEP ON DEVICE` is a visibly secondary, separate action — never an equal-weight button beside `TRY ON DEVICE` — and requires a confirmation naming what is being replaced ("the Setup and Timer scripts on your ZONA's touch element") and stating that it survives a power cycle. On a rig with other Grid modules the confirmation also names them and states that their current pages are stored too, while still allowing the action.
+  5. *(happy path on hardware; failure paths exercised against recorded frames with no hardware)* "Installed" means an ACKNOWLEDGE frame arrived for each event write: a write that lands one event but not the other is detected and reported plainly with retry and `PUT BACK` both offered, retries on timeout are bounded, and a connection lost mid-write ends in a named failure state rather than an infinite retry loop. On browsers without Web Serial the install controls are present but disabled with the reason inline, never hidden.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 8: New Configurations
+**Goal**: The catalog stops being a port of BOTOR's shelf and becomes HANGAR's own — configurations authored for spectacle against a working simulator and a live budget meter.
+**Depends on**: Phase 5
+**Requirements**: CONT-02
+**Success Criteria** (what must be TRUE):
+  1. At least six new configurations, authored for HANGAR rather than ported from BOTOR, are in the catalog, each with its name, one-line description, feel-based tags, Featured flag and default knob state filled in.
+  2. Each new configuration fits both the 908-character Setup and 908-character Timer budgets at its default knob positions, shown green in the live meters.
+  3. Each new configuration is verified in the simulator at its defaults and swept across its full knob range, with no combination silently exceeding budget — the fit ladder either holds it or names what it trimmed.
+**Plans**: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+
+**Parallelism** (config: `parallelization: true`):
+After Phase 1 the project forks into two independent tracks that may run concurrently:
+- Hardware track: 2 → 6
+- Pure track (no hardware needed): 3 → 4 → 5
+
+They join at Phase 7, which depends on both. Phase 8 depends only on Phase 5 and may run alongside
+Phases 6 and 7.
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Scaffold, Licence and Pin | 0/TBD | Not started | - |
+| 2. Walking Skeleton | 0/TBD | Not started | - |
+| 3. Vendor the Domain | 0/TBD | Not started | - |
+| 4. Catalog, Live Simulator and Identity | 0/TBD | Not started | - |
+| 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |
+| 6. Device Session | 0/TBD | Not started | - |
+| 7. Install Flow | 0/TBD | Not started | - |
+| 8. New Configurations | 0/TBD | Not started | - |
+
+## Requirement Coverage
+
+All 50 v1 requirements map to exactly one phase.
+
+| Phase | Requirements | Count |
+|-------|--------------|-------|
+| 1 | FOUND-03, FOUND-04 | 2 |
+| 2 | FOUND-01 | 1 |
+| 3 | FOUND-02, FOUND-05, PREV-06 | 3 |
+| 4 | PREV-01, PREV-02, PREV-03, PREV-04, PREV-05, CAT-01, CAT-02, CAT-03, CAT-04, CONT-01, CONT-03, IDENT-01, IDENT-02 | 13 |
+| 5 | TUNE-01, TUNE-02, TUNE-03, TUNE-04, TUNE-05, TUNE-06, TUNE-07, SHARE-01, SHARE-02, SHARE-03, SHARE-04, DEGR-01 | 12 |
+| 6 | CONN-01, CONN-02, CONN-03, CONN-04, CONN-05, CONN-06, CONN-07, CONN-08 | 8 |
+| 7 | SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, SAFE-07, SAFE-08, SAFE-09, DEGR-02 | 10 |
+| 8 | CONT-02 | 1 |
+| **Total** | | **50** |
+
+## Verification Note
+
+Most of this roadmap is verifiable with no hardware attached: Phases 1, 3, 4, 5 and 8 need only a
+browser, and Phase 7's failure paths are exercised against recorded protocol frames. Criteria marked
+*(hardware)* can only be confirmed with a real ZONA plugged in, and the user performs that testing
+personally. Web Serial itself is not automatable — no CDP domain, no fake-device hook — so those
+criteria are a checklist for a human, not assertions a test suite can make.
+
+---
+*Roadmap created: 2026-09-02*
