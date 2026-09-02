@@ -35,7 +35,24 @@ export default defineConfig({
         fallback: "404.html",
         precompress: false,
       }),
-      prerender: { entries: ["*"] },
+      prerender: {
+        entries: ["*"],
+        // scripts/postbuild.mjs copies LICENSE, THIRD-PARTY.md and the
+        // source-<sha>.tar.gz archive into build/ AFTER `vite build` has run, so
+        // the prerenderer cannot see them while it crawls the footer's GPLv3
+        // section 6(d) links. Ignore a 404 for exactly those three paths and
+        // rethrow everything else, so a genuinely broken link still fails the
+        // build. The e2e suite asserts all three really are served, over HTTP,
+        // from the finished build/.
+        handleHttpError: ({ status, path, message }) => {
+          const writtenByPostbuild =
+            path === "/LICENSE" ||
+            path === "/THIRD-PARTY.md" ||
+            (path.startsWith("/source-") && path.endsWith(".tar.gz"));
+          if (status === 404 && writtenByPostbuild) return;
+          throw new Error(message);
+        },
+      },
     }),
   ],
   // Proven grid-editor incantation (renderer.vite.config.mjs:38-39). Nothing
