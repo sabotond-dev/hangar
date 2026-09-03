@@ -1,0 +1,77 @@
+{
+  "upstream": {
+    "repository": "https://github.com/sabotond-dev/botor.git",
+    "branch": "main",
+    "commit": "a0fb69d5d0e78ce0f6423fc1d1a9783937c5380c"
+  },
+  "headerSentinel": "// Original copyright and licence (GNU GPL v3 or later) retained below.",
+  "note": "sha256 is of the PRISTINE upstream bytes. vendored-diff.spec.ts reconstructs them from the vendored file by stripping the provenance header block through headerSentinel plus one blank line, then applying each delta in reverse. A fourth change of any kind moves the hash.",
+  "files": [
+    {
+      "vendored": "src/vendor/botor/_pad.ts",
+      "upstream": "src/renderer/main/zona/_pad.ts",
+      "bytes": 152570,
+      "sha256": "4e2c7a49c5831934ba123362523bf768146beec1d933cdb89737e51a3efa52d6",
+      "deltas": [
+        {
+          "vendored": "export type RGB = { r: number; g: number; b: number };",
+          "upstream": "import type { RGB } from \"../../config-blocks/_screen\";"
+        }
+      ]
+    },
+    {
+      "vendored": "src/vendor/botor/pad-sim.ts",
+      "upstream": "src/renderer/main/zona/pad-sim.ts",
+      "bytes": 56314,
+      "sha256": "23464381580b0408b5ee17f9f4d03b78a703878709b1895b9c512fa122ce1602",
+      "deltas": []
+    },
+    {
+      "vendored": "src/vendor/botor/pad-sim-host.ts",
+      "upstream": "src/renderer/main/zona/pad-sim-host.ts",
+      "bytes": 19382,
+      "sha256": "fe2088884b616f48b3d19d939455b3ff13d3b31288a9b448cb898411366f0669",
+      "deltas": []
+    },
+    {
+      "vendored": "src/vendor/botor/tests/pad.test.js",
+      "upstream": "src/renderer/tests/pad.test.js",
+      "bytes": 127944,
+      "sha256": "8e6ccde06719600450a3782a4aa7831520634e342da7aae8e91ab0234e3a8f65",
+      "deltas": [
+        {
+          "vendored": "} from \"../_pad\";",
+          "upstream": "} from \"../main/zona/_pad\";"
+        }
+      ]
+    },
+    {
+      "vendored": "src/vendor/botor/tests/pad-sim.test.js",
+      "upstream": "src/renderer/tests/pad-sim.test.js",
+      "bytes": 65818,
+      "sha256": "7cf50173cb7ea9243b03becca7cc370a4d78f5619dc65535697c5d9cd14738de",
+      "deltas": [
+        {
+          "vendored": "} from \"../pad-sim\";",
+          "upstream": "} from \"../main/zona/pad-sim\";"
+        },
+        {
+          "vendored": "} from \"../_pad\";",
+          "upstream": "} from \"../main/zona/_pad\";"
+        }
+      ]
+    },
+    {
+      "vendored": "src/vendor/botor/tests/pad-invariants.test.js",
+      "upstream": "src/renderer/tests/pad-invariants.test.js",
+      "bytes": 14422,
+      "sha256": "1aedd81a7356df021e5405b60af65a27eb24be3d10f72533a7f3f12dc6a826f4",
+      "deltas": [
+        {
+          "vendored": "} from \"../_pad\";",
+          "upstream": "} from \"../main/zona/_pad\";"
+        }
+      ]
+    }
+  ]
+}
