@@ -49,6 +49,13 @@ firmware source):**
 - `PAGEACTIVE/EXECUTE`, `NVMERASE`, `PAGECLEAR`, `PAGEDISCARD` are forbidden forever (D-06) and a
   structural spec enforces it across `src/lib/protocol/` and `src/lib/transport/`.
 
+**Step-id vocabulary (pinned in wave 2, asserted in wave 5):** `capture.ts` exports `STEP_IDS` —
+`identify`, `fetch-setup`, `fetch-timer`, `write-timer`, `write-setup`, `store`, `refetch-setup`,
+`refetch-timer`, `restore-page-change`, `burst`. `sequence.ts` uses those constants, the synthetic
+fixture's spec asserts the closing step is `restore-page-change` from wave 2, and plan 05's
+`fixtures.spec.ts` asserts the same shape against the real capture. A gate cannot be written against
+ids that are only discovered after the hardware run.
+
 **Sequencing constraint (honoured by the plan order):** every fixture-backed test before the human
 checkpoint runs against the SYNTHETIC fixture (`"source": "synthetic"`, real bytes from
 `grid.encode_packet`, invented timing). After the checkpoint, `fixtures.spec.ts` asserts at least one
@@ -74,16 +81,16 @@ committed fixture has `"source": "hardware"`, so the phase cannot ship on synthe
 | 2-01-02 | 01 | 1 | FOUND-01 | unit | `npx vitest run --project server src/lib/protocol/framing.spec.ts src/lib/protocol/decode.spec.ts` | 9 + 5 = `14 passed` | ⬜ pending |
 | 2-01-03 | 01 | 1 | FOUND-01 (D-09) | unit | `npx vitest run --project server src/lib/protocol/match.spec.ts src/lib/protocol/write-guard.spec.ts` then `npm run test:quick` | 7 + 6 = `13 passed`; quick `18 files / 399 passed | 1 todo` | ⬜ pending |
 | 2-02-01 | 02 | 2 | FOUND-01 (CONN-02/04/05) | unit | `npx vitest run --project server src/lib/transport/transport.spec.ts` | `6 passed` | ⬜ pending |
-| 2-02-02 | 02 | 2 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/capture.spec.ts src/lib/transport/fake.spec.ts src/lib/transport/fixtures/synthetic.spec.ts` | 6 + 8 + 2 = `16 passed` | ⬜ pending |
-| 2-02-03 | 02 | 2 | FOUND-01 (SAFE-07/09 mechanism) | unit | `npx vitest run --project server src/lib/transport/queue.spec.ts` then `npm run test:quick` | `8 passed`; quick `23 files / 429 passed | 1 todo` | ⬜ pending |
-| 2-03-01 | 03 | 3 | FOUND-01 (D-10/D-11/D-12) | unit | `npx vitest run --project server src/lib/transport/sequence.spec.ts` | `8 passed`; quick `24 files / 437 passed | 1 todo` | ⬜ pending |
-| 2-03-02 | 03 | 3 | FOUND-01 (D-05/D-09) | build | `npm run build && test -f build/dev/skeleton/index.html && npm run check && npm run lint` | exit 0; `skeleton-status` present in the prerendered HTML | ⬜ pending |
-| 2-03-03 | 03 | 3 | FOUND-01 (DEGR-02 shape) | unit + e2e | `npx vitest run --project server src/lib/config-shape.spec.ts` then `npx playwright test` | `12 passed`; quick `24 files / 440 passed | 1 todo`; e2e `10 passed`, zero `failed` in `.tmp-e2e/` | ⬜ pending |
-| 2-04-01 | 04 | 4 | FOUND-01 | gate + doc | `npm run check && npm run lint && npm run test:quick && npm run test:sweep && npm run build && npx playwright test` | quick `440 passed | 1 todo`, sweep `9 passed`, e2e `10 passed`; `docs/SKELETON-RUNBOOK.md` exists | ⬜ pending |
+| 2-02-02 | 02 | 2 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/capture.spec.ts src/lib/transport/fake.spec.ts src/lib/transport/fixtures/synthetic.spec.ts` | 6 + 8 + 3 = `17 passed`, **zero skipped** — regeneration is a module-scope side effect, not a guarded test | ⬜ pending |
+| 2-02-03 | 02 | 2 | FOUND-01 (SAFE-07/09 mechanism) | unit | `npx vitest run --project server src/lib/transport/queue.spec.ts` then `npm run test:quick` | `8 passed`; quick `23 files / 430 passed | 1 todo` | ⬜ pending |
+| 2-03-01 | 03 | 3 | FOUND-01 (D-10/D-11/D-12) | unit | `npx vitest run --project server src/lib/transport/sequence.spec.ts` | `9 passed` (the ninth: a CONFIG/REPORT never moves the active page); quick `24 files / 439 passed | 1 todo` | ⬜ pending |
+| 2-03-02 | 03 | 3 | FOUND-01 (D-05/D-09, CONN-02) | build | `npm run build && test -f build/dev/skeleton/index.html && npm run check && npm run lint`, then the ten-testid loop in the task's acceptance | exit 0; `skeleton-status` present in the prerendered HTML; all ten testids present, including `skeleton-degrade` (rendered **instead of** the connect button when the browser has no Web Serial) and the read-only `skeleton-ports` line the runbook's row P reads | ⬜ pending |
+| 2-03-03 | 03 | 3 | FOUND-01 (DEGR-02 shape) | unit + e2e | `npx vitest run --project server src/lib/config-shape.spec.ts` then `npx playwright test` | `12 passed`; quick `24 files / 442 passed | 1 todo`; e2e `10 passed`, zero `failed` in `.tmp-e2e/` | ⬜ pending |
+| 2-04-01 | 04 | 4 | FOUND-01 | gate + doc | `npm run check && npm run lint && npm run test:quick && npm run test:sweep && npm run build && npx playwright test` | quick `442 passed | 1 todo`, sweep `9 passed`, e2e `10 passed`; `docs/SKELETON-RUNBOOK.md` exists | ⬜ pending |
 | 2-04-02 | 04 | 4 | FOUND-01 crit. 1-4 | **manual (checkpoint:human-verify)** | pre-checkpoint gate only: `npm run check && npm run lint && npm run test:quick && npm run build && test -f docs/SKELETON-RUNBOOK.md` | the human checklist below; user hands back one capture JSON per arm with `"source": "hardware"` | ⬜ pending |
-| 2-05-01 | 05 | 5 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/fixtures/fixtures.spec.ts src/lib/transport/fake.spec.ts` | 4 + 8 = `12 passed`; quick `25 files / 444 passed | 1 todo` | ⬜ pending |
-| 2-05-02 | 05 | 5 | FOUND-01 crit. 5 (D-08) | unit + doc | `npx vitest run --project server src/lib/skeleton-results.spec.ts` | `6 passed`; quick `26 files / 450 passed | 1 todo`; `docs/SKELETON-RESULTS.md` with no `TBD` | ⬜ pending |
-| 2-05-03 | 05 | 5 | FOUND-01 crit. 5 | unit + full | `npx vitest run --project server src/lib/skeleton-results.spec.ts` then the full suite | `7 passed`; quick `26 files / 451 passed | 1 todo`; sweep `9`; e2e `10 passed` | ⬜ pending |
+| 2-05-01 | 05 | 5 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/fixtures/fixtures.spec.ts src/lib/transport/fake.spec.ts` | 4 + 8 = `12 passed`; quick `25 files / 446 passed | 1 todo` | ⬜ pending |
+| 2-05-02 | 05 | 5 | FOUND-01 crit. 5 (D-08) | unit + doc | `npx vitest run --project server src/lib/skeleton-results.spec.ts` | `6 passed`; quick `26 files / 452 passed | 1 todo`; `docs/SKELETON-RESULTS.md` with no `TBD`, and answer (f) citing `03-06-SUMMARY.md` rather than a fixture | ⬜ pending |
+| 2-05-03 | 05 | 5 | FOUND-01 crit. 5 | unit + full | `npx vitest run --project server src/lib/skeleton-results.spec.ts` then the full suite | `7 passed`; quick `26 files / 453 passed | 1 todo`; sweep `9`; e2e `10 passed` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -107,7 +114,8 @@ Files the phase creates, by wave:
 - **Wave 2** — `src/lib/transport/{transport,web-serial,capture,fake,queue,index}.ts`,
   `fixtures/synthetic.ts`, `fixtures/synthetic-zona.json`, `scripts/make-synthetic-capture.mjs`,
   five specs
-- **Wave 3** — `src/lib/transport/sequence.ts` + spec, `src/routes/dev/skeleton/+page.svelte`,
+- **Wave 3** — `src/lib/transport/sequence.ts` + spec, `src/routes/dev/skeleton/+page.svelte` (nine
+  controls, the `skeleton-degrade` panel, the read-only `skeleton-ports` line, two A/B toggles),
   `e2e/skeleton.e2e.ts`, three new tests in `src/lib/config-shape.spec.ts`
 - **Wave 4** — `docs/SKELETON-RUNBOOK.md`
 - **Wave 5** — `src/lib/transport/fixtures/zona-hardware.json`, `fixtures/fixtures.spec.ts`,
@@ -148,7 +156,7 @@ table is the contract it must match step for step.
 | **A/B-2** | Pacing burst | crit. 5 (b) | On each arm click `Run burst probe` at 10 ms and at 0 ms | 20 read-only `CONFIG/FETCH` each. Record timeouts, negative acknowledgements and the latency spread |
 | **R** | **Restore — mandatory, every arm** | safety (`grid_decode.c:1279`/`:717`) | The page sends one `HEARTBEAT TYPE 255` automatically at the end of every run. If anything went wrong, click `Restore heartbeat` before closing the tab | The page reports `page change restored`. **No arm is complete without this row** — a config write leaves the module unable to change page until this heartbeat arrives or it is power-cycled |
 | **E** | Export | crit. 5 (D-07) | Click `Export JSON` on each arm | One JSON per arm, including the burst results. Hand the files back |
-| **P** | Permission persistence | Phase 6 input | After the run, quit the browser, reopen it, open the page and read the reported `navigator.serial.getPorts()` length | The number is recorded in `docs/SKELETON-RESULTS.md`. One line saves Phase 6 an experiment |
+| **P** | Permission persistence | Phase 6 input | After the run, quit the browser, reopen it, open the page and read the `skeleton-ports` line reporting how many ports this origin has already been granted | The number is recorded in `docs/SKELETON-RESULTS.md`. The page renders this as an observation on load and never reconnects on its own — silent reconnect is CONN-06 and belongs to Phase 6 |
 
 The executor waits at task 2-04-02, then plan 05 commits the captures under
 `src/lib/transport/fixtures/`, re-points the replay test at the real one, and writes
@@ -168,6 +176,7 @@ The executor waits at task 2-04-02, then plan 05 commits the captures under
 | Retry bound | 2-02-03 | raise `attempts` to 4 | queue.spec test 3 red reporting 4 writes where 3 were expected |
 | **The restore rule** | **2-03-01** | **delete the `finally` from `runNoOpCycle`** | **sequence.spec test 7 red — the restore heartbeat must be sent even when a write is refused. Quote the red line verbatim in the SUMMARY** |
 | Degrade path | 2-03-03 | render the connect button unconditionally | skeleton e2e test 1 red on the control count |
+| Step-id vocabulary | 2-02-02 | drop the closing step from the synthetic capture | synthetic.spec test 3 red — the same shape plan 05 asserts against real data, failing in wave 2 where it is cheap |
 | Hardware-fixture gate | 2-05-01 | change the fixture's `source` to `synthetic` | fixtures.spec test 1 red — the phase cannot ship on synthetic data |
 | Results citations | 2-05-02 | replace one cited fixture filename with one that does not exist | skeleton-results.spec test 4 red, naming the missing file |
 | Timeout drift | 2-05-03 | change `TIMEOUTS.executeMs` by one | skeleton-results.spec test 7 red, naming both numbers |
