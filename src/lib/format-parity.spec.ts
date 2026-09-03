@@ -50,7 +50,25 @@ const UPSTREAM_PRETTIER = join(
   "bin",
   "prettier.cjs",
 );
+// HANGAR's own Prettier binary, resolved once. Invoked through `node` rather
+// than `npx` because an `npx` resolution on a cold cache, with six other spec
+// files competing for CPU, is slow enough to cross a test timeout on its own -
+// observed once during 03-02. Same invocation shape as UPSTREAM_PRETTIER above,
+// which keeps the two sides of the comparison symmetrical.
+const HANGAR_PRETTIER = join(
+  REPO_ROOT,
+  "node_modules",
+  "prettier",
+  "bin",
+  "prettier.cjs",
+);
 const TMP = join(REPO_ROOT, ".tmp-format-parity");
+
+// Two Prettier subprocesses over a 152 KB file is comfortably slower than
+// Vitest's 5,000 ms default under parallel load. This is a correctness canary,
+// not a performance budget: give it room so a slow machine reports parity
+// truthfully instead of reporting a timeout.
+const CANARY_TIMEOUT_MS = 30_000;
 
 // Files Phase 3 will vendor (FOUND-02).
 const CANARIES = ["_pad.ts", "pad-sim-host.ts"];
@@ -83,48 +101,51 @@ describe("formatting parity with grid-editor (D-15)", () => {
   });
 
   for (const name of CANARIES) {
-    it(`${name} formats identically under HANGAR's and BOTOR's Prettier`, () => {
-      const from = source(name);
-      expect(existsSync(from), `missing canary source: ${from}`).toBe(true);
+    it(
+      `${name} formats identically under HANGAR's and BOTOR's Prettier`,
+      () => {
+        const from = source(name);
+        expect(existsSync(from), `missing canary source: ${from}`).toBe(true);
 
-      // Copy INSIDE the repo so Prettier resolves .prettierrc from here, and
-      // not under node_modules, which Prettier ignores by default.
-      mkdirSync(TMP, { recursive: true });
-      const to = join(TMP, name);
-      copyFileSync(from, to);
+        // Copy INSIDE the repo so Prettier resolves .prettierrc from here, and
+        // not under node_modules, which Prettier ignores by default.
+        mkdirSync(TMP, { recursive: true });
+        const to = join(TMP, name);
+        copyFileSync(from, to);
 
-      // --ignore-path .prettierignore is load-bearing. Prettier >= 3.0 defaults
-      // --ignore-path to [.gitignore, .prettierignore], and .tmp-format-parity/
-      // is gitignored — without this flag Prettier silently passes over the file
-      // and prints nothing, so the comparison below would compare an empty
-      // string against upstream output for a confusing reason (or, with
-      // --check, would exit 0 however mangled the file was). Naming
-      // .prettierignore explicitly replaces that default list.
-      //
-      // cwd is the HANGAR root so HANGAR's .prettierrc and HANGAR's
-      // node_modules plugin resolve.
-      const hangarOut = execFileSync(
-        "npx",
-        ["prettier", "--ignore-path", ".prettierignore", to],
-        {
-          cwd: REPO_ROOT,
+        // --ignore-path .prettierignore is load-bearing. Prettier >= 3.0 defaults
+        // --ignore-path to [.gitignore, .prettierignore], and .tmp-format-parity/
+        // is gitignored — without this flag Prettier silently passes over the file
+        // and prints nothing, so the comparison below would compare an empty
+        // string against upstream output for a confusing reason (or, with
+        // --check, would exit 0 however mangled the file was). Naming
+        // .prettierignore explicitly replaces that default list.
+        //
+        // cwd is the HANGAR root so HANGAR's .prettierrc and HANGAR's
+        // node_modules plugin resolve.
+        const hangarOut = execFileSync(
+          "node",
+          [HANGAR_PRETTIER, "--ignore-path", ".prettierignore", to],
+          {
+            cwd: REPO_ROOT,
+            encoding: "utf8",
+            maxBuffer: MAX_BUFFER,
+          },
+        );
+
+        // BOTOR's own Prettier binary, run with cwd = the BOTOR root so
+        // grid-editor's config and plugins resolve. Stdout mode only — no
+        // --write, no --check, nothing that touches the sibling repository.
+        const upstreamOut = execFileSync("node", [UPSTREAM_PRETTIER, from], {
+          cwd: BOTOR,
           encoding: "utf8",
           maxBuffer: MAX_BUFFER,
-          shell: process.platform === "win32",
-        },
-      );
+        });
 
-      // BOTOR's own Prettier binary, run with cwd = the BOTOR root so
-      // grid-editor's config and plugins resolve. Stdout mode only — no
-      // --write, no --check, nothing that touches the sibling repository.
-      const upstreamOut = execFileSync("node", [UPSTREAM_PRETTIER, from], {
-        cwd: BOTOR,
-        encoding: "utf8",
-        maxBuffer: MAX_BUFFER,
-      });
-
-      expect(hangarOut.length).toBeGreaterThan(0);
-      expect(hangarOut).toBe(upstreamOut);
-    });
+        expect(hangarOut.length).toBeGreaterThan(0);
+        expect(hangarOut).toBe(upstreamOut);
+      },
+      CANARY_TIMEOUT_MS,
+    );
   }
 });
