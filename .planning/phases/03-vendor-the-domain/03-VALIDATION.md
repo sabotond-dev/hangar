@@ -22,7 +22,7 @@ reconciled: 2026-09-02
 |----------|-------|
 | **Framework** | vitest 4.1.11 (node env, `expect.requireAssertions`, `passWithNoTests`), split into two projects per D-10: `server` (quick) and `sweep` (the 4,860-state invariant sweep) + @playwright/test 1.6x over `wrangler dev` on `./build` |
 | **Config file** | `vite.config.ts` `test.projects` — task 3-01-01 removes the `src/vendor/**` exclusion and adds the `sweep` project; `playwright.config.ts` (exists, unchanged) |
-| **Quick run command** | `npm run test:quick` (= `vitest run --project server`) — measured 4.64 s / 291 tests during research, 352 tests at end of phase |
+| **Quick run command** | `npm run test:quick` (= `vitest run --project server`) — measured 4.64 s / 291 tests during research, 353 at end of phase (352 passed, 1 todo) |
 | **Sweep command** | `npm run test:sweep` (= `vitest run --project sweep`) — measured 38.57 s / 9 tests |
 | **Full suite command** | `npm run check && npm run lint && npm run test:quick && npm run test:sweep && npm run test:e2e` |
 | **Estimated runtime** | quick ~5 s; sweep ~39 s; e2e ~60-90 s (build + wrangler cold start) |
@@ -42,11 +42,11 @@ in `tsconfig.json` makes the three vendored `.js` tests produce 489 svelte-check
 | 03-01 | 6 | 295 passed \| 1 todo (296) | 1 file / 9 tests |
 | 03-02 | 7 | 309 passed \| 1 todo (310) | 9 |
 | 03-03 | 8 | 329 passed (329) | 9 |
-| 03-04 | 10 | 347 passed (347) | 9 |
-| 03-05 | 11 | 352 passed (352) | 9 |
-| 03-06 | 11 | 352 passed (352) | 9 |
+| 03-04 | 10 | 347 passed \| 1 todo (348) | 9 |
+| 03-05 | 11 | 352 passed \| 1 todo (353) | 9 |
+| 03-06 | 11 | 352 passed \| 1 todo (353) | 9 |
 
-Whole run at phase end: `npx vitest run` = 12 files / 361 tests.
+Whole run at phase end: `npx vitest run` = 12 files / 362 tests (361 passed, 1 todo - the named oracle gap).
 
 ---
 
@@ -73,10 +73,10 @@ Whole run at phase end: `npx vitest run` = 12 files / 361 tests.
 | 3-03-02 | 03 | 3 | FOUND-02 (crit. 3), D-11b | unit | `npx vitest run --project server src/lib/fidelity/preset-baseline.spec.ts` reports `19 passed` | created here | ⬜ pending |
 | 3-03-03 | 03 | 3 | FOUND-02 (crit. 3) - closes Phase 1 FOUND-03/D-11 | unit | `npx vitest run --project server src/lib/protocol-pin.spec.ts` reports `5 passed`; `grep -c "it.todo"` prints `0` | exists (todo) | ⬜ pending |
 | 3-04-01 | 04 | 4 | PREV-06 | oracle authoring (delegated) | `npx prettier --check src/lib/fidelity/firmware-oracle.ts`; all ten exports present; `dc7d301…` cited | created here | ⬜ pending |
-| 3-04-02 | 04 | 4 | PREV-06 (crit. 4) | oracle | `npx vitest run --project server src/lib/fidelity/firmware-oracle.spec.ts` reports `7 passed` | created here | ⬜ pending |
-| 3-04-03 | 04 | 4 | PREV-06 (D-07) | regression | `npx vitest run --project server src/lib/fidelity/golden-frames.spec.ts` reports `11 passed`; `npm run test:quick` reports `347 passed (347)` | created here | ⬜ pending |
+| 3-04-02 | 04 | 4 | PREV-06 (crit. 4) | oracle | `npx vitest run --project server src/lib/fidelity/firmware-oracle.spec.ts` reports `7 passed \| 1 todo (8)` | created here | ⬜ pending |
+| 3-04-03 | 04 | 4 | PREV-06 (D-07) | regression | `npx vitest run --project server src/lib/fidelity/golden-frames.spec.ts` reports `11 passed`; `npm run test:quick` reports `347 passed \| 1 todo (348)` | created here | ⬜ pending |
 | 3-05-01 | 05 | 5 | FOUND-05 | source + structural | `node -e` counts ≥ 6 `await padReady()` in `src/lib/pad/index.ts`; `npm run check` reports `0 errors` | created here | ⬜ pending |
-| 3-05-02 | 05 | 5 | FOUND-05 (crit. 5) | unit | `npx vitest run --project server src/lib/pad/ready.spec.ts` reports `5 passed`; `npm run test:quick` reports `352 passed (352)` | created here | ⬜ pending |
+| 3-05-02 | 05 | 5 | FOUND-05 (crit. 5) | unit | `npx vitest run --project server src/lib/pad/ready.spec.ts` reports `5 passed`; `npm run test:quick` reports `352 passed \| 1 todo (353)` | created here | ⬜ pending |
 | 3-06-01 | 06 | 6 | FOUND-02/05 (crit. 1) | build artefact | `npm run build`; `build/dev/fidelity/index.html` exists; `build/_app/immutable/assets/lua_fmt_bg.*.wasm` exists | created here | ⬜ pending |
 | 3-06-02 | 06 | 6 | FOUND-05 (crit. 1) | e2e | `npx playwright test e2e/fidelity.e2e.ts` reports `2 passed`; wasm response is `application/wasm`; console empty | created here | ⬜ pending |
 | 3-06-03 | 06 | 6 | FOUND-02 | doc shape | `npx prettier --check docs/TESTING.md`; every script name and the 176/96/4,860/489/4173 facts present; `docs/VALIDATION.md` does NOT exist | created here | ⬜ pending |
@@ -123,6 +123,7 @@ All Wave 0 gaps are closed by **task 3-01-01** unless noted; each maps to a crea
 | The oracle author never read the simulator | PREV-06 | Process property, not code | Task 3-04-01's SUMMARY carries the subagent's verbatim list of every file it opened; a reviewer confirms `pad-sim.ts`, `_pad.ts`, `src/vendor/botor/tests/*`, `03-RESEARCH.md` and `03-CONTEXT.md` are all absent |
 | BOTOR public SHA equals the vendored SHA | FOUND-02 (D-01) | Network read of a remote | `git ls-remote https://github.com/sabotond-dev/botor.git refs/heads/main` prints `a0fb69d5…` (asserted in task 3-01-02 and again in 3-02-01 and 3-03-01) and every vendored header cites it |
 | The sibling checkouts are byte-unchanged | standing rule | Filesystem state outside the repo | `git -C ../grid-editor status --porcelain` and `git -C ../grid-fw status --porcelain` captured before and after every task that touches them, quoted in the SUMMARY |
+| The layer scaling divisor and the layer count (D-06 c, second half) | PREV-06 | `pad-sim.ts` exports only `screenToHw`, `hwToScreen`, `SINE_LOOKUP`, `weightsOf`, `shapeIntensity`, `glcStops` and the `PadSim` class. The layer count is a module-private const, the divisor is inline in a private render method, and `layerAt` / `glc` are private - so neither can be compared with the oracle without reaching into private state, and the rule is not to reach | The oracle still exports `LAYER_SCALE_DIVISOR` and `LAYER_COUNT` with their citations, and `firmware-oracle.spec.ts` carries a named `it.todo` pointing here. A reviewer confirms the two oracle values against `grid_led.c` by eye. Closing this properly is an upstream change (export the constants from `pad-sim.ts`), i.e. a BOTOR fix and a re-sync per D-03 |
 | Freeze-on-expiry tick order, if the fallback fires | PREV-06 (D-06 e) | Only if no reachable `PadState` produces an animating true→false transition within 2000 ticks | Task 3-04-02 records the finding, asserts the weaker static-preset form, and adds a row here naming the residual gap |
 
 ---
