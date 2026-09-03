@@ -71,7 +71,30 @@ export default defineConfig({
           name: "server",
           environment: "node",
           include: ["src/**/*.{test,spec}.{js,ts}"],
-          exclude: ["src/**/*.svelte.{test,spec}.{js,ts}", "src/vendor/**"],
+          // The vendored tree is deliberately NOT excluded here. Phase 1 added a
+          // blanket vendor exclusion as quarantine hygiene before there was
+          // anything to quarantine, and once the six BOTOR files landed it made
+          // `npx vitest run` skip all three ported suites while still reporting
+          // green: 4 files / 18 tests instead of 7 / 300, with no warning. The
+          // sweep below is excluded by FILE NAME, not by directory.
+          exclude: [
+            "src/**/*.svelte.{test,spec}.{js,ts}",
+            "src/vendor/botor/tests/pad-invariants.test.js",
+          ],
+        },
+      },
+      {
+        extends: "./vite.config.ts",
+        test: {
+          // D-10 fired. Measured on this machine: the whole run is 39.9 s and
+          // pad-invariants.test.js is 38.6 s of it, because its sweep is 4,860
+          // labelled states (1,620 kind combinations x 3 brightness levels).
+          // The other two ported suites are 2.9 s and 0.6 s. The sweep is the
+          // anti-drift mechanism, so it runs less OFTEN (per wave, not per
+          // task) and never less FULLY.
+          name: "sweep",
+          environment: "node",
+          include: ["src/vendor/botor/tests/pad-invariants.test.js"],
         },
       },
     ],

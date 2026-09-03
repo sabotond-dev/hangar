@@ -18,6 +18,8 @@
     "lint": "prettier --check . && eslint .",
     "licenses": "node scripts/gen-licenses.mjs",
     "test:unit": "vitest",
+    "test:quick": "vitest run --project server",
+    "test:sweep": "vitest run --project sweep",
     "test:e2e": "playwright test",
     "test": "npm run test:unit -- --run && npm run test:e2e"
   },

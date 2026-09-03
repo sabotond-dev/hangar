@@ -14,7 +14,25 @@
     // Setting `types` at all disables automatic @types/* inclusion, so "node"
     // is required — vite.config.ts imports node:child_process.
     "types": ["w3c-web-serial", "node"]
-  }
+  },
+  // svelte-check runs with checkJs: true, and the three vendored BOTOR test
+  // files are untyped JS. Measured with them staged: 489 errors, every one of
+  // them in those three files, zero in the vendored .ts sources, which
+  // typecheck clean under HANGAR's strict. Fixing them inside the files would
+  // be a fourth delta and D-04 forbids it; `svelte-check --ignore` is rejected
+  // by its own CLI when --tsconfig is used.
+  //
+  // A root `exclude` REPLACES the inherited exclude from
+  // .svelte-kit/tsconfig.json rather than merging with it. The generated list
+  // only names service-worker paths HANGAR does not have, and `svelte-kit sync`
+  // emitted no warning when this was measured.
+  //
+  // `exclude` only filters what the `include` globs expand to. It does not stop
+  // a file being pulled in by an import, so _pad.ts and pad-sim.ts are still
+  // type-checked the moment HANGAR code imports them. That is intended: all
+  // three vendored .ts sources are clean under strict; only the three untyped
+  // .js test files needed excluding.
+  "exclude": ["src/vendor/**"]
   // Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
   // except $lib which is handled by https://svelte.dev/docs/kit/configuration#files
   //

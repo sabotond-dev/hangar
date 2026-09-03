@@ -43,4 +43,44 @@ describe("build configuration shape", () => {
     });
     expect(text(".prettierignore")).toContain("src/vendor/");
   });
+
+  it("runs the vendored BOTOR suites instead of quarantining them out of the run", () => {
+    // Measured: with the vendored tree in the server project's exclude and all
+    // six BOTOR files in place, `npx vitest run` reported 4 files / 18 tests and
+    // never mentioned the three ported suites. The run was green and vacuous.
+    const config = code("vite.config.ts");
+    expect(config).toMatch(/name:\s*"server"/);
+    expect(config).not.toContain("src/vendor/**");
+  });
+
+  it("runs the invariant sweep as its own Vitest project", () => {
+    // D-10: 38.6 s of the 39.9 s whole run. Excluded from `server` by file
+    // name, included by `sweep`, so it appears exactly twice.
+    const config = code("vite.config.ts");
+    expect(config).toMatch(/name:\s*"sweep"/);
+    expect(config.match(/pad-invariants\.test\.js/g) ?? []).toHaveLength(2);
+  });
+
+  it("keeps the vendored tree out of svelte-check", () => {
+    // checkJs: true turns the three untyped BOTOR test files into 489 errors.
+    // Excluding them is the only fix that does not edit a vendored file (D-04).
+    expect(JSON.parse(code("tsconfig.json")).exclude).toContain(
+      "src/vendor/**",
+    );
+  });
+
+  it("exposes the quick and sweep test scripts", () => {
+    const scripts = JSON.parse(text("package.json")).scripts;
+    expect(scripts["test:quick"]).toBe("vitest run --project server");
+    expect(scripts["test:sweep"]).toBe("vitest run --project sweep");
+  });
+
+  it("pins the vendored tree out of end-of-line normalisation", () => {
+    // Last matching pattern wins, so this must sit after `* text=auto eol=lf`.
+    const attrs = text(".gitattributes");
+    expect(attrs).toMatch(/^src\/vendor\/\*\* -text$/m);
+    expect(attrs.indexOf("src/vendor/** -text")).toBeGreaterThan(
+      attrs.indexOf("* text=auto"),
+    );
+  });
 });
