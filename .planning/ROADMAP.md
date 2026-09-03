@@ -6,7 +6,7 @@ HANGAR is two nearly-independent products joined at one seam, and this roadmap k
 visible. A short scaffold phase settles the licence and the protocol pin, then the project forks:
 a **hardware track** that opens with a deliberately isolated no-op write against a real ZONA (the
 single riskiest unknown, answered in week one, not week six), and a **pure track** that vendors
-BOTOR's compiler and simulator, turns them into a black-and-lime rack of live animating cards, and
+BOTOR's compiler and simulator, turns them into a black-and-lime coverflow of live animating pads, and
 then adds knobs, budget meters and shareable links — none of which needs a module plugged in. The
 two tracks meet at the install flow, where the snapshot taken at connect, the RAM audition and the
 deliberate flash store all land together, because splitting them would mean the first audition
@@ -23,9 +23,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Scaffold, Licence and Pin** - Static-site skeleton with GPLv3 obligations and the exact grid-protocol pin settled from commit one (completed 2026-09-02)
 - [ ] **Phase 2: Walking Skeleton** - A bare page proves the full connect, fetch, write and store cycle on a real ZONA as a provable no-op
-- [ ] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle
-- [ ] **Phase 4: Catalog, Live Simulator and Identity** - Nine presets animating live on a black-and-lime site that is worth opening with no hardware attached
+- [x] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle (completed 2026-09-02)
+- [ ] **Phase 4: First Experience** - Splash dissolves into a coverflow of live ZONA pads; choose one and `TRY ON DEVICE` appears — the wow front door, worth opening with no hardware attached
 - [ ] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL
+- [ ] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file
 - [ ] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language
 - [ ] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames
 - [ ] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter
@@ -89,18 +90,19 @@ Plans:
 - [x] 03-05-PLAN.md — The memoised WASM gate and its proof (wave 5)
 - [x] 03-06-PLAN.md — Hidden fidelity probe, the production-build e2e, docs/TESTING.md (wave 6)
 
-### Phase 4: Catalog, Live Simulator and Identity
-**Goal**: The site is worth opening with no hardware attached — a black-and-lime rack of nine running machines that anyone can browse, play and link to.
+### Phase 4: First Experience
+**Goal**: The site is worth opening with no hardware attached — the glyph-field wordmark dissolves into a coverflow of live ZONA pads, one large and centred, and choosing it reveals `TRY ON DEVICE`. The first ten seconds are a wow.
 **Depends on**: Phase 3
-**Requirements**: PREV-01, PREV-02, PREV-03, PREV-04, PREV-05, CAT-01, CAT-02, CAT-03, CAT-04, CONT-01, CONT-03, IDENT-01, IDENT-02
+**Requirements**: PREV-01, PREV-02, PREV-03, PREV-04, PREV-05, CAT-01, CAT-04, CONT-01, CONT-03, IDENT-01, IDENT-02
 **Success Criteria** (what must be TRUE):
-  1. Visitor opens the site on any browser and sees the nine BOTOR shelf presets (starfield, aurora, pinwheel, radar, faders, ninepads, tpad, dial, joystick) as cards, each animating live in the firmware-faithful simulator running the exact compiled config that would be written to a module — no hand-authored animation anywhere, no hardware attached.
-  2. Visitor can open one configuration in a focus view — also reachable directly by deep link — where it runs at full frame rate and accepts mouse-as-finger input, so the instrument can be played and not only watched. (Knobs, budget meters and install controls dock into this same view in Phases 5 and 7.)
-  3. Visitor can sort by Featured, Newest and Name over a catalog built from a static data file of Profile-Cloud-shaped config objects with no backend; every entry shows a name, a one-line description, feel-based tags and a Featured flag, and no popularity metric is shown or faked.
-  4. The site reads as the reference identity: true-black ground, one acid-lime accent, generative glyph-field wallpaper, wide-tracked uppercase type, and the 9x9 pad outline serving as logo, loading state and card frame at once. Cards animate constantly, and `prefers-reduced-motion` drops them to still frames or play-on-hover.
-  5. A dozen visible cards hold 30 fps, offscreen cards pause and wake before they scroll into view, and one line on the page states what the simulator matches exactly and what it cannot show (physical LED colour, diffusion, touch feel).
+  1. Visitor opens the site on any browser: the HANGAR glyph-field splash holds, then dissolves into a coverflow where one 9x9 pad is large and centred with neighbours receding left and right in depth — and every visible pad is animating live in the firmware-faithful simulator, running the exact compiled config that would be written to a module (no hand-authored animation, no hardware attached). The nine BOTOR shelf presets are the seed row; Phase 8's configurations join it from the same data file.
+  2. Visitor steps the row with the name-plate arrows, keyboard, wheel or by clicking a side pad; a deep link lands with that configuration centred and the splash skipped. The centre pad accepts mouse-as-finger so the instrument can be played, not only watched.
+  3. Visitor chooses the centre pad (click, Enter or the name) and a panel appears beneath the name plate with `TRY ON DEVICE` primary and `KEEP ON DEVICE` secondary; nothing about the device appears before choosing. In this phase `TRY ON DEVICE` connects and identifies a ZONA over the Phase 2 transport and states plainly that install arrives later — it never writes; on browsers without Web Serial it is present but disabled, with the reason.
+  4. The site reads as the reference identity: true-black ground, one acid-lime accent, glyph-field wallpaper on the splash only, a quiet mixed-case headline, wide-tracked uppercase wordmark, and the 9x9 outline serving as logo, loading state and pad frame. Pads animate constantly; `prefers-reduced-motion` stills them to a representative frame and turns the dissolve into a short crossfade.
+  5. Five to seven visible pads hold 30 fps on the centre and at least 20 fps on the sides, offscreen pads pause and wake before entering view, the catalog is a static data file of Profile-Cloud-shaped objects each carrying name, one-line description, feel-based tags and a Featured flag, and one quiet line states what the simulator matches exactly and what it cannot show.
 **Plans**: TBD
 **UI hint**: yes
+**Design brief**: `.planning/design/FIRST-EXPERIENCE.md` — the user's reference frame and four answers (2026-09-04); it overrides the earlier catalog-of-cards wording wherever they differ.
 
 ### Phase 5: Tuning, Budgets and Shareable Links
 **Goal**: Visitors can turn knobs on any configuration, see the 908-character budgets as a live instrument instead of a write-time failure, and send the result to a friend as a link.
@@ -112,6 +114,17 @@ Plans:
   3. An over-budget state turns the offending meter red, disables `TRY ON DEVICE`, names the knob that pushed it over and offers a one-click back-off — the failure is surfaced next to the knobs and never travels to the wire to fail there.
   4. Copying a tuned configuration's link and opening it anywhere restores the knobs exactly (state in the URL hash, never the query string); `COPY LINK` confirms the copy in its own state; a stamp from an older HANGAR version says so plainly and lands on the base configuration rather than a subtly wrong one.
   5. A shared link unfurls on Discord with a build-time OG image rendered from the simulator, and the whole experience — catalog, simulation, tuning, sharing — works on every browser including iOS Safari.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 5.1: Catalog Browse
+**Goal**: The sophisticated catalog behind the front door — the whole collection browsable, sortable and searchable without leaving the identity.
+**Depends on**: Phase 5
+**Requirements**: CAT-02, CAT-03
+**Success Criteria** (what must be TRUE):
+  1. Visitor reaches a browse screen from the front door and sees every configuration with name, one-line description, feel-based tags and Featured flag; the coverflow's data file is the only source.
+  2. Visitor can sort by Featured, Newest and Name; no popularity metric is shown or faked.
+  3. Visitor can open any configuration's focus/detail view — the chosen-pad state from Phase 4 with the knobs, meters and install controls docked by Phases 5 and 7 — and return to browse without losing position.
 **Plans**: TBD
 **UI hint**: yes
 
@@ -167,9 +180,10 @@ Phases 6 and 7.
 |-------|----------------|--------|-----------|
 | 1. Scaffold, Licence and Pin | 5/5 | Complete   | 2026-09-02 |
 | 2. Walking Skeleton | 0/5 | Planned | - |
-| 3. Vendor the Domain | 0/6 | Planned | - |
-| 4. Catalog, Live Simulator and Identity | 0/TBD | Not started | - |
+| 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
+| 4. First Experience | 0/TBD | Not started | - |
 | 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |
+| 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 0/TBD | Not started | - |
@@ -183,8 +197,9 @@ All 50 v1 requirements map to exactly one phase.
 | 1 | FOUND-03, FOUND-04 | 2 |
 | 2 | FOUND-01 | 1 |
 | 3 | FOUND-02, FOUND-05, PREV-06 | 3 |
-| 4 | PREV-01, PREV-02, PREV-03, PREV-04, PREV-05, CAT-01, CAT-02, CAT-03, CAT-04, CONT-01, CONT-03, IDENT-01, IDENT-02 | 13 |
+| 4 | PREV-01, PREV-02, PREV-03, PREV-04, PREV-05, CAT-01, CAT-04, CONT-01, CONT-03, IDENT-01, IDENT-02 | 11 |
 | 5 | TUNE-01, TUNE-02, TUNE-03, TUNE-04, TUNE-05, TUNE-06, TUNE-07, SHARE-01, SHARE-02, SHARE-03, SHARE-04, DEGR-01 | 12 |
+| 5.1 | CAT-02, CAT-03 | 2 |
 | 6 | CONN-01, CONN-02, CONN-03, CONN-04, CONN-05, CONN-06, CONN-07, CONN-08 | 8 |
 | 7 | SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, SAFE-07, SAFE-08, SAFE-09, DEGR-02 | 10 |
 | 8 | CONT-02 | 1 |

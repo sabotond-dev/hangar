@@ -182,8 +182,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PREV-05 | Phase 4 | Pending |
 | PREV-06 | Phase 3 | Complete |
 | CAT-01 | Phase 4 | Pending |
-| CAT-02 | Phase 4 | Pending |
-| CAT-03 | Phase 4 | Pending |
+| CAT-02 | Phase 5.1 | Pending |
+| CAT-03 | Phase 5.1 | Pending |
 | CAT-04 | Phase 4 | Pending |
 | CONT-01 | Phase 4 | Pending |
 | CONT-02 | Phase 8 | Pending |
