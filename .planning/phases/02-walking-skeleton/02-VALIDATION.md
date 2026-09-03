@@ -84,7 +84,7 @@ committed fixture has `"source": "hardware"`, so the phase cannot ship on synthe
 | 2-02-02 | 02 | 2 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/capture.spec.ts src/lib/transport/fake.spec.ts src/lib/transport/fixtures/synthetic.spec.ts` | 6 + 8 + 3 = `17 passed`, **zero skipped** — regeneration is a module-scope side effect, not a guarded test | ⬜ pending |
 | 2-02-03 | 02 | 2 | FOUND-01 (SAFE-07/09 mechanism) | unit | `npx vitest run --project server src/lib/transport/queue.spec.ts` then `npm run test:quick` | `8 passed`; quick `23 files / 430 passed | 1 todo` | ⬜ pending |
 | 2-03-01 | 03 | 3 | FOUND-01 (D-10/D-11/D-12) | unit | `npx vitest run --project server src/lib/transport/sequence.spec.ts` | `9 passed` (the ninth: a CONFIG/REPORT never moves the active page); quick `24 files / 439 passed | 1 todo` | ⬜ pending |
-| 2-03-02 | 03 | 3 | FOUND-01 (D-05/D-09, CONN-02) | build | `npm run build && test -f build/dev/skeleton/index.html && npm run check && npm run lint`, then the ten-testid loop in the task's acceptance | exit 0; `skeleton-status` present in the prerendered HTML; all ten testids present, including `skeleton-degrade` (rendered **instead of** the connect button when the browser has no Web Serial) and the read-only `skeleton-ports` line the runbook's row P reads | ⬜ pending |
+| 2-03-02 | 03 | 3 | FOUND-01 (D-05/D-09, CONN-02) | build | `npm run build && test -f build/dev/skeleton/index.html && npm run check && npm run lint`, then the ten-testid loop in the task's acceptance | exit 0; `skeleton-status` present in the prerendered HTML; all eleven testids present, including `skeleton-status` (present from first paint, which is what the prerendered-HTML grep and e2e test 2 read), `skeleton-degrade` (rendered **instead of** the connect button when the browser has no Web Serial), the read-only `skeleton-ports` line the runbook's row P reads, and `skeleton-others`, which renders D-12's other-module names rather than only disabling the store | ⬜ pending |
 | 2-03-03 | 03 | 3 | FOUND-01 (DEGR-02 shape) | unit + e2e | `npx vitest run --project server src/lib/config-shape.spec.ts` then `npx playwright test` | `12 passed`; quick `24 files / 442 passed | 1 todo`; e2e `10 passed`, zero `failed` in `.tmp-e2e/` | ⬜ pending |
 | 2-04-01 | 04 | 4 | FOUND-01 | gate + doc | `npm run check && npm run lint && npm run test:quick && npm run test:sweep && npm run build && npx playwright test` | quick `442 passed | 1 todo`, sweep `9 passed`, e2e `10 passed`; `docs/SKELETON-RUNBOOK.md` exists | ⬜ pending |
 | 2-04-02 | 04 | 4 | FOUND-01 crit. 1-4 | **manual (checkpoint:human-verify)** | pre-checkpoint gate only: `npm run check && npm run lint && npm run test:quick && npm run build && test -f docs/SKELETON-RUNBOOK.md` | the human checklist below; user hands back one capture JSON per arm with `"source": "hardware"` | ⬜ pending |
@@ -114,8 +114,9 @@ Files the phase creates, by wave:
 - **Wave 2** — `src/lib/transport/{transport,web-serial,capture,fake,queue,index}.ts`,
   `fixtures/synthetic.ts`, `fixtures/synthetic-zona.json`, `scripts/make-synthetic-capture.mjs`,
   five specs
-- **Wave 3** — `src/lib/transport/sequence.ts` + spec, `src/routes/dev/skeleton/+page.svelte` (nine
-  controls, the `skeleton-degrade` panel, the read-only `skeleton-ports` line, two A/B toggles),
+- **Wave 3** — `src/lib/transport/sequence.ts` + spec, `src/routes/dev/skeleton/+page.svelte` (nine control-table
+  rows - eight buttons plus the `skeleton-degrade` panel - the `skeleton-status`, `skeleton-ports`
+  and `skeleton-others` read-only lines, and two A/B toggles),
   `e2e/skeleton.e2e.ts`, three new tests in `src/lib/config-shape.spec.ts`
 - **Wave 4** — `docs/SKELETON-RUNBOOK.md`
 - **Wave 5** — `src/lib/transport/fixtures/zona-hardware.json`, `fixtures/fixtures.spec.ts`,
@@ -169,7 +170,8 @@ The executor waits at task 2-04-02, then plan 05 commits the captures under
 | Gate | Task | How to make it red | Expected |
 |------|------|--------------------|----------|
 | Descriptor length refusal | 2-01-01 | change `sendConfig`'s guard from `>=` to `>` | descriptors.spec test 8 red, naming the 909 case |
-| Frame scanner delimiter | 2-01-02 | drop the `EOT` half of the condition, leaving only the terminator; and separately feed a torn frame with no terminator | framing.spec test 9 red; the torn frame emits zero frames and the buffer retains all of it |
+| Frame scanner lookback | 2-01-02 | delete the lookback floor - `Math.max(this.scanned, 3)` becomes `this.scanned` | framing.spec tests 3 and 4 red; they are the boundary cases where `i - 3` reaches into the previous chunk, and the only ones that can catch it |
+| Frame scanner torn input | 2-01-02 | feed a frame with its terminator removed | zero frames emitted and `buffered` equals the input length |
 | Matcher ordering | 2-01-03 | move the HEARTBEAT early return after the class-name check | match.spec test 1 red — a heartbeat must never resolve a waiter |
 | Recovery order | 2-02-01 | reorder `steps` so `Reload` precedes `Plug` | transport.spec test 4 red |
 | Synthetic fixture integrity | 2-02-02 | delete one recorded rx chunk from the committed JSON | synthetic.spec test 2 red on the frame count |
