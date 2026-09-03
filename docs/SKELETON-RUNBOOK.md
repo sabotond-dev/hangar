@@ -96,6 +96,22 @@ On arm A the host heartbeat is a type 255 beat every 300 ms, so page change is b
 continuously anyway. On arm B there is no such beat, and row R is the only thing restoring it — which
 is exactly why the row is mandatory rather than advisory.
 
+## What the frame log looks like
+
+The **Frame log** scrolls fast and that is normal. A ZONA sends four heartbeats a second and each one
+carries a page-active report riding beside it in the same frame, so the log fills with four
+`HEARTBEAT` + `PAGEACTIVE` pairs per second and never stops. That rate does not depend on the
+`send the host heartbeat while connected` toggle - the toggle only governs what the page sends
+outbound. Alongside them:
+
+- One `DEBUGTEXT` reading `CDC TX dropped: <n>` arrives just after the port opens. That is the
+  module reporting what it had queued while nothing was listening; it is not a fault and not a frame
+  of yours going missing.
+- `DEBUGTEXT` `tick` is the factory Timer script printing. One appears after each
+  `Write back (RAM)`, because a config write restarts the module script.
+- `DEBUGTEXT` `nvm store success` appears once per store, beside the `PAGESTORE` acknowledgement
+  the page matched on.
+
 ## If something goes wrong
 
 The page has one named state per failure, and the name is the diagnosis. Whatever happens, click
