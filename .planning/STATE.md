@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-09-03T10:36:50.403Z"
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-09-03T10:48:21.375Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 13
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 03 (vendor-the-domain) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-09-03
 
@@ -61,6 +61,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 03 P02 | 11 min | 2 tasks | 4 files |
 | Phase 03 P03 | 11 min | 3 tasks | 7 files |
 | Phase 03 P04 | 19 min | 3 tasks | 4 files |
+| Phase 03 P05 | 12 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase 03]: The oracle spec honours ORACLE.LED_LOOKUP_DIRECTION as declared and never tries the inverse; the ZONA table is self-inverse, so the 81-cell agreement confirms the DATA independently but cannot confirm the DIRECTION — LED_LOOKUP[LED_LOOKUP[i]] === i for all 81 entries, so both readings produce identical numbers and a spec that tried both directions until one passed would be fitting the oracle to the simulator - the exact failure mode the two-author design exists to prevent. The direction rests on the isolated author's derivation from grid_led.c:171-183 plus grid_lua_api.c:1301-1336, recorded in 03-04-SUMMARY.md so no reviewer mistakes numeric agreement for confirmation of it.
 - [Phase 03]: The expiry tick order is asserted through the vendored public API alone - defaultState() with look and sends disabled decays to animating false at tick 42 - and the oracle's phaseAdvanceOffsetAtExpiry INDEXES the expected frame rather than being restated in the spec — The settled frame at expiry+1 is compared against hashes[expiry-1+offset], so flipping the oracle constant flips the expectation and the test goes red - observed. The spec also asserts hashes[expiry-1] !== hashes[expiry], without which the offset would be vacuously satisfied. rateZeroedOnExpiry is asserted the same observable way: movedAfterExpiry === !rateZeroedOnExpiry. The plan's weaker static-preset fallback was not needed and 03-VALIDATION.md's "if the fallback fires" row stands unfired.
 - [Phase 03]: Golden-frame regeneration lives inside the spec behind UPDATE_GOLDEN, shells out to npx prettier --write on the fixture, and fails the run by design; the fixture is git added the moment it first exists, before any perturbation — Plain Node ESM cannot import pad-sim.ts at all, so a standalone generator would need Vite anyway. JSON.stringify puts the primitive ticks array on five lines and Prettier collapses it onto one, and src/lib/fidelity/ is not prettier-ignored, so without the normalising pass npm run lint fails on a file no human wrote - and the pass being idempotent is what keeps two consecutive regenerations byte-identical. Staging first matters because on an untracked path git checkout -- fails outright and git diff --quiet passes vacuously, so every restore-and-compare check would have measured nothing.
+- [Phase 03]: The FOUND-05 WASM gate attaches to HANGAR's COMPILE SURFACE (src/lib/pad/index.ts), never to the app root; PadSim is not re-exported from that surface at all — CONTEXT says the app root awaits the gate before first render of anything that compiles and CLAUDE.md says never call initLuaFormatter() at boot - both hold, because nothing calls padReady() until something asks for a cost, and what a page shows while that resolves is Phase 4's concern. Leaving PadSim out of the barrel entirely (a consumer imports src/vendor/botor/pad-sim directly) makes "the simulator is outside the gate" enforceable by grep on the import graph rather than by a comment nobody re-reads; gating it would make the catalog wait on a 628 KB WASM download for a picture that takes a PadState and never Lua.
+- [Phase 03]: In a spec whose test ORDER is load-bearing, a pre-init assertion must be the FIRST gate-crossing call in the file - ready.spec.ts test 3 builds with the VENDORED compile, not compilePreset — As the plan drafted it, test 3 opened with await compilePreset("aurora"), which awaits the gate - so by the time costOf ran the formatter was already initialised, and deleting costOf's own await left the whole spec green (exit 0, 5 passed). The plan's negative check found this, which is exactly what a negative check is for. compile() needs no formatter (test 1 proves it in the same file), so building with the vendored compile makes costOf the first call to cross the gate and the perturbation goes red naming test 3. Corollary recorded in the spec: compilePreset's and compileState's own awaits are belt-and-braces and unobservable by ANY test, because compile() never touches the formatter - the four load-bearing gates are costOf, fitsIn, measureLua and validateCompiled.
 
 ### Pending Todos
 
@@ -119,6 +122,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T10:36:42.956Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-09-03T10:48:09.828Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None

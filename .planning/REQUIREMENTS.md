@@ -14,7 +14,7 @@ feature table in `.planning/research/FEATURES.md`.
 - [x] **FOUND-02**: The `_pad.ts` compiler, `pad-sim.ts` simulator and `pad-sim-host.ts` render loop are vendored into HANGAR with their existing test suites passing unchanged, quarantined under a single vendor directory with a written sync procedure back to BOTOR
 - [x] **FOUND-03**: `@intechstudio/grid-protocol` is pinned to the exact version BOTOR's cost baseline was measured against, and any bump is a test-gated change
 - [x] **FOUND-04**: The repository carries a GPLv3 licence, a notices file for third-party licences (grid-protocol is itself GPLv3), and the deployed site serves a source archive of the deployed commit (GPLv3 section 6(d) — the repository itself stays private, per D-02)
-- [ ] **FOUND-05**: Compile, cost and fit are gated on the Lua formatter WASM being initialised, so no card can ever appear syntactically invalid or fail to measure because the formatter has not loaded yet
+- [x] **FOUND-05**: Compile, cost and fit are gated on the Lua formatter WASM being initialised, so no card can ever appear syntactically invalid or fail to measure because the formatter has not loaded yet
 
 ### Connect [A]
 
@@ -157,7 +157,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUND-02 | Phase 3 | Complete |
 | FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 1 | Complete |
-| FOUND-05 | Phase 3 | Pending |
+| FOUND-05 | Phase 3 | Complete |
 | CONN-01 | Phase 6 | Pending |
 | CONN-02 | Phase 6 | Pending |
 | CONN-03 | Phase 6 | Pending |
