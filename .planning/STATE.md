@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-04-PLAN.md - the hardware run is done; plan 05 turns the captures into docs/SKELETON-RESULTS.md
-last_updated: "2026-09-03T22:31:59.664Z"
+status: verifying
+stopped_at: Completed 02-05-PLAN.md - phase 2 complete, FOUND-01 marked done
+last_updated: "2026-09-03T23:01:52.107Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
   percent: 13
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 
 Phase: 02 (walking-skeleton) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-03
 
 Progress: [█░░░░░░░░░] 13%
@@ -67,6 +67,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 02 P02 | 22 min | 3 tasks | 14 files |
 | Phase 02 P03 | 21 min | 3 tasks | 7 files |
 | Phase 02 P04 | 36 min | 2 tasks | 1 files |
+| Phase 02 P05 | 30 min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,10 @@ Recent decisions affecting current work:
 - [Phase 02]: The 10 ms pre-send pacing is NOT load-bearing at 2 Mbaud: the same twenty-fetch burst measured min 13.8 / p50 14.5 / max 16.5 ms at pace 10 and min 3.0 / p50 3.3 / max 3.8 ms at pace 0, with zero timeouts and zero NACKs on both - roughly 11 ms per request for nothing. Recommendation for plan 05 carries the caveat that this is one module, one cable, one host, and that Phase 7 writes far more data per request than a fetch
 - [Phase 02]: The real ZONA reported activePage 3, not 0, and its factory Setup is 642 characters where the pinned package's default table says 641 - D-10's read-the-page rule is vindicated on hardware (a page-0 assumption would have fetched an empty string), and the module's own string is the truth while the package default is only a hint, which any Phase 7 budget or diff logic has to assume
 - [Phase 02]: Chrome 152 keeps the Web Serial grant across a full browser restart: after quitting Chrome completely and reopening it, the page read 'previously granted ports: 1' for http://127.0.0.1:4173, so navigator.serial.getPorts() returns the ZONA with no gesture and no chooser and Phase 6's CONN-06 silent-reconnect offer is viable - the grant is per origin, and a returned port is permitted rather than open
+- [Phase 02]: The shipped timeouts are the measured ones: fetchMs 300, executeMs 250, pagestoreMs 3000 (measured and unchanged), PRE_SEND_DELAY_MS 0 — Ten times the slowest thing ever observed on each fast path, from 160 real requests that all settled under 40 ms. pagestoreMs keeps its headroom because a PAGESTORE arriving during a bulk NVM operation is dropped with no ACK and no NACK, so a timeout is its only signal. A test parses one machine-readable Shipped: line out of docs/SKELETON-RESULTS.md and asserts it equals the constants, so the two cannot drift.
+- [Phase 02]: A committed capture declares its provenance, and fixtures.spec.ts fails when the repository holds only synthetic evidence — Every fixture-backed test before the hardware checkpoint ran against synthetic-zona.json, which is what let the whole protocol and transport layer be built with nothing plugged in. Test 1 of src/lib/transport/fixtures/fixtures.spec.ts closes that gap: it reads every JSON in the fixtures directory and fails unless one declares source hardware. Tests 2 to 4 select the arms by filename so the provenance mutation makes exactly that gate red.
+- [Phase 02]: DESKTOP_PRE_SEND_DELAY_MS keeps the skeleton page A/B pacing toggle honest now that the shipped default is 0 — The page stamps the capture run.id from the pacing number, so reading the shipped 0 in the paced position would have sent at 0 in both toggle states and labelled every future export pace-0 - a capture that lies about which arm produced it. Nothing in the shipped request path reads the new constant.
+- [Phase 02]: The restore rule is asserted as one restore-page-change per write-setup per arm, not as a closing step — The pace-0 probe is identify plus one burst and never wrote a config, so it correctly has no restore. Asserting the invariant as restores.length === writes.length per arm, plus at least one arm having exercised it, is a stronger claim than the closing-step version and passes honestly on all three captures instead of exempting one.
 
 ### Pending Todos
 
@@ -147,6 +152,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T22:31:44.470Z
-Stopped at: Completed 02-04-PLAN.md - the hardware run is done; plan 05 turns the captures into docs/SKELETON-RESULTS.md
+Last session: 2026-09-03T23:01:52.102Z
+Stopped at: Completed 02-05-PLAN.md - phase 2 complete, FOUND-01 marked done
 Resume file: None

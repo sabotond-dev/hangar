@@ -67,7 +67,7 @@ Plans:
 - [x] 02-02-PLAN.md — Transport, capture, fake with faults, synthetic fixture, RequestQueue (wave 2)
 - [x] 02-03-PLAN.md — The no-op sequence, /dev/skeleton/, the degrade e2e and the bare-import guard (wave 3)
 - [x] 02-04-PLAN.md — Pre-flight, the runbook, and the hardware run checkpoint (wave 4)
-- [ ] 02-05-PLAN.md — The real fixture, its gate, docs/SKELETON-RESULTS.md and the measured timeouts (wave 5)
+- [x] 02-05-PLAN.md — The real fixture, its gate, docs/SKELETON-RESULTS.md and the measured timeouts (wave 5)
 
 ### Phase 3: Vendor the Domain
 **Goal**: BOTOR's compiler and simulator run inside HANGAR unmodified, with fidelity pinned by something other than the code that produced it.
