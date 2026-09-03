@@ -102,10 +102,13 @@ OG images and URL stamps (Phase 5).
   and dot field are static CSS layers, never `strokeRect` per cell per frame. Side pads paint at
   20 fps; the hero at 30. The centre pad keeps its sim instance across steps (no restart at tick 0).
 - **D-16:** Depth is CSS 3D (`perspective`, `translateZ`, `rotateY` small angles) on canvas-bearing
-  elements — no WebGL, no per-card contexts beyond the 2D canvas. Dimming is `opacity` (or a lime
-  alpha overlay), **never `filter`**: `filter` forces `transform-style: flat` and would collapse the
-  3D row, and no CSS may author a colour the simulator did not. The row clips with `overflow: clip`,
-  not `overflow: hidden`, for the same reason.
+  elements — no WebGL, no per-card contexts beyond the 2D canvas. Depth dimming is
+  `filter: brightness()` on the **slot wrapper only** (a leaf of the 3D tree: the flattening that
+  `filter` forces has no 3D children to flatten there); it only scales emitted channels toward
+  black. The row container carries no `filter` and clips with `overflow: clip`, not
+  `overflow: hidden`, because both `filter` and `overflow: hidden` force `transform-style: flat`.
+  No CSS anywhere adds or tints a colour the simulator did not emit (no `drop-shadow`, `blur`,
+  `hue-rotate` on pads).
 - **D-17:** The fidelity line ("what the simulator matches exactly and cannot show") sits under the
   name plate in small text, always present, quiet.
 
