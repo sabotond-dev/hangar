@@ -71,7 +71,7 @@ Whole run at phase end: `npx vitest run` = 12 files / 361 tests.
 | 3-02-02 | 02 | 2 | FOUND-02 | unit | `npx vitest run --project server src/lib/fidelity/vendored-diff.spec.ts` reports `14 passed` | created here | ⬜ pending |
 | 3-03-01 | 03 | 3 | FOUND-02 (crit. 3), D-11a | fixture generation | `node scripts/capture-preset-baseline.mjs` exits 0; fixture has 9 presets with raw AND compressed lengths; sibling `git status --porcelain` unchanged | created here | ⬜ pending |
 | 3-03-02 | 03 | 3 | FOUND-02 (crit. 3), D-11b | unit | `npx vitest run --project server src/lib/fidelity/preset-baseline.spec.ts` reports `19 passed` | created here | ⬜ pending |
-| 3-03-03 | 03 | 3 | FOUND-03 closure (D-11) | unit | `npx vitest run --project server src/lib/protocol-pin.spec.ts` reports `5 passed`; `grep -c "it.todo"` prints `0` | exists (todo) | ⬜ pending |
+| 3-03-03 | 03 | 3 | FOUND-02 (crit. 3) - closes Phase 1 FOUND-03/D-11 | unit | `npx vitest run --project server src/lib/protocol-pin.spec.ts` reports `5 passed`; `grep -c "it.todo"` prints `0` | exists (todo) | ⬜ pending |
 | 3-04-01 | 04 | 4 | PREV-06 | oracle authoring (delegated) | `npx prettier --check src/lib/fidelity/firmware-oracle.ts`; all ten exports present; `dc7d301…` cited | created here | ⬜ pending |
 | 3-04-02 | 04 | 4 | PREV-06 (crit. 4) | oracle | `npx vitest run --project server src/lib/fidelity/firmware-oracle.spec.ts` reports `7 passed` | created here | ⬜ pending |
 | 3-04-03 | 04 | 4 | PREV-06 (D-07) | regression | `npx vitest run --project server src/lib/fidelity/golden-frames.spec.ts` reports `11 passed`; `npm run test:quick` reports `347 passed (347)` | created here | ⬜ pending |
@@ -102,6 +102,17 @@ All Wave 0 gaps are closed by **task 3-01-01** unless noted; each maps to a crea
 - [ ] `src/routes/dev/fidelity/+page.svelte` + `e2e/fidelity.e2e.ts` → **3-06-01 / 3-06-02**
 - [ ] `docs/TESTING.md` → **3-06-03**
 - [ ] No framework install needed. `npm ci` is already correct.
+
+---
+
+## What the fixtures prove
+
+| Fixture | Status | Proves |
+|---|---|---|
+| `src/lib/fidelity/upstream-manifest.json` | byte record | The vendored files differ from upstream only by the header block and the five recorded import/type rewrites |
+| `src/lib/fidelity/preset-baseline.json` | independent | Captured from BOTOR's own compiler in BOTOR's own tree, so agreement proves the port changed nothing |
+| `src/lib/fidelity/firmware-oracle.ts` | **oracle** | Re-derived from cited firmware source by an author structurally prevented from reading the simulator (D-05) |
+| `src/lib/fidelity/golden-frames.json` | **regression tripwire, not an oracle** | Its hashes come from the simulator itself, so it proves only that a change to a shared helper altered a named preset's appearance. It says nothing about firmware fidelity (D-07) |
 
 ---
 
