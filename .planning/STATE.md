@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-09-03T09:35:21.071Z"
-last_activity: 2026-09-03 -- Phase 03 execution started
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-09-03T09:47:40.931Z"
+last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 11
-  completed_plans: 5
+  completed_plans: 6
   percent: 13
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 03 (vendor-the-domain) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 03
-Last activity: 2026-09-03 -- Phase 03 execution started
+Plan: 2 of 6
+Status: Ready to execute
+Last activity: 2026-09-03
 
 Progress: [█░░░░░░░░░] 13%
 
@@ -57,6 +57,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 01 P03 | 12min | 3 tasks | 10 files |
 | Phase 01 P04 | 45min | 3 tasks | 9 files |
 | Phase 01 P05 | 20min | 3 tasks | 6 files |
+| Phase 03 P01 | 9 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,10 @@ Recent decisions affecting current work:
 - [Phase 01]: The deploy is one Node script with six refusing gates and no bypass flag; the clean-tree gate exits before the build because git archive ships HEAD while Vite bundles the working tree, so a dirty deploy would serve an archive that is not the source of the bundle beside it
 - [Phase 01]: Worker secrets are set AFTER the first deploy, not before — wrangler secret put targets a Worker that does not exist until an upload creates one, and the fail-closed gate turns the 29-second gap into a 401-to-everything state rather than a window of public exposure
 - [Phase 01]: CLAUDE.md is regenerated with gsd-tools generate-claude-md, never hand-edited — its GSD:project block is rendered from PROJECT.md, so a hand edit silently reverts on the next regeneration and re-introduces the public-source claim D-02 contradicts
+- [Phase 03]: D-10 fired on measurement: the invariant sweep is 38.8 s wall against 6.5 s for everything else, so pad-invariants.test.js runs as its own Vitest 'sweep' project per wave while 'test:quick' stays the per-task loop — A separate project, not a skip or an env flag, so the sweep is never partially run; and it is excluded from the server project by FILE NAME, never by directory, because a directory-wide vendor exclusion is precisely the failure this task removed
+- [Phase 03]: The vendored tree is hidden from svelte-check with a tsconfig exclude of src/vendor/**, not by turning checkJs off — Both give 0 errors (489 without either), but checkJs:false silently lowers the bar for every future first-party HANGAR .js file; the exclude keeps checkJs and still type-checks the three vendored .ts sources the moment HANGAR code imports them, which is where the real risk is
+- [Phase 03]: Provenance headers are 7 lines for _pad.ts and 6 for the other five; VENDOR.md records the resulting 8/7 line offset and the rule 'vendored line = upstream line + header lines' — The block shifts every line number in the file, so every HANGAR document citing a vendored line cites the upstream number plus the offset; verified against a real citation - PRESETS is upstream _pad.ts:4206 and vendored _pad.ts:4214
+- [Phase 03]: Cross-repo vendoring is a Buffer-level copy with a uniqueness assertion per permitted delta, never a decode/re-encode round trip through a string — pad.test.js is UTF-8 with non-ASCII content and plan 02's sha256 manifest hashes its exact byte stream; a Buffer.indexOf/concat splice that throws on zero or multiple matches also proves 'exactly three deltas' at copy time rather than after the fact
 
 ### Pending Todos
 
@@ -102,6 +107,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-02T16:33:38.620Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-vendor-the-domain/03-CONTEXT.md
+Last session: 2026-09-03T09:47:10.378Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
