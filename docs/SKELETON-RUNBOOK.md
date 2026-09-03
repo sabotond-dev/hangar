@@ -48,9 +48,16 @@ Only you can do either of these. The executor never deploys and never touches th
   enter the Basic Auth credentials. This is the route if you want to run from a different machine.
   The deploy refuses on a dirty tree by design; the tree is clean as of the pre-flight.
 - **`npm run preview`**, then open `http://127.0.0.1:4173/dev/skeleton/`. `localhost` is a secure
-  context, so Web Serial works there with no certificate and no deploy.
+  context, so Web Serial works there with no certificate and no deploy. `npm run preview` rebuilds
+  the site first, so it always serves the current commit.
 
 Keep the trailing slash on `/dev/skeleton/`.
+
+**Both routes ask for a password.** The Basic Auth gate runs in front of every request on the local
+preview too, not only on the deployed one, so expect a sign-in prompt for the realm
+`HANGAR preview` at `127.0.0.1:4173` as well. Locally the credentials come from the gitignored
+`.dev.vars`; on the deployed preview they are the two Worker secrets. A prompt is the gate working,
+not a fault.
 
 **Never open the built `index.html` from disk.** A `file://` URL is not a secure context, so
 `navigator.serial` is simply absent and the page correctly shows its no-Web-Serial state - which
