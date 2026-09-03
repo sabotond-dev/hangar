@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 02-05-PLAN.md - phase 2 complete, FOUND-01 marked done
+status: researching
+stopped_at: Phase 2 verified and closed; Phase 4 (first-experience) research and UI-SPEC in progress
 last_updated: "2026-09-03T23:14:36.108Z"
 last_activity: 2026-09-03
 progress:
@@ -18,16 +18,16 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-02)
+See: .planning/PROJECT.md (updated 2026-09-04)
 
 **Core value:** Plug in a ZONA, open a URL, and half a minute later the pad is doing something spectacular. If everything else fails, browser-to-hardware install must work.
-**Current focus:** Phase 02 — walking-skeleton
+**Current focus:** Phase 04 — first-experience
 
 ## Current Position
 
-Phase: 03
+Phase: 04 (first-experience)
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Researching — 04-RESEARCH.md and 04-UI-SPEC.md being written, then plan-phase 4
 Last activity: 2026-09-03
 
 Progress: [█░░░░░░░░░] 13%
