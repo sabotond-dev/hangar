@@ -22,7 +22,7 @@ a working simulator and a live budget meter make it an easy job instead of a bli
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Scaffold, Licence and Pin** - Static-site skeleton with GPLv3 obligations and the exact grid-protocol pin settled from commit one (completed 2026-09-02)
-- [ ] **Phase 2: Walking Skeleton** - A bare page proves the full connect, fetch, write and store cycle on a real ZONA as a provable no-op
+- [x] **Phase 2: Walking Skeleton** - A bare page proves the full connect, fetch, write and store cycle on a real ZONA as a provable no-op (completed 2026-09-03)
 - [x] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle (completed 2026-09-02)
 - [ ] **Phase 4: First Experience** - Splash dissolves into a coverflow of live ZONA pads; choose one and `TRY ON DEVICE` appears — the wow front door, worth opening with no hardware attached
 - [ ] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL
@@ -179,7 +179,7 @@ Phases 6 and 7.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold, Licence and Pin | 5/5 | Complete   | 2026-09-02 |
-| 2. Walking Skeleton | 0/5 | Planned | - |
+| 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 0/TBD | Not started | - |
 | 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |

@@ -133,7 +133,7 @@ twenty (`t` 418882.4 to 419187.7). Arm B's six probes of twenty each took betwee
 starting at `t` 412658.6, 414192.3, 415034.6, 417316.4, 418330.4 and 418882.4.
 
 The two clocks, once, on the same twenty steps so the difference is visible: arm B's last probe reads
-13.4 / 13.9 / 16.3 ms per step and 14.2 / 15.0 / 17.2 ms in the `burst` summary block; arm A reads 13.2
+13.4 / 14.2 / 16.3 ms per step and 14.2 / 15.0 / 17.2 ms in the `burst` summary block; arm A reads 13.2
 / 13.8 / 15.8 against 13.8 / 14.5 / 16.5; the pace-0 probe reads 2.8 / 3.1 / 3.4 against 3.0 / 3.3 /
 3.8. The block is consistently the higher of the two. Note also that `zona-hardware.json` holds **120**
 burst steps from six probes while its `burst` block describes only the last twenty — aggregating the

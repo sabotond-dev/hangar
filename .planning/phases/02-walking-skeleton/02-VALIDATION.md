@@ -1,7 +1,7 @@
 ---
 phase: 2
 slug: walking-skeleton
-status: planned
+status: complete
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-09-02
@@ -77,20 +77,20 @@ committed fixture has `"source": "hardware"`, so the phase cannot ship on synthe
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | Expected | Status |
 |---------|------|------|-------------|-----------|-------------------|----------|--------|
-| 2-01-01 | 01 | 1 | FOUND-01 | unit | `npx vitest run --project server src/lib/protocol/constants.spec.ts src/lib/protocol/descriptors.spec.ts src/lib/protocol/forbidden-instructions.spec.ts` | 5 + 10 + 5 = `20 passed` | ⬜ pending |
-| 2-01-02 | 01 | 1 | FOUND-01 | unit | `npx vitest run --project server src/lib/protocol/framing.spec.ts src/lib/protocol/decode.spec.ts` | 9 + 5 = `14 passed` | ⬜ pending |
-| 2-01-03 | 01 | 1 | FOUND-01 (D-09) | unit | `npx vitest run --project server src/lib/protocol/match.spec.ts src/lib/protocol/write-guard.spec.ts` then `npm run test:quick` | 7 + 6 = `13 passed`; quick `18 files / 399 passed | 1 todo` | ⬜ pending |
-| 2-02-01 | 02 | 2 | FOUND-01 (CONN-02/04/05) | unit | `npx vitest run --project server src/lib/transport/transport.spec.ts` | `6 passed` | ⬜ pending |
-| 2-02-02 | 02 | 2 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/capture.spec.ts src/lib/transport/fake.spec.ts src/lib/transport/fixtures/synthetic.spec.ts` | 6 + 8 + 3 = `17 passed`, **zero skipped** — regeneration is a module-scope side effect, not a guarded test | ⬜ pending |
-| 2-02-03 | 02 | 2 | FOUND-01 (SAFE-07/09 mechanism) | unit | `npx vitest run --project server src/lib/transport/queue.spec.ts` then `npm run test:quick` | `8 passed`; quick `23 files / 430 passed | 1 todo` | ⬜ pending |
-| 2-03-01 | 03 | 3 | FOUND-01 (D-10/D-11/D-12) | unit | `npx vitest run --project server src/lib/transport/sequence.spec.ts` | `9 passed` (the ninth: a CONFIG/REPORT never moves the active page); quick `24 files / 439 passed | 1 todo` | ⬜ pending |
-| 2-03-02 | 03 | 3 | FOUND-01 (D-05/D-09, CONN-02) | build | `npm run build && test -f build/dev/skeleton/index.html && npm run check && npm run lint`, then the eleven-testid loop in the task's acceptance | exit 0; `skeleton-status` present in the prerendered HTML; all eleven testids present, including `skeleton-status` (present from first paint, which is what the prerendered-HTML grep and e2e test 2 read), `skeleton-degrade` (rendered **instead of** the connect button when the browser has no Web Serial), the read-only `skeleton-ports` line the runbook's row P reads, and `skeleton-others`, which renders D-12's other-module names rather than only disabling the store | ⬜ pending |
-| 2-03-03 | 03 | 3 | FOUND-01 (DEGR-02 shape) | unit + e2e | `npx vitest run --project server src/lib/config-shape.spec.ts` then `npx playwright test` | `12 passed`; quick `24 files / 442 passed | 1 todo`; e2e `10 passed`, zero `failed` in `.tmp-e2e/` | ⬜ pending |
-| 2-04-01 | 04 | 4 | FOUND-01 | gate + doc | `npm run check && npm run lint && npm run test:quick && npm run test:sweep && npm run build && npx playwright test` | quick `442 passed | 1 todo`, sweep `9 passed`, e2e `10 passed`; `docs/SKELETON-RUNBOOK.md` exists | ⬜ pending |
-| 2-04-02 | 04 | 4 | FOUND-01 crit. 1-4 | **manual (checkpoint:human-verify)** | pre-checkpoint gate only: `npm run check && npm run lint && npm run test:quick && npm run build && test -f docs/SKELETON-RUNBOOK.md` | the human checklist below; user hands back one capture JSON per arm with `"source": "hardware"` | ⬜ pending |
-| 2-05-01 | 05 | 5 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/fixtures/fixtures.spec.ts src/lib/transport/fake.spec.ts` | 4 + 8 = `12 passed`; quick `25 files / 446 passed | 1 todo` | ⬜ pending |
-| 2-05-02 | 05 | 5 | FOUND-01 crit. 5 (D-08) | unit + doc | `npx vitest run --project server src/lib/skeleton-results.spec.ts` | `6 passed`; quick `26 files / 452 passed | 1 todo`; `docs/SKELETON-RESULTS.md` with no `TBD`, and answer (f) citing `03-06-SUMMARY.md` rather than a fixture | ⬜ pending |
-| 2-05-03 | 05 | 5 | FOUND-01 crit. 5 | unit + full | `npx vitest run --project server src/lib/skeleton-results.spec.ts` then the full suite | `7 passed`; quick `26 files / 453 passed | 1 todo`; sweep `9`; e2e `10 passed` | ⬜ pending |
+| 2-01-01 | 01 | 1 | FOUND-01 | unit | `npx vitest run --project server src/lib/protocol/constants.spec.ts src/lib/protocol/descriptors.spec.ts src/lib/protocol/forbidden-instructions.spec.ts` | 5 + 10 + 5 = `20 passed` | ✅ green |
+| 2-01-02 | 01 | 1 | FOUND-01 | unit | `npx vitest run --project server src/lib/protocol/framing.spec.ts src/lib/protocol/decode.spec.ts` | 9 + 5 = `14 passed` | ✅ green |
+| 2-01-03 | 01 | 1 | FOUND-01 (D-09) | unit | `npx vitest run --project server src/lib/protocol/match.spec.ts src/lib/protocol/write-guard.spec.ts` then `npm run test:quick` | 7 + 6 = `13 passed`; quick `18 files / 399 passed | 1 todo` | ✅ green |
+| 2-02-01 | 02 | 2 | FOUND-01 (CONN-02/04/05) | unit | `npx vitest run --project server src/lib/transport/transport.spec.ts` | `6 passed` | ✅ green |
+| 2-02-02 | 02 | 2 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/capture.spec.ts src/lib/transport/fake.spec.ts src/lib/transport/fixtures/synthetic.spec.ts` | 6 + 8 + 3 = `17 passed`, **zero skipped** — regeneration is a module-scope side effect, not a guarded test | ✅ green |
+| 2-02-03 | 02 | 2 | FOUND-01 (SAFE-07/09 mechanism) | unit | `npx vitest run --project server src/lib/transport/queue.spec.ts` then `npm run test:quick` | `8 passed`; quick `23 files / 430 passed | 1 todo` | ✅ green |
+| 2-03-01 | 03 | 3 | FOUND-01 (D-10/D-11/D-12) | unit | `npx vitest run --project server src/lib/transport/sequence.spec.ts` | `9 passed` (the ninth: a CONFIG/REPORT never moves the active page); quick `24 files / 439 passed | 1 todo` | ✅ green |
+| 2-03-02 | 03 | 3 | FOUND-01 (D-05/D-09, CONN-02) | build | `npm run build && test -f build/dev/skeleton/index.html && npm run check && npm run lint`, then the eleven-testid loop in the task's acceptance | exit 0; `skeleton-status` present in the prerendered HTML; all eleven testids present, including `skeleton-status` (present from first paint, which is what the prerendered-HTML grep and e2e test 2 read), `skeleton-degrade` (rendered **instead of** the connect button when the browser has no Web Serial), the read-only `skeleton-ports` line the runbook's row P reads, and `skeleton-others`, which renders D-12's other-module names rather than only disabling the store | ✅ green |
+| 2-03-03 | 03 | 3 | FOUND-01 (DEGR-02 shape) | unit + e2e | `npx vitest run --project server src/lib/config-shape.spec.ts` then `npx playwright test` | `12 passed`; quick `24 files / 442 passed | 1 todo`; e2e `10 passed`, zero `failed` in `.tmp-e2e/` | ✅ green |
+| 2-04-01 | 04 | 4 | FOUND-01 | gate + doc | `npm run check && npm run lint && npm run test:quick && npm run test:sweep && npm run build && npx playwright test` | quick `442 passed | 1 todo`, sweep `9 passed`, e2e `10 passed`; `docs/SKELETON-RUNBOOK.md` exists | ✅ green |
+| 2-04-02 | 04 | 4 | FOUND-01 crit. 1-4 | **manual (checkpoint:human-verify)** | pre-checkpoint gate only: `npm run check && npm run lint && npm run test:quick && npm run build && test -f docs/SKELETON-RUNBOOK.md` | the human checklist below; user hands back one capture JSON per arm with `"source": "hardware"` | ✅ green |
+| 2-05-01 | 05 | 5 | FOUND-01 (D-07) | unit | `npx vitest run --project server src/lib/transport/fixtures/fixtures.spec.ts src/lib/transport/fake.spec.ts` | 4 + 8 = `12 passed`; quick `25 files / 446 passed | 1 todo` | ✅ green |
+| 2-05-02 | 05 | 5 | FOUND-01 crit. 5 (D-08) | unit + doc | `npx vitest run --project server src/lib/skeleton-results.spec.ts` | `6 passed`; quick `26 files / 452 passed | 1 todo`; `docs/SKELETON-RESULTS.md` with no `TBD`, and answer (f) citing `03-06-SUMMARY.md` rather than a fixture | ✅ green |
+| 2-05-03 | 05 | 5 | FOUND-01 crit. 5 | unit + full | `npx vitest run --project server src/lib/skeleton-results.spec.ts` then the full suite | `7 passed`; quick `26 files / 453 passed | 1 todo`; sweep `9`; e2e `10 passed` | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
