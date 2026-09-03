@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   EVENT_SETUP,
@@ -10,20 +11,26 @@ import {
   sendConfig,
   storePage,
 } from "$lib/protocol";
-import { CaptureRecorder, type CaptureRun } from "./capture";
+import { type Capture } from "./capture";
 import { FakeTransport } from "./fake";
-import { heartbeatFrame, zonaResponder } from "./fixtures/synthetic";
+import { zonaResponder } from "./fixtures/synthetic";
 
-const RUN: CaptureRun = {
-  id: "spec-run",
-  hostHeartbeat: { enabled: true, intervalMs: 300, type: 255 },
-  pacing: { preSendDelayMs: 10 },
-  timeouts: { fetchMs: 1000, executeMs: 500, pagestoreMs: 3000 },
-  retries: 3,
-  userAgent: "vitest",
-  origin: "spec",
-  protocolPin: "1.20260825.1135",
-};
+/**
+ * The real ZONA, not the generated one. Plan 05 re-pointed this test at the
+ * hardware capture so the replay path - and through it every framing assertion
+ * downstream of it - is pinned against chunk boundaries a real USB CDC link
+ * produced, at the sizes a real 2 Mbaud read loop delivered them in, rather
+ * than against boundaries this repository invented for itself.
+ *
+ * The synthetic capture and fixtures/synthetic.spec.ts stay exactly as they
+ * were: they are what keeps the suite runnable on a machine with no ZONA.
+ */
+const HARDWARE = JSON.parse(
+  readFileSync(
+    new URL("./fixtures/zona-hardware.json", import.meta.url),
+    "utf8",
+  ),
+) as Capture;
 
 const SETUP_CONFIG = "--[[@cb]]print(1)";
 const TIMER_CONFIG = "--[[@cb]]print(2)";
@@ -61,30 +68,55 @@ function sink(fake: FakeTransport) {
 
 describe("fake transport", () => {
   it("replay emits the recorded chunks in order", () => {
-    const rec = new CaptureRecorder(RUN, { source: "synthetic" });
-    const frames = [0, 1, 2].map((page) =>
-      heartbeatFrame({
-        sx: 0,
-        sy: 0,
-        type: 1,
-        hwcfg: 161,
-        activePage: page,
-        firmware: { major: 1, minor: 5, patch: 5 },
-      }),
+    const recordedChunks = HARDWARE.events.filter(
+      (e) => e.dir === "rx" && e.kind === "chunk",
     );
-    const chunks = frames.map((f) => Uint8Array.from([...f, 10]));
-    for (const chunk of chunks) rec.rxChunk(chunk);
-    // A tx event sits between two of them, and must never be replayed.
-    rec.tx(encodeRequest(fetchConfig(0, 0, 0, EVENT_SETUP)).bytes);
-
-    const fake = FakeTransport.fromCapture(rec.toJSON());
-    const out = sink(fake);
-    expect(out.chunks.map(hex)).toEqual(chunks.map(hex));
+    const recordedFrames = HARDWARE.events.filter((e) => e.kind === "frame");
+    const outbound = HARDWARE.events.filter((e) => e.dir === "tx");
     expect(
-      out.classes
-        .filter((c) => c.class_name === "PAGEACTIVE")
-        .map((c) => c.class_parameters.PAGENUMBER),
-    ).toEqual([0, 1, 2]);
+      recordedChunks.length,
+      "a real arm, not a smoke test",
+    ).toBeGreaterThan(100);
+    expect(
+      outbound.length,
+      "with outbound traffic to skip past",
+    ).toBeGreaterThan(0);
+
+    const fake = FakeTransport.fromCapture(HARDWARE);
+    const out = sink(fake);
+    // 149 tx events sit interleaved through this arm and not one of them is
+    // replayed: FakeTransport is a module, not a tape recorder.
+    expect(out.chunks.map(hex)).toEqual(recordedChunks.map((e) => e.hex));
+    expect(
+      out.scanner.buffered,
+      "the real link left no partial frame behind",
+    ).toBe(0);
+    // Not one frame in the arm was refused by the decode guard, so the pump
+    // that produced these classes is reading the same bytes the page read.
+    expect(out.refused, "a real link, decoded clean").toEqual([]);
+    expect(
+      out.classes.filter((c) => c.class_name === "HEARTBEAT").length,
+      "one decoded heartbeat per recorded heartbeat frame",
+    ).toBe(
+      recordedFrames.filter(
+        (e) =>
+          e.kind === "frame" &&
+          e.ok &&
+          e.classes.some((c) => c.class_name === "HEARTBEAT"),
+      ).length,
+    );
+    // The module's own active page - 3, not the 0 that would have been the
+    // tempting constant to hardcode - falls out of the heartbeats.
+    expect(
+      [
+        ...new Set(
+          out.classes
+            .filter((c) => c.class_name === "PAGEACTIVE")
+            .map((c) => c.class_parameters.PAGENUMBER),
+        ),
+      ],
+      "the page number rides on every heartbeat, and it never moved",
+    ).toEqual([HARDWARE.identity?.activePage]);
   });
 
   it("the responder answers a fetch with a report carrying the stored config", async () => {

@@ -1,0 +1,4509 @@
+{
+  "schema": "hangar.skeleton.capture/1",
+  "source": "hardware",
+  "capturedAt": "2026-09-03T22:22:38.529Z",
+  "run": {
+    "id": "a-hb-on-pace-0",
+    "hostHeartbeat": {
+      "enabled": true,
+      "intervalMs": 300,
+      "type": 255
+    },
+    "pacing": {
+      "preSendDelayMs": 0
+    },
+    "timeouts": {
+      "fetchMs": 1000,
+      "executeMs": 500,
+      "pagestoreMs": 3000
+    },
+    "retries": 3,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "origin": "http://127.0.0.1:4173",
+    "protocolPin": "1.20260825.1135"
+  },
+  "identity": {
+    "usbVendorId": 12346,
+    "usbProductId": 33059,
+    "sx": 0,
+    "sy": 0,
+    "rot": 0,
+    "hwcfg": 161,
+    "moduleType": "ZONA",
+    "revision": "RevH",
+    "firmware": {
+      "major": 1,
+      "minor": 5,
+      "patch": 5
+    },
+    "heartbeatType": 1,
+    "activePage": 3,
+    "otherModules": []
+  },
+  "events": [
+    {
+      "n": 0,
+      "t": 22399.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "010f30303331303135643766376630303030303030301702303230654344432054582064726f707065643a2038390a030433380a"
+    },
+    {
+      "n": 1,
+      "t": 22399.399999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303331303135643766376630303030303030301702303230654344432054582064726f707065643a2038390a03043338",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "DEBUGTEXT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "TEXT": "CDC TX dropped: 89\n"
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 1,
+            "LEN": 49,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "t": 22550.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 3,
+      "t": 22550.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343032356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434620a"
+    },
+    {
+      "n": 4,
+      "t": 22550.299999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303235643766376630303030303030301702303130653031613130313035303530303361030230333064303303043462",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 2,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 2,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "t": 22711.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383031616230303030303030303030303017023031306566666666303130303030030434310a"
+    },
+    {
+      "n": 6,
+      "t": 22800.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 7,
+      "t": 22800.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343033356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434610a"
+    },
+    {
+      "n": 8,
+      "t": 22800.299999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303335643766376630303030303030301702303130653031613130313035303530303361030230333064303303043461",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 3,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 3,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 9,
+      "t": 23023.099999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383032616230303030303030303030303017023031306566666666303130303030030434320a"
+    },
+    {
+      "n": 10,
+      "t": 23050.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 11,
+      "t": 23050.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343034356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434640a"
+    },
+    {
+      "n": 12,
+      "t": 23050.299999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303435643766376630303030303030301702303130653031613130313035303530303361030230333064303303043464",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 4,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 4,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 13,
+      "t": 23300.399999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 14,
+      "t": 23300.399999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343035356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434630a"
+    },
+    {
+      "n": 15,
+      "t": 23300.5,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303535643766376630303030303030301702303130653031613130313035303530303361030230333064303303043463",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 5,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 5,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 16,
+      "t": 23324,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383033616230303030303030303030303017023031306566666666303130303030030434330a"
+    },
+    {
+      "n": 17,
+      "t": 23550.399999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 18,
+      "t": 23550.399999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343036356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434660a"
+    },
+    {
+      "n": 19,
+      "t": 23550.5,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303635643766376630303030303030301702303130653031613130313035303530303361030230333064303303043466",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 6,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 6,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 20,
+      "t": 23637.799999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383034616230303030303030303030303017023031306566666666303130303030030434340a"
+    },
+    {
+      "n": 21,
+      "t": 23800.599999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "010f303033343037356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434650a"
+    },
+    {
+      "n": 22,
+      "t": 23800.599999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303735643766376630303030303030301702303130653031613130313035303530303361030230333064303303043465",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 7,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 7,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 23,
+      "t": 23948.799999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383035616230303030303030303030303017023031306566666666303130303030030434350a"
+    },
+    {
+      "n": 24,
+      "t": 24050.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 25,
+      "t": 24050.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343038356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434310a"
+    },
+    {
+      "n": 26,
+      "t": 24050.5,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303835643766376630303030303030301702303130653031613130313035303530303361030230333064303303043431",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 8,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 8,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 27,
+      "t": 24259,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383036616230303030303030303030303017023031306566666666303130303030030434360a"
+    },
+    {
+      "n": 28,
+      "t": 24300.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 29,
+      "t": 24300.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343039356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434300a"
+    },
+    {
+      "n": 30,
+      "t": 24300.599999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334303935643766376630303030303030301702303130653031613130313035303530303361030230333064303303043430",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 9,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 9,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 31,
+      "t": 24550.599999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 32,
+      "t": 24550.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343061356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431380a"
+    },
+    {
+      "n": 33,
+      "t": 24550.69999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334306135643766376630303030303030301702303130653031613130313035303530303361030230333064303303043138",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 10,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 10,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 34,
+      "t": 24567.399999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383037616230303030303030303030303017023031306566666666303130303030030434370a"
+    },
+    {
+      "n": 35,
+      "t": 24800.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "010f303033343062356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431620a"
+    },
+    {
+      "n": 36,
+      "t": 24800.899999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334306235643766376630303030303030301702303130653031613130313035303530303361030230333064303303043162",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 11,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 11,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 37,
+      "t": 24877,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383038616230303030303030303030303017023031306566666666303130303030030434380a"
+    },
+    {
+      "n": 38,
+      "t": 25051.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 39,
+      "t": 25051.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343063356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431610a"
+    },
+    {
+      "n": 40,
+      "t": 25051.19999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334306335643766376630303030303030301702303130653031613130313035303530303361030230333064303303043161",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 12,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 12,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 41,
+      "t": 25179.69999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383039616230303030303030303030303017023031306566666666303130303030030434390a"
+    },
+    {
+      "n": 42,
+      "t": 25300.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 43,
+      "t": 25300.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343064356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431640a"
+    },
+    {
+      "n": 44,
+      "t": 25300.799999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334306435643766376630303030303030301702303130653031613130313035303530303361030230333064303303043164",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 13,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 13,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 45,
+      "t": 25480.599999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383061616230303030303030303030303017023031306566666666303130303030030431310a"
+    },
+    {
+      "n": 46,
+      "t": 25550.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 47,
+      "t": 25550.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343065356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431630a"
+    },
+    {
+      "n": 48,
+      "t": 25550.899999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334306535643766376630303030303030301702303130653031613130313035303530303361030230333064303303043163",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 14,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 14,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 49,
+      "t": 25794.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383062616230303030303030303030303017023031306566666666303130303030030431320a"
+    },
+    {
+      "n": 50,
+      "t": 25800.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 51,
+      "t": 25801,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343066356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431660a"
+    },
+    {
+      "n": 52,
+      "t": 25801,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334306635643766376630303030303030301702303130653031613130313035303530303361030230333064303303043166",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 15,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 15,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 53,
+      "t": 26050.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 54,
+      "t": 26051.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343130356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434380a"
+    },
+    {
+      "n": 55,
+      "t": 26051.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313035643766376630303030303030301702303130653031613130313035303530303361030230333064303303043438",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 16,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 16,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 56,
+      "t": 26097.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383063616230303030303030303030303017023031306566666666303130303030030431330a"
+    },
+    {
+      "n": 57,
+      "t": 26301.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 58,
+      "t": 26301.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343131356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434390a"
+    },
+    {
+      "n": 59,
+      "t": 26301.299999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313135643766376630303030303030301702303130653031613130313035303530303361030230333064303303043439",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 17,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 17,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 60,
+      "t": 26405.5,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383064616230303030303030303030303017023031306566666666303130303030030431340a"
+    },
+    {
+      "n": 61,
+      "t": 26550.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 62,
+      "t": 26551,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343132356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434610a"
+    },
+    {
+      "n": 63,
+      "t": 26551,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313235643766376630303030303030301702303130653031613130313035303530303361030230333064303303043461",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 18,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 18,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 64,
+      "t": 26711.799999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383065616230303030303030303030303017023031306566666666303130303030030431350a"
+    },
+    {
+      "n": 65,
+      "t": 26801,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 66,
+      "t": 26801,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343133356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434620a"
+    },
+    {
+      "n": 67,
+      "t": 26801,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313335643766376630303030303030301702303130653031613130313035303530303361030230333064303303043462",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 19,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 19,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 68,
+      "t": 27013.799999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383066616230303030303030303030303017023031306566666666303130303030030431360a"
+    },
+    {
+      "n": 69,
+      "t": 27051.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 70,
+      "t": 27051.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343134356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434630a"
+    },
+    {
+      "n": 71,
+      "t": 27051.19999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313435643766376630303030303030301702303130653031613130313035303530303361030230333064303303043463",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 20,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 20,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 72,
+      "t": 27301.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 73,
+      "t": 27301.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343135356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434640a"
+    },
+    {
+      "n": 74,
+      "t": 27301.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313535643766376630303030303030301702303130653031613130313035303530303361030230333064303303043464",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 21,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 21,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 75,
+      "t": 27314.5,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383130616230303030303030303030303017023031306566666666303130303030030434310a"
+    },
+    {
+      "n": 76,
+      "t": 27551.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 77,
+      "t": 27551.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343136356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434650a"
+    },
+    {
+      "n": 78,
+      "t": 27551.19999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313635643766376630303030303030301702303130653031613130313035303530303361030230333064303303043465",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 22,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 22,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 79,
+      "t": 27616.399999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383131616230303030303030303030303017023031306566666666303130303030030434300a"
+    },
+    {
+      "n": 80,
+      "t": 27801.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 81,
+      "t": 27801.399999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343137356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434660a"
+    },
+    {
+      "n": 82,
+      "t": 27801.399999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313735643766376630303030303030301702303130653031613130313035303530303361030230333064303303043466",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 23,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 23,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 83,
+      "t": 27923.099999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383132616230303030303030303030303017023031306566666666303130303030030434330a"
+    },
+    {
+      "n": 84,
+      "t": 28051.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 85,
+      "t": 28051.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343138356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434300a"
+    },
+    {
+      "n": 86,
+      "t": 28051.299999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313835643766376630303030303030301702303130653031613130313035303530303361030230333064303303043430",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 24,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 24,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 87,
+      "t": 28230.5,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383133616230303030303030303030303017023031306566666666303130303030030434320a"
+    },
+    {
+      "n": 88,
+      "t": 28301.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 89,
+      "t": 28301.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343139356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434310a"
+    },
+    {
+      "n": 90,
+      "t": 28301.399999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334313935643766376630303030303030301702303130653031613130313035303530303361030230333064303303043431",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 25,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 25,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 91,
+      "t": 28542.69999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383134616230303030303030303030303017023031306566666666303130303030030434350a"
+    },
+    {
+      "n": 92,
+      "t": 28551.399999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 93,
+      "t": 28551.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343161356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431390a"
+    },
+    {
+      "n": 94,
+      "t": 28551.5,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334316135643766376630303030303030301702303130653031613130313035303530303361030230333064303303043139",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 26,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 26,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 95,
+      "t": 28652.899999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653135616230303030376637663030303017023036306630313035303530333030303030303030030431650a"
+    },
+    {
+      "n": 96,
+      "t": 28655.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 97,
+      "t": 28655.599999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623031623564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435390a"
+    },
+    {
+      "n": 98,
+      "t": 28655.799999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623031623564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043539",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 27,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 99,
+      "t": 28656.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653136616230303030376637663030303017023036306630313035303530333030303030303030030431640a"
+    },
+    {
+      "n": 100,
+      "t": 28659.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 101,
+      "t": 28659.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623031633564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435380a"
+    },
+    {
+      "n": 102,
+      "t": 28659.399999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623031633564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043538",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 28,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 103,
+      "t": 28659.799999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653137616230303030376637663030303017023036306630313035303530333030303030303030030431630a"
+    },
+    {
+      "n": 104,
+      "t": 28662.599999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 105,
+      "t": 28662.599999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623031643564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435660a"
+    },
+    {
+      "n": 106,
+      "t": 28662.69999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623031643564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043566",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 29,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 107,
+      "t": 28663.099999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653138616230303030376637663030303017023036306630313035303530333030303030303030030431330a"
+    },
+    {
+      "n": 108,
+      "t": 28665.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 109,
+      "t": 28665.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623031653564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c"
+    },
+    {
+      "n": 110,
+      "t": 28665.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435650a"
+    },
+    {
+      "n": 111,
+      "t": 28666.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623031653564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043565",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 30,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 112,
+      "t": 28666.399999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653139616230303030376637663030303017023036306630313035303530333030303030303030030431320a"
+    },
+    {
+      "n": 113,
+      "t": 28669.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 114,
+      "t": 28669.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623031663564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435640a"
+    },
+    {
+      "n": 115,
+      "t": 28669.5,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623031663564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043564",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 31,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 116,
+      "t": 28669.899999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653161616230303030376637663030303017023036306630313035303530333030303030303030030434610a"
+    },
+    {
+      "n": 117,
+      "t": 28672.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 118,
+      "t": 28672.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032303564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430380a"
+    },
+    {
+      "n": 119,
+      "t": 28672.899999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032303564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043038",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 32,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 120,
+      "t": 28673.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653162616230303030376637663030303017023036306630313035303530333030303030303030030434390a"
+    },
+    {
+      "n": 121,
+      "t": 28675.599999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 122,
+      "t": 28675.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032313564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430390a"
+    },
+    {
+      "n": 123,
+      "t": 28675.799999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032313564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043039",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 33,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 124,
+      "t": 28676.099999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653163616230303030376637663030303017023036306630313035303530333030303030303030030434380a"
+    },
+    {
+      "n": 125,
+      "t": 28678.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 126,
+      "t": 28678.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032323564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430610a"
+    },
+    {
+      "n": 127,
+      "t": 28678.899999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032323564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043061",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 34,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 128,
+      "t": 28679.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653164616230303030376637663030303017023036306630313035303530333030303030303030030434660a"
+    },
+    {
+      "n": 129,
+      "t": 28681.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 130,
+      "t": 28681.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032333564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430620a"
+    },
+    {
+      "n": 131,
+      "t": 28681.899999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032333564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043062",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 35,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 132,
+      "t": 28682.399999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653165616230303030376637663030303017023036306630313035303530333030303030303030030434650a"
+    },
+    {
+      "n": 133,
+      "t": 28685,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 134,
+      "t": 28685.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032343564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d"
+    },
+    {
+      "n": 135,
+      "t": 28685.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430630a"
+    },
+    {
+      "n": 136,
+      "t": 28685.19999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032343564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043063",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 36,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 137,
+      "t": 28685.5,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653166616230303030376637663030303017023036306630313035303530333030303030303030030434640a"
+    },
+    {
+      "n": 138,
+      "t": 28688.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 139,
+      "t": 28688.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032353564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430640a"
+    },
+    {
+      "n": 140,
+      "t": 28688.299999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032353564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043064",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 37,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 141,
+      "t": 28688.599999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653230616230303030376637663030303017023036306630313035303530333030303030303030030431380a"
+    },
+    {
+      "n": 142,
+      "t": 28691.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 143,
+      "t": 28691.19999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032363564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430650a"
+    },
+    {
+      "n": 144,
+      "t": 28691.5,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032363564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043065",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 38,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 145,
+      "t": 28692,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653231616230303030376637663030303017023036306630313035303530333030303030303030030431390a"
+    },
+    {
+      "n": 146,
+      "t": 28694.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 147,
+      "t": 28694.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032373564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430660a"
+    },
+    {
+      "n": 148,
+      "t": 28695,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032373564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043066",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 39,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 149,
+      "t": 28695.5,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653232616230303030376637663030303017023036306630313035303530333030303030303030030431610a"
+    },
+    {
+      "n": 150,
+      "t": 28698.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 151,
+      "t": 28698.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032383564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430300a"
+    },
+    {
+      "n": 152,
+      "t": 28698.299999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032383564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043030",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 40,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 153,
+      "t": 28698.69999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653233616230303030376637663030303017023036306630313035303530333030303030303030030431620a"
+    },
+    {
+      "n": 154,
+      "t": 28701.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 155,
+      "t": 28701.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032393564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030430310a"
+    },
+    {
+      "n": 156,
+      "t": 28701.799999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032393564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043031",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 41,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 157,
+      "t": 28702.099999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653234616230303030376637663030303017023036306630313035303530333030303030303030030431630a"
+    },
+    {
+      "n": 158,
+      "t": 28704.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 159,
+      "t": 28704.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032613564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d"
+    },
+    {
+      "n": 160,
+      "t": 28704.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435390a"
+    },
+    {
+      "n": 161,
+      "t": 28705,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032613564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043539",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 42,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 162,
+      "t": 28705.299999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653235616230303030376637663030303017023036306630313035303530333030303030303030030431640a"
+    },
+    {
+      "n": 163,
+      "t": 28707.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 164,
+      "t": 28707.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032623564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435610a"
+    },
+    {
+      "n": 165,
+      "t": 28708.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032623564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043561",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 43,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 166,
+      "t": 28708.299999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653236616230303030376637663030303017023036306630313035303530333030303030303030030431650a"
+    },
+    {
+      "n": 167,
+      "t": 28711.299999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 168,
+      "t": 28711.399999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032633564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435620a"
+    },
+    {
+      "n": 169,
+      "t": 28711.5,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032633564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043562",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 44,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 170,
+      "t": 28711.69999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653237616230303030376637663030303017023036306630313035303530333030303030303030030431660a"
+    },
+    {
+      "n": 171,
+      "t": 28714.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "010f3032623032643564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435630a"
+    },
+    {
+      "n": 172,
+      "t": 28715,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032643564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043563",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 45,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 173,
+      "t": 28715.299999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032653238616230303030376637663030303017023036306630313035303530333030303030303030030431300a"
+    },
+    {
+      "n": 174,
+      "t": 28718,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 175,
+      "t": 28718,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f3032623032653564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e64030435640a"
+    },
+    {
+      "n": 176,
+      "t": 28718.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f3032623032653564376637663030303030303030170230363064303130353035303330303030303238322d2d5b5b4063625d5d20666f7220693d302c73656c663a6c776928292a73656c663a6c776928292d3120646f20676c6e28692c312c302c302c3029676c6428692c312c33322c33322c333229676c7828692c312c36342c36342c363429676c7028692c312c3029656e642066756e6374696f6e206c6164647232746f3128782c792972657475726e20676c616728302c782b792a3929656e642078703d7b302c307d79703d7b302c307d73656c662e746f7563685f63623d66756e6374696f6e2873656c662c69642c6576742c782c79296c6f63616c2074703d7b28782f313237292a2873656c663a6c776928292d31292c28792f313237292a2873656c663a6c776928292d31297d6c6f63616c2078733d7b6d6174682e666c6f6f722874705b315d292c6d6174682e6365696c2874705b315d297d6c6f63616c2079733d7b6d6174682e666c6f6f722874705b325d292c6d6174682e6365696c2874705b325d297d666f7220693d78705b315d2c78705b325d646f20666f72206a3d79705b315d2c79705b325d646f20676c70286c6164647232746f3128692c6a292c312c3029656e6420656e6420666f7220693d78735b315d2c78735b325d646f20666f72206a3d79735b315d2c79735b325d646f206c6f63616c20643d7b74705b315d2d692c74705b325d2d6a7d6c6f63616c20646973743d6d6174682e7371727428645b315d2a645b315d2b645b325d2a645b325d29696620646973743c31207468656e206c6f63616c207068613d3235352d6d6174682e746f696e74656765722828646973742a323535292f2f3129676c70286c6164647232746f3128692c6a292c312c70686129656e6420656e6420656e642078703d78732079703d797320656e6403043564",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "CONFIG",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "ACTIONLENGTH": 642,
+            "ACTIONSTRING": "--[[@cb]] for i=0,self:lwi()*self:lwi()-1 do gln(i,1,0,0,0)gld(i,1,32,32,32)glx(i,1,64,64,64)glp(i,1,0)end function laddr2to1(x,y)return glag(0,x+y*9)end xp={0,0}yp={0,0}self.touch_cb=function(self,id,evt,x,y)local tp={(x/127)*(self:lwi()-1),(y/127)*(self:lwi()-1)}local xs={math.floor(tp[1]),math.ceil(tp[1])}local ys={math.floor(tp[2]),math.ceil(tp[2])}for i=xp[1],xp[2]do for j=yp[1],yp[2]do glp(laddr2to1(i,j),1,0)end end for i=xs[1],xs[2]do for j=ys[1],ys[2]do local d={tp[1]-i,tp[2]-j}local dist=math.sqrt(d[1]*d[1]+d[2]*d[2])if dist<1 then local pha=255-math.tointeger((dist*255)//1)glp(laddr2to1(i,j),1,pha)end end end xp=xs yp=ys end",
+            "ELEMENTNUMBER": 0,
+            "EVENTTYPE": 0,
+            "LASTHEADER": 1,
+            "PAGENUMBER": 3,
+            "VERSIONMAJOR": 1,
+            "VERSIONMINOR": 5,
+            "VERSIONPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 46,
+            "LEN": 688,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 177,
+      "t": 28801.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 178,
+      "t": 28801.5,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343266356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431640a"
+    },
+    {
+      "n": 179,
+      "t": 28801.599999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334326635643766376630303030303030301702303130653031613130313035303530303361030230333064303303043164",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 47,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 47,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 180,
+      "t": 28855.599999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383239616230303030303030303030303017023031306566666666303130303030030434620a"
+    },
+    {
+      "n": 181,
+      "t": 29051.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 182,
+      "t": 29051.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343330356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434610a"
+    },
+    {
+      "n": 183,
+      "t": 29051.799999952316,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333035643766376630303030303030301702303130653031613130313035303530303361030230333064303303043461",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 48,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 48,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 184,
+      "t": 29162.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383261616230303030303030303030303017023031306566666666303130303030030431330a"
+    },
+    {
+      "n": 185,
+      "t": 29301.599999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 186,
+      "t": 29301.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343331356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434620a"
+    },
+    {
+      "n": 187,
+      "t": 29301.69999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333135643766376630303030303030301702303130653031613130313035303530303361030230333064303303043462",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 49,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 49,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 188,
+      "t": 29472.799999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383262616230303030303030303030303017023031306566666666303130303030030431300a"
+    },
+    {
+      "n": 189,
+      "t": 29551.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 190,
+      "t": 29551.69999998808,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343332356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434380a"
+    },
+    {
+      "n": 191,
+      "t": 29551.69999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333235643766376630303030303030301702303130653031613130313035303530303361030230333064303303043438",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 50,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 50,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 192,
+      "t": 29774.599999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383263616230303030303030303030303017023031306566666666303130303030030431310a"
+    },
+    {
+      "n": 193,
+      "t": 29802,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 194,
+      "t": 29802.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343333356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434390a"
+    },
+    {
+      "n": 195,
+      "t": 29802.19999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333335643766376630303030303030301702303130653031613130313035303530303361030230333064303303043439",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 51,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 51,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 196,
+      "t": 30051.799999952316,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 197,
+      "t": 30051.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343334356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434650a"
+    },
+    {
+      "n": 198,
+      "t": 30051.899999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333435643766376630303030303030301702303130653031613130313035303530303361030230333064303303043465",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 52,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 52,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 199,
+      "t": 30075.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383264616230303030303030303030303017023031306566666666303130303030030431360a"
+    },
+    {
+      "n": 200,
+      "t": 30301.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 201,
+      "t": 30301.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343335356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434660a"
+    },
+    {
+      "n": 202,
+      "t": 30302,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333535643766376630303030303030301702303130653031613130313035303530303361030230333064303303043466",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 53,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 53,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 203,
+      "t": 30383.299999952316,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383265616230303030303030303030303017023031306566666666303130303030030431370a"
+    },
+    {
+      "n": 204,
+      "t": 30551.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 205,
+      "t": 30551.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343336356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434630a"
+    },
+    {
+      "n": 206,
+      "t": 30551.899999976158,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333635643766376630303030303030301702303130653031613130313035303530303361030230333064303303043463",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 54,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 54,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 207,
+      "t": 30694.19999998808,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383266616230303030303030303030303017023031306566666666303130303030030431340a"
+    },
+    {
+      "n": 208,
+      "t": 30802,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 209,
+      "t": 30802,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343337356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434640a"
+    },
+    {
+      "n": 210,
+      "t": 30802.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333735643766376630303030303030301702303130653031613130313035303530303361030230333064303303043464",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 55,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 55,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 211,
+      "t": 31005.599999964237,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383330616230303030303030303030303017023031306566666666303130303030030434330a"
+    },
+    {
+      "n": 212,
+      "t": 31051.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 213,
+      "t": 31052,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343338356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434320a"
+    },
+    {
+      "n": 214,
+      "t": 31052,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333835643766376630303030303030301702303130653031613130313035303530303361030230333064303303043432",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 56,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 56,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 215,
+      "t": 31301.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 216,
+      "t": 31301.899999976158,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343339356437663766303030303030303017023031306530316131303130353035303033610302303330643033030434330a"
+    },
+    {
+      "n": 217,
+      "t": 31302,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334333935643766376630303030303030301702303130653031613130313035303530303361030230333064303303043433",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 57,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 57,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 218,
+      "t": 31315,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383331616230303030303030303030303017023031306566666666303130303030030434320a"
+    },
+    {
+      "n": 219,
+      "t": 31552.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 220,
+      "t": 31552.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343361356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431620a"
+    },
+    {
+      "n": 221,
+      "t": 31552.19999998808,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334336135643766376630303030303030301702303130653031613130313035303530303361030230333064303303043162",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 58,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 58,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 222,
+      "t": 31630.399999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383332616230303030303030303030303017023031306566666666303130303030030434310a"
+    },
+    {
+      "n": 223,
+      "t": 31802.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 224,
+      "t": 31802.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343362356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431380a"
+    },
+    {
+      "n": 225,
+      "t": 31802.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334336235643766376630303030303030301702303130653031613130313035303530303361030230333064303303043138",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 59,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 59,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    },
+    {
+      "n": 226,
+      "t": 31941.899999976158,
+      "dir": "tx",
+      "kind": "bytes",
+      "hex": "010f303032383333616230303030303030303030303017023031306566666666303130303030030434300a"
+    },
+    {
+      "n": 227,
+      "t": 32052,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "01"
+    },
+    {
+      "n": 228,
+      "t": 32052.099999964237,
+      "dir": "rx",
+      "kind": "chunk",
+      "hex": "0f303033343363356437663766303030303030303017023031306530316131303130353035303033610302303330643033030431390a"
+    },
+    {
+      "n": 229,
+      "t": 32052.099999964237,
+      "dir": "rx",
+      "kind": "frame",
+      "hex": "010f30303334336335643766376630303030303030301702303130653031613130313035303530303361030230333064303303043139",
+      "ok": true,
+      "classes": [
+        {
+          "class_name": "HEARTBEAT",
+          "class_instr": "EXECUTE",
+          "class_parameters": {
+            "GCCOUNT": 58,
+            "HWCFG": 161,
+            "PORTSTATE": 0,
+            "TYPE": 1,
+            "VMAJOR": 1,
+            "VMINOR": 5,
+            "VPATCH": 5
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 60,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        },
+        {
+          "class_name": "PAGEACTIVE",
+          "class_instr": "REPORT",
+          "class_parameters": {
+            "PAGENUMBER": 3
+          },
+          "brc_parameters": {
+            "DX": -127,
+            "DY": -127,
+            "ID": 60,
+            "LEN": 52,
+            "MSGAGE": 0,
+            "PORTROT": 0,
+            "ROT": 0,
+            "SESSION": 93,
+            "SX": 0,
+            "SY": 0
+          }
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "identify",
+      "descr": "HEARTBEAT/EXECUTE TYPE 1 with the active page beside it",
+      "attempts": 1,
+      "outcome": "ok"
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 21,
+      "sentAt": 28652.5,
+      "settledAt": 28655.899999976158,
+      "latencyMs": 3.399999976158142,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 22,
+      "sentAt": 28656.19999998808,
+      "settledAt": 28659.399999976158,
+      "latencyMs": 3.199999988079071,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 23,
+      "sentAt": 28659.69999998808,
+      "settledAt": 28662.799999952316,
+      "latencyMs": 3.099999964237213,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 24,
+      "sentAt": 28663,
+      "settledAt": 28666.099999964237,
+      "latencyMs": 3.099999964237213,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 25,
+      "sentAt": 28666.399999976158,
+      "settledAt": 28669.599999964237,
+      "latencyMs": 3.199999988079071,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 26,
+      "sentAt": 28669.899999976158,
+      "settledAt": 28673,
+      "latencyMs": 3.100000023841858,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 27,
+      "sentAt": 28673.099999964237,
+      "settledAt": 28675.899999976158,
+      "latencyMs": 2.800000011920929,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 28,
+      "sentAt": 28676.099999964237,
+      "settledAt": 28679,
+      "latencyMs": 2.900000035762787,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 29,
+      "sentAt": 28679.099999964237,
+      "settledAt": 28682,
+      "latencyMs": 2.900000035762787,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 30,
+      "sentAt": 28682.299999952316,
+      "settledAt": 28685.299999952316,
+      "latencyMs": 3,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 31,
+      "sentAt": 28685.5,
+      "settledAt": 28688.299999952316,
+      "latencyMs": 2.799999952316284,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 32,
+      "sentAt": 28688.599999964237,
+      "settledAt": 28691.69999998808,
+      "latencyMs": 3.100000023841858,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 33,
+      "sentAt": 28691.899999976158,
+      "settledAt": 28695.19999998808,
+      "latencyMs": 3.300000011920929,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 34,
+      "sentAt": 28695.399999976158,
+      "settledAt": 28698.399999976158,
+      "latencyMs": 3,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 35,
+      "sentAt": 28698.599999964237,
+      "settledAt": 28701.899999976158,
+      "latencyMs": 3.300000011920929,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 36,
+      "sentAt": 28702,
+      "settledAt": 28705,
+      "latencyMs": 3,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 37,
+      "sentAt": 28705.19999998808,
+      "settledAt": 28708.099999964237,
+      "latencyMs": 2.899999976158142,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 38,
+      "sentAt": 28708.299999952316,
+      "settledAt": 28711.599999964237,
+      "latencyMs": 3.300000011920929,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 39,
+      "sentAt": 28711.69999998808,
+      "settledAt": 28715.099999964237,
+      "latencyMs": 3.399999976158142,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    },
+    {
+      "id": "burst",
+      "descr": "CONFIG/FETCH",
+      "requestId": 40,
+      "sentAt": 28715.299999952316,
+      "settledAt": 28718.19999998808,
+      "latencyMs": 2.900000035762787,
+      "attempts": 1,
+      "outcome": "ok",
+      "matchedOn": [
+        "class",
+        "instr",
+        "SX",
+        "SY",
+        "PAGENUMBER",
+        "ELEMENTNUMBER",
+        "EVENTTYPE"
+      ]
+    }
+  ],
+  "burst": {
+    "preSendDelayMs": 0,
+    "n": 20,
+    "timeouts": 0,
+    "nacks": 0,
+    "latencyMs": {
+      "min": 3,
+      "p50": 3.299999952316284,
+      "max": 3.800000011920929
+    }
+  }
+}
