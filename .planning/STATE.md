@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-09-03T21:28:51.349Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-09-03T21:55:05.637Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 16
-  completed_plans: 13
+  completed_plans: 14
   percent: 13
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 02 (walking-skeleton) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-09-03
 
@@ -65,6 +65,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 03 P06 | 11 min | 3 tasks | 4 files |
 | Phase 02 P01 | 16 min | 3 tasks | 14 files |
 | Phase 02 P02 | 22 min | 3 tasks | 14 files |
+| Phase 02 P03 | 21 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,11 @@ Recent decisions affecting current work:
 - [Phase 02]: The frame pump lives OUTSIDE RequestQueue: the page wires transport.onData through FrameScanner and decodeFrame into queue.deliver, and transport.onClose into queue.abort — The plan's own doc comment says deliver is "called by the frame pump", and GridTransport carries a single onData callback - so a queue that registered it would own the only tap on the byte stream and D-07's recorder could never see chunks or refused frames, which are exactly the events the queue never receives. queue.spec's pump() helper is six lines and is plan 03's reference implementation.
 - [Phase 02]: fixtures/synthetic.spec.ts regenerates at MODULE scope and throws, with no guard test, deliberately diverging from golden-frames.spec.ts; and CaptureRecorder gained a capturedAt override — golden-frames.spec.ts carries a guard it() that counts in the totals; a guarded variant here would need a skipIf and a skipped count would shift every aggregate total stated in plans 02 through 05 and in 02-VALIDATION.md, all written with no skip allowance. The safety property is preserved: setting UPDATE_SYNTHETIC rewrites, normalises with Prettier, then fails the run. capturedAt is pinned by the generator because otherwise two consecutive regenerations differ by one line and reviewing the diff of the other 32 events is pointless.
 - [Phase 02]: FakeTransport emits live responses SYNCHRONOUSLY inside write(), and every timing-sensitive queue assertion is driven by an explicit delay fault rather than by scheduler ordering — It makes the disconnect test genuine: the close callback fires DURING the write, before the queue reaches its await, which is the real race an unplug creates - and is why arm() attaches a no-op catch to the waiter's promise the moment it is created. It also removes the flake from "one outstanding request", where with no fault the first request settles inside a microtask and there is no window in which to observe the second write being held.
+- [Phase 02]: The frame pump lives in the page and records before it dispatches: onData to recorder.rxChunk to FrameScanner to decodeFrame to recorder.rxFrame to absorbFrame to queue.deliver, identity offered before the queue — GridTransport carries a single onData, so whoever registers it owns the only tap on the byte stream. Putting the pump in the page keeps D-07's recorder in the loop for chunks and for refused frames - the events the queue never receives - and the queue writes through a thin recording wrapper so outbound frames, including retries, are on the record too. queue.spec.ts's six-line pump() was the reference implementation.
+- [Phase 02]: D-10 is a three-condition rule, not a field read: the active page moves only when the class carries a PAGENUMBER, a HEARTBEAT rode in the SAME decoded frame, and the class carries neither EVENTTYPE nor ACTIONLENGTH — A CONFIG/REPORT also carries a PAGENUMBER and one arrives on every single fetch, so a rule that read the field alone would silently retarget the whole run at whatever page was last fetched. sequence.spec test 9 feeds a report naming page 5 to a run identified on page 2 and asserts the page does not move. The whole spec runs on active page 2 and the scripted responder answers any other page with an empty string, so a regression that reached for a constant is caught by D-09's guard rather than passing quietly.
+- [Phase 02]: The restore heartbeat is held in three independent places: runNoOpCycle's finally, the page's Write back button's own finally, and a standing Restore button gated on nothing but the port being open — The page drives the cycle from separate clicks (D-11: nothing is written without a click) and therefore never calls runNoOpCycle, so the shared function's finally would not have protected a real hardware write. The deleted-finally mutation was observed turning sequence.spec test 7 red naming the last frame's class as CONFIG rather than HEARTBEAT - which is exactly the state that leaves the user's module unable to change page until it is power-cycled.
+- [Phase 02]: The 300 ms keeper heartbeat is recorded as tx bytes but suppressed from the capture's steps; PROTOCOL_PIN is re-exported through src/lib/protocol/constants.ts so the page can record the pin without a third import name — A 60 second run at 300 ms would put two hundred restore-page-change steps in the capture and bury the eight transactions docs/SKELETON-RESULTS.md is written from. And CaptureRun.protocolPin is required while D-05 caps the page at svelte, $lib/protocol and $lib/transport, which config-shape.spec.ts test 10 now asserts mechanically - the pin literal stays in src/lib/protocol-pin.ts where three assertions hold it against package.json and the lockfile.
+- [Phase 02]: Page copy whose exact numbers are asserted lives in a script constant, and the degrade e2e waits for the panel before counting the connect control — Prettier reflowed the falsifiable heartbeat definition in markup and split 1000 from ms across a line break, which would have made the page's most load-bearing sentence formatter-dependent; as a string it cannot be reflowed. And getByTestId().count() takes a snapshot without auto-waiting while the page decides Web Serial availability in onMount, so a count taken before hydration would read zero whether or not the connect control would eventually render - the precise 'passes for the wrong reason' failure the precondition assertion exists to avoid.
 
 ### Pending Todos
 
@@ -136,6 +142,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T21:28:45.082Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-09-03T21:55:05.631Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
