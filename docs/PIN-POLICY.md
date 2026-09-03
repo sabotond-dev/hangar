@@ -39,18 +39,27 @@ still agree with each other, and the hard-coded-literal assertion would not.
 Moving the pin is a reviewed decision, never a routine update. A human follows this checklist, in
 order, and all four items must hold:
 
-1. The vendored compiler and simulator suite (`src/vendor/botor/`, Phase 3) is green against the new
-   version.
-2. Every catalog preset's `compressScript` cost is **byte-identical** to the recorded baseline.
+1. The vendored compiler and simulator suite is green: `npm run test:quick` reports 176 tests in
+   `src/vendor/botor/tests/pad.test.js` and 96 in `pad-sim.test.js`, and `npm run test:sweep` reports 9.
+2. Every catalog preset's `compressScript` **length** is byte-identical to
+   `src/lib/fidelity/preset-baseline.json`. Not `cost().used`: that is
+   `max(compressed, raw) + reserved`, and the raw length wins for all nine presets, so it is blind to
+   a minifier that spends or saves a few characters. The gate is the last test in
+   `src/lib/protocol-pin.spec.ts`, backed by `src/lib/fidelity/preset-baseline.spec.ts`.
 3. All three sources above are edited in **one commit** — `package.json`, `package-lock.json` and
    `PROTOCOL_PIN`. Never one without the others.
 4. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
    below. A moved cost is a change to the budget every preset is calibrated against, not a detail.
 
-Items (1) and (2) are **not enforceable yet.** The vendored suite and the recorded cost baseline both
-arrive in Phase 3 (FOUND-02); until they exist there is no way to prove a bump is safe, so **until then
-the pin does not move.** `src/lib/protocol-pin.spec.ts` carries an `it.todo` marking exactly where the
-cost-baseline assertion lands.
+Items (1) and (2) are **enforceable as of Phase 3.** The vendored suite lives in
+`src/vendor/botor/tests/` and runs under `npm run test:quick` (the compiler and simulator suites) and
+`npm run test:sweep` (the 9-test invariant sweep). The recorded baseline is
+`src/lib/fidelity/preset-baseline.json`, captured from BOTOR's own compiler at the pinned commit by
+`scripts/capture-preset-baseline.mjs`; `src/lib/fidelity/preset-baseline.spec.ts` asserts the vendored
+compiler reproduces it character for character, and the last test in `src/lib/protocol-pin.spec.ts`
+asserts the `compressScript` lengths against it at whatever version is installed. Run all three before
+touching the pin. Item (4) is unchanged and is not automatable: a bump that moves a cost is only
+legitimate with a written reason in the bump log below.
 
 ## Bump log
 

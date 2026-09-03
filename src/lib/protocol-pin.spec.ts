@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { GridScript, initLuaFormatter } from "@intechstudio/grid-protocol";
+import { beforeAll, describe, expect, it } from "vitest";
 import { PROTOCOL_PIN } from "./protocol-pin";
 
 const PKG = "@intechstudio/grid-protocol";
@@ -37,9 +38,35 @@ describe("grid-protocol pin", () => {
     expect(PROTOCOL_PIN).toBe("1.20260825.1135");
   });
 
-  // The cost-baseline half of the bump gate (D-11) arrives with the vendored
-  // compiler in Phase 3.
-  it.todo(
-    "every catalog preset compressScript cost is byte-identical to the recorded baseline",
-  );
+  beforeAll(async () => {
+    // compressScript THROWS until the WASM formatter has resolved. This spec
+    // measures with GridScript directly rather than through the vendored
+    // measure(), so the pin gate stays true even if the vendored copy is
+    // mid-resync.
+    await initLuaFormatter();
+  });
+
+  // The cost-baseline half of the bump gate (D-11). Proves that the compressed
+  // lengths recorded in src/lib/fidelity/preset-baseline.json are still what
+  // the minifier produces at PROTOCOL_PIN: bump the pin and any preset whose
+  // Setup or Timer minifies to a different length turns this red.
+  it("every catalog preset compressScript cost is byte-identical to the recorded baseline", () => {
+    const baseline = json("src/lib/fidelity/preset-baseline.json");
+    expect(baseline.source.protocolPin).toBe(PROTOCOL_PIN);
+    const ids = Object.keys(baseline.presets);
+    expect(ids).toHaveLength(9);
+    for (const id of ids) {
+      const p = baseline.presets[id];
+      // compressScript length, NOT cost().used. cost().used is
+      // max(compressed, raw) + reserved and raw wins for all nine presets, so a
+      // minifier that spent five more characters would move this number and
+      // leave cost().used untouched - exactly the drift this gate exists for.
+      expect(GridScript.compressScript(p.setupLua).length, `${id} setup`).toBe(
+        p.setupCompressedLength,
+      );
+      expect(GridScript.compressScript(p.timerLua).length, `${id} timer`).toBe(
+        p.timerCompressedLength,
+      );
+    }
+  });
 });
