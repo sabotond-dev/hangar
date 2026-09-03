@@ -6,7 +6,12 @@ import {
   encodeRequest,
   fetchConfig,
 } from "$lib/protocol";
-import { CAPTURE_SCHEMA, CaptureRecorder, type CaptureRun } from "./capture";
+import {
+  CAPTURE_SCHEMA,
+  CaptureRecorder,
+  type CaptureEvent,
+  type CaptureRun,
+} from "./capture";
 import { FakeTransport } from "./fake";
 import { configReportFrame, heartbeatFrame } from "./fixtures/synthetic";
 
@@ -29,6 +34,18 @@ function clock(step = 1.5) {
 
 const hex = (bytes: number[] | Uint8Array) =>
   [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/**
+ * `expect(...).toBe("frame")` does not narrow a discriminated union for the
+ * type checker, so every frame assertion goes through here. It is also an
+ * assertion in its own right: a frame event that is not one throws.
+ */
+function frameEvent(event: CaptureEvent) {
+  if (event.kind !== "frame") {
+    throw new Error(`expected a frame event, got kind "${event.kind}"`);
+  }
+  return event;
+}
 
 describe("capture recorder (D-07)", () => {
   it("the capture declares its schema, source and run block", () => {
@@ -74,11 +91,12 @@ describe("capture recorder (D-07)", () => {
     expect(events, "the chunk and the frame are two records").toHaveLength(2);
     expect(events[0].kind).toBe("chunk");
     expect(events[0].hex, "the chunk keeps its terminator").toBe(hex(chunk));
-    expect(events[1].kind).toBe("frame");
-    expect(events[1].hex, "the frame does not").toBe(hex(frame));
-    expect(events[1].ok).toBe(true);
+    const decoded = frameEvent(events[1]);
+    expect(decoded.hex, "the frame does not").toBe(hex(frame));
+    expect(decoded.ok).toBe(true);
     expect(
-      events[1].ok === true && events[1].classes.map((c) => c.class_name),
+      decoded.ok === true ? decoded.classes.map((c) => c.class_name) : [],
+      "both class blocks are recorded, not just the first",
     ).toEqual(["HEARTBEAT", "PAGEACTIVE"]);
     expect(
       events.map((e) => e.n),
@@ -103,10 +121,9 @@ describe("capture recorder (D-07)", () => {
     expect(decoded.ok, "the input really is refused").toBe(false);
     rec.rxFrame(broken, decoded);
 
-    const [event] = rec.toJSON().events;
-    expect(event.kind).toBe("frame");
+    const event = frameEvent(rec.toJSON().events[0]);
     expect(event.ok).toBe(false);
-    expect(event.ok === false && event.reason).toContain("undefined");
+    expect(event.ok === false ? event.reason : "").toContain("undefined");
     expect(event.hex, "the refused bytes are kept, not dropped").toBe(
       hex(broken),
     );
