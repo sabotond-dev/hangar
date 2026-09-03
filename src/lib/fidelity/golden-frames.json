@@ -1,0 +1,294 @@
+{
+  "note": "Regression tripwire, not an oracle. These hashes come from the simulator itself, so they prove only that a change to a shared helper altered a named preset's appearance. Firmware fidelity is pinned by firmware-oracle.spec.ts. Four presets are static at every tick by design - joystick, ninepads, faders and tpad - and tpad's frame is all zeros because it writes no LEDs, so nonZeroBytes 0 is correct there and only there.",
+  "ticks": [0, 37, 101, 500, 1009],
+  "presets": {
+    "aurora": [
+      {
+        "tick": 0,
+        "sha256": "a5fc6f52806f8648ef94c90ff83f320542d0704ada90c5c66c800770cda9c4f6",
+        "nonZeroBytes": 149,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "abc348c351ed3b3c7c6b80f875588c93fe1ce9e102841365f1c958e02024fa3b",
+        "nonZeroBytes": 136,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "55fc67de1012de988132b43c5769eed4fd921472c4b031c50576601501972b88",
+        "nonZeroBytes": 159,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "5ff23f91920565658669c9669056617d72bfeb81cbeb70dc3a668cb59e21c9b7",
+        "nonZeroBytes": 154,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "28e4be97527b1c760ba350fa26b9254366d3eb4b8f617808f1a2451d58d4b1f4",
+        "nonZeroBytes": 155,
+        "animating": true
+      }
+    ],
+    "pinwheel": [
+      {
+        "tick": 0,
+        "sha256": "9daa69280200e0f541f1b1519bb6e8b7c6bc42892df858fc3eca4baa7de76dc1",
+        "nonZeroBytes": 152,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "f4686ff907efd592c3b1a8987ab207dfaf57277d72cf26751a23d8c38343b17e",
+        "nonZeroBytes": 152,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "6781fbd0f5fd79b3ec5ea8217264fa8d6925645d04bed39f6a5e3fb38e39db03",
+        "nonZeroBytes": 151,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "7de7b0f6405e690f8a4563c547d84fdd3f24fbbda9842ea287da5b6f36ccd9d2",
+        "nonZeroBytes": 145,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "c7f0e4b9afa1480651768abc6843c74dd80c6a6e11a468a488c0ede4ef49314d",
+        "nonZeroBytes": 145,
+        "animating": true
+      }
+    ],
+    "starfield": [
+      {
+        "tick": 0,
+        "sha256": "fa31e6b083ca9fc6de19c886cc4da319592737df01dd9359d22f1a4abeb2168e",
+        "nonZeroBytes": 225,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "0506965fbab757b8344f764982333a485955d005b1cf5831df330cc528cfa839",
+        "nonZeroBytes": 226,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "e51cbc8696528572d7682b72093f874d967b670de864996558ae707d530e5ee7",
+        "nonZeroBytes": 223,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "70389fd48bf0821007ff936498a1e7b1f3291a5f0712a7c91f69149830fcbf07",
+        "nonZeroBytes": 225,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "d5303f965bb8de529b0e0b68f2dc5a4908c0991a5d2c42a9288146b238232336",
+        "nonZeroBytes": 222,
+        "animating": true
+      }
+    ],
+    "radar": [
+      {
+        "tick": 0,
+        "sha256": "b6a217ec5f1d32b1f974ea198d8a47fad07e88aa875e874fdbc322f0400e2f60",
+        "nonZeroBytes": 126,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "65fb77d7ac5d26ab319ea7e011a65742eff880a26c5b3944acf524145dd78814",
+        "nonZeroBytes": 157,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "69c25ba36f92151da86ce0022551de99a5bc5e90024d6c8ce1028bf97d98ed68",
+        "nonZeroBytes": 134,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "9b3bfcedcdfe454e0c9916be6a8ea99bf482dc5696b29f70f5914b38266f9813",
+        "nonZeroBytes": 142,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "33df3d3981ae686359ab17a59a6290feb67b82b234446e1cd73968787310afda",
+        "nonZeroBytes": 146,
+        "animating": true
+      }
+    ],
+    "joystick": [
+      {
+        "tick": 0,
+        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "nonZeroBytes": 2,
+        "animating": false
+      },
+      {
+        "tick": 37,
+        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "nonZeroBytes": 2,
+        "animating": false
+      },
+      {
+        "tick": 101,
+        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "nonZeroBytes": 2,
+        "animating": false
+      },
+      {
+        "tick": 500,
+        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "nonZeroBytes": 2,
+        "animating": false
+      },
+      {
+        "tick": 1009,
+        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "nonZeroBytes": 2,
+        "animating": false
+      }
+    ],
+    "ninepads": [
+      {
+        "tick": 0,
+        "sha256": "95bf7c28f9744341dde0388e20a99c79b3b5ac77f7c1763465830bf05f0cef7e",
+        "nonZeroBytes": 162,
+        "animating": false
+      },
+      {
+        "tick": 37,
+        "sha256": "95bf7c28f9744341dde0388e20a99c79b3b5ac77f7c1763465830bf05f0cef7e",
+        "nonZeroBytes": 162,
+        "animating": false
+      },
+      {
+        "tick": 101,
+        "sha256": "95bf7c28f9744341dde0388e20a99c79b3b5ac77f7c1763465830bf05f0cef7e",
+        "nonZeroBytes": 162,
+        "animating": false
+      },
+      {
+        "tick": 500,
+        "sha256": "95bf7c28f9744341dde0388e20a99c79b3b5ac77f7c1763465830bf05f0cef7e",
+        "nonZeroBytes": 162,
+        "animating": false
+      },
+      {
+        "tick": 1009,
+        "sha256": "95bf7c28f9744341dde0388e20a99c79b3b5ac77f7c1763465830bf05f0cef7e",
+        "nonZeroBytes": 162,
+        "animating": false
+      }
+    ],
+    "faders": [
+      {
+        "tick": 0,
+        "sha256": "fcf529cfe4d6971d5a9874a905715b90c8ca8cee1b040bb12784290c5cee73df",
+        "nonZeroBytes": 135,
+        "animating": false
+      },
+      {
+        "tick": 37,
+        "sha256": "fcf529cfe4d6971d5a9874a905715b90c8ca8cee1b040bb12784290c5cee73df",
+        "nonZeroBytes": 135,
+        "animating": false
+      },
+      {
+        "tick": 101,
+        "sha256": "fcf529cfe4d6971d5a9874a905715b90c8ca8cee1b040bb12784290c5cee73df",
+        "nonZeroBytes": 135,
+        "animating": false
+      },
+      {
+        "tick": 500,
+        "sha256": "fcf529cfe4d6971d5a9874a905715b90c8ca8cee1b040bb12784290c5cee73df",
+        "nonZeroBytes": 135,
+        "animating": false
+      },
+      {
+        "tick": 1009,
+        "sha256": "fcf529cfe4d6971d5a9874a905715b90c8ca8cee1b040bb12784290c5cee73df",
+        "nonZeroBytes": 135,
+        "animating": false
+      }
+    ],
+    "dial": [
+      {
+        "tick": 0,
+        "sha256": "018f18be361cafcf813deb1240180efe8745c36beaba6f2dc4b86b812b24ce34",
+        "nonZeroBytes": 145,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "74ffc2b562dc4e06f16b71162b3bc0847cbe9b893895ae5856926de367ec1321",
+        "nonZeroBytes": 154,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "267237947b01f9c796dab87b4419b71730844188949028a5030911185c7e3141",
+        "nonZeroBytes": 154,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "19d99ed2dc34fedfa02db637a72d89d9e01f35233499ea0ef8e5c1a16a88cb11",
+        "nonZeroBytes": 150,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "1072eebb057503cf73ca52d2afc2070dbbc3dee29c5ff5718f06ca7e3752b225",
+        "nonZeroBytes": 148,
+        "animating": true
+      }
+    ],
+    "tpad": [
+      {
+        "tick": 0,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 37,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 101,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 500,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 1009,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      }
+    ]
+  }
+}
