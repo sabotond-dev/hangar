@@ -72,7 +72,15 @@ Plans:
   3. Compiling each of the nine shelf presets produces character-identical Lua to BOTOR at the pinned protocol version.
   4. Each preset's simulated output is pinned against an oracle transcribed from cited firmware source (file:line) or hardware capture, derived independently of the compiler — so a shared misreading of firmware fails the suite instead of hiding in it.
   5. No compile, cost or fit call can run before the Lua formatter WASM has initialised: an attempt waits for the gate rather than silently reporting invalid syntax or an unmeasurable cost.
-**Plans**: TBD
+**Plans**: 6 plans in 6 waves
+
+Plans:
+- [ ] 03-01-PLAN.md — Wave 0 config, the six vendored BOTOR files, corrected VENDOR.md (wave 1)
+- [ ] 03-02-PLAN.md — Upstream sha256 manifest and the vendored-diff byte gate (wave 2)
+- [ ] 03-03-PLAN.md — Preset cost baseline from BOTOR own compiler, and the pin gate closure (wave 3)
+- [ ] 03-04-PLAN.md — Independent firmware oracle, its agreement spec, and golden frames (wave 4)
+- [ ] 03-05-PLAN.md — The memoised WASM gate and its proof (wave 5)
+- [ ] 03-06-PLAN.md — Hidden fidelity probe, the production-build e2e, docs/TESTING.md (wave 6)
 
 ### Phase 4: Catalog, Live Simulator and Identity
 **Goal**: The site is worth opening with no hardware attached — a black-and-lime rack of nine running machines that anyone can browse, play and link to.
@@ -152,7 +160,7 @@ Phases 6 and 7.
 |-------|----------------|--------|-----------|
 | 1. Scaffold, Licence and Pin | 5/5 | Complete   | 2026-09-02 |
 | 2. Walking Skeleton | 0/TBD | Not started | - |
-| 3. Vendor the Domain | 0/TBD | Not started | - |
+| 3. Vendor the Domain | 0/6 | Planned | - |
 | 4. Catalog, Live Simulator and Identity | 0/TBD | Not started | - |
 | 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
