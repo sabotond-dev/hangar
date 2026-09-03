@@ -6,5 +6,6 @@
 export * from "./capture";
 export * from "./fake";
 export * from "./queue";
+export * from "./sequence";
 export * from "./transport";
 export * from "./web-serial";
