@@ -136,7 +136,7 @@ Set by the user's reference images (2026-09-02). This is HANGAR's own identity, 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Standalone public site talking to hardware over Web Serial, not a Grid Editor panel | The Editor route works but only reaches people who already installed the Editor; a URL reaches everyone, and the editor's own web build proves a browser can drive a module | — Pending |
+| Standalone public site talking to hardware over Web Serial, not a Grid Editor panel | The Editor route works but only reaches people who already installed the Editor; a URL reaches everyone, and the editor's own web build proves a browser can drive a module | ✓ Good — Phase 2: a bare HANGAR page connected, identified, fetched, wrote back and flash-stored a real ZONA (RevH, fw 1.5.5, Chrome 152) with every frame ACK'd first attempt and the config byte-identical afterwards; host heartbeat not required, 10 ms pacing not load-bearing, permission grant survives a browser restart |
 | Port the nine BOTOR presets as the seed catalog, then author new ones | They are produced by a tested compiler, they fit the budget, and several are hardware-proven; authoring from zero would re-litigate solved problems | ✓ Good — Phase 3: compiler and simulator vendored byte-near at `sabotond-dev/botor@a0fb69d5`, all nine presets character-identical to BOTOR's own compiler, simulator pinned against an independently derived firmware oracle (26/26) |
 | Live `pad-sim` preview on every card | The hardware's own LED mirror is 3.3 Hz, so the simulator is the only possible preview — and it makes the site worth opening with no ZONA attached | — Pending |
 | Tune knobs, not full authoring | "Playground" means turning knobs on great configs; a browser layer/zone editor is a different, much larger product | — Pending |
@@ -162,4 +162,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-02 after Phase 3 (Vendor the Domain) — BOTOR compiler and simulator vendored with 361-test suite, preset baseline and independent firmware oracle green, WASM formatter gate proven from the production build*
+*Last updated: 2026-09-04 after Phase 2 (Walking Skeleton) — the no-op write cycle proven on a real ZONA from the browser, hardware captures committed as fixtures, measured timeouts shipped; Phase 4 re-framed as the coverflow First Experience with the sophisticated catalog deferred to Phase 5.1*
