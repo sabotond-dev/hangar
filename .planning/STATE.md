@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Paused at 02-04-PLAN.md task 2-04-02 (checkpoint:human-verify) - awaiting the hardware run"
-last_updated: "2026-09-03T22:03:17.623Z"
+stopped_at: Completed 02-04-PLAN.md - the hardware run is done; plan 05 turns the captures into docs/SKELETON-RESULTS.md
+last_updated: "2026-09-03T22:31:59.664Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
   percent: 13
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 02 (walking-skeleton) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-09-03
 
@@ -66,6 +66,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 02 P01 | 16 min | 3 tasks | 14 files |
 | Phase 02 P02 | 22 min | 3 tasks | 14 files |
 | Phase 02 P03 | 21 min | 3 tasks | 7 files |
+| Phase 02 P04 | 36 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,10 @@ Recent decisions affecting current work:
 - [Phase 02]: The restore heartbeat is held in three independent places: runNoOpCycle's finally, the page's Write back button's own finally, and a standing Restore button gated on nothing but the port being open — The page drives the cycle from separate clicks (D-11: nothing is written without a click) and therefore never calls runNoOpCycle, so the shared function's finally would not have protected a real hardware write. The deleted-finally mutation was observed turning sequence.spec test 7 red naming the last frame's class as CONFIG rather than HEARTBEAT - which is exactly the state that leaves the user's module unable to change page until it is power-cycled.
 - [Phase 02]: The 300 ms keeper heartbeat is recorded as tx bytes but suppressed from the capture's steps; PROTOCOL_PIN is re-exported through src/lib/protocol/constants.ts so the page can record the pin without a third import name — A 60 second run at 300 ms would put two hundred restore-page-change steps in the capture and bury the eight transactions docs/SKELETON-RESULTS.md is written from. And CaptureRun.protocolPin is required while D-05 caps the page at svelte, $lib/protocol and $lib/transport, which config-shape.spec.ts test 10 now asserts mechanically - the pin literal stays in src/lib/protocol-pin.ts where three assertions hold it against package.json and the lockfile.
 - [Phase 02]: Page copy whose exact numbers are asserted lives in a script constant, and the degrade e2e waits for the panel before counting the connect control — Prettier reflowed the falsifiable heartbeat definition in markup and split 1000 from ms across a line break, which would have made the page's most load-bearing sentence formatter-dependent; as a string it cannot be reflowed. And getByTestId().count() takes a snapshot without auto-waiting while the page decides Web Serial availability in onMount, so a count taken before hydration would read zero whether or not the connect control would eventually render - the precise 'passes for the wrong reason' failure the precondition assertion exists to avoid.
+- [Phase 02]: The host heartbeat is NOT required: arm B ran with hostHeartbeat.enabled false and the module sent 1,086 inbound HEARTBEAT frames over 271.5 s (4.00/s, dead steady) while every CONFIG/EXECUTE and PAGESTORE/EXECUTE was still acknowledged - the phase's LOW-confidence open question is closed, and the restore rule is unaffected because a successful CONFIG/EXECUTE clears page_change_enabled whether or not the host was beating
+- [Phase 02]: The 10 ms pre-send pacing is NOT load-bearing at 2 Mbaud: the same twenty-fetch burst measured min 13.8 / p50 14.5 / max 16.5 ms at pace 10 and min 3.0 / p50 3.3 / max 3.8 ms at pace 0, with zero timeouts and zero NACKs on both - roughly 11 ms per request for nothing. Recommendation for plan 05 carries the caveat that this is one module, one cable, one host, and that Phase 7 writes far more data per request than a fetch
+- [Phase 02]: The real ZONA reported activePage 3, not 0, and its factory Setup is 642 characters where the pinned package's default table says 641 - D-10's read-the-page rule is vindicated on hardware (a page-0 assumption would have fetched an empty string), and the module's own string is the truth while the package default is only a hint, which any Phase 7 budget or diff logic has to assume
+- [Phase 02]: Chrome 152 keeps the Web Serial grant across a full browser restart: after quitting Chrome completely and reopening it, the page read 'previously granted ports: 1' for http://127.0.0.1:4173, so navigator.serial.getPorts() returns the ZONA with no gesture and no chooser and Phase 6's CONN-06 silent-reconnect offer is viable - the grant is per origin, and a returned port is permitted rather than open
 
 ### Pending Todos
 
@@ -134,7 +139,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- [Phase 2] MEDIUM confidence that a bare browser page can complete the protocol without the Grid Editor runtime; whether an outbound host heartbeat is required is LOW confidence and needs an A/B inside the phase.
+- [Phase 2] RESOLVED 2026-09-03 by the hardware run (02-04): a bare browser page completed the whole cycle against a real ZONA RevH on firmware 1.5.5, active page 3, ~22:15-22:23 UTC, with zero timeouts, zero NACKs and zero refused frames; and the host heartbeat is NOT required - arm B ran it off throughout and every write and store was still acknowledged. What remains untested against hardware is every FAILURE path: no unplug mid-write, no port conflict (checklist step 0 was not exercised), no timeout and no negative acknowledgement has ever been seen from a real module.
 - [Phase 5] The base36 stamp checksum is a known open hole in prior art (a relabelled stamp can decode to a different card) — needs its own design pass before sharing goes public.
 - [Phase 7] Flash unplug-during-store ordering: firmware writes Setup before Timer to flash, opposite of the RAM write order; mitigation needs validation against real hardware timing.
 - [Phase 5] The 941/908 over-budget preset combination noted in PROJECT.md is known pre-existing compiler debt; it surfaces during the full-range knob sweep.
@@ -142,6 +147,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T22:03:17.617Z
-Stopped at: Paused at 02-04-PLAN.md task 2-04-02 (checkpoint:human-verify) - awaiting the hardware run
-Resume file: docs/SKELETON-RUNBOOK.md
+Last session: 2026-09-03T22:31:44.470Z
+Stopped at: Completed 02-04-PLAN.md - the hardware run is done; plan 05 turns the captures into docs/SKELETON-RESULTS.md
+Resume file: None
