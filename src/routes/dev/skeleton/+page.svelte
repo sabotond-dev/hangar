@@ -161,7 +161,11 @@
     detachHide = grid.closeOnHide();
     portOpen = true;
 
-    const preSendDelayMs = pacedTenMs ? protocol.PRE_SEND_DELAY_MS : 0;
+    // DESKTOP_PRE_SEND_DELAY_MS, not PRE_SEND_DELAY_MS: results (b) dropped the
+    // shipped default to 0, and reading it here would send at 0 in both toggle
+    // positions while still stamping the run id from the number - mislabelling
+    // an arm rather than merely disabling the experiment.
+    const preSendDelayMs = pacedTenMs ? protocol.DESKTOP_PRE_SEND_DELAY_MS : 0;
     const record = new surface.CaptureRecorder(
       {
         id: `${hostHeartbeatEnabled ? "a-hb-on" : "b-hb-off"}-pace-${preSendDelayMs}`,
@@ -409,7 +413,7 @@
   const doBurst = () =>
     run("burst probe", async () => {
       const burst = await T!.runBurstProbe(queue!, identity!, {
-        preSendDelayMs: pacedTenMs ? P!.PRE_SEND_DELAY_MS : 0,
+        preSendDelayMs: pacedTenMs ? P!.DESKTOP_PRE_SEND_DELAY_MS : 0,
       });
       recorder!.setBurst(burst);
       status =

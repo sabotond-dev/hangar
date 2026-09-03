@@ -58,7 +58,7 @@ interface Waiter {
 }
 
 export interface QueueOptions {
-  /** Default PRE_SEND_DELAY_MS (10). The A/B arm sets it to 0. */
+  /** Default PRE_SEND_DELAY_MS, which the hardware run set to 0 (results (b)). */
   preSendDelayMs?: number;
   /** Default RETRY_ATTEMPTS (3). Total writes, not extra ones. */
   attempts?: number;

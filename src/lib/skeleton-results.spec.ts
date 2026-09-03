@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { PRE_SEND_DELAY_MS, TIMEOUTS } from "$lib/protocol";
 
 // The structural gate on docs/SKELETON-RESULTS.md (FOUND-01 criterion 5, D-08).
 //
@@ -151,5 +152,46 @@ describe("docs/SKELETON-RESULTS.md (FOUND-01 criterion 5)", () => {
       "TYPE 255 is the only thing that re-enables page changing, and the " +
         "document must say so beside the restore",
     ).not.toHaveLength(0);
+  });
+
+  it("the shipped timeouts are the ones the results document recorded", () => {
+    // A document that records a measurement and a constant that ships a
+    // different number is the quiet failure this gate exists to catch: both
+    // halves stay individually plausible and nobody has any reason to open the
+    // other one. src/lib/protocol-pin.spec.ts is the same idea applied to the
+    // package version, and src/lib/fidelity/vendored-diff.spec.ts to the
+    // vendored bytes.
+    //
+    // The document carries one machine-readable line so this test parses a
+    // statement rather than prose:
+    //   Shipped: fetchMs=..., executeMs=..., pagestoreMs=..., preSendDelayMs=...
+    const line =
+      /^\s*`?Shipped: fetchMs=(\d+), executeMs=(\d+), pagestoreMs=(\d+), preSendDelayMs=(\d+)`?\s*$/m.exec(
+        doc,
+      );
+    expect(
+      line,
+      `${DOC_PATH} has no machine-readable "Shipped:" line - section (c) must ` +
+        "state the values it concluded in one parseable statement",
+    ).not.toBeNull();
+    if (!line) return;
+
+    const [, fetchMs, executeMs, pagestoreMs, preSendDelayMs] =
+      line.map(Number);
+    expect(TIMEOUTS.fetchMs, "fetchMs").toBe(fetchMs);
+    expect(TIMEOUTS.executeMs, "executeMs").toBe(executeMs);
+    expect(TIMEOUTS.pagestoreMs, "pagestoreMs").toBe(pagestoreMs);
+    expect(PRE_SEND_DELAY_MS, "preSendDelayMs").toBe(preSendDelayMs);
+
+    // And the constant points back, so a reader who finds the number first can
+    // find the measurement that justifies it.
+    const constants = readFileSync(
+      root("src/lib/protocol/constants.ts"),
+      "utf8",
+    );
+    expect(
+      constants,
+      "constants.ts must cite the document that justifies its timeouts",
+    ).toContain("SKELETON-RESULTS.md");
   });
 });

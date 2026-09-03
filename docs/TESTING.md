@@ -4,23 +4,25 @@ Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 This is the developer-facing guide: which command to run when, what each one costs, and the small
 number of traps that have already cost real time. The per-phase validation contract — the sampling
-rates, the Nyquist argument behind them and the per-task verification map — lives in
-`.planning/phases/03-vendor-the-domain/03-VALIDATION.md` and is not repeated here.
+rates, the Nyquist argument behind them and the per-task verification map — lives in each phase's
+`XX-VALIDATION.md` (`.planning/phases/03-vendor-the-domain/03-VALIDATION.md` for the vendored
+simulator, `.planning/phases/02-walking-skeleton/02-VALIDATION.md` for the protocol and transport
+work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-03. Wall times are the whole
-command including npm and process startup; the parenthesised figure is the runner's own reported
-duration.
+Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, after the walking skeleton
+landed. Wall times are the whole command including npm and process startup; the parenthesised figure
+is the runner's own reported duration.
 
-| Command                      | Covers                                                                     | Measured                                                                                 |
-| ---------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 11 files, 352 passed + 1 todo (353); 6 s wall (3.3 s)                                    |
-| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 42 s wall (38.6 s)                                                      |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 12 files, 361 passed + 1 todo (362); 41 s wall (38.4 s)                                  |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 8 tests; 12 s wall including the build and the wrangler cold start (10.8 s of test time) |
-| `npm run check`              | `svelte-check` over the whole project                                      | 353 files, 0 errors, 0 warnings                                                          |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                                                   |
+| Command                      | Covers                                                                     | Measured                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 26 files, 453 passed + 1 todo (454); 6 s wall (3.9 s)                                     |
+| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.4 s)                                                       |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 27 files, 462 passed + 1 todo (463); 42 s wall (38.3 s)                                   |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 10 tests; 21 s wall including the build and the wrangler cold start (17.3 s of test time) |
+| `npm run check`              | `svelte-check` over the whole project                                      | 385 files, 0 errors, 0 warnings                                                           |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                                                    |
 
 The sampling rule, in three lines:
 
@@ -32,7 +34,7 @@ The sampling rule, in three lines:
 
 `src/vendor/botor/tests/pad-invariants.test.js` sweeps 4,860 labelled states — 1,620 kind
 combinations times three brightness levels — and accounts for almost all of the whole-run wall
-time: 38.6 s of a 38.4 s two-project run, against 3.3 s for the other eleven files. That is the
+time: 36.4 s of a 38.3 s two-project run, against 3.9 s for the other twenty-six files. That is the
 whole reason it is a separate project rather than one more file in `server`.
 
 The sweep is the anti-drift mechanism. It runs less **often** — per wave, not per task — and never
@@ -63,6 +65,60 @@ The counts to expect today:
 | `src/vendor/botor/tests/pad-invariants.test.js` | 9     |
 
 If any of those three numbers drops, the suite is not green — it is silent.
+
+## The walking skeleton's test surface
+
+The walking skeleton (FOUND-01) added two directories of first-party code and 98 tests to the
+`server` project, plus three tests inside the existing `src/lib/config-shape.spec.ts` and two inside
+`e2e/skeleton.e2e.ts`. All of it runs in node, with no browser and no ZONA attached.
+
+| File                                              | Tests | What it holds                                                        |
+| ------------------------------------------------- | ----- | -------------------------------------------------------------------- |
+| `src/lib/protocol/constants.spec.ts`              | 5     | values read from the pinned package rather than restated             |
+| `src/lib/protocol/descriptors.spec.ts`            | 10    | the four outbound descriptors, byte for byte                         |
+| `src/lib/protocol/forbidden-instructions.spec.ts` | 5     | D-06: `PAGEACTIVE/EXECUTE`, `NVMERASE`, `PAGECLEAR`, `PAGEDISCARD`   |
+| `src/lib/protocol/framing.spec.ts`                | 9     | the frame scanner: split, coalesced and torn inputs                  |
+| `src/lib/protocol/decode.spec.ts`                 | 5     | the decode guard — `undefined`, never `false`                        |
+| `src/lib/protocol/match.spec.ts`                  | 7     | which inbound class may resolve which waiter                         |
+| `src/lib/protocol/write-guard.spec.ts`            | 6     | D-09: what makes a fetched string safe to write back                 |
+| `src/lib/transport/transport.spec.ts`             | 6     | the five named open failures and CONN-04's recovery order            |
+| `src/lib/transport/capture.spec.ts`               | 6     | D-07's recorder and the pinned `STEP_IDS` vocabulary                 |
+| `src/lib/transport/fake.spec.ts`                  | 8     | capture replay and the five injected faults                          |
+| `src/lib/transport/queue.spec.ts`                 | 8     | one outstanding request, bounded retry, a NACK never retried         |
+| `src/lib/transport/sequence.spec.ts`              | 9     | the no-op cycle, including the mandatory restore in its `finally`    |
+| `src/lib/transport/fixtures/synthetic.spec.ts`    | 3     | the generated capture, regenerated at module scope                   |
+| `src/lib/transport/fixtures/fixtures.spec.ts`     | 4     | **the gate**: at least one committed capture is real                 |
+| `src/lib/skeleton-results.spec.ts`                | 7     | `docs/SKELETON-RESULTS.md` answers all six questions, with citations |
+
+Two of those deserve their own paragraph.
+
+**`fixtures/fixtures.spec.ts` is the gate that stops the phase shipping on synthetic data.** Every
+fixture-backed test written before the hardware checkpoint ran against `synthetic-zona.json` — real
+`encode_packet` bytes, invented content, invented timing — so the whole protocol and transport layer
+could be built and proven with nothing plugged in. That sequencing is deliberate and it has one
+cost: a repository full of green tests that had never seen a module. Test 1 of `fixtures.spec.ts`
+fails unless a committed capture declares `"source": "hardware"`, so the phase cannot be closed
+without a real run. Test 3 replays every recorded chunk of every committed hardware arm through the
+shipped scanner and decoder, which is what pins the framing path against real USB CDC chunk
+boundaries instead of invented ones.
+
+**`fixtures/synthetic-zona.json` is kept deliberately, and must not be deleted now that real
+captures exist.** It is what keeps the suite runnable on a machine with no ZONA attached: it is
+regenerable from `scripts/make-synthetic-capture.mjs`, it can be edited freely to construct a case
+nobody's hardware has produced, and a hardware capture can do neither. `src/lib/transport/fixtures/`
+therefore holds both kinds, and `fixtures.spec.ts` test 1 asserts the synthetic one still says so.
+
+`src/lib/skeleton-results.spec.ts` test 7 is the same idea as `src/lib/protocol-pin.spec.ts`: it
+parses the single machine-readable `Shipped:` line out of `docs/SKELETON-RESULTS.md` and asserts it
+equals `TIMEOUTS` and `PRE_SEND_DELAY_MS` in `src/lib/protocol/constants.ts`. A document that records
+a measurement and a constant that ships a different number is a failure nothing else would catch.
+
+`e2e/skeleton.e2e.ts` covers the half of the page a machine can reach: the degrade path with
+`navigator.serial` deleted, and the route being served as a real prerendered file from `build/`.
+Web Serial itself is not automatable — there is no CDP domain and no fake-device hook — so
+everything downstream of an open port is exercised through `FakeTransport` in node, and the hardware
+half is a human checklist in `docs/SKELETON-RUNBOOK.md` whose results are written up in
+`docs/SKELETON-RESULTS.md`.
 
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
