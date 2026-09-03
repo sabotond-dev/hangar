@@ -1,7 +1,13 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const root = (file: string) => new URL(`../../${file}`, import.meta.url);
+
+const SKELETON_PAGE = "src/routes/dev/skeleton/+page.svelte";
+/** D-05: the page must be able to answer "what does it import" with two names. */
+const ALLOWED_SPECIFIERS = ["svelte", "$lib/protocol", "$lib/transport"];
 const text = (file: string) => readFileSync(root(file), "utf8");
 // Line comments are stripped before the structural matches below. The config's
 // own comments legitimately describe the wrapper this test forbids, and a
@@ -82,5 +88,61 @@ describe("build configuration shape", () => {
     expect(attrs.indexOf("src/vendor/** -text")).toBeGreaterThan(
       attrs.indexOf("* text=auto"),
     );
+  });
+
+  // D-05's "bare" rule, as three structural guards rather than as a promise in
+  // a comment. All three read the RAW source, not the comment-stripped form:
+  // the page forbids these tokens outright, comments included, so raw matching
+  // is both simpler and stricter - it also catches a token hidden in a comment.
+  // The quote class is `["']` throughout: Prettier writes double quotes, but a
+  // structural guard should not break the day that changes.
+
+  it("the walking skeleton page imports nothing outside the protocol and transport surfaces", () => {
+    const source = text(SKELETON_PAGE);
+    const specifiers = new Set<string>();
+    for (const re of [
+      /from\s*["']([^"']+)["']/g,
+      /import\s*\(\s*["']([^"']+)["']\s*\)/g,
+    ]) {
+      for (const match of source.matchAll(re)) specifiers.add(match[1]);
+    }
+    expect(specifiers.size, "the page imports something").toBeGreaterThan(0);
+    // "Bare" is a discipline the page must be able to answer with two names.
+    expect([...specifiers].sort()).toEqual(
+      [...specifiers].filter((s) => ALLOWED_SPECIFIERS.includes(s)).sort(),
+    );
+  });
+
+  it("the walking skeleton page never reaches the compile surface or the vendored tree", () => {
+    // The skeleton never needs the Lua formatter: it echoes back the exact
+    // strings the module handed over, so nothing on this path compiles,
+    // minifies or costs anything. $lib/pad would pull 628 KB of WASM into a
+    // page whose whole point is that it is bare.
+    const source = text(SKELETON_PAGE);
+    expect(source).not.toContain(["$lib", "/pad"].join(""));
+    expect(source).not.toContain(["src", "/vendor"].join(""));
+  });
+
+  it("the walking skeleton route is linked from nowhere", () => {
+    // fidelity.e2e.ts already asserts site-wide that no anchor points into
+    // /dev/, which covers the rendered page. This covers the source: a route
+    // that nothing references cannot be reached by a visitor who did not type
+    // the path.
+    const routes = root("src/routes");
+    const mentions: string[] = [];
+    const scanned: string[] = [];
+    for (const entry of readdirSync(routes, { recursive: true })) {
+      const rel = String(entry).split(sep).join("/");
+      if (rel.startsWith("dev/skeleton/")) continue;
+      const file = join(fileURLToPath(routes), String(entry));
+      if (!statSync(file).isFile()) continue;
+      scanned.push(rel);
+      if (readFileSync(file, "utf8").includes("dev/skeleton")) {
+        mentions.push(rel);
+      }
+    }
+    // Without this the assertion below would pass on an empty walk.
+    expect(scanned.length, "routes were actually read").toBeGreaterThan(0);
+    expect(mentions).toEqual([]);
   });
 });
