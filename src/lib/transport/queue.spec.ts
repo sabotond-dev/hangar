@@ -74,11 +74,21 @@ function pump(transport: FakeTransport, queue: RequestQueue): void {
   transport.onClose((reason) => queue.abort(reason));
 }
 
-const PENDING = Symbol("pending");
+const PENDING: unique symbol = Symbol("pending");
 /** Resolves to PENDING if the promise has not settled within a beat. */
 async function settledYet<T>(p: Promise<T>): Promise<T | typeof PENDING> {
-  return Promise.race([p, sleep(15).then(() => PENDING)]);
+  return Promise.race<T | typeof PENDING>([p, sleep(15).then(() => PENDING)]);
 }
+
+/** The rejection reason, as an opaque value: the test decides what it must be. */
+const rejectionOf = (p: Promise<unknown>): Promise<unknown> =>
+  p.then(
+    () => undefined,
+    (err: unknown) => err,
+  );
+
+const messageOf = (err: unknown) =>
+  err instanceof Error ? err.message : String(err);
 
 // Every rejected promise in this file is asserted on; this keeps a stray one
 // from leaking into another test's unhandled-rejection assertion.
@@ -337,18 +347,16 @@ describe("request queue", () => {
     pump(timedOut, timeoutQueue);
     const slow = storePage();
     slow.timeoutMs = 30;
-    const timeoutError = await timeoutQueue
-      .request(slow, "store")
-      .catch((e: Error) => e);
+    const timeoutError = await rejectionOf(timeoutQueue.request(slow, "store"));
 
     const dropped = new FakeTransport({});
     const abortQueue = new RequestQueue(dropped, { preSendDelayMs: 0 });
     pump(dropped, abortQueue);
     const abortReq = fetchConfig(0, 0, 0, EVENT_SETUP);
     abortReq.timeoutMs = 5000;
-    const abortPromise = abortQueue
-      .request(abortReq, "fetch-setup")
-      .catch((e: Error) => e);
+    const abortPromise = rejectionOf(
+      abortQueue.request(abortReq, "fetch-setup"),
+    );
     await sleep(5);
     abortQueue.abort("the ZONA was unplugged");
     const abortError = await abortPromise;
@@ -361,19 +369,22 @@ describe("request queue", () => {
     });
     const nackQueue = new RequestQueue(refused, { preSendDelayMs: 0 });
     pump(refused, nackQueue);
-    const nackError = await nackQueue
-      .request(sendConfig(0, 0, 0, EVENT_TIMER, TIMER_CONFIG), "write-timer")
-      .catch((e: Error) => e);
+    const nackError = await rejectionOf(
+      nackQueue.request(
+        sendConfig(0, 0, 0, EVENT_TIMER, TIMER_CONFIG),
+        "write-timer",
+      ),
+    );
 
     // Real Error instances, never the plain { value, text, type } objects the
     // desktop runtime rejects with.
     for (const error of [timeoutError, abortError, nackError]) {
       expect(error).toBeInstanceOf(Error);
     }
-    expect(timeoutError.message, "a timeout is worth retrying").toMatch(
+    expect(messageOf(timeoutError), "a timeout is worth retrying").toMatch(
       TRANSIENT_WRITE,
     );
-    expect(abortError.message, "so is an interrupted wait").toMatch(
+    expect(messageOf(abortError), "so is an interrupted wait").toMatch(
       TRANSIENT_WRITE,
     );
     // And the one that must NOT be: firmware NACKs a CONFIG/EXECUTE only for
@@ -381,7 +392,7 @@ describe("request queue", () => {
     // (grid_decode.c:1260-1313). Retrying a refusal retries the mistake, which
     // is why the queue never retries a NACK and why its wording is kept out of
     // the transient pattern on purpose.
-    expect(nackError.message, "a refusal is not transient").not.toMatch(
+    expect(messageOf(nackError), "a refusal is not transient").not.toMatch(
       TRANSIENT_WRITE,
     );
   });
