@@ -64,7 +64,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Pure protocol: descriptors, framing, decode guard, matcher, write refusal (wave 1)
-- [ ] 02-02-PLAN.md — Transport, capture, fake with faults, synthetic fixture, RequestQueue (wave 2)
+- [x] 02-02-PLAN.md — Transport, capture, fake with faults, synthetic fixture, RequestQueue (wave 2)
 - [ ] 02-03-PLAN.md — The no-op sequence, /dev/skeleton/, the degrade e2e and the bare-import guard (wave 3)
 - [ ] 02-04-PLAN.md — Pre-flight, the runbook, and the hardware run checkpoint (wave 4)
 - [ ] 02-05-PLAN.md — The real fixture, its gate, docs/SKELETON-RESULTS.md and the measured timeouts (wave 5)

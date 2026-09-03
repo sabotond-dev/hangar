@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-09-03T20:59:28.895Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-09-03T21:28:51.349Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 16
-  completed_plans: 12
+  completed_plans: 13
   percent: 13
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 02 (walking-skeleton) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-09-03
 
@@ -64,6 +64,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 03 P05 | 12 min | 2 tasks | 3 files |
 | Phase 03 P06 | 11 min | 3 tasks | 4 files |
 | Phase 02 P01 | 16 min | 3 tasks | 14 files |
+| Phase 02 P02 | 22 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,10 @@ Recent decisions affecting current work:
 - [Phase 02]: matchResponse coerces both sides through Number and compares strictly, so a filter key the incoming class does not carry becomes NaN and fails — The desktop loose != existed because its decoder produced strings. The NaN consequence is why the write filter names no class parameters at all: a CONFIG/ACKNOWLEDGE is a six-byte class block whose PAGENUMBER, EVENTTYPE and ACTIONSTRING are all undefined.
 - [Phase 02]: match.spec builds every incoming class from real encoder output and then rewrites ONLY SX/SY to 0 — encode_packet forces the source address to zero on the wire and the decoder subtracts 127, so an outbound frame decodes SX -127 while a directly attached module reports SX 0. Rewriting the two address fields keeps the class shape genuine decoder output instead of an invented literal.
 - [Phase 02]: The framing spec EOT-boundary test splits at len-4, not the plan and research len-3 — A frame ends EOT c c LF, so EOT sits at len-4; slicing at len-3 leaves EOT as the last byte of the FIRST chunk and makes the test own name false. len-3 is covered anyway by the every-split-point test.
+- [Phase 02]: A NACK's rejection message is deliberately kept OUT of the vendored TRANSIENT_WRITE pattern, and queue.spec test 8 asserts the timeout and the abort match while the NACK does not — TRANSIENT_WRITE is the predicate Phase 7's withRetry uses to decide what to retry, and firmware NACKs a CONFIG/EXECUTE only for deterministic reasons - an ACTIONLENGTH that does not land on the ETX, a page that is not active, an element that does not exist (grid_decode.c:1260-1313). A busy store is dropped silently and surfaces as a timeout, not a NACK. Making the NACK match would make Phase 7 retry a refusal, contradicting the plan's own must-have that a negative acknowledgement is never retried.
+- [Phase 02]: The frame pump lives OUTSIDE RequestQueue: the page wires transport.onData through FrameScanner and decodeFrame into queue.deliver, and transport.onClose into queue.abort — The plan's own doc comment says deliver is "called by the frame pump", and GridTransport carries a single onData callback - so a queue that registered it would own the only tap on the byte stream and D-07's recorder could never see chunks or refused frames, which are exactly the events the queue never receives. queue.spec's pump() helper is six lines and is plan 03's reference implementation.
+- [Phase 02]: fixtures/synthetic.spec.ts regenerates at MODULE scope and throws, with no guard test, deliberately diverging from golden-frames.spec.ts; and CaptureRecorder gained a capturedAt override — golden-frames.spec.ts carries a guard it() that counts in the totals; a guarded variant here would need a skipIf and a skipped count would shift every aggregate total stated in plans 02 through 05 and in 02-VALIDATION.md, all written with no skip allowance. The safety property is preserved: setting UPDATE_SYNTHETIC rewrites, normalises with Prettier, then fails the run. capturedAt is pinned by the generator because otherwise two consecutive regenerations differ by one line and reviewing the diff of the other 32 events is pointless.
+- [Phase 02]: FakeTransport emits live responses SYNCHRONOUSLY inside write(), and every timing-sensitive queue assertion is driven by an explicit delay fault rather than by scheduler ordering — It makes the disconnect test genuine: the close callback fires DURING the write, before the queue reaches its await, which is the real race an unplug creates - and is why arm() attaches a no-op catch to the waiter's promise the moment it is created. It also removes the flake from "one outstanding request", where with no fault the first request settles inside a microtask and there is no window in which to observe the second write being held.
 
 ### Pending Todos
 
@@ -131,6 +136,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T20:58:53.018Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-09-03T21:28:45.082Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
