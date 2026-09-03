@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-09-03T09:47:40.931Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-09-03T10:01:18.385Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 11
-  completed_plans: 6
+  completed_plans: 7
   percent: 13
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 03 (vendor-the-domain) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-09-03
 
@@ -58,6 +58,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 01 P04 | 45min | 3 tasks | 9 files |
 | Phase 01 P05 | 20min | 3 tasks | 6 files |
 | Phase 03 P01 | 9 min | 3 tasks | 12 files |
+| Phase 03 P02 | 11 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase 03]: The vendored tree is hidden from svelte-check with a tsconfig exclude of src/vendor/**, not by turning checkJs off — Both give 0 errors (489 without either), but checkJs:false silently lowers the bar for every future first-party HANGAR .js file; the exclude keeps checkJs and still type-checks the three vendored .ts sources the moment HANGAR code imports them, which is where the real risk is
 - [Phase 03]: Provenance headers are 7 lines for _pad.ts and 6 for the other five; VENDOR.md records the resulting 8/7 line offset and the rule 'vendored line = upstream line + header lines' — The block shifts every line number in the file, so every HANGAR document citing a vendored line cites the upstream number plus the offset; verified against a real citation - PRESETS is upstream _pad.ts:4206 and vendored _pad.ts:4214
 - [Phase 03]: Cross-repo vendoring is a Buffer-level copy with a uniqueness assertion per permitted delta, never a decode/re-encode round trip through a string — pad.test.js is UTF-8 with non-ASCII content and plan 02's sha256 manifest hashes its exact byte stream; a Buffer.indexOf/concat splice that throws on zero or multiple matches also proves 'exactly three deltas' at copy time rather than after the fact
+- [Phase 03]: D-04 is enforced by hash, not by prose: upstream-manifest.json pins the pristine upstream sha256 and byte length of all six vendored BOTOR files at a0fb69d5, and vendored-diff.spec.ts reconstructs those bytes from each vendored copy — A 1 KB hash manifest asserts exactly the property a committed second copy would assert, without duplicating 436 KB in the repository and again inside every per-deploy GPLv3 source archive. The five inverse deltas are the D-04 allow-list in executable form, so an unrecorded fourth change fails to reconstruct instead of being absorbed.
+- [Phase 03]: The fidelity suite reads nothing outside the repository, so it is green on a machine with no grid-editor checkout; format-parity.spec.ts stays the one deliberate sibling-dependent canary — A gate that cannot run on a fresh clone is not a gate. The spec asserts mechanically that no executable line mentions grid-editor, git-common-dir or BOTOR_REPO. The header block is stripped through its sentinel rather than by a fixed line count, so plan 01 per-file offsets never enter the comparison and a future header edit cannot silently shift a delta out of the hashed region.
 
 ### Pending Todos
 
@@ -107,6 +110,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T09:47:10.378Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-09-03T10:01:18.379Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
