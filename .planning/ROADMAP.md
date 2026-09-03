@@ -60,7 +60,14 @@ Plans:
   3. *(hardware)* The page writes those exact same strings back and then stores them, and each step is reported as complete only after a matching ACKNOWLEDGE frame arrives from the module — never on a resolved local promise.
   4. *(hardware)* After the run the module is byte-for-byte unchanged: re-fetching Setup and Timer returns the original strings and the pad behaves exactly as it did before. The entire experiment is a provable no-op.
   5. The run records written answers to the open questions it exists to settle: whether an outbound host heartbeat is required, whether the 10 ms inter-message pacing is load-bearing at 2 Mbaud, and whether the Lua formatter WASM resolves from a plain static build.
-**Plans**: TBD
+**Plans**: 5 plans in 5 waves
+
+Plans:
+- [ ] 02-01-PLAN.md — Pure protocol: descriptors, framing, decode guard, matcher, write refusal (wave 1)
+- [ ] 02-02-PLAN.md — Transport, capture, fake with faults, synthetic fixture, RequestQueue (wave 2)
+- [ ] 02-03-PLAN.md — The no-op sequence, /dev/skeleton/, the degrade e2e and the bare-import guard (wave 3)
+- [ ] 02-04-PLAN.md — Pre-flight, the runbook, and the hardware run checkpoint (wave 4)
+- [ ] 02-05-PLAN.md — The real fixture, its gate, docs/SKELETON-RESULTS.md and the measured timeouts (wave 5)
 
 ### Phase 3: Vendor the Domain
 **Goal**: BOTOR's compiler and simulator run inside HANGAR unmodified, with fidelity pinned by something other than the code that produced it.
@@ -159,7 +166,7 @@ Phases 6 and 7.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold, Licence and Pin | 5/5 | Complete   | 2026-09-02 |
-| 2. Walking Skeleton | 0/TBD | Not started | - |
+| 2. Walking Skeleton | 0/5 | Planned | - |
 | 3. Vendor the Domain | 0/6 | Planned | - |
 | 4. Catalog, Live Simulator and Identity | 0/TBD | Not started | - |
 | 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |
