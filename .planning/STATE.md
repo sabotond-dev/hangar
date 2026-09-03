@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-09-03T10:14:20.246Z"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-09-03T10:36:50.403Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
   percent: 13
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 03 (vendor-the-domain) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-09-03
 
@@ -60,6 +60,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 03 P01 | 9 min | 3 tasks | 12 files |
 | Phase 03 P02 | 11 min | 2 tasks | 4 files |
 | Phase 03 P03 | 11 min | 3 tasks | 7 files |
+| Phase 03 P04 | 19 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,9 @@ Recent decisions affecting current work:
 - [Phase 03]: The fixture is captured by running BOTOR's OWN compiler inside the sibling checkout, imported by absolute file:// URL with cwd staying in HANGAR, awaiting the SIBLING's padCompilerReady() — Module resolution crosses the repository boundary by itself, so the import binds grid-protocol to grid-editor's own node_modules without moving cwd - and keeping cwd in HANGAR is what guarantees no bundler cache can ever be created next door. HANGAR's copy of the protocol package is a DIFFERENT module instance: readying HANGAR's formatter leaves the imported compiler's cost() throwing "The Lua formatter is not initialised.", a failure that reads as a WASM packaging problem and is not one. The fixture being produced by the original is what makes the criterion-3 spec evidence rather than a tautology.
 - [Phase 03]: protocol-pin.spec.ts measures with GridScript.compressScript directly rather than through the vendored measure() — The pin gate is about the installed package. Routing it through the vendored compiler would make it fail for reasons that belong to preset-baseline.spec.ts, and would make it unrunnable while the vendored copy is mid-resync.
 - [Phase 03]: docs/PIN-POLICY.md's bump checklist names commands and counts (test:quick 176 + 96, test:sweep 9, the two spec files) instead of describing a property — "The vendored suite is green" cannot rot. A checklist item that names a command and its expected count stops being runnable the moment it stops being true, which is the point of a checklist a human follows before moving a pin.
+- [Phase 03]: The oracle spec honours ORACLE.LED_LOOKUP_DIRECTION as declared and never tries the inverse; the ZONA table is self-inverse, so the 81-cell agreement confirms the DATA independently but cannot confirm the DIRECTION — LED_LOOKUP[LED_LOOKUP[i]] === i for all 81 entries, so both readings produce identical numbers and a spec that tried both directions until one passed would be fitting the oracle to the simulator - the exact failure mode the two-author design exists to prevent. The direction rests on the isolated author's derivation from grid_led.c:171-183 plus grid_lua_api.c:1301-1336, recorded in 03-04-SUMMARY.md so no reviewer mistakes numeric agreement for confirmation of it.
+- [Phase 03]: The expiry tick order is asserted through the vendored public API alone - defaultState() with look and sends disabled decays to animating false at tick 42 - and the oracle's phaseAdvanceOffsetAtExpiry INDEXES the expected frame rather than being restated in the spec — The settled frame at expiry+1 is compared against hashes[expiry-1+offset], so flipping the oracle constant flips the expectation and the test goes red - observed. The spec also asserts hashes[expiry-1] !== hashes[expiry], without which the offset would be vacuously satisfied. rateZeroedOnExpiry is asserted the same observable way: movedAfterExpiry === !rateZeroedOnExpiry. The plan's weaker static-preset fallback was not needed and 03-VALIDATION.md's "if the fallback fires" row stands unfired.
+- [Phase 03]: Golden-frame regeneration lives inside the spec behind UPDATE_GOLDEN, shells out to npx prettier --write on the fixture, and fails the run by design; the fixture is git added the moment it first exists, before any perturbation — Plain Node ESM cannot import pad-sim.ts at all, so a standalone generator would need Vite anyway. JSON.stringify puts the primitive ticks array on five lines and Prettier collapses it onto one, and src/lib/fidelity/ is not prettier-ignored, so without the normalising pass npm run lint fails on a file no human wrote - and the pass being idempotent is what keeps two consecutive regenerations byte-identical. Staging first matters because on an untracked path git checkout -- fails outright and git diff --quiet passes vacuously, so every restore-and-compare check would have measured nothing.
 
 ### Pending Todos
 
@@ -115,6 +119,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T10:13:44.807Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-09-03T10:36:42.956Z
+Stopped at: Completed 03-04-PLAN.md
 Resume file: None

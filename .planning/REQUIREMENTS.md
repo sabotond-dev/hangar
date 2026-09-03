@@ -46,7 +46,7 @@ feature table in `.planning/research/FEATURES.md`.
 - [ ] **PREV-03**: The site states in one line what the simulator matches exactly and what it cannot show (physical LED colour, diffusion, touch feel) [C3]
 - [ ] **PREV-04**: The focused card accepts mouse-as-finger input so the user can play the instrument, not just watch it [C4]
 - [ ] **PREV-05**: Offscreen cards pause (IntersectionObserver with a wake margin), `prefers-reduced-motion` falls back to a still frame or play-on-hover, and the render path stays within budget at a dozen visible cards at 30 fps [C5]
-- [ ] **PREV-06**: Every ported preset's simulated output is pinned against an oracle derived independently of the compiler (firmware source or hardware capture), so a shared misreading cannot hide behind a green suite
+- [x] **PREV-06**: Every ported preset's simulated output is pinned against an oracle derived independently of the compiler (firmware source or hardware capture), so a shared misreading cannot hide behind a green suite
 
 ### Catalog [D]
 
@@ -180,7 +180,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PREV-03 | Phase 4 | Pending |
 | PREV-04 | Phase 4 | Pending |
 | PREV-05 | Phase 4 | Pending |
-| PREV-06 | Phase 3 | Pending |
+| PREV-06 | Phase 3 | Complete |
 | CAT-01 | Phase 4 | Pending |
 | CAT-02 | Phase 4 | Pending |
 | CAT-03 | Phase 4 | Pending |
