@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-09-03T10:01:18.385Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-09-03T10:14:20.246Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 11
-  completed_plans: 7
+  completed_plans: 8
   percent: 13
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 03 (vendor-the-domain) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-09-03
 
@@ -59,6 +59,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 01 P05 | 20min | 3 tasks | 6 files |
 | Phase 03 P01 | 9 min | 3 tasks | 12 files |
 | Phase 03 P02 | 11 min | 2 tasks | 4 files |
+| Phase 03 P03 | 11 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,10 @@ Recent decisions affecting current work:
 - [Phase 03]: Cross-repo vendoring is a Buffer-level copy with a uniqueness assertion per permitted delta, never a decode/re-encode round trip through a string — pad.test.js is UTF-8 with non-ASCII content and plan 02's sha256 manifest hashes its exact byte stream; a Buffer.indexOf/concat splice that throws on zero or multiple matches also proves 'exactly three deltas' at copy time rather than after the fact
 - [Phase 03]: D-04 is enforced by hash, not by prose: upstream-manifest.json pins the pristine upstream sha256 and byte length of all six vendored BOTOR files at a0fb69d5, and vendored-diff.spec.ts reconstructs those bytes from each vendored copy — A 1 KB hash manifest asserts exactly the property a committed second copy would assert, without duplicating 436 KB in the repository and again inside every per-deploy GPLv3 source archive. The five inverse deltas are the D-04 allow-list in executable form, so an unrecorded fourth change fails to reconstruct instead of being absorbed.
 - [Phase 03]: The fidelity suite reads nothing outside the repository, so it is green on a machine with no grid-editor checkout; format-parity.spec.ts stays the one deliberate sibling-dependent canary — A gate that cannot run on a fresh clone is not a gate. The spec asserts mechanically that no executable line mentions grid-editor, git-common-dir or BOTOR_REPO. The header block is stripped through its sentinel rather than by a fixed line count, so plan 01 per-file offsets never enter the comparison and a future header edit cannot silently shift a delta out of the hashed region.
+- [Phase 03]: The preset baseline records FOUR lengths per preset - setup/timer raw and setup/timer compressed - plus both cost().used values, and the D-11 bump gate asserts the COMPRESSED pair — cost().used is max(compressed, raw) + reserved, and measured on live data compressed is exactly one character shorter than raw for all nine presets in both events - so cost().used IS the raw length everywhere. A grid-protocol bump whose minifier spent five more characters would move compressScript(...).length and leave cost().used untouched, and a gate recording only cost would stay green through precisely the change it exists to catch.
+- [Phase 03]: The fixture is captured by running BOTOR's OWN compiler inside the sibling checkout, imported by absolute file:// URL with cwd staying in HANGAR, awaiting the SIBLING's padCompilerReady() — Module resolution crosses the repository boundary by itself, so the import binds grid-protocol to grid-editor's own node_modules without moving cwd - and keeping cwd in HANGAR is what guarantees no bundler cache can ever be created next door. HANGAR's copy of the protocol package is a DIFFERENT module instance: readying HANGAR's formatter leaves the imported compiler's cost() throwing "The Lua formatter is not initialised.", a failure that reads as a WASM packaging problem and is not one. The fixture being produced by the original is what makes the criterion-3 spec evidence rather than a tautology.
+- [Phase 03]: protocol-pin.spec.ts measures with GridScript.compressScript directly rather than through the vendored measure() — The pin gate is about the installed package. Routing it through the vendored compiler would make it fail for reasons that belong to preset-baseline.spec.ts, and would make it unrunnable while the vendored copy is mid-resync.
+- [Phase 03]: docs/PIN-POLICY.md's bump checklist names commands and counts (test:quick 176 + 96, test:sweep 9, the two spec files) instead of describing a property — "The vendored suite is green" cannot rot. A checklist item that names a command and its expected count stops being runnable the moment it stops being true, which is the point of a checklist a human follows before moving a pin.
 
 ### Pending Todos
 
@@ -110,6 +115,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T10:01:18.379Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-09-03T10:13:44.807Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None

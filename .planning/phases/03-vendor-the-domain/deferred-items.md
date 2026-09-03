@@ -2,7 +2,14 @@
 
 Out-of-scope discoveries logged during execution. Not fixed by the plan that found them.
 
-## 1. `src/lib/format-parity.spec.ts` is timeout-flaky in a loaded parallel run
+## 1. `src/lib/format-parity.spec.ts` is timeout-flaky in a loaded parallel run — RESOLVED
+
+**Resolved:** 03-03, commit `72b79f1`, as an authorised Rule-3 deviation. The two canary tests now
+carry an explicit `CANARY_TIMEOUT_MS = 30_000` per-test timeout, and HANGAR's Prettier is resolved
+once as `node_modules/prettier/bin/prettier.cjs` and invoked through `node` instead of through `npx`
+— the same invocation shape the upstream binary already uses, so both sides of the comparison are
+now symmetrical. What the spec asserts is unchanged. `npx vitest run --project server
+src/lib/format-parity.spec.ts` reports 3 passed.
 
 **Found during:** 03-02, Task 2 (first `npm run test:quick` after the 7th spec file landed).
 

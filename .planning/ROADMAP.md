@@ -77,7 +77,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Wave 0 config, the six vendored BOTOR files, corrected VENDOR.md (wave 1)
 - [x] 03-02-PLAN.md — Upstream sha256 manifest and the vendored-diff byte gate (wave 2)
-- [ ] 03-03-PLAN.md — Preset cost baseline from BOTOR own compiler, and the pin gate closure (wave 3)
+- [x] 03-03-PLAN.md — Preset cost baseline from BOTOR own compiler, and the pin gate closure (wave 3)
 - [ ] 03-04-PLAN.md — Independent firmware oracle, its agreement spec, and golden frames (wave 4)
 - [ ] 03-05-PLAN.md — The memoised WASM gate and its proof (wave 5)
 - [ ] 03-06-PLAN.md — Hidden fidelity probe, the production-build e2e, docs/TESTING.md (wave 6)
