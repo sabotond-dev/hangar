@@ -73,3 +73,14 @@ export const retryBackoffMs = (attempt: number) => 120 * (attempt + 1);
 
 /** The encoder writes each char as one byte; anything outside this corrupts framing. */
 export const PRINTABLE_ASCII = /^[\x20-\x7e]*$/;
+
+/**
+ * The installed package version, re-exported rather than restated.
+ *
+ * D-07's capture records the pin every run was measured against, and D-05
+ * limits the skeleton page to two import names - so the page reaches the pin
+ * through this surface instead of importing src/lib/protocol-pin.ts directly.
+ * The literal itself stays in that one module, where protocol-pin.spec.ts
+ * holds it against package.json and the lockfile.
+ */
+export { PROTOCOL_PIN } from "../protocol-pin";
