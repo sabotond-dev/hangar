@@ -137,7 +137,7 @@ Set by the user's reference images (2026-09-02). This is HANGAR's own identity, 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Standalone public site talking to hardware over Web Serial, not a Grid Editor panel | The Editor route works but only reaches people who already installed the Editor; a URL reaches everyone, and the editor's own web build proves a browser can drive a module | — Pending |
-| Port the nine BOTOR presets as the seed catalog, then author new ones | They are produced by a tested compiler, they fit the budget, and several are hardware-proven; authoring from zero would re-litigate solved problems | — Pending |
+| Port the nine BOTOR presets as the seed catalog, then author new ones | They are produced by a tested compiler, they fit the budget, and several are hardware-proven; authoring from zero would re-litigate solved problems | ✓ Good — Phase 3: compiler and simulator vendored byte-near at `sabotond-dev/botor@a0fb69d5`, all nine presets character-identical to BOTOR's own compiler, simulator pinned against an independently derived firmware oracle (26/26) |
 | Live `pad-sim` preview on every card | The hardware's own LED mirror is 3.3 Hz, so the simulator is the only possible preview — and it makes the site worth opening with no ZONA attached | — Pending |
 | Tune knobs, not full authoring | "Playground" means turning knobs on great configs; a browser layer/zone editor is a different, much larger product | — Pending |
 | Shareable state in the URL via the base36 stamp, no accounts | Keeps the whole thing static and free, and the stamp format already exists and is versioned | — Pending |
@@ -162,4 +162,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-02 after Phase 1 (Scaffold, Licence and Pin) — deployed preview live, GPLv3 obligations mechanised, protocol pin gated*
+*Last updated: 2026-09-02 after Phase 3 (Vendor the Domain) — BOTOR compiler and simulator vendored with 361-test suite, preset baseline and independent firmware oracle green, WASM formatter gate proven from the production build*
