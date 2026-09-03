@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03-05-PLAN.md
-last_updated: "2026-09-03T10:48:21.375Z"
+status: verifying
+stopped_at: Completed 03-06-PLAN.md
+last_updated: "2026-09-03T11:02:12.880Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 13
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 
 Phase: 03 (vendor-the-domain) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-03
 
 Progress: [█░░░░░░░░░] 13%
@@ -62,6 +62,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 03 P03 | 11 min | 3 tasks | 7 files |
 | Phase 03 P04 | 19 min | 3 tasks | 4 files |
 | Phase 03 P05 | 12 min | 2 tasks | 3 files |
+| Phase 03 P06 | 11 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Golden-frame regeneration lives inside the spec behind UPDATE_GOLDEN, shells out to npx prettier --write on the fixture, and fails the run by design; the fixture is git added the moment it first exists, before any perturbation — Plain Node ESM cannot import pad-sim.ts at all, so a standalone generator would need Vite anyway. JSON.stringify puts the primitive ticks array on five lines and Prettier collapses it onto one, and src/lib/fidelity/ is not prettier-ignored, so without the normalising pass npm run lint fails on a file no human wrote - and the pass being idempotent is what keeps two consecutive regenerations byte-identical. Staging first matters because on an untracked path git checkout -- fails outright and git diff --quiet passes vacuously, so every restore-and-compare check would have measured nothing.
 - [Phase 03]: The FOUND-05 WASM gate attaches to HANGAR's COMPILE SURFACE (src/lib/pad/index.ts), never to the app root; PadSim is not re-exported from that surface at all — CONTEXT says the app root awaits the gate before first render of anything that compiles and CLAUDE.md says never call initLuaFormatter() at boot - both hold, because nothing calls padReady() until something asks for a cost, and what a page shows while that resolves is Phase 4's concern. Leaving PadSim out of the barrel entirely (a consumer imports src/vendor/botor/pad-sim directly) makes "the simulator is outside the gate" enforceable by grep on the import graph rather than by a comment nobody re-reads; gating it would make the catalog wait on a 628 KB WASM download for a picture that takes a PadState and never Lua.
 - [Phase 03]: In a spec whose test ORDER is load-bearing, a pre-init assertion must be the FIRST gate-crossing call in the file - ready.spec.ts test 3 builds with the VENDORED compile, not compilePreset — As the plan drafted it, test 3 opened with await compilePreset("aurora"), which awaits the gate - so by the time costOf ran the formatter was already initialised, and deleting costOf's own await left the whole spec green (exit 0, 5 passed). The plan's negative check found this, which is exactly what a negative check is for. compile() needs no formatter (test 1 proves it in the same file), so building with the vendored compile makes costOf the first call to cross the gate and the perturbation goes red naming test 3. Corollary recorded in the spec: compilePreset's and compileState's own awaits are belt-and-braces and unobservable by ANY test, because compile() never touches the formatter - the four load-bearing gates are costOf, fitsIn, measureLua and validateCompiled.
+- [Phase 03]: The D-12 browser probe compiles and costs through $lib/pad rather than the vendored compiler, from a dynamic await import inside onMount, and never at module scope — At module scope the SERVER build resolves @wasm-fmt/lua_fmt through its "node" export condition and reads the wasm off disk during prerender, which proves nothing about a browser. Going through $lib/pad rather than the vendored functions makes the run exercise HANGAR's own FOUND-05 gate against the deployed artifact, not just grid-protocol's packaging. Measured: aurora's seven recorded numbers reproduced in Chromium in 1.0 s on a cold wrangler, empty console.
+- [Phase 03]: worker/index.js sets NO Content-Security-Policy header, and any CSP added later MUST include 'wasm-unsafe-eval' in script-src; e2e/fidelity.e2e.ts asserts the wasm response is application/wasm — Captured live: the wasm asset returns exactly seven headers (200, Content-Length 628148, Content-Type application/wasm, Cache-Control private no-store, ETag, CF-Cache-Status, Referrer-Policy, X-Robots-Tag) and no CSP. Without 'wasm-unsafe-eval' a future CSP breaks instantiation with a symptom indistinguishable from "the formatter never initialised". A WRONG MIME is worse than a missing one: @wasm-fmt/lua_fmt falls back from instantiateStreaming to WebAssembly.instantiate with only a console warning and then runs the slow path forever, which is why the MIME is asserted rather than assumed.
+- [Phase 03]: Playwright output is captured into the gitignored .tmp-e2e/, never under test-results/ or playwright-report/, and no Playwright test title may contain the word failed — Playwright deletes its outputDir (default test-results/) at the start of every run, so a redirect target inside it is unlinked mid-run and any grep over it reads a path that no longer exists. The gate asserts an exact passed total AND the absence of the word failed, because "N passed" also appears in a partly-failing run - which in turn makes a test title containing that word a permanent false negative. .tmp-format-parity/ established the convention; .tmp-e2e/ sits beside it in .gitignore.
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T10:48:09.828Z
-Stopped at: Completed 03-05-PLAN.md
+Last session: 2026-09-03T11:01:24.520Z
+Stopped at: Completed 03-06-PLAN.md
 Resume file: None
