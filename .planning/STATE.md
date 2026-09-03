@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-09-03T21:55:05.637Z"
+stopped_at: "Paused at 02-04-PLAN.md task 2-04-02 (checkpoint:human-verify) - awaiting the hardware run"
+last_updated: "2026-09-03T22:03:17.623Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 8
@@ -142,6 +142,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T21:55:05.631Z
-Stopped at: Completed 02-03-PLAN.md
-Resume file: None
+Last session: 2026-09-03T22:03:17.617Z
+Stopped at: Paused at 02-04-PLAN.md task 2-04-02 (checkpoint:human-verify) - awaiting the hardware run
+Resume file: docs/SKELETON-RUNBOOK.md
