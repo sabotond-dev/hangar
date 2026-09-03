@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-09-03T20:38:58.034Z"
-last_activity: 2026-09-03 -- Phase 02 execution started
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-09-03T20:59:28.895Z"
+last_activity: 2026-09-03
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 16
-  completed_plans: 11
+  completed_plans: 12
   percent: 13
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 02 (walking-skeleton) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 02
-Last activity: 2026-09-03 -- Phase 02 execution started
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-09-03
 
 Progress: [█░░░░░░░░░] 13%
 
@@ -63,6 +63,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 03 P04 | 19 min | 3 tasks | 4 files |
 | Phase 03 P05 | 12 min | 2 tasks | 3 files |
 | Phase 03 P06 | 11 min | 3 tasks | 4 files |
+| Phase 02 P01 | 16 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,10 @@ Recent decisions affecting current work:
 - [Phase 03]: The D-12 browser probe compiles and costs through $lib/pad rather than the vendored compiler, from a dynamic await import inside onMount, and never at module scope — At module scope the SERVER build resolves @wasm-fmt/lua_fmt through its "node" export condition and reads the wasm off disk during prerender, which proves nothing about a browser. Going through $lib/pad rather than the vendored functions makes the run exercise HANGAR's own FOUND-05 gate against the deployed artifact, not just grid-protocol's packaging. Measured: aurora's seven recorded numbers reproduced in Chromium in 1.0 s on a cold wrangler, empty console.
 - [Phase 03]: worker/index.js sets NO Content-Security-Policy header, and any CSP added later MUST include 'wasm-unsafe-eval' in script-src; e2e/fidelity.e2e.ts asserts the wasm response is application/wasm — Captured live: the wasm asset returns exactly seven headers (200, Content-Length 628148, Content-Type application/wasm, Cache-Control private no-store, ETag, CF-Cache-Status, Referrer-Policy, X-Robots-Tag) and no CSP. Without 'wasm-unsafe-eval' a future CSP breaks instantiation with a symptom indistinguishable from "the formatter never initialised". A WRONG MIME is worse than a missing one: @wasm-fmt/lua_fmt falls back from instantiateStreaming to WebAssembly.instantiate with only a console warning and then runs the slow path forever, which is why the MIME is asserted rather than assumed.
 - [Phase 03]: Playwright output is captured into the gitignored .tmp-e2e/, never under test-results/ or playwright-report/, and no Playwright test title may contain the word failed — Playwright deletes its outputDir (default test-results/) at the start of every run, so a redirect target inside it is unlinked mid-run and any grep over it reads a path that no longer exists. The gate asserts an exact passed total AND the absence of the word failed, because "N passed" also appears in a partly-failing run - which in turn makes a test title containing that word a permanent false negative. .tmp-format-parity/ established the convention; .tmp-e2e/ sits beside it in .gitignore.
+- [Phase 02]: descriptors.ts is the ONLY shipped module that calls encode_packet, and forbidden-instructions.spec.ts proves it by scanning src/lib/protocol and src/lib/transport rather than by convention — Convention would not survive plan 03 page or plan 02 transport. The same spec assembles its forbidden needles from fragments (["NVM","ERASE"].join("")) so the spec source does not contain the literals it forbids and a future rule could scan it without an exclusion.
+- [Phase 02]: matchResponse coerces both sides through Number and compares strictly, so a filter key the incoming class does not carry becomes NaN and fails — The desktop loose != existed because its decoder produced strings. The NaN consequence is why the write filter names no class parameters at all: a CONFIG/ACKNOWLEDGE is a six-byte class block whose PAGENUMBER, EVENTTYPE and ACTIONSTRING are all undefined.
+- [Phase 02]: match.spec builds every incoming class from real encoder output and then rewrites ONLY SX/SY to 0 — encode_packet forces the source address to zero on the wire and the decoder subtracts 127, so an outbound frame decodes SX -127 while a directly attached module reports SX 0. Rewriting the two address fields keeps the class shape genuine decoder output instead of an invented literal.
+- [Phase 02]: The framing spec EOT-boundary test splits at len-4, not the plan and research len-3 — A frame ends EOT c c LF, so EOT sits at len-4; slicing at len-3 leaves EOT as the last byte of the FIRST chunk and makes the test own name false. len-3 is covered anyway by the every-split-point test.
 
 ### Pending Todos
 
@@ -126,6 +131,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T11:20:38.301Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-walking-skeleton/02-CONTEXT.md
+Last session: 2026-09-03T20:58:53.018Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
