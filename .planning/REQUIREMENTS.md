@@ -41,16 +41,16 @@ feature table in `.planning/research/FEATURES.md`.
 
 ### Preview [C]
 
-- [ ] **PREV-01**: Every card in the catalog animates live in the firmware-faithful simulator with no hardware attached [C1]
+- [x] **PREV-01**: Every card in the catalog animates live in the firmware-faithful simulator with no hardware attached [C1]
 - [ ] **PREV-02**: The simulator consumes the exact compiler output that would be written to the module — no hand-authored animation anywhere [C2]
 - [ ] **PREV-03**: The site states in one line what the simulator matches exactly and what it cannot show (physical LED colour, diffusion, touch feel) [C3]
 - [ ] **PREV-04**: The focused card accepts mouse-as-finger input so the user can play the instrument, not just watch it [C4]
-- [ ] **PREV-05**: Offscreen cards pause (IntersectionObserver with a wake margin), `prefers-reduced-motion` falls back to a still frame or play-on-hover, and the render path stays within budget at a dozen visible cards at 30 fps [C5]
+- [x] **PREV-05**: Offscreen cards pause (IntersectionObserver with a wake margin), `prefers-reduced-motion` falls back to a still frame or play-on-hover, and the render path stays within budget at a dozen visible cards at 30 fps [C5]
 - [x] **PREV-06**: Every ported preset's simulated output is pinned against an oracle derived independently of the compiler (firmware source or hardware capture), so a shared misreading cannot hide behind a green suite
 
 ### Catalog [D]
 
-- [ ] **CAT-01**: Every configuration has a deep link that lands on its detail view [D1]
+- [x] **CAT-01**: Every configuration has a deep link that lands on its detail view [D1]
 - [ ] **CAT-02**: User can sort by Featured, Newest and Name; no popularity metrics are shown or faked [D4]
 - [ ] **CAT-03**: User can open a focus/detail view for one configuration where it runs at full frame rate with interaction, knobs, budget meters and install controls [D5]
 - [ ] **CAT-04**: The catalog is a static data file of Profile-Cloud-shaped config objects plus tuning metadata, buildable with no backend
@@ -175,13 +175,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-07 | Phase 7 | Pending |
 | SAFE-08 | Phase 7 | Pending |
 | SAFE-09 | Phase 7 | Pending |
-| PREV-01 | Phase 4 | Pending |
+| PREV-01 | Phase 4 | Complete |
 | PREV-02 | Phase 4 (Lua-sourced entries: Phase 8) | Pending |
 | PREV-03 | Phase 4 | Pending |
 | PREV-04 | Phase 4 | Pending |
-| PREV-05 | Phase 4 | Pending |
+| PREV-05 | Phase 4 | Complete |
 | PREV-06 | Phase 3 | Complete |
-| CAT-01 | Phase 4 | Pending |
+| CAT-01 | Phase 4 | Complete |
 | CAT-02 | Phase 5.1 | Pending |
 | CAT-03 | Phase 5.1 | Pending |
 | CAT-04 | Phase 4 | Pending |

@@ -28,11 +28,10 @@ phase has no mandate to edit it.
 
 ## From plan 04-08
 
-- `docs/TESTING.md`'s `npm run test:unit -- --run` row still reads **27 files, 462 passed + 1 todo**,
-  which cannot be right when `test:quick` alone is 37 / 532. It was already stale before this plan and
-  this plan did not observe that command, so it was left alone rather than guessed at: the plan's rule
-  is that only OBSERVED totals go into that document. One `npm run test:unit -- --run` in a later plan
-  fixes it.
+- ~~`docs/TESTING.md`'s `npm run test:unit -- --run` row still reads **27 files, 462 passed + 1
+  todo**, which cannot be right when `test:quick` alone is 37 / 532.~~ **Closed in plan 04-09.** The
+  command was run and observed: **38 files, 543 passed | 1 todo (544); 49 s wall (44.7 s)**. That row
+  and every other row in the table now carry observed numbers, taken at the end of Phase 4.
 - `src/lib/ui/` and `src/lib/device/` are still outside `forbidden-instructions.spec.ts`'s
   `SCANNED_DIRS` (`src/lib/protocol`, `src/lib/transport`). Widening it to `src/lib` would close both
   gaps at once and cost no tests. Carried forward from 04-04 and 04-07.

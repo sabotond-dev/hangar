@@ -113,7 +113,7 @@ Plans:
 - [x] 04-06-PLAN.md — The living row: pad layers, the coverflow band, stepping, and the front door route (wave 4)
 - [x] 04-07-PLAN.md — Name plate, fidelity line, the glyph-field splash and its dissolve (wave 5)
 - [x] 04-08-PLAN.md — Choosing, the panel, TRY ON DEVICE and KEEP ON DEVICE (wave 6)
-- [ ] 04-09-PLAN.md — Deep-link routes, the two chunk guards, and the phase gate (wave 7)
+- [x] 04-09-PLAN.md — Deep-link routes, the two chunk guards, and the phase gate (wave 7)
 
 ### Phase 5: Tuning, Budgets and Shareable Links
 **Goal**: Visitors can turn knobs on any configuration, see the 908-character budgets as a live instrument instead of a write-time failure, and send the result to a friend as a link.
