@@ -1,0 +1,91 @@
+# Phase 5: Tuning, Budgets and Shareable Links — Context
+
+**Gathered:** 2026-09-04, unattended (overnight delegation continued into the morning; the user said
+"continue"). Sources: the user's kickoff decisions (browse + tune knobs; shareable base36 stamp in the
+URL hash, no accounts; build-time OG images; SURPRISE ME; reset), the roadmap's five success
+criteria, Phase 4's chosen-panel seam (D-08: the `TUNING` region reserved at 152 px = 96 px knob rack
++ 56 px for two meters) and Phase 8's seams (D-12 token-substitution knobs whose cross-product is
+proven in budget at build time; D-13 stamp envelope deferred to this phase). Decisions marked [user]
+are the user's; [orchestrator] ones were taken without the user and are open to veto.
+
+## Phase boundary
+
+Phase 5 turns knobs on any configuration, shows both 908-character budgets live, and makes a tuned
+state travel in a URL that unfurls on Discord. It does not install (Phase 7), does not build the
+browse catalog (Phase 5.1), and adds no accounts or backend.
+
+## Decisions
+
+### Knobs
+- **D-01 [user]** Three to six knobs per configuration from colour, speed, layout, brightness, MIDI
+  destination and config-specific parameters, in one shared widget vocabulary.
+- **D-02 [orchestrator]** The vocabulary is the vendored `KnobKind` union (twelve members in
+  `_pad.ts`): one Svelte widget per kind family, chosen by kind, never per configuration. Compiler
+  driven entries (`source.kind === "preset" | "state"`) expose BOTOR's own knobs over `PadState`;
+  Lua entries expose the token-substitution knobs Phase 8 declared. The panel cannot tell them apart.
+- **D-03 [user]** Reset one knob by double-click; reset the whole configuration; `SURPRISE ME`
+  randomises into a state that is never over budget.
+- **D-04 [orchestrator]** `SURPRISE ME` draws from each knob's value set and re-rolls (bounded, then
+  falls back to the ladder) until `fits()` holds; for Lua entries every draw fits by construction.
+
+### Live recompile and meters
+- **D-05 [user]** Every knob change re-simulates live; the recompile is debounced, the preview is not.
+- **D-06 [orchestrator]** `PadSim` takes a `PadState`, so the preview updates on the same tick as the
+  knob; the compile (needed only for cost) is debounced ~120 ms. Lua entries re-render by token
+  substitution and restart the Lua engine, also debounced; the previous engine keeps painting until
+  the new one has run Setup.
+- **D-07 [user]** Two separate meters, Setup and Timer, `chars / 908` with a percentage, measured with
+  the pinned `compressScript` after `padReady()` — the same function the fit ladder is calibrated on.
+- **D-08 [orchestrator]** The formatter WASM is prefetched on `requestIdleCallback` once the coverflow
+  has settled and awaited on first choose; until it resolves the meters show a quiet measuring state
+  and never block the simulation. Nothing in Phase 4's first-paint chunk guards may regress.
+- **D-09 [user]** TUNE-04: when the fit ladder trims a feature, one line says so. TUNE-05: over budget
+  turns the offending meter red, disables `TRY ON DEVICE`, names the knob that pushed it over, and
+  offers a one-click back-off; the click never reaches the wire.
+- **D-10 [orchestrator]** Over-budget is reachable only for compiler-driven entries (`fit()`/`fits()`
+  from the vendored compiler decide); Lua entries were proven in budget across their whole knob
+  cross-product in Phase 8, so for them TUNE-04/05 are structurally unreachable and the UI states
+  nothing rather than faking a ladder.
+
+### Placement (Phase 4 D-08 honoured)
+- **D-11 [orchestrator]** Knobs and meters dock into the chosen panel's reserved `TUNING` region:
+  knob rack first (96 px, horizontal scroll never; wraps at phone widths), then the two meters
+  (56 px). `SURPRISE ME` and `RESET` sit at the rack's end as secondary controls; `COPY LINK` sits
+  beside the install controls. The panel must not resize when the region fills.
+
+### Sharing
+- **D-12 [user]** The tuned state is a versioned base36 stamp in the URL **hash**, never the query
+  string; opening the URL restores the knobs exactly; `COPY LINK` confirms in its own state; a stamp
+  from an older version says so plainly and lands on the base configuration.
+- **D-13 [orchestrator]** Envelope: `/c/<id>#z.<format><payload>`. Compiler-driven entries reuse
+  BOTOR's own `encodeStamp`/`decodeStamp` (current format `d`); Lua entries use a HANGAR-owned
+  format letter not in BOTOR's alphabet of formats, carrying knob indices in catalog order. An
+  unknown or undecodable stamp is SHARE-03's message plus the base configuration — never a partial
+  restore. The stamp is applied after the coverflow has centred the entry (Phase 4's route logic
+  stays untouched).
+- **D-14 [user]** SHARE-04: a build-time OG image per catalog configuration, rendered from the
+  simulator, so a link unfurls on Discord with the pad picture and title.
+- **D-15 [orchestrator]** The OG image is a 1200×630 PNG per entry generated by a Node script at
+  build time: run `PadSim` (or the Lua host) to a representative tick, paint the 9×9 in the identity
+  (true black, lime frame, name in Quicksand is optional — text rendering in Node without a browser
+  is a research question), encode PNG with `node:zlib` (no native deps, no paid service, no headless
+  browser), emit under the build's static assets, and reference it with an absolute `og:image` from
+  the prerendered `/c/<id>/` head. Tuned stamps share the base entry's image (documented forward risk
+  from Phase 4 research).
+
+### Every browser
+- **D-16 [user]** DEGR-01: catalog, simulator, tuning and sharing work on every browser including iOS
+  Safari; only install is absent.
+- **D-17 [orchestrator]** Playwright gains a WebKit project for the front door and the tuning panel;
+  iOS is approximated by WebKit + a phone viewport. The clipboard write for `COPY LINK` needs a
+  user-gesture-safe fallback (select-and-copy) where `navigator.clipboard` is unavailable.
+
+## Deferred / out of scope
+Install (Phase 7). Browse catalog, sort and search (Phase 5.1). Per-stamp OG images (would need a
+Worker). Accounts, likes, popularity (never). Phase 8's Lua entries joining the front-door row —
+a curation decision recorded for the user, not made here.
+
+## Open for the user
+1. The look of the OG image (pad only, or pad plus name plate).
+2. Whether Lua entries should enter the front-door row once they have knobs.
+3. Whether `SURPRISE ME` is the right label (kept from the kickoff decision).
