@@ -11,8 +11,16 @@
 // .svelte-kit/output/server and never reads build/, so it would validate an artifact
 // that is not the deployed one. The acceptance check for this file therefore forbids
 // `vite preview` in the webServer *command*, not in this comment.
+//
+// Two projects, not one. The second exists for DEGR-01: iOS Safari can never
+// install, so the browse-only half of the site has to be proven on WebKit, and a
+// phone viewport is where that promise is actually made. It is filtered to titles
+// carrying the @webkit tag because a bare second project would run every test
+// twice and double the suite total for no new coverage. The first project stays on
+// devices["Desktop Chrome"], whose 1280x720 viewport is the one Phase 4 measured
+// the coverflow geometry at, so nothing about the existing numbers moves.
 import { readFileSync } from "node:fs";
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 // Single source of truth for the local gate password: the same .dev.vars that
 // wrangler dev reads.
@@ -43,6 +51,13 @@ export default defineConfig({
       password: vars.SITE_PASSWORD ?? "",
     },
   },
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // DEGR-01 / D-17: iOS is approximated by WebKit at a phone viewport. The
+    // filter below is what stops a second project doubling every existing test:
+    // only a title carrying @webkit runs twice, and today nothing does.
+    { name: "webkit-phone", use: { ...devices["iPhone 15"] }, grep: /@webkit/ },
+  ],
   webServer: {
     // `npm run preview` === `npm run build && wrangler dev --port 4173 --ip 127.0.0.1`
     command: "npm run preview",
