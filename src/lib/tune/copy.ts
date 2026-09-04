@@ -1,0 +1,293 @@
+// Every sentence the tuning panel can say, once.
+//
+// THIS MODULE IMPORTS NOTHING, for the reason set out at the head of
+// src/lib/tune/view.ts: Phase 4's chunk guard matches specifier TEXT, so a
+// module a component may name has to be free of the compiler entirely. It also
+// means the two event words arrive as already-capitalised strings rather than
+// as a `MeterEvent` imported from view.ts - which is what the contract's
+// {Setup|Timer} placeholder literally says anyway.
+//
+// WHY THE STRINGS LIVE IN CONSTS AND NOT IN MARKUP. Prettier reflows text
+// inside Svelte markup, and Phase 2 lost a load-bearing sentence to exactly
+// that. src/lib/ui/TryOnDevice.svelte established the house rule: visitor-facing
+// copy is a named constant, and markup interpolates it.
+//
+// WHY THERE IS EXACTLY ONE COPY. Two copies of a sentence is how they drift.
+// Every string below is transcribed verbatim from 05-UI-SPEC's Copywriting
+// Contract and copy.spec.ts asserts each one character-for-character against
+// that table. Nothing here may be paraphrased, reflowed, re-punctuated or
+// "improved" - if a sentence is wrong, the contract is what changes first.
+//
+// THE PUNCTUATION IS LOAD-BEARING. Real apostrophes (U+2019), a real ellipsis
+// (U+2026) and a real em dash (U+2014). No emoji, no exclamation marks, never
+// the word "Error", never the word "loading", and no string names a control
+// that is not on the screen.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+
+// ---------------------------------------------------------------------------
+// The two events, in the case the sentences print them.
+
+/** One event, as the contract's {Setup|Timer} placeholder writes it. */
+export type EventWord = "Setup" | "Timer";
+
+/** What the primary control's reason can name. */
+export type BudgetEvents = EventWord | "Setup and Timer";
+
+// ---------------------------------------------------------------------------
+// Captions and button labels.
+
+/**
+ * Phase 4's region caption, unchanged, and now its one home.
+ * src/lib/ui/ChosenPanel.svelte still declares its own const; copy.spec.ts
+ * holds the two equal until wave 9 replaces that const with this import.
+ */
+export const TUNING_CAPTION = "TUNING";
+export const SETUP_CAPTION = "SETUP";
+export const TIMER_CAPTION = "TIMER";
+
+export const SURPRISE_ME = "SURPRISE ME";
+export const RESET_ALL = "RESET ALL";
+/**
+ * Deliberately NOT `PUT IT BACK`: Phase 7 owns `PUT BACK` for restoring a
+ * module's own configuration, and two near-identical labels on the same panel
+ * would be a genuine hazard on hardware people paid for.
+ */
+export const TURN_IT_DOWN = "TURN IT DOWN";
+export const COPY_LINK = "COPY LINK";
+export const LINK_COPIED = "LINK COPIED";
+
+// ---------------------------------------------------------------------------
+// The two meters.
+
+/**
+ * The first-measurement wait. NOT "loading": Phase 4 forbids that word and
+ * requires every wait to name what it is waiting for. This one is a character
+ * count being taken with the pinned minifier.
+ */
+export const MEASURING = "measuring…";
+
+/** "702 / 908". Never "702 chars" - the caption and the / 908 already say it. */
+export function meterNumerals(used: number): string {
+  return `${used} / 908`;
+}
+
+/** "77%". Never "77.4%". */
+export function meterPercent(pct: number): string {
+  return `${pct}%`;
+}
+
+/** The visually-hidden expansion paired with the aria-hidden numerals. */
+export function meterExpansion(
+  event: EventWord,
+  used: number,
+  pct: number,
+): string {
+  return `${event} uses ${used} of 908 characters, ${pct} per cent.`;
+}
+
+/**
+ * MORPH ships an empty Timer. `0 / 908` is a true measurement, not a dead
+ * meter, and the expansion says what it means in words.
+ */
+export function emptyTimerExpansion(): string {
+  return "Timer uses 0 of 908 characters. This configuration has no timer.";
+}
+
+/** The formatter never resolved, so there is nothing honest to show. */
+export const METERS_UNAVAILABLE =
+  "The character counter could not load, so the two budgets are not shown. Everything else on this page still works.";
+
+// ---------------------------------------------------------------------------
+// The rack.
+
+export const EMPTY_RACK =
+  "This configuration has nothing to turn. Its two budgets are still live below.";
+
+// ---------------------------------------------------------------------------
+// The fit ladder.
+
+/**
+ * Lower-case the first character of a label and NOTHING else.
+ *
+ * The compiler writes its ladder labels as whole sentences ("Stop drawing the
+ * control on the pad"), and they are never rewritten - two copies of the same
+ * explanation would drift. When one sits inside another sentence it needs a
+ * small first letter; a `toLowerCase()` would flatten every proper noun in it.
+ */
+export function lowerFirst(label: string): string {
+  return label.length === 0 ? label : label[0].toLowerCase() + label.slice(1);
+}
+
+/** The fit-ladder line, in its one-step and several-step forms. */
+export function ladderLine(steps: number, label: string): string {
+  return steps === 1
+    ? `One thing was turned down to stay inside 908 characters: ${lowerFirst(label)}.`
+    : `${steps} things were turned down to stay inside 908 characters, starting with ${lowerFirst(label)}.`;
+}
+
+// ---------------------------------------------------------------------------
+// Over budget. Four sentences, because "a knob did it" and "it arrived like
+// this" are different facts, and one event over is not two.
+
+export function overBudgetKnob(
+  knobLabel: string,
+  event: EventWord,
+  by: number,
+): string {
+  return `${knobLabel} pushed ${event} ${by} characters over 908.`;
+}
+
+export function overBudgetKnobBoth(
+  knobLabel: string,
+  setupBy: number,
+  timerBy: number,
+): string {
+  return `${knobLabel} pushed both events over 908: Setup by ${setupBy} characters, Timer by ${timerBy}.`;
+}
+
+export function overBudgetArrived(event: EventWord, by: number): string {
+  return `This configuration starts ${by} characters over 908 on ${event}.`;
+}
+
+export function overBudgetArrivedBoth(
+  setupBy: number,
+  timerBy: number,
+): string {
+  return `This configuration starts over 908 on both events: Setup by ${setupBy} characters, Timer by ${timerBy}.`;
+}
+
+/** The quiet line under TURN IT DOWN when a knob caused the overrun. */
+export function backOffKnob(
+  knobLabel: string,
+  event: EventWord,
+  at: number,
+): string {
+  return `Puts ${knobLabel} back where it was, and ${event} at ${at} of 908.`;
+}
+
+/**
+ * The quiet line under TURN IT DOWN when the fit ladder's first step is what
+ * the click will apply.
+ *
+ * The compiler's label OPENS this sentence rather than sitting inside one, so
+ * it keeps its own capital: the contract's placeholder is `{Label}`, where the
+ * two ladder lines use `{label}`. That is the whole of the rule "lower-cased at
+ * the first character WHERE THEY SIT INSIDE ANOTHER SENTENCE".
+ */
+export function backOffLadder(
+  label: string,
+  event: EventWord,
+  at: number,
+): string {
+  return `${label}. Puts ${event} at ${at} of 908.`;
+}
+
+/**
+ * The reason beside a disabled TRY ON DEVICE. It names the budget and does not
+ * repeat the knob sentence: they are two different jobs.
+ */
+export function tryOnBudgetReason(events: BudgetEvents): string {
+  return `Over the 908-character budget on ${events}. Turn something down and this comes back.`;
+}
+
+// ---------------------------------------------------------------------------
+// Sharing.
+
+export const SHARE_QUIET_LINE =
+  "Copies this configuration, knobs and all, as a link anyone can open.";
+
+/** Names keys, never controls: the button beside it stays COPY LINK. */
+export const SHARE_FALLBACK_LINE =
+  "Your browser would not let the page copy for you. The link is selected below — press Ctrl+C, or Cmd+C on a Mac.";
+
+export const SHARE_FALLBACK_FIELD_NAME = "Shareable link";
+
+// ---------------------------------------------------------------------------
+// The three stamp landings.
+
+export const STAMP_RESTORED =
+  "These knobs came with the link. RESET ALL puts the configuration back to its defaults.";
+
+/**
+ * The format letter is known but its version is behind the current one. Split
+ * from the neutral sentence because asserting "older version" about a corrupted
+ * stamp would be a small lie.
+ */
+export function stampOlder(name: string): string {
+  return `This link was made with an older version of HANGAR. Its knob settings could not be read, so this is ${name} at its defaults.`;
+}
+
+/** Undecodable, or a payload that does not match the entry's knob count. */
+export function stampUnreadable(name: string): string {
+  return `That link’s knob settings could not be read, so this is ${name} at its defaults.`;
+}
+
+// ---------------------------------------------------------------------------
+// The live region. One utterance per event, never two.
+
+/**
+ * Crossing into over budget. The knob clause is dropped when no knob moved -
+ * a landed stamp or an already-over default cannot name one, and inventing a
+ * culprit would be a lie.
+ */
+export function liveOverBudget(
+  event: EventWord,
+  by: number,
+  knobLabel?: string,
+): string {
+  const line = `${event} is now ${by} characters over the 908-character budget.`;
+  return knobLabel ? `${line} ${knobLabel} pushed it over.` : line;
+}
+
+export function liveBackInside(event: EventWord): string {
+  return `${event} is back inside the 908-character budget.`;
+}
+
+export function liveRandomised(
+  knobs: number,
+  setup: number,
+  timer: number,
+): string {
+  return `${knobs} knobs randomised. Setup ${setup} of 908, Timer ${timer} of 908.`;
+}
+
+export function liveReset(setup: number, timer: number): string {
+  return `Knobs back to their defaults. Setup ${setup} of 908, Timer ${timer} of 908.`;
+}
+
+/**
+ * RESET ALL can land on defaults that are ALREADY over budget, so the command
+ * and the crossing happen on the same tick. The live region is aria-atomic and
+ * emits at most one string per event, so these two exist rather than a reset
+ * string followed by a transition string.
+ */
+export function liveResetOver(event: EventWord, by: number): string {
+  return `Knobs back to their defaults. ${event} is ${by} characters over the 908-character budget.`;
+}
+
+export function liveResetOverBoth(setupBy: number, timerBy: number): string {
+  return `Knobs back to their defaults. Both events are over the 908-character budget: Setup by ${setupBy} characters, Timer by ${timerBy}.`;
+}
+
+export const LINK_COPIED_ANNOUNCEMENT = "Link copied to the clipboard.";
+
+// ---------------------------------------------------------------------------
+// The OG image.
+
+export function ogAlt(name: string): string {
+  return `The ${name} configuration running on a ZONA’s 9 by 9 pad.`;
+}
+
+// ---------------------------------------------------------------------------
+// The contract's last row, as a value rather than as prose.
+
+/**
+ * There are none, and the empty list is the assertion.
+ *
+ * This phase writes nothing to any module and destroys nothing recoverable.
+ * RESET ALL and TURN IT DOWN both act immediately, with no dialog. The only
+ * destructive control on the site (KEEP ON DEVICE) is still disabled, and its
+ * copy belongs to Phase 7.
+ */
+export const DESTRUCTIVE_CONFIRMATIONS: readonly string[] = [];
