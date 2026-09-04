@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-04-PLAN.md
-last_updated: "2026-09-04T21:24:00.000Z"
+stopped_at: Completed 05.1-05-PLAN.md
+last_updated: "2026-09-04T21:56:00.000Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 49
-  percent: 88
+  completed_plans: 50
+  percent: 89
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 05 (next)
-Status: Phase 5.1 in progress — 05.1-04 complete (4 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 06 (next)
+Status: Phase 5.1 in progress — 05.1-05 complete (5 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-04
 
-Progress: [█████████░] 88% (49 of 56 plans)
+Progress: [█████████░] 89% (50 of 56 plans)
 
 ## Performance Metrics
 
@@ -108,6 +108,7 @@ Progress: [█████████░] 88% (49 of 56 plans)
 | Phase 05.1 P02 | 22 min | 3 tasks | 8 files |
 | Phase 05.1 P03 | 12 min | 3 tasks | 6 files |
 | Phase 05.1 P04 | 22 min | 3 tasks | 6 files |
+| Phase 05.1 P05 | 28 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -294,6 +295,12 @@ Recent decisions affecting current work:
 - [Phase 05.1]: Coverflow's ring is the `row` prop, defaulting to FRONT_DOOR, and COUNT had to stop being a module-init constant (`const count = $derived(row.length)`) because a prop is not known at that point. The negative check has to be a BROWSER one: SSR renders identical slot offsets for a two-entry row whether count is 2 or a stale 8, and only stepping - End is goTo(count - 1) - tells them apart
 - [Phase 05.1]: A signed-off route's non-regression is provable by diffing TWO PRERENDERED BUILDS with the bundle fingerprints normalised out. / and /c/aurora/ differ in exactly one character after the row prop and the typographic() wiring, and /c/radar/'s <head> is byte-identical - eight seconds of build time for a claim nobody has to trust
 - [Phase 05.1]: PadFrame takes a structural `{ id }` and not the plan's `{ id; name }`: it renders no text, and svelte/no-unused-props fails an unused declared property. NamePlate and PadCanvas keep both fields because both read the name. The narrower shape is still satisfied by FrontDoorEntry and ListingEntry alike
+- [Phase 05.1]: MEASURED, and the plan was wrong: `config-shape.spec.ts` test 14 did NOT catch a static `import { CATALOG } from "$lib/catalog"` in the detail page. The 131,101-byte protocol chunk really was in the page's static graph — node 3 → C4ys7kig.js → BFIKf6sX.js → C1rLf53t.js, every edge a real `import ... from` — and the test stayed green, because Kit's `<head>` preloads eleven modules and none of the three new ones was among them; test 13 was blind to it too (`COMPILER_MARKERS` matches specifier TEXT and `$lib/catalog` contains none of vendor/intechstudio/lib/pad). Test 14 now walks each page's TRANSITIVE static import graph with a per-page edge counter as its non-vacuity assertion, and the same mutation goes red. Dynamic imports stay invisible by construction: Vite emits them as `__mapDeps` string tables, never as import statements
+- [Phase 05.1]: Pitfall 5 was OBSERVED, not argued: between 05.1-05's first two commits the tree held sixteen prerendered pages and eight OG images, eight `<head>`s pointed at an `og:image` with no file behind it, and all 685 unit tests were green. That is why the route, `scripts/gen-og.mjs`, `src/lib/og/build.spec.ts` and `e2e/artifacts.e2e.ts` all read one name — `ROUTED` — rather than each deciding the routed set for itself
+- [Phase 05.1]: A shipped gate whose MEANING a decision changes is rewritten in place, never deleted: `e2e/first-experience.e2e.ts` asserted every EXCLUDED_FROM_ROW id returns 404, and D-07 makes those eight ids real pages — so the test now asserts sixteen 200s with unique descriptions, a solo pad on `/c/euclid/` against the eight-pad ring on `/c/aurora/`, and a GENUINELY unknown id still 404ing onto the shelf. One test in, one test out; every amended gate carries its note in its own header
+- [Phase 05.1]: The `/c/aurora/` non-regression is asserted by STEPPING, not by counting pads: `visibleWindow` renders seven of the eight-entry ring, which is true of any ring of five or more, so the e2e presses ArrowLeft from the opening centre and requires the wrap onto the ring's LAST entry
+- [Phase 05.1]: MEASURED: `scripts/gen-og.mjs` renders all sixteen entries in 368 ms (research: 382 ms) and the whole script including Vite's SSR boot is 2,996–3,060 ms (research: 2,155 ms) — the difference is boot, not rendering. Exactly three of the sixteen images carry zero LED pixels (ghost, morph, tpad, 4,192 bytes each, 6,404 structural pixels), and they are exactly the three entries declaring restsBlack, so `build.spec.ts` test 3's exemption is by the declared fact and not by a list
+- [Phase 05.1]: `vite dev` binds `[::1]` only on this machine, so a probe that avoids spending a build must be curled at `http://[::1]:PORT/` and not at 127.0.0.1; and a scratch script cannot `import "playwright"` from outside the repo — import it by absolute file:// URL out of the repo's own node_modules, the same shape 05.1-01 recorded for Vite
 
 ### Pending Todos
 
@@ -310,6 +317,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T21:24:00.000Z
-Stopped at: Completed 05.1-04-PLAN.md
+Last session: 2026-09-04T21:56:00.000Z
+Stopped at: Completed 05.1-05-PLAN.md
 Resume file: None

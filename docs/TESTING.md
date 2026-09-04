@@ -153,11 +153,22 @@ the 131,101-byte `@intechstudio/grid-protocol` chunk off the front door's critic
 deliberately redundant with each other: test 13 walks the **source** of both routes and every file in
 `src/lib/ui/`, forbidding `vendor`, `intechstudio` and `lib/pad` in the `from` form only — the
 `onMount` dynamic import is the rule being obeyed, not broken — while test 14 walks the **built**
-artefact, finds the chunk containing `GRID_PARAMETER_ELEMENT_POTMETER` and asserts that neither
-`build/index.html` nor `build/c/aurora/index.html` references it. Test 14 also fails when it can find
-no such chunk at all, because a probe that has gone blind must fail rather than pass. Perturbing
-`FidelityLine.svelte` with one static vendored import turns test 13 red without a rebuild and leaves
-test 14 green, which is exactly why there are two.
+artefact, finds the chunk containing `GRID_PARAMETER_ELEMENT_POTMETER` and asserts that no page
+reaches it. Test 14 also fails when it can find no such chunk at all, because a probe that has gone
+blind must fail rather than pass. Perturbing `FidelityLine.svelte` with one static vendored import
+turns test 13 red without a rebuild and leaves test 14 green, which is exactly why there are two.
+
+Plan 05.1-05 amended test 14 twice: `build/c/euclid/index.html` joined `build/index.html` and
+`build/c/aurora/index.html` in the page list, and the walk was corrected to follow each page's
+**transitive static import graph** rather than only the modules its `<head>` preloads. MEASURED: a
+static `import { CATALOG } from "$lib/catalog"` in `src/routes/c/[id]/+page.svelte` put the protocol
+chunk in the detail page's static graph — three real `import ... from` edges — and test 14 stayed
+green, because Kit preloads eleven modules and none of the three was among them. Test 13 was blind to
+it as well: `COMPILER_MARKERS` matches specifier text and `$lib/catalog` contains none of its three
+markers, which is the same hole `src/lib/ui/tune-ui.spec.ts` test 1 already records for
+`$lib/tune/model`. Dynamic imports stay invisible to the corrected walk by construction — Vite emits
+them as `__mapDeps` string tables, never as import statements — so `Coverflow.svelte`'s
+`await import()` of the simulator does not trip it.
 
 **There are no component tests, and that is a decision rather than a gap.** This repository has no
 browser Vitest project: `vite.config.ts`'s `server` project _excludes_
@@ -178,9 +189,10 @@ dissolve, that choosing the centre pad reveals the panel and that both Escape an
 button take it away again, that a browser with no Web Serial still shows the device control —
 present, really `disabled`, naming Chrome, Edge and desktop Firefox 151 and no engine — that reduced
 motion holds one lit still frame while stepping becomes instant, that `/c/radar/` lands with radar
-centred, alive and with no splash, that all eight row entries are real files with their own
-descriptions while the excluded one is provably a 404 and an unknown address still lands on the shelf
-with a line saying so, and that the shared animation loop is really painting. All but one assert an
+centred, alive and with no splash, that all sixteen routed configurations are real files with their
+own descriptions while an off-row page is a row of one (a solo pad and an arrow-less plate on
+`/c/euclid/`, against the shelf with both arrows on `/c/aurora/`) and a genuinely unknown address
+still lands on the shelf with a line saying so, and that the shared animation loop is really painting. All but one assert an
 empty error-level console; the exception is the test that navigates to a 404 on purpose, and it
 asserts that the one logged message is that 404 and nothing else. The first two are the honest half of
 PREV-01: a row where everything changed between samples would be as wrong as one where nothing did.
@@ -426,11 +438,14 @@ counts pixels that are none of black, the unlit-dot colour or the frame colour, 
 dropped every LED cannot pass on composition alone. What it cannot prove is the two things below, and
 both are qualifiers on SHARE-04 rather than gaps in the tests.
 
-**An image exists for routed entries only — 8 of the 16 catalog entries.** The excluded eight are not
-in `FRONT_DOOR`, so they have no prerendered `/c/<id>/` page, and with no page there is no `<head>` to
-carry an `og:image` at all. That is a property of the routing decision (D-18: entries join the row
-deliberately), not of the image pipeline: `scripts/gen-og.mjs` would render any of them. The gate
-asserts the eight that have an address.
+**An image exists for routed entries — since plan 05.1-05 that is all 16.** D-07 gave every catalog
+entry a prerendered `/c/<id>/` page, and the routed set has exactly one declaration: `ROUTED` in
+`src/lib/catalog/listing.ts`, read by the route, by `scripts/gen-og.mjs`, by
+`src/lib/og/build.spec.ts` and by `e2e/artifacts.e2e.ts`. Before that widening the row WAS the routed
+set and the gate asserted the eight that had an address; the four files were amended together
+because widening any one of them alone ships eight pages whose `og:image` 404s with nothing red
+anywhere — observed between that plan's two commits. Three of the sixteen images (tpad, ghost, morph)
+carry no lit LED at all and are exempted by their own declared `restsBlack`, not by a list.
 
 **And a real Discord unfurl cannot be verified until the Basic Auth gate comes down.** Every crawler —
 Discord's, Slack's, Twitter's — gets a 401 from `worker/index.js` and never reaches the `<head>` these

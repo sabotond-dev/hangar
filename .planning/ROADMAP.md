@@ -158,7 +158,7 @@ Plans:
 - [x] 05.1-02-PLAN.md — sort.ts, filter.ts and grid.ts: three total orders, folded search, tag intersection, keyboard arithmetic (wave 2)
 - [x] 05.1-03-PLAN.md — query.ts, return.ts and SimHost.repaintAll: the state that survives a round trip (wave 3)
 - [x] 05.1-04-PLAN.md — The row of one: Coverflow's row prop, the arrow-less plate, and the tuner that hands its engine back (wave 4)
-- [ ] 05.1-05-PLAN.md — The routed set is sixteen: entries(), gen-og and the four gates D-07 invalidates (wave 5)
+- [x] 05.1-05-PLAN.md — The routed set is sixteen: entries(), gen-og and the four gates D-07 invalidates (wave 5)
 - [ ] 05.1-06-PLAN.md — CatalogCard and BrowseGrid: sixteen live pads, one clock, one tab stop (wave 6)
 - [ ] 05.1-07-PLAN.md — The toolbar: search, the sort word row, the tag chips and the one live region (wave 7)
 - [ ] 05.1-08-PLAN.md — /browse/ itself, the lifted fidelity sentence, and the two chunk guards that could not see it (wave 8)
@@ -176,7 +176,25 @@ Plans:
   3. *(hardware)* Connecting offers only ZONA's USB identity (0x303a / 0x8123, bootloader identities never offered), verifies from the heartbeat that the module really is a ZONA before enabling any control, refuses any other module with a plain message, and shows the connected module's type and firmware version.
   4. *(hardware)* Each failure lands in its own named state instead of a raw exception: a port held by another program names Grid Editor as the likely culprit and gives the recovery in order (quit the other app, unplug, wait, replug, reload, connect); a cancelled picker is distinct from an empty picker; an empty picker branches to cable and driver, charge-only USB cable warning included.
   5. *(hardware)* A returning visitor is reconnected silently from a previously granted port without re-running the picker, and unplugging or replugging the module updates the UI immediately rather than failing on the next write.
-**Plans**: TBD
+**Plans**: 14 plans in 14 waves
+**UI hint**: yes
+**Design contract**: `.planning/phases/06-device-session/06-UI-SPEC.md` (approved 2026-09-04)
+
+Plans:
+- [ ] 06-01-PLAN.md — Baselines, the runes spike, the already-open row, the rig-aware not-zona (wave 1)
+- [ ] 06-02-PLAN.md — session-copy.ts: every session string, the nine-state table, capabilityOf (wave 2)
+- [ ] 06-03-PLAN.md — The light seam, and the session up to identification (wave 3)
+- [ ] 06-04-PLAN.md — The listener pair, the replug adoption, the watchdog, forget(), zero writes (wave 4)
+- [ ] 06-05-PLAN.md — Three shipped-gate widenings, each proven by a mutation (wave 5)
+- [ ] 06-06-PLAN.md — The fake serial, the /dev/session/ probe, and the two capability messages (wave 6)
+- [ ] 06-07-PLAN.md — The offer, the busy port, the unplug, the replug, and a visit that writes nothing (wave 7)
+- [ ] 06-08-PLAN.md — PadSpinner's two props, DeviceMark, FailureBlock (wave 8)
+- [ ] 06-09-PLAN.md — PickerExplainer, the reserved header note, and the one session live region (wave 9)
+- [ ] 06-10-PLAN.md — DeviceSlot's nine states, the disclosure, and the structural gate (wave 10)
+- [ ] 06-11-PLAN.md — The header cluster, the two-row phone layout, and the untouched opening (wave 11)
+- [ ] 06-12-PLAN.md — TryOnDevice consumes the session and gives up the port (wave 12)
+- [ ] 06-13-PLAN.md — The shipped chrome in two engines, and the connection that survives a walk (wave 13)
+- [ ] 06-14-PLAN.md — SESSION-RUNBOOK, the phase gate, and the hardware checkpoint (wave 14)
 
 ### Phase 7: Install Flow
 **Goal**: A visitor can put a configuration on their own ZONA in about a second, get their original back with one click at any time, and only commit it to flash on purpose.
@@ -231,7 +249,7 @@ Phases 6 and 7.
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
-| 5.1. Catalog Browse | 4/11 | In progress | - |
+| 5.1. Catalog Browse | 5/11 | In progress | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
