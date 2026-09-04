@@ -217,7 +217,7 @@ Phases 6 and 7.
 | 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
-| 5. Tuning, Budgets and Shareable Links | 6/12 | In Progress | - |
+| 5. Tuning, Budgets and Shareable Links | 8/12 | In Progress | - |
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |

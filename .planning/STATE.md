@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-07-PLAN.md
-last_updated: "2026-09-04T12:20:49.883Z"
+stopped_at: Completed 05-08-PLAN.md
+last_updated: "2026-09-04T12:39:20.230Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 40
-  percent: 89
+  completed_plans: 41
+  percent: 91
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 8 of 12 (05-07 complete)
-Status: In progress — wave 8 next (05-08, the ninth identity token and the tuning types)
+Plan: 9 of 12 (05-08 complete)
+Status: In progress — wave 9 next (05-09, the two budget meters, the over-budget block and COPY LINK)
 Last activity: 2026-09-04
 
-Progress: [█████████░] 89%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -92,6 +92,7 @@ Progress: [█████████░] 89%
 | Phase 05 P05 | 30 min | 3 tasks | 8 files |
 | Phase 05 P06 | 22 min | 2 tasks | 4 files |
 | Phase 05 P07 | 14 min | 3 tasks | 7 files |
+| Phase 05 P08 | 31 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -231,6 +232,9 @@ Recent decisions affecting current work:
 - [Phase 05]: SvelteKit's prerender crawler follows og:image only when it is RELATIVE; HANGAR's og:image is absolute and therefore cross-origin, so the build never fails on a missing image - src/lib/og/build.spec.ts is the guard, resolving each absolute og:image back to a path under build/
 - [Phase 05]: static/og/ is generated and gitignored, not committed: a clean checkout regenerates it in ~1.5 s and the deploy clean-tree gate stays satisfiable because an ignored path is never a dirty one
 - [Phase 05]: scripts/gen-og.mjs runs BEFORE vite build inside the build script (not as a prebuild hook) because vite build copies static/ into build/; an image made afterwards would never reach the artifact
+- [Phase 05]: X-27: the identity gate widened deliberately - nine tokens, three permitted hexes, both negative checks observed red
+- [Phase 05]: The tuning region has TWO height constants (194 one-line, 246 wrapped actions row) - a recorded correction to the approved 05-UI-SPEC
+- [Phase 05]: The @container (width < 220px) rule lives in Knob.svelte; KnobRack only establishes the container
 
 ### Pending Todos
 
@@ -247,6 +251,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T12:20:39.670Z
-Stopped at: Completed 05-07-PLAN.md
+Last session: 2026-09-04T12:39:15.066Z
+Stopped at: Completed 05-08-PLAN.md
 Resume file: None
