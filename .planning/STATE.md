@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-09-04T05:54:47.298Z"
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-09-04T06:20:16.657Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 33
-  completed_plans: 28
-  percent: 85
+  completed_plans: 29
+  percent: 88
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 08
-Plan: 4 of 8
-Status: In progress — the Wave 0 parity gate (08-03) is GREEN, so plans 08-04 to 08-08 are licensed to author configurations against the Lua route
+Plan: 5 of 8
+Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [█████████░] 85%
 | Phase 04-first-experience P09 | 25 min | 3 tasks | 9 files |
 | Phase 08 P02 | 41 min | 3 tasks | 5 files |
 | Phase 08 P03 | 35 min | 2 tasks | 5 files |
+| Phase 08 P04 | 25 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -185,6 +186,9 @@ Recent decisions affecting current work:
 - [Phase 08]: The Wave 0 gate is GREEN: BOTOR's own emitted Setup Lua reproduces all 2,187 layer records and the golden-frame hashes at [0, 37, 101, 500, 1009] for all nine presets - waves 4 to 6 may author against the Lua route, and route 1a is not needed
 - [Phase 08]: The compiler emits bare gmbs/gmms/gks and the self: touch queue (touch_pop/tid/tev/txv/tyv); 08-02's Grid API table was derived from hand-authored candidates and was incomplete - the parity gate found it, and gms stays method-only because the compiler always emits s:gms
 - [Phase 08]: LuaHost.restart() snapshots the pristine _G before Setup and wipes back to it, so SimEngine.reset() is a real synchronous firmware page-load rather than a re-run over a dirty global table
+- [Phase 08]: EUCLID's description is 109 characters, not the plan's 111 - catalog.spec.ts caps a card description at 110, so the plan's own verbatim string could not pass the plan's own prerequisite gate
+- [Phase 08]: The pitfall-1 guard is a FLOOR on the layer timeout (>= 65535 - 1024), not equality with 65535 - grid_led_tick decrements every non-zero timeout each tick and the host's Lua half and sim.tick() are atomic, so an equality test is unobservable from outside and the plan's own negative check passed until it was corrected
+- [Phase 08]: New Lua entries join EXCLUDED_FROM_ROW, never FRONT_DOOR (D-18); front-door.spec.ts asserts the partition and derives every number from data, so it needed no change - the first Lua entry that DOES join the row must revisit its per-row preview === padsim assertion
 
 ### Pending Todos
 
@@ -200,6 +204,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T05:54:47.292Z
-Stopped at: Completed 08-03-PLAN.md
+Last session: 2026-09-04T06:20:15.904Z
+Stopped at: Completed 08-04-PLAN.md
 Resume file: None
