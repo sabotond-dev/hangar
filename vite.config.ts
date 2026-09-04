@@ -80,6 +80,11 @@ export default defineConfig({
           exclude: [
             "src/**/*.svelte.{test,spec}.{js,ts}",
             "src/vendor/botor/tests/pad-invariants.test.js",
+            // The naming convention IS the rule. A `*.sweep.spec.ts` anywhere
+            // under src/ belongs to the sweep project below and must not also
+            // run here - by FILE NAME, never by directory, for the reason the
+            // comment above gives.
+            "src/**/*.sweep.spec.ts",
           ],
         },
       },
@@ -92,9 +97,24 @@ export default defineConfig({
           // The other two ported suites are 2.9 s and 0.6 s. The sweep is the
           // anti-drift mechanism, so it runs less OFTEN (per wave, not per
           // task) and never less FULLY.
+          //
+          // Phase 5 adds two HANGAR members, and the reason is the same one.
+          // TUNE-04 and TUNE-05 ship as guards rather than as live features
+          // because no state a visitor can reach is over 908 - a measured
+          // finding, and the whole thing that licenses the shape of two
+          // requirements. A claim that load-bearing belongs in the suite, in
+          // the project whose entire purpose is anti-drift, and it is a
+          // property of THE PINNED COMPILER rather than a law.
+          //
+          // The convention is a FILE-NAME rule, never a directory rule:
+          // `*.sweep.spec.ts` anywhere under src/ joins this project and is
+          // excluded from `server` above by the same glob.
           name: "sweep",
           environment: "node",
-          include: ["src/vendor/botor/tests/pad-invariants.test.js"],
+          include: [
+            "src/vendor/botor/tests/pad-invariants.test.js",
+            "src/**/*.sweep.spec.ts",
+          ],
         },
       },
     ],
