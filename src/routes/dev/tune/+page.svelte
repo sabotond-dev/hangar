@@ -4,10 +4,21 @@
   FOUR THINGS ABOUT THIS PAGE.
 
   1. IT IS LINKED FROM NOWHERE. It is prerendered (prerender.entries: ["*"] in
-     vite.config.ts) and it joins /dev/skeleton, /dev/fidelity and /dev/catalog
-     as an unlinked probe. e2e/fidelity.e2e.ts already asserts site-wide that
-     the count of a[href*="/dev/"] on / is zero, so this route is covered by
-     that assertion and needs no duplicate of its own.
+     vite.config.ts) and it is the fourth unlinked probe, beside the walking
+     skeleton's, the fidelity one and the catalog one. e2e/fidelity.e2e.ts
+     already asserts site-wide that the count of a[href*="/dev/"] on / is zero,
+     so this route is covered by that assertion and needs no duplicate of its
+     own.
+
+     THE THREE SIBLING ROUTES ARE DESCRIBED RATHER THAN SPELLED. src/lib/
+     config-shape.spec.ts test 5 reads every file under src/routes/ except the
+     skeleton's own directory and fails on any occurrence of that route's path -
+     comments included, because it is a plain substring scan and the property it
+     guards ("a route nothing references cannot be reached by a visitor who did
+     not type it") is worth more than the convenience of naming it here.
+     OBSERVED: naming it turned that test red. This is TuningRegion.svelte's
+     setInterval lesson again, answered the way e2e/tuning.e2e.ts answered it -
+     by not writing the token.
 
   2. IT EXISTS BECAUSE OVER BUDGET IS UNREACHABLE IN THE SHIPPED UI, AND A
      GUARD NOBODY HAS WATCHED WORK IS A HOPE.
