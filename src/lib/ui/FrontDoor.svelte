@@ -14,18 +14,35 @@
   The wordmark is the page's only level-1 heading, and it is one deliberately:
   it is the site's name on its front page, it is what keeps e2e/smoke.e2e.ts
   green, and it gives a screen reader a document title instead of a stray
-  uppercase string. It is not focusable - the tab order goes straight to the
-  listbox.
+  uppercase string. It is not focusable.
 
-  The section carries no inline padding. The gutter belongs to the wordmark and
-  the headline; the row is full-bleed on purpose, because pads falling off the
-  edges of the viewport is the picture the brief asks for.
+  AMENDMENT (wave 9, D-19, W-01). The wordmark now shares a flex row with the
+  header's ONE right-hand slot, BrowseLink. The row carries the gutter the
+  wordmark used to carry on its own, so nothing else moves: the headline's 48px
+  top margin is measured from the row and is the same 48px, the section still
+  carries no inline padding, and the splash, the choosing, the panel and every
+  connect state are untouched. BrowseLink is given the same `covered` value the
+  wordmark wears, so the two are absent from the first painted frame together
+  and come up together across the dissolve on the same curve.
+
+  Phase 6's device slot will sit in this row beside BrowseLink. It is NOT built
+  here; `justify-content: space-between` on two children is what leaves room for
+  it, and a third child will want a right-hand group rather than a third column.
+
+  The tab order therefore begins at the slot: it is site navigation and it is
+  first in the DOM. Everything after it is Phase 4's order, byte for byte -
+  listbox, arrows, name, TRY ON DEVICE, the panel.
+
+  The section carries no inline padding. The gutter belongs to the header row
+  and the headline; the coverflow row is full-bleed on purpose, because pads
+  falling off the edges of the viewport is the picture the brief asks for.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
   import { untrack } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
+  import BrowseLink from "./BrowseLink.svelte";
   import Coverflow from "./Coverflow.svelte";
   import Splash from "./Splash.svelte";
 
@@ -75,9 +92,12 @@
 </script>
 
 <section class="front-door" data-testid="front-door" data-splash={splash}>
-  <h1 class="wordmark" class:covered>
-    <span data-testid="header-wordmark">HANGAR</span>
-  </h1>
+  <div class="header">
+    <h1 class="wordmark" class:covered>
+      <span data-testid="header-wordmark">HANGAR</span>
+    </h1>
+    <BrowseLink {covered} />
+  </div>
   <p class="headline">You’ve got to start somewhere…</p>
   <div class="row"><Coverflow {row} {initialId} {notice} /></div>
 </section>
@@ -100,7 +120,21 @@
     padding-block: 32px;
   }
 
-  .wordmark,
+  /*
+    The header row. The gutter that used to sit on the wordmark now sits here,
+    so the wordmark's left edge and the headline's left edge are still the same
+    32px from the viewport - nothing moved sideways. min-block-size is the 44px
+    touch floor for the slot on the right; the wordmark is 12px of Micro and
+    would otherwise set the row's height at about 14px.
+  */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-block-size: 44px;
+  }
+
+  .header,
   .headline {
     padding-inline: 32px;
   }
@@ -152,7 +186,7 @@
       padding-block: 24px;
     }
 
-    .wordmark,
+    .header,
     .headline {
       padding-inline: 24px;
     }
