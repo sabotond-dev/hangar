@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-08-PLAN.md
-last_updated: "2026-09-04T12:39:20.230Z"
+stopped_at: Completed 05-09-PLAN.md
+last_updated: "2026-09-04T13:01:28.188Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 41
-  percent: 91
+  completed_plans: 42
+  percent: 93
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 9 of 12 (05-08 complete)
-Status: In progress — wave 9 next (05-09, the two budget meters, the over-budget block and COPY LINK)
+Plan: 10 of 12 (05-09 complete)
+Status: In progress — wave 10 next (05-10, TuningRegion: the two message slots, the rack, the actions row, the meters block and the one polite live region)
 Last activity: 2026-09-04
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -93,6 +93,7 @@ Progress: [█████████░] 91%
 | Phase 05 P06 | 22 min | 2 tasks | 4 files |
 | Phase 05 P07 | 14 min | 3 tasks | 7 files |
 | Phase 05 P08 | 31 min | 3 tasks | 4 files |
+| Phase 05 P09 | 19 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -235,6 +236,11 @@ Recent decisions affecting current work:
 - [Phase 05]: X-27: the identity gate widened deliberately - nine tokens, three permitted hexes, both negative checks observed red
 - [Phase 05]: The tuning region has TWO height constants (194 one-line, 246 wrapped actions row) - a recorded correction to the approved 05-UI-SPEC
 - [Phase 05]: The @container (width < 220px) rule lives in Knob.svelte; KnobRack only establishes the container
+- [Phase 05]: The four leaf components declare LadderView, OverBudgetView and Landing STRUCTURALLY rather than importing them - all three live in modules that reach the vendored compiler, and a narrow structural type still has the real type checked against it at wave 10's call site (the sim/host.ts HostEngine pattern)
+- [Phase 05]: MEASURED in Chromium against BudgetMeter's own shipped style block: one meter is exactly 26px and a two-meter block exactly 56px - the region's 56px reservation is now observed rather than asserted
+- [Phase 05]: OBSERVED: with --color-over replaced by --color-ink the over-budget meter is still carried by four non-colour signals in that component alone (a 100% bar, the 2px outline, numerals above 908, a percentage above 100), so WCAG 1.4.1 holds with the red deleted - the test that makes the third hue safe
+- [Phase 05]: The plan's own clipboard handler shape (clipboard?.writeText(url).then(...) ?? fellBack()) fails npm run lint under @typescript-eslint/no-unused-expressions; shipped as an if/else with identical semantics, and the file still contains zero awaits and zero asyncs
+- [Phase 05]: Message slot B's opacity-only appearance is svelte/transition's fade rather than a CSS declaration: its css function emits opacity and nothing else and its default easing is linear, so 'opacity only, 160ms linear' is a property of the function that no later edit can widen to transition: all
 
 ### Pending Todos
 
@@ -251,6 +257,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T12:39:15.066Z
-Stopped at: Completed 05-08-PLAN.md
+Last session: 2026-09-04T13:01:07.582Z
+Stopped at: Completed 05-09-PLAN.md
 Resume file: None
