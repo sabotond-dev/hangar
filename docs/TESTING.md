@@ -17,11 +17,11 @@ is the runner's own reported duration.
 
 | Command                      | Covers                                                                     | Measured                                                            |
 | ---------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 26 files, 453 passed + 1 todo (454); 6 s wall (3.9 s)               |
+| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 37 files, 532 passed + 1 todo (533); 9 s wall (9.1 s)               |
 | `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.4 s)                                 |
 | `npm run test:unit -- --run` | both Vitest projects in one run                                            | 27 files, 462 passed + 1 todo (463); 42 s wall (38.3 s)             |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 13 tests; 55 s wall including the build and the wrangler cold start |
-| `npm run check`              | `svelte-check` over the whole project                                      | 385 files, 0 errors, 0 warnings                                     |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 16 tests; 50 s wall including the build and the wrangler cold start |
+| `npm run check`              | `svelte-check` over the whole project                                      | 414 files, 0 errors, 0 warnings                                     |
 | `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                              |
 
 The sampling rule, in three lines:
@@ -122,14 +122,34 @@ everything downstream of an open port is exercised through `FakeTransport` in no
 half is a human checklist in `docs/SKELETON-RUNBOOK.md` whose results are written up in
 `docs/SKELETON-RESULTS.md`.
 
-`e2e/first-experience.e2e.ts` adds **3** tests for the front door itself, and they are the only place
-the coverflow is proven at all: this repository collects no `.svelte.spec.ts` in any Vitest project,
-so a component test would be collected by nothing and report green. The three assert that an animated
-pad really moves (two samples of its own 9x9 canvas, 400 ms apart, must differ), that a pad the
-catalog calls static really does not (the same sampling on `ninepads`, asserted equal and non-empty),
-and that the row steps from the keyboard and wraps at both ends through `aria-activedescendant`. Each
-one also asserts an empty error-level console. The first two are the honest half of PREV-01: a row
-where everything changed between samples would be as wrong as one where nothing did.
+`e2e/first-experience.e2e.ts` holds **6** tests for the front door itself, and they are the only place
+the coverflow, the splash and the reduced-motion path are proven at all: this repository collects no
+`.svelte.spec.ts` in any Vitest project, so a component test would be collected by nothing and report
+green. The six assert that an animated pad really moves (two samples of its own 9x9 canvas, 400 ms
+apart, must differ), that a pad the catalog calls static really does not (the same sampling on
+`ninepads`, asserted equal and non-empty), that the row steps from the keyboard and wraps at both ends
+through `aria-activedescendant`, that the splash is on screen with the coverflow already mounted
+underneath it and then clears itself, that any key cuts straight to the dissolve, and that reduced
+motion holds one lit still frame while stepping becomes instant. Each one also asserts an empty
+error-level console. The first two are the honest half of PREV-01: a row where everything changed
+between samples would be as wrong as one where nothing did.
+
+Two conventions in that file are worth copying rather than rediscovering.
+
+**Assert the splash through `data-phase`, never through a stopwatch.** `Splash.svelte` publishes `in`,
+`hold`, `dissolve` and then removes itself. Timing the 1,840 ms sequence with `waitForTimeout` would
+flake on a busy machine; waiting for an attribute does not. Measured on this machine on 2026-09-04, at
+the default 1280x720 viewport: **2,784 ms** from `page.goto("/")` to the splash detaching in full
+motion, and **874 ms** under reduced motion — the 1,840 ms and 600 ms sequences plus navigation and
+hydration.
+
+**`test.use({ reducedMotion: "reduce" })` is not sufficient on its own here.** Measured with
+Playwright 1.62.1: it left `window.matchMedia("(prefers-reduced-motion: reduce)").matches` reporting
+`false` inside the page. HANGAR reads the preference in JavaScript — `src/lib/sim/host.ts` subscribes
+to that media query to still the engines, and `NamePlate.svelte` and `Splash.svelte` read it through
+`svelte/motion` — so the declarative option alone would have run the full-motion path under a
+reduced-motion title. The test therefore also calls `page.emulateMedia({ reducedMotion: "reduce" })`,
+**before** `goto`, so the page arrives stilled instead of being stilled after it has started moving.
 
 ## Why the vendored tree is excluded from type-checking but not from the test run
 

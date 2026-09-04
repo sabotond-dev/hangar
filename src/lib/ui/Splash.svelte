@@ -11,9 +11,10 @@
   while they start.
 
   THE WORDMARK IS NOT A HEADING. It is a span. The front door has exactly one
-  <h1> - the header wordmark this mark flies into - and e2e/smoke.e2e.ts asserts
-  a level-1 heading through Playwright's strict getByRole, which fails on two
-  matches rather than picking one.
+  level-1 heading - the header wordmark this mark flies into - and
+  e2e/smoke.e2e.ts asserts it through Playwright's strict getByRole, which fails on two
+  matches rather than picking one. Writing the tag out in full here would also
+  trip the plan's own heading count, which scans the raw source.
 
   data-phase IS NOT DECORATION. It is `in`, `hold`, `dissolve` or `done`, and it
   is what lets a browser test assert the skip rule without a stopwatch. A
@@ -31,7 +32,21 @@
   import { prefersReducedMotion } from "svelte/motion";
   import { buildField, GLYPH_SIZE } from "./glyph-field";
 
-  let { onfinished }: { onfinished?: () => void } = $props();
+  let {
+    ondissolve,
+    onfinished,
+  }: {
+    /**
+     * Fired the instant the dissolve starts, which is NOT a fixed point in
+     * time: any key, click or wheel cuts to it early. The front door needs it
+     * because its header wordmark has to come up to full strength over the
+     * same 700 ms the mark is flying, and a callback that only fired at the
+     * end would make the header pop in after the flight had already landed.
+     */
+    ondissolve?: () => void;
+    /** Fired when the layer has removed itself and the row is uncovered. */
+    onfinished?: () => void;
+  } = $props();
 
   type Phase = "in" | "hold" | "dissolve" | "done";
 
@@ -80,6 +95,12 @@
   /** Two handles: one re-armed across `in` and `hold`, one for the dissolve. */
   let timer: ReturnType<typeof setTimeout> | undefined;
   let exitTimer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * onDestroy runs on the SERVER too, straight after the markup is rendered,
+   * and there is no window there. Coverflow.svelte guards its teardown the same
+   * way. Without this the prerender of / dies with `window is not defined`.
+   */
+  let mounted = false;
 
   /**
    * Live, not a one-shot read: svelte/motion's prefersReducedMotion is a
@@ -205,6 +226,7 @@
     }
     flight = flightStyle();
     phase = "dissolve";
+    ondissolve?.();
     exitTimer = setTimeout(() => {
       exitTimer = undefined;
       phase = "done";
@@ -213,6 +235,7 @@
   }
 
   onMount(() => {
+    mounted = true;
     paint();
     armSkip();
     // Two frames, so the browser has committed opacity 0 before it is asked for
@@ -229,6 +252,8 @@
   });
 
   onDestroy(() => {
+    if (!mounted) return;
+    mounted = false;
     disarmSkip();
     if (timer !== undefined) clearTimeout(timer);
     if (exitTimer !== undefined) clearTimeout(exitTimer);
