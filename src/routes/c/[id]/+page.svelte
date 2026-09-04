@@ -20,6 +20,13 @@
 -->
 <script lang="ts">
   import { FRONT_DOOR } from "$lib/catalog/front-door";
+  // Both specifiers are safe under config-shape.spec.ts test 13: neither names
+  // the vendored tree, the protocol package nor the compile surface, and
+  // src/lib/share/url.ts imports nothing at all, which is why the origin lives
+  // there. The image renderer is deliberately NOT imported - it is node-only -
+  // so 1200 and 630 appear below as literals beside the sizes it uses.
+  import { SITE_ORIGIN } from "$lib/share/url";
+  import { ogAlt } from "$lib/tune/copy";
   import FrontDoor from "$lib/ui/FrontDoor.svelte";
   import type { PageData } from "./$types";
 
@@ -31,6 +38,17 @@
   const SHELF_DESCRIPTION =
     "A shelf of ZONA configurations, every one of them running live in the firmware’s own simulator.";
 
+  /* The head's fixed half. 05-UI-SPEC, The OG image. twitter:card is what makes
+     Discord render a large embed rather than an 80x80 thumbnail; nothing here
+     is about Twitter. Every value is a const rather than inline markup text,
+     because Prettier reflows element text and Phase 2 lost a load-bearing
+     sentence to exactly that. */
+  const OG_TYPE = "website";
+  const OG_IMAGE_TYPE = "image/png";
+  const OG_IMAGE_WIDTH = "1200";
+  const OG_IMAGE_HEIGHT = "630";
+  const TWITTER_CARD = "summary_large_image";
+
   /** undefined when the address names nothing in the row. */
   const entry = $derived(
     data.index === -1 ? undefined : FRONT_DOOR[data.index],
@@ -39,11 +57,33 @@
     entry === undefined ? SITE : `${entry.name} — ${SITE}`,
   );
   const description = $derived(entry?.description ?? SHELF_DESCRIPTION);
+
+  /* An address nobody has heard of must not claim to be a configuration, and
+     must not produce /og/undefined.png either. It unfurls as the shelf, on the
+     opening centre's picture - the same choice / makes. */
+  const OPENING = FRONT_DOOR[0];
+  const ogEntry = $derived(entry ?? OPENING);
+  const ogUrl = $derived(
+    entry === undefined ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}/c/${entry.id}/`,
+  );
+  const ogImage = $derived(`${SITE_ORIGIN}/og/${ogEntry.id}.png`);
+  const ogImageAlt = $derived(ogAlt(ogEntry.name));
 </script>
 
 <svelte:head>
   <title>{title}</title>
   <meta name="description" content={description} />
+  <meta property="og:type" content={OG_TYPE} />
+  <meta property="og:site_name" content={SITE} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={ogUrl} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:type" content={OG_IMAGE_TYPE} />
+  <meta property="og:image:width" content={OG_IMAGE_WIDTH} />
+  <meta property="og:image:height" content={OG_IMAGE_HEIGHT} />
+  <meta property="og:image:alt" content={ogImageAlt} />
+  <meta name="twitter:card" content={TWITTER_CARD} />
 </svelte:head>
 
 <FrontDoor

@@ -4,14 +4,32 @@
  * simulator the site runs, into `static/og/<id>.png`.
  *
  * WHY THIS RUNS BEFORE `vite build`, AND NOT AS A `prebuild` HOOK.
- * SvelteKit's prerender crawler follows `og:image`:
- * `node_modules/@sveltejs/kit/src/core/postbuild/crawl.js` carries `og:image`
- * in its meta-property allow-list and calls `push_href(content)` for it. So an
- * `og:image` pointing at a file that does not exist yet FAILS the build, naming
- * `/og/aurora.png`. The images therefore have to be on disk first. It is spelled
- * out in `package.json`'s `build` as one visible chain rather than hidden in a
- * lifecycle hook, because a hook does not run for a bare `npx vite build` and the
- * failure would then be a prerender 404 with no clue attached.
+ *
+ * The plain, sufficient reason: `vite build` COPIES `static/` INTO `build/`. An
+ * image written after it would sit in `static/og/` forever and never reach the
+ * artifact, and every `og:image` would 404 on the deployed site with nothing red
+ * anywhere. Ordering is not an optimisation here; it is the whole mechanism.
+ *
+ * The second reason, MEASURED rather than assumed, and it turned out to be
+ * narrower than 05-07-PLAN expected. SvelteKit's prerender crawler does follow
+ * `og:image` - `node_modules/@sveltejs/kit/src/core/postbuild/crawl.js` carries
+ * it in CRAWLABLE_META_NAME_ATTRS - and a RELATIVE `og:image` naming a missing
+ * file really does fail the build:
+ *
+ *     Error: 404 /og/nope.png (linked from /c/aurora/)
+ *
+ * But HANGAR's `og:image` is ABSOLUTE, because a crawler resolves nothing
+ * relative, and an absolute URL is a different origin from the prerender base -
+ * so the crawler never follows it and the same missing file builds green. The
+ * build is therefore NOT the guard for this repository's heads.
+ * `src/lib/og/build.spec.ts` is: it asserts the file each absolute `og:image`
+ * names really exists under `build/`, and `e2e/artifacts.e2e.ts` asserts the
+ * deployed artifact serves it.
+ *
+ * It is spelled out in `package.json`'s `build` as one visible chain rather than
+ * hidden in a lifecycle hook, because a hook does not run for a bare
+ * `npx vite build` and the failure would then be eight silent 404s in
+ * production.
  *
  * WHICH ENTRIES GET AN IMAGE: the ones with an address. `src/routes/c/[id]/+page.ts`
  * generates `entries()` from FRONT_DOOR, so `/c/euclid/` does not exist and has no
