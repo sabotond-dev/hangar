@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-02-PLAN.md (front-door row + coverflow slot geometry); baseline for 04-03: quick 31/490, sweep 1/9, e2e 10"
-last_updated: "2026-09-04T01:30:23.563Z"
+stopped_at: "Completed 04-03-PLAN.md (the clock, the painter and the finger); baseline for 04-04: quick 34/510, sweep 1/9, e2e 10"
+last_updated: "2026-09-04T01:44:57.426Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 33
-  completed_plans: 19
-  percent: 58
+  completed_plans: 20
+  percent: 61
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 04 (first-experience)
-Plan: 3 of 9 in current phase
+Plan: 4 of 9 in current phase
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [██████░░░░] 58%
+Progress: [██████░░░░] 61%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [██████░░░░] 58%
 | Phase 08 P01 | 19 min | 3 tasks | 7 files |
 | Phase 04 P01 | 14 min | 3 tasks | 9 files |
 | Phase 04 P02 | 18 min | 2 tasks | 4 files |
+| Phase 04 P03 | 14 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,8 @@ Recent decisions affecting current work:
 - [Phase 04]: The 9x9 favicon is inlined into build/index.html as a data URI, not emitted as an asset file: at 3,651 bytes it sits under Vite's 4,096-byte threshold, so build assertions read index.html
 - [Phase 04]: The front-door opening window promises no dark pad, three animated at the largest slots and no two quiet pads adjacent - not D-20's motion-only, which seven visible slots of eight make arithmetically impossible without faking motion
 - [Phase 04]: Every coverflow geometry number comes from one pure function of the signed ring distance in src/lib/coverflow/slots.ts, so the ladder is tested in node rather than inside a component no Vitest project collects
+- [Phase 04]: The engine-facing id in TouchTarget is the contact SLOT (0..4), not the pointer id: the vendored deliverPending passes c.slot, so the host in 04-05 must not pass a pointer id there
+- [Phase 04]: TouchSampler.down() returns false for an already-tracked pointer as well as for a full slot table, matching the vendored previewDown's early return - a duplicate pointerdown would otherwise leak a slot forever
 
 ### Pending Todos
 
@@ -164,6 +167,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T01:30:17.930Z
-Stopped at: Completed 04-02-PLAN.md (front-door row + coverflow slot geometry); baseline for 04-03: quick 31/490, sweep 1/9, e2e 10
+Last session: 2026-09-04T01:44:57.420Z
+Stopped at: Completed 04-03-PLAN.md (the clock, the painter and the finger); baseline for 04-04: quick 34/510, sweep 1/9, e2e 10
 Resume file: None
