@@ -33,6 +33,21 @@ export type HostMidi = {
   readonly mode: number;
 };
 
+/**
+ * One recorded HID output, in the order the configuration issued it.
+ *
+ * The compiler's own out-call set is `["gms", "gmms", "gmbs", "gks"]`
+ * (_pad.ts OUT_CALLS). `gms` is MIDI and has its own typed log; the other three
+ * are the trackpad and keyboard recipes' mouse-move, mouse-button and key
+ * sends. HANGAR has no host to send them to, so they are recorded and nothing
+ * more - but they must EXIST, because tpad's compiled Setup opens with a bare
+ * `gmbs(3,0)` and would otherwise raise before writing a single LED.
+ */
+export type HostHid = {
+  readonly call: "gmms" | "gmbs" | "gks";
+  readonly args: readonly number[];
+};
+
 export type LuaHostOptions = {
   /**
    * A blank, fully "user"-owned PadSim. The host owns every slot; the sim
@@ -117,12 +132,23 @@ function clampIndex(n: number): number {
 // colon-called methods bridge into JS; everything else a config puts on it
 // (self.q, self.m, self.h, its own helper methods) is the config's own state
 // and the host never touches it.
+//
+// touch_pop / tid / tev / txv / tyv are firmware's touch QUEUE accessors, and
+// they are what the compiled trackpad handler drains its backlog with:
+// `o=s:touch_pop() i=s:tid() e=s:tev() x=s:txv() y=s:tyv()` inside a
+// `while o and g<24` loop (_pad.ts:2259). Without them tpad raises on the first
+// finger rather than on load, which is the worst place for a gap to be.
 const SELF_PRELUDE = [
   "self = {}",
   "self.gms = function(s, ch, cmd, p1, p2, mode) __hangar_gms(ch, cmd, p1, p2, mode) end",
   "self.grxm = function(s, slot, mode) grxm(slot, mode) end",
   "self.txma = function(s, v) txma(v) end",
   "self.tyma = function(s, v) tyma(v) end",
+  "self.touch_pop = function(s) return __hangar_tpop() end",
+  "self.tid = function(s) return __hangar_tfield(0) end",
+  "self.tev = function(s) return __hangar_tfield(1) end",
+  "self.txv = function(s) return __hangar_tfield(2) end",
+  "self.tyv = function(s) return __hangar_tfield(3) end",
 ].join("\n");
 
 // Reads self.touch_cb at call time and invokes it with self as its first
@@ -170,6 +196,8 @@ export class LuaHost {
   private readonly fifo: Sample[] = [];
   /** Change gate per contact on (x, y, event), exactly as PadSim gates. */
   private readonly gate = new Map<number, Sample>();
+  /** The sample tid/tev/txv/tyv read: whatever tick() or touch_pop() last took. */
+  private current: Sample | undefined;
 
   private msClock = 0;
   private _tickCount = 0;
@@ -181,6 +209,7 @@ export class LuaHost {
 
   private _coordMax: 127 | 1023 = 127;
   private readonly midiLog: HostMidi[] = [];
+  private readonly hidLog: HostHid[] = [];
   private readonly errorLog: string[] = [];
   private _rxMode: number | undefined;
 
@@ -289,12 +318,14 @@ export class LuaHost {
     // slate rather than being overwritten a line later.
     this.fifo.length = 0;
     this.gate.clear();
+    this.current = undefined;
     this.msClock = 0;
     this._tickCount = 0;
     this.timerDeadline = null;
     this._coordMax = 127;
     this._rxMode = undefined;
     this.midiLog.length = 0;
+    this.hidLog.length = 0;
     this.errorLog.length = 0;
     this.sim.reset();
 
@@ -368,6 +399,50 @@ export class LuaHost {
     g.set("grxm", (_slot: unknown, mode: unknown) => this.grxm(mode));
     g.set("txma", (v: unknown) => this.axisMax(v));
     g.set("tyma", (v: unknown) => this.axisMax(v));
+
+    // The compiler's other three out-calls, recorded and otherwise inert. These
+    // ARE called bare - tpad's Setup opens `self:txma(1023)self:tyma(1023)
+    // gmbs(3,0)` - so unlike gms they cannot be method-only. Variadic on
+    // purpose: what matters here is that the symbol resolves and the call is
+    // observable, not that HANGAR re-derives a HID arity it has no host for.
+    g.set("gmms", (...args: unknown[]) => this.recordHid("gmms", args));
+    g.set("gmbs", (...args: unknown[]) => this.recordHid("gmbs", args));
+    g.set("gks", (...args: unknown[]) => this.recordHid("gks", args));
+
+    // The touch queue's JS side, bridged under private names so only the
+    // `self:` spellings in SELF_PRELUDE reach them - firmware has no bare form.
+    g.set("__hangar_tpop", () => this.touchPop());
+    g.set("__hangar_tfield", (which: unknown) => this.touchField(which));
+  }
+
+  /** Records one mouse or keyboard send. Nothing in HANGAR consumes them. */
+  private recordHid(call: HostHid["call"], args: readonly unknown[]): void {
+    this.hidLog.push({ call, args: args.map((a) => f2i(num(a))) });
+  }
+
+  /**
+   * firmware's touch_pop: take the next queued sample and make it the current
+   * one, or report that the queue is empty. This is how a compiled handler
+   * drains a backlog INSIDE one dispatch - the trackpad recipe loops up to 24
+   * times - so it shares the host's one FIFO with tick()'s own pop rather than
+   * keeping a second queue that could disagree with pendingTouches.
+   */
+  private touchPop(): boolean {
+    const next = this.fifo.shift();
+    if (typeof next === "undefined") return false;
+    this.current = next;
+    return true;
+  }
+
+  /** tid / tev / txv / tyv, indexed 0..3, over whatever touch_pop left current. */
+  private touchField(which: unknown): number {
+    const sample = this.current;
+    if (typeof sample === "undefined") return 0;
+    const index = f2i(num(which));
+    if (index === 0) return sample.i;
+    if (index === 1) return sample.e;
+    if (index === 2) return sample.x;
+    return sample.y;
   }
 
   /**
@@ -573,6 +648,9 @@ export class LuaHost {
   tick(): void {
     const sample = this.fifo.shift();
     if (typeof sample !== "undefined") {
+      // Made current before the dispatch, so a handler that reads tid/tev/txv/
+      // tyv before its first touch_pop sees the sample it was called with.
+      this.current = sample;
       this.guarded(() =>
         this.touchFn?.(sample.i, sample.e, sample.x, sample.y),
       );
@@ -622,6 +700,11 @@ export class LuaHost {
   /** Every midi_send the configuration issued, in order. */
   get midi(): readonly HostMidi[] {
     return this.midiLog;
+  }
+
+  /** Every mouse and keyboard send the configuration issued, in order. */
+  get hid(): readonly HostHid[] {
+    return this.hidLog;
   }
 
   /** Every Lua error a handler raised, in order. Empty is the passing state. */
