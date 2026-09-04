@@ -105,7 +105,7 @@ Plans:
 **Design brief**: `.planning/design/FIRST-EXPERIENCE.md` — the user's reference frame and four answers (2026-09-04); it overrides the earlier catalog-of-cards wording wherever they differ.
 
 Plans:
-- [ ] 04-01-PLAN.md — Catalog preflight, identity tokens, Quicksand through the licence gate, the 9x9 favicon (wave 1)
+- [x] 04-01-PLAN.md — Catalog preflight, identity tokens, Quicksand through the licence gate, the 9x9 favicon (wave 1)
 - [ ] 04-02-PLAN.md — The front-door row gated against golden-frames, and the coverflow slot arithmetic (wave 2)
 - [ ] 04-03-PLAN.md — Sim primitives: the 10 ms clock, the one-call painter, the tick-locked finger (wave 2)
 - [ ] 04-04-PLAN.md — failureCopy gains a control label; the identify-only device path with zero writes (wave 2)

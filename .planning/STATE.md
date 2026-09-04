@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Researching — 04-RESEARCH.md and 04-UI-SPEC.md being written, then plan-phase 4
-stopped_at: "Completed 08-01-PLAN.md (catalog module); Phase 8 baseline recorded: quick 26/453, sweep 1/9, e2e 10"
-last_updated: "2026-09-04T00:56:16.739Z"
-last_activity: 2026-09-03
+status: executing
+stopped_at: "Completed 04-01-PLAN.md (identity foundation); Phase 4 baseline recorded: quick 29/474, sweep 1/9, e2e 10"
+last_updated: "2026-09-04T01:15:16.311Z"
+last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 33
-  completed_plans: 17
-  percent: 52
+  completed_plans: 18
+  percent: 55
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 04 (first-experience)
-Plan: Not started
-Status: Researching — 04-RESEARCH.md and 04-UI-SPEC.md being written, then plan-phase 4
-Last activity: 2026-09-03
+Plan: 2 of 9 in current phase
+Status: Ready to execute
+Last activity: 2026-09-04
 
-Progress: [█████░░░░░] 52%
+Progress: [██████░░░░] 55%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [█████░░░░░] 52%
 | Phase 02 P04 | 36 min | 2 tasks | 1 files |
 | Phase 02 P05 | 30 min | 3 tasks | 11 files |
 | Phase 08 P01 | 19 min | 3 tasks | 7 files |
+| Phase 04 P01 | 14 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,9 @@ Recent decisions affecting current work:
 - [Phase 08]: CatalogEntry.defaults holds knob INDICES, never values (D-13), and LuaKnob.kind draws on the vendored KnobKind vocabulary rather than a Lua-specific union (D-12)
 - [Phase 08]: src/lib/catalog/ names neither the pinned protocol package nor the compile surface: the three constants are literals asserted in the spec, and build() takes compiled Lua as an argument, so a page that only lists names never pulls in the WASM-gated chunk
 - [Phase 08]: scripts/check-counts.mjs replaces every literal suite total (D-17): counts are an observed baseline plus a stated delta, since Phase 4 and Phase 8 interleave in one tree
+- [Phase 04]: OFL-1.1 added to the gen-licenses allowlist as a deliberate policy extension: Quicksand ships as separate static woff2 assets beside the GPLv3 bundle, never linked into it, and the build output proves it
+- [Phase 04]: The identity spec normalises numbers before comparing token values, because Prettier rewrites 0.50 to 0.5 in CSS and the spec must encode 04-UI-SPEC rather than the formatter's output
+- [Phase 04]: The 9x9 favicon is inlined into build/index.html as a data URI, not emitted as an asset file: at 3,651 bytes it sits under Vite's 4,096-byte threshold, so build assertions read index.html
 
 ### Pending Todos
 
@@ -157,6 +161,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T00:56:16.733Z
-Stopped at: Completed 08-01-PLAN.md (catalog module); Phase 8 baseline recorded: quick 26/453, sweep 1/9, e2e 10
+Last session: 2026-09-04T01:13:53.703Z
+Stopped at: Completed 04-01-PLAN.md (identity foundation); Phase 4 baseline recorded: quick 29/474, sweep 1/9, e2e 10
 Resume file: None
