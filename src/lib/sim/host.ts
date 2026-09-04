@@ -48,7 +48,13 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { createScratch, GRID_SIDE, paintPad } from "./paint";
-import { intervalFor, isLowPower, shouldPaint, ticksFor } from "./schedule";
+import {
+  intervalFor,
+  isLowPower,
+  REDUCED_MOTION_TICKS,
+  shouldPaint,
+  ticksFor,
+} from "./schedule";
 import { TouchSampler } from "./touch";
 
 /**
@@ -235,6 +241,7 @@ export class SimHost {
       unobserve: noop,
     };
     this.entries.set(id, entry);
+    if (this.reduced) this.stillFrame(entry);
     this.paint(entry, entry.lastPaint);
     entry.unobserve = this.deps.observe(canvas, (intersecting) => {
       entry.intersecting = intersecting;
@@ -243,17 +250,23 @@ export class SimHost {
     this.wake();
   }
 
-  /** Drop one pad. The engine is untouched: it belongs to the session. */
+  /**
+   * Drop one pad, releasing its backing store. The engine is untouched: it
+   * belongs to the session, not to one mount.
+   */
   unregister(id: string): void {
     const entry = this.entries.get(id);
     if (typeof entry === "undefined") return;
     entry.unobserve();
+    entry.canvas.width = 0;
     this.entries.delete(id);
   }
 
   /** The centred entry, or undefined. Only the hero receives pointer samples. */
   setHero(id: string | undefined): void {
     if (this.heroId === id) return;
+    // Contacts never leak onto a pad the visitor has stepped away from.
+    this.sampler.clear();
     const old =
       typeof this.heroId === "undefined"
         ? undefined
@@ -274,6 +287,34 @@ export class SimHost {
   }
 
   /**
+   * Start a contact. The coordinates are LED coordinates, never client ones:
+   * the component owns the canvas rect and maps them with mapAxis from ./touch.
+   * The host is testable in node precisely because no DOM geometry crosses into
+   * it.
+   *
+   * Returns false when the pointer is already tracked or all five slots are
+   * taken, so the component knows not to capture the pointer.
+   */
+  touchDown(pointerId: number, x: number, y: number): boolean {
+    if (this.destroyed) return false;
+    const taken = this.sampler.down(pointerId, x, y);
+    if (taken) this.wake();
+    return taken;
+  }
+
+  touchMove(pointerId: number, x: number, y: number): void {
+    if (this.destroyed) return;
+    this.sampler.move(pointerId, x, y);
+    this.wake();
+  }
+
+  touchEnd(pointerId: number): void {
+    if (this.destroyed) return;
+    this.sampler.end(pointerId);
+    this.wake();
+  }
+
+  /**
    * The single teardown hook. The destroyed flag is set first, so a frame
    * callback already queued does nothing when it runs.
    */
@@ -284,8 +325,16 @@ export class SimHost {
       this.deps.caf(this.rafId);
       this.rafId = undefined;
     }
-    for (const entry of this.entries.values()) entry.unobserve();
+    for (const entry of this.entries.values()) {
+      entry.unobserve();
+      // Nine mounted pads at a large backing store are megabytes of compositor
+      // memory; width = 0 is what releases them
+      // (.planning/research/PITFALLS.md C14).
+      entry.canvas.width = 0;
+    }
     this.entries.clear();
+    this.sampler.clear();
+    this.media.stop();
   }
 
   // ---------------------------------------------------------------------------
@@ -362,9 +411,30 @@ export class SimHost {
     paintPad(entry.ctx, entry.engine.frame, entry.scratch);
   }
 
+  /**
+   * The representative frame. Restarting from tick 0 makes it deterministic
+   * instead of whatever tick the loop happened to reach, and the tick count is
+   * chosen so a sine look sits near its peak - the still frame shows colour and
+   * pattern rather than a black square.
+   */
+  private stillFrame(entry: Entry): void {
+    entry.engine.reset();
+    entry.engine.run(REDUCED_MOTION_TICKS);
+    entry.wasRunning = false;
+  }
+
   private onReducedChange(reduced: boolean): void {
     if (this.destroyed || reduced === this.reduced) return;
     this.reduced = reduced;
+    if (reduced) {
+      // Nothing re-registers and nothing remounts: an operating-system toggle
+      // takes effect on the engines that are already here (IDENT-02).
+      for (const entry of this.entries.values()) {
+        this.stillFrame(entry);
+        this.paint(entry, this.deps.now());
+      }
+    }
+    // Waking on the way back out is the other half of the same rule.
     this.wake();
   }
 }
