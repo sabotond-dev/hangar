@@ -656,8 +656,66 @@
       for (const entry of FRONT_DOOR) adopt(entry.id);
       syncHost();
       ready = true;
+      await land();
     })();
   });
+
+  /**
+   * THE STAMP LANDING (SHARE-01, SHARE-03, D-13).
+   *
+   * AFTER THE ENTRY IS CENTRED, NEVER BEFORE, and that ordering is the whole of
+   * D-13: `initialId` is read once at component init while the hash is read
+   * once at mount, so doing this any earlier would apply a stamp to whatever
+   * happened to be at index 0. It runs at the end of the same onMount block
+   * that built the engines, after `adopt()` and `syncHost()`.
+   *
+   * The stamp module arrives through `await import` for the reason the header
+   * gives: `$lib/share/stamp` reaches the vendored compiler through the knob
+   * descriptor tables, and this file may not put that on the front door's
+   * critical path.
+   *
+   * NEVER A PARTIAL RESTORE. `restored` sets every index; `older` and
+   * `unreadable` leave every knob at its default and say so through the notice.
+   * A stamp that half-applied would be the "subtly wrong configuration"
+   * SHARE-03 exists to forbid.
+   */
+  async function land(): Promise<void> {
+    // Both dynamic, and both already resolved: the catalog module was imported a
+    // few lines above and module records are cached, so this costs a microtask.
+    const [{ byId }, { parseHash, decodeFor }] = await Promise.all([
+      import("$lib/catalog"),
+      import("$lib/share/stamp"),
+    ]);
+    if (!mounted) return;
+    const id = heroId();
+    const entry = byId(id);
+    if (entry === undefined) return;
+    const result = decodeFor(entry, parseHash(page.url.hash));
+    if (result.kind === "none") return;
+    if (result.kind === "restored") knobIndices[id] = result.indices;
+    landedId = id;
+    landing = result;
+    /*
+      A STAMPED LINK AUTO-CHOOSES; A BARE /c/<id> STILL LANDS UN-CHOSEN, exactly
+      as Phase 4 ships it. X-18: the whole content of a tuned link is what
+      somebody moved, and the knobs are the only evidence of it - landing one on
+      a closed panel would show the tuning and hide the tuner. The two landings
+      that could not read the stamp open the panel too, because the sentence
+      explaining why lives inside it.
+
+      replaceState and NEVER pushState: a shared link must not need a Back press
+      to leave. The empty-string first argument is the shallow-navigation form
+      svelte/no-navigation-without-resolve permits - the same form choose()
+      already uses - so no suppression is needed here and none may be added. The
+      current URL is kept, hash and all, so a reload lands the same way.
+
+      chosenAt is set for STEP_AWAY_LIMIT, and `pushedChosen` is deliberately
+      left false: this session replaced rather than pushed, and unchoose()
+      already handles that case by replacing rather than going back.
+    */
+    chosenAt = centre;
+    replaceState("", { chosen: true });
+  }
 
   onDestroy(() => {
     if (!mounted) return;
