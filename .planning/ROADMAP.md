@@ -108,7 +108,7 @@ Plans:
 - [x] 04-01-PLAN.md — Catalog preflight, identity tokens, Quicksand through the licence gate, the 9x9 favicon (wave 1)
 - [x] 04-02-PLAN.md — The front-door row gated against golden-frames, and the coverflow slot arithmetic (wave 2)
 - [x] 04-03-PLAN.md — Sim primitives: the 10 ms clock, the one-call painter, the tick-locked finger (wave 2)
-- [ ] 04-04-PLAN.md — failureCopy gains a control label; the identify-only device path with zero writes (wave 2)
+- [x] 04-04-PLAN.md — failureCopy gains a control label; the identify-only device path with zero writes (wave 2)
 - [ ] 04-05-PLAN.md — SimHost: one rAF, window-and-viewport gating, live reduced motion, clean teardown (wave 3)
 - [ ] 04-06-PLAN.md — The living row: pad layers, the coverflow band, stepping, and the front door route (wave 4)
 - [ ] 04-07-PLAN.md — Name plate, fidelity line, the glyph-field splash and its dissolve (wave 5)
