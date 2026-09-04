@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file
 - [ ] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language
 - [ ] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames
-- [ ] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter
+- [x] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter (completed 2026-09-04; the hardware audition is presented to the user and unanswered)
 
 ## Phase Details
 
@@ -182,7 +182,7 @@ Plans:
 - [x] 08-05-PLAN.md — CHORUS, ARC and GHOST (wave 5)
 - [x] 08-06-PLAN.md — LATTICE, MORPH and SONAR; the floor of six cleared with seven (wave 6)
 - [x] 08-07-PLAN.md — The production-build laziness proof and the testing docs (wave 7)
-- [ ] 08-08-PLAN.md — docs/HARDWARE-AUDITION.md and the hardware checkpoint (wave 8)
+- [x] 08-08-PLAN.md — docs/HARDWARE-AUDITION.md and the hardware checkpoint (wave 8)
 
 ## Progress
 
@@ -207,7 +207,7 @@ Phases 6 and 7.
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
-| 8. New Configurations | 7/8 | In Progress|  |
+| 8. New Configurations | 8/8 | Complete | 2026-09-04 |
 
 ## Requirement Coverage
 

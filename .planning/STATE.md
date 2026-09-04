@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 08-07-PLAN.md
-last_updated: "2026-09-04T07:44:32.059Z"
+status: verifying
+stopped_at: Completed 08-08-PLAN.md (checkpoint presented, unanswered)
+last_updated: "2026-09-04T07:58:49.913Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 33
-  completed_plans: 32
-  percent: 97
+  completed_plans: 33
+  percent: 100
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 
 Phase: 08
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-04
 
-Progress: [██████████] 97%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ Progress: [██████████] 97%
 | Phase 08 P05 | 22 min | 3 tasks | 6 files |
 | Phase 08 P06 | 20 min | 3 tasks | 6 files |
 | Phase 08 P07 | 10 min | 3 tasks | 7 files |
+| Phase 08 P08 | 12 min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,8 @@ Recent decisions affecting current work:
 - [Phase 08]: MORPH's empty Timer needed no special case in any gate: compressScript('') is '', checkSyntax('') is true, and createLuaPadSim already maps '' to undefined so the entry cannot arm a timer at all - the seven gates it passes are listed in 08-06-SUMMARY.md
 - [Phase 08]: The lazy seam has two layers that guard different properties: lazy.spec.ts guards chunk composition, e2e/catalog.e2e.ts guards what a browser actually fetches on a cold load. A static import in engine.ts turns only the former red.
 - [Phase 08]: docs/PIN-POLICY.md gained a fifth bump-checklist item: a protocol bump re-measures every hand-authored catalog entry via lua-entries.spec.ts, because canonical compressed form is a property of a specific minifier version.
+- [Phase 08]: The audition checklist is held to the catalog by a spec, not by prose: a lost row, a renamed configuration, a quietly shipped MIRROR or a dropped install-order rule each turn a named test red - and both event numbers come from types.ts EVENT_SETUP/EVENT_TIMER so a renumbering moves the assertion with the code
+- [Phase 08]: AUDITION_DUMP diverges from UPDATE_GOLDEN and UPDATE_SYNTHETIC and does NOT fail the run - it rewrites no committed fixture, writes to a gitignored scratch directory and is run by a user at a bench; and its per-entry counts go to process.stdout directly because Vitest's console interception swallows console.log emitted at module scope during collection
 
 ### Pending Todos
 
@@ -211,9 +214,10 @@ Recent decisions affecting current work:
 - [Phase 7] Flash unplug-during-store ordering: firmware writes Setup before Timer to flash, opposite of the RAM write order; mitigation needs validation against real hardware timing.
 - [Phase 5] The 941/908 over-budget preset combination noted in PROJECT.md is known pre-existing compiler debt; it surfaces during the full-range knob sweep.
 - All *(hardware)* success criteria require the user personally, with a real ZONA. Web Serial is not automatable.
+- [Phase 8] The hardware audition (docs/HARDWARE-AUDITION.md, twelve rows) was PRESENTED to the user and is UNANSWERED - no row has been run on a real ZONA. Every perceptual and hardware-timing claim about the seven configurations is still unverified, and MIRROR stays blocked (D-04) until row 11 is answered.
 
 ## Session Continuity
 
-Last session: 2026-09-04T07:44:32.053Z
-Stopped at: Completed 08-07-PLAN.md
+Last session: 2026-09-04T07:58:34.613Z
+Stopped at: Completed 08-08-PLAN.md (checkpoint presented, unanswered)
 Resume file: None
