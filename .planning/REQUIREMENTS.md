@@ -63,19 +63,19 @@ feature table in `.planning/research/FEATURES.md`.
 
 ### Tuning [F]
 
-- [ ] **TUNE-01**: Each configuration exposes three to six knobs (from colour, speed, layout, brightness, MIDI destination and config-specific parameters) using one shared widget vocabulary [F1]
-- [ ] **TUNE-02**: Every knob change recompiles and re-simulates live; the recompile is debounced, the preview is not [F2]
-- [ ] **TUNE-03**: Two separate live meters show Setup and Timer usage as `chars / 908` with a percentage [F3]
+- [x] **TUNE-01**: Each configuration exposes three to six knobs (from colour, speed, layout, brightness, MIDI destination and config-specific parameters) using one shared widget vocabulary [F1]
+- [x] **TUNE-02**: Every knob change recompiles and re-simulates live; the recompile is debounced, the preview is not [F2]
+- [x] **TUNE-03**: Two separate live meters show Setup and Timer usage as `chars / 908` with a percentage [F3]
 - [ ] **TUNE-04**: When the fit ladder trims a feature to stay in budget, the user is told so in one line rather than the preview silently diverging from their expectation [F4, generic wording acceptable in v1]
 - [ ] **TUNE-05**: An over-budget state disables `TRY ON DEVICE`, turns the offending meter red, names the knob that pushed it over and offers a one-click back-off; the click never reaches the wire to fail there [F5]
-- [ ] **TUNE-06**: User can reset one knob (double-click) or the whole configuration to defaults [F6]
-- [ ] **TUNE-07**: User can hit `SURPRISE ME` to randomise knobs into a state that is never over budget [X8]
+- [x] **TUNE-06**: User can reset one knob (double-click) or the whole configuration to defaults [F6]
+- [x] **TUNE-07**: User can hit `SURPRISE ME` to randomise knobs into a state that is never over budget [X8]
 
 ### Sharing [E]
 
-- [ ] **SHARE-01**: The tuned state is encoded as the versioned base36 stamp in the URL hash (never the query string), and opening such a URL restores the knobs exactly [E1]
-- [ ] **SHARE-02**: User has an explicit `COPY LINK` control whose own state confirms the copy [E2]
-- [ ] **SHARE-03**: A stamp from an older HANGAR version fails gracefully — "this link was made with an older version" — and lands on the base configuration, never a subtly wrong one [E3]
+- [x] **SHARE-01**: The tuned state is encoded as the versioned base36 stamp in the URL hash (never the query string), and opening such a URL restores the knobs exactly [E1]
+- [x] **SHARE-02**: User has an explicit `COPY LINK` control whose own state confirms the copy [E2]
+- [x] **SHARE-03**: A stamp from an older HANGAR version fails gracefully — "this link was made with an older version" — and lands on the base configuration, never a subtly wrong one [E3]
 - [ ] **SHARE-04**: Every catalog configuration has a build-time OG image rendered from the simulator, so a shared link unfurls with the pad picture and title on Discord [E4]
 
 ### Honest degrade [G]
@@ -188,16 +188,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONT-01 | Phase 4 | Pending |
 | CONT-02 | Phase 8 | Complete (seven configurations against a floor of six — EUCLID, CHORUS, ARC, GHOST, LATTICE, MORPH, SONAR — canonical, in budget across their whole knob range, run in a Lua VM over the unmodified simulator; the twelve-row hardware audition is presented to the user and unanswered) |
 | CONT-03 | Phase 4 (metadata gate for new entries: Phase 8) | Pending |
-| TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8) | Pending |
-| TUNE-02 | Phase 5 | Pending |
-| TUNE-03 | Phase 5 | Pending |
+| TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8) | Complete |
+| TUNE-02 | Phase 5 | Complete |
+| TUNE-03 | Phase 5 | Complete |
 | TUNE-04 | Phase 5 | Pending |
 | TUNE-05 | Phase 5 | Pending |
-| TUNE-06 | Phase 5 | Pending |
-| TUNE-07 | Phase 5 | Pending |
-| SHARE-01 | Phase 5 | Pending |
-| SHARE-02 | Phase 5 | Pending |
-| SHARE-03 | Phase 5 | Pending |
+| TUNE-06 | Phase 5 | Complete |
+| TUNE-07 | Phase 5 | Complete |
+| SHARE-01 | Phase 5 | Complete |
+| SHARE-02 | Phase 5 | Complete |
+| SHARE-03 | Phase 5 | Complete |
 | SHARE-04 | Phase 5 | Pending |
 | DEGR-01 | Phase 5 | Pending |
 | DEGR-02 | Phase 7 (browser-capability half delivered in Phase 4) | Pending |

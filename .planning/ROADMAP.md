@@ -139,7 +139,7 @@ Plans:
 - [x] 05-08-PLAN.md — The ninth colour token with its identity-gate amendment, Knob.svelte and KnobRack.svelte (wave 8)
 - [x] 05-09-PLAN.md — BudgetMeter, BudgetMessage, StampNotice and CopyLink (wave 9)
 - [x] 05-10-PLAN.md — TuningRegion, the panel seam, and the structural gate over the tuning UI (wave 10)
-- [ ] 05-11-PLAN.md — Coverflow wiring: the live preview swap, the stamp landing, and eight e2e tests (wave 11)
+- [x] 05-11-PLAN.md — Coverflow wiring: the live preview swap, the stamp landing, and eight e2e tests (wave 11)
 - [ ] 05-12-PLAN.md — /dev/tune/, the WebKit phone journey, the docs and the phase gate (wave 12)
 
 ### Phase 5.1: Catalog Browse
@@ -217,7 +217,7 @@ Phases 6 and 7.
 | 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
-| 5. Tuning, Budgets and Shareable Links | 10/12 | In Progress | - |
+| 5. Tuning, Budgets and Shareable Links | 11/12 | In Progress | - |
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |

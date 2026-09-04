@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-10-PLAN.md
-last_updated: "2026-09-04T17:07:00.082Z"
+stopped_at: Completed 05-11-PLAN.md
+last_updated: "2026-09-04T17:38:15.555Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 43
-  percent: 96
+  completed_plans: 44
+  percent: 98
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 11 of 12 (05-10 complete)
-Status: In progress — wave 11 next (05-11, wiring the region into Coverflow and the eight-test tuning e2e)
+Plan: 12 of 12 (05-11 complete)
+Status: In progress — wave 12 next (05-12, the over-budget browser check, the WebKit phone journey and the docs)
 Last activity: 2026-09-04
 
-Progress: [██████████] 96%
+Progress: [██████████] 98%
 
 ## Performance Metrics
 
@@ -95,6 +95,7 @@ Progress: [██████████] 96%
 | Phase 05 P08 | 31 min | 3 tasks | 4 files |
 | Phase 05 P09 | 19 min | 3 tasks | 4 files |
 | Phase 05 P10 | 32 min | 3 tasks | 6 files |
+| Phase 05 P11 | 28min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -244,6 +245,15 @@ Recent decisions affecting current work:
 - [Phase 05]: Message slot B's opacity-only appearance is svelte/transition's fade rather than a CSS declaration: its css function emits opacity and nothing else and its default easing is linear, so 'opacity only, 160ms linear' is a property of the function that no later edit can widen to transition: all
 - [Phase 05]: The tuning actions row wraps below a region content box of 257px, MEASURED in Chromium (SURPRISE ME 134.453125px + RESET ALL 114.546875px + the 8px gap = exactly 257.0px), so TuningRegion.svelte's container query is width < 257px and the 05-08 derivation of ~251px/~379px was 6px narrow — all three of its conclusions survive: the row wraps at 320px and 375px viewports and not at 420px
 - [Phase 05]: config-shape.spec.ts test 13 does NOT catch a static import of $lib/tune/model — it matches the specifier TEXT against vendor/intechstudio/lib/pad, and model.ts pulls the protocol chunk in transitively. Observed: test 13 stayed green (14 passed) while the new tune-ui.spec.ts test 1 went red. The compile surface is now held to await import() by that test
+- [Phase 05]: TuningRegion is wrapped in {#key centred.id} by Coverflow: the region builds its tuner once in its own onMount, so a changed entryId prop would leave it tuning the entry the visitor has just stepped away from - W-20's 'the panel re-fills' would have re-filled the name plate and not the knobs
+- [Phase 05]: A fifth rune, landedId, scopes the stamp landing to the entry the URL named, and an $effect clears overBudgetReason and shareStamp whenever the region reporting them goes away - onover fires only when a measurement crosses 908 and the Lua route never calls it at all, so a stale reason would disable TRY ON DEVICE for a configuration comfortably inside 908
+- [Phase 05]: MEASURED: with register in place of replaceEngine the hero's backing store is torn down and reallocated on every knob turn (canvas.width 0 then 9, one zero-width write); with replaceEngine there are zero width writes. The predicted indefinite stall did NOT reproduce on this machine - the IntersectionObserver answered within a frame, so the gap between paints went 35ms to 41ms rather than freezing
+- [Phase 05]: MEASURED: deleting stamp.ts's entry-consistency guard makes a link minted from Dial land 'restored' under Joystick with knobs [0,1,0,0,4] and Setup 391 where Joystick's defaults are [0,0,1,2,4] and Setup 535 - the SHARE-03 failure, seen. On aurora and starfield the same payload reads back as those cards' own defaults, so the plan's suggested #z.pdial shows only the notice lying
+- [Phase 05]: replaceState('', { chosen: true }) DROPS the fragment: new URL('', '/c/aurora/#z.x') is '/c/aurora/', so a tuned link lands correctly and then the address bar reads /c/aurora/ with no hash. Observed three times. The knobs are unaffected; COPY LINK composes its own absolute URL, which is a large part of why it exists
+- [Phase 05]: A Playwright wait on the tuning meters must anchor on aria-busy, never on the numerals leaving 'measuring…': a knob move puts the meters into the STALE state where the numerals still show the PREVIOUS number, so a text-only wait returns the old measurement - observed as RESET ALL reading 256/908 where the defaults are 250/908
+- [Phase 05]: page.goto to the same path with a different fragment is a FRAGMENT-ONLY navigation: the document is kept, Coverflow never remounts and the onMount landing never runs. e2e/tuning.e2e.ts goes through about:blank so a shared link is tested as the cold arrival it actually is
+- [Phase 05]: e2e test 1 turns its knob under reduced motion: aurora is declared animated, so on a full-motion page two canvas samples differ whether or not the knob did anything, and the test would pass against an implementation where a knob does nothing
+- [Phase 05]: buildTuner's destroy() closes the engine that Coverflow also holds in its session engines map. A no-op for PadSim and therefore harmless while D-18 keeps every Lua entry out of FRONT_DOOR - the first Lua entry that joins the row must revisit it, or un-choosing will close the VM behind a shelf card that is still registered against it
 
 ### Pending Todos
 
@@ -260,6 +270,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T17:06:33.079Z
-Stopped at: Completed 05-10-PLAN.md
+Last session: 2026-09-04T17:37:51.437Z
+Stopped at: Completed 05-11-PLAN.md
 Resume file: None
