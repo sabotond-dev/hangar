@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-09-PLAN.md
-last_updated: "2026-09-04T13:01:28.188Z"
+stopped_at: Completed 05-10-PLAN.md
+last_updated: "2026-09-04T17:07:00.082Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 42
-  percent: 93
+  completed_plans: 43
+  percent: 96
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 10 of 12 (05-09 complete)
-Status: In progress — wave 10 next (05-10, TuningRegion: the two message slots, the rack, the actions row, the meters block and the one polite live region)
+Plan: 11 of 12 (05-10 complete)
+Status: In progress — wave 11 next (05-11, wiring the region into Coverflow and the eight-test tuning e2e)
 Last activity: 2026-09-04
 
-Progress: [█████████░] 93%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -94,6 +94,7 @@ Progress: [█████████░] 93%
 | Phase 05 P07 | 14 min | 3 tasks | 7 files |
 | Phase 05 P08 | 31 min | 3 tasks | 4 files |
 | Phase 05 P09 | 19 min | 3 tasks | 4 files |
+| Phase 05 P10 | 32 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -241,6 +242,8 @@ Recent decisions affecting current work:
 - [Phase 05]: OBSERVED: with --color-over replaced by --color-ink the over-budget meter is still carried by four non-colour signals in that component alone (a 100% bar, the 2px outline, numerals above 908, a percentage above 100), so WCAG 1.4.1 holds with the red deleted - the test that makes the third hue safe
 - [Phase 05]: The plan's own clipboard handler shape (clipboard?.writeText(url).then(...) ?? fellBack()) fails npm run lint under @typescript-eslint/no-unused-expressions; shipped as an if/else with identical semantics, and the file still contains zero awaits and zero asyncs
 - [Phase 05]: Message slot B's opacity-only appearance is svelte/transition's fade rather than a CSS declaration: its css function emits opacity and nothing else and its default easing is linear, so 'opacity only, 160ms linear' is a property of the function that no later edit can widen to transition: all
+- [Phase 05]: The tuning actions row wraps below a region content box of 257px, MEASURED in Chromium (SURPRISE ME 134.453125px + RESET ALL 114.546875px + the 8px gap = exactly 257.0px), so TuningRegion.svelte's container query is width < 257px and the 05-08 derivation of ~251px/~379px was 6px narrow — all three of its conclusions survive: the row wraps at 320px and 375px viewports and not at 420px
+- [Phase 05]: config-shape.spec.ts test 13 does NOT catch a static import of $lib/tune/model — it matches the specifier TEXT against vendor/intechstudio/lib/pad, and model.ts pulls the protocol chunk in transitively. Observed: test 13 stayed green (14 passed) while the new tune-ui.spec.ts test 1 went red. The compile surface is now held to await import() by that test
 
 ### Pending Todos
 
@@ -257,6 +260,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T13:01:07.582Z
-Stopped at: Completed 05-09-PLAN.md
+Last session: 2026-09-04T17:06:33.079Z
+Stopped at: Completed 05-10-PLAN.md
 Resume file: None
