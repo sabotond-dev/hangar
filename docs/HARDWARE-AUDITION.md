@@ -1,0 +1,126 @@
+# The ZONA hardware audition
+
+Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+
+Phase 8 authored seven configurations for HANGAR — EUCLID, CHORUS, ARC, GHOST, LATTICE, MORPH and
+SONAR. Everything a machine can check about them is already green: each one is stored in canonical
+compressed form, fits both 908-character budgets at its defaults and across its entire knob
+cross-product, runs in a real Lua 5.4 VM driving the firmware-faithful LED engine without error, and
+has a recorded golden frame set.
+
+This document is the list of things a machine cannot check. Perceived polyrhythm, real touch event
+codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brightness after the
+divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
+real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
+left alone for fifteen minutes. Twelve rows, each with the reason it belongs to a bench and not to a
+test suite.
+
+It runs on your bench, in daytime, and it blocks nothing. The phase is complete and green without it.
+A failing row is a bug report against a configuration — a knob value or a colour in an entry file
+plus a `frames.json` regeneration — never against the checklist, the gate, the host or anything
+vendored.
+
+## Before you start
+
+1. **Capture your module's current configuration first**, so you can put it back when you are done.
+   HANGAR's safety stance is that the module's original configuration is always recoverable, and
+   nothing in this document is exempt from it.
+2. **This goes through BOTOR's shelf, with minimalist mode off.** HANGAR cannot install until
+   Phase 7; nothing on the HANGAR site writes to your module today, and no part of this audition is
+   run by an executor or an orchestrator. It is yours.
+3. **The one ordering rule: paste the Timer into event 6 first, then the Setup into event 0.**
+   `gtt` is a no-op until the Timer event holds at least one stored action, and the Setup runs
+   immediately in the live VM — so a Setup-first paste arms a timer that does not exist yet, and the
+   pad simply sits still. It looks exactly like a broken configuration and it is not one.
+   `_pad.ts`'s own `writePad` encodes the same rule. Row 1 of the checklist is this rule.
+4. **MORPH is the exception that proves it.** MORPH has no Timer at all — its Timer event is the
+   empty string — so it is Setup only, and it is the one card that starts moving from the Setup
+   alone.
+5. **Have somewhere to write twelve lines.** The results go back into this document under a dated
+   `Results` heading; see [What to record](#what-to-record).
+
+## Getting the exact text
+
+One command:
+
+```
+AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
+```
+
+It writes `.tmp-audition/<id>.setup.lua` for every hand-authored configuration and
+`.tmp-audition/<id>.timer.lua` for every one that has a Timer — seven Setup files and six Timer
+files — rendered at that configuration's default knob positions, and prints each file's character
+count beside the 908-character budget. `.tmp-audition/` is gitignored; the command commits nothing
+and, unlike the repository's other env-guarded writers, it does not fail the run.
+
+**These are the exact bytes to paste.** Every configuration ships as a template with `@TOKEN`
+substitution points in it, and what belongs on the module is the render at the defaults, which is
+what the dump writes. Retyping a line of it by hand is how a one-character difference becomes an hour
+of confusion — and because every configuration is stored in canonical compressed form, one stray
+space is also a budget change.
+
+## The seven, and what they cost
+
+Measured at their default knob positions with the pinned minifier, from `08-06-SUMMARY.md`:
+
+| id        | name    | Setup | Timer            | knobs | dark at rest |
+| --------- | ------- | ----- | ---------------- | ----- | ------------ |
+| `euclid`  | EUCLID  | 702   | 218              | 6     | no           |
+| `chorus`  | CHORUS  | 729   | 173              | 6     | no           |
+| `arc`     | ARC     | 379   | 251              | 5     | no           |
+| `ghost`   | GHOST   | 305   | 333              | 5     | yes          |
+| `lattice` | LATTICE | 615   | 171              | 6     | no           |
+| `morph`   | MORPH   | 507   | 0 — **no Timer** | 5     | yes          |
+| `sonar`   | SONAR   | 432   | 279              | 5     | no           |
+
+GHOST and MORPH being dark at rest is a declared fact about them, not a fault: GHOST has nothing to
+show until you draw a gesture for it to replay, and MORPH's corners light under a finger. If either
+looks black on arrival, that is correct.
+
+LATTICE is worth one line of arithmetic before you play it, because the layout is isomorphic and a
+wrong note reads as a broken configuration: at the defaults the bottom-left cell is note 36, one
+column right is 37 — a semitone — and one row up is **41**, a perfect fourth of five semitones. The
+research document prints 42 there; 41 is what the arithmetic says and what the module will play.
+
+## The checklist
+
+Twelve rows, in order. Each names why it cannot be simulated, so no row is busywork.
+
+| #   | Config            | What to check                                                                                                                                                                                  | Why it cannot be simulated                                                                                                                           |
+| --- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | any               | Store the Timer into event 6 first, then the Setup into event 0. Confirm the pad starts moving within a second.                                                                                | `gtt` is a no-op until the Timer event holds a stored action, so the wrong order leaves a live Setup with nothing to fire it.                        |
+| 2   | EUCLID            | The three rings visibly run at different speeds, and the 48-tick pattern repeats.                                                                                                              | Perceived polyrhythm — whether three beating cycles read as one groove or as noise is a judgement no frame hash makes.                               |
+| 3   | EUCLID / SONAR    | Tap-to-toggle feels reliable and does not double-trigger.                                                                                                                                      | Real T100 touch event codes, including the fast-tap DOWNUP 9 that firmware coalesces into a single message.                                          |
+| 4   | ARC               | Sliding along X accelerates the swirl **without a phase jump**.                                                                                                                                | `glf` is a rate-only setter on real hardware; a phase reset would be plainly visible and no simulator can rule it out.                               |
+| 5   | ARC               | The 3x3 heart pulse is visible at the chosen colour and brightness.                                                                                                                            | Physical LED diffusion — nine adjacent cells on a real diffuser are not nine pixels.                                                                 |
+| 6   | GHOST             | The replayed ghost runs at the speed you drew it.                                                                                                                                              | Timer drift under load; the simulator's clock is exact and the module's is not.                                                                      |
+| 7   | CHORUS / LATTICE  | Hold a chord dead still for three seconds. Does the 2 s watchdog cut it?                                                                                                                       | A motionless finger emits nothing, because enqueue is change-gated — and whether a real finger is ever motionless is a physical question.            |
+| 8   | LATTICE           | The root lattice is legible at the dim out-of-scale colour; raise it if it is not.                                                                                                             | Physical brightness of `0,25,50` after the divide-by-512, with no gamma correction anywhere in the WS2812 path.                                      |
+| 9   | MORPH             | Corner brightness tracks the blend readably from across the room.                                                                                                                              | Perception — a bilinear blend that is numerically correct can still be unreadable at two metres.                                                     |
+| 10  | SONAR             | The sweep reads as a rotation rather than a scan, and armed cells stay visible underneath it.                                                                                                  | Perceived motion, and LED contrast between a moving bright layer and a static armed one.                                                             |
+| 11  | MIRROR (optional) | **Optional — unblocks a future configuration and ships nothing today.** With `grxm(0,2)` and a `midirx_cb`, does an inbound CC from the DAW move a bar at all? If not, MIRROR stays unshipped. | The one MEDIUM-confidence claim in the research: firmware shows the path, nothing shows the traffic arriving or what `instr` it carries.             |
+| 12  | any               | Leave a card running for fifteen minutes. Confirm nothing freezes and nothing strobes.                                                                                                         | The 655 s `glt` ceiling, and pitfall 1 — a keeper on a decaying trail wraps the countdown and strobes forever, which only time on hardware surfaces. |
+
+## What to record
+
+One line per row: pass, fail, or a note.
+
+- **Row 8** wants the colour you actually used, if the dim out-of-scale colour had to be raised.
+- **Row 11** wants the answer, and — if an inbound CC did move a bar — the `instr` value you
+  observed. That single answer is what unblocks or permanently drops MIRROR.
+
+The results belong in this document, under a dated `## Results` heading below. A failing row is a bug
+report against the configuration it names: the fix is a knob value or a colour in
+`src/lib/catalog/entries/<id>.ts` plus a `frames.json` regeneration, and nothing else.
+
+## Results
+
+None yet. This audition has not been run.
+
+## A closing note on colour
+
+Every RGB triple in the seven configurations is a starting point chosen on a screen, not a measured
+result. One layer caps at 49.6 % and there is no gamma correction anywhere in the path, so a colour
+that reads well in the simulator can be muddy or blinding on a diffuser. Changing one is a knob-value
+edit in the entry file plus a `frames.json` regeneration — it touches no gate, no host and nothing
+vendored.

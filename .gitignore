@@ -25,3 +25,4 @@ test-results/
 playwright-report/
 .tmp-format-parity/
 .tmp-e2e/
+.tmp-audition/
