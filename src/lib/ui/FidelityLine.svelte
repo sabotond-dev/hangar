@@ -20,17 +20,22 @@
   read, then it crosses back. The fidelity claim is delayed by four seconds, not
   suppressed.
 
-  THE CONSTANT IS IN THE SCRIPT BLOCK, NOT IN THE MARKUP. Prettier reflows text
-  inside an element and this sentence is asserted character-for-character - by
-  plan 04-07's build check and again by plan 04-09's end-to-end suite. Phase 2
+  THE CONSTANT IS IMPORTED, NOT WRITTEN HERE, AND IT WAS NEVER MARKUP TEXT.
+  Prettier reflows text inside an element and this sentence is asserted
+  character-for-character - by plan 04-07's build check and again by plan 04-09's
+  end-to-end suite - so it was a script-block constant from the start; Phase 2
   moved its falsifiable heartbeat definition out of markup for the same reason
-  (02-05-SUMMARY.md).
+  (02-05-SUMMARY.md). Plan 05.1-08 then lifted it one level further, into
+  ./fidelity-line.ts, because /browse/ states the same claim beneath its grid
+  (05.1-UI-SPEC.md W-13) and a sentence the site says twice is a sentence that
+  can drift. Nothing else about this component moved.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
+  import { FIDELITY_LINE } from "./fidelity-line";
 
   let {
     entry,
@@ -40,10 +45,6 @@
     /** Stands in for the line below, once, for four seconds. */
     notice?: string;
   } = $props();
-
-  /** 04-UI-SPEC, Copywriting Contract. Verbatim, with a real U+2019. */
-  const FIDELITY_LINE =
-    "Every pad here runs the firmware’s own code, compiled exactly as it would be written to a ZONA. What a screen cannot show: the real colour of the lights, the way they bleed into each other, and how the surface feels under a finger.";
 
   /**
    * How long the unknown-address notice holds before the fidelity line comes

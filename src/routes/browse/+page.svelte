@@ -83,6 +83,7 @@
   import { ogAlt } from "$lib/tune/copy";
   import BrowseGrid from "$lib/ui/BrowseGrid.svelte";
   import BrowseToolbar from "$lib/ui/BrowseToolbar.svelte";
+  import { FIDELITY_LINE } from "$lib/ui/fidelity-line";
 
   /* Visitor-facing copy, in one block, verbatim from the Copywriting Contract.
      Every string is a const rather than inline markup text: Prettier reflows
@@ -92,14 +93,6 @@
   const HEADLINE = "Everything on the shelf, all of it running.";
   const DESCRIPTION =
     "Every ZONA configuration in HANGAR, running live in the firmware’s own simulator.";
-
-  /* Phase 4's fidelity claim, verbatim, with a real U+2019. THIS IS A SECOND
-     COPY AND IT DOES NOT SURVIVE THE WAVE: the next task of this same plan
-     lifts the sentence out of FidelityLine.svelte into
-     src/lib/ui/fidelity-line.ts and both consumers import it from there. Two
-     copies of the site's largest fidelity claim is one copy too many. */
-  const FIDELITY_LINE =
-    "Every pad here runs the firmware’s own code, compiled exactly as it would be written to a ZONA. What a screen cannot show: the real colour of the lights, the way they bleed into each other, and how the surface feels under a finger.";
 
   /* Real typographic doubles, U+201C and U+201D, around a visitor's own query.
      The apostrophe rule already imposes this discipline; the phase extends it

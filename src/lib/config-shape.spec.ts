@@ -25,8 +25,48 @@ const FRONT_DOOR_PAGES = [
   "src/routes/c/[id]/+page.ts",
 ];
 const UI_DIR = "src/lib/ui";
+/** Plan 05.1-08's page, and the pure modules it and its toolbar are built on. */
+const BROWSE_PAGE = "src/routes/browse/+page.svelte";
+const BROWSE_DIR = "src/lib/browse";
 /** Anything that would drag @intechstudio/grid-protocol onto the first paint. */
 const COMPILER_MARKERS = ["vendor", "intechstudio", "lib/pad"];
+
+/*
+  AMENDMENT (plan 05.1-08). COMPILER_MARKERS matches the TEXT of a specifier,
+  which is exactly right for a direct import of the vendored tree and blind to
+  every module that reaches it TRANSITIVELY - which is most of the ones a browse
+  component would plausibly reach for. Each of the three below was read, not
+  guessed: catalog/entries/ported.ts:13, sim/engine.ts:41-42 and
+  tune/model.ts:67-70 all import src/vendor/botor/_pad at module scope, and
+  tune/model.ts pulls 628 KB of WASM behind it.
+
+    $lib/catalog      -> no marker matches, 131,101-byte protocol chunk
+    $lib/sim/engine   -> no marker matches, the same chunk
+    $lib/tune/model   -> no marker matches, the same chunk plus the formatter
+    $lib/pad          -> "lib/pad" matches, so it was already covered
+
+  src/lib/ui/tune-ui.spec.ts test 1 recorded the hole in 2026-09 and closed it
+  for seven components with a named-versus-awaited count. This is the same fix
+  generalised into a rule, so it covers the browse files too and so the next
+  transitive module is added in ONE place rather than two.
+
+  TWO CATALOG SPECIFIERS ARE PERMITTED, and they are the whole reason this is a
+  rule rather than a ban: src/lib/catalog/front-door.ts and
+  src/lib/catalog/listing.ts import NOTHING at runtime - their own specs assert
+  it - which is what lets a prerendered page carry sixteen names without carrying
+  the compiler. The allowance is exactly those two paths, never a prefix, so
+  $lib/catalog/index is an offender.
+*/
+const COMPILE_SURFACE = [
+  "$lib/catalog",
+  "$lib/sim/engine",
+  "$lib/tune/model",
+  "$lib/pad",
+];
+const COMPILE_SURFACE_ALLOWED = [
+  "$lib/catalog/front-door",
+  "$lib/catalog/listing",
+];
 /** The symbol that identifies the chunk carrying the protocol package. */
 const PROTOCOL_SYMBOL = "GRID_PARAMETER_ELEMENT_POTMETER";
 
@@ -193,20 +233,80 @@ describe("build configuration shape", () => {
     // reaches the simulator through import("../../vendor/botor/pad-sim") inside
     // onMount, and that dynamic import is the rule being obeyed rather than a
     // violation of it - a matcher that saw any occurrence of the specifier
-    // would forbid the correct implementation.
+    // would forbid the correct implementation. The same anchoring is what
+    // exempts an `await import(...)` from the compile-surface rule below: Vite
+    // emits a dynamic import as its own chunk, which is the whole point.
+    //
+    // AMENDMENT (plan 05.1-08), in two parts. The walk gained /browse/ and the
+    // pure modules under src/lib/browse/, and the file gained the
+    // COMPILE_SURFACE rule declared at the top - see the block there for what
+    // COMPILER_MARKERS could not see and why two catalog specifiers are
+    // permitted. The test count stays 14.
     const files = [
       ...FRONT_DOOR_PAGES,
+      BROWSE_PAGE,
       ...readdirSync(root(UI_DIR))
         .map(String)
         .filter((name) => !name.endsWith(".spec.ts"))
         .map((name) => `${UI_DIR}/${name}`),
+      ...readdirSync(root(BROWSE_DIR))
+        .map(String)
+        .filter((name) => name.endsWith(".ts") && !name.endsWith(".spec.ts"))
+        .map((name) => `${BROWSE_DIR}/${name}`),
     ];
 
-    const specifiers: { file: string; specifier: string }[] = [];
+    /**
+     * A specifier as one repo-relative path, so RELATIVE FORMS COUNT.
+     *
+     * Without this a component that writes `../sim/engine` walks straight
+     * through the rule the `$lib/` alias closes, and `../catalog` from
+     * src/lib/browse/ resolves to the same module `$lib/catalog` names. A
+     * bare package name is returned unchanged and never matches the surface.
+     */
+    const normalise = (file: string, specifier: string): string => {
+      if (specifier.startsWith("$lib/")) return `src/lib/${specifier.slice(5)}`;
+      if (!specifier.startsWith(".")) return specifier;
+      const stack: string[] = [];
+      const parts = (
+        file.slice(0, file.lastIndexOf("/")) +
+        "/" +
+        specifier
+      ).split("/");
+      for (const part of parts) {
+        if (part === "" || part === ".") continue;
+        else if (part === "..") stack.pop();
+        else stack.push(part);
+      }
+      return stack.join("/");
+    };
+
+    const asPath = (specifier: string) => `src/lib/${specifier.slice(5)}`;
+    const SURFACE = COMPILE_SURFACE.map(asPath);
+    const ALLOWED = COMPILE_SURFACE_ALLOWED.map(asPath);
+    const reaches = (path: string) =>
+      SURFACE.some((entry) => path === entry || path.startsWith(`${entry}/`));
+
+    // THE WHOLE STATEMENT IS COLLECTED, not only the specifier, because the
+    // `import type` exemption below is a property of the statement. Every
+    // `from` specifier is collected FIRST, exemptions and all, and only then
+    // subtracted - that ordering is what makes the non-vacuity check possible.
+    const imports: {
+      file: string;
+      statement: string;
+      specifier: string;
+      path: string;
+    }[] = [];
     for (const file of files) {
       const source = stripComments(text(file));
-      for (const match of source.matchAll(/from\s*["']([^"']+)["']/g)) {
-        specifiers.push({ file, specifier: match[1] });
+      for (const match of source.matchAll(
+        /(?:^|[;}\s])((?:import|export)[^;]*?from\s*["']([^"']+)["'])/g,
+      )) {
+        imports.push({
+          file,
+          statement: match[1].trim(),
+          specifier: match[2],
+          path: normalise(file, match[2]),
+        });
       }
     }
 
@@ -214,16 +314,37 @@ describe("build configuration shape", () => {
     // empty match set would each make the assertion below pass vacuously.
     expect(files.length, "front-door files were listed").toBeGreaterThan(3);
     expect(
-      specifiers.length,
+      imports.length,
       "static imports were actually collected",
     ).toBeGreaterThan(0);
 
-    const offenders = specifiers.filter(({ specifier }) =>
+    const offenders = imports.filter(({ specifier }) =>
       COMPILER_MARKERS.some((marker) => specifier.includes(marker)),
     );
     expect(
       offenders.map((o) => `${o.file} -> ${o.specifier}`),
       "a front-door file imports the compiler at module scope",
+    ).toEqual([]);
+
+    // The compile-surface rule, in three lines and one more non-vacuity guard.
+    const reaching = imports.filter(({ path }) => reaches(path));
+    expect(
+      reaching.length,
+      "not one collected specifier resolves onto the compile surface - the normaliser has stopped recognising anything, and the offender list below would be empty for the wrong reason",
+    ).toBeGreaterThan(0);
+
+    // `import type` IS EXEMPT, and it is not a loophole - it is a fact about
+    // the build. A type import is erased and costs nothing, and it already
+    // exists in shipped, correct code: Coverflow.svelte and TuningRegion.svelte
+    // both carry `import type { SimEngine } from "$lib/sim/engine"`, and six
+    // components carry `import type { FrontDoorEntry }`. A rule that did not
+    // exempt it would go red on two signed-off components.
+    const transitive = reaching
+      .filter(({ path }) => !ALLOWED.includes(path))
+      .filter(({ statement }) => !statement.startsWith("import type"));
+    expect(
+      transitive.map((o) => `${o.file} -> ${o.specifier}`),
+      "a file on a light page statically imports a module that reaches @intechstudio/grid-protocol transitively - the specifier carries none of COMPILER_MARKERS' three needles, which is exactly why this second rule exists",
     ).toEqual([]);
   });
 
@@ -286,6 +407,14 @@ describe("build configuration shape", () => {
     // necessary, because widening it twice in two waves is two chances to
     // disagree about what the rule is. build/browse/index.html joins the list
     // below there, with the page.
+    //
+    // AMENDMENT (plan 05.1-08). build/browse/index.html is now in the list, and
+    // it is the entry that matters most: without it a 131 KB regression on the
+    // one page in the site whose entire job is to list sixteen names ships with
+    // every guard green. Test 13's source scan goes red first and needs no
+    // build; this one is the backstop for a transitive re-export or a future
+    // bundler putting the chunk on the page by a route no source scan would
+    // recognise. The test count still stays 14.
 
     /** Every `import`/`export ... from "x"` specifier, dynamic imports excluded. */
     const staticSpecifiers = (source: string): string[] =>
@@ -313,6 +442,7 @@ describe("build configuration shape", () => {
 
     for (const page of [
       "build/index.html",
+      "build/browse/index.html",
       "build/c/aurora/index.html",
       "build/c/euclid/index.html",
     ]) {
