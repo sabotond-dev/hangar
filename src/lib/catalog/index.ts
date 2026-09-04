@@ -7,8 +7,10 @@
 //   import { CATALOG, byId, build, type CatalogEntry } from "$lib/catalog";
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { EUCLID } from "./entries/euclid";
+import { GHOST } from "./entries/ghost";
 import { PORTED } from "./entries/ported";
 import type { CatalogEntry } from "./types";
 
@@ -32,10 +34,14 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   ...PORTED,
   EUCLID,
   CHORUS,
+  ARC,
+  GHOST,
 ]);
 
 export { EUCLID } from "./entries/euclid";
 export { CHORUS } from "./entries/chorus";
+export { ARC } from "./entries/arc";
+export { GHOST } from "./entries/ghost";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
