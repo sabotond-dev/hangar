@@ -1,0 +1,703 @@
+// The nine per-card knob tables: the semantics the vendored compiler does not
+// carry.
+//
+// `KnobKind` is a LABEL, NOT A BINDING. `_pad.ts` exports a twelve-member union
+// and each `PadPreset` declares two to four of them, and nothing anywhere in
+// the vendored tree says which `PadState` field a given kind moves - `colour`
+// is `look.colour` on four cards, `touch.colour` on the joystick and
+// `sends.gridColour` on the nine pads. BOTOR resolves that in its own panel
+// with a per-card if/else chain over `selPreset.id`, which is both the shape
+// D-02 forbids HANGAR from copying and a file HANGAR must not depend on. This
+// module is the recovered mapping as data, and knobs.preset.spec.ts holds it
+// against `presetById(id).knobs` so that a re-sync which changes a card's
+// declared knobs goes red and names the card.
+//
+// FOUR THINGS ARE READ AND NOT RESTATED, because restating them is how a
+// vendored bump goes unnoticed: the detent tables (`SPEED_TABLE`,
+// `BRIGHTNESS_TABLE`, `DIAL_SENSE_TABLE`, `TRACKPAD_*`) ARE the value sets;
+// `quantiseColour` builds the colour options rather than a hand-typed list;
+// every default index is DERIVED from the card's own shipped state and throws
+// at import time if that value is not in its own option list; and
+// `padLightsAnything` decides whether a card is offered brightness at all.
+//
+// This module imports the vendored compiler and is therefore on the model side
+// of D-18: no Svelte component may name it.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import {
+  BRIGHTNESS_TABLE,
+  DIAL_SENSE_TABLE,
+  SPEED_TABLE,
+  TRACKPAD_POINTER_CAPS,
+  TRACKPAD_SCROLL_UNITS,
+  TRACKPAD_TAP_TOLERANCE,
+  padLightsAnything,
+  presetById,
+  quantiseColour,
+  type PadSheet,
+  type PadState,
+  type RGB,
+  type TouchKind,
+} from "../../vendor/botor/_pad";
+import { withChange, type KnobBinding } from "./state";
+import type { KnobKindName } from "./view";
+
+/**
+ * One knob, in the shape BOTH routes arrive at the panel in. A Lua entry's
+ * knobs map into exactly this (knobs.lua.ts), which is what makes the panel
+ * unable to tell a compiler-driven card from a hand-authored one.
+ *
+ * `options` are strings even where they read as numbers, exactly as
+ * `LuaKnob.values` already is: one type keeps the stamp an integer-index
+ * problem and lets view.ts's readout rules work unchanged for both routes.
+ */
+export type KnobDescriptor = {
+  /** Stable within the entry. The reset target and the stamp's position. */
+  id: string;
+  /** The visible label: "Speed", "On lift". */
+  label: string;
+  /** Picks the widget, and NEVER the field. */
+  kind: KnobKindName;
+  /** Ordered, at least two, one value per position. */
+  options: readonly string[];
+  /** An INDEX into `options`, never a value. */
+  default: number;
+};
+
+/** A compiler-driven knob also knows how to move and read a `PadState`. */
+export type PresetKnob = KnobDescriptor &
+  KnobBinding & {
+    /** `fitState`'s `pinned`: the sheet the visitor's hand is on. */
+    sheet: PadSheet;
+  };
+
+/**
+ * The universal brightness knob's id.
+ *
+ * It is an ID and not a kind because `brightness` IS NOT A MEMBER of the
+ * vendored `KnobKind` union - it is the answer to D-01's three-knob floor
+ * (starfield and the faders declare two knobs each), and it borrows the
+ * existing `amount` kind for its widget. So the spec's "the kind set equals
+ * the vendored declaration" rule has to except it BY ID: excepting it by kind
+ * would also drop ninepads' channel knob, which is one of that card's four
+ * declared knobs. That is the one carve-out in this module, and a carve-out
+ * nobody explained is a hole.
+ */
+export const BRIGHTNESS_KNOB_ID = "brightness";
+
+// ---------------------------------------------------------------------------
+// Small shared arithmetic.
+
+const rgbOf = (literal: string): RGB => {
+  const [r, g, b] = literal.split(",").map((n) => Number.parseInt(n, 10));
+  return { r, g, b };
+};
+const literalOf = (c: RGB): string => `${c.r},${c.g},${c.b}`;
+
+/**
+ * The index of a shipped value inside its own option list, or a throw.
+ *
+ * Deriving every default from the card's own state is what makes "RESET ALL
+ * lands on the card as published" true by construction rather than by a test
+ * that could be written wrong. Falling back to 0 instead would turn a
+ * mistyped option into a card that silently ships at the wrong position, so
+ * this is a startup failure - the same rule ported.ts already applies to an
+ * entry that names no shelf preset.
+ */
+function mustIndex(
+  options: readonly string[],
+  value: string,
+  where: string,
+): number {
+  const index = options.indexOf(value);
+  if (index < 0) {
+    throw new Error(
+      `${where}: the card ships at ${value}, which is not one of ${options.join(" ")}`,
+    );
+  }
+  return index;
+}
+
+/** The inverse of an option list. Clamps to 0, because a rack must render. */
+const indexOf = (options: readonly string[], value: string): number => {
+  const found = options.indexOf(value);
+  return found < 0 ? 0 : found;
+};
+
+// ---------------------------------------------------------------------------
+// The colour palette, and the binding rule.
+
+/**
+ * The five colours the Lua entries already ship. One palette across both
+ * routes means the swatch row looks identical whichever engine is behind it,
+ * and view.ts's hue-name table is already verified against exactly these.
+ *
+ * NEVER an `<input type="color">`: `quantiseColour` snaps every stored channel
+ * to a multiple of 17, so a free picker would offer 4,096 steps the state
+ * cannot hold - a picker that lies.
+ */
+const PALETTE_LITERALS: readonly string[] = [
+  "0,200,255",
+  "255,90,0",
+  "0,255,120",
+  "255,255,255",
+  "120,0,255",
+];
+
+/**
+ * The same five AS STORED. Built by mapping through the vendored
+ * `quantiseColour` rather than hand-transcribed, so a change to the 17-step
+ * rule moves the options with it. Four of the five move: 0,200,255 ->
+ * 0,204,255; 255,90,0 -> 255,85,0; 0,255,120 -> 0,255,119; 120,0,255 ->
+ * 119,0,255. Every one lands in the same 30-degree hue bucket as its original,
+ * so view.ts's hue names are unchanged.
+ *
+ * Storing them pre-quantised is what makes `read(apply(state, i)) === i` hold:
+ * a raw literal would be written as 0,200,255, read back as 0,204,255, match
+ * nothing in its own list and clamp to position 1.
+ */
+const PALETTE: readonly string[] = PALETTE_LITERALS.map((literal) =>
+  literalOf(quantiseColour(rgbOf(literal))),
+);
+
+/** Which colour field this card's `colour` knob moves. */
+export type ColourTarget = "look" | "touch" | "sends";
+
+/**
+ * The compiler's own `touchUsesColour` (`_pad.ts:2624`), reimplemented for the
+ * same reason `withChange` is: it is module-private and `src/vendor/` is
+ * read-only. A touch kind that derives its hues arithmetically (per-finger) or
+ * paints nothing has no colour for a knob to move.
+ */
+const touchUsesColour = (kind: TouchKind): boolean =>
+  kind === "comet" || kind === "bloom" || kind === "glow";
+
+/**
+ * The colour binding, DERIVED from the state rather than tabulated. It
+ * reproduces BOTOR's own per-card choice on all nine cards, which is why it is
+ * asserted in the spec instead of written out nine times.
+ */
+export function colourTargetFor(state: PadState): ColourTarget | undefined {
+  if (state.enabled.look && state.look.kind !== "none") return "look";
+  if (state.enabled.touch && touchUsesColour(state.touch.kind)) return "touch";
+  if (state.enabled.sends && state.sends.showGrid) return "sends";
+  return undefined;
+}
+
+function colourOf(state: PadState, target: ColourTarget): RGB {
+  if (target === "look") return state.look.colour;
+  if (target === "touch") return state.touch.colour;
+  return state.sends.gridColour;
+}
+
+// ---------------------------------------------------------------------------
+// The knobs. One factory per binding, each closing over the card's own state
+// for its default index.
+
+function colourKnob(base: PadState): PresetKnob {
+  const target = colourTargetFor(base);
+  if (!target) throw new Error("a colour knob on a card with no colour");
+  const own = literalOf(quantiseColour(colourOf(base, target)));
+  // The card's own colour first, then the shared palette, with duplicates
+  // dropped - so the default is always position 1 and a card whose colour is
+  // already in the palette does not show it twice.
+  const options = [...new Set([own, ...PALETTE])];
+  const sheet: PadSheet = target === "sends" ? "sends" : target;
+  return {
+    id: "colour",
+    label: "Colour",
+    kind: "colour",
+    options,
+    default: mustIndex(options, own, "colour"),
+    sheet,
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        const value = rgbOf(options[index]);
+        if (target === "look") draft.look.colour = value;
+        else if (target === "touch") draft.touch.colour = value;
+        else draft.sends.gridColour = value;
+      }),
+    read: (state) => indexOf(options, literalOf(colourOf(state, target))),
+  };
+}
+
+/** The eight firmware rates, as their detent steps. */
+const SPEED_OPTIONS = SPEED_TABLE.map((row) => String(row.step));
+
+function speedKnob(base: PadState): PresetKnob {
+  return {
+    id: "speed",
+    label: "Speed",
+    kind: "speed",
+    options: SPEED_OPTIONS,
+    default: mustIndex(SPEED_OPTIONS, String(base.look.speed), "speed"),
+    sheet: "look",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.look.speed = Number.parseInt(SPEED_OPTIONS[index], 10);
+      }),
+    read: (state) => indexOf(SPEED_OPTIONS, String(state.look.speed)),
+  };
+}
+
+/**
+ * Two of the compiler's four `Axis` values, and the reason is the no-op gate.
+ *
+ * `look.axis` is the right field - it is a real field, the wave and scan looks
+ * read it, and view.ts already has words for all four. But the wave emitter
+ * branches on `antidiagonal` ALONE (`_pad.ts:2652`: the sign in
+ * `(n%9 +/- n//9)`), so `x`, `y` and `diagonal` all compile to the same body.
+ * Offering four positions where three paint the same picture is precisely the
+ * decorative knob the gate exists to catch, so the option set is the two that
+ * differ. The words are view.ts's own: Rising and Falling.
+ */
+const DIRECTION_OPTIONS: readonly string[] = ["diagonal", "antidiagonal"];
+
+function directionKnob(base: PadState): PresetKnob {
+  return {
+    id: "direction",
+    label: "Direction",
+    kind: "direction",
+    options: DIRECTION_OPTIONS,
+    default: mustIndex(DIRECTION_OPTIONS, base.look.axis, "direction"),
+    sheet: "look",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.look.axis = DIRECTION_OPTIONS[index] as PadState["look"]["axis"];
+      }),
+    read: (state) => indexOf(DIRECTION_OPTIONS, state.look.axis),
+  };
+}
+
+/**
+ * The wave's band width. Three wavelengths inside the legal 8..45 window and
+ * clear of the 27..29 exclusion, which `snapWavelength` would move under the
+ * knob: a narrow band, the card's own 15, and a single slow sweep.
+ */
+const BAND_OPTIONS: readonly string[] = ["10", "15", "36"];
+
+function bandKnob(base: PadState): PresetKnob {
+  return {
+    id: "band",
+    label: "Band",
+    kind: "size",
+    options: BAND_OPTIONS,
+    default: mustIndex(BAND_OPTIONS, String(base.look.wavelength), "band"),
+    sheet: "look",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.look.wavelength = Number.parseInt(BAND_OPTIONS[index], 10);
+      }),
+    read: (state) => indexOf(BAND_OPTIONS, String(state.look.wavelength)),
+  };
+}
+
+const ARMS_OPTIONS: readonly string[] = ["1", "2", "3"];
+
+function armsKnob(base: PadState): PresetKnob {
+  return {
+    id: "arms",
+    label: "Arms",
+    kind: "count",
+    options: ARMS_OPTIONS,
+    default: mustIndex(ARMS_OPTIONS, String(base.look.arms), "arms"),
+    sheet: "look",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.look.arms = Number.parseInt(ARMS_OPTIONS[index], 10) as 1 | 2 | 3;
+      }),
+    read: (state) => indexOf(ARMS_OPTIONS, String(state.look.arms)),
+  };
+}
+
+const EDGE_OPTIONS: readonly string[] = ["soft", "hard"];
+
+function edgeKnob(base: PadState): PresetKnob {
+  return {
+    id: "edge",
+    label: "Edge",
+    kind: "feel",
+    options: EDGE_OPTIONS,
+    default: mustIndex(EDGE_OPTIONS, base.look.edge, "edge"),
+    sheet: "look",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.look.edge = EDGE_OPTIONS[index] === "hard" ? "hard" : "soft";
+      }),
+    read: (state) => indexOf(EDGE_OPTIONS, state.look.edge),
+  };
+}
+
+/**
+ * The first controller number a card sends on.
+ *
+ * TWELVE options, which is more than eight ON PURPOSE. view.ts offers a
+ * `note`-kind knob a word row of scientific pitch names, and this knob's value
+ * is a CC number, not a note - "CC 16" displayed as "E1" would be exactly the
+ * renumbering lie X-08 forbids. Above eight options the widget rule falls
+ * through to a rail, whose readout is the raw integer. The list stops at 80
+ * because `maxCcBase` clamps a four-fader card at 124 and a knob that silently
+ * clamped would not round-trip.
+ */
+const SEND_OPTIONS: readonly string[] = [
+  "16",
+  "20",
+  "24",
+  "28",
+  "32",
+  "36",
+  "40",
+  "44",
+  "48",
+  "52",
+  "64",
+  "80",
+];
+
+function sendKnob(base: PadState): PresetKnob {
+  return {
+    id: "send",
+    label: "Send",
+    kind: "note",
+    options: SEND_OPTIONS,
+    default: mustIndex(SEND_OPTIONS, String(base.sends.ccBase), "send"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.ccBase = Number.parseInt(SEND_OPTIONS[index], 10);
+      }),
+    read: (state) => indexOf(SEND_OPTIONS, String(state.sends.ccBase)),
+  };
+}
+
+/**
+ * All sixteen MIDI channels, ONE-BASED, because that is how `PadState` stores
+ * them and how the compiler's own stream descriptions read them back to the
+ * visitor ("CC 16 on channel 1"). The emitted Lua sends `channel - 1`; the
+ * knob shows the number the DAW shows.
+ */
+const CHANNEL_OPTIONS: readonly string[] = Array.from({ length: 16 }, (_, i) =>
+  String(i + 1),
+);
+
+function channelKnob(base: PadState): PresetKnob {
+  return {
+    id: "channel",
+    label: "Channel",
+    kind: "amount",
+    options: CHANNEL_OPTIONS,
+    default: mustIndex(CHANNEL_OPTIONS, String(base.sends.channel), "channel"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.channel = Number.parseInt(CHANNEL_OPTIONS[index], 10);
+      }),
+    read: (state) => indexOf(CHANNEL_OPTIONS, String(state.sends.channel)),
+  };
+}
+
+/**
+ * The lowest note on the grid. Four octaves of C, which every one of the four
+ * scales can build nine zones on top of without `zoneMaxBase` clamping - and
+ * four options is under the eight-option ceiling, so this knob DOES get its
+ * word row: C1, C2, C3, C4.
+ */
+const NOTES_OPTIONS: readonly string[] = ["24", "36", "48", "60"];
+
+function notesKnob(base: PadState): PresetKnob {
+  return {
+    id: "notes",
+    label: "Notes",
+    kind: "note",
+    options: NOTES_OPTIONS,
+    default: mustIndex(NOTES_OPTIONS, String(base.sends.baseNote), "notes"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.baseNote = Number.parseInt(NOTES_OPTIONS[index], 10);
+      }),
+    read: (state) => indexOf(NOTES_OPTIONS, String(state.sends.baseNote)),
+  };
+}
+
+/** The compiler's four `ScaleKind` members, which view.ts already words. */
+const SCALE_OPTIONS: readonly string[] = [
+  "chromatic",
+  "major",
+  "minor",
+  "pentatonic",
+];
+
+function scaleKnob(base: PadState): PresetKnob {
+  return {
+    id: "scale",
+    label: "Scale",
+    kind: "scale",
+    options: SCALE_OPTIONS,
+    default: mustIndex(SCALE_OPTIONS, base.sends.scale, "scale"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.scale = SCALE_OPTIONS[index] as PadState["sends"]["scale"];
+      }),
+    read: (state) => indexOf(SCALE_OPTIONS, state.sends.scale),
+  };
+}
+
+/** Eight detents into the dial's fine-units-per-tick table. */
+const SENSE_OPTIONS = DIAL_SENSE_TABLE.map((_, i) => String(i + 1));
+
+function senseKnob(base: PadState): PresetKnob {
+  return {
+    id: "sensitivity",
+    label: "Sensitivity",
+    kind: "feel",
+    options: SENSE_OPTIONS,
+    default: mustIndex(
+      SENSE_OPTIONS,
+      String(base.sends.dialSense),
+      "sensitivity",
+    ),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.dialSense = Number.parseInt(SENSE_OPTIONS[index], 10);
+      }),
+    read: (state) => indexOf(SENSE_OPTIONS, String(state.sends.dialSense)),
+  };
+}
+
+const MODE_OPTIONS: readonly string[] = ["relative", "absolute"];
+
+function modeKnob(base: PadState): PresetKnob {
+  return {
+    id: "mode",
+    label: "Mode",
+    kind: "mode",
+    options: MODE_OPTIONS,
+    default: mustIndex(MODE_OPTIONS, base.sends.dialMode, "mode"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.dialMode =
+          MODE_OPTIONS[index] === "absolute" ? "absolute" : "relative";
+      }),
+    read: (state) => indexOf(MODE_OPTIONS, state.sends.dialMode),
+  };
+}
+
+const BEND_OPTIONS: readonly string[] = ["none", "x", "y"];
+
+function bendKnob(base: PadState): PresetKnob {
+  return {
+    id: "bend",
+    label: "Bend",
+    kind: "bend",
+    options: BEND_OPTIONS,
+    default: mustIndex(BEND_OPTIONS, base.sends.bend, "bend"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.bend = BEND_OPTIONS[index] as PadState["sends"]["bend"];
+      }),
+    read: (state) => indexOf(BEND_OPTIONS, state.sends.bend),
+  };
+}
+
+/**
+ * `spring` and `springTo` as ONE vocabulary, because that is how a visitor
+ * experiences them: the pad either stays where it was left, comes home to the
+ * middle, or falls to zero. `springTo` is unreadable while `spring` is off -
+ * normalise resets it (`_pad.ts:1443`) - so two fields under one knob is the
+ * shape that cannot show a value the card is not using.
+ */
+const SPRING_OPTIONS: readonly string[] = ["off", "centre", "zero"];
+
+function springWordOf(state: PadState): string {
+  if (!state.sends.spring) return "off";
+  return state.sends.springTo === "zero" ? "zero" : "centre";
+}
+
+function springKnob(base: PadState): PresetKnob {
+  return {
+    id: "spring",
+    label: "On lift",
+    kind: "spring",
+    options: SPRING_OPTIONS,
+    default: mustIndex(SPRING_OPTIONS, springWordOf(base), "spring"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        const word = SPRING_OPTIONS[index];
+        draft.sends.spring = word !== "off";
+        draft.sends.springTo = word === "zero" ? "zero" : "centre";
+      }),
+    read: (state) => indexOf(SPRING_OPTIONS, springWordOf(state)),
+  };
+}
+
+// The trackpad's three detent tables. Every one is eight entries and three
+// stamp bits, which is what keeps a hand-tuned trackpad card - the tightest
+// budget on the shelf at 902 of 908 - inside its own budget once the stamp
+// becomes a field dump.
+const TAP_OPTIONS = TRACKPAD_TAP_TOLERANCE.map(String);
+const POINTER_OPTIONS = TRACKPAD_POINTER_CAPS.map(String);
+const SCROLL_OPTIONS = TRACKPAD_SCROLL_UNITS.map(String);
+
+function tapKnob(base: PadState): PresetKnob {
+  return {
+    id: "tap",
+    label: "Tap",
+    kind: "feel",
+    options: TAP_OPTIONS,
+    default: mustIndex(
+      TAP_OPTIONS,
+      String(base.sends.trackpad.tapTolerance),
+      "tap",
+    ),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.trackpad = {
+          ...draft.sends.trackpad,
+          tapTolerance: Number.parseInt(TAP_OPTIONS[index], 10),
+        };
+      }),
+    read: (state) =>
+      indexOf(TAP_OPTIONS, String(state.sends.trackpad.tapTolerance)),
+  };
+}
+
+function pointerKnob(base: PadState): PresetKnob {
+  return {
+    id: "pointer",
+    label: "Pointer speed",
+    kind: "amount",
+    options: POINTER_OPTIONS,
+    default: mustIndex(
+      POINTER_OPTIONS,
+      String(base.sends.trackpad.pointerCap),
+      "pointer",
+    ),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.trackpad = {
+          ...draft.sends.trackpad,
+          pointerCap: Number.parseInt(POINTER_OPTIONS[index], 10),
+        };
+      }),
+    read: (state) =>
+      indexOf(POINTER_OPTIONS, String(state.sends.trackpad.pointerCap)),
+  };
+}
+
+/**
+ * The trackpad's third knob, and the reason it exists.
+ *
+ * A card that lights nothing cannot hold a brightness: canonicalise resets it
+ * to Full (`_pad.ts:1486`), so the universal knob below would snap back the
+ * moment it was turned. Rather than ship that, such a card is not offered
+ * brightness at all - which is what BOTOR's own panel does (`_pad.ts:883`) -
+ * and D-01's three-knob floor is met with a third REAL knob from the card's
+ * own third detent table instead.
+ */
+function scrollKnob(base: PadState): PresetKnob {
+  return {
+    id: "scroll",
+    label: "Scroll",
+    kind: "amount",
+    options: SCROLL_OPTIONS,
+    default: mustIndex(
+      SCROLL_OPTIONS,
+      String(base.sends.trackpad.scrollUnits),
+      "scroll",
+    ),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.trackpad = {
+          ...draft.sends.trackpad,
+          scrollUnits: Number.parseInt(SCROLL_OPTIONS[index], 10),
+        };
+      }),
+    read: (state) =>
+      indexOf(SCROLL_OPTIONS, String(state.sends.trackpad.scrollUnits)),
+  };
+}
+
+/**
+ * The universal brightness knob (D-01's floor), offered to every card that
+ * lights something.
+ *
+ * The options are the table's PERCENTS rather than its detent steps or its
+ * words. `amount` is a rail kind, and a rail's readout is the raw value: "100"
+ * and "15" say something a visitor can act on, where "5" and "1" say nothing
+ * and the table's own words (Dim, Low, Half, Bright, Full) cannot render on a
+ * rail at all. The stored field stays the detent - the percent is the table's
+ * own second column, never arithmetic invented here.
+ */
+const BRIGHTNESS_OPTIONS = BRIGHTNESS_TABLE.map((row) => String(row.pct));
+
+function stepForBrightnessIndex(index: number): number {
+  return BRIGHTNESS_TABLE[index].step;
+}
+
+function brightnessKnob(base: PadState): PresetKnob {
+  const read = (state: PadState): number => {
+    const found = BRIGHTNESS_TABLE.findIndex(
+      (row) => row.step === state.brightness,
+    );
+    return found < 0 ? 0 : found;
+  };
+  return {
+    id: BRIGHTNESS_KNOB_ID,
+    label: "Brightness",
+    kind: "amount",
+    options: BRIGHTNESS_OPTIONS,
+    default: read(base),
+    sheet: "look",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.brightness = stepForBrightnessIndex(index);
+      }),
+    read,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The nine cards.
+
+type Factory = (base: PadState) => PresetKnob;
+
+/**
+ * The recovered table, transcribed from 05-RESEARCH's reading of BOTOR's panel
+ * at the pinned SHA. The KINDS are held against `presetById(id).knobs` by the
+ * spec; the FIELDS are what this table adds, and only a compile-time gate can
+ * check those - which is what the spec's no-op test is.
+ */
+const BY_PRESET: Readonly<Record<string, readonly Factory[]>> = {
+  aurora: [colourKnob, speedKnob, directionKnob, bandKnob],
+  pinwheel: [colourKnob, speedKnob, armsKnob],
+  starfield: [colourKnob, edgeKnob],
+  radar: [colourKnob, speedKnob, sendKnob],
+  joystick: [colourKnob, sendKnob, bendKnob, springKnob],
+  ninepads: [colourKnob, notesKnob, scaleKnob, channelKnob],
+  faders: [sendKnob, channelKnob],
+  dial: [sendKnob, senseKnob, modeKnob, channelKnob],
+  tpad: [tapKnob, pointerKnob, scrollKnob],
+};
+
+/**
+ * The knobs a shelf card exposes, in rack order, with brightness appended
+ * wherever the card lights something.
+ */
+export function presetKnobs(presetId: string): readonly PresetKnob[] {
+  const preset = presetById(presetId);
+  if (!preset) throw new Error(`unknown preset: ${presetId}`);
+  const factories = BY_PRESET[presetId];
+  if (!factories) throw new Error(`no knob table for preset: ${presetId}`);
+  const base = preset.state;
+  const knobs = factories.map((make) => make(base));
+  return padLightsAnything(base) ? [...knobs, brightnessKnob(base)] : knobs;
+}

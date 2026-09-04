@@ -1,0 +1,257 @@
+// The spec that ties HANGAR's recovered knob semantics back to BOTOR's own
+// declaration, and proves that not one of the resulting knobs is decorative.
+//
+// TEST 2 IS THE ANTI-DRIFT MECHANISM. `KnobKind` is a label, not a binding:
+// the vendored compiler says WHICH KINDS a card exposes and nothing anywhere
+// says which `PadState` field a kind moves. HANGAR recovers the bindings in
+// knobs.preset.ts; this file holds the kind set against
+// `presetById(id).knobs` in both directions, so a re-sync that adds or removes
+// a card's knob goes red and NAMES THE CARD instead of leaving a silently
+// short rack.
+//
+// TEST 5 COMPARES COMPILED BODIES, NOT `setupLua`. `compile` writes the
+// state's stamp into the first action's MARKER NAME (`_pad.ts:2419-2421`), and
+// the stamp changes whenever any encoded field changes - so a gate that
+// compared `setupLua` would pass for a knob that moves a field the emitter
+// never reads. Measured: aurora's four `Axis` values give four distinct
+// `setupLua` strings and only TWO distinct bodies, because the wave emitter
+// branches on `antidiagonal` alone. Comparing `action.script` is what makes
+// this gate mean anything at all.
+//
+// The formatter is deliberately NOT awaited. `compile` emits Lua without
+// measuring it, and only `measure`/`cost` reach `GridScript` (`_pad.ts:3042`),
+// so this suite needs none of the 628 KB of WASM - the 08-03 precedent.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { describe, expect, it } from "vitest";
+import {
+  BRIGHTNESS_TABLE,
+  PRESETS,
+  compile,
+  padLightsAnything,
+  presetById,
+  quantiseColour,
+  type PadState,
+} from "../../vendor/botor/_pad";
+import { applyKnob, readKnob } from "./state";
+import {
+  BRIGHTNESS_KNOB_ID,
+  colourTargetFor,
+  presetKnobs,
+  type PresetKnob,
+} from "./knobs.preset";
+
+/** The compiled Lua a visitor would actually get: bodies only, no stamp. */
+function bodies(state: PadState): string {
+  const built = compile(state);
+  return [...built.setup, ...built.timer].map((a) => a.script).join("~");
+}
+
+function stateOf(id: string): PadState {
+  const preset = presetById(id);
+  if (!preset) throw new Error(`the vendored shelf lost ${id}`);
+  return preset.state;
+}
+
+const rgbOf = (literal: string) => {
+  const [r, g, b] = literal.split(",").map((n) => Number.parseInt(n, 10));
+  return { r, g, b };
+};
+const literalOf = (c: { r: number; g: number; b: number }) =>
+  `${c.r},${c.g},${c.b}`;
+
+type Row = { id: string; base: PadState; knobs: readonly PresetKnob[] };
+const ROWS: readonly Row[] = PRESETS.map((preset) => ({
+  id: preset.id,
+  base: preset.state,
+  knobs: presetKnobs(preset.id),
+}));
+
+describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () => {
+  it("gives every shelf card three to six real knobs", () => {
+    expect(ROWS.length).toBe(PRESETS.length);
+    for (const row of ROWS) {
+      expect(row.knobs.length, `${row.id} knob count`).toBeGreaterThanOrEqual(
+        3,
+      );
+      expect(row.knobs.length, `${row.id} knob count`).toBeLessThanOrEqual(6);
+
+      const ids = new Set<string>();
+      for (const knob of row.knobs) {
+        const where = `${row.id}.${knob.id}`;
+        expect(knob.options.length, `${where} options`).toBeGreaterThanOrEqual(
+          2,
+        );
+        expect(knob.default, `${where} default`).toBeGreaterThanOrEqual(0);
+        expect(knob.default, `${where} default`).toBeLessThan(
+          knob.options.length,
+        );
+        expect(knob.label.length, `${where} label`).toBeGreaterThan(0);
+        ids.add(knob.id);
+      }
+      expect(ids.size, `${row.id} knob ids are unique`).toBe(row.knobs.length);
+    }
+  });
+
+  it("exposes exactly the kinds BOTOR declares for each card, both directions", () => {
+    // The carve-out, and why it is by ID and never by kind: `brightness` is
+    // NOT a member of the vendored `KnobKind` union. It is a HANGAR-added
+    // universal knob (D-01's three-knob floor) and it borrows the existing
+    // `amount` kind for its widget - so filtering by kind would also drop
+    // ninepads' channel knob, which IS one of the declared four. One card's
+    // real knob and one added knob share a kind; only the id tells them apart.
+    for (const row of ROWS) {
+      const declared = presetById(row.id)?.knobs ?? [];
+      const mine = row.knobs
+        .filter((knob) => knob.id !== BRIGHTNESS_KNOB_ID)
+        .map((knob) => knob.kind);
+
+      expect([...new Set(mine)].sort(), `${row.id} kinds`).toEqual(
+        [...new Set<string>(declared)].sort(),
+      );
+    }
+  });
+
+  it("defaults every knob to the position the card actually ships at", () => {
+    let checked = 0;
+    for (const row of ROWS) {
+      for (const knob of row.knobs) {
+        expect(readKnob(row.base, knob), `${row.id}.${knob.id} default`).toBe(
+          knob.default,
+        );
+        checked++;
+      }
+    }
+    expect(checked).toBe(ROWS.reduce((n, row) => n + row.knobs.length, 0));
+
+    // Derived defaults could all be a silent zero, so five are also stated by
+    // hand: aurora ships at speed detent 2, ninepads at base note 36, the dial
+    // at sensitivity detent 5, and every lit card at Full brightness.
+    const knobOf = (preset: string, id: string) => {
+      const knob = presetKnobs(preset).find((k) => k.id === id);
+      if (!knob) throw new Error(`${preset} has no ${id} knob`);
+      return knob;
+    };
+    expect(knobOf("aurora", "speed").default).toBe(1);
+    expect(knobOf("aurora", "band").default).toBe(1);
+    expect(knobOf("ninepads", "notes").default).toBe(1);
+    expect(knobOf("dial", "sensitivity").default).toBe(4);
+    expect(knobOf("aurora", BRIGHTNESS_KNOB_ID).default).toBe(4);
+  });
+
+  it("reads back every index it writes, on every knob of every card", () => {
+    let checked = 0;
+    let colourOptions = 0;
+    for (const row of ROWS) {
+      for (const knob of row.knobs) {
+        for (let i = 0; i < knob.options.length; i++) {
+          expect(
+            readKnob(applyKnob(row.base, knob, i), knob),
+            `${row.id}.${knob.id} option ${i} (${knob.options[i]})`,
+          ).toBe(i);
+          checked++;
+        }
+        if (knob.kind !== "colour") continue;
+        // The round trip above only holds for a colour because the option
+        // strings are PRE-QUANTISED: quantiseColour snaps every channel to a
+        // multiple of 17 on the way into the state, so a raw palette literal
+        // would write 0,200,255, read back 0,204,255 and match nothing in its
+        // own list. Each option must therefore be a fixed point.
+        for (const option of knob.options) {
+          expect(
+            literalOf(quantiseColour(rgbOf(option))),
+            `${row.id}.${knob.id} option ${option} is pre-quantised`,
+          ).toBe(option);
+          colourOptions++;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(200);
+    expect(colourOptions).toBeGreaterThan(0);
+  });
+
+  it("ships no decorative knob: every option changes the compiled Lua", () => {
+    let compiles = 0;
+    for (const row of ROWS) {
+      for (const knob of row.knobs) {
+        const seen = new Map<string, string[]>();
+        for (let i = 0; i < knob.options.length; i++) {
+          const key = bodies(applyKnob(row.base, knob, i));
+          seen.set(key, [...(seen.get(key) ?? []), knob.options[i]]);
+          compiles++;
+        }
+        const collisions = [...seen.values()].filter((v) => v.length > 1);
+        expect(
+          collisions,
+          `${row.id}.${knob.id} has options that compile identically`,
+        ).toEqual([]);
+      }
+    }
+    expect(compiles).toBeGreaterThan(200);
+
+    // THE PREDICATE, and why no knob needs an exemption from the gate above.
+    // A card that lights nothing cannot hold a brightness at all: canonicalise
+    // resets it to Full (`_pad.ts:1486`), so every detent would compile to the
+    // same body AND read back as Full. Rather than ship a knob that snaps back
+    // when it is turned, such a card is not offered one - which is what BOTOR's
+    // own panel does (`_pad.ts:883`). Expressed as the predicate, never as an
+    // id: a card that starts lighting something gains the knob by itself.
+    const dark = ROWS.filter((row) => !padLightsAnything(row.base));
+    expect(
+      dark.length,
+      "the shelf still has a card that lights nothing",
+    ).toBeGreaterThan(0);
+    for (const row of dark) {
+      expect(
+        row.knobs.some((knob) => knob.id === BRIGHTNESS_KNOB_ID),
+        `${row.id} lights nothing and must not offer brightness`,
+      ).toBe(false);
+      const detents = new Set(
+        BRIGHTNESS_TABLE.map((entry) =>
+          bodies({ ...row.base, brightness: entry.step }),
+        ),
+      );
+      expect(detents.size, `${row.id} brightness would be a no-op`).toBe(1);
+    }
+  });
+
+  it("derives the colour binding from the state instead of tabulating it", () => {
+    // The rule reproduces BOTOR's own per-card choice for all nine cards:
+    //   look.colour      when the card has a look
+    //   touch.colour     else when its touch response is a coloured one
+    //   sends.gridColour else when it draws its sends picture
+    expect(colourTargetFor(stateOf("aurora"))).toBe("look");
+    expect(colourTargetFor(stateOf("pinwheel"))).toBe("look");
+    expect(colourTargetFor(stateOf("starfield"))).toBe("look");
+    expect(colourTargetFor(stateOf("radar"))).toBe("look");
+    expect(colourTargetFor(stateOf("joystick"))).toBe("touch");
+    expect(colourTargetFor(stateOf("ninepads"))).toBe("sends");
+
+    // And the descriptor moves the field the rule names, rather than a field
+    // that happens to agree on the cards someone checked by hand.
+    const moved = (id: string) => {
+      const base = stateOf(id);
+      const knob = presetKnobs(id).find((k) => k.kind === "colour");
+      if (!knob) throw new Error(`${id} has no colour knob`);
+      const after = applyKnob(base, knob, knob.options.length - 1);
+      return {
+        look: literalOf(after.look.colour) !== literalOf(base.look.colour),
+        touch: literalOf(after.touch.colour) !== literalOf(base.touch.colour),
+        sends:
+          literalOf(after.sends.gridColour) !==
+          literalOf(base.sends.gridColour),
+      };
+    };
+    expect(moved("aurora")).toEqual({ look: true, touch: false, sends: false });
+    expect(moved("joystick")).toEqual({
+      look: false,
+      touch: true,
+      sends: false,
+    });
+    expect(moved("ninepads")).toEqual({
+      look: false,
+      touch: false,
+      sends: true,
+    });
+  });
+});
