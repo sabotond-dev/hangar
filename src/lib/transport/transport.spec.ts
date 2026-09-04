@@ -22,6 +22,21 @@ const ALL_FAILURES: OpenFailure[] = [
   "unknown",
 ];
 
+/**
+ * Phase 2's control. Written once and compared against, rather than repeated as
+ * a literal in six assertions where a typo would read as a passing test.
+ */
+const DEFAULT_LABEL = "Connect";
+
+/** The five failures whose copy tells the visitor to click something. */
+const NAMES_A_CONTROL: OpenFailure[] = [
+  "insecure-context",
+  "cancelled",
+  "port-busy",
+  "unplugged",
+  "unknown",
+];
+
 const transportSource = () =>
   readFileSync(
     fileURLToPath(new URL("./transport.ts", import.meta.url)),
@@ -94,5 +109,56 @@ describe("open failure taxonomy (CONN-02, CONN-04, CONN-05)", () => {
     expect(transportSource(), "transport.ts names an engine").not.toContain(
       "Chromium",
     );
+  });
+
+  it("the copy names the control that is actually on the screen", () => {
+    // D-23 / UI-SPEC W-18: Phase 4's control is called TRY ON DEVICE, and copy
+    // that tells a visitor to click a button which is not on the screen is
+    // worse than no copy. The label is the ONLY thing that moves - titles,
+    // details and step ordering stay Phase 2's words.
+    const joined = (copy: ReturnType<typeof failureCopy>) =>
+      [copy.title, copy.detail, ...copy.steps].join(" ");
+
+    // Asserted before the loop, so an emptied list cannot pass vacuously.
+    expect(
+      NAMES_A_CONTROL,
+      "five of the six failures name a control",
+    ).toHaveLength(5);
+
+    for (const failure of NAMES_A_CONTROL) {
+      const relabelled = joined(
+        failureCopy(failure, "raw text", "TRY ON DEVICE"),
+      );
+      expect(relabelled, `${failure} names Phase 4's control`).toContain(
+        "TRY ON DEVICE",
+      );
+      expect(
+        relabelled,
+        `${failure} still names a button that is not on the screen`,
+      ).not.toContain(DEFAULT_LABEL);
+
+      const asPhaseTwo = joined(failureCopy(failure, "raw text"));
+      expect(
+        asPhaseTwo,
+        `${failure} lost the default label the skeleton page relies on`,
+      ).toContain(DEFAULT_LABEL);
+    }
+
+    // no-web-serial names no control under either label, and that is correct:
+    // there is no button to click on a browser that cannot do it at all.
+    const unsupported = joined(
+      failureCopy("no-web-serial", "raw text", "TRY ON DEVICE"),
+    );
+    expect(
+      unsupported,
+      "the unsupported copy invented a control",
+    ).not.toContain("TRY ON DEVICE");
+    expect(unsupported, "the unsupported copy names a control").not.toContain(
+      DEFAULT_LABEL,
+    );
+    expect(
+      joined(failureCopy("no-web-serial", "raw text")),
+      "the unsupported copy names a control by default",
+    ).not.toContain(DEFAULT_LABEL);
   });
 });
