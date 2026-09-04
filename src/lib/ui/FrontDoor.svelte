@@ -30,10 +30,17 @@
 
   let {
     initialId,
+    notice,
     splash = false,
   }: {
     /** Centre this entry on arrival. Plan 04-09's deep-link route passes it. */
     initialId?: string;
+    /**
+     * Stands in for the fidelity line for a few seconds. The deep-link route
+     * passes it when the address names nothing in the row, so an unknown link
+     * lands on the shelf with an explanation rather than on a dead end.
+     */
+    notice?: string;
     /** Play the opening. / does; a deep link never does (D-12). */
     splash?: boolean;
   } = $props();
@@ -62,7 +69,7 @@
     <span data-testid="header-wordmark">HANGAR</span>
   </h1>
   <p class="headline">You’ve got to start somewhere…</p>
-  <div class="row"><Coverflow {initialId} /></div>
+  <div class="row"><Coverflow {initialId} {notice} /></div>
 </section>
 
 {#if opening}

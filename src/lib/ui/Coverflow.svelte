@@ -37,6 +37,7 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
   import { pushState, replaceState } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { FRONT_DOOR, frontDoorIndex } from "$lib/catalog/front-door";
   import {
@@ -57,10 +58,13 @@
 
   let {
     initialId,
+    notice,
     onskipped,
   }: {
     /** Centre this entry on arrival. An unknown id opens on the row's first. */
     initialId?: string;
+    /** Forwarded to the fidelity line. The deep-link route's unknown-id copy. */
+    notice?: string;
     /**
      * The ids the vendored shelf could not build an engine for. Reported once,
      * after mount, so plan 04-07's name plate can render "{name} - unavailable"
@@ -220,10 +224,39 @@
     host.setHero(heroId());
   }
 
+  /**
+   * Keep the address on whatever is centred (CAT-01, D-12).
+   *
+   * replaceState and NEVER pushState: nine steps must not need nine Back
+   * presses, so Back still leaves the page (04-UI-SPEC W-16). It is also Kit's
+   * import rather than the same-named method on the `history` global, which Kit
+   * monkey-patches and warns about on every arrow press in dev.
+   *
+   * resolve() from $app/paths is what makes this line lint-clean:
+   * svelte/no-navigation-without-resolve accepts an empty string or a resolve()
+   * call as the first argument to replaceState, so NO suppression is needed
+   * here and none may be added. It resolves to /c/{id} without the trailing
+   * slash that trailingSlash: "always" emits; the static host redirects
+   * /c/aurora to /c/aurora/ on a reload, and building a concatenated string the
+   * rule cannot type-check would be the worse trade.
+   *
+   * The current page state is carried through rather than reset to {}: stepping
+   * while chosen re-fills the panel with the neighbour (W-20), and a {} here
+   * would close it on the first arrow press.
+   *
+   * Guarded on `mounted`, because replaceState throws before the router is
+   * initialised and must never run during prerender.
+   */
+  function syncAddress(): void {
+    if (!mounted) return;
+    replaceState(resolve("/c/[id]", { id: heroId() }), page.state);
+  }
+
   function stepBy(delta: number): void {
     if (delta === 0) return;
     centre = step(centre, delta, COUNT);
     syncHost();
+    syncAddress();
     afterStep();
   }
 
@@ -231,6 +264,7 @@
     if (index === centre) return;
     centre = step(index, 0, COUNT);
     syncHost();
+    syncAddress();
     afterStep();
   }
 
@@ -606,7 +640,7 @@
   />
 </div>
 
-<div class="fidelity"><FidelityLine entry={centred} /></div>
+<div class="fidelity"><FidelityLine entry={centred} {notice} /></div>
 
 {#if chosen}
   <div class="panel">

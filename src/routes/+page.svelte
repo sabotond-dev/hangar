@@ -10,6 +10,16 @@
 -->
 <script lang="ts">
   import FrontDoor from "$lib/ui/FrontDoor.svelte";
+
+  /* Visitor-facing copy, in one block. The deep-link route has its own. */
+  const TITLE = "HANGAR";
+  const DESCRIPTION =
+    "A shelf of ZONA configurations, every one of them running live in the firmware’s own simulator. Turn a few knobs, then load one onto your own module.";
 </script>
+
+<svelte:head>
+  <title>{TITLE}</title>
+  <meta name="description" content={DESCRIPTION} />
+</svelte:head>
 
 <FrontDoor splash />
