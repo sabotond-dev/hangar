@@ -7,6 +7,7 @@
 //   import { CATALOG, byId, build, type CatalogEntry } from "$lib/catalog";
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { EUCLID } from "./entries/euclid";
 import { PORTED } from "./entries/ported";
 import type { CatalogEntry } from "./types";
 
@@ -26,7 +27,12 @@ export type {
 } from "./types";
 
 // Hand-authored Lua entries are appended here as they are authored (waves 4-6).
-export const CATALOG: readonly CatalogEntry[] = Object.freeze([...PORTED]);
+export const CATALOG: readonly CatalogEntry[] = Object.freeze([
+  ...PORTED,
+  EUCLID,
+]);
+
+export { EUCLID } from "./entries/euclid";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {

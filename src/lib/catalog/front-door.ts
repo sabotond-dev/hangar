@@ -62,6 +62,10 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     id: "tpad",
     why: "It writes no LEDs at all, so it is a black square. It stays in the catalog; the front door is not where it belongs until a look gives it lights.",
   },
+  {
+    id: "euclid",
+    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+  },
 ];
 
 /**

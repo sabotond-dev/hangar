@@ -1,0 +1,162 @@
+// EUCLID - three Euclidean rings, one polyrhythm. The first configuration
+// authored for HANGAR rather than ported from BOTOR's shelf.
+//
+// Concentric square rings on a 9x9 hold exactly 8, 16 and 24 cells, so three
+// tracks of 8, 16 and 24 steps sit on the pad with no rounding at all. Each
+// ring's pattern comes from the Bresenham Euclidean test
+// (t*k//n ~= (t-1)*k//n) at three, five and seven pulses. Layer 1 holds the
+// static pulse markers - 15 of them lit from Setup, which is why restsBlack is
+// false - and layer 2 carries a bright head running each ring at its own speed
+// with a short decay behind it. The three ring lengths beat against each other
+// on a 48-tick cycle. Tapping a cell toggles that step.
+//
+// THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
+// defaults by renderLua they are byte-identical to the canonical text measured
+// against the pinned minifier: Setup 702 characters, Timer 218, both fixed
+// points of compressScript and both accepted by checkSyntax. That is what makes
+// the budget meter honest, because cost() charges max(compressed, raw) and a
+// readable, indented version of this configuration would be charged its raw
+// length. src/lib/catalog/lua-entries.spec.ts asserts all of it, at the
+// defaults and across the whole knob cross-product.
+//
+// THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
+// compressScript does not strip them: a trailing comment was measured surviving
+// verbatim into the budget. Everything worth saying about this configuration is
+// said here, in TypeScript, where it costs nothing.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+
+const SETUP =
+  "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glc(a,2,@RINGC,1)glp(a,2,0)end self.c={}self.p={}self.i={}local h={@PULSES}for d=1,3 do local n=d*8 local u={}local v={}for t=0,n-1 do local q=t//(d*2)local w=t%(d*2)local a,b if q==0 then a,b=d,w-d elseif q==1 then a,b=d-w,d elseif q==2 then a,b=-d,d-w else a,b=w-d,-d end local m=a+4+(b+4)*9 u[t]=m self.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end self.c[d]=u self.p[d]=v end self.touch_cb=function(s,i,e,x,y)if e~=4 and e~=9 then return end local v=s.i[x*9//128+y*9//128*9]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,s.c[d][t]),1,s.p[d][t]and 255 or 0)end gtt(0,@TEMPO)";
+
+const TIMER =
+  "--[[@cb]]gtt(0,@TEMPO)local s=self local k=(s.k or 0)%24 s.k=k+1 for d=1,3 do local t=k%(d*8)local a=glag(0,s.c[d][t])glpfs(a,2,255,250,0)glt(a,2,@TRAIL)s:gms(@CH,128,@NOTE+d*2,0,0)if s.p[d][t]then s:gms(@CH,144,@NOTE+d*2,100,0)end end";
+
+const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
+
+export const EUCLID: CatalogEntry = {
+  id: "euclid",
+  name: "EUCLID",
+  description:
+    "Three Euclidean rings turn at their own speeds and beat against each other; tap a step to change the pattern.",
+  // Feel-based, never a compiler kind (CONT-03).
+  tags: ["polyrhythm", "generative", "drums", "playable"],
+  featured: true,
+  addedAt: "2026-09-04",
+  source: SOURCE,
+  preview: previewFor(SOURCE),
+
+  // Six knobs - the cap (D-12) - each one literal token substitution over the
+  // shared widget vocabulary the compiler-driven cards use (TUNE-01). The
+  // default of every knob is the INDEX of the value that reproduces the
+  // canonical text, so renderLua at the defaults is the measured 702/218.
+  knobs: [
+    {
+      id: "tempo",
+      label: "Tempo",
+      kind: "speed",
+      token: "@TEMPO",
+      // Milliseconds between steps, ordered fast to slow so the display reads
+      // naturally as the knob turns.
+      values: ["240", "180", "140", "110", "90", "70"],
+      default: 3,
+    },
+    {
+      id: "pulses",
+      label: "Pulses",
+      kind: "count",
+      token: "@PULSES",
+      // Pulses per ring, inner to outer, over 8, 16 and 24 steps. The three
+      // numbers are what make the polyrhythm: 3, 5 and 7 beat on a 48-tick
+      // cycle you can hear immediately.
+      values: ["3,5,7", "2,3,5", "5,9,13", "3,8,11", "4,8,16", "7,11,17"],
+      default: 0,
+    },
+    {
+      id: "ringColour",
+      label: "Ring colour",
+      kind: "colour",
+      token: "@RINGC",
+      // The running head's colour on layer 2, as three uint8 channels. Every
+      // channel here is inside 0..255 on purpose: the firmware truncates rather
+      // than clamps, so 260 would render as 4 and turn a bright cell nearly
+      // black with no warning.
+      values: [
+        "0,200,255",
+        "255,90,0",
+        "0,255,120",
+        "255,255,255",
+        "120,0,255",
+      ],
+      default: 0,
+    },
+    {
+      id: "trail",
+      label: "Trail",
+      kind: "size",
+      token: "@TRAIL",
+      // Ticks of decay behind the head, at 10 ms a tick. Never a keeper: this
+      // layer carries a decaying trail, and 65535 here would replace the
+      // countdown and strobe every touched cell forever.
+      values: ["21", "42", "64", "100", "150"],
+      default: 1,
+    },
+    {
+      id: "note",
+      label: "Base note",
+      kind: "note",
+      token: "@NOTE",
+      // The three voices send this base plus 2, 4 and 6. At the default 34 that
+      // is 36 / 38 / 40 - kick, snare and hat by General MIDI convention.
+      values: ["24", "30", "34", "36", "40", "48", "60"],
+      default: 2,
+    },
+    {
+      id: "channel",
+      label: "MIDI channel",
+      kind: "amount",
+      token: "@CH",
+      // ZERO-BASED, and it is the FIRST argument. The recipe book pins the
+      // signature as self:gms(ch, cmd, p1, p2, mode) at
+      // zona-docs/docs/ZONA_RECIPES.md:1058. It is the one MIDI argument
+      // position worth writing down in prose, because a channel silently
+      // swapped with a command byte produces a configuration that runs clean
+      // and plays nothing.
+      values: [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+      ],
+      default: 0,
+    },
+  ],
+
+  // The same six indices, keyed by knob identifier - the shape Phase 5's tune
+  // panel reads. catalog.spec.ts asserts the two agree.
+  defaults: {
+    tempo: 3,
+    pulses: 0,
+    ringColour: 0,
+    trail: 1,
+    note: 2,
+    channel: 0,
+  },
+
+  // Setup lights the 15 generated pulse cells on layer 1, so the card is lit
+  // before any finger arrives. frames.spec.ts proves this in both directions.
+  restsBlack: false,
+};
