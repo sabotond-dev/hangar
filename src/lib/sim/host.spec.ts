@@ -20,6 +20,7 @@ import { GRID_SIDE } from "./paint";
 import {
   HERO_INTERVAL_MS,
   MAX_CATCHUP_MS,
+  REDUCED_MOTION_TICKS,
   SIDE_INTERVAL_MS,
   TICK_MS,
 } from "./schedule";
@@ -421,5 +422,166 @@ describe("the simulator host (src/lib/sim/host.ts)", () => {
     ).toBeGreaterThan(ticked);
 
     h.host.destroy();
+  });
+  it("stills the row to the representative frame, and a live toggle takes effect without a remount", () => {
+    const h = harness({ reduced: true });
+    const pads = ["a", "b", "c"].map((id) => {
+      const canvas = h.canvas();
+      const engine = fakeEngine();
+      h.host.register(id, canvas, engine);
+      return { id, canvas, engine };
+    });
+
+    for (const pad of pads) {
+      expect(
+        pad.engine.calls.reset,
+        `${pad.id} restarted deterministically`,
+      ).toBe(1);
+      expect(pad.engine.calls.run, `${pad.id} ran to the still frame`).toEqual([
+        REDUCED_MOTION_TICKS,
+      ]);
+      expect(pad.canvas.paints.length, `${pad.id} showed its still frame`).toBe(
+        1,
+      );
+    }
+
+    h.clock.step(0);
+    h.clock.step(50);
+    for (const pad of pads) {
+      expect(
+        pad.engine.calls.tick,
+        `${pad.id} animated under reduced motion`,
+      ).toBe(0);
+    }
+
+    // The operating system toggle, mid-session. Nothing re-registers.
+    h.media.set(false);
+    h.clock.step(60);
+    h.clock.step(80);
+    for (const pad of pads) {
+      expect(
+        pad.engine.calls.tick,
+        `${pad.id} did not start when reduced motion went off`,
+      ).toBeGreaterThan(0);
+      expect(
+        pad.engine.calls.reset,
+        `${pad.id} was restarted rather than simply resumed`,
+      ).toBe(1);
+    }
+
+    h.media.set(true);
+    for (const pad of pads) {
+      expect(
+        pad.engine.calls.run,
+        `${pad.id} did not return to the representative frame`,
+      ).toEqual([REDUCED_MOTION_TICKS, REDUCED_MOTION_TICKS]);
+      expect(pad.engine.calls.reset, `${pad.id} reset count`).toBe(2);
+    }
+
+    h.host.destroy();
+  });
+
+  it("lets a finger move the hero even under reduced motion, one sample per tick", () => {
+    const h = harness({ reduced: true });
+    const canvas = h.canvas();
+    // Never animating on its own: the finger is the only thing that can run it.
+    const engine = fakeEngine(0);
+    h.host.setHero("hero");
+    h.host.register("hero", canvas, engine);
+
+    h.clock.step(0);
+    expect(h.clock.pending, "a still pad with no finger asks for nothing").toBe(
+      0,
+    );
+
+    expect(h.host.touchDown(7, 3, 4), "the contact was taken").toBe(true);
+    h.host.touchMove(7, 4, 4);
+    h.host.touchMove(7, 5, 5);
+    h.host.touchMove(7, 6, 6);
+
+    h.clock.step(10);
+    expect(engine.calls.touch.length, "no tick, no sample").toBe(0);
+
+    h.clock.step(20);
+    expect(
+      engine.calls.touch,
+      "one sample per contact per tick, and the id is the contact SLOT",
+    ).toEqual([["down", 0, 3, 4]]);
+    expect(
+      engine.calls.tick,
+      "the user causing the motion is the reduced-motion carve-out",
+    ).toBe(1);
+
+    h.clock.step(30);
+    expect(
+      engine.calls.touch[1],
+      "three MOVEs coalesced to the newest position",
+    ).toEqual(["move", 0, 6, 6]);
+
+    h.host.touchEnd(7);
+    h.clock.step(40);
+    expect(engine.calls.touch[2], "the lift reached the engine").toEqual([
+      "up",
+      0,
+      6,
+      6,
+    ]);
+
+    const ticked = engine.calls.tick;
+    h.clock.step(50);
+    h.clock.step(60);
+    expect(engine.calls.tick, "the hero settled once the finger left").toBe(
+      ticked,
+    );
+    expect(h.clock.pending, "and the loop stopped").toBe(0);
+
+    h.host.destroy();
+  });
+
+  it("leaves nothing behind when it is destroyed", () => {
+    const h = harness();
+    const pads = ["a", "b"].map((id) => {
+      const canvas = h.canvas();
+      const engine = fakeEngine();
+      h.host.register(id, canvas, engine);
+      return { id, canvas, engine };
+    });
+    h.host.setHero("a");
+    h.host.touchDown(1, 2, 2);
+    h.clock.step(0);
+    h.clock.step(16);
+
+    const handle = h.clock.handle;
+    const queued = h.clock.peek();
+    expect(handle, "a frame was outstanding before destroy").toBeDefined();
+    expect(h.media.subscribed, "the media source was subscribed").toBe(true);
+
+    h.host.destroy();
+
+    expect(
+      h.clock.cancelled,
+      "the outstanding frame was not cancelled",
+    ).toContain(handle);
+    expect(h.io.unobserved, "an observer was left attached").toBe(pads.length);
+    expect(h.io.watching, "the observer still watches something").toBe(0);
+    expect(h.media.stops, "the media subscription was not stopped").toBe(1);
+    expect(h.media.subscribed, "the media listener leaked").toBe(false);
+    for (const pad of pads) {
+      expect(pad.canvas.width, `${pad.id} backing store was not released`).toBe(
+        0,
+      );
+    }
+
+    const ticks = pads.map((pad) => pad.engine.calls.tick);
+    const touches = pads.map((pad) => pad.engine.calls.touch.length);
+    queued?.(32);
+    expect(
+      pads.map((pad) => pad.engine.calls.tick),
+      "a frame queued before destroy still ticked",
+    ).toEqual(ticks);
+    expect(
+      pads.map((pad) => pad.engine.calls.touch.length),
+      "a contact was still held after destroy",
+    ).toEqual(touches);
   });
 });
