@@ -248,7 +248,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "ghost",
     name: "GHOST",
     description:
-      "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger's.",
+      "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger’s.",
     motion: "dark",
     quiet: RESTS_DARK_NOTE,
     tags: ["looper", "automation", "gestural", "generative"],
@@ -273,7 +273,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "morph",
     name: "MORPH",
     description:
-      "Four macros in the corners; slide between them and each corner's brightness is its own weight.",
+      "Four macros in the corners; slide between them and each corner’s brightness is its own weight.",
     motion: "dark",
     quiet: RESTS_DARK_NOTE,
     tags: ["macros", "blend", "readable", "expressive"],

@@ -68,7 +68,7 @@ export const MORPH: CatalogEntry = {
   id: "morph",
   name: "MORPH",
   description:
-    "Four macros in the corners; slide between them and each corner's brightness is its own weight.",
+    "Four macros in the corners; slide between them and each corner’s brightness is its own weight.",
   // Feel-based, never a compiler kind (CONT-03).
   tags: ["macros", "blend", "readable", "expressive"],
   featured: true,

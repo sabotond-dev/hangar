@@ -16,12 +16,23 @@
   An address nobody has heard of lands here too, with index -1, and gets the
   shelf plus a line saying so rather than a dead end.
 
+  AMENDMENT (D-07, plan 05.1-05). The page used to exist only for the eight row
+  entries and it read them out of FRONT_DOOR. It now exists for all sixteen and
+  reads LISTING, so the seven hand-authored Lua configurations and Trackpad are
+  reachable for the first time. A ROW entry still gets Phase 4's eight-pad ring,
+  byte for byte - /c/aurora/ does not move. An OFF-ROW entry gets a ONE-ENTRY
+  ring, which src/lib/coverflow/slots.ts already handles (plan 05.1-04), so its
+  page is about that configuration rather than about the shelf. Widening the
+  ring to sixteen would change a signed-off route for no requirement (D-04).
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { FRONT_DOOR } from "$lib/catalog/front-door";
-  // Both specifiers are safe under config-shape.spec.ts test 13: neither names
-  // the vendored tree, the protocol package nor the compile surface, and
+  import { FRONT_DOOR, frontDoorIndex } from "$lib/catalog/front-door";
+  import { LISTING } from "$lib/catalog/listing";
+  // Every specifier here is safe under config-shape.spec.ts test 13: none names
+  // the vendored tree, the protocol package nor the compile surface,
+  // src/lib/catalog/listing.ts imports nothing at runtime, and
   // src/lib/share/url.ts imports nothing at all, which is why the origin lives
   // there. The image renderer is deliberately NOT imported - it is node-only -
   // so 1200 and 630 appear below as literals beside the sizes it uses.
@@ -49,22 +60,37 @@
   const OG_IMAGE_HEIGHT = "630";
   const TWITTER_CARD = "summary_large_image";
 
-  /** undefined when the address names nothing in the row. */
-  const entry = $derived(
-    data.index === -1 ? undefined : FRONT_DOOR[data.index],
-  );
+  /** undefined when the address names nothing in the catalog. */
+  const listed = $derived(data.index === -1 ? undefined : LISTING[data.index]);
   const title = $derived(
-    entry === undefined ? SITE : `${entry.name} — ${SITE}`,
+    listed === undefined ? SITE : `${listed.name} — ${SITE}`,
   );
-  const description = $derived(entry?.description ?? SHELF_DESCRIPTION);
+  const description = $derived(listed?.description ?? SHELF_DESCRIPTION);
+
+  /*
+    The ring this page opens on.
+
+    A row entry keeps Phase 4's eight-pad ring exactly as it shipped - no
+    behaviour on /c/aurora/ moves. A non-row entry gets a ONE-ENTRY ring, which
+    src/lib/coverflow/slots.ts already handles (05.1-04): visibleWindow is [0],
+    stepping is inert and the name plate renders no arrows. An address nobody
+    has heard of falls to the shelf, which is the same picture / shows.
+    Widening the ring to sixteen would change a signed-off route for no
+    requirement (D-04).
+  */
+  const row = $derived(
+    listed === undefined || frontDoorIndex(listed.id) !== -1
+      ? FRONT_DOOR
+      : [listed],
+  );
 
   /* An address nobody has heard of must not claim to be a configuration, and
      must not produce /og/undefined.png either. It unfurls as the shelf, on the
      opening centre's picture - the same choice / makes. */
   const OPENING = FRONT_DOOR[0];
-  const ogEntry = $derived(entry ?? OPENING);
+  const ogEntry = $derived(listed ?? OPENING);
   const ogUrl = $derived(
-    entry === undefined ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}/c/${entry.id}/`,
+    listed === undefined ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}/c/${listed.id}/`,
   );
   const ogImage = $derived(`${SITE_ORIGIN}/og/${ogEntry.id}.png`);
   const ogImageAlt = $derived(ogAlt(ogEntry.name));
@@ -87,7 +113,8 @@
 </svelte:head>
 
 <FrontDoor
-  initialId={entry?.id}
-  notice={entry === undefined ? UNKNOWN_NOTICE : undefined}
+  {row}
+  initialId={listed?.id}
+  notice={listed === undefined ? UNKNOWN_NOTICE : undefined}
   splash={false}
 />

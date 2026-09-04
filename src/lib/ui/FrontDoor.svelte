@@ -25,14 +25,24 @@
 -->
 <script lang="ts">
   import { untrack } from "svelte";
+  import type { FrontDoorEntry } from "$lib/catalog/front-door";
   import Coverflow from "./Coverflow.svelte";
   import Splash from "./Splash.svelte";
 
   let {
+    row,
     initialId,
     notice,
     splash = false,
   }: {
+    /**
+     * The ring, forwarded verbatim to Coverflow and read by nothing here.
+     * Left undefined by /, which is what makes Coverflow fall to its own
+     * FRONT_DOOR default; /c/{id}/ passes a ONE-ENTRY row for an off-row
+     * configuration (D-07, plan 05.1-05) and FRONT_DOOR for a row entry, so a
+     * signed-off route is byte-for-byte what Phase 4 shipped.
+     */
+    row?: readonly FrontDoorEntry[];
     /** Centre this entry on arrival. Plan 04-09's deep-link route passes it. */
     initialId?: string;
     /**
@@ -69,7 +79,7 @@
     <span data-testid="header-wordmark">HANGAR</span>
   </h1>
   <p class="headline">You’ve got to start somewhere…</p>
-  <div class="row"><Coverflow {initialId} {notice} /></div>
+  <div class="row"><Coverflow {row} {initialId} {notice} /></div>
 </section>
 
 {#if opening}

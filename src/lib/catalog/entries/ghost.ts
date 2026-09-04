@@ -53,7 +53,7 @@ export const GHOST: CatalogEntry = {
   id: "ghost",
   name: "GHOST",
   description:
-    "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger's.",
+    "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger’s.",
   // Feel-based, never a compiler kind (CONT-03).
   tags: ["looper", "automation", "gestural", "generative"],
   featured: false,
