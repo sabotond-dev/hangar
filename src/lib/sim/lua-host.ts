@@ -135,9 +135,29 @@ const TOUCH_DISPATCH = [
   "end",
 ].join("\n");
 
+// restart()'s two halves. The snapshot runs once, after the Grid API and the
+// prelude are in place and BEFORE Setup, so every key it records is one the
+// host put there; the wipe removes everything Setup (or a Timer, or a touch
+// handler) added afterwards. Clearing a field of a table while traversing it
+// with pairs() is explicitly permitted in Lua - only ADDING one during a
+// traversal is undefined - so the wipe is a single pass and needs no key list.
+//
+// This is what makes restart() a real reset rather than a re-run over a dirty
+// global table: after it, _G holds exactly the keys it held before Setup first
+// ran, and `self` is a brand new empty table.
+const PRISTINE_SNAPSHOT = [
+  "__hangar_pristine = {}",
+  "for k in pairs(_G) do __hangar_pristine[k] = true end",
+].join("\n");
+
+const RESTART_WIPE =
+  "for k in pairs(_G) do if not __hangar_pristine[k] then _G[k] = nil end end";
+
 export class LuaHost {
   private readonly sim: PadSim;
   private readonly engine: LuaEngine;
+  /** Kept so restart() can re-run Setup without rebuilding the VM. */
+  private setupSource = "";
 
   /** The Setup-assigned self.touch_cb, reached through a Lua-side dispatcher. */
   private touchFn:
@@ -191,6 +211,7 @@ export class LuaHost {
     setup: string,
     timer: string | undefined,
   ): Promise<void> {
+    this.setupSource = setup;
     this.registerGlobals();
 
     // `self` is created in LUA, never marshalled in from JS. A configuration
@@ -216,18 +237,86 @@ export class LuaHost {
       this.timerFn = this.engine.global.get("__hangar_timer") as () => unknown;
     }
 
+    // Everything in _G at THIS moment is the host's own furniture. Recorded
+    // before Setup runs so restart() can tell the two apart.
+    await this.engine.doString(PRISTINE_SNAPSHOT);
+
     await this.engine.doString(setup);
 
     // Installed AFTER Setup, so it reads the self.touch_cb Setup assigned. The
     // dispatcher reads the field on every call rather than capturing it, so a
     // configuration that reassigns touch_cb later is honoured.
     await this.engine.doString(TOUCH_DISPATCH);
-    this.touchFn = this.engine.global.get("__hangar_touch") as (
+    this.touchFn = this.readTouchFn();
+  }
+
+  private readTouchFn(): (
+    i: number,
+    e: number,
+    x: number,
+    y: number,
+  ) => unknown {
+    return this.engine.global.get("__hangar_touch") as (
       i: number,
       e: number,
       x: number,
       y: number,
     ) => unknown;
+  }
+
+  /**
+   * Firmware page-load semantics, in the VM this host already owns.
+   *
+   * grid_led_reset zeroes every stop, phase, rate, shape and timeout on all 81
+   * LEDs and all three layers, then Setup rebuilds from scratch - PadSim.reset()
+   * is exactly that half. This adds the Lua half: every global Setup created is
+   * removed, `self` is rebuilt empty, Setup re-runs, and the touch dispatcher is
+   * reinstalled over whatever touch_cb the new Setup assigned.
+   *
+   * SYNCHRONOUS on purpose. SimEngine.reset() is synchronous because
+   * src/lib/sim/host.ts calls it from register() on the reduced-motion path,
+   * where there is nothing to await into; the VM is already loaded by
+   * construction, so doStringSync has nothing to wait for. The Timer wrapper is
+   * NOT recompiled - it was compiled once at create and resolves `self` as a
+   * global at call time, so it picks up the new table for free.
+   *
+   * Setup is re-run under the same pcall discipline as any other handler
+   * (grid_lua.c:369): it already ran once at create, so a raise here is close to
+   * impossible, and recording it beats throwing out of a row's mount.
+   */
+  restart(): void {
+    // Host state first, so a Setup that calls txma or gtt writes into a clean
+    // slate rather than being overwritten a line later.
+    this.fifo.length = 0;
+    this.gate.clear();
+    this.msClock = 0;
+    this._tickCount = 0;
+    this.timerDeadline = null;
+    this._coordMax = 127;
+    this._rxMode = undefined;
+    this.midiLog.length = 0;
+    this.errorLog.length = 0;
+    this.sim.reset();
+
+    this.guarded(() => {
+      this.engine.doStringSync(RESTART_WIPE);
+      this.engine.doStringSync(SELF_PRELUDE);
+      this.engine.doStringSync(this.setupSource);
+      this.engine.doStringSync(TOUCH_DISPATCH);
+      this.touchFn = this.readTouchFn();
+    });
+  }
+
+  /**
+   * The keys currently in the VM's global table. Test-facing: it is what lets a
+   * spec assert that restart() really restored a clean _G rather than re-running
+   * Setup over a dirty one.
+   */
+  globalKeys(): readonly string[] {
+    const keys = this.engine.doStringSync(
+      "local t = {} for k in pairs(_G) do t[#t+1] = tostring(k) end return t",
+    ) as unknown;
+    return Array.isArray(keys) ? (keys as string[]) : [];
   }
 
   // -------------------------------------------------------------------------

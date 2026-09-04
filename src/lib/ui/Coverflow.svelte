@@ -30,7 +30,14 @@
   module scope, which is a 131 KB chunk, and a static import would put it on the
   front door's critical path. The row's frames, dots and gutters are in the
   prerendered HTML and are visible before any of that resolves; the canvases
-  fill in when it does (04-CONTEXT D-21).
+  fill in when it does (04-CONTEXT D-21). The same rule covers the Lua VM: an
+  engine is asked for by entry.preview through $lib/sim/engine's createEngine,
+  whose "lua" branch is itself a dynamic import, so a row of ported entries
+  never fetches the VM's 271 KB of WebAssembly (08-CONTEXT D-07).
+
+  An entry the catalog cannot build an engine for is SKIPPED, never crashed on
+  (08-CONTEXT D-08 as amended in plan 08-03): its id goes into `skipped`, the
+  name plate says "unavailable", and every other pad in the row still animates.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -47,7 +54,8 @@
     step,
     visibleWindow,
   } from "$lib/coverflow/slots";
-  import { SimHost, type HostEngine } from "$lib/sim/host";
+  import type { SimEngine } from "$lib/sim/engine";
+  import { SimHost } from "$lib/sim/host";
   import { mapAxis } from "$lib/sim/touch";
   import ChosenPanel from "./ChosenPanel.svelte";
   import FidelityLine from "./FidelityLine.svelte";
@@ -154,7 +162,7 @@
   // of the 100 ticks a second is the exact cliff rule 3 above exists to avoid.
   // Neither map is ever read from the markup, so nothing needs to react to it.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
-  const engines = new Map<string, HostEngine>();
+  const engines = new Map<string, SimEngine>();
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
   const elements = new Map<string, HTMLCanvasElement>();
 
@@ -511,27 +519,33 @@
     host = new SimHost();
 
     void (async () => {
-      const [{ PadSim }, { presetById }] = await Promise.all([
-        import("../../vendor/botor/pad-sim"),
-        import("../../vendor/botor/_pad"),
+      const [{ createEngine }, { byId }] = await Promise.all([
+        import("$lib/sim/engine"),
+        import("$lib/catalog"),
       ]);
       if (!mounted) return;
       const missing: string[] = [];
       for (const entry of FRONT_DOOR) {
-        const preset = presetById(entry.id);
-        if (preset === undefined) {
-          // The catalog grows underneath this phase. An entry the vendored
-          // shelf does not know renders as a frame and a dot field with no
-          // canvas - the broken-entry state the contract specifies - rather
-          // than blanking the row.
+        // The catalog grows underneath this phase. An entry no engine can be
+        // built for - an id the catalog does not know, a preset the vendored
+        // shelf does not know, a preview kind with no engine behind it - renders
+        // as a frame and a dot field with no canvas, which is the broken-entry
+        // state the contract specifies, rather than blanking the row.
+        const configuration = byId(entry.id);
+        try {
+          if (configuration === undefined) {
+            throw new Error(`no catalog entry with id "${entry.id}"`);
+          }
+          engines.set(entry.id, await createEngine(configuration));
+        } catch (error) {
           missing.push(entry.id);
           console.warn(
             `Coverflow: no simulator engine for "${entry.id}"; its pad renders unlit.`,
+            error,
           );
-          continue;
         }
-        engines.set(entry.id, new PadSim(preset.state));
       }
+      if (!mounted) return;
       skipped = missing;
       for (const entry of FRONT_DOOR) adopt(entry.id);
       syncHost();
