@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-09-04T11:04:33.783Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-09-04T11:40:26.200Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 37
-  percent: 82
+  completed_plans: 38
+  percent: 84
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 5 of 12 (05-04 complete)
-Status: In progress — wave 5 next (05-05, the base36 stamp codec and the share URL)
+Plan: 6 of 12 (05-05 complete)
+Status: In progress — wave 6 next (05-06, the OG image: the PNG encoder and the pad painter)
 Last activity: 2026-09-04
 
-Progress: [████████░░] 82%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Progress: [████████░░] 82%
 | Phase 05 P02 | 18 min | 3 tasks | 6 files |
 | Phase 05 P03 | 20 min | 3 tasks | 6 files |
 | Phase 05 P04 | 30 min | 3 tasks | 5 files |
+| Phase 05 P05 | 30 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -218,6 +219,10 @@ Recent decisions affecting current work:
 - [Phase 05]: tpad cannot produce a fit ladder at ANY reserve - its only sheet is sends and the compiler refuses to shed sends - so the phase's over-budget guards use two measured reserves: tpad at { setup: 20 } for the block (922/908, free -14) and dial at { setup: 300 } for the block AND a four-step ladder (946/908, free -38)
 - [Phase 05]: ladderFor() in model.ts is the single call site of fitState, guarded by needsLadder as its last statement, shared by the debounced measurement and SURPRISE ME's exhausted roll - fit() is N+1 minifier calls and a second call site is a second run nobody counted
 - [Phase 05]: model.ts calls the vendored compile/fits synchronously in ONE named helper (fitsAfterGate) after awaiting padReady() through $lib/pad, because surpriseIndices takes a synchronous fits by design and HANGAR's compile surface is async throughout
+- [Phase 05]: The shipped knob cross-product is 32,852 states, not the research's 16,645 - plan 05-03's send (12) and channel (16) knobs are wider than the proposal - so reachability.sweep.spec.ts runs 93.4 s against its own 60 s threshold; cost() still runs on all 32,852 with no sampling and the whole sweep is 85.2 s inside its 120 s one
+- [Phase 05]: model.ts resolves its rack through stamp.ts's compilerKnobs/stampKnobs rather than inline presetKnobs/luaKnobs, because a stamp is POSITIONAL: two copies of the rack rule agreeing today is not the same property as one copy that cannot disagree
+- [Phase 05]: An added or removed knob lands unreadable and only a RESIZED knob lands older - the length check fires before the shape character is read; older is unreachable for compiler entries at all, because decodeStamp fails closed and cannot tell an old encoding from a corrupt one
+- [Phase 05]: The reachability sweep prints its per-preset table through a stream method assembled from fragments, because ladder.spec.ts's never-writes guard scans every file in src/lib/tune/ and that guard is right - the report was made to fit the guard, not the other way round
 
 ### Pending Todos
 
@@ -234,6 +239,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T11:04:04.924Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-09-04T11:40:13.222Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
