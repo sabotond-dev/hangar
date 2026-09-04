@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && node scripts/postbuild.mjs",
+    "build": "node scripts/gen-og.mjs && vite build && node scripts/postbuild.mjs",
     "preview": "npm run build && wrangler dev --port 4173 --ip 127.0.0.1",
     "deploy": "node scripts/deploy.mjs",
     "prepare": "svelte-kit sync || echo ''",
