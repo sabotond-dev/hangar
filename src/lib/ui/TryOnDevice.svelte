@@ -39,6 +39,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
+  import { tryOnBudgetReason } from "$lib/tune/copy";
   import PadSpinner from "./PadSpinner.svelte";
 
   // Type-only references, so no static specifier here names a module that
@@ -53,6 +54,7 @@
 
   let {
     entry,
+    budgetReason,
   }: {
     /**
      * The chosen configuration. Nothing on the device path reads it in this
@@ -62,6 +64,14 @@
      * to the session, not to the configuration (04-UI-SPEC W-20).
      */
     entry: FrontDoorEntry;
+    /**
+     * Phase 5's over-budget reason, or undefined while the configuration fits.
+     * When it is present the control is a real `disabled` button and this
+     * sentence is what the honesty slot shows. It arrives ALREADY WRITTEN, from
+     * $lib/tune/copy's tryOnBudgetReason - this component authors no sentence
+     * about a budget it cannot measure.
+     */
+    budgetReason?: string;
   } = $props();
 
   // ---------------------------------------------------------------------------
@@ -83,6 +93,17 @@
   const HONESTY =
     "Connects to your ZONA and identifies it. Writing arrives in the next release — this never writes.";
   const IDENTIFIED_REASON = "Your ZONA is already identified.";
+  /**
+   * The sizing twin for the third string, and the reason this component imports
+   * from $lib/tune/copy at all. The slot has to reserve room for the budget
+   * reason BEFORE one exists, or the reservation would arrive at the same
+   * moment as the jump it prevents. tryOnBudgetReason's longest form is the
+   * "Setup and Timer" one, so that is what the hidden twin is sized on - and it
+   * is the real function rather than a transcription, so the two cannot drift.
+   * $lib/tune/copy imports nothing at all, compiler included, which is what
+   * makes a static import of it safe here (config-shape.spec.ts test 13).
+   */
+  const BUDGET_SIZING = tryOnBudgetReason("Setup and Timer");
   const DISCONNECT = "DISCONNECT ZONA";
 
   const STATUS_CHOOSING = "Pick the ZONA in the browser’s list.";
@@ -169,7 +190,31 @@
       connecting ||
       phase === "identified" ||
       phase === "unsupported" ||
-      phase === "insecure",
+      phase === "insecure" ||
+      budgetReason !== undefined,
+  );
+
+  /**
+   * Which of the honesty slot's three strings is the visible one. The other two
+   * are still rendered, as sizing twins - see the style block.
+   *
+   * PRECEDENCE, and it is the UI spec's rule extended by one step. A browser
+   * that cannot install at all outranks the budget: the permanent obstacle is
+   * the honest one to state, and its own words are already in the connect-state
+   * region below, so the slot keeps the standing honesty line. `identified`
+   * outranks it too, because in THIS phase the control does nothing but
+   * identify - once it has, the budget is not what is stopping it, and the
+   * over-budget configuration still has the message block beside the knobs
+   * saying so in full.
+   */
+  const shown: "honesty" | "identified" | "budget" = $derived(
+    phase === "unsupported" || phase === "insecure"
+      ? "honesty"
+      : phase === "identified"
+        ? "identified"
+        : budgetReason !== undefined
+          ? "budget"
+          : "honesty",
   );
 
   // ---------------------------------------------------------------------------
@@ -349,9 +394,29 @@
     <span class="label">{connecting ? CONNECTING : primaryLabel}</span>
   </button>
 
-  <p class="honesty" id="try-on-reason">
-    {phase === "identified" ? IDENTIFIED_REASON : HONESTY}
-  </p>
+  <div class="honesty" id="try-on-reason">
+    <p
+      class="line"
+      class:twin={shown !== "honesty"}
+      aria-hidden={shown !== "honesty"}
+    >
+      {HONESTY}
+    </p>
+    <p
+      class="line"
+      class:twin={shown !== "identified"}
+      aria-hidden={shown !== "identified"}
+    >
+      {IDENTIFIED_REASON}
+    </p>
+    <p
+      class="line"
+      class:twin={shown !== "budget"}
+      aria-hidden={shown !== "budget"}
+    >
+      {budgetReason ?? BUDGET_SIZING}
+    </p>
+  </div>
 
   <div class="status" data-testid="connect-status" aria-live="polite">
     {#if phase === "choosing"}
@@ -435,6 +500,14 @@
     Disabled is a real attribute, and it is still two colours: the fill goes to
     nothing, the border becomes the functional line, the label drops to the dim
     rung of the ladder. There is no grey here and no third hue.
+
+    THE ALARM RED IS NEVER APPLIED TO THIS BUTTON, and the over-budget state is
+    where the temptation is: X-01 scopes that token to three uses, all of them
+    inside a meter or the message beside the knobs, and a red primary control
+    would say "dangerous" when the truth is "not yet". This paragraph names the
+    token it forbids, which is exactly why the gate over it strips comments
+    before it counts - a raw grep would fail on the sentence documenting the
+    rule.
   */
   .primary:disabled {
     background: transparent;
@@ -443,13 +516,53 @@
     cursor: not-allowed;
   }
 
-  /* Body role, 8px under the button (04-UI-SPEC, Spacing, sm). */
+  /*
+    THE RESERVED HONESTY SLOT, and it is the other half of "the primary control
+    never moves".
+
+    This slot holds one of THREE sentences: the standing honesty line, the
+    already-identified line, and Phase 5's over-budget reason. All three are
+    Body 16px/1.5 and all three wrap to a different number of lines at the
+    panel's width. Swapping one for another would therefore change the slot's
+    height and shove everything below it - the whole tuning region, the rack,
+    the meters, the thing the visitor is looking at - by roughly 24px, at the
+    exact instant a knob crosses 908. That is the worst possible moment for the
+    page to jump.
+
+    The reservation is two declarations and one piece of markup:
+
+      1. min-block-size: 72px - three Body lines at 16px/1.5, the floor.
+      2. a ONE-CELL GRID: all three sentences occupy grid-area 1 / 1, so the
+         cell is sized on the TALLEST OF THE THREE at whatever width the panel
+         currently is, not only at the 372px the 72px floor was derived at.
+      3. the two inactive ones carry visibility: hidden, which already removes
+         them from the accessibility tree; aria-hidden makes that explicit
+         rather than incidental.
+
+    Three and not two. The component swapped between the first two long before
+    Phase 5 existed, so sizing on two of the three would leave the IDENTIFY path
+    free to resize the slot - the same jump, moved to a different moment. And
+    the third twin is rendered even while no budget reason exists, or the
+    reservation would arrive at the same instant as the jump it prevents.
+  */
   .honesty {
-    margin: 8px 0 0;
+    display: grid;
+    margin-block-start: 8px;
+    min-block-size: 72px;
+  }
+
+  /* Body role, 8px under the button (04-UI-SPEC, Spacing, sm). */
+  .line {
+    grid-area: 1 / 1;
+    margin: 0;
     font-size: 16px;
     font-weight: 400;
     line-height: 1.5;
     color: var(--color-ink-quiet);
+  }
+
+  .twin {
+    visibility: hidden;
   }
 
   /* Empty while idle, and it takes no space then. */
