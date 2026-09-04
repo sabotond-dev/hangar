@@ -87,7 +87,7 @@ browse catalog (Phase 5.1), and adds no accounts or backend.
   produce, and Lua entries are in budget by construction. TUNE-04 and TUNE-05 are therefore built
   as **tested guards** (the ladder line and the over-budget block exist, are unit-tested by forcing
   a synthetic over-budget result, and are exercised by a `/dev/tune/` probe that injects one), while
-  the meters carry the visible story through the compiler's own warn/error thresholds (606 / 890;
+  the meters carry the visible story through the approved UI spec's four states — measuring, settled, stale, over — with no intermediate warn bands (the compiler's 606 / 890 thresholds are not surfaced;
   tpad sits at 902/908). The requirements are not restated; their traceability rows will carry this
   qualifier at phase close. Open for the user.
 - **D-18:** Module split dictated by Phase 4's chunk guard (`config-shape.spec.ts` test 13 rejects any
