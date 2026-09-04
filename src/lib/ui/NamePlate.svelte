@@ -9,6 +9,15 @@
   "Choose {name}" while its visible text stays the bare name (04-UI-SPEC,
   Accessibility Contract).
 
+  ON A ROW OF ONE - and on wave 6's browse card - `arrows` is false and the two
+  triangles are ABSENT rather than disabled, leaving the name alone in the same
+  box. A plate without arrows means "this pad has no row", which is a rule a
+  visitor learns on the browse screen and reads correctly on an off-row
+  configuration's page (05.1-UI-SPEC Screen 4, W-09). Nothing about the box
+  changes: the height, the radius, the border and the hover are the same
+  declarations, because the name button is what sets the 44px and it is always
+  rendered.
+
   The plate is placed AFTER the band in the DOM on purpose: the approved tab
   order is listbox -> back -> name -> forward, and source order gives that for
   free rather than through tabindex juggling.
@@ -28,23 +37,39 @@
 <script lang="ts">
   import { prefersReducedMotion } from "svelte/motion";
   import { fade } from "svelte/transition";
-  import type { FrontDoorEntry } from "$lib/catalog/front-door";
 
   let {
     entry,
     unavailable = false,
+    arrows = true,
     onprev,
     onnext,
     onchoose,
   }: {
-    /** The centred entry. Its name is the plate's only text. */
-    entry: FrontDoorEntry;
+    /**
+     * The centred entry, declared STRUCTURALLY rather than imported. It is the
+     * `HostEngine` pattern from src/lib/sim/host.ts, used for the same reason:
+     * wave 6's browse card renders this plate from a `ListingEntry` while the
+     * coverflow renders it from a `FrontDoorEntry`, and a structural shape lets
+     * one component serve both with no shared data module and no import either
+     * way. Its name is the plate's only text.
+     */
+    entry: { id: string; name: string };
     /**
      * True when the row could not build a simulator engine for this entry.
      * Coverflow reports the set through its onskipped callback; the plate then
      * says so in the copy contract's words instead of pretending it is playable.
      */
     unavailable?: boolean;
+    /**
+     * False on a row of one and on a browse card: there is no row to step.
+     *
+     * The two triangles are then ABSENT rather than disabled. A disabled
+     * control implies a state in which it would work, and there is none
+     * (05.1-UI-SPEC Screen 4, W-09). The box keeps its 44px height, its 6px
+     * radius, its border and its hover exactly.
+     */
+    arrows?: boolean;
     onprev: () => void;
     onnext: () => void;
     /**
@@ -66,17 +91,19 @@
 </script>
 
 <div class="plate" data-testid="nameplate" data-name={entry.name}>
-  <button
-    class="arrow"
-    type="button"
-    data-testid="nameplate-prev"
-    aria-label="Previous configuration"
-    onclick={onprev}
-  >
-    <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
-      <polygon points="10,0 10,12 0,6" fill="currentColor" />
-    </svg>
-  </button>
+  {#if arrows}
+    <button
+      class="arrow"
+      type="button"
+      data-testid="nameplate-prev"
+      aria-label="Previous configuration"
+      onclick={onprev}
+    >
+      <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
+        <polygon points="10,0 10,12 0,6" fill="currentColor" />
+      </svg>
+    </button>
+  {/if}
 
   <button
     class="name"
@@ -95,17 +122,19 @@
     {/key}
   </button>
 
-  <button
-    class="arrow"
-    type="button"
-    data-testid="nameplate-next"
-    aria-label="Next configuration"
-    onclick={onnext}
-  >
-    <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
-      <polygon points="0,0 0,12 10,6" fill="currentColor" />
-    </svg>
-  </button>
+  {#if arrows}
+    <button
+      class="arrow"
+      type="button"
+      data-testid="nameplate-next"
+      aria-label="Next configuration"
+      onclick={onnext}
+    >
+      <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
+        <polygon points="0,0 0,12 10,6" fill="currentColor" />
+      </svg>
+    </button>
+  {/if}
 </div>
 
 <style>

@@ -844,6 +844,7 @@
   <NamePlate
     entry={centred}
     unavailable={skipped.includes(centred.id)}
+    arrows={count > 1}
     onprev={() => stepBy(-1)}
     onnext={() => stepBy(1)}
     onchoose={choose}

@@ -28,14 +28,26 @@
 -->
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import type { FrontDoorEntry } from "$lib/catalog/front-door";
 
   let {
     entry,
     hero = false,
     children,
   }: {
-    entry: FrontDoorEntry;
+    /**
+     * Declared STRUCTURALLY rather than imported - the `HostEngine` pattern
+     * from src/lib/sim/host.ts, for the same reason: wave 6's browse card
+     * renders this frame from a `ListingEntry` and the coverflow renders it
+     * from a `FrontDoorEntry`, and one shape serves both with no import either
+     * way.
+     *
+     * `{ id }` and NOT `{ id; name }`, which is what the plan's interfaces
+     * block proposed: this component renders no text at all - the id is the
+     * test id and nothing else is read - and `svelte/no-unused-props` fails an
+     * unused declared property. The narrower shape is still satisfied by both
+     * entry types, so it costs the browse card nothing.
+     */
+    entry: { id: string };
     hero?: boolean;
     children?: Snippet;
   } = $props();

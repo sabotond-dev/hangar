@@ -19,14 +19,20 @@
 -->
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { FrontDoorEntry } from "$lib/catalog/front-door";
 
   let {
     entry,
     hero = false,
     onready,
   }: {
-    entry: FrontDoorEntry;
+    /**
+     * Declared STRUCTURALLY rather than imported - the `HostEngine` pattern
+     * from src/lib/sim/host.ts, for the same reason: wave 6's browse card
+     * renders this canvas from a `ListingEntry` and the coverflow renders it
+     * from a `FrontDoorEntry`, and one shape serves both with no import either
+     * way. The id keys the registration; the name is the accessible one.
+     */
+    entry: { id: string; name: string };
     hero?: boolean;
     /** Hands the element to the parent, which is what registers it. */
     onready: (id: string, canvas: HTMLCanvasElement) => void;
