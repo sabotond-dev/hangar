@@ -37,10 +37,12 @@ still agree with each other, and the hard-coded-literal assertion would not.
 ## The bump gate (D-11)
 
 Moving the pin is a reviewed decision, never a routine update. A human follows this checklist, in
-order, and all five items must hold:
+order, and all six items must hold:
 
 1. The vendored compiler and simulator suite is green: `npm run test:quick` reports 176 tests in
-   `src/vendor/botor/tests/pad.test.js` and 96 in `pad-sim.test.js`, and `npm run test:sweep` reports 9.
+   `src/vendor/botor/tests/pad.test.js` and 96 in `pad-sim.test.js`, and
+   `src/vendor/botor/tests/pad-invariants.test.js` reports 9 inside a `npm run test:sweep` run of
+   3 files / 13 tests.
 2. Every catalog preset's `compressScript` **length** is byte-identical to
    `src/lib/fidelity/preset-baseline.json`. Not `cost().used`: that is
    `max(compressed, raw) + reserved`, and the raw length wins for all nine presets, so it is blind to
@@ -58,11 +60,17 @@ order, and all five items must hold:
    log. Item (2) cannot see any of this — it covers the nine shelf presets only.
 5. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
    below. A moved cost is a change to the budget every preset is calibrated against, not a detail.
+6. **The reachability sweep is re-run:** `npm run test:sweep` reports **3 files / 13 tests**. The
+   unreachability finding behind TUNE-04 and TUNE-05 — no knob state any visitor can produce goes
+   over 908, measured across all 32,852 of them — is a property of the pinned compiler, not a law.
+   `src/lib/tune/reachability.sweep.spec.ts` is what turns a bump that moves the 908-character ladder
+   into a red test instead of a silent behaviour change, and it is the only gate that would notice.
 
 Items (1), (2) and (4) are **enforceable as of Phase 8** — (1) and (2) since Phase 3, (4) since the
-catalog gate landed. The vendored suite lives in
+catalog gate landed. Item (6) is enforceable as of Phase 5. The vendored suite lives in
 `src/vendor/botor/tests/` and runs under `npm run test:quick` (the compiler and simulator suites) and
-`npm run test:sweep` (the 9-test invariant sweep). The recorded baseline is
+`npm run test:sweep`, whose 13 tests are the 9-test invariant sweep plus the two Phase 5 sweeps item
+(6) is about. The recorded baseline is
 `src/lib/fidelity/preset-baseline.json`, captured from BOTOR's own compiler at the pinned commit by
 `scripts/capture-preset-baseline.mjs`; `src/lib/fidelity/preset-baseline.spec.ts` asserts the vendored
 compiler reproduces it character for character, and the last test in `src/lib/protocol-pin.spec.ts`

@@ -11,19 +11,20 @@ work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, at the end of Phase 8 wave 7. Wall
-times are the whole command including npm and process startup; the parenthesised figure is the
-runner's own reported duration. Every number here is **observed**, never predicted — the tree is
-shared with Phase 8, so a row that was guessed rather than run is worse than no row at all.
+Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, at the end of Phase 5 — the last
+wave of the tuning and sharing work. Wall times are the whole command including npm and process
+startup; the parenthesised figure is the runner's own reported duration. Every number here is
+**observed**, never predicted — the tree is shared between phases, so a row that was guessed rather
+than run is worse than no row at all.
 
-| Command                      | Covers                                                                     | Measured                                                                                |
-| ---------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 42 files, 559 passed + 1 todo (560); 7 s wall (4.7 s)                                   |
-| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (38.3 s)                                                     |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 43 files, 568 passed + 1 todo (569); 46 s wall (44.9 s)                                 |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 23 tests; 34.1 s runner time, 36 s wall including the build and the wrangler cold start |
-| `npm run check`              | `svelte-check` over the whole project                                      | 455 files, 0 errors, 0 warnings; 7 s wall                                               |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0; 30 s wall                                                                       |
+| Command                      | Covers                                                               | Measured                                                                       |
+| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `npm run test:quick`         | the `server` Vitest project — everything except the two sweeps       | 58 files, 646 passed + 1 todo (647); 33 s wall (31.5 s)                        |
+| `npm run test:sweep`         | the `sweep` project: three files, and 96% of its cost is one of them | 3 files, 13 tests; 144 s wall (141.2 s)                                        |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 61 files, 659 passed + 1 todo (660); 129 s wall (127.0 s)                      |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 44 tests; 37.8 s runner time, 39 s wall including the build and the cold start |
+| `npm run check`              | `svelte-check` over the whole project                                | 494 files, 0 errors, 0 warnings; 7 s wall                                      |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 14 s wall                                                              |
 
 The sampling rule, in three lines:
 
@@ -34,17 +35,23 @@ The sampling rule, in three lines:
 ## Why there are two Vitest projects
 
 `src/vendor/botor/tests/pad-invariants.test.js` sweeps 4,860 labelled states — 1,620 kind
-combinations times three brightness levels — and accounts for almost all of the whole-run wall
-time: 36.4 s of a 38.3 s two-project run, against 3.9 s for the other twenty-six files. That is the
-whole reason it is a separate project rather than one more file in `server`.
+combinations times three brightness levels — and when it was the only member of the `sweep` project
+it accounted for almost all of the whole-run wall time: 36.4 s of a 38.3 s two-project run, against
+3.9 s for the other twenty-six files. That is the whole reason it is a separate project rather than
+one more file in `server`.
+
+**The project has three members as of Phase 5**, and the rule that admits a file is its cost, never
+its subject: anything matching `*.sweep.spec.ts` joins it. See the Phase 5 section below for the
+per-file numbers — the short version is that
+`src/lib/tune/reachability.sweep.spec.ts` now dominates the run at 125 s of 141 s.
 
 The sweep is the anti-drift mechanism. It runs less **often** — per wave, not per task — and never
 less **fully**. Do not trim it, do not sample a subset of the states, do not add a `--bail`, and do
 not move it back into the `server` project to "simplify the config". If it is slow, that is the
 cost of the guarantee it provides.
 
-Note also that `server` excludes the sweep by **file name**, never by directory. A directory-wide
-`src/vendor/**` exclusion is exactly the failure described next.
+Note also that `server` excludes both sweeps by **file name and by the `.sweep.` infix**, never by
+directory. A directory-wide `src/vendor/**` exclusion is exactly the failure described next.
 
 ## The green-and-vacuous trap
 
@@ -295,6 +302,142 @@ the e2e watches. The perturbation that does turn the e2e red is reaching the VM 
 path - an `onMount` that calls `luaReady()` - which was observed to put exactly one URL on the cold
 load, `/_app/immutable/assets/glue.Dlydm7r2.wasm`. Keep both layers; they fail for different reasons.
 
+## Tuning, budgets and shareable links
+
+Phase 5 added **fifteen** `server` spec files, **two** `sweep` files, **two** Playwright files and one
+more unlinked probe route. Every count below was observed on 2026-09-04 after the phase's last plan,
+by running each file on its own; the cost column is the wall time of that single-file run.
+
+| File                                | Tests | Cost    | What it holds                                                                                                            |
+| ----------------------------------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/tune/copy.spec.ts`         | 6     | 0.38 s  | the Copywriting Contract as executable rules: sentence case, no exclamation, the compiler's own words never rewritten    |
+| `src/lib/tune/idle.spec.ts`         | 3     | 0.22 s  | D-08's prefetch shim: `requestIdleCallback` where it exists, `setTimeout` where it does not, and an idempotent cancel    |
+| `src/lib/tune/view.spec.ts`         | 8     | 0.53 s  | the zero-import view seam: the twelve knob kinds, the widget rule, and `over` outranking staleness on a meter            |
+| `src/lib/tune/state.spec.ts`        | 5     | 0.44 s  | the reimplemented `withChange`, pinned against the vendored private it replaces                                          |
+| `src/lib/tune/knobs.preset.spec.ts` | 6     | 0.43 s  | the nine per-card descriptor lists held against `presetById(id).knobs`, and every default derived from the shipped state |
+| `src/lib/tune/knobs.lua.spec.ts`    | 4     | 0.45 s  | the Lua route arriving in the same descriptor shape, so the panel cannot tell the two routes apart                       |
+| `src/lib/tune/model.spec.ts`        | 7     | 1.35 s  | the tuner: an immediate `PadSim` preview, a 120 ms debounced compile, and the stamp precomputed on every change          |
+| `src/lib/tune/ladder.spec.ts`       | 5     | 0.71 s  | TUNE-04 and TUNE-05 against a real over-budget measurement, plus the never-writes scan over `src/lib/tune/`              |
+| `src/lib/tune/surprise.spec.ts`     | 4     | 21.64 s | `SURPRISE ME` as a property, with 18,000 draws behind it: it moves something, it lands in budget, it terminates          |
+| `src/lib/share/url.spec.ts`         | 4     | 0.37 s  | the two restated literals — the deployed origin and the vendored `STAMP_PREFIX` — held against their real sources        |
+| `src/lib/share/stamp.spec.ts`       | 8     | 0.55 s  | the base36 stamp, the entry-consistency guard and the three landings (restored, older, unreadable)                       |
+| `src/lib/og/png.spec.ts`            | 5     | 0.29 s  | the PNG encoder over `node:zlib` alone, verified byte by byte                                                            |
+| `src/lib/og/render.spec.ts`         | 4     | 0.28 s  | the 1200x630 pad, with both structural colours computed from `src/app.css`'s tokens rather than typed                    |
+| `src/lib/og/build.spec.ts`          | 5     | 0.86 s  | the `<head>` and the built artefact: every absolute `og:image` resolves back to a real file under `build/`               |
+| `src/lib/ui/tune-ui.spec.ts`        | 5     | 0.23 s  | five structural rules over the seven tuning components, including the dynamic-import rule `config-shape` test 13 misses  |
+
+**The costliest file in the `server` project is now `surprise.spec.ts` at 21.6 s on its own.** It
+stays in `server` deliberately: it is 18,000 draws against a pure function with no compiler in the
+loop, it is the per-task guard for the one control that can move every knob at once, and inside a
+parallel run it overlaps with the other 57 files — the whole `server` project is 31.5 s.
+
+### The sweep project's new membership
+
+`*.sweep.spec.ts` is the file-name rule, and Phase 5 is what made it more than a convention.
+
+| File                                          | Tests | Cost alone | Why it is a sweep                                                                   |
+| --------------------------------------------- | ----- | ---------- | ----------------------------------------------------------------------------------- |
+| `src/lib/tune/reachability.sweep.spec.ts`     | 2     | 125.4 s    | it costs all 32,852 reachable knob states of the nine shelf cards, with no sampling |
+| `src/lib/share/stamp-roundtrip.sweep.spec.ts` | 2     | 2.3 s      | it round-trips every one of those states through the encoder and back               |
+
+The whole `sweep` project is now **3 files / 13 tests, 141.2 s** (144 s wall) against **1 file /
+9 tests, 38.3 s** before the phase. The invariant sweep it used to be alone in is no longer the
+expensive one: 125 s of the 141 s is the reachability sweep, and that is the price of the finding
+below being a measurement rather than an opinion.
+
+### The phase's central finding, and how it is exercised
+
+**Over budget is unreachable for anything a visitor can produce.** `reachability.sweep.spec.ts` costs
+every reachable knob state of every shelf card — 32,852 of them, the full cross-product, no sampling —
+and not one crosses 908 characters. TUNE-04 (the fit ladder) and TUNE-05 (the over-budget block, the
+red meter, the disabled primary control and the one-click back-off) therefore ship as **tested guards
+rather than as states any visitor will meet**, and they are exercised in two places:
+
+- `src/lib/tune/ladder.spec.ts` proves the model in node, against two **measured** reserves:
+  `tpad` + `{ setup: 20 }` for the block without a ladder (`fit()` returns no steps at any reserve,
+  because the card's only sheet is `sends` and the compiler refuses to shed sends), and
+  `dial` + `{ setup: 300 }` for the block **and** a four-step ladder.
+- **`/dev/tune/`** — the fourth unlinked probe, beside the walking skeleton's, the fidelity one and
+  the catalog one — mounts the real tuning region for `tpad` over a real `PadReserved` of
+  `{ setup: 3, timer: 0 }`, which the vendored `cost()` charges itself. Nothing is faked and there is
+  no test-only prop: the reserve is the mechanism Phase 7's install marker will use. Tests 9 and 10
+  of `e2e/tuning.e2e.ts` are what watch a browser do it.
+
+The reserve on the probe is **3 and not 20** because it was chosen by measurement rather than by
+convenience: `tpad` ships at Setup 902/908 and its whole 512-state cross-product spans 902 to 907, so
+3 is the reserve that straddles the budget and leaves knob positions on **both** sides of the line.
+At 20 every state is over, and the knob branch, the back-off and the way back inside would all be
+unreachable from the page.
+
+A guard nobody has watched work is a hope. That is the whole argument for the probe existing.
+
+### The two Playwright files, and the WebKit project
+
+| File                       | Tests | Runs in                    | What it holds                                                                                                                                                                         |
+| -------------------------- | ----- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/tuning.e2e.ts`        | 10    | chromium                   | the desktop journey: a knob turn, both meters, `RESET ALL`, `SURPRISE ME`, `COPY LINK`, three landings, the no-clipboard fallback, and the two over-budget tests against `/dev/tune/` |
+| `e2e/tuning-webkit.e2e.ts` | 5     | chromium **and** the phone | DEGR-01: the front door, choosing without sideways scroll, a knob turn with the meters settling, the copy confirm state, and a shared link landing with install present-but-disabled  |
+
+**`playwright.config.ts` has two projects, and one of them is filtered.** `chromium` carries no
+`grep` and runs everything at `devices["Desktop Chrome"]` (1280x720). `webkit-phone` carries
+`grep: /@webkit/` and `devices["iPhone 15"]` (393x659, `isMobile`, `hasTouch`). The consequence is
+worth stating as arithmetic rather than as prose: **a title containing `@webkit` runs twice and counts
+twice.** `tuning-webkit.e2e.ts`'s five tests therefore contribute **ten** to the suite total, which is
+why the whole run is 44 and not 39.
+
+The filter is what makes a second project affordable. A bare second project would double every
+existing test for no new coverage; leaving `chromium` ungrepped is what makes the tagged tests
+cross-browser rather than WebKit-only.
+
+```bash
+npx playwright test --project chromium      # everything, one engine
+npx playwright test --project webkit-phone  # the five tagged titles, on a phone
+npx playwright test --project webkit-phone --list   # the tagging check, and it is cheap
+```
+
+Three things that file learned the hard way, all worth copying:
+
+- **A layout is classified from both boxes, never from `y` alone.** A knob row is a grid with
+  `align-items: center`, so a 14 px label and a 44 px control have different tops while sitting
+  perfectly side by side. The first draft asserted equal `y` and was red on correct code.
+- **The stacking assertion lives at 320 px, not at the phone's own 393 px.** At 393 px the tuning
+  region's content box is about 265 px, above `Knob.svelte`'s 220 px container-query threshold, so the
+  row genuinely does **not** stack there. Asserting stacking at 393 px would assert something false.
+- **`shareUrl` names the deployed origin**, because a shared link goes into somebody else's chat
+  window. Following a minted link verbatim leaves the local build and lands on the real site's Basic
+  Auth gate — observed. Swap the origin and keep the path and the fragment.
+
+**The clipboard branch, measured on both engines.** `CopyLink.svelte` has two: the write resolves and
+the button confirms, or the API is missing / the write rejects and the select-and-copy field is
+revealed. On `webkit-phone`, `navigator.clipboard.writeText` **resolves with no grant at all** —
+`navigator.permissions.query` is not even implemented there — and the button confirms. Headless
+chromium refuses the same write with `NotAllowedError: Write permission denied` unless the context is
+granted `clipboard-write`. That difference is the harness's permission model, not a product defect,
+and it falls the reassuring way round: the engine this file exists for is the one that succeeds
+unaided. So the test grants for chromium only — `grantPermissions` does not accept those names on
+WebKit and throws — and both projects then assert the **same** branch, plus the absence of the
+fallback field, so a silent branch flip is a red test rather than a passing one that proved nothing.
+
+### What the Open Graph tests can and cannot prove
+
+`src/lib/og/build.spec.ts` proves that an image **exists** and that the `<head>` points at it: it
+walks the built artefact, resolves every absolute `og:image` back to a real file under `build/`, and
+counts pixels that are none of black, the unlit-dot colour or the frame colour, so a renderer that
+dropped every LED cannot pass on composition alone. What it cannot prove is the two things below, and
+both are qualifiers on SHARE-04 rather than gaps in the tests.
+
+**An image exists for routed entries only — 8 of the 16 catalog entries.** The excluded eight are not
+in `FRONT_DOOR`, so they have no prerendered `/c/<id>/` page, and with no page there is no `<head>` to
+carry an `og:image` at all. That is a property of the routing decision (D-18: entries join the row
+deliberately), not of the image pipeline: `scripts/gen-og.mjs` would render any of them. The gate
+asserts the eight that have an address.
+
+**And a real Discord unfurl cannot be verified until the Basic Auth gate comes down.** Every crawler —
+Discord's, Slack's, Twitter's — gets a 401 from `worker/index.js` and never reaches the `<head>` these
+tests check. What is provable today is that the markup and the bytes are right; that a scraper does
+the expected thing with them is a check for the first un-gated deploy, and it is written down as such
+rather than assumed.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
@@ -366,9 +509,26 @@ Capture e2e output to `.tmp-e2e/` (gitignored), never under `test-results/` or
 `playwright-report/`: Playwright deletes its `outputDir` at the start of every run, so a redirect
 target inside it is unlinked mid-run.
 
-The whole Playwright suite is **23 tests** as of 2026-09-04: 11 in `first-experience.e2e.ts`, 2 each
-in `artifacts.e2e.ts`, `catalog.e2e.ts`, `fidelity.e2e.ts` and `skeleton.e2e.ts`, and 4 in
-`smoke.e2e.ts`.
+The whole Playwright suite is **44 tests** as of 2026-09-04, and it is 44 rather than 39 because the
+five titles in `tuning-webkit.e2e.ts` run in both projects. Observed, per file and per project:
+
+| File                      | chromium | webkit-phone |
+| ------------------------- | -------- | ------------ |
+| `first-experience.e2e.ts` | 11       | -            |
+| `tuning.e2e.ts`           | 10       | -            |
+| `tuning-webkit.e2e.ts`    | 5        | 5            |
+| `smoke.e2e.ts`            | 4        | -            |
+| `artifacts.e2e.ts`        | 3        | -            |
+| `catalog.e2e.ts`          | 2        | -            |
+| `fidelity.e2e.ts`         | 2        | -            |
+| `skeleton.e2e.ts`         | 2        | -            |
+
+There are four unlinked probe routes under `/dev/`, one per thing a browser has to prove about the
+production build: the walking skeleton's page, `/dev/fidelity/` (the WASM formatter resolves and
+compiles), `/dev/catalog/` (a cold load fetches no WebAssembly) and `/dev/tune/` (the over-budget
+guard, over a real reserve). None of them is linked from anywhere, `e2e/fidelity.e2e.ts` asserts
+site-wide that no anchor on `/` points into `/dev/`, and `src/lib/config-shape.spec.ts` asserts the
+same property over the source of `src/routes/`.
 
 One convention worth keeping: no Playwright test title may contain the word `failed`, because the
 acceptance checks assert an exact total and then grep the captured log for that word.
