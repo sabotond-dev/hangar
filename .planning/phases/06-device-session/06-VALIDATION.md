@@ -230,7 +230,7 @@ file); DEGR-02's header half is obeyed and proven on WebKit. 06-14's SUMMARY say
 | 06-01-02 | 01 | 1 | CONN-04 | unit | `... src/lib/transport/transport.spec.ts` reports **9 passed** | exists | ⬜ pending |
 | 06-01-03 | 01 | 1 | CONN-07 | unit | `... src/lib/device/try-on.spec.ts` reports **7 passed**; quick is baseline +0 files / +3 | exists | ⬜ pending |
 | 06-02-01 | 02 | 2 | CONN-02, 03, 05, 08 | source | `npm run check` `0 errors`; the module's comment-stripped source has zero `from "` and zero `import(`; `MANAGED_POLICY` appears nowhere in `src/` and the deviation is in the SUMMARY and `deferred-items.md` | created here | ⬜ pending |
-| 06-02-02 | 02 | 2 | CONN-02, 03, 05 | unit | `... src/lib/device/session-copy.spec.ts` reports **6 passed** | created here | ⬜ pending |
+| 06-02-02 | 02 | 2 | CONN-02, 03, 05 | unit | `... src/lib/device/session-copy.spec.ts` reports **6 passed**; test 2 walks all **seventeen** phases including `starting`, whose expected slot state is **S1** | created here | ⬜ pending |
 | 06-02-03 | 02 | 2 | CONN-01 | unit | `try-on.spec.ts` **7** with the file unedited; quick is +1 file / +9 from baseline | exists | ⬜ pending |
 | 06-03-01 | 03 | 3 | CONN-06, 07 | unit (no-op move) | quick unchanged; `usb.ts` has zero imports and `ports.ts` exactly one | created here | ⬜ pending |
 | 06-03-02 | 03 | 3 | CONN-01, 05, 06, 07 | source | `npm run check` `0 errors`; exactly **four** static `from` specifiers (`./session-copy`, `$lib/protocol/usb`, `$lib/transport/ports`, `$lib/transport/transport`); `failureFor` contains no `await`; no `setInterval`; no `.write(` | created here | ⬜ pending |
@@ -247,20 +247,20 @@ file); DEGR-02's header half is obeyed and proven on WebKit. 06-14's SUMMARY say
 | 06-07-02 | 07 | 7 | **CONN-06 (the replug), SAFE-01** | e2e | same file **9 passed**; suite `PREV_E2E + 5`; `writes() === 0` over a whole visit, **and a planted write observed making it non-zero** | exists | ⬜ pending |
 | 06-08-01 | 08 | 8 | CONN-08 | type + measured | `identity.spec.ts` **6**, `tune-ui.spec.ts` **5**; the panel spinner still 32px with all three attributes | exists | ⬜ pending |
 | 06-08-02 | 08 | 8 | CONN-08 | type + guard | `identity.spec.ts` **6**; no hex, no SVG, no canvas in `DeviceMark` | created here | ⬜ pending |
-| 06-08-03 | 08 | 8 | CONN-04 | type + observed | `npm run check` `0 errors`; the `already-open` block renders no list; quick unchanged | created here | ⬜ pending |
+| 06-08-03 | 08 | 8 | CONN-04 | type + observed | `npm run check` `0 errors`; the `already-open` block renders no list, observed through a temporary `/dev/session/` probe mount that is removed before committing; quick unchanged | created here | ⬜ pending |
 | 06-09-01 | 09 | 9 | SAFE-01 | unit | `session.spec.ts` reports **17 passed**; `#say` called from exactly six sites | exists | ⬜ pending |
 | 06-09-02 | 09 | 9 | CONN-03, SAFE-01 | type + measured | the note's height is equal across S1/S2/S3 and absent in both capability states; the number recorded; with a panel open, neither the pre-click line nor the S3 status line is visible in the note and its height is unchanged | created here | ⬜ pending |
-| 06-09-03 | 09 | 9 | CONN-03 | build + a11y | `npm run build` succeeds; exactly one `session-live` per route; `config-shape.spec.ts` **14** | exists | ⬜ pending |
-| 06-10-01 | 10 | 10 | CONN-01, 06, 08 | type + measured | the slot is 44px in all nine states and the header height is constant; `aria-expanded` in four states only; the multi-module tail renders at 1280 and is gone at 900 through a media query, with no `innerWidth` or `matchMedia` in the component | created here | ⬜ pending |
-| 06-10-02 | 10 | 10 | CONN-05, 06 | type + observed | the four open/close behaviours observed; `FORGET THIS ZONA` absent without `canForget` | created here | ⬜ pending |
+| 06-09-03 | 09 | 9 | CONN-03 | build + a11y | the Phase 5.1 `/browse/` precondition passes or the task **stops**; `npm run build` succeeds; exactly one `session-live` per route; `config-shape.spec.ts` **14** | exists | ⬜ pending |
+| 06-10-01 | 10 | 10 | CONN-01, 06, 08 | type + measured | the slot is 44px in all nine states and the header height is constant; `aria-expanded` in four states only; the multi-module tail renders at 1280 and is gone at 900 through a media query, with no `innerWidth` or `matchMedia` in the component; `data-hydrated="true"` is set from `onMount` only, absent from `build/index.html` and present on the running page | created here | ⬜ pending |
+| 06-10-02 | 10 | 10 | CONN-05, 06 | type + observed | the four open/close behaviours observed; `FORGET THIS ZONA` absent without `canForget`; the drawer refuses to open and closes itself while `panelOwnsProse` is true | created here | ⬜ pending |
 | 06-10-03 | 10 | 10 | CONN-01, 05, 08 | unit (source) | `... src/lib/ui/device-ui.spec.ts` reports **6 passed**; quick +1 file / +6 | created here | ⬜ pending |
 | 06-11-01 | 11 | 11 | **CONN-01 (the header)** | precondition + measured | `BrowseLink` present or the plan **stops**; header heights constant per width across **five** widths (1280, 1024, 900, 640, 320); no scrollbar at 320px; the tail present at 1280, absent at 900 and 320, `multiModuleLine` in the disclosure at all three, and the header height identical at 1280 and 900 | exists | ⬜ pending |
-| 06-11-02 | 11 | 11 | CONN-08, DEGR-02 | build + measured | `config-shape.spec.ts` **14** after a build; the note's height constant on all three routes | exists | ⬜ pending |
+| 06-11-02 | 11 | 11 | CONN-08, DEGR-02 | build + measured | `config-shape.spec.ts` **14** after a build; the note is mounted with **both** `covered` and `panelOwnsProse`; the note's height constant on all three routes; the `unsupported` removal measured **after** `data-hydrated="true"` and then the settled caption, once and only once | exists | ⬜ pending |
 | 06-11-03 | 11 | 11 | CONN-01 | observed | the slot and note absent at 0 ms and present at 900 ms; the announcement once, after the splash, including when skipped | exists | ⬜ pending |
-| 06-12-01 | 12 | 12 | DEGR-02 | type + observed | five un-choose paths keep the connection; `release()` still exported and called | exists | ⬜ pending |
+| 06-12-01 | 12 | 12 | DEGR-02 | type + observed | five un-choose paths keep the connection; `release()` still exported and called; `PRIMARY` is the single surviving label, with no `$lib/device/try-on` specifier and no `TRY ON DEVICE` literal added to `session-copy.ts` | exists | ⬜ pending |
 | 06-12-02 | 12 | 12 | **CONN-02, 03 (the two mounts)** | unit + e2e | `device-ui.spec.ts` **7 passed**; `e2e/first-experience.e2e.ts` passes **unedited** | exists | ⬜ pending |
 | 06-13-01 | 13 | 13 | **CONN-06 (navigation)** | e2e | `e2e/session.e2e.ts --project chromium` **11 passed**; the walk is client-router only; the reload lands in `detected` | exists | ⬜ pending |
-| 06-13-02 | 13 | 13 | CONN-06, 07, SAFE-01 | e2e, two projects | same file **14 passed**; suite `PREV_E2E + 6`; two `@webkit` titles in the file; test 13 asserts the settled caption **before** the `device-note` count of 0 | exists | ⬜ pending |
+| 06-13-02 | 13 | 13 | CONN-06, 07, SAFE-01 | e2e, two projects | same file **14 passed**; suite `PREV_E2E + 6`; two `@webkit` titles in the file; test 13 asserts `data-hydrated="true"` and then the settled caption **before** the `device-note` count of 0 | exists | ⬜ pending |
 | 06-14-01 | 14 | 14 | all | docs | six rows with pass conditions and why each is human-only; no engine named | created here | ⬜ pending |
 | 06-14-02 | 14 | 14 | **CONN-01..08** | phase gate | quick `BASE + 3 / +33`, sweep `3 13`, e2e `BASE_E2E + 16`, against a fresh production build | exists | ⬜ pending |
 | 06-14-03 | 14 | 14 | **CONN-04, 06, 07 (hardware)** | **checkpoint:human-verify** | not automatable — the six runbook rows, run by the user on a real ZONA | n/a | ⬜ pending |
@@ -381,6 +381,7 @@ committing.
 | 06-10 | `DeviceSlot` | remove the sizing twin and hover S1 |
 | 06-10 | `DeviceSlot`'s tail | replace the 1024px media query with a `window.innerWidth` read in script and watch the label paint without the tail and gain it a frame later |
 | 06-10 | `DeviceDetails` | make the disclosure a focus trap and watch `Tab` become inescapable |
+| 06-10 | `device-ui.spec.ts` 6 | move `data-hydrated="true"` out of `onMount` onto the markup unconditionally, so the hydration marker a prerendered document cannot carry becomes one it can |
 | 06-10 | `device-ui.spec.ts` 1-6 | six mutations, one per test, listed in the plan |
 | 06-11 | the phone header | make the second row conditional on the session state and watch the coverflow jump on connect |
 | 06-11 | the note | render it in `unsupported` and watch a browser that can never connect pay 152px for it |
@@ -389,6 +390,7 @@ committing.
 | 06-12 | `device-ui.spec.ts` 7 | re-add `aria-live` to `connect-status` |
 | 06-12 | the one-block rule | render the failure block in both surfaces and count two copies of the six-step recovery |
 | 06-13 | `session.e2e.ts` 14 | the same `aria-live` restoration, observed in a browser as two regions saying one thing |
+| 06-13 | `session.e2e.ts` 13's ordering | drop the `data-hydrated` and caption waits, delay the app chunk, and watch the `device-note` count of 0 pass against a document that has not read the capability — **observed as a false green, not a red**, in the shape of 06-05 mutation 1 |
 
 ---
 
