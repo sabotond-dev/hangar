@@ -11,6 +11,7 @@ import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { EUCLID } from "./entries/euclid";
 import { GHOST } from "./entries/ghost";
+import { LATTICE } from "./entries/lattice";
 import { PORTED } from "./entries/ported";
 import type { CatalogEntry } from "./types";
 
@@ -36,12 +37,14 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   CHORUS,
   ARC,
   GHOST,
+  LATTICE,
 ]);
 
 export { EUCLID } from "./entries/euclid";
 export { CHORUS } from "./entries/chorus";
 export { ARC } from "./entries/arc";
 export { GHOST } from "./entries/ghost";
+export { LATTICE } from "./entries/lattice";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
