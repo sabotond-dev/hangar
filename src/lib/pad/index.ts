@@ -21,15 +21,19 @@ import { padReady } from "./ready";
 import {
   compile as vendorCompile,
   cost as vendorCost,
+  fit as vendorFit,
   fits as vendorFits,
   measure as vendorMeasure,
   validate as vendorValidate,
   presetById,
   PRESETS,
   type CompileResult,
+  type FitPlan,
+  type FitStep,
   type PadCost,
   type PadDiagnostic,
   type PadReserved,
+  type PadSheet,
   type PadState,
   type PadUserCode,
 } from "../../vendor/botor/_pad";
@@ -37,9 +41,12 @@ import {
 export { PRESETS, presetById, padReady };
 export type {
   CompileResult,
+  FitPlan,
+  FitStep,
   PadCost,
   PadDiagnostic,
   PadReserved,
+  PadSheet,
   PadState,
   PadUserCode,
 };
@@ -80,6 +87,26 @@ export async function fitsIn(
 ): Promise<boolean> {
   await padReady();
   return vendorFits(result, reserved);
+}
+
+/**
+ * The fit ladder for a pad state: what the compiler would turn down to stay
+ * inside 908, in its own words.
+ *
+ * `pinned` is the sheet whose knob the visitor's hand is on; the compiler never
+ * proposes degrading the thing they just moved (_pad.ts:4093-4095). `reserved`
+ * exists for Phase 7's install marker and is what makes the over-budget branch
+ * reachable in a test at all - see 05-VALIDATION, the unreachability finding.
+ *
+ * fit() compiles once per ladder step, so this is N+1 minifier calls. Call it
+ * only when cost().fits is false, never on a knob change.
+ */
+export async function fitState(
+  state: PadState,
+  options?: { user?: PadUserCode; reserved?: PadReserved; pinned?: PadSheet },
+): Promise<FitPlan> {
+  await padReady();
+  return vendorFit(state, options);
 }
 
 /** The minified character cost of one event body. */

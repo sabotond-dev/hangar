@@ -4,10 +4,10 @@
 //
 // FIVE entry points have a load-bearing gate: costOf, fitsIn, measureLua,
 // validateCompiled and fitState. Only the FIRST of them to run in this file can
-// be proved by the cold formatter, which is test 3's job and why test 3 builds
-// with the vendored compile(). Test 6 arrived after the gate was already open,
-// so it proves its own await on a fresh module graph with the gate held shut
-// instead - see its comment. New tests go at the END, never before test 1.
+// be proved by the process's own cold formatter, which is test 3's job and why
+// test 3 builds with the vendored compile(). Test 6 arrived after that gate was
+// open, so it buys itself a second cold start with vi.resetModules() - see its
+// comment. New tests go at the END, never before test 1.
 //
 // This is the FOUND-05 proof (ROADMAP criterion 5). It lives in its own file for
 // the same reason: any file that has already awaited the gate can never see the
@@ -35,7 +35,6 @@ import {
   measureLua,
   padReady,
   validateCompiled,
-  type FitPlan,
 } from "./index";
 
 interface PresetBaseline {
@@ -129,54 +128,29 @@ describe("the Lua formatter gate (FOUND-05)", () => {
   });
 
   it("the fit ladder through HANGAR's surface awaits the gate before it measures", async () => {
-    // The fifth load-bearing gate, and the one that cannot be proved the way
-    // test 3 proves costOf: test 3 has already opened the real gate, so no
-    // later test in this file can ever see the un-initialised branch again
-    // (the trap 03-05 documented). What IS still observable, on a fresh module
-    // graph with the gate replaced by a promise this test holds shut, is the
-    // await itself - and that is exactly what the paired mutation deletes.
+    // A FRESH module graph, on purpose. Test 3 has already opened the real gate,
+    // so nothing imported at the top of this file can ever see the
+    // un-initialised branch again (the trap 03-05 documented), and a gate
+    // assertion that cannot go red is a tautology. vi.resetModules() rebuilds
+    // the vendored compiler AND the protocol package under it, so this graph
+    // starts genuinely cold - measured here: with `await padReady()` deleted
+    // from fitState, this line throws "The Lua formatter is not initialised."
+    // out of assertPadCompilerReady.
     vi.resetModules();
-    let open = (): void => {};
-    let awaited = false;
-    const gate = new Promise<void>((resolve) => {
-      open = resolve;
-    });
-    vi.doMock("./ready", () => ({
-      padReady: (): Promise<void> => {
-        awaited = true;
-        return gate;
-      },
-      resetPadReadyForTests: (): void => {},
-    }));
     const { fitState } = await import("./index");
 
-    let plan: FitPlan | undefined;
-    const pending = fitState(mustPreset("aurora").state).then((p) => {
-      plan = p;
-    });
-    // Drain the microtask queue. Nothing may reach the vendored fit() while the
-    // gate is shut, however many turns the loop is given.
-    await new Promise((resolve) => setImmediate(resolve));
-    expect(awaited, "fitState never asked for the gate at all").toBe(true);
+    const plan = await fitState(mustPreset("aurora").state);
+    expect(plan.fits, "a preset state must never need the ladder").toBe(true);
+    expect(plan.steps, "a fitting state proposes nothing").toEqual([]);
+    // Never the literal 908: the budget is the vendored constant or it is a
+    // second source of truth waiting to drift.
     expect(
-      plan,
-      "fitState measured before the gate resolved: the ladder is reachable around FOUND-05",
-    ).toBeUndefined();
-
-    open();
-    await pending;
-    expect(plan?.fits, "a preset state must never need the ladder").toBe(true);
-    expect(plan?.steps, "a fitting state proposes nothing").toEqual([]);
-    expect(
-      plan?.setup.limit,
+      plan.setup.limit,
       "the ladder measures Setup against the event budget",
     ).toBe(EVENT_BUDGET);
     expect(
-      plan?.timer.limit,
+      plan.timer.limit,
       "the ladder measures Timer against the event budget",
     ).toBe(EVENT_BUDGET);
-
-    vi.doUnmock("./ready");
-    vi.resetModules();
   });
 });
