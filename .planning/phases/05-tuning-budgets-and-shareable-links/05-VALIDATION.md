@@ -25,7 +25,7 @@ created: 2026-09-04
 | **Sweep command** | `npm run test:sweep` (= `vitest run --project sweep`) |
 | **Wave run command** | `npm run check && npm run lint && npm run test:quick && npm run test:sweep` |
 | **Full suite command** | the wave run plus `npm run build` and `npm run test:e2e` |
-| **Estimated runtime** | quick ~4.5 s before this phase, higher after (see "The new cost"); sweep ~40 s before, ~80 s after; e2e ~40 s including the build and the wrangler cold start |
+| **Estimated runtime** | quick ~4.5 s before this phase, higher after (see "The new cost"); sweep ~40 s before, **~85 s** after (the reachability sweep costs all 16,645 states but ladders only the scoped few — see "The new cost"); e2e ~40 s before, higher after twelve more runs, including the build and the wrangler cold start |
 
 **Baseline measured on this machine on 2026-09-04, at planning time, on `eafcb1d` plus the staged
 08-07 files:**
@@ -44,6 +44,16 @@ reads `BASE_FILES` / `BASE_TESTS` / `BASE_SWEEP_FILES` / `BASE_SWEEP_TESTS` / `B
 previous plan's SUMMARY and asserts baseline + delta through `scripts/check-counts.mjs`. Per-file
 counts are exact and **are** asserted absolutely, because a per-file count is unaffected by anything
 another phase does.
+
+**Two e2e variables, and they are not interchangeable.** `BASE_E2E` is the **phase baseline**,
+measured once by task 5-01-01 and never recomputed; plan 05-07 is the only plan that asserts against
+it (`BASE_E2E + 1`), because the total has not moved before then. Plans 05-11 and 05-12 assert
+against **`PREV_E2E`** — the e2e total recorded in the immediately preceding plan's SUMMARY —
+because by then it has. `BASE_FILES` and `BASE_TESTS` already work the `PREV_` way (each plan reads
+the previous SUMMARY's numbers); the e2e pair is spelled out because the two names would otherwise
+read as one. **The sweep is the exception to all of it**: it is asserted with its literal file and
+test counts (`1 9`, then `3 13`) in every plan including 05-01, because the `sweep` project is a
+named-file include and its total is a property of this phase's own files.
 
 ### Facts the map depends on
 
@@ -72,6 +82,14 @@ from the sources. They are reproductions, not estimates.
   bit, a truncated payload and a non-zero tail. What it does **not** do is check that the stamp
   belongs to *this* entry: `/c/aurora/#z.pdial` decodes cleanly to Dial. The entry-consistency check
   (`encodeStamp(rebuilt) === payload`) is the whole of SHARE-03's "never a subtly wrong one".
+- **And the consistency check has one legitimate false negative, handled by a row rather than by an
+  exception.** `p<presetId>` is what `encodeStamp` emits for an untuned card, so it is exactly the
+  stamp a BOTOR base-card link carries — but the check rebuilds by *applying* knobs, every `apply`
+  goes through `withChange`, and `withChange` deletes `state.preset`, so `encodeStamp(rebuilt)` is a
+  field dump and never equals `paurora`. `/c/aurora/#z.paurora` is therefore decided **before** the
+  check, by one string comparison against `entry.source.presetId`, and lands `restored` at every
+  default index. `p<any other preset>` stays `unreadable`. Plan 05-05 carries the row and pins both
+  directions inside `stamp.spec.ts` test 5.
 - **`zlib.crc32` exists in Node 24** and `deflateSync` emits the RFC-1950 stream `IDAT` holds. A
   realistic 1200×630 pad frame deflates to ~4 KB.
 - **SvelteKit's prerender crawler follows `og:image`** (`node_modules/@sveltejs/kit/src/core/postbuild/crawl.js`)
@@ -137,9 +155,9 @@ cannot be green for the wrong reason.
 | 05-08 | +0 | +0 | 3 files / 13 | unchanged |
 | 05-09 | +0 | +0 | 3 files / 13 | unchanged |
 | 05-10 | +1 | +5 | 3 files / 13 | unchanged |
-| 05-11 | +0 | +0 | 3 files / 13 | +7 |
+| 05-11 | +0 | +0 | 3 files / 13 | +8 |
 | 05-12 | +0 | +0 | 3 files / 13 | +12 |
-| **Phase total** | **+15** | **+83** | **1/9 → 3/13** | **+20** |
+| **Phase total** | **+15** | **+83** | **1/9 → 3/13** | **+21** |
 
 New spec files and their fixed test counts. These **are** asserted absolutely, per file:
 
@@ -165,12 +183,14 @@ New spec files and their fixed test counts. These **are** asserted absolutely, p
 | `src/lib/og/build.spec.ts` | **5** | 05-07 |
 | `src/lib/ui/tune-ui.spec.ts` | **5** | 05-10 |
 | `e2e/artifacts.e2e.ts` | +1 | 05-07 |
-| `e2e/tuning.e2e.ts` | **7**, then **9** | 05-11, 05-12 |
+| `e2e/tuning.e2e.ts` | **8**, then **10** | 05-11, 05-12 |
 | `e2e/tuning-webkit.e2e.ts` | **5**, run in **both** projects = 10 | 05-12 |
 
 The e2e arithmetic is the one place a reader can get lost, so it is written out. Chromium carries no
 `grep`, so it runs **every** test including the `@webkit`-tagged ones; the `webkit-phone` project
-runs only the tagged ones. `23 + 1 + 7 + 2 + (5 × 2) = 43`.
+runs only the tagged ones. `23 + 1 + 8 + 2 + (5 × 2) = 44`. The eighth test in 05-11 is the
+no-clipboard fallback — forced with `addInitScript`, because no browser Playwright drives takes that
+branch on its own — and it is DEGR-01's clipboard half.
 
 ### The new cost
 
@@ -179,9 +199,19 @@ runs only the tagged ones. `23 + 1 + 7 + 2 + (5 × 2) = 43`.
 | `src/lib/tune/model.spec.ts` | none — it uses fake timers and one real `padReady()` | — |
 | `src/lib/tune/ladder.spec.ts` | 15 s | record it; the ladder compiles once per step |
 | `src/lib/tune/surprise.spec.ts` | 20 s (2,000 draws per compiler entry through `fits()`) | say so in the SUMMARY and reduce the draw count only with the measured number written down |
-| `src/lib/tune/reachability.sweep.spec.ts` | **60 s** | say so in the SUMMARY. The D-10 precedent is a separate project, never a trimmed sweep |
+| `src/lib/tune/reachability.sweep.spec.ts` | **60 s**; projected **~35–45 s** — `cost()` on all 16,645 states at 05-04's measured 1.1–4.0 ms each (~37 s), plus the 1,080 kind combinations (~2 s), plus a **scoped** ladder pass | say so in the SUMMARY. The D-10 precedent is a separate project, never a trimmed sweep |
 | `src/lib/share/stamp-roundtrip.sweep.spec.ts` | 20 s | same |
-| `npm run test:sweep` as a whole | **120 s** | same |
+| `npm run test:sweep` as a whole | **120 s**; projected **~85 s** (the existing ~40 s plus ~40 s plus <10 s) | same |
+
+**Why the reachability sweep ladders a scoped set rather than every state.** `fitState` is N+1
+minifier calls and 05-04 measures `fit()` at 4.4 ms on a fitting state, so a per-state ladder would
+add ~73 s on top of the ~37 s `cost()` pass — ~110 s against a 60 s file threshold — and buy nothing,
+because `fit()` is defined to return `{ fits: true, steps: [] }` for any state `cost()` has already
+accepted. So `cost()` runs on **all 16,645**, with no sampling, and `fitState` runs on every state
+whose `cost().fits` is false (expected: zero) plus the measured worst-cost state per preset (nine
+more). The scoping is arithmetic, and it is recorded here so that a later reader does not read it as
+a trimmed sweep. The rule stands unchanged: if the measurement crosses a threshold, **say so; do not
+trim**.
 
 ---
 
@@ -194,6 +224,7 @@ them close with a qualifier that must appear in the completing SUMMARY and in th
 |---|---|---|
 | TUNE-04 | 05-12 | **guard, unreachable in practice.** The ladder line renders `steps[0].label` verbatim and is proven against a synthetic over-budget result in `ladder.spec.ts` and on `/dev/tune/`. `reachability.sweep.spec.ts` pins the finding that no state a visitor can reach produces a ladder step |
 | TUNE-05 | 05-12 | **guard, unreachable in practice.** Same mechanism: the red meter, the disabled primary, the named knob and `TURN IT DOWN` are all real code, all tested, and reachable only by passing a real `reserved` to `cost()` |
+| SHARE-04 | 05-07 (built), 05-12 (recorded) | **routed entries only, and unverifiable end to end.** Two qualifiers, both of which must appear in the completing SUMMARY. First: an OG image is generated for **routed entries only — 8 of the 16 catalog entries** — because the excluded eight are not in `FRONT_DOOR`, have no prerendered `/c/<id>/` page and therefore no `<head>` to carry an `og:image`. That is not an omission to fix in this phase; it is what "per catalog configuration" means while half the catalog has no address. Second: **a real Discord unfurl is unverifiable until the Basic Auth embargo lifts.** `og/build.spec.ts` and the artifact e2e prove the PNGs exist, are 1200×630 truecolour, are under 1 MB, are not black, are served as `image/png`, and are referenced by an absolute `og:image` from every routed page. They cannot prove a crawler ever fetched one, because `worker/index.js` gates the whole site fail-closed. Say that; do not claim SHARE-04 was observed |
 
 TUNE-01 was partly contributed by Phase 8 (every hand-authored entry ships 3–6 knobs over the
 vendored vocabulary); Phase 5 owns the widgets and closes it.
@@ -247,9 +278,9 @@ vendored vocabulary); Phase 5 owns the widgets and closes it.
 | 5-10-03 | 10 | 10 | TUNE-01..07 | structural | `... src/lib/ui/tune-ui.spec.ts` reports `5 passed`; `test:quick` is 05-09's total +1 file / +5 tests | created here | ⬜ pending |
 | 5-11-01 | 11 | 11 | TUNE-02, TUNE-06 | type + guard | `npm run check` `0 errors`; `config-shape.spec.ts` all passed; `front-door.spec.ts` all passed | exists | ⬜ pending |
 | 5-11-02 | 11 | 11 | SHARE-01, SHARE-03 | type + guard | same | exists | ⬜ pending |
-| 5-11-03 | 11 | 11 | **TUNE-01, TUNE-02, TUNE-03, TUNE-06, TUNE-07, SHARE-01, SHARE-02, SHARE-03** | e2e | `npx playwright test e2e/tuning.e2e.ts` reports `7 passed`; `test:e2e` is the recorded baseline +7 | created here | ⬜ pending |
-| 5-12-01 | 12 | 12 | TUNE-04, TUNE-05 | probe page + e2e | `/dev/tune/` prerenders and is linked from nowhere; `e2e/tuning.e2e.ts` reports `9 passed` | created here | ⬜ pending |
-| 5-12-02 | 12 | 12 | **DEGR-01** | e2e, two projects | `npx playwright test --project webkit-phone` reports `5 passed`; the whole run is the baseline +12 | created here | ⬜ pending |
+| 5-11-03 | 11 | 11 | **TUNE-01, TUNE-02, TUNE-03, TUNE-06, TUNE-07, SHARE-01, SHARE-02, SHARE-03, DEGR-01** | e2e | `npx playwright test e2e/tuning.e2e.ts` reports `8 passed`; `test:e2e` is `PREV_E2E` (05-10's total) **+8** | created here | ⬜ pending |
+| 5-12-01 | 12 | 12 | TUNE-04, TUNE-05 | probe page + e2e | `/dev/tune/` prerenders and is linked from nowhere; `e2e/tuning.e2e.ts` reports `10 passed` | created here | ⬜ pending |
+| 5-12-02 | 12 | 12 | **DEGR-01** | e2e, two projects | `npx playwright test --project webkit-phone` reports `5 passed`; the whole run is `PREV_E2E` (05-11's total) **+12** | created here | ⬜ pending |
 | 5-12-03 | 12 | 12 | all twelve | docs + phase gate | the full suite green at the totals this plan's SUMMARY records | exists | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -295,12 +326,28 @@ rather than as features — is **task 5-05-03**.
   produce. It does not prove BOTOR can reopen a HANGAR stamp — that is true by construction for
   format `d` and false by construction for format `x`, and both are stated in the SUMMARY.
 - `og/build.spec.ts` proves the PNGs exist, are 1200×630 truecolour, are under 1 MB and are not
-  black, and that every routed page carries the head tags. **It cannot prove a Discord unfurl**: the
-  Basic Auth Worker blocks every crawler until the gate comes down on launch day. Say so; do not
-  claim SHARE-04 was observed.
+  black, and that every **routed** page carries the head tags — 8 of the 16 catalog entries; the
+  other eight are not in `FRONT_DOOR`, have no page and so have no head to carry a tag. **It cannot
+  prove a Discord unfurl**: the Basic Auth Worker blocks every crawler until the gate comes down on
+  launch day. Say so; do not claim SHARE-04 was observed.
+- `e2e/tuning.e2e.ts` test 8 proves the **select-and-copy fallback**, forced by deleting
+  `navigator.clipboard` in an init script: the readonly field appears, holds the composed URL,
+  carries `aria-label="Shareable link"` and computes to a 16px font size (the iOS zoom floor). It is
+  the only coverage of that branch — wave 12's WebKit test asserts the *confirm* branch and states
+  what to do if the fallback appears there instead.
+- `e2e/tuning.e2e.ts` test 1 carries the **`/` cold-load WebAssembly assertion**, three lines inside
+  an existing test. Wave 10's must-have claims the front door's first paint fetches no protocol chunk
+  and no WebAssembly; `config-shape.spec.ts` test 14 covers the chunk half over the built HTML, and
+  `e2e/catalog.e2e.ts` covers the WebAssembly half for `/dev/catalog/` — nothing covered it for `/`
+  before this phase.
 - `tune-ui.spec.ts` proves the components name no compiler specifier, that no `overflow-x` appears in
   the tuning region, that every interactive box declares its 44px floor, and that `--color-over`
-  appears in exactly the three places X-01 scopes it to.
+  appears in exactly the **two components** X-01's three uses live in. The two numbers are not a
+  contradiction and the plans say which they mean wherever either appears: X-01 scopes the token to
+  three *uses* — the offending meter's bar fill and its 2px outline, that meter's numerals and
+  percentage, and the 2px left rule on the over-budget message — and the first two of those are in
+  `BudgetMeter.svelte` while the third is in `BudgetMessage.svelte`. The spec counts uses; the test
+  counts components; the assertion message says so.
 
 ---
 
@@ -335,7 +382,9 @@ red before committing. The list, by plan:
 | 05-07 | `og/build.spec.ts` | remove `og:image` from the head |
 | 05-08 | `identity.spec.ts` | add a tenth token to `@theme` |
 | 05-10 | `tune-ui.spec.ts` | add `overflow-x: auto` to the rack |
+| 05-05 | `stamp.spec.ts` test 5, the `p` row | decide format `p` *after* the consistency check and watch `paurora` on aurora land `unreadable` |
 | 05-11 | `e2e/tuning.e2e.ts` stamp test | make the decoder ignore the entry-consistency result |
+| 05-11 | `e2e/tuning.e2e.ts` fallback test | drop the `delete navigator.clipboard` init script and watch the test fail its own precondition rather than pass on the confirm branch |
 | 05-12 | `e2e/tuning-webkit.e2e.ts` | remove the `@webkit` tag from one title and watch the webkit total drop |
 
 ---
