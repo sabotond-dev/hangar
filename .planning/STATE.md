@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-06-PLAN.md
-last_updated: "2026-09-05T00:35:00.000Z"
+stopped_at: Completed 05.1-07-PLAN.md
+last_updated: "2026-09-05T01:00:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 51
-  percent: 91
+  completed_plans: 52
+  percent: 93
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 07 (next)
-Status: Phase 5.1 in progress — 05.1-06 complete (6 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 08 (next)
+Status: Phase 5.1 in progress — 05.1-07 complete (7 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-05
 
-Progress: [█████████░] 91% (51 of 56 plans)
+Progress: [█████████░] 93% (52 of 56 plans)
 
 ## Performance Metrics
 
@@ -109,6 +109,8 @@ Progress: [█████████░] 91% (51 of 56 plans)
 | Phase 05.1 P03 | 12 min | 3 tasks | 6 files |
 | Phase 05.1 P04 | 22 min | 3 tasks | 6 files |
 | Phase 05.1 P05 | 28 min | 3 tasks | 12 files |
+| Phase 05.1 P06 | 61 min | 3 tasks | 2 files |
+| Phase 05.1 P07 | 37 min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -308,6 +310,12 @@ Recent decisions affecting current work:
 - [Phase 05.1]: A `bind:this` inside an `{#if}` must be a rune. Svelte assigns it from a template effect and warns non_reactive_update on a plain binding there, which Coverflow.svelte's unconditional `stage` never trips. `$state` does not proxy a DOM element (only plain objects and arrays are proxied) and the `<ul>` is never read on a tick, so the standing rule — no ENGINE, CANVAS or FRAME BUFFER in a rune — is untouched. focusCard takes the list off the keydown event's currentTarget so nothing a template handler can reach reads the binding
 - [Phase 05.1]: The `$lib/sim/engine` static-import mutation in a `src/lib/ui/` component is INVISIBLE to every guard in the repository today, and that was observed rather than assumed (14 passed with the static import in place): COMPILER_MARKERS matches specifier TEXT and `$lib/sim/engine` contains none of vendor/intechstudio/lib/pad, while test 14 cannot see the file until `/browse/` exists in build/. It is carried as a row in 05.1-08's mutation table. The `../../vendor/botor/pad-sim` mutation IS red today and names the file
 - [Phase 05.1]: One tab stop, measured: with the roving tabindex, crossing the wall from the control before it to the control after it costs TWO Tab presses; with every card tabbable it costs SEVENTEEN. Space still scrolls (scrollY 0 → 308 with focus unmoved), Alt+ArrowRight is never intercepted, and Enter follows the link natively including the static host's trailing-slash redirect
+- [Phase 05.1]: D-15 BEATS 05.1-UI-SPEC W-19: the standing chip row is the nine tags carried by two or more configurations and there is NO `MORE TAGS` disclosure. The 32 single-entry tags stay searchable text on the card, because a tag that filters sixteen down to one is a thing the search field does better. An ACTIVE tag outside the nine still renders its own chip after them, which is what keeps a shared /browse/?tag=looper link removable (05.1-07)
+- [Phase 05.1]: `aria-disabled` on a chip communicates but does not prevent, OBSERVED in both directions: with the real `disabled` a click changes nothing; with `aria-disabled="true"` the same click toggles the chip and empties the grid from 2 configurations to 0. Playwright calls BOTH forms "not enabled" and refuses to click either without force, so a tool reading the tree cannot tell them apart - only the browser can
+- [Phase 05.1]: The browse count is THREE elements doing three jobs, and the one that is easy to leave out is the one a visitor needs most: an always-present visually-hidden expansion, never a live region and never inside an {#if}. Observed with nothing changed - the accessibility tree carries `Showing 16 of 16 configurations.`, the visible line is absent from it, and the live region is EMPTY, because a visitor arriving on a shared filtered address has fired no change event
+- [Phase 05.1]: A live region's sentence is composed at FLUSH time from the current props, not when the timer was scheduled. Measured with a MutationObserver over the region: typing g-h-o-s-t at 60ms says it ONCE through the 500ms trailing timer and THREE times with the same write moved into the keystroke handler - three rather than five because the last two characters leave the count unchanged, so Svelte never writes the DOM
+- [Phase 05.1]: THERE ARE TWO aria-live ELEMENTS ON EVERY HYDRATED PAGE OF THIS SITE. The second is Kit's own `<div id="svelte-announcer" aria-live="assertive" aria-atomic="true">`, emitted by the generated root component (node_modules/@sveltejs/kit/src/core/sync/write_root.js:177) behind {#if mounted}. Any "exactly one live region" assertion must scope to a component's source or exclude that id, or it goes red on correct code (05.1-07)
+- [Phase 05.1]: Filtering sixteen entries is SYNCHRONOUS on every keystroke and only the announcement is debounced, and the negative check is stronger than the spec's wording: with a 300ms debounce around the filter callback the grid does not lag a keystroke behind, it does not move AT ALL while a visitor types and then jumps (16, 16, 16, 16, 16 then 1) against the shipped 15, 8, 1, 1, 1
 
 ### Pending Todos
 
@@ -324,6 +332,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T00:35:00.000Z
-Stopped at: Completed 05.1-06-PLAN.md
+Last session: 2026-09-05T01:00:00.000Z
+Stopped at: Completed 05.1-07-PLAN.md
 Resume file: None
