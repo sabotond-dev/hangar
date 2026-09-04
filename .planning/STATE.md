@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-09-04T10:33:18.099Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-09-04T11:04:33.783Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 36
-  percent: 80
+  completed_plans: 37
+  percent: 82
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 4 of 12 (05-03 complete)
-Status: In progress — wave 4 next (05-04, the tune model, SURPRISE ME and the ladder guards)
+Plan: 5 of 12 (05-04 complete)
+Status: In progress — wave 5 next (05-05, the base36 stamp codec and the share URL)
 Last activity: 2026-09-04
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Progress: [████████░░] 80%
 | Phase 05 P01 | 20 min | 3 tasks | 5 files |
 | Phase 05 P02 | 18 min | 3 tasks | 6 files |
 | Phase 05 P03 | 20 min | 3 tasks | 6 files |
+| Phase 05 P04 | 30 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -214,6 +215,9 @@ Recent decisions affecting current work:
 - [Phase 05]: The direction knob binds to look.axis with two options (diagonal, antidiagonal): the no-op gate proved x, y and diagonal compile to the identical body
 - [Phase 05]: The no-op gate compares compiled action bodies, never setupLua, because the stamp lives in the first action's marker name
 - [Phase 05]: Brightness is offered only where padLightsAnything is true (BOTOR's own rule); the trackpad card meets the three-knob floor with a real scroll-units knob
+- [Phase 05]: tpad cannot produce a fit ladder at ANY reserve - its only sheet is sends and the compiler refuses to shed sends - so the phase's over-budget guards use two measured reserves: tpad at { setup: 20 } for the block (922/908, free -14) and dial at { setup: 300 } for the block AND a four-step ladder (946/908, free -38)
+- [Phase 05]: ladderFor() in model.ts is the single call site of fitState, guarded by needsLadder as its last statement, shared by the debounced measurement and SURPRISE ME's exhausted roll - fit() is N+1 minifier calls and a second call site is a second run nobody counted
+- [Phase 05]: model.ts calls the vendored compile/fits synchronously in ONE named helper (fitsAfterGate) after awaiting padReady() through $lib/pad, because surpriseIndices takes a synchronous fits by design and HANGAR's compile surface is async throughout
 
 ### Pending Todos
 
@@ -230,6 +234,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T10:33:03.471Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-09-04T11:04:04.924Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
