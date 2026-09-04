@@ -1,7 +1,9 @@
 ---
 phase: 5
 slug: tuning-budgets-and-shareable-links
-status: draft
+status: approved
+reviewed_at: 2026-09-04
+reviewed_by: gsd-ui-checker (two passes; approved on revision 1)
 shadcn_initialized: false
 preset: none
 created: 2026-09-04
@@ -33,7 +35,7 @@ extends: .planning/phases/04-first-experience/04-UI-SPEC.md (approved 2026-09-04
 > listed in the Component Inventory as a modified file, and it is on the morning list as an open
 > question in its own right.
 >
-> Binding upstream: `05-CONTEXT.md` (D-01..D-17), `04-UI-SPEC.md`, `04-CONTEXT.md` D-08,
+> Binding upstream: `05-CONTEXT.md` (D-01..D-23; D-23 records the ruling that accepts `--color-over` and the fixed-height invariant), `04-UI-SPEC.md`, `04-CONTEXT.md` D-08,
 > `.planning/design/FIRST-EXPERIENCE.md`, REQUIREMENTS TUNE-01..07 / SHARE-01..04 / DEGR-01,
 > ROADMAP Phase 5 success criteria 1–5.
 
@@ -111,7 +113,7 @@ Phase 4's five rows, unchanged. Three of them are used here, and one gains a new
 The declaration is `line-height: 14px` and *nothing else*: it changes no family, no size, no weight,
 no tracking and no case. The `TUNING`, `SETUP` and `TIMER` captions and the stacked-row labels are
 therefore Quicksand 600 exactly as the Micro rows above specify, sitting in a 14px box instead of a
-14.4px one. **Only a meter's two numeric columns are monospaced**, and they add
+14.4px one. **Monospace is confined to numerals and machine text** — a meter's two numeric columns, the rail's integer readout, the `measuring…` word and the copy-fallback URL field (an explicit four-use extension of Phase 4 W-03's list, declared here) — and the numeric columns add
 `font-family: var(--font-mono); font-weight: 400; font-variant-numeric: tabular-nums` on top of that
 same box. The fixed box replaces the `1.2` ratio because the region's arithmetic is exact —
 `(14 + 4 + 8) × 2 + 4 = 56` for the meters block, `14 + 4 + 44 = 62` for a stacked knob row — and 14.4
@@ -120,7 +122,7 @@ a one-word caption, a knob label, or a number.
 
 **Tabular numerals are mandatory on every changing number**: `702 / 908`, `77%`, and the rail's
 integer readout. A budget that jitters horizontally as it counts is the exact failure `--font-mono`
-was introduced for in Phase 4 W-03. Nothing else in this phase is monospaced — the fit-ladder line,
+was introduced for in Phase 4 W-03. Beyond those four declared uses nothing else in this phase is monospaced — the fit-ladder line,
 the over-budget sentence and every label are Quicksand.
 
 ---
@@ -273,7 +275,7 @@ have to fit).
 | Message slot B, when present | 16 gap + auto |
 | Region padding, bottom | 16 |
 
-**Every vertical gap in the region is 16px** — Phase 4's `md`, so this phase still adds no new spacing
+**Every gap between bands in the region is 16px** (the 4px `xs` gaps inside a band — between knob rows, between a meter's caption row and its bar, between the two meters — stay 4px and are what `48r`, `66w` and `56` already bake in) — Phase 4's `md`, so this phase still adds no new spacing
 value. The 12px that appears elsewhere in this document is the *horizontal* column gap between a
 knob's label and its control, and it is never used vertically. No gap in the region is spent twice at
 two different values.
@@ -928,7 +930,7 @@ never "loading", and the word "install" stays in the future tense because it doe
 - **A command and a category transition are one utterance, never two.** The live region is
   `aria-atomic="true"` and emits at most one string per event. The case that forces the rule is real:
   `RESET ALL` can land on a configuration whose *defaults* are already over budget — tpad ships at
-  941/908 today — so the command and the crossing happen on the same tick. That case uses the two
+  at its highest measured debt today (tpad, 902/908 — no shipped state is over budget, so in practice this is the guard path exercised on `/dev/tune/`) — so the command and the crossing happen on the same tick. That case uses the two
   combined reset strings above, **not** the reset string followed by a transition string, and the
   "{Knob label} pushed it over" clause is dropped because no knob moved. The bare no-knob transition
   string is declared for the same reason the back-off carries two explanations: the next command that
@@ -981,7 +983,7 @@ the UI, so nothing passes through `scripts/gen-licenses.mjs` either.
 ## Decisions taken without the user
 
 Authored overnight under the delegation recorded in `05-CONTEXT.md`. Every one is a first cut Botond
-can overturn; none contradicts D-01..D-17 or Phase 4's approved contract.
+can overturn; none contradicts D-01..D-23 or Phase 4's approved contract.
 
 | # | Decision | Rationale (one line) |
 |---|----------|----------------------|
@@ -1048,11 +1050,11 @@ can overturn; none contradicts D-01..D-17 or Phase 4's approved contract.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-09-04 by gsd-ui-checker — 6/6 dimensions PASS on revision 1; nine non-blocking recommendations, of which the orchestrator applied the wording fixes (band gaps, monospace scope, the tpad figure, the D-01..D-23 citation)
