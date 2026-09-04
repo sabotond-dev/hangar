@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-06-PLAN.md
-last_updated: "2026-09-04T07:05:19.148Z"
+stopped_at: Completed 08-07-PLAN.md
+last_updated: "2026-09-04T07:44:32.059Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 33
-  completed_plans: 31
-  percent: 94
+  completed_plans: 32
+  percent: 97
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 08
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Progress: [█████████░] 94%
 | Phase 08 P04 | 25 min | 3 tasks | 7 files |
 | Phase 08 P05 | 22 min | 3 tasks | 6 files |
 | Phase 08 P06 | 20 min | 3 tasks | 6 files |
+| Phase 08 P07 | 10 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -196,6 +197,8 @@ Recent decisions affecting current work:
 - [Phase 08]: ARC's two glt(a,2,65535) keepers are the legitimate form and stay green: the pitfall-1 guard needs a near-maximum timeout TOGETHER WITH a decay rate at or above 200, and the swirl's rate is 4 at rest and at most 120 under a finger
 - [Phase 08]: No substitution token may be a PREFIX of another token in the same entry: renderLua is plain replaceAll in knob order and lua-entries.spec.ts test 5 counts occurrences with a plain split, so MORPH's @TRAIL inside @TRAILC and SONAR's @SWEEP inside @SWEEPC were renamed to @DECAY and @PERIOD - knob ids, kinds, value sets and rendered Lua all unchanged
 - [Phase 08]: MORPH's empty Timer needed no special case in any gate: compressScript('') is '', checkSyntax('') is true, and createLuaPadSim already maps '' to undefined so the entry cannot arm a timer at all - the seven gates it passes are listed in 08-06-SUMMARY.md
+- [Phase 08]: The lazy seam has two layers that guard different properties: lazy.spec.ts guards chunk composition, e2e/catalog.e2e.ts guards what a browser actually fetches on a cold load. A static import in engine.ts turns only the former red.
+- [Phase 08]: docs/PIN-POLICY.md gained a fifth bump-checklist item: a protocol bump re-measures every hand-authored catalog entry via lua-entries.spec.ts, because canonical compressed form is a property of a specific minifier version.
 
 ### Pending Todos
 
@@ -211,6 +214,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T07:05:11.532Z
-Stopped at: Completed 08-06-PLAN.md
+Last session: 2026-09-04T07:44:32.053Z
+Stopped at: Completed 08-07-PLAN.md
 Resume file: None

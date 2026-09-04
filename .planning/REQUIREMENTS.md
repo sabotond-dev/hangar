@@ -42,7 +42,7 @@ feature table in `.planning/research/FEATURES.md`.
 ### Preview [C]
 
 - [x] **PREV-01**: Every card in the catalog animates live in the firmware-faithful simulator with no hardware attached [C1]
-- [ ] **PREV-02**: The simulator consumes the exact compiler output that would be written to the module — no hand-authored animation anywhere [C2]
+- [x] **PREV-02**: The simulator consumes the exact compiler output that would be written to the module — no hand-authored animation anywhere [C2]
 - [ ] **PREV-03**: The site states in one line what the simulator matches exactly and what it cannot show (physical LED colour, diffusion, touch feel) [C3]
 - [ ] **PREV-04**: The focused card accepts mouse-as-finger input so the user can play the instrument, not just watch it [C4]
 - [x] **PREV-05**: Offscreen cards pause (IntersectionObserver with a wake margin), `prefers-reduced-motion` falls back to a still frame or play-on-hover, and the render path stays within budget at a dozen visible cards at 30 fps [C5]
@@ -176,7 +176,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-08 | Phase 7 | Pending |
 | SAFE-09 | Phase 7 | Pending |
 | PREV-01 | Phase 4 | Complete (five presets animate; three quiet presets show their real static picture, declared and gated against the golden frames; tpad rests black and is out of the front-door row) |
-| PREV-02 | Phase 4 (Lua-sourced entries: Phase 8) | Pending |
+| PREV-02 | Phase 4 (Lua-sourced entries: Phase 8) | Complete |
 | PREV-03 | Phase 4 | Pending |
 | PREV-04 | Phase 4 | Pending |
 | PREV-05 | Phase 4 | Complete (row mounts at most seven pads; offscreen pause and reduced motion asserted; paint count recorded 135–216 per 2 s, no fps floor asserted — accepted deviation 3) |

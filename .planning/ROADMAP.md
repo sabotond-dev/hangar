@@ -181,7 +181,7 @@ Plans:
 - [x] 08-04-PLAN.md — EUCLID, and the CONT-02 gate: canonical form, budget, subset, knob sweep, execution (wave 4)
 - [x] 08-05-PLAN.md — CHORUS, ARC and GHOST (wave 5)
 - [x] 08-06-PLAN.md — LATTICE, MORPH and SONAR; the floor of six cleared with seven (wave 6)
-- [ ] 08-07-PLAN.md — The production-build laziness proof and the testing docs (wave 7)
+- [x] 08-07-PLAN.md — The production-build laziness proof and the testing docs (wave 7)
 - [ ] 08-08-PLAN.md — docs/HARDWARE-AUDITION.md and the hardware checkpoint (wave 8)
 
 ## Progress
@@ -207,7 +207,7 @@ Phases 6 and 7.
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
-| 8. New Configurations | 6/8 | In Progress|  |
+| 8. New Configurations | 7/8 | In Progress|  |
 
 ## Requirement Coverage
 
