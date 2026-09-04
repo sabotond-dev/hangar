@@ -152,10 +152,22 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(buttonLabels).toContain(TURN_IT_DOWN);
     expect(TURN_IT_DOWN.split(" ")).toHaveLength(3);
 
-    // TUNING is Phase 4's caption and this is now its one home. Held against
-    // the component that still declares it, so the two cannot drift apart
-    // before wave 9 replaces the local const with this import.
-    expect(source("../ui/ChosenPanel.svelte")).toContain(`"${TUNING_CAPTION}"`);
+    // TUNING is Phase 4's caption and this is now its one home. It was held
+    // against ChosenPanel.svelte's local const while that component still
+    // transcribed it; wave 10 moved the caption into the tuning region, which
+    // IMPORTS it from here. So the drift this line guarded against is no longer
+    // possible by construction, and what it checks is that the move really was
+    // to an import and not to a second transcription.
+    const region = stripComments(source("../ui/TuningRegion.svelte"));
+    expect(region, "the region was read").not.toBe("");
+    expect(
+      region,
+      "TuningRegion.svelte no longer imports the TUNING caption from this module",
+    ).toContain("TUNING_CAPTION");
+    expect(
+      region,
+      "TuningRegion.svelte transcribes the TUNING caption instead of importing it, which is the drift this assertion exists to prevent",
+    ).not.toContain(`"${TUNING_CAPTION}"`);
   });
 
   it("obeys the copy rules mechanically, over every string and every builder's output", () => {
