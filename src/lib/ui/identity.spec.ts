@@ -200,4 +200,33 @@ describe("IDENT-01 identity tokens (src/app.css)", () => {
       ).toMatch(/^214 255 78 \/ [0-9.]+$/);
     }
   });
+
+  it("the favicon is the 9x9 mark, not a framework logo", () => {
+    const raw = text("src/lib/assets/favicon.svg");
+    const svg = strip(raw);
+
+    // The scaffold shipped a framework logo with <title>svelte-logo</title>.
+    // IDENT-01 says the mark is the pad; this is what stops it coming back.
+    expect(raw, "the favicon names no framework").not.toMatch(/svelte/i);
+    expect(/<title>([^<]*)<\/title>/.exec(svg)?.[1]).toBe("HANGAR");
+    expect(svg).toMatch(/viewBox="0 0 32 32"/);
+
+    // 81 lattice dots plus the 5 lit cells of the diagonal. Counted, not
+    // sampled: "some circles" would pass on half a pad.
+    const circles = svg.match(/<circle/g) ?? [];
+    expect(circles.length, `the mark draws ${circles.length} circles`).toBe(86);
+
+    const hexes = [...svg.matchAll(/#[0-9a-fA-F]{3,8}/g)].map((m) =>
+      m[0].toLowerCase(),
+    );
+    expect(
+      hexes.length,
+      "the mark declares colour literals to check",
+    ).toBeGreaterThan(0);
+    for (const hex of hexes) {
+      expect(hex, `${hex} is one of the two approved colours`).toMatch(
+        /^(#000000|#d6ff4e)$/,
+      );
+    }
+  });
 });
