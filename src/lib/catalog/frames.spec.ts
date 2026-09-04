@@ -3,8 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { PadSim } from "../../vendor/botor/pad-sim";
-import { presetById } from "../../vendor/botor/_pad";
+import { createEngine } from "../sim/engine";
 import { CATALOG, type CatalogEntry } from "./index";
 
 // Every catalog entry carries a recorded frame set at the five Phase 3 ticks.
@@ -64,9 +63,8 @@ interface GoldenFixture {
 }
 
 /**
- * The minimum surface a frame sampler needs. Plan 08-04 widens engineFor to
- * return a Lua-backed engine; everything downstream only ever asks for these
- * three members.
+ * The minimum surface a frame sampler needs. engineFor returns a full
+ * SimEngine; everything downstream only ever asks for these three members.
  */
 type FrameSource = {
   run(n: number): void;
@@ -75,21 +73,11 @@ type FrameSource = {
 };
 
 async function engineFor(entry: CatalogEntry): Promise<FrameSource> {
-  if (entry.preview === "padsim") {
-    if (entry.source.kind === "preset") {
-      const preset = presetById(entry.source.presetId);
-      if (!preset) throw new Error(`unknown preset: ${entry.source.presetId}`);
-      return new PadSim(preset.state);
-    }
-    if (entry.source.kind === "state") return new PadSim(entry.source.state);
-  }
-  // Replaced by $lib/sim/engine's createEngine in plan 08-04, when the first
-  // Lua-backed entry exists. Until then no catalog entry has preview "lua", and
-  // test 1 below is what proves it: an entry added without an engine goes red
-  // here rather than being silently skipped.
-  throw new Error(
-    `no engine for preview "${entry.preview}" (entry ${entry.id})`,
-  );
+  // The seam plan 08-01 left behind. createEngine picks PadSim for a
+  // preview "padsim" entry and the Lua route for a "lua" one, so this fixture
+  // records a hand-authored entry through the engine the row actually plays it
+  // with rather than through a second, parallel implementation of the choice.
+  return await createEngine(entry);
 }
 
 // A FRESH engine per sample. run(n) is cumulative, so a shared instance would

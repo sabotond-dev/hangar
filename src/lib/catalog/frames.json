@@ -289,6 +289,38 @@
         "nonZeroBytes": 0,
         "animating": false
       }
+    ],
+    "euclid": [
+      {
+        "tick": 0,
+        "sha256": "c8fed8e89467d6ec7acc8bd8de7ff3f12a2acd632331b1af2d204c092720b9f0",
+        "nonZeroBytes": 30,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "7555f3fbb2899706d5bb3f9272749a938450c415283535ea1daf3c7f2915c793",
+        "nonZeroBytes": 45,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "02216841eaef8d3201a418a4d1a63211f18ca8fe82d72da352f823d5deb670cb",
+        "nonZeroBytes": 73,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "060969153e2cfd50309837dfb768d090dd937031164283bbfbdffc1c4922b289",
+        "nonZeroBytes": 111,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "4cec8ae27f0bc6be0faa6919bc5a9c85127ef8157a23b659afde0684f7e1ca02",
+        "nonZeroBytes": 111,
+        "animating": true
+      }
     ]
   }
 }
