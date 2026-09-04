@@ -236,6 +236,36 @@ test.describe("choosing the centre pad", () => {
       "nothing about the device is on the page before a choose",
     ).toBe(0);
 
+    // THE TAP RULE, both halves (D-11, 04-UI-SPEC W-15). The hero is an
+    // instrument before it is a link, so a press that lingers plays the pad and
+    // does not choose; one under 250 ms and 6 px does both. Without the
+    // negative half this would pass on an implementation where every press
+    // chooses, which is exactly the collision the rule exists to prevent.
+    const hero = page.getByTestId("pad-aurora");
+    const box = await hero.boundingBox();
+    expect(box, "the hero pad was measurable").not.toBeNull();
+    const cx = (box as { x: number; width: number }).x + 40;
+    const cy = (box as { y: number; height: number }).y + 40;
+
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.waitForTimeout(350);
+    await page.mouse.up();
+    expect(
+      await page.getByTestId("chosen-panel").count(),
+      "a press longer than the tap window plays the pad and does not choose",
+    ).toBe(0);
+
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.up();
+    await expect(
+      page.getByTestId("chosen-panel"),
+      "a quick tap on the hero both plays it and chooses it",
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
+
     const band = page.getByTestId("coverflow");
     await band.press("Enter");
 
