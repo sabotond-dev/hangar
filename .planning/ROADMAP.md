@@ -139,7 +139,7 @@ Plans:
 - [ ] 05-08-PLAN.md — The ninth colour token with its identity-gate amendment, Knob.svelte and KnobRack.svelte (wave 8)
 - [ ] 05-09-PLAN.md — BudgetMeter, BudgetMessage, StampNotice and CopyLink (wave 9)
 - [ ] 05-10-PLAN.md — TuningRegion, the panel seam, and the structural gate over the tuning UI (wave 10)
-- [ ] 05-11-PLAN.md — Coverflow wiring: the live preview swap, the stamp landing, and seven e2e tests (wave 11)
+- [ ] 05-11-PLAN.md — Coverflow wiring: the live preview swap, the stamp landing, and eight e2e tests (wave 11)
 - [ ] 05-12-PLAN.md — /dev/tune/, the WebKit phone journey, the docs and the phase gate (wave 12)
 
 ### Phase 5.1: Catalog Browse
