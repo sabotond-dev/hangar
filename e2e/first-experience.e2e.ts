@@ -6,9 +6,10 @@
 // stills the pads while making stepping instant), two from plan 04-08
 // (choosing reveals the panel and both ways out close it, and the device
 // control on a browser with no Web Serial) and three from plan 04-09 (a deep
-// link lands centred, alive and with no splash; every row entry is a real file
-// with its own description while the excluded one is provably absent; and the
-// row's paint rate over two seconds, recorded rather than gated).
+// link lands centred, alive and with no splash; every routed configuration is a
+// real file with its own description while an off-row page is a row of one -
+// amended by plan 05.1-05, see below; and the row's paint rate over two
+// seconds, recorded rather than gated).
 //
 // What this file covers: that the row is really running the firmware simulator
 // with nothing plugged in (an animated pad provably changes between two samples
@@ -27,13 +28,39 @@
 // large share of visitors actually land on - no Web Serial at all - and that is
 // the last test in this file.
 //
+// AMENDMENT (D-07, plan 05.1-05), to ONE test - the deep-link file test, whose
+// title changed with it. One test in, one test out; the file's count did not
+// move.
+//
+// What it asserted before: every FRONT_DOOR id is a real file with its own
+// description, and every EXCLUDED_FROM_ROW id returns 404. That second half was
+// correct and is now WRONG - D-07 gives every catalog entry an address, so the
+// eight ids it demanded a 404 from are eight of the sixteen pages the site now
+// ships. The assertion is REWRITTEN rather than deleted, because what it was
+// really guarding is still worth guarding: that the set of addresses the site
+// serves is exactly the set it declares. It now reads ROUTED and asserts
+// sixteen 200s with unique descriptions, and the 404 half moved to a genuinely
+// unknown id, which is the only kind left.
+//
+// It gained the claim D-07 makes and nothing else was: an off-row page is a
+// ROW OF ONE. /c/euclid/ shows exactly one pad and a name plate with no arrows;
+// /c/aurora/ still shows the shelf with both arrows and still wraps onto the
+// ring's last entry. Both sides, because the solo assertion alone would pass on
+// a broken row.
+//
+// The single-deliberate-console-error assertion is kept exactly as it was. It
+// is still exactly one 404: the two new navigations are to real pages.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 // The row itself, not a copy of it. src/lib/catalog/front-door.ts imports
 // nothing at all - that is the whole reason it exists as a separate module - so
 // pulling it into a Playwright file costs nothing and means a row that grows is
 // covered here without anyone editing a list of ids.
-import { EXCLUDED_FROM_ROW, FRONT_DOOR } from "../src/lib/catalog/front-door";
+import { FRONT_DOOR } from "../src/lib/catalog/front-door";
+// The routed set, by its one name. src/lib/catalog/listing.ts imports nothing at
+// runtime either, so this costs a Playwright file nothing.
+import { ROUTED } from "../src/lib/catalog/listing";
 
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
 
@@ -437,14 +464,14 @@ test.describe("a deep link to one configuration", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("every configuration in the row is a real file with its own description", async ({
+  test("every configuration is a real file with its own description, and an off-row page is a row of one", async ({
     page,
     request,
   }) => {
     const consoleErrors = collectErrors(page);
     const descriptions = new Map<string, string>();
 
-    for (const entry of FRONT_DOOR) {
+    for (const entry of ROUTED) {
       const response = await request.get(`/c/${entry.id}/`);
       expect(response.status(), `/c/${entry.id}/ is served`).toBe(200);
       const body = await response.text();
@@ -458,6 +485,13 @@ test.describe("a deep link to one configuration", () => {
       descriptions.set(entry.id, description);
     }
 
+    // Non-vacuity: an accidentally shortened routed set would otherwise make
+    // the loop above pass on fewer pages instead of failing on the missing ones.
+    expect(
+      descriptions.size,
+      "every catalog entry has an address (D-07)",
+    ).toBeGreaterThanOrEqual(16);
+
     // Its OWN description, not the site's. One real file per configuration with
     // its own head is what makes Phase 5's link unfurls possible at all.
     expect(
@@ -465,20 +499,58 @@ test.describe("a deep link to one configuration", () => {
       "two configurations must not share one description",
     ).toBe(descriptions.size);
 
-    // The excluded entry has no page, by design (D-20). Pinned here so a later
-    // change to the row is noticed in the browser too, not only in node.
-    for (const excluded of EXCLUDED_FROM_ROW) {
-      const response = await request.get(`/c/${excluded.id}/`);
-      expect(
-        response.status(),
-        `/c/${excluded.id}/ is deliberately not a page`,
-      ).toBe(404);
-    }
+    // AN OFF-ROW PAGE IS A ROW OF ONE. euclid is in the catalog and not in the
+    // row, so its page must be about euclid rather than about the shelf: one
+    // pad, and a name plate with no arrows to a row it is not in.
+    await page.goto("/c/euclid/");
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+    const soloPads = page.locator('[data-testid^="pad-canvas-"]');
+    await expect(soloPads, "an off-row page shows one pad").toHaveCount(1);
+    await expect(page.getByTestId("pad-canvas-euclid")).toBeVisible();
+    await expect(
+      page.getByTestId("nameplate-prev"),
+      "a row of one has nowhere to step back to",
+    ).toHaveCount(0);
+    await expect(page.getByTestId("nameplate-next")).toHaveCount(0);
+
+    // BOTH SIDES, or the solo assertion above could pass on a broken row. A row
+    // entry keeps Phase 4's ring exactly as it shipped: several pads, both
+    // arrows, and one step left from the opening centre wrapping onto the
+    // ring's LAST entry - which is what proves the whole row is still there
+    // rather than only the pads that happen to be in the visible window.
+    await page.goto("/c/aurora/");
+    const band = page.getByTestId("coverflow");
+    await expect(band).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="pad-canvas-"]'),
+      "a row entry still opens on the shelf",
+    ).not.toHaveCount(1);
+    await expect(page.getByTestId("pad-canvas-aurora")).toBeVisible();
+    await expect(page.getByTestId("nameplate-prev")).toHaveCount(1);
+    await expect(page.getByTestId("nameplate-next")).toHaveCount(1);
+    await expect(band).toHaveAttribute(
+      "aria-activedescendant",
+      `slot-${FRONT_DOOR[0].id}`,
+    );
+    await band.press("ArrowLeft");
+    await expect(band).toHaveAttribute(
+      "aria-activedescendant",
+      `slot-${FRONT_DOOR[FRONT_DOOR.length - 1].id}`,
+    );
 
     // And an address nobody has heard of is still not a dead end: the static
-    // host serves the fallback, the client router matches /c/[id], and the
-    // shelf comes up centred on its first entry with a line saying so.
-    await page.goto(`/c/${EXCLUDED_FROM_ROW[0].id}/`);
+    // host serves the fallback with a 404, the client router matches /c/[id],
+    // and the shelf comes up centred on its first entry with a line saying so.
+    // Since D-07 every catalog id resolves, so the unknown id is a genuinely
+    // unknown one rather than a deliberately excluded entry.
+    const unknown = "no-such-configuration";
+    const missing = await request.get(`/c/${unknown}/`);
+    expect(
+      missing.status(),
+      `/c/${unknown}/ is not a page and the static host says so`,
+    ).toBe(404);
+
+    await page.goto(`/c/${unknown}/`);
     await expect(page.getByTestId("coverflow")).toBeVisible();
     await expect(page.getByTestId("coverflow")).toHaveAttribute(
       "aria-activedescendant",

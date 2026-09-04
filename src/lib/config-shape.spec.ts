@@ -254,12 +254,111 @@ describe("build configuration shape", () => {
 
     // The deep-link route is held to the same line as the front door: a shared
     // link must open as light as the shelf does.
-    for (const page of ["build/index.html", "build/c/aurora/index.html"]) {
+    //
+    // AMENDMENT (D-07, plan 05.1-05), in two parts.
+    //
+    // FIRST: build/c/euclid/index.html joins the list. It is a page that did not
+    // exist before D-07 and it is the one that proves the widening did not make
+    // the deep-link route heavy: aurora is a ROW entry, so its page is the one
+    // Phase 4 already shipped, while euclid is an OFF-ROW entry whose page reads
+    // the listing and renders a row of one.
+    //
+    // SECOND, and it is a correction rather than a widening. This test used to
+    // ask only whether the page's HTML NAMED a carrying chunk, and that is not
+    // the same question as whether the page pulls it. MEASURED on 2026-09-04
+    // with this plan's own negative check: a static
+    // `import { CATALOG } from "$lib/catalog"` in src/routes/c/[id]/+page.svelte
+    // put the 131,101-byte protocol chunk in the page's static graph -
+    // node 3 -> C4ys7kig.js -> BFIKf6sX.js -> C1rLf53t.js, every edge a real
+    // `import ... from` - and this test STAYED GREEN, because Kit's <head>
+    // preloads eleven modules and none of the three new ones was among them.
+    // Test 13 could not see it either: COMPILER_MARKERS matches specifier TEXT
+    // and "$lib/catalog" contains none of vendor, intechstudio or lib/pad. So
+    // the page is walked TRANSITIVELY through its static imports now, which is
+    // the graph the browser actually fetches before first paint. Dynamic
+    // imports are correctly invisible to this walk: Vite emits them as
+    // __mapDeps string tables, never as import statements, which is exactly why
+    // Coverflow's `await import()` of the simulator does not trip it.
+    //
+    // Nothing else in this file moves in plan 05.1-05, and the test count stays
+    // 14. TEST 13 IS DELIBERATELY NOT TOUCHED HERE: it is widened in plan
+    // 05.1-08 together with the /browse/ page whose absence makes the widening
+    // necessary, because widening it twice in two waves is two chances to
+    // disagree about what the rule is. build/browse/index.html joins the list
+    // below there, with the page.
+
+    /** Every `import`/`export ... from "x"` specifier, dynamic imports excluded. */
+    const staticSpecifiers = (source: string): string[] =>
+      [
+        ...source.matchAll(
+          /(?:^|[;}\s])(?:import|export)\s*(?:[^'"]*?from\s*)?["']([^"']+)["']/g,
+        ),
+      ].map((match) => match[1]);
+
+    /** A relative specifier resolved against the importing module's own path. */
+    const resolveFrom = (from: string, specifier: string): string => {
+      const stack: string[] = [];
+      const parts = (
+        from.slice(0, from.lastIndexOf("/")) +
+        "/" +
+        specifier
+      ).split("/");
+      for (const part of parts) {
+        if (part === "" || part === ".") continue;
+        else if (part === "..") stack.pop();
+        else stack.push(part);
+      }
+      return stack.join("/");
+    };
+
+    for (const page of [
+      "build/index.html",
+      "build/c/aurora/index.html",
+      "build/c/euclid/index.html",
+    ]) {
       const html = text(page);
-      const referenced = carriers.filter((name) => html.includes(name));
+      const queue = [
+        ...new Set(
+          [...html.matchAll(/_app\/immutable\/[^"'\s]+\.js/g)].map(
+            (match) => match[0],
+          ),
+        ),
+      ];
       expect(
-        referenced,
-        `${page} references the chunk carrying the protocol package`,
+        queue.length,
+        `${page} names the modules it loads`,
+      ).toBeGreaterThan(0);
+
+      const seen = new Set<string>();
+      const reached: string[] = [];
+      let edges = 0;
+      while (queue.length > 0) {
+        const rel = queue.shift() as string;
+        if (seen.has(rel)) continue;
+        seen.add(rel);
+        const file = root(`build/${rel}`);
+        if (!existsSync(file)) continue;
+        if (carriers.includes(rel.slice(rel.lastIndexOf("/") + 1))) {
+          reached.push(rel);
+        }
+        for (const specifier of staticSpecifiers(readFileSync(file, "utf8"))) {
+          if (!specifier.startsWith(".") || !specifier.endsWith(".js"))
+            continue;
+          edges++;
+          queue.push(resolveFrom(rel, specifier));
+        }
+      }
+
+      // Non-vacuity, and it is the whole reason the walk is trustworthy: a
+      // matcher that silently stopped matching would visit only the modules the
+      // <head> names and report a clean graph for a page that pulls the world.
+      expect(
+        edges,
+        `${page}: no static import was resolved at all - this walk has gone blind`,
+      ).toBeGreaterThan(0);
+      expect(
+        reached,
+        `${page} reaches the chunk carrying the protocol package through a static import`,
       ).toEqual([]);
     }
   });

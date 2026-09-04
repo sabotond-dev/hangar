@@ -1,7 +1,19 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { FRONT_DOOR } from "../src/lib/catalog/front-door";
+import { ROUTED } from "../src/lib/catalog/listing";
+
+// AMENDMENT (D-07, plan 05.1-05). The image-serving test below looped
+// FRONT_DOOR, which was right while the ROW WAS THE ROUTED SET - the other
+// eight catalog entries had no page, so no <head> asked for their picture.
+// D-07 made the catalog the routed set, and `ROUTED` in
+// src/lib/catalog/listing.ts is the one declaration of it, read here, by
+// src/routes/c/[id]/+page.ts, by scripts/gen-og.mjs and by
+// src/lib/og/build.spec.ts. Left on FRONT_DOOR this test would have gone on
+// passing over eight images while eight NEW pages served an og:image that
+// 404s - the same blindness src/lib/og/build.spec.ts's header records, only
+// over HTTP. The non-vacuity floor rises from >= 8 to >= 16 with it, so a
+// quietly shortened set is red rather than merely cheaper.
 
 const sha = execFileSync("git", ["rev-parse", "HEAD"], {
   encoding: "utf8",
@@ -41,9 +53,9 @@ test("the source archive is the Corresponding Source and nothing else", () => {
 
 // The picture is not merely on disk. `build/og/` is proven by
 // src/lib/og/build.spec.ts; what only a real request can prove is that the
-// deployed artifact SERVES it, with the content type an unfurl needs. The row
-// itself is imported rather than a list of ids, exactly as
-// e2e/first-experience.e2e.ts does, so a widened FRONT_DOOR is covered here
+// deployed artifact SERVES it, with the content type an unfurl needs. The
+// routed set itself is imported rather than a list of ids, exactly as
+// e2e/first-experience.e2e.ts does, so a widened catalog is covered here
 // without anyone editing this file.
 //
 // The `request` fixture rather than `page.goto`: nothing about rendering
@@ -52,11 +64,10 @@ test("the source archive is the Corresponding Source and nothing else", () => {
 test("every configuration's link image is served by the built site", async ({
   request,
 }) => {
-  // Non-vacuous: an empty row would otherwise make this test pass on nothing.
-  expect(FRONT_DOOR.length, "there are images to check").toBeGreaterThanOrEqual(
-    8,
-  );
-  for (const entry of FRONT_DOOR) {
+  // Non-vacuous: a shortened routed set would otherwise make this test pass on
+  // fewer images rather than fail on the ones that stopped being served.
+  expect(ROUTED.length, "there are images to check").toBeGreaterThanOrEqual(16);
+  for (const entry of ROUTED) {
     const path = `/og/${entry.id}.png`;
     const response = await request.get(path);
     expect(response.status(), path).toBe(200);
