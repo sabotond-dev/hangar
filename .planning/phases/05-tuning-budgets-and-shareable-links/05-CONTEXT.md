@@ -80,6 +80,38 @@ browse catalog (Phase 5.1), and adds no accounts or backend.
   iOS is approximated by WebKit + a phone viewport. The clipboard write for `COPY LINK` needs a
   user-gesture-safe fallback (select-and-copy) where `navigator.clipboard` is unavailable.
 
+### Added after research and the UI spec (2026-09-04) **[orchestrator]**
+- **D-10 amended:** research measured every reachable knob combination (1,080 look × touch × sends
+  combinations and 16,645 HANGAR knob-cross-product states across the nine presets) and found
+  **zero over 908** — `fit()` returns `{ fits: true, steps: [] }` for every state a visitor can
+  produce, and Lua entries are in budget by construction. TUNE-04 and TUNE-05 are therefore built
+  as **tested guards** (the ladder line and the over-budget block exist, are unit-tested by forcing
+  a synthetic over-budget result, and are exercised by a `/dev/tune/` probe that injects one), while
+  the meters carry the visible story through the compiler's own warn/error thresholds (606 / 890;
+  tpad sits at 902/908). The requirements are not restated; their traceability rows will carry this
+  qualifier at phase close. Open for the user.
+- **D-18:** Module split dictated by Phase 4's chunk guard (`config-shape.spec.ts` test 13 rejects any
+  vendor / lib-pad specifier in `src/lib/ui/*`, even `import type`): `src/lib/tune/view.ts` (knob
+  view-model, zero vendor imports) and `src/lib/tune/model.ts` (dynamic import only) — the same
+  pattern as `front-door.ts` / `types.ts`.
+- **D-19:** `KnobKind` is a label, not a binding; the kind → `PadState` field mapping is transcribed
+  from BOTOR's `PadPanel.svelte` at the pinned SHA into a HANGAR table (never a vendored edit).
+  `withChange` (which drops `state.preset`) is module-private upstream and is reimplemented in
+  HANGAR, otherwise every tuned stamp encodes as the bare preset.
+- **D-20:** `COPY LINK` composes a precomputed string and never navigates (no `replaceState`, no
+  lint exemption, no Safari activation loss across an await). Decoding checks the stamp's preset
+  against the route's entry: a mismatch is SHARE-03's second string (unreadable link), never a
+  different configuration under this entry's name.
+- **D-21:** OG images are textless (the UI spec's X-20 and the research agree: no Node rasteriser
+  without native deps); `og:title` carries the name. Files land in `static/og/<id>.png` BEFORE
+  `vite build` because SvelteKit's crawler follows `og:image`; `zlib.crc32` exists in Node 24; a
+  realistic pad PNG is ~4 KB.
+- **D-22:** `npx playwright install webkit` (free, one download) is a plan step; the WebKit project
+  changes the e2e count, so the baseline is captured before it is added.
+- **D-23:** The UI spec's third colour `--color-over: #ff3b30` (5.92:1 on black) is accepted for the
+  over-budget state only, with the lime-only fallback recorded; the `TUNING` region's 96 px rack
+  reservation is corrected to a fixed-height-once-chosen invariant (the primary control never moves).
+
 ## Deferred / out of scope
 Install (Phase 7). Browse catalog, sort and search (Phase 5.1). Per-stamp OG images (would need a
 Worker). Accounts, likes, popularity (never). Phase 8's Lua entries joining the front-door row —
