@@ -15,14 +15,14 @@ Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, after the wa
 landed. Wall times are the whole command including npm and process startup; the parenthesised figure
 is the runner's own reported duration.
 
-| Command                      | Covers                                                                     | Measured                                                            |
-| ---------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 37 files, 532 passed + 1 todo (533); 9 s wall (9.1 s)               |
-| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.4 s)                                 |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 27 files, 462 passed + 1 todo (463); 42 s wall (38.3 s)             |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 16 tests; 50 s wall including the build and the wrangler cold start |
-| `npm run check`              | `svelte-check` over the whole project                                      | 414 files, 0 errors, 0 warnings                                     |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                              |
+| Command                      | Covers                                                                     | Measured                                                              |
+| ---------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 37 files, 532 passed + 1 todo (533); 9 s wall (9.1 s)                 |
+| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.4 s)                                   |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 27 files, 462 passed + 1 todo (463); 42 s wall (38.3 s)               |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 18 tests; 41 s runner time plus the build and the wrangler cold start |
+| `npm run check`              | `svelte-check` over the whole project                                      | 418 files, 0 errors, 0 warnings                                       |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                                |
 
 The sampling rule, in three lines:
 
@@ -122,17 +122,40 @@ everything downstream of an open port is exercised through `FakeTransport` in no
 half is a human checklist in `docs/SKELETON-RUNBOOK.md` whose results are written up in
 `docs/SKELETON-RESULTS.md`.
 
-`e2e/first-experience.e2e.ts` holds **6** tests for the front door itself, and they are the only place
-the coverflow, the splash and the reduced-motion path are proven at all: this repository collects no
-`.svelte.spec.ts` in any Vitest project, so a component test would be collected by nothing and report
-green. The six assert that an animated pad really moves (two samples of its own 9x9 canvas, 400 ms
-apart, must differ), that a pad the catalog calls static really does not (the same sampling on
-`ninepads`, asserted equal and non-empty), that the row steps from the keyboard and wraps at both ends
-through `aria-activedescendant`, that the splash is on screen with the coverflow already mounted
-underneath it and then clears itself, that any key cuts straight to the dissolve, and that reduced
-motion holds one lit still frame while stepping becomes instant. Each one also asserts an empty
-error-level console. The first two are the honest half of PREV-01: a row where everything changed
-between samples would be as wrong as one where nothing did.
+`e2e/first-experience.e2e.ts` holds **8** tests for the front door itself, and they are the only place
+the coverflow, the splash, the chosen panel and the reduced-motion path are proven at all: this
+repository collects no `.svelte.spec.ts` in any Vitest project, so a component test would be collected
+by nothing and report green. The eight assert that an animated pad really moves (two samples of its
+own 9x9 canvas, 400 ms apart, must differ), that a pad the catalog calls static really does not (the
+same sampling on `ninepads`, asserted equal and non-empty), that the row steps from the keyboard and
+wraps at both ends through `aria-activedescendant`, that the splash is on screen with the coverflow
+already mounted underneath it and then clears itself, that any key cuts straight to the dissolve, that
+choosing the centre pad reveals the panel and that both Escape and the browser Back button take it
+away again, that a browser with no Web Serial still shows the device control — present, really
+`disabled`, naming Chrome, Edge and desktop Firefox 151 and no engine — and that reduced motion holds
+one lit still frame while stepping becomes instant. Each one also asserts an empty error-level
+console. The first two are the honest half of PREV-01: a row where everything changed between samples
+would be as wrong as one where nothing did.
+
+Three more conventions in that file, beyond the two below.
+
+**Nothing about the device is asserted absent until the opening has cleared.** Test 6 counts
+`chosen-panel` only after `splash` has reached zero matches and `coverflow` is visible. A count taken
+against an unhydrated document would be zero for the wrong reason, and a key press taken while the
+splash is up races two `keydown` listeners — the splash's skip rule and the row's choose — for one
+key.
+
+**The degrade test deletes `serial` off `Navigator.prototype`, never off the instance.** It is an
+accessor on the prototype, so `delete navigator.serial` returns `true` and removes nothing. The test
+then asserts its own precondition (`"serial" in navigator` is `false`) before asserting anything else,
+which is the discipline `e2e/skeleton.e2e.ts` established.
+
+**Web Serial past the capability check is still not automatable.** Everything downstream of an open
+port — `identifyOnly`, the identified block, `DISCONNECT ZONA` — is covered in node through
+`FakeTransport` in `src/lib/device/try-on.spec.ts`, including the never-writes invariant. The one
+remaining hardware check is a person with a ZONA on the desk: open the front door, choose a pad, click
+`TRY ON DEVICE`, pick the module, and confirm the identified block names the firmware and the active
+page and that the module's own configuration is untouched afterwards.
 
 Two conventions in that file are worth copying rather than rediscovering.
 

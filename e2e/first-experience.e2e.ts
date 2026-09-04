@@ -1,9 +1,11 @@
 // PREV-01, PREV-02 and D-10: the browser half of the front door.
 //
-// Six tests. Three from plan 04-06 (an animated pad moves, a static one does
-// not, the row steps and wraps) and three from plan 04-07 (the splash opens the
+// Eight tests. Three from plan 04-06 (an animated pad moves, a static one does
+// not, the row steps and wraps), three from plan 04-07 (the splash opens the
 // door and clears itself, any key cuts to the dissolve, and reduced motion
-// stills the pads while making stepping instant).
+// stills the pads while making stepping instant) and two from plan 04-08
+// (choosing reveals the panel and both ways out close it, and the device
+// control on a browser with no Web Serial).
 //
 // What this file covers: that the row is really running the firmware simulator
 // with nothing plugged in (an animated pad provably changes between two samples
@@ -18,7 +20,9 @@
 // What this file cannot cover: Web Serial. It is an operating-system
 // capability with no CDP domain and no fake-device hook, so the device half of
 // this phase is a human check with a real ZONA on the desk. Nothing below opens
-// a port or writes a byte.
+// a port or writes a byte. What CAN be proven in a browser is the branch a
+// large share of visitors actually land on - no Web Serial at all - and that is
+// the last test in this file.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
@@ -72,6 +76,17 @@ function collectErrors(page: Page): string[] {
     if (msg.type() === "error") errors.push(msg.text());
   });
   return errors;
+}
+
+/**
+ * Wait for the opening to take itself off the page. A test that chooses while
+ * the splash is still up is racing two keydown listeners - the splash's skip
+ * and the row's - for one key press, and the panel it asserts on would be
+ * rendered underneath a layer that covers the viewport.
+ */
+async function waitForFrontDoor(page: Page): Promise<void> {
+  await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
+  await expect(page.getByTestId("coverflow")).toBeVisible();
 }
 
 test.describe("the front door, with no hardware attached", () => {
@@ -200,6 +215,95 @@ test.describe("the front door, with no hardware attached", () => {
     await expect(splash).toHaveAttribute("data-phase", "dissolve", {
       timeout: 250,
     });
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("choosing the centre pad", () => {
+  test("choosing reveals the panel, and Escape and Back both close it", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await page.goto("/");
+    await waitForFrontDoor(page);
+
+    // Counted AFTER the row is up and the opening has cleared, so a zero here
+    // is a real absence rather than a document that has not hydrated yet.
+    // D-05: nothing about the device exists until a visitor asks for it.
+    expect(
+      await page.getByTestId("chosen-panel").count(),
+      "nothing about the device is on the page before a choose",
+    ).toBe(0);
+
+    const band = page.getByTestId("coverflow");
+    await band.press("Enter");
+
+    const panel = page.getByTestId("chosen-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByTestId("try-on-device")).toBeVisible();
+    // Secondary, and really disabled rather than merely styled that way.
+    const keep = panel.getByTestId("keep-on-device");
+    await expect(keep).toBeVisible();
+    await expect(keep).toBeDisabled();
+    await expect(panel.getByTestId("tuning-reserved")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
+
+    // The same gesture by the other route: choosing pushed a shallow history
+    // entry, so the browser Back button is Escape (04-UI-SPEC W-16).
+    await band.press("Enter");
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await page.goBack();
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the front door on a browser that cannot install", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(() => {
+      // serial is an accessor on Navigator.prototype - deleting it off the
+      // instance returns true and removes nothing. (e2e/skeleton.e2e.ts)
+      delete (Navigator.prototype as unknown as Record<string, unknown>).serial;
+    });
+  });
+
+  test("with no Web Serial the control is present, disabled, and says why", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await page.goto("/");
+
+    // Precondition, asserted. A degrade test that does not verify its own
+    // precondition passes for the wrong reason.
+    expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
+
+    await waitForFrontDoor(page);
+    await page.getByTestId("coverflow").press("Enter");
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+
+    // DEGR-02: present and disabled, never hidden.
+    const tryOn = page.getByTestId("try-on-device");
+    await expect(tryOn).toBeVisible();
+    await expect(tryOn).toBeDisabled();
+
+    const status = page.getByTestId("connect-status");
+    await expect(status).toContainText("Firefox 151");
+    const reason = await status.innerText();
+    for (const named of ["Chrome", "Edge", "Firefox 151"]) {
+      expect(reason, `the reason names ${named}`).toContain(named);
+    }
+    // CONN-01 is a capability test, never a browser test, and no visitor-facing
+    // string names an engine.
+    expect(await page.locator("body").innerText()).not.toContain("Chromium");
+
+    // The secondary control degrades too, for its own separate reason.
+    const keep = page.getByTestId("keep-on-device");
+    await expect(keep).toBeVisible();
+    await expect(keep).toBeDisabled();
 
     expect(consoleErrors).toEqual([]);
   });
