@@ -11,18 +11,19 @@ work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, after the walking skeleton
-landed. Wall times are the whole command including npm and process startup; the parenthesised figure
-is the runner's own reported duration.
+Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, at the end of Phase 4. Wall
+times are the whole command including npm and process startup; the parenthesised figure is the
+runner's own reported duration. Every number here is **observed**, never predicted — the tree is
+shared with Phase 8, so a row that was guessed rather than run is worse than no row at all.
 
-| Command                      | Covers                                                                     | Measured                                                              |
-| ---------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 37 files, 532 passed + 1 todo (533); 9 s wall (9.1 s)                 |
-| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.4 s)                                   |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 27 files, 462 passed + 1 todo (463); 42 s wall (38.3 s)               |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 18 tests; 41 s runner time plus the build and the wrangler cold start |
-| `npm run check`              | `svelte-check` over the whole project                                      | 418 files, 0 errors, 0 warnings                                       |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                                |
+| Command                      | Covers                                                                     | Measured                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 37 files, 534 passed + 1 todo (535); 14 s wall (10.1 s)                                 |
+| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.1 s)                                                     |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 38 files, 543 passed + 1 todo (544); 49 s wall (44.7 s)                                 |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 21 tests; 56.5 s runner time, 59 s wall including the build and the wrangler cold start |
+| `npm run check`              | `svelte-check` over the whole project                                      | 421 files, 0 errors, 0 warnings                                                         |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                                                  |
 
 The sampling rule, in three lines:
 
@@ -122,20 +123,71 @@ everything downstream of an open port is exercised through `FakeTransport` in no
 half is a human checklist in `docs/SKELETON-RUNBOOK.md` whose results are written up in
 `docs/SKELETON-RESULTS.md`.
 
-`e2e/first-experience.e2e.ts` holds **8** tests for the front door itself, and they are the only place
-the coverflow, the splash, the chosen panel and the reduced-motion path are proven at all: this
-repository collects no `.svelte.spec.ts` in any Vitest project, so a component test would be collected
-by nothing and report green. The eight assert that an animated pad really moves (two samples of its
-own 9x9 canvas, 400 ms apart, must differ), that a pad the catalog calls static really does not (the
-same sampling on `ninepads`, asserted equal and non-empty), that the row steps from the keyboard and
-wraps at both ends through `aria-activedescendant`, that the splash is on screen with the coverflow
-already mounted underneath it and then clears itself, that any key cuts straight to the dissolve, that
-choosing the centre pad reveals the panel and that both Escape and the browser Back button take it
-away again, that a browser with no Web Serial still shows the device control — present, really
-`disabled`, naming Chrome, Edge and desktop Firefox 151 and no engine — and that reduced motion holds
-one lit still frame while stepping becomes instant. Each one also asserts an empty error-level
-console. The first two are the honest half of PREV-01: a row where everything changed between samples
-would be as wrong as one where nothing did.
+## The front door's test surface
+
+Phase 4 added nine `server` spec files, one test to `src/lib/transport/transport.spec.ts`, two to
+`src/lib/config-shape.spec.ts` and eleven Playwright tests. Every count below was observed on
+2026-09-04 after the phase's last plan, by running each file on its own.
+
+| File                                 | Tests | What it holds                                                                                                              |
+| ------------------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/ui/identity.spec.ts`        | 6     | IDENT-01's token ladder, the WCAG AA floor on black, the two font stacks, the 9x9 favicon                                  |
+| `src/lib/catalog/front-door.spec.ts` | 8     | the row and the exclusion list as a **partition** of the catalog, and motion derived from the fixture rather than declared |
+| `src/lib/coverflow/slots.spec.ts`    | 8     | the ring arithmetic and the slot ladder, including the left/right mirror                                                   |
+| `src/lib/sim/schedule.spec.ts`       | 7     | the 10 ms accumulator, the 100 ms catch-up clamp and parity with the vendored host's constants                             |
+| `src/lib/sim/paint.spec.ts`          | 5     | one `putImageData` per pad per paint, zero of every forbidden call, and the unlit-cell alpha                               |
+| `src/lib/sim/touch.spec.ts`          | 8     | mouse-as-finger geometry and the tick-locked, at-most-one-sample-per-tick delivery                                         |
+| `src/lib/sim/host.spec.ts`           | 10    | the shared rAF host: the 9x9 backing store, the coverflow window gate, the hero's continuity across steps, teardown        |
+| `src/lib/ui/glyph-field.spec.ts`     | 5     | the splash field is deterministic and byte-identical across two builds                                                     |
+| `src/lib/device/try-on.spec.ts`      | 6     | connect and identify against `FakeTransport`, including **zero writes** across a full cycle                                |
+
+`src/lib/config-shape.spec.ts` went from 12 tests to **14**. The two additions are the pair that keeps
+the 131,101-byte `@intechstudio/grid-protocol` chunk off the front door's critical path, and they are
+deliberately redundant with each other: test 13 walks the **source** of both routes and every file in
+`src/lib/ui/`, forbidding `vendor`, `intechstudio` and `lib/pad` in the `from` form only — the
+`onMount` dynamic import is the rule being obeyed, not broken — while test 14 walks the **built**
+artefact, finds the chunk containing `GRID_PARAMETER_ELEMENT_POTMETER` and asserts that neither
+`build/index.html` nor `build/c/aurora/index.html` references it. Test 14 also fails when it can find
+no such chunk at all, because a probe that has gone blind must fail rather than pass. Perturbing
+`FidelityLine.svelte` with one static vendored import turns test 13 red without a rebuild and leaves
+test 14 green, which is exactly why there are two.
+
+**There are no component tests, and that is a decision rather than a gap.** This repository has no
+browser Vitest project: `vite.config.ts`'s `server` project _excludes_
+`src/**/*.svelte.{test,spec}.{js,ts}` and nothing else collects it, and `@vitest/browser`, jsdom and
+happy-dom are all absent. A `.svelte.spec.ts` written here would be collected by nothing and report
+green — the green-and-vacuous trap described above, in its purest form. So every decidable thing in
+Phase 4 lives in a pure `.ts` module with its own spec, and everything that needs a real layout, a
+real canvas or a real history entry is proven in a browser instead.
+
+**What the browser proves that node cannot.** `e2e/first-experience.e2e.ts` holds **11** tests, and
+they are the only place the coverflow, the splash, the chosen panel, the deep-link routes and the
+reduced-motion path are proven at all. They assert that an animated pad really moves (two samples of
+its own 9x9 canvas, 400 ms apart, must differ), that a pad the catalog calls static really does not
+(the same sampling on `ninepads`, asserted equal and non-empty), that the row steps from the keyboard
+and wraps at both ends through `aria-activedescendant`, that the splash is on screen with the
+coverflow already mounted underneath it and then clears itself, that any key cuts straight to the
+dissolve, that choosing the centre pad reveals the panel and that both Escape and the browser Back
+button take it away again, that a browser with no Web Serial still shows the device control —
+present, really `disabled`, naming Chrome, Edge and desktop Firefox 151 and no engine — that reduced
+motion holds one lit still frame while stepping becomes instant, that `/c/radar/` lands with radar
+centred, alive and with no splash, that all eight row entries are real files with their own
+descriptions while the excluded one is provably a 404 and an unknown address still lands on the shelf
+with a line saying so, and that the shared animation loop is really painting. All but one assert an
+empty error-level console; the exception is the test that navigates to a 404 on purpose, and it
+asserts that the one logged message is that 404 and nothing else. The first two are the honest half of
+PREV-01: a row where everything changed between samples would be as wrong as one where nothing did.
+
+**The paint count is recorded, never gated.** Test 11 patches
+`CanvasRenderingContext2D.prototype.putImageData` in an init script and counts pad frames for two
+seconds on the built site. Observed on this machine on 2026-09-04 at the default 1280x720 viewport:
+**212 and 215** paints in two seconds when the file runs alone, and **139** in the same window when
+the whole suite runs with five Playwright workers competing for the machine. The test asserts only
+that the number is greater than zero. That is deliberate: the honest ceiling on a four-core laptop
+with integrated graphics is unmeasured, the three numbers above already span a 1.5x range purely on
+how busy the machine was, and a frame-rate threshold asserted here would go red on someone else's
+hardware for a reason that is not a regression. A real frame-rate budget needs hardware this project
+has not measured on, and belongs with that measurement rather than in a test.
 
 Three more conventions in that file, beyond the two below.
 

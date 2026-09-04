@@ -1,11 +1,14 @@
 // PREV-01, PREV-02 and D-10: the browser half of the front door.
 //
-// Eight tests. Three from plan 04-06 (an animated pad moves, a static one does
+// Eleven tests. Three from plan 04-06 (an animated pad moves, a static one does
 // not, the row steps and wraps), three from plan 04-07 (the splash opens the
 // door and clears itself, any key cuts to the dissolve, and reduced motion
-// stills the pads while making stepping instant) and two from plan 04-08
+// stills the pads while making stepping instant), two from plan 04-08
 // (choosing reveals the panel and both ways out close it, and the device
-// control on a browser with no Web Serial).
+// control on a browser with no Web Serial) and three from plan 04-09 (a deep
+// link lands centred, alive and with no splash; every row entry is a real file
+// with its own description while the excluded one is provably absent; and the
+// row's paint rate over two seconds, recorded rather than gated).
 //
 // What this file covers: that the row is really running the firmware simulator
 // with nothing plugged in (an animated pad provably changes between two samples
@@ -26,6 +29,11 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
+// The row itself, not a copy of it. src/lib/catalog/front-door.ts imports
+// nothing at all - that is the whole reason it exists as a separate module - so
+// pulling it into a Playwright file costs nothing and means a row that grows is
+// covered here without anyone editing a list of ids.
+import { EXCLUDED_FROM_ROW, FRONT_DOOR } from "../src/lib/catalog/front-door";
 
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
 
@@ -390,6 +398,162 @@ test.describe("the front door for a visitor who asked for less motion", () => {
       .evaluate((el) => getComputedStyle(el).transitionDuration);
     expect(duration, "stepping is instant under reduced motion").toBe("0s");
 
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("a deep link to one configuration", () => {
+  test("a deep link lands with that configuration centred and skips the splash", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await page.goto("/c/radar/");
+
+    // THE PRECONDITION FIRST. locator.count() does not auto-wait, so a count
+    // taken against a document that has not hydrated is zero for the wrong
+    // reason. Waiting for the row to be visible is what makes the zero below
+    // mean "no splash was ever rendered" rather than "nothing has rendered".
+    const band = page.getByTestId("coverflow");
+    await expect(band).toBeVisible();
+    expect(
+      await page.getByTestId("splash").count(),
+      "a shared link opens fast: the opening is for the front door (D-12)",
+    ).toBe(0);
+
+    await expect(band).toHaveAttribute("aria-activedescendant", "slot-radar");
+    await expect(page.getByTestId("nameplate-name")).toHaveText("Radar");
+
+    // Centred, named - and ALIVE. Without this the test would prove that a deep
+    // link arrives at the right markup, which is not the claim being made.
+    await waitForPicture(page, "radar");
+    const first = await sample(page, "radar");
+    expect(first, "the deep-linked hero canvas was readable").not.toBeNull();
+    await page.waitForTimeout(400);
+    expect(
+      await sample(page, "radar"),
+      "radar is declared animated, so a deep link must arrive at a running pad",
+    ).not.toBe(first);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("every configuration in the row is a real file with its own description", async ({
+    page,
+    request,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const descriptions = new Map<string, string>();
+
+    for (const entry of FRONT_DOOR) {
+      const response = await request.get(`/c/${entry.id}/`);
+      expect(response.status(), `/c/${entry.id}/ is served`).toBe(200);
+      const body = await response.text();
+      const match = /<meta name="description" content="([^"]*)"/.exec(body);
+      expect(match, `/c/${entry.id}/ carries a description`).not.toBeNull();
+      const description = (match as RegExpExecArray)[1];
+      expect(
+        description.length,
+        `/c/${entry.id}/'s description is not empty`,
+      ).toBeGreaterThan(0);
+      descriptions.set(entry.id, description);
+    }
+
+    // Its OWN description, not the site's. One real file per configuration with
+    // its own head is what makes Phase 5's link unfurls possible at all.
+    expect(
+      new Set(descriptions.values()).size,
+      "two configurations must not share one description",
+    ).toBe(descriptions.size);
+
+    // The excluded entry has no page, by design (D-20). Pinned here so a later
+    // change to the row is noticed in the browser too, not only in node.
+    for (const excluded of EXCLUDED_FROM_ROW) {
+      const response = await request.get(`/c/${excluded.id}/`);
+      expect(
+        response.status(),
+        `/c/${excluded.id}/ is deliberately not a page`,
+      ).toBe(404);
+    }
+
+    // And an address nobody has heard of is still not a dead end: the static
+    // host serves the fallback, the client router matches /c/[id], and the
+    // shelf comes up centred on its first entry with a line saying so.
+    await page.goto(`/c/${EXCLUDED_FROM_ROW[0].id}/`);
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("coverflow")).toHaveAttribute(
+      "aria-activedescendant",
+      `slot-${FRONT_DOOR[0].id}`,
+    );
+    await expect(page.getByTestId("fidelity-notice")).toHaveText(
+      "Never heard of that one. Here is the shelf instead.",
+    );
+
+    // That navigation was deliberately to a 404, and the browser logs one error
+    // for it. This is the only test in the file that cannot assert an empty
+    // console, so the exception is narrow and asserted from both sides: exactly
+    // one message, and nothing in it that is not about the status code.
+    expect(
+      consoleErrors.filter((message) => !message.includes("404")),
+      "no console error beyond the deliberate one",
+    ).toEqual([]);
+    expect(
+      consoleErrors.length,
+      "the deliberate 404 was logged exactly once",
+    ).toBe(1);
+  });
+});
+
+test.describe("the row's frame budget, on the record", () => {
+  test("the row's painted frames over two seconds are recorded", async ({
+    page,
+  }, testInfo) => {
+    const consoleErrors = collectErrors(page);
+
+    // Count the paints at their only exit. src/lib/sim/paint.ts ends in exactly
+    // one ctx.putImageData per pad per paint, and paint.spec.ts pins that, so a
+    // counter on the prototype is a count of painted pad frames and nothing
+    // else.
+    await page.addInitScript(() => {
+      const store = window as unknown as { __padPaints: number };
+      store.__padPaints = 0;
+      const proto = CanvasRenderingContext2D.prototype;
+      const original = proto.putImageData;
+      proto.putImageData = function (
+        this: CanvasRenderingContext2D,
+        ...args: unknown[]
+      ) {
+        store.__padPaints += 1;
+        return (original as unknown as (...a: unknown[]) => void).apply(
+          this,
+          args,
+        );
+      } as typeof proto.putImageData;
+    });
+
+    await page.goto("/");
+    await waitForFrontDoor(page);
+    await waitForPicture(page, "aurora");
+
+    const read = () =>
+      page.evaluate(
+        () => (window as unknown as { __padPaints: number }).__padPaints,
+      );
+    const before = await read();
+    await page.waitForTimeout(2_000);
+    const painted = (await read()) - before;
+
+    const viewport = page.viewportSize();
+    const where = viewport ? `${viewport.width}x${viewport.height}` : "unknown";
+    const line = `pad frames painted in two seconds: ${painted} (viewport ${where})`;
+    console.log(line);
+    testInfo.annotations.push({ type: "measurement", description: line });
+
+    // A RECORDED MEASUREMENT, NOT A BUDGET GATE. The honest ceiling on a
+    // four-core laptop with integrated graphics is unmeasured (04-RESEARCH
+    // §Open Question 4), and a frame-rate threshold asserted on this machine
+    // would go red on someone else's for reasons that are not regressions. What
+    // IS asserted is that the loop is running at all.
+    expect(painted, "the shared rAF loop is painting").toBeGreaterThan(0);
     expect(consoleErrors).toEqual([]);
   });
 });
