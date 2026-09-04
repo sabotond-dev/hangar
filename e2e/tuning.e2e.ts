@@ -1,0 +1,661 @@
+// TUNE-02, TUNE-03, TUNE-06, TUNE-07, SHARE-01 to SHARE-03 and DEGR-01's
+// clipboard half: the whole tuning and sharing journey, in a real browser.
+//
+// Eight tests, all in the chromium project. No title here carries the tag
+// playwright.config.ts greps the webkit-phone project by, so that project
+// still lists zero tests - wave 12 owns the phone journey in its own file.
+// The tag is deliberately not written out anywhere in this file: the gate
+// for it is a plain grep, and a comment naming the thing it forbids would
+// make that grep useless. (TuningRegion.svelte learned the same lesson about
+// setInterval, and answered it with a comment-stripping scanner; a grep the
+// plan can quote is worth more here.)
+//
+// No title contains the word the acceptance gate greps the captured log for
+// either, for the same reason: that gate asserts an exact passed total AND
+// the absence of that word, and a title carrying it would be a permanent
+// false negative.
+//
+// Everything here runs against build/ served by worker/index.js under
+// wrangler dev: the deployed bytes, never a development server. A knob that
+// only works in `vite dev` is a red test rather than a nice demo.
+//
+// TWO CHOICES IN HERE ARE ABOUT MAKING AN ASSERTION MEAN WHAT IT SAYS, and
+// both are worth reading before editing anything:
+//
+//   1. TEST 1 RUNS UNDER REDUCED MOTION. Aurora is declared `animated`, so on a
+//      full-motion page two samples of its canvas differ whether or not a knob
+//      did anything - the test would pass on an implementation where turning a
+//      knob does nothing at all. Reduced motion holds every engine on one
+//      representative frame (src/lib/sim/host.ts), so a frame that changes
+//      after a knob turn changed BECAUSE of the knob. The stillness is asserted
+//      on both sides of the turn, so the difference cannot be noise either.
+//
+//   2. EVERY TEST ASSERTS ITS PRECONDITION BEFORE ITS PROPERTY. locator.count()
+//      takes a snapshot and does not auto-wait, so a count taken before
+//      hydration reads zero whether or not the element would eventually render.
+//      That mistake has already been made once in this repository.
+//
+// The canvas helpers below are e2e/first-experience.e2e.ts's, re-derived rather
+// than reinvented: same 9x9 backing-store read, same "wait for a picture before
+// comparing two empty canvases" rule, same error-level console filter.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { expect, test, type Page } from "@playwright/test";
+// Both of these modules import NOTHING AT ALL - that is why they exist as
+// separate files (05-01, 05-02) - so naming them from a Playwright file costs
+// nothing and binds these assertions to the copywriting contract and to the
+// real URL composer instead of to transcribed literals.
+import { shareUrl } from "../src/lib/share/url";
+import {
+  COPY_LINK,
+  LINK_COPIED,
+  MEASURING,
+  RESET_ALL,
+  SHARE_FALLBACK_FIELD_NAME,
+  STAMP_RESTORED,
+  SURPRISE_ME,
+  stampUnreadable,
+} from "../src/lib/tune/copy";
+
+/** The configuration every test in this file opens. */
+const ENTRY = "aurora";
+const ENTRY_NAME = "Aurora";
+
+/**
+ * A payload minted from another card. `p` is the vendored preset-name format
+ * and `dial` is a real preset, so this is well formed and still not Aurora's:
+ * src/lib/share/stamp.ts's entry-consistency guard is what makes it unreadable
+ * rather than "restored" onto a configuration nobody built.
+ */
+const FOREIGN_STAMP = "#z.pdial";
+
+const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
+
+/**
+ * The 9x9 backing store as a comma-joined string of its 324 RGBA bytes, or null
+ * when the element or its context is missing. A string rather than an array so
+ * an assertion diff is one line instead of 324. (e2e/first-experience.e2e.ts)
+ */
+function sample(page: Page, id: string): Promise<string | null> {
+  return page.evaluate((sel) => {
+    const c = document.querySelector(sel) as HTMLCanvasElement | null;
+    if (!c) return null;
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    return Array.from(ctx.getImageData(0, 0, 9, 9).data).join(",");
+  }, canvasOf(id));
+}
+
+/**
+ * Wait until the pad has a picture at all. Sampling before this point compares
+ * two empty canvases, which is a test that passes for the wrong reason - the
+ * canvases genuinely are empty for a moment, because the simulator arrives
+ * through a dynamic import after the prerendered frames have already painted.
+ */
+async function waitForPicture(page: Page, id: string): Promise<void> {
+  await page.waitForFunction(
+    (sel) => {
+      const c = document.querySelector(sel) as HTMLCanvasElement | null;
+      if (!c) return false;
+      const ctx = c.getContext("2d");
+      if (!ctx) return false;
+      return ctx.getImageData(0, 0, 9, 9).data.some((b) => b !== 0);
+    },
+    canvasOf(id),
+    { timeout: 30_000 },
+  );
+}
+
+/**
+ * The protocol package logs at console.log from module scope and the decoder
+ * logs every rejected frame, so only error-level messages are collected. An
+ * unfiltered assertion would be permanently red for reasons that are not
+ * errors. (e2e/skeleton.e2e.ts)
+ */
+function collectErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error") errors.push(msg.text());
+  });
+  return errors;
+}
+
+/** Every `.wasm` response, from the moment the listener is attached. */
+function collectWasm(page: Page): string[] {
+  const urls: string[] = [];
+  page.on("response", (r) => {
+    if (r.url().endsWith(".wasm")) urls.push(r.url());
+  });
+  return urls;
+}
+
+/** The backing store's real dimensions. A blanked canvas is 0 by 0. */
+function canvasSize(
+  page: Page,
+  id: string,
+): Promise<{ w: number; h: number } | null> {
+  return page.evaluate((sel) => {
+    const c = document.querySelector(sel) as HTMLCanvasElement | null;
+    return c ? { w: c.width, h: c.height } : null;
+  }, canvasOf(id));
+}
+
+/** Knob id to index, read off the real controls rather than off any store. */
+function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll("[data-testid^='knob-']"))
+      .filter((el) => el.getAttribute("data-testid") !== "knob-rack")
+      .map((el) => {
+        const rail = el.querySelector(
+          "input[type='range']",
+        ) as HTMLInputElement | null;
+        const radios = Array.from(
+          el.querySelectorAll("input[type='radio']"),
+        ) as HTMLInputElement[];
+        return {
+          id: el.getAttribute("data-testid") ?? "",
+          index: rail
+            ? Number(rail.value)
+            : radios.findIndex((radio) => radio.checked),
+        };
+      }),
+  );
+}
+
+/** `"250 / 908"`, or `measuring…` before the first number has landed. */
+function meterText(page: Page, event: "setup" | "timer"): Promise<string> {
+  return page.getByTestId(`meter-${event}`).locator(".numerals").innerText();
+}
+
+/**
+ * Both meters settled: neither measuring nor catching up.
+ *
+ * `aria-busy` is the meter's own published state and covers both waits, which
+ * is exactly why it is the anchor. Waiting only for the numerals to leave
+ * `measuring…` is NOT enough and the difference is not academic - it was
+ * observed on this file's first run. See `recomputed` below.
+ */
+async function settled(page: Page): Promise<void> {
+  for (const event of ["setup", "timer"] as const) {
+    await expect(
+      page.getByTestId(`meter-${event}`),
+      `the ${event} meter settled on a number`,
+    ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+    await expect(
+      page.getByTestId(`meter-${event}`).locator(".numerals"),
+      `the ${event} meter left ${MEASURING}`,
+    ).not.toHaveText(MEASURING);
+  }
+}
+
+/**
+ * Wait for a knob change to be MEASURED, not merely applied.
+ *
+ * A knob move puts both meters into the stale state - `aria-busy="true"`, the
+ * numerals dimmed and still showing the PREVIOUS number - while the
+ * 120ms-debounced recompile runs. A wait that only asked for "not measuring…"
+ * therefore came back instantly with the old measurement, and every comparison
+ * in this file would have been against the wrong number. Observed: RESET ALL
+ * read `256 / 908` where the defaults are `250 / 908`.
+ *
+ * The stale phase is asserted rather than assumed, so a future change that
+ * compiled synchronously on every keystroke - which is what the debounce exists
+ * to prevent - turns this red instead of quietly making the wait meaningless.
+ */
+async function recomputed(page: Page): Promise<void> {
+  await expect(
+    page.getByTestId("meter-setup"),
+    "the change went through the debounced recompile",
+  ).toHaveAttribute("aria-busy", "true", { timeout: 5_000 });
+  await settled(page);
+}
+
+/**
+ * Open a configuration and choose it, from the keyboard.
+ *
+ * trailingSlash: "always" (src/routes/+layout.ts), so the slash is not optional
+ * - without it the static build 404s and the failure reads as a broken route
+ * rather than a URL typo.
+ */
+async function openPanel(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  const band = page.getByTestId("coverflow");
+  await expect(band).toBeVisible();
+  await waitForPicture(page, ENTRY);
+  if ((await page.getByTestId("chosen-panel").count()) === 0) {
+    await band.press("Enter");
+  }
+  await expect(page.getByTestId("chosen-panel")).toBeVisible();
+  await expect(page.getByTestId("knob-rack")).toBeVisible();
+  await settled(page);
+}
+
+/** The rails, in rack order. The first one is Aurora's Speed. */
+const rails = (page: Page) =>
+  page.locator("[data-testid='knob-rack'] input[type='range']");
+
+/** One keyboard step to the right on a rail, then let the debounce land. */
+async function turnRail(page: Page, at: number): Promise<void> {
+  await rails(page).nth(at).focus();
+  await page.keyboard.press("ArrowRight");
+  await recomputed(page);
+}
+
+test.describe("turning a knob", () => {
+  test("a knob turn changes the pad", async ({ page }) => {
+    const consoleErrors = collectErrors(page);
+    const wasm = collectWasm(page);
+
+    // ------------------------------------------------------------------
+    // THE FRONT DOOR'S FIRST PAINT FETCHES NO WebAssembly, asserted for `/`.
+    //
+    // config-shape.spec.ts test 14 covers the protocol-CHUNK half over the
+    // built HTML, and e2e/catalog.e2e.ts makes the WebAssembly assertion for
+    // /dev/catalog/. Nothing asserted it for the page a visitor actually
+    // arrives on. This is that assertion, and it lives inside this test rather
+    // than as a ninth one so the file's count stays where the plan put it.
+    await page.goto("/");
+    await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+    // The precondition: the simulator really did arrive. Without this a zero
+    // below would mean "nothing loaded" rather than "nothing needed WASM".
+    await waitForPicture(page, ENTRY);
+    await page.waitForLoadState("networkidle");
+    expect(
+      wasm,
+      "a visitor who only browses the front door downloads no WebAssembly: not the 628 KB formatter, not the 271 KB Lua VM",
+    ).toEqual([]);
+
+    // ------------------------------------------------------------------
+    // The knob turn itself, under reduced motion. See the header for why.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openPanel(page, `/c/${ENTRY}/`);
+    expect(
+      await page.evaluate(
+        () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      ),
+      "the page really is in the reduced-motion branch, so a frame that moves moved for a reason",
+    ).toBe(true);
+
+    const before = await sample(page, ENTRY);
+    expect(before, "the hero canvas was readable").not.toBeNull();
+    expect(
+      (before as string).split(",").some((b) => b !== "0"),
+      "the hero shows its representative frame, not a black square",
+    ).toBe(true);
+    await page.waitForTimeout(400);
+    expect(
+      await sample(page, ENTRY),
+      "reduced motion holds one frame, so 400ms of wall clock must not move it",
+    ).toBe(before);
+
+    await turnRail(page, 0);
+
+    const after = await sample(page, ENTRY);
+    expect(
+      after,
+      "one keyboard step on the first rail changes the pad the visitor is looking at",
+    ).not.toBe(before);
+
+    // THE replaceEngine PROPERTY, ASSERTED DIRECTLY. SimHost.register() would
+    // set canvas.width = 0 on its way through unregister(); replaceEngine swaps
+    // the engine in place and the backing store is never torn down.
+    expect(
+      await canvasSize(page, ENTRY),
+      "the hero's backing store survived the swap - a blanked canvas is 0 by 0",
+    ).toEqual({ w: 9, h: 9 });
+
+    await page.waitForTimeout(400);
+    expect(
+      await sample(page, ENTRY),
+      "the new engine is held on one frame too, so the change above was the knob rather than noise",
+    ).toBe(after);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("the two meters read two different numbers and both change on a knob turn", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, `/c/${ENTRY}/`);
+
+    const setupBefore = await meterText(page, "setup");
+    const timerBefore = await meterText(page, "timer");
+    for (const [event, text] of [
+      ["setup", setupBefore],
+      ["timer", timerBefore],
+    ] as const) {
+      expect(text, `the ${event} meter left ${MEASURING}`).not.toContain(
+        MEASURING,
+      );
+      expect(text, `the ${event} meter states its number out of 908`).toMatch(
+        /^[0-9]+ \/ 908$/,
+      );
+    }
+    // Two events, two budgets, two numbers. A meter pair showing one number
+    // twice would be a wiring bug that every other assertion here would miss.
+    expect(
+      timerBefore,
+      "Setup and Timer are measured separately and do not read the same",
+    ).not.toBe(setupBefore);
+
+    await turnRail(page, 0);
+
+    const setupAfter = await meterText(page, "setup");
+    const timerAfter = await meterText(page, "timer");
+    expect(
+      setupAfter !== setupBefore || timerAfter !== timerBefore,
+      `a knob turn moves at least one budget: setup ${setupBefore} -> ${setupAfter}, timer ${timerBefore} -> ${timerAfter}`,
+    ).toBe(true);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("RESET ALL puts every knob back and is disabled once they are back", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, `/c/${ENTRY}/`);
+
+    const resetAll = page.getByTestId("reset-all");
+    await expect(resetAll).toHaveText(RESET_ALL);
+    // The precondition: on arrival every knob is at home, so the control that
+    // puts them there has nothing to do.
+    await expect(
+      resetAll,
+      "on arrival at the defaults RESET ALL is a real disabled button",
+    ).toBeDisabled();
+
+    const home = await knobIndices(page);
+    expect(home.length, "the rack rendered its knobs").toBeGreaterThan(1);
+    const homeSetup = await meterText(page, "setup");
+    const homeTimer = await meterText(page, "timer");
+
+    await turnRail(page, 0);
+    await turnRail(page, 1);
+    const turned = await knobIndices(page);
+    expect(turned, "two knobs really moved").not.toEqual(home);
+    await expect(resetAll, "a moved knob enables RESET ALL").toBeEnabled();
+
+    await resetAll.click();
+    await recomputed(page);
+
+    expect(
+      await knobIndices(page),
+      "RESET ALL returns every knob to the position it arrived at",
+    ).toEqual(home);
+    expect(await meterText(page, "setup"), "the Setup budget came back").toBe(
+      homeSetup,
+    );
+    expect(await meterText(page, "timer"), "the Timer budget came back").toBe(
+      homeTimer,
+    );
+    await expect(
+      resetAll,
+      "back at the defaults there is nothing left to reset",
+    ).toBeDisabled();
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("SURPRISE ME moves the knobs and lands inside the budget", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, `/c/${ENTRY}/`);
+
+    const surprise = page.getByTestId("surprise-me");
+    await expect(surprise).toHaveText(SURPRISE_ME);
+    const home = await knobIndices(page);
+
+    await surprise.click();
+    await expect(surprise, "the roll finished").not.toHaveAttribute(
+      "aria-busy",
+      "true",
+      { timeout: 30_000 },
+    );
+    await settled(page);
+
+    expect(
+      await knobIndices(page),
+      "a surprise that changed nothing is not a surprise",
+    ).not.toEqual(home);
+
+    // SURPRISE ME has no failure state: its roll only accepts states that fit,
+    // so neither meter may be in the over-budget branch afterwards.
+    for (const event of ["setup", "timer"] as const) {
+      const meter = page.getByTestId(`meter-${event}`);
+      expect(
+        await meter.locator(".over").count(),
+        `the ${event} meter is not in the over-budget state after a roll`,
+      ).toBe(0);
+      const percent = await meter.locator(".percent").innerText();
+      expect(
+        Number.parseInt(percent, 10),
+        `the ${event} meter reads at or under 100 per cent`,
+      ).toBeLessThanOrEqual(100);
+    }
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("sharing what the visitor made", () => {
+  // Chromium only, and deliberately so: grantPermissions for the clipboard is
+  // a Chromium capability in Playwright. Wave 12's WebKit test asserts the
+  // confirm state, which is what SHARE-02 actually requires of a phone.
+  test.beforeEach(async ({ context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  });
+
+  test("COPY LINK confirms in its own state and copies the link", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, `/c/${ENTRY}/`);
+
+    const copy = page.getByTestId("copy-link");
+    await expect(copy, "the control arrives as COPY LINK").toHaveText(
+      COPY_LINK,
+    );
+
+    await turnRail(page, 0);
+    await copy.click();
+
+    // The confirmation is the control's own state, and its accessible name is
+    // always its visible text (WCAG 2.5.3). No toast: the site has none.
+    await expect(
+      copy,
+      "the button says so itself rather than through a toast",
+    ).toHaveText(LINK_COPIED);
+
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    // Composed through the real shareUrl, twice. The first form pins the
+    // origin, the /c/<id>/ path and the trailing slash; the second pins the
+    // whole string including the `z.` fragment prefix, given the payload the
+    // page put there. Test 6 then opens exactly this URL and gets the knobs
+    // back, which is what makes the pair a round trip rather than a tautology.
+    expect(
+      copied.startsWith(shareUrl(ENTRY, undefined)),
+      `the copied link is this configuration's address: ${copied}`,
+    ).toBe(true);
+    const payload = copied.split("#z.")[1];
+    expect(
+      payload,
+      "a tuned configuration carries a stamp in the fragment",
+    ).toBeTruthy();
+    expect(copied, "the link is exactly what shareUrl composes").toBe(
+      shareUrl(ENTRY, payload),
+    );
+    expect(
+      copied,
+      "a turned knob makes the link differ from the base configuration's",
+    ).not.toBe(shareUrl(ENTRY, undefined));
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("a shared link lands on the tuned configuration with the panel open", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, `/c/${ENTRY}/`);
+
+    await turnRail(page, 0);
+    await turnRail(page, 1);
+    const sent = await knobIndices(page);
+    await page.getByTestId("copy-link").click();
+    const link = await page.evaluate(() => navigator.clipboard.readText());
+    // The link names the deployed origin; this harness is 127.0.0.1. Only the
+    // origin is swapped - the path, the trailing slash and the whole fragment
+    // are the ones the page composed.
+    const parsed = new URL(link);
+    const address = `${parsed.pathname}${parsed.hash}`;
+    expect(address, "the link carries a stamp for this configuration").toBe(
+      `/c/${ENTRY}/#z.${link.split("#z.")[1]}`,
+    );
+
+    /*
+      A REAL DOCUMENT LOAD, VIA about:blank, AND IT IS NOT CEREMONY. The page
+      is already at /c/aurora/, so page.goto of /c/aurora/#z... is a
+      FRAGMENT-ONLY navigation: the browser keeps the document, Coverflow
+      never remounts, and the landing - which runs once, in onMount - never
+      happens at all. Observed on this file's first run as a stamp notice that
+      was not there. Going through about:blank makes the next goto what a
+      shared link actually is: a cold arrival on a document that has never
+      seen this configuration.
+    */
+    await page.goto("about:blank");
+    await page.goto(address);
+    const band = page.getByTestId("coverflow");
+    await expect(band).toBeVisible();
+    // X-18: the whole content of a tuned link is what somebody moved, and the
+    // knobs are the only evidence of it - so it arrives with the tuner open.
+    await expect(
+      page.getByTestId("chosen-panel"),
+      "a stamped link opens with the panel already open",
+    ).toBeVisible();
+    await expect(page.getByTestId("nameplate-name")).toHaveText(ENTRY_NAME);
+    await expect(page.getByTestId("stamp-notice")).toHaveText(STAMP_RESTORED);
+    await settled(page);
+
+    expect(
+      await knobIndices(page),
+      "the knobs are exactly where the sender left them",
+    ).toEqual(sent);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("a link that cannot be read lands on the configuration as it ships", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+
+    // The defaults, read from a clean arrival, so the comparison below is
+    // against what this configuration actually ships as rather than against a
+    // list of numbers transcribed into this file.
+    await openPanel(page, `/c/${ENTRY}/`);
+    const defaults = await knobIndices(page);
+    expect(defaults.length, "the rack rendered its knobs").toBeGreaterThan(1);
+
+    // A cold arrival, for the reason spelled out in the test above.
+    await page.goto("about:blank");
+    await page.goto(`/c/${ENTRY}/${FOREIGN_STAMP}`);
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(
+      page.getByTestId("chosen-panel"),
+      "the panel opens so the sentence explaining the link is visible",
+    ).toBeVisible();
+    await settled(page);
+
+    await expect(
+      page.getByTestId("stamp-notice"),
+      "SHARE-03: it says so rather than landing on a subtly wrong configuration",
+    ).toHaveText(stampUnreadable(ENTRY_NAME));
+    await expect(page.getByTestId("nameplate-name")).toHaveText(ENTRY_NAME);
+    expect(
+      await knobIndices(page),
+      "every knob is at its default, because a stamp never half-applies",
+    ).toEqual(defaults);
+    await expect(
+      page.getByTestId("reset-all"),
+      "nothing was applied, so there is nothing to reset",
+    ).toBeDisabled();
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("a browser with no clipboard API", () => {
+  // DEGR-01's clipboard half, and it has no other coverage: wave 12's WebKit
+  // test asserts the CONFIRM state, not this branch, and no browser Playwright
+  // drives takes it on its own. Forcing it is a capability question rather than
+  // an engine question, so it belongs in the file that owns the desktop
+  // journey. `clipboard` is an accessor on Navigator.prototype - deleting it
+  // off the instance returns true and removes nothing - so both are deleted and
+  // the precondition is asserted before anything is clicked.
+  // (e2e/first-experience.e2e.ts does the same for navigator.serial.)
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(() => {
+      delete (Navigator.prototype as unknown as Record<string, unknown>)
+        .clipboard;
+      delete (navigator as unknown as Record<string, unknown>).clipboard;
+    });
+  });
+
+  test("with no clipboard API the link is offered for selection instead", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, `/c/${ENTRY}/`);
+
+    expect(
+      await page.evaluate(() => "clipboard" in navigator),
+      "the precondition: this page really has no clipboard API, so the fallback is being forced rather than waited for",
+    ).toBe(false);
+
+    await turnRail(page, 0);
+    const copy = page.getByTestId("copy-link");
+    await copy.click();
+
+    const field = page.getByTestId("copy-link-fallback");
+    await expect(
+      field,
+      "the reveal appears rather than the button failing quietly",
+    ).toBeVisible();
+    await expect(field).toHaveAttribute("readonly", "");
+    await expect(field).toHaveAttribute(
+      "aria-label",
+      SHARE_FALLBACK_FIELD_NAME,
+    );
+
+    const value = await field.inputValue();
+    expect(
+      value.startsWith(shareUrl(ENTRY, undefined)),
+      `the field holds this configuration's address: ${value}`,
+    ).toBe(true);
+    const payload = value.split("#z.")[1];
+    expect(payload, "a turned knob puts a stamp in the fragment").toBeTruthy();
+    expect(value, "the field holds exactly what shareUrl composes").toBe(
+      shareUrl(ENTRY, payload),
+    );
+
+    // 16px IS THE POINT, not a type choice: iOS Safari zooms the whole viewport
+    // when a form field under 16px takes focus, and this one is select()ed the
+    // instant it appears - so at 15px the panel would jump at exactly the
+    // moment the visitor is trying to copy.
+    expect(
+      await field.evaluate((el) => getComputedStyle(el).fontSize),
+      "the field sits on the iOS zoom floor",
+    ).toBe("16px");
+
+    // It did not become a different control.
+    await expect(copy, "the button's label is still COPY LINK").toHaveText(
+      COPY_LINK,
+    );
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
