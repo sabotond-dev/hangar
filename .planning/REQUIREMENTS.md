@@ -186,7 +186,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CAT-03 | Phase 5.1 | Pending |
 | CAT-04 | Phase 4 | Pending |
 | CONT-01 | Phase 4 | Pending |
-| CONT-02 | Phase 8 | Complete |
+| CONT-02 | Phase 8 | Complete (seven configurations against a floor of six — EUCLID, CHORUS, ARC, GHOST, LATTICE, MORPH, SONAR — canonical, in budget across their whole knob range, run in a Lua VM over the unmodified simulator; the twelve-row hardware audition is presented to the user and unanswered) |
 | CONT-03 | Phase 4 (metadata gate for new entries: Phase 8) | Pending |
 | TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8) | Pending |
 | TUNE-02 | Phase 5 | Pending |

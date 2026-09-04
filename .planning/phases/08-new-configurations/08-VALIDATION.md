@@ -1,7 +1,7 @@
 ---
 phase: 8
 slug: new-configurations
-status: planned
+status: complete
 nyquist_compliant: true
 wave_0_complete: false
 created: 2026-09-04

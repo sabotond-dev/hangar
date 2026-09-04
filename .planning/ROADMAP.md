@@ -207,7 +207,7 @@ Phases 6 and 7.
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
-| 8. New Configurations | 8/8 | Complete | 2026-09-04 |
+| 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage
 
