@@ -46,6 +46,8 @@
   } from "$lib/coverflow/slots";
   import { SimHost, type HostEngine } from "$lib/sim/host";
   import { mapAxis } from "$lib/sim/touch";
+  import FidelityLine from "./FidelityLine.svelte";
+  import NamePlate from "./NamePlate.svelte";
   import PadCanvas from "./PadCanvas.svelte";
   import PadFrame from "./PadFrame.svelte";
 
@@ -115,6 +117,8 @@
   let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 
   const heroId = (): string => FRONT_DOOR[centre].id;
+  /** The plate and the fidelity line both speak for whatever is centred. */
+  const centred = $derived(FRONT_DOOR[centre]);
 
   /**
    * PadCanvas hands its element over from its own onMount, which runs before
@@ -421,6 +425,17 @@
   </div>
 </div>
 
+<div class="plate">
+  <NamePlate
+    entry={centred}
+    unavailable={skipped.includes(centred.id)}
+    onprev={() => stepBy(-1)}
+    onnext={() => stepBy(1)}
+  />
+</div>
+
+<div class="fidelity"><FidelityLine entry={centred} /></div>
+
 <style>
   /*
     The outer wrapper. It clips and it masks, so it must NOT carry preserve-3d:
@@ -486,6 +501,16 @@
       transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
       opacity 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
       filter 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* 32px below the hero pad's bottom edge, which is the stage's. */
+  .plate {
+    margin-block-start: 32px;
+  }
+
+  .fidelity {
+    margin-block-start: 16px;
+    padding-inline: 32px;
   }
 
   @media (prefers-reduced-motion: reduce) {
