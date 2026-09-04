@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-04-PLAN.md (the control label and the identify-only path); baseline for 04-05: quick 35/517, sweep 1/9, e2e 10"
-last_updated: "2026-09-04T02:01:26.945Z"
+stopped_at: "Completed 04-05-PLAN.md (SimHost); baseline for 04-06: quick 36/527, sweep 1/9, e2e 10 carried forward unverified"
+last_updated: "2026-09-04T02:20:16.682Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 33
-  completed_plans: 21
-  percent: 64
+  completed_plans: 22
+  percent: 67
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 04 (first-experience)
-Plan: 5 of 9 in current phase
+Plan: 6 of 9 in current phase
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [██████░░░░] 64%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [██████░░░░] 64%
 | Phase 04 P02 | 18 min | 2 tasks | 4 files |
 | Phase 04 P03 | 14 min | 3 tasks | 6 files |
 | Phase 04 P04 | 18 min | 2 tasks | 5 files |
+| Phase 04 P05 | 14 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,8 @@ Recent decisions affecting current work:
 - [Phase 04]: TouchSampler.down() returns false for an already-tracked pointer as well as for a full slot table, matching the vendored previewDown's early return - a duplicate pointerdown would otherwise leak a slot forever
 - [Phase 04]: failureCopy takes a trailing, defaulted controlLabel (D-23): the label is the THIRD parameter, after raw, so the three existing positional callers and all six Phase 2 assertions are untouched
 - [Phase 04]: The never-writes invariant is asserted twice - FakeTransport.writes empty after a full cycle, and a comment-stripped scan of try-on.ts for .write( - and was proven with two separate perturbations, because a Vitest assertion aborts its test at the first failure
+- [Phase 04]: SimHost asks for another animation frame only for pads still running after their ticks, not for every pad that ran: the expiry frame has already painted the true final state and every waking event calls wake(), so the vendored host's extra no-op frame is dead work
+- [Phase 04]: HostEngine is declared structurally in host.ts rather than imported, so PadSim today and Phase 8 plan 08-03's SimEngine both satisfy it with no shared file, no import either way and no migration
 
 ### Pending Todos
 
@@ -170,6 +173,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T02:01:20.665Z
-Stopped at: Completed 04-04-PLAN.md (the control label and the identify-only path); baseline for 04-05: quick 35/517, sweep 1/9, e2e 10
+Last session: 2026-09-04T02:20:10.409Z
+Stopped at: Completed 04-05-PLAN.md (SimHost); baseline for 04-06: quick 36/527, sweep 1/9, e2e 10 carried forward unverified
 Resume file: None
