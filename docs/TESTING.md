@@ -70,25 +70,27 @@ If any of those three numbers drops, the suite is not green — it is silent.
 
 The walking skeleton (FOUND-01) added two directories of first-party code and 98 tests to the
 `server` project, plus three tests inside the existing `src/lib/config-shape.spec.ts` and two inside
-`e2e/skeleton.e2e.ts`. All of it runs in node, with no browser and no ZONA attached.
+`e2e/skeleton.e2e.ts`. All of it runs in node, with no browser and no ZONA attached. Phase 4 has since
+added one more test to `transport.spec.ts` — the control label the copy interpolates — so the
+table below totals 99.
 
-| File                                              | Tests | What it holds                                                        |
-| ------------------------------------------------- | ----- | -------------------------------------------------------------------- |
-| `src/lib/protocol/constants.spec.ts`              | 5     | values read from the pinned package rather than restated             |
-| `src/lib/protocol/descriptors.spec.ts`            | 10    | the four outbound descriptors, byte for byte                         |
-| `src/lib/protocol/forbidden-instructions.spec.ts` | 5     | D-06: `PAGEACTIVE/EXECUTE`, `NVMERASE`, `PAGECLEAR`, `PAGEDISCARD`   |
-| `src/lib/protocol/framing.spec.ts`                | 9     | the frame scanner: split, coalesced and torn inputs                  |
-| `src/lib/protocol/decode.spec.ts`                 | 5     | the decode guard — `undefined`, never `false`                        |
-| `src/lib/protocol/match.spec.ts`                  | 7     | which inbound class may resolve which waiter                         |
-| `src/lib/protocol/write-guard.spec.ts`            | 6     | D-09: what makes a fetched string safe to write back                 |
-| `src/lib/transport/transport.spec.ts`             | 6     | the five named open failures and CONN-04's recovery order            |
-| `src/lib/transport/capture.spec.ts`               | 6     | D-07's recorder and the pinned `STEP_IDS` vocabulary                 |
-| `src/lib/transport/fake.spec.ts`                  | 8     | capture replay and the five injected faults                          |
-| `src/lib/transport/queue.spec.ts`                 | 8     | one outstanding request, bounded retry, a NACK never retried         |
-| `src/lib/transport/sequence.spec.ts`              | 9     | the no-op cycle, including the mandatory restore in its `finally`    |
-| `src/lib/transport/fixtures/synthetic.spec.ts`    | 3     | the generated capture, regenerated at module scope                   |
-| `src/lib/transport/fixtures/fixtures.spec.ts`     | 4     | **the gate**: at least one committed capture is real                 |
-| `src/lib/skeleton-results.spec.ts`                | 7     | `docs/SKELETON-RESULTS.md` answers all six questions, with citations |
+| File                                              | Tests | What it holds                                                                                      |
+| ------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------- |
+| `src/lib/protocol/constants.spec.ts`              | 5     | values read from the pinned package rather than restated                                           |
+| `src/lib/protocol/descriptors.spec.ts`            | 10    | the four outbound descriptors, byte for byte                                                       |
+| `src/lib/protocol/forbidden-instructions.spec.ts` | 5     | D-06: `PAGEACTIVE/EXECUTE`, `NVMERASE`, `PAGECLEAR`, `PAGEDISCARD`                                 |
+| `src/lib/protocol/framing.spec.ts`                | 9     | the frame scanner: split, coalesced and torn inputs                                                |
+| `src/lib/protocol/decode.spec.ts`                 | 5     | the decode guard — `undefined`, never `false`                                                      |
+| `src/lib/protocol/match.spec.ts`                  | 7     | which inbound class may resolve which waiter                                                       |
+| `src/lib/protocol/write-guard.spec.ts`            | 6     | D-09: what makes a fetched string safe to write back                                               |
+| `src/lib/transport/transport.spec.ts`             | 7     | the five named open failures, CONN-04's recovery order and the control label the copy interpolates |
+| `src/lib/transport/capture.spec.ts`               | 6     | D-07's recorder and the pinned `STEP_IDS` vocabulary                                               |
+| `src/lib/transport/fake.spec.ts`                  | 8     | capture replay and the five injected faults                                                        |
+| `src/lib/transport/queue.spec.ts`                 | 8     | one outstanding request, bounded retry, a NACK never retried                                       |
+| `src/lib/transport/sequence.spec.ts`              | 9     | the no-op cycle, including the mandatory restore in its `finally`                                  |
+| `src/lib/transport/fixtures/synthetic.spec.ts`    | 3     | the generated capture, regenerated at module scope                                                 |
+| `src/lib/transport/fixtures/fixtures.spec.ts`     | 4     | **the gate**: at least one committed capture is real                                               |
+| `src/lib/skeleton-results.spec.ts`                | 7     | `docs/SKELETON-RESULTS.md` answers all six questions, with citations                               |
 
 Two of those deserve their own paragraph.
 

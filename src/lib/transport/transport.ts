@@ -87,10 +87,27 @@ const UNSUPPORTED_DETAIL =
 /**
  * What the page shows for each failure. `raw` is the original error text and
  * is only used by the `unknown` case, so nothing is ever swallowed.
+ *
+ * `controlLabel` names the button the recovery steps tell the visitor to
+ * click. Phase 2's page calls it Connect; Phase 4's calls it TRY ON DEVICE
+ * (D-23, UI-SPEC W-18), and copy naming a button that is not on the screen is
+ * worse than no copy.
+ *
+ * It is appended THIRD, after `raw`, and never in `raw`'s place: three
+ * callers already pass `raw` positionally, so a label inserted second would
+ * silently retarget all three onto the new parameter and fail nowhere except in
+ * front of a visitor. An options object would rewrite exactly the three call
+ * sites this trailing parameter exists to leave alone.
  */
-export function failureCopy(f: OpenFailure, raw?: string): FailureCopy {
+export function failureCopy(
+  f: OpenFailure,
+  raw?: string,
+  controlLabel = "Connect",
+): FailureCopy {
   switch (f) {
     case "no-web-serial":
+      // Names no control on purpose: there is no button to click on a browser
+      // that cannot talk to hardware at all.
       return {
         title: "This browser cannot talk to hardware",
         detail: UNSUPPORTED_DETAIL,
@@ -101,11 +118,11 @@ export function failureCopy(f: OpenFailure, raw?: string): FailureCopy {
         title: "This page needs HTTPS",
         detail:
           "Talking to hardware is only allowed over HTTPS. Opening a built " +
-          "file from disk is not a secure context either, which is why the " +
-          "Connect button does nothing there.",
+          `file from disk is not a secure context either, which is why the ` +
+          `${controlLabel} button does nothing there.`,
         steps: [
           "Open this site over HTTPS, or run it on localhost",
-          "Click Connect again",
+          `Click ${controlLabel} again`,
         ],
       };
     case "cancelled":
@@ -113,7 +130,7 @@ export function failureCopy(f: OpenFailure, raw?: string): FailureCopy {
         title: "You closed the chooser",
         detail:
           "No port was picked, so nothing was opened and nothing was sent.",
-        steps: ["Click Connect again and pick the ZONA"],
+        steps: [`Click ${controlLabel} again and pick the ZONA`],
       };
     case "port-busy":
       return {
@@ -128,7 +145,7 @@ export function failureCopy(f: OpenFailure, raw?: string): FailureCopy {
           "Wait a few seconds",
           "Plug the ZONA back in",
           "Reload this page",
-          "Click Connect again",
+          `Click ${controlLabel} again`,
         ],
       };
     case "unplugged":
@@ -141,7 +158,7 @@ export function failureCopy(f: OpenFailure, raw?: string): FailureCopy {
         steps: [
           "Check the cable is a data cable and is seated at both ends",
           "Plug the ZONA straight into the computer rather than through a hub",
-          "Click Connect again",
+          `Click ${controlLabel} again`,
         ],
       };
     default:
@@ -149,7 +166,7 @@ export function failureCopy(f: OpenFailure, raw?: string): FailureCopy {
         title: "The port would not open",
         detail: `The browser reported: ${raw ?? "no further detail"}`,
         steps: [
-          "Unplug the ZONA, plug it back in, and click Connect again",
+          `Unplug the ZONA, plug it back in, and click ${controlLabel} again`,
           "If it keeps happening, copy the message above into a bug report",
         ],
       };
