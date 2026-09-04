@@ -37,7 +37,7 @@ still agree with each other, and the hard-coded-literal assertion would not.
 ## The bump gate (D-11)
 
 Moving the pin is a reviewed decision, never a routine update. A human follows this checklist, in
-order, and all four items must hold:
+order, and all five items must hold:
 
 1. The vendored compiler and simulator suite is green: `npm run test:quick` reports 176 tests in
    `src/vendor/botor/tests/pad.test.js` and 96 in `pad-sim.test.js`, and `npm run test:sweep` reports 9.
@@ -48,18 +48,34 @@ order, and all four items must hold:
    `src/lib/protocol-pin.spec.ts`, backed by `src/lib/fidelity/preset-baseline.spec.ts`.
 3. All three sources above are edited in **one commit** — `package.json`, `package-lock.json` and
    `PROTOCOL_PIN`. Never one without the others.
-4. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
+4. **Every hand-authored catalog entry is re-measured, not only the nine presets:**
+   `npx vitest run --project server src/lib/catalog/lua-entries.spec.ts` reports **6 passed**. Why this
+   is its own item: HANGAR's hand-authored configurations are stored in **canonical compressed form**,
+   and canonical form is a property _of a specific minifier version_ — a bump can turn a stored string
+   non-canonical, and its budget wrong, without changing a single character of HANGAR's source. A red
+   canonical-form or budget test after a bump means the minifier moved: re-canonicalise every affected
+   entry with the new `compressScript`, re-commit the entry modules, and record the move in the bump
+   log. Item (2) cannot see any of this — it covers the nine shelf presets only.
+5. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
    below. A moved cost is a change to the budget every preset is calibrated against, not a detail.
 
-Items (1) and (2) are **enforceable as of Phase 3.** The vendored suite lives in
+Items (1), (2) and (4) are **enforceable as of Phase 8** — (1) and (2) since Phase 3, (4) since the
+catalog gate landed. The vendored suite lives in
 `src/vendor/botor/tests/` and runs under `npm run test:quick` (the compiler and simulator suites) and
 `npm run test:sweep` (the 9-test invariant sweep). The recorded baseline is
 `src/lib/fidelity/preset-baseline.json`, captured from BOTOR's own compiler at the pinned commit by
 `scripts/capture-preset-baseline.mjs`; `src/lib/fidelity/preset-baseline.spec.ts` asserts the vendored
 compiler reproduces it character for character, and the last test in `src/lib/protocol-pin.spec.ts`
 asserts the `compressScript` lengths against it at whatever version is installed. Run all three before
-touching the pin. Item (4) is unchanged and is not automatable: a bump that moves a cost is only
+touching the pin. Item (5) is unchanged and is not automatable: a bump that moves a cost is only
 legitimate with a written reason in the bump log below.
+
+**The Lua VM is a separate pin with a different rationale, and it is not gated by this checklist.**
+`wasmoon` is pinned exactly because HANGAR's fidelity and preview results are measured against one
+Lua implementation, not because of a datestamp. A wasmoon bump is gated by
+`npx vitest run --project server src/lib/fidelity/lua-parity.spec.ts` (5 passed) plus
+`src/lib/catalog/frames.spec.ts`, and it moves no character budget at all. Neither pin implies the
+other; bump them separately and re-measure separately.
 
 ## Bump log
 

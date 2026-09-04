@@ -11,19 +11,19 @@ work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, at the end of Phase 4. Wall
+Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, at the end of Phase 8 wave 7. Wall
 times are the whole command including npm and process startup; the parenthesised figure is the
 runner's own reported duration. Every number here is **observed**, never predicted — the tree is
 shared with Phase 8, so a row that was guessed rather than run is worse than no row at all.
 
 | Command                      | Covers                                                                     | Measured                                                                                |
 | ---------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 37 files, 534 passed + 1 todo (535); 14 s wall (10.1 s)                                 |
-| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.1 s)                                                     |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 38 files, 543 passed + 1 todo (544); 49 s wall (44.7 s)                                 |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 21 tests; 56.5 s runner time, 59 s wall including the build and the wrangler cold start |
-| `npm run check`              | `svelte-check` over the whole project                                      | 421 files, 0 errors, 0 warnings                                                         |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                                                  |
+| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 42 files, 559 passed + 1 todo (560); 7 s wall (4.7 s)                                   |
+| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (38.3 s)                                                     |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 43 files, 568 passed + 1 todo (569); 46 s wall (44.9 s)                                 |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 23 tests; 34.1 s runner time, 36 s wall including the build and the wrangler cold start |
+| `npm run check`              | `svelte-check` over the whole project                                      | 455 files, 0 errors, 0 warnings; 7 s wall                                               |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0; 30 s wall                                                                       |
 
 The sampling rule, in three lines:
 
@@ -227,6 +227,74 @@ to that media query to still the engines, and `NamePlate.svelte` and `Splash.sve
 reduced-motion title. The test therefore also calls `page.emulateMedia({ reducedMotion: "reduce" })`,
 **before** `goto`, so the page arrives stilled instead of being stilled after it has started moving.
 
+## The catalog and the Lua host
+
+Phase 8 added the catalog module, a real Lua 5.4 VM (`wasmoon`, lazily loaded) and seven
+hand-authored configurations. Every count below was observed on 2026-09-04 by running each file on
+its own, with the wall time of that single-file run beside it.
+
+| File                                  | Tests | Cost   | What it holds                                                                                                                       |
+| ------------------------------------- | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/catalog/catalog.spec.ts`     | 10    | 0.48 s | the entry shape: unique ids, the preview kind derived from the source kind, knob ids and defaults that index their own value lists  |
+| `src/lib/catalog/frames.spec.ts`      | 5     | 0.81 s | the golden-frame fixture: every entry renders, every recorded hash still matches, and the fixture covers the catalog exactly        |
+| `src/lib/catalog/lua-entries.spec.ts` | 6     | 2.18 s | the CONT-02 gate on every hand-authored entry: canonical compressed form, both 908-character budgets, the knob sweep, execution     |
+| `src/lib/sim/lua-host.spec.ts`        | 8     | 0.49 s | the Grid API the VM is handed - `led`, timers, MIDI, the element table - and the globals a configuration may not reach              |
+| `src/lib/sim/lua-smoke.spec.ts`       | 3     | 0.66 s | the end-to-end shape: a hand-authored entry boots a VM, runs its Setup and Timer, and lights a 243-byte frame                       |
+| `src/lib/fidelity/lua-parity.spec.ts` | 5     | 0.93 s | the nine shelf presets rendered twice - once by the vendored simulator, once by real Lua - and asserted equal                       |
+| `src/lib/sim/lazy.spec.ts`            | 3     | 0.23 s | the fast half of D-14: the catalog reaches no engine, `engine.ts` reaches the Lua wrapper only dynamically, one module names the VM |
+
+**Adding a configuration changes no test count.** Every catalog gate loops over `CATALOG` (or over
+the hand-authored subset) _inside_ a single `it`, deliberately rather than through `it.each`. Three
+configurations landed in plan 08-06 and `npm run test:quick` reported the same 41 files and 556 tests
+before and after. That is what makes the counts above worth writing down: a moved number means a
+moved gate, never a bigger catalog. The cost of an added entry is paid in the wall time of
+`lua-entries.spec.ts` and `frames.spec.ts`, which is where it belongs.
+
+**The VM-backed specs are cheap, and the expensive one is not the one anybody expected.**
+`lua-entries.spec.ts` is the costliest at **2.18 s** - it calls `compressScript` for every event of
+every hand-authored entry and then runs each one through a real VM at every knob position - against
+the 10-second threshold its plan set. `lua-parity.spec.ts` renders all nine presets through both
+engines in **0.93 s**, against the 20-second threshold its plan set; it was the one expected to hurt
+and it does not, because wasmoon boots in milliseconds under Node and its per-preset samples are
+memoised at module scope. Neither needs a carve-out today. If a future wave pushes one of them over,
+the precedent is D-10's invariant sweep: **move it into its own Vitest project and run it per wave**,
+never trim what it covers.
+
+### What the catalog gates prove, and what they do not
+
+`src/lib/fidelity/lua-parity.spec.ts` is **evidence**. The Lua it runs is the vendored compiler's own
+output, executed in a real Lua 5.4 VM, and the result is compared against the vendored TypeScript
+simulator - an independent transcription of the same firmware - and against a recorded fixture.
+Agreement is two implementations meeting, not one implementation quoted twice.
+
+`src/lib/catalog/frames.json` is a regression **tripwire, not an oracle**. Its hashes came out of the
+engine they are used to check, so a red `frames.spec.ts` says rendering moved and says nothing about
+which side of the move was right. That answer comes from the parity spec and from
+`src/lib/fidelity/firmware-oracle.spec.ts`, never from regenerating the fixture.
+
+`src/lib/catalog/lua-entries.spec.ts` is a **budget gate valid only at the current protocol pin**.
+Canonical compressed form is a property of a specific minifier version, so a green run means "these
+entries fit at `1.20260825.1135`" and nothing more. `docs/PIN-POLICY.md` carries the checklist item
+that re-measures it after a bump.
+
+### The laziness proof
+
+`e2e/catalog.e2e.ts` is the production-build half, and it is what makes the 271 KB VM affordable at
+all. It loads the unlinked `/dev/catalog/` probe page from the real `build/` through the real Worker
+and asserts that a cold load fetches **no** WebAssembly - not the VM, not the formatter - then clicks
+a button and asserts that opening a Lua-backed configuration is what fetches
+`_app/immutable/assets/glue.<hash>.wasm`, with status 200, `content-type: application/wasm` and a real
+243-byte frame rendered in Chromium. Observed on 2026-09-04: `glue.Dlydm7r2.wasm`, 271,581 bytes.
+
+The two layers are not symmetric, and the measurement that established it is worth keeping. Adding a
+static `import ... from "./lua-pad-sim"` to `src/lib/sim/engine.ts` turns `lazy.spec.ts` red and
+leaves `catalog.e2e.ts` **green**: every consumer of `engine.ts` in this repository - the coverflow
+row included - already reaches it through a dynamic import, so a fatter `engine.ts` chunk is not a
+fatter cold load. The unit guard protects a chunk-composition property one level upstream of the fetch
+the e2e watches. The perturbation that does turn the e2e red is reaching the VM from a page's own load
+path - an `onMount` that calls `luaReady()` - which was observed to put exactly one URL on the cold
+load, `/_app/immutable/assets/glue.Dlydm7r2.wasm`. Keep both layers; they fail for different reasons.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
@@ -297,6 +365,10 @@ check and confirm 4173 is free before continuing, and leave no listener behind w
 Capture e2e output to `.tmp-e2e/` (gitignored), never under `test-results/` or
 `playwright-report/`: Playwright deletes its `outputDir` at the start of every run, so a redirect
 target inside it is unlinked mid-run.
+
+The whole Playwright suite is **23 tests** as of 2026-09-04: 11 in `first-experience.e2e.ts`, 2 each
+in `artifacts.e2e.ts`, `catalog.e2e.ts`, `fidelity.e2e.ts` and `skeleton.e2e.ts`, and 4 in
+`smoke.e2e.ts`.
 
 One convention worth keeping: no Playwright test title may contain the word `failed`, because the
 acceptance checks assert an exact total and then grep the captured log for that word.
