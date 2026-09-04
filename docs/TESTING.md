@@ -15,14 +15,14 @@ Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, after the wa
 landed. Wall times are the whole command including npm and process startup; the parenthesised figure
 is the runner's own reported duration.
 
-| Command                      | Covers                                                                     | Measured                                                                                  |
-| ---------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 26 files, 453 passed + 1 todo (454); 6 s wall (3.9 s)                                     |
-| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.4 s)                                                       |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 27 files, 462 passed + 1 todo (463); 42 s wall (38.3 s)                                   |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 10 tests; 21 s wall including the build and the wrangler cold start (17.3 s of test time) |
-| `npm run check`              | `svelte-check` over the whole project                                      | 385 files, 0 errors, 0 warnings                                                           |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                                                    |
+| Command                      | Covers                                                                     | Measured                                                            |
+| ---------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `npm run test:quick`         | the `server` Vitest project — everything except the invariant sweep        | 26 files, 453 passed + 1 todo (454); 6 s wall (3.9 s)               |
+| `npm run test:sweep`         | the `sweep` project: `src/vendor/botor/tests/pad-invariants.test.js` alone | 1 file, 9 tests; 40 s wall (36.4 s)                                 |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                            | 27 files, 462 passed + 1 todo (463); 42 s wall (38.3 s)             |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`                      | 13 tests; 55 s wall including the build and the wrangler cold start |
+| `npm run check`              | `svelte-check` over the whole project                                      | 385 files, 0 errors, 0 warnings                                     |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                       | exit 0                                                              |
 
 The sampling rule, in three lines:
 
@@ -121,6 +121,15 @@ Web Serial itself is not automatable — there is no CDP domain and no fake-devi
 everything downstream of an open port is exercised through `FakeTransport` in node, and the hardware
 half is a human checklist in `docs/SKELETON-RUNBOOK.md` whose results are written up in
 `docs/SKELETON-RESULTS.md`.
+
+`e2e/first-experience.e2e.ts` adds **3** tests for the front door itself, and they are the only place
+the coverflow is proven at all: this repository collects no `.svelte.spec.ts` in any Vitest project,
+so a component test would be collected by nothing and report green. The three assert that an animated
+pad really moves (two samples of its own 9x9 canvas, 400 ms apart, must differ), that a pad the
+catalog calls static really does not (the same sampling on `ninepads`, asserted equal and non-empty),
+and that the row steps from the keyboard and wraps at both ends through `aria-activedescendant`. Each
+one also asserts an empty error-level console. The first two are the honest half of PREV-01: a row
+where everything changed between samples would be as wrong as one where nothing did.
 
 ## Why the vendored tree is excluded from type-checking but not from the test run
 

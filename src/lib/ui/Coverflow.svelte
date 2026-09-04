@@ -431,6 +431,15 @@
     --pad-hero: clamp(260px, 52vmin, 560px);
     position: relative;
     inline-size: min(100vw, 1280px);
+    /*
+      100vw counts the scrollbar and the container does not, so on a page tall
+      enough to scroll - which this one is, the footer is below the fold - the
+      band would be about fifteen pixels wider than the space it sits in and
+      would push a horizontal scrollbar onto the front door. margin-inline is
+      over-constrained at that width and resolves to zero, so the overflow is
+      not even symmetric.
+    */
+    max-inline-size: 100%;
     margin-inline: auto;
     overflow: clip;
     overflow-clip-margin: 6px;
