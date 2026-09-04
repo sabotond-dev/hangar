@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { PadSim } from "../../vendor/botor/pad-sim";
-import { presetById, type PadState } from "../../vendor/botor/_pad";
+import { presetById } from "../../vendor/botor/_pad";
 import { CATALOG, type CatalogEntry } from "./index";
 
 // Every catalog entry carries a recorded frame set at the five Phase 3 ticks.
@@ -81,7 +81,7 @@ async function engineFor(entry: CatalogEntry): Promise<FrameSource> {
       if (!preset) throw new Error(`unknown preset: ${entry.source.presetId}`);
       return new PadSim(preset.state);
     }
-    return new PadSim(entry.source.state as PadState);
+    if (entry.source.kind === "state") return new PadSim(entry.source.state);
   }
   // Replaced by $lib/sim/engine's createEngine in plan 08-04, when the first
   // Lua-backed entry exists. Until then no catalog entry has preview "lua", and
