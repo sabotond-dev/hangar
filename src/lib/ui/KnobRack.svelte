@@ -51,7 +51,7 @@
   own rules produce, and 05-08-SUMMARY.md records it as a correction to the
   approved contract in the same open manner as X-27's gate amendment.
 
-  WHERE THE SWITCH IS, DERIVED - AND NOT MEASURED HERE.
+  WHERE THE SWITCH IS: DERIVED HERE, THEN MEASURED IN 05-10.
   Both labels are Micro: 12px, weight 600, uppercase, letter-spacing 0.18em =
   2.16px after every character, inside padding-inline: 16px (32px of chrome per
   button), with the 8px gap between them. SURPRISE ME is ten caps and a space;
@@ -63,14 +63,19 @@
   It therefore wraps at 320px (content box 192px) and at 375px (247px), and
   does not at 420px (292px).
 
-  That 251px is arithmetic over a font whose exact advance widths this plan has
-  NOT measured, and nothing in the tree renders SURPRISE ME or RESET ALL until
-  TuningRegion.svelte exists. This comment therefore ships the derivation only:
-  the real number is measured in 05-10, which corrects both this comment and
-  its own. If that measurement disagrees with 379px by more than a few pixels
-  it wins, and 05-10's SUMMARY says so - wave 10's tune-ui.spec.ts asserts the
-  shipped two-constant form, so both numbers have to be the ones the code
-  actually uses.
+  That 251px was arithmetic over a font whose exact advance widths plan 05-08
+  could not measure, because nothing in the tree rendered SURPRISE ME or RESET
+  ALL until TuningRegion.svelte existed. It does now, and the number was taken:
+  mounted in Chromium with Quicksand loaded the way src/app.css loads it,
+  SURPRISE ME lays out at 134.453125px and RESET ALL at 114.546875px, so with
+  the 8px gap the pair needs exactly 257px. THE ROW WRAPS BELOW A REGION
+  CONTENT BOX OF 257px - it holds one line at 257 and wraps at 256 - which is a
+  viewport of about 385px. The derivation was 6px narrow and its three
+  conclusions all survive: the row wraps at 320px (content box 192px) and at
+  375px (247px), and does not at 420px (292px). 257px is the number
+  TuningRegion.svelte's container query actually carries, and wave 10's
+  tune-ui.spec.ts asserts the shipped two-constant form against it, so this
+  comment and that code cannot drift apart.
   ------------------------------------------------------------------------
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
