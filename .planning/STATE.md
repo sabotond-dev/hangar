@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-09-04T09:49:08.706Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-09-04T10:09:26.390Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 34
-  percent: 76
+  completed_plans: 35
+  percent: 78
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 2 of 12 (05-01 complete)
-Status: In progress — wave 2 next (05-02, the zero-import view seam)
+Plan: 3 of 12 (05-02 complete)
+Status: In progress — wave 3 next (05-03, the knob builders over presets and Lua entries)
 Last activity: 2026-09-04
 
-Progress: [████████░░] 76%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [████████░░] 76%
 | Phase 08 P07 | 10 min | 3 tasks | 7 files |
 | Phase 08 P08 | 12 min | 3 tasks | 3 files |
 | Phase 05 P01 | 20 min | 3 tasks | 5 files |
+| Phase 05 P02 | 18 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -206,6 +207,9 @@ Recent decisions affecting current work:
 - [Phase 05]: The Phase 5 baseline is BASE_FILES 43, BASE_TESTS 563, BASE_SWEEP_FILES 1, BASE_SWEEP_TESTS 9, BASE_E2E 23 (check: 456 files, 0 errors), measured on a clean tree before any edit and recorded in 05-01-SUMMARY.md — BASE_E2E is measured once and never recomputed - only 05-07 asserts against it; from 05-11 onward plans assert against PREV_E2E, the e2e total in the immediately preceding SUMMARY. The sweep stays a literal (1 9, then 3 13) because the sweep project is a named-file include
 - [Phase 05]: playwright.config.ts has two projects: chromium (everything, no grep) and webkit-phone (devices iPhone 15, grep /@webkit/) — A bare second project doubles every test; the filter means the WebKit phone browser costs zero tests until a title is tagged, and leaving chromium ungrepped makes the tagged tests cross-browser rather than WebKit-only. Side effect: e2e reporter lines now carry a [chromium] prefix
 - [Phase 05]: SimHost.replaceEngine swaps the engine in place and never goes through register(); ready.spec.ts test 6 buys a second cold module graph with vi.resetModules() to keep its gate assertion falsifiable — register() calls unregister(), which sets canvas.width = 0 and re-enters with intersecting false, so a knob turn would blank the hero and stall it until the observer fires. And test 3 has already opened the process-wide formatter gate, so a sixth test could only observe the un-initialised branch on a fresh graph - measured, vi.resetModules() rebuilds the vendored compiler and grid-protocol beneath it
+- [Phase 05]: backOffLadder keeps the compiler label's capital: the Copywriting Contract writes that row as {Label} and the lower-casing rule is qualified with 'where they sit inside another sentence'
+- [Phase 05]: src/lib/tune/view.ts, copy.ts and idle.ts carry ZERO imports - not 'no vendor imports' - because Phase 4's chunk guard matches specifier text; the twelve KnobKinds, EVENT_BUDGET and the compiler's own words are literals held against the vendor by view.spec.ts
+- [Phase 05]: meterView takes a three-value MeterFeed and derives over/state from the number, so 'over outranks stale' and 'the limit is always 908' are unforgeable rather than remembered
 
 ### Pending Todos
 
@@ -222,6 +226,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T09:48:57.891Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-09-04T10:09:19.710Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
