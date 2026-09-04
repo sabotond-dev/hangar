@@ -5,6 +5,7 @@ import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { byId } from "../catalog";
 import { FRONT_DOOR } from "../catalog/front-door";
+import { ROUTED } from "../catalog/listing";
 import { SITE_ORIGIN } from "../share/url";
 import { ogAlt } from "../tune/copy";
 import { FRAME_RGB, OG_HEIGHT, OG_WIDTH, UNLIT_DOT_RGB } from "./render";
@@ -16,8 +17,29 @@ import { FRAME_RGB, OG_HEIGHT, OG_WIDTH, UNLIT_DOT_RGB } from "./render";
 // shape src/lib/licence-notices.spec.ts established, because `requireAssertions`
 // is on and a silently skipped test is a guard that has stopped guarding.
 //
-// The images and the heads are asserted from THE ROW rather than from a list of
-// ids, so a widened FRONT_DOOR is covered here without anyone editing this file.
+// The images and the heads are asserted from a NAMED SET rather than from a list
+// of ids, so a widened routed set is covered here without anyone editing a list.
+//
+// AMENDMENT (D-07, plan 05.1-05). Tests 1 and 4 looped FRONT_DOOR, and that was
+// correct while the ROW WAS THE ROUTED SET: eight entries had a page, the other
+// eight had none and therefore no <head> to carry an og:image. D-07 made the
+// CATALOG the routed set - sixteen pages - and `ROUTED` in
+// src/lib/catalog/listing.ts is now the single name for it, read by this file,
+// by src/routes/c/[id]/+page.ts, by scripts/gen-og.mjs and by
+// e2e/artifacts.e2e.ts.
+//
+// Widening `entries()` WITHOUT widening these two is the failure this amendment
+// exists to prevent, and it was observed on this machine on 2026-09-04 between
+// the two commits of plan 05.1-05: a sixteen-page build with eight images
+// missing, and this file reporting 5 passed. Test 1 could not see it (its
+// wanted set was still eight, and eight images existed) and test 4 could not
+// see it (it never visited the eight new pages). Test count unchanged at 5 -
+// every test loops internally and names the offending entry in its message, so
+// a growing catalog never moves a suite total.
+//
+// Test 5 deliberately keeps FRONT_DOOR[0]: `/`'s own head unfurls on the
+// OPENING CENTRE's picture, which is a fact about the row and not about the
+// routed set.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -183,12 +205,14 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
       ).toBe(false);
       return;
     }
-    const wanted = FRONT_DOOR.map((entry) => `${entry.id}.png`).sort();
-    // Sets, not a hand-written list: the row grows and this stays true.
+    const wanted = ROUTED.map((entry) => `${entry.id}.png`).sort();
+    // Sets, not a hand-written list: the routed set grows and this stays true.
     expect(pngs().sort()).toEqual(wanted);
-    // Eight of the sixteen catalog entries have no page and therefore no head to
-    // carry an og:image, which is what "one per routed configuration" means.
-    expect(wanted.length).toBeGreaterThanOrEqual(8);
+    // Every catalog entry has a page and therefore a head carrying an og:image
+    // (D-07), which is what "one per routed configuration" means today. The
+    // floor is non-vacuity: a routed set that quietly shortened would otherwise
+    // make this test pass on fewer images rather than fail on the missing ones.
+    expect(wanted.length).toBeGreaterThanOrEqual(16);
   });
 
   it("writes 1200 x 630 truecolour PNGs under a megabyte", () => {
@@ -268,7 +292,7 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
       );
       return;
     }
-    for (const entry of FRONT_DOOR) {
+    for (const entry of ROUTED) {
       const file = join(BUILD, "c", entry.id, "index.html");
       expect(existsSync(file), `${entry.id} has a prerendered page`).toBe(true);
       const html = readFileSync(file, "utf8");

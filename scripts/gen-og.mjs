@@ -31,11 +31,20 @@
  * `npx vite build` and the failure would then be eight silent 404s in
  * production.
  *
- * WHICH ENTRIES GET AN IMAGE: the ones with an address. `src/routes/c/[id]/+page.ts`
- * generates `entries()` from FRONT_DOOR, so `/c/euclid/` does not exist and has no
- * <head> to carry an og:image. This script reads THE SAME SOURCE, so widening the
- * row gives those entries images with no change here. Eight of the sixteen catalog
- * entries deliberately have no image because they have no address.
+ * WHICH ENTRIES GET AN IMAGE: the ones with an address, and there is now exactly
+ * ONE declaration of which those are.
+ *
+ * AMENDMENT (D-07, plan 05.1-05). This script used to read FRONT_DOOR, because the
+ * row WAS the routed set: `/c/euclid/` did not exist, so it had no <head> to carry
+ * an og:image and needed no picture. D-07 made the catalog the routed set - sixteen
+ * pages, not eight - and `ROUTED` in `src/lib/catalog/listing.ts` is the single name
+ * for it. Four files need that set: `src/routes/c/[id]/+page.ts` generates the
+ * pages, this script renders one image per page, `src/lib/og/build.spec.ts` asserts
+ * each page's og:image resolves under `build/`, and `e2e/artifacts.e2e.ts` asserts
+ * the deployed site serves it. Widen one alone and eight pages ship an og:image that
+ * 404s with NOTHING RED ANYWHERE - observed on this machine on 2026-09-04, between
+ * this plan's two commits: the sixteen-page build left eight images missing and the
+ * whole 685-test unit suite stayed green. All four read `ROUTED` for that reason.
  *
  * WHY VITE RATHER THAN PLAIN NODE. `scripts/capture-preset-baseline.mjs` records
  * that plain `node` can import `_pad.ts` (Node 24 strips types) but CANNOT import
@@ -82,24 +91,24 @@ const server = await createServer({
 });
 
 try {
-  const { FRONT_DOOR } = await server.ssrLoadModule(
-    "/src/lib/catalog/front-door.ts",
-  );
+  const { ROUTED } = await server.ssrLoadModule("/src/lib/catalog/listing.ts");
   const { byId } = await server.ssrLoadModule("/src/lib/catalog/index.ts");
   const { createEngine } = await server.ssrLoadModule("/src/lib/sim/engine.ts");
   const { renderOgPixels, OG_WIDTH, OG_HEIGHT, OG_TICK } =
     await server.ssrLoadModule("/src/lib/og/render.ts");
   const { encodePng } = await server.ssrLoadModule("/src/lib/og/png.ts");
 
-  // Rebuilt from empty, so an id that leaves the row cannot leave a stale
-  // picture behind for a later `og:image` to keep resolving against.
+  // Rebuilt from empty, so an id that leaves the routed set cannot leave a
+  // stale picture behind for a later `og:image` to keep resolving against.
   rmSync(OUT_DIR, { recursive: true, force: true });
   mkdirSync(OUT_DIR, { recursive: true });
 
-  for (const row of FRONT_DOOR) {
-    const entry = byId(row.id);
+  for (const listed of ROUTED) {
+    const entry = byId(listed.id);
     if (entry === undefined) {
-      fail('the row names "' + row.id + '", which is in no catalog entry');
+      fail(
+        'the listing names "' + listed.id + '", which is in no catalog entry',
+      );
     }
 
     // GATE 1: an entry whose engine cannot be built. A skipped entry would ship
@@ -110,7 +119,7 @@ try {
     } catch (error) {
       fail(
         'could not build an engine for "' +
-          row.id +
+          listed.id +
           '": ' +
           (error && error.message ? error.message : String(error)),
       );
@@ -132,13 +141,14 @@ try {
     // GATE 2: a frame that is entirely zero. Read against the entry's OWN
     // declaration rather than against a constant: `restsBlack` (D-19) exists so
     // that "the picture went black" and "this one is meant to be black" are
-    // distinguishable. Every current row entry declares false, so a dark frame
-    // here means the simulator broke; a row widened to admit a dark entry keeps
-    // working without weakening the gate for the others.
+    // distinguishable. THREE of the sixteen now declare it true - tpad, ghost
+    // and morph - and each of them renders 0 of 81 lit cells here, exempted by
+    // its own declared fact rather than by a list this file would have to keep.
+    // For the other thirteen a dark frame still means the simulator broke.
     if (litCells === 0 && entry.restsBlack !== true) {
       fail(
         '"' +
-          row.id +
+          listed.id +
           '" rendered an entirely dark pad at tick ' +
           OG_TICK +
           ", and the entry does not declare restsBlack. " +
@@ -155,7 +165,7 @@ try {
     if (png.length > MAX_BYTES) {
       fail(
         '"' +
-          row.id +
+          listed.id +
           '" encoded to ' +
           png.length +
           " bytes, over the " +
@@ -164,10 +174,10 @@ try {
       );
     }
 
-    writeFileSync(join(OUT_DIR, row.id + ".png"), png);
+    writeFileSync(join(OUT_DIR, listed.id + ".png"), png);
     console.log(
       "gen-og: " +
-        row.id.padEnd(10) +
+        listed.id.padEnd(10) +
         String(png.length).padStart(7) +
         " bytes   " +
         String(litCells).padStart(2) +
