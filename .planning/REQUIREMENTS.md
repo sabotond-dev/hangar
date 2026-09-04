@@ -175,13 +175,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-07 | Phase 7 | Pending |
 | SAFE-08 | Phase 7 | Pending |
 | SAFE-09 | Phase 7 | Pending |
-| PREV-01 | Phase 4 | Complete |
+| PREV-01 | Phase 4 | Complete (five presets animate; three quiet presets show their real static picture, declared and gated against the golden frames; tpad rests black and is out of the front-door row) |
 | PREV-02 | Phase 4 (Lua-sourced entries: Phase 8) | Pending |
 | PREV-03 | Phase 4 | Pending |
 | PREV-04 | Phase 4 | Pending |
-| PREV-05 | Phase 4 | Complete |
+| PREV-05 | Phase 4 | Complete (row mounts at most seven pads; offscreen pause and reduced motion asserted; paint count recorded 135–216 per 2 s, no fps floor asserted — accepted deviation 3) |
 | PREV-06 | Phase 3 | Complete |
-| CAT-01 | Phase 4 | Complete |
+| CAT-01 | Phase 4 | Complete (eight prerendered /c/<id>/ pages; tpad has a catalog entry but no page because it writes no LEDs — /c/tpad/ lands on the shelf with a notice) |
 | CAT-02 | Phase 5.1 | Pending |
 | CAT-03 | Phase 5.1 | Pending |
 | CAT-04 | Phase 4 | Pending |

@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Scaffold, Licence and Pin** - Static-site skeleton with GPLv3 obligations and the exact grid-protocol pin settled from commit one (completed 2026-09-02)
 - [x] **Phase 2: Walking Skeleton** - A bare page proves the full connect, fetch, write and store cycle on a real ZONA as a provable no-op (completed 2026-09-03)
 - [x] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle (completed 2026-09-02)
-- [ ] **Phase 4: First Experience** - Splash dissolves into a coverflow of live ZONA pads; choose one and `TRY ON DEVICE` appears — the wow front door, worth opening with no hardware attached
+- [x] **Phase 4: First Experience** - Splash dissolves into a coverflow of live ZONA pads; choose one and `TRY ON DEVICE` appears — the wow front door, worth opening with no hardware attached (completed 2026-09-04)
 - [ ] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL
 - [ ] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file
 - [ ] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language
@@ -202,7 +202,7 @@ Phases 6 and 7.
 | 1. Scaffold, Licence and Pin | 5/5 | Complete   | 2026-09-02 |
 | 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
-| 4. First Experience | 0/9 | Planned | - |
+| 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
