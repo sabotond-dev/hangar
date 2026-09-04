@@ -5,6 +5,7 @@ status: draft
 shadcn_initialized: false
 preset: none
 created: 2026-09-04
+revised: 2026-09-04 (revision 1 — checker rulings applied)
 authored: autonomous (overnight delegation #2) — every question that would normally have been asked is answered in "Decisions taken without the user"
 extends: .planning/phases/04-first-experience/04-UI-SPEC.md (approved 2026-09-04), .planning/phases/05-tuning-budgets-and-shareable-links/05-UI-SPEC.md (approved 2026-09-04), .planning/phases/05.1-catalog-browse/05.1-UI-SPEC.md
 ---
@@ -23,8 +24,10 @@ extends: .planning/phases/04-first-experience/04-UI-SPEC.md (approved 2026-09-04
 > phase adds a second slot beside it and specifies how the two share the row.
 >
 > **Nothing in this phase adds a colour token, a type size, a type weight, a spacing value, an icon,
-> an SVG, a font or an npm package.** The one thing it extends is Phase 5's 14px fixed line box, to a
-> named, closed list of two lines — declared and justified under Spacing.
+> an SVG, a font or an npm package.** Two things it does extend, both declared and justified under
+> Spacing: Phase 5's 14px fixed line box, to a named, closed list of two lines; and the reserved-height
+> pattern, to one new 152px region — the header note — measured by a sizing twin exactly as Phase 5's
+> 72px honesty slot is.
 >
 > Binding upstream: `06-CONTEXT.md` (D-01..D-15), REQUIREMENTS CONN-01..08 / DEGR-02 / SAFE-01,
 > ROADMAP Phase 6 success criteria 1–5, `.planning/research/FEATURES.md` §A (A1–A9),
@@ -75,7 +78,7 @@ Phase 4's tokens, unchanged. The values this phase consumes:
 | Token | Value | Usage in this phase |
 |-------|-------|---------------------|
 | xs | 4px | Nothing. Declared for completeness — the device slot's two lines stack with no gap (see the line-box exception) |
-| sm | 8px | Mark → text gap inside the device slot; disclosure offset below the header row; gap between a title and its detail inside a failure block (Phase 4's, unchanged) |
+| sm | 8px | Mark → text gap inside the device slot; the gap between the header note's two paragraphs; disclosure offset below the header row; gap between a title and its detail inside a failure block (Phase 4's, unchanged) |
 | md | 16px | Disclosure padding; vertical gap between blocks inside the disclosure; `DISCONNECT ZONA`'s top margin (Phase 4's, unchanged) |
 | lg | 24px | Gap between `BROWSE ALL` and the device slot in the header's right cluster; page gutter below 640px (Phase 5.1's, unchanged) |
 | xl | 32px | Page gutter at desktop (Phase 4's, unchanged) |
@@ -99,8 +102,15 @@ Phase 4's tokens, unchanged. The values this phase consumes:
    **The header row's height must not depend on which session state is showing**, and a ratio on a
    one-word caption is a readability rule applied where a layout guarantee is needed. Everywhere else
    — `ZONA IDENTIFIED` in `TryOnDevice.svelte`, `BROWSE ALL`, every failure title — keeps the ratio.
-5. **A 400px / 640px / 1024px breakpoint ladder** for the header. Breakpoints are not spacing; Phase 4
-   already contracts 640 and 1024 for the coverflow window and Phase 5.1 uses 640 for the gutter.
+5. **A 640px / 1024px breakpoint ladder** for the header — two rungs, and only two. The draft
+   declared a 400px rung that no row in this contract ever uses; it is dropped rather than left
+   standing unused. Breakpoints are not spacing; Phase 4 already contracts 640 and 1024 for the
+   coverflow window and Phase 5.1 uses 640 for the gutter.
+6. **A 152px reserved height for the header note** — six 24px Body line boxes (3 + 3) plus the 8px
+   `sm` gap. It is a reservation, not a spacing value, in exactly the class of Phase 5's 72px honesty
+   slot, and like that slot it is *measured by a sizing twin* rather than asserted in pixels. The
+   372px column it wraps against is Phase 4's panel content column, reused so that one sentence wraps
+   the same way in both surfaces. See "The header note".
 
 ---
 
@@ -112,7 +122,7 @@ Phase 4's five rows, unchanged. Three are used here; none gains a new size, weig
 |------|------|--------|-------------|----------|------|------------------------|
 | Micro | 12px | 600 | **14px box** in the device slot; `1.2` everywhere else | 0.18em | UPPERCASE | The device slot's label line: `NO ZONA`, `CONNECT ZONA`, `CONNECTING…`; and `DISCONNECT ZONA`, `FORGET THIS ZONA` inside the disclosure |
 | Micro (title) | 12px | 600 | **14px box** in the device slot; `1.2` everywhere else | 0.01em | Sentence | The device slot's caption line (`ZONA detected`, `ZONA unplugged`, `Did not connect`, `Not in this browser`, `Needs HTTPS`); the identity summary `ZONA · fw 1.5.5 · page 3`; `Nothing listed?`; every `failureCopy().title` and every authored failure title |
-| Body | 16px | 400 | 1.5 | 0 | Mixed | Every sentence: the pre-click picker explanation, every failure `detail`, every step, the SAFE-01 sentence, the forget explanation, the replug offer |
+| Body | 16px | 400 | 1.5 | 0 | Mixed | Every sentence: the header note's two lines, the pre-click picker explanation, every failure `detail`, every step, the SAFE-01 sentence, the forget explanation, the replug offer |
 | Heading (20) / Display (28) | — | — | — | — | — | **Not used in this phase** |
 
 **Monospace, and the ruling this phase was asked for.**
@@ -237,11 +247,17 @@ first tab stop; the device slot is the thing that yields, because it is the thin
 behind it.
 
 **The second row below 640px is unconditional, not state-dependent, and that is the whole point.**
-At a 320px viewport the usable inline space is 272px, and the wordmark, `BROWSE ALL` and the longest
-device label together sit within a few pixels of it — so a single wrapping row would reflow the header
-*as the session changed state*, moving the headline and the coverflow underneath it at the exact
-moment the visitor plugged something in. A row that is always two rows below 640px never moves. It
-costs 44px of header on a phone and it buys a header that is stable for the entire visit.
+At a 320px viewport the usable inline space is 272px. Measured against it, one row needs **≈360px**
+even with the device slot in its *narrowest* state: the wordmark `HANGAR` at 68px, the 24px `lg` gap,
+**`BACK TO BROWSE`** — the worst-case row-1 label, three words and the longer of the two forms that
+slot ever takes — at 132px, another 24px gap, and the resting device slot (`NO ZONA` behind its 24px
+mark and 8px gap) at 110px. **68 + 24 + 132 + 24 + 110 = 358px against 272px available — an overflow
+of roughly a third**, and every other slot state is wider still (`CONNECT ZONA` on hover, and
+`ZONA · fw 1.5.5 · page 3` once connected). A single row would therefore not merely be tight: it would
+wrap unconditionally, and *what* it wrapped would change with the session state — moving the headline
+and the coverflow underneath it at the exact moment the visitor plugged something in. A row that is
+always two rows below 640px never moves. It costs 44px of header on a phone and it buys a header that
+is stable for the entire visit.
 
 **No ellipsis anywhere in the header.** Truncating `ZONA · fw 1.5.5 · page 3` would hide the page
 number, which is the one part that changes live.
@@ -258,13 +274,13 @@ applied to a control).
 |---|---------------|------|------------------------------|-------------------------------|---------------------|
 | S0a | `unsupported` | dark | `Not in this browser` | `NO ZONA` — `--color-ink-dim` | disclosure summary; the disclosure holds `failureCopy("no-web-serial", undefined, "CONNECT ZONA")` |
 | S0b | `insecure` | dark | `Needs HTTPS` | `NO ZONA` — `--color-ink-dim` | disclosure summary; the disclosure holds `failureCopy("insecure-context", undefined, "CONNECT ZONA")` |
-| S1 | capable, nothing granted or attached | dark | *(none — the label is the whole statement)* | `NO ZONA` → on hover/focus the label is `CONNECT ZONA` | **button.** See "one control, two truths" below |
-| S2 | **detected**: a granted port is attached (`getPorts()` on load, or a `connect` event) | one cell lit, **static** | `ZONA detected` | `CONNECT ZONA` | button; calls `requestPort()`-free reconnect — one click, never automatic (D-06) |
-| S3 | `choosing` / `opening` / `identifying` | walking cell (Phase 4's motif) | *(none)* | `CONNECTING…` | disabled button, `aria-busy="true"` |
+| S1 | capable, nothing granted or attached | dark | *(none — the label is the whole statement)* | `NO ZONA` → on hover/focus the label is `CONNECT ZONA` | **plain button, no disclosure.** Its copy is inline beneath the row — see "The header note". See "one control, two truths" below |
+| S2 | **detected**: a granted port is attached (`getPorts()` on load, or a `connect` event) | one cell lit, **static** | `ZONA detected` | `CONNECT ZONA` | **plain button, no disclosure**; calls `requestPort()`-free reconnect — one click, never automatic (D-06). Its copy is inline beneath the row |
+| S3 | `choosing` / `opening` / `identifying` | walking cell (Phase 4's motif) | *(none)* | `CONNECTING…` | disabled button, `aria-busy="true"`. The header note carries the current status string |
 | S4 | **connected** | five-cell diagonal, static | *(none)* | `ZONA · fw 1.5.5 · page 3` — Micro **(title)**, `--color-ink` | disclosure summary, `aria-expanded` |
-| S5 | `unplugged` | dark | `ZONA unplugged` | `NO ZONA` | disclosure summary; the disclosure carries the replug offer |
-| S6 | any failure (`cancelled`, `port-busy`, `not-zona`, `silent`, `unknown`) | dark | `Did not connect` | `CONNECT ZONA` | button; **the disclosure opens automatically** and takes focus — see below |
-| S7 | forgotten (after `FORGET THIS ZONA`) | dark | *(none)* | `CONNECT ZONA` | button, identical to S1's hover form |
+| S5 | **`unplugged-while-connected`** | dark | `ZONA unplugged` | `NO ZONA` | disclosure summary; the disclosure carries the replug offer |
+| S6 | any **open** failure (`cancelled`, `port-busy`, `not-zona`, `silent`, **`unplugged-at-open`**, `unknown`) | dark | `Did not connect` | `CONNECT ZONA` | button; **the disclosure opens automatically** — opened by the arriving failure, not by the button, so the slot gains no `aria-expanded` — and takes focus. See below |
+| S7 | forgotten (after `FORGET THIS ZONA`) | dark | *(none)* | `CONNECT ZONA` | **plain button, no disclosure**, identical to S1's hover form. Its copy is inline beneath the row |
 
 **S1 — one control, two truths.** `NO ZONA` is a state and `CONNECT ZONA` is an action, and the slot
 has to be both. It resolves by time rather than by cramming: at rest the slot reads `NO ZONA`
@@ -284,12 +300,74 @@ splits into its two halves with no loss: the caption `ZONA detected` (statement,
 the label `CONNECT ZONA` (label, uppercase, and a real verb-plus-noun). Both fit the 44px box. This
 supersedes `06-CONTEXT.md` D-02's wording; see decision Y-02.
 
+### The header note — the inline line beneath the row
+
+**In S1, S2 and S7 the slot is a plain button, so its explanation cannot hang off it.** A disclosure
+needs a summary, and a summary that also connects announces a lie in one of its two jobs — which is
+exactly why those three states carry no `aria-expanded`. The copy therefore sits **inline, directly
+beneath the header row**, in a region of its own, visible with no click at all.
+
+**Where it sits, on each route:**
+
+| Route | Position |
+|-------|----------|
+| `/` | between the header row and the headline `You’ve got to start somewhere…`. The headline's 48px top margin is measured from the **bottom of the header block, which now includes the note**, so the coverflow keeps its existing distance from the last thing above it |
+| `/c/{id}/` | the same composition and the same place — `FrontDoor.svelte` renders both routes |
+| `/browse/` | between the header row and the browse headline, above the `<search>` toolbar. `/browse/` has no `BROWSE ALL`, so the note sits under a row holding only the wordmark and the device slot |
+
+**Geometry.** `inline-size: min(372px, 100%)`, right edge flush with the device slot's right edge,
+**text left-aligned inside it** — the box is aligned to the control it explains, the words are aligned
+to be read. 372px is Phase 4's panel content column, reused rather than invented, so one sentence
+wraps to the same three lines in the panel and in the header. Two Body paragraphs, 8px apart. No
+border, no ground, no icon, no accent: it is prose under a control. On `/` it carries the wordmark's
+`.covered` treatment together with the slot; on the other two routes there is no splash to carry — see
+"The splash".
+
+**Contents, by state:**
+
+| State | First line | Second line |
+|-------|-----------|-------------|
+| S1 / S7 | the 129-character pre-click line plus the two-step sentence — *unless the chosen panel is open and already rendering it*, in which case it is hidden by its own twin | the SAFE-01 sentence |
+| S2 | `ZONA detected on this computer. One click connects it, and nothing is sent until you do.` | the SAFE-01 sentence |
+| S3 | the current status string (`Pick the ZONA in the browser’s list.` · `Opening the port…` · `Listening for the module…`), unless the panel is showing it | *(empty, height held)* |
+| S4 / S5 / S6 | *(empty, height held)* — this copy is in the disclosure | *(empty, height held)* |
+| S0a / S0b | **not rendered at all** — see the exemption below | — |
+
+**The reservation.** The region is a one-cell grid holding every string it can ever show, with the
+non-current ones `visibility: hidden` and `aria-hidden="true"` — Phase 5's honesty-slot pattern,
+unchanged, and the same pattern the slot's own label already uses. Its height is therefore *measured*
+by the browser at the current width rather than asserted in pixels, and it is identical in every
+state, so **no session transition ever moves the headline or the coverflow beneath it**. At the 372px
+column every candidate string is at most three Body lines — the pre-click line is 129 characters, the
+reconnect sentence 97, SAFE-01 125, and 43 characters a line is the figure this document family
+already uses — so the reservation is **3 + 3 line boxes + the 8px gap = 152px**.
+
+**In `unsupported` and `insecure` the region is absent, with no reservation at all.** Capability is
+decided synchronously before the first paint (`"serial" in navigator && isSecureContext`) and cannot
+change during the visit, so those two states are terminal: there is no transition for a reservation to
+protect. There is also nothing to explain — no picker will ever open — and the capability failure
+already has its own disclosure with a fix in it. **A visitor on a browser that cannot talk to hardware
+pays nothing for this region.**
+
+**The note is not a live region and never announces.** It changes with the session, and the session
+already speaks once through `SessionAnnouncer`; marking the note polite would say every transition
+twice.
+
+**The cost is real, and it is the price of the ARIA ruling:** 152px of header, on every route, in
+every capable browser, for the whole visit. It buys a safety promise and a picker explanation that are
+read without a click, on the one surface that exists on every page. See open question 7.
+
 ### The 9×9 mark
 
 24px, the four-layer pad recipe at a smaller size — a CSS dot field at `--color-line-soft` with lit
 cells in `--color-accent`. No canvas, no simulator, no engine: the mark has four static shapes and one
 90ms-per-step walk, and it reuses `PadSpinner.svelte`'s existing walk rather than authoring a second
-one. `aria-hidden="true"` in every state; it carries no meaning that the two text lines do not.
+one — **as `<PadSpinner size={24} decorative />`**, not as a copy of it. The shipped component is 32px
+with a hard-coded `role="img" aria-label="Connecting"`, which is neither the size nor the semantics
+this mark needs, so it gains exactly two props (see Modified): `size`, which drives one custom
+property because the walk's keyframes are percentage translates and scale for free, and `decorative`,
+which drops the role, the label and the `data-testid`. `aria-hidden="true"` in every state; the mark
+carries no meaning that the two text lines do not.
 
 | Session shape | Mark |
 |---------------|------|
@@ -303,12 +381,21 @@ as Phase 4 contracts for `PadSpinner`. Everything else about the mark is already
 
 ### The splash
 
-The device slot carries the wordmark's `.covered` treatment verbatim: `opacity: 0; transition: none`
-while the splash covers the row, then to 1 across the 700ms dissolve (200ms reduced) on
-`cubic-bezier(0.22, 0.61, 0.36, 1)`. It must be **absent from the very first painted frame**, not
-faded out of one. The session's first live-region announcement is suppressed until the splash has
-finished (1840ms, or 600ms reduced), so a ZONA detected during the opening is announced once, after
-it, rather than over it.
+**The splash plays on `/` and nowhere else.** `FrontDoor.svelte` takes `splash` as a prop, a deep link
+never passes it (D-12), and `/browse/` has no splash layer at all. Everything in this section is
+scoped to `/`, and the suppression below is scoped with it.
+
+On `/`, the device slot and the header note carry the wordmark's `.covered` treatment verbatim:
+`opacity: 0; transition: none` while the splash covers the row, then to 1 across the 700ms dissolve
+(200ms reduced) on `cubic-bezier(0.22, 0.61, 0.36, 1)`. They must be **absent from the very first
+painted frame**, not faded out of one. The session's first live-region announcement is held until the
+splash has finished (1840ms, or 600ms reduced), so a ZONA detected during the opening is announced
+once, after it, rather than over it.
+
+**On `/c/{id}/` and on `/browse/` nothing is `.covered` and nothing is suppressed.** There is no
+splash to talk over: the slot and the note are at full strength in the first painted frame, and the
+first announcement fires as soon as it is due. A suppression window that outlived the splash would
+silence a deep-linked visitor's reconnect offer for a second and a half, for no reason at all.
 
 ---
 
@@ -320,26 +407,31 @@ below the header row, `max-inline-size: 360px`, `inline-size: calc(100vw - 48px)
 `background: var(--color-ground)`. It sits above page content and below the splash layer. No shadow,
 no glow, no backdrop tint — the border and the black ground are the whole treatment.
 
+**It exists in five states and only five: S0a, S0b, S4, S5 and S6.** In S1, S2 and S7 there is no
+disclosure at all — the slot is a plain button that connects, and its copy is inline in the header
+note. That is the whole reason the note exists: a control cannot both act and expand without lying
+about one of its two jobs, so where the slot acts, nothing hangs off it.
+
 **Opening and closing.**
 
 | Trigger | Behaviour |
 |---------|-----------|
-| Click / `Enter` / `Space` on the slot in S0, S4, S5 | toggles the disclosure |
-| A failure arrives from a click made in the header (S6) | **opens automatically** and moves focus to the disclosure container (`tabindex="-1"`). Auto-opening is correct here and only here: it is the direct result of the visitor's own click, and CONN-04's recovery is worthless behind a second one |
+| Click / `Enter` / `Space` on the slot in **S0a, S0b, S4, S5** | toggles the disclosure. These are the four states where the slot is a summary and carries `aria-expanded` |
+| Click / `Enter` / `Space` on the slot in **S1, S2, S6, S7** | **connects. Nothing expands**, because in these states there is nothing to expand |
+| A failure arrives from a click made in the header (S6) | **opens automatically** and moves focus to the disclosure container (`tabindex="-1"`). It is opened by the arriving failure, not by the button, so the slot gains no `aria-expanded` and no `aria-controls`. Auto-opening is correct here and only here: it is the direct result of the visitor's own click, and CONN-04's recovery is worthless behind a second one |
 | A failure arrives while the chosen panel is open | does **not** open. The panel's connect-state region already renders the block in full — see "one block, two mounts" |
 | `Escape` | closes, returns focus to the slot |
 | Focus leaves the disclosure | closes |
 | Click outside | closes |
-| A session transition (`connect`, `disconnect`, connected) | leaves the disclosure exactly as it is; the contents re-render in place |
+| A session transition (`connect`, `disconnect`, connected) | leaves the disclosure exactly as it is; the contents re-render in place. A transition **into** S1, S2 or S7 closes it, because those three states have no disclosure |
 
 **Contents, by state.** Top to bottom, 16px between blocks:
 
 | State | Blocks |
 |-------|--------|
 | S0a / S0b | the `failureCopy` block (title, detail, ordered steps) |
-| S1 / S7 | the **pre-click picker explanation** (three sentences, below) · the SAFE-01 sentence |
-| S2 | `ZONA detected on this computer. One click connects it, and nothing is sent until you do.` · the SAFE-01 sentence |
-| S3 | the status line for the current step (Phase 4's three strings, verbatim) |
+| S1 / S2 / S7 | **nothing — there is no disclosure in these states.** Their copy is in the header note |
+| S3 | **nothing.** S3 is reachable only from S1, S2 and S7, none of which can leave a disclosure open, so an open disclosure in S3 cannot occur. The status line is in the header note, or in the chosen panel when that is open |
 | S4 | the identity line · the multi-module line, when there is one · the SAFE-01 sentence · `DISCONNECT ZONA` · `FORGET THIS ZONA` with its one-line explanation |
 | S5 | `The ZONA was unplugged. Nothing was written.` (Phase 4's string, verbatim) · the replug offer · `FORGET THIS ZONA` |
 | S6 | the failure block (title, detail, ordered steps) · for `cancelled`, the `Nothing listed?` disclosure |
@@ -364,8 +456,15 @@ visitor must be able to read this before clicking **either** of them.
 
 | Surface | Where | String |
 |---------|-------|--------|
-| The chosen panel | `TryOnDevice`'s connect-state region, while the session is `idle` / `detected` / forgotten | the short form (below) |
-| The header disclosure | S1, S2, S7 | the short form, plus the two-step sentence |
+| The chosen panel | `TryOnDevice`'s connect-state region, while the session is `idle` / `detected` / forgotten **and the panel is open** | the short form (below) |
+| **The header note** | inline beneath the header row, in S1, S2 and S7, **whenever the panel is not rendering it** | the short form, plus the two-step sentence |
+
+**It is never on screen twice.** The explanation is one component with two mounts, governed by exactly
+the rule the failure block follows (Y-11): the panel renders it while the panel is open, the header
+note renders it otherwise. The note keeps its full 152px reservation either way, so opening or closing
+the panel does not move the header by a pixel — the line is hidden by its own sizing twin, never
+unmounted. The SAFE-01 sentence does not move: it belongs to the header note in S1, S2 and S7 in both
+cases, because the promise is the session's and the session lives in the header.
 
 **The short form**, exactly:
 
@@ -395,16 +494,35 @@ block gains one extra sentence: `The permission prompt was declined, so the list
 that name never arrives, the sentence simply never shows and nothing else changes.
 
 **Precedence.** On `unsupported` and `insecure` the pre-click explanation is **not** shown, in either
-surface. There is no picker to explain, and the capability failure already occupies the space with a
-fix the visitor can act on.
+surface — and in the header the note region is not rendered at all, with no reservation held. There is
+no picker to explain, the capability failure already occupies the space with a fix the visitor can act
+on, and those two states are terminal, so nothing can reflow into or out of them.
 
 ---
 
 ## The failure states — every one, with its way out
 
-Eight named states (D-13). Six of them render `failureCopy()` **verbatim**, with the control label of
-whichever surface is rendering the block. Four are Phase 4's authored strings, carried over. Only two
-sentences and one disclosure are new.
+**Nine named states, not eight.** `unplugged` in D-13's list is two different failures wearing one
+name, and this contract splits it (Y-21). The taxonomy is `unsupported`, `insecure`, `cancelled`,
+`port-busy`, `not-zona`, `silent`, **`unplugged-at-open`**, **`unplugged-while-connected`** and
+`unknown`.
+
+The tally, which the draft got wrong by counting `unplugged` in both halves: **six** of the nine render
+`failureCopy()` **verbatim**, with the control label of whichever surface is rendering the block —
+`unsupported`, `insecure`, `cancelled`, `port-busy`, `unplugged-at-open` and `unknown`, which is
+exactly the six branches `failureCopy` has. **Three** carry strings Phase 4 authored inside
+`TryOnDevice.svelte` — `not-zona`, `silent` and `unplugged-while-connected` — and two of those three
+take an amended step, below. Six plus three is nine. Only two sentences and one disclosure are new.
+
+**The split, precisely.** `unplugged-at-open` is what `classifyOpenError` returns: a `NetworkError`
+raised by `open()` when `port.connected === false` — the module was picked in the chooser and was gone
+by the time the port opened, which a loose or charge-only cable does. It is an **open failure**, it
+lands in **S6**, and it renders `failureCopy("unplugged", undefined, label)` verbatim: a title, a
+detail and three steps. `unplugged-while-connected` is the `navigator.serial` `disconnect` event of a
+session that was already live: **S5**, no title, no steps, one sentence, and the replug offer. Two
+events, two messages, two names. One name for both was the draft's defect — the same identifier
+rendered Phase 4's bare sentence in one place and `failureCopy`'s three-step block in another, and no
+executor could have implemented both.
 
 **One block, two mounts.** The failure block is one component. It renders in the chosen panel's
 connect-state region when the panel is open, and in the header disclosure otherwise. **It never
@@ -424,7 +542,8 @@ from its button.
 | `port-busy` | `Another program is holding the port` | verbatim — **names Grid Editor**, and names the tray icon | verbatim, six steps in order: 1. `Quit Grid Editor completely, from its tray icon, not just its window` · 2. `Unplug the ZONA` · 3. `Wait a few seconds` · 4. `Plug the ZONA back in` · 5. `Reload this page` · 6. `Click {label} again` | Step 6 |
 | `not-zona` | `That module is not a ZONA` | `It reported itself as {moduleType}. HANGAR only speaks to a ZONA, so nothing was sent.` | **amended** — 1. `Plug in a ZONA` · 2. `Click {label} again` | Step 2. The session has already closed the port |
 | `silent` | `Nothing answered on that port` | `The port opened, but no Grid module reported itself within {seconds} seconds. That usually means the port belongs to something else on your machine.` | 1. `Unplug the ZONA and plug it back in` · 2. `Click {label} again and pick a different port` | Step 2. The session has already closed the port |
-| `unplugged` | *(no title — it is one sentence, not a failure)* | `The ZONA was unplugged. Nothing was written.` | *(none)* | **The replug offer**, below |
+| `unplugged-at-open` | `The ZONA is not there any more` | verbatim — `The module was picked but was gone by the time the port opened. A loose or charge-only USB cable does this, and so does a hub that cannot power the module.` | verbatim, three steps: 1. `Check the cable is a data cable and is seated at both ends` · 2. `Plug the ZONA straight into the computer rather than through a hub` · 3. `Click {label} again` | Step 3. It is an S6 failure like any other, and it renders through `failureCopy("unplugged", …)` — the transport's existing key |
+| `unplugged-while-connected` | *(no title — it is one sentence, not a failure block)* | `The ZONA was unplugged. Nothing was written.` | *(none)* | **The replug offer**, below. This is S5, not S6, and it never calls `failureCopy` |
 | `unknown` | `The port would not open` | `The browser reported: {raw}` — the only place a raw exception ever reaches the screen, and always quoted as a report rather than shown as the message | 1. `Unplug the ZONA, plug it back in, and click {label} again` · 2. `If it keeps happening, copy the message above into a bug report` | Step 1 |
 
 **Two amendments to Phase 4's authored strings, and nothing else changes.**
@@ -452,11 +571,13 @@ visitor opens only if it applies to them.
 - Followed by the two-step sentence, because a visitor who never saw a list may have been looking at a
   permission prompt.
 
-### `unplugged` — the replug offer (CONN-06, D-07)
+### `unplugged-while-connected` — the replug offer (CONN-06, D-07)
 
-Unplugging is detected on `navigator.serial`'s own `disconnect` event, not the port's, and it flips
-the session immediately rather than failing on a later write. The slot goes to S5 and the disclosure
-carries:
+Unplugging a **live** session is detected on `navigator.serial`'s own `disconnect` event, not the
+port's, and it flips the session immediately rather than failing on a later write. This is the state
+`unplugged-at-open` is not: nothing was being opened, the visitor did nothing wrong, and there is no
+recovery list to work through — which is why it has one sentence and no steps where the open failure
+has a title and three. The slot goes to S5 and the disclosure carries:
 
 > `The ZONA was unplugged. Nothing was written.`
 > `Plug it back in and this offers to connect again — the permission you already gave is still there.`
@@ -494,7 +615,7 @@ label and hover. What changes is where its truth comes from.
 | `release()` on un-choose | closes the port | **no longer closes anything.** The port belongs to the session and survives un-choose, stepping and navigation. Phase 4's W-20 already said the port belongs to the session; this is the phase where that becomes literally true |
 | `onDestroy` | closes the port | does not close the port |
 | Tab hidden | `closeOnHide()` closes the port on `visibilitychange` | **switching tabs must not change the device slot's state.** The session survives a hidden tab and releases the port on page unload. The mechanism is the planner's; the visible contract is that a visitor who checks their mail and comes back finds the same header |
-| `aria-live` on the status region | `aria-live="polite"` on `[data-testid="connect-status"]` | **removed.** There is exactly one session live region site-wide; two regions announcing one transition is double-speak |
+| `aria-live` on the status region | `aria-live="polite"` on `[data-testid="connect-status"]` (`TryOnDevice.svelte:421`) | **removed — and it is the only `aria-live` this phase removes anywhere.** There is exactly one *session* live region site-wide; two regions announcing one session transition is double-speak. Phase 5's tuning region and Phase 5.1's browse region are untouched — see the live-region rows in the Accessibility Contract |
 | The honesty slot's three strings | reserved height, one-cell grid, sizing twins | **unchanged. This phase adds no fourth string** and does not touch the 72px reservation |
 | The idle connect-state region | empty | the pre-click explanation (72px, three Body lines), except on `unsupported` / `insecure` where the capability block occupies it |
 | Disabled reason when connected | `Your ZONA is already identified.` | unchanged, verbatim — it is one of the three reserved strings |
@@ -512,12 +633,14 @@ here, and nothing else moves:
 | Device slot label / caption change | 160ms | `ease-out` | **opacity and colour only, never height** |
 | S1's `NO ZONA` ↔ `CONNECT ZONA` on hover / focus | 160ms | `ease-out` | colour and opacity only; the box does not resize (sizing twin) |
 | Disclosure open / close | 160ms | `ease-out` | opacity only. No slide, no scale, no height animation |
+| Header note line change | 160ms | `ease-out` | opacity only. Its height never animates because its height never changes — the sizing twin holds it |
 
 | Thing | Full motion | `prefers-reduced-motion: reduce` |
 |-------|-------------|----------------------------------|
 | The mark's walking cell | 90ms/step perimeter walk | three static cells, top-left (Phase 4's `PadSpinner` rule, unchanged) |
 | Slot label change | 160ms fade | instant |
 | Disclosure | 160ms fade | instant |
+| Header note line change | 160ms fade | instant |
 | Splash `.covered` rise | 700ms | 200ms crossfade |
 | Focus ring | never animated | never animated |
 
@@ -559,6 +682,9 @@ is a disclosure, not a dialog — and `Escape` closes it and returns focus to th
 | Revoke permission | `Tab` to `FORGET THIS ZONA`, `Enter` |
 | Open the empty-picker branch | `Tab` to `Nothing listed?`, `Enter` |
 
+**The header note adds no tab stop.** It holds two Body paragraphs and no control, in every state, on
+every route; it is read where it sits, and the tab order above is unchanged by it.
+
 **Every capability in this phase is reachable with no pointer at all.** Playing the instrument remains
 the single pointer-only capability on the site.
 
@@ -570,8 +696,9 @@ the single pointer-only capability on the site.
 |---------|----------|
 | **The slot's accessible name** | Always the **label** line and only the label line: `CONNECT ZONA`, `CONNECTING…`, `NO ZONA`, or the identity summary. The caption line is `aria-hidden="true"` and reaches the control through `aria-describedby` on a visually-hidden twin. In S1 the name is `CONNECT ZONA` in both the resting and the hovered form, so a speech-input user says what the button does and never what it is not (WCAG 2.5.3) |
 | **The identity summary's name** | The `·` separators are wrapped in `aria-hidden` spans, so the accessible name is `ZONA fw 1.5.5 page 3` — the visible words, in order, without a screen reader saying "middle dot" three times. `aria-describedby` adds `Firmware 1.5.5, active page 3. Opens device details.` |
-| **Disclosure semantics** | The slot carries `aria-expanded` in exactly the states where it is a disclosure (S0a, S0b, S4, S5) and `aria-controls` pointing at the panel. In the states where it acts (S1, S2, S6, S7) it is a plain button with no `aria-expanded`, because a control that both acts and expands announces a lie in one of its two jobs |
-| **Live region politeness** | **Exactly one** visually-hidden `aria-live="polite" aria-atomic="true"` region for the whole site, mounted once in `+layout.svelte`. It fires **only** on a session transition — detected, connected, disconnected, unplugged, forgotten, and each failure by title — coalesced on a **500ms trailing** timer, and it is silent until the splash has finished. **It never fires on a heartbeat, never on a page-number change, never on a paint, and never on a hover.** `TryOnDevice`'s own `aria-live` is removed in the same change so the transition is announced once |
+| **Disclosure semantics** | The slot carries `aria-expanded` and `aria-controls` in exactly the four states where it is a summary: **S0a, S0b, S4, S5**. In the four states where it acts — **S1, S2, S6, S7** — it is a plain button with neither attribute, because a control that both acts and expands announces a lie in one of its two jobs. That is precisely why S1, S2 and S7 have **no disclosure at all** and their copy is inline in the header note, and why S6's panel — opened by the arriving failure rather than by the button — adds no `aria-expanded` to a button that did not open it. The "Opening and closing" table states the same rule trigger by trigger |
+| **Live region politeness** | **Exactly one SESSION live region site-wide**, visually hidden, `aria-live="polite" aria-atomic="true"`, mounted once in `+layout.svelte`. It fires **only** on a session transition — detected, connected, disconnected, unplugged, forgotten, and each failure by title — coalesced on a **500ms trailing** timer, and on `/` it is held until the splash has finished. **It never fires on a heartbeat, never on a page-number change, never on a paint, and never on a hover.** `TryOnDevice.svelte:421`'s `connect-status` `aria-live` is removed in the same change, so a session transition is announced once |
+| **Coexistence with the site's other two regions** | **This is one of three live regions on the site, and the other two are untouched.** Phase 5's tuning region (`TuningRegion.svelte:578`, `data-testid="tuning-live"`) speaks on a settled budget change; Phase 5.1's browse region (`data-testid="browse-live"`) speaks on a settled filter or sort change; the session region speaks on a session transition. **The three trigger sets are disjoint** — no event on this site fires two of them — so the draft's "exactly one live region for the whole site" was an overreach that contradicted two shipped contracts, and it is withdrawn. When a session transition and a budget or browse transition land in the same 500ms window, **both are permitted to speak: the session utterance goes first and the other queues behind it.** A session transition is hardware news the visitor did not ask for and may not have seen; a budget or browse change is the direct result of something they just did and is already visible on screen |
 | Why the page number is silent | The module reports its active page four times a second. Announcing it would turn a screen reader into a metronome. The digit updates in place, in tabular numerals, and a visitor who wants it reads it |
 | `aria-busy` | Set on the device slot while `choosing` / `opening` / `identifying`, so an AT does not read a label that is about to change |
 | **Disabled is real** | The slot in `unsupported` / `insecure` is a real disclosure summary, never `aria-disabled` alone, and never hidden — DEGR-02. Its reason is visible in the caption line without opening anything, and in full one click away |
@@ -613,22 +740,22 @@ never engines.
 | Hidden name, nothing connected | `No ZONA is connected.` |
 | Hidden description, connected | `Firmware {major}.{minor}.{patch}, active page {n}. Opens device details.` |
 | **Pre-click explanation (both surfaces)** | `The browser opens its own list of ports — that prompt is the browser, not HANGAR, and nothing here sees a port until you pick one.` |
-| **Two-step sentence (disclosure and `cancelled`)** | `Some browsers ask for permission before they show the list. If you were asked twice, the list appears after the second prompt.` |
+| **Two-step sentence (header note and `cancelled`)** | `Some browsers ask for permission before they show the list. If you were asked twice, the list appears after the second prompt.` |
 | Permission declined (`NotAllowedError` only) | `The permission prompt was declined, so the list never opened.` |
-| **SAFE-01, said out loud on the connect surface** | `HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click, and this release cannot write at all.` |
-| Reconnect offer, in the disclosure | `ZONA detected on this computer. One click connects it, and nothing is sent until you do.` |
+| **SAFE-01, said out loud on the connect surface** — the header note's second line in S1, S2 and S7; the disclosure in S4 | `HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click, and this release cannot write at all.` |
+| Reconnect offer, in the header note (S2) | `ZONA detected on this computer. One click connects it, and nothing is sent until you do.` |
 | Identity line, in the disclosure | `Firmware {major}.{minor}.{patch}, active page {n}.` |
 | Multi-module line | `Also on the cable: {EN16, BU16}.` |
 | **Disconnect CTA** | `DISCONNECT ZONA` *(Phase 4's, unchanged)* |
 | **Revoke CTA** | `FORGET THIS ZONA` |
 | Revoke explanation | `Removes this site’s permission to see your ZONA. You can give it again from the picker whenever you like.` |
-| Unplugged | `The ZONA was unplugged. Nothing was written.` *(Phase 4's, verbatim)* |
+| `unplugged-while-connected` — the whole of it | `The ZONA was unplugged. Nothing was written.` *(Phase 4's, verbatim)* |
 | Replug offer | `Plug it back in and this offers to connect again — the permission you already gave is still there.` |
 | Empty-picker disclosure summary | `Nothing listed?` |
 | Empty-picker step 1 (charge-only cable) | `Try a different USB cable. A charge-only cable fits the socket and carries no data, and it is the most common reason a list comes up empty.` |
 | Empty-picker step 2 | `Plug the ZONA straight into the computer rather than through a hub or a dock.` |
 | Empty-picker step 3 (driver branch) | `A ZONA needs no driver. If every cable and every port gives an empty list, the module is not showing up to the computer at all, which is a hardware question rather than a browser one.` |
-| `unsupported` / `insecure` / `cancelled` / `port-busy` / `unplugged` / `unknown` | **`failureCopy(f, raw, label)` rendered verbatim.** Titles, details and step ordering are Phase 2's words; only the interpolated control label changes, to the label of the surface rendering the block |
+| `unsupported` / `insecure` / `cancelled` / `port-busy` / **`unplugged-at-open`** / `unknown` | **`failureCopy(f, raw, label)` rendered verbatim** — the six branches `failureCopy` actually has, and the six states of the nine that use it. Titles, details and step ordering are Phase 2's words; only the interpolated control label changes, to the label of the surface rendering the block. `unplugged-at-open` calls it as `failureCopy("unplugged", undefined, label)`, which is the transport's existing key |
 | `not-zona` — title / body | `That module is not a ZONA` / `It reported itself as {moduleType}. HANGAR only speaks to a ZONA, so nothing was sent.` *(Phase 4's, verbatim)* |
 | `not-zona` — steps | **amended:** 1. `Plug in a ZONA` · 2. `Click {label} again` |
 | `silent` — title / body | `Nothing answered on that port` / `The port opened, but no Grid module reported itself within {seconds} seconds. That usually means the port belongs to something else on your machine.` *(Phase 4's, verbatim)* |
@@ -638,10 +765,10 @@ never engines.
 | **Live region — detected** | `ZONA detected. One click connects it.` |
 | **Live region — connected** | `ZONA connected. Firmware {major}.{minor}.{patch}, active page {n}.` |
 | **Live region — disconnected** | `ZONA disconnected.` |
-| **Live region — unplugged** | `The ZONA was unplugged. Nothing was written.` |
+| **Live region — unplugged while connected** | `The ZONA was unplugged. Nothing was written.` |
 | **Live region — forgotten** | `This site no longer has permission to see your ZONA.` |
 | **Live region — a failure** | the failure's `title`, verbatim, and nothing else |
-| **Error state** | `{failureCopy title} — {detail} — {ordered steps}`, in one block, in one place, with a way out on every one of the eight named states |
+| **Error state** | `{failureCopy title} — {detail} — {ordered steps}`, in one block, in one place, with a way out on every one of the **nine** named states |
 | **Destructive confirmation** | **None.** This phase writes nothing to any module. `FORGET THIS ZONA` revokes a browser permission rather than destroying anything, is stated in full before the click, and is undone by one click in the picker — so it gets a sentence, not a dialog. `KEEP ON DEVICE`, the site's only genuinely destructive control, is still disabled |
 
 **Copy rules this phase enforces by name:**
@@ -665,27 +792,29 @@ New, in `src/lib/ui/`:
 |-----------|----------------|---------------|
 | `DeviceSlot.svelte` | The header's device slot: the nine states, the two stacked line boxes, the mark, the sizing twin, `aria-describedby`, `aria-expanded` | `device-slot`, `device-slot-label`, `device-slot-caption` |
 | `DeviceDetails.svelte` | The disclosure: anchoring, open/close, focus behaviour, the per-state block list | `device-details` |
-| `DeviceMark.svelte` | The 24px 9×9 mark and its four shapes; delegates the walk to `PadSpinner`'s existing motif | `device-mark` |
+| `DeviceMark.svelte` | The 24px 9×9 mark and its four shapes. The walking shape renders `PadSpinner` at `size={24} decorative` — it does not re-author the walk, and it does not reuse the shipped 32px `role="img"` form | `device-mark` |
+| `DeviceNote.svelte` | The inline header note: the 152px reserved region beneath the header row, the sizing-twin grid over its candidate strings, and the SAFE-01 line. Absent entirely in `unsupported` / `insecure` | `device-note`, `device-note-line`, `device-note-safe` |
 | `FailureBlock.svelte` | The one failure block — title, detail, ordered steps — mounted in either surface, with the surface's control label | `failure-block`, `nothing-listed` |
-| `PickerExplainer.svelte` | The pre-click explanation, short form and disclosure form | `picker-explainer` |
-| `SessionAnnouncer.svelte` | The single visually-hidden polite live region, mounted once in `+layout.svelte`, with the 500ms trailing coalescer and the splash suppression | `session-live` |
+| `PickerExplainer.svelte` | The pre-click explanation in its two mounts — the panel's short form and the header note's short form plus two-step sentence. One component, never rendered in both at once (Y-11's rule) | `picker-explainer` |
+| `SessionAnnouncer.svelte` | The single visually-hidden polite **session** live region, mounted once in `+layout.svelte`, with the 500ms trailing coalescer and — on `/` only — the hold until the splash finishes | `session-live` |
 
 New, in `src/lib/device/`:
 
 | Module | Responsibility |
 |--------|----------------|
 | `session.svelte.ts` | The session store (D-05): the port, the identity, the phase, the failure — and `CONNECT_LABEL = "CONNECT ZONA"` beside `try-on.ts`'s `TRY_ON_LABEL` |
-| `session-copy.ts` | The four strings Phase 4 authored inside `TryOnDevice.svelte` (`not-zona`, `silent`, `unplugged-after`, the identified body), lifted to one source so both surfaces render the same words |
+| `session-copy.ts` | The four strings Phase 4 authored inside `TryOnDevice.svelte` (`not-zona`, `silent`, `unplugged-while-connected`, the identified body), lifted to one source so both surfaces render the same words |
 
 Modified:
 
 | File | Change |
 |------|--------|
-| `src/lib/ui/FrontDoor.svelte` | The header row gains the device slot in the right cluster, and the two-row layout below 640px. The slot shares the wordmark's `.covered` treatment. The headline's 48px top margin is measured from the header block and does not change at ≥640px |
-| `src/lib/ui/TryOnDevice.svelte` | Consumes the session instead of owning it: no port lifetime, no `closeOnHide`, no close on `release()` or `onDestroy`, `aria-live` removed from the status region, the idle region renders the pre-click explanation. **The honesty slot, its three strings, its 72px reservation and the button's every visual property are untouched** |
+| `src/lib/ui/FrontDoor.svelte` | The header row gains the device slot in the right cluster, and the two-row layout below 640px. Beneath the row, the header block gains `DeviceNote`'s 152px reserved region. Both share the wordmark's `.covered` treatment, **on `/` only**. The headline's 48px top margin is measured from the bottom of the header block — which now includes the note — and never changes with session state |
+| `src/lib/ui/PadSpinner.svelte` | **Two props, no behaviour change.** `size = 32` drives one `--spinner-size` custom property — the walk's keyframes are percentage translates on an 11.111% cell, so they scale with no new keyframes and no second animation. `decorative = false`, when true, drops `role="img"`, `aria-label="Connecting"` **and `data-testid="pad-spinner"`**, so a decorative instance never collides with the panel's spinner in a selector — the two are on screen together throughout S3. Both defaults reproduce exactly what `TryOnDevice` renders today, so Phase 4's spinner is untouched where it already ships |
+| `src/lib/ui/TryOnDevice.svelte` | Consumes the session instead of owning it: no port lifetime, no `closeOnHide`, no close on `release()` or `onDestroy`, `aria-live` removed from the status region (line 421), the idle region renders the pre-click explanation while the panel is open. **The honesty slot, its three strings, its 72px reservation and the button's every visual property are untouched** |
 | `src/lib/transport/transport.ts` | Nothing, unless the planner elects to move the two amended step arrays here. `failureCopy`'s signature, its six interpolation sites and its default are unchanged |
 | `src/routes/+layout.svelte` | Mounts `SessionAnnouncer` once |
-| `src/routes/browse/+page.svelte` | The header gains the device slot as its only right-hand slot (Phase 5.1's page, when it lands) |
+| `src/routes/browse/+page.svelte` | The header gains the device slot as its only right-hand slot, and `DeviceNote` beneath the row (Phase 5.1's page, when it lands). Its `browse-live` region is untouched |
 | `src/app.css` | **Nothing.** No token is added, changed or removed, and `identity.spec.ts` stays green untouched |
 
 ---
@@ -707,30 +836,34 @@ artefact of any kind** — no npm package, no font, no icon set — so nothing e
 
 Authored overnight under the delegation recorded in `06-CONTEXT.md`. Every one is a first cut Botond
 can overturn in the morning. Where one supersedes an `[orchestrator]` decision from `06-CONTEXT.md`,
-it says so; none contradicts a `[user]` decision.
+it says so; none contradicts a `[user]` decision. **Y-21, Y-22 and Y-23 were added in revision 1, and
+Y-04, Y-06, Y-09 and Y-16 were amended there, under the checker's rulings.**
 
 | # | Decision | Rationale (one line) |
 |---|----------|----------------------|
 | Y-01 | **The device slot sits at the header's right corner, after `BROWSE ALL`, on all three routes** | Every comparable puts a persistent connection indicator at the top-right (FEATURES A7); the slot that changes by itself belongs at the edge of the eye rather than between two things that never move |
 | Y-02 | **`ZONA DETECTED — CONNECT` does not ship. It splits into the caption `ZONA detected` over the label `CONNECT ZONA`** — **supersedes `06-CONTEXT.md` D-02's wording** | It is a statement and a command welded with an em dash, which is exactly the collision Phase 4's uppercase rule exists to prevent, and its accessible name would tell a speech user to say "ZONA detected connect" to press a connect button |
 | Y-03 | **In S1 the slot reads `NO ZONA` at rest and `CONNECT ZONA` on hover / focus, with a sizing twin so the box never resizes; the accessible name is always `CONNECT ZONA`** | D-02 wants `NO ZONA` as the resting indicator and the roadmap wants one primary `CONNECT` control; time separates them without cramming, and a control announces what it does rather than what it is not |
-| Y-04 | **Below 640px the header is two rows, unconditionally** | At 320px a single row sits within a few pixels of overflow, so it would reflow *as the session changed state* — moving the headline and the coverflow at the exact moment a visitor plugged something in. Always-two-rows never moves |
+| Y-04 | **Below 640px the header is two rows, unconditionally** | Measured: at a 320px viewport one row needs **≈360px against 272px available — an overflow of roughly a third** — even with the slot in its *narrowest* state. `HANGAR` 68px + 24px `lg` gap + **`BACK TO BROWSE`**, the worst-case row-1 label, 132px + 24px gap + the resting slot (`NO ZONA` behind its mark) 110px = 358px. It would wrap unconditionally, and *what* it wrapped would change with the session state — moving the headline and the coverflow at the exact moment a visitor plugged something in. Always-two-rows never moves |
 | Y-05 | **The Firefox two-step sentence is unconditional and says "some browsers", with no detection at all** — **supersedes `06-CONTEXT.md` D-04's "detected by the prompt's behaviour"** | The prompt renders in browser chrome, fires no event, and every capability that correlates with it also exists in Chrome 130+; any detection would be brand detection wearing a capability's clothes, which is the exact mistake that would have excluded Firefox 151 four months ago |
-| Y-06 | **`NotAllowedError` adds one sentence to the `cancelled` block, and is not a ninth state** | It is the one genuinely behavioural signal available, it is only actionable inside the state it modifies, and D-13's taxonomy of eight stays whole |
+| Y-06 | **`NotAllowedError` adds one sentence to the `cancelled` block, and is not a state of its own** | It is the one genuinely behavioural signal available, and it is only actionable inside the state it modifies. The taxonomy grows only where the API genuinely raises two different failures under one name (Y-21); a modifier on one failure is not that |
 | Y-07 | **`--color-over` is not used, and no third-colour use is claimed as an accessibility necessity** | Nothing here is dangerous, every state is carried entirely by text plus the mark's shape, and reusing the over-budget red for "the port was busy" would weaken the one thing it currently means |
 | Y-08 | **The 24px 9×9 mark is the session's non-text channel: dark / one cell / walking / diagonal** | IDENT-01 makes the 9×9 the mark and the loading state; four static shapes plus Phase 4's existing walk cost no new SVG and give the state a shape channel a colour-blind viewer reads |
-| Y-09 | **The pre-click explanation is a 129-character short form in the panel (72px, three Body lines) and the short form plus the two-step sentence in the disclosure** | CONN-03 says "before clicking", and there are two connect controls; the short form fits the reservation the honesty slot already established, so the tuning region does not move |
+| Y-09 | **The pre-click explanation is a 129-character short form in the panel (72px, three Body lines) and the short form plus the two-step sentence in the header note** — **amended in revision 1: the header mount is inline, not a disclosure** | CONN-03 says "before clicking", and there are two connect controls; the short form fits the reservation the honesty slot already established, so the tuning region does not move. The header mount left the disclosure because S1, S2 and S7 have no disclosure to put it in (Y-23) |
 | Y-10 | **Phase 4's 14px fixed line box is extended to exactly two lines: the slot's caption and its label** | The header row's height must not depend on which session state is showing, and `1.2` computes to 14.4px, which gives 28.8 in a 44px box and a half-pixel asymmetry that shifts by state |
 | Y-11 | **The failure block renders in the panel when the panel is open and in the header disclosure otherwise — never both, never twice** | Reading the six-step Grid Editor recovery twice, in two places, is worse than reading it once |
 | Y-12 | **A failure raised from a header click opens the disclosure automatically and moves focus into it** | It is the direct result of the visitor's own click, and CONN-04's recovery is worthless behind a second one; `Escape` returns focus |
 | Y-13 | **`failureCopy` is called with the label of the surface rendering it — `TRY ON DEVICE` in the panel, `CONNECT ZONA` in the header — via a new `CONNECT_LABEL` constant** | Phase 4's rule that no string names an off-screen control is exactly why the parameter exists, and there are now two screens |
 | Y-14 | **`not-zona` step 1 becomes `Plug in a ZONA` and `silent` step 2 takes the interpolated label** | Phase 4's `Disconnect` named a control that is not on screen after the session closed the port, which its own copy rule forbids |
 | Y-15 | **`FORGET THIS ZONA` is one click with no dialog, feature-detected on `SerialPort.forget`, and not rendered where the method is absent** | Nothing is lost that one picker click cannot recreate (Phase 5.1's `CLEAR FILTERS` reasoning); DEGR-02's present-but-disabled rule governs install controls, and a revoke control on a browser that cannot revoke has no reason to state |
-| Y-16 | **Exactly one polite live region site-wide, in `+layout.svelte`, coalesced 500ms, silent until the splash finishes, and never fired by a page-number change** | Two regions announcing one transition is double-speak; a 4 Hz heartbeat announcing the active page would turn a screen reader into a metronome |
+| Y-16 | **Exactly one polite SESSION live region site-wide**, in `+layout.svelte`, coalesced 500ms, held until the splash finishes **on `/`**, and never fired by a page-number change. **Phase 5's tuning region and Phase 5.1's browse region coexist with it, untouched** — **amended in revision 1** | Two regions announcing one *session* transition is double-speak, which is why `TryOnDevice.svelte:421`'s is removed and nothing else is. The draft's "one region for the whole site" contradicted two shipped contracts and is withdrawn: the three regions' trigger sets are disjoint, so they cannot talk over each other, and in a shared 500ms window the session speaks first and the other queues, because hardware news is the part the visitor did not ask for. A 4 Hz heartbeat announcing the active page would turn a screen reader into a metronome |
 | Y-17 | **`TryOnDevice.release()` and `onDestroy` no longer close the port, and switching tabs no longer changes the slot's state** | Phase 4's W-20 already said the port belongs to the session; this is the phase where that stops being aspirational, and a visitor who checks their mail should come back to the same header |
 | Y-18 | **The firmware version and the page number are monospaced as numeric runs inside the header identity, and prose stays Quicksand everywhere** | Phase 4 W-03 named exactly these two as the first `--font-mono` uses, so the mono list is not widened by one entry; the page digit genuinely moves at 4 Hz, and splicing mono into a Body sentence is worse than the jitter it would prevent |
 | Y-19 | **The multi-module tail is the first thing to collapse (below 1024px) and lives in the disclosure; `BROWSE ALL` never collapses** | The tail is the least time-critical part of the identity, `BROWSE ALL` is site navigation and the first tab stop, and no header string is ever ellipsised because truncation would hide the page number |
 | Y-20 | **There is no empty state, no toast, no banner and no modal in this phase** | "No device" is the resting state of a site that works completely without hardware, and D-06's one-click rule means the reconnect offer is a state the header is already in rather than an interruption |
+| Y-21 | **`unplugged` splits into `unplugged-at-open` and `unplugged-while-connected`, making the taxonomy nine — supersedes `06-CONTEXT.md` D-13's list of eight names** | One name was rendering two different messages. `classifyOpenError` returns `"unplugged"` for a `NetworkError` at `open()` with `port.connected === false`, and `failureCopy` answers it with a title, a cable-and-hub detail and three steps; the `navigator.serial` `disconnect` of a live session is Phase 4's bare one-sentence string with no steps at all. A visitor cannot be shown both for one name, and a contract that lists one name in two contradictory places cannot be implemented as written |
+| Y-22 | **`DISCONNECT ZONA` is not a slot label: the connected slot reads the identity summary and `DISCONNECT ZONA` lives inside the disclosure — supersedes `06-CONTEXT.md` D-02's fourth slot string** | D-02 listed `DISCONNECT ZONA` among the four things the slot reads, but CONN-08 requires the module type and firmware to be visible *while connected*, and the slot is one 44px box: a slot reading `DISCONNECT ZONA` shows neither. It would also put a session-ending action under a single stray click on the control a visitor uses to glance at the firmware. The identity is the readout; disconnecting is one deliberate step further in, beside `FORGET THIS ZONA` where it belongs |
+| Y-23 | **In S1, S2 and S7 the copy is inline in a reserved 152px header note, with no disclosure at all — revises this document's own draft, on the checker's ARIA ruling** | The draft put the pre-click line and the SAFE-01 sentence in a disclosure that those three states cannot open, because in them the slot is a plain button that connects. A control that both acts and expands lies about one of its two jobs, so the copy had to leave the disclosure rather than the button gain a second role. The consequence is followed through: S3 can no longer have an open disclosure either, so its status line moves to the same region, and the note is absent in the two terminal capability states so a browser that cannot connect pays nothing |
 
 ---
 
@@ -756,6 +889,12 @@ it says so; none contradicts a `[user]` decision.
 6. **`Nothing listed?` as a disclosure rather than a state** (D-12). The API genuinely cannot tell the
    two apart; if `06-RESEARCH.md` finds otherwise, the branch becomes its own state and this contract
    gains a row rather than losing one.
+7. **The header note costs 152px** (Y-23), on every route, in every capable browser, for the whole
+   visit — the price of S1, S2 and S7 having no disclosure to hide it in. If that is too much header,
+   the region shrinks to one paragraph (the SAFE-01 line alone, 72px) with no other change to this
+   contract: the pre-click explanation would then live only in the chosen panel, and `/browse/` would
+   carry a connect control whose explanation is one route away. That is the trade to weigh, and it is
+   a copy-placement decision rather than a structural one.
 
 ---
 
