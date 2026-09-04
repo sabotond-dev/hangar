@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-09-04T10:09:26.390Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-09-04T10:33:18.099Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 35
-  percent: 78
+  completed_plans: 36
+  percent: 80
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 3 of 12 (05-02 complete)
-Status: In progress — wave 3 next (05-03, the knob builders over presets and Lua entries)
+Plan: 4 of 12 (05-03 complete)
+Status: In progress — wave 4 next (05-04, the tune model, SURPRISE ME and the ladder guards)
 Last activity: 2026-09-04
 
-Progress: [████████░░] 78%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Progress: [████████░░] 78%
 | Phase 08 P08 | 12 min | 3 tasks | 3 files |
 | Phase 05 P01 | 20 min | 3 tasks | 5 files |
 | Phase 05 P02 | 18 min | 3 tasks | 6 files |
+| Phase 05 P03 | 20 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -210,6 +211,9 @@ Recent decisions affecting current work:
 - [Phase 05]: backOffLadder keeps the compiler label's capital: the Copywriting Contract writes that row as {Label} and the lower-casing rule is qualified with 'where they sit inside another sentence'
 - [Phase 05]: src/lib/tune/view.ts, copy.ts and idle.ts carry ZERO imports - not 'no vendor imports' - because Phase 4's chunk guard matches specifier text; the twelve KnobKinds, EVENT_BUDGET and the compiler's own words are literals held against the vendor by view.spec.ts
 - [Phase 05]: meterView takes a three-value MeterFeed and derives over/state from the number, so 'over outranks stale' and 'the limit is always 908' are unforgeable rather than remembered
+- [Phase 05]: The direction knob binds to look.axis with two options (diagonal, antidiagonal): the no-op gate proved x, y and diagonal compile to the identical body
+- [Phase 05]: The no-op gate compares compiled action bodies, never setupLua, because the stamp lives in the first action's marker name
+- [Phase 05]: Brightness is offered only where padLightsAnything is true (BOTOR's own rule); the trackpad card meets the three-knob floor with a real scroll-units knob
 
 ### Pending Todos
 
@@ -226,6 +230,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T10:09:19.710Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-09-04T10:33:03.471Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
