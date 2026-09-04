@@ -161,7 +161,17 @@ Plans:
   1. At least six new configurations, authored for HANGAR rather than ported from BOTOR, are in the catalog, each with its name, one-line description, feel-based tags, Featured flag and default knob state filled in.
   2. Each new configuration fits both the 908-character Setup and 908-character Timer budgets at its default knob positions, shown green in the live meters.
   3. Each new configuration is verified in the simulator at its defaults and swept across its full knob range, with no combination silently exceeding budget — the fit ladder either holds it or names what it trimmed.
-**Plans**: TBD
+**Plans**: 8 plans in 8 waves
+
+Plans:
+- [ ] 08-01-PLAN.md — The catalog module: CatalogEntry shape, the nine ported entries, metadata gate, golden frames (wave 1)
+- [ ] 08-02-PLAN.md — wasmoon at an exact pin, its licence, the lazy gate and the Grid API host (wave 2)
+- [ ] 08-03-PLAN.md — The SimEngine seam and the nine-preset Lua parity gate (wave 3)
+- [ ] 08-04-PLAN.md — EUCLID, and the CONT-02 gate: canonical form, budget, subset, knob sweep, execution (wave 4)
+- [ ] 08-05-PLAN.md — CHORUS, ARC and GHOST (wave 5)
+- [ ] 08-06-PLAN.md — LATTICE, MORPH and SONAR; the floor of six cleared with seven (wave 6)
+- [ ] 08-07-PLAN.md — The production-build laziness proof and the testing docs (wave 7)
+- [ ] 08-08-PLAN.md — docs/HARDWARE-AUDITION.md and the hardware checkpoint (wave 8)
 
 ## Progress
 
@@ -186,7 +196,7 @@ Phases 6 and 7.
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
-| 8. New Configurations | 0/TBD | Not started | - |
+| 8. New Configurations | 0/8 | Planned | - |
 
 ## Requirement Coverage
 
