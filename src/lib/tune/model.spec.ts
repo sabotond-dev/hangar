@@ -1,0 +1,352 @@
+// The tuner's behaviour, in node, before a pixel of it exists.
+//
+// THE ONE THING THIS FILE IS FOR: proving that a knob turn produces a new
+// picture on the same tick and a new character count a tenth of a second later,
+// and that the meters say which of those two they are showing. Everything else
+// here is scaffolding for that.
+//
+// FAKE TIMERS EVERYWHERE EXCEPT TESTS 3 AND 6. The debounce is a setTimeout, so
+// vi.useFakeTimers() is what makes "five turns inside 120 ms" a statement about
+// the code rather than about the machine. Test 3 wants a genuinely cold
+// formatter and test 6 instantiates a real Lua VM; neither is a timer question
+// and both are steadier on the real clock.
+//
+// WHY settle() IS A MICROTASK LOOP AND NOT A CLOCK ADVANCE. The FIRST
+// measurement is not scheduled on a timer at all - buildTuner starts it
+// immediately, and it lands through a promise chain that goes
+// padReady -> compileState -> costOf. Advancing a fake clock does not move a
+// promise chain, so the flush is a fixed number of microtask hops.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  compile as vendorCompile,
+  cost as vendorCost,
+  EVENT_BUDGET,
+} from "../../vendor/botor/_pad";
+import { byId, type CatalogEntry } from "../catalog";
+import { compileState, costOf, padReady } from "../pad";
+import type { SimEngine } from "../sim/engine";
+import {
+  buildTuner,
+  needsLadder,
+  COMPILE_DEBOUNCE_MS,
+  type LadderView,
+  type OverBudgetView,
+} from "./model";
+import { resetAll } from "./state";
+import type { TuneView } from "./view";
+
+/** The card whose ladder is genuinely reachable with a reserve - see ladder.spec.ts. */
+const OVER_RESERVE = { setup: 300, timer: 0 };
+
+function mustEntry(id: string): CatalogEntry {
+  const entry = byId(id);
+  if (!entry) throw new Error(`no catalog entry: ${id}`);
+  return entry;
+}
+
+/** Every callback the tuner takes, with everything it emitted kept in order. */
+function recorder() {
+  const views: TuneView[] = [];
+  const previews: SimEngine[] = [];
+  const ladders: (LadderView | undefined)[] = [];
+  const overs: (OverBudgetView | undefined)[] = [];
+  return {
+    views,
+    previews,
+    ladders,
+    overs,
+    onview: (view: TuneView) => void views.push(view),
+    onpreview: (engine: SimEngine) => void previews.push(engine),
+    onladder: (ladder: LadderView | undefined) => void ladders.push(ladder),
+    onover: (over: OverBudgetView | undefined) => void overs.push(over),
+  };
+}
+
+/**
+ * Let every already-scheduled microtask chain finish. A fixed number of hops,
+ * because the chain is a fixed length: padReady, compileState, costOf.
+ */
+async function settle(): Promise<void> {
+  for (let index = 0; index < 64; index++) await Promise.resolve();
+}
+
+/** A real wait, for the two tests that run on the real clock. */
+const pause = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const settledViews = (views: readonly TuneView[]) =>
+  views.filter((view) => view.setup.state === "settled");
+
+/** n ticks of an engine, copied out before the next engine touches it. */
+function frameAfter(engine: SimEngine, ticks: number): Uint8Array {
+  engine.run(ticks);
+  return Uint8Array.from(engine.frame);
+}
+
+const same = (a: Uint8Array, b: Uint8Array) =>
+  a.length === b.length && a.every((value, index) => value === b[index]);
+
+const modelSource = () =>
+  readFileSync(fileURLToPath(new URL("./model.ts", import.meta.url)), "utf8");
+
+/** The house stripper: line, block and markup comments, backslash-free. */
+const strip = (source: string) =>
+  source
+    .replace(/^[ ]*[/][/].*$/gm, "")
+    .replace(/[/][*][^]*?[*][/]/g, "")
+    .replace(/<!--[^]*?-->/g, "");
+
+describe("the tuner (TUNE-02, TUNE-03)", () => {
+  beforeAll(async () => {
+    await padReady();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("a knob turn repaints on the same tick: the preview is not debounced", async () => {
+    vi.useFakeTimers();
+    const rec = recorder();
+    const tuner = await buildTuner({ entryId: "aurora", ...rec });
+
+    expect(rec.previews, "no engine arrived with the tuner").toHaveLength(1);
+    const before = frameAfter(rec.previews[0], 48);
+
+    const colour = tuner.knobs.find((knob) => knob.id === "colour");
+    expect(colour, "aurora has a colour knob").toBeDefined();
+    const other = (tuner.indices["colour"] + 2) % colour!.options.length;
+
+    tuner.set("colour", other);
+    // The whole claim of D-05/D-06, as one assertion: no clock moved between
+    // the previous line and this one.
+    expect(
+      rec.previews,
+      "the preview waited for the debounce instead of repainting",
+    ).toHaveLength(2);
+
+    const after = frameAfter(rec.previews[1], 48);
+    expect(
+      same(before, after),
+      "the new engine paints the same picture as the old one",
+    ).toBe(false);
+
+    tuner.destroy();
+  });
+
+  it("five turns inside the debounce window are one compile, and the meters go stale rather than blank", async () => {
+    vi.useFakeTimers();
+    const rec = recorder();
+    const tuner = await buildTuner({ entryId: "aurora", ...rec });
+    await settle();
+
+    const first = settledViews(rec.views);
+    expect(first, "the first measurement never landed").toHaveLength(1);
+    const known = { setup: first[0].setup.used, timer: first[0].timer.used };
+
+    const speed = tuner.knobs.find((knob) => knob.id === "speed");
+    expect(speed, "aurora has a speed knob").toBeDefined();
+    const mark = rec.views.length;
+
+    for (let step = 0; step < 5; step++) {
+      tuner.set("speed", (speed!.default + 1 + step) % speed!.options.length);
+    }
+
+    const during = rec.views.slice(mark);
+    expect(during, "a turn did not emit a view").toHaveLength(5);
+    for (const view of during) {
+      expect(view.setup.state, "a mid-drag meter was not stale").toBe("stale");
+      expect(view.timer.state).toBe("stale");
+      // The X-13 rule: the SAME last-known numbers, never the measuring word.
+      expect(view.setup.used).toBe(known.setup);
+      expect(view.timer.used).toBe(known.timer);
+    }
+
+    // THE DEBOUNCE ITSELF, and the only assertion that names it: with the
+    // window still open, no measurement may have landed however many microtasks
+    // have run. Dropping the debounce turns exactly this line red.
+    await settle();
+    expect(
+      settledViews(rec.views),
+      "a measurement landed while the debounce window was still open",
+    ).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(COMPILE_DEBOUNCE_MS);
+    await settle();
+
+    expect(
+      settledViews(rec.views),
+      "five turns inside one window were not one compile",
+    ).toHaveLength(2);
+
+    tuner.destroy();
+  });
+
+  it("the first view says measuring, and the picture arrives before the formatter does", async () => {
+    // A FRESH module graph, the src/lib/pad/ready.spec.ts test 6 idiom: this
+    // process's formatter is already warm, so the only way to observe the
+    // pre-gate branch again is to rebuild the vendored compiler and the
+    // protocol package under it. Nothing here awaits padReady().
+    vi.resetModules();
+    const fresh = await import("./model");
+    const rec = recorder();
+    const tuner = await fresh.buildTuner({ entryId: "aurora", ...rec });
+
+    expect(rec.views.length, "no view was emitted at all").toBeGreaterThan(0);
+    expect(rec.views[0].setup.state).toBe("measuring");
+    expect(rec.views[0].timer.state).toBe("measuring");
+    expect(
+      rec.views.every((view) => view.setup.state === "measuring"),
+      "a measurement landed before the formatter could have initialised",
+    ).toBe(true);
+
+    // And the simulation did not wait for any of it.
+    expect(rec.previews, "the preview waited on the gate").toHaveLength(1);
+    rec.previews[0].run(16);
+    expect(rec.previews[0].frame).toHaveLength(243);
+
+    tuner.destroy();
+  });
+
+  it("the settled meters are the pinned minifier's own numbers, per event", async () => {
+    vi.useFakeTimers();
+    const rec = recorder();
+    const tuner = await buildTuner({ entryId: "aurora", ...rec });
+    await settle();
+
+    // Computed independently, through the VENDORED compile and cost rather
+    // than through the surface the tuner used. The state comes from resetAll
+    // because that is what "at the defaults" means for a shelf card - it keeps
+    // the preset field, and compile writes the stamp into the marker name, so a
+    // state without it would measure differently and prove nothing.
+    const expected = vendorCost(vendorCompile(resetAll(mustEntry("aurora"))));
+    const view = settledViews(rec.views).at(-1);
+    expect(view, "no settled view landed").toBeDefined();
+    expect(view!.setup.used).toBe(expected.setup.used);
+    expect(view!.timer.used).toBe(expected.timer.used);
+    expect(view!.setup.limit).toBe(EVENT_BUDGET);
+    expect(view!.timer.limit).toBe(EVENT_BUDGET);
+
+    // And again after a turn, so the numbers are the tuned state's and not a
+    // constant the tuner happened to emit once.
+    const band = tuner.knobs.find((knob) => knob.id === "band");
+    expect(band, "aurora has a band knob").toBeDefined();
+    const moved = (band!.default + 1) % band!.options.length;
+    tuner.set("band", moved);
+    await vi.advanceTimersByTimeAsync(COMPILE_DEBOUNCE_MS);
+    await settle();
+
+    const tuned = settledViews(rec.views).at(-1);
+    const entry = mustEntry("aurora");
+    const knob = (await import("./knobs.preset"))
+      .presetKnobs("aurora")
+      .find((each) => each.id === "band");
+    const state = knob!.apply(
+      (await import("./state")).baseStateFor(entry),
+      moved,
+    );
+    const after = vendorCost(vendorCompile(state));
+    expect(tuned!.setup.used).toBe(after.setup.used);
+    expect(tuned!.timer.used).toBe(after.timer.used);
+
+    tuner.destroy();
+  });
+
+  it("needsLadder is the only door to the ladder, and there is exactly one of it", async () => {
+    // Real costs on both sides, never a hand-made literal: a PadCost the test
+    // wrote itself would prove only that needsLadder can read a field.
+    const fitting = await costOf(
+      await compileState(resetAll(mustEntry("dial"))),
+    );
+    expect(fitting.fits, "dial at its defaults must fit").toBe(true);
+    expect(needsLadder(fitting)).toBe(false);
+
+    const over = await costOf(
+      await compileState(resetAll(mustEntry("dial"))),
+      OVER_RESERVE,
+    );
+    expect(over.fits, "the reserve must really push it over").toBe(false);
+    expect(needsLadder(over)).toBe(true);
+
+    const source = strip(modelSource());
+    const sites = [...source.matchAll(/fitState[ ]*[(]/g)];
+    expect(
+      sites,
+      "fit() compiles once per ladder step; more than one call site is more than one ladder",
+    ).toHaveLength(1);
+
+    // "Inside the needsLadder branch", structurally: the guard is the last
+    // thing before the call, and no block closes between them.
+    const call = source.indexOf("fitState(");
+    const guard = source.lastIndexOf("needsLadder(", call);
+    expect(
+      guard,
+      "the ladder is not guarded by needsLadder at all",
+    ).toBeGreaterThan(-1);
+    const between = source.slice(guard, call);
+    expect(
+      between,
+      "a block closes between the guard and the ladder",
+    ).not.toContain("}");
+    expect(between.length).toBeLessThan(120);
+  });
+
+  it("a Lua entry waits for its fresh VM, and is never told a ladder it does not have", async () => {
+    // Real timers: this test builds two real Lua 5.4 VMs, and the debounce is
+    // not the thing under measurement here.
+    const rec = recorder();
+    const tuner = await buildTuner({ entryId: "euclid", ...rec });
+    await pause(80);
+    const before = rec.previews.length;
+    expect(before, "no engine arrived with the tuner").toBe(1);
+
+    const tempo = tuner.knobs.find((knob) => knob.id === "tempo");
+    expect(tempo, "euclid has a tempo knob").toBeDefined();
+    tuner.set("tempo", (tempo!.default + 1) % tempo!.options.length);
+
+    // D-06: the previous engine keeps painting for the whole await.
+    expect(
+      rec.previews,
+      "a Lua entry repainted before its new VM had run Setup",
+    ).toHaveLength(before);
+
+    await pause(COMPILE_DEBOUNCE_MS + 400);
+    expect(
+      rec.previews,
+      "the fresh VM never arrived, or arrived more than once",
+    ).toHaveLength(before + 1);
+
+    // D-10: their whole knob cross-product was proven in budget at build time,
+    // so there is no runtime ladder and inventing a line would fake one.
+    expect(rec.ladders, "a Lua entry was told about a ladder").toHaveLength(0);
+    expect(
+      rec.overs,
+      "a Lua entry was told about a budget it cannot cross",
+    ).toHaveLength(0);
+
+    tuner.destroy();
+  });
+
+  it("destroy cancels a pending measurement and leaves no timer behind", async () => {
+    vi.useFakeTimers();
+    const rec = recorder();
+    const tuner = await buildTuner({ entryId: "aurora", ...rec });
+    await settle();
+
+    const speed = tuner.knobs.find((knob) => knob.id === "speed");
+    tuner.set("speed", (speed!.default + 1) % speed!.options.length);
+    const mark = rec.views.length;
+    expect(vi.getTimerCount(), "the debounce was never armed").toBe(1);
+
+    tuner.destroy();
+    expect(vi.getTimerCount(), "a timer outlived destroy").toBe(0);
+
+    await vi.advanceTimersByTimeAsync(COMPILE_DEBOUNCE_MS * 4);
+    await settle();
+    expect(rec.views, "a view landed after destroy").toHaveLength(mark);
+  });
+});

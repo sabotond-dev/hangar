@@ -1,0 +1,630 @@
+// The tuning model: descriptors, indices, the immediate preview, the debounced
+// compile, the two meters, the fit-ladder line and the over-budget block.
+//
+// D-18: THIS MODULE IS REACHED ONLY THROUGH `await import("$lib/tune/model")`.
+// It imports the vendored compiler and `$lib/pad`, and NOTHING under
+// `src/lib/ui/` may name it in a static import - not even `import type`.
+// `src/lib/config-shape.spec.ts` test 13 is what enforces that: it strips
+// comments from every non-spec file under `src/lib/ui/` and fails on any
+// `from "..."` specifier containing `vendor`, `intechstudio` or `lib/pad`,
+// matching the SPECIFIER TEXT rather than the binding, so a type-only import
+// fails it exactly as a value import would. The module a component may name
+// instead is `src/lib/tune/view.ts`, which imports nothing at all and carries
+// the types, the widget rule and the meter arithmetic.
+//
+// THE PADSIM PREVIEW IS BUILT HERE, from `../../vendor/botor/pad-sim`, and that
+// is the one place this module reaches past `$lib/pad`. Two deliberate absences
+// meet at this line and neither is a gap to route around:
+//
+//   - `src/lib/pad/index.ts` re-exports only the MEASURING surface, all of it
+//     behind `padReady()`. It does not re-export `PadSim`, because `PadSim`
+//     takes a `PadState` and never Lua and must never wait on 628 KB of WASM to
+//     draw a frame.
+//   - `createEngine` (`src/lib/sim/engine.ts:95-96`) deliberately IGNORES
+//     compiler knobs. A padsim entry's knobs move a `PadState`, which is this
+//     phase's job, so `createEngine` refuses to half-apply them.
+//
+// So the immediate-preview route constructs its own `PadSim` from the applied
+// state. `src/lib/sim/engine.ts:42` already imports that exact specifier
+// statically, so this is the house pattern rather than a new one, and it is NOT
+// the Lua VM - `src/lib/sim/lazy.spec.ts` guards `wasmoon`, not `pad-sim`. It
+// costs Phase 4's chunk guards nothing either: `model.ts` is never statically
+// imported from `src/lib/ui/`, the UI reaches it through a dynamic import that
+// gets its own chunk and is not preloaded, so `config-shape.spec.ts` tests 13
+// and 14 stay green with this import in place.
+//
+// THE LUA WRAPPER IS IMPORTED DYNAMICALLY, for the reason `engine.ts` states in
+// full: a static `from "../sim/lua-pad-sim"` would put the Lua VM's module
+// graph - and with it the fingerprinted glue.wasm URL - into this module's
+// chunk, for a route most visitors never take.
+//
+// THE ONE SYNCHRONOUS MEASUREMENT, and why it exists. `surpriseIndices` takes a
+// SYNCHRONOUS `fits` predicate, because a bounded re-roll cannot be written
+// against an async one without either duplicating the bound in two files or
+// making the roll unbounded in time. `$lib/pad`'s surface is async by
+// construction - every entry point awaits the FOUND-05 gate - so `surprise()`
+// awaits `padReady()` FIRST, through that same surface, and only then calls the
+// vendored `compile`/`fits` synchronously inside the predicate. The gate's
+// invariant is untouched: nothing measures before the formatter is initialised.
+// `fitsAfterGate` below is the only place in HANGAR that calls a vendored
+// measuring function without an await in front of it, and its name is the
+// precondition.
+//
+// NOTHING HERE GOES INTO A SVELTE RUNE. This module returns plain objects and
+// plain engines. A component may put the VIEW in a rune because it is scalars
+// and strings; the engine it receives goes straight to `SimHost` and never into
+// `$state`.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import {
+  compile as vendorCompile,
+  fits as vendorFits,
+  type FitPlan,
+  type PadCost,
+  type PadReserved,
+  type PadSheet,
+  type PadState,
+} from "../../vendor/botor/_pad";
+import { PadSim } from "../../vendor/botor/pad-sim";
+import { byId, type CatalogEntry } from "../catalog";
+import { compileState, costOf, fitState, measureLua, padReady } from "../pad";
+import { createEngine, type SimEngine } from "../sim/engine";
+import {
+  backOffKnob,
+  backOffLadder,
+  ladderLine,
+  liveOverBudget,
+  overBudgetArrived,
+  overBudgetArrivedBoth,
+  overBudgetKnob,
+  overBudgetKnobBoth,
+  tryOnBudgetReason,
+  type BudgetEvents,
+  type EventWord,
+} from "./copy";
+import { luaKnobs } from "./knobs.lua";
+import {
+  presetKnobs,
+  type KnobDescriptor,
+  type PresetKnob,
+} from "./knobs.preset";
+import { applyKnob, baseStateFor, resetAll } from "./state";
+import { surpriseIndices } from "./surprise";
+import {
+  integerReadout,
+  meterView,
+  positionText,
+  railSkin,
+  swatchName,
+  swatchOf,
+  widgetFor,
+  wordFor,
+  type KnobKindName,
+  type KnobValueView,
+  type KnobView,
+  type KnobWidget,
+  type MeterFeed,
+  type TuneView,
+} from "./view";
+
+/**
+ * The recompile debounce.
+ *
+ * MEASURED, not guessed: `compile() + cost()` is 1.1-4.0 ms in node
+ * (starfield 1.13, pinwheel 1.15, faders 1.73, radar 1.87, joystick 2.23,
+ * dial 2.54, aurora 2.79, ninepads 2.81, tpad 3.99) and `cost()` crosses the
+ * WASM boundary twice. A slider drag emits thirty changes a second; this
+ * collapses one into one compile and is generous. The PREVIEW is not debounced
+ * at all - `PadSim` takes a `PadState` and rebuilds in microseconds (D-05,
+ * D-06).
+ */
+export const COMPILE_DEBOUNCE_MS = 120;
+
+/** The TUNE-04 line: what the compiler would turn down, in its own words. */
+export type LadderView = {
+  /** The compiler's own sentence, verbatim. Never rewritten here. */
+  label: string;
+  /** That sentence rendered through copy.ladderLine. */
+  line: string;
+  saves: { setup: number; timer: number };
+};
+
+/** The TUNE-05 block, complete. Every string comes from copy.ts. */
+export type OverBudgetView = {
+  events: "setup" | "timer" | "both";
+  /** The knob case or the arrived case, decided by whether a knob moved. */
+  line: string;
+  /** The quiet line under TURN IT DOWN, saying what the click will do. */
+  backOff: string;
+  /** The reason beside a disabled TRY ON DEVICE. Names the budget, nothing else. */
+  reason: string;
+  /** The one live-region utterance for the transition. */
+  live: string;
+  /** The back-off itself: the knob's previous index, or the ladder's first step. */
+  apply(): void;
+};
+
+export type Tuner = {
+  readonly knobs: readonly KnobDescriptor[];
+  readonly indices: Readonly<Record<string, number>>;
+  set(knobId: string, index: number): void;
+  reset(knobId: string): void;
+  resetAll(): void;
+  surprise(): Promise<void>;
+  /** Undefined at the defaults: a URL with no fragment IS the base configuration. */
+  stamp(): string | undefined;
+  destroy(): void;
+};
+
+export type TunerOptions = {
+  entryId: string;
+  indices?: Readonly<Record<string, number>>;
+  /** Phase 7's install marker, and the only way a test or /dev/tune/ reaches over budget. */
+  reserved?: PadReserved;
+  onview(view: TuneView): void;
+  onpreview(engine: SimEngine): void;
+  onladder(ladder: LadderView | undefined): void;
+  onover(over: OverBudgetView | undefined): void;
+};
+
+/**
+ * The single decision point for whether the ladder runs at all.
+ *
+ * `fit()` compiles once per ladder step, so it is N+1 minifier calls and must
+ * never run on a knob change. Per the phase's headline finding it is also never
+ * true in practice - 16,645 reachable states, zero over 908 - which is exactly
+ * why the branch has to be one named function with one call site rather than a
+ * condition repeated wherever it felt convenient.
+ */
+export function needsLadder(cost: PadCost): boolean {
+  return !cost.fits;
+}
+
+/**
+ * The synchronous fit test, and the ONE place HANGAR calls a vendored measuring
+ * function without an await in front of it.
+ *
+ * PRECONDITION: `padReady()` has already resolved. Every caller below awaits it
+ * through `$lib/pad` first. See the module comment for why a synchronous
+ * predicate is required at all.
+ */
+function fitsAfterGate(state: PadState, reserved: PadReserved | undefined) {
+  return vendorFits(vendorCompile(state), reserved);
+}
+
+/** An engine that owns something it has to give back. Only the Lua route does. */
+type Closable = { close(): void };
+
+function closeEngine(engine: SimEngine | undefined): void {
+  const maybe = engine as Partial<Closable> | undefined;
+  if (typeof maybe?.close === "function") maybe.close();
+}
+
+/** An asked-for index, or the knob's default when it is not a position at all. */
+function positionOf(
+  asked: number | undefined,
+  count: number,
+  fallback: number,
+): number {
+  if (typeof asked !== "number") return fallback;
+  return Number.isInteger(asked) && asked >= 0 && asked < count
+    ? asked
+    : fallback;
+}
+
+/**
+ * One option, resolved for display. TOTAL, in the same sense `widgetFor` is:
+ * a word if the kind has one, a swatch name if it is a colour, the raw integer
+ * if every option on the knob is one, and a position otherwise. Never a Lua
+ * literal that a visitor would have to decode.
+ */
+function valueView(
+  kind: KnobKindName,
+  widget: KnobWidget,
+  options: readonly string[],
+  index: number,
+): KnobValueView {
+  const literal = options[index];
+  const count = options.length;
+  if (widget === "swatch") {
+    const name = swatchName(literal, index, count);
+    return {
+      label: name ?? positionText(index, count),
+      swatch: swatchOf(literal),
+      name,
+    };
+  }
+  const word = wordFor(kind, literal);
+  if (typeof word === "string") return { label: word };
+  const integer = integerReadout(options, index);
+  return { label: integer ?? positionText(index, count) };
+}
+
+function knobViews(
+  knobs: readonly KnobDescriptor[],
+  indices: Readonly<Record<string, number>>,
+): readonly KnobView[] {
+  return knobs.map((knob) => {
+    const widget = widgetFor(knob.kind, knob.options);
+    const index = indices[knob.id];
+    return {
+      id: knob.id,
+      label: knob.label,
+      kind: knob.kind,
+      widget,
+      skin: widget === "rail" ? railSkin(knob.options.length) : undefined,
+      values: knob.options.map((_, at) =>
+        valueView(knob.kind, widget, knob.options, at),
+      ),
+      index,
+      default: knob.default,
+      readout: integerReadout(knob.options, index),
+    };
+  });
+}
+
+/** Which events are over, or undefined when neither is. */
+function eventsOver(cost: PadCost): OverBudgetView["events"] | undefined {
+  const setup = cost.setup.free < 0;
+  const timer = cost.timer.free < 0;
+  if (setup && timer) return "both";
+  if (setup) return "setup";
+  if (timer) return "timer";
+  return undefined;
+}
+
+/** The event the block speaks about when only one of them can be named. */
+function worstEvent(events: OverBudgetView["events"]): "setup" | "timer" {
+  return events === "timer" ? "timer" : "setup";
+}
+
+const eventWord = (event: "setup" | "timer"): EventWord =>
+  event === "setup" ? "Setup" : "Timer";
+
+const budgetWord = (events: OverBudgetView["events"]): BudgetEvents =>
+  events === "both" ? "Setup and Timer" : eventWord(events);
+
+/** The entry, or a named throw. The closures below need a narrowed local. */
+function entryFor(id: string): CatalogEntry {
+  const found = byId(id);
+  if (!found) throw new Error(`no catalog entry with the id "${id}"`);
+  return found;
+}
+
+export async function buildTuner(options: TunerOptions): Promise<Tuner> {
+  const entry = entryFor(options.entryId);
+
+  // The two routes, resolved once. A `state`-kind source is compiler driven and
+  // has no descriptor table of its own, so it exposes no knobs and still gets
+  // both meters - a true answer rather than an invented rack.
+  const tuned: readonly PresetKnob[] =
+    entry.preview === "padsim" && entry.source.kind === "preset"
+      ? presetKnobs(entry.source.presetId)
+      : [];
+  const knobs: readonly KnobDescriptor[] =
+    entry.preview === "lua" ? luaKnobs(entry) : tuned;
+
+  const indices: Record<string, number> = {};
+  for (const knob of knobs) {
+    indices[knob.id] = positionOf(
+      options.indices?.[knob.id],
+      knob.options.length,
+      knob.default,
+    );
+  }
+
+  let destroyed = false;
+  let pending: ReturnType<typeof setTimeout> | undefined;
+  let generation = 0;
+  let feed: MeterFeed = "measuring";
+  let numbers = { setup: 0, timer: 0 };
+  /** The last measurement that fitted, which is what the knob back-off restores. */
+  let inBudget: { setup: number; timer: number } | undefined;
+  /** The most recently moved knob since the last in-budget measurement. */
+  let moved: { knob: PresetKnob; from: number } | undefined;
+  /**
+   * A state the ladder resolved, held until the next knob moves.
+   *
+   * TUNE-04 offers and never applies, so this is only ever set by the visitor
+   * clicking TURN IT DOWN. Everything else derives the state from the indices,
+   * which is the property that keeps the preview showing exactly what the knobs
+   * describe.
+   */
+  let resolved: PadState | undefined;
+  let engine: SimEngine | undefined;
+
+  const stale = (mine: number) => destroyed || mine !== generation;
+
+  function stateOf(at: Readonly<Record<string, number>>): PadState {
+    // RESET ALL lands on the card AS PUBLISHED, shelf card and all - see
+    // state.ts's resetAll for why the preset field is load-bearing.
+    if (tuned.every((knob) => at[knob.id] === knob.default)) {
+      return resetAll(entry);
+    }
+    let state = baseStateFor(entry);
+    for (const knob of tuned) state = applyKnob(state, knob, at[knob.id]);
+    return state;
+  }
+
+  const stateNow = (): PadState => resolved ?? stateOf(indices);
+
+  function emit(): void {
+    if (destroyed) return;
+    options.onview({
+      entryId: entry.id,
+      knobs: knobViews(knobs, indices),
+      setup: meterView("setup", numbers.setup, feed),
+      timer: meterView("timer", numbers.timer, feed),
+    });
+  }
+
+  function swapEngine(next: SimEngine): void {
+    const previous = engine;
+    engine = next;
+    options.onpreview(next);
+    // After the handover, never before: the consumer swaps synchronously inside
+    // onpreview, so by this line nothing is painting the old one.
+    if (previous !== next) closeEngine(previous);
+  }
+
+  function land(setup: number, timer: number): void {
+    numbers = { setup, timer };
+    feed = "settled";
+    emit();
+  }
+
+  function overView(
+    events: OverBudgetView["events"],
+    cost: PadCost,
+    plan: FitPlan,
+  ): OverBudgetView {
+    const setupBy = -cost.setup.free;
+    const timerBy = -cost.timer.free;
+    const event = worstEvent(events);
+    const word = eventWord(event);
+    const by = event === "setup" ? setupBy : timerBy;
+    const culprit = moved;
+    const step = plan.steps[0];
+
+    const line = culprit
+      ? events === "both"
+        ? overBudgetKnobBoth(culprit.knob.label, setupBy, timerBy)
+        : overBudgetKnob(culprit.knob.label, word, by)
+      : events === "both"
+        ? overBudgetArrivedBoth(setupBy, timerBy)
+        : overBudgetArrived(word, by);
+
+    // The back-off resolves in one order: put the visitor's own knob back if
+    // there is a knob and a number to put it back to, else apply the compiler's
+    // first step. When fit() is blocked and no knob moved there is genuinely
+    // nothing to offer, and saying so with an empty control is honest where
+    // inventing one would not be.
+    const at = event === "setup" ? inBudget?.setup : inBudget?.timer;
+    const saved = event === "setup" ? step?.saves.setup : step?.saves.timer;
+    const backOff =
+      culprit && typeof at === "number"
+        ? backOffKnob(culprit.knob.label, word, at)
+        : step
+          ? backOffLadder(step.label, word, by + 908 - (saved ?? 0))
+          : "";
+
+    return {
+      events,
+      line,
+      backOff,
+      reason: tryOnBudgetReason(budgetWord(events)),
+      live: liveOverBudget(word, by, culprit?.knob.label),
+      apply(): void {
+        if (destroyed) return;
+        if (culprit && typeof at === "number") {
+          set(culprit.knob.id, culprit.from);
+          return;
+        }
+        if (!step) return;
+        resolved = step.apply(stateNow());
+        moved = undefined;
+        feed = "stale";
+        emit();
+        swapEngine(new PadSim(resolved));
+        schedule();
+      },
+    };
+  }
+
+  function report(cost: PadCost, plan: FitPlan): void {
+    if (destroyed) return;
+    const step = plan.steps[0];
+    options.onladder(
+      step
+        ? {
+            label: step.label,
+            line: ladderLine(plan.steps.length, step.label),
+            saves: { setup: step.saves.setup, timer: step.saves.timer },
+          }
+        : undefined,
+    );
+    const events = eventsOver(cost);
+    options.onover(events ? overView(events, cost, plan) : undefined);
+  }
+
+  /**
+   * The ladder, and the ONE call site of fitState in the whole tuning model.
+   *
+   * Both callers - the debounced measurement and SURPRISE ME's exhausted roll -
+   * come through here, because fit() compiles once per ladder step and a second
+   * call site is a second N+1 minifier run nobody counted. The guard is the last
+   * statement before the call for exactly that reason.
+   */
+  async function ladderFor(
+    state: PadState,
+    measured: PadCost,
+  ): Promise<FitPlan | undefined> {
+    if (!needsLadder(measured)) return undefined;
+    return await fitState(state, {
+      reserved: options.reserved,
+      pinned: moved?.knob.sheet as PadSheet | undefined,
+    });
+  }
+
+  async function measurePadsim(mine: number): Promise<void> {
+    const state = stateNow();
+    const measured = await costOf(await compileState(state), options.reserved);
+    if (stale(mine)) return;
+    land(measured.setup.used, measured.timer.used);
+    const plan = await ladderFor(state, measured);
+    if (stale(mine)) return;
+    if (plan) {
+      report(measured, plan);
+      return;
+    }
+    inBudget = numbers;
+    moved = undefined;
+    options.onladder(undefined);
+    options.onover(undefined);
+  }
+
+  async function measureLuaRoute(mine: number): Promise<void> {
+    // Dynamic, never static. See the module comment.
+    const { renderLua } = await import("../sim/lua-pad-sim");
+    const lua = renderLua(entry, indices);
+    // An empty Timer is a TRUE measurement of zero, not a dead meter: MORPH
+    // ships one, and 0 / 908 tells the visitor something real.
+    const setup = lua.setup === "" ? 0 : await measureLua(lua.setup);
+    const timer = lua.timer === "" ? 0 : await measureLua(lua.timer);
+    if (stale(mine)) return;
+    land(setup, timer);
+  }
+
+  async function run(rebuild: boolean): Promise<void> {
+    const mine = ++generation;
+    if (entry.preview === "lua") {
+      if (rebuild) {
+        const next = await createEngine(entry, indices);
+        if (stale(mine)) {
+          closeEngine(next);
+          return;
+        }
+        swapEngine(next);
+      }
+      await measureLuaRoute(mine);
+      // D-10: a Lua entry's whole knob cross-product was proven in budget at
+      // build time. There is no runtime ladder and no partial state to trim, so
+      // neither callback is reached at all rather than reached with nothing.
+      return;
+    }
+    await measurePadsim(mine);
+  }
+
+  function schedule(rebuild = true): void {
+    if (typeof pending !== "undefined") clearTimeout(pending);
+    pending = setTimeout(() => {
+      pending = undefined;
+      void run(rebuild);
+    }, COMPILE_DEBOUNCE_MS);
+  }
+
+  /** Everything a knob move does, once, for both routes. */
+  function moveTo(next: Readonly<Record<string, number>>): void {
+    for (const knob of knobs) indices[knob.id] = next[knob.id];
+    resolved = undefined;
+    // Anything already in flight is now measuring a state nobody asked for.
+    generation++;
+    if (feed !== "measuring") feed = "stale";
+    emit();
+    if (entry.preview === "padsim") {
+      // The whole of D-05: a new picture on this tick, a new number later.
+      swapEngine(new PadSim(stateNow()));
+    }
+    schedule();
+  }
+
+  function set(knobId: string, index: number): void {
+    if (destroyed) return;
+    const knob = knobs.find((each) => each.id === knobId);
+    if (!knob) return;
+    const next = positionOf(index, knob.options.length, indices[knobId]);
+    if (next === indices[knobId]) return;
+    const owner = tuned.find((each) => each.id === knobId);
+    if (owner) moved = { knob: owner, from: indices[knobId] };
+    moveTo({ ...indices, [knobId]: next });
+  }
+
+  emit();
+  if (entry.preview === "lua") {
+    swapEngine(await createEngine(entry, indices));
+  } else {
+    swapEngine(new PadSim(stateNow()));
+  }
+  // Not debounced: the first measurement has nothing to collapse.
+  void run(false);
+
+  return {
+    knobs,
+    get indices(): Readonly<Record<string, number>> {
+      return { ...indices };
+    },
+    set,
+    reset(knobId: string): void {
+      const knob = knobs.find((each) => each.id === knobId);
+      if (knob) set(knobId, knob.default);
+    },
+    resetAll(): void {
+      if (destroyed) return;
+      const next: Record<string, number> = {};
+      for (const knob of knobs) next[knob.id] = knob.default;
+      moved = undefined;
+      moveTo(next);
+    },
+    async surprise(): Promise<void> {
+      if (destroyed) return;
+      // The gate FIRST, through HANGAR's own surface, so the synchronous
+      // predicate below cannot observe an uninitialised formatter.
+      await padReady();
+      if (destroyed) return;
+      const reserved = options.reserved;
+      const drawn = surpriseIndices(knobs, indices, (candidate) =>
+        // A Lua entry fits by construction (Phase 8 proved its whole knob
+        // cross-product in budget), so its roll is one pass.
+        entry.preview === "lua"
+          ? true
+          : fitsAfterGate(stateOf(candidate), reserved),
+      );
+      // surpriseIndices signals exhaustion by returning the previous indices
+      // unchanged; the ladder fallback is this caller's job, because this is
+      // the half that has fitState.
+      const exhausted = knobs.every(
+        (knob) => drawn[knob.id] === indices[knob.id],
+      );
+      moved = undefined;
+      moveTo(drawn);
+      if (!exhausted || entry.preview === "lua" || knobs.length === 0) return;
+      // The UI spec's rule: SURPRISE ME has no failure state, so an exhausted
+      // roll applies the ladder-resolved state rather than landing over budget.
+      const state = stateNow();
+      const measured = await costOf(await compileState(state), reserved);
+      if (destroyed) return;
+      const plan = await ladderFor(state, measured);
+      if (destroyed || !plan?.resolved) return;
+      resolved = plan.resolved;
+      emit();
+      swapEngine(new PadSim(resolved));
+      schedule();
+    },
+    stamp(): string | undefined {
+      // TODO(05-05): the base36 stamp codec. It is recomputed on every set()
+      // into a plain string so COPY LINK never has to await anything - Safari
+      // expires the transient activation across an await and the clipboard
+      // write then rejects. Until wave 5 lands the codec there is no encoding
+      // to invent, and undefined is the honest answer: a URL with no fragment
+      // IS the base configuration.
+      return undefined;
+    },
+    destroy(): void {
+      destroyed = true;
+      if (typeof pending !== "undefined") clearTimeout(pending);
+      pending = undefined;
+      closeEngine(engine);
+      engine = undefined;
+    },
+  };
+}
