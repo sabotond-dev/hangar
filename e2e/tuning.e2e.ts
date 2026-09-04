@@ -1,7 +1,10 @@
-// TUNE-02, TUNE-03, TUNE-06, TUNE-07, SHARE-01 to SHARE-03 and DEGR-01's
-// clipboard half: the whole tuning and sharing journey, in a real browser.
+// TUNE-02 to TUNE-07, SHARE-01 to SHARE-03 and DEGR-01's clipboard half: the
+// whole tuning and sharing journey, in a real browser.
 //
-// Eight tests, all in the chromium project. No title here carries the tag
+// Ten tests, all in the chromium project. The last two open /dev/tune/, the
+// unlinked probe wave 12 added, because the over-budget state TUNE-04 and
+// TUNE-05 describe is unreachable from the shipped UI - see the block above
+// those two tests. No title here carries the tag
 // playwright.config.ts greps the webkit-phone project by, so that project
 // still lists zero tests - wave 12 owns the phone journey in its own file.
 // The tag is deliberately not written out anywhere in this file: the gate
@@ -54,7 +57,12 @@ import {
   SHARE_FALLBACK_FIELD_NAME,
   STAMP_RESTORED,
   SURPRISE_ME,
+  TURN_IT_DOWN,
+  backOffKnob,
+  overBudgetArrived,
+  overBudgetKnob,
   stampUnreadable,
+  tryOnBudgetReason,
 } from "../src/lib/tune/copy";
 
 /** The configuration every test in this file opens. */
@@ -656,6 +664,264 @@ test.describe("a browser with no clipboard API", () => {
       COPY_LINK,
     );
 
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUNE-04 and TUNE-05, in a browser.
+//
+// Over budget is UNREACHABLE for anything a visitor can produce:
+// src/lib/tune/reachability.sweep.spec.ts measures 32,852 knob states across
+// every shelf card and not one crosses 908. So these two tests open
+// /dev/tune/ - the unlinked probe that mounts the same tuning region over a
+// real `PadReserved`, which the vendored cost() charges itself. Nothing here
+// injects a cost, and the region has no test-only prop: what reddens the meter
+// is a budget the compiler really refused.
+//
+// The probe's own numbers are read from its `probe-cost` readout, which
+// recomputes the cost from the indices the region reports, through $lib/pad. So
+// the numerals below are held against the compiler's answer rather than against
+// a literal that would rot the day the pin moves.
+//
+// The knob these tests drive is Scroll - the third rail on tpad's rack - and
+// its measured band with the probe's reserve of 3 is: index 0..3 -> 907/908 (in
+// budget), 4 -> 905/908, 5 -> 909/908, 6..7 -> 910/908. Home is index 0 and End
+// is index 7, both native to the range input the rail is built on, so one key
+// press crosses the line in either direction.
+
+const PROBE = "/dev/tune/";
+
+/** tpad's third knob. Its label is what the over-budget block names. */
+const SCROLL_LABEL = "Scroll";
+const SCROLL_RAIL = 2;
+
+/** The probe's independently computed cost. */
+async function probeCost(
+  page: Page,
+): Promise<{ setup: number; timer: number; fits: boolean }> {
+  const text = await page.getByTestId("probe-cost").innerText();
+  expect(
+    text.startsWith("{"),
+    `the probe measured the configuration itself: ${text}`,
+  ).toBe(true);
+  return JSON.parse(text);
+}
+
+/** The number in front of the slash. `meterText` returns "910 / 908". */
+async function meterUsed(
+  page: Page,
+  event: "setup" | "timer",
+): Promise<number> {
+  return Number((await meterText(page, event)).split("/")[0].trim());
+}
+
+async function meterPct(page: Page, event: "setup" | "timer"): Promise<number> {
+  const text = await page
+    .getByTestId(`meter-${event}`)
+    .locator(".percent")
+    .innerText();
+  return Number(text.replace("%", ""));
+}
+
+/** Open the probe and wait for its first measurement, not merely its markup. */
+async function openProbe(page: Page): Promise<void> {
+  await page.goto(PROBE);
+  await expect(page.getByTestId("tuning-region")).toBeVisible();
+  await expect(page.getByTestId("knob-rack")).toBeVisible();
+  await settled(page);
+  await expect(
+    page.getByTestId("probe-cost"),
+    "the probe's second opinion landed, so the numerals can be held against it",
+  ).not.toHaveText("pending", { timeout: 30_000 });
+}
+
+/** One key press on Scroll, then let the debounced recompile land. */
+async function pressScroll(page: Page, key: "Home" | "End"): Promise<void> {
+  await rails(page).nth(SCROLL_RAIL).focus();
+  await page.keyboard.press(key);
+  await recomputed(page);
+}
+
+/**
+ * Wait for the next measurement to LAND when the meter is starting from over
+ * budget, where it cannot report that it is busy.
+ *
+ * `meterView` makes `over` outrank the feed - "a warning is never dimmed" - so
+ * a meter showing an over-budget number publishes `aria-busy="false"` for the
+ * whole of the 120ms recompile, and `recomputed` above would time out on it.
+ * OBSERVED: this file's first run failed exactly there. The anchor here is
+ * therefore the number itself, polled until it is no longer the one that was on
+ * screen when the key went down. Every transition these tests make moves the
+ * number, so a poll that never changes is a real defect rather than a slow
+ * machine.
+ *
+ * `recomputed` is still used for the other direction - in budget to over - and
+ * it is the stronger wait, so the debounce keeps its own assertion.
+ */
+async function remeasured(page: Page, was: number): Promise<void> {
+  await expect
+    .poll(() => meterUsed(page, "setup"), { timeout: 30_000 })
+    .not.toBe(was);
+  await settled(page);
+}
+
+test.describe("a configuration the compiler refuses", () => {
+  test("an over-budget configuration reddens its meter and disables the primary control", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openProbe(page);
+
+    // The precondition: the compiler itself says this does not fit. Everything
+    // below is about what the interface does with that fact.
+    const cost = await probeCost(page);
+    expect(
+      cost.fits,
+      `the reserve really put it over: ${JSON.stringify(cost)}`,
+    ).toBe(false);
+    expect(cost.setup).toBeGreaterThan(908);
+
+    const used = await meterUsed(page, "setup");
+    expect(
+      used,
+      "the meter shows the number the compiler measured, reserve and all",
+    ).toBe(cost.setup);
+    expect(used, "and it is over the budget").toBeGreaterThan(908);
+    expect(
+      await meterPct(page, "setup"),
+      "the percentage is CEILED outside the budget, so one character over reads 101",
+    ).toBeGreaterThan(100);
+
+    // The red is asserted as the class the stylesheet keys off rather than as a
+    // colour: 05-10 measured that the over state is carried by four non-colour
+    // signals as well, so the hue is deliberately not the thing under test.
+    const meter = page.getByTestId("meter-setup");
+    await expect(meter.locator(".numerals")).toHaveClass(/over/);
+    await expect(meter.locator(".track")).toHaveClass(/over/);
+    expect(
+      await meterUsed(page, "timer"),
+      "the event that fits is not reddened with it - one event over is not two",
+    ).toBeLessThan(908);
+    await expect(
+      page.getByTestId("meter-timer").locator(".numerals"),
+    ).not.toHaveClass(/over/);
+
+    // TUNE-05: a real disabled button, never aria-disabled alone, never hidden,
+    // and the reason beside it.
+    const tryOn = page.getByTestId("try-on-device");
+    await expect(tryOn).toBeVisible();
+    await expect(tryOn).toBeDisabled();
+    const reason = tryOnBudgetReason("Setup");
+    await expect(
+      page.getByTestId("probe-budget-reason"),
+      "the region reported the reason upward, which is what disables the control",
+    ).toHaveText(reason);
+    await expect(
+      page.locator("#try-on-reason").getByText(reason),
+      "and the sentence is rendered beside the control, not only held in a prop",
+    ).toBeVisible();
+
+    // TUNE-04's block. Nothing has been turned yet, so this is the ARRIVED
+    // sentence: naming a knob here would name one nobody moved.
+    await expect(page.getByTestId("budget-message")).toHaveText(
+      overBudgetArrived("Setup", cost.setup - 908),
+    );
+    expect(
+      await page.getByTestId("turn-it-down").count(),
+      "tpad's only sheet is sends and the compiler refuses to shed sends, so there is no ladder step to offer and no button is invented",
+    ).toBe(0);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("the one-click back-off puts it back inside the budget", async ({
+    page,
+    context,
+  }) => {
+    // Nothing on this page may reach the hardware. requestPort is wrapped
+    // before the document runs, so the assertion at the end is a count rather
+    // than an absence of symptoms.
+    await context.addInitScript(() => {
+      const w = window as unknown as Record<string, unknown>;
+      w.__requestPortCalls = 0;
+      const serial = (navigator as unknown as Record<string, unknown>)
+        .serial as { requestPort: (...args: unknown[]) => unknown } | undefined;
+      if (!serial) return;
+      const original = serial.requestPort.bind(serial);
+      serial.requestPort = (...args: unknown[]) => {
+        w.__requestPortCalls = (w.__requestPortCalls as number) + 1;
+        return original(...args);
+      };
+    });
+
+    const consoleErrors = collectErrors(page);
+    await openProbe(page);
+    const opened = await meterUsed(page, "setup");
+    expect(
+      opened,
+      "the precondition: the probe opens over budget",
+    ).toBeGreaterThan(908);
+
+    // Down first, so there is a measured in-budget number to come back to.
+    // Without this the block would be the arrived case a second time and there
+    // would be nothing to click.
+    await rails(page).nth(SCROLL_RAIL).focus();
+    await page.keyboard.press("Home");
+    await remeasured(page, opened);
+    const inside = await meterUsed(page, "setup");
+    expect(inside, "one key press brings it back inside 908").toBeLessThan(908);
+    await expect(page.getByTestId("budget-message")).toHaveText("");
+    await expect(page.getByTestId("try-on-device")).toBeEnabled();
+
+    // And back over, this time with a culprit.
+    await pressScroll(page, "End");
+    const over = await meterUsed(page, "setup");
+    expect(over).toBeGreaterThan(908);
+    await expect(
+      page.getByTestId("budget-message").locator(".line"),
+      "a knob moved, so the block names it instead of blaming the configuration",
+    ).toHaveText(overBudgetKnob(SCROLL_LABEL, "Setup", over - 908));
+
+    const backOff = page.getByTestId("turn-it-down");
+    await expect(backOff).toBeVisible();
+    await expect(backOff).toHaveText(TURN_IT_DOWN);
+    await expect(
+      page.getByTestId("budget-message").locator(".explain"),
+      "the quiet line says exactly what the click will do, in characters",
+    ).toHaveText(backOffKnob(SCROLL_LABEL, "Setup", inside));
+
+    await backOff.click();
+    await remeasured(page, over);
+
+    expect(
+      await meterUsed(page, "setup"),
+      "one click puts the knob back where it was, and the number with it",
+    ).toBe(inside);
+    await expect(
+      page.getByTestId("meter-setup").locator(".numerals"),
+    ).not.toHaveClass(/over/);
+    await expect(
+      page.getByTestId("budget-message"),
+      "the block goes away rather than lingering as a warning about a state that has passed",
+    ).toHaveText("");
+    await expect(page.getByTestId("try-on-device")).toBeEnabled();
+    await expect(page.getByTestId("probe-budget-reason")).toHaveText(
+      "in budget",
+    );
+
+    // The back-off is a tuning control. It talks to the compiler and to nothing
+    // else.
+    expect(
+      await page.evaluate(
+        () => (window as unknown as Record<string, unknown>).__requestPortCalls,
+      ),
+      "no port was asked for at any point in this test",
+    ).toBe(0);
+    expect(
+      await page.getByTestId("disconnect").count(),
+      "and nothing was ever connected",
+    ).toBe(0);
     expect(consoleErrors).toEqual([]);
   });
 });
