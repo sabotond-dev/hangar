@@ -1,6 +1,6 @@
 <!--
-  The browse toolbar: one search landmark holding the field, the sort and - from
-  the next commit - the chips, the clear control and the count.
+  The browse toolbar: one search landmark holding the field, the sort, the chips,
+  the clear control, the count and the page's only live region.
 
   EVERY WIDGET IN HERE IS ONE THE SITE ALREADY SHIPS. The sort control is Phase
   5's word row verbatim: a role="radiogroup" over real <input type="radio"> in
@@ -34,6 +34,55 @@
   is what keeps the two from ever colliding. Pressed anywhere else on the browse
   page it does nothing at all.
 
+  THE CHIPS COMBINE WITH AND, AND A CHIP THAT WOULD RETURN NOTHING IS A REAL
+  disabled CHECKBOX. Both rules come from the data: 32 of the 41 shipped tags sit
+  on exactly one configuration, so an intersection would empty the grid on the
+  second press most of the time. disabledTags() is what closes that without
+  printing a number on a chip, and TagChip.svelte carries the reason beside the
+  attribute.
+
+  THE STANDING ROW IS THE NINE TAGS CARRIED BY TWO OR MORE CONFIGURATIONS, AND
+  THERE IS NO "MORE TAGS" DISCLOSURE. 05.1-CONTEXT D-15 is binding - the nine are
+  chips and the 32 single-entry tags stay searchable text on the card - and it
+  wins over 05.1-UI-SPEC W-19, which proposed putting the other 32 behind a
+  toggle. The toggle is deliberately not built; a tag that filters sixteen down
+  to one is a thing the search field does better. What IS built is the outsider:
+  an active tag that is not one of the nine renders its own chip after them, or a
+  shared /browse/?tag=looper link would show a filter with no way to remove it.
+
+  THE ROW AND THE DISABLED SET ARE DERIVED HERE, from `entries`, through
+  chipTags() and disabledTags(). Two sources for "which chips stand in the row"
+  is how a page and its toolbar come to disagree, and both functions are pure and
+  pinned in node by filter.spec.ts, so nothing untestable moved into a component.
+
+  THE COUNT IS THREE ELEMENTS DOING THREE JOBS, which is Phase 5's meter pattern
+  applied to a number. The visible line updates instantly and is aria-hidden. An
+  always-present visually-hidden expansion sits beside it in the DOM, is never a
+  live region, and is never behind a "has anything changed" flag: a visitor who
+  opens /browse/?q=ghost has fired no change event, so the live region has
+  nothing to say, and that sentence is the only thing telling them they are
+  looking at four of sixteen rather than at the whole catalog. The live region is
+  the third thing, and it speaks once per settled change.
+
+  ONE LIVE REGION, AND IT CANNOT CHATTER. Exactly one visually-hidden
+  aria-live="polite" aria-atomic="true" element, fired from a 500ms trailing
+  timer - never per keystroke, never per tick, never per paint, never on scroll
+  and never on an intersection. It is a setTimeout on the state and there is no
+  setInterval in this file, which is a prohibition a raw grep cannot check and a
+  comment-stripped scan can. Measured, by recording every write to the region:
+  typing g-h-o-s-t at 60ms produces ONE utterance through the timer and THREE
+  with the same write moved into the keystroke handler - three rather than five
+  because the last two characters leave the count at 1, so the sentence is
+  unchanged and the DOM is never written. A screen reader would be interrupted
+  mid-word twice for nothing.
+
+  FOCUS IS NEVER ORPHANED. Two controls here can vanish while holding focus, and
+  both move focus deliberately: the field's CLEAR returns it to the field, and
+  CLEAR FILTERS - which removes itself the moment it works - hands it to the
+  field too. CLEAR FILTERS clears the query and every tag and does NOT touch the
+  sort: a sort is a view preference, not a filter, and resetting it would undo
+  something the visitor did not ask to undo.
+
   NO POPULARITY METRIC IS SHOWN OR FAKED. No like count, no view count, no
   "trending", no "most", no rank, and no bare number beside a tag that could be
   read as one (W-04). The forbidden words appear in this paragraph and in no
@@ -52,18 +101,38 @@
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
+  import { onDestroy } from "svelte";
+  import { chipTags, disabledTags } from "$lib/browse/filter";
   import { BROWSE_SORTS, type BrowseSort } from "$lib/browse/sort";
+  import type { ListingEntry } from "$lib/catalog/listing";
+  import TagChip from "./TagChip.svelte";
 
   let {
+    entries,
     sort,
     q,
+    tags,
+    showing,
+    total,
     onsort,
     onquery,
+    ontag,
+    onclear,
   }: {
+    /** The full listing, for the chip vocabulary. Never the filtered set. */
+    entries: readonly ListingEntry[];
     sort: BrowseSort;
     q: string;
+    /** The active tags, in activation order. */
+    tags: readonly string[];
+    /** How many configurations are showing, after filtering. */
+    showing: number;
+    /** The size of the unfiltered catalog. */
+    total: number;
     onsort: (next: BrowseSort) => void;
     onquery: (next: string) => void;
+    ontag: (tag: string) => void;
+    onclear: () => void;
   } = $props();
 
   /**
@@ -79,9 +148,59 @@
     name: "NAME",
   };
 
+  /**
+   * The same three words in the case the live region says them in. A sentence
+   * is not a button label, so `Sorted by Featured.` never shouts.
+   */
+  const SORT_WORDS: Readonly<Record<BrowseSort, string>> = {
+    featured: "Featured",
+    newest: "Newest",
+    name: "Name",
+  };
+
+  /** The live region's trailing window, and the only debounce in this file. */
+  const VOICE_DELAY_MS = 500;
+
   /* One toolbar per page, so the wiring ids are constants rather than derived. */
   const FIELD_ID = "browse-search-field";
   const SORT_CAPTION_ID = "browse-sort-caption";
+  const TAGS_CAPTION_ID = "browse-tags-caption";
+
+  /** D-15's nine: every tag two or more listed configurations carry. */
+  const standing = $derived(chipTags(entries));
+
+  /**
+   * The nine, then any active tag that is not one of them. That tail is what
+   * makes a shared /browse/?tag=looper link removable.
+   */
+  const row = $derived([
+    ...standing,
+    ...tags.filter((tag) => !standing.includes(tag)),
+  ]);
+
+  /**
+   * The chips that would return nothing given the query and the active set.
+   * With nothing active and nothing typed this is empty by construction, so
+   * there is no special case for the opening state.
+   */
+  const blocked = $derived(disabledTags(entries, q, tags, row));
+
+  /** CLEAR FILTERS exists only while there is a filter for it to clear. */
+  const filtering = $derived(q.length > 0 || tags.length > 0);
+
+  /** The one thing this component speaks. Everything else is said in the DOM. */
+  let announcement = $state("");
+
+  /*
+    Plain locals, deliberately outside the reactive graph: a timer handle and
+    the memory of what was last settled. None of them is rendered.
+  */
+  let voiceTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The last settled sort-query-tags signature, or undefined before arrival. */
+  let spokenFor: string | undefined;
+  let spokenSort: BrowseSort | undefined;
+  /** Whether the sort moved since the last utterance, so it can be named once. */
+  let sortMoved = false;
 
   /**
    * The field element, for the two places focus is moved deliberately: its own
@@ -109,6 +228,64 @@
     event.preventDefault();
     onquery("");
   }
+
+  /**
+   * The query and every tag, and never the sort. Focus goes to the field
+   * because this button removes itself the moment it works.
+   */
+  function clearFilters(): void {
+    onclear();
+    field?.focus();
+  }
+
+  // ---------------------------------------------------------------------------
+  // The one voice.
+
+  function flushVoice(): void {
+    voiceTimer = undefined;
+    const sorted = sortMoved;
+    sortMoved = false;
+    /*
+      The numbers are read HERE rather than when the timer was set, so five
+      characters typed quickly settle into one sentence carrying the final
+      count instead of the count as it was at the first keystroke.
+    */
+    if (showing === 0) {
+      announcement = `No configurations match. CLEAR FILTERS brings back all ${total}.`;
+      return;
+    }
+    const count = `${showing} of ${total} configurations.`;
+    announcement = sorted ? `Sorted by ${SORT_WORDS[sort]}. ${count}` : count;
+  }
+
+  /*
+    The one place the region is fed. It watches the sort, the query and the tags
+    - never `showing`, which is a consequence of them - and on the FIRST pass it
+    only remembers, because a visitor who has just arrived has changed nothing
+    and the hidden expansion has already told them where they are.
+  */
+  $effect(() => {
+    const signature = `${sort}|${q}|${tags.join(" ")}`;
+    if (spokenFor === undefined) {
+      spokenFor = signature;
+      spokenSort = sort;
+      return;
+    }
+    if (signature === spokenFor) return;
+    sortMoved = sortMoved || sort !== spokenSort;
+    spokenFor = signature;
+    spokenSort = sort;
+    if (voiceTimer !== undefined) clearTimeout(voiceTimer);
+    voiceTimer = setTimeout(flushVoice, VOICE_DELAY_MS);
+  });
+
+  onDestroy(() => {
+    // The house guard, in the form this component can state it: no effect runs
+    // on the server, so there is never a timer to clear after a server render.
+    if (voiceTimer === undefined) return;
+    clearTimeout(voiceTimer);
+    voiceTimer = undefined;
+  });
 </script>
 
 <search class="toolbar" data-testid="browse-toolbar">
@@ -176,6 +353,71 @@
       {/each}
     </div>
   </div>
+
+  <div class="band">
+    <span class="caption" id={TAGS_CAPTION_ID}>TAGS</span>
+
+    <div class="tag-row">
+      <!--
+        CLEAR FILTERS sits beside the group rather than inside it: it is not a
+        tag, and a button announced as part of a group labelled TAGS would be
+        one more thing for a screen reader to sort out at the end of nine.
+      -->
+      <div
+        class="chips"
+        data-testid="browse-tags"
+        role="group"
+        aria-labelledby={TAGS_CAPTION_ID}
+      >
+        {#each row as tag (tag)}
+          <TagChip
+            {tag}
+            active={tags.includes(tag)}
+            disabled={blocked.includes(tag)}
+            ontoggle={ontag}
+          />
+        {/each}
+      </div>
+
+      {#if filtering}
+        <button
+          class="clear-filters"
+          type="button"
+          data-testid="browse-clear-filters"
+          onclick={clearFilters}
+        >
+          CLEAR FILTERS
+        </button>
+      {/if}
+    </div>
+  </div>
+
+  <!--
+    Two of the count's three elements. The visible line is seen and hidden from
+    the accessibility tree; the expansion beside it is read and is ALWAYS in the
+    DOM, whether or not anything has changed - it is the only thing that tells a
+    visitor arriving on a shared, already-filtered address how much of the
+    catalog they are looking at. It carries neither aria-live nor aria-hidden,
+    and it is not inside an {#if}.
+  -->
+  <p class="count">
+    <span data-testid="browse-count" aria-hidden="true"
+      >{showing} of {total} configurations.</span
+    >
+    <span class="sr-only" data-testid="browse-count-expansion"
+      >Showing {showing} of {total} configurations.</span
+    >
+  </p>
+
+  <!-- The third element, and the page's only live region. -->
+  <p
+    class="sr-only"
+    data-testid="browse-live"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    {announcement}
+  </p>
 </search>
 
 <style>
@@ -311,8 +553,66 @@
     color: var(--color-accent);
   }
 
+  /*
+    The chips take the whole line and CLEAR FILTERS wraps beneath them, which is
+    the approved sketch's shape. Nothing here scrolls sideways at any width: the
+    row wraps, and overflow is never set on either axis.
+  */
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .chips {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  /* Phase 4's secondary button: a bordered box, Micro label, accent on hover. */
+  .clear-filters {
+    display: grid;
+    place-items: center;
+    min-block-size: 44px;
+    padding-inline: 16px;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+    cursor: pointer;
+    transition: border-color 140ms ease-out;
+  }
+
+  .clear-filters:hover {
+    border-color: var(--color-accent);
+  }
+
+  /*
+    Body, quiet, 16px above the chips. Quicksand and not monospaced: the count
+    changes on a filter change rather than on a tick, so there is nothing to
+    jitter and no fifth use of the mono stack to justify.
+  */
+  .count {
+    margin: 16px 0 0;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-ink-quiet);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .clear,
+    .clear-filters,
     .word {
       transition: none;
     }
