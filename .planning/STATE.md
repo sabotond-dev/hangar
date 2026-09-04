@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-03-PLAN.md
-last_updated: "2026-09-04T21:02:00.000Z"
+stopped_at: Completed 05.1-04-PLAN.md
+last_updated: "2026-09-04T21:24:00.000Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 48
-  percent: 86
+  completed_plans: 49
+  percent: 88
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 04 (next)
-Status: Phase 5.1 in progress — 05.1-03 complete (3 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 05 (next)
+Status: Phase 5.1 in progress — 05.1-04 complete (4 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-04
 
-Progress: [█████████░] 86% (48 of 56 plans)
+Progress: [█████████░] 88% (49 of 56 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 46
+- Total plans completed: 47
 - Average duration: 22 min
 - Total execution time: 16.7 hours
 
@@ -107,6 +107,7 @@ Progress: [█████████░] 86% (48 of 56 plans)
 | Phase 05.1 P01 | 24 min | 3 tasks | 2 files |
 | Phase 05.1 P02 | 22 min | 3 tasks | 8 files |
 | Phase 05.1 P03 | 12 min | 3 tasks | 6 files |
+| Phase 05.1 P04 | 22 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -289,6 +290,10 @@ Recent decisions affecting current work:
 - [Phase 05.1]: MEASURED, and the plan was wrong: implementing SimHost.repaintAll as a loop over register() does NOT leave canvas.width at 0 - unregister() writes 0 and register() writes 9 back in the same call, so the final value is innocent and the plan's own negative check went red four assertions later on the observer count instead. fakeCanvas's width is now a recorded ACCESSOR and test 14 asserts the zero-width WRITE, because per the HTML specification a write to width of ANY value resets the bitmap
 - [Phase 05.1]: repaintAll does not call wake(): repainting is not a reason to start the loop, and a wall of settled still pads must stay at zero CPU after a sort has moved every card in the DOM
 - [Phase 05.1]: The plan and 05.1-UI-SPEC.md spell the BACK TO BROWSE navigation differently (goto(href, {noScroll}) versus replaceState with noScroll); they are the same call with one more option, return.ts's header names both, and the binding rule is that neither is history.back() - Coverflow.choose() pushes an entry, so a back-by-one lands on the un-chosen detail page
+- [Phase 05.1]: OWNERSHIP OF A PREVIEW ENGINE TRANSFERS AT onpreview (D-18). buildTuner's destroy() closed the engine it had already handed to the row, which swapEngine's own comment already forbids for the previous one; harmless only because no Lua entry sits in FRONT_DOOR and a PadSim has no close(). `published` now records the handover and destroy() closes only an engine the consumer never saw - without it, /c/euclid/ (a row of one) would blank the moment the panel closed
+- [Phase 05.1]: Coverflow's ring is the `row` prop, defaulting to FRONT_DOOR, and COUNT had to stop being a module-init constant (`const count = $derived(row.length)`) because a prop is not known at that point. The negative check has to be a BROWSER one: SSR renders identical slot offsets for a two-entry row whether count is 2 or a stale 8, and only stepping - End is goTo(count - 1) - tells them apart
+- [Phase 05.1]: A signed-off route's non-regression is provable by diffing TWO PRERENDERED BUILDS with the bundle fingerprints normalised out. / and /c/aurora/ differ in exactly one character after the row prop and the typographic() wiring, and /c/radar/'s <head> is byte-identical - eight seconds of build time for a claim nobody has to trust
+- [Phase 05.1]: PadFrame takes a structural `{ id }` and not the plan's `{ id; name }`: it renders no text, and svelte/no-unused-props fails an unused declared property. NamePlate and PadCanvas keep both fields because both read the name. The narrower shape is still satisfied by FrontDoorEntry and ListingEntry alike
 
 ### Pending Todos
 
@@ -305,6 +310,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T21:02:00.000Z
-Stopped at: Completed 05.1-03-PLAN.md
+Last session: 2026-09-04T21:24:00.000Z
+Stopped at: Completed 05.1-04-PLAN.md
 Resume file: None
