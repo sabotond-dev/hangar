@@ -150,8 +150,21 @@ Plans:
   1. Visitor reaches a browse screen from the front door and sees every configuration with name, one-line description, feel-based tags and Featured flag; the coverflow's data file is the only source.
   2. Visitor can sort by Featured, Newest and Name; no popularity metric is shown or faked.
   3. Visitor can open any configuration's focus/detail view — the chosen-pad state from Phase 4 with the knobs, meters and install controls docked by Phases 5 and 7 — and return to browse without losing position.
-**Plans**: TBD
+**Plans**: 11 plans in 11 waves
 **UI hint**: yes
+
+Plans:
+- [ ] 05.1-01-PLAN.md — The baselines and listing.ts: sixteen entries, import-free, gated against the catalog (wave 1)
+- [ ] 05.1-02-PLAN.md — sort.ts, filter.ts and grid.ts: three total orders, folded search, tag intersection, keyboard arithmetic (wave 2)
+- [ ] 05.1-03-PLAN.md — query.ts, return.ts and SimHost.repaintAll: the state that survives a round trip (wave 3)
+- [ ] 05.1-04-PLAN.md — The row of one: Coverflow's row prop, the arrow-less plate, and the tuner that hands its engine back (wave 4)
+- [ ] 05.1-05-PLAN.md — The routed set is sixteen: entries(), gen-og and the four gates D-07 invalidates (wave 5)
+- [ ] 05.1-06-PLAN.md — CatalogCard and BrowseGrid: sixteen live pads, one clock, one tab stop (wave 6)
+- [ ] 05.1-07-PLAN.md — The toolbar: search, the sort word row, the tag chips and the one live region (wave 7)
+- [ ] 05.1-08-PLAN.md — /browse/ itself, the lifted fidelity sentence, and the two chunk guards that could not see it (wave 8)
+- [ ] 05.1-09-PLAN.md — The header slot: BROWSE ALL, BACK TO BROWSE and the round trip walked by hand (wave 9)
+- [ ] 05.1-10-PLAN.md — e2e/browse.e2e.ts: seven tests, the frame measurement and the WebAssembly proof (wave 10)
+- [ ] 05.1-11-PLAN.md — The keyboard, the return, the D-18 hazard, the phone, and the phase gate (wave 11)
 
 ### Phase 6: Device Session
 **Goal**: A visitor with a ZONA can get from a cold page to a verified connection, and every way that can go wrong tells them what to do next in plain language.
