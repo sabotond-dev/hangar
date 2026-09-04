@@ -30,25 +30,28 @@ created: 2026-09-04
 
 **Baselines are NOT known at planning time.** Phase 5.1 was landing plans while this phase was
 planned, so every number in `06-RESEARCH.md` (`59 files / 651 tests`, `3 13`, `44 e2e`) is provenance
-and is asserted nowhere. **Task 06-01-01 re-measures all four on a clean tree** and records them in
-`06-01-SUMMARY.md` as the Phase 6 baseline.
+and is asserted nowhere. **Task 06-01-01 re-measures all five on a clean tree** and records them in
+`06-01-SUMMARY.md` as the Phase 6 baseline. The e2e total is recorded twice, under `BASE_E2E` and
+`PREV_E2E`, from the one run.
 
-### The four-name carry-forward block
+### The five-name carry-forward block
 
 Phase 5.1 established it and this phase inherits it unchanged:
 
-> **Every SUMMARY in this phase carries the same four names, whether or not that plan moved them.**
+> **Every SUMMARY in this phase carries the same five names, whether or not that plan moved them.**
 
 | Name | What it is | How it moves |
 |---|---|---|
 | `BASE_FILES` | the `test:quick` **file** count as that plan left the tree | re-measured by every plan that changes it; copied verbatim otherwise |
 | `BASE_TESTS` | the `test:quick` **test** count as that plan left the tree | same |
 | `BASE_SWEEP` | the literal the sweep printed — expected `3 13` | never re-derived; the `sweep` project is a named-file include and this phase adds no file to it. **If 06-01 observes a different literal, that literal is the phase's and every plan quotes it** |
-| `PREV_E2E` | the **last measured** Playwright total, with the plan that measured it named beside it | copied verbatim by every plan that does not run `test:e2e`; re-measured and re-stated by every plan that does |
+| `BASE_E2E` | the Playwright total **on the clean tree**, measured once in 06-01 | **never moves.** It is the number 06-14's phase gate asserts `BASE_E2E + 16` against, and a `BASE_E2E` that rolled with the phase's own additions would make that gate assert nothing |
+| `PREV_E2E` | the **last measured** Playwright total, with the plan that measured it named beside it | starts **equal to `BASE_E2E`**; copied verbatim by every plan that does not run `test:e2e`; re-measured and re-stated by every plan that does |
 
 A plan's `PREV_FILES` / `PREV_TESTS` are the immediately preceding SUMMARY's `BASE_FILES` /
 `BASE_TESTS`. **Four plans run `test:e2e`** — 06-06, 06-07, 06-13 and 06-14 — and the other ten carry
-`PREV_E2E` unchanged. Every plan states the carry as an acceptance criterion on its last task, and any
+`PREV_E2E` unchanged. **Every one of the fourteen carries `BASE_E2E` verbatim**, because only 06-01
+ever measures it. Every plan states the carry as an acceptance criterion on its last task, and any
 plan that finds the name missing from the SUMMARY it reads **stops rather than guessing**.
 
 `BASE_CHECK` (the `svelte-check` file count) is provenance only, recorded once in 06-01. Only
@@ -88,11 +91,23 @@ Read from this repository on 2026-09-04 by the planner, from the sources, not es
 - **One `NotFoundError` covers three causes** — cancelled, empty-and-dismissed, and blocked by a site
   setting — with the identical name and message. The UI states the common case and puts the other two
   one disclosure away each.
-- **`MODULE_GONE_MS = 750` is declared in `constants.ts` and used by nothing.** This phase uses it, and
-  publishes `moduleStale`, which **nothing in this phase renders** — the nine-state taxonomy is
-  06-UI-SPEC's and no tenth state is invented. Phase 7 is its first consumer, and 06-14 records that.
+- **`MODULE_GONE_MS = 750` is declared in `constants.ts` and used by nothing.** This phase uses it for
+  exactly one thing: the **missed disconnect**, where the module has been silent for three missed
+  heartbeats **and** `portIsAttached` returns `false`, which lands in `unplugged-while-connected` — a
+  state the taxonomy already has. **No staleness field is published.** Silence alone leaves the
+  session `connected`, deliberately: the nine-state taxonomy is 06-UI-SPEC's and a published flag
+  nothing renders is a tenth state in everything but name.
 - **`transport.spec.ts` has 7 tests and `try-on.spec.ts` has 6** before this phase; both are counted
   in the deltas below.
+- **`src/lib/transport/transport.ts` has ZERO imports.** Read on 2026-09-05: its exports are
+  `GridTransport`, `OpenFailure`, `FailureCopy`, `classifyOpenError` and `failureCopy`, and the
+  `DOMException` and `SerialPort` it names are globals rather than specifiers. That is why it is the
+  **fifth** `PERMITTED_SPECIFIERS` entry, why `session.svelte.ts` imports `classifyOpenError`,
+  `failureCopy` and `type OpenFailure` **statically**, and why `failureFor` is synchronous for all nine
+  states with no memoised-module machinery behind a failure.
+- **`src/lib/ui/TuningRegion.svelte`'s header comment contains a literal `aria-live="polite"`** (around
+  line 100, in the paragraph explaining the one tuning live region). Any scan that counts `aria-live`
+  attributes across the tree **must strip comments first**, or it counts four where the DOM has three.
 - **The e2e arithmetic is tag-sensitive.** `chromium` carries no `grep` and runs everything;
   `webkit-phone` runs only `@webkit` titles. **A tagged title adds 2 to the suite total; an untagged
   one adds 1.**
@@ -104,8 +119,11 @@ Read from this repository on 2026-09-04 by the planner, from the sources, not es
 | `capabilityOf` **moves** to the import-free `session-copy.ts` and `try-on.ts` re-exports it | 06-02 | the 152px header note is absent in `unsupported`/`insecure`; if capability could only be known after a dynamic import, every visitor would paint the note and a WebKit visitor would lose it a tick later. One definition, one test, a new home |
 | `ZONA_USB` moves to `src/lib/protocol/usb.ts`; `grantedZonaPorts` / `portIsAttached` / `isZonaPort` move to `src/lib/transport/ports.ts`; both re-exported from their old barrels | 06-03 | the whole load path — capability, listeners, the granted-port offer — then runs with **no dynamic import at all**, so a browse-only visitor pays nothing for CONN-06, and `requestPort()` can still be the first statement of a click handler |
 | `already-open` is an `OpenFailure` key, **not** a session phase | 06-01, 06-03 | 06-UI-SPEC folds it into the `unknown` row; a tenth named state would contradict the approved contract |
+| `src/lib/transport/transport.ts` is a **fifth** permitted static specifier, and `failureFor` is synchronous for all nine states | 06-03, 06-05 | **read, not assumed**: that file has ZERO imports — it declares `OpenFailure`, `FailureCopy`, `classifyOpenError` and `failureCopy`, and the `DOMException` and `SerialPort` it names are globals. So the taxonomy and its copy are static, no memoised-module machinery stands behind a failure, and the two capability states render their sentence in the first hydrated frame without fetching a chunk they could never use |
+| `config-shape.spec.ts`'s transitive walk **follows** an exactly-matching permitted specifier and marker-checks every other | 06-05 | all five permitted paths contain a marker substring themselves, so a walk that marker-checked its own allow-list would be red on step one. Exact match rather than prefix is what keeps `$lib/protocol` distinct from `$lib/protocol/usb`, which is the whole of mutation 3 |
+| `MANAGED_POLICY` is **not written**, and 06-UI-SPEC's `unsupported` row is deviated from deliberately | 06-02 | showing it to everyone would tell an iOS or Safari visitor to open an `about:policies` that does not exist for them, and showing it only to Gecko needs a feature sniff aimed at one engine — a user-agent read by another name, which this phase forbids in every file. The deviation is recorded in 06-02's SUMMARY, guarded by `session-copy.spec.ts` test 6, and carried in `deferred-items.md` with the missing signal named |
 | The announcement logic lives in the store, not in `SessionAnnouncer` | 06-09 | the coalescer, the hold and the "never on a heartbeat" rule all have edge cases, and edge cases belong where a node test can reach them |
-| `moduleStale` is published and rendered nowhere | 06-04 | the taxonomy is nine; the mechanism is proven and its first consumer is named |
+| The watchdog publishes **no** field; it only reaches `unplugged-while-connected` on the missed disconnect | 06-04 | the taxonomy is nine, and a flag nothing renders is a tenth state wearing a different hat. Silence with the port still attached leaves the session `connected`, and 06-04 test 12 asserts that as its own case |
 | The session's serial surface and transport factory are injectable | 06-03 | the difference between a session tested in node and a session testable only in a browser |
 
 ### Why the waves are serial
@@ -208,41 +226,41 @@ file); DEGR-02's header half is obeyed and proven on WebKit. 06-14's SUMMARY say
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 06-01-01 | 01 | 1 | all | baseline + spike | four baselines re-measured on a clean tree; the runes spike run and deleted | exists | ⬜ pending |
+| 06-01-01 | 01 | 1 | all | baseline + spike | five baselines re-measured on a clean tree (`BASE_E2E` = `PREV_E2E`); the runes spike run and deleted | exists | ⬜ pending |
 | 06-01-02 | 01 | 1 | CONN-04 | unit | `... src/lib/transport/transport.spec.ts` reports **9 passed** | exists | ⬜ pending |
 | 06-01-03 | 01 | 1 | CONN-07 | unit | `... src/lib/device/try-on.spec.ts` reports **7 passed**; quick is baseline +0 files / +3 | exists | ⬜ pending |
-| 06-02-01 | 02 | 2 | CONN-02, 03, 05, 08 | source | `npm run check` `0 errors`; the module's comment-stripped source has zero `from "` and zero `import(` | created here | ⬜ pending |
+| 06-02-01 | 02 | 2 | CONN-02, 03, 05, 08 | source | `npm run check` `0 errors`; the module's comment-stripped source has zero `from "` and zero `import(`; `MANAGED_POLICY` appears nowhere in `src/` and the deviation is in the SUMMARY and `deferred-items.md` | created here | ⬜ pending |
 | 06-02-02 | 02 | 2 | CONN-02, 03, 05 | unit | `... src/lib/device/session-copy.spec.ts` reports **6 passed** | created here | ⬜ pending |
 | 06-02-03 | 02 | 2 | CONN-01 | unit | `try-on.spec.ts` **7** with the file unedited; quick is +1 file / +9 from baseline | exists | ⬜ pending |
 | 06-03-01 | 03 | 3 | CONN-06, 07 | unit (no-op move) | quick unchanged; `usb.ts` has zero imports and `ports.ts` exactly one | created here | ⬜ pending |
-| 06-03-02 | 03 | 3 | CONN-01, 05, 06, 07 | source | `npm run check` `0 errors`; exactly one static `from` beyond the two light modules; no `setInterval`; no `.write(` | created here | ⬜ pending |
+| 06-03-02 | 03 | 3 | CONN-01, 05, 06, 07 | source | `npm run check` `0 errors`; exactly **four** static `from` specifiers (`./session-copy`, `$lib/protocol/usb`, `$lib/transport/ports`, `$lib/transport/transport`); `failureFor` contains no `await`; no `setInterval`; no `.write(` | created here | ⬜ pending |
 | 06-03-03 | 03 | 3 | CONN-01, 05, 06, 07 | unit | `... src/lib/device/session.spec.ts` reports **8 passed**; quick +1 file / +8 | created here | ⬜ pending |
 | 06-04-01 | 04 | 4 | CONN-06, 08 | unit | `sequence.spec.ts` unchanged and green; the `connect` handler has no identity comparison | exists | ⬜ pending |
-| 06-04-02 | 04 | 4 | CONN-06, 08, SAFE-01 | unit | `session.spec.ts` reports **15 passed**; quick +0 files / +7 | exists | ⬜ pending |
-| 06-05-01 | 05 | 5 | CONN-01 | unit (source) | `config-shape.spec.ts` **14 passed**; mutation 1 green before the widening, red after | exists | ⬜ pending |
+| 06-04-02 | 04 | 4 | CONN-06, 08, SAFE-01 | unit | `session.spec.ts` reports **15 passed**; quick +0 files / +7; test 12 asserts the missed disconnect only, and no staleness field exists | exists | ⬜ pending |
+| 06-05-01 | 05 | 5 | CONN-01 | unit (source) | `config-shape.spec.ts` **14 passed**; mutation 1 green before the widening, red after; four mutations in this task, five permitted paths, and the walk follows an exact permitted match | exists | ⬜ pending |
 | 06-05-02 | 05 | 5 | CONN-01 | unit (source) | `config-shape.spec.ts` **14 passed**; at least four probe directories discovered | exists | ⬜ pending |
 | 06-05-03 | 05 | 5 | SAFE-01 | unit (source) | `forbidden-instructions.spec.ts` **5 passed** over `src/lib`; quick unchanged | exists | ⬜ pending |
 | 06-06-01 | 06 | 6 | CONN-01 | fixture | `npx playwright test --list` collects no title from `e2e/fake-serial.ts`; the bubble self-check recorded | created here | ⬜ pending |
 | 06-06-02 | 06 | 6 | CONN-01 | build artefact | `build/dev/session/index.html` exists; `config-shape.spec.ts` **14**, and its `dev/session` mutation is now red | created here | ⬜ pending |
 | 06-06-03 | 06 | 6 | CONN-01, 02, 05, DEGR-02 | e2e, both projects | `e2e/session.e2e.ts --project chromium` **4 passed**; suite `PREV_E2E + 5` | created here | ⬜ pending |
 | 06-07-01 | 07 | 7 | CONN-04, 06 | e2e | same file **7 passed**; `openCount(0) === 0` before the click, `requests() === 0` after | exists | ⬜ pending |
-| 06-07-02 | 07 | 7 | **CONN-06 (the replug), SAFE-01** | e2e | same file **9 passed**; suite `PREV_E2E + 5`; `writes() === 0` over a whole visit | exists | ⬜ pending |
+| 06-07-02 | 07 | 7 | **CONN-06 (the replug), SAFE-01** | e2e | same file **9 passed**; suite `PREV_E2E + 5`; `writes() === 0` over a whole visit, **and a planted write observed making it non-zero** | exists | ⬜ pending |
 | 06-08-01 | 08 | 8 | CONN-08 | type + measured | `identity.spec.ts` **6**, `tune-ui.spec.ts` **5**; the panel spinner still 32px with all three attributes | exists | ⬜ pending |
 | 06-08-02 | 08 | 8 | CONN-08 | type + guard | `identity.spec.ts` **6**; no hex, no SVG, no canvas in `DeviceMark` | created here | ⬜ pending |
 | 06-08-03 | 08 | 8 | CONN-04 | type + observed | `npm run check` `0 errors`; the `already-open` block renders no list; quick unchanged | created here | ⬜ pending |
 | 06-09-01 | 09 | 9 | SAFE-01 | unit | `session.spec.ts` reports **17 passed**; `#say` called from exactly six sites | exists | ⬜ pending |
-| 06-09-02 | 09 | 9 | CONN-03, SAFE-01 | type + measured | the note's height is equal across S1/S2/S3 and absent in both capability states; the number recorded | created here | ⬜ pending |
+| 06-09-02 | 09 | 9 | CONN-03, SAFE-01 | type + measured | the note's height is equal across S1/S2/S3 and absent in both capability states; the number recorded; with a panel open, neither the pre-click line nor the S3 status line is visible in the note and its height is unchanged | created here | ⬜ pending |
 | 06-09-03 | 09 | 9 | CONN-03 | build + a11y | `npm run build` succeeds; exactly one `session-live` per route; `config-shape.spec.ts` **14** | exists | ⬜ pending |
-| 06-10-01 | 10 | 10 | CONN-01, 06, 08 | type + measured | the slot is 44px in all nine states and the header height is constant; `aria-expanded` in four states only | created here | ⬜ pending |
+| 06-10-01 | 10 | 10 | CONN-01, 06, 08 | type + measured | the slot is 44px in all nine states and the header height is constant; `aria-expanded` in four states only; the multi-module tail renders at 1280 and is gone at 900 through a media query, with no `innerWidth` or `matchMedia` in the component | created here | ⬜ pending |
 | 06-10-02 | 10 | 10 | CONN-05, 06 | type + observed | the four open/close behaviours observed; `FORGET THIS ZONA` absent without `canForget` | created here | ⬜ pending |
 | 06-10-03 | 10 | 10 | CONN-01, 05, 08 | unit (source) | `... src/lib/ui/device-ui.spec.ts` reports **6 passed**; quick +1 file / +6 | created here | ⬜ pending |
-| 06-11-01 | 11 | 11 | **CONN-01 (the header)** | precondition + measured | `BrowseLink` present or the plan **stops**; header heights constant per width across states; no scrollbar at 320px | exists | ⬜ pending |
+| 06-11-01 | 11 | 11 | **CONN-01 (the header)** | precondition + measured | `BrowseLink` present or the plan **stops**; header heights constant per width across **five** widths (1280, 1024, 900, 640, 320); no scrollbar at 320px; the tail present at 1280, absent at 900 and 320, `multiModuleLine` in the disclosure at all three, and the header height identical at 1280 and 900 | exists | ⬜ pending |
 | 06-11-02 | 11 | 11 | CONN-08, DEGR-02 | build + measured | `config-shape.spec.ts` **14** after a build; the note's height constant on all three routes | exists | ⬜ pending |
 | 06-11-03 | 11 | 11 | CONN-01 | observed | the slot and note absent at 0 ms and present at 900 ms; the announcement once, after the splash, including when skipped | exists | ⬜ pending |
 | 06-12-01 | 12 | 12 | DEGR-02 | type + observed | five un-choose paths keep the connection; `release()` still exported and called | exists | ⬜ pending |
 | 06-12-02 | 12 | 12 | **CONN-02, 03 (the two mounts)** | unit + e2e | `device-ui.spec.ts` **7 passed**; `e2e/first-experience.e2e.ts` passes **unedited** | exists | ⬜ pending |
 | 06-13-01 | 13 | 13 | **CONN-06 (navigation)** | e2e | `e2e/session.e2e.ts --project chromium` **11 passed**; the walk is client-router only; the reload lands in `detected` | exists | ⬜ pending |
-| 06-13-02 | 13 | 13 | CONN-06, 07, SAFE-01 | e2e, two projects | same file **14 passed**; suite `PREV_E2E + 6`; two `@webkit` titles in the file | exists | ⬜ pending |
+| 06-13-02 | 13 | 13 | CONN-06, 07, SAFE-01 | e2e, two projects | same file **14 passed**; suite `PREV_E2E + 6`; two `@webkit` titles in the file; test 13 asserts the settled caption **before** the `device-note` count of 0 | exists | ⬜ pending |
 | 06-14-01 | 14 | 14 | all | docs | six rows with pass conditions and why each is human-only; no engine named | created here | ⬜ pending |
 | 06-14-02 | 14 | 14 | **CONN-01..08** | phase gate | quick `BASE + 3 / +33`, sweep `3 13`, e2e `BASE_E2E + 16`, against a fresh production build | exists | ⬜ pending |
 | 06-14-03 | 14 | 14 | **CONN-04, 06, 07 (hardware)** | **checkpoint:human-verify** | not automatable — the six runbook rows, run by the user on a real ZONA | n/a | ⬜ pending |
@@ -258,7 +276,11 @@ Playwright, both browser binaries, `wrangler` and `.dev.vars` are all present an
 projects are configured. The gaps are files, plus one assumption that needed testing.
 
 - [ ] **The runes-in-node assumption** — no `.svelte.ts` exists in this repository today → **06-01-01**,
-      with a documented fallback if the spike fails
+      with a documented fallback if the spike fails: a pure `session-machine.ts` taking an
+      `onChange(snapshot)` callback, a runes shell that assigns its `$state` fields from that callback
+      and nothing else, and the four downstream edits 06-01 enumerates (the spec's import, the three
+      source-scan targets, a sixth `PERMITTED_SPECIFIERS` entry, and the static-`from` rule moving to
+      the machine)
 - [ ] `src/lib/device/session-copy.ts` + `session-copy.spec.ts` → **06-02**
 - [ ] `src/lib/protocol/usb.ts` and `src/lib/transport/ports.ts` — the light seam, **before** the
       session can offer a reconnect without a chunk → **06-03-01**
@@ -282,7 +304,8 @@ the session's whole machine, including all six refusal paths, runs in node again
   approval, already given, and the runbook's row C asks the user whether `port-busy` reads as helpful
   or as jargon.
 - `session.spec.ts` proves every transition, every refusal, the in-flight guard, the replug adoption,
-  the watchdog, `forget()`'s ordering and zero writes. It does **not** prove Chromium behaves as the
+  the missed-disconnect watchdog (including that silence with the port still attached is **not** a
+  state), `forget()`'s ordering and zero writes. It does **not** prove Chromium behaves as the
   research read it — the fakes are modelled on that reading, and the circularity is named in
   `e2e/fake-serial.ts`'s own header. Runbook rows A, B and E close it.
 - `e2e/session.e2e.ts` proves the same machine drives the shipped chrome in two engines, including the
@@ -326,6 +349,7 @@ committing.
 | 06-02 | `session-copy.spec.ts` 2 | make `slotStateOf` return `S6` for `forgotten` |
 | 06-02 | `session-copy.spec.ts` 6 | put an ASCII apostrophe in `REVOKE_EXPLANATION` |
 | 06-02 | `session-copy.spec.ts` 4 | hard-code `TRY ON DEVICE` into `silentBlock` |
+| 06-02 | `session-copy.spec.ts` 6 | add `MANAGED_POLICY` back and watch the `about:` and `MANAGED` halves of the deviation guard go red |
 | 06-02 | the re-export | delete it and watch `try-on.spec.ts` fail to compile |
 | 06-03 | the barrel | delete `export * from "./ports"` and watch `svelte-check` name a call site |
 | 06-03 | `session.spec.ts` 4 | remove the `#busy` guard and count two `requestPort` calls |
@@ -335,10 +359,13 @@ committing.
 | 06-04 | `session.spec.ts` 10 | compare `ev.target === this.#port` in the `connect` handler |
 | 06-04 | `session.spec.ts` 14 | call `forget()` before the teardown |
 | 06-04 | `session.spec.ts` 13 | republish the identity on every fold |
+| 06-04 | `session.spec.ts` 12 | drop the `portIsAttached(...) === false` half of the watchdog condition and watch a silent-but-attached module tear the session down |
 | 06-04 | `session.spec.ts` 15 | add a write inside `#openAdopted` — **both halves observed red separately**, because a Vitest assertion aborts its test at the first failure |
+| 06-07 | `session.e2e.ts` 5 | plant `void transport.write(new Uint8Array([0]))` in `#openAdopted` and watch the shim's `writes()` counter leave zero — the browser half of the never-writes proof, which nothing else in the e2e file would catch |
 | 06-05 | `config-shape.spec.ts` 13 | `import { openZonaPort } from "$lib/transport"` in a `src/lib/ui/` file — **green before the widening, red after** |
 | 06-05 | `config-shape.spec.ts` 13 | `import { identifyOnly } from "$lib/device/try-on"` — proves the allowance is paths, not a namespace |
 | 06-05 | `config-shape.spec.ts` 13 | a static `$lib/protocol` import inside `session-copy.ts` — red on the **walk**, which is what makes the allow-list more than a comment |
+| 06-05 | `config-shape.spec.ts` 13 | a static `$lib/transport` import in `src/routes/+layout.svelte` — the assertion that `FRONT_DOOR_PAGES`'s new entry is genuinely in the walk |
 | 06-05 | `config-shape.spec.ts` 12 | put `dev/tune` into `src/routes/+page.svelte` |
 | 06-05 | `forbidden-instructions.spec.ts` | a page-clear instruction as a string in `session.svelte.ts`, then in a comment |
 | 06-06 | the shim | the bubble self-check: a `connect` listener on `navigator.serial` must see `ev.target` as the port |
@@ -352,6 +379,7 @@ committing.
 | 06-09 | `DeviceNote` | drop the sizing twins and watch the region's height change between S1 and S3 |
 | 06-09 | the layout | move `session.start()` to module scope and watch `npm run build` fail naming `navigator` |
 | 06-10 | `DeviceSlot` | remove the sizing twin and hover S1 |
+| 06-10 | `DeviceSlot`'s tail | replace the 1024px media query with a `window.innerWidth` read in script and watch the label paint without the tail and gain it a frame later |
 | 06-10 | `DeviceDetails` | make the disclosure a focus trap and watch `Tab` become inescapable |
 | 06-10 | `device-ui.spec.ts` 1-6 | six mutations, one per test, listed in the plan |
 | 06-11 | the phone header | make the second row conditional on the session state and watch the coverflow jump on connect |
@@ -393,9 +421,10 @@ committing.
 |---|---|
 | A `BroadcastChannel` "already connected in another tab" detector | Out of scope: a second HANGAR tab produces the identical `NetworkError` as Grid Editor, so the visitor is told to quit an app that is not the problem. Recorded in `deferred-items.md` **with that reasoning**, so Phase 7 — where a mid-write conflict is much worse — inherits it rather than rediscovering it |
 | An idle-timeout close on a hidden tab (PITFALLS C1) | Phase 7: it interacts with an in-flight write |
-| `moduleStale` having a visible consumer | Phase 7: a write to a module that stopped answering is where it matters. Published and rendered nowhere here, deliberately, so the taxonomy stays at nine |
+| Any staleness signal for a module that answers nothing while its port stays attached | Phase 7, with its reasoning recorded in `deferred-items.md`: a write to a module that stopped answering is where it matters, and a tenth state added before there is a write to protect would be rendered by nothing. Phase 6 publishes no such field at all |
 | Any write: snapshot, `PUT BACK`, `KEEP ON DEVICE`, store-to-flash | Phase 7, per the phase boundary in `06-CONTEXT.md` |
 | Android WebUSB and iOS transports | Not here; recorded in `06-CONTEXT.md` as a possible later spike |
+| The managed-computer sentence (`MANAGED_POLICY`) | Not written at all, by 06-02, and recorded in `deferred-items.md` **with the reason**: it needs a non-user-agent signal that desktop Firefox is present, and none exists. Revisit if Firefox ever exposes one. `session-copy.spec.ts` test 6 keeps it out |
 | Reducing the header note to one paragraph (72px) | 06-UI-SPEC open question 7; a copy-placement decision, one block from `DeviceNote.svelte` |
 
 ---
@@ -407,7 +436,8 @@ committing.
 - [ ] No plan carries a literal whole-suite total (the sweep's `3 13` is the documented exception, and
       06-01 confirms it)
 - [ ] The three widened gates each carry their amendment note in the amended file's own header
-- [ ] Every SUMMARY carries the four-name block (`BASE_FILES`, `BASE_TESTS`, `BASE_SWEEP`, `PREV_E2E`)
+- [ ] Every SUMMARY carries the five-name block (`BASE_FILES`, `BASE_TESTS`, `BASE_SWEEP`,
+      `BASE_E2E`, `PREV_E2E`), and `BASE_E2E` is byte-identical in all fourteen
 - [ ] Phase 4's chunk guards, Phase 8's laziness guards, `identity.spec.ts`, `tune-ui.spec.ts`,
       `front-door.spec.ts` and `e2e/first-experience.e2e.ts` are green at the phase gate, the last of
       them **unedited**
