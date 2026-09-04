@@ -14,6 +14,35 @@ const text = (file: string) => readFileSync(root(file), "utf8");
 // comment must never be able to fail (or pass) a structural check.
 const code = (file: string) => text(file).replace(/^\s*\/\/.*$/gm, "");
 
+/**
+ * The front door's static import graph, for the D-21 guard at the end of this
+ * file. `src/lib/ui/` is walked whole rather than listed, so a component added
+ * later is covered without anyone remembering to add it here.
+ */
+const FRONT_DOOR_PAGES = [
+  "src/routes/+page.svelte",
+  "src/routes/c/[id]/+page.svelte",
+  "src/routes/c/[id]/+page.ts",
+];
+const UI_DIR = "src/lib/ui";
+/** Anything that would drag @intechstudio/grid-protocol onto the first paint. */
+const COMPILER_MARKERS = ["vendor", "intechstudio", "lib/pad"];
+/** The symbol that identifies the chunk carrying the protocol package. */
+const PROTOCOL_SYMBOL = "GRID_PARAMETER_ELEMENT_POTMETER";
+
+/**
+ * Comments removed before a structural match, in the one uniform form used
+ * across this phase: line, block and markup. Deliberately backslash-free.
+ * The components below name the vendored tree and the protocol package in
+ * their own comments - correctly, since explaining why they are absent is the
+ * point - so a scan over raw source would go red on correct code.
+ */
+const stripComments = (source: string) =>
+  source
+    .replace(/^[ ]*[/][/].*$/gm, "")
+    .replace(/[/][*][^]*?[*][/]/g, "")
+    .replace(/<!--[^]*?-->/g, "");
+
 describe("build configuration shape", () => {
   it("has no svelte.config file to shadow the Vite config", () => {
     // Kit >= 2.62.0 silently IGNORES options passed to sveltekit() in
@@ -144,5 +173,94 @@ describe("build configuration shape", () => {
     // Without this the assertion below would pass on an empty walk.
     expect(scanned.length, "routes were actually read").toBeGreaterThan(0);
     expect(mentions).toEqual([]);
+  });
+
+  // D-21 and 04-RESEARCH §Pitfall 9, as two independent guards: one over the
+  // source, one over the built artefact. Both exist because neither catches
+  // what the other does - the source scan goes red the moment someone writes
+  // the import, before any build has run, and the artefact scan goes red if a
+  // future bundler or a transitive re-export puts the chunk on the page by a
+  // route no source scan would recognise.
+
+  it("the front door never reaches the compiler at module scope", () => {
+    // MEASURED REASON, not a preference. src/vendor/botor/_pad.ts imports
+    // @intechstudio/grid-protocol at module scope, the package declares no
+    // sideEffects, and the resulting chunk is 131,101 bytes. A static import
+    // from any of these files puts all of it on the critical path of a page
+    // whose entire job is to paint in under two seconds.
+    //
+    // The matcher is anchored to the `from` form on purpose. Coverflow.svelte
+    // reaches the simulator through import("../../vendor/botor/pad-sim") inside
+    // onMount, and that dynamic import is the rule being obeyed rather than a
+    // violation of it - a matcher that saw any occurrence of the specifier
+    // would forbid the correct implementation.
+    const files = [
+      ...FRONT_DOOR_PAGES,
+      ...readdirSync(root(UI_DIR))
+        .map(String)
+        .filter((name) => !name.endsWith(".spec.ts"))
+        .map((name) => `${UI_DIR}/${name}`),
+    ];
+
+    const specifiers: { file: string; specifier: string }[] = [];
+    for (const file of files) {
+      const source = stripComments(text(file));
+      for (const match of source.matchAll(/from\s*["']([^"']+)["']/g)) {
+        specifiers.push({ file, specifier: match[1] });
+      }
+    }
+
+    // Both guards against a silently broken matcher: an empty walk and an
+    // empty match set would each make the assertion below pass vacuously.
+    expect(files.length, "front-door files were listed").toBeGreaterThan(3);
+    expect(
+      specifiers.length,
+      "static imports were actually collected",
+    ).toBeGreaterThan(0);
+
+    const offenders = specifiers.filter(({ specifier }) =>
+      COMPILER_MARKERS.some((marker) => specifier.includes(marker)),
+    );
+    expect(
+      offenders.map((o) => `${o.file} -> ${o.specifier}`),
+      "a front-door file imports the compiler at module scope",
+    ).toEqual([]);
+  });
+
+  it("the built front door does not preload the protocol chunk", () => {
+    // In the style of licence-notices.spec.ts's last test: guarded on build/
+    // existing, and asserting in BOTH branches because requireAssertions is on.
+    const chunks = root("build/_app/immutable/chunks");
+    if (!existsSync(chunks)) {
+      expect(existsSync(chunks)).toBe(false);
+      return;
+    }
+
+    const dir = fileURLToPath(chunks);
+    const carriers = readdirSync(dir)
+      .map(String)
+      .filter((name) => name.endsWith(".js"))
+      .filter((name) =>
+        readFileSync(join(dir, name), "utf8").includes(PROTOCOL_SYMBOL),
+      );
+
+    // If the probe stops finding the chunk it has gone blind, and a blind guard
+    // must fail rather than pass. The symbol is the one 04-RESEARCH measured
+    // the 131,101-byte chunk by.
+    expect(
+      carriers.length,
+      `no chunk contains ${PROTOCOL_SYMBOL} — this guard can no longer see the protocol package and is not proving anything`,
+    ).toBeGreaterThan(0);
+
+    // The deep-link route is held to the same line as the front door: a shared
+    // link must open as light as the shelf does.
+    for (const page of ["build/index.html", "build/c/aurora/index.html"]) {
+      const html = text(page);
+      const referenced = carriers.filter((name) => html.includes(name));
+      expect(
+        referenced,
+        `${page} references the chunk carrying the protocol package`,
+      ).toEqual([]);
+    }
   });
 });
