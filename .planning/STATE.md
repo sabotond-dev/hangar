@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-05-PLAN.md
-last_updated: "2026-09-04T21:56:00.000Z"
-last_activity: 2026-09-04
+stopped_at: Completed 05.1-06-PLAN.md
+last_updated: "2026-09-05T00:35:00.000Z"
+last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 50
-  percent: 89
+  completed_plans: 51
+  percent: 91
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 06 (next)
-Status: Phase 5.1 in progress — 05.1-05 complete (5 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
-Last activity: 2026-09-04
+Plan: 07 (next)
+Status: Phase 5.1 in progress — 05.1-06 complete (6 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Last activity: 2026-09-05
 
-Progress: [█████████░] 89% (50 of 56 plans)
+Progress: [█████████░] 91% (51 of 56 plans)
 
 ## Performance Metrics
 
@@ -301,6 +301,13 @@ Recent decisions affecting current work:
 - [Phase 05.1]: The `/c/aurora/` non-regression is asserted by STEPPING, not by counting pads: `visibleWindow` renders seven of the eight-entry ring, which is true of any ring of five or more, so the e2e presses ArrowLeft from the opening centre and requires the wrap onto the ring's LAST entry
 - [Phase 05.1]: MEASURED: `scripts/gen-og.mjs` renders all sixteen entries in 368 ms (research: 382 ms) and the whole script including Vite's SSR boot is 2,996–3,060 ms (research: 2,155 ms) — the difference is boot, not rendering. Exactly three of the sixteen images carry zero LED pixels (ghost, morph, tpad, 4,192 bytes each, 6,404 structural pixels), and they are exactly the three entries declaring restsBlack, so `build.spec.ts` test 3's exemption is by the declared fact and not by a list
 - [Phase 05.1]: `vite dev` binds `[::1]` only on this machine, so a probe that avoids spending a build must be curled at `http://[::1]:PORT/` and not at 127.0.0.1; and a scratch script cannot `import "playwright"` from outside the repo — import it by absolute file:// URL out of the repo's own node_modules, the same shape 05.1-01 recorded for Vite
+- [Phase 05.1]: A browse card's plate is an ANCHOR authored in CatalogCard.svelte, not NamePlate.svelte. NamePlate's name is a `<button>` carrying `Choose {name}` and a `disabled` state; a card navigates rather than choosing, and a button beside the overlay link would be a second tab stop inside a card — the one thing the roving-tabindex model cannot tolerate. The card restates the plate's four declarations (44px, 6px radius, --color-line, Heading 20px/600) and says so in a comment naming the component it did not widen (05.1-06)
+- [Phase 05.1]: The laziness seam was OBSERVED on a served wall, not argued: a cold load of sixteen cards at 1280x720 registers the EIGHT ported engines whose cards are within the observer's 200px margin and fetches ZERO .wasm; scrolling the Lua row into view registers four more and fetches exactly ONE glue.wasm. The build decision is per card and the import sits inside the intersection callback — never in onMount, which is the moment 05.1-10's cold-load assertion is taken
+- [Phase 05.1]: The browse wall keeps TWO IntersectionObservers answering two different questions on the same { threshold: 0, rootMargin: "200px" } geometry — the grid's own decides when to BUILD an engine, SimHost's decides when to TICK it. SimHost gained no visibility callback and no new API
+- [Phase 05.1]: MEASURED, and it contradicts a sentence in 05.1-UI-SPEC Screen 2c: with the grid's approved `align-items: start`, the card's approved `margin-block-start: auto` on the tag row is INERT — cards in a row end where their content ends (row 1 at 1280px: 524, 500, 500, 524). What actually lines the sixteen pads up is the RESERVED 16px FEATURED band, and that holds exactly (padTop 56, 572, 1089, 1661, identical within every row, featured or not). Both declarations shipped verbatim; changing either is a design decision, not a fix
+- [Phase 05.1]: A `bind:this` inside an `{#if}` must be a rune. Svelte assigns it from a template effect and warns non_reactive_update on a plain binding there, which Coverflow.svelte's unconditional `stage` never trips. `$state` does not proxy a DOM element (only plain objects and arrays are proxied) and the `<ul>` is never read on a tick, so the standing rule — no ENGINE, CANVAS or FRAME BUFFER in a rune — is untouched. focusCard takes the list off the keydown event's currentTarget so nothing a template handler can reach reads the binding
+- [Phase 05.1]: The `$lib/sim/engine` static-import mutation in a `src/lib/ui/` component is INVISIBLE to every guard in the repository today, and that was observed rather than assumed (14 passed with the static import in place): COMPILER_MARKERS matches specifier TEXT and `$lib/sim/engine` contains none of vendor/intechstudio/lib/pad, while test 14 cannot see the file until `/browse/` exists in build/. It is carried as a row in 05.1-08's mutation table. The `../../vendor/botor/pad-sim` mutation IS red today and names the file
+- [Phase 05.1]: One tab stop, measured: with the roving tabindex, crossing the wall from the control before it to the control after it costs TWO Tab presses; with every card tabbable it costs SEVENTEEN. Space still scrolls (scrollY 0 → 308 with focus unmoved), Alt+ArrowRight is never intercepted, and Enter follows the link natively including the static host's trailing-slash redirect
 
 ### Pending Todos
 
@@ -317,6 +324,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T21:56:00.000Z
-Stopped at: Completed 05.1-05-PLAN.md
+Last session: 2026-09-05T00:35:00.000Z
+Stopped at: Completed 05.1-06-PLAN.md
 Resume file: None

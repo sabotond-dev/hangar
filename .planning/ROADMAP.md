@@ -159,7 +159,7 @@ Plans:
 - [x] 05.1-03-PLAN.md — query.ts, return.ts and SimHost.repaintAll: the state that survives a round trip (wave 3)
 - [x] 05.1-04-PLAN.md — The row of one: Coverflow's row prop, the arrow-less plate, and the tuner that hands its engine back (wave 4)
 - [x] 05.1-05-PLAN.md — The routed set is sixteen: entries(), gen-og and the four gates D-07 invalidates (wave 5)
-- [ ] 05.1-06-PLAN.md — CatalogCard and BrowseGrid: sixteen live pads, one clock, one tab stop (wave 6)
+- [x] 05.1-06-PLAN.md — CatalogCard and BrowseGrid: sixteen live pads, one clock, one tab stop (wave 6)
 - [ ] 05.1-07-PLAN.md — The toolbar: search, the sort word row, the tag chips and the one live region (wave 7)
 - [ ] 05.1-08-PLAN.md — /browse/ itself, the lifted fidelity sentence, and the two chunk guards that could not see it (wave 8)
 - [ ] 05.1-09-PLAN.md — The header slot: BROWSE ALL, BACK TO BROWSE and the round trip walked by hand (wave 9)
@@ -249,7 +249,7 @@ Phases 6 and 7.
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
-| 5.1. Catalog Browse | 5/11 | In progress | - |
+| 5.1. Catalog Browse | 6/11 | In progress | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
