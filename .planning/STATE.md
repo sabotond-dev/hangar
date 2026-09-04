@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-06-PLAN.md (the living row); baseline for 04-07: quick 36/527, sweep 1/9, e2e 13"
-last_updated: "2026-09-04T02:50:04.687Z"
+stopped_at: "Completed 04-07-PLAN.md (the name plate, the fidelity line and the opening); baseline for 04-08: quick 37/532, sweep 1/9, e2e 16"
+last_updated: "2026-09-04T03:29:29.392Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 33
-  completed_plans: 23
-  percent: 70
+  completed_plans: 24
+  percent: 73
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 04 (first-experience)
-Plan: 7 of 9 in current phase
+Plan: 8 of 9 in current phase
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [███████░░░] 70%
+Progress: [███████░░░] 73%
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [███████░░░] 70%
 | Phase 04 P04 | 18 min | 2 tasks | 5 files |
 | Phase 04 P05 | 14 min | 2 tasks | 2 files |
 | Phase 04 P06 | 41 min | 3 tasks | 7 files |
+| Phase 04 P07 | 38 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -162,6 +163,11 @@ Recent decisions affecting current work:
 - [Phase 04]: The pad's four layers are one canvas plus three static CSS layers: PadCanvas owns the element and its role=img name but never takes a 2D context, sets a backing store or paints - SimHost.register does all three, so exactly one place decides the 9x9 store and there is one draw call per pad per paint
 - [Phase 04]: The CSS 3D scene is split across three elements: clip and edge mask on the outer .band (no preserve-3d), perspective on the inner .stage, filter: brightness() on the leaf .slot - measured in Chromium at 1280x720 the row renders mirror-symmetric about x=640 with the hero 374px and the +-3 slots 138px, so the ladder is provably not flattened
 - [Phase 04]: Three lint rules are suppressed with the reason written beside each: role=img on a canvas and role=option without a tabindex are the approved accessibility contract, and prefer-svelte-reactivity is backwards here because SvelteMap is the reactive proxy that would sit inside the 100 Hz loop - an explanation inside a svelte-ignore comment is parsed as further rule names, so it goes in a separate comment
+- [Phase 04]: NamePlate takes a fifth prop, unavailable, because the plan's four declared props carry no way to know an entry's engine could not be built - and the plate must say '{name} - unavailable' rather than pretend it is playable
+- [Phase 04]: Splash takes a second callback, ondissolve, because the header wordmark has to reach full strength AS the flight lands and the dissolve does not start at a fixed time - any key, click or wheel cuts to it early
+- [Phase 04]: The reduced-motion preference is read in both halves: a plain @media block for anything CSS can express, and svelte/motion's live prefersReducedMotion for the two durations only JavaScript can set - a Svelte transition length and a setTimeout
+- [Phase 04]: test.use({ reducedMotion: 'reduce' }) alone left window.matchMedia reporting false in Playwright 1.62.1, so the reduced-motion e2e test also calls page.emulateMedia before goto; HANGAR reads the preference in JavaScript, so the declarative option alone would have tested the full-motion path under a reduced-motion title
+- [Phase 04]: The glyph field's block extents are a fraction of the viewport, not a fixed cell count: absolute cells make confetti at 1920px and a wall on a phone. ~52% block coverage at every width
 
 ### Pending Todos
 
@@ -177,6 +183,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T02:50:04.680Z
-Stopped at: Completed 04-06-PLAN.md (the living row); baseline for 04-07: quick 36/527, sweep 1/9, e2e 13
+Last session: 2026-09-04T03:29:19.063Z
+Stopped at: Completed 04-07-PLAN.md (the name plate, the fidelity line and the opening); baseline for 04-08: quick 37/532, sweep 1/9, e2e 16
 Resume file: None
