@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-04-PLAN.md
-last_updated: "2026-09-04T06:20:16.657Z"
+stopped_at: Completed 08-05-PLAN.md
+last_updated: "2026-09-04T06:39:29.017Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 33
-  completed_plans: 29
-  percent: 88
+  completed_plans: 30
+  percent: 91
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 08
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [█████████░] 88%
 | Phase 08 P02 | 41 min | 3 tasks | 5 files |
 | Phase 08 P03 | 35 min | 2 tasks | 5 files |
 | Phase 08 P04 | 25 min | 3 tasks | 7 files |
+| Phase 08 P05 | 22 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -189,6 +190,9 @@ Recent decisions affecting current work:
 - [Phase 08]: EUCLID's description is 109 characters, not the plan's 111 - catalog.spec.ts caps a card description at 110, so the plan's own verbatim string could not pass the plan's own prerequisite gate
 - [Phase 08]: The pitfall-1 guard is a FLOOR on the layer timeout (>= 65535 - 1024), not equality with 65535 - grid_led_tick decrements every non-zero timeout each tick and the host's Lua half and sim.tick() are atomic, so an equality test is unobservable from outside and the plan's own negative check passed until it was corrected
 - [Phase 08]: New Lua entries join EXCLUDED_FROM_ROW, never FRONT_DOOR (D-18); front-door.spec.ts asserts the partition and derives every number from data, so it needed no change - the first Lua entry that DOES join the row must revisit its per-row preview === padsim assertion
+- [Phase 08]: Every needle in plan 08-05's three substitution tables matched the canonical Lua exactly once in the expected event - the canonical text and the tables were extracted from the PLAN by script rather than retyped, so a mistyped needle was structurally impossible
+- [Phase 08]: GHOST's Timer renders 333 and not the research's 331, and the difference is exactly the two characters of @CCX+1 in place of the literal 17 - one knob moves both CC numbers so the pair can never drift apart
+- [Phase 08]: ARC's two glt(a,2,65535) keepers are the legitimate form and stay green: the pitfall-1 guard needs a near-maximum timeout TOGETHER WITH a decay rate at or above 200, and the swirl's rate is 4 at rest and at most 120 under a finger
 
 ### Pending Todos
 
@@ -204,6 +208,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T06:20:15.904Z
-Stopped at: Completed 08-04-PLAN.md
+Last session: 2026-09-04T06:39:29.010Z
+Stopped at: Completed 08-05-PLAN.md
 Resume file: None

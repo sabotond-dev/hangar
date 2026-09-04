@@ -179,7 +179,7 @@ Plans:
 - [x] 08-02-PLAN.md — wasmoon at an exact pin, its licence, the lazy gate and the Grid API host (wave 2)
 - [x] 08-03-PLAN.md — The SimEngine seam and the nine-preset Lua parity gate (wave 3)
 - [x] 08-04-PLAN.md — EUCLID, and the CONT-02 gate: canonical form, budget, subset, knob sweep, execution (wave 4)
-- [ ] 08-05-PLAN.md — CHORUS, ARC and GHOST (wave 5)
+- [x] 08-05-PLAN.md — CHORUS, ARC and GHOST (wave 5)
 - [ ] 08-06-PLAN.md — LATTICE, MORPH and SONAR; the floor of six cleared with seven (wave 6)
 - [ ] 08-07-PLAN.md — The production-build laziness proof and the testing docs (wave 7)
 - [ ] 08-08-PLAN.md — docs/HARDWARE-AUDITION.md and the hardware checkpoint (wave 8)
@@ -207,7 +207,7 @@ Phases 6 and 7.
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
-| 8. New Configurations | 2/8 | In Progress|  |
+| 8. New Configurations | 5/8 | In Progress|  |
 
 ## Requirement Coverage
 
