@@ -24,4 +24,6 @@ Full licence texts for every package below are in `licenses/`.
 
 - [@fontsource/quicksand@5.3.0](https://github.com/fontsource/font-files) — OFL-1.1
 - [@intechstudio/grid-protocol@1.20260825.1135](https://github.com/intechstudio/grid-protocol) — GPL-3.0 (inferred from the shipped LICENSE file)
+- [@types/emscripten@1.39.10](https://github.com/DefinitelyTyped/DefinitelyTyped) — MIT
 - [@wasm-fmt/lua_fmt@0.2.0](https://github.com/wasm-fmt/lua_fmt) — MIT
+- [wasmoon@1.16.0](https://github.com/ceifa/wasmoon) — MIT
