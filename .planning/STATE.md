@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: verifying
 stopped_at: Completed 05-12-PLAN.md
-last_updated: "2026-09-04T18:27:19.716Z"
+last_updated: "2026-09-04T18:41:07.870Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 
 ## Current Position
 
-Phase: 5
-Plan: 12 of 12 (05-12 complete)
+Phase: 08
+Plan: Not started
 Status: Phase 5 complete (12 of 12) — ready for verification; the orchestrator deploys after it
 Last activity: 2026-09-04
 
@@ -276,9 +276,9 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - [Phase 2] RESOLVED 2026-09-03 by the hardware run (02-04): a bare browser page completed the whole cycle against a real ZONA RevH on firmware 1.5.5, active page 3, ~22:15-22:23 UTC, with zero timeouts, zero NACKs and zero refused frames; and the host heartbeat is NOT required - arm B ran it off throughout and every write and store was still acknowledged. What remains untested against hardware is every FAILURE path: no unplug mid-write, no port conflict (checklist step 0 was not exercised), no timeout and no negative acknowledgement has ever been seen from a real module.
-- [Phase 5] The base36 stamp checksum is a known open hole in prior art (a relabelled stamp can decode to a different card) — needs its own design pass before sharing goes public.
+- [Phase 5] RESOLVED 2026-09-04 by the entry-consistency check (05-05, `stamp.ts` `decodeFor`): a stamp whose preset does not match the route's entry lands `unreadable` on the base configuration; `#z.pdial` under aurora is refused, `#z.paurora` restores. The base36 stamp checksum hole in prior art (a relabelled stamp decoding to a different card) is closed for HANGAR's routes.
 - [Phase 7] Flash unplug-during-store ordering: firmware writes Setup before Timer to flash, opposite of the RAM write order; mitigation needs validation against real hardware timing.
-- [Phase 5] The 941/908 over-budget preset combination noted in PROJECT.md is known pre-existing compiler debt; it surfaces during the full-range knob sweep.
+- [Phase 5] RESOLVED 2026-09-04 by the reachability sweep (05-05): 32,852 knob states costed, zero over 908 (tpad worst 907); the 941/908 figure is a default-state debt outside any reachable knob range. TUNE-04/05 ship as tested guards reachable only through `/dev/tune/`'s real reserve.
 - All *(hardware)* success criteria require the user personally, with a real ZONA. Web Serial is not automatable.
 - [Phase 8] The hardware audition (docs/HARDWARE-AUDITION.md, twelve rows) was PRESENTED to the user and is UNANSWERED - no row has been run on a real ZONA. Every perceptual and hardware-timing claim about the seven configurations is still unverified, and MIRROR stays blocked (D-04) until row 11 is answered.
 
