@@ -83,11 +83,26 @@ function fakeClock() {
   };
 }
 
-type Recording = HTMLCanvasElement & { paints: number[] };
+type Recording = HTMLCanvasElement & {
+  paints: number[];
+  /**
+   * Every value ever written to `width`, in order.
+   *
+   * `width` is a recorded accessor rather than a plain field because per the
+   * HTML specification a write to it - of ANY value, including the same one -
+   * resets the bitmap, and `unregister()` writes 0. A test that only read the
+   * final value would miss a tear-down that was immediately undone, which is
+   * exactly what a repaint implemented as `register()` does (05-SUMMARY records
+   * the same 0-then-9 pair being measured in Chromium).
+   */
+  widths: number[];
+};
 
 /** A canvas whose context draws nothing and records when it was painted. */
 function fakeCanvas(now: () => number): Recording {
   const paints: number[] = [];
+  const widths: number[] = [];
+  let width = 0;
   const ctx = {
     createImageData: (w: number, h: number) => ({
       width: w,
@@ -99,9 +114,16 @@ function fakeCanvas(now: () => number): Recording {
     },
   };
   return {
-    width: 0,
+    get width(): number {
+      return width;
+    },
+    set width(value: number) {
+      width = value;
+      widths.push(value);
+    },
     height: 0,
     paints,
+    widths,
     getContext: () => ctx,
   } as unknown as Recording;
 }
@@ -165,15 +187,18 @@ function fakeEngine(stopAfterTicks = Number.POSITIVE_INFINITY) {
  */
 function fakeObserver() {
   const watched = new Map<unknown, (intersecting: boolean) => void>();
+  const handles: (() => void)[] = [];
   let unobserved = 0;
   return {
     observe: (el: unknown, cb: (intersecting: boolean) => void) => {
       watched.set(el, cb);
       cb(true);
-      return () => {
+      const off = (): void => {
         unobserved++;
         watched.delete(el);
       };
+      handles.push(off);
+      return off;
     },
     report(el: unknown, intersecting: boolean): void {
       watched.get(el)?.(intersecting);
@@ -183,6 +208,14 @@ function fakeObserver() {
     },
     get watching(): number {
       return watched.size;
+    },
+    /**
+     * Every unobserve function ever handed out, in creation order. A second
+     * observe() for the same pad appends a NEW closure, so comparing this list
+     * by reference is how a test proves an observer was not re-created.
+     */
+    get handles(): readonly (() => void)[] {
+      return handles.slice();
     },
   };
 }
@@ -700,5 +733,116 @@ describe("the simulator host (src/lib/sim/host.ts)", () => {
     ).not.toThrow();
 
     h.host.destroy();
+  });
+
+  it("repaints every registered pad without touching an engine, an observer or a backing store", () => {
+    const h = harness();
+    // Engines that settle, so the loop is quiet before repaintAll is called and
+    // any tick or frame it caused is unambiguously its own.
+    const pads = ["a", "b", "c"].map((id) => {
+      const canvas = h.canvas();
+      const engine = fakeEngine(3);
+      h.host.register(id, canvas, engine);
+      return { id, canvas, engine };
+    });
+
+    h.clock.step(0);
+    h.clock.step(30);
+    expect(h.clock.pending, "the row settled before the repaint").toBe(0);
+
+    const paintsBefore = pads.map((pad) => pad.canvas.paints.length);
+    const widthsBefore = pads.map((pad) => pad.canvas.widths.length);
+    const ticksBefore = pads.map((pad) => pad.engine.calls.tick);
+    const resetsBefore = pads.map((pad) => pad.engine.calls.reset);
+    const observersBefore = h.io.handles;
+    const rafsBefore = h.clock.rafCalls;
+    const unobservedBefore = h.io.unobserved;
+
+    h.host.repaintAll();
+
+    pads.forEach((pad, i) => {
+      expect(
+        pad.canvas.paints.length - paintsBefore[i],
+        `${pad.id} did not receive exactly one repaint`,
+      ).toBe(1);
+      expect(
+        pad.canvas.paints[pad.canvas.paints.length - 1],
+        `${pad.id} was painted at a timestamp that is not now`,
+      ).toBe(h.clock.now);
+      // The failure register() would produce, asserted where it is visible:
+      // register() calls unregister(), which sets canvas.width = 0 - and then
+      // register() sets it back to 9, so the FINAL value is innocent and only
+      // the write is evidence. A zero-width write drops the backing store.
+      expect(
+        pad.canvas.widths.filter((w) => w === 0),
+        `${pad.id}'s backing store was torn down by the repaint`,
+      ).toEqual([]);
+      expect(
+        pad.canvas.widths.length,
+        `${pad.id}'s backing store was written to at all by the repaint`,
+      ).toBe(widthsBefore[i]);
+      expect(
+        pad.canvas.width,
+        `${pad.id} lost its backing store to the repaint`,
+      ).toBe(GRID_SIDE);
+      expect(
+        pad.canvas.height,
+        `${pad.id} lost its backing store height to the repaint`,
+      ).toBe(GRID_SIDE);
+      expect(pad.engine.calls.tick, `${pad.id} was ticked by a repaint`).toBe(
+        ticksBefore[i],
+      );
+      expect(
+        pad.engine.calls.reset,
+        `${pad.id} was restarted by a repaint`,
+      ).toBe(resetsBefore[i]);
+    });
+
+    const observersAfter = h.io.handles;
+    expect(
+      observersAfter.length,
+      "an observer was created by the repaint",
+    ).toBe(observersBefore.length);
+    observersAfter.forEach((off, i) => {
+      expect(off, `pad ${i}'s observer was re-created by the repaint`).toBe(
+        observersBefore[i],
+      );
+    });
+    expect(h.io.unobserved, "an observer was dropped by the repaint").toBe(
+      unobservedBefore,
+    );
+    expect(h.io.watching, "the three pads are each watched once").toBe(3);
+
+    // Repainting is not a reason to start the loop. A wall of settled still
+    // pads must stay at zero CPU after a sort has moved every card.
+    expect(h.clock.rafCalls, "the repaint asked for a frame").toBe(rafsBefore);
+    expect(h.clock.pending, "the repaint restarted the loop").toBe(0);
+
+    h.host.destroy();
+  });
+
+  it("is a no-op after destroy", () => {
+    const h = harness();
+    const canvas = h.canvas();
+    const engine = fakeEngine();
+    h.host.register("a", canvas, engine);
+    h.clock.step(0);
+    h.clock.step(30);
+
+    h.host.destroy();
+    const paints = canvas.paints.length;
+    const ticks = engine.calls.tick;
+
+    expect(
+      () => h.host.repaintAll(),
+      "a repaint after destroy threw instead of doing nothing",
+    ).not.toThrow();
+
+    expect(
+      canvas.paints.length,
+      "a repaint after destroy painted a released backing store",
+    ).toBe(paints);
+    expect(engine.calls.tick, "a repaint after destroy ticked").toBe(ticks);
+    expect(h.clock.pending, "a repaint after destroy queued a frame").toBe(0);
   });
 });

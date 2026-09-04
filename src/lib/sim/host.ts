@@ -278,6 +278,26 @@ export class SimHost {
   }
 
   /**
+   * Repaint every registered pad from its engine's current frame, without
+   * touching the engines, the observers or the backing stores.
+   *
+   * NOT register(). register() calls unregister(), which sets canvas.width = 0
+   * and re-enters with intersecting: false - the exact bug replaceEngine was
+   * added to avoid in Phase 5. This exists for one caller: the browse grid, after
+   * a sort or a filter has moved cards in the DOM. A still pad does not tick, so
+   * nothing else would repaint it, and whether a canvas bitmap survives a
+   * re-parenting move is not a question this repository wants to depend on.
+   *
+   * It does NOT call wake(). Repainting is not a reason to start the loop, and a
+   * wall of settled still pads must stay at zero CPU.
+   */
+  repaintAll(): void {
+    if (this.destroyed) return;
+    const now = this.deps.now();
+    for (const entry of this.entries.values()) this.paint(entry, now);
+  }
+
+  /**
    * Drop one pad, releasing its backing store. The engine is untouched: it
    * belongs to the session, not to one mount.
    */
