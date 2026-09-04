@@ -7,6 +7,7 @@
 //   import { CATALOG, byId, build, type CatalogEntry } from "$lib/catalog";
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { CHORUS } from "./entries/chorus";
 import { EUCLID } from "./entries/euclid";
 import { PORTED } from "./entries/ported";
 import type { CatalogEntry } from "./types";
@@ -30,9 +31,11 @@ export type {
 export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   ...PORTED,
   EUCLID,
+  CHORUS,
 ]);
 
 export { EUCLID } from "./entries/euclid";
+export { CHORUS } from "./entries/chorus";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
