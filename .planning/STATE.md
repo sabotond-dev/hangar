@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-07-PLAN.md
-last_updated: "2026-09-05T01:00:00.000Z"
+stopped_at: Completed 05.1-08-PLAN.md
+last_updated: "2026-09-05T01:35:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 52
-  percent: 93
+  completed_plans: 53
+  percent: 95
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 08 (next)
-Status: Phase 5.1 in progress — 05.1-07 complete (7 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 09 (next)
+Status: Phase 5.1 in progress — 05.1-08 complete (8 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-05
 
-Progress: [█████████░] 93% (52 of 56 plans)
+Progress: [█████████░] 95% (53 of 56 plans)
 
 ## Performance Metrics
 
@@ -111,6 +111,7 @@ Progress: [█████████░] 93% (52 of 56 plans)
 | Phase 05.1 P05 | 28 min | 3 tasks | 12 files |
 | Phase 05.1 P06 | 61 min | 3 tasks | 2 files |
 | Phase 05.1 P07 | 37 min | 3 tasks | 2 files |
+| Phase 05.1 P08 | 41 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -316,6 +317,11 @@ Recent decisions affecting current work:
 - [Phase 05.1]: A live region's sentence is composed at FLUSH time from the current props, not when the timer was scheduled. Measured with a MutationObserver over the region: typing g-h-o-s-t at 60ms says it ONCE through the 500ms trailing timer and THREE times with the same write moved into the keystroke handler - three rather than five because the last two characters leave the count unchanged, so Svelte never writes the DOM
 - [Phase 05.1]: THERE ARE TWO aria-live ELEMENTS ON EVERY HYDRATED PAGE OF THIS SITE. The second is Kit's own `<div id="svelte-announcer" aria-live="assertive" aria-atomic="true">`, emitted by the generated root component (node_modules/@sveltejs/kit/src/core/sync/write_root.js:177) behind {#if mounted}. Any "exactly one live region" assertion must scope to a component's source or exclude that id, or it goes red on correct code (05.1-07)
 - [Phase 05.1]: Filtering sixteen entries is SYNCHRONOUS on every keystroke and only the announcement is debounced, and the negative check is stronger than the spec's wording: with a 300ms debounce around the filter callback the grid does not lag a keystroke behind, it does not move AT ALL while a visitor types and then jumps (16, 16, 16, 16, 16 then 1) against the shipped 15, 8, 1, 1, 1
+- [Phase 05.1]: /browse/ has NO +page.ts, against 05.1-UI-SPEC.md's own Component Inventory: src/routes/+layout.ts already declares prerender and trailingSlash site-wide and vite.config.ts prerender.entries ["*"] picks the route up, while a load on this route is where disable_search() would make url.searchParams throw at build time and not in vite dev
+- [Phase 05.1]: The browse filter state is seeded at COMPONENT INIT behind a browser guard, not inside onMount as D-16 words it - and the flash the plan predicted DOES NOT REPRODUCE on Svelte 5.57, because onMount flushes in the same task as hydration and no frame is painted between the two states (measured twice, MutationObserver batches and an end-to-end Back-scroll, identical on both builds). What the onMount seed DOES break is the live region: it announces "1 of 16 configurations." on arrival at /browse/?q=aurora, where the shipped page is correctly silent. That is the negative check to write from now on
+- [Phase 05.1]: config-shape.spec.ts test 13 grew a COMPILE_SURFACE rule beside COMPILER_MARKERS, because the markers match SPECIFIER TEXT and are blind to $lib/catalog, $lib/sim/engine and $lib/tune/model, all three of which reach src/vendor/botor/_pad at module scope. Relative forms are normalised to a repo-relative path, `import type` and `await import()` are exempt, exactly two catalog paths (front-door, listing) are permitted and never a prefix, and a pre-exemption non-vacuity assertion tells an empty offender list apart from a blind normaliser. The replacement statement matcher was proved to collect an identical specifier list to the one it replaced across all 34 walked files, so the COMPILER_MARKERS half was not weakened
+- [Phase 05.1]: A mutation the bundler can delete is not a negative check: the first attempt at test 14's row added an UNUSED `import { CATALOG } from "$lib/catalog"` to /browse/, which Vite would have tree-shaken, so the guard would have stayed green on a page that carries no chunk. The import was made load-bearing before the build, and only then did build/browse/index.html reach the 131 KB chunk
+- [Phase 05.1]: The default Featured order renders ARC, Aurora, CHORUS, EUCLID, LATTICE, MORPH, Nine pads, Pinwheel then Dial, Four faders, GHOST, Joystick, Radar, SONAR, Starfield, Trackpad - featured-first then CODE POINT, so "ARC" precedes "Aurora" and the eight uppercase Lua names interleave with the eight mixed-case ported ones. It is D-10 as amended working as specified; the alternative is the case-folding collator D-10 deliberately rejected
 
 ### Pending Todos
 
@@ -332,6 +338,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T01:00:00.000Z
-Stopped at: Completed 05.1-07-PLAN.md
+Last session: 2026-09-05T01:35:00.000Z
+Stopped at: Completed 05.1-08-PLAN.md
 Resume file: None

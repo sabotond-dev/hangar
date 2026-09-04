@@ -161,7 +161,7 @@ Plans:
 - [x] 05.1-05-PLAN.md — The routed set is sixteen: entries(), gen-og and the four gates D-07 invalidates (wave 5)
 - [x] 05.1-06-PLAN.md — CatalogCard and BrowseGrid: sixteen live pads, one clock, one tab stop (wave 6)
 - [x] 05.1-07-PLAN.md — The toolbar: search, the sort word row, the tag chips and the one live region (wave 7)
-- [ ] 05.1-08-PLAN.md — /browse/ itself, the lifted fidelity sentence, and the two chunk guards that could not see it (wave 8)
+- [x] 05.1-08-PLAN.md — /browse/ itself, the lifted fidelity sentence, and the two chunk guards that could not see it (wave 8)
 - [ ] 05.1-09-PLAN.md — The header slot: BROWSE ALL, BACK TO BROWSE and the round trip walked by hand (wave 9)
 - [ ] 05.1-10-PLAN.md — e2e/browse.e2e.ts: seven tests, the frame measurement and the WebAssembly proof (wave 10)
 - [ ] 05.1-11-PLAN.md — The keyboard, the return, the D-18 hazard, the phone, and the phase gate (wave 11)
