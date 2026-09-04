@@ -180,14 +180,15 @@ PREV-01: a row where everything changed between samples would be as wrong as one
 
 **The paint count is recorded, never gated.** Test 11 patches
 `CanvasRenderingContext2D.prototype.putImageData` in an init script and counts pad frames for two
-seconds on the built site. Observed on this machine on 2026-09-04 at the default 1280x720 viewport:
-**212 and 215** paints in two seconds when the file runs alone, and **139** in the same window when
-the whole suite runs with five Playwright workers competing for the machine. The test asserts only
-that the number is greater than zero. That is deliberate: the honest ceiling on a four-core laptop
-with integrated graphics is unmeasured, the three numbers above already span a 1.5x range purely on
-how busy the machine was, and a frame-rate threshold asserted here would go red on someone else's
-hardware for a reason that is not a regression. A real frame-rate budget needs hardware this project
-has not measured on, and belongs with that measurement rather than in a test.
+seconds on the built site. Observed on this machine on 2026-09-04 at the default 1280x720 viewport,
+across four runs: **139, 212, 215 and 216**. The 139 came from a whole-suite run with five Playwright
+workers competing for the machine; the other three, including a second whole-suite run, sat within
+two percent of each other. The test asserts only that the number is greater than zero. That is
+deliberate: the honest ceiling on a four-core laptop with integrated graphics is unmeasured, those
+four numbers already span a 1.55x range purely on how busy the machine was, and a frame-rate
+threshold asserted here would go red on someone else's hardware for a reason that is not a
+regression. A real frame-rate budget needs hardware this project has not measured on, and belongs
+with that measurement rather than in a test.
 
 Three more conventions in that file, beyond the two below.
 
