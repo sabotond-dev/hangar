@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-09-04T11:40:26.200Z"
+stopped_at: Completed 05-06-PLAN.md
+last_updated: "2026-09-04T12:02:06.085Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 38
-  percent: 84
+  completed_plans: 39
+  percent: 87
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 6 of 12 (05-05 complete)
-Status: In progress — wave 6 next (05-06, the OG image: the PNG encoder and the pad painter)
+Plan: 7 of 12 (05-06 complete)
+Status: In progress — wave 7 next (05-07, gen-og.mjs, the build wiring and the Open Graph head)
 Last activity: 2026-09-04
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Progress: [████████░░] 84%
 | Phase 05 P03 | 20 min | 3 tasks | 6 files |
 | Phase 05 P04 | 30 min | 3 tasks | 5 files |
 | Phase 05 P05 | 30 min | 3 tasks | 8 files |
+| Phase 05 P06 | 22 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -223,6 +224,9 @@ Recent decisions affecting current work:
 - [Phase 05]: model.ts resolves its rack through stamp.ts's compilerKnobs/stampKnobs rather than inline presetKnobs/luaKnobs, because a stamp is POSITIONAL: two copies of the rack rule agreeing today is not the same property as one copy that cannot disagree
 - [Phase 05]: An added or removed knob lands unreadable and only a RESIZED knob lands older - the length check fires before the shape character is read; older is unreachable for compiler entries at all, because decodeStamp fails closed and cannot tell an old encoding from a corrupt one
 - [Phase 05]: The reachability sweep prints its per-preset table through a stream method assembled from fragments, because ladder.spec.ts's never-writes guard scans every file in src/lib/tune/ and that guard is right - the report was made to fit the guard, not the other way round
+- [Phase 05]: The OG image's two halves split by dependency, not by convenience: png.ts imports node:zlib and nothing else, render.ts imports nothing at all - and png.spec.ts's fifth test walks 138 files under src/ and e2e/ and asserts none reaches $lib/og, because a node: builtin in a client chunk fails the build with a message that names the builtin rather than the import
+- [Phase 05]: The OG image's two structural colours are computed as round(channel * alpha) over black from the accent's channels, and render.spec.ts reads --color-accent, --color-line and --color-line-soft out of src/app.css and asserts the module's channels and alphas are those - neither #2b3310 nor #56661f is typed anywhere, so a token edit cannot leave the image on the old identity with every test green
+- [Phase 05]: Measured: a resting-black entry's OG image is NOT black. tpad's frame is 243 zero bytes and its PNG is still 4,192 bytes of dot field and frame stroke (aurora, lit, is 6,641). 05-VALIDATION's 'at least one non-black pixel' tripwire is therefore satisfied by the composition alone and would pass on a renderer that dropped every LED - 05-07's build.spec.ts must count pixels that are none of black, UNLIT_DOT_RGB or FRAME_RGB
 
 ### Pending Todos
 
@@ -239,6 +243,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T11:40:13.222Z
-Stopped at: Completed 05-05-PLAN.md
+Last session: 2026-09-04T12:01:39.783Z
+Stopped at: Completed 05-06-PLAN.md
 Resume file: None
