@@ -135,7 +135,7 @@ Plans:
 - [x] 05-04-PLAN.md — model.ts: the immediate preview, the debounced compile, the meters, SURPRISE ME and the ladder guards (wave 4)
 - [x] 05-05-PLAN.md — The stamp, the share URL, and the two sweep proofs (wave 5)
 - [x] 05-06-PLAN.md — The OG renderer and the dependency-free PNG encoder (wave 6)
-- [ ] 05-07-PLAN.md — gen-og.mjs, the build wiring and the Open Graph head (wave 7)
+- [x] 05-07-PLAN.md — gen-og.mjs, the build wiring and the Open Graph head (wave 7)
 - [ ] 05-08-PLAN.md — The ninth colour token with its identity-gate amendment, Knob.svelte and KnobRack.svelte (wave 8)
 - [ ] 05-09-PLAN.md — BudgetMeter, BudgetMessage, StampNotice and CopyLink (wave 9)
 - [ ] 05-10-PLAN.md — TuningRegion, the panel seam, and the structural gate over the tuning UI (wave 10)

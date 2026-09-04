@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-06-PLAN.md
-last_updated: "2026-09-04T12:02:06.085Z"
+stopped_at: Completed 05-07-PLAN.md
+last_updated: "2026-09-04T12:20:49.883Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 45
-  completed_plans: 39
-  percent: 87
+  completed_plans: 40
+  percent: 89
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 7 of 12 (05-06 complete)
-Status: In progress — wave 7 next (05-07, gen-og.mjs, the build wiring and the Open Graph head)
+Plan: 8 of 12 (05-07 complete)
+Status: In progress — wave 8 next (05-08, the ninth identity token and the tuning types)
 Last activity: 2026-09-04
 
-Progress: [█████████░] 87%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Progress: [█████████░] 87%
 | Phase 05 P04 | 30 min | 3 tasks | 5 files |
 | Phase 05 P05 | 30 min | 3 tasks | 8 files |
 | Phase 05 P06 | 22 min | 2 tasks | 4 files |
+| Phase 05 P07 | 14 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -227,6 +228,9 @@ Recent decisions affecting current work:
 - [Phase 05]: The OG image's two halves split by dependency, not by convenience: png.ts imports node:zlib and nothing else, render.ts imports nothing at all - and png.spec.ts's fifth test walks 138 files under src/ and e2e/ and asserts none reaches $lib/og, because a node: builtin in a client chunk fails the build with a message that names the builtin rather than the import
 - [Phase 05]: The OG image's two structural colours are computed as round(channel * alpha) over black from the accent's channels, and render.spec.ts reads --color-accent, --color-line and --color-line-soft out of src/app.css and asserts the module's channels and alphas are those - neither #2b3310 nor #56661f is typed anywhere, so a token edit cannot leave the image on the old identity with every test green
 - [Phase 05]: Measured: a resting-black entry's OG image is NOT black. tpad's frame is 243 zero bytes and its PNG is still 4,192 bytes of dot field and frame stroke (aurora, lit, is 6,641). 05-VALIDATION's 'at least one non-black pixel' tripwire is therefore satisfied by the composition alone and would pass on a renderer that dropped every LED - 05-07's build.spec.ts must count pixels that are none of black, UNLIT_DOT_RGB or FRAME_RGB
+- [Phase 05]: SvelteKit's prerender crawler follows og:image only when it is RELATIVE; HANGAR's og:image is absolute and therefore cross-origin, so the build never fails on a missing image - src/lib/og/build.spec.ts is the guard, resolving each absolute og:image back to a path under build/
+- [Phase 05]: static/og/ is generated and gitignored, not committed: a clean checkout regenerates it in ~1.5 s and the deploy clean-tree gate stays satisfiable because an ignored path is never a dirty one
+- [Phase 05]: scripts/gen-og.mjs runs BEFORE vite build inside the build script (not as a prebuild hook) because vite build copies static/ into build/; an image made afterwards would never reach the artifact
 
 ### Pending Todos
 
@@ -243,6 +247,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T12:01:39.783Z
-Stopped at: Completed 05-06-PLAN.md
+Last session: 2026-09-04T12:20:39.670Z
+Stopped at: Completed 05-07-PLAN.md
 Resume file: None
