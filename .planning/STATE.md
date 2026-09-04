@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-09-04T06:39:29.017Z"
+stopped_at: Completed 08-06-PLAN.md
+last_updated: "2026-09-04T07:05:19.148Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 33
-  completed_plans: 30
-  percent: 91
+  completed_plans: 31
+  percent: 94
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 08
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [█████████░] 91%
 | Phase 08 P03 | 35 min | 2 tasks | 5 files |
 | Phase 08 P04 | 25 min | 3 tasks | 7 files |
 | Phase 08 P05 | 22 min | 3 tasks | 6 files |
+| Phase 08 P06 | 20 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -193,6 +194,8 @@ Recent decisions affecting current work:
 - [Phase 08]: Every needle in plan 08-05's three substitution tables matched the canonical Lua exactly once in the expected event - the canonical text and the tables were extracted from the PLAN by script rather than retyped, so a mistyped needle was structurally impossible
 - [Phase 08]: GHOST's Timer renders 333 and not the research's 331, and the difference is exactly the two characters of @CCX+1 in place of the literal 17 - one knob moves both CC numbers so the pair can never drift apart
 - [Phase 08]: ARC's two glt(a,2,65535) keepers are the legitimate form and stay green: the pitfall-1 guard needs a near-maximum timeout TOGETHER WITH a decay rate at or above 200, and the swirl's rate is 4 at rest and at most 120 under a finger
+- [Phase 08]: No substitution token may be a PREFIX of another token in the same entry: renderLua is plain replaceAll in knob order and lua-entries.spec.ts test 5 counts occurrences with a plain split, so MORPH's @TRAIL inside @TRAILC and SONAR's @SWEEP inside @SWEEPC were renamed to @DECAY and @PERIOD - knob ids, kinds, value sets and rendered Lua all unchanged
+- [Phase 08]: MORPH's empty Timer needed no special case in any gate: compressScript('') is '', checkSyntax('') is true, and createLuaPadSim already maps '' to undefined so the entry cannot arm a timer at all - the seven gates it passes are listed in 08-06-SUMMARY.md
 
 ### Pending Todos
 
@@ -208,6 +211,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T06:39:29.010Z
-Stopped at: Completed 08-05-PLAN.md
+Last session: 2026-09-04T07:05:11.532Z
+Stopped at: Completed 08-06-PLAN.md
 Resume file: None

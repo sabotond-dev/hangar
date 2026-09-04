@@ -58,7 +58,7 @@ feature table in `.planning/research/FEATURES.md`.
 ### Content
 
 - [ ] **CONT-01**: The nine BOTOR shelf presets — starfield, aurora, pinwheel, radar, faders, ninepads, tpad, dial, joystick — are in the catalog, each compiling to the same Lua as BOTOR at the pinned protocol version
-- [ ] **CONT-02**: At least six new configurations authored for spectacle are in the catalog, each fitting the 908/908 budget at its default knob positions and verified in the simulator
+- [x] **CONT-02**: At least six new configurations authored for spectacle are in the catalog, each fitting the 908/908 budget at its default knob positions and verified in the simulator
 - [ ] **CONT-03**: Every catalog entry has a name, a one-line description, feel-based tags, a Featured flag and a default knob state
 
 ### Tuning [F]
@@ -186,7 +186,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CAT-03 | Phase 5.1 | Pending |
 | CAT-04 | Phase 4 | Pending |
 | CONT-01 | Phase 4 | Pending |
-| CONT-02 | Phase 8 | Pending |
+| CONT-02 | Phase 8 | Complete |
 | CONT-03 | Phase 4 (metadata gate for new entries: Phase 8) | Pending |
 | TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8) | Pending |
 | TUNE-02 | Phase 5 | Pending |
