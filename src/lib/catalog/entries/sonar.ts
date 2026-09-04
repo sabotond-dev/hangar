@@ -1,0 +1,190 @@
+// SONAR - a radial 16-step sequencer, five voices deep.
+//
+// A polar sequencer. A sweep line rotates through 16 angle buckets, once every
+// 1.12 s at the default period; tap any cell to arm it, and it fires when the
+// sweep crosses it. The pitch comes from the cell's RING - its Chebyshev
+// distance from the centre - and the time from its ANGLE, so the pad is a
+// 16-step, 5-voice grid in polar coordinates: inner rings low, outer rings
+// high, minor pentatonic by default. Nothing else on a desk sequences in a
+// circle.
+//
+// The angle buckets come from EXACTLY the same math.atan(...)*41//1%256
+// expression the vendored Pinwheel look uses, divided by 16, so the sweep's
+// step boundaries line up with the swirl's own phase geometry rather than with
+// a second, subtly different polar map.
+//
+// PENDING NOTE-OFFS ARE TRACKED, which is what stops a hung track. Every note
+// the Timer starts goes into s.z, and the FOLLOWING fire releases the whole
+// list before it plays anything new. There is no watchdog because there is no
+// contact to watch: the notes are machine-driven, one step long by
+// construction.
+//
+// THIS TIMER IS THE CANONICAL TEXT, NOT THE ONE PRINTED IN 08-RESEARCH.md.
+// The research prints "if s.v[n] then"; the pinned minifier emits
+// "if s.v[n]then" with no space, 280 raw characters collapsing to 279. Storing
+// the printed form would fail the canonical-form gate on its first run for a
+// reason that has nothing to do with the configuration. The form below is what
+// compressScript produces and is a fixed point of it.
+//
+// THE TOKEN FOR THE SWEEP PERIOD IS @PERIOD, NOT @SWEEP. renderLua substitutes
+// by plain string replacement, so a token that is a PREFIX of another token is
+// eaten or corrupted depending on knob order - "@SWEEP" inside "@SWEEPC" would
+// render the colour as "70C" - and lua-entries.spec.ts's per-event occurrence
+// count would see two @SWEEP sites in the Setup where the knob only moves one.
+// The period knob therefore carries @PERIOD. Its knob id is still "sweep";
+// only the substitution token moved.
+//
+// THE PERIOD APPEARS IN BOTH EVENTS and both must move together: the Setup arms
+// the first fire and the Timer re-arms every subsequent one, so a mismatch
+// would tick once at one rate and then forever at another.
+//
+// THE HONEST LIMIT, for the card copy: cells on the same ring share a pitch.
+// That is the point rather than a compromise - ring is voice, angle is time.
+//
+// THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
+// defaults by renderLua they are byte-identical to the canonical text measured
+// against the pinned minifier: Setup 432 characters, Timer 279, both fixed
+// points of compressScript and both accepted by checkSyntax. The all-longest
+// corner of the five-knob cross-product is 433 / 282, against a budget of 908
+// an event. src/lib/catalog/lua-entries.spec.ts asserts every one of those
+// claims.
+//
+// THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
+// compressScript does not strip them and they would be charged to the budget.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+
+const SETUP =
+  "--[[@cb]]self.a={}self.o={}self.v={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end self.touch_cb=function(s,i,e,x,y)if e~=4 and e~=9 then return end local n=x*9//128+y*9//128*9 s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
+
+const TIMER =
+  "--[[@cb]]gtt(0,@PERIOD)local s=self local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,255,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
+
+const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
+
+export const SONAR: CatalogEntry = {
+  id: "sonar",
+  name: "SONAR",
+  description:
+    "A sweep turns like radar and fires the cells you armed: the ring is the pitch, the angle the time.",
+  // Feel-based, never a compiler kind (CONT-03).
+  tags: ["radial", "sequencer", "polar", "hypnotic"],
+  featured: false,
+  addedAt: "2026-09-04",
+  source: SOURCE,
+  preview: previewFor(SOURCE),
+
+  // Five knobs, each one literal token substitution over the vendored
+  // compiler's own widget vocabulary (TUNE-01). Every default is the INDEX of
+  // the value that reproduces the canonical text.
+  knobs: [
+    {
+      id: "rings",
+      label: "Ring scale",
+      kind: "scale",
+      token: "@RINGS",
+      // EXACTLY FIVE ENTRIES, always: a 9x9 grid has exactly five Chebyshev
+      // rings and the Setup indexes this table with t[d+1] for d in 0..4. A
+      // four-entry table would leave the outer ring nil and every cell on it
+      // silent. Semitone offsets from the root, innermost first. The default is
+      // minor pentatonic.
+      values: [
+        "0,3,5,7,10",
+        "0,2,4,7,9",
+        "0,2,4,6,8",
+        "0,2,3,7,9",
+        "0,1,5,7,10",
+      ],
+      default: 0,
+    },
+    {
+      id: "root",
+      label: "Root note",
+      kind: "note",
+      token: "@ROOT",
+      // The innermost ring. The outermost is root + the last ring offset, so
+      // the whole pad spans well under an octave and every value here leaves it
+      // inside the MIDI range.
+      values: ["24", "31", "36", "43", "48"],
+      default: 2,
+    },
+    {
+      id: "sweepColour",
+      label: "Sweep colour",
+      kind: "colour",
+      token: "@SWEEPC",
+      // Layer 2 - the rotating line and its 0.42 s wake. The armed-cell pink on
+      // layer 1 underneath is fixed, because the sweep has to stay readable
+      // against it. Every channel is inside 0..255: the firmware truncates
+      // rather than clamps, so 260 would render as 4.
+      values: [
+        "120,255,255",
+        "255,60,120",
+        "0,255,140",
+        "255,255,255",
+        "180,0,255",
+      ],
+      default: 0,
+    },
+    {
+      id: "sweep",
+      label: "Sweep speed",
+      kind: "speed",
+      token: "@PERIOD",
+      // Milliseconds per step, so a full revolution is sixteen of these: 70 is
+      // 1.12 s and 160 is 2.56 s. TOKEN IS @PERIOD, not @SWEEP - see the header
+      // on the prefix hazard - and it APPEARS IN BOTH EVENTS, the Setup's first
+      // arm and the Timer's re-arm.
+      values: ["40", "55", "70", "110", "160"],
+      default: 2,
+    },
+    {
+      id: "channel",
+      label: "MIDI channel",
+      kind: "amount",
+      token: "@CH",
+      // ZERO-BASED, and it is the FIRST argument. The recipe book pins the
+      // signature as self:gms(ch, cmd, p1, p2, mode) at
+      // zona-docs/docs/ZONA_RECIPES.md:1058. It appears TWICE in the Timer -
+      // the pending-note release and the note-on - so a step can never be
+      // released on a channel it was not played on.
+      values: [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+      ],
+      default: 0,
+    },
+  ],
+
+  // The same five indices, keyed by knob identifier - the shape Phase 5's tune
+  // panel reads. catalog.spec.ts asserts the two agree.
+  defaults: {
+    rings: 0,
+    root: 2,
+    sweepColour: 0,
+    sweep: 2,
+    channel: 0,
+  },
+
+  // FALSE. Both layers are coloured at Setup and left at phase 0, so tick 0 is
+  // genuinely black - but the sweep's first fire lands at 70 ms, seven ticks
+  // in, and lights a wedge of cells. Every sampled tick after the first
+  // therefore reads non-zero, which is what "rests black" asks about.
+  // frames.spec.ts test 5 turns that declaration into a checked fact.
+  restsBlack: false,
+};

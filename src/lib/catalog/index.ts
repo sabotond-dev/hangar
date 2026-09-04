@@ -12,7 +12,9 @@ import { CHORUS } from "./entries/chorus";
 import { EUCLID } from "./entries/euclid";
 import { GHOST } from "./entries/ghost";
 import { LATTICE } from "./entries/lattice";
+import { MORPH } from "./entries/morph";
 import { PORTED } from "./entries/ported";
+import { SONAR } from "./entries/sonar";
 import type { CatalogEntry } from "./types";
 
 export {
@@ -38,6 +40,8 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   ARC,
   GHOST,
   LATTICE,
+  MORPH,
+  SONAR,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -45,6 +49,8 @@ export { CHORUS } from "./entries/chorus";
 export { ARC } from "./entries/arc";
 export { GHOST } from "./entries/ghost";
 export { LATTICE } from "./entries/lattice";
+export { MORPH } from "./entries/morph";
+export { SONAR } from "./entries/sonar";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {

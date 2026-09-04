@@ -82,6 +82,14 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     id: "lattice",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
+  {
+    id: "morph",
+    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+  },
+  {
+    id: "sonar",
+    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+  },
 ];
 
 /**
