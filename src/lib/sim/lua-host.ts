@@ -174,7 +174,16 @@ export class LuaHost {
     const factory = await luaReady();
     const engine = await factory.createEngine();
     const host = new LuaHost(opts.sim, engine);
-    await host.install(opts.setup, opts.timer);
+    try {
+      await host.install(opts.setup, opts.timer);
+    } catch (error) {
+      // A Setup that raises - a typo calling a function the host does not
+      // register is exactly that - must not leak a VM. Nothing else in HANGAR
+      // holds a reference to this engine, so if create() does not release it
+      // here nobody ever will.
+      engine.global.close();
+      throw error;
+    }
     return host;
   }
 
