@@ -177,7 +177,7 @@ Plans:
 Plans:
 - [x] 08-01-PLAN.md — The counts helper, the catalog module, the nine ported entries, the metadata gate and golden frames (wave 1)
 - [x] 08-02-PLAN.md — wasmoon at an exact pin, its licence, the lazy gate and the Grid API host (wave 2)
-- [ ] 08-03-PLAN.md — The SimEngine seam and the nine-preset Lua parity gate (wave 3)
+- [x] 08-03-PLAN.md — The SimEngine seam and the nine-preset Lua parity gate (wave 3)
 - [ ] 08-04-PLAN.md — EUCLID, and the CONT-02 gate: canonical form, budget, subset, knob sweep, execution (wave 4)
 - [ ] 08-05-PLAN.md — CHORUS, ARC and GHOST (wave 5)
 - [ ] 08-06-PLAN.md — LATTICE, MORPH and SONAR; the floor of six cleared with seven (wave 6)

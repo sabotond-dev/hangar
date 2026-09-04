@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-09-04T05:26:16.711Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-09-04T05:54:47.298Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 33
-  completed_plans: 27
-  percent: 82
+  completed_plans: 28
+  percent: 85
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 08
-Plan: 03 of 8
-Status: In progress — wave 2 complete (08-01 catalog, 08-02 Lua host); 08-03 is the parity gate that licences waves 4-6
+Plan: 4 of 8
+Status: In progress — the Wave 0 parity gate (08-03) is GREEN, so plans 08-04 to 08-08 are licensed to author configurations against the Lua route
 Last activity: 2026-09-04
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [████████░░] 82%
 | Phase 04-first-experience P08 | 32 min | 3 tasks | 9 files |
 | Phase 04-first-experience P09 | 25 min | 3 tasks | 9 files |
 | Phase 08 P02 | 41 min | 3 tasks | 5 files |
+| Phase 08 P03 | 35 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -180,6 +181,10 @@ Recent decisions affecting current work:
 - [Phase 08]: The Lua host models gtt as a true one-shot: a fire consumes the deadline and only the Timer body's own gtt re-arms it, so pitfall 4 (a re-arm at the END dies on the first raise) is reproducible in the simulator instead of taken on trust
 - [Phase 08]: wasmoon is handed an explicit same-origin glue.wasm URI: with no customWasmUri it fetches 271 KB from unpkg.com in every browser, which a GPLv3 site serving its own Corresponding Source must not do
 - [Phase 08]: The Lua VM gate (src/lib/sim/ready.ts) stays separate from padReady(): the VM and the formatter are two lazy WASM loads and a browse-only visitor should download neither
+- [Phase 08]: SimEngine omits setState (the D-08 amendment): a PadState is meaningless to a Lua entry, so a state change constructs a new engine through createEngine rather than calling a method - PadSim prices a full rebuild at microseconds
+- [Phase 08]: The Wave 0 gate is GREEN: BOTOR's own emitted Setup Lua reproduces all 2,187 layer records and the golden-frame hashes at [0, 37, 101, 500, 1009] for all nine presets - waves 4 to 6 may author against the Lua route, and route 1a is not needed
+- [Phase 08]: The compiler emits bare gmbs/gmms/gks and the self: touch queue (touch_pop/tid/tev/txv/tyv); 08-02's Grid API table was derived from hand-authored candidates and was incomplete - the parity gate found it, and gms stays method-only because the compiler always emits s:gms
+- [Phase 08]: LuaHost.restart() snapshots the pristine _G before Setup and wipes back to it, so SimEngine.reset() is a real synchronous firmware page-load rather than a re-run over a dirty global table
 
 ### Pending Todos
 
@@ -195,6 +200,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T05:26:16.704Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-09-04T05:54:47.292Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
