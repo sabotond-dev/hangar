@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 05-12-PLAN.md
-last_updated: "2026-09-04T18:41:07.870Z"
+status: executing
+stopped_at: Completed 05.1-01-PLAN.md
+last_updated: "2026-09-04T20:26:51.167Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 6
-  total_plans: 45
-  completed_plans: 45
-  percent: 100
+  total_plans: 56
+  completed_plans: 46
+  percent: 82
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-04)
 
 **Core value:** Plug in a ZONA, open a URL, and half a minute later the pad is doing something spectacular. If everything else fails, browser-to-hardware install must work.
-**Current focus:** Phase 05 — tuning-budgets-and-shareable-links
+**Current focus:** Phase 05.1 — catalog-browse
 
 ## Current Position
 
-Phase: 08
-Plan: Not started
-Status: Phase 5 complete (12 of 12) — ready for verification; the orchestrator deploys after it
+Phase: 05.1
+Plan: 02 (next)
+Status: Phase 5.1 in progress — 05.1-01 complete (1 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-04
 
-Progress: [██████████] 100%
+Progress: [████████░░] 82% (46 of 56 plans)
 
 ## Performance Metrics
 
@@ -104,6 +104,7 @@ Progress: [██████████] 100%
 | Phase 05 P10 | 32 min | 3 tasks | 6 files |
 | Phase 05 P11 | 28min | 3 tasks | 2 files |
 | Phase 05 P12 | 43 min | 3 tasks | 5 files |
+| Phase 05.1 P01 | 24 min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -269,6 +270,12 @@ Recent decisions affecting current work:
 - [Phase 05]: config-shape.spec.ts test 5 is a plain substring scan over every file under src/routes/ and it reads comments: the probe's header could not name the walking skeleton's route even in prose, and describes its three sibling probes instead
 - [Phase 05]: shareUrl names the DEPLOYED origin, so an e2e that follows a minted link verbatim leaves the local build and lands on the real site's Basic Auth gate - observed in 05-12; swap the origin, keep the path and the fragment
 
+- [Phase 05.1]: src/lib/catalog/listing.ts is the FOURTH use of the literal-held-by-a-spec pattern (protocol-pin.ts, front-door.ts, share/url.ts): sixteen entries of browse data, exactly one specifier and it is an `import type` of ./front-door, so a prerendered /browse/ carries every name without the 131,101-byte compiler chunk
+- [Phase 05.1]: The listing's motion reads restsBlack FIRST and only then the frames (D-14). GHOST reports animating at every sampled tick while lighting zero bytes at every one, so the shipped front-door rule calls it animated and FidelityLine.svelte then hides the sentence that explains the black square - listing.spec.ts test 2 computes both derivations and shows them disagreeing on exactly that one entry
+- [Phase 05.1]: ROUTED is exported from listing.ts as the ONE declaration of the entries that have an address, because widening src/routes/c/[id]/+page.ts alone would ship eight pages whose og:image 404s with nothing red anywhere - scripts/gen-og.mjs, og/build.spec.ts and e2e/artifacts.e2e.ts must read the same name (05.1-05)
+- [Phase 05.1]: listing.spec.ts test 5 asserts every collected specifier sits on an `import type` statement rather than only forbidding a fragment list, so an unforeseen runtime import is red without having been enumerated - observed red by adding `import { CATALOG } from "./index"`
+- [Phase 05.1]: A large TypeScript file with regular expressions in it does not survive a Bash heredoc on this machine (`unexpected EOF while looking for matching '`); write such files with the editor tool. A scratch .mjs outside the repo must import vite by absolute file URL from the repo's node_modules, and the catalog's module graph prints one HEARTBEAT_INTERVAL line to stdout that has to be dropped before JSON.parse
+
 ### Pending Todos
 
 - [Botond] Set the embargo date for the first un-gated public deploy (recorded TBD in 01-CONTEXT.md D-03); ask before any deploy that removes the Basic Auth gate.
@@ -284,6 +291,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T18:27:19.711Z
-Stopped at: Completed 05-12-PLAN.md
+Last session: 2026-09-04T20:26:51.161Z
+Stopped at: Completed 05.1-01-PLAN.md
 Resume file: None
