@@ -1,11 +1,13 @@
 <!--
-  The row: one component owns every pad on the front door.
+  The row: one component owns every pad on it.
 
-  Eight entries are rendered in stable catalog order and are NEVER reordered.
-  Stepping changes one number - `centre` - and every slot's transform is derived
-  from slotFor(slotOffset(index, centre, count), heroPx). A keyed each that
-  reordered would move DOM nodes and make the layout engine do the work the
-  compositor is meant to do.
+  The ring arrives as the `row` prop and defaults to FRONT_DOOR, so / and every
+  row entry's page are byte-for-byte what Phase 4 signed off. Its entries are
+  rendered in stable catalog order and are NEVER reordered. Stepping changes one
+  number - `centre` - and every slot's transform is derived from
+  slotFor(slotOffset(index, centre, count), heroPx). A keyed each that reordered
+  would move DOM nodes and make the layout engine do the work the compositor is
+  meant to do.
 
   Three structural rules here are load-bearing rather than stylistic:
 
@@ -46,7 +48,8 @@
   import { pushState, replaceState } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
-  import { FRONT_DOOR, frontDoorIndex } from "$lib/catalog/front-door";
+  import { typographic } from "$lib/browse/typographic";
+  import { FRONT_DOOR, type FrontDoorEntry } from "$lib/catalog/front-door";
   import {
     radiusForWidth,
     slotFor,
@@ -85,10 +88,21 @@
   const NO_LANDING: Landing = { kind: "none" };
 
   let {
+    row = FRONT_DOOR,
     initialId,
     notice,
     onskipped,
   }: {
+    /**
+     * The ring. Defaults to the front-door row, so / and every row entry's page
+     * are byte-for-byte what Phase 4 signed off. An off-row /c/{id}/ passes a
+     * ONE-ENTRY row: src/lib/coverflow/slots.ts is well defined at count 1 -
+     * visibleWindow(c, r, 1) is [0], step(0, +/-1, 1) is 0, slotOffset(0, 0, 1)
+     * is 0 - so a solo pad renders as the hero and stepping is inert. Widening
+     * the ring to sixteen would change a signed-off route for no requirement
+     * (D-04).
+     */
+    row?: readonly FrontDoorEntry[];
     /** Centre this entry on arrival. An unknown id opens on the row's first. */
     initialId?: string;
     /** Forwarded to the fidelity line. The deep-link route's unknown-id copy. */
@@ -101,7 +115,13 @@
     onskipped?: (ids: readonly string[]) => void;
   } = $props();
 
-  const COUNT = FRONT_DOOR.length;
+  /**
+   * The ring's length. A $derived and NOT a module-init constant: the row is a
+   * prop and is not known when this file's constants are evaluated. Every call
+   * of step, slotOffset and visibleWindow reads it, so a row of one and a row
+   * of eight go through exactly the same arithmetic.
+   */
+  const count = $derived(row.length);
   /** |deltaX| accumulated before one step fires, and the pause after it. */
   const WHEEL_THRESHOLD_PX = 40;
   const WHEEL_COOLDOWN_MS = 260;
@@ -144,7 +164,12 @@
    * initialId must not yank the row out from under a visitor who has stepped it.
    */
   function openingCentre(): number {
-    const index = initialId === undefined ? -1 : frontDoorIndex(initialId);
+    // Indexed into `row` and never through frontDoorIndex: a solo row's only
+    // entry is at index 0 and may not be in FRONT_DOOR at all.
+    const index =
+      initialId === undefined
+        ? -1
+        : row.findIndex((entry) => entry.id === initialId);
     return index === -1 ? 0 : index;
   }
 
@@ -227,9 +252,9 @@
   let tapFromX = 0;
   let tapFromY = 0;
 
-  const heroId = (): string => FRONT_DOOR[centre].id;
+  const heroId = (): string => row[centre].id;
   /** The plate and the fidelity line both speak for whatever is centred. */
-  const centred = $derived(FRONT_DOOR[centre]);
+  const centred = $derived(row[centre]);
 
   /**
    * PadCanvas hands its element over from its own onMount, which runs before
@@ -254,8 +279,8 @@
   }
 
   function inWindow(id: string): boolean {
-    return visibleWindow(centre, radius, COUNT).some(
-      (index) => FRONT_DOOR[index].id === id,
+    return visibleWindow(centre, radius, count).some(
+      (index) => row[index].id === id,
     );
   }
 
@@ -267,9 +292,9 @@
   function syncHost(): void {
     if (host === undefined) return;
     const open = new Set(
-      visibleWindow(centre, radius, COUNT).map((index) => FRONT_DOOR[index].id),
+      visibleWindow(centre, radius, count).map((index) => row[index].id),
     );
-    for (const entry of FRONT_DOOR) {
+    for (const entry of row) {
       host.setInWindow(entry.id, open.has(entry.id));
     }
     host.setHero(heroId());
@@ -305,7 +330,7 @@
 
   function stepBy(delta: number): void {
     if (delta === 0) return;
-    centre = step(centre, delta, COUNT);
+    centre = step(centre, delta, count);
     syncHost();
     syncAddress();
     afterStep();
@@ -313,7 +338,7 @@
 
   function goTo(index: number): void {
     if (index === centre) return;
-    centre = step(index, 0, COUNT);
+    centre = step(index, 0, count);
     syncHost();
     syncAddress();
     afterStep();
@@ -328,7 +353,7 @@
    */
   function afterStep(): void {
     if (!chosen) return;
-    if (Math.abs(slotOffset(centre, chosenAt, COUNT)) > STEP_AWAY_LIMIT) {
+    if (Math.abs(slotOffset(centre, chosenAt, count)) > STEP_AWAY_LIMIT) {
       unchoose();
     }
   }
@@ -374,7 +399,7 @@
       goTo(0);
     } else if (event.key === "End") {
       event.preventDefault();
-      goTo(COUNT - 1);
+      goTo(count - 1);
     } else if (event.key === "Enter" || event.key === " ") {
       // No touch is delivered here: this is the keyboard route to the same
       // place, and the site has to be fully operable with no pointer at all.
@@ -631,7 +656,7 @@
       ]);
       if (!mounted) return;
       const missing: string[] = [];
-      for (const entry of FRONT_DOOR) {
+      for (const entry of row) {
         // The catalog grows underneath this phase. An entry no engine can be
         // built for - an id the catalog does not know, a preset the vendored
         // shelf does not know, a preview kind with no engine behind it - renders
@@ -653,7 +678,7 @@
       }
       if (!mounted) return;
       skipped = missing;
-      for (const entry of FRONT_DOOR) adopt(entry.id);
+      for (const entry of row) adopt(entry.id);
       syncHost();
       ready = true;
       await land();
@@ -766,8 +791,8 @@
   onpointerup={onBandPointerUp}
 >
   <div class="stage" class:measured={transitions} bind:this={stage}>
-    {#each FRONT_DOOR as entry, index (entry.id)}
-      {@const slot = slotFor(slotOffset(index, centre, COUNT), heroPx)}
+    {#each row as entry, index (entry.id)}
+      {@const slot = slotFor(slotOffset(index, centre, count), heroPx)}
       {#if slot.mounted && Math.abs(slot.offset) <= radius}
         <!--
           The listbox keeps focus and names the centred option through
@@ -801,7 +826,14 @@
               <PadCanvas {entry} hero={slot.hero} onready={collect} />
             {/if}
           </PadFrame>
-          <span class="sr-only">{entry.description}</span>
+          <!--
+            The display transform, applied HERE and at no other render site on
+            this page. Radar's sentence is vendored copy that may never be
+            edited (05.1-UI-SPEC, Data corrections), so the spoken description
+            gets a typographic apostrophe while front-door.ts and the route's
+            meta and og:description tags stay byte-equal to their source.
+          -->
+          <span class="sr-only">{typographic(entry.description)}</span>
         </div>
       {/if}
     {/each}
