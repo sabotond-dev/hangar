@@ -1,7 +1,74 @@
 @import "tailwindcss";
 
-/* Identity tokens, placeholders only — the real design system is Phase 4 (IDENT-01). */
+/*
+  IDENT-01 — the HANGAR design system.
+
+  Sourced verbatim from .planning/phases/04-first-experience/04-UI-SPEC.md
+  (Design System, Typography, Color, Accessibility Contract). Every value here
+  is quoted from that approved contract; none of it is re-derived at the point
+  of use.
+
+  The palette is two colours — true black and one acid lime — with a ladder of
+  alphas over the black standing in for every grey a design system would
+  normally reach for. There is no third hue anywhere on the site's chrome, and
+  src/lib/ui/identity.spec.ts goes red if one appears, if a ninth token is added
+  to this block, or if a text token drops below WCAG AA on the ground.
+
+  The contrast figure beside each text token is the value the spec approved and
+  the value the spec file recomputes from the alpha; it is documentation of an
+  assertion, not a substitute for one.
+
+  Pad faces are exempt from the palette: PadSim emits real firmware RGB, and
+  those pixels are content rather than interface. Generated texture (the splash
+  glyph field, the halftone grain, the favicon's dots) carries its own alphas
+  outside this ladder, by design.
+
+  Tailwind v4 is CSS-first: this @theme block is the whole configuration and no
+  tailwind config file exists.
+*/
 @theme {
+  /* Ground */
   --color-ground: #000000;
-  --color-accent: #d6ff4e;
+
+  /* Text ladder — every entry clears WCAG AA on the ground */
+  --color-ink: rgb(214 255 78 / 0.72); /* 9.3:1 — default text */
+  --color-ink-quiet: rgb(214 255 78 / 0.55); /* 5.6:1 — headline, captions */
+  --color-ink-dim: rgb(214 255 78 / 0.5); /* 4.7:1 — disabled control labels */
+
+  /* Structure */
+  --color-line: rgb(214 255 78 / 0.4); /* 3.3:1 — functional borders */
+  --color-line-soft: rgb(214 255 78 / 0.2); /* decorative only */
+
+  /* Accent, reserved for the wordmark, the name-plate triangles, the primary
+     fill, the focus ring and the walking cell of the loading motif */
+  --color-accent: #d6ff4e; /* 18.3:1 */
+  --color-glow: rgb(214 255 78 / 0.18); /* one static box-shadow bloom */
+
+  --font-sans:
+    "Quicksand", ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display",
+    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+}
+
+html {
+  background: var(--color-ground);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The focus ring is never removed and never animated (UI-SPEC, Accessibility
+   Contract). Lime on black is 18.3:1. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+  border-radius: inherit;
 }
