@@ -95,14 +95,25 @@ Plans:
 **Depends on**: Phase 3
 **Requirements**: PREV-01, PREV-02, PREV-03, PREV-04, PREV-05, CAT-01, CAT-04, CONT-01, CONT-03, IDENT-01, IDENT-02
 **Success Criteria** (what must be TRUE):
-  1. Visitor opens the site on any browser: the HANGAR glyph-field splash holds, then dissolves into a coverflow where one 9x9 pad is large and centred with neighbours receding left and right in depth — and every visible pad is animating live in the firmware-faithful simulator, running the exact compiled config that would be written to a module (no hand-authored animation, no hardware attached). The nine BOTOR shelf presets are the seed row; Phase 8's configurations join it from the same data file.
+  1. Visitor opens the site on any browser: the HANGAR glyph-field splash holds, then dissolves into a coverflow where one 9x9 pad is large and centred with neighbours receding left and right in depth — and every visible pad is animating live in the firmware-faithful simulator, running the exact compiled config that would be written to a module (no hand-authored animation, no hardware attached). The BOTOR shelf presets that light their LEDs form the seed row (tpad, which writes no LEDs, stays in the catalog but out of the row); Phase 8's configurations join the catalog from the same data file and enter the row deliberately, not automatically.
   2. Visitor steps the row with the name-plate arrows, keyboard, wheel or by clicking a side pad; a deep link lands with that configuration centred and the splash skipped. The centre pad accepts mouse-as-finger so the instrument can be played, not only watched.
   3. Visitor chooses the centre pad (click, Enter or the name) and a panel appears beneath the name plate with `TRY ON DEVICE` primary and `KEEP ON DEVICE` secondary; nothing about the device appears before choosing. In this phase `TRY ON DEVICE` connects and identifies a ZONA over the Phase 2 transport and states plainly that install arrives later — it never writes; on browsers without Web Serial it is present but disabled, with the reason.
   4. The site reads as the reference identity: true-black ground, one acid-lime accent, glyph-field wallpaper on the splash only, a quiet mixed-case headline, wide-tracked uppercase wordmark, and the 9x9 outline serving as logo, loading state and pad frame. Pads animate constantly; `prefers-reduced-motion` stills them to a representative frame and turns the dissolve into a short crossfade.
   5. Five to seven visible pads hold 30 fps on the centre and at least 20 fps on the sides, offscreen pads pause and wake before entering view, the catalog is a static data file of Profile-Cloud-shaped objects each carrying name, one-line description, feel-based tags and a Featured flag, and one quiet line states what the simulator matches exactly and what it cannot show.
-**Plans**: TBD
+**Plans**: 9 plans in 7 waves
 **UI hint**: yes
 **Design brief**: `.planning/design/FIRST-EXPERIENCE.md` — the user's reference frame and four answers (2026-09-04); it overrides the earlier catalog-of-cards wording wherever they differ.
+
+Plans:
+- [ ] 04-01-PLAN.md — Catalog preflight, identity tokens, Quicksand through the licence gate, the 9x9 favicon (wave 1)
+- [ ] 04-02-PLAN.md — The front-door row gated against golden-frames, and the coverflow slot arithmetic (wave 2)
+- [ ] 04-03-PLAN.md — Sim primitives: the 10 ms clock, the one-call painter, the tick-locked finger (wave 2)
+- [ ] 04-04-PLAN.md — failureCopy gains a control label; the identify-only device path with zero writes (wave 2)
+- [ ] 04-05-PLAN.md — SimHost: one rAF, window-and-viewport gating, live reduced motion, clean teardown (wave 3)
+- [ ] 04-06-PLAN.md — The living row: pad layers, the coverflow band, stepping, and the front door route (wave 4)
+- [ ] 04-07-PLAN.md — Name plate, fidelity line, the glyph-field splash and its dissolve (wave 5)
+- [ ] 04-08-PLAN.md — Choosing, the panel, TRY ON DEVICE and KEEP ON DEVICE (wave 6)
+- [ ] 04-09-PLAN.md — Deep-link routes, the two chunk guards, and the phase gate (wave 7)
 
 ### Phase 5: Tuning, Budgets and Shareable Links
 **Goal**: Visitors can turn knobs on any configuration, see the 908-character budgets as a live instrument instead of a write-time failure, and send the result to a friend as a link.
@@ -164,7 +175,7 @@ Plans:
 **Plans**: 8 plans in 8 waves
 
 Plans:
-- [ ] 08-01-PLAN.md — The catalog module: CatalogEntry shape, the nine ported entries, metadata gate, golden frames (wave 1)
+- [ ] 08-01-PLAN.md — The counts helper, the catalog module, the nine ported entries, the metadata gate and golden frames (wave 1)
 - [ ] 08-02-PLAN.md — wasmoon at an exact pin, its licence, the lazy gate and the Grid API host (wave 2)
 - [ ] 08-03-PLAN.md — The SimEngine seam and the nine-preset Lua parity gate (wave 3)
 - [ ] 08-04-PLAN.md — EUCLID, and the CONT-02 gate: canonical form, budget, subset, knob sweep, execution (wave 4)
@@ -191,7 +202,7 @@ Phases 6 and 7.
 | 1. Scaffold, Licence and Pin | 5/5 | Complete   | 2026-09-02 |
 | 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
-| 4. First Experience | 0/TBD | Not started | - |
+| 4. First Experience | 0/9 | Planned | - |
 | 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |

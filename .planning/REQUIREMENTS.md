@@ -176,7 +176,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-08 | Phase 7 | Pending |
 | SAFE-09 | Phase 7 | Pending |
 | PREV-01 | Phase 4 | Pending |
-| PREV-02 | Phase 4 | Pending |
+| PREV-02 | Phase 4 (Lua-sourced entries: Phase 8) | Pending |
 | PREV-03 | Phase 4 | Pending |
 | PREV-04 | Phase 4 | Pending |
 | PREV-05 | Phase 4 | Pending |
@@ -187,8 +187,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CAT-04 | Phase 4 | Pending |
 | CONT-01 | Phase 4 | Pending |
 | CONT-02 | Phase 8 | Pending |
-| CONT-03 | Phase 4 | Pending |
-| TUNE-01 | Phase 5 | Pending |
+| CONT-03 | Phase 4 (metadata gate for new entries: Phase 8) | Pending |
+| TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8) | Pending |
 | TUNE-02 | Phase 5 | Pending |
 | TUNE-03 | Phase 5 | Pending |
 | TUNE-04 | Phase 5 | Pending |
@@ -200,7 +200,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHARE-03 | Phase 5 | Pending |
 | SHARE-04 | Phase 5 | Pending |
 | DEGR-01 | Phase 5 | Pending |
-| DEGR-02 | Phase 7 | Pending |
+| DEGR-02 | Phase 7 (browser-capability half delivered in Phase 4) | Pending |
 | IDENT-01 | Phase 4 | Pending |
 | IDENT-02 | Phase 4 | Pending |
 
