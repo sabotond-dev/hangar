@@ -13,3 +13,4 @@ CLAUDE.md export-ignore
 # hashes their exact bytes and src/lib/fidelity/vendored-diff.spec.ts asserts them. Opt them out of
 # end-of-line normalisation so no future rule can rewrite a byte the manifest pins.
 src/vendor/** -text
+AGENTS.md export-ignore
