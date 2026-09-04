@@ -17,11 +17,19 @@
   is quoted from that approved contract; none of it is re-derived at the point
   of use.
 
-  The palette is two colours — true black and one acid lime — with a ladder of
-  alphas over the black standing in for every grey a design system would
-  normally reach for. There is no third hue anywhere on the site's chrome, and
-  src/lib/ui/identity.spec.ts goes red if one appears, if a ninth token is added
-  to this block, or if a text token drops below WCAG AA on the ground.
+  The palette is nine tokens: true black, one acid lime with a ladder of alphas
+  over the black standing in for every grey a design system would normally reach
+  for, and — since 05-UI-SPEC X-01/X-27 — one alarm red. The red is the site's
+  only third hue and it is scoped to exactly three uses, all of them the
+  over-budget state of a 908-character meter: that meter's bar fill and its 2px
+  outline, that meter's numerals and percentage, and a 2px left rule on the
+  over-budget message. It is never a button fill, never a button border, never a
+  knob, never body text, and never applied to TRY ON DEVICE.
+
+  src/lib/ui/identity.spec.ts still guards all of it: it goes red if a TENTH
+  token is added to this block, if a FOURTH hue appears anywhere in this file,
+  or if a text token drops below WCAG AA on the ground. The favicon's own guard
+  is untouched and still permits two colours only — no red enters the mark.
 
   The contrast figure beside each text token is the value the spec approved and
   the value the spec file recomputes from the alpha; it is documentation of an
@@ -52,6 +60,13 @@
      fill, the focus ring and the walking cell of the loading motif */
   --color-accent: #d6ff4e; /* 18.3:1 */
   --color-glow: rgb(214 255 78 / 0.18); /* one static box-shadow bloom */
+
+  /* Over budget, and nothing else. Exactly three uses (05-UI-SPEC X-01): the
+     offending meter's bar fill and its 2px outline, that meter's numerals and
+     percentage, and a 2px left rule on the over-budget message. 5.92:1 on black
+     for the 12px numerals, and 3.09:1 against the accent so the two bar states
+     are distinguishable by luminance rather than by hue. */
+  --color-over: #ff3b30;
 
   --font-sans:
     "Quicksand", ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display",

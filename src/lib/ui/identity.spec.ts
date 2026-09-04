@@ -13,6 +13,26 @@
  * CSS, and this file must encode the design contract rather than the
  * formatter's output.
  *
+ * X-27 — A DELIBERATE AMENDMENT TO A SIGNED-OFF PHASE'S GATE. This file shipped
+ * in Phase 4 asserting exactly EIGHT tokens and exactly TWO permitted hexes.
+ * Phase 5 adds a ninth token, `--color-over: #ff3b30`, and this guard was
+ * widened for it on purpose, in one commit, under `05-UI-SPEC.md` X-01/X-27 —
+ * in the same class as Phase 4's own W-02 change to a Phase 1 licence gate. The
+ * reason, in two lines: full-strength lime is the fill of an ENABLED
+ * `TRY ON DEVICE`, which goes disabled and loses its lime exactly when a budget
+ * is blown, so signalling the failure with more lime would put "go" and "stop"
+ * in one hue in one column in one instant. `#ff3b30` is picked for arithmetic —
+ * 5.92:1 on black (AA at 12px) and 3.09:1 against `--color-accent`, so the two
+ * bar fills are told apart by luminance alone.
+ *
+ * What the amendment did NOT do, because a widened guard must still guard: the
+ * ladder is now nine and a TENTH token still fails; the hex set is now three and
+ * a FOURTH hue still fails; `alphaOf()` is not applied to the new token (it is a
+ * flat hex, not an alpha of the accent over black), so the AA-on-black loop
+ * keeps its existing four members; the `rgb()`-arguments assertion is unchanged;
+ * and the favicon's own two-hue regex is untouched, so no red enters the mark.
+ * Both directions were observed red before this note was written.
+ *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
 import { readFileSync } from "node:fs";
@@ -41,7 +61,7 @@ const normalise = (value: string) =>
     )
     .trim();
 
-/** The approved ladder — 04-UI-SPEC.md, Color. Eight tokens, no ninth. */
+/** The approved ladder — 04-UI-SPEC.md Color plus 05-UI-SPEC X-27's alarm. Nine tokens, no tenth. */
 const TOKENS: ReadonlyArray<readonly [string, string]> = [
   ["--color-ground", "#000000"],
   ["--color-ink", "rgb(214 255 78 / 0.72)"],
@@ -51,6 +71,7 @@ const TOKENS: ReadonlyArray<readonly [string, string]> = [
   ["--color-line-soft", "rgb(214 255 78 / 0.20)"],
   ["--color-accent", "#d6ff4e"],
   ["--color-glow", "rgb(214 255 78 / 0.18)"],
+  ["--color-over", "#ff3b30"],
 ];
 
 /** The accent's sRGB channels, 0-255. Every alpha in the ladder sits over black. */
@@ -97,14 +118,14 @@ function alphaOf(name: string): number {
 }
 
 describe("IDENT-01 identity tokens (src/app.css)", () => {
-  it("the token ladder is exactly the eight tokens the spec approved", () => {
+  it("the token ladder is exactly the nine tokens the specs approved", () => {
     for (const [name, value] of TOKENS) {
       expect(declared(name), `${name} carries its approved value`).toBe(
         normalise(value),
       );
     }
 
-    // Nothing outside the eight. Extracted from the @theme block only, because
+    // Nothing outside the nine. Extracted from the @theme block only, because
     // the global rules below it legitimately reference the same names in var().
     const found = [...themeBlock.matchAll(/(--color-[a-z-]+)\s*:/g)].map(
       (m) => m[1],
@@ -168,7 +189,7 @@ describe("IDENT-01 identity tokens (src/app.css)", () => {
     expect(body).toContain("outline-offset: 4px");
   });
 
-  it("the ground is true black and nothing declares a third hue", () => {
+  it("the ground is true black and the only third hue is the over-budget alarm", () => {
     expect(declared("--color-ground")).toBe("#000000");
 
     const hexes = [...css.matchAll(/#[0-9a-fA-F]{3,8}/g)].map((m) =>
@@ -188,8 +209,8 @@ describe("IDENT-01 identity tokens (src/app.css)", () => {
     ).toBeGreaterThan(0);
 
     for (const hex of hexes) {
-      expect(hex, `${hex} is one of the two approved colours`).toMatch(
-        /^(#000000|#d6ff4e)$/,
+      expect(hex, `${hex} is one of the three approved colours`).toMatch(
+        /^(#000000|#d6ff4e|#ff3b30)$/,
       );
     }
     for (const [whole, fn, args] of functions) {
