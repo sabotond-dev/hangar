@@ -129,7 +129,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 05-01-PLAN.md — Baseline, the WebKit phone project, SimHost.replaceEngine and the gated fitState (wave 1)
+- [x] 05-01-PLAN.md — Baseline, the WebKit phone project, SimHost.replaceEngine and the gated fitState (wave 1)
 - [ ] 05-02-PLAN.md — The zero-import view seam: view.ts, copy.ts and idle.ts (wave 2)
 - [ ] 05-03-PLAN.md — The knob model: withChange, the nine preset descriptor lists, the Lua mapping (wave 3)
 - [ ] 05-04-PLAN.md — model.ts: the immediate preview, the debounced compile, the meters, SURPRISE ME and the ladder guards (wave 4)
@@ -217,7 +217,7 @@ Phases 6 and 7.
 | 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
-| 5. Tuning, Budgets and Shareable Links | 0/12 | Planned | - |
+| 5. Tuning, Budgets and Shareable Links | 1/12 | In Progress | - |
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 08-08-PLAN.md (checkpoint presented, unanswered)
-last_updated: "2026-09-04T08:14:17.105Z"
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-09-04T09:49:08.706Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 5
-  total_plans: 33
-  completed_plans: 33
-  percent: 100
+  total_plans: 45
+  completed_plans: 34
+  percent: 76
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-04)
 
 **Core value:** Plug in a ZONA, open a URL, and half a minute later the pad is doing something spectacular. If everything else fails, browser-to-hardware install must work.
-**Current focus:** Phase 08 — new-configurations
+**Current focus:** Phase 05 — tuning-budgets-and-shareable-links
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 5
+Plan: 2 of 12 (05-01 complete)
+Status: In progress — wave 2 next (05-02, the zero-import view seam)
 Last activity: 2026-09-04
 
-Progress: [██████████] 100%
+Progress: [████████░░] 76%
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Progress: [██████████] 100%
 | Phase 08 P06 | 20 min | 3 tasks | 6 files |
 | Phase 08 P07 | 10 min | 3 tasks | 7 files |
 | Phase 08 P08 | 12 min | 3 tasks | 3 files |
+| Phase 05 P01 | 20 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -202,6 +203,9 @@ Recent decisions affecting current work:
 - [Phase 08]: docs/PIN-POLICY.md gained a fifth bump-checklist item: a protocol bump re-measures every hand-authored catalog entry via lua-entries.spec.ts, because canonical compressed form is a property of a specific minifier version.
 - [Phase 08]: The audition checklist is held to the catalog by a spec, not by prose: a lost row, a renamed configuration, a quietly shipped MIRROR or a dropped install-order rule each turn a named test red - and both event numbers come from types.ts EVENT_SETUP/EVENT_TIMER so a renumbering moves the assertion with the code
 - [Phase 08]: AUDITION_DUMP diverges from UPDATE_GOLDEN and UPDATE_SYNTHETIC and does NOT fail the run - it rewrites no committed fixture, writes to a gitignored scratch directory and is run by a user at a bench; and its per-entry counts go to process.stdout directly because Vitest's console interception swallows console.log emitted at module scope during collection
+- [Phase 05]: The Phase 5 baseline is BASE_FILES 43, BASE_TESTS 563, BASE_SWEEP_FILES 1, BASE_SWEEP_TESTS 9, BASE_E2E 23 (check: 456 files, 0 errors), measured on a clean tree before any edit and recorded in 05-01-SUMMARY.md — BASE_E2E is measured once and never recomputed - only 05-07 asserts against it; from 05-11 onward plans assert against PREV_E2E, the e2e total in the immediately preceding SUMMARY. The sweep stays a literal (1 9, then 3 13) because the sweep project is a named-file include
+- [Phase 05]: playwright.config.ts has two projects: chromium (everything, no grep) and webkit-phone (devices iPhone 15, grep /@webkit/) — A bare second project doubles every test; the filter means the WebKit phone browser costs zero tests until a title is tagged, and leaving chromium ungrepped makes the tagged tests cross-browser rather than WebKit-only. Side effect: e2e reporter lines now carry a [chromium] prefix
+- [Phase 05]: SimHost.replaceEngine swaps the engine in place and never goes through register(); ready.spec.ts test 6 buys a second cold module graph with vi.resetModules() to keep its gate assertion falsifiable — register() calls unregister(), which sets canvas.width = 0 and re-enters with intersecting false, so a knob turn would blank the hero and stall it until the observer fires. And test 3 has already opened the process-wide formatter gate, so a sixth test could only observe the un-initialised branch on a fresh graph - measured, vi.resetModules() rebuilds the vendored compiler and grid-protocol beneath it
 
 ### Pending Todos
 
@@ -218,6 +222,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T07:58:34.613Z
-Stopped at: Completed 08-08-PLAN.md (checkpoint presented, unanswered)
+Last session: 2026-09-04T09:48:57.891Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
