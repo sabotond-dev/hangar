@@ -125,8 +125,22 @@ Plans:
   3. An over-budget state turns the offending meter red, disables `TRY ON DEVICE`, names the knob that pushed it over and offers a one-click back-off — the failure is surfaced next to the knobs and never travels to the wire to fail there.
   4. Copying a tuned configuration's link and opening it anywhere restores the knobs exactly (state in the URL hash, never the query string); `COPY LINK` confirms the copy in its own state; a stamp from an older HANGAR version says so plainly and lands on the base configuration rather than a subtly wrong one.
   5. A shared link unfurls on Discord with a build-time OG image rendered from the simulator, and the whole experience — catalog, simulation, tuning, sharing — works on every browser including iOS Safari.
-**Plans**: TBD
+**Plans**: 12 plans in 12 waves
 **UI hint**: yes
+
+Plans:
+- [ ] 05-01-PLAN.md — Baseline, the WebKit phone project, SimHost.replaceEngine and the gated fitState (wave 1)
+- [ ] 05-02-PLAN.md — The zero-import view seam: view.ts, copy.ts and idle.ts (wave 2)
+- [ ] 05-03-PLAN.md — The knob model: withChange, the nine preset descriptor lists, the Lua mapping (wave 3)
+- [ ] 05-04-PLAN.md — model.ts: the immediate preview, the debounced compile, the meters, SURPRISE ME and the ladder guards (wave 4)
+- [ ] 05-05-PLAN.md — The stamp, the share URL, and the two sweep proofs (wave 5)
+- [ ] 05-06-PLAN.md — The OG renderer and the dependency-free PNG encoder (wave 6)
+- [ ] 05-07-PLAN.md — gen-og.mjs, the build wiring and the Open Graph head (wave 7)
+- [ ] 05-08-PLAN.md — The ninth colour token with its identity-gate amendment, Knob.svelte and KnobRack.svelte (wave 8)
+- [ ] 05-09-PLAN.md — BudgetMeter, BudgetMessage, StampNotice and CopyLink (wave 9)
+- [ ] 05-10-PLAN.md — TuningRegion, the panel seam, and the structural gate over the tuning UI (wave 10)
+- [ ] 05-11-PLAN.md — Coverflow wiring: the live preview swap, the stamp landing, and seven e2e tests (wave 11)
+- [ ] 05-12-PLAN.md — /dev/tune/, the WebKit phone journey, the docs and the phase gate (wave 12)
 
 ### Phase 5.1: Catalog Browse
 **Goal**: The sophisticated catalog behind the front door — the whole collection browsable, sortable and searchable without leaving the identity.
@@ -203,7 +217,7 @@ Phases 6 and 7.
 | 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
-| 5. Tuning, Budgets and Shareable Links | 0/TBD | Not started | - |
+| 5. Tuning, Budgets and Shareable Links | 0/12 | Planned | - |
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
