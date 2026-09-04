@@ -156,7 +156,7 @@ Plans:
 Plans:
 - [x] 05.1-01-PLAN.md — The baselines and listing.ts: sixteen entries, import-free, gated against the catalog (wave 1)
 - [x] 05.1-02-PLAN.md — sort.ts, filter.ts and grid.ts: three total orders, folded search, tag intersection, keyboard arithmetic (wave 2)
-- [ ] 05.1-03-PLAN.md — query.ts, return.ts and SimHost.repaintAll: the state that survives a round trip (wave 3)
+- [x] 05.1-03-PLAN.md — query.ts, return.ts and SimHost.repaintAll: the state that survives a round trip (wave 3)
 - [ ] 05.1-04-PLAN.md — The row of one: Coverflow's row prop, the arrow-less plate, and the tuner that hands its engine back (wave 4)
 - [ ] 05.1-05-PLAN.md — The routed set is sixteen: entries(), gen-og and the four gates D-07 invalidates (wave 5)
 - [ ] 05.1-06-PLAN.md — CatalogCard and BrowseGrid: sixteen live pads, one clock, one tab stop (wave 6)
@@ -231,7 +231,7 @@ Phases 6 and 7.
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
-| 5.1. Catalog Browse | 2/11 | In progress | - |
+| 5.1. Catalog Browse | 3/11 | In progress | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
