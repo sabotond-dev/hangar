@@ -81,6 +81,26 @@ const pause = (ms: number) =>
 const settledViews = (views: readonly TuneView[]) =>
   views.filter((view) => view.setup.state === "settled");
 
+/**
+ * Make every `close()` the tuner performs on this engine observable, WITHOUT
+ * stopping it happening.
+ *
+ * An own property shadowing the prototype method, installed from inside
+ * `onpreview` - which is the moment before `swapEngine` can close anything, so
+ * no close is ever missed. `closeEngine` calls `maybe.close()` on the very
+ * object handed over, so the spy is what it reaches. The Lua route's engine is
+ * the one that really carries `close` (src/lib/sim/lua-pad-sim.ts), so this is
+ * the real method rather than a fixture pretending to be one.
+ */
+function watchClose(engine: SimEngine, closed: SimEngine[]): void {
+  const owner = engine as SimEngine & { close?: () => void };
+  const original = owner.close?.bind(owner);
+  owner.close = (): void => {
+    closed.push(engine);
+    original?.();
+  };
+}
+
 /** n ticks of an engine, copied out before the next engine touches it. */
 function frameAfter(engine: SimEngine, ticks: number): Uint8Array {
   engine.run(ticks);
@@ -348,5 +368,63 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     await vi.advanceTimersByTimeAsync(COMPILE_DEBOUNCE_MS * 4);
     await settle();
     expect(rec.views, "a view landed after destroy").toHaveLength(mark);
+  });
+
+  it("the engine it hands over is the row's, and destroy does not close it", async () => {
+    // OWNERSHIP TRANSFERS AT onpreview (05.1-CONTEXT D-18). The consumer swaps
+    // the engine into SimHost synchronously inside that callback and paints it
+    // from there on, so an engine the tuner has published is not the tuner's to
+    // close. On /c/euclid/ the row is EUCLID ALONE, so before this rule the
+    // panel's own close button closed the Lua VM behind the only pad on the
+    // page and blanked it. This is the node half of the proof; plan 05.1-11's
+    // e2e is the browser half.
+    //
+    // Real timers, for test 6's reason: this builds two real Lua 5.4 VMs and
+    // the debounce is not what is under measurement. Test 7 owns the "destroy
+    // leaves no timer behind" half and is deliberately not repeated here.
+    const rec = recorder();
+    const closed: SimEngine[] = [];
+    const tuner = await buildTuner({
+      entryId: "euclid",
+      ...rec,
+      onpreview: (engine: SimEngine) => {
+        rec.onpreview(engine);
+        watchClose(engine, closed);
+      },
+    });
+    await pause(80);
+    expect(rec.previews, "no engine arrived with the tuner").toHaveLength(1);
+    const first = rec.previews[0];
+
+    const tempo = tuner.knobs.find((knob) => knob.id === "tempo");
+    expect(tempo, "euclid has a tempo knob").toBeDefined();
+    tuner.set("tempo", (tempo!.default + 1) % tempo!.options.length);
+    await pause(COMPILE_DEBOUNCE_MS + 400);
+
+    expect(rec.previews, "the second VM never arrived").toHaveLength(2);
+    const last = rec.previews[1];
+
+    // Half one: the REPLACED engine is closed, once, at the swap. Nothing
+    // leaks - swapEngine closes the previous one after the handover.
+    expect(
+      closed.filter((engine) => engine === first),
+      "the replaced engine was not closed exactly once at the swap",
+    ).toHaveLength(1);
+    expect(
+      closed.includes(last),
+      "the live engine was closed while it was still the current one",
+    ).toBe(false);
+
+    // Half two: the LAST published engine survives destroy, because the row is
+    // still painting it.
+    tuner.destroy();
+    expect(
+      closed.includes(last),
+      "destroy closed the engine the tuner had already handed to the row",
+    ).toBe(false);
+    expect(
+      closed.filter((engine) => engine === first),
+      "destroy closed the replaced engine a second time",
+    ).toHaveLength(1);
   });
 });
