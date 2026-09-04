@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Researching — 04-RESEARCH.md and 04-UI-SPEC.md being written, then plan-phase 4
-stopped_at: Phase 4 UI-SPEC approved; planning phase 4 and phase 8
-last_updated: "2026-09-03T23:37:23.219Z"
+stopped_at: "Completed 08-01-PLAN.md (catalog module); Phase 8 baseline recorded: quick 26/453, sweep 1/9, e2e 10"
+last_updated: "2026-09-04T00:56:16.739Z"
 last_activity: 2026-09-03
 progress:
   total_phases: 9
   completed_phases: 3
-  total_plans: 17
-  completed_plans: 16
-  percent: 13
+  total_plans: 33
+  completed_plans: 17
+  percent: 52
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: Not started
 Status: Researching — 04-RESEARCH.md and 04-UI-SPEC.md being written, then plan-phase 4
 Last activity: 2026-09-03
 
-Progress: [█░░░░░░░░░] 13%
+Progress: [█████░░░░░] 52%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [█░░░░░░░░░] 13%
 | Phase 02 P03 | 21 min | 3 tasks | 7 files |
 | Phase 02 P04 | 36 min | 2 tasks | 1 files |
 | Phase 02 P05 | 30 min | 3 tasks | 11 files |
+| Phase 08 P01 | 19 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,10 @@ Recent decisions affecting current work:
 - [Phase 02]: A committed capture declares its provenance, and fixtures.spec.ts fails when the repository holds only synthetic evidence — Every fixture-backed test before the hardware checkpoint ran against synthetic-zona.json, which is what let the whole protocol and transport layer be built with nothing plugged in. Test 1 of src/lib/transport/fixtures/fixtures.spec.ts closes that gap: it reads every JSON in the fixtures directory and fails unless one declares source hardware. Tests 2 to 4 select the arms by filename so the provenance mutation makes exactly that gate red.
 - [Phase 02]: DESKTOP_PRE_SEND_DELAY_MS keeps the skeleton page A/B pacing toggle honest now that the shipped default is 0 — The page stamps the capture run.id from the pacing number, so reading the shipped 0 in the paced position would have sent at 0 in both toggle states and labelled every future export pace-0 - a capture that lies about which arm produced it. Nothing in the shipped request path reads the new constant.
 - [Phase 02]: The restore rule is asserted as one restore-page-change per write-setup per arm, not as a closing step — The pace-0 probe is identify plus one burst and never wrote a config, so it correctly has no restore. Asserting the invariant as restores.length === writes.length per arm, plus at least one arm having exercised it, is a stronger claim than the closing-step version and passes honestly on all three captures instead of exempting one.
+- [Phase 08]: restsBlack is a per-entry declared fact proved by frames.json in both directions (D-19), not a hard-coded darkness exemption; a growing catalog cannot carry a literal list
+- [Phase 08]: CatalogEntry.defaults holds knob INDICES, never values (D-13), and LuaKnob.kind draws on the vendored KnobKind vocabulary rather than a Lua-specific union (D-12)
+- [Phase 08]: src/lib/catalog/ names neither the pinned protocol package nor the compile surface: the three constants are literals asserted in the spec, and build() takes compiled Lua as an argument, so a page that only lists names never pulls in the WASM-gated chunk
+- [Phase 08]: scripts/check-counts.mjs replaces every literal suite total (D-17): counts are an observed baseline plus a stated delta, since Phase 4 and Phase 8 interleave in one tree
 
 ### Pending Todos
 
@@ -152,6 +157,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T23:37:23.202Z
-Stopped at: Phase 4 UI-SPEC approved; planning phase 4 and phase 8
-Resume file: .planning/phases/04-first-experience/04-UI-SPEC.md
+Last session: 2026-09-04T00:56:16.733Z
+Stopped at: Completed 08-01-PLAN.md (catalog module); Phase 8 baseline recorded: quick 26/453, sweep 1/9, e2e 10
+Resume file: None
