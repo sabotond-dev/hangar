@@ -1,7 +1,9 @@
 ---
 phase: 6
 slug: device-session
-status: draft
+status: approved
+reviewed_at: 2026-09-04
+reviewed_by: gsd-ui-checker (two passes; the second pass's single blocker — the note's reservation — ruled by the orchestrator as option (a): the two-step sentence leaves the note)
 shadcn_initialized: false
 preset: none
 created: 2026-09-04
@@ -29,7 +31,7 @@ extends: .planning/phases/04-first-experience/04-UI-SPEC.md (approved 2026-09-04
 > pattern, to one new 152px region — the header note — measured by a sizing twin exactly as Phase 5's
 > 72px honesty slot is.
 >
-> Binding upstream: `06-CONTEXT.md` (D-01..D-15), REQUIREMENTS CONN-01..08 / DEGR-02 / SAFE-01,
+> Binding upstream: `06-CONTEXT.md` (D-01..D-17), REQUIREMENTS CONN-01..08 / DEGR-02 / SAFE-01,
 > ROADMAP Phase 6 success criteria 1–5, `.planning/research/FEATURES.md` §A (A1–A9),
 > `.planning/design/FIRST-EXPERIENCE.md`.
 
@@ -327,7 +329,7 @@ border, no ground, no icon, no accent: it is prose under a control. On `/` it ca
 
 | State | First line | Second line |
 |-------|-----------|-------------|
-| S1 / S7 | the 129-character pre-click line plus the two-step sentence — *unless the chosen panel is open and already rendering it*, in which case it is hidden by its own twin | the SAFE-01 sentence |
+| S1 / S7 | the 130-character pre-click line — *unless the chosen panel is open and already rendering it*, in which case it is hidden by its own twin (the Firefox two-step sentence is NOT here; it lives beneath `Nothing listed?` in `cancelled`, where it is actionable) | the SAFE-01 sentence |
 | S2 | `ZONA detected on this computer. One click connects it, and nothing is sent until you do.` | the SAFE-01 sentence |
 | S3 | the current status string (`Pick the ZONA in the browser’s list.` · `Opening the port…` · `Listening for the module…`), unless the panel is showing it | *(empty, height held)* |
 | S4 / S5 / S6 | *(empty, height held)* — this copy is in the disclosure | *(empty, height held)* |
@@ -338,9 +340,9 @@ non-current ones `visibility: hidden` and `aria-hidden="true"` — Phase 5's hon
 unchanged, and the same pattern the slot's own label already uses. Its height is therefore *measured*
 by the browser at the current width rather than asserted in pixels, and it is identical in every
 state, so **no session transition ever moves the headline or the coverflow beneath it**. At the 372px
-column every candidate string is at most three Body lines — the pre-click line is 129 characters, the
+column every candidate string is at most three Body lines — the pre-click line is 130 characters, the
 reconnect sentence 97, SAFE-01 125, and 43 characters a line is the figure this document family
-already uses — so the reservation is **3 + 3 line boxes + the 8px gap = 152px**.
+already uses — so the reservation is **3 + 3 line boxes + the 8px gap = 152px**. Below 640px the note wraps against the 272px content column, where the twin measures a taller region still — the reservation is whatever the twin measures; 152px is the desktop figure.
 
 **In `unsupported` and `insecure` the region is absent, with no reservation at all.** Capability is
 decided synchronously before the first paint (`"serial" in navigator && isSecureContext`) and cannot
@@ -457,7 +459,7 @@ visitor must be able to read this before clicking **either** of them.
 | Surface | Where | String |
 |---------|-------|--------|
 | The chosen panel | `TryOnDevice`'s connect-state region, while the session is `idle` / `detected` / forgotten **and the panel is open** | the short form (below) |
-| **The header note** | inline beneath the header row, in S1, S2 and S7, **whenever the panel is not rendering it** | the short form, plus the two-step sentence |
+| **The header note** | inline beneath the header row, in S1, S2 and S7, **whenever the panel is not rendering it** | the short form only |
 
 **It is never on screen twice.** The explanation is one component with two mounts, governed by exactly
 the rule the failure block follows (Y-11): the panel renders it while the panel is open, the header
@@ -470,11 +472,11 @@ cases, because the promise is the session's and the session lives in the header.
 
 > `The browser opens its own list of ports — that prompt is the browser, not HANGAR, and nothing here sees a port until you pick one.`
 
-129 characters. At the panel's 372px content column that is three Body lines at 16px/1.5 = **72px**,
+130 characters. At the panel's 372px content column that is three Body lines at 16px/1.5 = **72px**,
 which is the same reservation the honesty slot already carries, so the panel's existing rhythm is
 unchanged and the tuning region does not move.
 
-**The two-step sentence**, in the disclosure and appended to the `cancelled` state:
+**The two-step sentence**, appended to the `cancelled` state beneath `Nothing listed?` — and nowhere else, so the header note stays at two paragraphs:
 
 > `Some browsers ask for permission before they show the list. If you were asked twice, the list appears after the second prompt.`
 
@@ -487,7 +489,7 @@ thing CONN-01 forbids and the exact mistake that would have wrongly excluded Fir
 ago. A sentence that says *some browsers* is true in every browser, costs one line, and cannot
 misfire. See decision Y-05.
 
-**One real behavioural signal does exist, and it is used where it is actionable.** A rejection whose
+**One possible behavioural signal exists, and it is used only where it is actionable (uncorroborated: research found exactly one post-prompt rejection in the WICG algorithm and no evidence Gecko rejects differently — the sentence is harmless if the name never arrives).** A rejection whose
 `DOMException.name` is `NotAllowedError` means a permission was refused rather than a chooser closed —
 which today happens in the two-step browser. When the `cancelled` state was reached that way, its
 block gains one extra sentence: `The permission prompt was declined, so the list never opened.` If
@@ -536,7 +538,7 @@ from its button.
 
 | State | Title | Detail | Steps | The way out |
 |-------|-------|--------|-------|-------------|
-| `unsupported` | `This browser cannot talk to hardware` | `UNSUPPORTED_DETAIL`, verbatim — names Chrome, Edge and desktop Firefox 151+, names iOS and Chrome on Android as permanently out, says everything else on the site works here, and **never says "Chromium"** | `Open this page in Chrome, Edge, or desktop Firefox 151+` | None on this browser, and the copy says so without apologising. The whole catalog, the simulator and the knobs still work |
+| `unsupported` | `This browser cannot talk to hardware` | `UNSUPPORTED_DETAIL`, verbatim — names Chrome, Edge and desktop Firefox 151+, names iOS and Chrome on Android as permanently out, says everything else on the site works here, and **never says "Chromium"** | `Open this page in Chrome, Edge, or desktop Firefox 151+` | None on this browser, and the copy says so without apologising. The whole catalog, the simulator and the knobs still work — plus one added sentence when the browser is desktop Firefox 151+ by feature (a `navigator.serial`-less Firefox that otherwise passes every capability check): `On a managed computer a policy may have switched this off — check about:policies.` |
 | `insecure` | `This page needs HTTPS` | verbatim, with `{label}` interpolated | 1. `Open this site over HTTPS, or run it on localhost` · 2. `Click {label} again` | Reload over HTTPS |
 | `cancelled` | `You closed the chooser` | verbatim | `Click {label} again and pick the ZONA` | The slot returns to `CONNECT ZONA`; **plus the `Nothing listed?` disclosure**, below; **plus** the `NotAllowedError` sentence when that was the rejection |
 | `port-busy` | `Another program is holding the port` | verbatim — **names Grid Editor**, and names the tray icon | verbatim, six steps in order: 1. `Quit Grid Editor completely, from its tray icon, not just its window` · 2. `Unplug the ZONA` · 3. `Wait a few seconds` · 4. `Plug the ZONA back in` · 5. `Reload this page` · 6. `Click {label} again` | Step 6 |
@@ -544,7 +546,7 @@ from its button.
 | `silent` | `Nothing answered on that port` | `The port opened, but no Grid module reported itself within {seconds} seconds. That usually means the port belongs to something else on your machine.` | 1. `Unplug the ZONA and plug it back in` · 2. `Click {label} again and pick a different port` | Step 2. The session has already closed the port |
 | `unplugged-at-open` | `The ZONA is not there any more` | verbatim — `The module was picked but was gone by the time the port opened. A loose or charge-only USB cable does this, and so does a hub that cannot power the module.` | verbatim, three steps: 1. `Check the cable is a data cable and is seated at both ends` · 2. `Plug the ZONA straight into the computer rather than through a hub` · 3. `Click {label} again` | Step 3. It is an S6 failure like any other, and it renders through `failureCopy("unplugged", …)` — the transport's existing key |
 | `unplugged-while-connected` | *(no title — it is one sentence, not a failure block)* | `The ZONA was unplugged. Nothing was written.` | *(none)* | **The replug offer**, below. This is S5, not S6, and it never calls `failureCopy` |
-| `unknown` | `The port would not open` | `The browser reported: {raw}` — the only place a raw exception ever reaches the screen, and always quoted as a report rather than shown as the message | 1. `Unplug the ZONA, plug it back in, and click {label} again` · 2. `If it keeps happening, copy the message above into a bug report` | Step 1 |
+| `unknown` | `The port would not open` | `The browser reported: {raw}` — the only place a raw exception ever reaches the screen, and always quoted as a report rather than shown as the message | 1. `Unplug the ZONA, plug it back in, and click {label} again` · 2. `If it keeps happening, copy the message above into a bug report` | Step 1; when the reported name is `InvalidStateError` the port is already being opened by this site (a racing `open()` — research Pattern 5's in-flight guard makes it unreachable, this is the fallback), so the detail reads `HANGAR is already connecting — one moment.` with no steps and no raw text |
 
 **Two amendments to Phase 4's authored strings, and nothing else changes.**
 
@@ -568,6 +570,7 @@ visitor opens only if it applies to them.
   1. `Try a different USB cable. A charge-only cable fits the socket and carries no data, and it is the most common reason a list comes up empty.`
   2. `Plug the ZONA straight into the computer rather than through a hub or a dock.`
   3. `A ZONA needs no driver. If every cable and every port gives an empty list, the module is not showing up to the computer at all, which is a hardware question rather than a browser one.`
+- A second disclosure beside `Nothing listed?`: **`The chooser never appeared?`** — the same `NotFoundError` also arrives when serial ports are blocked for this site by a browser or policy setting; its one paragraph reads `Your browser may be blocking serial ports for this site. Check the site's permissions — in Chrome, chrome://settings/content/serialPorts — and try again.` (research: three causes, one rejection).
 - Followed by the two-step sentence, because a visitor who never saw a list may have been looking at a
   permission prompt.
 
@@ -669,7 +672,7 @@ header row and the DOM order is unchanged, so the tab order does not move with t
 **Inside the disclosure**, when it is open: the disclosure container (programmatic focus target only,
 `tabindex="-1"`) → `Nothing listed?` (when present) → `DISCONNECT ZONA` (when present) →
 `FORGET THIS ZONA` (when present) → back out to the next header stop. **It is not a focus trap** — it
-is a disclosure, not a dialog — and `Escape` closes it and returns focus to the slot.
+is a disclosure, not a dialog — and `Escape` closes it and returns focus to the slot. In S6 the slot connects rather than expands, so after `Escape` the six-step recovery is re-read by re-clicking the slot: the re-attempt either succeeds or raises the same failure, which re-opens the disclosure — re-clicking is the intended way back, stated here so it is a decision and not a trap.
 
 ### Keyboard, complete
 
@@ -849,7 +852,7 @@ Y-04, Y-06, Y-09 and Y-16 were amended there, under the checker's rulings.**
 | Y-06 | **`NotAllowedError` adds one sentence to the `cancelled` block, and is not a state of its own** | It is the one genuinely behavioural signal available, and it is only actionable inside the state it modifies. The taxonomy grows only where the API genuinely raises two different failures under one name (Y-21); a modifier on one failure is not that |
 | Y-07 | **`--color-over` is not used, and no third-colour use is claimed as an accessibility necessity** | Nothing here is dangerous, every state is carried entirely by text plus the mark's shape, and reusing the over-budget red for "the port was busy" would weaken the one thing it currently means |
 | Y-08 | **The 24px 9×9 mark is the session's non-text channel: dark / one cell / walking / diagonal** | IDENT-01 makes the 9×9 the mark and the loading state; four static shapes plus Phase 4's existing walk cost no new SVG and give the state a shape channel a colour-blind viewer reads |
-| Y-09 | **The pre-click explanation is a 129-character short form in the panel (72px, three Body lines) and the short form plus the two-step sentence in the header note** — **amended in revision 1: the header mount is inline, not a disclosure** | CONN-03 says "before clicking", and there are two connect controls; the short form fits the reservation the honesty slot already established, so the tuning region does not move. The header mount left the disclosure because S1, S2 and S7 have no disclosure to put it in (Y-23) |
+| Y-09 | **The pre-click explanation is a 130-character short form: three Body lines (72px) in the panel's honesty slot, and the same short form in the header note when the panel is not rendering it; the Firefox two-step sentence lives only beneath `Nothing listed?` in `cancelled`** | It is actionable only once a visitor has seen no list; carrying it in the note would cost a third paragraph (232px on every route) for a sentence most visitors never need |
 | Y-10 | **Phase 4's 14px fixed line box is extended to exactly two lines: the slot's caption and its label** | The header row's height must not depend on which session state is showing, and `1.2` computes to 14.4px, which gives 28.8 in a 44px box and a half-pixel asymmetry that shifts by state |
 | Y-11 | **The failure block renders in the panel when the panel is open and in the header disclosure otherwise — never both, never twice** | Reading the six-step Grid Editor recovery twice, in two places, is worse than reading it once |
 | Y-12 | **A failure raised from a header click opens the disclosure automatically and moves focus into it** | It is the direct result of the visitor's own click, and CONN-04's recovery is worthless behind a second one; `Escape` returns focus |
@@ -900,11 +903,11 @@ Y-04, Y-06, Y-09 and Y-16 were amended there, under the checker's rulings.**
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-09-04 — five dimensions PASS on revision 1; the Spacing blocker closed by moving the Firefox two-step sentence out of the header note (152px holds as written); the research's copy gaps (the chooser-never-appeared branch, the managed-Firefox sentence, the InvalidStateError fallback, the S6 Escape path) applied by the orchestrator
