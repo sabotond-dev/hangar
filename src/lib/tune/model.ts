@@ -331,6 +331,19 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   let resolved: PadState | undefined;
   let engine: SimEngine | undefined;
   /**
+   * The engine most recently handed to the consumer. OWNERSHIP TRANSFERS AT
+   * `onpreview`: from that moment the row holds it in its session engines map
+   * and `SimHost` is painting it, so `destroy()` closing it would blank a live
+   * pad. On a Lua detail page whose row is one entry, that pad is the only one
+   * there (05.1-CONTEXT D-18).
+   *
+   * `swapEngine` already closes the PREVIOUS engine after the handover, so
+   * nothing leaks: at most one live engine per tuner, and it is the one the row
+   * is using. The engine `destroy()` may still close is the other kind - one
+   * built for a measurement that went stale before it was ever published.
+   */
+  let published: SimEngine | undefined;
+  /**
    * The share payload, RECOMPUTED EAGERLY rather than on demand.
    *
    * That precomputation is what makes COPY LINK gesture-safe: Safari expires
@@ -372,6 +385,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const previous = engine;
     engine = next;
     options.onpreview(next);
+    published = next;
     // After the handover, never before: the consumer swaps synchronously inside
     // onpreview, so by this line nothing is painting the old one.
     if (previous !== next) closeEngine(previous);
@@ -629,7 +643,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       destroyed = true;
       if (typeof pending !== "undefined") clearTimeout(pending);
       pending = undefined;
-      closeEngine(engine);
+      // Only an engine the consumer has never seen. See `published`.
+      if (engine !== published) closeEngine(engine);
       engine = undefined;
     },
   };
