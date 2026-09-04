@@ -176,7 +176,7 @@ Plans:
 
 Plans:
 - [x] 08-01-PLAN.md — The counts helper, the catalog module, the nine ported entries, the metadata gate and golden frames (wave 1)
-- [ ] 08-02-PLAN.md — wasmoon at an exact pin, its licence, the lazy gate and the Grid API host (wave 2)
+- [x] 08-02-PLAN.md — wasmoon at an exact pin, its licence, the lazy gate and the Grid API host (wave 2)
 - [ ] 08-03-PLAN.md — The SimEngine seam and the nine-preset Lua parity gate (wave 3)
 - [ ] 08-04-PLAN.md — EUCLID, and the CONT-02 gate: canonical form, budget, subset, knob sweep, execution (wave 4)
 - [ ] 08-05-PLAN.md — CHORUS, ARC and GHOST (wave 5)
@@ -207,7 +207,7 @@ Phases 6 and 7.
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
-| 8. New Configurations | 0/8 | Planned | - |
+| 8. New Configurations | 2/8 | In Progress|  |
 
 ## Requirement Coverage
 
