@@ -54,15 +54,35 @@
     step,
     visibleWindow,
   } from "$lib/coverflow/slots";
+  import { shareUrl } from "$lib/share/url";
   import type { SimEngine } from "$lib/sim/engine";
   import { SimHost } from "$lib/sim/host";
   import { mapAxis } from "$lib/sim/touch";
   import ChosenPanel from "./ChosenPanel.svelte";
+  import CopyLink from "./CopyLink.svelte";
   import FidelityLine from "./FidelityLine.svelte";
   import NamePlate from "./NamePlate.svelte";
   import PadCanvas from "./PadCanvas.svelte";
   import PadFrame from "./PadFrame.svelte";
   import TryOnDevice from "./TryOnDevice.svelte";
+  import TuningRegion from "./TuningRegion.svelte";
+
+  /**
+   * `$lib/share/stamp`'s `Landing`, restated STRUCTURALLY rather than imported.
+   *
+   * That module reaches the vendored compiler through `knobs.preset`, so this
+   * file may not name it: the stamp arrives through `await import()` in onMount
+   * below, and the real `Landing` is checked against this declaration where
+   * `decodeFor`'s result is assigned. It is the `src/lib/sim/host.ts`
+   * `HostEngine` pattern, used by every Phase 5 component for the same reason.
+   */
+  type Landing =
+    | { kind: "none" }
+    | { kind: "restored"; indices: Record<string, number> }
+    | { kind: "older" }
+    | { kind: "unreadable" };
+
+  const NO_LANDING: Landing = { kind: "none" };
 
   let {
     initialId,
@@ -141,6 +161,29 @@
    * ZONA away from Grid Editor.
    */
   let tryOn: ReturnType<typeof TryOnDevice> | undefined = $state(undefined);
+  /** The region, bound so a successful copy reaches its one live region. */
+  let region: ReturnType<typeof TuningRegion> | undefined = $state(undefined);
+
+  /*
+    THE KNOB INDICES LIVE IN THE ROW, NOT IN THE REGION, and that is a
+    correctness rule rather than a tidiness one. The region unmounts on
+    un-choose; if it owned the indices, re-choosing would show every marker at
+    home while the pad went on playing the tuned state - the panel and the pad
+    disagreeing about what the visitor did. Held per entry id, because the
+    tuned ENGINE is held per entry id too (in `engines`, below), and the two
+    have to be restored together or not at all.
+
+    These are runes and rule 3 above is not violated: a knob index is a number.
+    Nothing here holds an engine, a canvas or a frame buffer.
+  */
+  let knobIndices: Record<string, Record<string, number>> = $state({});
+  /** The reason a disabled TRY ON DEVICE gives, or undefined when in budget. */
+  let overBudgetReason: string | undefined = $state(undefined);
+  /** The share payload, precomputed by the model so COPY LINK never awaits. */
+  let shareStamp: string | undefined = $state(undefined);
+  /** How the URL landed, and the entry it landed on. Both settled at mount. */
+  let landing: Landing = $state(NO_LANDING);
+  let landedId: string | undefined = $state(undefined);
 
   /**
    * CHOSEN LIVES IN THE HISTORY ENTRY, NOT IN A LOCAL BOOLEAN. Choosing pushes
@@ -474,6 +517,69 @@
     choose();
   }
 
+  // ---------------------------------------------------------------------------
+  // The tuning region's four reports (TUNE-02, SHARE-01).
+
+  /**
+   * THE LIVE PREVIEW, AND THE WHOLE REASON `replaceEngine` EXISTS.
+   *
+   * `register()` would be wrong here in a way that is invisible in a diff and
+   * obvious on screen: it calls `unregister()` first, which sets
+   * `canvas.width = 0` - blanking the hero for a frame - and then re-enters the
+   * pad with `intersecting: false`, so it stays frozen until the
+   * IntersectionObserver next fires, which on a pad the visitor is already
+   * looking at is never. Wave 1 added `replaceEngine` for exactly this moment:
+   * it swaps the engine in place and repaints, and the canvas, its backing
+   * store and its observer registration all survive untouched.
+   *
+   * The tuned engine ALSO goes into the session `engines` map, which is what
+   * makes stepping one away and back return to the tuned pad rather than to the
+   * shelf card: `adopt()` re-registers a returning canvas against whatever
+   * engine that map holds. The knob indices survive in `knobIndices` for the
+   * same reason and under the same key, so the panel and the pad can never
+   * disagree about what the visitor did.
+   *
+   * `id` is closed over from the region's own `{#key}` block rather than read
+   * from `heroId()`, so an emit that arrives after a step lands on the entry it
+   * describes instead of on whatever happens to be centred by then.
+   */
+  function applyPreview(id: string, engine: SimEngine): void {
+    engines.set(id, engine);
+    host?.replaceEngine(id, engine);
+  }
+
+  /** Every knob position, on every change, held against the entry's id. */
+  function rememberKnobs(
+    id: string,
+    indices: Readonly<Record<string, number>>,
+  ): void {
+    knobIndices[id] = { ...indices };
+  }
+
+  /**
+   * The landing belongs to the entry the URL named and to no other. Stepping
+   * while chosen re-fills the panel with a neighbour, and "these knobs came
+   * with the link" is false about that one.
+   */
+  const landingFor = $derived(centred.id === landedId ? landing : NO_LANDING);
+
+  /**
+   * The panel's reported state, cleared whenever the region reporting it goes
+   * away. Neither report is emitted on mount - a budget reason arrives only
+   * when a measurement crosses 908, and a Lua entry never emits one at all - so
+   * a reason left behind by another entry, or by the last time the panel was
+   * open, would disable TRY ON DEVICE for a configuration comfortably inside
+   * the budget. `reportedFor` is a plain local: nothing renders from it.
+   */
+  let reportedFor: string | undefined;
+  $effect(() => {
+    const id = chosen ? centred.id : undefined;
+    if (id === reportedFor) return;
+    reportedFor = id;
+    overBudgetReason = undefined;
+    shareStamp = undefined;
+  });
+
   /** The recede, applied to the slot wrapper and never to a pad canvas. */
   const dimOpacity = (value: number, hero: boolean): number =>
     chosen && !hero ? value * RECEDE_OPACITY : value;
@@ -656,10 +762,56 @@
 
 <div class="fidelity"><FidelityLine entry={centred} {notice} /></div>
 
+<!--
+  Region 4 of the panel. The `{#key}` is load-bearing: TuningRegion builds its
+  tuner once, in its own onMount, so a changed `entryId` prop would leave it
+  tuning the entry the visitor has just stepped away from. Keying it on the
+  centred id rebuilds it for the neighbour instead, with that entry's own knob
+  positions out of `knobIndices` - which is W-20's "the panel re-fills" for the
+  tuning half, and which the connect state deliberately does NOT do.
+
+  `{@const}` captures the id for the two reports that are about a specific
+  entry, so a late emit cannot be filed under the wrong one.
+-->
+{#snippet tuning()}
+  {#key centred.id}
+    {@const id = centred.id}
+    <TuningRegion
+      bind:this={region}
+      entryId={id}
+      name={centred.name}
+      knobs={knobIndices[id]}
+      landing={landingFor}
+      onknobs={(indices) => rememberKnobs(id, indices)}
+      onpreview={(engine) => applyPreview(id, engine)}
+      onstamp={(stamp) => (shareStamp = stamp)}
+      onbudget={(reason) => (overBudgetReason = reason)}
+    />
+  {/key}
+{/snippet}
+
+<!--
+  COPY LINK NEVER NAVIGATES. The URL is composed here, on every stamp, and
+  arrives at the control as a finished string - so its click handler holds
+  nothing up in front of navigator.clipboard.writeText and Safari's transient
+  activation window is never crossed by an await. Phase 5 does not write the
+  hash at all; see $lib/share/url's header for the consequence.
+-->
+{#snippet share()}
+  <CopyLink
+    url={shareUrl(centred.id, shareStamp)}
+    oncopied={() => region?.announceCopied()}
+  />
+{/snippet}
+
 {#if chosen}
   <div class="panel">
-    <ChosenPanel entry={centred}>
-      <TryOnDevice entry={centred} bind:this={tryOn} />
+    <ChosenPanel entry={centred} {tuning} {share}>
+      <TryOnDevice
+        entry={centred}
+        budgetReason={overBudgetReason}
+        bind:this={tryOn}
+      />
     </ChosenPanel>
   </div>
 {/if}
