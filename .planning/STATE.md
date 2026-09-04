@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 05-11-PLAN.md
-last_updated: "2026-09-04T17:38:15.555Z"
+status: verifying
+stopped_at: Completed 05-12-PLAN.md
+last_updated: "2026-09-04T18:27:19.716Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 45
-  completed_plans: 44
-  percent: 98
+  completed_plans: 45
+  percent: 100
 ---
 
 # Project State
@@ -26,30 +26,37 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 5
-Plan: 12 of 12 (05-11 complete)
-Status: In progress — wave 12 next (05-12, the over-budget browser check, the WebKit phone journey and the docs)
+Plan: 12 of 12 (05-12 complete)
+Status: Phase 5 complete (12 of 12) — ready for verification; the orchestrator deploys after it
 Last activity: 2026-09-04
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 5
-- Average duration: 20 min
-- Total execution time: 1.7 hours
+- Total plans completed: 45
+- Average duration: 22 min
+- Total execution time: 16.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 5 | 100 min | 20 min |
+| 02 | 5 | 125 min | 25 min |
+| 03 | 6 | 73 min | 12 min |
+| 04 | 9 | 214 min | 24 min |
+| 05 | 12 | 307 min | 26 min |
+| 08 | 8 | 184 min | 23 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 8, 15, 12, 45, 20 min
-- Trend: steady. The two longest carried the most unknowns — 01-04 rebuilt the browser harness onto the real artifact, 01-05 spanned two blocking human checkpoints.
+- Last 5 plans (05-08 to 05-12): 31, 19, 32, 28, 43 min
+- Trend: rising, and legibly so. The last four waves were all integration rather than construction — the four leaf components, the coverflow wiring, and then a wave that had to measure a reserve, rehearse it, and prove five assertions on two engines. 05-12 is the longest plan of the phase and four of its minutes were spent finding out that headless Chromium will not write to a clipboard it has not been granted.
+
+*Recomputed by hand at the close of Phase 5 from the per-plan table below (44 plans before this one, 960 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the phase's deferred-items.md.*
 
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 3 tasks | 22 files |
@@ -96,6 +103,7 @@ Progress: [██████████] 98%
 | Phase 05 P09 | 19 min | 3 tasks | 4 files |
 | Phase 05 P10 | 32 min | 3 tasks | 6 files |
 | Phase 05 P11 | 28min | 3 tasks | 2 files |
+| Phase 05 P12 | 43 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -254,6 +262,12 @@ Recent decisions affecting current work:
 - [Phase 05]: page.goto to the same path with a different fragment is a FRAGMENT-ONLY navigation: the document is kept, Coverflow never remounts and the onMount landing never runs. e2e/tuning.e2e.ts goes through about:blank so a shared link is tested as the cold arrival it actually is
 - [Phase 05]: e2e test 1 turns its knob under reduced motion: aurora is declared animated, so on a full-motion page two canvas samples differ whether or not the knob did anything, and the test would pass against an implementation where a knob does nothing
 - [Phase 05]: buildTuner's destroy() closes the engine that Coverflow also holds in its session engines map. A no-op for PadSim and therefore harmless while D-18 keeps every Lua entry out of FRONT_DOOR - the first Lua entry that joins the row must revisit it, or un-choosing will close the VM behind a shelf card that is still registered against it
+- [Phase 05]: The /dev/tune/ probe uses a MEASURED reserve of { setup: 3, timer: 0 } on tpad, not 05-04's { setup: 20 }: tpad's whole 512-state cross-product spans Setup 902..907, so 3 straddles 908 and leaves knob positions on both sides of the line, where 20 puts every state over and makes the knob branch, the back-off and the way back inside unreachable from the page
+- [Phase 05]: A Playwright wait may NOT anchor on aria-busy when the meter starts OVER budget: meterView makes over outrank the feed, so an over-budget meter publishes aria-busy=false for the whole recompile and recomputed() times out on it - e2e/tuning.e2e.ts's remeasured() polls the number instead, and recomputed() is kept for the in-budget-to-over direction where the stale phase is real
+- [Phase 05]: MEASURED on both engines: webkit-phone resolves navigator.clipboard.writeText with no grant at all (navigator.permissions.query is not even implemented there) and CopyLink confirms; headless chromium rejects the same write with NotAllowedError unless the context is granted clipboard-write - so the grant is chromium-only and both projects assert the same confirm branch
+- [Phase 05]: A knob row's layout is classified from BOTH boxes, never from y alone: the row is a grid with align-items center, so a 14px label and a 44px control have different tops while sitting side by side - and the stacking assertion lives at a 320px viewport because at the phone's own 393px the region's content box is ~265px, above Knob.svelte's 220px threshold, and the row genuinely does not stack
+- [Phase 05]: config-shape.spec.ts test 5 is a plain substring scan over every file under src/routes/ and it reads comments: the probe's header could not name the walking skeleton's route even in prose, and describes its three sibling probes instead
+- [Phase 05]: shareUrl names the DEPLOYED origin, so an e2e that follows a minted link verbatim leaves the local build and lands on the real site's Basic Auth gate - observed in 05-12; swap the origin, keep the path and the fragment
 
 ### Pending Todos
 
@@ -270,6 +284,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T17:37:51.437Z
-Stopped at: Completed 05-11-PLAN.md
+Last session: 2026-09-04T18:27:19.711Z
+Stopped at: Completed 05-12-PLAN.md
 Resume file: None

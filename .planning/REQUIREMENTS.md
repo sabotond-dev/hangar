@@ -66,8 +66,8 @@ feature table in `.planning/research/FEATURES.md`.
 - [x] **TUNE-01**: Each configuration exposes three to six knobs (from colour, speed, layout, brightness, MIDI destination and config-specific parameters) using one shared widget vocabulary [F1]
 - [x] **TUNE-02**: Every knob change recompiles and re-simulates live; the recompile is debounced, the preview is not [F2]
 - [x] **TUNE-03**: Two separate live meters show Setup and Timer usage as `chars / 908` with a percentage [F3]
-- [ ] **TUNE-04**: When the fit ladder trims a feature to stay in budget, the user is told so in one line rather than the preview silently diverging from their expectation [F4, generic wording acceptable in v1]
-- [ ] **TUNE-05**: An over-budget state disables `TRY ON DEVICE`, turns the offending meter red, names the knob that pushed it over and offers a one-click back-off; the click never reaches the wire to fail there [F5]
+- [x] **TUNE-04**: When the fit ladder trims a feature to stay in budget, the user is told so in one line rather than the preview silently diverging from their expectation [F4, generic wording acceptable in v1]
+- [x] **TUNE-05**: An over-budget state disables `TRY ON DEVICE`, turns the offending meter red, names the knob that pushed it over and offers a one-click back-off; the click never reaches the wire to fail there [F5]
 - [x] **TUNE-06**: User can reset one knob (double-click) or the whole configuration to defaults [F6]
 - [x] **TUNE-07**: User can hit `SURPRISE ME` to randomise knobs into a state that is never over budget [X8]
 
@@ -76,11 +76,11 @@ feature table in `.planning/research/FEATURES.md`.
 - [x] **SHARE-01**: The tuned state is encoded as the versioned base36 stamp in the URL hash (never the query string), and opening such a URL restores the knobs exactly [E1]
 - [x] **SHARE-02**: User has an explicit `COPY LINK` control whose own state confirms the copy [E2]
 - [x] **SHARE-03**: A stamp from an older HANGAR version fails gracefully — "this link was made with an older version" — and lands on the base configuration, never a subtly wrong one [E3]
-- [ ] **SHARE-04**: Every catalog configuration has a build-time OG image rendered from the simulator, so a shared link unfurls with the pad picture and title on Discord [E4]
+- [x] **SHARE-04**: Every catalog configuration has a build-time OG image rendered from the simulator, so a shared link unfurls with the pad picture and title on Discord [E4]
 
 ### Honest degrade [G]
 
-- [ ] **DEGR-01**: The full catalog, simulator, tuning and sharing work on every browser including iOS Safari — only install is absent [G1]
+- [x] **DEGR-01**: The full catalog, simulator, tuning and sharing work on every browser including iOS Safari — only install is absent [G1]
 - [ ] **DEGR-02**: Install controls are present but disabled with the reason inline on unsupported browsers, never hidden [G2]
 
 ### Identity
@@ -191,15 +191,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8) | Complete |
 | TUNE-02 | Phase 5 | Complete |
 | TUNE-03 | Phase 5 | Complete |
-| TUNE-04 | Phase 5 | Pending |
-| TUNE-05 | Phase 5 | Pending |
+| TUNE-04 | Phase 5 | Complete (guard, unreachable in practice: reachability.sweep.spec.ts costs all 32,852 reachable knob states and none crosses 908, so the fit ladder is proven against a measured over-budget reserve in ladder.spec.ts and watched in a browser on /dev/tune/, never met by a visitor) |
+| TUNE-05 | Phase 5 | Complete (guard, unreachable in practice: the red meter, the disabled TRY ON DEVICE with its reason, the named knob and TURN IT DOWN are all real code, reachable only by passing a real reserved to cost() - e2e/tuning.e2e.ts tests 9 and 10 are a browser doing exactly that) |
 | TUNE-06 | Phase 5 | Complete |
 | TUNE-07 | Phase 5 | Complete |
 | SHARE-01 | Phase 5 | Complete |
 | SHARE-02 | Phase 5 | Complete |
 | SHARE-03 | Phase 5 | Complete |
-| SHARE-04 | Phase 5 | Pending |
-| DEGR-01 | Phase 5 | Pending |
+| SHARE-04 | Phase 5 | Complete with two qualifiers: routed entries only - 8 of the 16 catalog entries, because the excluded eight are not in FRONT_DOOR, have no prerendered /c/<id>/ page and therefore no <head> to carry an og:image; and a real Discord unfurl is unverifiable until the Basic Auth embargo lifts, because worker/index.js gates the whole site fail-closed and no crawler ever reaches the head the tests check |
+| DEGR-01 | Phase 5 | Complete (iOS is approximated by WebKit at a phone viewport: e2e/tuning-webkit.e2e.ts's five tagged tests run in both projects and cover the front door, choosing without sideways scroll, a knob turn with both meters settling, COPY LINK's confirm state and a shared link landing with install present but disabled) |
 | DEGR-02 | Phase 7 (browser-capability half delivered in Phase 4) | Pending |
 | IDENT-01 | Phase 4 | Pending |
 | IDENT-02 | Phase 4 | Pending |

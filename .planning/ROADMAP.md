@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Walking Skeleton** - A bare page proves the full connect, fetch, write and store cycle on a real ZONA as a provable no-op (completed 2026-09-03)
 - [x] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle (completed 2026-09-02)
 - [x] **Phase 4: First Experience** - Splash dissolves into a coverflow of live ZONA pads; choose one and `TRY ON DEVICE` appears — the wow front door, worth opening with no hardware attached (completed 2026-09-04)
-- [ ] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL
+- [x] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL (all 12 plans complete 2026-09-04, full suite green against the production build; verification and the first deploy of the tuned front door follow)
 - [ ] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file
 - [ ] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language
 - [ ] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames
@@ -140,7 +140,7 @@ Plans:
 - [x] 05-09-PLAN.md — BudgetMeter, BudgetMessage, StampNotice and CopyLink (wave 9)
 - [x] 05-10-PLAN.md — TuningRegion, the panel seam, and the structural gate over the tuning UI (wave 10)
 - [x] 05-11-PLAN.md — Coverflow wiring: the live preview swap, the stamp landing, and eight e2e tests (wave 11)
-- [ ] 05-12-PLAN.md — /dev/tune/, the WebKit phone journey, the docs and the phase gate (wave 12)
+- [x] 05-12-PLAN.md — /dev/tune/, the WebKit phone journey, the docs and the phase gate (wave 12)
 
 ### Phase 5.1: Catalog Browse
 **Goal**: The sophisticated catalog behind the front door — the whole collection browsable, sortable and searchable without leaving the identity.
@@ -217,7 +217,7 @@ Phases 6 and 7.
 | 2. Walking Skeleton | 5/5 | Complete | 2026-09-03 |
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
-| 5. Tuning, Budgets and Shareable Links | 11/12 | In Progress | - |
+| 5. Tuning, Budgets and Shareable Links | 12/12 | Complete | 2026-09-04 |
 | 5.1. Catalog Browse | 0/TBD | Not started | - |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
