@@ -82,6 +82,23 @@ identity on screen, every failure named with its recovery, and a revoke control.
   unplug/replug, the Grid-Editor-holds-the-port message, the not-a-ZONA refusal — are the user's
   daytime checklist (`docs/SESSION-RUNBOOK.md`), a `checkpoint:human-verify` in the final plan.
 
+### Amended at the UI check (2026-09-04) **[orchestrator]**
+- **D-02 amended:** the slot's connect affordance is the caption `ZONA detected` over the label
+  `CONNECT ZONA` (a label must be a verb phrase; `ZONA DETECTED — CONNECT` fails Phase 4's
+  label-versus-statement rule); `DISCONNECT ZONA` moves off the slot into the disclosure.
+- **D-04 amended:** the Firefox two-step wording is unconditional ("some browsers") because no
+  non-brand behavioural signal for that prompt exists; `NotAllowedError` adds one sentence inside
+  `cancelled`, not a ninth state.
+- **D-13 amended:** the taxonomy is NINE states — `unplugged` splits into `unplugged-at-open`
+  (`classifyOpenError`: `NetworkError` during `open()` with `port.connected === false`; renders
+  `failureCopy("unplugged", …)` verbatim with the cable/hub steps) and `unplugged-while-connected`
+  (the `navigator.serial` `disconnect` of a live session; Phase 4's sentence plus the replug offer).
+- **D-16:** CONN-03's pre-click line and the SAFE-01 sentence render INLINE beneath the header row
+  in the not-connected states on `/`, `/c/<id>/` and `/browse/` (no disclosure — a control that both
+  acts and expands lies in one of its two jobs); the chosen panel's honesty slot keeps its own copy.
+- **D-17:** exactly one SESSION live region site-wide; Phase 5's tuning region and Phase 5.1's browse
+  region coexist with disjoint trigger sets; in the same 500 ms window the session speaks first.
+
 ## Deferred / out of scope
 Any write (Phase 7: snapshot, PUT BACK, KEEP ON DEVICE). Android WebUSB and iOS transports
 (recorded as a possible later spike; not here). Changing the front door's choreography.
