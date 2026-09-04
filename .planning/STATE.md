@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-05-PLAN.md (SimHost); baseline for 04-06: quick 36/527, sweep 1/9, e2e 10 carried forward unverified"
-last_updated: "2026-09-04T02:20:16.682Z"
+stopped_at: "Completed 04-06-PLAN.md (the living row); baseline for 04-07: quick 36/527, sweep 1/9, e2e 13"
+last_updated: "2026-09-04T02:50:04.687Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 33
-  completed_plans: 22
-  percent: 67
+  completed_plans: 23
+  percent: 70
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 04 (first-experience)
-Plan: 6 of 9 in current phase
+Plan: 7 of 9 in current phase
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [███████░░░] 67%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [███████░░░] 67%
 | Phase 04 P03 | 14 min | 3 tasks | 6 files |
 | Phase 04 P04 | 18 min | 2 tasks | 5 files |
 | Phase 04 P05 | 14 min | 2 tasks | 2 files |
+| Phase 04 P06 | 41 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -158,6 +159,9 @@ Recent decisions affecting current work:
 - [Phase 04]: The never-writes invariant is asserted twice - FakeTransport.writes empty after a full cycle, and a comment-stripped scan of try-on.ts for .write( - and was proven with two separate perturbations, because a Vitest assertion aborts its test at the first failure
 - [Phase 04]: SimHost asks for another animation frame only for pads still running after their ticks, not for every pad that ran: the expiry frame has already painted the true final state and every waking event calls wake(), so the vendored host's extra no-op frame is dead work
 - [Phase 04]: HostEngine is declared structurally in host.ts rather than imported, so PadSim today and Phase 8 plan 08-03's SimEngine both satisfy it with no shared file, no import either way and no migration
+- [Phase 04]: The pad's four layers are one canvas plus three static CSS layers: PadCanvas owns the element and its role=img name but never takes a 2D context, sets a backing store or paints - SimHost.register does all three, so exactly one place decides the 9x9 store and there is one draw call per pad per paint
+- [Phase 04]: The CSS 3D scene is split across three elements: clip and edge mask on the outer .band (no preserve-3d), perspective on the inner .stage, filter: brightness() on the leaf .slot - measured in Chromium at 1280x720 the row renders mirror-symmetric about x=640 with the hero 374px and the +-3 slots 138px, so the ladder is provably not flattened
+- [Phase 04]: Three lint rules are suppressed with the reason written beside each: role=img on a canvas and role=option without a tabindex are the approved accessibility contract, and prefer-svelte-reactivity is backwards here because SvelteMap is the reactive proxy that would sit inside the 100 Hz loop - an explanation inside a svelte-ignore comment is parsed as further rule names, so it goes in a separate comment
 
 ### Pending Todos
 
@@ -173,6 +177,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T02:20:10.409Z
-Stopped at: Completed 04-05-PLAN.md (SimHost); baseline for 04-06: quick 36/527, sweep 1/9, e2e 10 carried forward unverified
+Last session: 2026-09-04T02:50:04.680Z
+Stopped at: Completed 04-06-PLAN.md (the living row); baseline for 04-07: quick 36/527, sweep 1/9, e2e 13
 Resume file: None
