@@ -25,3 +25,14 @@ on the next plan unless the pattern is anchored past the frontmatter or made cas
 
 **Not fixed here:** it is a defect in the shared GSD toolchain outside this repository, and this
 phase has no mandate to edit it.
+
+## From plan 04-08
+
+- `docs/TESTING.md`'s `npm run test:unit -- --run` row still reads **27 files, 462 passed + 1 todo**,
+  which cannot be right when `test:quick` alone is 37 / 532. It was already stale before this plan and
+  this plan did not observe that command, so it was left alone rather than guessed at: the plan's rule
+  is that only OBSERVED totals go into that document. One `npm run test:unit -- --run` in a later plan
+  fixes it.
+- `src/lib/ui/` and `src/lib/device/` are still outside `forbidden-instructions.spec.ts`'s
+  `SCANNED_DIRS` (`src/lib/protocol`, `src/lib/transport`). Widening it to `src/lib` would close both
+  gaps at once and cost no tests. Carried forward from 04-04 and 04-07.

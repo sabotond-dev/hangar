@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-07-PLAN.md (the name plate, the fidelity line and the opening); baseline for 04-08: quick 37/532, sweep 1/9, e2e 16"
-last_updated: "2026-09-04T03:29:29.392Z"
+stopped_at: Completed 04-08-PLAN.md
+last_updated: "2026-09-04T04:08:08.346Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 33
-  completed_plans: 24
-  percent: 73
+  completed_plans: 25
+  percent: 76
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 04 (first-experience)
-Plan: 8 of 9 in current phase
+Plan: 9 of 9 in current phase
 Status: Ready to execute
 Last activity: 2026-09-04
 
-Progress: [███████░░░] 73%
+Progress: [████████░░] 76%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [███████░░░] 73%
 | Phase 04 P05 | 14 min | 2 tasks | 2 files |
 | Phase 04 P06 | 41 min | 3 tasks | 7 files |
 | Phase 04 P07 | 38 min | 3 tasks | 9 files |
+| Phase 04-first-experience P08 | 32 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -168,6 +169,9 @@ Recent decisions affecting current work:
 - [Phase 04]: The reduced-motion preference is read in both halves: a plain @media block for anything CSS can express, and svelte/motion's live prefersReducedMotion for the two durations only JavaScript can set - a Svelte transition length and a setTimeout
 - [Phase 04]: test.use({ reducedMotion: 'reduce' }) alone left window.matchMedia reporting false in Playwright 1.62.1, so the reduced-motion e2e test also calls page.emulateMedia before goto; HANGAR reads the preference in JavaScript, so the declarative option alone would have tested the full-motion path under a reduced-motion title
 - [Phase 04]: The glyph field's block extents are a fraction of the viewport, not a fixed cell count: absolute cells make confetti at 1920px and a wall on a phone. ~52% block coverage at every width
+- [Phase 04-first-experience]: Port release on un-choose is an exported release() on TryOnDevice called through bind:this, with the component's own onDestroy as an idempotent backstop and a $effect.pre covering the browser Back button
+- [Phase 04-first-experience]: The chosen flag lives in the history entry as page.state.chosen, pushed with pushState("", { chosen: true }), so Escape and the browser Back button are one gesture
+- [Phase 04-first-experience]: D-08 and D-09 contradict each other on stepping while chosen; reconciled with STEP_AWAY_LIMIT = 1 - one step re-fills the panel, a second step is 'past' and closes it
 
 ### Pending Todos
 
@@ -183,6 +187,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T03:29:19.063Z
-Stopped at: Completed 04-07-PLAN.md (the name plate, the fidelity line and the opening); baseline for 04-08: quick 37/532, sweep 1/9, e2e 16
+Last session: 2026-09-04T04:08:08.340Z
+Stopped at: Completed 04-08-PLAN.md
 Resume file: None

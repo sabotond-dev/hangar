@@ -112,7 +112,7 @@ Plans:
 - [x] 04-05-PLAN.md — SimHost: one rAF, window-and-viewport gating, live reduced motion, clean teardown (wave 3)
 - [x] 04-06-PLAN.md — The living row: pad layers, the coverflow band, stepping, and the front door route (wave 4)
 - [x] 04-07-PLAN.md — Name plate, fidelity line, the glyph-field splash and its dissolve (wave 5)
-- [ ] 04-08-PLAN.md — Choosing, the panel, TRY ON DEVICE and KEEP ON DEVICE (wave 6)
+- [x] 04-08-PLAN.md — Choosing, the panel, TRY ON DEVICE and KEEP ON DEVICE (wave 6)
 - [ ] 04-09-PLAN.md — Deep-link routes, the two chunk guards, and the phase gate (wave 7)
 
 ### Phase 5: Tuning, Budgets and Shareable Links
