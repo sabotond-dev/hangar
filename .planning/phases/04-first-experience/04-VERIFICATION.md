@@ -1,7 +1,7 @@
 ---
 phase: 04-first-experience
 verified: 2026-09-04T04:48:34Z
-status: human_needed
+status: passed
 score: 5/5 observable truths verified
 suites:
   test_quick: "37 files / 534 passed | 1 todo — matches the expected figure"
@@ -47,7 +47,9 @@ dissolves into a coverflow of live ZONA pads, one large and centred, and choosin
 `TRY ON DEVICE`. The first ten seconds are a wow.
 
 **Verified:** 2026-09-04T04:48:34Z
-**Status:** human_needed — every automated truth holds; one hardware behaviour is the user's
+**Status:** passed — every automated truth holds; the one hardware behaviour was confirmed by the user on 2026-09-04 (Chrome port chooser → Connect → the panel identified the ZONA; "it works as intended"; nothing written to the module)
+
+*(Original wording at verification time follows.)* **Status:** human_needed — every automated truth holds; one hardware behaviour is the user's
 **Re-verification:** No — initial verification
 
 ## Suites run by the verifier
