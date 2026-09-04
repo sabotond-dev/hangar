@@ -584,4 +584,121 @@ describe("the simulator host (src/lib/sim/host.ts)", () => {
       "a contact was still held after destroy",
     ).toEqual(touches);
   });
+
+  it("swaps the engine under a live pad and keeps the canvas, the observer and the slot", () => {
+    const h = harness();
+    const canvas = h.canvas();
+    const first = fakeEngine();
+    h.host.setHero("a");
+    h.host.register("a", canvas, first);
+    h.clock.step(0);
+    h.clock.step(50);
+    expect(first.calls.tick, "the pad had run before the swap").toBe(5);
+
+    const second = fakeEngine();
+    h.host.replaceEngine("a", second);
+
+    expect(canvas.width, "the backing store was torn down by the swap").toBe(
+      GRID_SIDE,
+    );
+    expect(h.io.unobserved, "the observer was dropped by the swap").toBe(0);
+    expect(h.io.watching, "the pad is watched exactly once").toBe(1);
+
+    h.clock.step(60);
+    h.clock.step(80);
+    expect(
+      second.calls.tick,
+      "the new engine stalled: the swap waited for an observer callback",
+    ).toBe(3);
+    expect(first.calls.tick, "the old engine kept running after the swap").toBe(
+      5,
+    );
+    expect(
+      second.calls.reset,
+      "a swap under full motion restarted the new engine at tick 0",
+    ).toBe(0);
+
+    // Only the hero receives contacts, so a sample reaching the new engine is
+    // the proof that the slot's hero flag survived the swap.
+    expect(h.host.touchDown(3, 2, 2), "the contact was taken").toBe(true);
+    h.clock.step(90);
+    h.clock.step(100);
+    expect(
+      second.calls.touch.map((call) => call[0]),
+      "the swapped-in engine is no longer the hero",
+    ).toEqual(["down"]);
+
+    h.host.destroy();
+  });
+
+  it("paints the new engine at once, before the loop runs again", () => {
+    const h = harness();
+    const canvas = h.canvas();
+    const first = fakeEngine();
+    h.host.register("a", canvas, first);
+    h.clock.step(0);
+    h.clock.step(50);
+    const before = canvas.paints.length;
+
+    const second = fakeEngine();
+    h.host.replaceEngine("a", second);
+
+    expect(
+      canvas.paints.length - before,
+      "the swap did not paint: the new engine's frame waits for a frame callback",
+    ).toBe(1);
+    expect(
+      canvas.paints[canvas.paints.length - 1],
+      "the swap's paint did not happen at the swap's own timestamp",
+    ).toBe(h.clock.now);
+
+    h.host.destroy();
+  });
+
+  it("re-stills the pad on a swap under reduced motion, and ignores an id it does not know", () => {
+    const h = harness({ reduced: true });
+    const canvas = h.canvas();
+    const first = fakeEngine();
+    h.host.register("a", canvas, first);
+    expect(first.calls.run, "the first engine was stilled at register").toEqual(
+      [REDUCED_MOTION_TICKS],
+    );
+    const before = canvas.paints.length;
+
+    const second = fakeEngine();
+    // The still frame must run BEFORE the paint, or the visitor is shown an
+    // unticked engine's blank square. Recording the paint count at the moment
+    // run() is called is what pins that order.
+    const paintsAtRun: number[] = [];
+    const rawRun = second.run;
+    second.run = (n: number): void => {
+      paintsAtRun.push(canvas.paints.length);
+      rawRun(n);
+    };
+    h.host.replaceEngine("a", second);
+
+    expect(
+      second.calls.reset,
+      "the new engine was not restarted deterministically",
+    ).toBe(1);
+    expect(
+      second.calls.run,
+      "the new engine did not run to the representative frame",
+    ).toEqual([REDUCED_MOTION_TICKS]);
+    expect(
+      paintsAtRun,
+      "the swap painted before it stilled: a reduced-motion visitor sees an unticked frame",
+    ).toEqual([before]);
+    expect(
+      canvas.paints.length - before,
+      "a reduced-motion visitor kept looking at the previous engine's frozen picture",
+    ).toBe(1);
+
+    expect(
+      () => h.host.replaceEngine("nobody", fakeEngine()),
+      "a knob turn racing an unmount threw instead of doing nothing",
+    ).not.toThrow();
+
+    h.host.destroy();
+  });
 });
