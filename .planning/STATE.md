@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-01-PLAN.md
-last_updated: "2026-09-04T20:26:51.167Z"
+stopped_at: Completed 05.1-02-PLAN.md
+last_updated: "2026-09-04T22:52:00.000Z"
 last_activity: 2026-09-04
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 46
-  percent: 82
+  completed_plans: 47
+  percent: 84
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 02 (next)
-Status: Phase 5.1 in progress — 05.1-01 complete (1 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 03 (next)
+Status: Phase 5.1 in progress — 05.1-02 complete (2 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-04
 
-Progress: [████████░░] 82% (46 of 56 plans)
+Progress: [████████░░] 84% (47 of 56 plans)
 
 ## Performance Metrics
 
@@ -105,6 +105,7 @@ Progress: [████████░░] 82% (46 of 56 plans)
 | Phase 05 P11 | 28min | 3 tasks | 2 files |
 | Phase 05 P12 | 43 min | 3 tasks | 5 files |
 | Phase 05.1 P01 | 24 min | 3 tasks | 2 files |
+| Phase 05.1 P02 | 22 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -275,6 +276,12 @@ Recent decisions affecting current work:
 - [Phase 05.1]: ROUTED is exported from listing.ts as the ONE declaration of the entries that have an address, because widening src/routes/c/[id]/+page.ts alone would ship eight pages whose og:image 404s with nothing red anywhere - scripts/gen-og.mjs, og/build.spec.ts and e2e/artifacts.e2e.ts must read the same name (05.1-05)
 - [Phase 05.1]: listing.spec.ts test 5 asserts every collected specifier sits on an `import type` statement rather than only forbidding a fragment list, so an unforeseen runtime import is red without having been enumerated - observed red by adding `import { CATALOG } from "./index"`
 - [Phase 05.1]: A large TypeScript file with regular expressions in it does not survive a Bash heredoc on this machine (`unexpected EOF while looking for matching '`); write such files with the editor tool. A scratch .mjs outside the repo must import vite by absolute file URL from the repo's node_modules, and the catalog's module graph prints one HEARTBEAT_INTERVAL line to stdout that has to be dropped before JSON.parse
+- [Phase 05.1]: The plan's predicted NAME order was wrong and the UI spec was right: a code-point comparison is lexicographic from the FIRST differing character, not a partition by case, so NAME reads ARC, Aurora, CHORUS, Dial, EUCLID, Four faders, GHOST, Joystick, LATTICE, MORPH, Nine pads, Pinwheel, Radar, SONAR, Starfield, Trackpad - only ARC/Aurora and SONAR/Starfield collide on a first letter and both resolve the way an English reader expects
+- [Phase 05.1]: A restated comparator is gated against the shipped one's OUTPUT, not its source: sort.spec.ts maps both sides to id sequences and compares element for element, which is the only thing standing between src/lib/browse/sort.ts and a silent divergence from src/lib/catalog/index.ts's module-private nameAsc
+- [Phase 05.1]: A forbidden-API scan must also assert the PROSE survives the comment stripper, and the module must therefore NAME the API it refuses - sort.ts's header said 'never a locale-aware comparison' and the non-vacuity guard went red on a correct module until localeCompare and Intl.Collator were named in one sentence
+- [Phase 05.1]: columnsFromTemplate DROPS the literal 'none' before counting rather than letting it split to a length of 1, so the Math.max(1, ...) clamp is the only thing that can produce the 1 - otherwise the negative check 'remove the clamp' stays green on a broken module (observed: expected +0 to be 1)
+- [Phase 05.1]: typographic uses a capture plus a LOOKAHEAD and never a lookbehind: lookbehind is Safari 16.4+ and a module-parse SyntaxError takes the whole page down for exactly the browse-only visitors the catalog has to carry - the capture form also consumes only letter-plus-apostrophe, which is what makes a'b'c curl both
+- [Phase 05.1]: nextIndex clamps INTO RANGE rather than staying put on a row step that leaves the grid (ARIA APG's grid rule does not bind - the UI spec is explicit that this is a list of links with a roving tabindex, not role=grid), so on a filtered set of thirteen at four columns ArrowDown from card 9 lands on card 12 instead of stranding the last card
 
 ### Pending Todos
 
@@ -291,6 +298,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-04T20:26:51.161Z
-Stopped at: Completed 05.1-01-PLAN.md
+Last session: 2026-09-04T22:52:00.000Z
+Stopped at: Completed 05.1-02-PLAN.md
 Resume file: None
