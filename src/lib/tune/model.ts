@@ -68,6 +68,7 @@ import {
 import { PadSim } from "../../vendor/botor/pad-sim";
 import { byId, type CatalogEntry } from "../catalog";
 import { compileState, costOf, fitState, measureLua, padReady } from "../pad";
+import { compilerKnobs, encodeFor, stampKnobs } from "../share/stamp";
 import { createEngine, type SimEngine } from "../sim/engine";
 import {
   backOffKnob,
@@ -82,12 +83,7 @@ import {
   type BudgetEvents,
   type EventWord,
 } from "./copy";
-import { luaKnobs } from "./knobs.lua";
-import {
-  presetKnobs,
-  type KnobDescriptor,
-  type PresetKnob,
-} from "./knobs.preset";
+import type { KnobDescriptor, PresetKnob } from "./knobs.preset";
 import { applyKnob, baseStateFor, resetAll } from "./state";
 import { surpriseIndices } from "./surprise";
 import {
@@ -294,15 +290,17 @@ function entryFor(id: string): CatalogEntry {
 export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   const entry = entryFor(options.entryId);
 
-  // The two routes, resolved once. A `state`-kind source is compiler driven and
-  // has no descriptor table of its own, so it exposes no knobs and still gets
-  // both meters - a true answer rather than an invented rack.
-  const tuned: readonly PresetKnob[] =
-    entry.preview === "padsim" && entry.source.kind === "preset"
-      ? presetKnobs(entry.source.presetId)
-      : [];
-  const knobs: readonly KnobDescriptor[] =
-    entry.preview === "lua" ? luaKnobs(entry) : tuned;
+  // The two routes, resolved once, THROUGH THE STAMP'S OWN RESOLVERS. A
+  // `state`-kind source is compiler driven and has no descriptor table of its
+  // own, so it exposes no knobs and still gets both meters - a true answer
+  // rather than an invented rack.
+  //
+  // These two calls used to be inline. They are the stamp module's now because
+  // `encodeFor` has to encode against EXACTLY the knobs the rack shows, in the
+  // same order: two copies of the rule agreeing today is not the same property
+  // as one copy that cannot disagree.
+  const tuned: readonly PresetKnob[] = compilerKnobs(entry);
+  const knobs: readonly KnobDescriptor[] = stampKnobs(entry);
 
   const indices: Record<string, number> = {};
   for (const knob of knobs) {
@@ -332,6 +330,17 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
    */
   let resolved: PadState | undefined;
   let engine: SimEngine | undefined;
+  /**
+   * The share payload, RECOMPUTED EAGERLY rather than on demand.
+   *
+   * That precomputation is what makes COPY LINK gesture-safe: Safari expires
+   * the transient user activation across an `await`, so the click handler must
+   * contain no `await` before `navigator.clipboard.writeText`. `encodeFor` is
+   * pure string and state arithmetic - it never crosses the WASM boundary - so
+   * recomputing it on every emit costs microseconds and removes a whole class
+   * of "the copy silently did nothing on iOS" bug.
+   */
+  let payload: string | undefined;
 
   const stale = (mine: number) => destroyed || mine !== generation;
 
@@ -350,6 +359,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
 
   function emit(): void {
     if (destroyed) return;
+    payload = encodeFor(entry, indices);
     options.onview({
       entryId: entry.id,
       knobs: knobViews(knobs, indices),
@@ -611,13 +621,9 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       schedule();
     },
     stamp(): string | undefined {
-      // TODO(05-05): the base36 stamp codec. It is recomputed on every set()
-      // into a plain string so COPY LINK never has to await anything - Safari
-      // expires the transient activation across an await and the clipboard
-      // write then rejects. Until wave 5 lands the codec there is no encoding
-      // to invent, and undefined is the honest answer: a URL with no fragment
-      // IS the base configuration.
-      return undefined;
+      // Already computed - see `payload` above. Undefined at the defaults,
+      // because a URL with no fragment IS the base configuration.
+      return payload;
     },
     destroy(): void {
       destroyed = true;

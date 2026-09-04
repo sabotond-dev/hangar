@@ -1,0 +1,352 @@
+// The stamp's spec: eight tests, and the count never moves.
+//
+// Every test loops over the catalog internally and names the offending entry in
+// its assertion message, so a configuration added in a later phase changes no
+// number here (05-VALIDATION, "The design decision that shapes every count").
+//
+// TEST 5 IS THE ONE THAT MATTERS. `decodeStamp("pdial")` succeeds on its own,
+// so nothing in the vendored codec stops `/c/aurora/#z.pdial` from rendering
+// Dial's configuration under Aurora's name plate - precisely the "subtly wrong
+// one" SHARE-03 forbids. The entry-consistency check is the whole guard, it is
+// one line, and its negative check (delete the line, watch Dial appear under
+// aurora) was observed before this file was trusted.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { describe, expect, it } from "vitest";
+import {
+  STAMP_ALPHABET,
+  STAMP_PREFIX,
+  encodeStamp,
+} from "../../vendor/botor/_pad";
+import { CATALOG, byId, type CatalogEntry, type LuaKnob } from "../catalog";
+import { baseStateFor } from "../tune/state";
+import {
+  HANGAR_FORMAT_LETTERS,
+  HANGAR_FORMAT_LUA,
+  compilerKnobs,
+  decodeFor,
+  encodeFor,
+  parseHash,
+  stampKnobs,
+} from "./stamp";
+
+type Indices = Record<string, number>;
+
+const entry = (id: string): CatalogEntry => {
+  const found = byId(id);
+  if (!found) throw new Error(`the catalog lost ${id}`);
+  return found;
+};
+
+const luaEntries = () => CATALOG.filter((each) => each.preview === "lua");
+const padsimEntries = () => CATALOG.filter((each) => each.preview === "padsim");
+
+const defaultsOf = (each: CatalogEntry): Indices => {
+  const out: Indices = {};
+  for (const knob of stampKnobs(each)) out[knob.id] = knob.default;
+  return out;
+};
+
+/** Every knob one position off its default, which is never the default. */
+const tunedOf = (each: CatalogEntry): Indices => {
+  const out: Indices = {};
+  for (const knob of stampKnobs(each)) {
+    out[knob.id] = (knob.default + 1) % knob.options.length;
+  }
+  return out;
+};
+
+const sameIndices = (a: Indices, b: Indices): boolean =>
+  Object.keys(a).length === Object.keys(b).length &&
+  Object.keys(a).every((key) => a[key] === b[key]);
+
+describe("the stamp: encoding", () => {
+  it("emits nothing at the defaults and a decodable payload once a knob moves", () => {
+    // A URL with no fragment IS the base configuration (SHARE-01), so the
+    // defaults must encode to undefined for BOTH routes, and for any entry
+    // that exposes no knobs at all.
+    expect(CATALOG.length, "the catalog is not empty").toBeGreaterThan(0);
+    for (const each of CATALOG) {
+      expect(
+        encodeFor(each, defaultsOf(each)),
+        `${each.id}: the defaults must carry no stamp`,
+      ).toBeUndefined();
+    }
+
+    const tunable = padsimEntries().filter(
+      (each) => compilerKnobs(each).length > 0,
+    );
+    expect(
+      tunable.length,
+      "there are compiler-driven entries with knobs",
+    ).toBeGreaterThan(0);
+    for (const each of tunable) {
+      const indices = tunedOf(each);
+      const payload = encodeFor(each, indices);
+      expect(payload, `${each.id}: a tuned entry must carry a stamp`).toEqual(
+        expect.any(String),
+      );
+      expect(decodeFor(each, payload), `${each.id}: did not restore`).toEqual({
+        kind: "restored",
+        indices,
+      });
+    }
+  });
+});
+
+describe("the stamp: format x", () => {
+  it("round-trips every Lua entry over both corners and every single move", () => {
+    const entries = luaEntries();
+    expect(entries.length, "there are hand-authored entries").toBeGreaterThan(
+      0,
+    );
+    let checked = 0;
+    for (const each of entries) {
+      const knobs = stampKnobs(each);
+      const defaults = defaultsOf(each);
+      const vectors: { label: string; indices: Indices }[] = [
+        { label: "the defaults", indices: defaults },
+        {
+          label: "every knob at its first value",
+          indices: Object.fromEntries(knobs.map((knob) => [knob.id, 0])),
+        },
+        {
+          label: "every knob at its last value",
+          indices: Object.fromEntries(
+            knobs.map((knob) => [knob.id, knob.options.length - 1]),
+          ),
+        },
+      ];
+      for (const knob of knobs) {
+        for (let at = 0; at < knob.options.length; at += 1) {
+          vectors.push({
+            label: `${knob.id} at ${at}`,
+            indices: { ...defaults, [knob.id]: at },
+          });
+        }
+      }
+
+      for (const vector of vectors) {
+        const payload = encodeFor(each, vector.indices);
+        if (sameIndices(vector.indices, defaults)) {
+          expect(
+            payload,
+            `${each.id} at ${vector.label}: this vector IS the defaults`,
+          ).toBeUndefined();
+          checked += 1;
+          continue;
+        }
+        expect(payload, `${each.id} at ${vector.label}: no payload`).toMatch(
+          /^x/,
+        );
+        expect(
+          payload?.length,
+          `${each.id} at ${vector.label}: one character per knob, plus the format and the shape`,
+        ).toBe(2 + knobs.length);
+        expect(
+          decodeFor(each, payload),
+          `${each.id} at ${vector.label}: did not round-trip`,
+        ).toEqual({ kind: "restored", indices: vector.indices });
+        checked += 1;
+      }
+    }
+    expect(checked, "the sample is not empty").toBeGreaterThan(20);
+  });
+
+  it("lands older on a resized knob and never restored on a changed rack", () => {
+    // The shape character is a tripwire, not a hash: it turns a RESIZED knob
+    // into a graceful failure. An ADDED or REMOVED knob moves the payload
+    // LENGTH as well, which the length check catches first and reports as
+    // unreadable - both are honest, and neither is a silently wrong restore.
+    const each = entry("euclid");
+    const knobs = stampKnobs(each);
+    expect(knobs.length, "euclid has knobs").toBeGreaterThan(1);
+    const payload = encodeFor(each, tunedOf(each));
+    expect(payload, "euclid encodes").toEqual(expect.any(String));
+
+    const resized: CatalogEntry = {
+      ...each,
+      knobs: each.knobs.map((knob, at) =>
+        at === 0
+          ? { ...knob, values: knob.values.slice(0, knob.values.length - 1) }
+          : knob,
+      ),
+    };
+    const spare: LuaKnob = {
+      id: "spare",
+      label: "Spare",
+      kind: "amount",
+      token: "@SPARE",
+      values: ["1", "2"],
+      default: 0,
+    };
+    const added: CatalogEntry = { ...each, knobs: [...each.knobs, spare] };
+    const removed: CatalogEntry = { ...each, knobs: each.knobs.slice(1) };
+
+    expect(
+      decodeFor(resized, payload),
+      "a resized knob must be older, never restored",
+    ).toEqual({ kind: "older" });
+    expect(
+      decodeFor(added, payload),
+      "an added knob moves the payload length",
+    ).toEqual({ kind: "unreadable" });
+    expect(
+      decodeFor(removed, payload),
+      "a removed knob moves the payload length",
+    ).toEqual({ kind: "unreadable" });
+  });
+
+  it("refuses every malformed payload as unreadable", () => {
+    const each = entry("euclid");
+    const knobs = stampKnobs(each);
+    const good = encodeFor(each, tunedOf(each));
+    if (typeof good !== "string") throw new Error("euclid did not encode");
+
+    const outsideAlphabet = "w";
+    expect(
+      STAMP_ALPHABET.includes(outsideAlphabet),
+      "the substituted character really is outside the payload alphabet",
+    ).toBe(false);
+
+    const cases: { label: string; payload: string }[] = [
+      { label: "an unknown format letter", payload: `q${good.slice(1)}` },
+      { label: "a payload one character short", payload: good.slice(0, -1) },
+      { label: "a payload one character long", payload: `${good}0` },
+      { label: "truncated to the format letter", payload: good.slice(0, 1) },
+      {
+        label: "a character outside the alphabet",
+        payload: good.slice(0, 2) + outsideAlphabet + good.slice(3),
+      },
+      {
+        label: "an index past the end of its values",
+        payload:
+          good.slice(0, 2) +
+          STAMP_ALPHABET[knobs[0].options.length] +
+          good.slice(3),
+      },
+    ];
+    for (const malformed of cases) {
+      expect(
+        decodeFor(each, malformed.payload),
+        `${malformed.label} must be unreadable`,
+      ).toEqual({ kind: "unreadable" });
+    }
+  });
+});
+
+describe("the stamp: the entry-consistency check", () => {
+  it("refuses another card's stamp and accepts this card's own base link", () => {
+    const aurora = entry("aurora");
+    // The whole of SHARE-03. decodeStamp("pdial") succeeds; the check is what
+    // stops Dial's configuration rendering under Aurora's name.
+    expect(
+      decodeFor(aurora, "pdial"),
+      "another card's preset stamp must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+
+    // A tuned DIAL stamp, which decodes cleanly and is not this entry's.
+    const dial = entry("dial");
+    const foreign = encodeFor(dial, tunedOf(dial));
+    if (typeof foreign !== "string") throw new Error("dial did not encode");
+    expect(
+      decodeFor(aurora, foreign),
+      "another card's tuned stamp must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+
+    // THE `p` ROW, and why it is decided BEFORE the check. `paurora` is what
+    // encodeStamp emits for an untuned card, so it is exactly the stamp a
+    // BOTOR base-card link carries. The check rebuilds by APPLYING knobs,
+    // every apply goes through withChange, and withChange deletes
+    // state.preset - so encodeStamp(rebuilt) is a field dump and can never
+    // equal "paurora". Classifying that unreadable would put SHARE-03's
+    // apology on a link that is perfectly correct.
+    const source = aurora.source;
+    if (source.kind !== "preset") throw new Error("aurora is not a preset");
+    expect(
+      encodeStamp(baseStateFor(aurora)),
+      "the untuned card really does encode as its own preset stamp",
+    ).toBe(`p${source.presetId}`);
+    expect(
+      decodeFor(aurora, `p${source.presetId}`),
+      "this card's own base-card link lands at its defaults",
+    ).toEqual({ kind: "restored", indices: defaultsOf(aurora) });
+    expect(
+      encodeFor(aurora, tunedOf(aurora)),
+      "a tuned card is a field dump and never the preset short form, which is exactly why the p row is decided before the check",
+    ).not.toBe(`p${source.presetId}`);
+  });
+
+  it("refuses each route's stamp under the other route's entry", () => {
+    const aurora = entry("aurora");
+    const euclid = entry("euclid");
+
+    const lua = encodeFor(euclid, tunedOf(euclid));
+    if (typeof lua !== "string") throw new Error("euclid did not encode");
+    expect(lua[0], "the Lua route uses the HANGAR format letter").toBe(
+      HANGAR_FORMAT_LUA,
+    );
+    expect(
+      decodeFor(aurora, lua),
+      "format x under a compiler entry must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+
+    const compiler = encodeFor(aurora, tunedOf(aurora));
+    if (typeof compiler !== "string") throw new Error("aurora did not encode");
+    expect(
+      decodeFor(euclid, compiler),
+      "a BOTOR format under a Lua entry must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+    expect(
+      decodeFor(euclid, "paurora"),
+      "a preset stamp under a Lua entry must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+  });
+});
+
+describe("the stamp: the envelope", () => {
+  it("parses only a z. fragment, and claims four collision-proof letters", () => {
+    expect(parseHash("#z.at7ghh1pv8j00")).toBe("at7ghh1pv8j00");
+    expect(parseHash("#z.x5abc")).toBe("x5abc");
+    expect(parseHash("#")).toBeUndefined();
+    expect(parseHash("#z.")).toBeUndefined();
+    expect(parseHash("#chosen")).toBeUndefined();
+    expect(parseHash("?z.at7ghh1pv8j00")).toBeUndefined();
+    expect(parseHash("")).toBeUndefined();
+    expect(parseHash("z.at7ghh1pv8j00")).toBeUndefined();
+
+    // The prefix is the vendored one, never a second literal.
+    expect(STAMP_PREFIX).toBe("z.");
+    // HANGAR's four letters are outside the base-32 payload alphabet, so
+    // BOTOR's own BitWriter can never emit one as payload.
+    for (const letter of HANGAR_FORMAT_LETTERS) {
+      expect(
+        STAMP_ALPHABET.includes(letter),
+        `${letter} must be outside the payload alphabet`,
+      ).toBe(false);
+    }
+    expect(HANGAR_FORMAT_LETTERS).toContain(HANGAR_FORMAT_LUA);
+  });
+
+  it("is idempotent, on both routes and through a restore", () => {
+    // The consistency check IS an idempotence assertion, so a codec that were
+    // not idempotent would fail test 5 for entirely the wrong reason.
+    const subjects = [entry("aurora"), entry("dial"), entry("euclid")];
+    for (const each of subjects) {
+      const indices = tunedOf(each);
+      const once = encodeFor(each, indices);
+      const twice = encodeFor(each, indices);
+      expect(once, `${each.id}: encoded`).toEqual(expect.any(String));
+      expect(twice, `${each.id}: encoding twice differs`).toBe(once);
+
+      const landing = decodeFor(each, once);
+      if (landing.kind !== "restored") {
+        throw new Error(`${each.id}: expected a restore, got ${landing.kind}`);
+      }
+      expect(
+        encodeFor(each, landing.indices),
+        `${each.id}: re-encoding a restored vector differs`,
+      ).toBe(once);
+    }
+  });
+});
