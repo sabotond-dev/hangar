@@ -42,7 +42,9 @@ those phases finish because its deliverables are data, a Lua host and tests.
   `pendingTouches`) so Phase 4's card component picks an engine by `entry.preview` and changes
   nothing else. `glag` is implemented as `screenToHw` (it is not the identity). Integer semantics
   follow the firmware's Lua 5.5 rules for the restricted subset, and the gate **forbids** anything
-  outside that subset rather than reasoning about equivalence.
+  outside that subset rather than reasoning about equivalence. *(Amended 2026-09-04 at plan check:
+  `setState` is NOT part of `SimEngine` — a `PadState` means nothing to a Lua entry; a new engine is
+  constructed instead. The row must skip, not crash on, a preview kind it has no engine for.)*
 
 ### Where configurations live
 - **D-09 [orchestrator]** All configurations, ported and new, live in one HANGAR-owned catalog
@@ -79,6 +81,17 @@ those phases finish because its deliverables are data, a Lua host and tests.
   goes through BOTOR's shelf (Timer into event 6 first, then Setup into event 0). The research's
   twelve-row audition checklist becomes a `docs/` page the plan ships; it is a checkpoint the user
   runs in daytime, never something the orchestrator does.
+
+### Added at plan check (2026-09-04) **[orchestrator]**
+- **D-17:** Test totals in plans are per-file counts or "baseline recorded in the previous SUMMARY
+  plus this plan's delta", never absolute literals — Phase 4 and Phase 8 waves interleave (Phase 4
+  depends only on 08-01).
+- **D-18:** New entries do not join the front-door row automatically. If `src/lib/catalog/front-door.ts`
+  exists, each new entry is added to `EXCLUDED_FROM_ROW` with a one-line `why`; the row is curated
+  deliberately (Phase 4/5.1 decide who joins).
+- **D-19:** Resting-black entries (tpad, GHOST, MORPH) are a declared per-entry `restsBlack` fact
+  asserted against the frames fixture; the execution smoke test requires light after the scripted
+  gesture, not immediately after Setup. Motion is never faked.
 
 ## Deferred / out of scope
 - MIRROR (blocked on hardware). Route 1b BOTOR patches. Stamp envelope (Phase 5). Coverflow
