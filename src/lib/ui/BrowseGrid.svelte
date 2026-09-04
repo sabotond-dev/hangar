@@ -15,8 +15,21 @@
   surveys a page of sixteen destinations - middle-click, and open-in-new-tab.
   Phase 4 was right to make the coverflow a listbox, because a coverflow SELECTS
   a centred value; a grid of links NAVIGATES, and the two want opposite
-  semantics (W-07). The roving tabindex that buys back the single tab stop a
-  listbox would have given is the next task in this plan.
+  semantics (W-07). Roving tabindex is what buys back what a listbox would
+  otherwise have given: exactly ONE card is tabbable at a time, so Tab crosses
+  the whole wall in one press and reaches the fidelity line and the footer,
+  instead of seventeen presses.
+
+  THE KEYBOARD IS THREE ABSENCES AND ONE ARITHMETIC. Every decision an arrow key
+  makes is delegated to nextIndex in $lib/browse/grid, which clamps rather than
+  wraps and is pinned in node by grid.spec.ts; this file supplies the column
+  count and moves focus. `Enter` has NO handler and follows the link natively,
+  `Space` is NOT hijacked and goes on scrolling the page, and a modified arrow
+  is NOT intercepted so Alt+Left still means Back. preventDefault is called only
+  when nextIndex returned a number, which is why it returns undefined for a key
+  this grid does not own. All three words appear in this paragraph and in no
+  handler, which is the other half of the reason a scan over this file strips
+  comments first.
 
   ONE SimHost, ONE requestAnimationFrame. The host owns the page's only
   animation frame and this file never asks for one of its own: N loops is N
@@ -61,7 +74,12 @@
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { onDestroy, onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick, untrack } from "svelte";
+  import {
+    columnsForWidth,
+    columnsFromTemplate,
+    nextIndex,
+  } from "$lib/browse/grid";
   import type { ListingEntry } from "$lib/catalog/listing";
   import { SimHost, type HostEngine } from "$lib/sim/host";
   import CatalogCard from "./CatalogCard.svelte";
@@ -91,15 +109,40 @@
     onreorder?: () => void;
   } = $props();
 
+  const RESIZE_DEBOUNCE_MS = 200;
+
   /** Only these cross into the markup. Everything else is a plain binding. */
+  let rovingIndex = $state(0);
   let building: string[] = $state([]);
   let unavailable: string[] = $state([]);
+
+  /**
+   * THE ONE ELEMENT REFERENCE THAT IS A RUNE, and it is not a loosening of
+   * the rule below it. That rule is that nothing holding an ENGINE, a CANVAS
+   * or a FRAME BUFFER goes into a rune, because a proxy trap inside a 100 Hz
+   * tick loop is a silent performance cliff. A <ul> is none of the three and
+   * is read on mount, on a debounced resize and after a reorder - never on a
+   * tick. It has to be a rune because this binding sits inside an {#if}:
+   * Svelte assigns it from a template effect and warns non_reactive_update on
+   * a plain binding there, which Coverflow.svelte's unconditional `stage`
+   * never trips. $state does not proxy a DOM element either - only plain
+   * objects and arrays are proxied - so there is no trap here to pay for.
+   */
+  let list: HTMLUListElement | undefined = $state(undefined);
 
   // Plain bindings, deliberately outside the reactive graph.
   let host: SimHost | undefined;
   let observer: IntersectionObserver | undefined;
   let mounted = false;
   let lastOrder: string | undefined;
+  let columns = 1;
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * The id of the roving card, not only its index. A filter that REMOVES it
+   * resets the index to the first card; a filter that merely moves it keeps the
+   * same card roving, which an index on its own could not express.
+   */
+  let rovingId: string | undefined;
 
   // Plain Maps and a plain Set, never their Svelte counterparts. The lint rule
   // assumes a mutable collection is a missed reactivity opportunity; here it is
@@ -190,12 +233,77 @@
     }
   }
 
+  /**
+   * The live column count, read from the LAYOUT rather than from a media query,
+   * because that is the one source that cannot disagree with what is on screen.
+   * columnsFromTemplate clamps to at least one - ArrowUp and ArrowDown divide by
+   * this number - and columnsForWidth is the fallback for a list that has not
+   * been laid out yet, whose gridTemplateColumns is the string "none".
+   */
+  function measureColumns(): void {
+    if (list === undefined) return;
+    const template = getComputedStyle(list).gridTemplateColumns;
+    columns =
+      template === "" || template === "none"
+        ? columnsForWidth(list.clientWidth)
+        : columnsFromTemplate(template);
+  }
+
+  /** Debounced: a resize fires per frame and is its own jank source. */
+  function onResize(): void {
+    if (resizeTimer !== undefined) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      resizeTimer = undefined;
+      measureColumns();
+    }, RESIZE_DEBOUNCE_MS);
+  }
+
+  /**
+   * The list arrives as an argument rather than being read off the binding,
+   * and that is not a style choice: Svelte warns non_reactive_update on a
+   * bind:this target that anything reachable from a template handler reads,
+   * and putting a DOM element into a rune to silence it would be exactly the
+   * move the header refuses. Coverflow.svelte's `stage` is warning-free for
+   * the same reason - only onMount and the resize listener ever read it.
+   */
+  function focusCard(root: HTMLUListElement, index: number): void {
+    const entry = entries[index];
+    if (entry === undefined) return;
+    root
+      .querySelector<HTMLAnchorElement>(`[data-testid="card-name-${entry.id}"]`)
+      ?.focus();
+  }
+
+  /**
+   * One keydown on the list, and every decision delegated to nextIndex.
+   *
+   * The modifier guard comes FIRST, before the key is even looked at, so a
+   * modified arrow is never intercepted. The undefined return is what keeps
+   * Space scrolling and Enter following the link: a handler that swallowed
+   * every keydown would take both away.
+   */
+  function onKeyDown(
+    event: KeyboardEvent & { currentTarget: HTMLUListElement },
+  ): void {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return;
+    }
+    const next = nextIndex(event.key, rovingIndex, entries.length, columns);
+    if (next === undefined) return;
+    event.preventDefault();
+    rovingIndex = next;
+    rovingId = entries[next]?.id;
+    focusCard(event.currentTarget, next);
+  }
+
   onMount(() => {
     mounted = true;
     host = new SimHost();
     // No card is ever the hero. The sampler holds no contact for a browse
     // screen, so nothing is delivered to any card's engine on any tick.
     host.setHero(undefined);
+    measureColumns();
+    window.addEventListener("resize", onResize);
     if (typeof IntersectionObserver !== "undefined") {
       observer = new IntersectionObserver(
         (records) => {
@@ -224,6 +332,8 @@
     // onDestroy runs during prerender, where none of this was ever created.
     if (!mounted) return;
     mounted = false;
+    window.removeEventListener("resize", onResize);
+    if (resizeTimer !== undefined) clearTimeout(resizeTimer);
     observer?.disconnect();
     observer = undefined;
     host?.destroy();
@@ -240,11 +350,25 @@
     const first = lastOrder === undefined;
     lastOrder = order;
 
+    untrack(() => {
+      const rendered = entries.map((entry) => entry.id);
+      const found = rovingId === undefined ? -1 : rendered.indexOf(rovingId);
+      // A filter that removed the roving card resets the index to the first
+      // one, and focus is deliberately NOT moved: stealing focus out of the
+      // search field on a keystroke would make the field unusable.
+      rovingIndex = found === -1 ? 0 : found;
+      rovingId = rendered[rovingIndex];
+    });
+
     void (async () => {
       // A post-update tick, because the <li> elements have to have moved before
       // the repaint below means anything.
       await tick();
-      if (!mounted || first) return;
+      if (!mounted) return;
+      // The column count is re-read after a reorder as well as after a resize:
+      // a filter that drops the set below one row changes what auto-fill did.
+      measureColumns();
+      if (first) return;
       // A still pad does not tick, so nothing else would repaint it after its
       // <li> moved, and whether a canvas bitmap survives a re-parenting move is
       // not a question this repository wants to depend on (Pitfall 10).
@@ -277,11 +401,29 @@
     {/if}
   </div>
 {:else}
+  <!--
+    Why the next line suppresses the rule rather than obeying it. The listener
+    is DELEGATED: the thing that actually takes focus and receives the key is a
+    real <a> inside the list, and the handler exists to move focus between
+    those anchors. Obeying the rule would mean either an interactive role on
+    the <ul> - which is exactly the listbox role this component refuses,
+    because it destroys the link semantics the whole shareability story rests
+    on - or sixteen identical keydown handlers, one per card, which is the
+    same code sixteen times and one more chance for the roving index to
+    disagree with itself.
+
+    The explanation is a separate comment on purpose: everything after the
+    rule name inside a svelte-ignore comment is parsed as further rule names,
+    and svelte/no-unused-svelte-ignore then reports one error per word.
+  -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <ul
     class="grid"
     data-testid="browse-grid"
     role="list"
     aria-label="ZONA configurations"
+    bind:this={list}
+    onkeydown={onKeyDown}
   >
     <!--
       Keyed by entry.id, so Svelte MOVES nodes instead of recreating them and a
@@ -290,11 +432,14 @@
     {#each entries as entry, index (entry.id)}
       <CatalogCard
         {entry}
-        tabbable={index === 0}
+        tabbable={index === rovingIndex}
         pending={entry.preview === "lua" && building.includes(entry.id)}
         unavailable={unavailable.includes(entry.id)}
         onready={collect}
-        onfocus={() => {}}
+        onfocus={() => {
+          rovingIndex = index;
+          rovingId = entry.id;
+        }}
       />
     {/each}
   </ul>
