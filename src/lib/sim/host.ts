@@ -251,6 +251,33 @@ export class SimHost {
   }
 
   /**
+   * Swap the engine under an id, keeping the canvas, the observer and the slot
+   * state.
+   *
+   * NOT register(). register() calls unregister(), which sets canvas.width = 0,
+   * and re-enters with intersecting: false - so a knob turn would blank the hero
+   * for a frame and then stall it until the IntersectionObserver fires again
+   * (05-RESEARCH, Pitfall 3). This is the mechanism behind D-06's "the previous
+   * engine keeps painting until the new one has run Setup": the caller awaits the
+   * new engine first and swaps second, so the old one paints for the whole await.
+   *
+   * Unknown ids are a no-op rather than a throw: a knob turn racing an unmount is
+   * a real sequence, not a programming error.
+   */
+  replaceEngine(id: string, engine: HostEngine): void {
+    if (this.destroyed) return;
+    const entry = this.entries.get(id);
+    if (typeof entry === "undefined") return;
+    entry.engine = engine;
+    // stillFrame BEFORE paint, or a reduced-motion visitor is shown an
+    // unticked engine's blank frame instead of its representative one.
+    if (this.reduced) this.stillFrame(entry);
+    this.paint(entry, this.deps.now());
+    // Restarts a loop that had gone quiet because the previous engine settled.
+    this.wake();
+  }
+
+  /**
    * Drop one pad, releasing its backing store. The engine is untouched: it
    * belongs to the session, not to one mount.
    */
