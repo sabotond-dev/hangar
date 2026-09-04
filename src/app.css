@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
 /*
+  D-24 / UI-SPEC W-01: Quicksand, self-hosted from node_modules, two weights and
+  the latin subset only. Never a CDN — the site works offline, makes no
+  third-party request, and asks no font-src question of a future CSP. Every
+  @import must precede the rules below it or the browser drops it.
+*/
+@import "@fontsource/quicksand/latin-400.css";
+@import "@fontsource/quicksand/latin-600.css";
+
+/*
   IDENT-01 — the HANGAR design system.
 
   Sourced verbatim from .planning/phases/04-first-experience/04-UI-SPEC.md

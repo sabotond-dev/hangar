@@ -14,9 +14,14 @@ declares no `license` field; the licence is stated in its shipped `LICENSE` file
 `@wasm-fmt/lua_fmt` embeds a WebAssembly build of StyLua (MPL-2.0 upstream,
 <https://github.com/JohnnyMorganz/StyLua>). The package's own declared licence is MIT.
 
+The Quicksand typeface (`@fontsource/quicksand`) is Copyright the Quicksand Project Authors,
+designed by Andrew Paglinawan, and is licensed under the SIL Open Font License 1.1. It is
+conveyed as separate static font files beside the program rather than linked into it.
+
 Full licence texts for every package below are in `licenses/`.
 
 ## Production dependencies
 
+- [@fontsource/quicksand@5.3.0](https://github.com/fontsource/font-files) — OFL-1.1
 - [@intechstudio/grid-protocol@1.20260825.1135](https://github.com/intechstudio/grid-protocol) — GPL-3.0 (inferred from the shipped LICENSE file)
 - [@wasm-fmt/lua_fmt@0.2.0](https://github.com/wasm-fmt/lua_fmt) — MIT

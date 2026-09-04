@@ -49,6 +49,7 @@
     "wrangler": "^4.128.0"
   },
   "dependencies": {
+    "@fontsource/quicksand": "5.3.0",
     "@intechstudio/grid-protocol": "1.20260825.1135"
   }
 }

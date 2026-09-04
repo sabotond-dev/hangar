@@ -33,6 +33,12 @@ const ALLOWED = [
   "GPL-3.0",
   "GPL-3.0-only",
   "GPL-3.0-or-later",
+  // The SIL Open Font License is an FSF-approved free licence. The fonts are
+  // served as separate static .woff2 assets and are never linked into the
+  // JavaScript bundle, so this is aggregation beside the GPLv3 work rather than
+  // combination with it. The allowlist's own contract is that it is extended
+  // deliberately, in a commit, with a reason - this is that.
+  "OFL-1.1",
 ];
 
 /** HANGAR is a derivative work of this package; it must stay GPLv3. */
@@ -155,6 +161,10 @@ const header = [
   "",
   "`@wasm-fmt/lua_fmt` embeds a WebAssembly build of StyLua (MPL-2.0 upstream,",
   "<https://github.com/JohnnyMorganz/StyLua>). The package's own declared licence is MIT.",
+  "",
+  "The Quicksand typeface (`@fontsource/quicksand`) is Copyright the Quicksand Project Authors,",
+  "designed by Andrew Paglinawan, and is licensed under the SIL Open Font License 1.1. It is",
+  "conveyed as separate static font files beside the program rather than linked into it.",
   "",
   "Full licence texts for every package below are in `licenses/`.",
   "",
