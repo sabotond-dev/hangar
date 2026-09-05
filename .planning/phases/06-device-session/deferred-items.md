@@ -105,3 +105,49 @@ share a directory).
 
 **Owner:** unowned. Whoever next edits `playwright.config.ts` should add `outputDir` so
 the rule is enforced by the tool rather than remembered by the executor.
+
+## 6. No shipped spec scans `src/lib/ui/*.svelte` for a hex literal (found by 06-08)
+
+Plan 06-08's second negative check says: hard-code a hex into `DeviceMark.svelte`'s
+connected shape, run `identity.spec.ts`, "and watch it go red on the hex scan". It does
+not go red. With `#d6ff4e` in place of `var(--color-accent)` in the lit cell's gradient,
+`identity.spec.ts` stayed at **6 passed** and the whole `src/lib/ui/` + `config-shape`
+selection at **36 passed**. `identity.spec.ts` reads exactly two files - `src/app.css` and
+`src/lib/assets/favicon.svg` - and its hex assertion is about the token ladder, not about
+the components. The only component-level hex scan in the tree is `browse-ui.spec.ts`'s,
+and it walks the browse files alone; `tune-ui.spec.ts` checks the seven Phase 5 components
+for `--color-over` and never for a hex. So today a device component may spell a fourth
+colour by hand and every gate stays green.
+
+**Not fixed here, deliberately.** 06-08 adds no test by design - `device-ui.spec.ts`
+arrives in 06-10 when all seven device components exist and the list it holds is
+complete - and a hex scan over components is a new rule, not a widening of an existing
+one. The mutation was observed and restored byte-identical; the guard that would have
+caught it does not exist yet.
+
+**Owner:** plan 06-10, `device-ui.spec.ts`. Lift `browse-ui.spec.ts`'s hex rule - the
+`/#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])/g` matcher with its lookahead, which exists so `{#each`
+is not read as `#eac`, plus the `--color-over` absence - over the device components,
+comment-stripped, with a non-vacuity check on the matcher. Then re-run this exact
+mutation and record it red.
+
+## 7. `wrangler dev` under eight Playwright workers died twice with `Network connection lost.` (found by 06-08)
+
+Two consecutive `npm run test:e2e` runs on 2026-09-05 (04:04 and 04:07 UTC) ended with the
+WebServer printing `X [ERROR]` and every remaining test refusing to connect: 2 passed / 69
+failed, then 29 passed / 42 failed. Both wrangler logs carry the same cause, `Error in
+ProxyController: Error inside ProxyWorker … Network connection lost.`, at +7 s and +25 s
+after startup. No test that reached the page failed on an assertion about the page; the
+06-07 runs three hours earlier left 5-7 KB wrangler logs with no error. The third run, at
+`npx playwright test --workers 3`, passed **71** in 1.5 m with no error in the log.
+
+**Not fixed here, deliberately.** `06-VALIDATION.md` keeps `playwright.config.ts` out of
+this phase's edits (the same reason item 5 stands), and whether the right knob is
+`workers`, a `retries` value for the webServer, or a warm-up request before the first test
+is a harness decision with its own review. The plan's files touch no worker, no route and
+no build shape, so the failure is recorded as the harness's rather than absorbed as a
+flake.
+
+**Owner:** unowned, beside item 5. Whoever next edits `playwright.config.ts` should decide
+the worker count against a cold `wrangler dev` on this machine and write the measured
+number into the config's header, as the 4.6 s cold start already is.
