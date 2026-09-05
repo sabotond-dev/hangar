@@ -1,11 +1,12 @@
 // The walking skeleton's run, as functions instead of as a page (FOUND-01).
 //
 // Everything here is worth testing and nothing here touches the DOM: identity
-// folded out of inbound heartbeats, the two fetches, the write-back in D-11's
-// order, the store, the burst probe, and the closing heartbeat that gives the
-// module its page changes back. The page is the part that is not worth
-// testing; it wires a transport and a queue to these and renders what they
-// report.
+// folded out of inbound heartbeats, the two fetches, writeBoth - the ONE writer,
+// Timer then Setup, that TRY ON DEVICE, PUT BACK and the skeleton's write-back
+// all go through (Phase 7, SAFE-03) - the store, the burst probe, and the
+// closing heartbeat that gives the module its page changes back. The page is
+// the part that is not worth testing; it wires a transport and a queue to these
+// and renders what they report.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { grid } from "@intechstudio/grid-protocol";
@@ -18,7 +19,9 @@ import {
   type FetchedEvent,
   canWriteBack,
   fetchConfig,
+  fetchSerialNumber,
   hostHeartbeat,
+  moduleKeyOf,
   sendConfig,
   storePage,
 } from "$lib/protocol";
@@ -40,7 +43,12 @@ export interface Identity {
   zona: ModuleSeen;
   activePage: number;
   otherModules: ModuleSeen[];
-  /** PAGESTORE is a global broadcast, so a second module makes it unsafe here (D-12). */
+  /**
+   * Informational since Phase 7. Phase 2's D-12 refused a page store on this
+   * field; SAFE-06 (07-CONTEXT D-05) allows the store on a rig and names the
+   * other modules in a confirmation instead. Nothing refuses on this field any
+   * more - it is still here because the captures and fixtures.spec.ts shape it.
+   */
   storeAllowed: boolean;
 }
 
@@ -176,7 +184,9 @@ export function absorbFrame(
 /**
  * Resolve once a ZONA reporting heartbeat type 1 - the USB-attached module,
  * `grid_decode.c:695-700` - and an active page have both been seen. Anything
- * else on the bus is another module, and its presence disables the store.
+ * else on the bus is another module; it is named in `otherModules` so the
+ * identity line and the flash confirmation can say so (SAFE-06). Its presence
+ * no longer disables anything - `storeAllowed` is informational since Phase 7.
  */
 export function identify(state: IdentifyState): Identity | undefined {
   if (state.activePage === undefined) return undefined;
@@ -235,46 +245,103 @@ export async function fetchBoth(
   };
 }
 
+/** The two strings a write puts on the wire. Verbatim - never compressed here. */
+export interface EventStrings {
+  setup: string;
+  timer: string;
+}
+
+/** Where a write goes: the ZONA's own address and its REPORTED active page (D-10). */
+export interface WriteTarget {
+  sx: number;
+  sy: number;
+  page: number;
+}
+
+export const targetOf = (id: Identity): WriteTarget => ({
+  sx: id.zona.sx,
+  sy: id.zona.sy,
+  page: id.activePage,
+});
+
 /**
- * Write both strings back into the module's RAM, in D-11's order.
+ * Write both events into the module's RAM, in the field-tested order.
  *
- * _pad.ts:3898-3936 (vendored, cited by filename only - never imported here).
- * Timer (6) first, then Setup (0): the field-tested order, and the reason the
- * BOTOR mixed-state incident left the Timer landed and the Setup missing
- * rather than the reverse. Sequential, one acknowledgement at a time, each
- * reported under its own pinned step id, so a half-landed write names which
- * half landed.
+ * TIMER (6) FIRST, THEN SETUP (0). _pad.ts:3908-3913 (vendored, cited by
+ * filename only - never imported here) gives the reason and it is not
+ * stylistic: gtt is a no-op until the Timer event holds at least one stored
+ * action, and Setup runs immediately in the live VM - so a Setup-first write
+ * arms a timer that does not exist yet and the pad simply sits still. It is
+ * also why the BOTOR mixed-state incident left the Timer landed and the Setup
+ * missing rather than the reverse. Sequential, one acknowledgement at a time,
+ * each under its own pinned step id, so a half-landed write names which half
+ * landed.
+ *
+ * ONE WRITER FOR THREE CLICKS. TRY ON DEVICE, PUT BACK and the skeleton's
+ * write-back all come through here; writeBack below is a two-line adapter.
+ * The strings go on the wire VERBATIM - never compressed here (07-RESEARCH,
+ * the D-10 measurement: cost().used === setupLua.length with reserve 0/0).
  */
+export async function writeBoth(
+  q: RequestQueue,
+  target: WriteTarget,
+  s: EventStrings,
+): Promise<void> {
+  await q.request(
+    sendConfig(target.sx, target.sy, target.page, EVENT_TIMER, s.timer),
+    "write-timer",
+  );
+  await q.request(
+    sendConfig(target.sx, target.sy, target.page, EVENT_SETUP, s.setup),
+    "write-setup",
+  );
+}
+
+/** Phase 2's caller, unchanged in behaviour, now an adapter over writeBoth. */
 export async function writeBack(
   q: RequestQueue,
   id: Identity,
   f: FetchedPair,
 ): Promise<void> {
-  await q.request(
-    sendConfig(
-      id.zona.sx,
-      id.zona.sy,
-      id.activePage,
-      EVENT_TIMER,
-      f.timer.actionString ?? "",
-    ),
-    "write-timer",
+  await writeBoth(q, targetOf(id), {
+    setup: f.setup.actionString ?? "",
+    timer: f.timer.actionString ?? "",
+  });
+}
+
+/**
+ * The module's own key, or a throw the caller degrades from (D-04 amended).
+ *
+ * Addressed to the ZONA's SX/SY, never broadcast - see fetchSerialNumber's
+ * comment for the wire fact behind that. A module that does not answer times
+ * out on the queue's bounded attempts; the caller's fallback is a session-only
+ * snapshot with honest copy, never a guessed key.
+ */
+export async function fetchModuleKey(
+  q: RequestQueue,
+  id: Identity,
+): Promise<string> {
+  const cls = await q.request(
+    fetchSerialNumber(id.zona.sx, id.zona.sy),
+    "fetch-serial",
   );
-  await q.request(
-    sendConfig(
-      id.zona.sx,
-      id.zona.sy,
-      id.activePage,
-      EVENT_SETUP,
-      f.setup.actionString ?? "",
-    ),
-    "write-setup",
-  );
+  return moduleKeyOf(cls);
 }
 
 /**
  * Commit the module's RAM config to flash. Outside the cycle, behind its own
- * click (D-11), and never while a second module is on the bus (D-12).
+ * click (D-11).
+ *
+ * The store is a GLOBAL BROADCAST (storePage() addresses -127,-127 and
+ * firmware accepts it as IS_ME | IS_GLOBAL): every module on the bus stores
+ * its own active page and answers with its own acknowledgement echoing the
+ * same LASTHEADER. The queue resolves on the first and the rest are delivered
+ * to nobody (queue.ts `settle` nulls the waiter). That is SAFE-06's whole
+ * reason for existing, and in Phase 7 it is a confirmation sentence naming the
+ * other modules - not a refusal. Phase 2's D-12 threw here on
+ * `id.storeAllowed`; that rule was the skeleton's and is undone by name
+ * (07-CONTEXT D-18). `id` stays a parameter for the step's provenance and for
+ * symmetry with the other sequences; it is currently unread.
  *
  * Two honest caveats, both worth saying out loud on the page:
  *
@@ -288,13 +355,9 @@ export async function writeBack(
  */
 export async function storeToFlash(
   q: RequestQueue,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- provenance and symmetry; see the comment above
   id: Identity,
 ): Promise<void> {
-  if (!id.storeAllowed) {
-    throw new Error(
-      "Another module is on the bus and a page store is a global broadcast, so the store is disabled",
-    );
-  }
   await q.request(storePage(), "store");
 }
 
