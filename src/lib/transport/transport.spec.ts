@@ -19,6 +19,7 @@ const ALL_FAILURES: OpenFailure[] = [
   "cancelled",
   "port-busy",
   "unplugged",
+  "already-open",
   "unknown",
 ];
 
@@ -122,7 +123,7 @@ describe("open failure taxonomy (CONN-02, CONN-04, CONN-05)", () => {
     // Asserted before the loop, so an emptied list cannot pass vacuously.
     expect(
       NAMES_A_CONTROL,
-      "five of the six failures name a control",
+      "five of the seven failures name a control",
     ).toHaveLength(5);
 
     for (const failure of NAMES_A_CONTROL) {
@@ -160,5 +161,54 @@ describe("open failure taxonomy (CONN-02, CONN-04, CONN-05)", () => {
       joined(failureCopy("no-web-serial", "raw text")),
       "the unsupported copy names a control by default",
     ).not.toContain(DEFAULT_LABEL);
+  });
+
+  it("a racing open is its own state and never the raw browser text", () => {
+    // The two forms Chromium throws, constructed the way it constructs them
+    // (serial_port.cc:121-122 and :114-116). Both are HANGAR bugs: a site-wide
+    // session with a header control and a panel control bound to one action
+    // reaches them on a double click, which a per-panel control could not.
+    expect(
+      classifyOpenError(
+        new DOMException("The port is already open.", "InvalidStateError"),
+      ),
+    ).toBe("already-open");
+    expect(
+      classifyOpenError(
+        new DOMException(
+          "A call to open() is already in progress.",
+          "InvalidStateError",
+        ),
+      ),
+    ).toBe("already-open");
+
+    // And the message text is never the discriminator. The same Chromium
+    // words under a NetworkError are still a busy port, because the strings
+    // are specified nowhere and are localisable.
+    expect(
+      classifyOpenError(
+        new DOMException("The port is already open.", "NetworkError"),
+      ),
+      "the classifier matched on the message text",
+    ).toBe("port-busy");
+  });
+
+  it("the already-open copy is a sentence with no recovery and no raw report", () => {
+    const raw = "The port is already open.";
+    const copy = failureCopy("already-open", raw, "TRY ON DEVICE");
+
+    expect(copy.steps, "there is nothing a visitor can do about it").toEqual(
+      [],
+    );
+    expect(copy.detail, "one literal, with a U+2014 em dash").toBe(
+      "HANGAR is already connecting — one moment.",
+    );
+    expect(
+      copy.detail,
+      "the browser's words for this failure describe HANGAR's bug",
+    ).not.toContain(raw);
+    // UI-SPEC: it renders through the `unknown` row rather than as a tenth
+    // state, so the title is that row's title and not a new one.
+    expect(copy.title).toBe(failureCopy("unknown", raw).title);
   });
 });

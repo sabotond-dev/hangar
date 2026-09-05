@@ -22,6 +22,7 @@ export type OpenFailure =
   | "cancelled"
   | "port-busy"
   | "unplugged"
+  | "already-open"
   | "unknown";
 
 export interface FailureCopy {
@@ -73,6 +74,18 @@ export function classifyOpenError(
       }
       return "port-busy";
     }
+    // Both InvalidStateError forms are HANGAR bugs wearing a DOMException:
+    //   "The port is already open."               (serial_port.cc:121-122)
+    //   "A call to open() is already in progress." (serial_port.cc:114-116)
+    // A per-panel connect control could not reach either; a site-wide session
+    // with a header control AND a panel control bound to one action reaches
+    // them on a double click. The in-flight guard in the session is the fix
+    // and this branch is the net under it.
+    //
+    // Branched on `name` for the same reason the busy case is: the two message
+    // strings above are the browser's own, are specified nowhere, and are
+    // localisable.
+    if (err.name === "InvalidStateError") return "already-open";
   }
   return "unknown";
 }
@@ -160,6 +173,17 @@ export function failureCopy(
           "Plug the ZONA straight into the computer rather than through a hub",
           `Click ${controlLabel} again`,
         ],
+      };
+    case "already-open":
+      // The `unknown` row's title with a sentence in place of the raw report,
+      // and NO steps at all: this failure is a bug in this site, so there is
+      // nothing for the visitor to do about it and no step that would help.
+      // `raw` is deliberately not interpolated - the browser's own words here
+      // describe HANGAR's mistake and mean nothing to the person reading them.
+      return {
+        title: "The port would not open",
+        detail: "HANGAR is already connecting — one moment.",
+        steps: [],
       };
     default:
       return {
