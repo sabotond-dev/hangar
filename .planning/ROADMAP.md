@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 0/TBD | Not started | - |
+| 7. Install Flow | 1/13 | In progress (baselines measured on the tree Phase 6 closed; the fifth descriptor landed) | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage
