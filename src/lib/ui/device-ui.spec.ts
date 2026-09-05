@@ -22,7 +22,12 @@
 // five twins and no literal promising the site never writes, KEEP ON DEVICE is
 // the borderless tier with all six reasons in its 48px cell, the install row
 // is one column with PUT BACK first, and the coverflow's Escape handler asks
-// the install store two questions before it un-chooses.
+// the install store two questions before it un-chooses. Plan 07-11 adds the
+// eleventh, over the header's three: the disclosure locks both of its controls
+// under the session's writeLock on every leg and says where the copy of the
+// module's own configuration is kept, the slot never reads a busy word or
+// shows an install state, and the announcer is untouched - one live region,
+// nothing from the install store, and no logic gained.
 //
 // EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
 // These components name in prose the very tokens, specifiers and attributes they
@@ -156,6 +161,31 @@ const hasControl = (source: string) =>
   source.includes("<button") ||
   source.includes("<input") ||
   source.includes("<summary");
+
+/**
+ * Test 7's count, as a function test 11 can call after the header's edit: the
+ * live regions across every component and route on the site, comment-stripped,
+ * with the needle assembled from fragments so this file never carries it whole.
+ * Test 7 keeps its own inline walk and its carrier assertions; this returns the
+ * total alone.
+ */
+function liveRegionTotal(): number {
+  const LIVE = ["aria", "live"].join("-");
+  const walk = (dir: string): string[] => {
+    const out: string[] = [];
+    for (const entry of readdirSync(repo(dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) out.push(...walk(rel));
+      else if (entry.name.endsWith(".svelte")) out.push(rel);
+    }
+    return out;
+  };
+  let total = 0;
+  for (const file of [...walk(UI_DIR), ...walk("src/routes")]) {
+    total += occurrences(code(file), LIVE);
+  }
+  return total;
+}
 
 describe("the device UI's structural rules", () => {
   it("the seven are listed and on disk, and none reaches the compiler", () => {
@@ -847,5 +877,122 @@ describe("the device UI's structural rules", () => {
       coverflow.indexOf("pushState("),
       "choose()'s pushState precedes the Escape handler - if it does not, the slice above is no longer load-bearing",
     ).toBeLessThan(from);
+  });
+
+  it("the header locks under a write, says where the copy is, and the announcer is untouched", () => {
+    // Plan 07-11. Three components, three shapes, all on comment-stripped code
+    // - DeviceDetails' header names the lock in prose, so this test would be
+    // red on correct code without the strip.
+
+    // THE LOCK, ON BOTH CONTROLS, ON EVERY LEG. DISCONNECT ZONA and FORGET
+    // THIS ZONA each carry a real `disabled` bound to the session's writeLock
+    // - two occurrences, no more and no fewer - and the file reads the store's
+    // leg nowhere: a lock that discriminated by leg released over the store
+    // leg, which is the negative check plan 07-11 observed on a served build
+    // and the hazard Z-15 names. Both name the reason line as their
+    // description, and the line carries the id they name.
+    const details = code(componentPath("DeviceDetails.svelte"));
+    expect(
+      occurrences(details, "disabled={session.writeLock}"),
+      "both header controls are disabled under the session's write lock (Z-15)",
+    ).toBe(2);
+    const LEG = ["install", ".leg"].join("");
+    expect(
+      occurrences(details, LEG),
+      "the header lock reads the store's leg - the lock is the session's flag and covers every leg, the store leg explicitly",
+    ).toBe(0);
+    expect(
+      occurrences(
+        details,
+        "aria-describedby={session.writeLock ? lockId : undefined}",
+      ),
+      "both locked controls name the reason line",
+    ).toBe(2);
+    expect(details, "the reason line carries the id they name").toContain(
+      "id={lockId}",
+    );
+
+    // THE REASON AND THE TWO FORMS come from session-copy and are never
+    // retyped: the lock's reason once, the snapshot line picking its form from
+    // the store and rendered only with a snapshot in hand, the amended forget
+    // explanation by name.
+    expect(
+      occurrences(details, "{WRITE_LOCK_REASON}"),
+      "the lock's reason is rendered once",
+    ).toBe(1);
+    expect(
+      details,
+      "the snapshot line picks its form from the store",
+    ).toContain(
+      "install.snapshotDurable ? SNAPSHOT_DURABLE_LINE : SNAPSHOT_SESSION_LINE",
+    );
+    expect(
+      details,
+      "the snapshot line renders only with a snapshot in hand",
+    ).toContain("install.snapshot !== undefined");
+    expect(details, "the forget explanation is the copy module's").toContain(
+      "{REVOKE_EXPLANATION}",
+    );
+    for (const opening of [
+      "Not while HANGAR",
+      "A copy of your",
+      "Removes this site",
+    ]) {
+      expect(
+        occurrences(details, opening),
+        `DeviceDetails retypes a header sentence ("${opening}...") instead of importing it`,
+      ).toBe(0);
+    }
+    expect(
+      details,
+      "the header reads the install store through the permitted specifier",
+    ).toContain('from "$lib/device/install.svelte"');
+    // The strip is load-bearing: the header names the lock in prose.
+    expect(
+      occurrences(raw(componentPath("DeviceDetails.svelte")), "writeLock"),
+      "DeviceDetails' header no longer names the lock in prose - the strip has nothing to strip here and its reason should be re-examined",
+    ).toBeGreaterThan(occurrences(details, "writeLock"));
+
+    // THE SLOT NEVER READS A BUSY WORD AND NEVER SHOWS AN INSTALL STATE
+    // (Z-15): Phase 6 sizes it on four label strings, and a RAM write lasts
+    // two frames. The needles are assembled from fragments so this file never
+    // carries them whole.
+    const slot = code(componentPath("DeviceSlot.svelte"));
+    const WRITING = ["writ", "ing"].join("");
+    const SHOUTED = ["WRIT", "ING"].join("");
+    const INSTALL = ["inst", "all"].join("");
+    expect(slot.length, "the slot's code was read").toBeGreaterThan(2000);
+    for (const needle of [WRITING, SHOUTED, INSTALL]) {
+      expect(
+        occurrences(slot, needle),
+        `DeviceSlot carries "${needle}" - the slot shows no install state and never reads a busy word`,
+      ).toBe(0);
+    }
+
+    // THE ANNOUNCER IS UNTOUCHED: exactly one live region, nothing from the
+    // install store (the twelve install utterances reach it through
+    // session.announce), and under 40 lines once its header is stripped - it
+    // has no logic to gain.
+    const announcer = code(componentPath("SessionAnnouncer.svelte"));
+    const LIVE = ["aria", "live"].join("-");
+    expect(
+      occurrences(announcer, LIVE),
+      "the announcer carries exactly one live region",
+    ).toBe(1);
+    expect(
+      occurrences(announcer, "$lib/device/install"),
+      "the announcer imports nothing from the install store",
+    ).toBe(0);
+    expect(
+      announcer.split("\n").length,
+      "the announcer's code is under 40 lines",
+    ).toBeLessThan(40);
+
+    // TEST 7's COUNT, AGAIN, after the header's edit: three live regions on
+    // the whole site, no more.
+    expect(
+      liveRegionTotal(),
+      "three live regions on the whole site after the header's edit",
+    ).toBe(3);
   });
 });

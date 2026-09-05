@@ -51,6 +51,21 @@
 // The single-deliberate-console-error assertion is kept exactly as it was. It
 // is still exactly one 404: the two new navigations are to real pages.
 //
+// AMENDMENT (Phase 7, plan 07-11), to ONE test and three key presses; no title
+// changed and the file's count did not move. The degrade test is EXTENDED:
+// its shipped assertions stay as they were, and three are appended - PUT BACK
+// is ABSENT on a browser that cannot write (07-UI-SPEC Z-12: it restores a
+// specific module's own configuration, and a browser that has never seen a
+// module has nothing for it to name, so a disabled control offering to
+// restore nothing would be a worse answer than no control), and KEEP ON
+// DEVICE is disabled with the capability sentence adjacent (DEGR-02 on the
+// third control). Separately, Phase 6's deferred item 8: three tests here
+// pressed a key on the band after assertions a PRERENDERED document already
+// satisfies (visible, aria-activedescendant), so a press could land before the
+// band's onkeydown was attached and be lost - observed twice in Phase 6's full
+// runs. Each first press now waits for the band's data-ready marker, the
+// one-line fix the item named; the assertions around them are unchanged.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 // The row itself, not a copy of it. src/lib/catalog/front-door.ts imports
@@ -161,6 +176,9 @@ test.describe("the front door, with no hardware attached", () => {
     await expect(band).toBeVisible();
     await expect(band).toHaveAttribute("aria-activedescendant", "slot-aurora");
 
+    // The band's onkeydown is attached at hydration; a press before data-ready
+    // lands on nothing (Phase 6 deferred item 8, fixed by plan 07-11).
+    await expect(band).toHaveAttribute("data-ready", "true");
     // ninepads is index 2 of the ring: two steps right from the opening centre.
     await band.press("ArrowRight");
     await band.press("ArrowRight");
@@ -197,6 +215,9 @@ test.describe("the front door, with no hardware attached", () => {
     await expect(band).toBeVisible();
     await expect(band).toHaveAttribute("aria-activedescendant", "slot-aurora");
 
+    // Same race as above: wait for the band's onkeydown before the first press
+    // (Phase 6 deferred item 8, the same mechanism at a third site).
+    await expect(band).toHaveAttribute("data-ready", "true");
     // One step left from index 0 is the wrap: the ring's last entry is dial.
     await band.press("ArrowLeft");
     await expect(band).toHaveAttribute("aria-activedescendant", "slot-dial");
@@ -370,6 +391,15 @@ test.describe("the front door on a browser that cannot install", () => {
     await expect(keep).toBeVisible();
     await expect(keep).toBeDisabled();
 
+    // Phase 7 (Z-12): PUT BACK restores a specific module's own configuration, and on a
+    // browser that has never seen a module there is nothing for it to name. Absent, not disabled.
+    await expect(page.getByTestId("put-back")).toHaveCount(0);
+    // DEGR-02 on the third control: the reason is the capability sentence, adjacent.
+    await expect(page.getByTestId("keep-on-device")).toBeDisabled();
+    await expect(page.getByTestId("keep-on-device-line")).toContainText(
+      "This browser cannot write to a ZONA.",
+    );
+
     expect(consoleErrors).toEqual([]);
   });
 });
@@ -532,6 +562,10 @@ test.describe("a deep link to one configuration", () => {
       "aria-activedescendant",
       `slot-${FRONT_DOOR[0].id}`,
     );
+    // No splash on this route, and every assertion above is satisfied by the
+    // prerendered document; the press needs the hydrated band (Phase 6
+    // deferred item 8, second site, fixed by plan 07-11).
+    await expect(band).toHaveAttribute("data-ready", "true");
     await band.press("ArrowLeft");
     await expect(band).toHaveAttribute(
       "aria-activedescendant",
