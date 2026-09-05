@@ -140,6 +140,11 @@
   /** The drawer's open state. Owned here; DeviceDetails is its only renderer. */
   let open = $state(false);
 
+  /** The button itself, handed to the drawer as the element focus returns to
+      when the drawer opened with nothing focused - the S6 road, where S3's
+      `disabled` has just blurred this control (DeviceDetails, `opener`). */
+  let control = $state<HTMLButtonElement | null>(null);
+
   /** aria-expanded appears in EXACTLY these four states, and derives from this
       list alone: the four in which the slot is a summary rather than an action. */
   const EXPANDS: readonly SlotState[] = ["S0a", "S0b", "S4", "S5"];
@@ -277,6 +282,7 @@
     aria-expanded={isSummary ? open : undefined}
     aria-busy={isBusy ? "true" : undefined}
     disabled={isBusy}
+    bind:this={control}
     onclick={handleClick}
   >
     <DeviceMark shape={markShape} />
@@ -325,7 +331,12 @@
     </span>
   </button>
   <span id={descId} class="sr-only">{description}</span>
-  <DeviceDetails {open} {panelOwnsProse} onclose={() => (open = false)} />
+  <DeviceDetails
+    {open}
+    {panelOwnsProse}
+    opener={control}
+    onclose={() => (open = false)}
+  />
 </div>
 
 <style>

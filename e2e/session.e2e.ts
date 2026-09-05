@@ -1,21 +1,21 @@
 // CONN-01, CONN-02, CONN-04, CONN-05, CONN-06, CONN-07, DEGR-02 and SAFE-01:
 // the device session in the browsers that produce its states.
 //
-// Eleven tests. Nine are against the session probe route, which renders the
+// Fourteen tests. Nine are against the session probe route, which renders the
 // session's fields as plain text and nothing else (its header says why): four
 // are the capability and refusal half (plan 06-06), what a browser refuses,
 // and five are the cable's half (plan 06-07), what a browser does when a
 // module is really there - the granted-port offer, the busy port, the unplug,
-// the replug and a whole visit that writes nothing. The remaining two (plan
-// 06-13, task 1) are the same machine on the SHIPPED CHROME - the header slot
-// and its disclosure on the routes a visitor actually opens, and the one
-// connection that survives a walk across them. One title carries the @webkit
-// tag and runs on the phone project too - the probe's unsupported branch,
-// because that is the engine that can never install and the path most visitors
-// on it will hit - so this file adds TWELVE to the suite total: eleven titles
-// on chromium, one of them again on webkit-phone. No cable test is tagged: that
-// engine has no navigator.serial at all, and its degrade path is the tagged
-// test.
+// the replug and a whole visit that writes nothing. The remaining five (plan
+// 06-13) are the same machine on the SHIPPED CHROME - the header slot, its
+// disclosure, the header note, the chosen panel and the three live regions -
+// on the routes a visitor actually opens. Two titles carry the @webkit tag and
+// run on the phone project too, both the unsupported branch (the probe's and
+// the header's), because that is the engine that can never install and the
+// path most visitors on it will hit - so this file adds SIXTEEN to the suite
+// total: fourteen titles on chromium, two of them again on webkit-phone. No
+// cable test is tagged: that engine has no navigator.serial at all, and its
+// degrade path is the tagged pair.
 //
 // THE SHIPPED-CHROME TESTS WAIT ON STATE, NEVER ON PROSE ALONE. The slot
 // publishes its state as data-slot and its hydration as data-hydrated (set only
@@ -40,9 +40,31 @@
 // THE FAKE SERIAL. Web Serial has no CDP domain and no fake-device hook, but
 // `serial` is a configurable accessor on Navigator.prototype, so
 // e2e/fake-serial.ts defines a scripted one there before any page script
-// runs. Eight of the nine tests install it; the unsupported test deliberately
-// does NOT, and deletes the real slot instead, so that branch is rendered by
-// a browser that genuinely has none.
+// runs. Twelve of the fourteen tests install it; the two unsupported tests
+// deliberately do NOT, and delete the real slot instead, so that branch is
+// rendered by a browser that genuinely has none.
+//
+// THE DEGRADE TEST ON THE HEADER ASSERTS IN ONE ORDER, AND THE ORDER IS THE
+// TEST. slotStateOf("starting") is S1, so the prerendered document ALREADY
+// ships a rendered slot and a rendered 152px note: "the slot is present" is
+// satisfied by markup that has run no JavaScript, and a device-note count of 0
+// taken early is 0 for reasons that have nothing to do with capability. The
+// test therefore waits for data-hydrated="true" - the only assertion in the
+// list a prerendered document is structurally incapable of passing - and then
+// for the caption to settle at its unsupported sentence, which is the only one
+// that proves the capability branch, and ONLY THEN asserts the note's absence
+// and the panel's reason. 06-13-SUMMARY.md records the run in which those two
+// waits were deleted and the count-0 assertion passed anyway against a
+// document whose app chunk was being held back: a false green, which is what
+// the order exists to prevent.
+//
+// ONE VOICE. Three live regions exist on this site - the session's, the
+// tuning region's and the browse toolbar's - with disjoint trigger sets
+// (D-17). Test 14 records every text change in each of them across a session
+// transition and then across a tuning command, and asserts each moment moved
+// exactly one region. It also asserts that exactly one [aria-live] element on
+// the page carries the identity sentence: the panel's connect-status used to
+// be polite too, and with it two regions said one thing.
 //
 // IDENTIFICATION RUNS ON REAL CAPTURED BYTES. The rx chunks come out of the
 // committed hardware capture - a ZONA RevH on firmware 1.5.5, active page 3,
@@ -82,21 +104,28 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   CAPTION_DETECTED,
+  CAPTION_FAILED,
+  CAPTION_UNSUPPORTED,
   CONNECTING_LABEL,
   CONNECT_LABEL,
   DISCONNECT_LABEL,
   FORGET_LABEL,
+  LIVE_DETECTED,
   PERMISSION_DECLINED,
   firmwareText,
   identitySentence,
+  liveConnected,
 } from "../src/lib/device/session-copy";
 import { failureCopy } from "../src/lib/transport/transport";
+import { MEASURING } from "../src/lib/tune/copy";
 import { FAKE_SERIAL } from "./fake-serial";
 
 declare global {
   interface Window {
     /** Test 11's stamp on the document that connected; a fresh document has none. */
     __hangarWalk?: string;
+    /** Test 14's record of every text change in each live region, by testid. */
+    __hangarLiveLog?: Record<string, string[]>;
   }
 }
 
@@ -293,6 +322,81 @@ async function connectFromHeader(page: Page): Promise<number> {
   await expect(control).toHaveAttribute("data-slot", "S4");
   return fed;
 }
+
+/**
+ * Both meters settled, then a change measured rather than merely applied -
+ * e2e/tuning.e2e.ts's two waits, re-derived: aria-busy is the meter's own
+ * published state, and a wait that only asked for "not measuring…" comes back
+ * instantly with the previous number.
+ */
+async function settled(page: Page): Promise<void> {
+  for (const event of ["setup", "timer"] as const) {
+    await expect(
+      page.getByTestId(`meter-${event}`),
+      `the ${event} meter settled on a number`,
+    ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+    await expect(
+      page.getByTestId(`meter-${event}`).locator(".numerals"),
+      `the ${event} meter left ${MEASURING}`,
+    ).not.toHaveText(MEASURING);
+  }
+}
+async function recomputed(page: Page): Promise<void> {
+  await expect(
+    page.getByTestId("meter-setup"),
+    "the change went through the debounced recompile",
+  ).toHaveAttribute("aria-busy", "true", { timeout: 5_000 });
+  await settled(page);
+}
+
+/** The three live regions' testids, in document order. */
+const LIVE_REGIONS = ["session-live", "tuning-live", "browse-live"] as const;
+
+/**
+ * Start recording every text change in each live region that exists on the
+ * page. A region absent from the route (the browse toolbar's, on /c/{id}/)
+ * gets an empty record and nothing to observe; its absence is itself read by
+ * liveTexts below as null.
+ */
+function recordLiveRegions(page: Page): Promise<void> {
+  return page.evaluate((ids) => {
+    const log: Record<string, string[]> = {};
+    window.__hangarLiveLog = log;
+    for (const id of ids) {
+      log[id] = [];
+      const el = document.querySelector(`[data-testid="${id}"]`);
+      if (!el) continue;
+      new MutationObserver(() => {
+        log[id].push((el.textContent ?? "").trim());
+      }).observe(el, { subtree: true, childList: true, characterData: true });
+    }
+  }, LIVE_REGIONS);
+}
+
+/** Each region's current text (null where the route has no such region) and the record so far. */
+function liveTexts(page: Page): Promise<{
+  session: string | null;
+  tuning: string | null;
+  browse: string | null;
+  log: Record<string, string[]>;
+}> {
+  return page.evaluate((ids) => {
+    const read = (id: string): string | null => {
+      const el = document.querySelector(`[data-testid="${id}"]`);
+      return el ? (el.textContent ?? "").trim() : null;
+    };
+    return {
+      session: read(ids[0]),
+      tuning: read(ids[1]),
+      browse: read(ids[2]),
+      log: window.__hangarLiveLog ?? {},
+    };
+  }, LIVE_REGIONS);
+}
+
+/** The distinct utterances a region made: its recorded texts with the empties dropped. */
+const utterances = (recorded: string[] | undefined): string[] =>
+  (recorded ?? []).filter((text) => text !== "");
 
 /**
  * The road every cable test starts on: a granted ZONA, the offer on load, one
@@ -860,6 +964,321 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await expect(slotLabel(page)).toHaveText(CONNECT_LABEL);
     expect(await page.evaluate(() => window.__hangarWalk)).toBeUndefined();
     expect(await openCount(page, 0)).toBe(0);
+    expect(await requests(page)).toBe(0);
+    expect(await writes(page)).toBe(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("a failure from the header opens its recovery and hands focus back on Escape", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await grantBeforeLoad(page);
+    // The busy flag goes on the ADOPTED port 0: with a granted, attached port
+    // the session's connect() takes the no-chooser path and reopens that
+    // object, so a flag planted on a freshly granted port scheduled through
+    // pick() would never be read (06-12-SUMMARY.md's harness note).
+    await page.addInitScript(() => {
+      window.__hangarSerial.busy(0);
+    });
+    // A deep link: no splash, so nothing covers the header or eats a key.
+    await page.goto(`/c/${ENTRY}/`);
+
+    // Precondition: the shim, the grant, and the offer on the header.
+    expect(
+      await page.evaluate(async () => ({
+        hasSerial: "serial" in navigator,
+        listed: (await navigator.serial.getPorts()).length,
+      })),
+    ).toEqual({ hasSerial: true, listed: 1 });
+    const control = slot(page);
+    await expect(control).toHaveAttribute("data-hydrated", "true");
+    await expect(control).toHaveAttribute("data-slot", "S2");
+    expect(await control.getAttribute("aria-expanded")).toBeNull();
+    await expect(details(page)).toHaveCount(0);
+
+    // ONE click on the header. The open is refused, S6 arrives, and the
+    // drawer opens BY ITSELF - no second click - because the failure is one
+    // this slot's own click produced.
+    await control.click();
+    await expect(control).toHaveAttribute("data-slot", "S6");
+    await expect(slotCaption(page)).toHaveText(CAPTION_FAILED);
+    await expect(slotLabel(page)).toHaveText(CONNECT_LABEL);
+    const drawer = details(page);
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveAttribute("data-slot", "S6");
+
+    // Focus moved INTO the recovery: the container or a control within it.
+    expect(
+      await page.evaluate(() => {
+        const d = document.querySelector('[data-testid="device-details"]');
+        const a = document.activeElement;
+        return {
+          inside: !!d && !!a && (a === d || d.contains(a)),
+          active: a?.getAttribute("data-testid") ?? a?.tagName ?? null,
+        };
+      }),
+    ).toEqual({ inside: true, active: "device-details" });
+
+    // CONN-04's six steps, in order, naming the header's control in the last.
+    const block = drawer.getByTestId("failure-block");
+    await expect(block).toContainText(PORT_BUSY.title);
+    await expect(block).toContainText(PORT_BUSY.detail);
+    const listed = block.locator("li");
+    await expect(listed).toHaveCount(6);
+    await expect(listed).toHaveText(PORT_BUSY.steps);
+    expect(PORT_BUSY.steps[5]).toBe(`Click ${CONNECT_LABEL} again`);
+    expect(await page.locator("body").innerText()).not.toContain(
+      BROWSER_BUSY_SENTENCE,
+    );
+
+    // THE ARIA RULING. The slot ACTED; it did not expand. A button that both
+    // acts and expands lies about one of its two jobs, so in S6 the drawer
+    // is open and the slot carries no aria-expanded at all.
+    expect(await control.getAttribute("aria-expanded")).toBeNull();
+
+    // Escape closes the recovery and gives the control back: focus on the slot.
+    await page.keyboard.press("Escape");
+    await expect(drawer).toHaveCount(0);
+    await expect(control).toBeFocused();
+    await expect(control).toHaveAttribute("data-slot", "S6");
+    expect(await control.getAttribute("aria-expanded")).toBeNull();
+
+    // One refused open on the adopted port, no picker, nothing written.
+    expect(await requests(page)).toBe(0);
+    expect(await openCount(page, 0)).toBe(1);
+    expect(await writes(page)).toBe(0);
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the shipped header on a browser with no Web Serial", () => {
+  test.beforeEach(async ({ context }) => {
+    // NO shim. The real slot is deleted from the prototype, so this header is
+    // rendered by a browser that genuinely has none.
+    await context.addInitScript(() => {
+      delete (Navigator.prototype as unknown as Record<string, unknown>).serial;
+    });
+  });
+
+  test("@webkit the header names the browsers that can install and offers nothing to press @webkit", async ({
+    page,
+  }, testInfo) => {
+    const consoleErrors = collectErrors(page);
+    await page.goto("/");
+
+    // Precondition, asserted.
+    expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
+
+    // IN THIS ORDER AND NO OTHER - see the header.
+    // 1. The slot renders and is not hidden. (The prerendered file alone
+    //    satisfies this: DEGR-02's control is present, never hidden.)
+    const control = slot(page);
+    await expect(control).toBeAttached();
+    await expect(control).toBeVisible();
+
+    // 2. The hydration marker: set only from onMount, so a static file
+    //    cannot carry it. This is the one assertion here a prerendered
+    //    document is structurally incapable of passing.
+    await expect(control).toHaveAttribute("data-hydrated", "true");
+
+    // 3. The caption has SETTLED at the unsupported sentence: the capability
+    //    decision has happened, and everything below depends on it.
+    await expect(slotCaption(page)).toHaveText(CAPTION_UNSUPPORTED);
+    expect(CAPTION_UNSUPPORTED).toBe("Not in this browser");
+    await expect(control).toHaveAttribute("data-slot", "S0a");
+
+    // 4. The disclosure names the browsers that can, and no engine. The
+    //    slot here is a summary - present, enabled, aria-expanded - and
+    //    opening it is the only thing a click can do. The splash must be gone
+    //    first: a click while it is up is its skip gesture, not the slot's.
+    await waitForFrontDoor(page);
+    await expect(control).toBeEnabled();
+    await expect(control).toHaveAttribute("aria-expanded", "false");
+    await control.click();
+    const drawer = details(page);
+    await expect(drawer).toBeVisible();
+    await expect(control).toHaveAttribute("aria-expanded", "true");
+    await expect(drawer).toContainText(UNSUPPORTED.title);
+    await expect(drawer).toContainText(UNSUPPORTED.detail);
+    const reason = await drawer.innerText();
+    for (const named of ["Chrome", "Edge", "Firefox 151"]) {
+      expect(reason, `the disclosure names ${named}`).toContain(named);
+    }
+    expect(await page.locator("body").innerText()).not.toContain("Chromium");
+    // Nothing to press: the recovery on this engine is another browser, so
+    // the drawer holds no control, and the label offers no connect.
+    await expect(drawer.getByRole("button")).toHaveCount(0);
+    await expect(slotLabel(page)).not.toHaveText(CONNECT_LABEL);
+
+    // 5. The note region is ABSENT ENTIRELY - a snapshot count, taken only
+    //    now, after the marker and the settled caption. A visitor who can
+    //    never connect pays no reserved 152px for a picker they will never
+    //    see.
+    expect(await page.getByTestId("device-note").count()).toBe(0);
+
+    // 6. The panel's connect-status carries the same reason - DEGR-02's two
+    //    surfaces, one sentence. Escape closes the drawer and hands focus
+    //    back; Enter on the row opens the panel.
+    await page.keyboard.press("Escape");
+    await expect(drawer).toHaveCount(0);
+    const band = page.getByTestId("coverflow");
+    await expect(band).toHaveAttribute("data-ready", "true");
+    await band.press("Enter");
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    const tryOn = page.getByTestId("try-on-device");
+    await expect(tryOn).toBeVisible();
+    await expect(tryOn).toBeDisabled();
+    const status = page.getByTestId("connect-status");
+    await expect(status).toContainText(UNSUPPORTED.title);
+    await expect(status).toContainText(UNSUPPORTED.detail);
+    const panelReason = await status.innerText();
+    for (const named of ["Chrome", "Edge", "Firefox 151"]) {
+      expect(panelReason, `the panel names ${named}`).toContain(named);
+    }
+    expect(await page.locator("body").innerText()).not.toContain("Chromium");
+
+    // The header a large share of visitors will see, on the record.
+    const dump = await page.evaluate(() => {
+      const rect = (sel: string) => {
+        const el = document.querySelector(sel);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: Math.round(r.top), h: Math.round(r.height) };
+      };
+      return {
+        viewport: { w: innerWidth, h: innerHeight },
+        slot: rect('[data-testid="device-slot"]'),
+        headline: rect(".headline"),
+        noteCount: document.querySelectorAll('[data-testid="device-note"]')
+          .length,
+      };
+    });
+    console.log(
+      `degrade header on ${testInfo.project.name}: ${JSON.stringify({
+        ...dump,
+        caption: await slotCaption(page).innerText(),
+        label: await labelWords(page),
+      })}`,
+    );
+    await page.screenshot({
+      path: `.tmp-e2e/06-13-degrade-header-${testInfo.project.name}.png`,
+    });
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the three live regions with a granted ZONA on the cable", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(FAKE_SERIAL);
+  });
+
+  test("a session transition is announced once, and the other two regions stay quiet", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await grantBeforeLoad(page);
+    // A deep link: the panel with its knobs is on this route, the tuning
+    // region with it, and there is no splash to hold the session's speech.
+    await page.goto(`/c/${ENTRY}/`);
+    expect(
+      await page.evaluate(async () => ({
+        hasSerial: "serial" in navigator,
+        listed: (await navigator.serial.getPorts()).length,
+      })),
+    ).toEqual({ hasSerial: true, listed: 1 });
+
+    // The offer was announced on load - one sentence, from the store's
+    // trailing window - and the slot offers.
+    const sessionLive = page.getByTestId("session-live");
+    await expect(sessionLive).toHaveText(LIVE_DETECTED);
+    await expect(slot(page)).toHaveAttribute("data-slot", "S2");
+
+    // The panel, from the keyboard, once the band is really listening.
+    const band = page.getByTestId("coverflow");
+    await expect(band).toHaveAttribute("data-ready", "true");
+    await band.press("Enter");
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("knob-rack")).toBeVisible();
+    await settled(page);
+
+    // Precondition: the three regions as they stand, and the recorder on.
+    await recordLiveRegions(page);
+    const before = await liveTexts(page);
+    expect(before.session).toBe(LIVE_DETECTED);
+    expect(before.tuning).toBe("");
+    // The browse toolbar is not on this route, so its region is absent here;
+    // "unchanged" for it means "still absent".
+    expect(before.browse).toBeNull();
+
+    // MOMENT ONE: a session transition. Connect from the header, then wait
+    // past the 500ms trailing window.
+    await connectFromHeader(page);
+    await page.waitForTimeout(800);
+    const afterConnect = await liveTexts(page);
+    const connectedSentence = liveConnected(
+      capture.identity.firmware,
+      capture.identity.activePage,
+    );
+    console.log(
+      `after connect: session=${JSON.stringify(afterConnect.session)} tuning=${JSON.stringify(afterConnect.tuning)} browse=${JSON.stringify(afterConnect.browse)}`,
+    );
+    expect(afterConnect.session).toBe(connectedSentence);
+    // Exactly one utterance: the region was emptied when the line was queued
+    // and written once when the window closed, so the record is the empty
+    // string and then the sentence, and nothing else.
+    expect(utterances(afterConnect.log["session-live"])).toEqual([
+      connectedSentence,
+    ]);
+    expect(afterConnect.tuning).toBe(before.tuning);
+    expect(utterances(afterConnect.log["tuning-live"])).toEqual([]);
+    expect(afterConnect.browse).toBeNull();
+    expect(utterances(afterConnect.log["browse-live"])).toEqual([]);
+
+    // The identity sentence is carried by exactly ONE live region on the
+    // whole page. The panel's connect-status shows it too, and the day it is
+    // polite again this reads two - the double-speak D-17 exists to prevent.
+    const carriers = await page.evaluate(
+      (sentence) =>
+        Array.from(document.querySelectorAll("[aria-live]"))
+          .filter((el) => (el.textContent ?? "").includes(sentence))
+          .map((el) => el.getAttribute("data-testid") ?? el.id ?? el.tagName),
+      identitySentence(capture.identity.firmware, capture.identity.activePage),
+    );
+    expect(carriers).toEqual(["session-live"]);
+
+    // MOMENT TWO: a tuning change. Turn the first rail one step, let the
+    // debounced recompile land, then RESET ALL - the tuning region's own
+    // gesture that speaks (a knob that stays inside budget is silent by
+    // Phase 5's contract; only a command or a budget crossing speaks).
+    const rails = page.locator("[data-testid='knob-rack'] input[type='range']");
+    await rails.nth(0).focus();
+    await page.keyboard.press("ArrowRight");
+    await recomputed(page);
+    await page.getByTestId("reset-all").click();
+    await recomputed(page);
+    const tuningLive = page.getByTestId("tuning-live");
+    await expect(tuningLive).not.toHaveText("", { timeout: 10_000 });
+    await page.waitForTimeout(800);
+    const afterKnob = await liveTexts(page);
+    console.log(
+      `after the knobs: session=${JSON.stringify(afterKnob.session)} tuning=${JSON.stringify(afterKnob.tuning)} browse=${JSON.stringify(afterKnob.browse)}`,
+    );
+    // The tuning region spoke, and the session region did not move: same
+    // text, and not one more recorded change.
+    expect(afterKnob.tuning).not.toBe("");
+    expect(afterKnob.tuning).not.toBe(afterConnect.tuning);
+    expect(utterances(afterKnob.log["tuning-live"]).length).toBeGreaterThan(0);
+    expect(afterKnob.session).toBe(afterConnect.session);
+    expect(afterKnob.log["session-live"]).toEqual(
+      afterConnect.log["session-live"],
+    );
+    expect(afterKnob.browse).toBeNull();
+    expect(utterances(afterKnob.log["browse-live"])).toEqual([]);
+
+    // Still connected, still nothing asked of the picker, nothing written.
+    await expect(slot(page)).toHaveAttribute("data-slot", "S4");
     expect(await requests(page)).toBe(0);
     expect(await writes(page)).toBe(0);
     expect(consoleErrors).toEqual([]);

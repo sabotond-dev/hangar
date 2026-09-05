@@ -76,6 +76,7 @@
     open,
     panelOwnsProse = false,
     onclose,
+    opener = null,
   }: {
     /** Whether the drawer is rendered at all. Owned by DeviceSlot, which is the
         only thing that toggles it, so there is no second source of truth for
@@ -89,6 +90,13 @@
     /** Escape, focus leaving, a click outside, and a transition into S1, S2 or
         S7 - the four close paths all call this. */
     onclose: () => void;
+    /** The slot's own element, the place focus goes back to when nothing else
+        had it. On the S6 road the click that raised the failure passed
+        through S3, where the slot is `disabled` and the browser blurs it, so by
+        the time the drawer opens document.activeElement is the body; without
+        this, Escape would hand focus to the body and orphan it (plan 06-13,
+        observed on the served build). */
+    opener?: HTMLElement | null;
   } = $props();
 
   const slot = $derived(slotStateOf(session.phase));
@@ -130,10 +138,14 @@
   let wasRendered = false;
   $effect(() => {
     if (rendered && !wasRendered) {
-      previouslyFocused =
+      const active =
         typeof document !== "undefined"
           ? (document.activeElement as HTMLElement | null)
           : null;
+      // The body is not a place to hand focus back to: it is what a blurred
+      // disabled slot leaves behind (see `opener`). Fall back to the slot.
+      previouslyFocused =
+        active && active !== document.body ? active : (opener ?? active);
       if (slot === "S6") container?.focus();
     }
     wasRendered = rendered;
