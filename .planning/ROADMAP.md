@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: First Experience** - Splash dissolves into a coverflow of live ZONA pads; choose one and `TRY ON DEVICE` appears — the wow front door, worth opening with no hardware attached (completed 2026-09-04)
 - [x] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL (all 12 plans complete 2026-09-04, full suite green against the production build; verification and the first deploy of the tuned front door follow)
 - [x] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file (all 11 plans complete 2026-09-05, full suite green against the production build at 691 unit + 13 sweep + 61 e2e; verification and the deploy follow)
-- [ ] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language
+- [x] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language (completed 2026-09-05; the six-row hardware checklist in docs/SESSION-RUNBOOK.md is presented to the user and unanswered, so success criteria 3, 4 and 5 are verified-by-user-pending)
 - [ ] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames
 - [x] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter (completed 2026-09-04; the hardware audition is presented to the user and unanswered)
 
@@ -179,6 +179,7 @@ Plans:
 **Plans**: 14 plans in 14 waves
 **UI hint**: yes
 **Design contract**: `.planning/phases/06-device-session/06-UI-SPEC.md` (approved 2026-09-04)
+**Status at the gate (2026-09-05)**: criteria 1 and 2 are proven in two browsers against the production build. Criteria 3, 4 and 5 are *(hardware)* and are **verified-by-user-pending**: everything a scripted serial can check about them is green, and the parts only a real ZONA can settle are `docs/SESSION-RUNBOOK.md` rows A to F, presented to the user by plan 06-14 and unanswered. No claim about a real ZONA has been made by this phase.
 
 Plans:
 - [x] 06-01-PLAN.md — Baselines, the runes spike, the already-open row, the rig-aware not-zona (wave 1)
@@ -194,7 +195,7 @@ Plans:
 - [x] 06-11-PLAN.md — The header cluster, the two-row phone layout, and the untouched opening (wave 11)
 - [x] 06-12-PLAN.md — TryOnDevice consumes the session and gives up the port (wave 12)
 - [x] 06-13-PLAN.md — The shipped chrome in two engines, and the connection that survives a walk (wave 13)
-- [ ] 06-14-PLAN.md — SESSION-RUNBOOK, the phase gate, and the hardware checkpoint (wave 14)
+- [x] 06-14-PLAN.md — SESSION-RUNBOOK, the phase gate, and the hardware checkpoint (wave 14; the checkpoint is presented and unanswered)
 
 ### Phase 7: Install Flow
 **Goal**: A visitor can put a configuration on their own ZONA in about a second, get their original back with one click at any time, and only commit it to flash on purpose.
@@ -265,7 +266,7 @@ Phases 6 and 7.
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
-| 6. Device Session | 13/14 | In progress | - |
+| 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
