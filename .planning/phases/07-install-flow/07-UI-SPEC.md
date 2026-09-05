@@ -1,7 +1,9 @@
 ---
 phase: 7
 slug: install-flow
-status: draft
+status: approved
+reviewed_at: 2026-09-05
+reviewed_by: gsd-ui-checker (two passes; pass 1 blocked Copywriting on the flash-store leg's missing states, closed by revision 1; pass 2 approved with six non-blocking flags, five applied by the orchestrator and the sixth — the re-fetch round count — reconciled in 07-CONTEXT D-19 to the research's three rounds)
 shadcn_initialized: false
 preset: none
 created: 2026-09-05
@@ -379,11 +381,13 @@ and no *write* state exists until the snapshot is present.
 | I6 | **`kept`** | `PAGESTORE/ACKNOWLEDGE` arrived **and** the re-fetch matched byte for byte | **enabled** | **enabled**, with its second line | **disabled** — `Kept on your ZONA…` | the `KEPT` block |
 | I7 | **`partial`** | one event ACK'd, the other exhausted its bounded retries | **enabled** (the retry) | **enabled** | **disabled** — `Not after a half-written try-on…` | the partial block |
 | I8 | **`lost`** | the session dropped while I3 was in flight | **enabled** once a session returns, else disabled | present, **disabled** until a session returns | present, **disabled** | the lost block |
-| I9 | **`refused`** | see the precedence table below | **disabled** with a reason | per the precedence table — absent for causes 1, 3 and 4, disabled for 2, **enabled for 5** (over budget), because it writes the snapshot and never the tuned configuration | present, **disabled** | per the reason |
+| I9 | **`refused`** | see the precedence table below | **disabled** with a reason for causes 1, 2, 3 and 5; **enabled** for cause 4 — the click retries the snapshot and writes only if it lands | per the precedence table — absent for causes 1, 3 and 4, disabled for 2, **enabled for 5** (over budget), because it writes the snapshot and never the tuned configuration | present, **disabled** | per the reason |
 | I10 | **`kept-mismatch`** | I6's re-fetch exhausted its bounded rounds without a byte-identical pair | **enabled** | **enabled** | **disabled** — `Try it on again first, then keep it again.` | the mismatch block |
 | I11 | **`unconfirmed`** | the confirmation's `PAGESTORE/EXECUTE` reached its 3000 ms timeout with no acknowledgement and no NACK | **enabled** | **enabled** | **enabled** | the unconfirmed block |
 | I12 | **`restored-unconfirmed`** | a `PUT BACK`'s RAM leg landed and its store leg then timed out, or its re-fetch never matched | **enabled** | **enabled** | **disabled** — `Available after a try-on.` | the put-back-for-now block |
 | I13 | **`nothing-landed`** | both events exhausted their bounded retries and neither `CONFIG/ACKNOWLEDGE` arrived | **enabled** | **enabled** — a snapshot exists, by construction | **disabled** — `Available after a try-on.` | the nothing-reached block |
+
+**Wherever a row reads `present, disabled` without naming a reason** (I0, I1, I8, and I9 causes 3 and 5), the reason is `Available after a try-on.` — the set of `KEEP ON DEVICE` reasons is closed at six and an executor never adds a seventh. **The header write-lock** (`DISCONNECT ZONA` and `FORGET THIS ZONA` disabled) is engaged in I3 on every leg and in no other state; it releases the moment the write settles into any of I3's nine exits.
 
 **The four failure states, and where each comes from.** `kept-mismatch` (I10) is `partial`'s
 sibling, reached from I6's re-fetch when the bounded rounds (three, 07-RESEARCH Pitfall 6) never
@@ -656,7 +660,7 @@ about it would be a frozen `KEEPING…`. It is a state row (I11) and a block in 
   Both halves are load-bearing: the configuration is running right now — memory holds it, and nothing
   was pulled out from under the visitor — and whether it survives a power cycle is the one thing
   HANGAR does not know and says it does not know.
-  Steps: 1. `Click KEEP ON DEVICE to send the store again` · 2. `Or click PUT BACK to restore what was there when you connected`
+  Steps: 1. `Click KEEP ON DEVICE and confirm to send the store again` · 2. `Or click PUT BACK to restore what was there when you connected`
 - **Controls:** `TRY ON DEVICE` **enabled**; `PUT BACK` **enabled** (the snapshot exists);
   `KEEP ON DEVICE` **enabled** — memory still holds the configuration the visitor heard, so Z-05 is
   satisfied and the control is live; clicking it opens the confirmation again and a second store goes
@@ -857,7 +861,7 @@ speaking about one module would be double-speak.
 - **One utterance per event, `aria-atomic`.** A command and a transition are one string, never two.
 - **A successful flash store is worth exactly one utterance** — the `kept` string above, spoken once,
   after the re-fetch proof. Not one for the ACK and another for the verification.
-- **Failures announce their title, verbatim, and nothing else.** Successes announce a sentence.
+- **Failures announce their title with a full stop, and nothing else** — the title's words verbatim, the terminal period added because it is spoken. Successes announce a sentence.
 - **`lost` takes precedence over Phase 6's session utterance**, which is suppressed for that
   transition because `Nothing was written.` would be false (Z-11).
 
@@ -1168,11 +1172,11 @@ Z-03, Z-09, Z-15 and Z-17 were amended there.**
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-09-05 — six dimensions PASS on revision 1 (Copywriting FLAG, non-blocking); the I9 cause-4 cell, the unnamed `KEEP ON DEVICE` reason, the write-lock line, the utterance full stop and the I11 step applied by the orchestrator after the second pass

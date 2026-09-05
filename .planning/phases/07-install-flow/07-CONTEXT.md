@@ -113,7 +113,8 @@ how the module is reached (Phase 6 owns the session).
 - **D-19:** Three timings are unknown until hardware and become runbook rows, each with a bounded
   mitigation the plan ships regardless: whether a real ZONA answers `SERIALNUMBER/FETCH`; how long the
   module's post-store page reload takes (the D-12 re-fetch waits for the first heartbeat after the
-  PAGESTORE ACK before fetching, and retries once); and whether 0 ms pacing survives two back-to-back
+  PAGESTORE ACK before fetching, and re-fetches for up to three bounded rounds per 07-RESEARCH
+  Pitfall 6 — reconciled after the UI checker's second pass); and whether 0 ms pacing survives two back-to-back
   957-byte writes (the write path uses the desktop 10 ms pacing Phase 2 kept as a toggle, and the
   runbook measures 0 ms).
 
