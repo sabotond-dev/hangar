@@ -15,8 +15,9 @@
 // would make that grep useless. No title carries the word the acceptance gate
 // greps the captured log for either, for exactly the same reason.
 //
-// THE EXPECTED DATA IS IMPORTED, NEVER TRANSCRIBED. src/lib/catalog/listing.ts
-// and src/lib/browse/sort.ts each import one erased type and nothing else -
+// THE EXPECTED DATA IS IMPORTED, NEVER TRANSCRIBED. src/lib/catalog/listing.ts,
+// src/lib/browse/sort.ts and src/lib/browse/filter.ts each import one erased
+// type, and src/lib/browse/grid.ts imports nothing at all -
 // that is the whole reason they exist as separate modules (D-12) - so naming
 // them from a Playwright file costs nothing and means a catalog that grows is
 // covered here without anybody editing a list of sixteen ids. A hard-coded list
@@ -38,6 +39,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
+import { filterListing } from "../src/lib/browse/filter";
+import { columnsFromTemplate } from "../src/lib/browse/grid";
 import { sortListing } from "../src/lib/browse/sort";
 import { LISTING } from "../src/lib/catalog/listing";
 
@@ -884,6 +887,355 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
     await expect(
       page.getByTestId("tag-playable").locator("input"),
     ).toBeChecked();
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the catalog with no pointer at all", () => {
+  test("the keyboard crosses the grid in one tab stop and opens a configuration", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+
+    /** What holds focus, and whether it is inside the grid. */
+    const focus = () =>
+      page.evaluate((selector) => {
+        const el = document.activeElement;
+        const grid = document.querySelector(selector);
+        return {
+          testId: el?.getAttribute("data-testid") ?? null,
+          tag: el?.tagName ?? null,
+          inGrid: el !== null && grid !== null && grid.contains(el),
+        };
+      }, GRID);
+
+    /** The name link of the card at `index` in the order on the screen. */
+    const cardAt = (order: readonly string[], index: number) =>
+      `card-name-${order[index]}`;
+
+    const featured = orderOf("featured");
+
+    // TAB FROM THE FIELD, THROUGH THE TOOLBAR, INTO THE GRID - and the number
+    // of stops is COUNTED rather than written down. How many chips stand in the
+    // toolbar is derived from the data (W-19: every tag on two or more
+    // configurations), so a literal here would be one more declaration of the
+    // catalog to keep in step. The loop is bounded, so a grid that can never be
+    // reached from the keyboard fails instead of hanging.
+    await page.getByTestId("browse-search").focus();
+    expect(
+      (await focus()).testId,
+      "the journey starts in the search field",
+    ).toBe("browse-search");
+
+    let presses = 0;
+    while (presses < 60 && !(await focus()).inGrid) {
+      await page.keyboard.press("Tab");
+      presses += 1;
+    }
+    expect(
+      presses,
+      "the grid is reachable from the search field with Tab alone",
+    ).toBeLessThan(60);
+    console.log(
+      `browse keyboard: ${presses} Tab presses from the search field into the grid`,
+    );
+
+    // ROVING TABINDEX, WHICH IS THE WHOLE OF W-07. Exactly one card is tabbable
+    // at a time; the other fifteen carry -1.
+    await expect(
+      page.locator(`${GRID} [tabindex="0"]`),
+      "exactly one card in the grid is tabbable",
+    ).toHaveCount(1);
+    await expect(page.locator(`${GRID} [tabindex="-1"]`)).toHaveCount(
+      LISTING.length - 1,
+    );
+    expect(
+      (await focus()).testId,
+      "Tab lands on the roving card, which on arrival is the first one",
+    ).toBe(cardAt(featured, 0));
+
+    // ONE TAB STOP, MEASURED. The next Tab must leave the wall entirely rather
+    // than step to the second card - seventeen presses to cross a shelf is the
+    // failure roving tabindex exists to prevent.
+    await page.keyboard.press("Tab");
+    const beyond = await focus();
+    expect(
+      beyond.inGrid,
+      `one Tab crosses the whole wall: focus moved to ${beyond.tag} ${beyond.testId}`,
+    ).toBe(false);
+    await page.keyboard.press("Shift+Tab");
+    expect(
+      (await focus()).testId,
+      "and Shift+Tab comes back to the same roving card",
+    ).toBe(cardAt(featured, 0));
+
+    // THE COLUMN COUNT IS READ OFF THE LIVE LAYOUT, never assumed. A hard-coded
+    // 4 would pass at 1280x720 and mislead at every other width, and the parse
+    // is the shipped one - columnsFromTemplate is pinned in node by
+    // grid.spec.ts, so this is the browser half of the same arithmetic.
+    const template = await page.evaluate((selector) => {
+      const grid = document.querySelector(selector);
+      return grid === null
+        ? undefined
+        : getComputedStyle(grid).gridTemplateColumns;
+    }, GRID);
+    const columns = columnsFromTemplate(template);
+    expect(
+      columns,
+      `the grid reports its own column count: ${String(template)}`,
+    ).toBeGreaterThanOrEqual(1);
+
+    await page.keyboard.press("ArrowRight");
+    expect((await focus()).testId).toBe(cardAt(featured, 1));
+    await page.keyboard.press("ArrowRight");
+    expect((await focus()).testId).toBe(cardAt(featured, 2));
+
+    const below = 2 + columns;
+    expect(
+      below,
+      `a row below card 2 exists at ${columns} columns`,
+    ).toBeLessThan(LISTING.length);
+    await page.keyboard.press("ArrowDown");
+    expect(
+      (await focus()).testId,
+      `ArrowDown steps one row, which is ${columns} cards`,
+    ).toBe(cardAt(featured, below));
+
+    const last = LISTING.length - 1;
+    await page.keyboard.press("End");
+    expect((await focus()).testId).toBe(cardAt(featured, last));
+
+    // THE ENDS ARE THE ENDS (grid.ts clamps, never wraps). ArrowDown off the
+    // last row must not land back on the first card.
+    await page.keyboard.press("ArrowDown");
+    expect(
+      (await focus()).testId,
+      "ArrowDown from the last card does not move",
+    ).toBe(cardAt(featured, last));
+
+    // Enter has NO handler: the anchor is followed natively, which is what
+    // keeps middle-click and open-in-new-tab working too.
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(new RegExp(`/c/${featured[last]}/$`));
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("browse, open a configuration, and come back", () => {
+  test("browse, open a configuration, and come back to the same view", async ({
+    page,
+    context,
+  }) => {
+    const consoleErrors = collectErrors(page);
+
+    /** The slack allowed on the restored offset: rounding, and nothing else. */
+    const SCROLL_TOLERANCE_PX = 2;
+
+    const QUERY = "pad";
+    const TAG = "playable";
+
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+
+    // The expected set is COMPUTED by the shipped filter and the shipped
+    // comparator, never transcribed. Both modules import one erased type and
+    // nothing else, which is why naming them from here costs nothing.
+    const expectedIds = sortListing(
+      filterListing(LISTING, QUERY, [TAG]),
+      "newest",
+    ).map((entry) => entry.id);
+    expect(
+      expectedIds.length,
+      "the recorded view is neither the whole shelf nor empty",
+    ).toBeGreaterThan(1);
+    expect(expectedIds.length).toBeLessThan(LISTING.length);
+
+    const sortGroup = page.getByTestId("browse-sort");
+    await sortGroup.getByText("NEWEST", { exact: true }).click();
+    await expect(sortGroup.locator('input[value="newest"]')).toBeChecked();
+
+    await page.getByTestId("browse-search").fill(QUERY);
+    await page.getByTestId(`tag-${TAG}`).click();
+    await expect(page.locator(CARDS)).toHaveCount(expectedIds.length);
+    expect(await renderedIds(page)).toEqual(expectedIds);
+
+    // The address is projected on a 500 ms trailing timer, so it is waited for
+    // rather than read - what is recorded below has to be the composed address
+    // and not one that is about to change under it.
+    await expect(page).toHaveURL(/sort=newest/);
+    await expect(page).toHaveURL(new RegExp(`q=${QUERY}`));
+    await expect(page).toHaveURL(new RegExp(`tag=${TAG}`));
+    const address = page.url();
+
+    // THE OFFSET IS A NUMBER, RECORDED AND THEN ASSERTED AGAINST. "The page
+    // looks right" is not an assertion. The greater-than-zero check is the
+    // precondition: restoring a scroll offset of 0 would prove nothing.
+    await page.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    await page.waitForTimeout(200);
+    const scrolledTo = await page.evaluate(() => Math.round(window.scrollY));
+    expect(
+      scrolledTo,
+      "the recorded view is really scrolled, so restoring it means something",
+    ).toBeGreaterThan(0);
+
+    const opened = expectedIds[expectedIds.length - 1];
+    await page.getByTestId(`card-name-${opened}`).click();
+    await expect(page).toHaveURL(new RegExp(`/c/${opened}/$`));
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+
+    // ONE SLOT, TWO LABELS (W-01, D-19). A visitor who came from browse gets
+    // their own view back; the cold-arrival label is asserted at the end of
+    // this test, in a tab that holds no record.
+    const slot = page.getByTestId("browse-link");
+    await expect(slot).toHaveText("BACK TO BROWSE");
+    await slot.click();
+
+    await expect(page).toHaveURL(address);
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+    await expect(page.locator(CARDS)).toHaveCount(expectedIds.length);
+    expect(await renderedIds(page)).toEqual(expectedIds);
+    await expect(
+      page.getByTestId("browse-sort").locator('input[value="newest"]'),
+    ).toBeChecked();
+    await expect(page.getByTestId("browse-search")).toHaveValue(QUERY);
+    await expect(page.getByTestId(`tag-${TAG}`).locator("input")).toBeChecked();
+
+    let restoredTo = -1;
+    await expect
+      .poll(
+        async () => {
+          restoredTo = await page.evaluate(() => Math.round(window.scrollY));
+          return Math.abs(restoredTo - scrolledTo) <= SCROLL_TOLERANCE_PX;
+        },
+        {
+          message: `the browse view came back at the offset it left, within ${SCROLL_TOLERANCE_PX}px`,
+          timeout: 10_000,
+        },
+      )
+      .toBe(true);
+    console.log(
+      `browse round trip: scrollY ${scrolledTo} before, ${restoredTo} after ` +
+        `(tolerance ${SCROLL_TOLERANCE_PX}px)`,
+    );
+
+    // ONE BACK PRESS LEAVES BROWSE, and what that proves is written down rather
+    // than glossed. The return is a `goto` with `{ noScroll: true }` and
+    // deliberately NOT `{ replaceState: true }`: 05.1-09 measured that
+    // replaceState takes Kit's shallow popstate branch on this exact journey and
+    // leaves the address bar reading /c/<id>/ while the browse screen is still
+    // on the page. So the round trip costs one history entry, and one Back lands
+    // on the configuration the visitor opened. The phase's deferred-items.md
+    // item 2 records that 05.1-UI-SPEC.md's sentence asking for replaceState is
+    // the thing that is wrong here, not the shipped control.
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`/c/${opened}/$`));
+    expect(
+      await page.getByTestId("browse").count(),
+      "the browse screen is off the page after one Back",
+    ).toBe(0);
+
+    // A COLD ARRIVAL IN A TAB THAT NEVER SAW BROWSE. sessionStorage is per tab,
+    // so a new page in the same context is the honest way to reach the other
+    // label - and the empty store is asserted rather than assumed, because a
+    // shared store would make the assertion below pass for the wrong reason.
+    const fresh = await context.newPage();
+    try {
+      await fresh.goto("/c/euclid/");
+      await expect(fresh.getByTestId("coverflow")).toBeVisible();
+      expect(
+        await fresh.evaluate(() => window.sessionStorage.length),
+        "the precondition: this tab holds no browse return",
+      ).toBe(0);
+      await expect(
+        fresh.getByTestId("browse-link"),
+        "a visitor arriving cold is never left without a route into the catalog",
+      ).toHaveText("BROWSE ALL");
+    } finally {
+      await fresh.close();
+    }
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the engine hazard this phase created, in a browser", () => {
+  test("un-choosing a hand-authored configuration leaves its pad running", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+
+    // THE ONE PAGE WHERE THE HAZARD IS VISIBLE. `buildTuner`'s `destroy()` used
+    // to call `closeEngine(engine)` unconditionally, and that was harmless only
+    // while every Lua entry stayed out of FRONT_DOOR. Plan 05.1-05 made
+    // /c/euclid/ real, where the row is EUCLID ALONE - so un-choosing would have
+    // closed the VM behind the only pad on the page and blanked it. 05.1-04
+    // fixed it (`if (engine !== published)`) and pinned it in node; this is the
+    // same property where a visitor would have met it.
+    const ID = "euclid";
+
+    await coldGoto(page, `/c/${ID}/`);
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="pad-canvas-"]'),
+      "a row of one: this page has a single pad, and it is the one under test",
+    ).toHaveCount(1);
+    await waitForPicture(page, ID);
+
+    // THE PRECONDITION. Without it a pad that never ran at all would satisfy the
+    // "the two samples differ" assertion at the end by being broken in a
+    // different way.
+    const opening = await samplePad(page, ID);
+    expect(opening, "the pad canvas was readable").not.toBeNull();
+    await page.waitForTimeout(400);
+    expect(
+      await samplePad(page, ID),
+      `${ID} is running before anything is chosen`,
+    ).not.toBe(opening);
+
+    // The tap rule: under 250 ms and 6 px both plays the pad and chooses it.
+    const pad = page.getByTestId(`pad-${ID}`);
+    const box = await pad.boundingBox();
+    expect(box, "the pad was measurable").not.toBeNull();
+    const at = box as { x: number; y: number; width: number; height: number };
+    await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
+
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
+
+    // BOTH METERS SETTLED, AND THAT IS THE PART THAT ARMS THIS TEST. Ownership
+    // of the engine transfers at `onpreview`; a test that pressed Escape before
+    // the handover would exercise the branch where `destroy()` closes an engine
+    // nobody ever saw, which is the safe case and not the hazard. A settled
+    // meter means the tuner has compiled and published.
+    for (const event of ["setup", "timer"] as const) {
+      await expect(
+        page.getByTestId(`meter-${event}`),
+        `the ${event} meter settled, so the tuner has published its engine`,
+      ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+    }
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
+
+    const after = await samplePad(page, ID);
+    expect(
+      after,
+      "the pad canvas is still readable after un-choosing",
+    ).not.toBe(null);
+    await page.waitForTimeout(400);
+    expect(
+      await samplePad(page, ID),
+      "D-18: un-choosing must not close the engine the row is still painting from",
+    ).not.toBe(after);
 
     expect(consoleErrors).toEqual([]);
   });
