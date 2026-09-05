@@ -38,11 +38,11 @@
      history.back() would land them on the un-chosen detail page - short by an
      amount that depends on what they happened to do while they were here
      (05.1-RESEARCH.md, Pitfall 8). A recorded address is deterministic however
-     many entries the detail page collected. `replaceState: true` rides along
-     with it because 05.1-UI-SPEC.md asks that browse to detail and back reads
-     as one round trip rather than growing the history, and `noScroll: true`
-     because the browse page restores its own recorded offset on mount and a
-     scroll-to-top from Kit would fight it.
+     many entries the detail page collected. `noScroll: true` rides along with
+     it because the browse page restores its own recorded offset on mount and a
+     scroll-to-top from Kit would fight it. `replaceState: true` does NOT - see
+     RETURN_OPTIONS below, where the measurement that ruled it out is written
+     down.
 
   THE STORE IS FETCHED THROUGH A FUNCTION, NOT CACHED. A property access on
   window.sessionStorage can itself throw in a browser configured to refuse
@@ -82,12 +82,35 @@
   /**
    * How the recorded view is re-entered.
    *
-   * `noScroll` because /browse/ restores its own recorded offset on mount and
-   * a scroll-to-top from Kit would fight it. `replaceState` because
-   * 05.1-UI-SPEC.md asks that browse to a configuration and back reads as one
-   * round trip rather than growing the history one entry per visit.
+   * `noScroll` because /browse/ restores its own recorded offset on mount and a
+   * scroll-to-top from Kit would fight it.
+   *
+   * AND NOT `replaceState`, WHICH WAS TRIED AND MEASURED. 05.1-UI-SPEC.md asks
+   * for it so the round trip does not grow the history; on Kit 2.70.3 it breaks
+   * the browser's Back button on this exact journey, and the plan's own
+   * interfaces table asks for `{ noScroll: true }` alone.
+   *
+   * The mechanism, from Kit's own source. `navigate()` at client.js:1874 does
+   * `const change = replace_state ? 0 : 1` and then bumps BOTH the history index
+   * and the NAVIGATION index by `change` - so a replacing navigation leaves
+   * `current_navigation_index` where it was. The popstate handler at
+   * client.js:2886 decides whether a Back is a real navigation with
+   * `navigation_index === current_navigation_index && has_navigated`, and takes
+   * a SHALLOW branch when that holds: it updates `page.state` and the address
+   * and renders nothing new.
+   *
+   * Coverflow.choose()'s `pushState` is what lines the two indices up. Observed
+   * on a served production build with `replaceState: true`: browse to /c/ghost/,
+   * tap the pad, press the control, then press the browser's Back - the address
+   * bar reads /c/ghost/ while the browse screen is still on the page
+   * (`[data-testid="browse"]` present, `[data-testid="front-door"]` absent,
+   * still true five seconds later). Without it, the same Back lands on the
+   * chosen /c/ghost/ correctly.
+   *
+   * The price is one history entry per round trip. An address bar that lies
+   * about what is on the screen is worth more than that.
    */
-  const RETURN_OPTIONS = { noScroll: true, replaceState: true };
+  const RETURN_OPTIONS = { noScroll: true };
 
   /**
    * The recorded way back, or undefined. Assigned once, on mount - see rule 2
