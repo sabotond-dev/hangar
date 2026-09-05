@@ -87,6 +87,36 @@ how the module is reached (Phase 6 owns the session).
   colour earns itself for the flash warning is the UI spec's call (Phase 5's spec named it as the
   first candidate); the default is no.
 
+### Added after research (2026-09-05) **[orchestrator]**
+- **D-04 amended:** the durable-snapshot key is the module's factory serial, read over the wire with
+  a fifth outbound instruction — `SERIALNUMBER/FETCH` → `SERIALNUMBER/REPORT` (`WORD0..WORD3`, the
+  ESP32-S3 eFuse MAC, the same bytes as the USB `iSerialNumber` Chromium keys its grant on), **addressed
+  to the ZONA's SX/SY, never broadcast** (a broadcast makes every module on the rig answer
+  indistinguishably). It is unproven on hardware — no capture holds such a frame and grid-editor never
+  sends one — so it is runbook row A. The content-hash fallback the draft floated is broken (the
+  fetched strings change the instant `TRY ON DEVICE` writes); the real fallback when the serial is not
+  answered is a **session-only snapshot with honest copy** ("this ZONA is remembered until this tab
+  closes").
+- **D-16:** `GridTransport` carries exactly one `onData` callback and Phase 6's session owns it after
+  identification. The session gains an `onClass()` seam that fans decoded classes out to subscribers;
+  the install actions subscribe through it. A second raw registration is forbidden (it would silently
+  freeze the live page number and turn later writes into unexplained NACKs) and a spec asserts it.
+- **D-17:** Phase 5's `buildTuner` never publishes the compiled strings (only meters, ladder, stamp).
+  The tuner gains an `onconfig` emit inside `land()` carrying `{ setupLua, timerLua }` for the current
+  state; the install actions write those strings VERBATIM, and a spec pins
+  `written.length === cost().setup.used` for every preset (measured: with reserve 0/0 the compressed
+  cost equals `setupLua.length`, both events, all nine).
+- **D-18:** Two shipped rules are undone deliberately, each a named edit: `storeToFlash`'s
+  `storeAllowed` throw (Phase 2's refuse-on-rig, superseded by SAFE-06 — `sequence.spec.ts` asserts the
+  old rule and is rewritten, not deleted) and `TryOnDevice.svelte`'s two literals promising that HANGAR
+  never writes (retired per the Phase 7 UI spec).
+- **D-19:** Three timings are unknown until hardware and become runbook rows, each with a bounded
+  mitigation the plan ships regardless: whether a real ZONA answers `SERIALNUMBER/FETCH`; how long the
+  module's post-store page reload takes (the D-12 re-fetch waits for the first heartbeat after the
+  PAGESTORE ACK before fetching, and retries once); and whether 0 ms pacing survives two back-to-back
+  957-byte writes (the write path uses the desktop 10 ms pacing Phase 2 kept as a toggle, and the
+  runbook measures 0 ms).
+
 ## Deferred / out of scope
 Firefox-specific install copy beyond Phase 6's; Android WebUSB / iOS transports; writing to any
 element but the touch element; page switching; anything the Grid Editor does beyond these three
