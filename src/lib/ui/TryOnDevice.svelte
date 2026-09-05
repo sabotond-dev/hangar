@@ -1,56 +1,69 @@
 <!--
-  TRY ON DEVICE: the one surface on the front door that touches hardware.
+  TRY ON DEVICE: the chosen panel's connect control, and a CONSUMER of the
+  device session rather than its owner (06-CONTEXT D-01, 06-UI-SPEC Y-17).
 
-  It opens a port, listens until the module names itself, and stops. It cannot
-  write. That is not a promise about intent, it is a property of the file: the
-  symbols that would be needed to send anything - RequestQueue, hostHeartbeat,
-  sendConfig, storePage - appear nowhere below this comment, and neither does
-  any call to the transport's write method. Plan 04-04's src/lib/device/try-on.ts
-  is the whole device path and its spec asserts the same absence twice, once
-  dynamically against a transport that records every byte and once by reading
-  its source (D-13, D-22).
+  Phase 4 built this component around a port it opened itself: it held the
+  phase, the failure and the identity, closed the port on release(), on
+  onDestroy and on pagehide, and carried a careful header about ordering and
+  transient activation. All of that is now the session's story, and the
+  header that told it lives at the top of src/lib/device/session.svelte.ts -
+  requestPort() as the first statement of connect(), the heavy modules
+  awaited after the chooser has been asked for, the replug identity trap, and
+  why start() never opens a port. This file reads session.phase,
+  session.identity and session.failureFor(PRIMARY), calls session.connect()
+  from its click and session.disconnect() from DISCONNECT ZONA, and holds no
+  state of its own. There is no port here to close, so release() and the
+  component's teardown close nothing: a visitor who presses Escape, steps the
+  row past the chosen entry, chooses another card, goes Back or switches tabs
+  keeps their connection, and the header and this button cannot disagree
+  because they are reading one object.
 
-  Nothing here compiles, costs or measures a configuration either: padReady and
-  initLuaFormatter belong to Phase 5, where the first character budget is asked
-  for. Loading a 628 KB WebAssembly formatter behind a button that never needs
-  it would be waste, and holding it up in the click handler would burn the
-  transient activation the port chooser depends on.
+  It cannot write. That is still a property of the file rather than a promise
+  about intent: RequestQueue, hostHeartbeat, sendConfig and storePage appear
+  nowhere below this comment, and neither does any call to a transport's
+  write method. The session it consumes is held to the same absence by
+  session.spec.ts, twice.
 
-  THE ORDERING RULE. The chooser call is the first statement in the handler,
-  with nothing held up in front of it. Transient user activation expires - about
-  4.9 s in current engines - rather than being consumed, so a module fetched
-  inside the handler makes the picker reject with something that reads to a
-  visitor as a permissions bug. Every module the handler needs therefore arrives
-  in onMount, dynamically, which also keeps the prerenderer from pulling a Web
-  Serial reference into the server graph. src/routes/dev/skeleton/+page.svelte's
-  connect() is the proven shape and this is a copy of it.
+  THE LABEL. PRIMARY below is the definition of TRY ON DEVICE for this
+  surface. It is passed to session.failureFor() so every recovery step that
+  says "Click ... again" names the button the visitor is looking at (Y-13),
+  and it stays HERE for two reasons a reader will otherwise reach past. It is
+  not imported from $lib/device/try-on, because that specifier is not one of
+  the five the chunk guard permits under src/lib/ui/ and would drag the
+  protocol chunk onto the first paint for one string (config-shape.spec.ts
+  test 13). And it is not exported from session-copy, because
+  session-copy.spec.ts test 4 holds that module free of this literal - that
+  gate is what proves the recovery steps interpolate the calling surface's
+  label instead of hard-coding the panel's.
 
-  DEGR-02. On a browser that cannot talk to hardware the control is present and
-  really `disabled`, with the reason rendered in the panel beneath it - never
-  aria-disabled alone, and never hidden, because a visitor who cannot install
-  deserves to be told which browsers can rather than to see nothing at all. The
-  reason is Phase 2's failureCopy, which names three browsers and no engine.
+  DEGR-02. On a browser that cannot talk to hardware the control is present
+  and really `disabled`, with the reason rendered in the connect-state region
+  beneath it - never aria-disabled alone, and never hidden, because a visitor
+  who cannot install deserves to be told which browsers can rather than to
+  see nothing at all. The reason is the transport's failureCopy, which names
+  three browsers and no engine, and it stays in THIS panel as well as in the
+  header disclosure because there are two disabled controls and the reason
+  belongs beside each (e2e/first-experience.e2e.ts reads it here).
 
   The layout around all of this belongs to ChosenPanel.svelte. This component
-  owns regions 1 to 3 of D-08's order and the state machine behind them.
+  owns regions 1 to 3 of D-08's order: the button, the honesty slot and the
+  connect-state region.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
+  import { session } from "$lib/device/session.svelte";
+  import {
+    CONNECTING_LABEL,
+    DISCONNECT_LABEL,
+    STATUS_CHOOSING,
+    STATUS_IDENTIFYING,
+    STATUS_OPENING,
+    identitySentence,
+  } from "$lib/device/session-copy";
   import { tryOnBudgetReason } from "$lib/tune/copy";
   import PadSpinner from "./PadSpinner.svelte";
-
-  // Type-only references, so no static specifier here names a module that
-  // touches a port. The three surfaces arrive through dynamic import() below.
-  type Protocol = typeof import("$lib/protocol");
-  type Transport = typeof import("$lib/transport");
-  type Device = typeof import("$lib/device/try-on");
-  type TryOnState = import("$lib/device/try-on").TryOnState;
-  type FailureCopy = import("$lib/transport").FailureCopy;
-  type Identity = import("$lib/transport").Identity;
-  type GridTransport = import("$lib/transport").GridTransport;
 
   let {
     entry,
@@ -81,13 +94,16 @@
   // of these are asserted character for character.
 
   /**
-   * The label before the device module has arrived. Once it has, the button
-   * reads TRY_ON_LABEL from src/lib/device/try-on.ts, which is the single
-   * definition the failure copy is also interpolated with - so the button and
-   * the sentences that tell a visitor to click it cannot drift apart.
+   * The control's label, and after plan 06-12 its ONE definition on this
+   * surface. It is what the button shows and what session.failureFor() is
+   * handed, so the label on the control and the label interpolated into the
+   * recovery steps are the same identifier. It is deliberately neither a
+   * static import from $lib/device/try-on (not a permitted specifier under
+   * src/lib/ui/ - config-shape.spec.ts test 13) nor an export of
+   * session-copy (session-copy.spec.ts test 4 holds that module free of this
+   * literal). See the header.
    */
   const PRIMARY = "TRY ON DEVICE";
-  const CONNECTING = "CONNECTING…";
   // One literal, never a concatenation: the e2e suite and the acceptance
   // probe both look for this sentence whole, in the source and on the screen.
   const HONESTY =
@@ -104,93 +120,48 @@
    * makes a static import of it safe here (config-shape.spec.ts test 13).
    */
   const BUDGET_SIZING = tryOnBudgetReason("Setup and Timer");
-  const DISCONNECT = "DISCONNECT ZONA";
-
-  const STATUS_CHOOSING = "Pick the ZONA in the browser’s list.";
-  const STATUS_OPENING = "Opening the port…";
-  const STATUS_IDENTIFYING = "Listening for the module…";
 
   const IDENTIFIED_CAPTION = "ZONA IDENTIFIED";
-  const identifiedBody = (id: Identity): string =>
-    `Firmware ${id.zona.firmware.major}.${id.zona.firmware.minor}.` +
-    `${id.zona.firmware.patch}, active page ${id.activePage}. Nothing was ` +
-    "written, and nothing will be until install ships in the next release.";
-
-  const NOT_ZONA_TITLE = "That module is not a ZONA";
-  const notZonaBody = (type: string | undefined): string =>
-    `It reported itself as ${type ?? "an unknown module"}. HANGAR only ` +
-    "speaks to a ZONA, so nothing was sent.";
-  const NOT_ZONA_STEPS = ["Disconnect", "Plug in a ZONA and try again"];
-
-  const SILENT_TITLE = "Nothing answered on that port";
-  const silentBody = (seconds: number): string =>
-    `The port opened, but no Grid module reported itself within ${seconds} ` +
-    "seconds. That usually means the port belongs to something else on your " +
-    "machine.";
-  const SILENT_STEPS = [
-    "Unplug the ZONA and plug it back in",
-    "Click TRY ON DEVICE again and pick a different port",
-  ];
-
-  const UNPLUGGED_AFTER = "The ZONA was unplugged. Nothing was written.";
+  /**
+   * The second sentence of the identified body. The first is session-copy's
+   * identitySentence - the lifted one, so the panel and the disclosure cannot
+   * word the firmware line differently. This tail is the panel's own Phase 4
+   * promise and is retired with the rest of them when install ships.
+   */
+  const IDENTIFIED_TAIL =
+    "Nothing was written, and nothing will be until install ships in the next release.";
 
   // ---------------------------------------------------------------------------
-  // State.
+  // What the component reads. All of it is the session's; none of it is held.
 
-  let P: Protocol | undefined = $state(undefined);
-  let T: Transport | undefined = $state(undefined);
-  let D: Device | undefined = $state(undefined);
-
-  /**
-   * UI-SPEC Screen 4s state machine, and it is called phase rather than state
-   * for a compiler reason, not a stylistic one: a top-level variable named
-   * state makes svelte2tsx read every $state(...) rune call in the file as a
-   * store subscription on it, and svelte-check then reports eleven errors
-   * about a missing subscribe method.
-   *
-   * undefined until onMount has resolved the capability.
-   */
-  let phase: TryOnState | undefined = $state(undefined);
-  let failure: FailureCopy | null = $state(null);
-  let identity: Identity | null = $state(null);
-  let moduleType: string | undefined = $state(undefined);
-
-  // Plain locals: none of these is rendered, so none needs to be reactive, and
-  // an open transport must never be wrapped in a deep proxy.
-  let grid: GridTransport | undefined;
-  let detachHide: (() => void) | undefined;
-  let capable = false;
-  let mounted = false;
-
-  /**
-   * Both of these read a module through a helper rather than inline, and that
-   * is a type-checking necessity rather than taste: at this point in the file
-   * TypeScript has seen P, T and D assigned only undefined - they are filled
-   * inside an async callback further down - so it narrows them to undefined
-   * here and the other arm of the expression becomes never. A parameter is
-   * not narrowed by the outer control flow, so the declared union survives.
-   */
-  const labelOf = (d: Device | undefined): string => d?.TRY_ON_LABEL ?? PRIMARY;
-  const secondsOf = (p: Protocol | undefined): number =>
-    p ? p.IDENTIFY_WINDOW_MS / 1000 : 0;
-
-  const primaryLabel = $derived(labelOf(D));
   const connecting = $derived(
-    phase === "choosing" || phase === "opening" || phase === "identifying",
+    session.phase === "choosing" ||
+      session.phase === "opening" ||
+      session.phase === "identifying",
   );
-  const windowSeconds = $derived(secondsOf(P));
+  /** The one block for this surface, with this surface's label (Y-13). */
+  const block = $derived(session.failureFor(PRIMARY));
+  const identity = $derived(session.identity);
+  const identifiedBody = $derived(
+    identity
+      ? `${identitySentence(identity.zona.firmware, identity.activePage)} ${IDENTIFIED_TAIL}`
+      : "",
+  );
+
   /**
    * Disabled in every state where a click would be meaningless: before the
-   * modules land, while a connection is in flight, once the module is already
-   * identified, and on a browser that cannot do it at all. Each of those
-   * renders a reason in the panel; none of them is aria-disabled alone.
+   * session has read the capability, while a connection is in flight, once the
+   * module is already connected, and on a browser that cannot do it at all.
+   * Each of those renders a reason in the panel; none of them is aria-disabled
+   * alone. `starting` is also the server-rendered state, so a prerendered
+   * document ships the control disabled and hydration enables it.
    */
   const disabled = $derived(
-    phase === undefined ||
+    session.phase === "starting" ||
       connecting ||
-      phase === "identified" ||
-      phase === "unsupported" ||
-      phase === "insecure" ||
+      session.phase === "connected" ||
+      session.phase === "unsupported" ||
+      session.phase === "insecure" ||
       budgetReason !== undefined,
   );
 
@@ -201,16 +172,16 @@
    * PRECEDENCE, and it is the UI spec's rule extended by one step. A browser
    * that cannot install at all outranks the budget: the permanent obstacle is
    * the honest one to state, and its own words are already in the connect-state
-   * region below, so the slot keeps the standing honesty line. `identified`
+   * region below, so the slot keeps the standing honesty line. `connected`
    * outranks it too, because in THIS phase the control does nothing but
    * identify - once it has, the budget is not what is stopping it, and the
    * over-budget configuration still has the message block beside the knobs
    * saying so in full.
    */
   const shown: "honesty" | "identified" | "budget" = $derived(
-    phase === "unsupported" || phase === "insecure"
+    session.phase === "unsupported" || session.phase === "insecure"
       ? "honesty"
-      : phase === "identified"
+      : session.phase === "connected"
         ? "identified"
         : budgetReason !== undefined
           ? "budget"
@@ -218,166 +189,28 @@
   );
 
   // ---------------------------------------------------------------------------
-  // Mount: dynamic imports, then the capability.
+  // The two actions, both the session's.
 
-  onMount(() => {
-    mounted = true;
-    void (async () => {
-      const [protocol, transport, device] = await Promise.all([
-        import("$lib/protocol"),
-        import("$lib/transport"),
-        import("$lib/device/try-on"),
-      ]);
-      if (!mounted) return;
-      P = protocol;
-      T = transport;
-      D = device;
+  function tryOnDevice(): void {
+    // Nothing awaited in front of it: the session's requestPort() has to run
+    // inside this click's activation window. See session.svelte.ts.
+    session.connect();
+  }
 
-      // A capability test over an explicit environment record, never a browser
-      // test: CONN-01, and the reason no string below names an engine.
-      const capability = device.capabilityOf({
-        hasSerial: "serial" in navigator,
-        secure: isSecureContext,
-      });
-      if (capability === "unsupported") {
-        failure = transport.failureCopy(
-          "no-web-serial",
-          undefined,
-          device.TRY_ON_LABEL,
-        );
-        phase = "unsupported";
-      } else if (capability === "insecure") {
-        failure = transport.failureCopy(
-          "insecure-context",
-          undefined,
-          device.TRY_ON_LABEL,
-        );
-        phase = "insecure";
-      } else {
-        capable = true;
-        phase = "idle";
-      }
-    })();
-  });
-
-  onDestroy(() => {
-    // The house guard: onDestroy runs on the server immediately after
-    // rendering, where there is no port and no window (04-07-SUMMARY).
-    if (!mounted) return;
-    mounted = false;
-    // A visitor who navigates away must not leave the port held away from Grid
-    // Editor. This is the backstop under release(); both are idempotent.
-    void closePort();
-  });
-
-  // ---------------------------------------------------------------------------
-  // The port's lifetime. The transport is closed here and nowhere else.
-
-  async function closePort(): Promise<void> {
-    const open = grid;
-    grid = undefined;
-    detachHide?.();
-    detachHide = undefined;
-    if (open) await open.close().catch(() => undefined);
+  function disconnect(): void {
+    void session.disconnect();
   }
 
   /**
-   * Called by the row on every un-choose path (Escape, the browser Back button,
-   * a click on a dimmed side pad, a step past the chosen entry). A visitor who
-   * closes the panel is not still holding the port away from Grid Editor.
-   * Idempotent, and safe to call when nothing was ever opened.
+   * Still called by the row on every un-choose path (Escape, the browser Back
+   * button, a click on a dimmed side pad, a step past the chosen entry) through
+   * Coverflow.svelte's bind:this, and still idempotent - but since plan 06-12
+   * it closes nothing, because there is nothing here to close. The port, the
+   * phase and the failure belong to the session and survive the panel (Y-17);
+   * a visitor who closes the panel keeps their connection.
    */
-  export async function release(): Promise<void> {
-    await closePort();
-    failure = capable ? null : failure;
-    identity = null;
-    moduleType = undefined;
-    if (capable) phase = "idle";
-  }
-
-  async function disconnect(): Promise<void> {
-    await closePort();
-    identity = null;
-    phase = "idle";
-  }
-
-  function refuse(err: unknown, port?: SerialPort): void {
-    const surface = T!;
-    const kind = surface.classifyOpenError(err, port);
-    // The label is the THIRD argument, after raw. Passing it second would put
-    // it in raw's place and surface the button's name inside the unknown
-    // failure's detail (04-04-SUMMARY).
-    failure = surface.failureCopy(
-      kind,
-      err instanceof Error ? err.message : String(err),
-      D!.TRY_ON_LABEL,
-    );
-    phase = "failed";
-  }
-
-  // ---------------------------------------------------------------------------
-  // The handler.
-
-  async function tryOnDevice(): Promise<void> {
-    // FIRST statement, with nothing in front of it. Transient user activation
-    // EXPIRES (about 4.9 s in current engines) rather than being consumed, so
-    // anything resolved ahead of this call makes the picker reject for a
-    // reason that reads as a permissions bug. Every module this handler needs
-    // was fetched in onMount for exactly that reason.
-    const picking = navigator.serial.requestPort({ filters: [P!.ZONA_USB] });
-    failure = null;
-    phase = "choosing";
-
-    const picked = await picking.catch((err: unknown) => {
-      // A closed chooser is a NotFoundError, not a fault, and the copy says so.
-      refuse(err);
-      return undefined;
-    });
-    if (!picked) return;
-
-    phase = "opening";
-    try {
-      await picked.open({
-        baudRate: P!.BAUD_RATE,
-        bufferSize: P!.READ_BUFFER_SIZE,
-      });
-    } catch (err) {
-      refuse(err, picked);
-      return;
-    }
-
-    const open = new T!.WebSerialTransport(picked);
-    grid = open;
-    detachHide = open.closeOnHide();
-    open.onClose(() => {
-      // The module left the cable. Only meaningful once it had named itself;
-      // every other state already has its own sentence on screen.
-      if (phase === "identified") phase = "unplugged-after";
-      grid = undefined;
-      detachHide?.();
-      detachHide = undefined;
-      identity = null;
-    });
-
-    phase = "identifying";
-    const result = await D!.identifyOnly(open);
-    if (result.kind === "identified") {
-      identity = result.identity;
-      phase = "identified";
-      return;
-    }
-
-    // Both remaining outcomes put the button back within reach, and both sets
-    // of steps tell the visitor to try again - which a port this page is still
-    // holding would make impossible. identifyOnly deliberately never closes
-    // what it did not open, so the close belongs here.
-    if (result.kind === "not-zona") {
-      moduleType = result.moduleType;
-      phase = "not-zona";
-    } else {
-      phase = "silent";
-    }
-    await closePort();
+  export function release(): void {
+    // Nothing to clear: this component holds no state of its own.
   }
 </script>
 
@@ -391,7 +224,7 @@
     onclick={tryOnDevice}
   >
     {#if connecting}<PadSpinner />{/if}
-    <span class="label">{connecting ? CONNECTING : primaryLabel}</span>
+    <span class="label">{connecting ? CONNECTING_LABEL : PRIMARY}</span>
   </button>
 
   <div class="honesty" id="try-on-reason">
@@ -419,43 +252,33 @@
   </div>
 
   <div class="status" data-testid="connect-status" aria-live="polite">
-    {#if phase === "choosing"}
+    {#if session.phase === "choosing"}
       <p class="detail">{STATUS_CHOOSING}</p>
-    {:else if phase === "opening"}
+    {:else if session.phase === "opening"}
       <p class="detail">{STATUS_OPENING}</p>
-    {:else if phase === "identifying"}
+    {:else if session.phase === "identifying"}
       <p class="detail">{STATUS_IDENTIFYING}</p>
-    {:else if phase === "identified" && identity}
+    {:else if session.phase === "connected" && identity}
       <p class="caption">{IDENTIFIED_CAPTION}</p>
-      <p class="detail">{identifiedBody(identity)}</p>
+      <p class="detail">{identifiedBody}</p>
       <button
         class="disconnect"
         type="button"
         data-testid="disconnect"
         onclick={disconnect}
       >
-        {DISCONNECT}
+        {DISCONNECT_LABEL}
       </button>
-    {:else if phase === "not-zona"}
-      <p class="title">{NOT_ZONA_TITLE}</p>
-      <p class="detail">{notZonaBody(moduleType)}</p>
-      <ol class="steps">
-        {#each NOT_ZONA_STEPS as step (step)}<li>{step}</li>{/each}
-      </ol>
-    {:else if phase === "silent"}
-      <p class="title">{SILENT_TITLE}</p>
-      <p class="detail">{silentBody(windowSeconds)}</p>
-      <ol class="steps">
-        {#each SILENT_STEPS as step (step)}<li>{step}</li>{/each}
-      </ol>
-    {:else if phase === "unplugged-after"}
-      <p class="detail">{UNPLUGGED_AFTER}</p>
-    {:else if failure}
-      <p class="title">{failure.title}</p>
-      <p class="detail">{failure.detail}</p>
-      <ol class="steps">
-        {#each failure.steps as step (step)}<li>{step}</li>{/each}
-      </ol>
+    {:else if block}
+      {#if block.title}
+        <p class="title">{block.title}</p>
+      {/if}
+      <p class="detail">{block.detail}</p>
+      {#if block.steps.length > 0}
+        <ol class="steps">
+          {#each block.steps as step (step)}<li>{step}</li>{/each}
+        </ol>
+      {/if}
     {/if}
   </div>
 </div>
