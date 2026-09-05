@@ -133,3 +133,29 @@ If a later plan wants the *reason* itself under a mutation, the mutation is a ro
 partial - two edits, not one, and the second would itself be a bug worth its own test.
 
 **Owner:** none required; recorded so the fourth check is not read as skipped. No code.
+
+## 9. After a connect on a module that answers, the session's connected sentence is never rendered (found by 07-08)
+
+The install store takes its snapshot the moment the session is connected (D-03) and speaks
+`LIVE_SNAPSHOT_SAVED` on `ready`. On a module that answers - the Node responder, and by every Phase 2
+measurement a real ZONA too - that is tens of milliseconds after the session queued its own
+`ZONA connected. Firmware …` line, inside the same 500 ms trailing window, and the announcer keeps the LAST
+line (Y-16, 06-UI-SPEC). So the connected sentence is queued and never rendered; the region reads the
+snapshot sentence once. Observed in `e2e/session.e2e.ts` test 14 the moment `+layout.svelte` started the
+store: `after connect: session="Your ZONA's own Setup and Timer are saved. Nothing has been written."`.
+07-UI-SPEC's live-region section assumed the two were "mutually exclusive in time"; on a fast link they are
+not. The test now asserts what the announcer does and says so; nothing about the announcer was changed
+(07-11 says it has no logic to gain), and whether the snapshot line should be the one a visitor hears at
+connect is a copy question, not a test one.
+
+**Owner:** 07-11 (the snapshot line is its subject) or 07-13's runbook, which can record what a screen
+reader actually says at connect on hardware. No code in 07-08.
+
+## 10. The 07-08 plan's testid table names the readout and the button `install-put-back` (found by 07-08)
+
+The interfaces block lists `install-put-back` twice: as the readout of `putBackState()` and as the PUT
+BACK button. Playwright's `getByTestId` is strict and resolved to two elements, so all six tests failed
+on their first run. The readout keeps the name (07-12's tests will read it); the button is
+`install-put-back-click`. Recorded so 07-12 reads the probe, not the plan's table, for the click.
+
+**Owner:** none required. Fixed in 07-08 (commit 3 of this plan).
