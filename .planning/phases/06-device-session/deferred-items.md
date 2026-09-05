@@ -180,3 +180,14 @@ when 06-11 mounts the header slot and the note.
 
 **Owner:** plan 06-13, which re-measures `PREV_E2E` and owns the shipped-chrome e2e changes;
 or whoever edits that file first.
+
+## Resolved
+
+### Item 6 - resolved by 06-10
+
+`src/lib/ui/device-ui.spec.ts` test 2 now scans all seven device components,
+comment-stripped, for a hex literal (the `/#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])/g`
+matcher with its lookahead and a non-vacuity check) and for `--color-over`. The
+06-08 mutation (a hex in `DeviceMark`'s connected shape) was re-run under this
+gate as one of task 3's negatives and observed red, then restored. The
+component-level hex scan the item asked for exists.
