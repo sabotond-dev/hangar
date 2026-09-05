@@ -10,11 +10,14 @@ import {
   TOUCH_EVENTS,
   ZONA_HWCFG,
   ZONA_USB,
+  type DecodedClass,
   type GridRequest,
   decodeFrame,
   encodeRequest,
   fetchConfig,
+  fetchSerialNumber,
   hostHeartbeat,
+  moduleKeyOf,
   sendConfig,
   storePage,
 } from "$lib/protocol";
@@ -32,6 +35,10 @@ import {
   configReportFrame,
   heartbeatFrame,
   pagestoreAckFrame,
+  powerCycle,
+  rigResponder,
+  zonaResponder,
+  type ZonaState,
 } from "./synthetic";
 
 const FIXTURE_URL = new URL("./synthetic-zona.json", import.meta.url);
@@ -341,5 +348,176 @@ describe("the committed synthetic capture", () => {
       "restore-page-change",
     );
     expect(last.outcome, "fire and forget, so never acknowledged").toBe("sent");
+  });
+});
+
+// Phase 7 (07-02): the scripted ZONA can refuse, remember, and answer for
+// itself. Every failure the install flow names has to be producible from node
+// by a module that does not exist, so each branch is pinned here directly
+// against the responder, with no queue in between.
+const SETUP_CONFIG = "--[[@cb]]print(1)";
+const TIMER_CONFIG = "--[[@cb]]print(2)";
+const ACTIVE_PAGE = 2;
+
+const zonaState = (over: Partial<ZonaState> = {}): ZonaState => ({
+  sx: 0,
+  sy: 0,
+  activePage: ACTIVE_PAGE,
+  configs: { [EVENT_SETUP]: SETUP_CONFIG, [EVENT_TIMER]: TIMER_CONFIG },
+  ...over,
+});
+
+type Responder = (outbound: DecodedClass, requestId: number) => number[][];
+
+function classesOf(frame: number[]): DecodedClass[] {
+  const decoded = decodeFrame(frame);
+  if (!decoded.ok) throw new Error(`frame did not decode: ${decoded.reason}`);
+  return decoded.classes;
+}
+
+/** Put one request to a responder the way FakeTransport.write does. */
+function ask(
+  answer: Responder,
+  req: GridRequest,
+): { id: number; replies: DecodedClass[][] } {
+  const { bytes, id } = encodeRequest(req);
+  const frame = [...bytes];
+  if (frame[frame.length - 1] === TERMINATOR) frame.pop();
+  const [outbound] = classesOf(frame);
+  return { id, replies: answer(outbound, id).map(classesOf) };
+}
+
+describe("the scripted ZONA", () => {
+  it("a config write to a page that is not active is refused with a NACK echoing the id", () => {
+    const state = zonaState();
+    const answer = zonaResponder(state);
+    const NEW = "--[[@cb]]print(9)";
+
+    // grid_decode.c:1272, `currentpage`: refused, and nothing written.
+    const refused = ask(
+      answer,
+      sendConfig(0, 0, ACTIVE_PAGE + 1, EVENT_SETUP, NEW),
+    );
+    expect(refused.replies, "exactly one frame").toHaveLength(1);
+    const [nack] = refused.replies[0];
+    expect(nack.class_name).toBe("CONFIG");
+    expect(nack.class_instr).toBe("NACKNOWLEDGE");
+    expect(Number(nack.class_parameters.LASTHEADER)).toBe(refused.id);
+    expect(state.configs[EVENT_SETUP], "RAM untouched").toBe(SETUP_CONFIG);
+
+    // The same write to the active page lands.
+    const accepted = ask(
+      answer,
+      sendConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, NEW),
+    );
+    expect(accepted.replies).toHaveLength(1);
+    const [ack] = accepted.replies[0];
+    expect(ack.class_name).toBe("CONFIG");
+    expect(ack.class_instr).toBe("ACKNOWLEDGE");
+    expect(Number(ack.class_parameters.LASTHEADER)).toBe(accepted.id);
+    expect(state.configs[EVENT_SETUP]).toBe(NEW);
+  });
+
+  it("a store copies RAM into flash, and a power cycle brings flash back", () => {
+    const state = zonaState();
+    const answer = zonaResponder(state);
+    const STORED = "--[[@cb]]print(7)";
+    const UNSTORED = "--[[@cb]]print(8)";
+
+    // A write fixes flash at what RAM held before it, so a power cycle with
+    // no store ever would bring back the factory string, not the written one.
+    ask(answer, sendConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, STORED));
+    expect(state.configs[EVENT_SETUP]).toBe(STORED);
+    expect(state.flash?.[EVENT_SETUP], "flash still holds the original").toBe(
+      SETUP_CONFIG,
+    );
+
+    // grid_decode.c:955-961: the store copies RAM into flash and reloads it.
+    const store = ask(answer, storePage());
+    expect(store.replies).toHaveLength(1);
+    expect(store.replies[0][0].class_name).toBe("PAGESTORE");
+    expect(store.replies[0][0].class_instr).toBe("ACKNOWLEDGE");
+    expect(Number(store.replies[0][0].class_parameters.LASTHEADER)).toBe(
+      store.id,
+    );
+    expect(state.flash?.[EVENT_SETUP]).toBe(STORED);
+    expect(state.flash?.[EVENT_TIMER]).toBe(TIMER_CONFIG);
+
+    // Written but not stored: a power cycle loses it.
+    ask(answer, sendConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, UNSTORED));
+    expect(state.configs[EVENT_SETUP]).toBe(UNSTORED);
+    powerCycle(state);
+    expect(state.configs[EVENT_SETUP], "RAM is flash again").toBe(STORED);
+    expect(state.configs[EVENT_TIMER]).toBe(TIMER_CONFIG);
+
+    // Pitfall 8: on a rig one broadcast store is acknowledged by every module,
+    // each echoing the same LASTHEADER, each from its own address.
+    const rig = [zonaState(), zonaState({ sx: 1 }), zonaState({ sx: 2 })];
+    const broadcast = ask(rigResponder(rig), storePage());
+    expect(broadcast.replies, "three acknowledgements").toHaveLength(3);
+    for (const [cls] of broadcast.replies) {
+      expect(cls.class_name).toBe("PAGESTORE");
+      expect(cls.class_instr).toBe("ACKNOWLEDGE");
+      expect(Number(cls.class_parameters.LASTHEADER)).toBe(broadcast.id);
+    }
+    expect(broadcast.replies.map(([cls]) => cls.brc_parameters.SX)).toEqual([
+      0, 1, 2,
+    ]);
+    for (const module of rig) expect(module.flash).toEqual(module.configs);
+  });
+
+  it("a serial-number fetch is answered only when it is addressed", () => {
+    const words = [0x12345678, 0x9abcdef0, 0, 0] as const;
+    const withSerial = zonaState({ serial: words });
+
+    // Addressed to its own sx, sy: one REPORT, four words back, and a source
+    // address of -127, -127 because firmware builds it at the global position.
+    const own = ask(zonaResponder(withSerial), fetchSerialNumber(0, 0));
+    expect(own.replies).toHaveLength(1);
+    const [report] = own.replies[0];
+    expect(report.class_name).toBe("SERIALNUMBER");
+    expect(report.class_instr).toBe("REPORT");
+    expect(
+      ["WORD0", "WORD1", "WORD2", "WORD3"].map(
+        (w) => Number(report.class_parameters[w]) >>> 0,
+      ),
+    ).toEqual([...words]);
+    expect(report.brc_parameters.SX).toBe(-127);
+    expect(report.brc_parameters.SY).toBe(-127);
+    expect(moduleKeyOf(report)).toBe("123456789abcdef00000000000000000");
+
+    // Addressed to somebody else: silence. No serial at all: silence.
+    expect(
+      ask(zonaResponder(withSerial), fetchSerialNumber(1, 0)).replies,
+    ).toHaveLength(0);
+    expect(
+      ask(zonaResponder(zonaState()), fetchSerialNumber(0, 0)).replies,
+    ).toHaveLength(0);
+
+    // The measurement behind fetchSerialNumber(sx, sy): a BROADCAST fetch on a
+    // rig of three produces three reports that cannot be told apart by address.
+    const rig = [
+      zonaState({ serial: words }),
+      zonaState({ sx: 1, serial: [0x11111111, 0, 0, 0] }),
+      zonaState({ sx: 2, serial: [0x22222222, 0, 0, 0] }),
+    ];
+    const answer = rigResponder(rig);
+    const broadcast = ask(answer, fetchSerialNumber(-127, -127));
+    expect(broadcast.replies, "every module answers").toHaveLength(3);
+    const addresses = new Set(
+      broadcast.replies.map(
+        ([cls]) => `${cls.brc_parameters.SX},${cls.brc_parameters.SY}`,
+      ),
+    );
+    expect(addresses, "and not one is attributable").toEqual(
+      new Set(["-127,-127"]),
+    );
+
+    // Addressed, exactly one answers - and it is the one that was asked.
+    const addressed = ask(answer, fetchSerialNumber(1, 0));
+    expect(addressed.replies).toHaveLength(1);
+    expect(Number(addressed.replies[0][0].class_parameters.WORD0) >>> 0).toBe(
+      0x11111111,
+    );
   });
 });

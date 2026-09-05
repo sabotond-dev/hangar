@@ -7,7 +7,7 @@
 // is the EXECUTE form of a page change, which no file may construct - and none
 // does, here or anywhere.
 //
-// Two facts shape every builder below, both executed against the pinned
+// Three facts shape every builder below, all executed against the pinned
 // package rather than assumed:
 //
 //   1. encode_packet emits exactly ONE class block (dist/index.js:3925-3998).
@@ -18,6 +18,12 @@
 //      subtracts 127 from both, so an encoder-built frame decodes as SX -127.
 //      A directly attached module reports SX 0. The address bytes are rewritten
 //      here for exactly that reason.
+//   3. The SERIALNUMBER report is the ONE inbound frame built WITHOUT that
+//      rewrite. Firmware builds it with grid_msg_init_brc(...,
+//      GRID_PARAMETER_GLOBAL_POSITION, ...) (grid_decode.c:839-869), so a real
+//      report genuinely arrives from SX -127, SY -127 - a source address HANGAR
+//      cannot use. That is the wire fact that forces the FETCH to be addressed
+//      to one module rather than broadcast (Phase 7, 07-CONTEXT D-04 amended).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { grid } from "@intechstudio/grid-protocol";
@@ -237,7 +243,11 @@ export function configNackFrame(opts: {
   );
 }
 
-export function pagestoreAckFrame(opts: { lastheader: number }): number[] {
+export function pagestoreAckFrame(opts: {
+  lastheader: number;
+  sx?: number;
+  sy?: number;
+}): number[] {
   return seal(
     inbound(
       {
@@ -247,8 +257,40 @@ export function pagestoreAckFrame(opts: { lastheader: number }): number[] {
         class_parameters: { LASTHEADER: opts.lastheader },
       },
       // The store is a global broadcast and so is its acknowledgement; the
-      // address is the module's own only because it has to be something.
-      { sx: 0, sy: 0 },
+      // address is the module's own only because it has to be something. On a
+      // rig each module answers from its own, which is how a test can count
+      // three acknowledgements to one store (Pitfall 8).
+      { sx: opts.sx ?? 0, sy: opts.sy ?? 0 },
+    ),
+  );
+}
+
+/**
+ * The answer to a SERIALNUMBER/FETCH: WORD0..WORD3 in a 62-byte class block.
+ *
+ * Built with encodeOne and NOT with inbound(): fact 3 in the header. Firmware
+ * sends this report from the global position, so its SX and SY decode as
+ * -127, -127 whichever module answered. The one inbound frame HANGAR receives
+ * whose source address is deliberately unusable - which is why the FETCH that
+ * provokes it is addressed, and why a broadcast fetch on a rig gets N answers
+ * nobody can tell apart.
+ */
+export function serialNumberReportFrame(
+  words: readonly [number, number, number, number],
+): number[] {
+  return seal(
+    message(
+      encodeOne({
+        brc_parameters: GLOBAL,
+        class_name: "SERIALNUMBER",
+        class_instr: "REPORT",
+        class_parameters: {
+          WORD0: words[0],
+          WORD1: words[1],
+          WORD2: words[2],
+          WORD3: words[3],
+        },
+      }),
     ),
   );
 }
@@ -257,10 +299,51 @@ export interface ZonaState {
   sx: number;
   sy: number;
   activePage: number;
+  /** RAM. What a fetch returns and what a write replaces. */
   configs: Record<number, string>;
+  /**
+   * Flash. What a store copies configs into and what powerCycle restores.
+   * Optional so every existing literal keeps working: it is allocated as a
+   * copy of configs the first time RAM and flash can diverge - the first
+   * write, the first store, or the first power cycle, whichever comes first.
+   */
+  flash?: Record<number, string>;
+  /** WORD0..WORD3. Undefined means the module does not answer a SERIALNUMBER/FETCH at all. */
+  serial?: readonly [number, number, number, number];
 }
 
-/** The scripted ZONA a live FakeTransport answers with. */
+/** Flash, allocated on first need as a copy of what RAM held at that moment. */
+const flashOf = (state: ZonaState): Record<number, string> =>
+  (state.flash ??= { ...state.configs });
+
+/**
+ * What a power cycle does: RAM becomes flash. Pure, in place. A module that
+ * was written to but never stored comes back with what it had before the
+ * write, which is the whole reason PUT BACK exists and the fact runbook row D
+ * checks on hardware.
+ */
+export function powerCycle(state: ZonaState): void {
+  state.configs = { ...flashOf(state) };
+}
+
+/** A module addressed by name, or by the global address. */
+const GLOBAL_ADDRESS = -127;
+const isMe = (outbound: DecodedClass, state: ZonaState): boolean =>
+  Number(outbound.brc_parameters.DX) === state.sx &&
+  Number(outbound.brc_parameters.DY) === state.sy;
+const isGlobal = (outbound: DecodedClass): boolean =>
+  Number(outbound.brc_parameters.DX) === GLOBAL_ADDRESS &&
+  Number(outbound.brc_parameters.DY) === GLOBAL_ADDRESS;
+
+/**
+ * The scripted ZONA a live FakeTransport answers with.
+ *
+ * It answers what firmware accepts, by address: CONFIG is IS_ME only, PAGESTORE
+ * and SERIALNUMBER are IS_ME | IS_GLOBAL (grid_decode.c:839-869 for the serial,
+ * the store's broadcast in storePage()'s comment). That rule is what lets
+ * rigResponder be a plain fan-out - a broadcast is answered by every module,
+ * an addressed request by one.
+ */
 export function zonaResponder(
   state: ZonaState,
 ): (outbound: DecodedClass, requestId: number) => number[][] {
@@ -268,8 +351,10 @@ export function zonaResponder(
     const { class_name, class_instr, class_parameters } = outbound;
     const event = Number(class_parameters.EVENTTYPE);
     const page = Number(class_parameters.PAGENUMBER);
+    const me = isMe(outbound, state);
+    const meOrGlobal = me || isGlobal(outbound);
 
-    if (class_name === "CONFIG" && class_instr === "FETCH") {
+    if (class_name === "CONFIG" && class_instr === "FETCH" && me) {
       // Firmware answers a fetch of a page that is not active with an empty
       // string rather than an error (grid_ui.c:464-501), which is exactly the
       // shape D-09's write refusal exists to catch.
@@ -279,17 +364,68 @@ export function zonaResponder(
         configReportFrame({ sx: state.sx, sy: state.sy, page, event, config }),
       ];
     }
-    if (class_name === "CONFIG" && class_instr === "EXECUTE") {
+    if (class_name === "CONFIG" && class_instr === "EXECUTE" && me) {
+      // Firmware's `currentpage` condition (grid_decode.c:1272): a write to a
+      // page that is not the active one is REFUSED with a NACK echoing the id
+      // and nothing is written. The backstop Pitfall 4 rests on, and the one
+      // deterministic refusal the queue must never retry (Pitfall 7).
+      if (page !== state.activePage) {
+        return [
+          configNackFrame({
+            sx: state.sx,
+            sy: state.sy,
+            lastheader: requestId,
+          }),
+        ];
+      }
+      // RAM and flash are about to diverge: fix flash first if it never was.
+      flashOf(state);
       state.configs[event] = String(class_parameters.ACTIONSTRING ?? "");
       return [
         configAckFrame({ sx: state.sx, sy: state.sy, lastheader: requestId }),
       ];
     }
-    if (class_name === "PAGESTORE" && class_instr === "EXECUTE") {
-      return [pagestoreAckFrame({ lastheader: requestId })];
+    if (class_name === "PAGESTORE" && class_instr === "EXECUTE" && meOrGlobal) {
+      // grid_decode.c:955-961: the store copies RAM into flash, then the
+      // success callback reloads the page from flash and restarts the Lua VM.
+      // The reload is a no-op on the bytes today, and it is the shape D-12's
+      // re-fetch proof depends on.
+      state.flash = { ...state.configs };
+      state.configs = { ...state.flash };
+      return [
+        pagestoreAckFrame({
+          sx: state.sx,
+          sy: state.sy,
+          lastheader: requestId,
+        }),
+      ];
+    }
+    if (
+      class_name === "SERIALNUMBER" &&
+      class_instr === "FETCH" &&
+      meOrGlobal &&
+      state.serial
+    ) {
+      return [serialNumberReportFrame(state.serial)];
     }
     // A host heartbeat is answered by nothing at all. Firmware records it and
-    // re-enables page changes; it never replies.
+    // re-enables page changes; it never replies. Nor does a module answer a
+    // request addressed to somebody else, or a serial fetch it has no serial
+    // for.
     return [];
   };
+}
+
+/**
+ * Several modules on one cable. Each answers what it accepts; a broadcast is
+ * answered by all, in bus order, which is how one PAGESTORE produces N
+ * acknowledgements (Pitfall 8) and one broadcast SERIALNUMBER/FETCH produces
+ * N reports from the same unusable address.
+ */
+export function rigResponder(
+  states: ZonaState[],
+): (outbound: DecodedClass, requestId: number) => number[][] {
+  const modules = states.map((state) => zonaResponder(state));
+  return (outbound, requestId) =>
+    modules.flatMap((answer) => answer(outbound, requestId));
 }
