@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 const root = (file: string) => new URL(`../../${file}`, import.meta.url);
 
 const SKELETON_PAGE = "src/routes/dev/skeleton/+page.svelte";
+/** Every directory under here is an unlinked probe route (Phase 6, 06-05). */
+const DEV_ROUTES = "src/routes/dev";
 /** D-05: the page must be able to answer "what does it import" with two names. */
 const ALLOWED_SPECIFIERS = ["svelte", "$lib/protocol", "$lib/transport"];
 const text = (file: string) => readFileSync(root(file), "utf8");
@@ -245,26 +247,52 @@ describe("build configuration shape", () => {
     expect(source).not.toContain(["src", "/vendor"].join(""));
   });
 
-  it("the walking skeleton route is linked from nowhere", () => {
+  it("every probe route under /dev/ is linked from nowhere", () => {
     // fidelity.e2e.ts already asserts site-wide that no anchor points into
     // /dev/, which covers the rendered page. This covers the source: a route
     // that nothing references cannot be reached by a visitor who did not type
     // the path.
+    //
+    // AMENDMENT (Phase 6, plan 06-05). This used to name dev/skeleton and
+    // cover nothing else. The probe directories are DISCOVERED now, so the
+    // catalog, fidelity and tune probes came under the rule the day it was
+    // widened and the next probe is protected the day it is created rather
+    // than the day someone remembers - with one honest limit: a directory
+    // that does not exist yet cannot be discovered, which is why the plan that
+    // creates a probe re-runs the mutation against it. The test count stays 14.
+    //
+    // THIS SCAN READS COMMENTS DELIBERATELY, and it is a plain substring scan.
+    // The probe pages therefore describe their siblings in prose rather than
+    // naming them - 05-12 recorded that spelling a sibling route turned this
+    // test red, and 06-05 found three more pages spelling the fidelity one,
+    // which is what the widening was for. The property it guards is worth
+    // more than the convenience of a path in a comment.
     const routes = root("src/routes");
+    const probes = readdirSync(root(DEV_ROUTES), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => `dev/${entry.name}`)
+      .sort();
     const mentions: string[] = [];
     const scanned: string[] = [];
     for (const entry of readdirSync(routes, { recursive: true })) {
       const rel = String(entry).split(sep).join("/");
-      if (rel.startsWith("dev/skeleton/")) continue;
       const file = join(fileURLToPath(routes), String(entry));
       if (!statSync(file).isFile()) continue;
       scanned.push(rel);
-      if (readFileSync(file, "utf8").includes("dev/skeleton")) {
-        mentions.push(rel);
+      const source = readFileSync(file, "utf8");
+      for (const probe of probes) {
+        // A probe may name itself; only its OWN directory is exempt.
+        if (rel.startsWith(`${probe}/`)) continue;
+        if (source.includes(probe)) mentions.push(`${rel} mentions ${probe}`);
       }
     }
-    // Without this the assertion below would pass on an empty walk.
+    // Both non-vacuity guards, because the assertion below would pass on an
+    // empty walk of either kind: no routes read, or no probes discovered.
     expect(scanned.length, "routes were actually read").toBeGreaterThan(0);
+    expect(
+      probes.length,
+      "at least two probe directories were discovered",
+    ).toBeGreaterThan(1);
     expect(mentions).toEqual([]);
   });
 

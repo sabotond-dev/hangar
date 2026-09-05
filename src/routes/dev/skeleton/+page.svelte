@@ -2,8 +2,10 @@
   FOUND-01: the walking skeleton's operator surface.
 
   Prerendered (prerender.entries: ["*"] in vite.config.ts) and linked from
-  nowhere, exactly like /dev/fidelity/. Its only job is to drive one provable
-  no-op against a real ZONA and to record every byte of it.
+  nowhere, exactly like the fidelity probe (described rather than spelled: the
+  source scan in src/lib/config-shape.spec.ts reads comments, on purpose). Its
+  only job is to drive one provable no-op against a real ZONA and to record
+  every byte of it.
 
   D-05's "bare" rule is the reason this file looks the way it does: the only
   module specifiers anywhere in it are "svelte", "$lib/protocol" and
@@ -82,7 +84,7 @@
   let detachHide: (() => void) | undefined;
 
   onMount(async () => {
-    // Dynamic and inside onMount, exactly as /dev/fidelity/ does. Two reasons
+    // Dynamic and inside onMount, exactly as the fidelity probe does. Two reasons
     // agree: at module scope the SERVER build would pull the protocol package
     // into the prerendered page's graph for nothing, and a dynamic import
     // inside the CLICK handler would be a network round trip that could

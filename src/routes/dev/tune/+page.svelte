@@ -11,14 +11,18 @@
      own.
 
      THE THREE SIBLING ROUTES ARE DESCRIBED RATHER THAN SPELLED. src/lib/
-     config-shape.spec.ts test 5 reads every file under src/routes/ except the
-     skeleton's own directory and fails on any occurrence of that route's path -
-     comments included, because it is a plain substring scan and the property it
-     guards ("a route nothing references cannot be reached by a visitor who did
-     not type it") is worth more than the convenience of naming it here.
-     OBSERVED: naming it turned that test red. This is TuningRegion.svelte's
-     setInterval lesson again, answered the way e2e/tuning.e2e.ts answered it -
-     by not writing the token.
+     config-shape.spec.ts's probe-route test reads every file under
+     src/routes/ outside each probe's own directory and fails on any
+     occurrence of a probe's path - comments included, because it is a plain
+     substring scan and the property it guards ("a route nothing references
+     cannot be reached by a visitor who did not type it") is worth more than
+     the convenience of naming it here. It used to name the skeleton's
+     directory alone; since Phase 6 (plan 06-05) it discovers every directory
+     under the dev routes, so this page's siblings are all under it.
+     OBSERVED: naming the skeleton's turned that test red in 05-12, and this
+     page's own mention of the fidelity one turned it red in 06-05. This is
+     TuningRegion.svelte's setInterval lesson again, answered the way
+     e2e/tuning.e2e.ts answered it - by not writing the token.
 
   2. IT EXISTS BECAUSE OVER BUDGET IS UNREACHABLE IN THE SHIPPED UI, AND A
      GUARD NOBODY HAS WATCHED WORK IS A HOPE.
@@ -82,8 +86,8 @@
   `compilerKnobs` rack the model resolves - so a test can hold the numerals the
   region renders against the compiler's own answer instead of against a literal.
   Both branches write into the SAME element rather than throwing, exactly as
-  src/routes/dev/fidelity/+page.svelte does, so a broken run produces a readable
-  assertion diff instead of a Playwright timeout carrying no information.
+  the fidelity probe's page does, so a broken run produces a readable assertion
+  diff instead of a Playwright timeout carrying no information.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->

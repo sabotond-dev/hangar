@@ -13,9 +13,10 @@
   red for a reason that has nothing to do with the catalog.
 
   Both handlers write their failure branch into the same element rather than
-  throwing, exactly as src/routes/dev/fidelity/+page.svelte does, so a broken
-  run produces a readable assertion diff instead of a Playwright timeout
-  carrying no information.
+  throwing, exactly as the fidelity probe's page does, so a broken run
+  produces a readable assertion diff instead of a Playwright timeout carrying
+  no information. (That sibling is described rather than spelled: the source
+  scan in src/lib/config-shape.spec.ts reads comments, on purpose.)
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
