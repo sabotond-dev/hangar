@@ -54,3 +54,16 @@ shipped install surface is not affected.
 
 **Owner:** none assigned; not a Phase 7 requirement. Recorded so nobody reads the skeleton page as
 the current rule.
+
+## 4. `07-UI-SPEC.md` disagrees with itself by two words on the `unconfirmed` step (found by 07-03)
+
+The I11 section (`### I11 — unconfirmed`) gives step 1 as `Click KEEP ON DEVICE and confirm to send
+the store again`; the Copywriting Contract table beneath it gives the same row as
+`Click KEEP ON DEVICE to send the store again`. The plan names the table as the source, so the
+table's form is what `install-copy.ts`'s `unconfirmedBlock` carries and what `install-copy.spec.ts`
+test 2 matches against the document. The two say the same thing; the section's form is the more
+precise one (the click opens the confirmation, and the confirmation sends the store). If the
+contract's owner prefers the section's wording, the table row and the literal change together and
+test 2 stays green by construction.
+
+**Owner:** the contract's owner, at the next revision of 07-UI-SPEC; no code until then.
