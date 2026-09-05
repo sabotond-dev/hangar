@@ -11,6 +11,14 @@
 // holds - three live regions, and the chosen panel is not one - is a
 // site-wide count rather than a property of one file.
 //
+// PHASE 7 (plan 07-09) ADDS TWO over the three install leaves - PutBack,
+// KeepConfirm and InstallState: the eighth holds them light (no specifier
+// outside the chunk guard's permitted paths), reachable (the 44px floor on
+// every control), steady (the PUT BACK cell's three sizing twins and its 72px
+// floor) and honest about what the confirmation is (a group, never a dialog);
+// the ninth holds that every install sentence on their screens comes from the
+// copy module rather than being retyped in markup.
+//
 // EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
 // These components name in prose the very tokens, specifiers and attributes they
 // are forbidden to use - DeviceSlot's header says "no width read, no matchMedia",
@@ -61,10 +69,23 @@ const SENTENCE_COMPONENTS: readonly string[] = [
 ];
 
 /**
- * COMPILER_MARKERS and the five PERMITTED specifiers are config-shape.spec.ts's,
+ * The three leaves plan 07-09 adds for the install flow. Listed, like the seven
+ * above, so a rename is a visible omission; checked against the directory in
+ * test 8.
+ */
+const INSTALL_LEAVES: readonly string[] = [
+  "InstallState.svelte",
+  "KeepConfirm.svelte",
+  "PutBack.svelte",
+];
+
+/**
+ * COMPILER_MARKERS and the PERMITTED specifiers are config-shape.spec.ts's,
  * verbatim: a specifier matching a marker is an offender unless it is one of the
- * five exact paths plan 06-05 allow-listed, all of which are free of the
- * protocol package.
+ * exact paths allow-listed there - plan 06-05's five, and since plan 07-08 the
+ * install store's three (the store, its import-free copy module and the
+ * snapshot record), all of which are free of the protocol package and each of
+ * which that file's walk reads rather than trusts.
  */
 const COMPILER_MARKERS = [
   "vendor",
@@ -80,6 +101,9 @@ const PERMITTED_SPECIFIERS = [
   "$lib/protocol/usb",
   "$lib/transport/ports",
   "$lib/transport/transport",
+  "$lib/device/install.svelte",
+  "$lib/device/install-copy",
+  "$lib/device/snapshot",
 ];
 
 /** Comments removed before a structural match: line, block and markup. */
@@ -484,5 +508,203 @@ describe("the device UI's structural rules", () => {
       occurrences(raw(tuning), LIVE),
       "TuningRegion.svelte's header no longer names aria-live in prose - the comment strip in this test has nothing to strip and its reason should be re-examined",
     ).toBeGreaterThan(occurrences(code(tuning), LIVE));
+  });
+
+  it("the three install leaves: no compiler specifier, the 44px floor, the twin cells, and a group that is not a dialog", () => {
+    // Plan 07-09. The three are listed and on disk, like the seven above.
+    const present = new Set(
+      readdirSync(repo(UI_DIR))
+        .map(String)
+        .filter((name) => name.endsWith(".svelte")),
+    );
+    expect(INSTALL_LEAVES.length, "three leaves were listed").toBe(3);
+    expect(
+      INSTALL_LEAVES.filter((name) => !present.has(name)),
+      "a listed install leaf is not on disk - renamed or deleted, and this test has silently stopped covering it",
+    ).toEqual([]);
+
+    // LIGHT. Every static specifier is one of the chunk guard's permitted
+    // paths, the framework itself, or a sibling component under src/lib/ui/
+    // by relative path (FailureBlock, for the seven failure-shaped blocks).
+    // config-shape.spec.ts test 13 walks the same files; this holds the exact
+    // list directly, so a `$lib/tune/copy` or a `$lib/catalog/front-door` -
+    // both light, both permitted on OTHER panels - is still an offender here,
+    // because a leaf that renders the install store's state needs neither.
+    const specifiers: { file: string; specifier: string }[] = [];
+    for (const name of INSTALL_LEAVES) {
+      const file = componentPath(name);
+      for (const match of code(file).matchAll(/from[ ]*["']([^"']+)["']/g)) {
+        specifiers.push({ file, specifier: match[1] });
+      }
+    }
+    expect(specifiers.length, "static imports were collected").toBeGreaterThan(
+      3,
+    );
+    const sibling = (specifier: string) =>
+      specifier.startsWith("./") &&
+      specifier.endsWith(".svelte") &&
+      present.has(specifier.slice(2));
+    const offenders = specifiers.filter(
+      ({ specifier }) =>
+        !PERMITTED_SPECIFIERS.includes(specifier) &&
+        specifier !== "svelte" &&
+        !sibling(specifier),
+    );
+    expect(
+      offenders.map((o) => `${o.file} -> ${o.specifier}`),
+      "an install leaf names a specifier that is neither a permitted path, the framework, nor a sibling component",
+    ).toEqual([]);
+    expect(
+      specifiers.filter(({ specifier }) =>
+        COMPILER_MARKERS.some((marker) => specifier.includes(marker)),
+      ).length,
+      "the leaves name at least one marker-matching permitted path - if this is zero the exact-list rule above is vacuous",
+    ).toBeGreaterThan(0);
+
+    // REACHABLE. Every class on a <button declares the 44px floor, per
+    // control, the way test 3 holds the seven - and EVERY min-block-size a
+    // control's class declares is 44px, not merely one of them, so a second
+    // declaration that lowers the floor after the first is red too (observed
+    // green under a presence-only check, plan 07-09). InstallState renders no
+    // control at all - a state block is not a tab stop - which is the
+    // discrimination that keeps this rule non-vacuous.
+    const withControls: string[] = [];
+    const withoutControls: string[] = [];
+    const missing: string[] = [];
+    for (const name of INSTALL_LEAVES) {
+      const source = code(componentPath(name));
+      if (!source.includes("<button")) {
+        withoutControls.push(name);
+        continue;
+      }
+      withControls.push(name);
+      const rules = rulesOf(source);
+      for (const cls of new Set(interactiveClassesOf(source))) {
+        const body = rules
+          .filter((r) => r.selector.includes(`.${cls}`))
+          .map((r) => r.body)
+          .join(" ");
+        const floors = [...body.matchAll(/min-block-size:[ ]*([0-9]+px)/g)].map(
+          (m) => m[1],
+        );
+        if (floors.length === 0 || floors.some((px) => px !== "44px"))
+          missing.push(`${name} -> .${cls} [${floors.join(", ")}]`);
+      }
+    }
+    expect(withControls, "PutBack and KeepConfirm render a button").toEqual([
+      "KeepConfirm.svelte",
+      "PutBack.svelte",
+    ]);
+    expect(withoutControls, "InstallState renders no control").toEqual([
+      "InstallState.svelte",
+    ]);
+    expect(
+      missing,
+      "a control's own class does not declare min-block-size: 44px, or declares another floor beside it - the interactive floor is per control",
+    ).toEqual([]);
+
+    // STEADY. PutBack renders all three of its lines - as sizing twins, the
+    // inactive ones hidden - in a cell with the 72px floor (Z-18).
+    const putBack = code(componentPath("PutBack.svelte"));
+    for (const line of [
+      "PUT_BACK_LINE",
+      "PUT_BACK_LINE_AFTER_KEEP",
+      "PUT_BACK_NEEDS_ZONA",
+    ]) {
+      expect(
+        occurrences(putBack, `{${line}}`),
+        `PutBack renders ${line} in its cell`,
+      ).toBe(1);
+    }
+    expect(putBack, "the inactive twins are visibility: hidden").toContain(
+      "visibility: hidden",
+    );
+    expect(putBack, "the cell reserves the 72px floor").toContain(
+      "min-block-size: 72px",
+    );
+    expect(putBack, "the twins are aria-hidden").toContain("aria-hidden=");
+
+    // A GROUP, NOT A DIALOG. The needles it must not carry are assembled from
+    // fragments so this file never contains them whole.
+    const confirm = code(componentPath("KeepConfirm.svelte"));
+    for (const needle of [
+      'role="group"',
+      'tabindex="-1"',
+      "aria-labelledby",
+      "aria-describedby",
+    ]) {
+      expect(confirm, `KeepConfirm carries ${needle}`).toContain(needle);
+    }
+    const DIALOG = ["role=", '"dia', 'log"'].join("");
+    const MODAL = ["aria-", "modal"].join("");
+    const INERT = ["in", "ert"].join("");
+    const LABEL = ["aria-", "label="].join("");
+    for (const needle of [DIALOG, MODAL, INERT, LABEL]) {
+      expect(
+        occurrences(confirm, needle),
+        `KeepConfirm carries ${needle} - the confirmation is an inline group, never a dialog, never modal, never inert, and its accessible names are its visible labels`,
+      ).toBe(0);
+    }
+    // The strip is load-bearing here too: the header says in prose what the
+    // markup must not carry.
+    expect(
+      occurrences(raw(componentPath("KeepConfirm.svelte")), DIALOG),
+      "KeepConfirm's header no longer names the dialog role in prose - the strip has nothing to strip and its reason should be re-examined",
+    ).toBeGreaterThan(0);
+    for (const name of [...INSTALL_LEAVES, ...DEVICE_COMPONENTS]) {
+      expect(
+        occurrences(code(componentPath(name)), LABEL),
+        `${name} carries an aria-label - accessible names are the visible labels`,
+      ).toBe(0);
+    }
+
+    // NO INTERVAL. The 2000 ms line is a setTimeout on the store (Z-09).
+    const INTERVAL = ["set", "Interval"].join("");
+    for (const name of INSTALL_LEAVES) {
+      expect(
+        occurrences(code(componentPath(name)), INTERVAL),
+        `${name} reaches ${INTERVAL}`,
+      ).toBe(0);
+    }
+  });
+
+  it("every install sentence on screen comes from the copy modules", () => {
+    // Plan 07-09. Three tells of a retyped install sentence - the three
+    // phrases nearly every one of them carries - must appear in none of the
+    // three leaves' code. They may appear in a header comment (the strip
+    // removes it) and they DO appear in install-copy.ts, which is what makes
+    // the tells real rather than arbitrary.
+    const TELLS = [
+      ["your ", "ZONA"].join(""),
+      ["Setup and ", "Timer"].join(""),
+      ["power ", "cycle"].join(""),
+    ];
+    const copyModule = stripComments(
+      readFileSync(repo("src/lib/device/install-copy.ts"), "utf8"),
+    );
+    for (const tell of TELLS) {
+      expect(
+        occurrences(copyModule, tell),
+        `install-copy.ts carries "${tell}" - if it does not, this tell no longer identifies a retyped sentence`,
+      ).toBeGreaterThan(0);
+    }
+
+    let read = 0;
+    const retyped: string[] = [];
+    for (const name of INSTALL_LEAVES) {
+      const source = code(componentPath(name));
+      read += source.length;
+      for (const tell of TELLS) {
+        if (source.includes(tell)) retyped.push(`${name} -> "${tell}"`);
+      }
+      expect(source, `${name} imports from the install copy module`).toContain(
+        'from "$lib/device/install-copy"',
+      );
+    }
+    expect(read, "the three leaves' code was read").toBeGreaterThan(3000);
+    expect(
+      retyped,
+      "an install leaf retypes a sentence in its markup instead of importing it from install-copy",
+    ).toEqual([]);
   });
 });
