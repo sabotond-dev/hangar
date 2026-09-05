@@ -98,3 +98,19 @@ data attribute, say) to satisfy the linter would have shipped behaviour the plan
 
 **Owner:** 07-10, which binds `config`, hands it to the install store and must remove the directive - eslint
 reports an unused directive as a warning the moment the prop is read, so it cannot be forgotten silently.
+
+## 7. The D-03 gate sits before the durable record is consulted (named by 07-06, deferred to 07-13)
+
+`install.svelte.ts`'s `#snapshot` runs `canWriteBack` on the fetched pair BEFORE `readSnapshot` consults the
+durable record, as 07-06's interfaces block orders it. Consequence: a module this browser remembers, whose
+RAM reads empty on the page it is on (a factory-blank element, or a fetch answered from a page that is not
+active), lands `snapshot-failed` and is NOT offered its own recorded original for `PUT BACK`, although the
+record exists and would be the right thing to offer. The store's header names this; `install.spec.ts`
+test 3 pins the shipped order (nothing persisted, nothing offered, on an empty fetch).
+
+The reorder is a few lines - consult the record first and let a valid entry stand in for an empty fetch -
+and a test-3 inversion, but it waits on the Z-16 versus D-03 question 07-VALIDATION leaves open (the UI
+spec reads "non-empty" as "both fetches ACK'd"; the user's D-03 says "present and non-empty"; the plans
+implement D-03). Whoever rules on that question rules on this.
+
+**Owner:** 07-13's deferred items and the user's D-03 ruling; no code until then.

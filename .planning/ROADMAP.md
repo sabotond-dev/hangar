@@ -216,7 +216,7 @@ Plans:
 - [x] 07-03-PLAN.md — snapshot.ts and install-copy.ts, each importing nothing, with the caps asserted (wave 3) (completed 2026-09-05)
 - [x] 07-04-PLAN.md — The session's seams: the write view, onClass, onConnection, announce, writeLock (wave 4) (completed 2026-09-05)
 - [x] 07-05-PLAN.md — The tuner's onconfig channel and the byte-for-byte wire pin (wave 5) (completed 2026-09-05)
-- [ ] 07-06-PLAN.md — The install store: the snapshot at connect, TRY ON DEVICE and PUT BACK in RAM (wave 6)
+- [x] 07-06-PLAN.md — The install store: the snapshot at connect, TRY ON DEVICE and PUT BACK in RAM (wave 6) (completed 2026-09-05)
 - [ ] 07-07-PLAN.md — The install store: KEEP ON DEVICE with the read-back proof, the taxonomy, the bounds (wave 7)
 - [ ] 07-08-PLAN.md — The shim answers with the real fake, the /dev/install/ probe, the fourteen states walked (wave 8)
 - [ ] 07-09-PLAN.md — The allow-list mutations observed, then PutBack, KeepConfirm and InstallState (wave 9)
@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 5/13 | In progress (the tuner publishes the exact Setup and Timer beside the meters and withdraws them on every knob move; the byte-for-byte pin holds across every catalog entry against a FakeTransport) | - |
+| 7. Install Flow | 6/13 | In progress (the install store stands beside the session with three static specifiers: the snapshot at connect in the gated order, TRY ON DEVICE and PUT BACK through one queue per connection with the restore in a finally, and zero writes without a click proven in node against a FakeTransport) | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage
