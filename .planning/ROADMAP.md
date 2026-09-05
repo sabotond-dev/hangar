@@ -182,7 +182,7 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md — Baselines, the runes spike, the already-open row, the rig-aware not-zona (wave 1)
-- [ ] 06-02-PLAN.md — session-copy.ts: every session string, the nine-state table, capabilityOf (wave 2)
+- [x] 06-02-PLAN.md — session-copy.ts: every session string, the nine-state table, capabilityOf (wave 2)
 - [ ] 06-03-PLAN.md — The light seam, and the session up to identification (wave 3)
 - [ ] 06-04-PLAN.md — The listener pair, the replug adoption, the watchdog, forget(), zero writes (wave 4)
 - [ ] 06-05-PLAN.md — Three shipped-gate widenings, each proven by a mutation (wave 5)
@@ -250,7 +250,7 @@ Phases 6 and 7.
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
-| 6. Device Session | 1/14 | In progress | - |
+| 6. Device Session | 2/14 | In progress | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
