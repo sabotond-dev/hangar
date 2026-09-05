@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-03-PLAN.md — Phase 6 wave 3 landed; the light seam and the session up to identification, with exactly four static specifiers and eight node gates
-last_updated: "2026-09-05T02:31:00.000Z"
+stopped_at: Completed 06-04-PLAN.md — Phase 6 wave 4 landed; the navigator-level listener pair, the replug adoption, the continuous fold, the liveness watchdog, forget() and the never-writes proof, with session.spec.ts at fifteen gates
+last_updated: "2026-09-05T02:56:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 70
-  completed_plans: 59
-  percent: 84
+  completed_plans: 60
+  percent: 86
 ---
 
 # Project State
@@ -26,19 +26,19 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 06
-Plan: 03 of 14 complete — next is 06-04 (the listener pair, the replug adoption, the watchdog, forget(), zero writes)
-Status: Phase 6 wave 3 landed. `src/lib/device/session.svelte.ts` is the D-05 store: `DeviceSession` exported beside the `session` singleton, `phase` initialised to `starting`, scalars and `$state.raw` snapshots only, and EXACTLY four static `from` specifiers (`./session-copy`, `$lib/protocol/usb`, `$lib/transport/ports`, `$lib/transport/transport`) none of which reaches the protocol package — so the capability, the granted-port offer and every failure sentence run with no dynamic import and `failureFor()` is synchronous for all nine named states. The seam that makes that possible is two pure moves, re-exported from their old homes: `ZONA_USB` into an import-free `src/lib/protocol/usb.ts`, and `grantedZonaPorts` / `portIsAttached` into `src/lib/transport/ports.ts` beside a new `isZonaPort`. `start()` is synchronous and never opens a port; `connect()` has the `#busy` guard and `requestPort()` as its first statement inside a `try`; `#refuse` maps the taxonomy onto phases with `NotAllowedError` as `cancelled` plus `permissionDeclined`; `not-zona` and `silent` close the port. Eight node tests drive the whole machine through a fake serial and a fake port, including the double click, the synchronously thrown activation failure and the rig with no ZONA, with four negative checks observed red. 06-04 fills in `#attachListeners`, the watchdog and `forget()` in the same file. The tree stands at 68 files / 708 unit tests + 1 todo, sweep `3 13`, e2e 61 (not re-run; nothing renders the session yet), svelte-check 523 files 0 errors, lint clean. Phase 5.1 remains complete (11 of 11) and awaiting verification and the first deploy of the browse surface; Phase 5 likewise (12 of 12).
+Plan: 04 of 14 complete — next is 06-05 (the chunk guard widened so the four-specifier rule is enforced rather than remembered)
+Status: Phase 6 wave 4 landed. `src/lib/device/session.svelte.ts` is finished for the phase: the `connect` / `disconnect` pair is on `navigator.serial` and is asymmetric on purpose (`disconnect` compares object identity because the browser fires it at the object held; `connect` identifies the arrival by `getInfo()` through `isZonaPort` and ADOPTS it, because a replugged wired port is a NEW `SerialPort` object); after `identifyOnly` the session registers its own pump over a fresh scanner and accumulator so the page number and D-08's rig tail are live, republished only when a rendered field changes and sorted by sx then sy; `MODULE_GONE_MS` is read from the already-awaited module and drives a self-rescheduling `setTimeout` that fires on the missed disconnect ONLY (silent past three heartbeats AND the OS reporting the port detached), publishing no field — silence alone leaves the session `connected`, asserted; `forget()` tears down before it revokes and is feature-detected. Seven new node gates take `session.spec.ts` to fifteen, with six negative checks observed red and restored byte-identical, including a planted write reported by BOTH halves of the never-writes proof in one run. Still exactly four static specifiers. The tree stands at 68 files / 715 unit tests + 1 todo, sweep `3 13`, e2e 61 (not re-run; nothing renders the session yet), svelte-check 523 files 0 errors, lint clean. 06-03's summary of the machine up to identification, retained: `DeviceSession` is the D-05 store: `DeviceSession` exported beside the `session` singleton, `phase` initialised to `starting`, scalars and `$state.raw` snapshots only, and EXACTLY four static `from` specifiers (`./session-copy`, `$lib/protocol/usb`, `$lib/transport/ports`, `$lib/transport/transport`) none of which reaches the protocol package — so the capability, the granted-port offer and every failure sentence run with no dynamic import and `failureFor()` is synchronous for all nine named states. The seam that makes that possible is two pure moves, re-exported from their old homes: `ZONA_USB` into an import-free `src/lib/protocol/usb.ts`, and `grantedZonaPorts` / `portIsAttached` into `src/lib/transport/ports.ts` beside a new `isZonaPort`. `start()` is synchronous and never opens a port; `connect()` has the `#busy` guard and `requestPort()` as its first statement inside a `try`; `#refuse` maps the taxonomy onto phases with `NotAllowedError` as `cancelled` plus `permissionDeclined`; `not-zona` and `silent` close the port. Eight node tests drive the whole machine through a fake serial and a fake port, including the double click, the synchronously thrown activation failure and the rig with no ZONA, with four negative checks observed red. Phase 5.1 remains complete (11 of 11) and awaiting verification and the first deploy of the browse surface; Phase 5 likewise (12 of 12).
 Last activity: 2026-09-05
 
-Progress: [████████░░] 84% (59 of 70 plans — the denominator now includes Phase 6's 14; Phase 7's count is still TBD)
+Progress: [████████░░] 86% (60 of 70 plans — the denominator now includes Phase 6's 14; Phase 7's count is still TBD)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 59
+- Total plans completed: 60
 - Average duration: 24 min
-- Total execution time: 24.0 hours
+- Total execution time: 24.4 hours
 
 **By Phase:**
 
@@ -50,17 +50,18 @@ Progress: [████████░░] 84% (59 of 70 plans — the denominat
 | 04 | 9 | 214 min | 24 min |
 | 05 | 12 | 307 min | 26 min |
 | 05.1 | 11 | 366 min | 33 min |
-| 06 | 3 | 71 min | 24 min |
+| 06 | 4 | 95 min | 24 min |
 | 08 | 8 | 184 min | 23 min |
 
 **Recent Trend:**
 
-- Last 5 plans (05.1-10 to 06-03): 47, 30, 22, 25, 24 min
-- Trend: flat at the phase's average. 06-03 wrote the phase's largest file (553 lines of session, 589 of spec) in 24 minutes, because 06-01 and 06-02 had already measured the ground and placed the copy: the four static specifiers were verified by reading, the taxonomy was already import-free, and every fixture the spec needed (the capture, `heartbeatFrame`, `FakeTransport.fromCapture`) already existed. The eight tests and four negative checks were green or red on the first run each; the four tool-caught issues (a readonly array, a dead assignment, the chunk's third specifier, the vacuous barrel check) each cost one run.
+- Last 5 plans (05.1-11 to 06-04): 30, 22, 25, 24, 24 min
+- Trend: flat at the phase's average. 06-04 finished the session in the same 24 minutes 06-03 took to start it, and for the same reason: the vocabulary was already named (`#attachListeners`, `#adopt`, `#teardown`, `#onTransportClosed`, `#now`) and every fixture existed. The cost that was new was the negative-check discipline — six mutations, each applied and restored by a scratchpad runner — and the fake-timer design for the watchdog, which needed one decision (fake `setTimeout` alone, poll through `setImmediate`) rather than a debugging session. The tool-caught issues were three unused private members at the first lint, which is what moved the watchdog into task 1.
+- Previous note, retained: 06-03 wrote the phase's largest file (553 lines of session, 589 of spec) in 24 minutes, because 06-01 and 06-02 had already measured the ground and placed the copy: the four static specifiers were verified by reading, the taxonomy was already import-free, and every fixture the spec needed (the capture, `heartbeatFrame`, `FakeTransport.fromCapture`) already existed. The eight tests and four negative checks were green or red on the first run each; the four tool-caught issues (a readonly array, a dead assignment, the chunk's third specifier, the vacuous barrel check) each cost one run.
 - Previous note, retained: 06-01 is the cheapest plan since 05.1-03, and for the same reason 05.1-11 was cheap: it discovered almost nothing. Two four-line source edits against modules Phase 2 and Phase 4 had already shaped, three tests, three observed negative checks. The expensive half was measurement — a full check, quick, sweep, build and Playwright run on a clean tree before any edit — which is wall time rather than thinking.
 - Previous note, retained: high and flat through the integration waves, then down at the gate. 05.1-11 is the cheapest plan since 05.1-05 for a reason worth keeping: it wrote no new source at all. Three e2e tests, one new e2e file and one document, against components and pure modules the nine plans before it had already gated in node - so nothing had to be discovered, only observed. The two negative checks it did run (the D-18 revert and the removed tag) each cost one build and one targeted run rather than an investigation.
 
-*Recomputed by hand at the close of Phase 5.1 from the per-plan table below (56 plans, 1,369 minutes) and again by hand after 06-01 (57 plans, 1,391 minutes), after 06-02 (58 plans, 1,416 minutes) and after 06-03 (59 plans, 1,440 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the 05.1 phase deferred-items.md item 8.*
+*Recomputed by hand at the close of Phase 5.1 from the per-plan table below (56 plans, 1,369 minutes) and again by hand after 06-01 (57 plans, 1,391 minutes), after 06-02 (58 plans, 1,416 minutes) after 06-03 (59 plans, 1,440 minutes) and after 06-04 (60 plans, 1,464 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the 05.1 phase deferred-items.md item 8.*
 
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 3 tasks | 22 files |
@@ -122,6 +123,7 @@ Progress: [████████░░] 84% (59 of 70 plans — the denominat
 | Phase 06 P01 | 22 min | 3 tasks | 4 files |
 | Phase 06 P02 | 25 min | 3 tasks | 4 files |
 | Phase 06 P03 | 24 min | 3 tasks | 7 files |
+| Phase 06 P04 | 24 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -357,6 +359,10 @@ Recent decisions affecting current work:
 - [Phase 06]: session.svelte.ts has EXACTLY four static `from` specifiers — `./session-copy`, `$lib/protocol/usb`, `$lib/transport/ports`, `$lib/transport/transport` — and the fourth is what makes failureFor() synchronous for all nine named states: transport.ts was READ and has zero imports, so the taxonomy and its copy are static and `unsupported` / `insecure` render their sentence in the same frame with nothing fetched. The seam is two pure moves re-exported from their old homes (ZONA_USB into an import-free usb.ts; grantedZonaPorts and portIsAttached into ports.ts beside the new isZonaPort). The heavy chunk is fetched from ONE memoised loader with THREE specifiers ($lib/protocol is needed for BAUD_RATE, READ_BUFFER_SIZE and IDENTIFY_WINDOW_MS), reached only from the open path after the chooser
 - [Phase 06]: grantedZonaPorts takes an optional serial surface defaulting to navigator.serial AT CALL TIME: the plan's #offerGranted calls it by name, but a function that reads the global cannot run in node, and the session's whole test surface depends on an injected getPorts. Module scope still touches no global, so the prerenderer never sees a navigator, and every zero-argument caller is unchanged
 - [Phase 06]: The session's serial surface (SerialLike) and transport factory (openTransport) are injected through start(env), with every unset field filled from the browser's globals; every node test builds its own `new DeviceSession()` and the exported singleton is never imported by a test, so no phase, port or guard leaks between tests and no reset hook exists. #teardown closes the transport, then the port only if `readable` is non-null, and never clears #port (forget() needs the object); on the unplugged open failure the dead port IS dropped so the next click goes back through the chooser
+- [Phase 06]: The listener pair is ASYMMETRIC and the code says why per half: `disconnect` may compare `ev.target !== this.#port` because Chromium fires it at the object the session holds (RemovePort flips that token's `connected` and forwards the event), while `connect` after a replug fires at a DIFFERENT SerialPort (serial_service.cc:317-325 returns nullopt from GetPersistentIdentifier for every non-Bluetooth port, so the enumerator's fresh token becomes a fresh Blink object) and is matched by getInfo() through isZonaPort and ADOPTED, replacing the stored reference. The permission is keyed by VID/PID/serial number, never the token, which is why the replug offer needs no picker. Observed: with the identity comparison in the connect handler, test 10 waits in S5 for ever
+- [Phase 06]: The watchdog drives exactly ONE named state and publishes NO field. MODULE_GONE_MS (unused since Phase 2) is read from the module #openAdopted already awaited and stored on the instance — never through a fifth static specifier, and never through a type alias, which is erased and this is a value. It fires only when the module has been silent past three heartbeats on the injected clock AND portIsAttached() is `false` (not `undefined`: Chrome 89-129 cannot say and keeps the session). Silence alone leaves the session `connected`, deliberately, and test 12 (c) is the assertion that stops a staleness flag — a tenth state wearing a different hat — being reintroduced. The watchdog reads a PRIVATE #lastSeen the fold updates, because the published snapshot is deliberately not replaced on lastSeen alone and would keep a watchdog reading it silent for ever
+- [Phase 06]: The identity keeps folding for the life of the connection over the session's OWN pump (GridTransport carries one onData callback; whoever registers last owns the stream), and the $state.raw snapshot is replaced only when the active page, the firmware triple or the sorted list of other modules changed — never on lastSeen. otherModules is sorted by sx then sy at publish time because the accumulator's order is arrival order. A disconnect that arrives while the session holds a dead port in a FAILURE state keeps the phase and drops only the reference, so the port-busy list does not vanish at its own step 2 (`Unplug the ZONA`); only a `detected` port that leaves returns to `idle`
+- [Phase 06]: forget() is in the only safe order — #teardown (transport, then port), THEN port.forget(), then every reference dropped — because the WICG steps have no close step; feature-detected by the `in` test, and canForget (set at adoption from the same test) is what decides whether FORGET THIS ZONA renders at all. Zero writes is now proven twice in session.spec.ts test 15: a whole visit (offer, connect, identify, unplug, replug, connect, forget) against recording transports, and a comment-stripped scan of session.svelte.ts's own source for nine fragment-assembled needles including setInterval (no lint rule bans it — deferred-items item 3). Both halves are expect.soft, so a planted write was reported by both in ONE run
 
 ### Pending Todos
 
@@ -373,6 +379,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T02:31:00.000Z
-Stopped at: Completed 06-03-PLAN.md — Phase 6 wave 3; next is 06-04 (the listener pair, the replug adoption, the watchdog, forget(), zero writes, all in session.svelte.ts), which inherits PREV_FILES / PREV_TESTS of 68 / 708, carries all five names forward, fills in the empty #attachListeners, stores MODULE_GONE_MS from the module #openAdopted already awaits, imports isZonaPort from $lib/transport/ports for the connect handler, and takes session.spec.ts from 8 to 15 using the fakePort / fakeSerial helpers (listeners kept in a Map by type)
+Last session: 2026-09-05T02:56:00.000Z
+Stopped at: Completed 06-04-PLAN.md — Phase 6 wave 4; the session is finished for the phase (listener pair, replug adoption, continuous fold, watchdog, forget(), never-writes proof) and session.spec.ts is at fifteen gates. Next is 06-05, which inherits PREV_FILES / PREV_TESTS of 68 / 715, carries all five names forward (BASE_E2E 61 frozen, PREV_E2E 61), and widens the chunk guard so session.svelte.ts's four static specifiers are enforced rather than remembered — the comment-stripped scan in 06-04-SUMMARY.md is the reference output
 Resume file: None

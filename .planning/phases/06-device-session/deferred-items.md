@@ -47,3 +47,21 @@ without reopening this question is a red test rather than a shipped
 misdirection.
 
 **Owner:** unowned. Blocked on a browser capability that does not exist.
+
+## 3. No lint rule bans `setInterval` (found by 06-04)
+
+Plan 06-04's negative check for the watchdog says "implement the watchdog with
+`setInterval` and watch the lint rule or the source scan catch it". There is no
+such lint rule: `eslint.config.js` has no `no-restricted-globals` entry, and
+04-UI-SPEC's "`setInterval`: zero, anywhere" is enforced today only by
+per-file source scans (`tune-ui.spec.ts`, `BrowseToolbar.svelte`'s own note,
+and now `session.spec.ts` test 15's ninth needle).
+
+**Not added here, deliberately.** An ESLint rule is a tree-wide change with its
+own review (the vendored tree and the e2e fixtures would need exemptions), and
+06-04's `files_modified` does not include the config. The session's scan
+caught the mutation, which is what the plan needed.
+
+**Owner:** unowned. A one-line `no-restricted-globals: ["setInterval"]` with
+`src/vendor/**` and `e2e/**` exempted would make the contract a lint error
+rather than a convention; whoever next touches `eslint.config.js` should add it.
