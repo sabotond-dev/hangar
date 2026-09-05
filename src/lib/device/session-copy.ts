@@ -206,9 +206,19 @@ export const TWO_STEP =
 export const PERMISSION_DECLINED =
   "The permission prompt was declined, so the list never opened.";
 
-/** SAFE-01, said out loud on the connect surface. 125 characters, asserted. */
+/**
+ * SAFE-01, said out loud on the connect surface. 88 characters, asserted.
+ *
+ * AMENDED BY NAME in plan 07-04 (07-UI-SPEC, the header changes table, the
+ * amendment row). Phase 6's sentence ended "and this release cannot write at
+ * all", which is false the moment TRY ON DEVICE writes - so it is retired to
+ * the present tense here, and session-copy.spec.ts test 5 holds the new
+ * sentence and its length in place of the old ones. Shorter than the 126 it
+ * replaces, so the header note's 152px reservation, measured on the longer
+ * string, holds with no re-measure.
+ */
 export const SAFE_PROMISE =
-  "HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click, and this release cannot write at all.";
+  "HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click.";
 
 /** The header note in S2: an offer, never an automatic open (D-06). */
 export const RECONNECT_OFFER =
@@ -218,9 +228,45 @@ export const RECONNECT_OFFER =
 export const REPLUG_OFFER =
   "Plug it back in and this offers to connect again — the permission you already gave is still there.";
 
-/** The quiet line beneath FORGET_LABEL, which is what buys it a click with no dialog (Y-15). */
+/**
+ * The quiet line beneath FORGET_LABEL, which is what buys it a click with no
+ * dialog (Y-15). Amended in plan 07-04 (07-UI-SPEC, Z-13): revoking a
+ * permission never deletes somebody's only copy of their own configuration,
+ * and the sentence now says so. 143 characters, asserted.
+ */
 export const REVOKE_EXPLANATION =
-  "Removes this site’s permission to see your ZONA. You can give it again from the picker whenever you like.";
+  "Removes this site’s permission to see your ZONA. The copy of your own Setup and Timer stays, and you can give permission again from the picker.";
+
+// ---------------------------------------------------------------------------
+// The header's Phase 7 strings (07-UI-SPEC, The header device slot, and its
+// disclosure). The header never shows an install state; these four are the
+// whole of what changes in it: a lock reason, and the snapshot line in its two
+// forms. None names a control, because the panel may be closed when they are
+// read.
+
+/**
+ * Beneath DISCONNECT_LABEL and FORGET_LABEL while the session's writeLock is
+ * on (Z-15): both controls are disabled on every leg of a write, RAM and
+ * store, and this is the reason inline. 41 characters, asserted.
+ */
+export const WRITE_LOCK_REASON = "Not while HANGAR is writing to your ZONA.";
+
+/**
+ * The S4 disclosure's snapshot line when the copy is in localStorage (D-04,
+ * SAFE-04). 108 characters, asserted, under the 129-character honesty cap
+ * install-copy.ts exports.
+ */
+export const SNAPSHOT_DURABLE_LINE =
+  "A copy of your ZONA’s own Setup and Timer is saved in this browser, so it can be put back even in a new tab.";
+
+/**
+ * The same line when the module's serial went unanswered and the copy is
+ * session-only (07-CONTEXT D-04 amended). AUTHORED in plan 07-04 rather than
+ * transcribed: 07-UI-SPEC contracts the slot and not this sentence. Held to
+ * the same rules and the same cap as its sibling. 114 characters, asserted.
+ */
+export const SNAPSHOT_SESSION_LINE =
+  "A copy of your ZONA’s own Setup and Timer is held until this tab closes, so it can be put back while you are here.";
 
 /** Phase 4's sentence, verbatim, lifted out of TryOnDevice.svelte's UNPLUGGED_AFTER. Kept for the case where nothing was in flight. */
 export const UNPLUGGED_WHILE_CONNECTED =
@@ -230,7 +276,7 @@ export const UNPLUGGED_WHILE_CONNECTED =
  * The second form of the same event, for an unplug that landed under a write
  * (07-UI-SPEC, I8, Z-11): Phase 4's sentence says "Nothing was written", which
  * is false the moment a write was in flight, and one false utterance is worse
- * than two. 55 characters, asserted.
+ * than two. 54 characters, asserted.
  */
 export const UNPLUGGED_WHILE_WRITING =
   "The ZONA was unplugged while HANGAR was writing to it.";

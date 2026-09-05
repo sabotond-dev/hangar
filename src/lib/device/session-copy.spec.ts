@@ -31,12 +31,18 @@ import {
   REPLUG_OFFER,
   REVOKE_EXPLANATION,
   SAFE_PROMISE,
+  SNAPSHOT_DURABLE_LINE,
+  SNAPSHOT_SESSION_LINE,
   type SessionPhase,
   type SlotState,
   TWO_STEP,
+  UNPLUGGED_WHILE_CONNECTED,
+  UNPLUGGED_WHILE_WRITING,
+  WRITE_LOCK_REASON,
   notZonaBlock,
   silentBlock,
   slotStateOf,
+  unpluggedWhileConnectedBlock,
 } from "./session-copy";
 
 const sessionCopySource = () =>
@@ -126,6 +132,17 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
 };
 
 /**
+ * The OTHER branch of a two-form builder, walked beside its primary sample so
+ * both sentences go through the rules (plan 07-04): the unplugged block's
+ * writing form is a different literal from Phase 4's, and a rule it broke
+ * would otherwise hide behind the default.
+ */
+const MORE_SAMPLES: Readonly<Record<string, readonly (readonly unknown[])[]>> =
+  {
+    unpluggedWhileConnectedBlock: [[true]],
+  };
+
+/**
  * Every string the module can produce, named, by WALKING ITS OWN EXPORTS rather
  * than a hand-written list - so a string added later is covered on the day it
  * is added. Arrays and block objects are walked into, because the steps and the
@@ -151,6 +168,9 @@ const everyString = () => {
       expect(args, `no sample input is declared for ${name}`).toBeDefined();
       const build = value as (...a: readonly unknown[]) => unknown;
       push(name, build(...args));
+      for (const extra of MORE_SAMPLES[name] ?? []) {
+        push(`${name}(${extra.join(",")})`, build(...extra));
+      }
     } else {
       push(name, value);
     }
@@ -268,11 +288,14 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
 
   it("holds the long sentences character for character", () => {
     // The two counted in 06-UI-SPEC's reservation arithmetic, and the one the
-    // plan asked to be measured rather than assumed.
+    // plan asked to be measured rather than assumed. SAFE_PROMISE is the
+    // AMENDED sentence (plan 07-04, 07-UI-SPEC's header changes table): 88,
+    // shorter than the 126 Phase 6 measured the 152px header note on, so the
+    // reservation holds unchanged.
     expect(PICKER_EXPLAINER.length, "the 130-character pre-click line").toBe(
       130,
     );
-    expect(SAFE_PROMISE.length, "SAFE-01, measured").toBe(126);
+    expect(SAFE_PROMISE.length, "SAFE-01, amended and measured").toBe(88);
     expect(RECONNECT_OFFER.length, "the reconnect offer, measured").toBe(88);
 
     expect(PICKER_EXPLAINER).toBe(
@@ -281,8 +304,10 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     expect(TWO_STEP).toBe(
       "Some browsers ask for permission before they show the list. If you were asked twice, the list appears after the second prompt.",
     );
+    // Present tense, and nothing about what a release can or cannot do: the
+    // sentence has to stay true on the day TRY ON DEVICE writes.
     expect(SAFE_PROMISE).toBe(
-      "HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click, and this release cannot write at all.",
+      "HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click.",
     );
     expect(RECONNECT_OFFER).toBe(
       "ZONA detected on this computer. One click connects it, and nothing is sent until you do.",
@@ -290,9 +315,47 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     expect(REPLUG_OFFER).toBe(
       "Plug it back in and this offers to connect again — the permission you already gave is still there.",
     );
+    // Amended (Z-13): revoking the permission never deletes the copy, and the
+    // sentence says so. 143, measured.
+    expect(REVOKE_EXPLANATION.length, "the revoke line, measured").toBe(143);
     expect(REVOKE_EXPLANATION).toBe(
-      "Removes this site’s permission to see your ZONA. You can give it again from the picker whenever you like.",
+      "Removes this site’s permission to see your ZONA. The copy of your own Setup and Timer stays, and you can give permission again from the picker.",
     );
+
+    // Phase 7's four header strings (07-UI-SPEC, The header device slot, and
+    // its disclosure), each measured by script rather than assumed. The two
+    // snapshot lines sit under the 129-character honesty cap install-copy.ts
+    // exports; SNAPSHOT_SESSION_LINE is the one authored rather than
+    // transcribed (D-04 amended) and is held to the same figure.
+    expect(UNPLUGGED_WHILE_WRITING.length, "the writing form").toBe(54);
+    expect(UNPLUGGED_WHILE_WRITING).toBe(
+      "The ZONA was unplugged while HANGAR was writing to it.",
+    );
+    expect(WRITE_LOCK_REASON.length, "the lock reason").toBe(41);
+    expect(WRITE_LOCK_REASON).toBe("Not while HANGAR is writing to your ZONA.");
+    expect(SNAPSHOT_DURABLE_LINE.length, "the durable snapshot line").toBe(108);
+    expect(SNAPSHOT_DURABLE_LINE.length).toBeLessThanOrEqual(129);
+    expect(SNAPSHOT_DURABLE_LINE).toBe(
+      "A copy of your ZONA’s own Setup and Timer is saved in this browser, so it can be put back even in a new tab.",
+    );
+    expect(SNAPSHOT_SESSION_LINE.length, "the session-only line").toBe(114);
+    expect(SNAPSHOT_SESSION_LINE.length).toBeLessThanOrEqual(129);
+    expect(SNAPSHOT_SESSION_LINE).toBe(
+      "A copy of your ZONA’s own Setup and Timer is held until this tab closes, so it can be put back while you are here.",
+    );
+
+    // The two forms of one event (Z-11): the writing form only when asked
+    // for, Phase 4's sentence by default and when asked for nothing.
+    expect(unpluggedWhileConnectedBlock(true).detail).toBe(
+      UNPLUGGED_WHILE_WRITING,
+    );
+    expect(unpluggedWhileConnectedBlock(false).detail).toBe(
+      UNPLUGGED_WHILE_CONNECTED,
+    );
+    expect(unpluggedWhileConnectedBlock().detail).toBe(
+      "The ZONA was unplugged. Nothing was written.",
+    );
+    expect(unpluggedWhileConnectedBlock(true).steps).toEqual([]);
 
     expect(NOTHING_LISTED_STEPS).toEqual([
       "Try a different USB cable. A charge-only cable fits the socket and carries no data, and it is the most common reason a list comes up empty.",
