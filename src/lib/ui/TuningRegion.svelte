@@ -191,6 +191,7 @@
     onpreview,
     onstamp,
     onbudget,
+    onconfig,
   }: {
     /**
      * The catalog id, NOT an entry object, so /dev/tune/ can mount the region
@@ -220,6 +221,12 @@
     onstamp?: (stamp: string | undefined) => void;
     /** The over-budget reason for TRY ON DEVICE, or undefined when in budget. */
     onbudget?: (reason: string | undefined) => void;
+    /**
+     * The compiled pair, or undefined while measuring. The owner hands it to
+     * the install store, which writes it verbatim - never a re-compile at
+     * click time.
+     */
+    onconfig?: (config: { setup: string; timer: string } | undefined) => void;
   } = $props();
 
   /**
@@ -462,6 +469,7 @@
           ladder = next;
         },
         onover: receiveOver,
+        onconfig,
       });
       if (!mounted) {
         built.destroy();

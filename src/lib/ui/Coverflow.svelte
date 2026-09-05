@@ -204,6 +204,15 @@
   let knobIndices: Record<string, Record<string, number>> = $state({});
   /** The reason a disabled TRY ON DEVICE gives, or undefined when in budget. */
   let overBudgetReason: string | undefined = $state(undefined);
+  /**
+   * The compiled Setup and Timer for the centred entry, or undefined while it
+   * is measuring. Held here beside the budget reason because it comes from the
+   * same landing, and handed to TRY ON DEVICE as `config` so what a click
+   * writes is what the meters measured (07-CONTEXT D-10, D-17). Two strings,
+   * so rule 3 above is not violated.
+   */
+  let configStrings: { setup: string; timer: string } | undefined =
+    $state(undefined);
   /** The share payload, precomputed by the model so COPY LINK never awaits. */
   let shareStamp: string | undefined = $state(undefined);
   /** How the URL landed, and the entry it landed on. Both settled at mount. */
@@ -603,6 +612,11 @@
     reportedFor = id;
     overBudgetReason = undefined;
     shareStamp = undefined;
+    // A step re-fills the panel with a neighbour, and the neighbour's strings
+    // are not known until its own region lands. Between the two the install
+    // store must see undefined, or a click in that gap would write the entry
+    // the visitor just stepped away from.
+    configStrings = undefined;
   });
 
   /** The recede, applied to the slot wrapper and never to a pad canvas. */
@@ -877,6 +891,7 @@
       onpreview={(engine) => applyPreview(id, engine)}
       onstamp={(stamp) => (shareStamp = stamp)}
       onbudget={(reason) => (overBudgetReason = reason)}
+      onconfig={(config) => (configStrings = config)}
     />
   {/key}
 {/snippet}
@@ -901,6 +916,7 @@
       <TryOnDevice
         entry={centred}
         budgetReason={overBudgetReason}
+        config={configStrings}
         bind:this={tryOn}
       />
     </ChosenPanel>

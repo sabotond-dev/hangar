@@ -77,6 +77,7 @@
   import PadSpinner from "./PadSpinner.svelte";
   import PickerExplainer from "./PickerExplainer.svelte";
 
+  // eslint-disable-next-line svelte/no-unused-props -- `config` is declared and not yet bound; plan 07-10 reads it. See its comment below.
   let {
     entry,
     budgetReason,
@@ -97,6 +98,22 @@
      * about a budget it cannot measure.
      */
     budgetReason?: string;
+    /**
+     * The compiled Setup and Timer the meters measured, or undefined while the
+     * tuner is measuring (07-CONTEXT D-10, D-17). Declared STRUCTURALLY, never
+     * as a type imported from $lib/tune/model: that module reaches the
+     * compiler, and no file under src/lib/ui/ may name it in a static import
+     * (config-shape.spec.ts test 13). Nothing reads it in this plan, so it is
+     * declared in the props type and NOT bound in the destructure above, and
+     * the one rule that still fires on an unread prop is silenced by name
+     * above the destructure with its reason - the form Coverflow.svelte uses
+     * for its two non-reactive Sets. Plan 07-10 binds it, removes the
+     * directive, and hands
+     * it to the install store, which writes it verbatim and treats undefined
+     * as "not ready to write", so a click inside the 120 ms debounce window
+     * writes nothing rather than the previous strings.
+     */
+    config?: { setup: string; timer: string };
   } = $props();
 
   // ---------------------------------------------------------------------------
