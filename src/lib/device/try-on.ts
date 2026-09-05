@@ -30,30 +30,11 @@ import {
 /** The control's name, in one place, so the copy and the button cannot drift. */
 export const TRY_ON_LABEL = "TRY ON DEVICE";
 
-export type Capability = "unsupported" | "insecure" | "ok";
-
-/**
- * A capability test over an explicit environment record, never a browser test.
- *
- * Absence beats insecurity: with no `navigator.serial` at all there is nothing
- * for HTTPS to secure, and "this browser cannot talk to hardware" names a fix
- * the visitor can act on while "this page needs HTTPS" does not.
- *
- * `insecure` is deliberately reachable here even though Chromium can barely
- * produce it - `navigator.serial` is [SecureContext] there, so an insecure page
- * has no serial property and lands in `unsupported` instead. UI-SPEC Screen 4
- * specifies two states keyed on two conditions, and a pure function over an
- * explicit record is what makes both branches reachable from a test rather than
- * only from a browser nobody has.
- */
-export function capabilityOf(env: {
-  hasSerial: boolean;
-  secure: boolean;
-}): Capability {
-  if (!env.hasSerial) return "unsupported";
-  if (!env.secure) return "insecure";
-  return "ok";
-}
+// capabilityOf lives in session-copy.ts, which imports nothing, so the session
+// can decide the capability synchronously in the first hydrated frame rather
+// than after a dynamic import has landed. Re-exported here so every existing
+// caller and try-on.spec.ts test 1 keep working unchanged (06-02).
+export { capabilityOf, type Capability } from "./session-copy";
 
 /** UI-SPEC Screen 4's state machine, as a union the component holds. */
 export type TryOnState =
