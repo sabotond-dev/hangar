@@ -33,6 +33,7 @@ import {
   buildTuner,
   needsLadder,
   COMPILE_DEBOUNCE_MS,
+  type ConfigStrings,
   type LadderView,
   type OverBudgetView,
 } from "./model";
@@ -54,15 +55,18 @@ function recorder() {
   const previews: SimEngine[] = [];
   const ladders: (LadderView | undefined)[] = [];
   const overs: (OverBudgetView | undefined)[] = [];
+  const configs: (ConfigStrings | undefined)[] = [];
   return {
     views,
     previews,
     ladders,
     overs,
+    configs,
     onview: (view: TuneView) => void views.push(view),
     onpreview: (engine: SimEngine) => void previews.push(engine),
     onladder: (ladder: LadderView | undefined) => void ladders.push(ladder),
     onover: (over: OverBudgetView | undefined) => void overs.push(over),
+    onconfig: (config: ConfigStrings | undefined) => void configs.push(config),
   };
 }
 
@@ -426,5 +430,114 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       closed.filter((engine) => engine === first),
       "destroy closed the replaced engine a second time",
     ).toHaveLength(1);
+  });
+
+  it("onconfig carries the compiled pair with every landing, and undefined the instant a knob moves", async () => {
+    // D-17. The strings are published from inside land(), so they arrive with
+    // the numbers that measured them and never before; and they are withdrawn
+    // from inside moveTo(), on the same tick as the feed goes stale, so the
+    // 120 ms window in which the meters show the previous numbers is also a
+    // window in which there is nothing to write (07-RESEARCH Pitfall 5).
+    vi.useFakeTimers();
+    const rec = recorder();
+    const tuner = await buildTuner({ entryId: "aurora", ...rec });
+    // Nothing is published before a landing: the first emit carries the
+    // measuring meters and no strings at all.
+    expect(rec.configs, "a pair was published before anything landed").toEqual(
+      [],
+    );
+    await settle();
+
+    const landed = settledViews(rec.views).at(-1);
+    expect(landed, "the first measurement never landed").toBeDefined();
+    expect(rec.configs, "one landing is one pair").toHaveLength(1);
+    const first = rec.configs[0];
+    expect(first, "the landing published no pair").toBeDefined();
+    // The bytes are the numbers: the pin wire-pin.spec.ts holds across the
+    // whole catalog, stated once here for the entry this file is about.
+    expect(first!.setup.length).toBe(landed!.setup.used);
+    expect(first!.timer.length).toBe(landed!.timer.used);
+
+    const band = tuner.knobs.find((knob) => knob.id === "band");
+    expect(band, "aurora has a band knob").toBeDefined();
+    tuner.set("band", (band!.default + 1) % band!.options.length);
+    // THE WITHDRAWAL, and the only assertion that names it: no clock moved
+    // between the previous line and this one. Dropping the undefined emit
+    // from moveTo leaves the old pair here.
+    expect(rec.configs, "a knob move did not publish anything").toHaveLength(2);
+    expect(
+      rec.configs.at(-1),
+      "the strings were still published while the feed was stale",
+    ).toBeUndefined();
+    // And however many microtasks run inside the window, still nothing.
+    await settle();
+    expect(rec.configs.at(-1)).toBeUndefined();
+
+    await vi.advanceTimersByTimeAsync(COMPILE_DEBOUNCE_MS);
+    await settle();
+    const second = rec.configs.at(-1);
+    expect(second, "the recompile landed no pair").toBeDefined();
+    expect(second!.setup, "the new pair is the old pair").not.toBe(
+      first!.setup,
+    );
+    const tuned = settledViews(rec.views).at(-1);
+    expect(second!.setup.length).toBe(tuned!.setup.used);
+    expect(second!.timer.length).toBe(tuned!.timer.used);
+
+    tuner.destroy();
+  });
+
+  it("TURN IT DOWN's back-off publishes undefined, then the resolved pair", async () => {
+    // Through the over-budget door: dial at ladder.spec.ts's reserve, the only
+    // pairing on the shelf that reaches both the block and a real ladder (tpad
+    // is blocked on `sends` and offers no step, so its apply() is a no-op).
+    // The back-off is the second place the feed goes stale, and it withdraws
+    // the strings the same way a knob move does.
+    vi.useFakeTimers();
+    const rec = recorder();
+    const tuner = await buildTuner({
+      entryId: "dial",
+      reserved: OVER_RESERVE,
+      ...rec,
+    });
+    await settle();
+
+    const over = rec.overs.at(-1);
+    expect(
+      over,
+      "dial under the reserve did not arrive over budget",
+    ).toBeDefined();
+    const before = rec.configs.length;
+    expect(before, "the over-budget landing published no pair").toBeGreaterThan(
+      0,
+    );
+    expect(
+      rec.configs.at(-1),
+      "an over-budget landing still publishes its pair",
+    ).toBeDefined();
+
+    over!.apply();
+    expect(rec.configs, "the back-off published nothing").toHaveLength(
+      before + 1,
+    );
+    expect(
+      rec.configs.at(-1),
+      "the strings survived the back-off while the feed was stale",
+    ).toBeUndefined();
+
+    await vi.advanceTimersByTimeAsync(COMPILE_DEBOUNCE_MS);
+    await settle();
+    const resolved = rec.configs.at(-1);
+    expect(resolved, "the resolved state landed no pair").toBeDefined();
+    expect(resolved!.setup.length).toBeLessThanOrEqual(EVENT_BUDGET);
+    expect(resolved!.timer.length).toBeLessThanOrEqual(EVENT_BUDGET);
+    // The bytes are the meter's, less the reserve the test added to reach here.
+    // The last view is the landing's; under the reserve its state is "over"
+    // rather than "settled" (meterView), which is the door being open.
+    const view = rec.views.at(-1);
+    expect(view!.setup.state).toBe("over");
+    expect(resolved!.setup.length).toBe(view!.setup.used - OVER_RESERVE.setup);
+
+    tuner.destroy();
   });
 });

@@ -152,6 +152,24 @@ export type Tuner = {
   destroy(): void;
 };
 
+/**
+ * The exact bytes a write would put on the wire, beside the numbers that
+ * measured them (07-CONTEXT D-17).
+ *
+ * D-10's pin, and why these are never compressed on the way out. `cost()`
+ * budgets each event as `Math.max(measure(lua), lua.length) + reserved`, and
+ * the uncompressed figure is the larger by exactly one character per action -
+ * the space after each `]]` the minifier deletes. So with the shipped reserve
+ * of 0 / 0, `setup.length === cost().setup.used` for every preset, both events,
+ * zero mismatches (07-RESEARCH, the measurement that pins D-10;
+ * src/lib/device/wire-pin.spec.ts holds it across every catalog entry). The
+ * strings therefore go on the wire verbatim: the written length IS the meter,
+ * and the module's own compressed-length check has one character of slack per
+ * action. A Lua entry's rendered text is already a fixed point of the
+ * compressor (lua-entries.spec.ts test 1), so both routes agree.
+ */
+export type ConfigStrings = { readonly setup: string; readonly timer: string };
+
 export type TunerOptions = {
   entryId: string;
   indices?: Readonly<Record<string, number>>;
@@ -161,6 +179,14 @@ export type TunerOptions = {
   onpreview(engine: SimEngine): void;
   onladder(ladder: LadderView | undefined): void;
   onover(over: OverBudgetView | undefined): void;
+  /**
+   * The compiled pair, emitted with every settled measurement, and UNDEFINED
+   * the instant the feed goes stale - which is what makes "the debounce cannot
+   * land a new compile between the click and the write" a structural property
+   * rather than a race (07-RESEARCH Pitfall 5). Optional, so every existing
+   * caller and every existing test is unchanged.
+   */
+  onconfig?(config: ConfigStrings | undefined): void;
 };
 
 /**
@@ -391,10 +417,17 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     if (previous !== next) closeEngine(previous);
   }
 
-  function land(setup: number, timer: number): void {
+  /**
+   * A landing publishes the numbers AND the strings they were measured from,
+   * in that order, from one call. The pair is a parameter rather than a module
+   * variable emit() could read, so no path can publish numbers without the
+   * bytes behind them and no stale emit can republish an old pair (D-17).
+   */
+  function land(setup: number, timer: number, config: ConfigStrings): void {
     numbers = { setup, timer };
     feed = "settled";
     emit();
+    options.onconfig?.(config);
   }
 
   function overView(
@@ -448,6 +481,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
         resolved = step.apply(stateNow());
         moved = undefined;
         feed = "stale";
+        // The same rule as moveTo's: the strings stop being true here.
+        options.onconfig?.(undefined);
         emit();
         swapEngine(new PadSim(resolved));
         schedule();
@@ -492,9 +527,15 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
 
   async function measurePadsim(mine: number): Promise<void> {
     const state = stateNow();
-    const measured = await costOf(await compileState(state), options.reserved);
+    // The compile is already in hand: what costOf measured is what is
+    // published, from the same result, never a second compile.
+    const result = await compileState(state);
+    const measured = await costOf(result, options.reserved);
     if (stale(mine)) return;
-    land(measured.setup.used, measured.timer.used);
+    land(measured.setup.used, measured.timer.used, {
+      setup: result.setupLua,
+      timer: result.timerLua,
+    });
     const plan = await ladderFor(state, measured);
     if (stale(mine)) return;
     if (plan) {
@@ -516,7 +557,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const setup = lua.setup === "" ? 0 : await measureLua(lua.setup);
     const timer = lua.timer === "" ? 0 : await measureLua(lua.timer);
     if (stale(mine)) return;
-    land(setup, timer);
+    // renderLua already produced exactly the wire text.
+    land(setup, timer, { setup: lua.setup, timer: lua.timer });
   }
 
   async function run(rebuild: boolean): Promise<void> {
@@ -554,6 +596,17 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     // Anything already in flight is now measuring a state nobody asked for.
     generation++;
     if (feed !== "measuring") feed = "stale";
+    // THE STRINGS ARE WITHDRAWN HERE, on the same tick as the feed goes stale
+    // and before the trailing compile can land (07-RESEARCH Pitfall 5). A
+    // visitor who drags a knob and clicks TRY ON DEVICE inside the 120 ms
+    // window would otherwise write the previous strings under the current
+    // meters. With this line the install store's `config` is undefined for
+    // exactly those 120 ms, the primary control is disabled with the same
+    // measuring language the meters already use, and the next defined pair is
+    // the one land() publishes beside the new numbers. Unconditional on
+    // purpose: while the feed is still "measuring" nothing has been published
+    // yet, and undefined is already the truth.
+    options.onconfig?.(undefined);
     emit();
     if (entry.preview === "padsim") {
       // The whole of D-05: a new picture on this tick, a new number later.
