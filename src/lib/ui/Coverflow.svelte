@@ -50,6 +50,7 @@
   import { page } from "$app/state";
   import { typographic } from "$lib/browse/typographic";
   import { FRONT_DOOR, type FrontDoorEntry } from "$lib/catalog/front-door";
+  import { install } from "$lib/device/install.svelte";
   import {
     radiusForWidth,
     slotFor,
@@ -421,9 +422,24 @@
    * Escape, from anywhere on the page - the panel takes focus from nothing, so
    * a visitor who has tabbed into it must still be able to leave with one key.
    * Registered in onMount and removed in onDestroy.
+   *
+   * Two rules stand in front of Phase 4's un-choose since plan 07-10
+   * (07-UI-SPEC Z-10, I3 rule 9). While the install store is writing, Escape
+   * does nothing at all: closing the panel mid-write would remove the only
+   * surface that reports the outcome, and the state lasts about two seconds
+   * on a RAM leg and about five on a store leg by construction - a pause, not
+   * a trap. While the flash confirmation is open, the first Escape closes the
+   * block and the panel stays chosen; a second un-chooses as usual. The same
+   * collision shape as Phase 5's X-10 ruling on Delete versus Escape.
    */
   function onWindowKeyDown(event: KeyboardEvent): void {
     if (event.key !== "Escape" || !chosen) return;
+    if (install.phase === "writing") return;
+    if (install.confirmOpen) {
+      event.preventDefault();
+      install.dismissConfirm();
+      return;
+    }
     event.preventDefault();
     unchoose();
   }

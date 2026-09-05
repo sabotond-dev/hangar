@@ -3,18 +3,20 @@
   the whole point of the front door, and nothing about the device exists on the
   page until it happens.
 
-  This component owns LAYOUT and nothing else. The primary control, the honesty
-  line and the connect-state region are one snippet handed in by the caller, so
-  the state machine that touches a port lives in TryOnDevice.svelte and the box
-  it sits in lives here. Top to bottom the panel is D-08's order, and Phase 5
-  docks into it without moving anything:
+  This component owns LAYOUT and one focus rule, and nothing else. The primary
+  control, the honesty line and the connect-state region are one snippet handed
+  in by the caller, so the state machine that touches a port lives in
+  TryOnDevice.svelte and the box it sits in lives here. Top to bottom the panel
+  is D-08's order, and Phases 5 and 7 dock into it without moving anything:
 
     1. the primary control            these three are the caller's snippet
     2. the honesty line
     3. the connect-state region
     4. the reserved tuning region     the caller's `tuning` snippet (Phase 5)
     5. a 24px gap, a hairline, 24px
-    6. KEEP ON DEVICE, disabled       beside the caller's `share` snippet
+    6. the install row, ONE COLUMN    PUT BACK, KEEP ON DEVICE (or the
+                                      confirmation in its place), then the
+                                      caller's `share` snippet (Phase 7)
 
   THE RESERVED REGION'S HEIGHT IS LOAD-BEARING, NOT DECORATIVE, AND 152px IS A
   FLOOR RATHER THAN A CEILING - which is what min-block-size already said in the
@@ -37,13 +39,50 @@
     because a sentence that changes line count above the region would move the
     region just as surely.
 
+  THE INSTALL ROW IS A COLUMN, AND THE ARITHMETIC FORCES IT (07-UI-SPEC Region
+  6, Z-03, amending 07-CONTEXT D-15's "beside"). The panel's content column is
+  372px at its widest and never wider - max-inline-size 420px minus 24px of
+  padding each side. Each of the three cells carries a 16px Body sentence
+  beneath its control. Two cells side by side give each sentence about 178px,
+  which is roughly twenty characters a line against the 43 this design
+  measures at 372px; Phase 5's wrapping row was therefore a column pretending
+  to be a row, and which controls shared a line changed as their labels
+  changed state. A column at a 16px rhythm is one layout at every width. The
+  order is PUT BACK first because the way back should be the first thing the
+  eye reaches below the rule, KEEP ON DEVICE second because it is the
+  commitment, COPY LINK last because it is not an install control at all. PUT
+  BACK renders nothing until a snapshot exists, so the column simply closes
+  up above KEEP ON DEVICE until then.
+
+  THE CONFIRMATION REPLACES THE CONTROL THAT OPENED IT. While
+  install.confirmOpen the row renders KeepConfirm where KEEP ON DEVICE was, so
+  there is never a second KEEP ON DEVICE on the screen (WCAG 2.5.3): PUT BACK
+  above it does not move and COPY LINK below it moves down by the block's
+  height. The block LEAVES INSTANTLY, on purpose, and this is the decision
+  plan 07-09 deferred to here: a leaving fade would keep `keep-confirm-yes` on
+  the screen for 160ms beside the re-rendered `keep-on-device` - the never-both
+  rule broken for exactly the interval a speech command could land in - and
+  would put a ghost of the block under a control that already has focus. The
+  Motion Contract's "appearing or leaving" is honoured on the appearing half,
+  in the leaf's own CSS.
+
+  THE ONE FOCUS RULE (07-UI-SPEC, Focus management). When the confirmation
+  closes, for any of its four reasons, focus goes to the row's KEEP ON DEVICE
+  if that control can hold it, and to region 3 otherwise. NOT NOW and Escape
+  leave the control enabled, so focus returns to it; a commit leaves it
+  disabled under the store's write, and a knob move or a session drop leave it
+  disabled with a reason, so in all three focus falls to the connect-state
+  region (tabindex="-1", inside the caller's snippet), which at the commit
+  holds the PLAYING NOW block under aria-busy while the primary reads
+  KEEPING…. One rule, four exits, and no control removes itself while holding
+  focus without a successor.
+
   Everything about the box is unchanged from Phase 4: margin-block-start 24px,
   the dashed border, the 10px radius, 16px of padding, min-block-size 152px and
   the data-testid the e2e suite asserts. Only its CONTENTS moved, out of this
   file and into the caller's snippet. The caption moved with them: it belongs to
   the region now, where every 12px line is a 14px line box, and the 1.2 ratio
-  this file used for it is untouched everywhere else it is still used - ZONA
-  IDENTIFIED in TryOnDevice.svelte included.
+  this file used for it is untouched everywhere else it is still used.
 
   The entrance is here rather than in the caller because the element only exists
   while it is chosen: 16px up and a fade over 260ms, or opacity alone over 120ms
@@ -52,9 +91,12 @@
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import type { Snippet } from "svelte";
+  import { tick, type Snippet } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
+  import { install } from "$lib/device/install.svelte";
+  import KeepConfirm from "./KeepConfirm.svelte";
   import KeepOnDevice from "./KeepOnDevice.svelte";
+  import PutBack from "./PutBack.svelte";
 
   let {
     entry,
@@ -77,15 +119,44 @@
      */
     tuning?: Snippet;
     /**
-     * The share control, on the right of the row below the hairline. It is not
-     * an install control and never claims to be: KEEP ON DEVICE is disabled
-     * with a dim label throughout this phase while this one works.
+     * The share control, the last cell of the column below the hairline. It is
+     * not an install control and never claims to be.
      */
     share?: Snippet;
   } = $props();
+
+  /** The panel's own element, so the focus rule can find region 3 inside the caller's snippet. */
+  let root = $state<HTMLElement | null>(null);
+  /** The row's KEEP ON DEVICE, bound so the focus rule can ask it to take focus. */
+  let keep = $state<ReturnType<typeof KeepOnDevice> | undefined>(undefined);
+
+  /** NOT NOW and Escape inside the block. The focus return is the effect's, below. */
+  function onclose(): void {
+    install.dismissConfirm();
+  }
+
+  /**
+   * The focus rule, applied on every close of the confirmation - NOT NOW,
+   * Escape, the commit, a knob move, a session drop - after the DOM has
+   * swapped the block for the row control. `wasOpen` is a plain local, as
+   * Coverflow.svelte's `wasChosen` is: nothing renders from it.
+   */
+  let wasOpen = false;
+  $effect(() => {
+    const open = install.confirmOpen;
+    if (wasOpen && !open) void returnFocus();
+    wasOpen = open;
+  });
+
+  async function returnFocus(): Promise<void> {
+    await tick();
+    if (keep?.focus()) return;
+    root?.querySelector<HTMLElement>('[data-testid="connect-status"]')?.focus();
+  }
 </script>
 
 <section
+  bind:this={root}
   class="panel"
   data-testid="chosen-panel"
   data-entry={entry.id}
@@ -100,7 +171,12 @@
   <hr class="rule" />
 
   <div class="install-row">
-    <KeepOnDevice />
+    <PutBack />
+    {#if install.confirmOpen}
+      <KeepConfirm {onclose} />
+    {:else}
+      <KeepOnDevice bind:this={keep} />
+    {/if}
     {@render share?.()}
   </div>
 </section>
@@ -149,18 +225,17 @@
   }
 
   /*
-    KEEP ON DEVICE left, COPY LINK right, each with its own quiet line beneath
-    it (05-UI-SPEC, COPY LINK). It wraps rather than shrinking, so on a phone
-    the two stack and neither label is ever truncated. Phase 4's rule that the
-    two INSTALL controls are never adjacent is untouched: COPY LINK is not an
-    install control, it is disabled-versus-enabled and dim-versus-ink against
-    the one beside it, and TRY ON DEVICE is still a whole hairline away.
+    One column at a 16px rhythm: PUT BACK, KEEP ON DEVICE or the confirmation
+    in its place, COPY LINK (07-UI-SPEC Region 6). The header carries the
+    arithmetic that retired Phase 5's space-between row. align-items keeps
+    every cell at its own width, so a fit-content control never stretches to
+    the column.
   */
   .install-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 
   @media (prefers-reduced-motion: reduce) {
