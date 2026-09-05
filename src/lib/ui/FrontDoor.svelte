@@ -54,6 +54,18 @@
   existing distance from the last thing above it, and the margin value does not
   change with the session state because the note holds its height in every one.
 
+  THE SPLASH HOLD (Phase 6, plan 06-11 task 3). While the splash covers the row
+  the session's live region is held (session.holdSpeech()), so a ZONA detected
+  during the opening is announced once, AFTER it, rather than over it. The hold
+  is taken in onMount - which runs before the layout's onMount starts the
+  session - only where there is a splash to talk over, and released from
+  Splash's onfinished, which fires on EVERY path the splash ends by, including
+  the one where a key, a click or a wheel cuts straight to the dissolve. It is
+  also released if this component is destroyed while the splash is still up (a
+  link followed during the opening), because a hold nobody releases is a live
+  region muted for the rest of the visit. On a deep link there is no splash and
+  nothing is held.
+
   The section carries no inline padding. The gutter belongs to the header block
   and the headline; the coverflow row is full-bleed on purpose, because pads
   falling off the edges of the viewport is the picture the brief asks for.
@@ -62,8 +74,9 @@
 -->
 <script lang="ts">
   import { page } from "$app/state";
-  import { untrack } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
+  import { session } from "$lib/device/session.svelte";
   import BrowseLink from "./BrowseLink.svelte";
   import Coverflow from "./Coverflow.svelte";
   import DeviceNote from "./DeviceNote.svelte";
@@ -120,6 +133,33 @@
    * row cannot disagree about whether a panel is up. `{}` during prerender.
    */
   const panelOwnsProse = $derived(page.state.chosen === true);
+
+  /** The hold's release, set only while the splash covers the row. */
+  let releaseSpeech: (() => void) | undefined;
+
+  /** Release once, from whichever path gets there first. */
+  function releaseHold(): void {
+    releaseSpeech?.();
+    releaseSpeech = undefined;
+  }
+
+  onMount(() => {
+    // Held only where there is a splash to talk over. A deep link has none, and
+    // a suppression window that outlived a splash that never played would
+    // silence a returning visitor's reconnect offer for nothing.
+    if (opening) releaseSpeech = session.holdSpeech();
+  });
+
+  onDestroy(() => {
+    // The opening ended by this component leaving the page. onDestroy runs on
+    // the server too, where nothing was ever held, and releaseHold is a no-op.
+    releaseHold();
+  });
+
+  function onSplashFinished(): void {
+    opening = false;
+    releaseHold();
+  }
 </script>
 
 <section class="front-door" data-testid="front-door" data-splash={splash}>
@@ -142,10 +182,7 @@
 </section>
 
 {#if opening}
-  <Splash
-    ondissolve={() => (covered = false)}
-    onfinished={() => (opening = false)}
-  />
+  <Splash ondissolve={() => (covered = false)} onfinished={onSplashFinished} />
 {/if}
 
 <style>
