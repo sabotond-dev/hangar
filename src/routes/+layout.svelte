@@ -1,11 +1,37 @@
 <script lang="ts">
   import "../app.css";
+  import { onMount } from "svelte";
   import favicon from "$lib/assets/favicon.svg";
+  import { session } from "$lib/device/session.svelte";
+  import SessionAnnouncer from "$lib/ui/SessionAnnouncer.svelte";
 
   let { children } = $props();
+
+  /**
+   * The device session is started HERE, once, for the whole site (D-05), and
+   * from onMount rather than at module scope on purpose: +layout.ts sets
+   * prerender = true, so this component's module scope runs in the
+   * prerenderer, where there is no window and no navigator.serial to read.
+   * start() is idempotent on the instance, so the session probe page - which
+   * starts the singleton from its own onMount as well - attaches nothing
+   * twice. The static import of the session is the one case the chunk guard
+   * allows for this file (src/lib/config-shape.spec.ts test 13): the session
+   * and its four specifiers are free of the protocol package.
+   */
+  onMount(() => {
+    session.start();
+  });
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
+
+<!--
+  The one session live region, BEFORE the page (D-17). It precedes the tuning
+  and browse regions in the document, and that document order plus the store's
+  trailing timer is the whole of "the session speaks first"; there is no
+  cross-region scheduler. See SessionAnnouncer.svelte.
+-->
+<SessionAnnouncer />
 {@render children()}
 
 <!--
