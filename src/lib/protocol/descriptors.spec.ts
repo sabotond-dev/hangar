@@ -7,16 +7,20 @@ import {
   EVENT_TIMER,
   PRINTABLE_ASCII,
   PROTOCOL_VERSION,
+  TIMEOUTS,
   TOUCH_EVENTS,
 } from "./constants";
 import {
   encodeRequest,
   fetchConfig,
+  fetchSerialNumber,
   hostHeartbeat,
+  moduleKeyOf,
   sendConfig,
   storePage,
   type GridRequest,
 } from "./descriptors";
+import type { DecodedClass } from "./decode";
 
 /** 17 characters, the string the measured frame lengths below were taken with. */
 const SHORT_CONFIG = "--[[@cb]]print(1)";
@@ -93,6 +97,7 @@ describe("outbound descriptors", () => {
       fetchConfig(0, 0, 0, EVENT_TIMER),
       sendConfig(0, 0, 0, EVENT_SETUP, SHORT_CONFIG),
       storePage(),
+      fetchSerialNumber(0, 0),
     ];
     for (const req of requests) {
       const frame = roundTrip(req);
@@ -166,5 +171,111 @@ describe("outbound descriptors", () => {
     expect(fetchConfig(0, 0, 0, EVENT_SETUP).correlateById).toBe(false);
     expect(sendConfig(0, 0, 0, EVENT_SETUP, "x").correlateById).toBe(true);
     expect(storePage().correlateById).toBe(true);
+  });
+
+  /**
+   * A SERIALNUMBER/REPORT built by the package's own encoder, decoded back to
+   * the class the session would hand moduleKeyOf. No hardware capture holds
+   * one of these (the desktop never asks), so the round trip is the only
+   * evidence in the tree that the field layout is what grid_protocol.h says.
+   */
+  const serialReport = (words: {
+    WORD0: number;
+    WORD1: number;
+    WORD2: number;
+    WORD3: number;
+  }): { cls: DecodedClass; wireLength: number } => {
+    const encoded = grid.encode_packet({
+      brc_parameters: { DX: -127, DY: -127 },
+      class_name: "SERIALNUMBER",
+      class_instr: "REPORT",
+      class_parameters: words,
+    });
+    if (!encoded) throw new Error("encode_packet refused the report");
+    const serial = encoded.serial as number[];
+    const frame = grid.decode_packet_frame([...serial]);
+    grid.decode_packet_classes(frame);
+    return { cls: frame[0] as DecodedClass, wireLength: serial.length + 1 };
+  };
+
+  it("the serial-number fetch is addressed to the module, and its report decodes to four words", () => {
+    const req = fetchSerialNumber(0, 0);
+    // Addressed to the module's own SX/SY, never -127: firmware accepts this
+    // FETCH as IS_ME | IS_GLOBAL and every module on a rig would answer a
+    // broadcast with frames that cannot be told apart.
+    expect(req.descr.brc_parameters).toEqual({ DX: 0, DY: 0 });
+    expect(req.descr.class_name).toBe("SERIALNUMBER");
+    expect(req.descr.class_instr).toBe("FETCH");
+    expect(req.descr.class_parameters).toEqual({});
+    expect(req.label).toBe("fetch-serial");
+    expect(req.correlateById).toBe(false);
+    expect(req.timeoutMs).toBe(TIMEOUTS.fetchMs);
+    // The REPORT is built at the global position and carries no LASTHEADER,
+    // so the filter names the class alone: no address, no parameters.
+    expect(req.filter).toEqual({
+      class_name: "SERIALNUMBER",
+      class_instr: "REPORT",
+    });
+    expect(req.filter?.brc_parameters).toBeUndefined();
+    expect(req.filter?.class_parameters).toBeUndefined();
+    // An empty class block: the same 33 bytes on the wire as a page store.
+    expect(encodeRequest(req).bytes.length).toBe(33);
+
+    const { cls, wireLength } = serialReport({
+      WORD0: 0x12345678,
+      WORD1: 0x9abcdef0,
+      WORD2: 0,
+      WORD3: 0,
+    });
+    expect(cls.class_name).toBe("SERIALNUMBER");
+    expect(cls.class_instr).toBe("REPORT");
+    expect(cls.class_parameters).toEqual({
+      WORD0: 305419896,
+      WORD1: 2596069104,
+      WORD2: 0,
+      WORD3: 0,
+    });
+    // Four eight-character hex words in a 62-byte class block: 65 on the wire.
+    expect(wireLength).toBe(65);
+    expect(cls.brc_parameters.SX).toBe(-127);
+    expect(cls.brc_parameters.SY).toBe(-127);
+  });
+
+  it("moduleKeyOf is 32 lowercase hex characters, stable, and distinct for distinct words", () => {
+    const { cls } = serialReport({
+      WORD0: 0x12345678,
+      WORD1: 0x9abcdef0,
+      WORD2: 0,
+      WORD3: 0,
+    });
+    const key = moduleKeyOf(cls);
+    expect(key).toBe("123456789abcdef00000000000000000");
+    expect(key).toMatch(/^[0-9a-f]{32}$/);
+    // Stable: the same class keys the same way every time.
+    expect(moduleKeyOf(cls)).toBe(key);
+
+    // Distinct words, distinct keys.
+    const other = serialReport({
+      WORD0: 0x12345679,
+      WORD1: 0x9abcdef0,
+      WORD2: 0,
+      WORD3: 0,
+    }).cls;
+    expect(moduleKeyOf(other)).not.toBe(key);
+    expect(moduleKeyOf(other)).toMatch(/^[0-9a-f]{32}$/);
+
+    // A word above 2^31 must not carry a sign into the key, and a word with
+    // leading zeros must still occupy eight characters.
+    const high = serialReport({
+      WORD0: 0xfffffff0,
+      WORD1: 0x00000001,
+      WORD2: 0,
+      WORD3: 0,
+    }).cls;
+    const highKey = moduleKeyOf(high);
+    expect(highKey).toBe("fffffff0000000010000000000000000");
+    expect(highKey).not.toContain("-");
+    expect(highKey).toHaveLength(32);
+    expect(highKey).toMatch(/^[0-9a-f]{32}$/);
   });
 });

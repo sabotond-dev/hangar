@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { EVENT_SETUP, EVENT_TIMER } from "./constants";
 import {
   fetchConfig,
+  fetchSerialNumber,
   hostHeartbeat,
   sendConfig,
   storePage,
@@ -32,6 +33,17 @@ const repo = (rel: string) =>
  * forbidden name in a comment is one uncomment away from being revived.
  * Components are .svelte and are not read here - a stated limit rather than
  * an exemption, recorded in the phase's deferred items.
+ *
+ * AMENDMENT (Phase 7, plan 07-01). Test 4 counted four builders from the day
+ * it was written. Phase 7 adds a fifth and last outbound instruction,
+ * fetchSerialNumber - SERIALNUMBER/FETCH addressed to the module's own SX/SY,
+ * never broadcast - because the durable snapshot behind PUT BACK needs a key
+ * that names one module and survives a closed tab (07-CONTEXT D-04 amended),
+ * and the browser refuses to expose the USB serial it keys its own grant on.
+ * Test 4 is widened to five builders: the class set gains SERIALNUMBER and the
+ * instruction set is unchanged at EXECUTE and FETCH. A widening, not a new
+ * test; the file stays at five. The set is closed here at five: a sixth builder
+ * would make this test fail, which is the point of it.
  */
 const SCANNED_DIRS = ["src/lib"];
 
@@ -92,17 +104,19 @@ describe("forbidden instructions (D-06)", () => {
     expect(descriptorSource()).toMatch(/TYPE:\s*255/);
   });
 
-  it("the builders produce only the four instructions this phase is allowed to send", () => {
+  it("the builders produce only the five instructions HANGAR is allowed to send", () => {
     const built = [
       hostHeartbeat(),
       fetchConfig(0, 0, 0, EVENT_SETUP),
       sendConfig(0, 0, 0, EVENT_TIMER, "x"),
       storePage(),
+      fetchSerialNumber(0, 0),
     ];
     expect([...new Set(built.map((r) => r.descr.class_name))].sort()).toEqual([
       "CONFIG",
       "HEARTBEAT",
       "PAGESTORE",
+      "SERIALNUMBER",
     ]);
     expect([...new Set(built.map((r) => r.descr.class_instr))].sort()).toEqual([
       "EXECUTE",
