@@ -18,14 +18,14 @@ feature table in `.planning/research/FEATURES.md`.
 
 ### Connect [A]
 
-- [ ] **CONN-01**: User sees one primary `CONNECT` control, enabled only when `"serial" in navigator && isSecureContext` — never gated by user-agent sniffing [A1]
-- [ ] **CONN-02**: User on an unsupported browser and user on an insecure context see two different messages, each naming the fix; the unsupported message names browsers that do work (Chrome, Edge, desktop Firefox 151+) and never says "Chromium" [A2]
-- [ ] **CONN-03**: User reads, before clicking, what the browser's port picker is, that the browser asks and not HANGAR, and that HANGAR sees nothing until they choose [A3]
-- [ ] **CONN-04**: User whose port is held by another program (typically Grid Editor) sees Grid Editor named as the likely culprit and the recovery in order — quit the other app, unplug, wait, replug, reload, connect — instead of the raw `Failed to open serial port` exception [A4]
-- [ ] **CONN-05**: User who cancels the picker sees a distinct "you cancelled" state, and user whose picker listed nothing sees the cable/driver branch (charge-only USB cable warning included) [A5]
-- [ ] **CONN-06**: Returning user is reconnected silently from `navigator.serial.getPorts()` without re-running the picker, and unplug/replug updates the UI through the `connect`/`disconnect` events instead of failing on the next write [A8]
-- [ ] **CONN-07**: The port picker is filtered to ZONA's USB identity only (VID 0x303a / PID 0x8123); bootloader identities are never offered, and after opening, the module is verified as a ZONA from its heartbeat before any control is enabled — any other module is refused with a plain message [A9]
-- [ ] **CONN-08**: User can see the connected module's type and firmware version, so "connected" means "connected to a ZONA", not "a port is open" [A7]
+- [x] **CONN-01**: User sees one primary `CONNECT` control, enabled only when `"serial" in navigator && isSecureContext` — never gated by user-agent sniffing [A1]
+- [x] **CONN-02**: User on an unsupported browser and user on an insecure context see two different messages, each naming the fix; the unsupported message names browsers that do work (Chrome, Edge, desktop Firefox 151+) and never says "Chromium" [A2]
+- [x] **CONN-03**: User reads, before clicking, what the browser's port picker is, that the browser asks and not HANGAR, and that HANGAR sees nothing until they choose [A3]
+- [x] **CONN-04**: User whose port is held by another program (typically Grid Editor) sees Grid Editor named as the likely culprit and the recovery in order — quit the other app, unplug, wait, replug, reload, connect — instead of the raw `Failed to open serial port` exception [A4]
+- [x] **CONN-05**: User who cancels the picker sees a distinct "you cancelled" state, and user whose picker listed nothing sees the cable/driver branch (charge-only USB cable warning included) [A5]
+- [x] **CONN-06**: Returning user is reconnected silently from `navigator.serial.getPorts()` without re-running the picker, and unplug/replug updates the UI through the `connect`/`disconnect` events instead of failing on the next write [A8]
+- [x] **CONN-07**: The port picker is filtered to ZONA's USB identity only (VID 0x303a / PID 0x8123); bootloader identities are never offered, and after opening, the module is verified as a ZONA from its heartbeat before any control is enabled — any other module is refused with a plain message [A9]
+- [x] **CONN-08**: User can see the connected module's type and firmware version, so "connected" means "connected to a ZONA", not "a port is open" [A7]
 
 ### Non-destructive install [B]
 
@@ -158,14 +158,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 1 | Complete |
 | FOUND-05 | Phase 3 | Complete |
-| CONN-01 | Phase 6 | Pending |
-| CONN-02 | Phase 6 | Pending |
-| CONN-03 | Phase 6 | Pending |
-| CONN-04 | Phase 6 | Pending |
-| CONN-05 | Phase 6 | Pending |
-| CONN-06 | Phase 6 | Pending |
-| CONN-07 | Phase 6 | Pending |
-| CONN-08 | Phase 6 | Pending |
+| CONN-01 | Phase 6 | Complete (one control, in the header, on `/`, `/c/<id>/` and `/browse/`, enabled from `capabilityOf({hasSerial, secure})` and nothing else; no user-agent read exists anywhere in the tree, asserted by session-copy.spec.ts and the source scans; proven in both browsers) |
+| CONN-02 | Phase 6 | Complete (two distinct messages, both rendered in a real browser: `unsupported` on WebKit with no `navigator.serial`, `insecure` through a shadowed `isSecureContext` - the first time the insecure branch has ever rendered in this project; the unsupported one names Chrome, Edge and desktop Firefox 151 and no engine) |
+| CONN-03 | Phase 6 | Complete (the 130-character pre-click line beneath the header row in every not-connected state and in the chosen panel, never both at once; the Firefox two-step sentence ships unconditional and brand-free beneath `Nothing listed?`, because no non-brand behavioural signal for that prompt exists) |
+| CONN-04 | Phase 6 | Complete against a scripted `NetworkError`: the named block, Grid Editor by name, the six steps in order, the browser's own `Failed to open serial port.` nowhere on the page, in node and in a browser from both the probe and the shipped header. That Grid Editor is what produces that error on a real machine is docs/SESSION-RUNBOOK.md row C - Phase 2's row 0 was never exercised - and is awaiting the user |
+| CONN-05 | Phase 6 | Complete (`cancelled` is its own state with `You closed the chooser`; the empty-picker branch is the `Nothing listed?` disclosure beneath it, charge-only cable first, because the API cannot tell the two apart - one `NotFoundError`, three causes; the third cause, a site setting, gets its own disclosure) |
+| CONN-06 | Phase 6 | Complete against a scripted serial: `getPorts()` on load offers `ZONA detected` with the port unopened, one click connects with zero `requestPort()` calls (never automatic, D-06), `disconnect` flips the header in the same turn, and the replug that mints a NEW port object is adopted by USB identity; the connection survives a four-hop client-router walk and a reload lands the offer. The grant surviving a browser restart (and for the deployed origin) and the replug on real hardware are runbook rows A and B, awaiting the user |
+| CONN-07 | Phase 6 | Complete with the correction the research found: the filter is `0x303a/0x8123`, but every ESP32-S3 Grid module shares that identity, so the filter does NOT narrow the picker to a ZONA and the heartbeat verify is the whole of it - `not-zona` ships as a routine first-class state naming the module that answered. Proven against synthetic heartbeats; the rig half (a real second module named in the header, a real non-ZONA refused) is runbook row D, awaiting the user |
+| CONN-08 | Phase 6 | Complete (type, firmware and active page in the header while connected - `ZONA · fw 1.5.5 · page 3` from the Phase 2 capture - LIVE rather than frozen at connect time, with the rig tail filling in as other modules announce themselves; `connected` is reached only after the heartbeat names a ZONA) |
 | SAFE-01 | Phase 7 | Pending |
 | SAFE-02 | Phase 7 | Pending |
 | SAFE-03 | Phase 7 | Pending |
@@ -214,4 +214,4 @@ Phase 3 (3), Phase 4 (13), Phase 5 (12), Phase 6 (8), Phase 7 (10), Phase 8 (1).
 
 ---
 *Requirements defined: 2026-09-02*
-*Last updated: 2026-09-02 after roadmap creation (traceability populated)*
+*Last updated: 2026-09-05 after Phase 6's gate (CONN-01..08 closed with their qualifiers; the hardware halves of CONN-04, CONN-06 and CONN-07 are docs/SESSION-RUNBOOK.md rows A to E, presented to the user and unanswered; SAFE-01 and DEGR-02 remain Phase 7's)*

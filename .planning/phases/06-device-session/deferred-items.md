@@ -277,3 +277,149 @@ and is the last plan of the phase to run the suite.
 connected module, so S5 was not driven on a real route and the panel's enabled button in S5 was
 not observed. The item stays as written, owner unchanged (unowned; Phase 7 is the natural place
 to rule on it).
+
+## 11. A second HANGAR tab is told to quit Grid Editor (found by 06-RESEARCH, recorded by 06-14)
+
+A second HANGAR tab that clicks `CONNECT ZONA` while the first tab holds the port gets the identical
+`NetworkError` from `open()` that Grid Editor produces, so `classifyOpenError` lands it in `port-busy`
+and the visitor reads `Another program is holding the port` naming Grid Editor - an app that is not
+the problem - with six steps of which the first (quit Grid Editor from its tray) does nothing for
+them. The honest fix is a `BroadcastChannel` on this origin: a session that holds a port announces it,
+and a second tab that hears the announcement renders "HANGAR is already connected in another tab"
+instead of the Grid Editor block.
+
+**Not built in Phase 6, deliberately.** The taxonomy is nine named states (06-UI-SPEC Y-21) and a
+tenth would reopen the approved contract; the detector is a cross-tab protocol with its own failure
+modes (a tab that crashed without announcing its release); and in Phase 6 the cost of the misdirection
+is a confused visitor, not a corrupted module. In Phase 7 a second tab contending for the port during
+a write is a much worse event, and that is where the detector earns a state.
+
+**Owner:** Phase 7. The reasoning is recorded here so Phase 7 inherits it rather than rediscovering
+it: the two causes are indistinguishable at the `open()` rejection, so the signal has to come from
+HANGAR's own other tab, and `BroadcastChannel` is the same-origin primitive for exactly that.
+
+## 12. No idle-timeout close on a hidden tab (found by 06-RESEARCH PITFALLS C1, recorded by 06-14)
+
+Phase 4's `TryOnDevice` closed the port when the tab was hidden (`closeOnHide`). The session does not:
+it holds the port for the whole visit, so a visitor who tabs away for an hour keeps Grid Editor locked
+out for an hour. An idle timeout - close after N minutes hidden, offer to reconnect on return - would
+return the port without a click.
+
+**Not built in Phase 6, deliberately.** The behaviour change from Phase 4 is recorded as a safety
+posture (06-VALIDATION, standing hazards; 06-UI-SPEC open question 5), the header's `DISCONNECT ZONA`
+is one click away, and `docs/SESSION-RUNBOOK.md` states the consequence in its second warning. An
+idle close interacts with an in-flight write - a tab hidden mid-`CONFIG/EXECUTE` must not close the
+port before the acknowledgement or the restore heartbeat - and that interaction cannot be designed
+before the write exists.
+
+**Owner:** Phase 7, which owns the write and therefore owns when a port may be closed underneath one.
+
+## 13. No staleness signal for a silent module on an attached port (found by 06-04, recorded by 06-14)
+
+The watchdog reaches `unplugged-while-connected` on exactly one condition: silent for `MODULE_GONE_MS`
+(750 ms, three missed heartbeats) **and** `portIsAttached()` returning `false`. A module that goes
+silent while the operating system still reports the port attached - a hung firmware, a module mid-
+bulk-NVM, a cable with power but no data - leaves the session `connected` with a frozen identity, and
+06-04 test 12 asserts that as its own case. Nothing on screen says the module has stopped answering.
+
+**Not published in Phase 6, deliberately.** The taxonomy is nine; a published `stale` flag that nothing
+renders is a tenth state in everything but name, and a rendered one would need a slot state the
+approved spec does not have. In Phase 6 a stale connection costs nothing: nothing is written, so a
+module that stopped answering is a module that is left alone.
+
+**Owner:** Phase 7. A write to a module that has stopped answering is where the signal matters - the
+`PAGESTORE` dropped without acknowledgement during a bulk NVM operation (SKELETON-RESULTS (c)) is
+exactly this shape - and the private `#lastSeen` the watchdog already keeps is the field to publish
+when a write control needs to disable on it.
+
+## 14. Measurements this phase recorded rather than gated (collected by 06-14)
+
+Numbers that were observed and written down in a SUMMARY but are asserted by no test, so nobody
+reads them as a gate. Each names the plan that measured it.
+
+- **Identification needs 3 of the capture's 119 rx chunks** (06-07, 06-12, 06-13): the count of
+  `zona-hardware-a-hb-on-pace-0.json` chunks fed before the session read `connected`. Recorded as a
+  fact about the capture; a firmware or pin change would move it.
+- **The header note is 152px** in S1, S2 and S3 and absent in S0a and S0b (06-09, 06-11), with the
+  headline at 124px hydrated and 276px in the prerendered layout with the note (06-13).
+  06-UI-SPEC open question 7 names the 72px one-paragraph alternative; a design call, not a gate.
+- **The hydration window on `/`** (06-09, 06-11): the layout chunk pulls the session's chunk before
+  hydration, and the window grew twice in this phase; the two pre-hydration key presses in
+  `first-experience.e2e.ts` (item 8) are the shipped tests exposed to it.
+- **The full suite at `--workers 3` is 1.1 m of runner time** (06-13, 06-14), against two deaths of
+  `wrangler dev` at the default worker count (item 7). The number is dated and asserted nowhere.
+- **The degrade test's ordering negative passed 1870 ms early** with the hydration waits removed
+  (06-13): a false green, recorded in the shape of 06-05 mutation 1, and the reason every
+  shipped-chrome test waits on a published attribute before reading prose.
+- **Row F's timing** - how long Firefox's two prompts take end to end - is a measurement the runbook
+  asks the user to take; 06-RESEARCH Pattern 6 wanted a threshold set from it and the shipped copy
+  went unconditional instead (D-04 amended), so the number, when it arrives, informs copy and gates
+  nothing.
+
+**Owner:** none needed. This item exists so a later reader can tell a recorded number from an
+asserted one.
+
+## Notes appended by 06-14
+
+The phase's last plan read every open item above; nothing is edited in place.
+
+### Item 1 - resolved by 06-14
+
+`docs/TESTING.md` was re-measured end to end against the production build at `aca8227`: the
+"How to run it" table carries 69 files / 724 tests, `3 13`, 77 e2e (67 + 10), 533 svelte-check
+files, each with its wall time from a sequential run; the per-file Playwright table gained
+`session.e2e.ts` at 14 / 2 / 16 and totals 67 / 10 / 77; the skeleton and front-door tables carry
+`transport.spec.ts` 9 and `try-on.spec.ts` 7 with the phase that moved them; and a new section, "The
+device session's test surface", holds the phase's three files, the two widenings, the fake serial's
+role and its limits, and the one line naming `docs/SESSION-RUNBOOK.md` as the hardware half.
+
+### Item 5 - `test-results/` removed by hand again
+
+The gate run at `--workers 3` was green and left `test-results/.last-run.json` behind, as 06-13
+recorded. Removed by hand. `docs/TESTING.md` now says so under "Before an e2e run", so the next
+person learns it from the document rather than from `git status`. The remedy is unchanged and still
+unowned: `outputDir: ".tmp-e2e/results"` in `playwright.config.ts`.
+
+### Item 7 - three workers, first time green
+
+The phase gate ran once, at `npm run test:e2e -- --workers 3`: `77 passed (1.1m)`, no
+`ProxyController` error, no `Network connection lost.` in the log. `docs/TESTING.md` now instructs the
+flag. The config still does not pin it; owner unchanged.
+
+### Item 8 - read, decided, left; owner passes to Phase 7
+
+06-14 is the last plan of the phase and its `files_modified` is three documents; its standing rule is
+that no source file is edited by this plan and that anything the gate finds is a finding for a gap
+plan. `e2e/first-experience.e2e.ts:156` and `:535` are therefore **not edited here**. In the one full
+run of this plan neither site fired (`.tmp-e2e/06-14-suite-w3.log`, 77 passed, no retry), which makes
+four consecutive full runs at `--workers 3` (06-11, 06-13, 06-14 and 06-13's file-level runs) with no
+recurrence - the race is real, recorded twice, and quiet at three workers. The fix is still the
+one-line wait the item names, at both sites. **Owner:** Phase 7's first plan that touches
+`e2e/first-experience.e2e.ts`, or 07-01 as the plan that re-measures the baselines and would notice a
+flake first; whoever it is should apply both waits and run the file ten times.
+
+### Item 9 - not measured again
+
+The 6px horizontal overflow at 320px is Phase 4's coverflow and was not re-measured; no plan in this
+phase touched `Coverflow.svelte`. Owner unchanged.
+
+### Item 10 - not driven, and the runbook warns about it
+
+S5 was not driven on a real route by any test in the phase. `docs/SESSION-RUNBOOK.md` carries the
+consequence as a note beneath its table so the user does not report it as a fault during row B: the
+panel's `TRY ON DEVICE` is a live control in the unplugged state and a click lands in
+`The ZONA is not there any more`. Owner unchanged; Phase 7 rules on it.
+
+### Two spec tallies that are stale, recorded rather than changed
+
+Both were found by earlier plans and re-checked here; neither is a code change and no plan in the
+phase may change the approved contract, so they are errata for the next revision of 06-UI-SPEC.
+
+- `SAFE_PROMISE` is **126 characters**, not the 125 06-UI-SPEC and 06-02-PLAN state; the string is
+  verbatim from the contract and `session-copy.spec.ts` asserts 126 (06-02 decision).
+- `session-copy.ts`'s comment on `FAILURE_COPY_STATES` says the six states "are exactly the six
+  branches failureCopy has". Since 06-01 `failureCopy` has **seven** branches: the six plus
+  `already-open`, which renders through the `unknown` row and is deliberately not a named state.
+  The count of named states (nine) is right; the sentence about the transport's branch count is not.
+  **Owner:** whoever next edits `session-copy.ts`; a comment fix, one line, and `session-copy.spec.ts`
+  test 6's engine-name scan does not care.

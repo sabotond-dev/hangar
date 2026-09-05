@@ -11,25 +11,38 @@ work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-05, at the end of Phase 5.1 — the
-last wave of the catalog-browse work, against a fresh `npm run build`. Wall times are the whole
-command including npm and process startup; the parenthesised figure is the runner's own reported
-duration. Every number here is **observed**, never predicted — the tree is shared between phases, so
-a row that was guessed rather than run is worse than no row at all.
+Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-05, at the end of Phase 6 — the
+device-session work, against a fresh `npm run build` at `aca8227`. Wall times are the whole command
+including npm and process startup, each command run alone; the parenthesised figure is the runner's
+own reported duration. Every number here is **observed**, never predicted — the tree is shared between
+phases, so a row that was guessed rather than run is worse than no row at all.
 
-| Command                      | Covers                                                               | Measured                                                                       |
-| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `npm run test:quick`         | the `server` Vitest project — everything except the two sweeps       | 66 files, 691 passed + 1 todo (692); 25 s wall (22.7 s)                        |
-| `npm run test:sweep`         | the `sweep` project: three files, and 94% of its cost is one of them | 3 files, 13 tests; 80 s wall (78.0 s)                                          |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 69 files, 704 passed + 1 todo (705); 86 s wall (82.6 s)                        |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 61 tests; 43.5 s runner time, 45 s wall including the build and the cold start |
-| `npm run check`              | `svelte-check` over the whole project                                | 517 files, 0 errors, 0 warnings; 6 s wall                                      |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 12 s wall                                                              |
-| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 9 s wall                                                               |
+| Command                      | Covers                                                               | Measured                                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `npm run test:quick`         | the `server` Vitest project — everything except the three sweeps     | 69 files, 724 passed + 1 todo (725); 25 s wall (22.9 s)                                                          |
+| `npm run test:sweep`         | the `sweep` project: three files, and 97% of its cost is one of them | 3 files, 13 tests; 79 s wall (76.8 s)                                                                            |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 72 files, 737 passed + 1 todo (738); 85 s wall (82.7 s)                                                          |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 77 tests (67 chromium, 10 webkit-phone) at `--workers 3`; 1.1 m runner time, plus the rebuild and the cold start |
+| `npm run check`              | `svelte-check` over the whole project                                | 533 files, 0 errors, 0 warnings; 7 s wall                                                                        |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 34 s wall                                                                                                |
+| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 10 s wall                                                                                                |
 
 **Run `test:quick` after a build, not only before one.** `src/lib/config-shape.spec.ts` test 14 and
 `src/lib/og/build.spec.ts` tests 1, 4 and 5 read `build/`, so they are only armed when the directory
 beside them is fresh. The numbers above were taken in that order.
+
+**Run the e2e suite at `--workers 3`, not at Playwright's default.** Twice on this machine a full run
+under the default worker count ended with `wrangler dev` printing `Network connection lost.` and every
+remaining test refusing to connect (Phase 6 deferred item 7). At three workers every full run since has
+passed first time; `playwright.config.ts` does not yet pin the number, so pass it on the command line:
+`npm run test:e2e -- --workers 3`.
+
+**Every count is a baseline plus a delta, never a literal total.** `scripts/check-counts.mjs` reads a
+Vitest or Playwright summary from stdin and compares it against an expected file count and test count;
+each phase records its baseline on a clean tree in its first SUMMARY and every later plan asserts
+`baseline + N`. Phase 6's arithmetic, reconciled at its gate: quick **66 → 69 files** and **691 → 724
+tests** (+3 / +33), sweep **unchanged**, e2e **61 → 77** (+16, of which ten are the five `@webkit`
+titles counted twice — see the table under "Before an e2e run").
 
 The sampling rule, in three lines:
 
@@ -84,26 +97,27 @@ If any of those three numbers drops, the suite is not green — it is silent.
 The walking skeleton (FOUND-01) added two directories of first-party code and 98 tests to the
 `server` project, plus three tests inside the existing `src/lib/config-shape.spec.ts` and two inside
 `e2e/skeleton.e2e.ts`. All of it runs in node, with no browser and no ZONA attached. Phase 4 has since
-added one more test to `transport.spec.ts` — the control label the copy interpolates — so the
-table below totals 99.
+added one more test to `transport.spec.ts` — the control label the copy interpolates — and Phase 6
+two more — the `already-open` row a racing `open()` lands in, rendered as one sentence with no
+steps — so the table below totals 101.
 
-| File                                              | Tests | What it holds                                                                                      |
-| ------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------- |
-| `src/lib/protocol/constants.spec.ts`              | 5     | values read from the pinned package rather than restated                                           |
-| `src/lib/protocol/descriptors.spec.ts`            | 10    | the four outbound descriptors, byte for byte                                                       |
-| `src/lib/protocol/forbidden-instructions.spec.ts` | 5     | D-06: `PAGEACTIVE/EXECUTE`, `NVMERASE`, `PAGECLEAR`, `PAGEDISCARD`                                 |
-| `src/lib/protocol/framing.spec.ts`                | 9     | the frame scanner: split, coalesced and torn inputs                                                |
-| `src/lib/protocol/decode.spec.ts`                 | 5     | the decode guard — `undefined`, never `false`                                                      |
-| `src/lib/protocol/match.spec.ts`                  | 7     | which inbound class may resolve which waiter                                                       |
-| `src/lib/protocol/write-guard.spec.ts`            | 6     | D-09: what makes a fetched string safe to write back                                               |
-| `src/lib/transport/transport.spec.ts`             | 7     | the five named open failures, CONN-04's recovery order and the control label the copy interpolates |
-| `src/lib/transport/capture.spec.ts`               | 6     | D-07's recorder and the pinned `STEP_IDS` vocabulary                                               |
-| `src/lib/transport/fake.spec.ts`                  | 8     | capture replay and the five injected faults                                                        |
-| `src/lib/transport/queue.spec.ts`                 | 8     | one outstanding request, bounded retry, a NACK never retried                                       |
-| `src/lib/transport/sequence.spec.ts`              | 9     | the no-op cycle, including the mandatory restore in its `finally`                                  |
-| `src/lib/transport/fixtures/synthetic.spec.ts`    | 3     | the generated capture, regenerated at module scope                                                 |
-| `src/lib/transport/fixtures/fixtures.spec.ts`     | 4     | **the gate**: at least one committed capture is real                                               |
-| `src/lib/skeleton-results.spec.ts`                | 7     | `docs/SKELETON-RESULTS.md` answers all six questions, with citations                               |
+| File                                              | Tests | What it holds                                                                                     |
+| ------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------- |
+| `src/lib/protocol/constants.spec.ts`              | 5     | values read from the pinned package rather than restated                                          |
+| `src/lib/protocol/descriptors.spec.ts`            | 10    | the four outbound descriptors, byte for byte                                                      |
+| `src/lib/protocol/forbidden-instructions.spec.ts` | 5     | D-06: `PAGEACTIVE/EXECUTE`, `NVMERASE`, `PAGECLEAR`, `PAGEDISCARD`                                |
+| `src/lib/protocol/framing.spec.ts`                | 9     | the frame scanner: split, coalesced and torn inputs                                               |
+| `src/lib/protocol/decode.spec.ts`                 | 5     | the decode guard — `undefined`, never `false`                                                     |
+| `src/lib/protocol/match.spec.ts`                  | 7     | which inbound class may resolve which waiter                                                      |
+| `src/lib/protocol/write-guard.spec.ts`            | 6     | D-09: what makes a fetched string safe to write back                                              |
+| `src/lib/transport/transport.spec.ts`             | 9     | the six named open failures, CONN-04's recovery order and the control label the copy interpolates |
+| `src/lib/transport/capture.spec.ts`               | 6     | D-07's recorder and the pinned `STEP_IDS` vocabulary                                              |
+| `src/lib/transport/fake.spec.ts`                  | 8     | capture replay and the five injected faults                                                       |
+| `src/lib/transport/queue.spec.ts`                 | 8     | one outstanding request, bounded retry, a NACK never retried                                      |
+| `src/lib/transport/sequence.spec.ts`              | 9     | the no-op cycle, including the mandatory restore in its `finally`                                 |
+| `src/lib/transport/fixtures/synthetic.spec.ts`    | 3     | the generated capture, regenerated at module scope                                                |
+| `src/lib/transport/fixtures/fixtures.spec.ts`     | 4     | **the gate**: at least one committed capture is real                                              |
+| `src/lib/skeleton-results.spec.ts`                | 7     | `docs/SKELETON-RESULTS.md` answers all six questions, with citations                              |
 
 Two of those deserve their own paragraph.
 
@@ -141,17 +155,17 @@ Phase 4 added nine `server` spec files, one test to `src/lib/transport/transport
 `src/lib/config-shape.spec.ts` and eleven Playwright tests. Every count below was observed on
 2026-09-04 after the phase's last plan, by running each file on its own.
 
-| File                                 | Tests | What it holds                                                                                                              |
-| ------------------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/ui/identity.spec.ts`        | 6     | IDENT-01's token ladder, the WCAG AA floor on black, the two font stacks, the 9x9 favicon                                  |
-| `src/lib/catalog/front-door.spec.ts` | 8     | the row and the exclusion list as a **partition** of the catalog, and motion derived from the fixture rather than declared |
-| `src/lib/coverflow/slots.spec.ts`    | 8     | the ring arithmetic and the slot ladder, including the left/right mirror                                                   |
-| `src/lib/sim/schedule.spec.ts`       | 7     | the 10 ms accumulator, the 100 ms catch-up clamp and parity with the vendored host's constants                             |
-| `src/lib/sim/paint.spec.ts`          | 5     | one `putImageData` per pad per paint, zero of every forbidden call, and the unlit-cell alpha                               |
-| `src/lib/sim/touch.spec.ts`          | 8     | mouse-as-finger geometry and the tick-locked, at-most-one-sample-per-tick delivery                                         |
-| `src/lib/sim/host.spec.ts`           | 10    | the shared rAF host: the 9x9 backing store, the coverflow window gate, the hero's continuity across steps, teardown        |
-| `src/lib/ui/glyph-field.spec.ts`     | 5     | the splash field is deterministic and byte-identical across two builds                                                     |
-| `src/lib/device/try-on.spec.ts`      | 6     | connect and identify against `FakeTransport`, including **zero writes** across a full cycle                                |
+| File                                 | Tests | What it holds                                                                                                                    |
+| ------------------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/ui/identity.spec.ts`        | 6     | IDENT-01's token ladder, the WCAG AA floor on black, the two font stacks, the 9x9 favicon                                        |
+| `src/lib/catalog/front-door.spec.ts` | 8     | the row and the exclusion list as a **partition** of the catalog, and motion derived from the fixture rather than declared       |
+| `src/lib/coverflow/slots.spec.ts`    | 8     | the ring arithmetic and the slot ladder, including the left/right mirror                                                         |
+| `src/lib/sim/schedule.spec.ts`       | 7     | the 10 ms accumulator, the 100 ms catch-up clamp and parity with the vendored host's constants                                   |
+| `src/lib/sim/paint.spec.ts`          | 5     | one `putImageData` per pad per paint, zero of every forbidden call, and the unlit-cell alpha                                     |
+| `src/lib/sim/touch.spec.ts`          | 8     | mouse-as-finger geometry and the tick-locked, at-most-one-sample-per-tick delivery                                               |
+| `src/lib/sim/host.spec.ts`           | 10    | the shared rAF host: the 9x9 backing store, the coverflow window gate, the hero's continuity across steps, teardown              |
+| `src/lib/ui/glyph-field.spec.ts`     | 5     | the splash field is deterministic and byte-identical across two builds                                                           |
+| `src/lib/device/try-on.spec.ts`      | 7     | connect and identify against `FakeTransport`, including **zero writes** across a full cycle; Phase 6 added the rig-aware refusal |
 
 `src/lib/config-shape.spec.ts` went from 12 tests to **14**. The two additions are the pair that keeps
 the 131,101-byte `@intechstudio/grid-protocol` chunk off the front door's critical path, and they are
@@ -229,10 +243,11 @@ which is the discipline `e2e/skeleton.e2e.ts` established.
 
 **Web Serial past the capability check is still not automatable.** Everything downstream of an open
 port — `identifyOnly`, the identified block, `DISCONNECT ZONA` — is covered in node through
-`FakeTransport` in `src/lib/device/try-on.spec.ts`, including the never-writes invariant. The one
-remaining hardware check is a person with a ZONA on the desk: open the front door, choose a pad, click
-`TRY ON DEVICE`, pick the module, and confirm the identified block names the firmware and the active
-page and that the module's own configuration is untouched afterwards.
+`FakeTransport` in `src/lib/device/try-on.spec.ts`, including the never-writes invariant. When this
+section was written the one remaining hardware check was a person with a ZONA on the desk clicking
+`TRY ON DEVICE`; Phase 6 widened both halves — a scripted `navigator.serial` now drives the shipped
+header in a browser, and the hardware half is the six-row checklist in `docs/SESSION-RUNBOOK.md`. See
+"The device session's test surface" below.
 
 Two conventions in that file are worth copying rather than rediscovering.
 
@@ -542,6 +557,69 @@ that page, waits for both meters to settle (which is what proves the engine has 
 presses `Escape`, and asserts the pad's own 9x9 backing store still changes 400 ms later. Reverting
 `model.ts` to `closeEngine(engine)` was observed turning it red, with the pad frozen on a lit frame.
 
+## The device session's test surface
+
+Phase 6 turned Phase 4's per-panel connect into a site-wide device session: one connection that
+survives navigation, a one-click reconnect offer for a previously granted port, plug and unplug
+awareness, the module's identity in the header, nine named failure states each with a recovery, and
+`FORGET THIS ZONA`. It added **three** `server` spec files, grew two existing ones, widened three
+shipped gates without growing them, and added one Playwright file that runs in both projects. Every
+count below was observed on 2026-09-05 at the phase gate by running the files on their own.
+
+| File                                              | Tests | What it holds                                                                                                                                                                                                                          |
+| ------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/device/session-copy.spec.ts`             | 6     | every session string, character-exact and import-free; the seventeen-phase to nine-slot-state table; the guard that keeps the managed-computer sentence out                                                                            |
+| `src/lib/device/session.spec.ts`                  | 17    | the machine over a fake port: every transition and refusal, the in-flight guard, replug adoption by USB identity, the missed-disconnect watchdog, `forget()` ordering, the 500 ms announcer, and zero writes in both halves            |
+| `src/lib/ui/device-ui.spec.ts`                    | 7     | the structural gate over the seven device components: no compiler import, no hex, 44px controls, one live region, `aria-expanded` in exactly four states, `data-hydrated` from `onMount` only                                          |
+| `src/lib/transport/transport.spec.ts`             | 9     | 7 → 9: the `already-open` row and its no-steps rendering                                                                                                                                                                               |
+| `src/lib/device/try-on.spec.ts`                   | 7     | 6 → 7: a rig refusal names the module reporting heartbeat type 1, not whichever spoke first                                                                                                                                            |
+| `src/lib/config-shape.spec.ts`                    | 14    | **unchanged in count, widened in reach**: test 13 follows the transitive static import graph from `+layout.svelte` and every file in `src/lib/ui/` against five permitted specifiers; test 12 discovers every `src/routes/dev/*` probe |
+| `src/lib/protocol/forbidden-instructions.spec.ts` | 5     | **unchanged in count, widened in reach**: the scan now covers all of `src/lib`, so `src/lib/device/` — the directory that would do the writing if the phase were wrong about itself — is inside it                                     |
+
+**Three files, thirty new node tests, and none of them opens a real port.** The session takes its serial
+surface (`requestPort`, `getPorts`, the `connect` and `disconnect` listeners) and its transport factory
+as injectable arguments, so `session.spec.ts` drives the whole machine against a fake port and a
+`FakeTransport` fed from the Phase 2 hardware capture. Identification from that capture needs **3 of
+its 119 rx chunks**. `vi.useFakeTimers()` fakes `setTimeout` alone for the watchdog and the announcer,
+so promise chains and dynamic imports keep running.
+
+**The scripted serial is modelled on a source reading, and its own header says so.** `e2e/fake-serial.ts`
+installs a `navigator.serial` on `Navigator.prototype` from an init script, before any page script, and
+exposes `grant()`, `pick()`, `busy()`, `unplug()`, `replug()`, `feed()`, `requests()`, `openCount(i)` and
+`writes()`. It can prove that HANGAR reacts correctly to a `NetworkError`, to a `disconnect` event, to a
+`connect` event that hands back a **different** port object, and to `getPorts()` returning a granted
+port on load. It cannot prove that a browser really does any of those things — that the grant survives a
+restart, that a replug really mints a new object, that Grid Editor is what produces the busy port, that a
+real EN16 says so on the wire, that `forget()` really removes the entry. Those five are
+`docs/SESSION-RUNBOOK.md`, the hardware half of this phase, run by a person with a ZONA; the runbook
+says for each row why a machine cannot.
+
+**`e2e/session.e2e.ts` holds 14 titles and adds 16 to the suite**, because two of them carry `@webkit`
+and run in both projects. Tests 1 to 9 drive the unlinked `/dev/session/` probe — the fifth probe route,
+which exposes the phase, the identity and a write counter as plain text — through the two capability
+messages (the `insecure` branch rendered in a real browser for the first time in this project), the
+offer, the busy port, the unplug, the replug, and a whole visit that ends with `writes() === 0`. Tests
+10 to 14 drive the **shipped header** on `/`, `/browse/` and `/c/aurora/`: the offer connects to
+`ZONA · fw 1.5.5 · page 3` with no picker; one connection survives a four-hop client-router walk and a
+reload lands the offer rather than the connection; a busy port raised from the header opens its recovery
+with focus inside it and `Escape` hands focus back; the degrade header is asserted in a fixed order on
+both projects; and one session transition is spoken exactly once while the tuning and browse regions
+stay quiet.
+
+Three conventions in that file worth copying:
+
+- **Wait on published state, then read prose.** The prerendered document already ships a slot and a
+  note, so a text or count assertion taken before `data-hydrated="true"` can pass for a reason unrelated
+  to the claim. The degrade test's ordering negative — the hydration waits deleted and the entry chunk
+  held for two seconds — was observed passing against a document that had not read the capability, 1870
+  ms before it did. That is a false green, not a red, and it is the reason every shipped-chrome test waits
+  on `data-slot`, `data-hydrated` or `data-ready` before it reads a word.
+- **A property that must survive navigation is proven by clicking the site's own links**, with a stamp on
+  the document, never by `goto`; the same test then reloads and asserts the **offer**, so a connection
+  leaked across reloads cannot read as a feature.
+- **A counter a passing test rests on is made to leave zero once, deliberately.** A write planted in the
+  session's open path made `writes()` report 2 and the whole-visit test red before the zero was trusted.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
@@ -613,12 +691,14 @@ Capture e2e output to `.tmp-e2e/` (gitignored), never under `test-results/` or
 `playwright-report/`: Playwright deletes its `outputDir` at the start of every run, so a redirect
 target inside it is unlinked mid-run.
 
-The whole Playwright suite is **61 tests** as of 2026-09-05, and it is 61 rather than 53 because the
-eight tagged titles — five in `tuning-webkit.e2e.ts`, three in `browse-webkit.e2e.ts` — run in both
-projects. Observed, per file and per project, from the Phase 5.1 gate run:
+The whole Playwright suite is **77 tests** as of 2026-09-05, and it is 77 rather than 67 because the
+ten tagged titles — five in `tuning-webkit.e2e.ts`, three in `browse-webkit.e2e.ts`, two in
+`session.e2e.ts` — run in both projects. Observed, per file and per project, from the Phase 6 gate run
+at `--workers 3` (the Phase 5.1 gate run was 61, with `session.e2e.ts` not yet written):
 
 | File                      | chromium | webkit-phone | Total |
 | ------------------------- | -------- | ------------ | ----- |
+| `session.e2e.ts`          | 14       | 2            | 16    |
 | `first-experience.e2e.ts` | 11       | -            | 11    |
 | `browse.e2e.ts`           | 11       | -            | 11    |
 | `tuning.e2e.ts`           | 10       | -            | 10    |
@@ -629,14 +709,20 @@ projects. Observed, per file and per project, from the Phase 5.1 gate run:
 | `catalog.e2e.ts`          | 2        | -            | 2     |
 | `fidelity.e2e.ts`         | 2        | -            | 2     |
 | `skeleton.e2e.ts`         | 2        | -            | 2     |
-| **Total**                 | **53**   | **8**        | 61    |
+| **Total**                 | **67**   | **10**       | 77    |
 
-There are four unlinked probe routes under `/dev/`, one per thing a browser has to prove about the
+There are five unlinked probe routes under `/dev/`, one per thing a browser has to prove about the
 production build: the walking skeleton's page, `/dev/fidelity/` (the WASM formatter resolves and
-compiles), `/dev/catalog/` (a cold load fetches no WebAssembly) and `/dev/tune/` (the over-budget
-guard, over a real reserve). None of them is linked from anywhere, `e2e/fidelity.e2e.ts` asserts
-site-wide that no anchor on `/` points into `/dev/`, and `src/lib/config-shape.spec.ts` asserts the
-same property over the source of `src/routes/`.
+compiles), `/dev/catalog/` (a cold load fetches no WebAssembly), `/dev/tune/` (the over-budget guard,
+over a real reserve) and `/dev/session/` (the device session's phase, identity and write counter as
+plain text, driven by the scripted serial). None of them is linked from anywhere, `e2e/fidelity.e2e.ts`
+asserts site-wide that no anchor on `/` points into `/dev/`, and `src/lib/config-shape.spec.ts` test 12
+discovers every directory under `src/routes/dev/` and asserts the same property over the source of
+`src/routes/`.
+
+A green run also leaves `test-results/.last-run.json` behind, not only a failing one. It is gitignored;
+remove the directory by hand after a run until `playwright.config.ts` gains an `outputDir` under
+`.tmp-e2e/` (Phase 6 deferred item 5).
 
 One convention worth keeping: no Playwright test title may contain the word `failed`, because the
 acceptance checks assert an exact total and then grep the captured log for that word.
