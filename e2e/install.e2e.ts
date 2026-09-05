@@ -47,7 +47,7 @@
 //
 // ALL SIX TITLES ARE UNTAGGED: every one drives Web Serial, which the phone
 // engine does not have, and its degrade path is session.e2e.ts's tagged
-// pair. This file adds SIX to the suite total, on chromium alone.
+// pair. This file adds SIX to the suite total, on the desktop project alone.
 //
 // TEST 6 IS SLOW BY DESIGN. Two legs of three pagestoreMs (3000 ms) attempts
 // with retryBackoffMs between them are roughly 19 s against Playwright's
