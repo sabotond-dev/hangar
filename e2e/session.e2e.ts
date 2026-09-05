@@ -476,4 +476,96 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await writes(page)).toBe(0);
     expect(consoleErrors).toEqual([]);
   });
+
+  test("replugging offers the connection back, and the offer opens the new port", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await grantBeforeLoad(page);
+    await page.goto(PROBE);
+
+    // Precondition: a live session, then the cable out - S5, on port 0.
+    await connectGranted(page);
+    await page.evaluate(() => window.__hangarSerial.unplug(0));
+    await expect(phase(page)).toHaveText("unplugged-while-connected");
+    const oldOpensBefore = await openCount(page, 0);
+    expect(oldOpensBefore).toBe(1);
+
+    // The cable goes back in. replug() mints a NEW port object and fires
+    // `connect` at it, as Chromium does - never at the object the session
+    // holds - so the session has to recognise the arrival by getInfo() and
+    // adopt the new object. The offer comes back: `detected`, nothing opened.
+    const replugged = await page.evaluate(() => window.__hangarSerial.replug());
+    expect(replugged).toBe(1);
+    await expect(phase(page)).toHaveText("detected");
+    expect(await openCount(page, 1)).toBe(0);
+    await expect(title(page)).toHaveText("none");
+    await expect(detail(page)).toHaveText("none");
+
+    // Taking the offer: one click, the capture into the NEW port's index,
+    // `connected`, and still no picker - the permission survived the replug.
+    await page.getByTestId("session-connect").click();
+    await identifyWith(page, replugged);
+    await expect(phase(page)).toHaveText("connected");
+    expect(await identity(page).innerText()).toContain(CAPTURED_FIRMWARE);
+    expect(await requests(page)).toBe(0);
+
+    // The assertion that makes this more than a state check: the click
+    // opened the object the browser handed over, not the one that left. A
+    // session that reused its stored reference would show the opposite pair.
+    expect(await openCount(page, 0)).toBe(oldOpensBefore);
+    expect(await openCount(page, 1)).toBe(1);
+
+    expect(await writes(page)).toBe(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("a whole visit writes nothing and can revoke its own permission", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await grantBeforeLoad(page);
+    await page.goto(PROBE);
+
+    // One sequence, no shortcuts: grant, load, connect, identify, unplug,
+    // replug, connect, identify, forget. Every step is asserted on the way,
+    // and the write counter is read ONCE, at the end, so the number it
+    // reports is the whole journey's.
+    expect(await page.evaluate(() => "serial" in navigator)).toBe(true);
+    await connectGranted(page);
+    await page.evaluate(() => window.__hangarSerial.unplug(0));
+    await expect(phase(page)).toHaveText("unplugged-while-connected");
+    const replugged = await page.evaluate(() => window.__hangarSerial.replug());
+    await expect(phase(page)).toHaveText("detected");
+    await page.getByTestId("session-connect").click();
+    await identifyWith(page, replugged);
+    await expect(phase(page)).toHaveText("connected");
+    await expect(page.getByTestId("session-can-forget")).toHaveText("true");
+
+    // FORGET THIS ZONA: the session closes first, then revokes (06-04 test
+    // 14 holds the order), and the browser will not list the module again.
+    await page.getByTestId("session-forget").click();
+    await expect(phase(page)).toHaveText("forgotten");
+    await expect(identity(page)).toHaveText("none");
+    await expect(page.getByTestId("session-can-forget")).toHaveText("false");
+    expect(
+      await page.evaluate(
+        async (i) => ({
+          forgotten: window.__hangarSerial.forgotten(i),
+          listed: (await navigator.serial.getPorts()).length,
+        }),
+        replugged,
+      ),
+    ).toEqual({ forgotten: true, listed: 0 });
+
+    // No picker across the whole visit: the offer, the replug offer, the
+    // revoke - none of it went through requestPort().
+    expect(await requests(page)).toBe(0);
+
+    // SAFE-01 as a number over a visitor journey: offer, connect, identify,
+    // unplug, replug, connect, identify, revoke - and zero bytes written.
+    expect(await writes(page), "chunks written across the whole visit").toBe(0);
+    await expect(page.getByTestId("session-writes")).toHaveText("0");
+    expect(consoleErrors).toEqual([]);
+  });
 });
