@@ -1,17 +1,41 @@
-// CONN-01, CONN-02, CONN-04, CONN-05, CONN-06, DEGR-02 and SAFE-01: the
-// device session in the browsers that produce its states.
+// CONN-01, CONN-02, CONN-04, CONN-05, CONN-06, CONN-07, DEGR-02 and SAFE-01:
+// the device session in the browsers that produce its states.
 //
-// Nine tests, all against the session probe route, which renders the
-// session's fields as plain text and nothing else (its header says why). Four
-// are the capability and refusal half (plan 06-06): what a browser refuses.
-// Five are the cable's half (plan 06-07): what a browser does when a module is
-// really there - the granted-port offer, the busy port, the unplug, the replug
-// and a whole visit that writes nothing. One title ends with the @webkit tag
-// and runs on the phone project too - the unsupported branch, because that is
-// the engine that can never install and the path most visitors on it will hit
-// - so this file adds TEN to the suite total: nine titles on chromium, one of
-// them again on webkit-phone. None of the five cable tests is tagged: WebKit
-// has no navigator.serial at all, and its degrade path is the tagged test.
+// Eleven tests. Nine are against the session probe route, which renders the
+// session's fields as plain text and nothing else (its header says why): four
+// are the capability and refusal half (plan 06-06), what a browser refuses,
+// and five are the cable's half (plan 06-07), what a browser does when a
+// module is really there - the granted-port offer, the busy port, the unplug,
+// the replug and a whole visit that writes nothing. The remaining two (plan
+// 06-13, task 1) are the same machine on the SHIPPED CHROME - the header slot
+// and its disclosure on the routes a visitor actually opens, and the one
+// connection that survives a walk across them. One title carries the @webkit
+// tag and runs on the phone project too - the probe's unsupported branch,
+// because that is the engine that can never install and the path most visitors
+// on it will hit - so this file adds TWELVE to the suite total: eleven titles
+// on chromium, one of them again on webkit-phone. No cable test is tagged: that
+// engine has no navigator.serial at all, and its degrade path is the tagged
+// test.
+//
+// THE SHIPPED-CHROME TESTS WAIT ON STATE, NEVER ON PROSE ALONE. The slot
+// publishes its state as data-slot and its hydration as data-hydrated (set only
+// from onMount, so the prerendered file cannot carry it); the tests below wait
+// on those, and read the words only once the state they belong to is current.
+// A bare text match can be satisfied by a stale phase (Phase 5 recorded that
+// lesson against the meters) and by the prerendered document itself, which
+// already ships a slot and a note.
+//
+// THE WALK IS A CLIENT-ROUTER WALK. Test 11 crosses / -> /browse/ -> /c/{id}/
+// -> /browse/ -> / by CLICKING the site's own links, never by goto. D-05's
+// claim is that one connection survives a move between routes because Kit's
+// client router keeps the module graph - and the open port - alive; a goto is
+// a fresh document and would prove the opposite of what the test is named for.
+// The document is stamped before the walk and read after it, so a stray
+// rel="external" or a window.location assignment anywhere on the path is a red
+// test rather than a quiet reconnect. Then the test does the thing that must
+// NOT work - a reload - and asserts the session comes back as an OFFER, not a
+// connection: the port died with the document and the grant did not, which is
+// exactly what getPorts() is for.
 //
 // THE FAKE SERIAL. Web Serial has no CDP domain and no fake-device hook, but
 // `serial` is a configurable accessor on Navigator.prototype, so
@@ -57,14 +81,33 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
+  CAPTION_DETECTED,
+  CONNECTING_LABEL,
   CONNECT_LABEL,
+  DISCONNECT_LABEL,
+  FORGET_LABEL,
   PERMISSION_DECLINED,
   firmwareText,
+  identitySentence,
 } from "../src/lib/device/session-copy";
 import { failureCopy } from "../src/lib/transport/transport";
 import { FAKE_SERIAL } from "./fake-serial";
 
+declare global {
+  interface Window {
+    /** Test 11's stamp on the document that connected; a fresh document has none. */
+    __hangarWalk?: string;
+  }
+}
+
 const PROBE = "/dev/session/";
+
+/**
+ * The configuration the shipped-chrome tests open. It is the front door's
+ * opening centre, so /c/aurora/ lands with no splash on the same row / shows,
+ * and its first rail is the one e2e/tuning.e2e.ts turns.
+ */
+const ENTRY = "aurora";
 
 /** The failure titles, from the module that owns them, never a literal. */
 const UNSUPPORTED = failureCopy("no-web-serial", undefined, CONNECT_LABEL);
@@ -142,16 +185,41 @@ const grantBeforeLoad = (page: Page) =>
   });
 
 /**
+ * Where a page publishes "connected": an element, and either an attribute of
+ * it or its text, that reads `value` once identification has completed. The
+ * probe says it in text; the shipped header says it in the slot's data-slot.
+ */
+interface ConnectedMark {
+  selector: string;
+  attribute?: string;
+  value: string;
+}
+const PROBE_CONNECTED: ConnectedMark = {
+  selector: '[data-testid="session-phase"]',
+  value: "connected",
+};
+const SLOT_CONNECTED: ConnectedMark = {
+  selector: '[data-testid="device-slot"]',
+  attribute: "data-slot",
+  value: "S4",
+};
+
+/**
  * Feed the capture into port `index`, one chunk at a time and in order, until
- * the session reads `connected`; return how many chunks that took. After each
- * chunk the page is polled for up to one heartbeat period (the module beats
- * at 4 Hz), so the count is the first chunk that COMPLETED identification and
- * never a later one that merely arrived before the poll noticed.
+ * the page reads connected at `mark`; return how many chunks that took. After
+ * each chunk the page is polled for up to one heartbeat period (the module
+ * beats at 4 Hz), so the count is the first chunk that COMPLETED
+ * identification and never a later one that merely arrived before the poll
+ * noticed.
  *
  * Throws if the whole capture goes in without identification - a test that
  * fed 119 chunks and asserted nothing would pass for the wrong reason.
  */
-async function identifyWith(page: Page, index: number): Promise<number> {
+async function identifyWith(
+  page: Page,
+  index: number,
+  mark: ConnectedMark = PROBE_CONNECTED,
+): Promise<number> {
   let fed = 0;
   for (const chunk of RX) {
     await page.evaluate(([i, bytes]) => window.__hangarSerial.feed(i, bytes), [
@@ -159,20 +227,71 @@ async function identifyWith(page: Page, index: number): Promise<number> {
       chunk,
     ] as const);
     fed += 1;
-    const connected = await page.evaluate(async () => {
-      const read = () =>
-        document.querySelector('[data-testid="session-phase"]')?.textContent;
+    const connected = await page.evaluate(async (m) => {
+      const read = () => {
+        const el = document.querySelector(m.selector);
+        if (!el) return null;
+        return m.attribute ? el.getAttribute(m.attribute) : el.textContent;
+      };
       for (let waited = 0; waited < 250; waited += 10) {
-        if (read() === "connected") return true;
+        if (read() === m.value) return true;
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
-      return read() === "connected";
-    });
+      return read() === m.value;
+    }, mark);
     if (connected) return fed;
   }
   throw new Error(
     `identification did not complete after all ${fed} rx chunks of the capture`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// The shipped chrome (plan 06-13).
+
+const slot = (page: Page) => page.getByTestId("device-slot");
+const slotLabel = (page: Page) => page.getByTestId("device-slot-label");
+const slotCaption = (page: Page) => page.getByTestId("device-slot-caption");
+const details = (page: Page) => page.getByTestId("device-details");
+
+/**
+ * The identity label's words. Its spaces are non-breaking entities by design
+ * (06-10: Svelte trims source whitespace at an element boundary), so innerText
+ * carries U+00A0 where a substring match expects U+0020; every whitespace run
+ * is folded to one plain space before the label is compared to anything.
+ */
+async function labelWords(page: Page): Promise<string> {
+  return (await slotLabel(page).innerText()).replace(/\s+/g, " ").trim();
+}
+
+/** The route's pathname, so a redirect or a stray reload shows as a path. */
+const pathOf = (page: Page) => new URL(page.url()).pathname;
+
+/**
+ * Wait for the opening to take itself off the page. A click or a key that
+ * lands while the splash is up is swallowed by its window-level skip listener
+ * rather than reaching the control (e2e/first-experience.e2e.ts, and deferred
+ * item 8's two records of exactly that race).
+ */
+async function waitForFrontDoor(page: Page): Promise<void> {
+  await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
+  await expect(page.getByTestId("coverflow")).toBeVisible();
+}
+
+/**
+ * The road every shipped-chrome cable test starts on: the slot hydrated and
+ * offering the granted ZONA (S2), one click ON THE HEADER, the capture, S4.
+ * Asserts each step, and that the port was never opened before the click.
+ */
+async function connectFromHeader(page: Page): Promise<number> {
+  const control = slot(page);
+  await expect(control).toHaveAttribute("data-hydrated", "true");
+  await expect(control).toHaveAttribute("data-slot", "S2");
+  expect(await openCount(page, 0)).toBe(0);
+  await control.click();
+  const fed = await identifyWith(page, 0, SLOT_CONNECTED);
+  await expect(control).toHaveAttribute("data-slot", "S4");
+  return fed;
 }
 
 /**
@@ -566,6 +685,183 @@ test.describe("the session with a granted ZONA on the cable", () => {
     // unplug, replug, connect, identify, revoke - and zero bytes written.
     expect(await writes(page), "chunks written across the whole visit").toBe(0);
     await expect(page.getByTestId("session-writes")).toHaveText("0");
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the shipped header with a granted ZONA on the cable", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(FAKE_SERIAL);
+  });
+
+  test("the header shows the module a visitor connected to", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await grantBeforeLoad(page);
+    await page.goto("/");
+
+    // Precondition: the shim is installed and the grant is what the browser
+    // would list, so the header has something to offer.
+    expect(
+      await page.evaluate(async () => ({
+        hasSerial: "serial" in navigator,
+        listed: (await navigator.serial.getPorts()).length,
+      })),
+    ).toEqual({ hasSerial: true, listed: 1 });
+    await waitForFrontDoor(page);
+
+    // S2, before any click: the caption over the label, and the port never
+    // opened to get there. The accessible name is the label line alone - a
+    // speech-input user says what the button DOES - and never the caption.
+    const control = slot(page);
+    await expect(control).toHaveAttribute("data-hydrated", "true");
+    await expect(control).toHaveAttribute("data-slot", "S2");
+    await expect(slotCaption(page)).toHaveText(CAPTION_DETECTED);
+    await expect(slotLabel(page)).toHaveText(CONNECT_LABEL);
+    expect(CAPTION_DETECTED).toBe("ZONA detected");
+    await expect(control).toHaveAccessibleName(CONNECT_LABEL);
+    await expect(control).not.toHaveAccessibleName(/detected/);
+    // S2 is a plain button that acts: no aria-expanded on it.
+    expect(await control.getAttribute("aria-expanded")).toBeNull();
+    expect(await openCount(page, 0)).toBe(0);
+
+    // The click: S3, busy and disabled, CONNECTING… on the label line.
+    await control.click();
+    await expect(control).toHaveAttribute("data-slot", "S3");
+    await expect(slotLabel(page)).toHaveText(CONNECTING_LABEL);
+    await expect(control).toHaveAttribute("aria-busy", "true");
+    await expect(control).toBeDisabled();
+
+    // The capture, then S4: the identity summary carries the captured
+    // firmware and the active page, in the header.
+    const fed = await identifyWith(page, 0, SLOT_CONNECTED);
+    console.log(
+      `header identification needed ${fed} of ${RX.length} rx chunks`,
+    );
+    await expect(control).toHaveAttribute("data-slot", "S4");
+    await expect(control).toBeEnabled();
+    expect(await control.getAttribute("aria-busy")).toBeNull();
+    const label = await labelWords(page);
+    expect(label).toContain("ZONA");
+    expect(label).toContain(CAPTURED_FIRMWARE);
+    expect(label).toContain(CAPTURED_PAGE);
+    // The name is the visible words in order, spaced, with no middle dot: the
+    // separators are aria-hidden and every space lives in a word span.
+    const fwPattern = firmwareText(capture.identity.firmware)
+      .split(".")
+      .join("[.]");
+    await expect(control).toHaveAccessibleName(
+      new RegExp(
+        `^ZONA\\s+fw\\s+${fwPattern}\\s+page\\s+${capture.identity.activePage}$`,
+      ),
+    );
+    await expect(control).not.toHaveAccessibleName(/·/);
+
+    // S4 is a summary: aria-expanded present and false, then true once opened,
+    // and the drawer holds the identity sentence and both controls.
+    await expect(control).toHaveAttribute("aria-expanded", "false");
+    await control.click();
+    await expect(control).toHaveAttribute("aria-expanded", "true");
+    const drawer = details(page);
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveAttribute("data-slot", "S4");
+    await expect(drawer).toContainText(
+      identitySentence(capture.identity.firmware, capture.identity.activePage),
+    );
+    await expect(
+      drawer.getByRole("button", { name: DISCONNECT_LABEL }),
+    ).toBeVisible();
+    await expect(
+      drawer.getByRole("button", { name: FORGET_LABEL }),
+    ).toBeVisible();
+
+    // No picker at any point, the click opened the port once, nothing written.
+    expect(await requests(page)).toBe(0);
+    expect(await openCount(page, 0)).toBe(1);
+    expect(await writes(page)).toBe(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("one connection survives the front door, a configuration and the catalog", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await grantBeforeLoad(page);
+    await page.goto("/");
+    expect(
+      await page.evaluate(async () => ({
+        hasSerial: "serial" in navigator,
+        listed: (await navigator.serial.getPorts()).length,
+      })),
+    ).toEqual({ hasSerial: true, listed: 1 });
+    await waitForFrontDoor(page);
+    expect(pathOf(page)).toBe("/");
+
+    // Precondition: a live, identified session made from the header on /.
+    await connectFromHeader(page);
+    // Stamp THIS document. A fresh document - a full navigation anywhere on
+    // the walk - would come back without it.
+    const STAMP = "the document that connected";
+    await page.evaluate((s) => {
+      window.__hangarWalk = s;
+    }, STAMP);
+
+    /** What must hold on every route of the walk. */
+    const stillConnected = async (route: RegExp): Promise<void> => {
+      expect(pathOf(page)).toMatch(route);
+      await expect(slot(page)).toHaveAttribute("data-slot", "S4");
+      const label = await labelWords(page);
+      expect(label, `the identity on ${pathOf(page)}`).toContain(
+        CAPTURED_FIRMWARE,
+      );
+      expect(label).toContain(CAPTURED_PAGE);
+      expect(
+        await page.evaluate(() => window.__hangarWalk),
+        `the same document on ${pathOf(page)}`,
+      ).toBe(STAMP);
+      expect(await requests(page)).toBe(0);
+      expect(await openCount(page, 0)).toBe(1);
+    };
+
+    // THE WALK, by the site's own links and nothing else - no goto between
+    // these four hops. / -> BROWSE ALL -> /browse/ -> a card -> /c/aurora/ ->
+    // BACK TO BROWSE -> /browse/ -> the wordmark link -> /. (On /c/{id}/ the
+    // wordmark is a heading, not a link; the one link home is the browse
+    // page's wordmark, so the way back runs through it.)
+    await page.getByTestId("browse-link").click();
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+    await stillConnected(/^\/browse\/$/);
+
+    await page.getByTestId(`card-name-${ENTRY}`).click();
+    await expect(page.getByTestId("front-door")).toBeVisible();
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await stillConnected(new RegExp(`^/c/${ENTRY}/?$`));
+
+    await page.getByTestId("browse-link").click();
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+    await stillConnected(/^\/browse\/$/);
+
+    await page.getByTestId("header-wordmark").click();
+    await expect(page.getByTestId("front-door")).toBeVisible();
+    await stillConnected(/^\/$/);
+    // SAFE-01 over the whole walk, before the reload resets the shim.
+    expect(await writes(page), "chunks written across the walk").toBe(0);
+
+    // THE THING THAT MUST NOT WORK. A reload is a fresh document: the port
+    // goes with the old one and the grant does not, so the session comes back
+    // as the OFFER - detected, S2, nothing opened - and never as connected. A
+    // session that leaked a connection across a reload would show S4 here.
+    await page.reload();
+    const control = slot(page);
+    await expect(control).toHaveAttribute("data-hydrated", "true");
+    await expect(control).toHaveAttribute("data-slot", "S2");
+    await expect(slotCaption(page)).toHaveText(CAPTION_DETECTED);
+    await expect(slotLabel(page)).toHaveText(CONNECT_LABEL);
+    expect(await page.evaluate(() => window.__hangarWalk)).toBeUndefined();
+    expect(await openCount(page, 0)).toBe(0);
+    expect(await requests(page)).toBe(0);
+    expect(await writes(page)).toBe(0);
     expect(consoleErrors).toEqual([]);
   });
 });
