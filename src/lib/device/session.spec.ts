@@ -14,24 +14,35 @@
 // port, phase and in-flight guard into the next, and would need a reset hook
 // the production class has no reason to have.
 //
-// Fifteen gates, in the plans' order. Eight from 06-03: the capability decided
-// in the calling frame; a granted ZONA offered and never opened; an empty list
-// meaning "not plugged in"; two controls and one chooser; a THROWN activation
-// failure caught at the call site; the failure map, one row each; a real
-// hardware capture identifying the module; and a rig refused by name with the
-// port closed afterwards. Seven from 06-04, the half the hardware drives: an
-// unplug that is immediate; a replug that arrives as a DIFFERENT port object
-// and is adopted; arrivals that are ignored; the watchdog firing on the missed
-// disconnect and on nothing else; the identity folding for the life of the
-// connection; forget() closing before it revokes; and zero writes, twice. Most
-// of those no browser can produce on demand either, and the fake serial keeps
-// its listeners in a map precisely so a test can fire the events itself.
+// Seventeen gates, in the plans' order. Eight from 06-03: the capability
+// decided in the calling frame; a granted ZONA offered and never opened; an
+// empty list meaning "not plugged in"; two controls and one chooser; a THROWN
+// activation failure caught at the call site; the failure map, one row each; a
+// real hardware capture identifying the module; and a rig refused by name with
+// the port closed afterwards. Seven from 06-04, the half the hardware drives:
+// an unplug that is immediate; a replug that arrives as a DIFFERENT port
+// object and is adopted; arrivals that are ignored; the watchdog firing on the
+// missed disconnect and on nothing else; the identity folding for the life of
+// the connection; forget() closing before it revokes; and zero writes, twice.
+// Two from 06-09, the voice: three transitions in one window are ONE utterance
+// and a fold is none; and a held utterance waits, is replaced by a later one,
+// and is spoken once when the hold lifts. Most of those no browser can produce
+// on demand either, and the fake serial keeps its listeners in a map precisely
+// so a test can fire the events itself.
 //
-// TEST 12 FAKES setTimeout AND NOTHING ELSE. The watchdog is a setTimeout
-// chain, so that is the one timer the test needs to own; the clock the
-// watchdog compares against is the session's INJECTED `now`, never a faked
-// performance.now(). waitFor() yields through setImmediate for exactly this
-// reason - it has to keep polling while setTimeout is frozen.
+// TESTS 12, 16 AND 17 FAKE setTimeout AND NOTHING ELSE. The watchdog and the
+// live region's coalescer are both setTimeout chains, so that is the one timer
+// those tests need to own; the clock the watchdog compares against is the
+// session's INJECTED `now`, never a faked performance.now(). waitFor() yields
+// through setImmediate for exactly this reason - it has to keep polling while
+// setTimeout is frozen.
+//
+// HOW THE VOICE IS COUNTED. `speech` is a $state field, which the server
+// transform compiles to a PLAIN own property (06-01's spike), so recordSpeech
+// replaces it on one instance with an accessor that logs every non-empty
+// write. The empty writes are filtered on purpose: #say empties the region
+// when it queues a line so that a repeated sentence is still a DOM change,
+// and that clearing is the mechanism, not an utterance.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
@@ -46,7 +57,14 @@ import { ZONA_USB } from "$lib/protocol/usb";
 import type { Capture, GridTransport } from "$lib/transport";
 import { FakeTransport } from "$lib/transport";
 import { heartbeatFrame } from "../transport/fixtures/synthetic";
-import { CONNECT_LABEL, NAMED_STATES } from "./session-copy";
+import {
+  CONNECT_LABEL,
+  LIVE_DETECTED,
+  LIVE_DISCONNECTED,
+  LIVE_UNPLUGGED,
+  NAMED_STATES,
+  liveConnected,
+} from "./session-copy";
 import { DeviceSession, type SerialLike } from "./session.svelte";
 import { TRY_ON_LABEL } from "./try-on";
 
@@ -379,6 +397,26 @@ const settled = (s: DeviceSession) =>
   s.phase !== "choosing" &&
   s.phase !== "opening" &&
   s.phase !== "identifying";
+
+/**
+ * Every non-empty write to `speech`, in order - the utterances the one live
+ * region would have announced. See the header for why the field can be
+ * replaced with an accessor and why the empty writes are not counted.
+ */
+function recordSpeech(s: DeviceSession): string[] {
+  const utterances: string[] = [];
+  let value = s.speech;
+  Object.defineProperty(s, "speech", {
+    configurable: true,
+    enumerable: true,
+    get: () => value,
+    set: (next: string) => {
+      value = next;
+      if (next !== "") utterances.push(next);
+    },
+  });
+  return utterances;
+}
 
 // ---------------------------------------------------------------------------
 
@@ -1093,6 +1131,168 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
       expect
         .soft(source.includes(needle), `session.svelte.ts reaches ${needle}`)
         .toBe(false);
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 06-09: the voice.
+
+  it("three transitions in one window are one utterance, the last one, and a fold is none", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // A fresh pushable per open, so the replug below gets a transport that
+      // still has its first heartbeat to deliver.
+      const buses: ReturnType<typeof pushable>[] = [];
+      const openTransport = openingEach(() => {
+        const bus = pushable([zonaHeartbeat()]);
+        buses.push(bus);
+        return bus.transport;
+      });
+      const clock = movableClock();
+      const port = fakePort({ connected: true });
+      const serial = fakeSerial({ granted: [port.port] });
+      const s = new DeviceSession();
+      const utterances = recordSpeech(s);
+      s.start({
+        hasSerial: true,
+        secure: true,
+        serial: serial.serial,
+        openTransport,
+        now: clock.now,
+        sleep: noSleep,
+      });
+
+      // Three transitions with no timer tick between them: detected,
+      // connected, unplugged. The region says nothing until the window
+      // closes, and then says ONLY the last of the three.
+      await waitFor(() => s.phase === "detected", "the offer");
+      s.connect();
+      await waitFor(() => settled(s), "identification");
+      expect(s.phase).toBe("connected");
+      port.setConnected(false);
+      fire(serial, "disconnect", port.port);
+      expect(s.phase).toBe("unplugged-while-connected");
+      expect(s.speech, "spoken before the trailing window closed").toBe("");
+      expect(utterances).toEqual([]);
+      await vi.advanceTimersByTimeAsync(499);
+      expect(utterances, "spoken inside the window").toEqual([]);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(utterances, "one window, one utterance, the last one").toEqual([
+        LIVE_UNPLUGGED,
+      ]);
+      expect(s.speech).toBe(LIVE_UNPLUGGED);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(utterances, "said again with nothing new to say").toEqual([
+        LIVE_UNPLUGGED,
+      ]);
+      await waitFor(() => port.calls.close === 1, "the port to close");
+
+      // The replug and the reconnect, then let the window close: detected
+      // and connected coalesce to the connected sentence, built from the
+      // identity as identified.
+      const replugged = fakePort({ connected: true });
+      fire(serial, "connect", replugged.port);
+      expect(s.phase).toBe("detected");
+      s.connect();
+      await waitFor(() => settled(s), "the reconnect");
+      expect(s.phase).toBe("connected");
+      await vi.advanceTimersByTimeAsync(500);
+      const connectedLine = liveConnected(FIRMWARE, ACTIVE_PAGE);
+      expect(utterances).toEqual([LIVE_UNPLUGGED, connectedLine]);
+      expect(buses, "two opens, two transports").toHaveLength(2);
+
+      // The fold. A heartbeat that changes the active page DOES republish
+      // the identity (CONN-08) and MUST NOT speak; one that changes only
+      // lastSeen republishes nothing and speaks nothing either. The clock
+      // stays under MODULE_GONE_MS of lastSeen so the watchdog re-arms.
+      clock.set(250);
+      buses[1].push(zonaHeartbeat(ACTIVE_PAGE + 2));
+      expect(s.identity?.activePage, "the page folded").toBe(ACTIVE_PAGE + 2);
+      clock.set(500);
+      buses[1].push(zonaHeartbeat(ACTIVE_PAGE + 2));
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(utterances, "a heartbeat spoke").toEqual([
+        LIVE_UNPLUGGED,
+        connectedLine,
+      ]);
+      expect(s.speech, "a heartbeat changed the region").toBe(connectedLine);
+      expect(s.phase).toBe("connected");
+
+      // And the sixth site, for the record: a disconnect that disconnected
+      // something is a transition and is spoken on the same window.
+      await s.disconnect();
+      expect(s.phase).toBe("idle");
+      await vi.advanceTimersByTimeAsync(500);
+      expect(utterances).toEqual([
+        LIVE_UNPLUGGED,
+        connectedLine,
+        LIVE_DISCONNECTED,
+      ]);
+      for (const bus of buses) expect(bus.writes).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("holds every announcement until released, replaces a held one, and speaks once on release", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const bus = pushable([zonaHeartbeat()]);
+      const port = fakePort({ connected: true });
+      const serial = fakeSerial({ granted: [port.port] });
+      const s = new DeviceSession();
+      const utterances = recordSpeech(s);
+
+      // The hold goes on BEFORE start(), as the front door's does: the splash
+      // is already covering the row when the granted port is found.
+      const release = s.holdSpeech();
+      s.start({
+        hasSerial: true,
+        secure: true,
+        serial: serial.serial,
+        openTransport: opening(bus.transport),
+        now: frozenClock,
+        sleep: noSleep,
+      });
+      await waitFor(() => s.phase === "detected", "the offer");
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(s.speech, "spoken while held").toBe("");
+      expect(utterances).toEqual([]);
+
+      // A second transition while still held REPLACES the first: when the
+      // hold lifts only the latest state is worth speaking.
+      s.connect();
+      await waitFor(() => settled(s), "identification");
+      expect(s.phase).toBe("connected");
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(s.speech, "spoken while held").toBe("");
+      expect(utterances).toEqual([]);
+
+      // Release: spoken on the trailing window, not at once, exactly once,
+      // and it is the connected sentence and never the detected one.
+      release();
+      expect(utterances, "release spoke immediately").toEqual([]);
+      await vi.advanceTimersByTimeAsync(500);
+      const connectedLine = liveConnected(FIRMWARE, ACTIVE_PAGE);
+      expect(utterances).toEqual([connectedLine]);
+      expect(utterances).not.toContain(LIVE_DETECTED);
+      expect(s.speech).toBe(connectedLine);
+
+      // A second release is a no-op, and a hold-and-release with no
+      // transition in between says nothing at all.
+      release();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(utterances).toEqual([connectedLine]);
+      const again = s.holdSpeech();
+      again();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(utterances, "an empty hold spoke").toEqual([connectedLine]);
+      expect(s.speech).toBe(connectedLine);
+      expect(bus.writes).toHaveLength(0);
+
+      await s.disconnect();
+    } finally {
+      vi.useRealTimers();
     }
   });
 });

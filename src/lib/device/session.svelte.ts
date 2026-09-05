@@ -95,12 +95,30 @@
 // that twice: against a transport that records every byte across a whole
 // visit, and as a property of this file's comment-stripped source.
 //
+// WHAT IT SAYS, AND WHERE THAT IS DECIDED (plan 06-09, D-17). The one session
+// live region renders `speech` and nothing else; every rule about WHEN it
+// changes lives here, where a node test can reach it. #say is called from
+// exactly six places - #offer (detected), #openAdopted (connected),
+// disconnect(), #publishUnplugged, forget(), and #fail (every failure, by its
+// title) - and from nowhere else. The fold's republish path, the watchdog and
+// the identity's page number never speak: a module reporting its page four
+// times a second would otherwise turn a screen reader into a metronome.
+// Utterances inside one 500 ms window coalesce to the last one on a trailing
+// setTimeout (never an interval), and holdSpeech() lets the front door keep
+// the region silent while the splash covers the row.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
+  CONNECT_LABEL,
   FAILURE_COPY_STATES,
+  LIVE_DETECTED,
+  LIVE_DISCONNECTED,
+  LIVE_FORGOTTEN,
+  LIVE_UNPLUGGED,
   type SessionBlock,
   type SessionPhase,
   capabilityOf,
+  liveConnected,
   notZonaBlock,
   silentBlock,
   unpluggedWhileConnectedBlock,
@@ -184,6 +202,18 @@ const isFailureCopyPhase = (
 ): phase is (typeof FAILURE_COPY_STATES)[number] =>
   (FAILURE_COPY_STATES as readonly SessionPhase[]).includes(phase);
 
+/** The eight named states that are failures: the six failureCopy rows and the two authored refusals. S5 is not one. */
+type FailurePhase =
+  | (typeof FAILURE_COPY_STATES)[number]
+  | "not-zona"
+  | "silent";
+
+/**
+ * The live region's coalescing window (06-UI-SPEC, Accessibility Contract).
+ * Everything queued inside it is one utterance, the last one queued.
+ */
+const SPEECH_WINDOW_MS = 500;
+
 /** The one line the header renders per other module; two lists are equal when these are. */
 const moduleKey = (m: ModuleSeen): string =>
   `${m.sx},${m.sy}:${m.hwcfg}:${m.moduleType ?? ""}`;
@@ -260,8 +290,22 @@ export class DeviceSession {
   /** The module named by a refusal, for notZonaBlock. */
   refusedModule = $state.raw<string | undefined>(undefined);
   canForget = $state(false);
+  /**
+   * What the one live region is currently saying. Empty string means silence.
+   * Written ONLY by #flushSpeech, on the trailing timer, and emptied by #say
+   * when an utterance is queued - so the same sentence twice in a row (a
+   * chooser closed twice) is a DOM change each time and is heard each time.
+   */
+  speech = $state("");
 
   // --- NOT reactive: host objects, guards, and the injected environment ----
+
+  /** The utterance waiting for the window to close. Replaced, never queued. */
+  #pending: string | undefined;
+  /** The trailing timer. A setTimeout, never an interval. */
+  #speechTimer: ReturnType<typeof setTimeout> | undefined;
+  /** True between holdSpeech() and its release; the flush keeps #pending. */
+  #held = false;
 
   #port: SerialPort | undefined;
   #transport: GridTransport | undefined;
@@ -405,10 +449,21 @@ export class DeviceSession {
     const port = ev.target as SerialPort | null;
     if (!port || !isZonaPort(port)) return;
     if (this.#transport || this.#busy) return;
+    this.#offer(port);
+  };
+
+  /**
+   * The offer, from either road to it - the granted port found at start(), or
+   * a permitted ZONA arriving on the cable. Adopt, clear whatever failure the
+   * visitor was reading, publish S2, and say so once. ONE of the six #say
+   * sites: both roads land here so `detected` is spoken from one line.
+   */
+  #offer(port: SerialPort): void {
     this.#adopt(port);
     this.#clearFailure();
     this.phase = "detected";
-  };
+    this.#say(LIVE_DETECTED);
+  }
 
   /**
    * A permitted port left. This comparison IS safe, and it is the asymmetry
@@ -443,8 +498,18 @@ export class DeviceSession {
   /** The live session's unplug, from either the event or the watchdog. */
   #unplugged(): void {
     void this.#teardown();
+    this.#publishUnplugged();
+  }
+
+  /**
+   * S5, published from every road that reaches it - the navigator-level
+   * event, the watchdog, and the transport's own close net - so the unplug
+   * is spoken from ONE of the six #say sites rather than from each road.
+   */
+  #publishUnplugged(): void {
     this.identity = null;
     this.phase = "unplugged-while-connected";
+    this.#say(LIVE_UNPLUGGED);
   }
 
   /**
@@ -462,8 +527,7 @@ export class DeviceSession {
     const granted = await grantedZonaPorts(serial);
     const attached = granted.filter((p) => portIsAttached(p) !== false);
     if (attached.length > 0) {
-      this.#adopt(attached[0]);
-      this.phase = "detected";
+      this.#offer(attached[0]);
     } else {
       this.phase = "idle";
     }
@@ -576,13 +640,21 @@ export class DeviceSession {
         this.#startFold(transport);
         this.#armWatchdog();
         this.phase = "connected";
+        // Spoken from the identity as identified, ONCE. The fold that keeps
+        // this identity current afterwards never speaks (see #publish).
+        this.#say(
+          liveConnected(
+            outcome.identity.zona.firmware,
+            outcome.identity.activePage,
+          ),
+        );
         return;
       }
       if (outcome.kind === "not-zona") {
         this.refusedModule = outcome.moduleType;
-        this.phase = "not-zona";
+        this.#fail("not-zona");
       } else {
-        this.phase = "silent";
+        this.#fail("silent");
       }
       await this.#teardown();
     } finally {
@@ -602,7 +674,7 @@ export class DeviceSession {
     this.#fold = undefined;
     this.#disarm();
     this.identity = null;
-    if (this.phase === "connected") this.phase = "unplugged-while-connected";
+    if (this.phase === "connected") this.#publishUnplugged();
   }
 
   // --- the continuous fold --------------------------------------------------
@@ -730,7 +802,7 @@ export class DeviceSession {
       this.failureKind = "cancelled";
       this.failureRaw = raw;
       this.permissionDeclined = true;
-      this.phase = "cancelled";
+      this.#fail("cancelled");
       return;
     }
     const kind = classifyOpenError(err, port);
@@ -738,24 +810,38 @@ export class DeviceSession {
     this.failureRaw = raw;
     switch (kind) {
       case "cancelled":
-        this.phase = "cancelled";
+        this.#fail("cancelled");
         return;
       case "port-busy":
-        this.phase = "port-busy";
+        this.#fail("port-busy");
         return;
       case "unplugged":
         // The S6 open failure. The picked object is dead, so the next click
         // goes back through the chooser rather than at a port that is gone.
         this.#port = undefined;
         this.canForget = false;
-        this.phase = "unplugged-at-open";
+        this.#fail("unplugged-at-open");
         return;
       default:
         // `already-open` and `unknown` both render through the unknown row;
         // the key is kept so the block reads the already-connecting sentence.
-        this.phase = "unknown";
+        this.#fail("unknown");
         return;
     }
+  }
+
+  /**
+   * Publish a failure and say its TITLE, and nothing else (06-UI-SPEC, Live
+   * region - a failure). Every one of the eight failure phases lands here, so
+   * the announcement is one of the six #say sites rather than eight. The
+   * title is the same whichever surface's label the block is rendered with -
+   * only the steps interpolate a label - so CONNECT_LABEL is simply the one
+   * this module already holds.
+   */
+  #fail(phase: FailurePhase): void {
+    this.phase = phase;
+    const title = this.failureFor(CONNECT_LABEL)?.title;
+    if (title) this.#say(title);
   }
 
   #clearFailure(): void {
@@ -798,12 +884,19 @@ export class DeviceSession {
 
   // --- disconnect ----------------------------------------------------------
 
-  /** Tear down, clear the identity, return to `idle`. The permission is untouched. */
+  /**
+   * Tear down, clear the identity, return to `idle`. The permission is
+   * untouched. Spoken only when something WAS connected: a disconnect that
+   * disconnected nothing is not a transition, and the probe page's button is
+   * reachable from idle.
+   */
   async disconnect(): Promise<void> {
+    const wasLive = this.#transport !== undefined;
     await this.#teardown();
     this.identity = null;
     this.#clearFailure();
     this.phase = "idle";
+    if (wasLive) this.#say(LIVE_DISCONNECTED);
   }
 
   /**
@@ -832,6 +925,59 @@ export class DeviceSession {
     this.#clearFailure();
     this.canForget = false;
     this.phase = "forgotten";
+    this.#say(LIVE_FORGOTTEN);
+  }
+
+  // --- the one live region's voice ------------------------------------------
+
+  /**
+   * Queue an utterance for the next 500 ms trailing window. Called only on a
+   * SESSION TRANSITION: detected, connected, disconnected, unplugged,
+   * forgotten, and each failure by title. NEVER on a heartbeat, a page-number
+   * change, a paint or a hover - a module reporting its page four times a
+   * second would turn a screen reader into a metronome. Inside one window the
+   * last utterance wins; the region is emptied at once so that a repeat of the
+   * sentence already on it is still a change when the window closes.
+   */
+  #say(line: string): void {
+    this.#pending = line;
+    this.speech = "";
+    this.#queueSpeech();
+  }
+
+  /** (Re)start the trailing window. A setTimeout on the state, never an interval. */
+  #queueSpeech(): void {
+    if (this.#speechTimer !== undefined) clearTimeout(this.#speechTimer);
+    this.#speechTimer = setTimeout(() => this.#flushSpeech(), SPEECH_WINDOW_MS);
+  }
+
+  /** The window closed. Speak the pending line unless a hold is on, in which case keep it. */
+  #flushSpeech(): void {
+    this.#speechTimer = undefined;
+    if (this.#held) return;
+    const line = this.#pending;
+    this.#pending = undefined;
+    if (line !== undefined) this.speech = line;
+  }
+
+  /**
+   * Hold every announcement until the returned function is called. FrontDoor
+   * holds while the splash covers the row (plan 06-11), so a ZONA detected
+   * during the opening is announced once, after it, rather than over it.
+   * Idempotent - a second hold does not stack, and a second release is a
+   * no-op - and a held utterance is replaced rather than queued: only the
+   * latest state is worth speaking when the hold lifts, and it is spoken on
+   * the same trailing window as everything else.
+   */
+  holdSpeech(): () => void {
+    this.#held = true;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.#held = false;
+      if (this.#pending !== undefined) this.#queueSpeech();
+    };
   }
 
   /**
