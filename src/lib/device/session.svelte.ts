@@ -93,19 +93,42 @@
 // NEVER WRITES. No RequestQueue, no host heartbeat, no config write, no page
 // store, and no call to any transport's write. session.spec.ts test 15 asserts
 // that twice: against a transport that records every byte across a whole
-// visit, and as a property of this file's comment-stripped source.
+// visit, and as a property of this file's comment-stripped source. Since plan
+// 07-04 this file HANDS OUT a writer behind a getter - the `transport` view
+// below - and still never calls it: the view is built by BINDING the open
+// transport's write rather than by calling it, so the scan's `.write(` needle
+// finds nothing, and the one place this file names `write` is that binding.
+//
+// WHY THE INSTALL STORE IS A SEPARATE FILE AND WHAT IT BORROWS (plan 07-04,
+// 07-CONTEXT D-16). Every write of this site lives in install.svelte.ts (plan
+// 07-06), never here, so that test 15's eight write-shaped needles keep
+// meaning what they meant in Phase 6. The store borrows six members: the
+// `transport` view, whose onData THROWS on purpose (GridTransport carries one
+// data callback and this session owns it after identification - a second raw
+// registration would silently unhook the fold that keeps the page number and
+// the rig tail true, 07-RESEARCH Pitfall 1); onClass(), the class sink fed
+// from the fold's one pump, which is how the store's queue sees every
+// acknowledgement; onConnection(), so the store can snapshot at "connected"
+// and abort at "closed" without a Svelte effect; announce(), so its twelve
+// utterances go through the one live region; and writeLock with
+// unpluggedWhileWriting, which lock the header's two controls under a write
+// (Z-15) and keep this session's own unplug sentence quiet when the store has
+// the truer one (Z-11). All six are scalars, $state.raw snapshots, a Set of
+// callbacks and bound methods; none is a fifth static specifier.
 //
 // WHAT IT SAYS, AND WHERE THAT IS DECIDED (plan 06-09, D-17). The one session
 // live region renders `speech` and nothing else; every rule about WHEN it
 // changes lives here, where a node test can reach it. #say is called from
-// exactly six places - #offer (detected), #openAdopted (connected),
+// exactly six session sites - #offer (detected), #openAdopted (connected),
 // disconnect(), #publishUnplugged, forget(), and #fail (every failure, by its
-// title) - and from nowhere else. The fold's republish path, the watchdog and
-// the identity's page number never speak: a module reporting its page four
-// times a second would otherwise turn a screen reader into a metronome.
-// Utterances inside one 500 ms window coalesce to the last one on a trailing
-// setTimeout (never an interval), and holdSpeech() lets the front door keep
-// the region silent while the splash covers the row.
+// title) - and from the public announce() wrapper, through which the install
+// store's own utterances arrive (plan 07-04), and from nowhere else. The
+// fold's republish path, the watchdog and the identity's page number never
+// speak: a module reporting its page four times a second would otherwise turn
+// a screen reader into a metronome. Utterances inside one 500 ms window
+// coalesce to the last one on a trailing setTimeout (never an interval), and
+// holdSpeech() lets the front door keep the region silent while the splash
+// covers the row.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -144,6 +167,11 @@ type Device = typeof import("$lib/device/try-on");
 type Identity = import("$lib/transport").Identity;
 type IdentifyState = import("$lib/transport").IdentifyState;
 type ModuleSeen = import("$lib/transport").ModuleSeen;
+/** One decoded class of one frame, as onClass() hands it out. Erased; not a specifier. */
+type DecodedClass = import("$lib/protocol").DecodedClass;
+
+/** What onConnection() reports: the fold is registered, or the transport is gone. */
+export type ConnectionEvent = "connected" | "closed";
 
 /** The three heavy modules, resolved together on the open path and kept. */
 interface HeavyModules {
@@ -297,8 +325,42 @@ export class DeviceSession {
    * chooser closed twice) is a DOM change each time and is heard each time.
    */
   speech = $state("");
+  /**
+   * True while an install leg is in flight. Set and cleared by the install
+   * store (plan 07-06), read by DeviceDetails for the header lock (Z-15) and
+   * by every path into `unplugged-while-connected` (Z-11): when true, the
+   * session says nothing on the unplug - the install store owns the truer
+   * sentence - and records unpluggedWhileWriting so the disclosure renders
+   * the writing form.
+   */
+  writeLock = $state(false);
+  /**
+   * The one modifier on `unplugged-while-connected`, exactly as
+   * permissionDeclined is the one on `cancelled`: set from writeLock at the
+   * moment of the transition, cleared with every other failure detail. Not a
+   * tenth named state and not an eighteenth phase.
+   */
+  unpluggedWhileWriting = $state(false);
 
   // --- NOT reactive: host objects, guards, and the injected environment ----
+
+  /**
+   * The install store's class sinks, fed from the fold's one pump and cleared
+   * with the fold: a class subscription is a property of ONE connection, so
+   * a store that outlives a teardown subscribes again on the next
+   * "connected". A plain Set, never a rune - it is written in a callback that
+   * runs four times a second. Deliberately NOT a SvelteSet: nothing renders
+   * it, and svelte/reactivity would be a fifth static specifier.
+   */
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- non-reactive by design; see the comment above
+  #classSinks = new Set<(cls: DecodedClass) => void>();
+  /**
+   * The connection sinks, for the life of the page: the store subscribes once
+   * and hears every "connected" and every "closed" this instance ever emits.
+   * Non-reactive for the same two reasons as #classSinks.
+   */
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- non-reactive by design; see the comment above
+  #connectionSinks = new Set<(ev: ConnectionEvent) => void>();
 
   /** The utterance waiting for the window to close. Replaced, never queued. */
   #pending: string | undefined;
@@ -507,21 +569,33 @@ export class DeviceSession {
     if (this.phase === "detected") this.phase = "idle";
   };
 
-  /** The live session's unplug, from either the event or the watchdog. */
+  /**
+   * The live session's unplug, from either the event or the watchdog. The
+   * phase is published FIRST, then the transport is released, so the "closed"
+   * that #teardown reports to onConnection() subscribers arrives after
+   * `phase` already reads `unplugged-while-connected` (plan 07-04).
+   */
   #unplugged(): void {
-    void this.#teardown();
     this.#publishUnplugged();
+    void this.#teardown();
   }
 
   /**
    * S5, published from every road that reaches it - the navigator-level
    * event, the watchdog, and the transport's own close net - so the unplug
    * is spoken from ONE of the six #say sites rather than from each road.
+   *
+   * Under writeLock the session says NOTHING here (Z-11): Phase 6's sentence
+   * ends "Nothing was written", which is false when a write was in flight,
+   * and the install store speaks the true one through announce(). The
+   * modifier is recorded at the same instant so failureFor() renders the
+   * writing form of the disclosure for as long as this phase stands.
    */
   #publishUnplugged(): void {
     this.identity = null;
+    this.unpluggedWhileWriting = this.writeLock;
     this.phase = "unplugged-while-connected";
-    this.#say(LIVE_UNPLUGGED);
+    if (!this.writeLock) this.#say(LIVE_UNPLUGGED);
   }
 
   /**
@@ -660,6 +734,9 @@ export class DeviceSession {
             outcome.identity.activePage,
           ),
         );
+        // The fold is registered and `phase` is `connected`: the install
+        // store may now borrow the view and build its queue (plan 07-04).
+        this.#connection("connected");
         return;
       }
       if (outcome.kind === "not-zona") {
@@ -684,9 +761,14 @@ export class DeviceSession {
     if (this.#transport !== transport) return; // a teardown this session started
     this.#transport = undefined;
     this.#fold = undefined;
+    this.#classSinks.clear();
     this.#disarm();
     this.identity = null;
     if (this.phase === "connected") this.#publishUnplugged();
+    // Reported once: the guard above returns before this line on every
+    // teardown this session started, and #teardown found no transport to
+    // report if this ran first.
+    this.#connection("closed");
   }
 
   // --- the continuous fold --------------------------------------------------
@@ -705,6 +787,15 @@ export class DeviceSession {
    * A decode that fails is skipped, as identifyOnly skips it: the guard returns
    * undefined on every failure exit and never a wrong answer, and the next
    * frame is 250 ms away.
+   *
+   * THIS IS THE ONE onData REGISTRATION THE SESSION EVER MAKES, and since plan
+   * 07-04 it is also the one pump that feeds the install store: after the
+   * identity has absorbed a frame, every decoded class of it is fanned out to
+   * the onClass() sinks - identity first, then the queue, the order the
+   * skeleton page and the desktop's message stream both use. Each sink runs
+   * inside its own try, so one subscriber that throws cannot stop the fold or
+   * starve the sink beside it; the identity below is computed whatever a sink
+   * did.
    */
   #startFold(transport: GridTransport): void {
     const modules = this.#modules;
@@ -718,12 +809,104 @@ export class DeviceSession {
         const decoded = modules.P.decodeFrame(frame);
         if (!decoded.ok) continue;
         modules.T.absorbFrame(decoded.classes, fold, this.#now());
+        for (const cls of decoded.classes) {
+          for (const sink of this.#classSinks) {
+            try {
+              sink(cls);
+            } catch {
+              // A subscriber's fault is the subscriber's; the fold goes on.
+            }
+          }
+        }
       }
       const identity = modules.T.identify(fold);
       if (!identity) return;
       this.#lastSeen = identity.zona.lastSeen;
       this.#publish(identity);
     });
+  }
+
+  // --- the seams the install store stands on (plan 07-04, D-16) ------------
+
+  /**
+   * The open transport, as a WRITE VIEW, or undefined. Phase 7's install store
+   * borrows it to build its RequestQueue. Its onData THROWS: GridTransport
+   * carries exactly one data callback and this session owns it after
+   * identification - a second registration would silently unhook the fold
+   * that keeps the page number and the rig tail true (07-RESEARCH Pitfall 1).
+   * The install store subscribes through onClass() instead. This is the one
+   * place this file names `write`, and it still never calls it: the method is
+   * BOUND, not called, which is also why test 15's scan stays clean.
+   */
+  get transport(): GridTransport | undefined {
+    const t = this.#transport;
+    if (!t) return undefined;
+    return {
+      get isOpen() {
+        return t.isOpen;
+      },
+      write: t.write.bind(t),
+      onData() {
+        throw new Error(
+          "The session owns the byte stream; subscribe with session.onClass() instead",
+        );
+      },
+      onClose: t.onClose.bind(t),
+      close: t.close.bind(t),
+    };
+  }
+
+  /**
+   * Every decoded class from the session's ONE frame pump, for the life of
+   * the current connection. Returns the unsubscribe. The Set is cleared with
+   * the fold, so a subscription never outlives the transport it was made on.
+   */
+  onClass(cb: (cls: DecodedClass) => void): () => void {
+    this.#classSinks.add(cb);
+    return () => {
+      this.#classSinks.delete(cb);
+    };
+  }
+
+  /**
+   * "connected" once identification has resolved and the fold is registered;
+   * "closed" on every teardown - unplug, disconnect(), forget(), a read
+   * error, the missed-disconnect watchdog - AND from #teardown on the
+   * not-zona and silent paths, where no "connected" ever preceded it: a
+   * subscriber must tolerate a "closed" with nothing to close (07-06's branch
+   * does). Fired synchronously at the transition. On the hardware-driven
+   * roads (the unplug event, the watchdog, the transport's own close net)
+   * `phase` already reads `unplugged-while-connected` when "closed" arrives;
+   * on the visitor-driven roads (disconnect(), forget()) it arrives as the
+   * transport is released, before their final `idle` or `forgotten` lands,
+   * because those two still have to await the port. Returns the unsubscribe.
+   * Never cleared by the session: this is a for-the-life-of-the-page seam.
+   */
+  onConnection(cb: (ev: ConnectionEvent) => void): () => void {
+    this.#connectionSinks.add(cb);
+    return () => {
+      this.#connectionSinks.delete(cb);
+    };
+  }
+
+  /**
+   * Speak through the one session live region. A public wrapper over #say
+   * and nothing more: the same 500 ms trailing window, the same hold, the
+   * same last-one-wins coalescing (Y-16, Z-17).
+   */
+  announce(line: string): void {
+    this.#say(line);
+  }
+
+  /** Report a connection event to every subscriber, each inside its own try. */
+  #connection(ev: ConnectionEvent): void {
+    for (const sink of this.#connectionSinks) {
+      try {
+        sink(ev);
+      } catch {
+        // A subscriber's fault is the subscriber's; the session goes on.
+      }
+    }
   }
 
   /**
@@ -861,6 +1044,7 @@ export class DeviceSession {
     this.failureRaw = undefined;
     this.permissionDeclined = false;
     this.refusedModule = undefined;
+    this.unpluggedWhileWriting = false;
   }
 
   /**
@@ -888,7 +1072,8 @@ export class DeviceSession {
       case "silent":
         return silentBlock(this.#windowSeconds, label);
       case "unplugged-while-connected":
-        return unpluggedWhileConnectedBlock();
+        // The writing form only when the unplug landed under a write (Z-11).
+        return unpluggedWhileConnectedBlock(this.unpluggedWhileWriting);
       default:
         return null;
     }
@@ -999,12 +1184,20 @@ export class DeviceSession {
    * WebSerialTransport.close() closes the port it wraps; an injected transport
    * may not own the port at all. `readable` is null on a closed port, so the
    * second close only ever runs on a port something else left open.
+   *
+   * Reports "closed" to onConnection() subscribers ONCE per teardown that had
+   * a transport to release, synchronously, before the first await - and not
+   * at all when there was none, so disconnect() on an already closed session
+   * reports nothing. This also runs on the not-zona and silent paths, where
+   * no "connected" ever preceded it (plan 07-04).
    */
   async #teardown(): Promise<void> {
     this.#disarm();
     const transport = this.#transport;
     this.#transport = undefined;
     this.#fold = undefined;
+    this.#classSinks.clear();
+    if (transport) this.#connection("closed");
     if (transport) await transport.close().catch(() => undefined);
     const port = this.#port;
     if (port && port.readable !== null) {

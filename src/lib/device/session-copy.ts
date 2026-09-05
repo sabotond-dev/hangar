@@ -222,9 +222,18 @@ export const REPLUG_OFFER =
 export const REVOKE_EXPLANATION =
   "Removes this site’s permission to see your ZONA. You can give it again from the picker whenever you like.";
 
-/** Phase 4's sentence, verbatim, lifted out of TryOnDevice.svelte's UNPLUGGED_AFTER. */
+/** Phase 4's sentence, verbatim, lifted out of TryOnDevice.svelte's UNPLUGGED_AFTER. Kept for the case where nothing was in flight. */
 export const UNPLUGGED_WHILE_CONNECTED =
   "The ZONA was unplugged. Nothing was written.";
+
+/**
+ * The second form of the same event, for an unplug that landed under a write
+ * (07-UI-SPEC, I8, Z-11): Phase 4's sentence says "Nothing was written", which
+ * is false the moment a write was in flight, and one false utterance is worse
+ * than two. 55 characters, asserted.
+ */
+export const UNPLUGGED_WHILE_WRITING =
+  "The ZONA was unplugged while HANGAR was writing to it.";
 
 /** The three S3 status lines, Phase 4's, verbatim. */
 export const STATUS_CHOOSING = "Pick the ZONA in the browser’s list.";
@@ -327,9 +336,17 @@ export function silentBlock(seconds: number, label: string): SessionBlock {
  * that was already live. Nothing was being opened and the visitor did nothing
  * wrong, so there is no recovery list to work through - the replug offer is the
  * way out, and it sits beside this rather than inside it (Y-21).
+ *
+ * `writing` selects the second form (plan 07-04): the session passes its
+ * unpluggedWhileWriting modifier, so the disclosure says the true thing about
+ * a write that was in flight and Phase 4's sentence otherwise. Defaulted, so
+ * every caller and sample from Phase 6 keeps working unchanged.
  */
-export function unpluggedWhileConnectedBlock(): SessionBlock {
-  return { detail: UNPLUGGED_WHILE_CONNECTED, steps: [] };
+export function unpluggedWhileConnectedBlock(writing = false): SessionBlock {
+  return {
+    detail: writing ? UNPLUGGED_WHILE_WRITING : UNPLUGGED_WHILE_CONNECTED,
+    steps: [],
+  };
 }
 
 // ---------------------------------------------------------------------------
