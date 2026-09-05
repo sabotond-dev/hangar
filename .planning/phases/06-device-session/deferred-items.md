@@ -87,3 +87,21 @@ markup today, and the spec's header says so.
 plus a read of the failure list is all it takes; 06-10's structural gate over the device
 components is the natural place to decide whether the components join this scan or get a
 needle of their own.
+
+## 5. A failing Playwright run writes `test-results/`, not `.tmp-e2e/` (found by 06-06)
+
+The standing rule for this phase says Playwright results go under the gitignored
+`.tmp-e2e/` and never `test-results/`. `playwright.config.ts` sets no `outputDir`, so the
+rule is met only by the `tee` in the command line. Every run creates the directory: a
+green run leaves `test-results/.last-run.json` in it, and the first failing run - plan
+06-06's deliberate bubble negative - wrote Playwright's default
+`test-results/<title>/error-context.md` beside it. Both are gitignored and both were
+removed by hand, twice.
+
+**Not fixed here, deliberately.** `06-VALIDATION.md` says `playwright.config.ts` is not
+edited in this phase, and a one-line `outputDir: ".tmp-e2e/results"` is a config change
+with its own review (the `.gitignore` line, and whether the log and the artefacts should
+share a directory).
+
+**Owner:** unowned. Whoever next edits `playwright.config.ts` should add `outputDir` so
+the rule is enforced by the tool rather than remembered by the executor.

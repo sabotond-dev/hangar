@@ -186,7 +186,7 @@ Plans:
 - [x] 06-03-PLAN.md — The light seam, and the session up to identification (wave 3)
 - [x] 06-04-PLAN.md — The listener pair, the replug adoption, the watchdog, forget(), zero writes (wave 4)
 - [x] 06-05-PLAN.md — Three shipped-gate widenings, each proven by a mutation (wave 5)
-- [ ] 06-06-PLAN.md — The fake serial, the /dev/session/ probe, and the two capability messages (wave 6)
+- [x] 06-06-PLAN.md — The fake serial, the /dev/session/ probe, and the two capability messages (wave 6)
 - [ ] 06-07-PLAN.md — The offer, the busy port, the unplug, the replug, and a visit that writes nothing (wave 7)
 - [ ] 06-08-PLAN.md — PadSpinner's two props, DeviceMark, FailureBlock (wave 8)
 - [ ] 06-09-PLAN.md — PickerExplainer, the reserved header note, and the one session live region (wave 9)
@@ -265,7 +265,7 @@ Phases 6 and 7.
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
-| 6. Device Session | 5/14 | In progress | - |
+| 6. Device Session | 6/14 | In progress | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
