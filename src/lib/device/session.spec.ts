@@ -14,21 +14,36 @@
 // port, phase and in-flight guard into the next, and would need a reset hook
 // the production class has no reason to have.
 //
-// Eight gates, in the plan's order: the capability decided in the calling
-// frame; a granted ZONA offered and never opened; an empty list meaning "not
-// plugged in"; two controls and one chooser; a THROWN activation failure
-// caught at the call site; the failure map, one row each; a real hardware
-// capture identifying the module; and a rig refused by name with the port
-// closed afterwards. Three of those - the double click, the synchronous throw
-// and the rig - no browser can produce on demand, which is the reason the
-// session's serial surface and transport factory are injectable at all.
+// Fifteen gates, in the plans' order. Eight from 06-03: the capability decided
+// in the calling frame; a granted ZONA offered and never opened; an empty list
+// meaning "not plugged in"; two controls and one chooser; a THROWN activation
+// failure caught at the call site; the failure map, one row each; a real
+// hardware capture identifying the module; and a rig refused by name with the
+// port closed afterwards. Seven from 06-04, the half the hardware drives: an
+// unplug that is immediate; a replug that arrives as a DIFFERENT port object
+// and is adopted; arrivals that are ignored; the watchdog firing on the missed
+// disconnect and on nothing else; the identity folding for the life of the
+// connection; forget() closing before it revokes; and zero writes, twice. Most
+// of those no browser can produce on demand either, and the fake serial keeps
+// its listeners in a map precisely so a test can fire the events itself.
+//
+// TEST 12 FAKES setTimeout AND NOTHING ELSE. The watchdog is a setTimeout
+// chain, so that is the one timer the test needs to own; the clock the
+// watchdog compares against is the session's INJECTED `now`, never a faked
+// performance.now(). waitFor() yields through setImmediate for exactly this
+// reason - it has to keep polling while setTimeout is frozen.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { IDENTIFY_WINDOW_MS, TERMINATOR, ZONA_HWCFG } from "$lib/protocol";
+import { describe, expect, it, vi } from "vitest";
+import {
+  IDENTIFY_WINDOW_MS,
+  MODULE_GONE_MS,
+  TERMINATOR,
+  ZONA_HWCFG,
+} from "$lib/protocol";
 import { ZONA_USB } from "$lib/protocol/usb";
-import type { Capture } from "$lib/transport";
+import type { Capture, GridTransport } from "$lib/transport";
 import { FakeTransport } from "$lib/transport";
 import { heartbeatFrame } from "../transport/fixtures/synthetic";
 import { CONNECT_LABEL, NAMED_STATES } from "./session-copy";
@@ -85,15 +100,19 @@ const rxOnly = (frames: number[][]) =>
     { speed: "instant" },
   );
 
-const onCable = (hwcfg: number) =>
+const onCable = (hwcfg: number, activePage = ACTIVE_PAGE) =>
   heartbeatFrame({
     sx: 0,
     sy: 0,
     type: 1,
     hwcfg,
-    activePage: ACTIVE_PAGE,
+    activePage,
     firmware: FIRMWARE,
   });
+
+/** The ZONA's own heartbeat, page report included, as the fold sees it four times a second. */
+const zonaHeartbeat = (activePage = ACTIVE_PAGE) =>
+  onCable(ZONA_HWCFG, activePage);
 
 const chained = (sx: number, hwcfg: number) =>
   heartbeatFrame({
@@ -112,6 +131,27 @@ const clockPastTheWindow = () => {
 };
 const frozenClock = () => 0;
 const noSleep = async () => {};
+
+/** A clock the test moves by hand; the session's `now` and nothing else reads it. */
+const movableClock = () => {
+  let t = 0;
+  return {
+    now: () => t,
+    set(value: number) {
+      t = value;
+    },
+  };
+};
+
+/** try-on.spec.ts's comment stripper, for the static half of test 15. */
+const strip = (t: string) =>
+  t
+    .replace(/^[ ]*[/][/].*$/gm, "")
+    .replace(/[/][*][^]*?[*][/]/g, "")
+    .replace(/<!--[^]*?-->/g, "");
+
+const sessionSource = () =>
+  readFileSync(new URL("./session.svelte.ts", import.meta.url), "utf8");
 
 // ---------------------------------------------------------------------------
 // The fakes.
@@ -133,22 +173,26 @@ interface FakePortOptions {
 }
 
 /**
- * A SerialPort that records what was asked of it. `readable` is non-null
- * while the port is open and null otherwise, as the real one's is, because
- * the session reads it to decide whether a close is still owed.
+ * A SerialPort that records what was asked of it - the counts, and the ORDER,
+ * which is what test 14's close-before-forget assertion reads. `readable` is
+ * non-null while the port is open and null otherwise, as the real one's is,
+ * because the session reads it to decide whether a close is still owed.
  */
 function fakePort(opts: FakePortOptions = {}) {
   const calls: PortCalls = { open: 0, close: 0, forget: 0 };
+  const order: (keyof PortCalls)[] = [];
   let readable: object | null = null;
   const port: Record<string, unknown> = {
     getInfo: () => opts.info ?? { ...ZONA_USB },
     open: async () => {
       calls.open++;
+      order.push("open");
       if (opts.openThrows) throw opts.openThrows;
       readable = {};
     },
     close: async () => {
       calls.close++;
+      order.push("close");
       readable = null;
     },
     get readable() {
@@ -160,17 +204,23 @@ function fakePort(opts: FakePortOptions = {}) {
   if (opts.hasForget !== false) {
     port.forget = async () => {
       calls.forget++;
+      order.push("forget");
     };
   }
   if (opts.connected !== undefined) port.connected = opts.connected;
   return {
     port: port as unknown as SerialPort,
     calls,
+    order,
     setConnected(value: boolean) {
       port.connected = value;
     },
   };
 }
+
+/** A port that is a Grid module but not a ZONA: the bootloader identity, which the picker never lists. */
+const notZonaPort = () =>
+  fakePort({ info: { usbVendorId: 0x303a, usbProductId: 0x8122 } });
 
 interface SerialCalls {
   requestPort: number;
@@ -210,18 +260,79 @@ function fakeSerial(opts: {
   return { serial, calls, listeners };
 }
 
+/** Fire a navigator.serial event at every listener the session attached, with the port as its target. */
+const fire = (
+  serial: ReturnType<typeof fakeSerial>,
+  type: "connect" | "disconnect",
+  port: SerialPort,
+) =>
+  serial.listeners
+    .get(type)
+    ?.forEach((listener) => listener({ target: port } as unknown as Event));
+
 /** A transport factory in the shape of the real one: open the port, then wrap it. */
 const opening =
-  (transport: FakeTransport) =>
-  async (port: SerialPort): Promise<FakeTransport> => {
+  (transport: GridTransport) =>
+  async (port: SerialPort): Promise<GridTransport> => {
     await port.open({ baudRate: 2_000_000 });
     return transport;
   };
 
+/** The same shape, serving a FRESH transport per open - a replug opens a second one. */
+const openingEach =
+  (make: () => GridTransport, made: GridTransport[] = []) =>
+  async (port: SerialPort): Promise<GridTransport> => {
+    await port.open({ baudRate: 2_000_000 });
+    const transport = make();
+    made.push(transport);
+    return transport;
+  };
+
+/**
+ * A transport the TEST feeds, for the half of the session that runs after
+ * identification. `initial` is delivered synchronously the first time a data
+ * callback is registered, exactly as FakeTransport's instant replay is, so
+ * identifyOnly resolves on its first poll; everything after that arrives
+ * through push(), whenever the test says, to whichever callback registered
+ * LAST - which is what "one callback, the last registration owns the stream"
+ * means for the fold.
+ */
+function pushable(initial: number[][] = []) {
+  const writes: Uint8Array[] = [];
+  let callback: ((chunk: Uint8Array) => void) | undefined;
+  let open = true;
+  let delivered = false;
+  const push = (frame: number[]) =>
+    callback?.(Uint8Array.from([...frame, TERMINATOR]));
+  const transport: GridTransport = {
+    get isOpen() {
+      return open;
+    },
+    write: async (data) => {
+      writes.push(data);
+    },
+    onData: (next) => {
+      callback = next;
+      if (delivered) return;
+      delivered = true;
+      for (const frame of initial) push(frame);
+    },
+    onClose: () => {},
+    close: async () => {
+      open = false;
+    },
+  };
+  return { transport, writes, push };
+}
+
 const rejecting = (name: string, message: string) => () =>
   Promise.reject(new DOMException(message, name));
 
-/** Poll until the predicate holds. setTimeout, never setInterval. */
+/**
+ * Poll until the predicate holds. The yield is setImmediate rather than a
+ * setTimeout so the poll keeps running while test 12 has setTimeout faked; an
+ * interval appears nowhere in this file.
+ */
 async function waitFor(
   predicate: () => boolean,
   what: string,
@@ -232,8 +343,35 @@ async function waitFor(
     if (Date.now() - started > timeoutMs) {
       throw new Error(`timed out waiting for ${what}`);
     }
-    await new Promise<void>((resolve) => setTimeout(resolve, 2));
+    await new Promise<void>((resolve) => setImmediate(resolve));
   }
+}
+
+/**
+ * The road to `connected` every 06-04 gate starts on: a granted, attached port
+ * offered by start(), then one click. The chooser is never asked, so the fake
+ * serial has no pick cue and any requestPort() call would throw.
+ */
+async function connectGranted(
+  port: ReturnType<typeof fakePort>,
+  openTransport: (port: SerialPort) => Promise<GridTransport>,
+  now: () => number = frozenClock,
+) {
+  const serial = fakeSerial({ granted: [port.port] });
+  const s = new DeviceSession();
+  s.start({
+    hasSerial: true,
+    secure: true,
+    serial: serial.serial,
+    openTransport,
+    now,
+    sleep: noSleep,
+  });
+  await waitFor(() => s.phase === "detected", "the offer");
+  s.connect();
+  await waitFor(() => settled(s), "identification");
+  expect(s.phase, "the road to connected").toBe("connected");
+  return { s, serial };
 }
 
 const settled = (s: DeviceSession) =>
@@ -393,7 +531,7 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
   it("maps every failure onto its phase, one row each", async () => {
     const drive = async (
       pick: () => Promise<SerialPort>,
-      openTransport?: (port: SerialPort) => Promise<FakeTransport>,
+      openTransport?: (port: SerialPort) => Promise<GridTransport>,
     ) => {
       const s = new DeviceSession();
       s.start({
@@ -536,6 +674,11 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     expect(transport.writes, "the session wrote to the module").toHaveLength(0);
     expect(picked.calls.open, "opened exactly once").toBe(1);
     expect(picked.calls.close, "a connected port is held, not closed").toBe(0);
+
+    // A connected session owns a watchdog timer; no instance outlives its test.
+    await s.disconnect();
+    expect(s.phase).toBe("idle");
+    expect(picked.calls.close, "disconnect() closes the port").toBe(1);
   });
 
   it("refuses a rig with no ZONA by naming the module on the cable, and closes the port", async () => {
@@ -585,5 +728,371 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     );
     expect(transport.isOpen, "the transport was left open").toBe(false);
     expect(transport.writes).toHaveLength(0);
+  });
+
+  // -------------------------------------------------------------------------
+  // 06-04: the half the hardware drives.
+
+  it("an unplug of a live session is immediate, and a detected port that leaves returns to idle", async () => {
+    const transport = FakeTransport.fromCapture(HARDWARE, { speed: "instant" });
+    const port = fakePort({ connected: true });
+    const { s, serial } = await connectGranted(port, opening(transport));
+
+    // The browser fires disconnect AT THE OBJECT the session holds, with its
+    // `connected` already false. No await between the event and the asserts:
+    // the header changes in this turn, before any click and without waiting
+    // for a failed write.
+    port.setConnected(false);
+    fire(serial, "disconnect", port.port);
+    expect(s.phase).toBe("unplugged-while-connected");
+    expect(s.identity).toBeNull();
+    expect(s.failureFor(CONNECT_LABEL)?.detail).toBe(
+      "The ZONA was unplugged. Nothing was written.",
+    );
+    expect(s.canForget, "S5 still offers to forget the module").toBe(true);
+    expect(transport.writes).toHaveLength(0);
+    await waitFor(() => port.calls.close === 1, "the port to close");
+    expect(transport.isOpen).toBe(false);
+
+    // A disconnect for some OTHER permitted device is not ours.
+    const other = fakePort({ connected: true });
+    const b = new DeviceSession();
+    const serialB = fakeSerial({
+      granted: [fakePort({ connected: true }).port],
+    });
+    b.start({ hasSerial: true, secure: true, serial: serialB.serial });
+    await waitFor(() => b.phase === "detected", "the offer");
+    fire(serialB, "disconnect", other.port);
+    expect(b.phase, "a foreign port's disconnect moved the phase").toBe(
+      "detected",
+    );
+
+    // A detected port that leaves before it was ever opened: idle, not S5.
+    // Phase 4's sentence says "Nothing was written" about a session that
+    // existed, and there was none.
+    const detected = fakePort({ connected: true });
+    const c = new DeviceSession();
+    const serialC = fakeSerial({
+      granted: [detected.port],
+      pick: rejecting("NotFoundError", "No port selected by the user."),
+    });
+    c.start({ hasSerial: true, secure: true, serial: serialC.serial });
+    await waitFor(() => c.phase === "detected", "the offer");
+    detected.setConnected(false);
+    fire(serialC, "disconnect", detected.port);
+    expect(c.phase).toBe("idle");
+    expect(c.failureFor(CONNECT_LABEL)).toBeNull();
+    expect(c.canForget).toBe(false);
+    expect(detected.calls.open).toBe(0);
+    // And the dead object is not reopened: the next click asks the chooser.
+    c.connect();
+    await waitFor(() => settled(c), "the chooser");
+    expect(serialC.calls.requestPort, "the dead port was reused").toBe(1);
+    expect(detected.calls.open).toBe(0);
+  });
+
+  it("the replug adopts the new port object, and one click reconnects with no chooser", async () => {
+    const transports: GridTransport[] = [];
+    const first = fakePort({ connected: true });
+    const { s, serial } = await connectGranted(
+      first,
+      openingEach(
+        () => FakeTransport.fromCapture(HARDWARE, { speed: "instant" }),
+        transports,
+      ),
+    );
+
+    first.setConnected(false);
+    fire(serial, "disconnect", first.port);
+    expect(s.phase).toBe("unplugged-while-connected");
+    await waitFor(() => first.calls.close === 1, "the port to close");
+
+    // Chromium mints a fresh token for a re-added wired port, so `connect`
+    // fires at a DIFFERENT SerialPort object carrying the same USB identity.
+    const replugged = fakePort({ connected: true });
+    expect(replugged.port, "the fixture reused the object").not.toBe(
+      first.port,
+    );
+    fire(serial, "connect", replugged.port);
+    expect(s.phase, "one click away again").toBe("detected");
+    expect(s.failureFor(CONNECT_LABEL)).toBeNull();
+    expect(s.canForget).toBe(true);
+    expect(replugged.calls.open, "the replug opened the port by itself").toBe(
+      0,
+    );
+
+    s.connect();
+    await waitFor(() => settled(s), "the reconnect");
+    expect(s.phase).toBe("connected");
+    expect(s.identity?.zona.moduleType).toBe("ZONA");
+    expect(replugged.calls.open, "the click opened THAT object").toBe(1);
+    expect(first.calls.open, "the dead object was opened again").toBe(1);
+    expect(serial.calls.requestPort, "the replug needed a chooser").toBe(0);
+    expect(transports, "a fresh transport per open").toHaveLength(2);
+    for (const t of transports) {
+      expect((t as FakeTransport).writes).toHaveLength(0);
+    }
+
+    await s.disconnect();
+  });
+
+  it("ignores an arriving port that is not a ZONA, and any arrival while a transport is live", async () => {
+    // Not a ZONA: the bootloader identity, which the picker never lists and
+    // which a granted-port list could still carry.
+    const a = new DeviceSession();
+    const serialA = fakeSerial({
+      granted: [],
+      pick: rejecting("NotFoundError", "No port selected by the user."),
+    });
+    a.start({ hasSerial: true, secure: true, serial: serialA.serial });
+    await waitFor(() => a.phase === "idle", "idle");
+    const stranger = notZonaPort();
+    fire(serialA, "connect", stranger.port);
+    expect(a.phase, "a non-ZONA arrival moved the phase").toBe("idle");
+    expect(a.canForget).toBe(false);
+    // Nothing was adopted, so a click goes to the chooser rather than at it.
+    a.connect();
+    await waitFor(() => settled(a), "the chooser");
+    expect(serialA.calls.requestPort).toBe(1);
+    expect(stranger.calls.open).toBe(0);
+
+    // A live session: a second ZONA arriving is ignored, and the proof that
+    // the stored reference was not replaced is that unplugging the ORIGINAL
+    // still lands in S5.
+    const transport = FakeTransport.fromCapture(HARDWARE, { speed: "instant" });
+    const live = fakePort({ connected: true });
+    const { s, serial } = await connectGranted(live, opening(transport));
+    const identity = s.identity;
+    const second = fakePort({ connected: true });
+    fire(serial, "connect", second.port);
+    expect(s.phase, "an arrival while live moved the phase").toBe("connected");
+    expect(s.identity, "the published identity was touched").toBe(identity);
+    expect(second.calls.open).toBe(0);
+
+    fire(serial, "disconnect", second.port);
+    expect(s.phase, "the second port's leaving is not ours").toBe("connected");
+    live.setConnected(false);
+    fire(serial, "disconnect", live.port);
+    expect(s.phase, "the original port is still the one held").toBe(
+      "unplugged-while-connected",
+    );
+    expect(transport.writes).toHaveLength(0);
+  });
+
+  it("the watchdog fires only on the missed disconnect, and silence alone is not a state", async () => {
+    // setTimeout is the one timer the watchdog uses, so it is the one timer
+    // faked; setImmediate stays real for waitFor(), Date stays real for its
+    // deadline, and the clock the watchdog compares against is the injected
+    // `now` below - never a faked performance.now().
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // (a) The missed disconnect: silent past MODULE_GONE_MS AND the OS
+      // reports the port detached, with no event having arrived.
+      const clockA = movableClock();
+      const gone = pushable([zonaHeartbeat()]);
+      const portA = fakePort({ connected: true });
+      const a = await connectGranted(
+        portA,
+        opening(gone.transport),
+        clockA.now,
+      );
+      clockA.set(MODULE_GONE_MS + 1);
+      portA.setConnected(false);
+      await vi.advanceTimersByTimeAsync(MODULE_GONE_MS + 1);
+      expect(a.s.phase, "the missed disconnect").toBe(
+        "unplugged-while-connected",
+      );
+      expect(a.s.identity).toBeNull();
+      expect(gone.writes).toHaveLength(0);
+      await waitFor(() => portA.calls.close === 1, "the port to close");
+
+      // (b) A heartbeat keeps arriving: the module is alive, whatever the
+      // port says. Four beats over twice the window.
+      const clockB = movableClock();
+      const alive = pushable([zonaHeartbeat()]);
+      const portB = fakePort({ connected: true });
+      const b = await connectGranted(
+        portB,
+        opening(alive.transport),
+        clockB.now,
+      );
+      for (let beat = 1; beat <= 6; beat++) {
+        clockB.set(beat * 250);
+        alive.push(zonaHeartbeat());
+        portB.setConnected(false);
+        await vi.advanceTimersByTimeAsync(250);
+      }
+      expect(b.s.phase, "a heartbeating module was torn down").toBe(
+        "connected",
+      );
+      await b.s.disconnect();
+
+      // (c) Silent, but the OS still reports the port attached: the session
+      // stays `connected`, deliberately. A firmware crash on an attached port
+      // is not a tenth state, and this assertion is what stops one being
+      // reintroduced. A port with NO `connected` property at all - Chrome
+      // 89-129 - is the same answer for a different reason: it cannot say.
+      for (const portC of [fakePort({ connected: true }), fakePort()]) {
+        const clockC = movableClock();
+        const silent = pushable([zonaHeartbeat()]);
+        const c = await connectGranted(
+          portC,
+          opening(silent.transport),
+          clockC.now,
+        );
+        clockC.set(4 * MODULE_GONE_MS);
+        await vi.advanceTimersByTimeAsync(2 * MODULE_GONE_MS + 1);
+        expect(c.s.phase, "silence alone tore the session down").toBe(
+          "connected",
+        );
+        expect(c.s.identity?.zona.moduleType).toBe("ZONA");
+        expect(portC.calls.close).toBe(0);
+        await c.s.disconnect();
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the identity keeps folding: a live page number, a sorted rig, and no republish on lastSeen alone", async () => {
+    const clock = movableClock();
+    const bus = pushable([zonaHeartbeat()]);
+    const port = fakePort({ connected: true });
+    const { s } = await connectGranted(port, opening(bus.transport), clock.now);
+    const atConnect = s.identity;
+    expect(atConnect?.activePage).toBe(ACTIVE_PAGE);
+    expect(atConnect?.otherModules).toEqual([]);
+
+    // The visitor changes page on the module itself; the next heartbeat says
+    // so, and the published identity carries it (CONN-08).
+    clock.set(250);
+    bus.push(zonaHeartbeat(ACTIVE_PAGE + 2));
+    expect(s.identity?.activePage).toBe(ACTIVE_PAGE + 2);
+    expect(s.identity, "a changed page is a new snapshot").not.toBe(atConnect);
+
+    // Two rig modules announce themselves late and out of address order;
+    // the tail comes back sorted by sx, then sy (D-08).
+    clock.set(500);
+    bus.push(chained(2, BU16_HWCFG));
+    bus.push(chained(1, EN16_HWCFG));
+    expect(
+      s.identity?.otherModules.map((m) => [m.sx, m.sy, m.moduleType]),
+    ).toEqual([
+      [1, 0, "EN16"],
+      [2, 0, "BU16"],
+    ]);
+    expect(s.identity?.storeAllowed, "a second module disables the store").toBe(
+      false,
+    );
+
+    // The next heartbeat changes nothing but lastSeen: the SAME object stays
+    // published, so nothing reading it re-runs four times a second.
+    const settledIdentity = s.identity;
+    clock.set(750);
+    bus.push(zonaHeartbeat(ACTIVE_PAGE + 2));
+    bus.push(chained(1, EN16_HWCFG));
+    expect(s.identity, "lastSeen alone replaced the snapshot").toBe(
+      settledIdentity,
+    );
+    expect(s.phase).toBe("connected");
+    expect(bus.writes).toHaveLength(0);
+
+    await s.disconnect();
+  });
+
+  it("forget() closes first, then revokes; without forget() it is a no-op and the control never renders", async () => {
+    const transport = FakeTransport.fromCapture(HARDWARE, { speed: "instant" });
+    const port = fakePort({ connected: true });
+    const { s } = await connectGranted(port, opening(transport));
+    expect(s.canForget).toBe(true);
+
+    await s.forget();
+    // The WICG forget() steps have no close step, so the order is the whole
+    // point: the port is closed BEFORE the permission goes.
+    expect(port.order).toEqual(["open", "close", "forget"]);
+    expect(port.order.indexOf("close")).toBeLessThan(
+      port.order.indexOf("forget"),
+    );
+    expect(transport.isOpen).toBe(false);
+    expect(s.phase, "S7").toBe("forgotten");
+    expect(s.identity).toBeNull();
+    expect(s.canForget).toBe(false);
+    expect(
+      s.failureFor(CONNECT_LABEL),
+      "forgotten is not a failure",
+    ).toBeNull();
+    expect(transport.writes).toHaveLength(0);
+
+    // Chrome 89-102: no forget() at all. The control does not render, and
+    // the action moves nothing.
+    const older = fakePort({ hasForget: false });
+    const b = new DeviceSession();
+    b.start({
+      hasSerial: true,
+      secure: true,
+      serial: fakeSerial({ granted: [older.port] }).serial,
+    });
+    await waitFor(() => b.phase === "detected", "the offer");
+    expect(b.canForget, "a control that does nothing is worse than none").toBe(
+      false,
+    );
+    await b.forget();
+    expect(b.phase).toBe("detected");
+    expect(older.calls.close).toBe(0);
+    expect(older.calls.forget).toBe(0);
+  });
+
+  it("writes nothing across a whole visit, and cannot", async () => {
+    // Half one: offer, connect, identify, unplug, replug, connect, forget -
+    // against transports that record every byte. Soft, so that a planted write
+    // is reported by BOTH halves in one run rather than aborting at the first.
+    const transports: GridTransport[] = [];
+    const first = fakePort({ connected: true });
+    const { s, serial } = await connectGranted(
+      first,
+      openingEach(
+        () => FakeTransport.fromCapture(HARDWARE, { speed: "instant" }),
+        transports,
+      ),
+    );
+    first.setConnected(false);
+    fire(serial, "disconnect", first.port);
+    await waitFor(() => first.calls.close === 1, "the port to close");
+    const replugged = fakePort({ connected: true });
+    fire(serial, "connect", replugged.port);
+    s.connect();
+    await waitFor(() => settled(s), "the reconnect");
+    expect(s.phase).toBe("connected");
+    await s.forget();
+    expect(s.phase).toBe("forgotten");
+    expect(replugged.order).toEqual(["open", "close", "forget"]);
+    expect(transports, "the visit really ran").toHaveLength(2);
+    for (const t of transports) {
+      expect
+        .soft((t as FakeTransport).writes, "the session wrote to the module")
+        .toHaveLength(0);
+    }
+
+    // Half two: no path can. Each needle is assembled from fragments so this
+    // file's own source does not contain what it forbids, and the scan runs
+    // over comment-stripped source because the session's header legitimately
+    // names every one of these while explaining their absence.
+    const source = strip(sessionSource());
+    expect(source.length, "the source was actually read").toBeGreaterThan(1000);
+    for (const needle of [
+      [".", "write("].join(""),
+      ["Request", "Queue"].join(""),
+      ["host", "Heartbeat"].join(""),
+      ["send", "Config"].join(""),
+      ["store", "Page"].join(""),
+      ["fetch", "Config"].join(""),
+      ["store", "ToFlash"].join(""),
+      ["write", "Back"].join(""),
+      ["set", "Interval"].join(""),
+    ]) {
+      expect
+        .soft(source.includes(needle), `session.svelte.ts reaches ${needle}`)
+        .toBe(false);
+    }
   });
 });

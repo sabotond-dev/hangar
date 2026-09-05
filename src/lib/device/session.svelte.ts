@@ -795,8 +795,36 @@ export class DeviceSession {
   }
 
   /**
+   * Revoke this site's permission to see the adopted ZONA (D-10), in the only
+   * safe order. The WICG forget() steps remove the port from the permitted
+   * sequence and resolve - there is NO close step - so a naive implementation
+   * revokes the permission while still holding the port, telling the visitor
+   * HANGAR has forgotten their module while it is still talking to it. So:
+   * close everything first, then forget, then drop every reference.
+   *
+   * @types/w3c-web-serial declares forget() non-optional, so the `in` test is
+   * the only real guard (Chrome 103+, Firefox 151+). canForget was set from
+   * the same test at adoption and is what decides whether the control renders
+   * at all; on a port without it this is a no-op that moves nothing.
+   *
+   * `forgotten` is S7: getPorts() will not return this module again, and the
+   * only way back is the chooser.
+   */
+  async forget(): Promise<void> {
+    const port = this.#port;
+    if (!port || !("forget" in port)) return;
+    await this.#teardown();
+    await port.forget();
+    this.#port = undefined;
+    this.identity = null;
+    this.#clearFailure();
+    this.canForget = false;
+    this.phase = "forgotten";
+  }
+
+  /**
    * Close whatever is open. Clears the transport and never the port: the
-   * port object stays adopted so forget() (06-04) can still revoke it.
+   * port object stays adopted so forget() can still revoke it.
    *
    * WebSerialTransport.close() closes the port it wraps; an injected transport
    * may not own the port at all. `readable` is null on a closed port, so the
