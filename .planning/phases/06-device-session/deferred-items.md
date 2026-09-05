@@ -213,6 +213,26 @@ design call (the pads falling off the edges is "the picture the brief asks for")
 `scrollWidth` at 320 before and after, and 06-13's phone-viewport e2e could assert
 `scrollWidth === clientWidth` on `/browse/` today and on `/` once this is decided.
 
+## 10. The panel's TRY ON DEVICE is enabled in S5 while the header slot is a summary (found by 06-12)
+
+Plan 06-12's interface block disables the panel's button in `starting`, the three S3 phases,
+`connected`, `unsupported`, `insecure` and over budget - and in no other state. So in
+`unplugged-while-connected` (S5) the panel's `TRY ON DEVICE` is a live connect control while the
+header's slot for the same phase is a summary that opens the drawer (06-10's `EXPANDS`), and the way
+out the spec names for S5 is the replug offer, not a click. A click on the panel's button in S5 calls
+`session.connect()`, which takes the adopted-port path (`#port` set, no transport) and tries to open
+the unplugged port - landing, by `classifyOpenError`, in `unplugged-at-open` with the cable and hub
+steps. Not wrong, but the two controls offer different affordances for one state, and the panel's
+click can only produce a second failure block about the cable the visitor already knows is out.
+
+**Not changed here, deliberately.** The disabled expression is the plan's, verbatim, and 06-UI-SPEC's
+TryOnDevice table is silent on S5; whether the panel should disable (with which honesty string -
+the slot's three are reserved and this phase adds no fourth) or stay a connect that will fail
+honestly is a design ruling. This was reasoned from the source, not driven on the served build.
+
+**Owner:** unowned. 06-13 walks the shipped chrome through unplug and replug and is the natural
+place to observe it; Phase 7 retires the panel's promise literals and could rule on the slot then.
+
 ## Resolved
 
 ### Item 6 - resolved by 06-10

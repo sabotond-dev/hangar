@@ -192,7 +192,7 @@ Plans:
 - [x] 06-09-PLAN.md — PickerExplainer, the reserved header note, and the one session live region (wave 9)
 - [x] 06-10-PLAN.md — DeviceSlot's nine states, the disclosure, and the structural gate (wave 10)
 - [x] 06-11-PLAN.md — The header cluster, the two-row phone layout, and the untouched opening (wave 11)
-- [ ] 06-12-PLAN.md — TryOnDevice consumes the session and gives up the port (wave 12)
+- [x] 06-12-PLAN.md — TryOnDevice consumes the session and gives up the port (wave 12)
 - [ ] 06-13-PLAN.md — The shipped chrome in two engines, and the connection that survives a walk (wave 13)
 - [ ] 06-14-PLAN.md — SESSION-RUNBOOK, the phase gate, and the hardware checkpoint (wave 14)
 
@@ -265,7 +265,7 @@ Phases 6 and 7.
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
-| 6. Device Session | 11/14 | In progress | - |
+| 6. Device Session | 12/14 | In progress | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
