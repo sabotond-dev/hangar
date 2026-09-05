@@ -89,7 +89,7 @@
 //
 // TEN OF THE ELEVEN TITLES ARE UNTAGGED: every one of them drives Web Serial,
 // which the phone engine does not have. The eleventh carries the tag
-// playwright.config.ts greps the webkit-phone project by, so it runs on both
+// playwright.config.ts greps the phone project by, so it runs on both
 // projects: eleven titles, twelve runs. 07-08 added six to the suite total on
 // the desktop project alone; 07-12 adds four there and one on both, six more.
 //
