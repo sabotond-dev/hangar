@@ -111,22 +111,27 @@ import {
   CONFIRM_CAPTION,
   CONFIRM_REPLACES,
   CONFIRM_WAY_BACK,
+  HONESTY_INCAPABLE,
   HONESTY_READY,
   IDENTIFIED_CAPTION,
+  KEEPING_LABEL,
   KEEP_LINE_ENABLED,
   KEEP_REASONS,
   KEPT_CAPTION,
   KEPT_PROOF_LINE,
   LIVE_RESTORED,
   LIVE_SNAPSHOT_SAVED,
+  LIVE_STILL_WRITING,
   PUTTING_BACK_LABEL,
   PUT_BACK_LABEL,
   PUT_BACK_LINE,
   PUT_BACK_LINE_AFTER_KEEP,
+  PUT_BACK_NEEDS_ZONA,
   RESTORED_BODY,
   RESTORED_CAPTION,
   RESTORED_STORED_LINE,
   SETTLED_CAPTION,
+  STILL_WRITING_LINE,
   WRITING_LABEL,
   announceTitle,
   confirmRig,
@@ -138,7 +143,10 @@ import {
   unconfirmedBlock,
   TRY_ON_LABEL,
 } from "../src/lib/device/install-copy";
-import { WRITE_LOCK_REASON } from "../src/lib/device/session-copy";
+import {
+  CAPTION_UNSUPPORTED,
+  WRITE_LOCK_REASON,
+} from "../src/lib/device/session-copy";
 import {
   EVENT_SETUP,
   EVENT_TIMER,
@@ -152,6 +160,13 @@ import {
 import { MEASURING } from "../src/lib/tune/copy";
 import { FAKE_SERIAL } from "./fake-serial";
 import { type ExposedZona, type ZonaScript, installZona } from "./fake-zona";
+
+declare global {
+  interface Window {
+    /** Test 10's record of every text change in each live region, by testid. */
+    __hangarInstallLiveLog?: Record<string, string[]>;
+  }
+}
 
 const PROBE = "/dev/install/";
 
@@ -836,6 +851,9 @@ const rigModule = (sx: number): ZonaState => ({
   configs: {},
 });
 
+/** The sentence a keep or a put-back speaks when the cable comes out mid-write. */
+const LOST_ON_PAGE = announceTitle(lostBlock(false, TRY_ON_LABEL).title);
+
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
 
 /**
@@ -928,6 +946,7 @@ const primary = (page: Page) => page.getByTestId("try-on-device");
 const putBackControl = (page: Page) => page.getByTestId("put-back");
 const keepControl = (page: Page) => page.getByTestId("keep-on-device");
 const installState = (page: Page) => page.getByTestId("install-state");
+const sessionLive = (page: Page) => page.getByTestId("session-live");
 
 /**
  * Expose the module, grant its port BEFORE the page loads, open the chosen
@@ -1076,6 +1095,50 @@ async function keepOnPage(page: Page, zona: ExposedZona): Promise<number> {
   await expect(installState(page)).toContainText(keptBody(ENTRY_NAME));
   return beats;
 }
+
+/** The three live regions' testids, in document order (e2e/session.e2e.ts). */
+const LIVE_REGIONS = ["session-live", "tuning-live", "browse-live"] as const;
+
+/** Start recording every text change in each live region that exists on the page. */
+function recordLiveRegions(page: Page): Promise<void> {
+  return page.evaluate((ids) => {
+    const log: Record<string, string[]> = {};
+    window.__hangarInstallLiveLog = log;
+    for (const id of ids) {
+      log[id] = [];
+      const el = document.querySelector(`[data-testid="${id}"]`);
+      if (!el) continue;
+      new MutationObserver(() => {
+        log[id].push((el.textContent ?? "").trim());
+      }).observe(el, { subtree: true, childList: true, characterData: true });
+    }
+  }, LIVE_REGIONS);
+}
+
+/** Each region's current text (null where the route has no such region) and the record so far. */
+function liveTexts(page: Page): Promise<{
+  session: string | null;
+  tuning: string | null;
+  browse: string | null;
+  log: Record<string, string[]>;
+}> {
+  return page.evaluate((ids) => {
+    const read = (id: string): string | null => {
+      const el = document.querySelector(`[data-testid="${id}"]`);
+      return el ? (el.textContent ?? "").trim() : null;
+    };
+    return {
+      session: read(ids[0]),
+      tuning: read(ids[1]),
+      browse: read(ids[2]),
+      log: window.__hangarInstallLiveLog ?? {},
+    };
+  }, LIVE_REGIONS);
+}
+
+/** The distinct utterances a region made: its recorded texts with the empties dropped. */
+const utterances = (recorded: string[] | undefined): string[] =>
+  (recorded ?? []).filter((text) => text !== "");
 
 test.describe("the install flow on the real page, with a ZONA that answers from Node", () => {
   test.beforeEach(async ({ context }) => {
@@ -1469,6 +1532,249 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // RAM writes (two try-ons and the put-back's RAM leg).
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(6);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("the live region speaks once per outcome, and Escape is ignored while writing", async ({
+    page,
+  }) => {
+    test.slow();
+    const startedAt = Date.now();
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(16));
+    await connectOnPage(page, zona);
+    // I1 to I2: the snapshot sentence, the one the region reads after a
+    // connect on a module that answers (07-08 deferred item 9).
+    await expect(sessionLive(page)).toHaveText(LIVE_SNAPSHOT_SAVED);
+
+    await tryOnPage(page);
+    await expect(sessionLive(page)).toHaveText(liveSettled(ENTRY_NAME));
+
+    // THE SLOW LINE, on the keep's STORE leg - never a RAM leg, where a
+    // 2500 ms hold would make every acknowledgement stale at executeMs 250.
+    // The script is switched after the confirmation opens and before the
+    // commit, so the hold covers exactly one acknowledgement.
+    await keepControl(page).click();
+    const confirm = page.getByTestId("keep-confirm");
+    await expect(confirm).toBeVisible();
+    zona.script({ delayAckMs: { class_name: "PAGESTORE", byMs: 2500 } });
+    const committedAt = Date.now();
+    await page.getByTestId("keep-confirm-yes").click();
+    // Z-19: the primary carries the busy label, because the control that was
+    // clicked has left the screen.
+    await expect(primary(page)).toHaveText(KEEPING_LABEL);
+    await expect(primary(page)).toHaveAttribute("aria-busy", "true");
+    await expect(confirm).toHaveCount(0);
+    await expect(keepControl(page)).toBeDisabled();
+    // At 2000 ms: one Body line under the held block, and one polite word.
+    await expect(installState(page)).toContainText(STILL_WRITING_LINE, {
+      timeout: 5_000,
+    });
+    const slowLineAt = Date.now() - committedAt;
+    await expect(sessionLive(page)).toHaveText(LIVE_STILL_WRITING, {
+      timeout: 5_000,
+    });
+    // Escape inside the window: a pause, not a trap (I3 rule 9). The panel
+    // stays chosen, the held block stays, the label stays.
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(1);
+    await expect(primary(page)).toHaveText(KEEPING_LABEL);
+    await expect(installState(page)).toContainText(SETTLED_CAPTION);
+    await expect(installState(page)).toHaveAttribute("aria-busy", "true");
+    await expect(installState(page)).toContainText(STILL_WRITING_LINE);
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(1);
+
+    // The acknowledgement lands at about 2500 ms; its landing is invisible
+    // from here and the proof waits for a heartbeat, so: the bounded loop.
+    const keptBeats = await beatUntilShows(
+      page,
+      zona,
+      0,
+      stateShows(KEPT_CAPTION),
+    );
+    const keptAt = Date.now() - committedAt;
+    await expect(sessionLive(page)).toHaveText(liveKept(ENTRY_NAME));
+    await expect(installState(page)).not.toContainText(STILL_WRITING_LINE);
+    await expect(installState(page)).not.toHaveAttribute("aria-busy", "true");
+    await expect(primary(page)).toHaveText(TRY_ON_LABEL);
+    console.log(
+      `test 10: slow line at +${slowLineAt} ms, KEPT at +${keptAt} ms after ${keptBeats} heartbeat(s)`,
+    );
+
+    // The put-back after a keep stores too (Z-04), so LIVE_RESTORED is
+    // reached only after the store's proof - and spoken exactly once. The
+    // next store leg lands at speed; the recorder is on before the click.
+    zona.script({});
+    await recordLiveRegions(page);
+    const before = await liveTexts(page);
+    expect(before.session).toBe(liveKept(ENTRY_NAME));
+    expect(before.tuning).toBe("");
+    expect(before.browse).toBeNull();
+    await putBackControl(page).click();
+    const restoredBeats = await beatUntilShows(
+      page,
+      zona,
+      0,
+      stateShows(RESTORED_STORED_LINE),
+    );
+    console.log(`test 10: RESTORED after ${restoredBeats} heartbeat(s)`);
+    await expect(sessionLive(page)).toHaveText(LIVE_RESTORED);
+    // A second of polling: the text never becomes anything else, and the
+    // record holds ONE utterance for the whole put-back - never one for the
+    // RAM leg and another for the store.
+    for (let sampled = 0; sampled < 10; sampled++) {
+      await expect(sessionLive(page)).toHaveText(LIVE_RESTORED);
+      await page.waitForTimeout(100);
+    }
+    const afterRestore = await liveTexts(page);
+    expect(afterRestore.session).toBe(LIVE_RESTORED);
+    expect(utterances(afterRestore.log["session-live"])).toEqual([
+      LIVE_RESTORED,
+    ]);
+    expect(afterRestore.tuning).toBe("");
+    expect(utterances(afterRestore.log["tuning-live"])).toEqual([]);
+    expect(afterRestore.browse).toBeNull();
+    expect(utterances(afterRestore.log["browse-live"])).toEqual([]);
+
+    // An unplug mid-write: the lost title, spoken, and never the session's
+    // "Nothing was written" (Z-11); PUT BACK waits for the module.
+    const n = (await writesOf(page)).length + 1;
+    await page.evaluate(
+      (count) => window.__hangarSerial.unplugAfterWrites(0, count),
+      n,
+    );
+    await primary(page).click();
+    await expect(sessionLive(page)).toHaveText(LOST_ON_PAGE, {
+      timeout: 10_000,
+    });
+    expect(LOST_ON_PAGE).toBe("The ZONA was unplugged mid-write.");
+    await expect(putBackControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "put-back-line")).toHaveText(
+      PUT_BACK_NEEDS_ZONA,
+    );
+    const afterLost = await liveTexts(page);
+    const spoken = utterances(afterLost.log["session-live"]);
+    expect(spoken[spoken.length - 1]).toBe(LOST_ON_PAGE);
+    expect(spoken.some((line) => line.includes("Nothing was written"))).toBe(
+      false,
+    );
+    expect(utterances(afterLost.log["tuning-live"])).toEqual([]);
+    expect(utterances(afterLost.log["browse-live"])).toEqual([]);
+
+    // The wire: the keep and the put-back's store; the two settled RAM legs;
+    // the write that caused the unplug never reached the module.
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(4);
+    console.log(`test 10 wall time ${Date.now() - startedAt} ms`);
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the install controls on the engine that can never install", () => {
+  test.beforeEach(async ({ context }) => {
+    // NO shim. The real slot is deleted from the prototype, so this page is
+    // rendered by a browser that genuinely has no Web Serial - on the phone
+    // project it never had one, on the desktop project this forces the same
+    // branch, so one set of assertions describes both engines.
+    await context.addInitScript(() => {
+      delete (Navigator.prototype as unknown as Record<string, unknown>).serial;
+    });
+  });
+
+  test("@webkit the install controls are present and disabled with their reasons, and PUT BACK is absent @webkit", async ({
+    page,
+  }, testInfo) => {
+    const consoleErrors = collectErrors(page);
+    await page.goto(`/c/${ENTRY}/`);
+    // Precondition, asserted: this page cannot talk to hardware at all.
+    expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
+
+    // 06-13's ordering: the hydration marker, then the SETTLED capability
+    // caption, and only then anything that depends on the decision.
+    const slot = page.getByTestId("device-slot");
+    await expect(slot).toHaveAttribute("data-hydrated", "true");
+    await expect(page.getByTestId("device-slot-caption")).toHaveText(
+      CAPTION_UNSUPPORTED,
+    );
+    await expect(slot).toHaveAttribute("data-slot", "S0a");
+
+    const band = page.getByTestId("coverflow");
+    await expect(band).toBeVisible();
+    await waitForPicture(page, ENTRY);
+    if ((await page.getByTestId("chosen-panel").count()) === 0) {
+      await expect(band).toHaveAttribute("data-ready", "true");
+      await band.press("Enter");
+    }
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+
+    // DEGR-02, all three controls. The primary: present, disabled, the
+    // capability sentence in its own slot (I9 precedence 1).
+    await expect(primary(page)).toBeVisible();
+    await expect(primary(page)).toBeDisabled();
+    await expect(honesty(page)).toHaveText(HONESTY_INCAPABLE);
+    // KEEP ON DEVICE: present, disabled, its reason the capability sentence.
+    await expect(keepControl(page)).toBeVisible();
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_REASONS.incapable,
+    );
+    // PUT BACK: absent, not disabled (Z-12) - there is no module to name.
+    await expect(putBackControl(page)).toHaveCount(0);
+    // The connect-state region names the browsers that can, and no engine.
+    const status = page.getByTestId("connect-status");
+    await expect(status).toContainText("Firefox 151");
+    const reason = await status.innerText();
+    for (const named of ["Chrome", "Edge", "Firefox 151"]) {
+      expect(reason, `the reason names ${named}`).toContain(named);
+    }
+    expect(await page.locator("body").innerText()).not.toContain("Chromium");
+
+    // No horizontal scrollbar from the install controls. The panel is never
+    // wider than its own box, on either project. The DOCUMENT is no wider
+    // than the window at the phone layout - the single-column layout DEGR-01
+    // makes its promise at, where the band's clipped cards run past its box
+    // (overflow-x: clip) and rightly reach the document not at all. At the
+    // desktop project's 1280px the document scrolls by ONE pixel with the
+    // panel chosen or not, shim or none, while no element's bounding box
+    // exceeds the viewport - a sub-pixel property of the page measured by
+    // plan 07-12 and recorded as Phase 7 deferred item 20, not of anything
+    // this test is about; it is logged here and bounded at that pixel, so a
+    // second one is red and the fix reads zero on both projects.
+    const widths = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const panel = document.querySelector('[data-testid="chosen-panel"]');
+      const band = document.querySelector('[data-testid="coverflow"]');
+      return {
+        viewport: innerWidth,
+        document: doc.scrollWidth,
+        client: doc.clientWidth,
+        panel: panel?.scrollWidth ?? null,
+        panelClient: panel?.clientWidth ?? null,
+        bandContentExcess: band
+          ? Math.max(0, band.scrollWidth - band.clientWidth)
+          : null,
+      };
+    });
+    console.log(
+      `degrade panel on ${testInfo.project.name}: ${JSON.stringify(widths)}`,
+    );
+    expect(widths.panel).not.toBeNull();
+    expect(widths.panel as number).toBeLessThanOrEqual(
+      widths.panelClient as number,
+    );
+    const documentExcess = widths.document - widths.client;
+    if (widths.viewport < 600) {
+      expect(
+        documentExcess,
+        "no horizontal scrollbar at the phone layout",
+      ).toBe(0);
+    } else {
+      expect(
+        documentExcess,
+        "deferred item 20: one pixel at 1280, and no more",
+      ).toBeLessThanOrEqual(1);
+    }
+
     expect(consoleErrors).toEqual([]);
   });
 });
