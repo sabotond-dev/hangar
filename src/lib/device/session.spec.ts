@@ -14,7 +14,7 @@
 // port, phase and in-flight guard into the next, and would need a reset hook
 // the production class has no reason to have.
 //
-// Seventeen gates, in the plans' order. Eight from 06-03: the capability
+// Twenty-one gates, in the plans' order. Eight from 06-03: the capability
 // decided in the calling frame; a granted ZONA offered and never opened; an
 // empty list meaning "not plugged in"; two controls and one chooser; a THROWN
 // activation failure caught at the call site; the failure map, one row each; a
@@ -26,11 +26,17 @@
 // the connection; forget() closing before it revokes; and zero writes, twice.
 // Two from 06-09, the voice: three transitions in one window are ONE utterance
 // and a fold is none; and a held utterance waits, is replaced by a later one,
-// and is spoken once when the hold lifts. Most of those no browser can produce
-// on demand either, and the fake serial keeps its listeners in a map precisely
-// so a test can fire the events itself.
+// and is spoken once when the hold lifts. Four from 07-04, the seams the
+// install store stands on (07-CONTEXT D-16): onClass fanning every decoded
+// class out beside a fold that keeps moving; a write view that writes and
+// refuses a raw onData; onConnection reporting connected and closed in order,
+// once each, and a closed with no connected before it; and writeLock keeping
+// the session quiet on an unplug while announce() speaks through the one
+// region. Most of those no browser can produce on demand either, and the fake
+// serial keeps its listeners in a map precisely so a test can fire the events
+// itself.
 //
-// TESTS 12, 16 AND 17 FAKE setTimeout AND NOTHING ELSE. The watchdog and the
+// TESTS 12, 16, 17 AND 21 FAKE setTimeout AND NOTHING ELSE. The watchdog and the
 // live region's coalescer are both setTimeout chains, so that is the one timer
 // those tests need to own; the clock the watchdog compares against is the
 // session's INJECTED `now`, never a faked performance.now(). waitFor() yields
@@ -63,9 +69,15 @@ import {
   LIVE_DISCONNECTED,
   LIVE_UNPLUGGED,
   NAMED_STATES,
+  UNPLUGGED_WHILE_CONNECTED,
+  UNPLUGGED_WHILE_WRITING,
   liveConnected,
 } from "./session-copy";
-import { DeviceSession, type SerialLike } from "./session.svelte";
+import {
+  type ConnectionEvent,
+  DeviceSession,
+  type SerialLike,
+} from "./session.svelte";
 import { TRY_ON_LABEL } from "./try-on";
 
 // ---------------------------------------------------------------------------
@@ -1300,6 +1312,303 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
       expect(bus.writes).toHaveLength(0);
 
       await s.disconnect();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 07-04: the seams the install store stands on (D-16).
+
+  it("onClass fans every decoded class out, and the identity keeps folding beside it", async () => {
+    const clock = movableClock();
+    const bus = pushable([zonaHeartbeat()]);
+    const port = fakePort({ connected: true });
+    const { s } = await connectGranted(port, opening(bus.transport), clock.now);
+    expect(s.identity?.activePage).toBe(ACTIVE_PAGE);
+
+    const seen: string[] = [];
+    const unsubscribe = s.onClass((cls) =>
+      seen.push(`${cls.class_name}/${cls.class_instr}`),
+    );
+
+    // ONE frame, TWO consumers. The heartbeat with a new page reaches the
+    // subscriber as both of its classes AND folds into the published
+    // identity - which is the whole point of feeding the store from the
+    // session's pump rather than from a second onData (Pitfall 1).
+    clock.set(250);
+    bus.push(zonaHeartbeat(ACTIVE_PAGE + 2));
+    expect(seen, "the heartbeat class").toContain("HEARTBEAT/EXECUTE");
+    expect(seen, "the page report in the same frame").toContain(
+      "PAGEACTIVE/REPORT",
+    );
+    expect(s.identity?.activePage, "the identity folded the same frame").toBe(
+      ACTIVE_PAGE + 2,
+    );
+    const count = seen.length;
+    expect(count).toBeGreaterThanOrEqual(2);
+
+    // Unsubscribed: the count stops moving and the identity does not.
+    unsubscribe();
+    clock.set(500);
+    bus.push(zonaHeartbeat(ACTIVE_PAGE + 3));
+    expect(seen.length, "an unsubscribed sink still received").toBe(count);
+    expect(s.identity?.activePage).toBe(ACTIVE_PAGE + 3);
+
+    // A subscriber that throws is first in the Set, so the one after it
+    // receiving is the proof that each sink runs inside its own try - and
+    // the identity is computed after the fan-out, so it still moves.
+    const second: string[] = [];
+    s.onClass(() => {
+      throw new Error("a bad subscriber");
+    });
+    s.onClass((cls) => second.push(cls.class_name));
+    clock.set(750);
+    expect(() => bus.push(zonaHeartbeat(ACTIVE_PAGE + 4))).not.toThrow();
+    expect(s.identity?.activePage, "a throwing sink stopped the fold").toBe(
+      ACTIVE_PAGE + 4,
+    );
+    expect(second, "a throwing sink starved its neighbour").toContain(
+      "HEARTBEAT",
+    );
+    expect(bus.writes).toHaveLength(0);
+
+    await s.disconnect();
+  });
+
+  it("the transport view writes, and refuses a raw onData", async () => {
+    // THE ONE TEST IN THIS FILE THAT WRITES. It writes ONE byte to a
+    // FakeTransport, through the session's view, by the explicit call below
+    // and nowhere else - the way the install store's queue will. Test 15's
+    // full connect-browse-unplug-replug-forget cycle is unedited and still
+    // records zero, and no device is anywhere near this file.
+    const before = new DeviceSession();
+    expect(before.transport, "a view before there is a transport").toBe(
+      undefined,
+    );
+
+    const fake = FakeTransport.fromCapture(HARDWARE, { speed: "instant" });
+    const port = fakePort({ connected: true });
+    const { s } = await connectGranted(port, opening(fake));
+    const view = s.transport;
+    expect(view).toBeDefined();
+    expect(view, "the view is a view, not the transport itself").not.toBe(fake);
+    if (!view) throw new Error("no view after connect");
+
+    // The refusal names the seam to use instead, and the session's own fold
+    // is untouched by the attempt: the fake still has its callback.
+    expect(() => view.onData(() => {})).toThrow(/onClass/);
+    expect(fake.writes, "the refusal wrote something").toHaveLength(0);
+
+    await view.write(Uint8Array.from([0]));
+    expect(fake.writes, "the explicit write reached the fake").toHaveLength(1);
+    expect([...fake.writes[0]]).toEqual([0]);
+
+    // isOpen and close() read and reach the fake live.
+    expect(view.isOpen).toBe(true);
+    await view.close();
+    expect(fake.isOpen, "close() went through to the fake").toBe(false);
+    expect(view.isOpen, "isOpen is read live, not copied").toBe(false);
+
+    await s.disconnect();
+    expect(s.transport, "no view once the session let go").toBe(undefined);
+  });
+
+  it("onConnection reports connected and closed, in order, once each", async () => {
+    const transports: GridTransport[] = [];
+    const first = fakePort({ connected: true });
+    const serial = fakeSerial({ granted: [first.port] });
+    const s = new DeviceSession();
+    const log: ConnectionEvent[] = [];
+    const partial: ConnectionEvent[] = [];
+    // Both subscribed BEFORE connect(), as the install store's is.
+    const stop = s.onConnection((ev) => partial.push(ev));
+    s.onConnection((ev) => log.push(ev));
+    s.start({
+      hasSerial: true,
+      secure: true,
+      serial: serial.serial,
+      openTransport: openingEach(
+        () => FakeTransport.fromCapture(HARDWARE, { speed: "instant" }),
+        transports,
+      ),
+      now: frozenClock,
+      sleep: noSleep,
+    });
+    await waitFor(() => s.phase === "detected", "the offer");
+    expect(log, "detected is not a connection").toEqual([]);
+
+    s.connect();
+    await waitFor(() => settled(s), "identification");
+    expect(s.phase).toBe("connected");
+    expect(log).toEqual(["connected"]);
+
+    // The unplug: closed in the SAME TURN, after the phase has moved.
+    first.setConnected(false);
+    fire(serial, "disconnect", first.port);
+    expect(s.phase).toBe("unplugged-while-connected");
+    expect(log).toEqual(["connected", "closed"]);
+    await waitFor(() => first.calls.close === 1, "the port to close");
+    stop();
+
+    // The replug and the reconnect: a second connected, no second closed.
+    const replugged = fakePort({ connected: true });
+    fire(serial, "connect", replugged.port);
+    s.connect();
+    await waitFor(() => settled(s), "the reconnect");
+    expect(s.phase).toBe("connected");
+    expect(log).toEqual(["connected", "closed", "connected"]);
+
+    // forget() tears down once and revokes; one closed, not two.
+    await s.forget();
+    expect(s.phase).toBe("forgotten");
+    expect(log, "forget() reported closed twice").toEqual([
+      "connected",
+      "closed",
+      "connected",
+      "closed",
+    ]);
+
+    // A disconnect with nothing open is not a transition and reports nothing.
+    await s.disconnect();
+    expect(log).toEqual(["connected", "closed", "connected", "closed"]);
+    expect(partial, "the unsubscribe did not stop it").toEqual([
+      "connected",
+      "closed",
+    ]);
+    expect(transports).toHaveLength(2);
+    for (const t of transports) {
+      expect((t as FakeTransport).writes).toHaveLength(0);
+    }
+
+    // The not-zona path: #teardown runs with NO connected before it, so a
+    // subscriber hears a closed with nothing to close and must tolerate it.
+    const refused = rxOnly([onCable(PO16_HWCFG)]);
+    const picked = fakePort();
+    const r = new DeviceSession();
+    const orphan: ConnectionEvent[] = [];
+    r.onConnection((ev) => orphan.push(ev));
+    r.start({
+      hasSerial: true,
+      secure: true,
+      serial: fakeSerial({
+        granted: [],
+        pick: () => Promise.resolve(picked.port),
+      }).serial,
+      openTransport: opening(refused),
+      now: clockPastTheWindow(),
+      sleep: noSleep,
+    });
+    await waitFor(() => r.phase === "idle", "idle");
+    r.connect();
+    await waitFor(() => settled(r), "the refusal");
+    expect(r.phase).toBe("not-zona");
+    await waitFor(() => picked.calls.close === 1, "the port to close");
+    expect(orphan, "a closed with no connected before it").toEqual(["closed"]);
+    expect(refused.writes).toHaveLength(0);
+  });
+
+  it("writeLock keeps the session quiet on an unplug, and announce speaks through the one region", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const bus = pushable([zonaHeartbeat()]);
+      const port = fakePort({ connected: true });
+      const serial = fakeSerial({ granted: [port.port] });
+      const s = new DeviceSession();
+      const utterances = recordSpeech(s);
+      s.start({
+        hasSerial: true,
+        secure: true,
+        serial: serial.serial,
+        openTransport: opening(bus.transport),
+        now: frozenClock,
+        sleep: noSleep,
+      });
+      await waitFor(() => s.phase === "detected", "the offer");
+      s.connect();
+      await waitFor(() => settled(s), "identification");
+      expect(s.phase).toBe("connected");
+      await vi.advanceTimersByTimeAsync(500);
+      const connectedLine = liveConnected(FIRMWARE, ACTIVE_PAGE);
+      expect(utterances).toEqual([connectedLine]);
+      expect(s.writeLock, "the lock is off until the store sets it").toBe(
+        false,
+      );
+
+      // announce(): the same trailing window as every session utterance,
+      // never at once - so the store's twelve sentences coalesce with the
+      // session's own rather than talking over them.
+      s.announce("x");
+      expect(s.speech, "spoken at once").toBe("");
+      await vi.advanceTimersByTimeAsync(499);
+      expect(utterances, "spoken inside the window").toEqual([connectedLine]);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(s.speech).toBe("x");
+      expect(utterances).toEqual([connectedLine, "x"]);
+
+      // Under the lock: S5, the writing form on both surfaces, the modifier
+      // set, and NOT ONE WORD from the session - the install store owns the
+      // sentence for this transition (Z-11).
+      s.writeLock = true;
+      port.setConnected(false);
+      fire(serial, "disconnect", port.port);
+      expect(s.phase).toBe("unplugged-while-connected");
+      expect(s.unpluggedWhileWriting).toBe(true);
+      expect(s.failureFor(CONNECT_LABEL)?.detail).toBe(UNPLUGGED_WHILE_WRITING);
+      expect(s.failureFor(TRY_ON_LABEL)?.detail).toBe(UNPLUGGED_WHILE_WRITING);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(utterances, "the session spoke under the lock").toEqual([
+        connectedLine,
+        "x",
+      ]);
+      expect(s.speech).not.toContain("Nothing was written");
+      expect(
+        utterances.some((line) => line.includes("Nothing was written")),
+        "the false sentence was spoken",
+      ).toBe(false);
+      await waitFor(() => port.calls.close === 1, "the port to close");
+
+      // The modifier is a failure detail and clears with the next offer.
+      const replugged = fakePort({ connected: true });
+      fire(serial, "connect", replugged.port);
+      expect(s.phase).toBe("detected");
+      expect(s.unpluggedWhileWriting, "cleared with the failure").toBe(false);
+      expect(bus.writes).toHaveLength(0);
+
+      // A fresh session with the lock off: the same unplug speaks Phase 6's
+      // sentence and renders Phase 4's form.
+      const bus2 = pushable([zonaHeartbeat()]);
+      const port2 = fakePort({ connected: true });
+      const serial2 = fakeSerial({ granted: [port2.port] });
+      const b = new DeviceSession();
+      const said = recordSpeech(b);
+      b.start({
+        hasSerial: true,
+        secure: true,
+        serial: serial2.serial,
+        openTransport: opening(bus2.transport),
+        now: frozenClock,
+        sleep: noSleep,
+      });
+      await waitFor(() => b.phase === "detected", "the offer");
+      b.connect();
+      await waitFor(() => settled(b), "identification");
+      expect(b.phase).toBe("connected");
+      port2.setConnected(false);
+      fire(serial2, "disconnect", port2.port);
+      expect(b.phase).toBe("unplugged-while-connected");
+      expect(b.unpluggedWhileWriting).toBe(false);
+      expect(b.failureFor(CONNECT_LABEL)?.detail).toBe(
+        UNPLUGGED_WHILE_CONNECTED,
+      );
+      await vi.advanceTimersByTimeAsync(500);
+      expect(
+        said,
+        "detected, connected and unplugged coalesce to the last",
+      ).toEqual([LIVE_UNPLUGGED]);
+      expect(b.speech).toBe(LIVE_UNPLUGGED);
+      expect(bus2.writes).toHaveLength(0);
+      await waitFor(() => port2.calls.close === 1, "the port to close");
     } finally {
       vi.useRealTimers();
     }
