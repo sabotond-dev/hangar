@@ -67,3 +67,21 @@ contract's owner prefers the section's wording, the table row and the literal ch
 test 2 stays green by construction.
 
 **Owner:** the contract's owner, at the next revision of 07-UI-SPEC; no code until then.
+
+## 5. `SNAPSHOT_SESSION_LINE` is authored, unseen by the UI checker, and has no contract row (found by 07-04)
+
+07-CONTEXT D-04 (amended) requires an honest session-only sentence for the header disclosure when
+the module's serial went unanswered and the copy is held only until the tab closes. 07-UI-SPEC's
+Copywriting Contract has a row for the durable form (`Header disclosure — the snapshot line`) and
+none for this one, so 07-04 authored it: `A copy of your ZONA’s own Setup and Timer is held until
+this tab closes, so it can be put back while you are here.` - 114 characters, under the same 129 cap
+as its sibling, names no control, real apostrophe. It lives in `src/lib/device/session-copy.ts`
+beside `SNAPSHOT_DURABLE_LINE` (both are header-disclosure strings read by DeviceDetails), and
+`session-copy.spec.ts` tests 5 and 6 hold its literal, its length and its typography. It is NOT in
+`install-copy.ts`: that module's spec test 2 matches every literal over 40 characters against the
+contract on disk, and a sentence the contract does not carry would be red there by construction.
+
+If the contract's owner adds the row (and, if preferred, wants the literal beside the install
+sentences), the row and a one-line move change together and either spec can hold it.
+
+**Owner:** the contract's owner, at the next revision of 07-UI-SPEC; no code until then.
