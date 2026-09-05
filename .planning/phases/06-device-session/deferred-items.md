@@ -65,3 +65,25 @@ caught the mutation, which is what the plan needed.
 **Owner:** unowned. A one-line `no-restricted-globals: ["setInterval"]` with
 `src/vendor/**` and `e2e/**` exempted would make the contract a lint error
 rather than a convention; whoever next touches `eslint.config.js` should add it.
+
+## 4. The forbidden-instruction scan does not read .svelte components (found by 06-05)
+
+Plan 06-05 widened `src/lib/protocol/forbidden-instructions.spec.ts`'s `SCANNED_DIRS`
+from `["src/lib/protocol", "src/lib/transport"]` to `["src/lib"]`, which took the scan from 16
+files to 65 and finally covers `src/lib/device/`. The scan reads `.ts` only, so the two
+`.ts` files under `src/lib/ui/` are now inside it and the twenty-three `.svelte` components
+beside them are not. The Phase 4 deferred item that this closes named `src/lib/ui/` as a
+gap alongside `src/lib/device/`, and for the components it is only half closed.
+
+**Not widened here, deliberately.** The plan's whole subject is the device path, which is
+`.ts` end to end (`session.svelte.ts`, `session-copy.ts`, `try-on.ts`), and adding a second
+extension to a shipped gate is a change to what the scan IS rather than to where it looks. A
+component that named an erase or clear instruction would have to reach a descriptor to send
+it, and test 5 already holds `encode_packet` to `descriptors.ts` alone over every `.ts` file;
+but the vocabulary rule ("the name must not appear even in a comment") is not enforced over
+markup today, and the spec's header says so.
+
+**Owner:** unowned. A one-line change (`if (!rel.endsWith(".ts") && !rel.endsWith(".svelte")) continue;`)
+plus a read of the failure list is all it takes; 06-10's structural gate over the device
+components is the natural place to decide whether the components join this scan or get a
+needle of their own.
