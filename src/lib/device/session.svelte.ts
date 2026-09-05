@@ -1,12 +1,25 @@
 // The device session: one object that owns the port, the identity, the phase
 // and the failure, for the life of the page (D-05).
 //
-// WHAT THIS PLAN BUILDS, AND WHAT IT LEAVES. Capability, the granted-port
-// offer, the chooser, opening and identification are here (06-03). The
+// TWO PLANS, ONE FILE. Capability, the granted-port offer, the chooser,
+// opening and identification are 06-03: the half the visitor drives. The
 // navigator-level connect and disconnect listener pair, the replug adoption,
-// the liveness watchdog, forget() and the never-writes gate are plan 06-04, in
-// this same file; #attachListeners below is the named, empty seat that keeps
-// start()'s call order right until then.
+// the continuous fold, the liveness watchdog and forget() are 06-04: the half
+// the hardware drives, which only happens after the cable is already in.
+//
+// THE REPLUG IDENTITY TRAP, WHICH SHAPES BOTH LISTENERS. Chromium keys a wired
+// port's JS object by a token the enumerator mints fresh on every physical
+// attach (content/browser/serial/serial_service.cc:317-325 returns nullopt
+// from GetPersistentIdentifier for every non-Bluetooth port, so ToBlinkType
+// passes the enumerator's token straight through, and serial.cc:441-452
+// caches SerialPort objects by that token). So `disconnect` fires AT THE
+// OBJECT THIS SESSION HOLDS and may be matched by identity, while `connect`
+// after a replug fires at a DIFFERENT OBJECT and may not: it is matched by
+// getInfo() and the arriving object is ADOPTED in place of the dead one. The
+// permission is untouched by any of this - SerialChooserContext keys it by
+// VID, PID and the module's per-chip serial number, never by the token -
+// which is why getPorts() returns the replugged module at once and the
+// replug offer needs no picker.
 //
 // WHY THE REACTIVE FIELDS ARE SCALARS AND $state.raw ONLY. `$state` deep-
 // proxies plain objects and arrays. The identify accumulator is a Map of plain
@@ -78,8 +91,9 @@
 // the second test in a file start half-initialised.
 //
 // NEVER WRITES. No RequestQueue, no host heartbeat, no config write, no page
-// store, and no call to any transport's write. Plan 06-04 asserts that as a
-// property of this file's source.
+// store, and no call to any transport's write. session.spec.ts test 15 asserts
+// that twice: against a transport that records every byte across a whole
+// visit, and as a property of this file's comment-stripped source.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -92,7 +106,11 @@ import {
   unpluggedWhileConnectedBlock,
 } from "./session-copy";
 import { ZONA_USB } from "$lib/protocol/usb";
-import { grantedZonaPorts, portIsAttached } from "$lib/transport/ports";
+import {
+  grantedZonaPorts,
+  isZonaPort,
+  portIsAttached,
+} from "$lib/transport/ports";
 import {
   type GridTransport,
   type OpenFailure,
@@ -106,6 +124,8 @@ type Protocol = typeof import("$lib/protocol");
 type Transport = typeof import("$lib/transport");
 type Device = typeof import("$lib/device/try-on");
 type Identity = import("$lib/transport").Identity;
+type IdentifyState = import("$lib/transport").IdentifyState;
+type ModuleSeen = import("$lib/transport").ModuleSeen;
 
 /** The three heavy modules, resolved together on the open path and kept. */
 interface HeavyModules {
@@ -116,8 +136,8 @@ interface HeavyModules {
 
 /**
  * The part of `navigator.serial` this session uses, as an interface so a node
- * test can hand in a fake. The event methods exist for plan 06-04's listener
- * pair; nothing in this plan calls them.
+ * test can hand in a fake - including the two event methods the listener pair
+ * in #attachListeners goes through.
  */
 export interface SerialLike {
   requestPort(options?: {
@@ -163,6 +183,32 @@ const isFailureCopyPhase = (
   phase: SessionPhase,
 ): phase is (typeof FAILURE_COPY_STATES)[number] =>
   (FAILURE_COPY_STATES as readonly SessionPhase[]).includes(phase);
+
+/** The one line the header renders per other module; two lists are equal when these are. */
+const moduleKey = (m: ModuleSeen): string =>
+  `${m.sx},${m.sy}:${m.hwcfg}:${m.moduleType ?? ""}`;
+
+/**
+ * The fold's republish rule, field by field: the active page, the firmware
+ * triple, and the other modules by address and type. `lastSeen` is not a
+ * rendered field and is not compared.
+ */
+function renderedFieldsChanged(
+  current: Identity,
+  next: Identity,
+  nextOthers: ModuleSeen[],
+): boolean {
+  if (current.activePage !== next.activePage) return true;
+  const a = current.zona.firmware;
+  const b = next.zona.firmware;
+  if (a.major !== b.major || a.minor !== b.minor || a.patch !== b.patch) {
+    return true;
+  }
+  if (current.otherModules.length !== nextOthers.length) return true;
+  return current.otherModules.some(
+    (m, i) => moduleKey(m) !== moduleKey(nextOthers[i]),
+  );
+}
 
 /**
  * The memoised module promise, and the ONE thing it covers: the open path.
@@ -229,10 +275,45 @@ export class DeviceSession {
    * The identify window in seconds, for silentBlock. Read from the pinned
    * package on the open path - the only path from which `silent` can be
    * reached - so the sentence and the wait it describes come from the same
-   * constant, and never through a fifth static specifier. Plan 06-04's
-   * watchdog takes MODULE_GONE_MS from the same awaited module the same way.
+   * constant, and never through a fifth static specifier.
    */
   #windowSeconds = 0;
+  /**
+   * The three heavy modules, kept once #openAdopted has awaited them, because
+   * the fold below needs the scanner, the decoder and the accumulator for the
+   * life of the connection and none of those may be a static specifier here.
+   */
+  #modules: HeavyModules | undefined;
+  /**
+   * MODULE_GONE_MS, read from the same awaited module as #windowSeconds and
+   * stored here - NOT through a fifth static specifier. $lib/protocol/constants
+   * imports @intechstudio/grid-protocol at module scope, so a static import of
+   * it would put the 131,101-byte chunk on the first paint of `/` and undo the
+   * whole of the four-specifier discipline above; and a `typeof import(...)`
+   * alias cannot help either, because it is erased and this is a VALUE. The
+   * watchdog is only ever armed once `connected` has been reached, which is
+   * strictly after #openAdopted resolved that module, so the constant is in
+   * hand by then and no new fetch happens. If a later plan needs it before a
+   * connection exists, it moves to $lib/protocol/usb.ts beside ZONA_USB rather
+   * than this rule bending.
+   */
+  #goneMs = 0;
+  /**
+   * The fold's accumulator, fresh per connection. Its identity is what the
+   * pump checks before absorbing a chunk, so a callback a closed transport
+   * still holds can never fold into a later connection's state.
+   */
+  #fold: IdentifyState | undefined;
+  /** The watchdog's pending timeout, if armed. Never an interval. */
+  #timer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * The injected clock's reading at the last heartbeat the fold saw from the
+   * ZONA, initialised when `connected` is reached. Kept here rather than read
+   * off the published identity: the fold republishes only when a rendered
+   * field changes, so the snapshot's own `lastSeen` is deliberately allowed to
+   * go out of date and would keep a watchdog reading it silent for ever.
+   */
+  #lastSeen = 0;
   /** The in-flight guard. Cleared on every exit path, in a finally. */
   #busy = false;
   /** start() runs once per instance; a second call would attach listeners twice. */
@@ -283,11 +364,75 @@ export class DeviceSession {
 
   /**
    * The navigator-level connect and disconnect listener pair, for the life of
-   * the page (D-07). Plan 06-04 fills this in; it is named and called here so
-   * start()'s order - capability, listeners, then the offer - is already right.
+   * the page (D-07), and never removed: the session lives as long as the page
+   * does. Phase 2's transport listens on the PORT, which can notice a device
+   * leaving and never one arriving; both events belong on the serial object.
    */
   #attachListeners(): void {
-    // 06-04.
+    const serial = this.#serial;
+    if (!serial) return;
+    serial.addEventListener("connect", this.#onSerialConnect);
+    serial.addEventListener("disconnect", this.#onSerialDisconnect);
+  }
+
+  /**
+   * A permitted ZONA arrived. NOT `ev.target === this.#port`: after a replug
+   * this is a NEW SerialPort object (serial_service.cc:317-325, see the
+   * header), so the comparison would wait for ever and the replug half of
+   * CONN-06 would silently never happen. Identify by getInfo() and ADOPT -
+   * which REPLACES the stored reference rather than merging with it. The old
+   * object is dead the moment the module left; keeping it produces a
+   * NetworkError at the next open, at best.
+   *
+   * The result is `detected`: one click away, and never an automatic open
+   * (D-06). An arrival while a transport is live, or while an open is in
+   * flight, is ignored - the session is already talking to something, or the
+   * chooser is about to decide.
+   */
+  #onSerialConnect = (ev: Event): void => {
+    const port = ev.target as SerialPort | null;
+    if (!port || !isZonaPort(port)) return;
+    if (this.#transport || this.#busy) return;
+    this.#adopt(port);
+    this.#clearFailure();
+    this.phase = "detected";
+  };
+
+  /**
+   * A permitted port left. This comparison IS safe, and it is the asymmetry
+   * of the pair: on disconnect the browser fires at the object this session
+   * is holding (RemovePort flips its `connected` and forwards the event at
+   * that same token), so a port that is not ours is some other permitted
+   * device and none of our business.
+   *
+   * Three outcomes. A LIVE session lands in `unplugged-while-connected` - in
+   * this same turn, before any click and without waiting for a failed write -
+   * and keeps the dead port adopted so forget() can still revoke it (S5 renders
+   * that control). A `detected` port that leaves before it was ever opened
+   * returns to `idle`, not to S5: Phase 4's sentence says "Nothing was
+   * written" about a session that existed, and there was none. Any other
+   * phase holding a dead port - a failure the visitor is still reading, or a
+   * session the transport's own net already flipped - keeps its phase, and
+   * only the reference is dropped, so the next click goes back through the
+   * chooser rather than at an object that is gone.
+   */
+  #onSerialDisconnect = (ev: Event): void => {
+    if (ev.target !== this.#port) return;
+    if (this.#transport) {
+      this.#unplugged();
+      return;
+    }
+    if (this.phase === "unplugged-while-connected") return;
+    this.#port = undefined;
+    this.canForget = false;
+    if (this.phase === "detected") this.phase = "idle";
+  };
+
+  /** The live session's unplug, from either the event or the watchdog. */
+  #unplugged(): void {
+    void this.#teardown();
+    this.identity = null;
+    this.phase = "unplugged-while-connected";
   }
 
   /**
@@ -388,7 +533,9 @@ export class DeviceSession {
       // The only fetch of the compiler's chunk on this site's device path,
       // and it happens here: after the chooser, before the open.
       const modules = await heavyModules();
+      this.#modules = modules;
       this.#windowSeconds = modules.P.IDENTIFY_WINDOW_MS / 1000;
+      this.#goneMs = modules.P.MODULE_GONE_MS;
 
       let transport: GridTransport;
       try {
@@ -406,8 +553,16 @@ export class DeviceSession {
         pollMs: this.#pollMs,
         sleep: this.#sleep,
       });
+      // The session moved on while identifyOnly was listening - an unplug, a
+      // disconnect() - so whatever it concluded is about a transport this
+      // session no longer holds, and publishing it would overwrite the state
+      // the listener already set.
+      if (this.#transport !== transport) return;
       if (outcome.kind === "identified") {
-        this.identity = outcome.identity;
+        this.#publish(outcome.identity);
+        this.#lastSeen = this.#now();
+        this.#startFold(transport);
+        this.#armWatchdog();
         this.phase = "connected";
         return;
       }
@@ -425,15 +580,124 @@ export class DeviceSession {
 
   /**
    * The transport closed under us - a read error, or the transport's own
-   * port-level disconnect. 06-04's navigator-level listener is the primary
-   * path to `unplugged-while-connected`; this is the net under it, so a dead
-   * port is never still published as `connected`.
+   * port-level disconnect. The navigator-level listener is the primary path to
+   * `unplugged-while-connected`; this is the net under it, so a dead port is
+   * never still published as `connected`.
    */
   #onTransportClosed(transport: GridTransport): void {
     if (this.#transport !== transport) return; // a teardown this session started
     this.#transport = undefined;
+    this.#fold = undefined;
+    this.#disarm();
     this.identity = null;
     if (this.phase === "connected") this.phase = "unplugged-while-connected";
+  }
+
+  // --- the continuous fold --------------------------------------------------
+
+  /**
+   * Keep listening after identification. identifyOnly registered the
+   * transport's single onData callback and returned; GridTransport carries ONE
+   * callback, so whoever registers last owns the byte stream, and from here
+   * that is the session, over a fresh scanner and a fresh accumulator. The
+   * module heartbeats at 4 Hz unprompted, so the rebuilt identity lands within
+   * about 250 ms and keeps folding for the life of the connection: the page
+   * number on screen is the page the module is on rather than a snapshot from
+   * connect time (CONN-08), and a rig's other modules appear as they announce
+   * themselves (D-08). The heartbeat is also what the watchdog listens for.
+   *
+   * A decode that fails is skipped, as identifyOnly skips it: the guard returns
+   * undefined on every failure exit and never a wrong answer, and the next
+   * frame is 250 ms away.
+   */
+  #startFold(transport: GridTransport): void {
+    const modules = this.#modules;
+    if (!modules) return;
+    const scanner = new modules.P.FrameScanner();
+    const fold = modules.T.newIdentifyState(this.#now());
+    this.#fold = fold;
+    transport.onData((chunk) => {
+      if (this.#transport !== transport || this.#fold !== fold) return;
+      for (const frame of scanner.push(chunk)) {
+        const decoded = modules.P.decodeFrame(frame);
+        if (!decoded.ok) continue;
+        modules.T.absorbFrame(decoded.classes, fold, this.#now());
+      }
+      const identity = modules.T.identify(fold);
+      if (!identity) return;
+      this.#lastSeen = identity.zona.lastSeen;
+      this.#publish(identity);
+    });
+  }
+
+  /**
+   * Replace the published snapshot ONLY when a rendered field changed: the
+   * active page, the firmware triple, or the sorted list of other modules.
+   * Never on `lastSeen` alone - that would replace a $state.raw snapshot four
+   * times a second for a value nothing renders, and every reader of `identity`
+   * would re-run for it.
+   *
+   * `otherModules` is sorted by sx, then sy. The accumulator's own order is
+   * arrival order, which is non-deterministic across runs, and a line that
+   * reorders itself between two loads reads as a bug.
+   */
+  #publish(next: Identity): void {
+    const others = [...next.otherModules].sort(
+      (a, b) => a.sx - b.sx || a.sy - b.sy,
+    );
+    const current = this.identity;
+    if (current && !renderedFieldsChanged(current, next, others)) return;
+    this.identity = { ...next, otherModules: others };
+  }
+
+  // --- the liveness watchdog ------------------------------------------------
+
+  /**
+   * MODULE_GONE_MS is three missed heartbeats - the desktop's isAlive rule
+   * (runtime.ts:2426-2430). This watchdog exists for ONE case: the MISSED
+   * DISCONNECT. A module can leave without an event - a cable pulled at the
+   * hub end, a browning-out hub, a device the OS suspended - and a connected
+   * session with no traffic of its own produces no read error either, so
+   * nothing else on this page would notice. Armed when `connected` is
+   * reached, disarmed by every teardown.
+   *
+   * BOTH halves of the condition are load-bearing. The module must have been
+   * silent for MODULE_GONE_MS on the injected clock, AND the OS must report
+   * the port no longer attached. portIsAttached() returning `undefined` -
+   * Chrome 89-129, which has no `connected` property - is NOT `false`, so an
+   * older Chromium never takes this path and keeps the session until a real
+   * event or a read error arrives. That is the right failure: the alternative
+   * is tearing a live connection down on a browser that cannot answer the
+   * question.
+   *
+   * It publishes no field of its own. Silence ALONE is not a state: a firmware
+   * crash on a port the OS still reports as attached leaves the session in
+   * `connected`, deliberately, because the taxonomy is nine and this phase
+   * renders no tenth.
+   *
+   * A self-rescheduling setTimeout, never setInterval: a timer chain is what a
+   * hidden tab throttles gracefully, and an interval is what the motion
+   * contract bans.
+   */
+  #armWatchdog(): void {
+    this.#disarm();
+    this.#timer = setTimeout(() => {
+      this.#timer = undefined;
+      if (!this.#transport) return;
+      const port = this.#port;
+      const gone = this.#now() - this.#lastSeen > this.#goneMs;
+      if (gone && port && portIsAttached(port) === false) {
+        this.#unplugged();
+        return;
+      }
+      this.#armWatchdog();
+    }, this.#goneMs);
+  }
+
+  #disarm(): void {
+    if (this.#timer === undefined) return;
+    clearTimeout(this.#timer);
+    this.#timer = undefined;
   }
 
   // --- the failure, named synchronously ------------------------------------
@@ -539,8 +803,10 @@ export class DeviceSession {
    * second close only ever runs on a port something else left open.
    */
   async #teardown(): Promise<void> {
+    this.#disarm();
     const transport = this.#transport;
     this.#transport = undefined;
+    this.#fold = undefined;
     if (transport) await transport.close().catch(() => undefined);
     const port = this.#port;
     if (port && port.readable !== null) {

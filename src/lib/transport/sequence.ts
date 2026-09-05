@@ -112,12 +112,17 @@ export function identifyTimedOut(
  * Both numeric coercions are required and the desktop does both
  * (runtime.ts:2366, :2370): module_type_from_hwcfg needs a NUMBER, and
  * module_hwcfgs() stores its hwcfg as a STRING.
+ *
+ * `at` is the clock reading `lastSeen` is stamped with. It defaults to this
+ * module's own clock so every existing caller is unchanged; the session passes
+ * its injected clock, so its liveness watchdog and this fold agree about time.
  */
 export function absorbFrame(
   classes: DecodedClass[],
   state: IdentifyState,
+  at: number = now(),
 ): void {
-  const seenAt = now();
+  const seenAt = at;
   let heartbeatInThisFrame = false;
 
   for (const cls of classes) {
