@@ -51,8 +51,8 @@ feature table in `.planning/research/FEATURES.md`.
 ### Catalog [D]
 
 - [x] **CAT-01**: Every configuration has a deep link that lands on its detail view [D1]
-- [ ] **CAT-02**: User can sort by Featured, Newest and Name; no popularity metrics are shown or faked [D4]
-- [ ] **CAT-03**: User can open a focus/detail view for one configuration where it runs at full frame rate with interaction, knobs, budget meters and install controls [D5]
+- [x] **CAT-02**: User can sort by Featured, Newest and Name; no popularity metrics are shown or faked [D4]
+- [x] **CAT-03**: User can open a focus/detail view for one configuration where it runs at full frame rate with interaction, knobs, budget meters and install controls [D5]
 - [ ] **CAT-04**: The catalog is a static data file of Profile-Cloud-shaped config objects plus tuning metadata, buildable with no backend
 
 ### Content
@@ -182,8 +182,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PREV-05 | Phase 4 | Complete (row mounts at most seven pads; offscreen pause and reduced motion asserted; paint count recorded 135–216 per 2 s, no fps floor asserted — accepted deviation 3) |
 | PREV-06 | Phase 3 | Complete |
 | CAT-01 | Phase 4 | Complete (eight prerendered /c/<id>/ pages; tpad has a catalog entry but no page because it writes no LEDs — /c/tpad/ lands on the shelf with a notice) |
-| CAT-02 | Phase 5.1 | Pending |
-| CAT-03 | Phase 5.1 | Pending |
+| CAT-02 | Phase 5.1 | Complete with one qualifier about provenance, not about behaviour: the three orders ARE the shipped comparators in src/lib/catalog/index.ts as 05.1-CONTEXT.md D-10 amends them - byFeatured() (featured first, then name, no addedAt tie-break), byNewest() and a plain code-point nameAsc, with no localeCompare and no Intl.Collator anywhere. 05.1-UI-SPEC.md W-08 AGREES with that rule and is NOT superseded; what the amendment supersedes is 05.1-RESEARCH.md, whose Standard Stack row and Do-Not-Hand-Roll row both recommend Intl.Collator("en", { sensitivity: "base" }). nameAsc is not exported, so src/lib/browse/sort.ts restates it and sort.spec.ts tests 2-4 gate the restatement against byFeatured()/byNewest()/byName() id sequences while test 5 asserts mechanically that neither localeCompare nor Intl is named. The no-popularity-metric half is held by browse-ui.spec.ts test 1 as a comment-stripped source scan with fragment-assembled needles, and by W-04 refusing a count on any chip |
+| CAT-03 | Phase 5.1 | Complete with one qualifier that must not be read past: the INSTALL CONTROLS ARE PHASE 7'S AND ARE STILL ABSENT OR DISABLED. What this phase delivers is the focus view itself - all sixteen configurations now have a real prerendered /c/<id>/ page (05.1-05), an off-row entry gets a row of one with an arrow-less plate, the hero runs at full frame rate and takes mouse-as-finger, Phase 5's knobs and both 908 meters are there, and the way back restores sort, query, tags and scroll offset. TRY ON DEVICE connects and identifies only, KEEP ON DEVICE is really disabled, and nothing writes. The install half is docked, not built |
 | CAT-04 | Phase 4 | Pending |
 | CONT-01 | Phase 4 | Pending |
 | CONT-02 | Phase 8 | Complete (seven configurations against a floor of six — EUCLID, CHORUS, ARC, GHOST, LATTICE, MORPH, SONAR — canonical, in budget across their whole knob range, run in a Lua VM over the unmodified simulator; the twelve-row hardware audition is presented to the user and unanswered) |

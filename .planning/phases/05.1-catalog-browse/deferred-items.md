@@ -86,3 +86,93 @@ bar, so `update_url` on a popstate is handed the entry URL. The corrected statem
 header of `src/routes/browse/+page.svelte`, beside the code it governs, and in `05.1-10-SUMMARY.md`.
 
 **Suggested owner:** 05.1-11 (the phase gate), together with item 2's spec sentence.
+
+---
+
+## 4. `MORE TAGS` (`05.1-UI-SPEC.md` W-19) is deliberately not built
+
+**Found during:** 05.1-07. **Recorded at the phase gate (05.1-11), not fixed.**
+
+The standing chip row ships as the nine tags carried by two or more configurations, and the 32
+single-entry tags stay searchable text on the card. `05.1-CONTEXT.md` D-15 says exactly that and is
+binding; W-19 proposed revealing the other 32 behind a disclosure, which is a widening of a locked
+decision. `src/lib/ui/BrowseToolbar.svelte`'s header records the reason beside the code. What IS
+built is the outsider case: an active tag outside the nine renders its own chip after them, so a
+shared `/browse/?tag=looper` link never shows a filter with no way to remove it.
+
+**If the disclosure is wanted later** it is a `chipTags()` change plus one `<details>`; nothing in
+the filter model, the URL model or the keyboard model moves.
+
+---
+
+## 5. The spec and research sentences items 2 and 3 name are still uncorrected
+
+**Owner named as 05.1-11 by items 2 and 3. Deliberately not done at the gate.**
+
+`05.1-UI-SPEC.md`'s *What "recorded" means* still asks for `replaceState` on the return, and
+`05.1-RESEARCH.md` Pitfall 2 still states the `page.url` asymmetry backwards. Both are wrong and both
+are now contradicted, in the code and in the tests:
+
+- `e2e/browse.e2e.ts` test 10 asserts the shipped behaviour — one Back press from the restored browse
+  view lands on the configuration the visitor opened — with the reason in a comment beside it.
+- `src/routes/browse/+page.svelte`'s header carries the corrected reading of Kit's `replaceState`,
+  and `05.1-10-SUMMARY.md` records the four journeys it was measured in.
+
+They are left standing because a UI spec and a research document are **records of what was decided
+and known when they were written**, and rewriting one after sign-off makes every citation of it
+ambiguous. The corrections live where the code is. If the project would rather they be amended in
+place, that is a one-paragraph edit to each, and it should be a deliberate act with its own commit
+rather than something a phase gate did on the way past.
+
+---
+
+## 6. The questions that are the user's, and stay open
+
+**Recorded at the phase gate. None of these is a defect; all of them are curation or taste.**
+
+From `05.1-CONTEXT.md` § Open for the user, and `05.1-UI-SPEC.md` § Open questions for the morning:
+
+1. **Where `BROWSE ALL` sits** — the header slot opposite the wordmark (shipped, W-01) versus beneath
+   the name plate. One CSS block either way; nothing else in the contract is affected.
+2. **Whether the Lua entries should join the coverflow row.** They have real pages now (D-07), and
+   the `buildTuner` hazard that made this dangerous is closed and proven in a browser
+   (`e2e/browse.e2e.ts` test 11), so the blocker the spec attached to this question is gone. If they
+   join, W-09's arrow-less plate disappears and `front-door.spec.ts`'s per-row `preview === padsim`
+   assertion must be revisited (08-SUMMARY records that).
+3. **Whether Trackpad should have a public page at all.** D-11 says yes and it has one, with the
+   resting-black note doing the honest work. It is a card that is a black square on a site whose
+   promise is that the machines are running.
+4. **Half the catalog is featured** (eight of sixteen), and five of those eight are hand-authored
+   Lua, so the shelf `/` opens with is not the shelf `/browse/` opens with. An explicit curated order
+   would be a `CatalogEntry` field, not a UI change.
+5. **Card tag chips are quiet text, not controls** (W-06). Making them filter costs sixty-four tab
+   stops inside the grid and a rebuilt arrow-key model.
+6. **The resting-black note is one string for all three configurations.** Per-entry sentences would
+   read better and would be a `CatalogEntry` field.
+7. **`MORE TAGS`** — see item 4 above.
+
+---
+
+## 7. `REQUIREMENTS.md`'s CAT-01 row still says eight prerendered pages
+
+**Found during:** 05.1-11, task 3, while closing CAT-02 and CAT-03. **Not fixed** — it belongs to
+CAT-01, which is Phase 4's requirement and was closed by Phase 4.
+
+The traceability row reads *"eight prerendered /c/<id>/ pages; tpad has a catalog entry but no page"*.
+Plan 05.1-05 (D-07) widened `entries()` to the whole catalog: there are **sixteen** pages now,
+`/c/tpad/` among them, and `e2e/first-experience.e2e.ts` asserts all sixteen are real files with
+their own descriptions. The requirement is still met — more than met — so the row is stale rather
+than wrong, and correcting a closed requirement's evidence is a deliberate act rather than a
+side effect of closing two others. The same widening is already recorded correctly against SHARE-04
+in `docs/TESTING.md`.
+
+---
+
+## 8. `STATE.md`'s Performance Metrics block goes stale on every plan
+
+**Standing, first recorded at the close of Phase 5, re-recorded here.**
+
+`gsd-tools state record-metric` appends a row to the per-plan table and never touches the
+**Velocity** and **By Phase** blocks above it, so those two are recomputed by hand at a phase close
+and are stale again by the next plan. They were recomputed by hand at this gate. Either the tool
+should recompute them or the two blocks should be removed in favour of the table they summarise.

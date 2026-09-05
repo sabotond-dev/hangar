@@ -11,20 +11,25 @@ work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-04, at the end of Phase 5 — the last
-wave of the tuning and sharing work. Wall times are the whole command including npm and process
-startup; the parenthesised figure is the runner's own reported duration. Every number here is
-**observed**, never predicted — the tree is shared between phases, so a row that was guessed rather
-than run is worse than no row at all.
+Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-05, at the end of Phase 5.1 — the
+last wave of the catalog-browse work, against a fresh `npm run build`. Wall times are the whole
+command including npm and process startup; the parenthesised figure is the runner's own reported
+duration. Every number here is **observed**, never predicted — the tree is shared between phases, so
+a row that was guessed rather than run is worse than no row at all.
 
 | Command                      | Covers                                                               | Measured                                                                       |
 | ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `npm run test:quick`         | the `server` Vitest project — everything except the two sweeps       | 58 files, 646 passed + 1 todo (647); 33 s wall (31.5 s)                        |
-| `npm run test:sweep`         | the `sweep` project: three files, and 96% of its cost is one of them | 3 files, 13 tests; 144 s wall (141.2 s)                                        |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 61 files, 659 passed + 1 todo (660); 129 s wall (127.0 s)                      |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 52 tests; 41.5 s runner time, 46 s wall including the build and the cold start |
-| `npm run check`              | `svelte-check` over the whole project                                | 494 files, 0 errors, 0 warnings; 7 s wall                                      |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 14 s wall                                                              |
+| `npm run test:quick`         | the `server` Vitest project — everything except the two sweeps       | 66 files, 691 passed + 1 todo (692); 25 s wall (22.7 s)                        |
+| `npm run test:sweep`         | the `sweep` project: three files, and 94% of its cost is one of them | 3 files, 13 tests; 80 s wall (78.0 s)                                          |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 69 files, 704 passed + 1 todo (705); 86 s wall (82.6 s)                        |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 61 tests; 43.5 s runner time, 45 s wall including the build and the cold start |
+| `npm run check`              | `svelte-check` over the whole project                                | 517 files, 0 errors, 0 warnings; 6 s wall                                      |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 12 s wall                                                              |
+| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 9 s wall                                                               |
+
+**Run `test:quick` after a build, not only before one.** `src/lib/config-shape.spec.ts` test 14 and
+`src/lib/og/build.spec.ts` tests 1, 4 and 5 read `build/`, so they are only armed when the directory
+beside them is fresh. The numbers above were taken in that order.
 
 The sampling rule, in three lines:
 
@@ -42,8 +47,8 @@ one more file in `server`.
 
 **The project has three members as of Phase 5**, and the rule that admits a file is its cost, never
 its subject: anything matching `*.sweep.spec.ts` joins it. See the Phase 5 section below for the
-per-file numbers — the short version is that
-`src/lib/tune/reachability.sweep.spec.ts` now dominates the run at 125 s of 141 s.
+per-file numbers — the short version is that `src/lib/tune/reachability.sweep.spec.ts` now dominates
+the run, at 75.8 s of a 78.0 s three-file run re-measured on 2026-09-05.
 
 The sweep is the anti-drift mechanism. It runs less **often** — per wave, not per task — and never
 less **fully**. Do not trim it, do not sample a subset of the states, do not add a `--bail`, and do
@@ -341,21 +346,28 @@ by running each file on its own; the cost column is the wall time of that single
 **The costliest file in the `server` project is now `surprise.spec.ts` at 21.6 s on its own.** It
 stays in `server` deliberately: it is 18,000 draws against a pure function with no compiler in the
 loop, it is the per-task guard for the one control that can move every knob at once, and inside a
-parallel run it overlaps with the other 57 files — the whole `server` project is 31.5 s.
+parallel run it overlaps with the other 65 files — the whole `server` project is 22.7 s.
 
 ### The sweep project's new membership
 
 `*.sweep.spec.ts` is the file-name rule, and Phase 5 is what made it more than a convention.
 
-| File                                          | Tests | Cost alone | Why it is a sweep                                                                   |
-| --------------------------------------------- | ----- | ---------- | ----------------------------------------------------------------------------------- |
-| `src/lib/tune/reachability.sweep.spec.ts`     | 2     | 125.4 s    | it costs all 32,852 reachable knob states of the nine shelf cards, with no sampling |
-| `src/lib/share/stamp-roundtrip.sweep.spec.ts` | 2     | 2.3 s      | it round-trips every one of those states through the encoder and back               |
+| File                                            | Tests | Cost alone | Why it is a sweep                                                                   |
+| ----------------------------------------------- | ----- | ---------- | ----------------------------------------------------------------------------------- |
+| `src/lib/tune/reachability.sweep.spec.ts`       | 2     | 75.8 s     | it costs all 32,852 reachable knob states of the nine shelf cards, with no sampling |
+| `src/vendor/botor/tests/pad-invariants.test.js` | 9     | 36.2 s     | 4,860 labelled states: 1,620 kind combinations times three brightness levels        |
+| `src/lib/share/stamp-roundtrip.sweep.spec.ts`   | 2     | 1.6 s      | it round-trips every one of those states through the encoder and back               |
 
-The whole `sweep` project is now **3 files / 13 tests, 141.2 s** (144 s wall) against **1 file /
-9 tests, 38.3 s** before the phase. The invariant sweep it used to be alone in is no longer the
-expensive one: 125 s of the 141 s is the reachability sweep, and that is the price of the finding
-below being a measurement rather than an opinion.
+The whole `sweep` project is **3 files / 13 tests, 78.0 s** (80 s wall) against **1 file / 9 tests,
+38.3 s** before Phase 5. The invariant sweep it used to be alone in is no longer the expensive one:
+the reachability sweep is, and that is the price of the finding below being a measurement rather
+than an opinion.
+
+**Two of the three single-file costs above moved between 2026-09-04 and 2026-09-05 without a line of
+either file changing** — reachability from 125.4 s to 75.8 s, `stamp-roundtrip` from 2.3 s to 1.6 s.
+Nothing about the sweep got faster; the machine was less busy. That is the reason these numbers are
+dated and the reason no threshold is asserted against any of them. The three files run in parallel,
+which is why 75.8 + 36.2 + 1.6 is 113.6 s alone and 78.0 s together.
 
 ### The phase's central finding, and how it is exercised
 
@@ -395,7 +407,8 @@ A guard nobody has watched work is a hope. That is the whole argument for the pr
 `grep: /@webkit/` and `devices["iPhone 15"]` (393x659, `isMobile`, `hasTouch`). The consequence is
 worth stating as arithmetic rather than as prose: **a title containing `@webkit` runs twice and counts
 twice.** `tuning-webkit.e2e.ts`'s five tests therefore contribute **ten** to the suite total, which is
-why the whole run is 44 and not 39.
+why the whole run at the end of Phase 5 was 44 and not 39. Phase 5.1 added a second tagged file on
+the same rule; the current totals are in the per-file table below.
 
 The filter is what makes a second project affordable. A bare second project would double every
 existing test for no new coverage; leaving `chromium` ungrepped is what makes the tagged tests
@@ -452,6 +465,82 @@ Discord's, Slack's, Twitter's — gets a 401 from `worker/index.js` and never re
 tests check. What is provable today is that the markup and the bytes are right; that a scraper does
 the expected thing with them is a check for the first un-gated deploy, and it is written down as such
 rather than assumed.
+
+## The catalog's browse surface
+
+Phase 5.1 added `/browse/` — sixteen live cards, a sort, a search field, tag chips, a roving
+tabindex and a way back from a detail page. It added **eight** `server` spec files, **one** Playwright
+file, **three** tests to the existing `e2e/browse.e2e.ts` and a second `@webkit`-tagged Playwright
+file. Every count below was observed on 2026-09-05 by running each file on its own.
+
+| File                                 | Tests | Cost   | What it holds                                                                                                        |
+| ------------------------------------ | ----- | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/catalog/listing.spec.ts`    | 5     | 0.40 s | the sixteen restated entries held against the catalog in both directions, and the zero-import scan over the source   |
+| `src/lib/browse/sort.spec.ts`        | 6     | 0.42 s | the three comparators against literal id sequences, and a scan asserting neither `localeCompare` nor `Intl` is named |
+| `src/lib/browse/filter.spec.ts`      | 6     | 0.23 s | case-and-diacritic folding, the term split, AND-combining chips, and the standing chip row derived from the data     |
+| `src/lib/browse/grid.spec.ts`        | 6     | 0.21 s | the column ladder and the whole keyboard model: clamp-never-wrap, `Home`/`End`, and `undefined` for a foreign key    |
+| `src/lib/browse/query.spec.ts`       | 5     | 0.23 s | the URL-visible state: parsed defensively, serialised canonically, an unknown `?tag=` dropped silently               |
+| `src/lib/browse/return.spec.ts`      | 4     | 0.21 s | the `sessionStorage` record, and that nothing in it ever throws                                                      |
+| `src/lib/browse/typographic.spec.ts` | 4     | 0.39 s | the apostrophe and quotation-mark rules applied to a visitor's own query                                             |
+| `src/lib/ui/browse-ui.spec.ts`       | 6     | 0.21 s | six structural rules over the browse components, including the comment-stripped "no popularity metric" scan          |
+
+Eight files, **42 tests**, and the whole set runs in well under a second. That is deliberate: every
+decidable thing on this screen lives in a pure `.ts` module with its own spec, because this
+repository collects no `.svelte.spec.ts` in any Vitest project and one written here would report
+green while running nothing. Everything that needs a real layout, a real canvas or a real history
+entry is proven in a browser instead — `e2e/browse.e2e.ts` (11 chromium tests) and
+`e2e/browse-webkit.e2e.ts` (3 titles, both projects, 6 against the total).
+
+### What the browse gates prove, and what they do not
+
+**The sixteen-canvas frame budget is a recorded measurement, not a threshold.** Test 6 of
+`e2e/browse.e2e.ts` patches `CanvasRenderingContext2D.prototype.putImageData` in an init script and
+counts pad frames for two seconds on the built site, then records the viewport, how many cards were
+on screen and how many engines had been built beside the number. Observed at 1280x720 with 4 of 16
+cards on screen and 4 engines built: **139–156** over four runs, and **152** in the Phase 5.1 gate
+run. The test asserts only that the number is greater than zero. `.planning/research/STACK.md`'s own
+estimate — 10–16 concurrently visible animating cards before stutter with the vendored blit, 30+
+after the two fixes HANGAR ships — is marked _"Unverified estimate — profile it"_, and this phase
+does not promote an unverified estimate into a gate that would go red on somebody else's machine for
+a reason that is not a regression. If the wall ever does stutter the first lever is the column count,
+and it is never `SIDE_INTERVAL_MS`, which `schedule.spec.ts` pins against the vendored host.
+
+**The WebAssembly claim is narrower than D-06's wording, and the test says so out loud.** D-06 asks
+for _"a cold `/browse/` with no Lua card in view fetches no WebAssembly"_. With the default Featured
+sort the first screenful holds several Lua cards, so a genuine cold `/browse/` at the top of the page
+**will** fetch the 271 KB VM — correctly, and immediately. The honest claim is _a visitor who never
+brings a Lua card into view never downloads the VM_, and the honest test is therefore a **filtered**
+load: `/browse/?q=aurora` leaves exactly one card in the grid and that card is declared `padsim`. The
+test asserts the filtered set is one and that the card is not a Lua card **before** it asserts the
+absence, so it cannot pass because the filter silently stopped working. Substituting a bare
+`/browse/` was observed red. Do not "simplify" it.
+
+**Two guards keep `/browse/` light, and they are deliberately redundant.** `src/lib/config-shape.spec.ts`
+test 13 walks the **source** of both routes and every file in `src/lib/ui/`, forbidding `vendor`,
+`intechstudio` and `lib/pad` in the `from` form, and from Phase 5.1 it names
+`src/routes/browse/+page.svelte` explicitly; test 14 walks the **built** artefact, finds the chunk
+containing `GRID_PARAMETER_ELEMENT_POTMETER` and asserts that no page's transitive static import
+graph reaches it. Test 13 goes red without a rebuild; test 14 catches what specifier text cannot see
+— a static `import { CATALOG } from "$lib/catalog"` puts the 131,101-byte protocol chunk in a page's
+static graph while naming none of test 13's markers. `e2e/browse.e2e.ts` test 7 makes the same claim a
+third time against the **served HTML**, which is the only artefact that is race-free: Vite's preload
+helper inserts `modulepreload` links for a dynamic import's dependencies too, so the DOM after the
+grid has settled is not a first-paint graph. All three fail for different reasons; keep all three.
+
+**The keyboard is proven in both halves.** `grid.spec.ts` pins the arithmetic in node — clamping
+rather than wrapping, `Home`/`End`, `undefined` for a key the grid does not own, and the
+`Math.max(1, …)` column clamp — and `e2e/browse.e2e.ts` test 9 pins the browser half: exactly one
+`tabindex="0"` inside the grid, one `Tab` crossing the whole wall, arrows moving focus by a column
+count read off the **live** layout rather than a constant, `ArrowDown` off the last row not moving,
+and `Enter` following the anchor with no handler at all.
+
+**The D-18 engine hazard is proven where a visitor would have met it.** `buildTuner`'s `destroy()`
+closes only an engine the consumer has never seen; before plan 05.1-04 it closed the engine
+unconditionally, which was harmless only while every Lua entry stayed out of `FRONT_DOOR`. Plan
+05.1-05 made `/c/euclid/` real, where the row is EUCLID **alone**. `e2e/browse.e2e.ts` test 11 opens
+that page, waits for both meters to settle (which is what proves the engine has been handed over),
+presses `Escape`, and asserts the pad's own 9x9 backing store still changes 400 ms later. Reverting
+`model.ts` to `closeEngine(engine)` was observed turning it red, with the pad frozen on a lit frame.
 
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
@@ -524,20 +613,23 @@ Capture e2e output to `.tmp-e2e/` (gitignored), never under `test-results/` or
 `playwright-report/`: Playwright deletes its `outputDir` at the start of every run, so a redirect
 target inside it is unlinked mid-run.
 
-The whole Playwright suite is **52 tests** as of 2026-09-05, and it is 52 rather than 47 because the
-five titles in `tuning-webkit.e2e.ts` run in both projects. Observed, per file and per project:
+The whole Playwright suite is **61 tests** as of 2026-09-05, and it is 61 rather than 53 because the
+eight tagged titles — five in `tuning-webkit.e2e.ts`, three in `browse-webkit.e2e.ts` — run in both
+projects. Observed, per file and per project, from the Phase 5.1 gate run:
 
-| File                      | chromium | webkit-phone |
-| ------------------------- | -------- | ------------ |
-| `first-experience.e2e.ts` | 11       | -            |
-| `tuning.e2e.ts`           | 10       | -            |
-| `browse.e2e.ts`           | 8        | -            |
-| `tuning-webkit.e2e.ts`    | 5        | 5            |
-| `smoke.e2e.ts`            | 4        | -            |
-| `artifacts.e2e.ts`        | 3        | -            |
-| `catalog.e2e.ts`          | 2        | -            |
-| `fidelity.e2e.ts`         | 2        | -            |
-| `skeleton.e2e.ts`         | 2        | -            |
+| File                      | chromium | webkit-phone | Total |
+| ------------------------- | -------- | ------------ | ----- |
+| `first-experience.e2e.ts` | 11       | -            | 11    |
+| `browse.e2e.ts`           | 11       | -            | 11    |
+| `tuning.e2e.ts`           | 10       | -            | 10    |
+| `tuning-webkit.e2e.ts`    | 5        | 5            | 10    |
+| `smoke.e2e.ts`            | 4        | -            | 4     |
+| `browse-webkit.e2e.ts`    | 3        | 3            | 6     |
+| `artifacts.e2e.ts`        | 3        | -            | 3     |
+| `catalog.e2e.ts`          | 2        | -            | 2     |
+| `fidelity.e2e.ts`         | 2        | -            | 2     |
+| `skeleton.e2e.ts`         | 2        | -            | 2     |
+| **Total**                 | **53**   | **8**        | 61    |
 
 There are four unlinked probe routes under `/dev/`, one per thing a browser has to prove about the
 production build: the walking skeleton's page, `/dev/fidelity/` (the WASM formatter resolves and
