@@ -222,7 +222,7 @@ Plans:
 - [x] 07-09-PLAN.md — The allow-list mutations observed, then PutBack, KeepConfirm and InstallState (wave 9) (completed 2026-09-05)
 - [x] 07-10-PLAN.md — The panel writes: the never-writes literals retired, KEEP ON DEVICE quiet, the column row (wave 10) (completed 2026-09-05)
 - [x] 07-11-PLAN.md — The header lock, the snapshot line, and the degrade test extended (wave 11) (completed 2026-09-05)
-- [ ] 07-12-PLAN.md — The install flow on the real page in two engines (wave 12)
+- [x] 07-12-PLAN.md — The install flow on the real page in two engines (wave 12) (completed 2026-09-05)
 - [ ] 07-13-PLAN.md — INSTALL-RUNBOOK, the phase gate, and the hardware checkpoint - the first real write (wave 13)
 
 ### Phase 8: New Configurations
@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 11/13 | In progress (the header's part: DISCONNECT ZONA and FORGET THIS ZONA a real disabled under session.writeLock on every leg - the store leg observed explicitly - with the reason inline as their aria-describedby target and neither a tab stop; the S4 snapshot line in its durable and session-only forms, absent during snapshotting; the amended forget explanation, the copy surviving a forget and a reconnect; the panel's DISCONNECT ZONA left protective-only by decision; device-ui 11; the degrade test extended with PUT BACK absent and the KEEP reason; Phase 6 item 8's three pre-hydration presses fixed; quick 73 / 776, e2e 83 unchanged) | - |
+| 7. Install Flow | 12/13 | In progress (the real page in two engines: one click writes and the panel says PLAYING NOW from the acknowledgements with WRITING… and aria-busy caught under a 200 ms-per-ACK hold, the header's two controls locked with the reason after Back un-chose the panel mid-leg and released on the landing; the confirmation replacing the control with focus on the group, two exits plus Escape, the commit's focus to region 3 and a rig named; PUT BACK storing after a keep with RESTORED's caption over PUTTING BACK… through its store leg; the live region speaking once per outcome including Still writing. at 2 s into a held store and Escape ignored mid-write; the tagged degrade test on both projects with every install control present, disabled and explained and PUT BACK absent; e2e 83 -> 89 first time, quick 73 / 775 + item 12's timeout on a loaded machine; items 20 and 21) | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage

@@ -294,3 +294,43 @@ dropped-guard negative already showed for Escape. Whether Back should yield to a
 does is a spec question (Z-10 names Escape only); the lock is correct either way.
 
 **Owner:** the spec's owner, or 07-12 / 07-13 if the real-page install tests want the answer first.
+
+## 20. The document is one pixel wider than a 1280px window on `/c/aurora/`, panel chosen or not (found by 07-12)
+
+The tagged degrade test in `e2e/install.e2e.ts` (test 11) runs on both projects, and on the desktop
+project its "no horizontal scrollbar" reading came back `document.documentElement.scrollWidth` **1281**
+against `clientWidth` **1280**, with `window.scrollTo(5, 0)` moving `scrollX` to **1** - the page really
+scrolls by a pixel. Measured with the panel chosen and after `history.back()` un-chose it (both 1281),
+with the shim absent (the degrade path) - and the band is the same element on the shim's pages, so
+this is not the degrade path's. No element's `getBoundingClientRect().right` exceeds 1280 (the scan
+over `body *` was empty at zero tolerance), no layout box parented to the body exceeds it either, and
+the coverflow band (`overflow-x: clip`) reports its own `scrollWidth` 1281 / `clientWidth` 1280 with
+its right edge at exactly 1280.0 - a sub-pixel excess somewhere the bounding boxes do not show, most
+plausibly a pseudo-element or a rounding of a transformed card. At the phone viewport (393px) the
+document reads 393 / 393 while the band's clipped content is 104 px wider than its box and reaches the
+document not at all, so `clip` is doing its job there; the desktop pixel is something else. The panel
+itself is never wider than its box on either project (418 / 418, 327 / 327).
+
+The test asserts what is true: the panel adds no horizontal overflow on both projects; the document has
+zero excess at the phone layout; at the desktop width the excess is logged and bounded at the one pixel
+measured, so a second pixel is red and the fix reads zero on both. Nothing under `src/` is edited by
+07-12 by rule.
+
+**Owner:** the band's owner (Coverflow.svelte, Phase 4 / 5), or 07-13's deferred items; one measurement
+with a real Chrome window at 1280 wide decides whether a scrollbar is ever drawn. When the reading is
+zero, test 11's desktop branch can be tightened to the phone branch's rule in the same edit.
+
+## 21. Item 12 recurred three times under memory pressure, on a tree that touched no vitest file (noted by 07-12)
+
+`npm run test:quick` read **73 files / 775 passed / 1 failed / 1 todo** three times on 2026-09-05, the
+failure `lua-entries.spec.ts` test 6 (*stays canonical and in budget across the whole knob
+cross-product*) timing out at 5741, 5514 and 5288 ms against Vitest's 5000 ms default - the first run
+beside a concurrent `svelte-check`, the second and third alone. The file run alone passed 6 of 6 with
+that test at **1558 ms**. The machine had **0.8 to 1.7 GB free of 15.3 GB** throughout, with Adobe
+Creative Cloud and Codex node processes (not this plan's) resident. 07-12 edits `e2e/install.e2e.ts`
+only, so the expected count is unchanged at 776 and the 775 that passed are every test but the one the
+item names; nothing about the tree explains the timeout. The item's owner and remedy are unchanged: an
+explicit `{ timeout }` on the cross-product test by the next plan that edits `lua-entries.spec.ts`, or a
+quieter machine.
+
+**Owner:** as item 12; no code in 07-12.
