@@ -1,0 +1,402 @@
+// The structural gate over the seven components Phase 6 adds to src/lib/ui/.
+//
+// These rules keep the device chrome free of the compiler, free of a fourth
+// colour, reachable by thumb, quiet in exactly one live region, monospaced only
+// on its numerals, and honest about what each control announces. Every one is a
+// property of the SOURCE rather than of a rendered tree, so all six run in a
+// second and none needs a browser. The e2e and the served-build measurements
+// prove the behaviour; this proves the shape, on every commit rather than on
+// every release.
+//
+// EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
+// These components name in prose the very tokens, specifiers and attributes they
+// are forbidden to use - DeviceSlot's header says "no width read, no matchMedia",
+// DeviceDetails' says "no role=dialog", DeviceMark's names the accent - so a scan
+// over raw source would go red on correct code, and the natural fix (deleting the
+// paragraph) would delete the documentation that makes the rule survivable. So
+// the comments stay and the scanner learns to read code.
+//
+// The stripper, the specifier matcher, the rule splitter and the non-vacuity
+// habit are src/lib/ui/tune-ui.spec.ts's and src/lib/config-shape.spec.ts's,
+// copied rather than reinvented, and every regular expression here is
+// backslash-free in the same house style.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+const repo = (rel: string) =>
+  fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
+
+const UI_DIR = "src/lib/ui";
+
+/**
+ * The seven components this phase adds. A literal list is unavoidable - the
+ * directory also holds Phases 4 and 5's components, which these rules do not all
+ * bind - so its length is asserted and every name is checked against the
+ * directory listing in test 1. A rename, a deletion or an eighth device
+ * component added without being listed is then a visible omission rather than a
+ * silent gap that lets six tests pass while covering six files.
+ */
+const DEVICE_COMPONENTS: readonly string[] = [
+  "DeviceDetails.svelte",
+  "DeviceMark.svelte",
+  "DeviceNote.svelte",
+  "DeviceSlot.svelte",
+  "FailureBlock.svelte",
+  "PickerExplainer.svelte",
+  "SessionAnnouncer.svelte",
+];
+
+/** The three components whose whole content is Body sentences (prose under a control). */
+const SENTENCE_COMPONENTS: readonly string[] = [
+  "DeviceNote.svelte",
+  "FailureBlock.svelte",
+  "PickerExplainer.svelte",
+  "SessionAnnouncer.svelte",
+];
+
+/**
+ * COMPILER_MARKERS and the five PERMITTED specifiers are config-shape.spec.ts's,
+ * verbatim: a specifier matching a marker is an offender unless it is one of the
+ * five exact paths plan 06-05 allow-listed, all of which are free of the
+ * protocol package.
+ */
+const COMPILER_MARKERS = [
+  "vendor",
+  "intechstudio",
+  "lib/pad",
+  "lib/transport",
+  "lib/protocol",
+  "lib/device",
+];
+const PERMITTED_SPECIFIERS = [
+  "$lib/device/session.svelte",
+  "$lib/device/session-copy",
+  "$lib/protocol/usb",
+  "$lib/transport/ports",
+  "$lib/transport/transport",
+];
+
+/** Comments removed before a structural match: line, block and markup. */
+const stripComments = (source: string) =>
+  source
+    .replace(/^[ ]*[/][/].*$/gm, "")
+    .replace(/[/][*][^]*?[*][/]/g, "")
+    .replace(/<!--[^]*?-->/g, "");
+
+const raw = (rel: string) => readFileSync(repo(rel), "utf8");
+const code = (rel: string) => stripComments(raw(rel));
+const componentPath = (name: string) => `${UI_DIR}/${name}`;
+const occurrences = (text: string, needle: string) =>
+  text.split(needle).length - 1;
+
+/**
+ * A style block split into rules. Crude on purpose: a real CSS parser would be a
+ * dependency, and every selector in these seven files is a plain class, element
+ * or media selector. Media blocks nest, so the split tolerates a rule body that
+ * is itself a block by matching innermost braces first.
+ */
+function rulesOf(source: string): { selector: string; body: string }[] {
+  const start = source.indexOf("<style>");
+  if (start < 0) return [];
+  const styles = source.slice(start);
+  const out: { selector: string; body: string }[] = [];
+  for (const match of styles.matchAll(/([^{}]+)[{]([^{}]*)[}]/g)) {
+    out.push({ selector: match[1].trim(), body: match[2] });
+  }
+  return out;
+}
+
+/** Every class named on an interactive element in a component's markup. */
+function interactiveClassesOf(source: string): string[] {
+  const out: string[] = [];
+  for (const match of source.matchAll(/<(button|input|summary)[^>]*/g)) {
+    for (const attr of match[0].matchAll(/class[ ]*=[ ]*"([^"]*)"/g)) {
+      for (const name of attr[1].split(/[ ]+/)) if (name) out.push(name);
+    }
+  }
+  return out;
+}
+
+const hasControl = (source: string) =>
+  source.includes("<button") ||
+  source.includes("<input") ||
+  source.includes("<summary");
+
+describe("the device UI's structural rules", () => {
+  it("the seven are listed and on disk, and none reaches the compiler", () => {
+    // The list is checked against the directory here, once, because every test
+    // below reads through it.
+    const present = new Set(
+      readdirSync(repo(UI_DIR))
+        .map(String)
+        .filter((name) => name.endsWith(".svelte")),
+    );
+    expect(DEVICE_COMPONENTS.length, "seven components were listed").toBe(7);
+    expect(
+      DEVICE_COMPONENTS.filter((name) => !present.has(name)),
+      "a listed device component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
+    ).toEqual([]);
+
+    // No specifier that matches a compiler marker may be anything but one of the
+    // five permitted, protocol-free paths. config-shape.spec.ts test 13 matches
+    // specifier TEXT, so it would let a `from "$lib/protocol"` barrel through as
+    // long as it is on a front-door page; here every device component is held to
+    // the exact five directly.
+    const specifiers: { file: string; specifier: string }[] = [];
+    let permittedFound = 0;
+    for (const name of DEVICE_COMPONENTS) {
+      const file = componentPath(name);
+      for (const match of code(file).matchAll(/from[ ]*["']([^"']+)["']/g)) {
+        specifiers.push({ file, specifier: match[1] });
+        if (PERMITTED_SPECIFIERS.includes(match[1])) permittedFound += 1;
+      }
+    }
+
+    // Both non-vacuity guards: an empty walk and a walk that named no device
+    // path would each make the offender check below pass without proving
+    // anything - the second because then there is nothing for the allow-list to
+    // allow and the marker match is untested.
+    expect(specifiers.length, "static imports were collected").toBeGreaterThan(
+      0,
+    );
+    expect(
+      permittedFound,
+      "the device components name at least one permitted device path - if this is zero the marker rule below is vacuous",
+    ).toBeGreaterThan(0);
+
+    const offenders = specifiers.filter(
+      ({ specifier }) =>
+        COMPILER_MARKERS.some((marker) => specifier.includes(marker)) &&
+        !PERMITTED_SPECIFIERS.includes(specifier),
+    );
+    expect(
+      offenders.map((o) => `${o.file} -> ${o.specifier}`),
+      "a device component imports the compiler, the protocol or the transport at module scope through a specifier that is not one of the five permitted paths",
+    ).toEqual([]);
+  });
+
+  it("no device component names a new colour", () => {
+    // Every colour on this chrome comes from one of the nine tokens, so a hex
+    // literal is either a tenth colour or a token spelled by hand, and both are
+    // the same regression. --color-over is the alarm red, which belongs to a
+    // budget meter that does not exist here (06-08 deferred item 6: no shipped
+    // spec scanned these files for a hex until now). The lookahead is not
+    // decoration - without it `{#each` reads as the hex #eac.
+    const TOKEN = "--color-over";
+    const HEX = /#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])/g;
+
+    expect(
+      HEX.test("background: #D6FF4E;"),
+      "the hex matcher no longer recognises a hex",
+    ).toBe(true);
+    HEX.lastIndex = 0;
+
+    const offenders: string[] = [];
+    let read = 0;
+    for (const name of DEVICE_COMPONENTS) {
+      const source = code(componentPath(name));
+      read += source.length;
+      if (source.includes(TOKEN))
+        offenders.push(`${componentPath(name)} -> ${TOKEN}`);
+      for (const match of source.matchAll(HEX)) {
+        offenders.push(`${componentPath(name)} -> ${match[0]}`);
+      }
+    }
+
+    expect(read, "the seven components' code was read").toBeGreaterThan(2000);
+    expect(
+      offenders,
+      "a device component names the alarm red or a raw colour - every colour here comes from one of the nine tokens",
+    ).toEqual([]);
+  });
+
+  it("every component that renders a control declares the 44px floor on both axes", () => {
+    // Phase 4's touch floor, per control rather than per page. The list is
+    // DERIVED from the presence of a control, and the check is by SELECTOR
+    // against the classes actually applied to a button, input or summary, so
+    // dropping the floor from one control among several in a file goes red even
+    // though the file still carries 44px elsewhere.
+    const withControls: string[] = [];
+    const withoutControls: string[] = [];
+    const missing: string[] = [];
+
+    for (const name of DEVICE_COMPONENTS) {
+      const source = code(componentPath(name));
+      if (!hasControl(source)) {
+        withoutControls.push(componentPath(name));
+        continue;
+      }
+      withControls.push(componentPath(name));
+      const classes = new Set(interactiveClassesOf(source));
+      const rules = rulesOf(source);
+      for (const cls of classes) {
+        const body = rules
+          .filter((r) => r.selector.includes(`.${cls}`))
+          .map((r) => r.body)
+          .join(" ");
+        const block = body.includes("min-block-size: 44px");
+        const inline = body.includes("min-inline-size: 44px");
+        if (!block || !inline)
+          missing.push(`${componentPath(name)} -> .${cls}`);
+      }
+    }
+
+    // Non-vacuity in both directions: the derivation found controls, AND it
+    // discriminated rather than classing every component as interactive.
+    expect(
+      withControls.length,
+      "components rendering a button, input or summary were found",
+    ).toBeGreaterThanOrEqual(2);
+    expect(
+      withoutControls.length,
+      "the derivation discriminates - if every component were classed as interactive the rule would be untested",
+    ).toBeGreaterThan(0);
+    expect(
+      missing,
+      "an interactive control's own class does not declare min-block-size: 44px and min-inline-size: 44px - Phase 4's touch floor is per control",
+    ).toEqual([]);
+  });
+
+  it("there is exactly one live region among the seven, and it is the announcer's", () => {
+    // 06-UI-SPEC: exactly one SESSION live region site-wide, and it is
+    // SessionAnnouncer's. The note changes with the session but must NOT be a
+    // live region, or every transition is announced twice.
+    let total = 0;
+    const carriers: string[] = [];
+    for (const name of DEVICE_COMPONENTS) {
+      const count = occurrences(code(componentPath(name)), "aria-live");
+      total += count;
+      if (count > 0) carriers.push(componentPath(name));
+    }
+
+    expect(total, "exactly one aria-live across the seven").toBe(1);
+    expect(carriers, "and it is the announcer's").toEqual([
+      componentPath("SessionAnnouncer.svelte"),
+    ]);
+
+    const announcer = code(componentPath("SessionAnnouncer.svelte"));
+    expect(
+      announcer,
+      'the session live region is aria-live="polite"',
+    ).toContain('aria-live="polite"');
+    expect(
+      announcer,
+      'the session live region is aria-atomic="true"',
+    ).toContain('aria-atomic="true"');
+  });
+
+  it("monospace is scoped to the numerals and never reaches a sentence", () => {
+    // Y-18: only the firmware and page numerals are monospaced; prose is never
+    // monospaced. --font-mono appears in exactly one of the seven, and there
+    // only on the .mono numeral run.
+    const MONO = "--font-mono";
+    const carriers = DEVICE_COMPONENTS.filter((name) =>
+      code(componentPath(name)).includes(MONO),
+    );
+    expect(
+      carriers,
+      "--font-mono is declared in exactly one device component",
+    ).toEqual(["DeviceSlot.svelte"]);
+
+    const slot = code(componentPath("DeviceSlot.svelte"));
+    const monoSelectors = rulesOf(slot)
+      .filter((r) => r.body.includes(MONO))
+      .map((r) => r.selector);
+    expect(
+      monoSelectors.length,
+      "the mono-bearing rule was found",
+    ).toBeGreaterThan(0);
+    expect(
+      monoSelectors,
+      "--font-mono is declared on a selector other than .mono - it has reached a word rather than a numeral",
+    ).toEqual(monoSelectors.map(() => ".mono"));
+
+    // The prose components declare no font-family at all, so nothing can slip a
+    // second stack onto a sentence.
+    const withFamily = SENTENCE_COMPONENTS.filter((name) =>
+      code(componentPath(name)).includes("font-family"),
+    );
+    expect(
+      withFamily,
+      "a sentence-only component declares font-family - prose takes the inherited sans stack and nothing else",
+    ).toEqual([]);
+  });
+
+  it("the ARIA contract: caption hidden, describedby everywhere, four expanders, a hidden mark, no dialog, one hydration marker", () => {
+    const slot = code(componentPath("DeviceSlot.svelte"));
+    const mark = code(componentPath("DeviceMark.svelte"));
+
+    // The caption line is aria-hidden and the accessible name is the label
+    // alone, reached through aria-describedby, which the slot carries in every
+    // state (the attribute is unconditional on the one button).
+    expect(slot, "the caption line is aria-hidden").toMatch(
+      /data-testid="device-slot-caption"[^>]*aria-hidden="true"/,
+    );
+    expect(slot, "the slot carries aria-describedby in every state").toContain(
+      "aria-describedby={descId}",
+    );
+
+    // S1's hidden name is HIDDEN_NAME_IDLE, read from session-copy and never
+    // retyped in the markup.
+    expect(slot, "the slot names HIDDEN_NAME_IDLE").toContain(
+      "HIDDEN_NAME_IDLE",
+    );
+    expect(
+      slot,
+      "the hidden-name sentence is retyped in DeviceSlot instead of imported",
+    ).not.toContain("No ZONA is connected.");
+
+    // aria-expanded derives from a list of exactly four states.
+    const expands = /const EXPANDS[^=]*=\s*\[([^\]]*)\]/.exec(slot);
+    expect(expands, "the EXPANDS list is declared").not.toBeNull();
+    const expandStates = [
+      ...(expands as RegExpExecArray)[1].matchAll(/"[^"]+"/g),
+    ];
+    expect(
+      expandStates.length,
+      "aria-expanded is derived from exactly four states (S0a, S0b, S4, S5)",
+    ).toBe(4);
+
+    // The mark is decoration in every branch.
+    expect(mark, "the device mark is aria-hidden").toContain(
+      'aria-hidden="true"',
+    );
+
+    // A disclosure is not a dialog.
+    for (const name of DEVICE_COMPONENTS) {
+      expect(
+        code(componentPath(name)),
+        `${name} declares role="dialog" - a disclosure is not a dialog`,
+      ).not.toContain('role="dialog"');
+    }
+
+    // data-hydrated is the hydration marker plans 06-11 and 06-13 wait on. It
+    // appears in DeviceSlot and in no other of the seven, its value is an
+    // expression (never a static "true" a prerendered document could carry),
+    // and its only assignment is inside onMount.
+    const hydratedCarriers = DEVICE_COMPONENTS.filter((name) =>
+      code(componentPath(name)).includes("data-hydrated"),
+    );
+    expect(
+      hydratedCarriers,
+      "data-hydrated appears only in DeviceSlot",
+    ).toEqual(["DeviceSlot.svelte"]);
+    expect(
+      slot,
+      'data-hydrated is a static "true" on the markup - a prerendered document could then satisfy the wait it exists to defeat',
+    ).not.toContain('data-hydrated="true"');
+    expect(
+      occurrences(slot, "hydrated = true"),
+      "hydrated is assigned exactly once",
+    ).toBe(1);
+    const onMountBlock = /onMount\(\(\)\s*=>\s*\{([^]*?)\}\);/.exec(slot);
+    expect(onMountBlock, "an onMount block is declared").not.toBeNull();
+    expect(
+      (onMountBlock as RegExpExecArray)[1],
+      "the hydration marker is assigned outside onMount",
+    ).toContain("hydrated = true");
+  });
+});
