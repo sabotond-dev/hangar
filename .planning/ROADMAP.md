@@ -221,7 +221,7 @@ Plans:
 - [x] 07-08-PLAN.md — The shim answers with the real fake, the /dev/install/ probe, the fourteen states walked (wave 8) (completed 2026-09-05)
 - [x] 07-09-PLAN.md — The allow-list mutations observed, then PutBack, KeepConfirm and InstallState (wave 9) (completed 2026-09-05)
 - [x] 07-10-PLAN.md — The panel writes: the never-writes literals retired, KEEP ON DEVICE quiet, the column row (wave 10) (completed 2026-09-05)
-- [ ] 07-11-PLAN.md — The header lock, the snapshot line, and the degrade test extended (wave 11)
+- [x] 07-11-PLAN.md — The header lock, the snapshot line, and the degrade test extended (wave 11) (completed 2026-09-05)
 - [ ] 07-12-PLAN.md — The install flow on the real page in two engines (wave 12)
 - [ ] 07-13-PLAN.md — INSTALL-RUNBOOK, the phase gate, and the hardware checkpoint - the first real write (wave 13)
 
@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 10/13 | In progress (the panel writes: TryOnDevice's two never-writes literals retired by name with five honesty twins in the same 72px slot, WRITING… and KEEPING… with aria-busy, session.connect() first or install.tryOnDevice(); KEEP ON DEVICE in the Quiet tier with six reasons in a 48px cell; the install row one column - PUT BACK, KEEP ON DEVICE or the confirmation in its place, COPY LINK; Escape yields to a write and to the open confirmation; device-ui 10; quick 73 / 775, e2e 83 unchanged) | - |
+| 7. Install Flow | 11/13 | In progress (the header's part: DISCONNECT ZONA and FORGET THIS ZONA a real disabled under session.writeLock on every leg - the store leg observed explicitly - with the reason inline as their aria-describedby target and neither a tab stop; the S4 snapshot line in its durable and session-only forms, absent during snapshotting; the amended forget explanation, the copy surviving a forget and a reconnect; the panel's DISCONNECT ZONA left protective-only by decision; device-ui 11; the degrade test extended with PUT BACK absent and the KEEP reason; Phase 6 item 8's three pre-hydration presses fixed; quick 73 / 776, e2e 83 unchanged) | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage

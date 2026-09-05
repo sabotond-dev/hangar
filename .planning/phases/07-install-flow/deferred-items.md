@@ -247,3 +247,50 @@ could land in) and would put a ghost of the block under a control that already h
 is unchanged should it recur under load.
 
 **Owner:** none; closed.
+
+## 17. Item 14 decided: the panel's `DISCONNECT ZONA` stays protective-only, with no inline reason (decided by 07-11)
+
+07-10 made the panel's `DISCONNECT ZONA` a real `disabled` while `install.phase === "writing"` and left
+whether it gets the header's `WRITE_LOCK_REASON` beneath it to this plan. Decision: **no reason line
+in the panel**, for three reasons. 07-UI-SPEC I3 rule 4 says nothing in region 3 changes during a
+write beyond `aria-busy`, and a Body line appearing under the control would move the region's height
+in the middle of the write - the exact jump the rule exists to prevent. Region 3 already carries
+`aria-busy="true"` for the whole leg, so assistive technology is told the block it holds is about to
+change; a disabled control inside a busy region is explained by the region. And DEGR-02's
+present-but-disabled-with-the-reason rule is about a capability the visitor cannot change (a browser
+that cannot write), not about a transient lock of at most one store leg; the header's pair gets the
+reason because the disclosure is a separate surface with no busy region of its own and the lock there
+can be met at leisure (see item 19). The header's `WRITE_LOCK_REASON` was not mounted in the panel;
+`TryOnDevice.svelte` is unchanged by 07-11.
+
+**Owner:** none; closed by decision. If 07-13's hardware rows show a visitor reaching for the panel's
+`DISCONNECT ZONA` during a multi-second store leg and reading nothing, the one-line mount is the fix.
+
+## 18. Phase 6 item 8 closed: the three pre-hydration key presses in `first-experience.e2e.ts` now wait on `data-ready` (fixed by 07-11)
+
+The two sites the item named - the still-configuration test's first `ArrowRight` (formerly :165) and
+the wrap's `ArrowLeft` on `/c/aurora/` (formerly :535) - and a third with the same mechanism the item
+did not name, the row-steps test's first `ArrowLeft` (formerly :201), each gained the one-line wait
+`await expect(band).toHaveAttribute("data-ready", "true")` before the first press. Every assertion
+before those presses (visible, `aria-activedescendant`) is satisfied by the prerendered document, so
+a press could land before the band's `onkeydown` was attached and be lost. The assertions around the
+presses are byte-identical; no title changed; the file's header records the amendment. The Phase 6
+file's item stays as written with its owner pointer honoured here.
+
+**Owner:** none; closed.
+
+## 19. The header lock is met only after an un-choose during a leg, and Back un-chooses mid-write where Escape does not (observed by 07-11)
+
+`panelOwnsProse` is `page.state.chosen === true` on `/` and `/c/{id}/`, and the drawer never renders
+while it is true (Y-11), so on the real page the disclosure cannot be open while the panel that holds
+every writing control is. The lock this plan ships is therefore met by a visitor who un-chose the
+panel during a leg - and Coverflow's `Escape` refuses that while `install.phase === "writing"` (Z-10),
+but the browser's Back button and a click on a dimmed side pad go through the popstate / un-choose
+path with no such guard (Coverflow.svelte, the paragraph beginning "The Back button un-chooses
+without going through unchoose()"), which is how 07-11's measurements reached the open drawer mid-leg
+(`history.back()` at +17 ms into a RAM leg, +6 ms into a store leg). Under a store that has not
+confirmed that window is up to about 9.4 s, and the write lands with no panel to report it, as 07-10's
+dropped-guard negative already showed for Escape. Whether Back should yield to a write the way Escape
+does is a spec question (Z-10 names Escape only); the lock is correct either way.
+
+**Owner:** the spec's owner, or 07-12 / 07-13 if the real-page install tests want the answer first.
