@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 05.1-11-PLAN.md — Phase 5.1 complete, awaiting verification and deploy
-last_updated: "2026-09-05T01:29:21.940Z"
+status: executing
+stopped_at: Completed 06-01-PLAN.md — Phase 6 wave 1 landed; baselines and the runes spike recorded
+last_updated: "2026-09-05T01:50:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 70
-  completed_plans: 56
-  percent: 100
+  completed_plans: 57
+  percent: 81
 ---
 
 # Project State
@@ -21,24 +21,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-04)
 
 **Core value:** Plug in a ZONA, open a URL, and half a minute later the pad is doing something spectacular. If everything else fails, browser-to-hardware install must work.
-**Current focus:** Phase 05.1 — catalog-browse
+**Current focus:** Phase 06 — device-session
 
 ## Current Position
 
 Phase: 06
-Plan: Not started
-Status: Phase 5.1 COMPLETE — all 11 plans landed and the full suite is green against the production build (66 files / 691 unit tests + 1 todo, 3 files / 13 sweep tests, 61 Playwright tests across two projects, svelte-check 517 files 0 errors, lint clean). Verification and the first deploy of the browse surface follow. Phase 5 remains complete (12 of 12) and awaiting its own verification pass.
+Plan: 01 of 14 complete — next is 06-02 (session-copy.ts)
+Status: Phase 6 wave 1 landed. The phase's five baselines are measured on a clean tree at `746cfa2` and recorded in 06-01-SUMMARY.md: BASE_FILES 66, BASE_TESTS 691 (+1 todo), BASE_SWEEP `3 13`, BASE_E2E 61, PREV_E2E 61 (BASE_E2E is frozen; 06-14 asserts BASE_E2E + 16 = 77). The runes-in-node spike PASSED — a `.svelte.ts` module compiles, is collected by the `server` Vitest project, and `$state` arrives as a plain own class field under the SSR transform — so plan 06-03 keeps its planned shape and the documented `session-machine.ts` fallback is NOT taken. Two shipped modules amended below any component: `already-open` and the rig-aware `not-zona`. The tree stands at 66 files / 694 unit tests + 1 todo, sweep `3 13`, e2e 61, svelte-check 517 files 0 errors, lint clean. Phase 5.1 remains complete (11 of 11) and awaiting verification and the first deploy of the browse surface; Phase 5 likewise (12 of 12).
 Last activity: 2026-09-05
 
-Progress: [██████████] 100% (56 of 56 plans)
+Progress: [████████░░] 81% (57 of 70 plans — the denominator now includes Phase 6's 14; Phase 7's count is still TBD)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 56
+- Total plans completed: 57
 - Average duration: 24 min
-- Total execution time: 22.8 hours
+- Total execution time: 23.2 hours
 
 **By Phase:**
 
@@ -50,14 +50,16 @@ Progress: [██████████] 100% (56 of 56 plans)
 | 04 | 9 | 214 min | 24 min |
 | 05 | 12 | 307 min | 26 min |
 | 05.1 | 11 | 366 min | 33 min |
+| 06 | 1 | 22 min | 22 min |
 | 08 | 8 | 184 min | 23 min |
 
 **Recent Trend:**
 
-- Last 5 plans (05.1-07 to 05.1-11): 37, 41, 42, 47, 30 min
-- Trend: high and flat through the integration waves, then down at the gate. 05.1-11 is the cheapest plan since 05.1-05 for a reason worth keeping: it wrote no new source at all. Three e2e tests, one new e2e file and one document, against components and pure modules the nine plans before it had already gated in node - so nothing had to be discovered, only observed. The two negative checks it did run (the D-18 revert and the removed tag) each cost one build and one targeted run rather than an investigation.
+- Last 5 plans (05.1-08 to 06-01): 41, 42, 47, 30, 22 min
+- Trend: still falling. 06-01 is the cheapest plan since 05.1-03, and for the same reason 05.1-11 was cheap: it discovered almost nothing. Two four-line source edits against modules Phase 2 and Phase 4 had already shaped, three tests, three observed negative checks. The expensive half was measurement — a full check, quick, sweep, build and Playwright run on a clean tree before any edit — which is wall time rather than thinking.
+- Previous note, retained: high and flat through the integration waves, then down at the gate. 05.1-11 is the cheapest plan since 05.1-05 for a reason worth keeping: it wrote no new source at all. Three e2e tests, one new e2e file and one document, against components and pure modules the nine plans before it had already gated in node - so nothing had to be discovered, only observed. The two negative checks it did run (the D-18 revert and the removed tag) each cost one build and one targeted run rather than an investigation.
 
-*Recomputed by hand at the close of Phase 5.1 from the per-plan table below (56 plans, 1,369 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the phase deferred-items.md item 8.*
+*Recomputed by hand at the close of Phase 5.1 from the per-plan table below (56 plans, 1,369 minutes) and again by hand after 06-01 (57 plans, 1,391 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the 05.1 phase deferred-items.md item 8.*
 
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 3 tasks | 22 files |
@@ -116,6 +118,7 @@ Progress: [██████████] 100% (56 of 56 plans)
 | Phase 05.1 P09 | 42 min | 3 tasks | 4 files |
 | Phase 05.1 P10 | 47 min | 4 tasks | 4 files |
 | Phase 05.1 P11 | 30 min | 3 tasks | 6 files |
+| Phase 06 P01 | 22 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -341,6 +344,12 @@ Recent decisions affecting current work:
 - [Phase 05.1]: A still pad survives a keyed reorder because SimHost.repaintAll() repaints it, not because a canvas bitmap survives re-parenting - measured on BOTH engines at 81 of 81 lit cells for ninepads before and after a FEATURED-to-NAME sort. The underlying cross-engine question stays unanswered and does not need answering
 - [Phase 05.1]: CAT-02 closes with a PROVENANCE qualifier and CAT-03 with a SCOPE one: the sorts are the shipped comparators as D-10 amends them and 05.1-UI-SPEC W-08 AGREES (what is superseded is 05.1-RESEARCH two Intl.Collator rows, not the approved spec); and CAT-03 delivers the focus view, the knobs, the meters and the return while the INSTALL CONTROLS ARE PHASE 7 and are still absent or disabled
 
+- [Phase 06]: Phase 6's five-name carry-forward block, measured on a CLEAN tree at 746cfa2 before any edit and frozen where it says frozen: BASE_FILES 66, BASE_TESTS 691 (+1 todo), BASE_SWEEP `3 13`, BASE_E2E 61, PREV_E2E 61 — BASE_E2E never moves again and 06-14 asserts BASE_E2E + 16 = 77, while PREV_E2E rolls at 06-06, 06-07 and 06-13. Every one of the fourteen SUMMARYs carries all five verbatim. No number from 06-VALIDATION.md or 06-RESEARCH.md was carried forward; they predate Phase 5.1 landing
+- [Phase 06]: The runes-in-node spike PASSED, so plan 06-03 writes session.svelte.ts as planned and the documented session-machine.ts fallback is NOT taken — a `.svelte.ts` module compiles, `spike.spec.ts` is collected by the `server` project (it matches the include and misses the `*.svelte.spec.ts` exclude), and `$state` arrives as a PLAIN own property on the instance with no accessor on the prototype, which is the SSR transform. So a node suite reading and writing those fields tests the machine's logic, not a signal graph. `$derived` is still avoided by design: it is the one thing the SSR transform does not make plain
+- [Phase 06]: A racing open() is its own OpenFailure member (`already-open`) but NOT a tenth UI state: it renders through the `unknown` row's title with one sentence — `HANGAR is already connecting — one moment.` — and NO steps, because the failure is a bug in this site and there is nothing for the visitor to do. `raw` is deliberately not interpolated. The spec binds it to `unknown` by comparing the two titles rather than repeating a literal
+- [Phase 06]: transport.ts's no-engine-name invariant fires on COMMENTS, not only on copy: the first draft of the InvalidStateError comment said "the two message strings above are Chromium's" and turned the existing transport.spec.ts test 6 red on `expect(transportSource()).not.toContain("Chromium")`. The comment now says "the browser's own"; serial_port.cc line citations are fine, they name a file
+- [Phase 06]: The not-zona refusal names the module reporting heartbeat type 1 (grid_decode.c:695-700, the same rule identify() uses), never seen[0] — arrival order on a chained rig names an arbitrary module. The synthetic rig test needed a FOURTH module type beyond the plan's three (PO16 RevH hwcfg 3, verified against grid.module_hwcfgs()) so that "it named the type-1 module" and "it named whichever arrived first" cannot be satisfied by the same string; the negative check names EN16 and the positive names PO16
+
 ### Pending Todos
 
 - [Botond] Set the embargo date for the first un-gated public deploy (recorded TBD in 01-CONTEXT.md D-03); ask before any deploy that removes the Basic Auth gate.
@@ -356,6 +365,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T01:15:00.000Z
-Stopped at: Completed 05.1-11-PLAN.md — Phase 5.1 complete, awaiting verification and deploy
+Last session: 2026-09-05T01:50:00.000Z
+Stopped at: Completed 06-01-PLAN.md — Phase 6 wave 1; next is 06-02 (session-copy.ts), which inherits PREV_FILES / PREV_TESTS of 66 / 694 and carries all five names forward
 Resume file: None
