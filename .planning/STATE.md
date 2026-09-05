@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-10-PLAN.md
-last_updated: "2026-09-05T03:35:00.000Z"
+stopped_at: Completed 05.1-11-PLAN.md
+last_updated: "2026-09-05T01:15:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 56
-  completed_plans: 55
-  percent: 98
+  completed_plans: 56
+  percent: 100
 ---
 
 # Project State
@@ -26,19 +26,19 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 11 (next)
-Status: Phase 5.1 in progress — 05.1-10 complete (10 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 11 (complete — the phase gate)
+Status: Phase 5.1 COMPLETE — all 11 plans landed and the full suite is green against the production build (66 files / 691 unit tests + 1 todo, 3 files / 13 sweep tests, 61 Playwright tests across two projects, svelte-check 517 files 0 errors, lint clean). Verification and the first deploy of the browse surface follow. Phase 5 remains complete (12 of 12) and awaiting its own verification pass.
 Last activity: 2026-09-05
 
-Progress: [█████████░] 98% (55 of 56 plans)
+Progress: [██████████] 100% (56 of 56 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 47
-- Average duration: 22 min
-- Total execution time: 16.7 hours
+- Total plans completed: 56
+- Average duration: 24 min
+- Total execution time: 22.8 hours
 
 **By Phase:**
 
@@ -49,14 +49,15 @@ Progress: [█████████░] 98% (55 of 56 plans)
 | 03 | 6 | 73 min | 12 min |
 | 04 | 9 | 214 min | 24 min |
 | 05 | 12 | 307 min | 26 min |
+| 05.1 | 11 | 366 min | 33 min |
 | 08 | 8 | 184 min | 23 min |
 
 **Recent Trend:**
 
-- Last 5 plans (05.1-06 to 05.1-10): 61, 37, 41, 42, 47 min
-- Trend: high and flat, which is what a phase of integration waves looks like. Every plan since 05.1-06 has been a component or a page assembled out of parts that already existed, and each of the last three has spent a third of its time on measurement rather than construction — 05.1-08 on a MutationObserver probe, 05.1-09 on a hand-walked round trip, 05.1-10 on four popstate journeys and three negative checks. 05.1-10 also carries a fourth task the plan did not have: a real user-visible defect, reproduced and repaired.
+- Last 5 plans (05.1-07 to 05.1-11): 37, 41, 42, 47, 30 min
+- Trend: high and flat through the integration waves, then down at the gate. 05.1-11 is the cheapest plan since 05.1-05 for a reason worth keeping: it wrote no new source at all. Three e2e tests, one new e2e file and one document, against components and pure modules the nine plans before it had already gated in node - so nothing had to be discovered, only observed. The two negative checks it did run (the D-18 revert and the removed tag) each cost one build and one targeted run rather than an investigation.
 
-*Recomputed by hand at the close of Phase 5 from the per-plan table below (44 plans before this one, 960 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the phase's deferred-items.md.*
+*Recomputed by hand at the close of Phase 5.1 from the per-plan table below (56 plans, 1,369 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the phase deferred-items.md item 8.*
 
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 3 tasks | 22 files |
@@ -114,6 +115,7 @@ Progress: [█████████░] 98% (55 of 56 plans)
 | Phase 05.1 P08 | 41 min | 3 tasks | 5 files |
 | Phase 05.1 P09 | 42 min | 3 tasks | 4 files |
 | Phase 05.1 P10 | 47 min | 4 tasks | 4 files |
+| Phase 05.1 P11 | 30 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -333,6 +335,11 @@ Recent decisions affecting current work:
 - [Phase 05.1]: The browse laziness proof is a FILTERED cold load (?q=aurora, one card, declared padsim) and not a bare /browse/ - with the default Featured sort the first screenful holds several Lua cards and a bare cold load correctly fetches the VM immediately; observed red on exactly that substitution, with glue.<hash>.wasm in the list
 - [Phase 05.1]: A first-paint module-graph claim is asserted against the SERVED HTML through the request fixture, never against the live DOM - Vite's preload helper inserts modulepreload links for a DYNAMIC import's dependencies too, so a settled DOM is not a first-paint graph, and a response-order mark races the grid's own onMount import by milliseconds
 - [Phase 05.1]: The browse wall's two-second paint count is RECORDED with its conditions and never gated: 139-156 paints at 1280x720 with 4 of 16 cards on screen and 4 engines built, against a ceiling of 40n = 160 at SIDE_INTERVAL_MS 50 ms. STACK.md's 10-16 / 30+ estimate stays unverified - four visible cards does not test it either way
+- [Phase 05.1]: A `@webkit`-tagged Playwright title costs TWO against the suite total, so the phase gate is arithmetic and not a literal: 05.1-11 adds 3 untagged titles to e2e/browse.e2e.ts and 3 tagged ones in e2e/browse-webkit.e2e.ts, which is 3 + (3 x 2) = 9. The tag negative check was observed both ways - removing one tag drops the webkit-phone list from 8 to 7 and the file total from 6 to 5
+- [Phase 05.1]: The D-18 engine hazard is CLOSED and OBSERVED in a browser, not only in node: reverting buildTuner destroy() to an unconditional closeEngine(engine) freezes the EUCLID pad on a lit frame after an un-choose on /c/euclid/, where the row is one entry - two samples 400 ms apart came back byte-identical. The test arms itself by waiting for both meters to settle, because ownership only transfers at onpreview and an Escape before that exercises the safe branch
+- [Phase 05.1]: The browse round trip GROWS THE HISTORY BY ONE ENTRY and that is the shipped choice, not a defect: BrowseLink ships goto(href, { noScroll: true }) and deliberately not { replaceState: true }, which 05.1-09 measured taking Kit shallow popstate branch and leaving the address bar reading /c/<id>/ over a browse screen. So one Back press from a restored browse view lands on the configuration the visitor opened - asserted, with the 05.1-UI-SPEC sentence that asks for replaceState recorded as the thing that is wrong
+- [Phase 05.1]: A still pad survives a keyed reorder because SimHost.repaintAll() repaints it, not because a canvas bitmap survives re-parenting - measured on BOTH engines at 81 of 81 lit cells for ninepads before and after a FEATURED-to-NAME sort. The underlying cross-engine question stays unanswered and does not need answering
+- [Phase 05.1]: CAT-02 closes with a PROVENANCE qualifier and CAT-03 with a SCOPE one: the sorts are the shipped comparators as D-10 amends them and 05.1-UI-SPEC W-08 AGREES (what is superseded is 05.1-RESEARCH two Intl.Collator rows, not the approved spec); and CAT-03 delivers the focus view, the knobs, the meters and the return while the INSTALL CONTROLS ARE PHASE 7 and are still absent or disabled
 
 ### Pending Todos
 
@@ -349,6 +356,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T03:35:00.000Z
-Stopped at: Completed 05.1-10-PLAN.md
+Last session: 2026-09-05T01:15:00.000Z
+Stopped at: Completed 05.1-11-PLAN.md — Phase 5.1 complete, awaiting verification and deploy
 Resume file: None

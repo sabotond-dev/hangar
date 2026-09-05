@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Vendor the Domain** - BOTOR's compiler, simulator and test suite run inside HANGAR, pinned against an independent fidelity oracle (completed 2026-09-02)
 - [x] **Phase 4: First Experience** - Splash dissolves into a coverflow of live ZONA pads; choose one and `TRY ON DEVICE` appears — the wow front door, worth opening with no hardware attached (completed 2026-09-04)
 - [x] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL (all 12 plans complete 2026-09-04, full suite green against the production build; verification and the first deploy of the tuned front door follow)
-- [ ] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file
+- [x] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file (all 11 plans complete 2026-09-05, full suite green against the production build at 691 unit + 13 sweep + 61 e2e; verification and the deploy follow)
 - [ ] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language
 - [ ] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames
 - [x] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter (completed 2026-09-04; the hardware audition is presented to the user and unanswered)
@@ -164,7 +164,7 @@ Plans:
 - [x] 05.1-08-PLAN.md — /browse/ itself, the lifted fidelity sentence, and the two chunk guards that could not see it (wave 8)
 - [x] 05.1-09-PLAN.md — The header slot: BROWSE ALL, BACK TO BROWSE and the round trip walked by hand (wave 9)
 - [x] 05.1-10-PLAN.md — e2e/browse.e2e.ts: eight tests (seven planned plus the authorised popstate regression), the frame measurement and the WebAssembly proof (wave 10)
-- [ ] 05.1-11-PLAN.md — The keyboard, the return, the D-18 hazard, the phone, and the phase gate (wave 11)
+- [x] 05.1-11-PLAN.md — The keyboard, the return, the D-18 hazard, the phone, and the phase gate (wave 11)
 
 ### Phase 6: Device Session
 **Goal**: A visitor with a ZONA can get from a cold page to a verified connection, and every way that can go wrong tells them what to do next in plain language.
@@ -249,7 +249,7 @@ Phases 6 and 7.
 | 3. Vendor the Domain | 6/6 | Complete | 2026-09-02 |
 | 4. First Experience | 9/9 | Complete | 2026-09-04 |
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
-| 5.1. Catalog Browse | 7/11 | In progress | - |
+| 5.1. Catalog Browse | 11/11 | Complete | 2026-09-05 |
 | 6. Device Session | 0/TBD | Not started | - |
 | 7. Install Flow | 0/TBD | Not started | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
