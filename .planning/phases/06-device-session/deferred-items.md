@@ -243,3 +243,37 @@ matcher with its lookahead and a non-vacuity check) and for `--color-over`. The
 06-08 mutation (a hex in `DeviceMark`'s connected shape) was re-run under this
 gate as one of task 3's negatives and observed red, then restored. The
 component-level hex scan the item asked for exists.
+
+## Notes appended by 06-13
+
+Three standing items were read, exercised or extended by plan 06-13; nothing here is a new
+item, and nothing above is edited in place.
+
+### Item 5 - `test-results/` after a GREEN run too
+
+A green Playwright run writes `test-results/.last-run.json` (the runner's record of the last
+run's status and failed ids), so the directory is present after every run, not only after a
+failing one. It was removed by hand after each of this plan's eight runs. The item's remedy is
+unchanged: `outputDir: ".tmp-e2e/results"` in `playwright.config.ts`, which no plan in this phase
+names in `files_modified`.
+
+### Item 8 - read, not fixed, and the lesson applied
+
+06-13-PLAN.md does not name `e2e/first-experience.e2e.ts` in `files_modified` and its standing
+rules say no file outside `e2e/session.e2e.ts` is edited for the plan's checks, so the two
+pre-hydration key-press sites (lines 156 and 535) are **left as they are**. In this plan's three
+runs that included the file (two of the whole `session.e2e.ts` file did not; the full suite at
+`--workers 3` did, once) neither site fired: `.tmp-e2e/06-13-suite-w3.log` is 77 passed with no
+retry. The five new tests apply the one-line fix the item names on their own side: every key
+press in `session.e2e.ts` on a band is preceded by
+`await expect(band).toHaveAttribute("data-ready", "true")`, and every click on the header slot
+by a wait on `data-hydrated="true"` and, on `/`, by the splash's removal. The item stays open with
+its owner now **06-14 or whoever edits that file first**; 06-14 re-measures `docs/TESTING.md`
+and is the last plan of the phase to run the suite.
+
+### Item 10 - not driven
+
+06-13's five tests reach S2, S3, S4, S6 and S0a on the shipped chrome and never unplug a
+connected module, so S5 was not driven on a real route and the panel's enabled button in S5 was
+not observed. The item stays as written, owner unchanged (unowned; Phase 7 is the natural place
+to rule on it).
