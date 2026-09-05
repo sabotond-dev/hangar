@@ -50,6 +50,22 @@
 // (plan 06-07) - never inlined here, so the one capture stays the source of
 // truth and this shim stays small.
 //
+// SINCE PHASE 7 (plan 07-08) THE SHIM CAN ANSWER, AND THE ANSWER IS NOT HERE.
+// An install needs an acknowledgement echoing the request id firmware reads
+// off the wire, a serial report and a re-fetch of what was stored, and a
+// second scripted ZONA written into this init script would drift from the
+// one the node suite trusts. So the fake port's write() does exactly one more
+// thing: when a test has exposed `window.__hangarZona` through
+// page.exposeFunction (e2e/fake-zona.ts, over the REAL zonaResponder of
+// src/lib/transport/fixtures/synthetic.ts), it hands the chunk over as hex,
+// AWAITS the reply, and pushes every frame that comes back into its own
+// readable stream. That await is load-bearing and is what makes this fake
+// differ from FakeTransport in one respect fake-zona.ts's header spells out:
+// a held acknowledgement here stalls the page's write() itself. The replies
+// never include a heartbeat; `beat()` exists so the test paces those, the way
+// the module's own 4 Hz does. Nothing about `feed()` changed, and no capture
+// byte is inlined.
+//
 // The init function below is SELF-CONTAINED. Playwright serialises it with
 // toString() and evaluates it in the page, so nothing in it may close over
 // this module's scope; the interface above it is a type, erased before that
@@ -92,11 +108,32 @@ export interface HangarSerial {
    * after a replug it is what says WHICH object the click opened.
    */
   openCount(i: number): number;
+  /**
+   * Port `i` fires `disconnect` and closes its streams the moment its `n`th
+   * write arrives - the install store's `lost` state. The write that caused
+   * it is recorded in writesOf() and is never handed to the responder: the
+   * cable came out as the bytes left, so no module heard them (plan 07-08).
+   */
+  unplugAfterWrites(i: number, n: number): void;
+  /**
+   * Push one frame (hex, terminated) into port `i` - a heartbeat. The
+   * responder's replies never include one, so the test paces them.
+   */
+  beat(i: number, hex: string): void;
+  /** The hex of every chunk ever written to any fake port, in order. */
+  writesOf(): string[];
 }
 
 declare global {
   interface Window {
     __hangarSerial: HangarSerial;
+    /**
+     * The Node-side ZONA, when a test exposed one (e2e/fake-zona.ts). Takes
+     * one written chunk as hex; resolves with every reply frame as hex, each
+     * carrying its terminator. Absent on every Phase 6 walk, where the shim
+     * answers nothing.
+     */
+    __hangarZona?: (hex: string) => Promise<string[]>;
   }
 }
 
@@ -123,6 +160,18 @@ export const FAKE_SERIAL = (): void => {
   let writes = 0;
   let requests = 0;
   let nextRequest: NextRequest | undefined;
+  /** Every chunk ever written, as hex, in order - the Node side counts by class from it. */
+  const writeLog: string[] = [];
+
+  const toHex = (bytes: Uint8Array): string =>
+    Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const fromHex = (hex: string): number[] => {
+    const out: number[] = [];
+    for (let i = 0; i + 1 < hex.length; i += 2) {
+      out.push(parseInt(hex.slice(i, i + 2), 16));
+    }
+    return out;
+  };
 
   class FakePort extends EventTarget {
     info: { usbVendorId: number; usbProductId: number };
@@ -133,6 +182,10 @@ export const FAKE_SERIAL = (): void => {
     wasForgotten = false;
     /** Every call, counted before any outcome is decided. */
     opens = 0;
+    /** This port's own write count, for unplugAfterWrites. */
+    writesSeen = 0;
+    /** The write count at which this port unplugs itself, or undefined. */
+    unplugAt: number | undefined;
     private controller: ReadableStreamDefaultController<Uint8Array> | undefined;
 
     constructor(vid: number, pid: number) {
@@ -162,8 +215,29 @@ export const FAKE_SERIAL = (): void => {
         },
       });
       this.writable = new WritableStream<Uint8Array>({
-        write: () => {
+        write: async (chunk) => {
           writes += 1;
+          this.writesSeen += 1;
+          writeLog.push(toHex(chunk));
+          if (this.unplugAt !== undefined && this.writesSeen >= this.unplugAt) {
+            this.unplugAt = undefined;
+            // The bytes left the host and the cable came out before any
+            // answer. The disconnect fires on the NEXT macrotask so the
+            // page's write() resolves first, as a real port reports an
+            // unplug after the OS took the bytes: a write that threw would
+            // reach the request queue as a plain Error and be classified as
+            // a timeout, and the store's `lost` - which needs the queue's
+            // own AbortedError from the session's "closed" - could never be
+            // reached from here.
+            setTimeout(() => unplugPort(this), 0);
+            return;
+          }
+          const respond = window.__hangarZona;
+          if (!respond) return;
+          // Node answers through page.exposeFunction. Each reply is one
+          // frame WITH its terminator, pushed as its own rx chunk.
+          const replies = await respond(toHex(chunk));
+          for (const hex of replies) this.feed(fromHex(hex));
         },
       });
     }
@@ -261,6 +335,12 @@ export const FAKE_SERIAL = (): void => {
     return ports.length - 1;
   };
 
+  /** The one unplug: the streams end, `connected` drops, both targets hear it. */
+  const unplugPort = (port: FakePort): void => {
+    port.detach();
+    fire("disconnect", port);
+  };
+
   Object.defineProperty(Navigator.prototype, "serial", {
     configurable: true,
     get: () => serial,
@@ -289,11 +369,7 @@ export const FAKE_SERIAL = (): void => {
     openFails: (i, name, message) => {
       ports[i].openError = { name, message };
     },
-    unplug: (i) => {
-      const port = ports[i];
-      port.detach();
-      fire("disconnect", port);
-    },
+    unplug: (i) => unplugPort(ports[i]),
     replug: (vid = ZONA_VID, pid = ZONA_PID) => {
       const index = mint(vid, pid);
       fire("connect", ports[index]);
@@ -304,5 +380,10 @@ export const FAKE_SERIAL = (): void => {
     writes: () => writes,
     requests: () => requests,
     openCount: (i) => ports[i]?.opens ?? 0,
+    unplugAfterWrites: (i, n) => {
+      ports[i].unplugAt = n;
+    },
+    beat: (i, hex) => ports[i].feed(fromHex(hex)),
+    writesOf: () => [...writeLog],
   };
 };
