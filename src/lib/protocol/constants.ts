@@ -107,7 +107,9 @@ export const PRE_SEND_DELAY_MS = 0;
  * /dev/skeleton/ page's A/B pacing toggle still measures what its label says.
  * With PRE_SEND_DELAY_MS at 0 the toggle would otherwise send at 0 in both
  * positions and stamp every capture `pace-0`, which is worse than a no-op: it
- * would mislabel the arm. Nothing in the shipped request path reads this.
+ * would mislabel the arm. Since Phase 7 the install store also reads it as the
+ * escalation target on a write timeout with no NACK (07-CONTEXT D-19); before
+ * that, nothing in the shipped request path read it.
  */
 export const DESKTOP_PRE_SEND_DELAY_MS = 10;
 /** Bounded, unlike the desktop's unbounded recursion (engine.store.ts:337). */
