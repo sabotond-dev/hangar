@@ -25,9 +25,12 @@ vendored.
 1. **Capture your module's current configuration first**, so you can put it back when you are done.
    HANGAR's safety stance is that the module's original configuration is always recoverable, and
    nothing in this document is exempt from it.
-2. **This goes through BOTOR's shelf, with minimalist mode off.** HANGAR cannot install until
-   Phase 7; nothing on the HANGAR site writes to your module today, and no part of this audition is
-   run by an executor or an orchestrator. It is yours.
+2. **This goes through BOTOR's shelf, with minimalist mode off.** HANGAR installs now — a card's
+   `TRY ON DEVICE` writes it into the module's memory with `PUT BACK` beside it, and `KEEP ON DEVICE`
+   stores it behind a confirmation (`docs/INSTALL-RUNBOOK.md` is that flow's own checklist) — but only
+   for a configuration that is already in the catalog. The audition through BOTOR's shelf is still
+   the way to hear one that is not yet in the catalog, and it is the route this document assumes. No
+   part of this audition is run by an executor or an orchestrator. It is yours.
 3. **The one ordering rule: paste the Timer into event 6 first, then the Setup into event 0.**
    `gtt` is a no-op until the Timer event holds at least one stored action, and the Setup runs
    immediately in the live VM — so a Setup-first paste arms a timer that does not exist yet, and the

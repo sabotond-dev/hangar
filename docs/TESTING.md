@@ -11,21 +11,26 @@ work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-05, at the end of Phase 6 — the
-device-session work, against a fresh `npm run build` at `aca8227`. Wall times are the whole command
-including npm and process startup, each command run alone; the parenthesised figure is the runner's
-own reported duration. Every number here is **observed**, never predicted — the tree is shared between
-phases, so a row that was guessed rather than run is worse than no row at all.
+Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-05, at the end of Phase 7 — the
+install-flow work, against a fresh `npm run build` at `f20d74f`, with 1.7 GB of memory free. Wall times
+are the whole command including npm and process startup, each command run alone in the order below; the
+parenthesised figure is the runner's own reported duration. Every number here is **observed**, never
+predicted — the tree is shared between phases, so a row that was guessed rather than run is worse than
+no row at all.
 
-| Command                      | Covers                                                               | Measured                                                                                                         |
-| ---------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `npm run test:quick`         | the `server` Vitest project — everything except the three sweeps     | 69 files, 724 passed + 1 todo (725); 25 s wall (22.9 s)                                                          |
-| `npm run test:sweep`         | the `sweep` project: three files, and 97% of its cost is one of them | 3 files, 13 tests; 79 s wall (76.8 s)                                                                            |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 72 files, 737 passed + 1 todo (738); 85 s wall (82.7 s)                                                          |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 77 tests (67 chromium, 10 webkit-phone) at `--workers 3`; 1.1 m runner time, plus the rebuild and the cold start |
-| `npm run check`              | `svelte-check` over the whole project                                | 533 files, 0 errors, 0 warnings; 7 s wall                                                                        |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 34 s wall                                                                                                |
-| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 10 s wall                                                                                                |
+| Command                      | Covers                                                               | Measured                                                                                                                     |
+| ---------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `npm run check`              | `svelte-check` over the whole project                                | 545 files, 0 errors, 0 warnings; 9 s wall                                                                                    |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 18 s wall                                                                                                            |
+| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 12 s wall                                                                                                            |
+| `npm run test:quick`         | the `server` Vitest project — everything except the three sweeps     | 73 files, 776 passed + 1 todo (777); 31 s wall (27.8 s), no timeout                                                          |
+| `npm run test:sweep`         | the `sweep` project: three files, and 97% of its cost is one of them | 3 files, 13 tests; 118 s wall (115.5 s)                                                                                      |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                      | not re-run at the Phase 7 gate; Phase 6 measured 72 files, 737 passed + 1 todo (738); 85 s wall (82.7 s)                     |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 89 tests (78 chromium, 11 webkit-phone) at `--workers 3`; 1.8 m runner time, 112 s wall including the cold start, first time |
+
+The quick run's one load-sensitive test (`lua-entries.spec.ts` test 6, Phase 7 deferred items 12 and 21) did not time out in this run at 1.7 GB free; on 2026-09-05 it did so three times at 0.8 to 1.7 GB
+free on a tree that had not changed a vitest file. If a quick run reads 775 passed and one timeout in
+that file, run the file alone before reading it as a regression.
 
 **Run `test:quick` after a build, not only before one.** `src/lib/config-shape.spec.ts` test 14 and
 `src/lib/og/build.spec.ts` tests 1, 4 and 5 read `build/`, so they are only armed when the directory
@@ -42,7 +47,11 @@ Vitest or Playwright summary from stdin and compares it against an expected file
 each phase records its baseline on a clean tree in its first SUMMARY and every later plan asserts
 `baseline + N`. Phase 6's arithmetic, reconciled at its gate: quick **66 → 69 files** and **691 → 724
 tests** (+3 / +33), sweep **unchanged**, e2e **61 → 77** (+16, of which ten are the five `@webkit`
-titles counted twice — see the table under "Before an e2e run").
+titles counted twice — see the table under "Before an e2e run"). Phase 7's, reconciled at its gate
+against the baseline its first plan measured on the clean tree Phase 6 closed (`BASE_E2E` 77, frozen
+there and never re-derived): quick **69 → 73 files** and **724 → 776 tests** (+4 / +52), sweep
+**unchanged**, e2e **77 → 89** (+12: six untagged probe walks, four untagged titles on the real page,
+and one `@webkit` title counted twice). No number was adjusted to fit.
 
 The sampling rule, in three lines:
 
@@ -620,6 +629,100 @@ Three conventions in that file worth copying:
 - **A counter a passing test rests on is made to leave zero once, deliberately.** A write planted in the
   session's open path made `writes()` report 2 and the whole-visit test red before the zero was trusted.
 
+## The install flow's test surface
+
+Phase 7 made `TRY ON DEVICE` write, added `PUT BACK` and `KEEP ON DEVICE`, and made each of them safe:
+a snapshot of the module's own Setup and Timer before any write control enables, RAM before flash, an
+acknowledgement per event before "installed", a read-back before "kept", and a named state with the
+way back offered for every failure. It added **four** `server` spec files, grew seven existing ones,
+widened two shipped gates without growing them, and extended `e2e/install.e2e.ts` from six titles to
+eleven. Every count below was observed on 2026-09-05 at the phase gate by running the files on their
+own.
+
+| File                                              | Tests   | What it holds                                                                                                                                                                                                                                    |
+| ------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/protocol/descriptors.spec.ts`            | 12      | 10 → 12: the fifth outbound descriptor, `SERIALNUMBER/FETCH`, addressed to the module and never broadcast, and `moduleKeyOf` over `WORD0..WORD3`                                                                                                 |
+| `src/lib/protocol/forbidden-instructions.spec.ts` | 5       | **unchanged in count**: test 4 counts five builders and its class set names `SERIALNUMBER`                                                                                                                                                       |
+| `src/lib/transport/sequence.spec.ts`              | 11      | 9 → 11: `writeBoth` as the one writer (Timer then Setup, verbatim) with `writeBack` an adapter over it; test 3 rewritten so a store on a rig RESOLVES with three acknowledgements to one request                                                 |
+| `src/lib/transport/fixtures/synthetic.spec.ts`    | 6       | 3 → 6: the scripted ZONA's `currentpage` refusal, its flash and `powerCycle()`, its addressed serial report from the global position, and `rigResponder`                                                                                         |
+| `src/lib/device/snapshot.spec.ts`                 | 7       | the durable record under `hangar.snapshot.v1`, keyed by serial then page, never overwritten, never deleted, `unavailable` on a throwing store                                                                                                    |
+| `src/lib/device/install-copy.spec.ts`             | 6       | every install sentence held against `07-UI-SPEC.md` read from disk, zero import specifiers, the three caps by name                                                                                                                               |
+| `src/lib/device/session.spec.ts`                  | 21      | 17 → 21: the write view whose `onData` throws, `onClass` fan-out beside a moving fold, `onConnection` once per teardown, `writeLock` and `announce`                                                                                              |
+| `src/lib/device/session-copy.spec.ts`             | 6       | **unchanged in count**: test 5 rewritten for the amended `SAFE_PROMISE` (88 characters, present tense), test 6 walking the writing form of the unplugged block                                                                                   |
+| `src/lib/tune/model.spec.ts`                      | 10      | 8 → 10: `onconfig` emitted from inside `land()` with the pair the meters measured, `undefined` on every stale                                                                                                                                    |
+| `src/lib/device/wire-pin.spec.ts`                 | 4       | D-10: the strings on the wire are the meters' bytes for all nine presets and every Lua entry; `undefined` builds no request                                                                                                                      |
+| `src/lib/device/install.spec.ts`                  | 18      | the store in node over a tee on `FakeTransport`: zero `CONFIG/EXECUTE` across connect, the snapshot and every knob move; the three clicks; partial, nothing-landed, lost, unconfirmed, kept-mismatch; the bounded retries; the pacing escalation |
+| `src/lib/config-shape.spec.ts`                    | 14      | **unchanged in count, widened in reach**: the allow-list gained the store's three specifiers and the walk reads 8 of 8; three planted mutations each turned test 13 red with the offender named                                                  |
+| `src/lib/ui/device-ui.spec.ts`                    | 11      | 7 → 11: the three install leaves, the 44px floor on every control, the twins and the 72px cell, a group that is not a dialog, the header lock's two bindings, no `setInterval`, no retyped install sentence                                      |
+| `e2e/install.e2e.ts`                              | 11 / 12 | six untagged probe walks visiting all fourteen install states, four untagged titles on `/c/aurora/`, one `@webkit` title run on both projects                                                                                                    |
+
+Standing gates untouched and green at the gate: `src/lib/ui/identity.spec.ts` (6),
+`src/lib/ui/tune-ui.spec.ts` (5), `src/lib/sim/lazy.spec.ts` (3), `src/lib/transport/fixtures/fixtures.spec.ts`
+(4), `src/lib/catalog/lua-entries.spec.ts` (6), `e2e/session.e2e.ts` (14 titles), `e2e/first-experience.e2e.ts`
+(11 titles, three assertions appended to its degrade test).
+
+**The fake ZONA in the browser is the node suite's own responder, exposed into the page.** Phase 6's
+`e2e/fake-serial.ts` shim gained one hook: the fake port's `write()` hands each chunk to a function a
+test has exposed, awaits the reply and pushes every returned frame into its own readable stream. The
+Node side of that hook is `e2e/fake-zona.ts`, which wraps the same `zonaResponder` and `rigResponder`
+that `synthetic.spec.ts` and `install.spec.ts` drive, so the request id an acknowledgement echoes is
+read off the real wire and a state the browser reaches is a state the node suite can reach. Five
+faults are scripted on top of it — a dropped acknowledgement by class and ordinal, a delayed one, a
+refusal on the first write, a read-back that lies, a rig — and none inside it. Its limits are its
+header's: it models firmware's acceptance rule (`CONFIG` is addressed, `PAGESTORE` and `SERIALNUMBER`
+are addressed or broadcast), its flash and its power cycle from a source reading, and it answers
+`SERIALNUMBER/FETCH` because it was told to. No frame of that class exists in any hardware capture.
+
+**`e2e/install.e2e.ts` has three blocks.** Tests 1 to 6 drive the unlinked `/dev/install/` probe — the
+sixth probe route, a plain-text readout of the store's fields plus a trace of every phase since load,
+which is what makes a 40 ms `writing` assertable — through the snapshot before any control enables
+(SAFE-01 counted **by class**: zero `CONFIG/EXECUTE` and zero `PAGESTORE/EXECUTE` over a
+connect-and-snapshot journey), `TRY ON DEVICE` and `PUT BACK`, `KEEP ON DEVICE` kept only after the
+read-back matches and `kept-mismatch` when it lies, partial and both nothing-landed causes with the
+pacing escalation observed, lost on an unplug with the record surviving the replug, and unconfirmed /
+restored-unconfirmed under `test.slow()` (23 s in the gate run: two legs of three 3000 ms store
+timeouts, the shipped constants, never shortened under test). Tests 7 to 10 drive the shipped panel
+on `/c/aurora/`: `WRITING…` with `aria-busy` and every install control disabled inside a 200 ms
+acknowledgement hold, the header's `DISCONNECT ZONA` and `FORGET THIS ZONA` locked with their reason
+after the panel was un-chosen mid-leg, the confirmation replacing the control with focus on the group
+and two exits plus `Escape`, a put-back after a keep storing too, and the one live region speaking
+once per outcome including `Still writing.` at 2 s into a held store (test 10, `test.slow()`, 11 s in
+the suite). Test 11 carries `@webkit` and runs on both projects: on the engine that can never install,
+`TRY ON DEVICE` and `KEEP ON DEVICE` are present, disabled and explained, `PUT BACK` is absent by
+decision, and the document is as wide as the window at the phone layout. The e2e arithmetic follows
+from that shape: the install walks run on `chromium` alone, because Web Serial exists in no WebKit,
+and the degrade path is what runs on `webkit-phone` — not two engines walking the install.
+
+Every test in that file ends on the wire counted by class. A passing test that never asserted
+`CONFIG/EXECUTE` equal to the number of clicks would be green for the wrong reason.
+
+**Two numbers are recorded and not gated.** The store exposes `pacingEscalated` (the pre-send gap moved
+from 0 to 10 ms after a write timeout with no refusal, once per visit) and `refetchRounds` (how many
+read-back rounds a store needed before `kept`, of a bound of three). Whether the escalation ever helps
+against the module's 2,048-byte receive ring and how many rounds a real store's page reload costs are
+measurements no capture holds; `install.spec.ts` and `install.e2e.ts` prove the mechanisms fire on the
+scripted faults, and `docs/INSTALL-RUNBOOK.md` rows B and E ask a person for the numbers.
+
+**The hardware half is `docs/INSTALL-RUNBOOK.md`.** Seven rows for a person with a ZONA, each with the
+reason a machine cannot run it: whether a real module answers `SERIALNUMBER/FETCH` at all, the first
+RAM write and its wall time, `PUT BACK` by eye, a power cycle bringing the original back, a store
+surviving a power cycle with its round count, a fresh-tab `PUT BACK` from the browser's own storage,
+and an optional rig. No agent has written a byte to a real ZONA in this phase; the first write is the
+user's click at that runbook's row B.
+
+Two conventions in that file worth copying, beyond Phase 6's three:
+
+- **A transient is read in one in-page snapshot, not in a chain of round trips.** Everything the spec
+  says about a 400 ms window — the busy label, `aria-busy` on the control and on the state region, the
+  three disabled controls, the held sentence, the label's computed transition — is returned by one
+  `page.evaluate` the moment the label is caught, so the window is spent on assertions and not on the
+  wire.
+- **A store leg's proof is paced by a bounded beat loop, never one timed beat.** The acknowledgement's
+  landing is invisible from the page and the heartbeat waiter is armed only after it, so the loop
+  pushes a heartbeat, polls the panel for about one heartbeat period and pushes again, capped at the
+  module's own cadence. The same state needed 1, 2 and 3 beats across runs; a single timed beat would
+  have been a flaky test by construction.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
@@ -691,14 +794,16 @@ Capture e2e output to `.tmp-e2e/` (gitignored), never under `test-results/` or
 `playwright-report/`: Playwright deletes its `outputDir` at the start of every run, so a redirect
 target inside it is unlinked mid-run.
 
-The whole Playwright suite is **77 tests** as of 2026-09-05, and it is 77 rather than 67 because the
-ten tagged titles — five in `tuning-webkit.e2e.ts`, three in `browse-webkit.e2e.ts`, two in
-`session.e2e.ts` — run in both projects. Observed, per file and per project, from the Phase 6 gate run
-at `--workers 3` (the Phase 5.1 gate run was 61, with `session.e2e.ts` not yet written):
+The whole Playwright suite is **89 tests** as of 2026-09-05, and it is 89 rather than 78 because the
+eleven tagged titles — five in `tuning-webkit.e2e.ts`, three in `browse-webkit.e2e.ts`, two in
+`session.e2e.ts`, one in `install.e2e.ts` — run in both projects. Observed, per file and per project,
+from the Phase 7 gate run at `--workers 3` (the Phase 6 gate run was 77, with `install.e2e.ts` not yet
+written; the Phase 5.1 gate run was 61):
 
 | File                      | chromium | webkit-phone | Total |
 | ------------------------- | -------- | ------------ | ----- |
 | `session.e2e.ts`          | 14       | 2            | 16    |
+| `install.e2e.ts`          | 11       | 1            | 12    |
 | `first-experience.e2e.ts` | 11       | -            | 11    |
 | `browse.e2e.ts`           | 11       | -            | 11    |
 | `tuning.e2e.ts`           | 10       | -            | 10    |
@@ -709,13 +814,14 @@ at `--workers 3` (the Phase 5.1 gate run was 61, with `session.e2e.ts` not yet w
 | `catalog.e2e.ts`          | 2        | -            | 2     |
 | `fidelity.e2e.ts`         | 2        | -            | 2     |
 | `skeleton.e2e.ts`         | 2        | -            | 2     |
-| **Total**                 | **67**   | **10**       | 77    |
+| **Total**                 | **78**   | **11**       | 89    |
 
-There are five unlinked probe routes under `/dev/`, one per thing a browser has to prove about the
+There are six unlinked probe routes under `/dev/`, one per thing a browser has to prove about the
 production build: the walking skeleton's page, `/dev/fidelity/` (the WASM formatter resolves and
 compiles), `/dev/catalog/` (a cold load fetches no WebAssembly), `/dev/tune/` (the over-budget guard,
-over a real reserve) and `/dev/session/` (the device session's phase, identity and write counter as
-plain text, driven by the scripted serial). None of them is linked from anywhere, `e2e/fidelity.e2e.ts`
+over a real reserve), `/dev/session/` (the device session's phase, identity and write counter as
+plain text, driven by the scripted serial) and `/dev/install/` (the install store's fields and a trace
+of every phase since load, driven by the scripted serial and the Node responder). None of them is linked from anywhere, `e2e/fidelity.e2e.ts`
 asserts site-wide that no anchor on `/` points into `/dev/`, and `src/lib/config-shape.spec.ts` test 12
 discovers every directory under `src/routes/dev/` and asserts the same property over the source of
 `src/routes/`.

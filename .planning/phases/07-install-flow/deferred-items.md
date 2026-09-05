@@ -334,3 +334,128 @@ explicit `{ timeout }` on the cross-product test by the next plan that edits `lu
 quieter machine.
 
 **Owner:** as item 12; no code in 07-12.
+
+## 22. A refusal has no copy of its own (recorded by 07-13)
+
+The store classifies a negative acknowledgement exactly - a NACK on the first leg lands `nothing-landed`
+and on the second `partial`, with `cause: "nack"` recorded on the store (07-06, 07-07) - and renders the
+cause nowhere, because 07-UI-SPEC's Copywriting Contract carries no NACK-specific block and
+`install-copy.spec.ts` test 2 holds every literal against that contract. Two consequences. The
+`nothing-landed` block's second step, `If it happens twice, check the cable is seated at both ends`, is
+written for a silent discard and is wrong for a refusal: firmware NACKs a `CONFIG/EXECUTE` for five
+deterministic reasons (07-RESEARCH Pitfall 7 - length, terminator, page, element, event) and none of them
+is a cable. And the two conditions a visitor could act on - the page moved under them, or the
+configuration is too long - are never said. The classification is testable and tested; the copy gap is
+the contract's, and a block for `refused-by-module` (or a `cause`-keyed second step in the two existing
+blocks) is a contract revision plus one literal, not a store change.
+
+**Owner:** the contract's owner at the next revision of 07-UI-SPEC, then a gap plan for the literal;
+the store already records what the copy would need. No code until then.
+
+## 23. Whether the module's id should be shown to the visitor (recorded by 07-13)
+
+07-CONTEXT open question 2 and 07-RESEARCH open question 5. `this ZONA` is unambiguous while one module
+has ever been stored and ambiguous the moment somebody owns two. The research's recommendation: never the
+raw 32-hex-character key; the last four hex characters inside the identity line - `ZONA (…4f2a)` - shown
+ONLY when a second module id has ever been recorded in `hangar.snapshot.v1`. Zero cost with one module,
+exactly the disambiguation with two. The record already holds every id it has ever seen, so the condition
+is a `Object.keys(record).length > 1` read, and the identity line is `DeviceSlot.svelte`'s, which Phase 6
+sized on four labels and which no Phase 7 plan edited.
+
+**Owner:** the user (a UI-spec call, not a research one); then the header's owner. No code until then.
+
+## 24. The third colour (recorded by 07-13)
+
+07-CONTEXT open question 1. 07-UI-SPEC Z-01 rules **no third colour** on the flash confirmation: the
+block carries its warning by copy (`PERMANENT` at full ink, the naming sentence), by weight (the
+affirmative bordered and never accent-filled, so a panel with the confirmation open has exactly one lime
+fill, the primary's) and by layout (it replaces the control that opened it). 07-09 shipped that ruling and
+07-12 test 8 reads it. The reversal, if the user wants one, is a one-line token in `KeepConfirm.svelte`'s
+caption rule and a widening of `identity.spec.ts`'s reserved accent list; nothing structural.
+
+**Owner:** the user. No code until then.
+
+## 25. No lint rule bans `setInterval`, still (carried from Phase 6 item 3 by 07-13)
+
+Phase 6's item 3 stands: `eslint.config.js` has no `no-restricted-globals` entry, and the
+"`setInterval`: zero, anywhere" rule is enforced only by per-file source scans. Phase 7 added four more
+of them by hand rather than the rule - `install.spec.ts` tests 8 and 18 (the store's three specifiers and
+Phase 6's eight needles plus `setInterval` over `install.svelte.ts`), `device-ui.spec.ts` test 8 (the
+install leaves and every device component), and `install-copy.spec.ts` test 1 (zero specifiers) - so the
+convention is now held in five places, each of which would have to be remembered by the next file. The
+one-line rule with exemptions for `src/vendor/**` and `e2e/**` is still a tree-wide change with its own
+review, and no Phase 7 plan's `files_modified` included the config.
+
+**Owner:** unowned; a one-line `no-restricted-globals` entry plus the two exemptions, in a plan that names
+the config.
+
+## 26. Flash write ordering under an unplug is a runbook caution, not a mitigation (recorded by 07-13)
+
+STATE.md's Phase 7 blocker: the firmware writes Setup to flash before Timer, the reverse of the RAM order
+HANGAR writes in (Timer then Setup, so a torn RAM write leaves a Setup with no Timer to arm rather than a
+Timer that references state no Setup created). A module unplugged in the middle of a `PAGESTORE`'s flash
+write could come back with the new Setup and the old Timer, and no state on the page names that: the tab
+that was writing lands `lost` with the store-leg detail ("The store was sent and no confirmation came
+back before the ZONA was unplugged. HANGAR cannot say what a power cycle brings back."), which is true
+and is not a diagnosis. No software mitigation exists - the store is one broadcast and the firmware
+decides the order - and none is planned; what would move it is a measurement of how long the flash write
+takes on hardware (Phase 2 saw the acknowledgement 13.6 to 38.7 ms after the request, which is when the
+write STARTS, not when it ends). `docs/INSTALL-RUNBOOK.md` row E carries it as a caution ("do not pull
+the cable while the label reads `KEEPING…` or `PUTTING BACK…`") and names the half-flashed outcome so a
+person can recognise it.
+
+**Owner:** the STATE.md blocker stays open until row E's timing is on the record; then whoever owns the
+lost block's copy decides whether the store form should name the half-flashed possibility. No code.
+
+## 27. The durable record is consulted only after a non-empty fetch (item 7, carried by 07-13)
+
+Item 7 as 07-06 named it, unchanged: `#snapshot` runs `canWriteBack` on the fetched pair BEFORE
+`readSnapshot` consults the durable record, so a module this browser remembers whose RAM reads empty on
+the page it is on lands `snapshot-failed` and is not offered its own recorded original for `PUT BACK`,
+although the record exists and would be the right thing to offer. The reorder is a few lines and a
+`install.spec.ts` test-3 inversion. It is held back because it sits on the open Z-16 versus D-03 question
+(the UI spec reads "non-empty" as "both fetches acknowledged"; the user's D-03 says "present and
+non-empty"; every plan implemented D-03), and the two cannot be settled separately: under Z-16 the empty
+fetch is itself a valid snapshot and the reorder is moot; under D-03 the reorder is the fix. Neither the
+runbook's rows nor the suite reach this case on a factory module, whose touch element is never empty.
+
+**Owner:** the user's D-03 ruling, then a gap plan of one reorder and one test inversion.
+
+## 28. The pacing escalation and the re-fetch rounds are experiments, recorded and not gated (recorded by 07-13)
+
+D-19's second and third timings ship as fields, not as proofs. `pacingEscalated` moves the pre-send gap
+from `PRE_SEND_DELAY_MS` (0) to `DESKTOP_PRE_SEND_DELAY_MS` (10) once per visit on a `write-*` timeout with
+no NACK anywhere in the action (07-RESEARCH Pitfall 3), and `refetchRounds` counts the read-back rounds a
+store needed before `kept`, of a bound of three (Pitfall 6). Both are proven to FIRE - `install.spec.ts`
+measures the gap at the transport and `install.e2e.ts` test 4 reads `install-pacing` `true` after a
+scripted silent discard; the e2e's beat loop reads `kept` after one round on the scripted module - and
+neither is proven to be RIGHT: whether 10 ms ever helps against the 2,048-byte ring on a real module, and
+how many rounds a real store's page reload costs, are numbers no capture holds. Neither is rendered on the
+real page. `pacingEscalated` is the probe's `pacing escalated` line; `refetchRounds` has no readout at all
+- the plan for the probe named both fields and the probe shipped the first, so the count is read from the
+probe's `steps` list as the number of `refetch-setup` lines after `store ok`, which is what
+`docs/INSTALL-RUNBOOK.md` row E asks for. Once rows B and E are answered, one of three things happens to
+each: the escalation is deleted (it never fired and the caveat closes), the constant moves (0 ms was
+wrong; ship 10), or the three-round bound becomes a measured constant with the number beside it.
+
+**Owner:** the runbook's answers; then a gap plan of one constant or one deletion per measurement, and a
+`refetch rounds` line on the probe if anyone wants the count without counting lines.
+
+## 29. `PUT BACK` after a keep in an earlier page load is memory-only (found by 07-13)
+
+`keptThisSession` is a field of the store instance - set on `kept`, cleared by a put-back that stored,
+never reset by an unplug or a reconnect - so within one page load a keep, a power cycle and a `PUT BACK`
+leave the module as found, which is how `docs/INSTALL-RUNBOOK.md` row E is designed. Across page loads
+it is false again: a visitor who kept, closed the tab and came back sees `PUT BACK` with its FIRST line
+(`Restores the Setup and Timer that were on your ZONA when you connected.`, honest) and a click restores
+memory only, while flash still holds the kept configuration and the next power cycle brings it back. The
+durable record (`hangar.snapshot.v1`) holds the original's bytes but not the fact that a keep happened,
+so a fresh session cannot know it should store. The HANGAR-only route back to a permanent original is
+`TRY ON DEVICE`, `KEEP ON DEVICE` and confirm, then `PUT BACK` - two extra flash writes - which the
+runbook's recovery step 4 spells out; the alternative is Grid Editor. A fix is a `kept` mark beside the
+record (a second key, or a v2 of the record's body) read at connect, which is a change to the one
+persistent schema this site has and is therefore Rule 4 territory: a decision for the user (should a
+fresh tab's `PUT BACK` store without being asked?) before a plan.
+
+**Owner:** the user's decision, then a gap plan over `snapshot.ts` and `install.svelte.ts`; the runbook
+carries the workaround meanwhile. No code in 07-13, which edits no source file by rule.
