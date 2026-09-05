@@ -162,4 +162,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-04 after Phase 5 (Tuning, Budgets and Shareable Links) — knobs, live meters and shareable links on the front door, verified 5/5, deployed to the gated preview; remaining: 5.1 Catalog Browse, 6 Device Session, 7 Install Flow*
+*Last updated: 2026-09-05 after Phase 5.1 (Catalog Browse) — every configuration browsable at /browse/ with sort, search and tag chips, all sixteen with their own pages and link images, browse-to-detail-and-back restoring position, verified 12/12; remaining: 6 Device Session (planned), 7 Install Flow*
