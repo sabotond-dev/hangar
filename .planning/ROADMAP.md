@@ -217,7 +217,7 @@ Plans:
 - [x] 07-04-PLAN.md — The session's seams: the write view, onClass, onConnection, announce, writeLock (wave 4) (completed 2026-09-05)
 - [x] 07-05-PLAN.md — The tuner's onconfig channel and the byte-for-byte wire pin (wave 5) (completed 2026-09-05)
 - [x] 07-06-PLAN.md — The install store: the snapshot at connect, TRY ON DEVICE and PUT BACK in RAM (wave 6) (completed 2026-09-05)
-- [ ] 07-07-PLAN.md — The install store: KEEP ON DEVICE with the read-back proof, the taxonomy, the bounds (wave 7)
+- [x] 07-07-PLAN.md — The install store: KEEP ON DEVICE with the read-back proof, the taxonomy, the bounds (wave 7) (completed 2026-09-05)
 - [ ] 07-08-PLAN.md — The shim answers with the real fake, the /dev/install/ probe, the fourteen states walked (wave 8)
 - [ ] 07-09-PLAN.md — The allow-list mutations observed, then PutBack, KeepConfirm and InstallState (wave 9)
 - [ ] 07-10-PLAN.md — The panel writes: the never-writes literals retired, KEEP ON DEVICE quiet, the column row (wave 10)
@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 6/13 | In progress (the install store stands beside the session with three static specifiers: the snapshot at connect in the gated order, TRY ON DEVICE and PUT BACK through one queue per connection with the restore in a finally, and zero writes without a click proven in node against a FakeTransport) | - |
+| 7. Install Flow | 7/13 | In progress (the install store is complete with all fourteen phases reachable: KEEP ON DEVICE said only after the PAGESTORE acknowledgement, the module's next heartbeat and a matching re-fetch bounded to three rounds; PUT BACK storing too after a keep; the taxonomy by instanceof with partial named from the acknowledgements; bounded retries, a no-NACK timeout escalating the pacing, the 2000 ms line - eighteen node tests against a FakeTransport, nothing rendered yet) | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage

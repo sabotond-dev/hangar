@@ -114,3 +114,22 @@ spec reads "non-empty" as "both fetches ACK'd"; the user's D-03 says "present an
 implement D-03). Whoever rules on that question rules on this.
 
 **Owner:** 07-13's deferred items and the user's D-03 ruling; no code until then.
+
+## 8. Negative check "set `armed` from `partial`" is unobservable as a `#recomputeArmed` widening (found by 07-07)
+
+07-07's plan lists seven negative checks, the fourth being "set `armed` from `partial` (test 13's reason)".
+Read as widening `#recomputeArmed`'s phase test to `settled || unconfirmed || partial`, the mutation
+cannot turn test 13 red: `armed` also requires `lastWritten` to equal the tuner's pair, and a try-on that
+lands `partial` never sets `lastWritten` (only a settled `tryOnDevice` does), so `armed` stays false under
+the mutation and test 13 passed (observed: `1 passed | 17 skipped`). Nor can the reason row go red on its
+own: `keepReason()`'s table places the `partial` row above the armed row, so `after-partial` is returned
+whatever `armed` says. The literal reading - `this.armed = true` in `#classify`'s partial branch - WAS
+observed red on test 13's `armed` assertion (`never armed from partial: expected true to be false`), and
+is what the SUMMARY records. Two guards stand between `partial` and a live `KEEP ON DEVICE` (the phase test
+and `lastWritten`), plus the table order; none is a gap.
+
+If a later plan wants the *reason* itself under a mutation, the mutation is a row reorder in
+`keepReason()` (the live row above the `partial` row) together with a `lastWritten` that survives a
+partial - two edits, not one, and the second would itself be a bug worth its own test.
+
+**Owner:** none required; recorded so the fourth check is not read as skipped. No code.
