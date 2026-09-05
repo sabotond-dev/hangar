@@ -221,9 +221,14 @@
   >
     Try on device
   </button>
+  <!--
+    Not `install-put-back`: that testid is the READOUT of putBackState() above,
+    and a locator must resolve to one element (the plan's table gave both the
+    same name; the readout keeps it, the click does not).
+  -->
   <button
     type="button"
-    data-testid="install-put-back"
+    data-testid="install-put-back-click"
     onclick={() => void install.putBack()}
   >
     Put back

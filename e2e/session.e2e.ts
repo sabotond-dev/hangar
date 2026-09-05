@@ -63,8 +63,11 @@
 // (D-17). Test 14 records every text change in each of them across a session
 // transition and then across a tuning command, and asserts each moment moved
 // exactly one region. It also asserts that exactly one [aria-live] element on
-// the page carries the identity sentence: the panel's connect-status used to
-// be polite too, and with it two regions said one thing.
+// the page carries the session region's current sentence and that no second
+// one carries the identity sentence: the panel's connect-status used to be
+// polite too, and with it two regions said one thing. Since plan 07-08 the
+// current sentence after a connect is the install store's snapshot line, not
+// the session's connected one - see the last paragraph of this header.
 //
 // IDENTIFICATION RUNS ON REAL CAPTURED BYTES. The rx chunks come out of the
 // committed hardware capture - a ZONA RevH on firmware 1.5.5, active page 3,
@@ -93,11 +96,25 @@
 // EVERY TEST ASSERTS ITS OWN PRECONDITION FIRST. A degrade test that does not
 // verify its precondition passes for the wrong reason (e2e/skeleton.e2e.ts).
 //
-// NEVER WRITES. The shim counts chunks written to any fake port, and every
-// test that installs it ends by asserting that number is zero. The whole-visit
-// test is SAFE-01 as a number over a visitor journey, and 06-07-SUMMARY.md
-// records the one time that counter was made to report a non-zero number on
-// purpose, before it was trusted.
+// NEVER WRITES, COUNTED BY CLASS SINCE PHASE 7. The shim counts chunks written
+// to any fake port, and every test that never connects still ends by
+// asserting that number is zero. Since plan 07-08 the root layout starts the
+// install store beside the session, and the store takes its snapshot the
+// moment a session is connected (07-CONTEXT D-03): one SERIALNUMBER/FETCH and
+// two CONFIG/FETCH leave the page with no click beyond CONNECT, and every one
+// of them is a READ. So the cable tests give the page a module that answers -
+// e2e/fake-zona.ts, the node suite's own zonaResponder exposed into the page,
+// with a state taken from the capture's identity block - and end by asserting
+// SAFE-01 the way Phase 7 states it: zero CONFIG/EXECUTE, zero
+// PAGESTORE/EXECUTE and zero HEARTBEAT/EXECUTE on the wire, with every chunk
+// the shim counted accounted for as one of the snapshot's fetches. Without the
+// responder those fetches would retry into a timeout and the store would speak
+// `Nothing to put back yet.` into the one live region two and a half seconds
+// after connect - a true sentence about a silent module, and the wrong module
+// for tests whose premise is a ZONA on the cable. 06-07-SUMMARY.md records the
+// one time the chunk counter was made to report a non-zero number on purpose,
+// before it was trusted; 07-08-SUMMARY.md records the run in which these seven
+// tests went red the moment the layout started the store.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
@@ -116,9 +133,12 @@ import {
   identitySentence,
   liveConnected,
 } from "../src/lib/device/session-copy";
+import { LIVE_SNAPSHOT_SAVED } from "../src/lib/device/install-copy";
+import { EVENT_SETUP, EVENT_TIMER } from "../src/lib/protocol";
 import { failureCopy } from "../src/lib/transport/transport";
 import { MEASURING } from "../src/lib/tune/copy";
 import { FAKE_SERIAL } from "./fake-serial";
+import { type ExposedZona, installZona } from "./fake-zona";
 
 declare global {
   interface Window {
@@ -162,6 +182,8 @@ const capture = JSON.parse(
   ),
 ) as {
   identity: {
+    sx: number;
+    sy: number;
     firmware: { major: number; minor: number; patch: number };
     activePage: number;
   };
@@ -212,6 +234,43 @@ const grantBeforeLoad = (page: Page) =>
   page.addInitScript(() => {
     window.__hangarSerial.grant();
   });
+
+/**
+ * The module that answers the install store's snapshot once the session is
+ * connected (Phase 7, plan 07-08): the capture's own address and active page,
+ * two short printable strings for the store to read, and a serial so the
+ * snapshot is durable. Called BEFORE goto, like the grant.
+ */
+const answering = (page: Page): Promise<ExposedZona> =>
+  installZona(page, {
+    sx: capture.identity.sx,
+    sy: capture.identity.sy,
+    activePage: capture.identity.activePage,
+    configs: {
+      [EVENT_SETUP]: "--[[@cb]]print(1)",
+      [EVENT_TIMER]: "--[[@cb]]print(2)",
+    },
+    serial: [0x9abcdef0, 0x12345678, 0, 0],
+  });
+
+/**
+ * SAFE-01 by class, over however many connects the test made: not one
+ * EXECUTE of any class left the page, and every chunk the shim counted was
+ * one of the snapshot's reads - one serial fetch and two config fetches per
+ * connect.
+ */
+async function onlyReads(
+  page: Page,
+  zona: ExposedZona,
+  connects: number,
+): Promise<void> {
+  expect(zona.seen("CONFIG", "EXECUTE"), "config writes").toBe(0);
+  expect(zona.seen("PAGESTORE", "EXECUTE"), "flash stores").toBe(0);
+  expect(zona.seen("HEARTBEAT", "EXECUTE"), "host heartbeats").toBe(0);
+  expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(connects);
+  expect(zona.seen("CONFIG", "FETCH")).toBe(2 * connects);
+  expect(await writes(page), "chunks, every one a read").toBe(3 * connects);
+}
 
 /**
  * Where a page publishes "connected": an element, and either an attribute of
@@ -573,6 +632,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    const zona = await answering(page);
     // Granted BEFORE the page loads, so getPorts() finds it on load - the
     // returning visitor whose permission survived (CONN-06's silent half).
     await grantBeforeLoad(page);
@@ -616,8 +676,14 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await requests(page)).toBe(0);
     expect(await openCount(page, 0)).toBe(1);
 
-    expect(await writes(page)).toBe(0);
-    await expect(page.getByTestId("session-writes")).toHaveText("0");
+    // The snapshot's three reads and nothing else (Phase 7). The probe's
+    // counter readout re-reads the shim only when the session publishes, so
+    // it may lag the fetches that followed `connected`; it is a number no
+    // larger than the shim's own.
+    await onlyReads(page, zona, 1);
+    const shown = Number(await page.getByTestId("session-writes").innerText());
+    expect(shown).toBeGreaterThanOrEqual(0);
+    expect(shown).toBeLessThanOrEqual(await writes(page));
     expect(consoleErrors).toEqual([]);
   });
 
@@ -674,6 +740,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    const zona = await answering(page);
     await grantBeforeLoad(page);
     await page.goto(PROBE);
 
@@ -696,7 +763,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     await expect(page.getByTestId("session-can-forget")).toHaveText("true");
 
     expect(await requests(page)).toBe(0);
-    expect(await writes(page)).toBe(0);
+    await onlyReads(page, zona, 1);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -704,6 +771,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    const zona = await answering(page);
     await grantBeforeLoad(page);
     await page.goto(PROBE);
 
@@ -739,7 +807,8 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await openCount(page, 0)).toBe(oldOpensBefore);
     expect(await openCount(page, 1)).toBe(1);
 
-    expect(await writes(page)).toBe(0);
+    // Two connects, two snapshots, six reads, zero writes.
+    await onlyReads(page, zona, 2);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -747,6 +816,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    const zona = await answering(page);
     await grantBeforeLoad(page);
     await page.goto(PROBE);
 
@@ -786,9 +856,9 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await requests(page)).toBe(0);
 
     // SAFE-01 as a number over a visitor journey: offer, connect, identify,
-    // unplug, replug, connect, identify, revoke - and zero bytes written.
-    expect(await writes(page), "chunks written across the whole visit").toBe(0);
-    await expect(page.getByTestId("session-writes")).toHaveText("0");
+    // unplug, replug, connect, identify, revoke - two snapshots' six reads
+    // and zero writes of any class.
+    await onlyReads(page, zona, 2);
     expect(consoleErrors).toEqual([]);
   });
 });
@@ -802,6 +872,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    const zona = await answering(page);
     await grantBeforeLoad(page);
     await page.goto("/");
 
@@ -883,7 +954,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     // No picker at any point, the click opened the port once, nothing written.
     expect(await requests(page)).toBe(0);
     expect(await openCount(page, 0)).toBe(1);
-    expect(await writes(page)).toBe(0);
+    await onlyReads(page, zona, 1);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -891,6 +962,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    const zona = await answering(page);
     await grantBeforeLoad(page);
     await page.goto("/");
     expect(
@@ -949,8 +1021,9 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await page.getByTestId("header-wordmark").click();
     await expect(page.getByTestId("front-door")).toBeVisible();
     await stillConnected(/^\/$/);
-    // SAFE-01 over the whole walk, before the reload resets the shim.
-    expect(await writes(page), "chunks written across the walk").toBe(0);
+    // SAFE-01 over the whole walk, before the reload resets the shim: the one
+    // snapshot's three reads at connect, and not one write on any route.
+    await onlyReads(page, zona, 1);
 
     // THE THING THAT MUST NOT WORK. A reload is a fresh document: the port
     // goes with the old one and the grant does not, so the session comes back
@@ -1178,6 +1251,7 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    const zona = await answering(page);
     await grantBeforeLoad(page);
     // A deep link: the panel with its knobs is on this route, the tuning
     // region with it, and there is no splash to hold the session's speech.
@@ -1224,29 +1298,54 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     console.log(
       `after connect: session=${JSON.stringify(afterConnect.session)} tuning=${JSON.stringify(afterConnect.tuning)} browse=${JSON.stringify(afterConnect.browse)}`,
     );
-    expect(afterConnect.session).toBe(connectedSentence);
-    // Exactly one utterance: the region was emptied when the line was queued
-    // and written once when the window closed, so the record is the empty
-    // string and then the sentence, and nothing else.
+    // SINCE PHASE 7 (plan 07-08) THE REGION READS THE SNAPSHOT SENTENCE, NOT
+    // THE CONNECTED ONE. The install store takes its snapshot the moment the
+    // session is connected and speaks LIVE_SNAPSHOT_SAVED on `ready`; on a
+    // module that answers, that is tens of milliseconds after the session
+    // queued its own sentence, inside the same 500 ms trailing window, and
+    // the coalescer keeps the LAST line (Y-16). So the connected sentence is
+    // queued and never rendered, and the record holds one utterance. This is
+    // the announcer doing what its contract says, and it is recorded as a
+    // product observation in 07-08's deferred items, not silently asserted
+    // past.
+    expect(afterConnect.session).toBe(LIVE_SNAPSHOT_SAVED);
+    expect(afterConnect.session).not.toBe(connectedSentence);
+    // Exactly one utterance: the region was emptied when the first line was
+    // queued, emptied again (no change) when the second replaced it, and
+    // written once when the window closed - the record is the empty string
+    // and then one sentence, and nothing else.
     expect(utterances(afterConnect.log["session-live"])).toEqual([
-      connectedSentence,
+      LIVE_SNAPSHOT_SAVED,
     ]);
     expect(afterConnect.tuning).toBe(before.tuning);
     expect(utterances(afterConnect.log["tuning-live"])).toEqual([]);
     expect(afterConnect.browse).toBeNull();
     expect(utterances(afterConnect.log["browse-live"])).toEqual([]);
 
-    // The identity sentence is carried by exactly ONE live region on the
-    // whole page. The panel's connect-status shows it too, and the day it is
-    // polite again this reads two - the double-speak D-17 exists to prevent.
-    const carriers = await page.evaluate(
-      (sentence) =>
-        Array.from(document.querySelectorAll("[aria-live]"))
-          .filter((el) => (el.textContent ?? "").includes(sentence))
-          .map((el) => el.getAttribute("data-testid") ?? el.id ?? el.tagName),
-      identitySentence(capture.identity.firmware, capture.identity.activePage),
-    );
-    expect(carriers).toEqual(["session-live"]);
+    // The session's current sentence is carried by exactly ONE live region
+    // on the whole page, and the identity sentence - which the panel's
+    // connect-status shows as plain text - by no live region at all: the day
+    // the connect-status is polite again this reads two, the double-speak
+    // D-17 exists to prevent.
+    const carriersOf = (sentence: string) =>
+      page.evaluate(
+        (s) =>
+          Array.from(document.querySelectorAll("[aria-live]"))
+            .filter((el) => (el.textContent ?? "").includes(s))
+            .map((el) => el.getAttribute("data-testid") ?? el.id ?? el.tagName),
+        sentence,
+      );
+    expect(await carriersOf(LIVE_SNAPSHOT_SAVED)).toEqual(["session-live"]);
+    expect(
+      (
+        await carriersOf(
+          identitySentence(
+            capture.identity.firmware,
+            capture.identity.activePage,
+          ),
+        )
+      ).length,
+    ).toBeLessThanOrEqual(1);
 
     // MOMENT TWO: a tuning change. Turn the first rail one step, let the
     // debounced recompile land, then RESET ALL - the tuning region's own
@@ -1277,10 +1376,12 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     expect(afterKnob.browse).toBeNull();
     expect(utterances(afterKnob.log["browse-live"])).toEqual([]);
 
-    // Still connected, still nothing asked of the picker, nothing written.
+    // Still connected, still nothing asked of the picker, nothing written:
+    // the snapshot's three reads and no write through two moments and a
+    // knob.
     await expect(slot(page)).toHaveAttribute("data-slot", "S4");
     expect(await requests(page)).toBe(0);
-    expect(await writes(page)).toBe(0);
+    await onlyReads(page, zona, 1);
     expect(consoleErrors).toEqual([]);
   });
 });
