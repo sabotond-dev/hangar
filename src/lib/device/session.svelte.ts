@@ -388,6 +388,18 @@ export class DeviceSession {
    */
   start(env: Partial<SessionEnv> = {}): void {
     if (this.#started) return;
+    // THE PRERENDER TRAP, and why this throws instead of deciding. Node 21 and
+    // later ship a global `navigator` WITHOUT `serial`, so a bare start() at
+    // module scope - which the prerenderer runs - would not fail: it would
+    // quietly decide `unsupported`, and every prerendered page would ship the
+    // S0a slot and no header note, with the build green (observed by plan
+    // 06-09). A bare call is a component's; a component's bare call belongs
+    // in a browser. Tests pass an explicit environment and never reach this.
+    if (env.serial === undefined && typeof window === "undefined") {
+      throw new Error(
+        "DeviceSession.start() ran where there is no window - at module scope, or in the prerenderer - so navigator.serial can never be read here. Call it from onMount.",
+      );
+    }
     this.#started = true;
 
     const capability = capabilityOf({

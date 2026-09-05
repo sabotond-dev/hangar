@@ -451,6 +451,15 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
       expect(calls.requestPort).toBe(0);
       expect(listeners.size, "a listener was attached").toBe(0);
     }
+
+    // A BARE start() - the component's form - where there is no window is the
+    // prerender trap, and it throws rather than deciding. Node 21+ has a
+    // global navigator without serial, so without this guard a module-scope
+    // start() in the layout would prerender every page as `unsupported` with
+    // the build green (plan 06-09 observed exactly that).
+    const bare = new DeviceSession();
+    expect(() => bare.start()).toThrow(/navigator/);
+    expect(bare.phase, "a refused start decided a phase").toBe("starting");
   });
 
   it("offers a granted, attached ZONA and never opens it", async () => {
