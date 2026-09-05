@@ -3,10 +3,13 @@
 // These rules keep the device chrome free of the compiler, free of a fourth
 // colour, reachable by thumb, quiet in exactly one live region, monospaced only
 // on its numerals, and honest about what each control announces. Every one is a
-// property of the SOURCE rather than of a rendered tree, so all six run in a
+// property of the SOURCE rather than of a rendered tree, so all seven run in a
 // second and none needs a browser. The e2e and the served-build measurements
 // prove the behaviour; this proves the shape, on every commit rather than on
-// every release.
+// every release. Six are over the seven device components; the seventh (plan
+// 06-12) walks every component and route on the site, because the rule it
+// holds - three live regions, and the chosen panel is not one - is a
+// site-wide count rather than a property of one file.
 //
 // EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
 // These components name in prose the very tokens, specifiers and attributes they
@@ -398,5 +401,88 @@ describe("the device UI's structural rules", () => {
       (onMountBlock as RegExpExecArray)[1],
       "the hydration marker is assigned outside onMount",
     ).toContain("hydrated = true");
+  });
+
+  it("exactly one session live region on the site, and the panel is not it", () => {
+    // 06-UI-SPEC Y-16 and D-17: THREE live regions on the whole site, with
+    // disjoint triggers - the session's (SessionAnnouncer.svelte, mounted once
+    // in the layout), Phase 5's tuning region (TuningRegion.svelte) and Phase
+    // 5.1's browse region, which is the browse page's and lives in
+    // BrowseToolbar.svelte. The chosen panel's connect-status is NOT a fourth:
+    // Phase 4 gave it aria-live="polite", and plan 06-12 removed it, because
+    // the session's announcer already speaks every transition and two regions
+    // announcing one transition is double-speak. It is the only aria-live this
+    // phase removes anywhere.
+    //
+    // THE COMMENT STRIP IS THE DIFFERENCE BETWEEN THREE AND FOUR, not tidiness.
+    // src/lib/ui/TuningRegion.svelte's header - the paragraph beginning "ONE
+    // LIVE REGION, AND IT CANNOT CHATTER" - contains a literal
+    // aria-live="polite" aria-atomic="true" in prose, describing the element
+    // below it. A raw scan counts that sentence and reports a fourth region,
+    // and the natural "fix" would be to edit a correct comment out of a shipped
+    // file. So the scan strips comments first, and the last assertion pins that
+    // the raw count of that file is higher than its stripped count, so nobody
+    // deletes the strip as redundant. (SessionAnnouncer.svelte's and
+    // BrowseToolbar.svelte's headers name the attribute in prose as well.)
+    //
+    // The needle is assembled from fragments so this file's own text never
+    // matches it, should the walk ever widen to specs.
+    const LIVE = ["aria", "live"].join("-");
+    const PANEL = `${UI_DIR}/TryOnDevice.svelte`;
+    const EXPECTED_CARRIERS = [
+      `${UI_DIR}/BrowseToolbar.svelte`,
+      `${UI_DIR}/SessionAnnouncer.svelte`,
+      `${UI_DIR}/TuningRegion.svelte`,
+    ];
+
+    const walk = (dir: string): string[] => {
+      const out: string[] = [];
+      for (const entry of readdirSync(repo(dir), { withFileTypes: true })) {
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) out.push(...walk(rel));
+        else if (entry.name.endsWith(".svelte")) out.push(rel);
+      }
+      return out;
+    };
+    const files = [...walk(UI_DIR), ...walk("src/routes")];
+
+    // Non-vacuity, both ways: the walk found the site's components AND the
+    // panel is among them, so its zero below is a scanned zero.
+    expect(
+      files.length,
+      "the walk over src/lib/ui and src/routes found the site's components",
+    ).toBeGreaterThan(20);
+    expect(files, "the chosen panel is inside the walk").toContain(PANEL);
+
+    const counts = new Map(
+      files.map((file) => [file, occurrences(code(file), LIVE)] as const),
+    );
+    const carriers = [...counts.entries()]
+      .filter(([, count]) => count > 0)
+      .map(([file]) => file)
+      .sort();
+    let total = 0;
+    for (const count of counts.values()) total += count;
+
+    expect(
+      carriers,
+      "the live regions are exactly the announcer's, the tuning region's and the browse toolbar's",
+    ).toEqual(EXPECTED_CARRIERS);
+    for (const file of EXPECTED_CARRIERS) {
+      expect(counts.get(file), `${file} carries exactly one`).toBe(1);
+    }
+    expect(
+      counts.get(PANEL),
+      "TryOnDevice.svelte carries an aria-live - the panel is announcing the session a second time",
+    ).toBe(0);
+    expect(total, "three live regions on the whole site, no more").toBe(3);
+
+    // The strip is load-bearing: TuningRegion's header names the attribute in
+    // prose, so the raw file counts higher than its code does.
+    const tuning = `${UI_DIR}/TuningRegion.svelte`;
+    expect(
+      occurrences(raw(tuning), LIVE),
+      "TuningRegion.svelte's header no longer names aria-live in prose - the comment strip in this test has nothing to strip and its reason should be re-examined",
+    ).toBeGreaterThan(occurrences(code(tuning), LIVE));
   });
 });

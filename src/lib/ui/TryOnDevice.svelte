@@ -36,6 +36,16 @@
   gate is what proves the recovery steps interpolate the calling surface's
   label instead of hard-coding the panel's.
 
+  THE CONNECT-STATE REGION, by session phase. Resting (idle, detected,
+  forgotten): the pre-click explanation, PickerExplainer, in its second mount
+  - the header note hides its own copy while this panel is open, so the line
+  is never on screen twice (06-UI-SPEC Y-11). In flight (choosing, opening,
+  identifying): the status line from session-copy, which the note likewise
+  yields. Connected: ZONA IDENTIFIED, the firmware sentence and DISCONNECT
+  ZONA, verbatim Phase 4. Every named state, the two capability states
+  included: the one FailureBlock, with this surface's label in its steps.
+  The region carries no aria-live - see the comment on the element.
+
   DEGR-02. On a browser that cannot talk to hardware the control is present
   and really `disabled`, with the reason rendered in the connect-state region
   beneath it - never aria-disabled alone, and never hidden, because a visitor
@@ -63,7 +73,9 @@
     identitySentence,
   } from "$lib/device/session-copy";
   import { tryOnBudgetReason } from "$lib/tune/copy";
+  import FailureBlock from "./FailureBlock.svelte";
   import PadSpinner from "./PadSpinner.svelte";
+  import PickerExplainer from "./PickerExplainer.svelte";
 
   let {
     entry,
@@ -141,6 +153,18 @@
   );
   /** The one block for this surface, with this surface's label (Y-13). */
   const block = $derived(session.failureFor(PRIMARY));
+  /**
+   * The three resting states in which the connect-state region carries the
+   * pre-click explanation (CONN-03): a picker is ahead of the visitor and
+   * nothing has been asked yet. `starting` is deliberately not one of them -
+   * a browser that turns out to be `unsupported` would otherwise show the
+   * explanation for a frame and replace it with the capability block.
+   */
+  const explaining = $derived(
+    session.phase === "idle" ||
+      session.phase === "detected" ||
+      session.phase === "forgotten",
+  );
   const identity = $derived(session.identity);
   const identifiedBody = $derived(
     identity
@@ -251,8 +275,22 @@
     </p>
   </div>
 
-  <div class="status" data-testid="connect-status" aria-live="polite">
-    {#if session.phase === "choosing"}
+  <!--
+    The connect-state region. It is NOT a live region: the session's one
+    announcer (SessionAnnouncer.svelte, mounted once in the layout) speaks
+    every transition, and a second aria-live here would say each of them
+    twice. Phase 4's aria-live="polite" on this element is the one this phase
+    removes (06-UI-SPEC Y-16); device-ui.spec.ts test 7 holds it absent.
+
+    The panel's PickerExplainer names its OWN testid because the header note
+    keeps the default one on a hidden sizing twin while this panel is open
+    (DeviceNote.svelte, panelOwnsProse) - so a test can tell which of the
+    two mounts is the visible one.
+  -->
+  <div class="status" data-testid="connect-status">
+    {#if explaining}
+      <PickerExplainer testid="try-on-explainer" />
+    {:else if session.phase === "choosing"}
       <p class="detail">{STATUS_CHOOSING}</p>
     {:else if session.phase === "opening"}
       <p class="detail">{STATUS_OPENING}</p>
@@ -270,15 +308,7 @@
         {DISCONNECT_LABEL}
       </button>
     {:else if block}
-      {#if block.title}
-        <p class="title">{block.title}</p>
-      {/if}
-      <p class="detail">{block.detail}</p>
-      {#if block.steps.length > 0}
-        <ol class="steps">
-          {#each block.steps as step (step)}<li>{step}</li>{/each}
-        </ol>
-      {/if}
+      <FailureBlock {block} />
     {/if}
   </div>
 </div>
@@ -405,20 +435,11 @@
   }
 
   /*
-    Micro (title): the same size and weight, sentence case and nearly no
-    tracking. Failure and state titles read as sentences, and a sentence in
-    wide-tracked uppercase is shouting rather than labelling.
+    Body role at full strength: this is what the visitor is here to read. The
+    failure title, detail and steps that used to sit beside this moved into
+    FailureBlock.svelte, declaration for declaration; what is left here is
+    the status line and the identified sentence.
   */
-  .title {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.01em;
-    color: var(--color-ink);
-  }
-
-  /* Body role at full strength: this is what the visitor is here to read. */
   .detail {
     margin: 8px 0 0;
     font-size: 16px;
@@ -427,19 +448,8 @@
     color: var(--color-ink);
   }
 
-  .caption + .detail,
-  .title + .detail {
+  .caption + .detail {
     margin-block-start: 8px;
-  }
-
-  .steps {
-    margin: 8px 0 0;
-    padding-inline-start: 24px;
-    list-style: decimal;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--color-ink-quiet);
   }
 
   /* A text button, deliberately quiet: it undoes, it does not act. */
