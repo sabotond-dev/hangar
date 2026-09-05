@@ -316,7 +316,19 @@ export class DeviceSession {
   #lastSeen = 0;
   /** The in-flight guard. Cleared on every exit path, in a finally. */
   #busy = false;
-  /** start() runs once per instance; a second call would attach listeners twice. */
+  /**
+   * start() runs once per instance; a second call is a no-op rather than a
+   * second listener pair. TWO CALL SITES: the session probe page starts the
+   * singleton from its own onMount (plan 06-06), and the root layout starts
+   * it for the whole site (plan 06-09) - so on the probe route both run, and
+   * whichever is second must attach nothing.
+   *
+   * An INSTANCE field, not a module-scope flag, on purpose: every node test
+   * constructs its own DeviceSession, and a module-scope flag would be shared
+   * across instances, so the second test in session.spec.ts would find
+   * start() already spent and would silently assert against a session that
+   * never attached a listener.
+   */
   #started = false;
 
   // --- start: synchronous, and it opens nothing -----------------------------
