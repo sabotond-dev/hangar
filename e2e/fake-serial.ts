@@ -81,6 +81,17 @@ export interface HangarSerial {
   forgotten(i: number): boolean;
   /** The number of chunks ever written to any fake port. */
   writes(): number;
+  /**
+   * How many times requestPort() has been called, a throw included. The
+   * number that makes "one click, no picker" falsifiable (plan 06-07).
+   */
+  requests(): number;
+  /**
+   * How many times open() was called on port `i`, a refused open included.
+   * The number that makes "the offer never opens the port" falsifiable, and
+   * after a replug it is what says WHICH object the click opened.
+   */
+  openCount(i: number): number;
 }
 
 declare global {
@@ -110,6 +121,7 @@ export const FAKE_SERIAL = (): void => {
     | { kind: "throw"; name: string; message: string };
 
   let writes = 0;
+  let requests = 0;
   let nextRequest: NextRequest | undefined;
 
   class FakePort extends EventTarget {
@@ -119,6 +131,8 @@ export const FAKE_SERIAL = (): void => {
     writable: WritableStream<Uint8Array> | null = null;
     openError: Failure | undefined;
     wasForgotten = false;
+    /** Every call, counted before any outcome is decided. */
+    opens = 0;
     private controller: ReadableStreamDefaultController<Uint8Array> | undefined;
 
     constructor(vid: number, pid: number) {
@@ -131,6 +145,7 @@ export const FAKE_SERIAL = (): void => {
     }
 
     async open(): Promise<void> {
+      this.opens += 1;
       if (this.openError) {
         throw new DOMException(this.openError.message, this.openError.name);
       }
@@ -206,6 +221,7 @@ export const FAKE_SERIAL = (): void => {
      * scripted throw has to leave this function the same way.
      */
     requestPort(): Promise<SerialPort> {
+      requests += 1;
       const next = nextRequest;
       nextRequest = undefined;
       if (next?.kind === "throw") {
@@ -286,5 +302,7 @@ export const FAKE_SERIAL = (): void => {
     feed: (i, bytes) => ports[i].feed(bytes),
     forgotten: (i) => ports[i]?.wasForgotten ?? false,
     writes: () => writes,
+    requests: () => requests,
+    openCount: (i) => ports[i]?.opens ?? 0,
   };
 };
