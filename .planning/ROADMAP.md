@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Tuning, Budgets and Shareable Links** - Knobs recompile live inside two visible 908-character budgets, and the tuned state travels in a URL (all 12 plans complete 2026-09-04, full suite green against the production build; verification and the first deploy of the tuned front door follow)
 - [x] **Phase 5.1: Catalog Browse** - The sophisticated catalog behind the front door: sort, search, tags and a browse-to-detail flow over the same data file (all 11 plans complete 2026-09-05, full suite green against the production build at 691 unit + 13 sweep + 61 e2e; verification and the deploy follow)
 - [x] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language (completed 2026-09-05; the six-row hardware checklist in docs/SESSION-RUNBOOK.md is presented to the user and unanswered, so success criteria 3, 4 and 5 are verified-by-user-pending)
-- [ ] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames
+- [x] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames (completed 2026-09-05; the full suite green against the production build at 776 unit + 13 sweep + 89 e2e; the seven-row hardware checklist in docs/INSTALL-RUNBOOK.md is presented to the user and unanswered, so the five *(hardware)* halves of its success criteria are verified-by-user-pending and no agent has written a byte to a real ZONA)
 - [x] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter (completed 2026-09-04; the hardware audition is presented to the user and unanswered)
 
 ## Phase Details
@@ -223,7 +223,7 @@ Plans:
 - [x] 07-10-PLAN.md — The panel writes: the never-writes literals retired, KEEP ON DEVICE quiet, the column row (wave 10) (completed 2026-09-05)
 - [x] 07-11-PLAN.md — The header lock, the snapshot line, and the degrade test extended (wave 11) (completed 2026-09-05)
 - [x] 07-12-PLAN.md — The install flow on the real page in two engines (wave 12) (completed 2026-09-05)
-- [ ] 07-13-PLAN.md — INSTALL-RUNBOOK, the phase gate, and the hardware checkpoint - the first real write (wave 13)
+- [x] 07-13-PLAN.md — INSTALL-RUNBOOK, the phase gate, and the hardware checkpoint - the first real write (wave 13; the checkpoint is presented and unanswered) (completed 2026-09-05)
 
 ### Phase 8: New Configurations
 **Goal**: The catalog stops being a port of BOTOR's shelf and becomes HANGAR's own — configurations authored for spectacle against a working simulator and a live budget meter.
@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 12/13 | In progress (the real page in two engines: one click writes and the panel says PLAYING NOW from the acknowledgements with WRITING… and aria-busy caught under a 200 ms-per-ACK hold, the header's two controls locked with the reason after Back un-chose the panel mid-leg and released on the landing; the confirmation replacing the control with focus on the group, two exits plus Escape, the commit's focus to region 3 and a rig named; PUT BACK storing after a keep with RESTORED's caption over PUTTING BACK… through its store leg; the live region speaking once per outcome including Still writing. at 2 s into a held store and Escape ignored mid-write; the tagged degrade test on both projects with every install control present, disabled and explained and PUT BACK absent; e2e 83 -> 89 first time, quick 73 / 775 + item 12's timeout on a loaded machine; items 20 and 21) | - |
+| 7. Install Flow | 13/13 | Complete (the gate green against the production build at f20d74f: quick 73 / 776 = BASE + 4 / + 52 with no timeout, sweep 3 13, e2e 89 = BASE_E2E 77 + 12 at --workers 3 first time, svelte-check 545 / 0; SAFE-01..09 and DEGR-02 closed with qualifiers; docs/INSTALL-RUNBOOK.md rows A-G presented to the user and unanswered - the five hardware halves are verified-by-user-pending and no agent has written a byte to a real ZONA) | 2026-09-05 |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage

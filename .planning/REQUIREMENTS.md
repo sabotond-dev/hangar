@@ -29,15 +29,15 @@ feature table in `.planning/research/FEATURES.md`.
 
 ### Non-destructive install [B]
 
-- [ ] **SAFE-01**: Nothing is written to the module without an explicit click, and the connect screen says so out loud [B1]
-- [ ] **SAFE-02**: `TRY ON DEVICE` writes to RAM only and is the primary action; `KEEP ON DEVICE` stores to flash and is a visibly secondary, separate action; the two never sit as equal-weight buttons [B2]
-- [ ] **SAFE-03**: At connect — before any write is possible — HANGAR snapshots the touch element's Setup and Timer configs, and `PUT BACK` restores them with one click at any time [B3]
-- [ ] **SAFE-04**: The snapshot persists in `localStorage` keyed by module identity, so `PUT BACK` survives a closed tab [B4]
-- [ ] **SAFE-05**: `KEEP ON DEVICE` requires a confirmation that names what is being replaced ("the Setup and Timer scripts on your ZONA's touch element") and states that it survives a power cycle [B5]
-- [ ] **SAFE-06**: On a rig with more than one Grid module, the flash confirmation names the other modules and states that their current pages are stored too (PAGESTORE is a global broadcast); the action remains allowed
-- [ ] **SAFE-07**: "Installed" means an ACKNOWLEDGE frame was received for each event write, never a resolved writer promise; a write that lands one event but not the other is detected, reported plainly, and recovered by retry or by reloading the page from flash — the user is never left with a silent half-written config
-- [ ] **SAFE-08**: The install states its own speed honestly ("about a second") and confirms a settled state rather than showing a progress bar for a 200 ms operation [B6]
-- [ ] **SAFE-09**: Retries on timeout are bounded, and a lost connection mid-write ends in a named failure state with `PUT BACK` still offered, never an infinite retry loop
+- [x] **SAFE-01**: Nothing is written to the module without an explicit click, and the connect screen says so out loud [B1]
+- [x] **SAFE-02**: `TRY ON DEVICE` writes to RAM only and is the primary action; `KEEP ON DEVICE` stores to flash and is a visibly secondary, separate action; the two never sit as equal-weight buttons [B2]
+- [x] **SAFE-03**: At connect — before any write is possible — HANGAR snapshots the touch element's Setup and Timer configs, and `PUT BACK` restores them with one click at any time [B3]
+- [x] **SAFE-04**: The snapshot persists in `localStorage` keyed by module identity, so `PUT BACK` survives a closed tab [B4]
+- [x] **SAFE-05**: `KEEP ON DEVICE` requires a confirmation that names what is being replaced ("the Setup and Timer scripts on your ZONA's touch element") and states that it survives a power cycle [B5]
+- [x] **SAFE-06**: On a rig with more than one Grid module, the flash confirmation names the other modules and states that their current pages are stored too (PAGESTORE is a global broadcast); the action remains allowed
+- [x] **SAFE-07**: "Installed" means an ACKNOWLEDGE frame was received for each event write, never a resolved writer promise; a write that lands one event but not the other is detected, reported plainly, and recovered by retry or by reloading the page from flash — the user is never left with a silent half-written config
+- [x] **SAFE-08**: The install states its own speed honestly ("about a second") and confirms a settled state rather than showing a progress bar for a 200 ms operation [B6]
+- [x] **SAFE-09**: Retries on timeout are bounded, and a lost connection mid-write ends in a named failure state with `PUT BACK` still offered, never an infinite retry loop
 
 ### Preview [C]
 
@@ -81,7 +81,7 @@ feature table in `.planning/research/FEATURES.md`.
 ### Honest degrade [G]
 
 - [x] **DEGR-01**: The full catalog, simulator, tuning and sharing work on every browser including iOS Safari — only install is absent [G1]
-- [ ] **DEGR-02**: Install controls are present but disabled with the reason inline on unsupported browsers, never hidden [G2]
+- [x] **DEGR-02**: Install controls are present but disabled with the reason inline on unsupported browsers, never hidden [G2]
 
 ### Identity
 
@@ -166,15 +166,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONN-06 | Phase 6 | Complete against a scripted serial: `getPorts()` on load offers `ZONA detected` with the port unopened, one click connects with zero `requestPort()` calls (never automatic, D-06), `disconnect` flips the header in the same turn, and the replug that mints a NEW port object is adopted by USB identity; the connection survives a four-hop client-router walk and a reload lands the offer. The grant surviving a browser restart (and for the deployed origin) and the replug on real hardware are runbook rows A and B, awaiting the user |
 | CONN-07 | Phase 6 | Complete with the correction the research found: the filter is `0x303a/0x8123`, but every ESP32-S3 Grid module shares that identity, so the filter does NOT narrow the picker to a ZONA and the heartbeat verify is the whole of it - `not-zona` ships as a routine first-class state naming the module that answered. Proven against synthetic heartbeats; the rig half (a real second module named in the header, a real non-ZONA refused) is runbook row D, awaiting the user |
 | CONN-08 | Phase 6 | Complete (type, firmware and active page in the header while connected - `ZONA · fw 1.5.5 · page 3` from the Phase 2 capture - LIVE rather than frozen at connect time, with the rig tail filling in as other modules announce themselves; `connected` is reached only after the heartbeat names a ZONA) |
-| SAFE-01 | Phase 7 | Pending |
-| SAFE-02 | Phase 7 | Pending |
-| SAFE-03 | Phase 7 | Pending |
-| SAFE-04 | Phase 7 | Pending |
-| SAFE-05 | Phase 7 | Pending |
-| SAFE-06 | Phase 7 | Pending |
-| SAFE-07 | Phase 7 | Pending |
-| SAFE-08 | Phase 7 | Pending |
-| SAFE-09 | Phase 7 | Pending |
+| SAFE-01 | Phase 7 | Complete as a number: zero config writes across connect, the snapshot and every knob move, counted BY CLASS in node (install.spec.ts test 4) and in a browser (install.e2e.ts test 1, and session.e2e.ts's seven cable tests); every write attributable to one of three clicks (TRY ON DEVICE, PUT BACK, KEEP ON DEVICE); the session's own source scan still clean (session.spec.ts test 15, eight needles, the write view built with write.bind and never called). Both never-writes surfaces say so in the present tense: the header note's SAFE_PROMISE amended in 07-04 (its "cannot write at all" clause retired, session-copy.spec.ts test 5 rewritten) and the panel's two Phase 4 literals retired in 07-10 |
+| SAFE-02 | Phase 7 | Complete: the primary is the one full-width accent fill; KEEP ON DEVICE is the Quiet tier (borderless, unfilled, 124.9x44 against 370x44) a hairline, the tuning region and PUT BACK away, live only after a settled try-on (Z-05); the confirmation's affirmative is bordered, never filled (07-09, 07-10, 07-12 tests 7 to 9). RAM-only on real hardware - a power cycle bringing the original back - is docs/INSTALL-RUNBOOK.md row D, awaiting the user |
+| SAFE-03 | Phase 7 | Complete against the fake: the snapshot is taken at connect in the gated order (fetch-serial, fetch-setup, fetch-timer, canWriteBack, memory, then storage) before any write control enables, and PUT BACK is one click from every state with a session, restoring the snapshot's strings verbatim through the one writer (07-06, install.spec.ts tests 1 to 3 and 5; install.e2e.ts tests 1 and 2; 07-12 test 9). Row C - the pad back to what it was doing, by eye - is awaiting the user |
+| SAFE-04 | Phase 7 | Complete against the fake WITH THE KEY WIRE-UNPROVEN: the record lives under hangar.snapshot.v1 keyed by the module's factory serial then page, never overwritten or deleted, surviving a throwing store and a FORGET THIS ZONA (07-03, 07-06, 07-11); the key is read with SERIALNUMBER/FETCH, which is source-verified and has never been observed - no hardware capture holds the frame and the desktop editor never sends one - and a timeout degrades to a session-only copy with its own honest sentence (07-04, 07-11). Rows A and F are awaiting the user; if row A reads the session-only form, SAFE-04 closes as partially verified rather than as a lie |
+| SAFE-05 | Phase 7 | Complete: the confirmation names the touch element and the power cycle before the store is sent ("This replaces the Setup and Timer scripts on your ZONA’s touch element, and it survives a power cycle."), is a role=group and not a dialog, takes focus on the container so the naming sentence is read first, and has exactly two exits plus Escape with PAGESTORE/EXECUTE 0 until the commit (07-09, 07-10, 07-12 test 8). Row E - the store surviving a real power cycle - is awaiting the user |
+| SAFE-06 | Phase 7 | Complete against a synthetic rig: three acknowledgements resolve one store, the fourth sentence names the modules in sx order ("Your EN16 and BU16 are on the same cable. Their current pages are stored too, because the store reaches every module at once."), and the action stays allowed - Phase 2's refuse-on-rig undone by name in 07-02 with sequence.spec.ts test 3 rewritten rather than deleted (07-12 test 8's rig page). Row G is optional and awaiting the user; every frame Phase 2 ever recorded carried SX 0, SY 0 |
+| SAFE-07 | Phase 7 | Complete: settled from the acknowledgements only, never from a resolved write; a dropped second acknowledgement is `partial`, named by half ("Timer reached your ZONA and Setup did not."), with retry and PUT BACK offered; a refusal on the first leg is `nothing-landed`; the bytes written are the meters' bytes (wire-pin.spec.ts). Proven against scripted faults in node (install.spec.ts) and in a browser (install.e2e.ts test 4), which is what the criterion asks for; no hardware half |
+| SAFE-08 | Phase 7 | Complete: "about a second" appears once, before the click, and nowhere else on the site (Z-08); no bar, no spinner, no minimum duration; the busy label swaps with a 0s transition and PLAYING NOW is said from the acknowledgements (+39 to +47 ms to WRITING… under a hold); the 2000 ms "Still writing." line is the one escape hatch, spoken once (07-10, 07-12 tests 7 and 10). The wall time on hardware is row B, awaiting the user |
+| SAFE-09 | Phase 7 | Complete: three attempts and no more (RETRY_ATTEMPTS, retryBackoffMs 120/240/360); a refusal and an abort are never retried; a lost link mid-write is a named state ("The ZONA was unplugged mid-write") with PUT BACK waiting for the module; the pacing escalation fires once and moves no attempt count; no infinite loop is possible by construction (install.spec.ts; install.e2e.ts tests 4 to 6; 07-12 test 10). No hardware half |
 | PREV-01 | Phase 4 | Complete (five presets animate; three quiet presets show their real static picture, declared and gated against the golden frames; tpad rests black and is out of the front-door row) |
 | PREV-02 | Phase 4 (Lua-sourced entries: Phase 8) | Complete |
 | PREV-03 | Phase 4 | Pending |
@@ -200,7 +200,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHARE-03 | Phase 5 | Complete |
 | SHARE-04 | Phase 5 | Complete with two qualifiers: routed entries only - 8 of the 16 catalog entries, because the excluded eight are not in FRONT_DOOR, have no prerendered /c/<id>/ page and therefore no <head> to carry an og:image; and a real Discord unfurl is unverifiable until the Basic Auth embargo lifts, because worker/index.js gates the whole site fail-closed and no crawler ever reaches the head the tests check |
 | DEGR-01 | Phase 5 | Complete (iOS is approximated by WebKit at a phone viewport: e2e/tuning-webkit.e2e.ts's five tagged tests run in both projects and cover the front door, choosing without sideways scroll, a knob turn with both meters settling, COPY LINK's confirm state and a shared link landing with install present but disabled) |
-| DEGR-02 | Phase 7 (browser-capability half delivered in Phase 4) | Pending |
+| DEGR-02 | Phase 7 (browser-capability half delivered in Phase 4) | Complete on WebKit at a phone viewport and on the desktop project: TRY ON DEVICE and KEEP ON DEVICE present, really `disabled`, with the reason adjacent ("This browser cannot write to a ZONA. Everything else on this page works." in the honesty slot and the KEEP cell); PUT BACK absent by decision (Z-12: offering to restore nothing is worse than no control); the body names Chrome, Edge and desktop Firefox 151 and no engine (07-11's extension of the shipped degrade test with its original assertions byte-identical; 07-12 test 11 tagged and run on both projects) |
 | IDENT-01 | Phase 4 | Pending |
 | IDENT-02 | Phase 4 | Pending |
 
@@ -214,4 +214,4 @@ Phase 3 (3), Phase 4 (13), Phase 5 (12), Phase 6 (8), Phase 7 (10), Phase 8 (1).
 
 ---
 *Requirements defined: 2026-09-02*
-*Last updated: 2026-09-05 after Phase 6's gate (CONN-01..08 closed with their qualifiers; the hardware halves of CONN-04, CONN-06 and CONN-07 are docs/SESSION-RUNBOOK.md rows A to E, presented to the user and unanswered; SAFE-01 and DEGR-02 remain Phase 7's)*
+*Last updated: 2026-09-05 after Phase 7's gate (SAFE-01..09 and DEGR-02 closed with their qualifiers; the hardware halves of SAFE-02, SAFE-03, SAFE-04, SAFE-05 and SAFE-06 are docs/INSTALL-RUNBOOK.md rows D, C, A and F, E, and G, presented to the user and unanswered - no agent has written a byte to a real ZONA in Phase 7; Phase 6's rows A to F remain unanswered too)*
