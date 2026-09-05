@@ -134,7 +134,15 @@ export async function identifyOnly(
       // that is a different sentence from silence.
       const seen = [...state.seen.values()];
       if (seen.length === 0) return { kind: "silent" };
-      return { kind: "not-zona", moduleType: seen[0].moduleType };
+      // The module on the USB cable reports heartbeat type 1
+      // (grid_decode.c:695-700), which is the same rule identify() uses above
+      // to find the ZONA. Arrival order on a chained rig is whatever the bus
+      // produced, so the first entry in the map names an arbitrary module and
+      // the refusal would tell a visitor about something they did not plug in.
+      // The fallback keeps the sentence honest when nothing reports type 1 at
+      // all: a module IS on the cable, so name one rather than none.
+      const onCable = seen.find((m) => m.heartbeatType === 1) ?? seen[0];
+      return { kind: "not-zona", moduleType: onCable.moduleType };
     }
 
     await sleep(pollMs);

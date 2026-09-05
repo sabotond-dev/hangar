@@ -25,6 +25,14 @@ const ACTIVE_PAGE = 2;
  * the cable instead of a ZONA.
  */
 const EN16_HWCFG = 195;
+/**
+ * Two more from the same table, for the rig. `BU16_HWCFG` is a second chained
+ * module and `PO16_HWCFG` is the one on the cable - a THIRD type on purpose,
+ * so "it named the module reporting type 1" and "it named whichever module
+ * happened to arrive first" cannot both be satisfied by the same string.
+ */
+const BU16_HWCFG = 131;
+const PO16_HWCFG = 3;
 
 const toHex = (bytes: number[]) =>
   bytes.map((n) => n.toString(16).padStart(2, "0")).join("");
@@ -56,6 +64,20 @@ const zonaHeartbeat = (hwcfg = ZONA_HWCFG) =>
     sx: 0,
     sy: 0,
     type: 1,
+    hwcfg,
+    activePage: ACTIVE_PAGE,
+    firmware: FIRMWARE,
+  });
+
+/**
+ * A module further down a chained rig: its own address, and heartbeat type 0,
+ * which is what makes it NOT the module on the USB cable.
+ */
+const chainedHeartbeat = (sx: number, hwcfg: number) =>
+  heartbeatFrame({
+    sx,
+    sy: 0,
+    type: 0,
     hwcfg,
     activePage: ACTIVE_PAGE,
     firmware: FIRMWARE,
@@ -191,6 +213,35 @@ describe("TRY ON DEVICE: connect and identify, never write (D-13, D-22)", () => 
     expect(outcome.moduleType, "the module type the heartbeat reported").toBe(
       "EN16",
     );
+  });
+
+  it("a rig refuses by naming the module on the cable, not the first one that spoke", async () => {
+    // Arrival order puts two chained, type-0 modules first, so `seen[0]` is
+    // the EN16 - a module the visitor did not plug into anything. The one on
+    // the USB cable is the one reporting heartbeat type 1
+    // (grid_decode.c:695-700), and it is a THIRD module type here so the two
+    // possible answers cannot be satisfied by the same string.
+    const transport = rxOnly([
+      chainedHeartbeat(1, EN16_HWCFG),
+      chainedHeartbeat(2, BU16_HWCFG),
+      zonaHeartbeat(PO16_HWCFG),
+    ]);
+    const outcome = await identifyOnly(transport, {
+      now: clockPastTheWindow(),
+      sleep: noSleep,
+    });
+
+    expect(outcome.kind, "three modules answered, so this is not silence").toBe(
+      "not-zona",
+    );
+    if (outcome.kind !== "not-zona") return;
+    expect(outcome.moduleType, "the module reporting heartbeat type 1").toBe(
+      "PO16",
+    );
+    expect(
+      outcome.moduleType,
+      "the refusal named the first module by arrival order",
+    ).not.toBe("EN16");
   });
 
   it("a port that answers nothing at all is a different outcome from the wrong module", async () => {
