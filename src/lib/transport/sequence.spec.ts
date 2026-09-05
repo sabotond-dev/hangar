@@ -14,17 +14,23 @@ import {
   configNackFrame,
   configReportFrame,
   heartbeatFrame,
+  rigResponder,
   zonaResponder,
+  type ZonaState,
 } from "./fixtures/synthetic";
-import { RequestQueue } from "./queue";
+import { NackError, RequestQueue } from "./queue";
 import {
   absorbFrame,
   fetchBoth,
+  fetchModuleKey,
   identify,
   newIdentifyState,
   runBurstProbe,
   runNoOpCycle,
+  storeToFlash,
+  targetOf,
   writeBack,
+  writeBoth,
   type Identity,
   type IdentifyState,
 } from "./sequence";
@@ -84,11 +90,12 @@ function identified(): Identity {
   return id;
 }
 
-const zonaState = () => ({
+const zonaState = (over: Partial<ZonaState> = {}): ZonaState => ({
   sx: 0,
   sy: 0,
   activePage: ACTIVE_PAGE,
   configs: { [EVENT_SETUP]: SETUP_CONFIG, [EVENT_TIMER]: TIMER_CONFIG },
+  ...over,
 });
 
 interface Rig {
@@ -100,6 +107,7 @@ interface Rig {
 
 function rig(
   responder?: (outbound: DecodedClass, requestId: number) => number[][],
+  id: Identity = identified(),
 ): Rig {
   const transport = new FakeTransport({
     responder: responder ?? zonaResponder(zonaState()),
@@ -110,8 +118,13 @@ function rig(
     onStep: (s) => steps.push(s),
   });
   pump(transport, queue);
-  return { transport, queue, steps, id: identified() };
+  return { transport, queue, steps, id };
 }
+
+const configWrites = (transport: FakeTransport): DecodedClass[] =>
+  flat(transport).filter(
+    (c) => c.class_name === "CONFIG" && c.class_instr === "EXECUTE",
+  );
 
 /** Every outbound frame, decoded back into the classes it carried. */
 function written(transport: FakeTransport): DecodedClass[][] {
@@ -151,7 +164,7 @@ describe("the no-op cycle", () => {
     expect(transport.writes, "nothing was asked for it").toHaveLength(0);
   });
 
-  it("a second module is named and the store is disabled", () => {
+  it("a second module is named, and the store is a broadcast that stays allowed", async () => {
     const state = newIdentifyState(0);
     absorb(state, zonaHeartbeat());
     // A chained module: type 0, its own SX, and one class in its frame.
@@ -160,9 +173,31 @@ describe("the no-op cycle", () => {
     const id = identify(state);
     expect(id?.otherModules).toHaveLength(1);
     expect(id?.otherModules[0].sx).toBe(1);
-    // D-12: a page store is a global broadcast, so a second module makes it
-    // unsafe - and the page names the module rather than only greying a button.
+    // Informational since Phase 7 (07-CONTEXT D-18): SAFE-06 supersedes Phase
+    // 2's D-12. The field still reports the rig - the identity line and the
+    // flash confirmation read it - but nothing refuses on it any more.
     expect(id?.storeAllowed).toBe(false);
+    if (!id) throw new Error("the scripted heartbeats did not identify a ZONA");
+
+    // SAFE-06: the store on a rig is ALLOWED. It is a global broadcast, every
+    // module on the bus stores its own active page and answers with its own
+    // acknowledgement echoing the same LASTHEADER, and the queue settles on
+    // the first (07-RESEARCH Pitfall 8). Three modules answer; one request
+    // resolves; that is the behaviour the confirmation sentence describes.
+    const { transport, queue, steps } = rig(
+      rigResponder([zonaState(), zonaState({ sx: 1 }), zonaState({ sx: 2 })]),
+      id,
+    );
+    await expect(storeToFlash(queue, id)).resolves.toBeUndefined();
+    expect(
+      flat(transport).filter(
+        (c) => c.class_name === "PAGESTORE" && c.class_instr === "EXECUTE",
+      ),
+      "one store on the wire",
+    ).toHaveLength(1);
+    expect(steps.map((s) => [s.id, s.outcome, s.attempts])).toEqual([
+      ["store", "ok", 1],
+    ]);
   });
 
   it("the fetch returns both events with their strings and their own latencies", async () => {
@@ -281,5 +316,92 @@ describe("the no-op cycle", () => {
       }),
     );
     expect(identify(state)?.activePage).toBe(ACTIVE_PAGE);
+  });
+
+  it("writeBoth sends two strings Timer first, verbatim, and writeBack is its adapter", async () => {
+    const { transport, queue, id } = rig();
+    const strings = { setup: "--[[@cb]]print(9)", timer: "--[[@cb]]print(8)" };
+
+    await writeBoth(queue, targetOf(id), strings);
+
+    const writes = configWrites(transport);
+    expect(writes).toHaveLength(2);
+    // Timer (6) first, then Setup (0): _pad.ts:3908-3913's reason, and the
+    // order Phase 2 proved six times on hardware.
+    expect(Number(writes[0].class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
+    expect(Number(writes[1].class_parameters.EVENTTYPE)).toBe(EVENT_SETUP);
+    // Verbatim, character for character, with the length firmware checks
+    // against the ETX computed from the same string.
+    expect(String(writes[0].class_parameters.ACTIONSTRING)).toBe(strings.timer);
+    expect(Number(writes[0].class_parameters.ACTIONLENGTH)).toBe(
+      strings.timer.length,
+    );
+    expect(String(writes[1].class_parameters.ACTIONSTRING)).toBe(strings.setup);
+    expect(Number(writes[1].class_parameters.ACTIONLENGTH)).toBe(
+      strings.setup.length,
+    );
+    for (const w of writes) {
+      expect(Number(w.class_parameters.PAGENUMBER), "the reported page").toBe(
+        ACTIVE_PAGE,
+      );
+    }
+
+    // The adapter changes nothing Phase 2 proved: what was fetched is what
+    // goes back, in the same order.
+    const back = rig();
+    const fetched = await fetchBoth(back.queue, back.id);
+    await writeBack(back.queue, back.id, fetched);
+    const returned = configWrites(back.transport);
+    expect(returned.map((c) => Number(c.class_parameters.EVENTTYPE))).toEqual([
+      EVENT_TIMER,
+      EVENT_SETUP,
+    ]);
+    expect(
+      returned.map((c) => String(c.class_parameters.ACTIONSTRING)),
+    ).toEqual([TIMER_CONFIG, SETUP_CONFIG]);
+  });
+
+  it("a write to a page the module is not on is refused, and the refusal is not retried", async () => {
+    const { transport, queue, steps, id } = rig();
+    const strings = { setup: "--[[@cb]]print(9)", timer: "--[[@cb]]print(8)" };
+
+    // grid_decode.c:1272, `currentpage`: a NACK, once, and no second write.
+    const elsewhere = { ...targetOf(id), page: ACTIVE_PAGE + 1 };
+    await expect(writeBoth(queue, elsewhere, strings)).rejects.toBeInstanceOf(
+      NackError,
+    );
+    expect(steps.map((s) => [s.id, s.outcome, s.attempts])).toEqual([
+      ["write-timer", "nack", 1],
+    ]);
+    expect(
+      configWrites(transport),
+      "the Setup was never attempted",
+    ).toHaveLength(1);
+
+    // The module's key: 32 hex characters when the module has a serial...
+    const keyed = rig(
+      zonaResponder(zonaState({ serial: [0x12345678, 0x9abcdef0, 0, 0] })),
+    );
+    await expect(fetchModuleKey(keyed.queue, keyed.id)).resolves.toMatch(
+      /^[0-9a-f]{32}$/,
+    );
+    expect(keyed.steps.map((s) => s.id)).toEqual(["fetch-serial"]);
+
+    // ...and a fetch timeout when it does not answer at all. fetchModuleKey
+    // builds its own request, so the deadline is TIMEOUTS.fetchMs of real
+    // time; one attempt keeps that to one deadline rather than three with
+    // backoff. The caller degrades to a session-only snapshot from this.
+    const silent = new FakeTransport({ responder: zonaResponder(zonaState()) });
+    const silentSteps: CaptureStep[] = [];
+    const silentQueue = new RequestQueue(silent, {
+      preSendDelayMs: 0,
+      attempts: 1,
+      onStep: (s) => silentSteps.push(s),
+    });
+    pump(silent, silentQueue);
+    await expect(fetchModuleKey(silentQueue, id)).rejects.toThrow(/Timed out/);
+    expect(silentSteps.map((s) => [s.id, s.outcome, s.attempts])).toEqual([
+      ["fetch-serial", "timeout", 1],
+    ]);
   });
 });
