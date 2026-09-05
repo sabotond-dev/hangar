@@ -1,18 +1,60 @@
-// SAFE-01, SAFE-03, SAFE-07 and SAFE-09: the install store in the browser that
-// produces its states, against a ZONA that does not exist.
+// SAFE-01, SAFE-02, SAFE-03, SAFE-05, SAFE-07, SAFE-08, SAFE-09 and DEGR-02:
+// the install store in the browser that produces its states, against a ZONA
+// that does not exist - first through a probe that hides nothing, then on the
+// page a visitor actually opens.
 //
-// Six tests, all against the install probe route, which renders the store's
-// fields as plain text plus one thing no component ever will: a TRACE of every
-// phase the store has been in since load, in order. A round trip through the
-// scripted module takes tens of milliseconds, so `snapshotting` and `writing`
-// never stay on screen long enough for a locator to catch them; the trace is
-// how a browser test asserts a transient, and it is why every one of
-// 07-UI-SPEC's fourteen states is visited here before a panel exists to hide a
-// transition in. Between them the six tests own: idle, snapshotting, ready,
-// writing, settled, restored, kept, partial, lost, snapshot-failed,
-// kept-mismatch, unconfirmed, restored-unconfirmed and nothing-landed. Tests
-// are isolated, so no file-level union is asserted; each test asserts the
-// states it owns and 07-08-SUMMARY.md tabulates the fourteen against the six.
+// Eleven tests in three blocks. THE FIRST SIX run against the install probe
+// route, which renders the store's fields as plain text plus one thing no
+// component ever will: a TRACE of every phase the store has been in since
+// load, in order. A round trip through the scripted module takes tens of
+// milliseconds, so `snapshotting` and `writing` never stay on screen long
+// enough for a locator to catch them; the trace is how a browser test asserts
+// a transient, and it is why every one of 07-UI-SPEC's fourteen states is
+// visited there before a panel exists to hide a transition in. Between them
+// the six tests own: idle, snapshotting, ready, writing, settled, restored,
+// kept, partial, lost, snapshot-failed, kept-mismatch, unconfirmed,
+// restored-unconfirmed and nothing-landed. Tests are isolated, so no
+// file-level union is asserted; each test asserts the states it owns and
+// 07-08-SUMMARY.md tabulates the fourteen against the six.
+//
+// THE NEXT FOUR (plan 07-12) run on /c/aurora/ against the production build,
+// with the same shim and the same Node responder, and prove the things a
+// visitor meets that the probe cannot show: the panel's busy label and its
+// aria-busy, the header lock engaging and releasing, the confirmation
+// replacing the control that opened it and moving focus deliberately, the
+// put-back that stores after a keep, the one live region speaking once per
+// outcome, and Escape doing nothing mid-write. A RAM leg lands in about 40 ms
+// and the lock would be unobservable, so the tests that need to SEE `writing`
+// hold the acknowledgement in Node - and the hold has to respect the queue's
+// arithmetic. The request id is minted per attempt, the waiter is armed
+// before the write, and delayAckMs stalls the page's write() itself (the
+// shim's sink awaits Node), so a CONFIG acknowledgement held past executeMs
+// 250 is stale on arrival and three attempts end nothing-landed. A RAM leg is
+// therefore held 200 ms PER acknowledgement - two events, a window of about
+// 400 ms that Playwright's polling catches, both landing on attempt 1 - and
+// anything that needs a window past 2000 ms, the slow line, is observed on a
+// STORE leg, whose single attempt runs to pagestoreMs 3000.
+//
+// THE HEADER LOCK IS MET ONLY AFTER AN UN-CHOOSE DURING A LEG (deferred item
+// 19). panelOwnsProse is page.state.chosen and the drawer never renders while
+// the panel that holds every writing control is open, so test 7 reaches the
+// open disclosure the way a visitor could: the browser's Back inside the RAM
+// leg, which un-chooses where Escape refuses (Z-10 names Escape only). The
+// panel is re-chosen after the leg and reads its settled block.
+//
+// THE ELEVENTH is the degrade path, tagged for the phone project: no shim,
+// `Navigator.prototype.serial` deleted, and every install control present,
+// disabled and explained - PUT BACK absent, by decision (Z-12).
+//
+// THE PUT-BACK AFTER A KEEP NEEDS A BOUNDED BEAT LOOP, NOT ONE TIMED BEAT.
+// After a keep, PUT BACK runs a store leg too (Z-04), and the store's D-12
+// proof waits for the ZONA's next heartbeat AFTER the acknowledgement lands -
+// `#nextHeartbeat()` is armed only then. The landing is invisible from the
+// page (the label and the block do not change on it), heartbeats in this
+// harness come only from beat(), and sleeps are forbidden, so a single beat
+// pushed at a guessed moment is lost to the fold. beatUntilShows() pushes one,
+// polls the panel for about one heartbeat period, and pushes again, capped at
+// twelve - the module's own 4 Hz cadence, about three seconds in all.
 //
 // THE ZONA IS THE NODE SUITE'S ZONA. e2e/fake-zona.ts exposes the real
 // zonaResponder into the page through page.exposeFunction; the page-side shim
@@ -45,16 +87,20 @@
 // the durable record one page writes is never the reason the next one reads
 // `ready`.
 //
-// ALL SIX TITLES ARE UNTAGGED: every one drives Web Serial, which the phone
-// engine does not have, and its degrade path is session.e2e.ts's tagged
-// pair. This file adds SIX to the suite total, on the desktop project alone.
+// TEN OF THE ELEVEN TITLES ARE UNTAGGED: every one of them drives Web Serial,
+// which the phone engine does not have. The eleventh carries the tag
+// playwright.config.ts greps the webkit-phone project by, so it runs on both
+// projects: eleven titles, twelve runs. 07-08 added six to the suite total on
+// the desktop project alone; 07-12 adds four there and one on both, six more.
 //
-// TEST 6 IS SLOW BY DESIGN. Two legs of three pagestoreMs (3000 ms) attempts
-// with retryBackoffMs between them are roughly 19 s against Playwright's
-// default 30 s per-test budget (playwright.config.ts sets no `timeout`; its
-// 180 s is the web server's), so it declares test.slow() on its first line
-// and prints its wall time. The timeouts under test are the shipped
-// constants and are not shortened.
+// TESTS 6 AND 10 ARE SLOW BY DESIGN. Test 6's two legs of three pagestoreMs
+// (3000 ms) attempts with retryBackoffMs between them are roughly 19 s; test
+// 10 holds one store acknowledgement 2.5 s, paces two keep-and-restore proofs
+// through heartbeats, polls the live region for a second and ends in an
+// unplug. Both are against Playwright's default 30 s per-test budget
+// (playwright.config.ts sets no `timeout`; its 180 s is the web server's),
+// so each declares test.slow() on its first line and prints its wall time.
+// The timeouts under test are the shipped constants and are not shortened.
 //
 // NEVER WRITES TO A DEVICE. Every byte a page writes lands in the shim; the
 // only ZONA here is a function in Node.
@@ -62,17 +108,48 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 import {
+  CONFIRM_CAPTION,
+  CONFIRM_REPLACES,
+  CONFIRM_WAY_BACK,
+  HONESTY_READY,
+  IDENTIFIED_CAPTION,
+  KEEP_LINE_ENABLED,
+  KEEP_REASONS,
+  KEPT_CAPTION,
+  KEPT_PROOF_LINE,
   LIVE_RESTORED,
   LIVE_SNAPSHOT_SAVED,
+  PUTTING_BACK_LABEL,
+  PUT_BACK_LABEL,
+  PUT_BACK_LINE,
+  PUT_BACK_LINE_AFTER_KEEP,
+  RESTORED_BODY,
+  RESTORED_CAPTION,
+  RESTORED_STORED_LINE,
+  SETTLED_CAPTION,
+  WRITING_LABEL,
   announceTitle,
+  confirmRig,
+  keptBody,
   liveKept,
   liveSettled,
   lostBlock,
+  settledBody,
   unconfirmedBlock,
   TRY_ON_LABEL,
 } from "../src/lib/device/install-copy";
-import { EVENT_SETUP, EVENT_TIMER, decodeFrame } from "../src/lib/protocol";
-import type { ZonaState } from "../src/lib/transport/fixtures/synthetic";
+import { WRITE_LOCK_REASON } from "../src/lib/device/session-copy";
+import {
+  EVENT_SETUP,
+  EVENT_TIMER,
+  TERMINATOR,
+  decodeFrame,
+} from "../src/lib/protocol";
+import {
+  type ZonaState,
+  heartbeatFrame,
+} from "../src/lib/transport/fixtures/synthetic";
+import { MEASURING } from "../src/lib/tune/copy";
 import { FAKE_SERIAL } from "./fake-serial";
 import { type ExposedZona, type ZonaScript, installZona } from "./fake-zona";
 
@@ -717,5 +794,681 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     );
     expect(consoleErrors).toEqual([]);
     expect(secondErrors).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The real page (plan 07-12). Everything below opens /c/aurora/ and drives the
+// shipped panel, header and live region through the same shim and the same
+// Node responder as the probe walks above.
+
+const ENTRY = "aurora";
+/** The catalog's name for the entry, interpolated raw by install-copy (never re-cased). */
+const ENTRY_NAME = "Aurora";
+
+/** The two chained modules the rig test puts on the cable, by the HWCFG their heartbeats report. */
+const EN16_HWCFG = 195;
+const BU16_HWCFG = 131;
+/** The firmware every heartbeat here reports - the same RevH fake-zona.ts reports for the ZONA. */
+const RIG_FIRMWARE = { major: 1, minor: 5, patch: 5 };
+
+const hexOf = (frame: number[]): string =>
+  Buffer.from([...frame, TERMINATOR]).toString("hex");
+
+/** A chained module's heartbeat: TYPE 0, no page report, from its own address (install.spec.ts). */
+const otherHeartbeatHex = (sx: number, hwcfg: number): string =>
+  hexOf(
+    heartbeatFrame({
+      sx,
+      sy: 0,
+      type: 0,
+      hwcfg,
+      activePage: ACTIVE_PAGE,
+      firmware: RIG_FIRMWARE,
+    }),
+  );
+
+/** A chained module as the rig responder needs it: an address, the page, nothing in RAM. */
+const rigModule = (sx: number): ZonaState => ({
+  sx,
+  sy: 0,
+  activePage: ACTIVE_PAGE,
+  configs: {},
+});
+
+const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
+
+/**
+ * Wait until the pad has a picture at all: the simulator arrives through a
+ * dynamic import after the prerendered frames have painted, and a panel
+ * opened before that races the band's own readiness. (e2e/tuning.e2e.ts)
+ */
+async function waitForPicture(page: Page, id: string): Promise<void> {
+  await page.waitForFunction(
+    (sel) => {
+      const c = document.querySelector(sel) as HTMLCanvasElement | null;
+      if (!c) return false;
+      const ctx = c.getContext("2d");
+      if (!ctx) return false;
+      return ctx.getImageData(0, 0, 9, 9).data.some((b) => b !== 0);
+    },
+    canvasOf(id),
+    { timeout: 30_000 },
+  );
+}
+
+/** Both meters settled on a number: the tuner's pair is published and the primary can write. (e2e/tuning.e2e.ts) */
+async function metersSettled(page: Page): Promise<void> {
+  for (const event of ["setup", "timer"] as const) {
+    await expect(
+      page.getByTestId(`meter-${event}`),
+      `the ${event} meter settled on a number`,
+    ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+    await expect(
+      page.getByTestId(`meter-${event}`).locator(".numerals"),
+      `the ${event} meter left ${MEASURING}`,
+    ).not.toHaveText(MEASURING);
+  }
+}
+
+/** A knob change MEASURED, not merely applied: the stale phase first, then the settle. (e2e/tuning.e2e.ts) */
+async function recomputed(page: Page): Promise<void> {
+  await expect(
+    page.getByTestId("meter-setup"),
+    "the change went through the debounced recompile",
+  ).toHaveAttribute("aria-busy", "true", { timeout: 5_000 });
+  await metersSettled(page);
+}
+
+const rails = (page: Page) =>
+  page.locator("[data-testid='knob-rack'] input[type='range']");
+
+/** One keyboard step on a rail, then let the debounce land. */
+async function turnRail(
+  page: Page,
+  at: number,
+  key: "ArrowRight" | "ArrowLeft" = "ArrowRight",
+): Promise<void> {
+  await rails(page).nth(at).focus();
+  await page.keyboard.press(key);
+  await recomputed(page);
+}
+
+/**
+ * The chosen /c/aurora/ with landed meters. The deep link may already be
+ * chosen; if not, Enter on the band chooses it (e2e/tuning.e2e.ts openPanel).
+ */
+async function openPanel(page: Page): Promise<void> {
+  await page.goto(`/c/${ENTRY}/`);
+  const band = page.getByTestId("coverflow");
+  await expect(band).toBeVisible();
+  await waitForPicture(page, ENTRY);
+  if ((await page.getByTestId("chosen-panel").count()) === 0) {
+    await expect(band).toHaveAttribute("data-ready", "true");
+    await band.press("Enter");
+  }
+  await expect(page.getByTestId("chosen-panel")).toBeVisible();
+  await expect(page.getByTestId("knob-rack")).toBeVisible();
+  await metersSettled(page);
+}
+
+/**
+ * The VISIBLE line of a reserved cell. Every cell on the panel renders all of
+ * its candidate strings as sizing twins at grid-area 1 / 1, the inactive ones
+ * visibility: hidden and aria-hidden, so textContent of the cell is every
+ * string at once; the one on screen is the one not hidden.
+ */
+const visibleLine = (page: Page, testid: string) =>
+  page.getByTestId(testid).locator('p[aria-hidden="false"]');
+/** The honesty slot's visible sentence. Its cell carries an id, not a testid. */
+const honesty = (page: Page) =>
+  page.locator('#try-on-reason p[aria-hidden="false"]');
+
+const primary = (page: Page) => page.getByTestId("try-on-device");
+const putBackControl = (page: Page) => page.getByTestId("put-back");
+const keepControl = (page: Page) => page.getByTestId("keep-on-device");
+const installState = (page: Page) => page.getByTestId("install-state");
+
+/**
+ * Expose the module, grant its port BEFORE the page loads, open the chosen
+ * panel and assert the precondition every test here shares: the shim is
+ * installed and the grant is what the browser would list.
+ */
+async function openReal(
+  page: Page,
+  state: ZonaState,
+  script?: ZonaScript,
+): Promise<ExposedZona> {
+  const zona = await installZona(page, state, script);
+  await page.addInitScript(() => {
+    window.__hangarSerial.grant();
+  });
+  await openPanel(page);
+  expect(
+    await page.evaluate(async () => ({
+      hasSerial: "serial" in navigator,
+      listed: (await navigator.serial.getPorts()).length,
+    })),
+  ).toEqual({ hasSerial: true, listed: 1 });
+  return zona;
+}
+
+/** What beatUntilShows reads after each beat: one element's text, or one of its attributes. */
+interface Mark {
+  selector: string;
+  attribute?: string;
+  /** The reading must equal this... */
+  equals?: string;
+  /** ...or contain this. */
+  includes?: string;
+}
+
+/**
+ * Push heartbeats into port `index` until the mark reads as asked; return how
+ * many it took. After each beat the page is polled for about one heartbeat
+ * period. `extra` frames (a rig's other modules) are pushed before the ZONA's
+ * on every beat, because a rig's others reach the identity only on the ZONA's
+ * next heartbeat (deferred item 13). Throws rather than returning quietly
+ * when the bound is reached, naming the last reading.
+ */
+async function beatUntilShows(
+  page: Page,
+  zona: ExposedZona,
+  index: number,
+  mark: Mark,
+  max = 12,
+  extra: string[] = [],
+): Promise<number> {
+  for (let n = 1; n <= max; n++) {
+    await page.evaluate(
+      ([i, frames]) => {
+        for (const hex of frames) window.__hangarSerial.beat(i, hex);
+      },
+      [index, [...extra, zona.heartbeatHex()]] as const,
+    );
+    const reached = await page.evaluate(async (m) => {
+      const read = (): string | null => {
+        const el = document.querySelector(m.selector);
+        if (!el) return null;
+        return m.attribute
+          ? el.getAttribute(m.attribute)
+          : (el.textContent ?? "").trim();
+      };
+      const ok = (): boolean => {
+        const value = read();
+        if (value === null) return false;
+        if (m.equals !== undefined) return value === m.equals;
+        return m.includes !== undefined && value.includes(m.includes);
+      };
+      for (let waited = 0; waited < 300; waited += 10) {
+        if (ok()) return true;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      return ok();
+    }, mark);
+    if (reached) return n;
+  }
+  const last = await page.evaluate((m) => {
+    const el = document.querySelector(m.selector);
+    if (!el) return null;
+    return m.attribute ? el.getAttribute(m.attribute) : el.textContent;
+  }, mark);
+  throw new Error(
+    `${mark.selector} never read ${mark.equals ?? mark.includes} after ${max} heartbeats; it reads ${JSON.stringify(last)}`,
+  );
+}
+
+/** The panel's state block includes this text. */
+const stateShows = (needle: string): Mark => ({
+  selector: '[data-testid="install-state"]',
+  includes: needle,
+});
+
+/**
+ * The connect sequence on the real page: the FIRST click on TRY ON DEVICE is
+ * the session's (it connects the granted port with no picker); heartbeats
+ * until the header slot reads the identity; then the snapshot lands and the
+ * honesty slot reads its ready form. Returns the heartbeats identification
+ * needed.
+ */
+async function connectOnPage(
+  page: Page,
+  zona: ExposedZona,
+  extraBeats: string[] = [],
+): Promise<number> {
+  await expect(page.getByTestId("device-slot")).toHaveAttribute(
+    "data-slot",
+    "S2",
+  );
+  await primary(page).click();
+  const beats = await beatUntilShows(
+    page,
+    zona,
+    0,
+    {
+      selector: '[data-testid="device-slot"]',
+      attribute: "data-slot",
+      equals: "S4",
+    },
+    80,
+    extraBeats,
+  );
+  await expect(installState(page)).toContainText(IDENTIFIED_CAPTION);
+  await expect(honesty(page)).toHaveText(HONESTY_READY);
+  return beats;
+}
+
+/** One try-on on the real page, from ready or any settled state, to PLAYING NOW. */
+async function tryOnPage(page: Page): Promise<void> {
+  await primary(page).click();
+  await expect(installState(page)).toContainText(SETTLED_CAPTION, {
+    timeout: 10_000,
+  });
+  await expect(installState(page)).toContainText(settledBody(ENTRY_NAME));
+}
+
+/** Open the confirmation, commit it, and pace heartbeats until KEPT. */
+async function keepOnPage(page: Page, zona: ExposedZona): Promise<number> {
+  await keepControl(page).click();
+  await expect(page.getByTestId("keep-confirm")).toBeVisible();
+  await page.getByTestId("keep-confirm-yes").click();
+  const beats = await beatUntilShows(page, zona, 0, stateShows(KEPT_CAPTION));
+  await expect(installState(page)).toContainText(keptBody(ENTRY_NAME));
+  return beats;
+}
+
+test.describe("the install flow on the real page, with a ZONA that answers from Node", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(FAKE_SERIAL);
+  });
+
+  test("the panel writes on a click, says PLAYING NOW, and locks the header while it writes", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(12));
+    await connectOnPage(page, zona);
+
+    // I2 on the page a visitor sees: the ready sentence, PUT BACK offered
+    // with its line, KEEP ON DEVICE waiting for a try-on.
+    await expect(honesty(page)).toHaveText(HONESTY_READY);
+    await expect(putBackControl(page)).toBeVisible();
+    await expect(putBackControl(page)).toBeEnabled();
+    await expect(visibleLine(page, "put-back-line")).toHaveText(PUT_BACK_LINE);
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_REASONS["never-tried"],
+    );
+    await expect(primary(page)).toBeEnabled();
+    await expect(primary(page)).toHaveText(TRY_ON_LABEL);
+
+    // Hold each CONFIG acknowledgement 200 ms in Node - strictly under
+    // executeMs 250, so both events land on attempt 1 and the leg is a window
+    // of about 400 ms. Installed AFTER the connect sequence: the snapshot's
+    // reads are not what this test is about.
+    zona.script({ delayAckMs: { class_name: "CONFIG", byMs: 200 } });
+    const clickedAt = Date.now();
+    await primary(page).click();
+
+    // Inside the window: the busy label, and everything I3 says around it,
+    // read in one snapshot so the round trips do not spend the window.
+    await expect(primary(page)).toHaveText(WRITING_LABEL);
+    const busySeenAt = Date.now() - clickedAt;
+    const during = await page.evaluate(() => {
+      const q = (id: string) =>
+        document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+      const primary = q("try-on-device") as HTMLButtonElement | null;
+      const label = primary?.querySelector<HTMLElement>(".label") ?? null;
+      return {
+        label: label?.textContent?.trim() ?? null,
+        busy: primary?.getAttribute("aria-busy") ?? null,
+        disabled: primary?.disabled ?? null,
+        putBackDisabled:
+          (q("put-back") as HTMLButtonElement | null)?.disabled ?? null,
+        keepDisabled:
+          (q("keep-on-device") as HTMLButtonElement | null)?.disabled ?? null,
+        honesty:
+          document
+            .querySelector('#try-on-reason p[aria-hidden="false"]')
+            ?.textContent?.trim() ?? null,
+        statusBusy: q("connect-status")?.getAttribute("aria-busy") ?? null,
+        stateBusy: q("install-state")?.getAttribute("aria-busy") ?? null,
+        stateText: q("install-state")?.textContent?.trim() ?? null,
+        transition: label ? getComputedStyle(label).transitionDuration : null,
+        panels: document.querySelectorAll('[data-testid="chosen-panel"]')
+          .length,
+      };
+    });
+    const snapshotAt = Date.now() - clickedAt;
+    expect(during.label).toBe(WRITING_LABEL);
+    expect(during.busy).toBe("true");
+    expect(during.disabled).toBe(true);
+    // I3 rule 3: all three install controls disabled, whichever was clicked.
+    expect(during.putBackDisabled).toBe(true);
+    expect(during.keepDisabled).toBe(true);
+    // I3 rule 4: the honesty slot holds whatever string it was holding, and
+    // region 3 holds the previous block under aria-busy.
+    expect(during.honesty).toBe(HONESTY_READY);
+    expect(during.statusBusy).toBe("true");
+    expect(during.stateBusy).toBe("true");
+    expect(during.stateText).toContain(IDENTIFIED_CAPTION);
+    // I3 rule 1: the busy label swaps with no transition. The label span's
+    // computed transition-duration is 0s; the control's own transitions are
+    // its hover filter and glow, never its text.
+    expect(during.transition).toBe("0s");
+    expect(during.panels).toBe(1);
+
+    // THE HEADER LOCK, reached the only way the page allows (deferred item
+    // 19): Back un-chooses the panel mid-leg where Escape refuses, and the
+    // disclosure can open once the panel is gone. Still inside the window.
+    await page.evaluate(() => history.back());
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/c\/aurora\/$/);
+    await page.getByTestId("device-slot").click();
+    const disconnect = page.getByTestId("details-disconnect");
+    const forget = page.getByTestId("details-forget");
+    await expect(disconnect).toBeDisabled();
+    const lockSeenAt = Date.now() - clickedAt;
+    const locked = await page.evaluate(() => {
+      const q = (id: string) =>
+        document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+      const reason = q("write-lock-reason");
+      return {
+        forgetDisabled:
+          (q("details-forget") as HTMLButtonElement | null)?.disabled ?? null,
+        reason: reason?.textContent?.trim() ?? null,
+        reasonId: reason?.id ?? null,
+        disconnectDescribedBy:
+          q("details-disconnect")?.getAttribute("aria-describedby") ?? null,
+        forgetDescribedBy:
+          q("details-forget")?.getAttribute("aria-describedby") ?? null,
+      };
+    });
+    expect(locked.forgetDisabled).toBe(true);
+    expect(locked.reason).toBe(WRITE_LOCK_REASON);
+    // The reason is the aria-describedby target of BOTH controls.
+    expect(locked.disconnectDescribedBy).toBe(locked.reasonId);
+    expect(locked.forgetDescribedBy).toBe(locked.reasonId);
+
+    // Then it lands: the lock releases and the reason line leaves.
+    await expect(disconnect).toBeEnabled();
+    const releasedAt = Date.now() - clickedAt;
+    await expect(forget).toBeEnabled();
+    await expect(page.getByTestId("write-lock-reason")).toHaveCount(0);
+    console.log(
+      `test 7 timing: WRITING at +${busySeenAt} ms, panel snapshot at +${snapshotAt} ms, header locked at +${lockSeenAt} ms, released at +${releasedAt} ms`,
+    );
+
+    // Re-chosen, the panel reads the settled state the write produced while
+    // nobody was watching it: PLAYING NOW, the label back at rest, KEEP ON
+    // DEVICE enabled - the one and only path to it (I4).
+    const band = page.getByTestId("coverflow");
+    await expect(band).toHaveAttribute("data-ready", "true");
+    await band.press("Enter");
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(installState(page)).toContainText(SETTLED_CAPTION);
+    await expect(installState(page)).toContainText(settledBody(ENTRY_NAME));
+    await expect(installState(page)).not.toHaveAttribute("aria-busy", "true");
+    await expect(primary(page)).toHaveText(TRY_ON_LABEL);
+    await expect(primary(page)).not.toHaveAttribute("aria-busy", "true");
+    await expect(primary(page)).toBeEnabled();
+    await expect(honesty(page)).toHaveText(HONESTY_READY);
+    await expect(putBackControl(page)).toBeEnabled();
+    await expect(keepControl(page)).toBeEnabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_LINE_ENABLED,
+    );
+
+    // The wire: one try-on, both acknowledgements on attempt 1, nothing stored.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(2);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(1);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("the flash confirmation replaces the control, names what it replaces, and moves focus deliberately", async ({
+    context,
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(13));
+    await connectOnPage(page, zona);
+    await tryOnPage(page);
+    await expect(keepControl(page)).toBeEnabled();
+
+    // Open: the block is where the control was, never both on screen, and
+    // focus is on the GROUP, not on either button - so no key press commits
+    // without a deliberate move.
+    await keepControl(page).click();
+    const confirm = page.getByTestId("keep-confirm");
+    await expect(confirm).toBeVisible();
+    await expect(keepControl(page)).toHaveCount(0);
+    await expect(confirm).toBeFocused();
+    await expect(confirm).toHaveAttribute("role", "group");
+    await expect(confirm).toHaveAttribute("tabindex", "-1");
+    expect(await page.locator('[role="dialog"]').count()).toBe(0);
+    expect(await page.locator("[aria-modal]").count()).toBe(0);
+    const sentences = confirm.locator("p");
+    await expect(sentences).toHaveCount(3);
+    await expect(sentences.nth(0)).toHaveText(CONFIRM_CAPTION);
+    await expect(sentences.nth(1)).toHaveText(CONFIRM_REPLACES);
+    expect(CONFIRM_REPLACES).toContain("touch element");
+    expect(CONFIRM_REPLACES).toContain("survives a power cycle");
+    await expect(sentences.nth(2)).toHaveText(CONFIRM_WAY_BACK);
+    // The group is labelled by the caption and described by its sentences.
+    const captionId = await sentences.nth(0).getAttribute("id");
+    expect(await confirm.getAttribute("aria-labelledby")).toBe(captionId);
+    expect(
+      (await confirm.getAttribute("aria-describedby"))?.split(" "),
+    ).toEqual([
+      await sentences.nth(1).getAttribute("id"),
+      await sentences.nth(2).getAttribute("id"),
+    ]);
+
+    // The first Tab reaches the affirmative, the second NOT NOW.
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("keep-confirm-yes")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("keep-confirm-no")).toBeFocused();
+
+    // NOT NOW: the block leaves, the row's control is back and holds focus,
+    // and nothing was sent.
+    await page.getByTestId("keep-confirm-no").click();
+    await expect(confirm).toHaveCount(0);
+    await expect(keepControl(page)).toBeVisible();
+    await expect(keepControl(page)).toBeFocused();
+    await expect(keepControl(page)).toBeEnabled();
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+
+    // Escape inside the block is NOT NOW; the panel stays chosen (Z-10).
+    await keepControl(page).click();
+    await expect(confirm).toBeVisible();
+    await expect(confirm).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(confirm).toHaveCount(0);
+    await expect(page.getByTestId("chosen-panel")).toHaveCount(1);
+    await expect(keepControl(page)).toBeFocused();
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+
+    // The commit: KEPT after the acknowledgement, the ZONA's heartbeat and the
+    // re-fetch proof; focus went to region 3 because the row's control came
+    // back disabled; PUT BACK's line says it will store too.
+    await keepControl(page).click();
+    await expect(confirm).toBeVisible();
+    await page.getByTestId("keep-confirm-yes").click();
+    await expect(confirm).toHaveCount(0);
+    await expect(page.getByTestId("connect-status")).toBeFocused();
+    const beats = await beatUntilShows(page, zona, 0, stateShows(KEPT_CAPTION));
+    console.log(`test 8: KEPT after ${beats} heartbeat(s)`);
+    await expect(installState(page)).toContainText(keptBody(ENTRY_NAME));
+    await expect(installState(page)).toContainText(KEPT_PROOF_LINE);
+    await expect(page.getByTestId("connect-status")).toBeFocused();
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_REASONS["already-kept"],
+    );
+    await expect(visibleLine(page, "put-back-line")).toHaveText(
+      PUT_BACK_LINE_AFTER_KEEP,
+    );
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(2);
+    expect(zona.state.flash?.[EVENT_SETUP]).not.toBe(MODULE_SETUP);
+
+    // On a rig, the fourth sentence names the others and says their pages are
+    // stored too (SAFE-06). The others reach the identity only on the ZONA's
+    // heartbeat after theirs (deferred item 13), so the rig's beats ride
+    // along with every ZONA beat here.
+    const second = await context.newPage();
+    const secondErrors = collectErrors(second);
+    const rigBeats = [
+      otherHeartbeatHex(1, EN16_HWCFG),
+      otherHeartbeatHex(2, BU16_HWCFG),
+    ];
+    const rig = await openReal(second, moduleState(14), {
+      rig: [rigModule(1), rigModule(2)],
+    });
+    await connectOnPage(second, rig, rigBeats);
+    await tryOnPage(second);
+    await keepControl(second).click();
+    const rigConfirm = second.getByTestId("keep-confirm");
+    await expect(rigConfirm).toBeVisible();
+    await beatUntilShows(
+      second,
+      rig,
+      0,
+      { selector: '[data-testid="keep-confirm"]', includes: "same cable" },
+      12,
+      rigBeats,
+    );
+    const rigSentences = rigConfirm.locator("p");
+    await expect(rigSentences).toHaveCount(4);
+    await expect(rigSentences.nth(3)).toHaveText(
+      confirmRig(["EN16", "BU16"]) ?? "",
+    );
+    expect(
+      (await rigConfirm.getAttribute("aria-describedby"))?.split(" "),
+    ).toHaveLength(3);
+    // Nothing stored on the rig page: the confirmation was read, not taken.
+    await second.getByTestId("keep-confirm-no").click();
+    await expect(rigConfirm).toHaveCount(0);
+    expect(rig.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(rig.seen("CONFIG", "EXECUTE")).toBe(2);
+
+    expect(consoleErrors).toEqual([]);
+    expect(secondErrors).toEqual([]);
+  });
+
+  test("after a keep, PUT BACK stores too and KEEP ON DEVICE waits for another try-on", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(15));
+    await connectOnPage(page, zona);
+    await tryOnPage(page);
+    await keepOnPage(page, zona);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
+    await expect(visibleLine(page, "put-back-line")).toHaveText(
+      PUT_BACK_LINE_AFTER_KEEP,
+    );
+
+    // Hold the store acknowledgement so the put-back's STORE leg is on screen
+    // long enough to read: I5's interval, between the two RAM acknowledgements
+    // and the proof.
+    zona.script({ delayAckMs: { class_name: "PAGESTORE", byMs: 600 } });
+    await putBackControl(page).click();
+    await expect(putBackControl(page)).toHaveText(PUTTING_BACK_LABEL);
+    await expect(installState(page)).toContainText(RESTORED_CAPTION);
+    const interval = await page.evaluate(() => {
+      const q = (id: string) =>
+        document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+      const putBack = q("put-back") as HTMLButtonElement | null;
+      const primary = q("try-on-device") as HTMLButtonElement | null;
+      return {
+        putBackLabel: putBack?.textContent?.trim() ?? null,
+        putBackBusy: putBack?.getAttribute("aria-busy") ?? null,
+        putBackDisabled: putBack?.disabled ?? null,
+        primaryLabel: primary?.textContent?.trim() ?? null,
+        primaryDisabled: primary?.disabled ?? null,
+        primaryBusy: primary?.getAttribute("aria-busy") ?? null,
+        keepDisabled:
+          (q("keep-on-device") as HTMLButtonElement | null)?.disabled ?? null,
+        stateBusy: q("install-state")?.getAttribute("aria-busy") ?? null,
+        stateText: q("install-state")?.textContent?.trim() ?? null,
+      };
+    });
+    // I3: PUTTING BACK… with aria-busy on PUT BACK itself through the store
+    // leg; the primary keeps its resting label, disabled, and carries no busy
+    // word - there is no fourth label.
+    expect(interval.putBackLabel).toBe(PUTTING_BACK_LABEL);
+    expect(interval.putBackBusy).toBe("true");
+    expect(interval.putBackDisabled).toBe(true);
+    expect(interval.primaryLabel).toBe(TRY_ON_LABEL);
+    expect(interval.primaryDisabled).toBe(true);
+    expect(interval.primaryBusy).toBeNull();
+    expect(interval.keepDisabled).toBe(true);
+    // I5's interval: RESTORED's caption and first line, region 3 still busy,
+    // and the power-cycle claim NOT yet made.
+    expect(interval.stateBusy).toBe("true");
+    expect(interval.stateText).toContain(RESTORED_CAPTION);
+    expect(interval.stateText).toContain(RESTORED_BODY);
+    expect(interval.stateText).not.toContain(RESTORED_STORED_LINE);
+
+    // The proof needs the ZONA's heartbeat after the held acknowledgement
+    // lands, and the landing is invisible from here: the bounded beat loop.
+    const beats = await beatUntilShows(
+      page,
+      zona,
+      0,
+      stateShows(RESTORED_STORED_LINE),
+    );
+    console.log(
+      `test 9: RESTORED with the stored line after ${beats} heartbeat(s)`,
+    );
+    await expect(installState(page)).not.toHaveAttribute("aria-busy", "true");
+    await expect(putBackControl(page)).toHaveText(PUT_BACK_LABEL);
+    await expect(putBackControl(page)).toBeEnabled();
+    await expect(putBackControl(page)).not.toHaveAttribute("aria-busy", "true");
+    // The keep is undone: the line is back to its first form, and KEEP ON
+    // DEVICE waits for another try-on.
+    await expect(visibleLine(page, "put-back-line")).toHaveText(PUT_BACK_LINE);
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_REASONS["never-tried"],
+    );
+    await expect(primary(page)).toBeEnabled();
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
+    // The module's RAM and flash are its own again.
+    expect(zona.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(zona.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
+    expect(zona.state.flash?.[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(zona.state.flash?.[EVENT_TIMER]).toBe(MODULE_TIMER);
+
+    // Flash only what you have heard (Z-05): a knob turn, a try-on, KEEP ON
+    // DEVICE live; the confirmation open; the knob turned back - the block
+    // closes and the reason names the knobs.
+    zona.script({});
+    await turnRail(page, 0);
+    await tryOnPage(page);
+    await expect(keepControl(page)).toBeEnabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_LINE_ENABLED,
+    );
+    await keepControl(page).click();
+    await expect(page.getByTestId("keep-confirm")).toBeVisible();
+    await turnRail(page, 0, "ArrowLeft");
+    await expect(page.getByTestId("keep-confirm")).toHaveCount(0);
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_REASONS["knobs-moved"],
+    );
+    // A knob move closing the confirmation sends focus to region 3 (the
+    // row's control cannot hold it).
+    await expect(page.getByTestId("connect-status")).toBeFocused();
+
+    // The wire: the keep and the put-back's store; three try-ons' worth of
+    // RAM writes (two try-ons and the put-back's RAM leg).
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(6);
+    expect(consoleErrors).toEqual([]);
   });
 });
