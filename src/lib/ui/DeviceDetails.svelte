@@ -42,15 +42,52 @@
   DISCONNECT ZONA destroy themselves and hand focus back to the slot, which by
   then reads CONNECT ZONA.
 
-  Every string comes from session-copy; none is retyped here. The two static
+  WHAT THE HEADER DOES UNDER A WRITE, AND WHAT IT DOES NOT (07-UI-SPEC, The
+  header device slot, and its disclosure; Z-15). The slot never shows an
+  install state and its label never reads a busy word, for four reasons. Phase
+  6 contracts the S4 label as the identity summary and sizes the slot's two
+  14px line boxes on four label strings, so an install label would be a fifth
+  string in a box built for four. The install is a property of the CHOSEN
+  configuration, which lives in the panel, and the panel is on screen whenever
+  a write is possible because every control that writes exists nowhere else.
+  Y-11 forbids one block in two mounts, and a busy state in the header and in
+  the panel at once is exactly that. And a RAM write settles in two frames: a
+  header label that changes for 40 ms is noise, not feedback. What the header
+  contributes instead is THE LOCK. DISCONNECT ZONA and FORGET THIS ZONA are
+  the two controls that can pull the port out from under a write with the
+  visitor's own hand - producing `partial` under a RAM leg and `unconfirmed`
+  under a store - so both carry a real `disabled` while session.writeLock is
+  true, on every leg and the store leg explicitly, with the reason inline
+  beneath the pair (WRITE_LOCK_REASON) bound by aria-describedby. A real
+  `disabled` removes them from the tab order; that is the correct behaviour
+  and nothing overrides it. The lock is the session's flag, set and cleared by
+  the install store around every leg; this component reads it and decides
+  nothing. On the real page the drawer is closed whenever the panel is open
+  (panelOwnsProse), so the lock is what a visitor meets who un-chose the panel
+  with Back or a side pad during a leg and then opened the drawer - which,
+  under a store that has not confirmed, is a window of several seconds.
+
+  THE SNAPSHOT LINE (07-CONTEXT D-04 amended, SAFE-04). Beneath Phase 6's
+  identity line the S4 block says where the copy of the module's own Setup and
+  Timer is kept: the durable form when the module's serial was answered and the
+  record is in this browser, the honest session-only form when it was not. It
+  is rendered only while the install store holds a snapshot - during
+  `snapshotting` there is no line - and it names no control, because the panel
+  may be closed when it is read. FORGET THIS ZONA's explanation says the copy
+  stays (Z-13): revoking a permission is never a reason to destroy somebody's
+  only copy of their own configuration, and nothing in this phase deletes one.
+
+  Every string comes from session-copy; none is retyped here. The three static
   specifiers are the chunk guard's permitted paths (config-shape.spec.ts test
-  13): the session and its import-free copy module are free of the protocol
-  package, which is what lets a header component name them on the first paint of
-  /.
+  13): the session, its import-free copy module, and the install store, whose
+  own three specifiers are two zero-import modules and the session - all free
+  of the protocol package, which is what lets a header component name them on
+  the first paint of /.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
+  import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
   import {
     CHOOSER_NEVER_APPEARED,
@@ -64,8 +101,11 @@
     REPLUG_OFFER,
     REVOKE_EXPLANATION,
     SAFE_PROMISE,
+    SNAPSHOT_DURABLE_LINE,
+    SNAPSHOT_SESSION_LINE,
     TWO_STEP,
     UNPLUGGED_WHILE_CONNECTED,
+    WRITE_LOCK_REASON,
     identitySentence,
     multiModuleLine,
     slotStateOf,
@@ -123,6 +163,23 @@
       : "",
   );
   const multiLine = $derived(multiModuleLine(others));
+
+  /**
+   * The snapshot line's form, decided by the install store: the record is in
+   * this browser, or it is this tab's alone. Rendered only while a snapshot is
+   * in hand (see the markup), so `snapshotting` shows no line.
+   */
+  const snapshotLine = $derived(
+    install.snapshotDurable ? SNAPSHOT_DURABLE_LINE : SNAPSHOT_SESSION_LINE,
+  );
+
+  /**
+   * The id of the lock's reason line, named by both disabled controls through
+   * aria-describedby while the lock is on. Unique per mount, like the slot's
+   * describedby twin.
+   */
+  const uid = $props.id();
+  const lockId = `${uid}-write-lock`;
 
   /** The container, a programmatic focus target only. */
   let container = $state<HTMLDivElement | null>(null);
@@ -242,17 +299,40 @@
     {#if slot === "S4"}
       <p class="body">{identityLine}</p>
       {#if multiLine}<p class="body">{multiLine}</p>{/if}
+      {#if install.snapshot !== undefined}
+        <p class="body quiet" data-testid="snapshot-line">{snapshotLine}</p>
+      {/if}
       <p class="body">{SAFE_PROMISE}</p>
-      <button type="button" class="action" onclick={disconnect}
-        >{DISCONNECT_LABEL}</button
+      <!--
+        The lock (Z-15): a real `disabled` on both controls while the session's
+        writeLock is on - every leg, the store leg explicitly - with the reason
+        line beneath the pair as their description. See the header.
+      -->
+      <button
+        type="button"
+        class="action"
+        data-testid="details-disconnect"
+        disabled={session.writeLock}
+        aria-describedby={session.writeLock ? lockId : undefined}
+        onclick={disconnect}>{DISCONNECT_LABEL}</button
       >
       {#if session.canForget}
         <div class="revoke">
           <p class="body">{REVOKE_EXPLANATION}</p>
-          <button type="button" class="action" onclick={forget}
-            >{FORGET_LABEL}</button
+          <button
+            type="button"
+            class="action"
+            data-testid="details-forget"
+            disabled={session.writeLock}
+            aria-describedby={session.writeLock ? lockId : undefined}
+            onclick={forget}>{FORGET_LABEL}</button
           >
         </div>
+      {/if}
+      {#if session.writeLock}
+        <p class="body quiet" id={lockId} data-testid="write-lock-reason">
+          {WRITE_LOCK_REASON}
+        </p>
       {/if}
     {/if}
 
@@ -306,11 +386,18 @@
     color: var(--color-ink);
   }
 
+  /* The snapshot line and the lock's reason: Body, one rung quieter. */
+  .quiet {
+    color: var(--color-ink-quiet);
+  }
+
   /*
     DISCONNECT ZONA and FORGET THIS ZONA: wide-tracked uppercase labels on the
     44px interactive floor, quiet until hovered. No fill and no border colour -
     a session-ending action does not shout, and nothing here is destructive to
-    the module (SAFE-01).
+    the module (SAFE-01). Under the write lock both are a real `disabled` in the
+    dim rung, with the reason line beneath them; a disabled control does not
+    brighten on hover.
   */
   .action {
     appearance: none;
@@ -332,9 +419,14 @@
     transition: color 160ms ease-out;
   }
 
-  .action:hover,
+  .action:hover:not(:disabled),
   .action:focus-visible {
     color: var(--color-ink);
+  }
+
+  .action:disabled {
+    color: var(--color-ink-dim);
+    cursor: not-allowed;
   }
 
   .revoke {
