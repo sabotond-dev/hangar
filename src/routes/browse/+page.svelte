@@ -96,6 +96,8 @@
   import { ogAlt } from "$lib/tune/copy";
   import BrowseGrid from "$lib/ui/BrowseGrid.svelte";
   import BrowseToolbar from "$lib/ui/BrowseToolbar.svelte";
+  import DeviceNote from "$lib/ui/DeviceNote.svelte";
+  import DeviceSlot from "$lib/ui/DeviceSlot.svelte";
   import { FIDELITY_LINE } from "$lib/ui/fidelity-line";
 
   /* Visitor-facing copy, in one block, verbatim from the Copywriting Contract.
@@ -409,12 +411,26 @@
 <section class="browse" data-testid="browse">
   <!--
     The wordmark is this page's only level-1 heading and on this route it is a
-    REAL LINK to the front door. There is no right-hand header slot here: the
-    page that control would lead to is the page you are on (W-01).
+    REAL LINK to the front door. There is no BROWSE ALL slot here - the page
+    that control would lead to is the page you are on (W-01) - so the device
+    slot is the header's ONLY right-hand slot (Phase 6, plan 06-11). The device
+    session is site-wide (D-05), so it belongs on this route too.
+
+    `panelOwnsProse` is a literal false: /browse/ has no chosen panel, so
+    nothing else can be rendering the session's prose, and the note speaks in
+    S1/S2/S3 as it does everywhere. `covered` is left at its default false:
+    there is no splash on this route to hold the header at nothing.
   -->
-  <h1 class="wordmark">
-    <a href={resolve("/")} data-testid="header-wordmark">{SITE}</a>
-  </h1>
+  <div class="header">
+    <h1 class="wordmark">
+      <a href={resolve("/")} data-testid="header-wordmark">{SITE}</a>
+    </h1>
+    <DeviceSlot panelOwnsProse={false} />
+  </div>
+
+  <!-- The note beneath the row, above the toolbar. Its right edge is the
+       slot's, its text left-aligned inside it (06-UI-SPEC, The header note). -->
+  <DeviceNote panelOwnsProse={false} />
 
   <p class="headline">{HEADLINE}</p>
 
@@ -468,6 +484,18 @@
     padding-inline: 32px;
     padding-block: 32px;
     text-align: start;
+  }
+
+  /*
+    The header row: the wordmark on the left, the device slot flush to the
+    right. min-block-size is the 44px touch floor the slot sits on; the
+    wordmark's own anchor already carries it too.
+  */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-block-size: 44px;
   }
 
   /* Micro role: 12px / 600 / 0.18em / uppercase, accent. Phase 4's wordmark. */
