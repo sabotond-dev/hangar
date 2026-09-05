@@ -64,12 +64,24 @@ const COMPILER_MARKERS = [
   walk FOLLOWS an exactly matching permitted specifier and marker-checks every
   other. `$lib/protocol` is not `$lib/protocol/usb`; a barrel import inside a
   permitted module is an offender on the walk. The test count stays 14.
+
+  AMENDMENT (Phase 7, plan 07-08). The install store is reachable from the
+  first paint: the root layout starts it beside the session (07-08) and the
+  install panel on `/c/{id}/` binds it (07-10). Its three static specifiers
+  are two zero-import modules (install-copy, snapshot) and the session, and
+  all three are under the `lib/device` marker, so the allow-list gains exactly
+  those three paths - never a prefix - and the walk follows all three and
+  marker-checks what they import, exactly as it does the session's four. The
+  mutations that prove the widening bites are planted in plan 07-09, once a
+  component under src/lib/ui/ exists to plant them in; this plan proves the
+  walk READ them (the visited-module guard below rises from four to seven).
+  The test count stays 14.
 */
 
 /**
- * The five modules a first-paint component MAY name, by exact path and never by
- * prefix (05.1-08's lesson: the allowance is a list of paths, not a namespace).
- * Each one is verified light below rather than trusted.
+ * The eight modules a first-paint component MAY name, by exact path and never
+ * by prefix (05.1-08's lesson: the allowance is a list of paths, not a
+ * namespace). Each one is verified light below rather than trusted.
  */
 const PERMITTED_SPECIFIERS = [
   "$lib/device/session.svelte",
@@ -84,6 +96,13 @@ const PERMITTED_SPECIFIERS = [
   // what makes failureFor() synchronous for all nine states and lets a
   // capability failure render its sentence in the first hydrated frame.
   "$lib/transport/transport",
+  // Phase 7 (plan 07-08): the install store and its two zero-import
+  // neighbours. install.svelte.ts reaches the protocol and transport barrels
+  // only through erased `import(...)` types and awaited imports inside its
+  // actions; install.spec.ts test 8 counts its static specifiers at three.
+  "$lib/device/install.svelte",
+  "$lib/device/install-copy",
+  "$lib/device/snapshot",
 ];
 
 /*
@@ -449,8 +468,9 @@ describe("build configuration shape", () => {
 
     // Guards against a silently broken matcher: an empty front-door list, an
     // empty match set and a silent walk would each make the assertions below
-    // pass vacuously. The walk must have read at least four of the five
-    // permitted modules and followed at least one permitted edge.
+    // pass vacuously. The walk must have read at least seven of the eight
+    // permitted modules (Phase 7, plan 07-08: four of five before the install
+    // store's three joined the list) and followed at least one permitted edge.
     expect(files.length, "front-door files were listed").toBeGreaterThan(3);
     expect(
       imports.length,
@@ -459,7 +479,7 @@ describe("build configuration shape", () => {
     expect(
       walked.length,
       `the walk read ${walked.length} permitted module(s) - it has gone silent`,
-    ).toBeGreaterThanOrEqual(4);
+    ).toBeGreaterThanOrEqual(7);
     expect(
       followed.length,
       "the walk followed no permitted specifier - the matcher has gone blind inside the permitted modules",

@@ -2,6 +2,7 @@
   import "../app.css";
   import { onMount } from "svelte";
   import favicon from "$lib/assets/favicon.svg";
+  import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
   import SessionAnnouncer from "$lib/ui/SessionAnnouncer.svelte";
 
@@ -14,12 +15,17 @@
    * prerenderer, where there is no window and no navigator.serial to read.
    * start() is idempotent on the instance, so the session probe page - which
    * starts the singleton from its own onMount as well - attaches nothing
-   * twice. The static import of the session is the one case the chunk guard
-   * allows for this file (src/lib/config-shape.spec.ts test 13): the session
-   * and its four specifiers are free of the protocol package.
+   * twice. The static imports of the session and the install store are the
+   * two cases the chunk guard allows for this file (src/lib/config-shape.spec.ts
+   * test 13): the session and its four specifiers, and the install store and
+   * its three, are all free of the protocol package.
    */
   onMount(() => {
     session.start();
+    // Phase 7 (07-08): the install store subscribes to the session's
+    // connection seam here so the snapshot is taken at "connected" on every
+    // route, before any panel mounts (D-03). Idempotent, like the session's.
+    install.start();
   });
 </script>
 
