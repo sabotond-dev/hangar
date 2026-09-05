@@ -14,12 +14,10 @@ import {
   grid,
 } from "@intechstudio/grid-protocol";
 
-/**
- * CONN-07: the only filter the browser's port picker is ever given. 0x8122 is
- * the bootloader identity and is never listed - HANGAR must not be able to
- * reach a module in DFU.
- */
-export const ZONA_USB = { usbVendorId: 0x303a, usbProductId: 0x8123 } as const;
+// CONN-07's USB filter moved to ./usb, a module with no imports, so a header
+// component can name it on the first paint of `/` without pulling the pinned
+// package in. Re-exported here so $lib/protocol's surface is unchanged (06-03).
+export { ZONA_USB } from "./usb";
 
 /** Identity is confirmed from the heartbeat's HWCFG, not from the USB filter. */
 export const ZONA_HWCFG = 161;

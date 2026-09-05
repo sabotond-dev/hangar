@@ -5,6 +5,7 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 export * from "./capture";
 export * from "./fake";
+export * from "./ports";
 export * from "./queue";
 export * from "./sequence";
 export * from "./transport";

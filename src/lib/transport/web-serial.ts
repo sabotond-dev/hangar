@@ -15,6 +15,9 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { BAUD_RATE, READ_BUFFER_SIZE, ZONA_USB } from "$lib/protocol";
 import type { GridTransport } from "./transport";
+// grantedZonaPorts and portIsAttached moved to ./ports, the half of this file
+// that needs nothing from the protocol package (06-03). The barrel re-exports
+// them from there; this file does not, so there is exactly one path to each.
 
 /**
  * Ask the user for a ZONA and open it.
@@ -36,27 +39,6 @@ export async function openZonaPort(): Promise<SerialPort> {
   // every framing assertion measures the buffer rather than the wire.
   await port.open({ baudRate: BAUD_RATE, bufferSize: READ_BUFFER_SIZE });
   return port;
-}
-
-/**
- * Ports this origin has already been granted. Needs no user gesture, so it can
- * run on load: if a permitted ZONA is already attached, the page can offer an
- * instant reconnect instead of a fresh chooser.
- */
-export async function grantedZonaPorts(): Promise<SerialPort[]> {
-  const ports = await navigator.serial.getPorts();
-  return ports.filter((p) => {
-    const info = p.getInfo();
-    return (
-      info.usbVendorId === ZONA_USB.usbVendorId &&
-      info.usbProductId === ZONA_USB.usbProductId
-    );
-  });
-}
-
-/** Chrome 130+ / Firefox 151+ only, so it is feature-detected, never assumed. */
-export function portIsAttached(port: SerialPort): boolean | undefined {
-  return "connected" in port ? port.connected : undefined;
 }
 
 export class WebSerialTransport implements GridTransport {
