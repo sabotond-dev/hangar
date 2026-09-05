@@ -335,3 +335,185 @@ test.describe("the browse screen, with nothing plugged in", () => {
     expect(await renderedIds(page)).toEqual(orderOf("name"));
   });
 });
+
+test.describe("arriving on a browse screen somebody else composed", () => {
+  test("a filtered link renders its own set on the first paint", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+
+    // A COLD ARRIVAL, THROUGH about:blank. This test exists to catch a
+    // client-side correction applied AFTER paint, so it must not be reachable
+    // from a warm router that already holds browse state.
+    await coldGoto(page, "/browse/?sort=name&tag=playable");
+
+    const playable = sortListing(
+      LISTING.filter((entry) => entry.tags.includes("playable")),
+      "name",
+    ).map((entry) => entry.id);
+    expect(playable.length, "playable is a real chip").toBeGreaterThan(1);
+    expect(playable.length).toBeLessThan(LISTING.length);
+
+    // ASSERTED BEFORE ANY INTERACTION. Nothing below clicks, types or presses
+    // anything: a page that painted the whole shelf and then corrected itself
+    // would satisfy an assertion made after a chip press and fail this one.
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+    await expect(page.locator(CARDS)).toHaveCount(playable.length);
+    expect(await renderedIds(page)).toEqual(playable);
+    await expect(
+      page.getByTestId("browse-sort").locator('input[value="name"]'),
+    ).toBeChecked();
+    await expect(
+      page.getByTestId("tag-playable").locator("input"),
+    ).toBeChecked();
+    await expectCount(page, playable.length, LISTING.length);
+
+    // THE THIRD WAY THE COUNT IS SAID IS BY SAYING NOTHING. 05.1-UI-SPEC.md's
+    // Accessibility Contract: on first load the live region is silent, because
+    // nothing has changed and the visually-hidden expansion has already said
+    // where the visitor is. 05.1-08 measured the other branch - seeding the
+    // filter state in onMount instead of at component init makes the seed look
+    // like a visitor-made change, and the region announces a filter nobody
+    // applied over whatever the visitor was reading. This is that finding,
+    // asserted rather than remembered.
+    //
+    // The locator is HANGAR's own region by its test id. Kit inserts its own
+    // svelte-announcer live region into every page, so a browser-side count of
+    // aria-live elements would read two and prove nothing about this one.
+    await coldGoto(page, "/browse/?q=aurora");
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+    await expect(page.locator(CARDS)).toHaveCount(1);
+    await expectCount(page, 1, LISTING.length);
+    // Well past the toolbar's 500 ms trailing window, so silence here is
+    // settled silence rather than a sentence that has not been said yet.
+    await page.waitForTimeout(1_200);
+    await expect(page.getByTestId("browse-live")).toHaveText("");
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the browse screen for a visitor who asked for less motion", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("reduced motion stills every card", async ({ page }) => {
+    const consoleErrors = collectErrors(page);
+
+    // BOTH, and the explicit call is not belt-and-braces. Measured in Phase 4
+    // on Playwright 1.62.1 and reproduced for this file: test.use({
+    // reducedMotion }) alone left window.matchMedia("(prefers-reduced-motion:
+    // reduce)").matches reporting false inside the page, and HANGAR reads the
+    // preference in JavaScript - src/lib/sim/host.ts subscribes to that media
+    // query to still its engines - so the declarative option alone would test
+    // the full-motion path under a reduced-motion title. emulateMedia comes
+    // BEFORE goto so the page arrives stilled rather than being stilled after
+    // it has started moving.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+
+    // The preference, as the page itself sees it. Without this the test would
+    // be measuring whatever the default motion path does.
+    expect(
+      await page.evaluate(
+        () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      ),
+      "the page sees the reduced-motion preference",
+    ).toBe(true);
+
+    // THE TRAP THIS TEST WOULD OTHERWISE FALL INTO. Three of the sixteen
+    // configurations are declared restsBlack and their still frames are
+    // legitimately black, so "the two samples are identical" would pass on them
+    // even if reduced motion did nothing at all. The exemption is read from the
+    // listing - restsBlack is a recorded fact asserted against frames.json in
+    // both directions - and never by naming the three ids.
+    const dark = LISTING.filter((entry) => entry.restsBlack).map((e) => e.id);
+    expect(dark.length, "the exemption is not empty").toBeGreaterThan(0);
+
+    /** Every registered canvas as its 324 backing-store bytes. */
+    const sampleAll = () =>
+      page.evaluate(() => {
+        const out: Record<string, string> = {};
+        for (const el of Array.from(
+          document.querySelectorAll('[data-testid^="pad-canvas-"]'),
+        )) {
+          const canvas = el as HTMLCanvasElement;
+          // SimHost.register sets the 9x9 backing store; unregister sets it
+          // back to zero. A canvas that is still 0 wide has no engine yet.
+          if (canvas.width !== 9) continue;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+          const id = (canvas.getAttribute("data-testid") ?? "").slice(
+            "pad-canvas-".length,
+          );
+          out[id] = Array.from(ctx.getImageData(0, 0, 9, 9).data).join(",");
+        }
+        return out;
+      });
+
+    /** Built, and every built pad that is not declared dark has a picture. */
+    const settled = () =>
+      page.waitForFunction(
+        (darkIds: string[]) => {
+          let built = 0;
+          for (const el of Array.from(
+            document.querySelectorAll('[data-testid^="pad-canvas-"]'),
+          )) {
+            const canvas = el as HTMLCanvasElement;
+            if (canvas.width !== 9) continue;
+            built += 1;
+            const id = (canvas.getAttribute("data-testid") ?? "").slice(
+              "pad-canvas-".length,
+            );
+            if (darkIds.includes(id)) continue;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return false;
+            if (!ctx.getImageData(0, 0, 9, 9).data.some((b) => b !== 0)) {
+              return false;
+            }
+          }
+          return built >= 4;
+        },
+        dark,
+        { timeout: 30_000 },
+      );
+
+    await settled();
+    // Let anything still arriving finish registering, then require the same
+    // condition again: a card whose engine landed between the wait and the
+    // first sample would otherwise be read blank and stay blank, and the
+    // stillness assertion below would pass on it for the wrong reason.
+    await page.waitForTimeout(500);
+    await settled();
+
+    const first = await sampleAll();
+    await page.waitForTimeout(400);
+    const second = await sampleAll();
+
+    const shared = Object.keys(first).filter((id) => id in second);
+    expect(
+      shared.length,
+      "several pads were readable on both samples",
+    ).toBeGreaterThanOrEqual(4);
+
+    for (const id of shared) {
+      expect(
+        second[id],
+        `${id} must hold one frame: 400ms of wall clock moved it`,
+      ).toBe(first[id]);
+    }
+
+    const lit = shared.filter((id) => !dark.includes(id));
+    expect(lit.length, "the lit half of the wall is not empty").toBeGreaterThan(
+      0,
+    );
+    for (const id of lit) {
+      expect(
+        first[id].split(",").some((b) => b !== "0"),
+        `${id} shows its still representative frame, not a black square`,
+      ).toBe(true);
+    }
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
