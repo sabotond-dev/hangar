@@ -181,6 +181,38 @@ when 06-11 mounts the header slot and the note.
 **Owner:** plan 06-13, which re-measures `PREV_E2E` and owns the shipped-chrome e2e changes;
 or whoever edits that file first.
 
+**Second site (found by 06-11).** In 06-11's first full run (`.tmp-e2e/06-11-suite-w3.log`)
+"every configuration is a real file with its own description, and an off-row page is a row of
+one" (`first-experience.e2e.ts:467`) failed once at line 535: `band.press("ArrowLeft")` on
+`/c/aurora/` landed on a band reading `data-ready="false"` for the first two polls, so
+`aria-activedescendant` stayed `slot-aurora` where `slot-dial` was expected. Same mechanism,
+no splash on that route, and every assertion before the press is satisfied by the prerendered
+document. The window widened as predicted: the deep-link route now hydrates the header slot
+and the note as well. Run 2 at `--workers 3` passed 71. The fix is the same one-line wait
+(`await expect(band).toHaveAttribute("data-ready", "true")`) before the press, at both sites.
+
+## 9. `/` is horizontally scrollable by 6px at 320px, and it is the coverflow, not the header (found by 06-11)
+
+Measured on the served build at a 320px viewport in S1, S3 and S4: `document.documentElement.scrollWidth`
+is 326, and `window.scrollTo(100, 0)` lands at `scrollX` 6. The boxes past the viewport's edge
+are the coverflow's pads (`pad-pinwheel` 252..436, `pad-dial` -116..68) under `.band { overflow:
+clip; overflow-clip-margin: 6px; }` in `src/lib/ui/Coverflow.svelte` - Phase 4's full-bleed
+row, whose 6px clip margin contributes exactly the 6px of scrollable overflow (900 reads 906,
+640 reads 646, 1024 reads 1030). The header block's widest right edge at 320 is 296, inside the
+24px gutter, and `/browse/` reads 320 at 320.
+
+**Pre-existing, and not fixed here.** The pre-plan build (`cae767d`'s `FrontDoor.svelte`,
+`browse/+page.svelte` and `DeviceSlot.svelte`) reads the same 326 at 320, so 06-11's header
+neither introduced nor changed it; the plan's "no horizontal scrollbar at 320px" holds for
+everything the plan built and fails for a row it did not touch. `Coverflow.svelte` is not in
+06-11's `files_modified`, and whether the right fix is `overflow-clip-margin: 0`, an
+`overflow-x: clip` on the page, or accepting a 6px scroll on a full-bleed row is Phase 4's
+design call (the pads falling off the edges is "the picture the brief asks for").
+
+**Owner:** unowned. Whoever next edits `Coverflow.svelte`'s `.band` should measure
+`scrollWidth` at 320 before and after, and 06-13's phone-viewport e2e could assert
+`scrollWidth === clientWidth` on `/browse/` today and on `/` once this is decided.
+
 ## Resolved
 
 ### Item 6 - resolved by 06-10
