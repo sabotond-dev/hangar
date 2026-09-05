@@ -53,7 +53,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { session } from "$lib/device/session.svelte";
-  import { CONNECT_LABEL, firmwareText } from "$lib/device/session-copy";
+  import {
+    CONNECT_LABEL,
+    PERMISSION_DECLINED,
+    firmwareText,
+  } from "$lib/device/session-copy";
 
   /** The failure block for the header's label, or null outside a named state. */
   const failure = $derived(session.failureFor(CONNECT_LABEL));
@@ -129,7 +133,7 @@
 
   <dt>permission declined</dt>
   <dd data-testid="session-permission-declined">
-    {session.permissionDeclined}
+    {session.permissionDeclined ? PERMISSION_DECLINED : "none"}
   </dd>
 
   <dt>can forget</dt>
