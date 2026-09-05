@@ -17,7 +17,12 @@
 // every control), steady (the PUT BACK cell's three sizing twins and its 72px
 // floor) and honest about what the confirmation is (a group, never a dialog);
 // the ninth holds that every install sentence on their screens comes from the
-// copy module rather than being retyped in markup.
+// copy module rather than being retyped in markup. Plan 07-10 adds the tenth,
+// over the four components it mounts the leaves into: the honesty slot holds
+// five twins and no literal promising the site never writes, KEEP ON DEVICE is
+// the borderless tier with all six reasons in its 48px cell, the install row
+// is one column with PUT BACK first, and the coverflow's Escape handler asks
+// the install store two questions before it un-chooses.
 //
 // EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
 // These components name in prose the very tokens, specifiers and attributes they
@@ -706,5 +711,141 @@ describe("the device UI's structural rules", () => {
       retyped,
       "an install leaf retypes a sentence in its markup instead of importing it from install-copy",
     ).toEqual([]);
+  });
+
+  it("the honesty slot holds five twins and no never-writes literal, KEEP ON DEVICE is borderless, and the install row is a column", () => {
+    // Plan 07-10. Four components, four shapes, all on comment-stripped code -
+    // TryOnDevice's header names the retired sentences in prose, and this
+    // test would be red on correct code without the strip.
+
+    // FIVE TWINS, AND NEITHER PROMISE. The slot's strings are each rendered
+    // as a `class:twin` line, so counting that marker counts the twins; the
+    // two Phase 4 literals plan 07-10 retired are matched by fragment
+    // needles, assembled so this file never carries them whole.
+    const tryOn = code(componentPath("TryOnDevice.svelte"));
+    expect(
+      occurrences(tryOn, "class:twin="),
+      "the honesty slot renders exactly five sizing twins (Z-06)",
+    ).toBe(5);
+    const NEVER_WRITES = ["never ", "writes"].join("");
+    const NEXT_RELEASE = ["next ", "release"].join("");
+    for (const needle of [NEVER_WRITES, NEXT_RELEASE]) {
+      expect(
+        occurrences(tryOn, needle),
+        `TryOnDevice's code still carries "${needle}" - a Phase 4 promise that the site never writes, beside a control that does`,
+      ).toBe(0);
+    }
+    expect(
+      occurrences(raw(componentPath("TryOnDevice.svelte")), NEVER_WRITES),
+      "TryOnDevice's header no longer names the retired sentence in prose - the strip has nothing to strip here and its reason should be re-examined",
+    ).toBeGreaterThan(0);
+    expect(tryOn, "the slot still reserves the 72px floor").toContain(
+      "min-block-size: 72px",
+    );
+    expect(tryOn, "the click hands the pair to the install store").toContain(
+      "install.tryOnDevice(",
+    );
+    expect(tryOn, "region 3 renders the install blocks").toContain(
+      "<InstallState",
+    );
+
+    // BORDERLESS, 48px, SIX REASONS FROM THE RECORD. The Quiet tier has no
+    // border and no inline padding; the cell reserves two Body lines; and the
+    // reasons are iterated from install-copy's closed record rather than
+    // retyped - the record is named inside an each block, and none of the six
+    // sentences' opening words appears in the code.
+    const keep = code(componentPath("KeepOnDevice.svelte"));
+    const keepControl = rulesOf(keep)
+      .filter((r) => r.selector.includes(".control"))
+      .map((r) => r.body)
+      .join(" ");
+    expect(
+      /border:[ ]*(0|none)[;]/.test(keepControl),
+      "KEEP ON DEVICE declares no border (the Quiet tier, Z-02)",
+    ).toBe(true);
+    expect(keepControl, "and no inline padding").toContain("padding-inline: 0");
+    expect(keep, "the KEEP cell reserves the 48px floor (Z-18)").toContain(
+      "min-block-size: 48px",
+    );
+    expect(
+      /[{]#each[^}]*KEEP_REASONS|KEEP_REASONS[)][^;]*;[^]*[{]#each[ ]+REASONS/.test(
+        keep,
+      ),
+      "the six reasons are iterated from KEEP_REASONS rather than listed",
+    ).toBe(true);
+    for (const opening of [
+      "Available after",
+      "Try it on again",
+      "Not after a",
+      "Kept on your",
+      "This browser cannot",
+    ]) {
+      expect(
+        occurrences(keep, opening),
+        `KeepOnDevice retypes a reason ("${opening}...") instead of iterating the record`,
+      ).toBe(0);
+    }
+    expect(keep, "the enabled line is rendered once").toContain(
+      "{KEEP_LINE_ENABLED}",
+    );
+    expect(keep, "the cell carries its testid").toContain(
+      'data-testid="keep-on-device-line"',
+    );
+
+    // ONE COLUMN, PUT BACK FIRST. The row's rule declares the column, and the
+    // panel mounts PutBack before KeepOnDevice in DOM order.
+    const panel = code(componentPath("ChosenPanel.svelte"));
+    const row = rulesOf(panel)
+      .filter((r) => r.selector.includes(".install-row"))
+      .map((r) => r.body)
+      .join(" ");
+    expect(row, "the install row is a column (Z-03)").toContain(
+      "flex-direction: column",
+    );
+    expect(row, "and no longer a space-between row").not.toContain(
+      "space-between",
+    );
+    const putBackAt = panel.indexOf("<PutBack");
+    const keepAt = panel.indexOf("<KeepOnDevice");
+    const confirmAt = panel.indexOf("<KeepConfirm");
+    expect(putBackAt, "the panel mounts PutBack").toBeGreaterThan(-1);
+    expect(keepAt, "the panel mounts KeepOnDevice").toBeGreaterThan(-1);
+    expect(confirmAt, "the panel mounts KeepConfirm").toBeGreaterThan(-1);
+    expect(
+      putBackAt < keepAt && putBackAt < confirmAt,
+      "PUT BACK is the first cell of the column",
+    ).toBe(true);
+
+    // ESCAPE'S TWO RULES, IN ORDER, ON THE HANDLER ALONE. The handler is
+    // sliced from its key test to the next un-choose, because the file's
+    // first pushState is choose()'s and comes BEFORE the handler - a
+    // whole-file "confirmOpen before pushState" would be red on correct code.
+    const coverflow = code(componentPath("Coverflow.svelte"));
+    const keyTest = 'event.key !== "Escape"';
+    const from = coverflow.indexOf(keyTest);
+    expect(from, "the Escape handler was found").toBeGreaterThan(-1);
+    const to = coverflow.indexOf("unchoose()", from);
+    expect(to, "the handler still un-chooses").toBeGreaterThan(from);
+    const handler = coverflow.slice(from, to);
+    const writingAt = handler.indexOf('install.phase === "writing"');
+    const confirmGuardAt = handler.indexOf("install.confirmOpen");
+    expect(
+      writingAt,
+      "Escape is ignored while the store is writing (Z-10)",
+    ).toBeGreaterThan(-1);
+    expect(
+      confirmGuardAt,
+      "Escape closes the confirmation before it un-chooses (Z-10)",
+    ).toBeGreaterThan(writingAt);
+    expect(
+      occurrences(handler, "pushState"),
+      "the Escape handler pushes no history entry",
+    ).toBe(0);
+    // Non-vacuity for the slice: the file DOES push state, before the handler,
+    // which is why the whole-file ordering check would be wrong.
+    expect(
+      coverflow.indexOf("pushState("),
+      "choose()'s pushState precedes the Escape handler - if it does not, the slice above is no longer load-bearing",
+    ).toBeLessThan(from);
   });
 });
