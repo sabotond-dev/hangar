@@ -17,21 +17,33 @@
   uppercase string. It is not focusable.
 
   AMENDMENT (wave 9, D-19, W-01). The wordmark now shares a flex row with the
-  header's ONE right-hand slot, BrowseLink. The row carries the gutter the
-  wordmark used to carry on its own, so nothing else moves: the headline's 48px
-  top margin is measured from the row and is the same 48px, the section still
+  header's right-hand slot, BrowseLink. The row carries the gutter the wordmark
+  used to carry on its own, so nothing else moves: the headline's 48px top
+  margin is measured from the row and is the same 48px, the section still
   carries no inline padding, and the splash, the choosing, the panel and every
   connect state are untouched. BrowseLink is given the same `covered` value the
   wordmark wears, so the two are absent from the first painted frame together
   and come up together across the dissolve on the same curve.
 
-  Phase 6's device slot will sit in this row beside BrowseLink. It is NOT built
-  here; `justify-content: space-between` on two children is what leaves room for
-  it, and a third child will want a right-hand group rather than a third column.
+  AMENDMENT (Phase 6, plan 06-11). The row's right-hand end is now a CLUSTER of
+  two children - BrowseLink first, then the device slot - so the row itself
+  still has exactly two children, the wordmark and the cluster, and BrowseLink
+  is not edited: its element, its label logic, its treatment, its testid and
+  its place as the first tab stop and the first right-hand child in the DOM are
+  Phase 5.1's, byte for byte. The device slot is the thing that yields
+  (06-UI-SPEC, The collapse ladder): its multi-module tail collapses inside the
+  slot itself below 1024px, and below 640px the header is TWO ROWS - the
+  wordmark and BROWSE ALL on the first, the slot alone and right-aligned on the
+  second. The second row is unconditional, not a state-dependent wrap: at 320px
+  one row would wrap anyway, and WHAT it wrapped would change with the session
+  state, moving the headline and the coverflow at the exact moment a visitor
+  plugged something in. DOM order is unchanged by the layout, so the tab order
+  (BROWSE ALL, then the slot, then the listbox) does not move with it.
 
-  The tab order therefore begins at the slot: it is site navigation and it is
-  first in the DOM. Everything after it is Phase 4's order, byte for byte -
-  listbox, arrows, name, TRY ON DEVICE, the panel.
+  Both device children take `covered` from the wordmark's own value, so the slot
+  is absent from the very first painted frame and rises with the wordmark, and
+  `panelOwnsProse` from the coverflow's "an entry is chosen" state - read from
+  page.state exactly as Coverflow.svelte reads it (Y-11).
 
   The section carries no inline padding. The gutter belongs to the header row
   and the headline; the coverflow row is full-bleed on purpose, because pads
@@ -40,10 +52,12 @@
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
+  import { page } from "$app/state";
   import { untrack } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
   import BrowseLink from "./BrowseLink.svelte";
   import Coverflow from "./Coverflow.svelte";
+  import DeviceSlot from "./DeviceSlot.svelte";
   import Splash from "./Splash.svelte";
 
   let {
@@ -89,6 +103,13 @@
    * full strength at the moment the flying mark lands on it.
    */
   let covered = $state(untrack(opensWithSplash));
+
+  /**
+   * The chosen panel is open and owns the session's prose (Y-11). The same
+   * source Coverflow.svelte reads for its own `chosen`, so the header and the
+   * row cannot disagree about whether a panel is up. `{}` during prerender.
+   */
+  const panelOwnsProse = $derived(page.state.chosen === true);
 </script>
 
 <section class="front-door" data-testid="front-door" data-splash={splash}>
@@ -96,7 +117,12 @@
     <h1 class="wordmark" class:covered>
       <span data-testid="header-wordmark">HANGAR</span>
     </h1>
-    <BrowseLink {covered} />
+    <div class="cluster">
+      <BrowseLink {covered} />
+      <div class="slot">
+        <DeviceSlot {covered} {panelOwnsProse} />
+      </div>
+    </div>
   </div>
   <p class="headline">You’ve got to start somewhere…</p>
   <div class="row"><Coverflow {row} {initialId} {notice} /></div>
@@ -124,8 +150,9 @@
     The header row. The gutter that used to sit on the wordmark now sits here,
     so the wordmark's left edge and the headline's left edge are still the same
     32px from the viewport - nothing moved sideways. min-block-size is the 44px
-    touch floor for the slot on the right; the wordmark is 12px of Micro and
-    would otherwise set the row's height at about 14px.
+    touch floor for the two controls on the right; the wordmark is 12px of
+    Micro and would otherwise set the row's height at about 14px. Exactly two
+    children: the wordmark and the cluster.
   */
   .header {
     display: flex;
@@ -137,6 +164,22 @@
   .header,
   .headline {
     padding-inline: 32px;
+  }
+
+  /* The right-hand cluster: BROWSE ALL, 24px, then the device slot. */
+  .cluster {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  /*
+    The slot's own cell in the cluster. It exists so the phone layout below can
+    place the slot on its own row without reaching into DeviceSlot's markup;
+    at every width it is just the box the slot sits in.
+  */
+  .slot {
+    display: flex;
   }
 
   /* Micro role: 12px / 600 / 0.18em / uppercase. */
@@ -189,6 +232,35 @@
     .header,
     .headline {
       padding-inline: 24px;
+    }
+
+    /*
+      TWO ROWS, ALWAYS (06-UI-SPEC Y-04). The row becomes a two-column grid:
+      the wordmark and BROWSE ALL on the first row, the device slot alone on
+      the second, right-aligned. The cluster dissolves into the grid
+      (display: contents) so its two children place themselves - BROWSE ALL
+      falls into the one free cell of the first row by auto-placement, and the
+      slot is placed explicitly across the second. The DOM is untouched, so
+      the tab order is untouched. Each row keeps the 44px floor.
+    */
+    .header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-auto-rows: minmax(44px, auto);
+      align-items: center;
+    }
+
+    .cluster {
+      display: contents;
+    }
+
+    .wordmark {
+      grid-area: 1 / 1;
+    }
+
+    .slot {
+      grid-area: 2 / 1 / 3 / 3;
+      justify-self: end;
     }
   }
 </style>

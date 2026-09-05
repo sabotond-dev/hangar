@@ -105,6 +105,7 @@
     slotStateOf,
   } from "$lib/device/session-copy";
   import DeviceMark from "./DeviceMark.svelte";
+  import DeviceDetails from "./DeviceDetails.svelte";
 
   let {
     covered = false,
@@ -324,6 +325,7 @@
     </span>
   </button>
   <span id={descId} class="sr-only">{description}</span>
+  <DeviceDetails {open} {panelOwnsProse} onclose={() => (open = false)} />
 </div>
 
 <style>
