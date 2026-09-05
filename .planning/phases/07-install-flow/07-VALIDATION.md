@@ -198,7 +198,7 @@ Standing gates that must be green at the phase gate and are **not** edited: `src
 | Suite | Threshold | If exceeded |
 |---|---|---|
 | `src/lib/device/*.spec.ts` | none stated — the four new files are pure node over `FakeTransport`, fake timers and a Map-backed storage; `wire-pin.spec.ts` compiles every catalog entry once behind `padReady()` (WASM, ~1 s cold) | record the wall time; do not trim entries from the pin |
-| `e2e/install.e2e.ts` | none stated; two tests wait out a 3000 ms `pagestoreMs` timeout and one waits 2000 ms for the slow line, so the file costs roughly 15–25 s on `chromium` | record the wall time; do not shorten the timeouts under test — they are the shipped constants |
+| `e2e/install.e2e.ts` | none stated; two tests wait out a 3000 ms `pagestoreMs` timeout three times per leg and one waits 2000 ms for the slow line, so the file costs roughly 25–40 s on `chromium`; 07-08's test 6 (~19 s of retries) and 07-12's test 10 are `test.slow()` against Playwright's default 30 s per-test budget, which `playwright.config.ts` leaves unset | record each slow test's wall time; do not shorten the timeouts under test — they are the shipped constants |
 | `npm run test:sweep` | **unchanged.** This phase adds no `*.sweep.spec.ts` | if it moves, something was misfiled |
 
 ---
@@ -210,7 +210,7 @@ ten, each with a qualifier that must appear in 07-13's SUMMARY and in the tracea
 
 | Requirement | Closed by | Qualifier |
 |---|---|---|
-| SAFE-01 | 07-13 | Zero config writes without a click, **by class**, in node (`install.spec.ts` 4) and in a browser (`install.e2e.ts` 1); every write attributable to one of three clicks; the session's source scan still clean; the connect surface's sentence in the present tense (07-10) |
+| SAFE-01 | 07-13 | Zero config writes without a click, **by class**, in node (`install.spec.ts` 4) and in a browser (`install.e2e.ts` 1); every write attributable to one of three clicks; the session's source scan still clean; both never-writes surfaces in the present tense - the header note's `SAFE_PROMISE` amended in 07-04, the panel's two literals retired in 07-10 |
 | SAFE-02 | 07-13 | Primary full-width accent; `KEEP ON DEVICE` in the Quiet tier a hairline, a region and `PUT BACK` away; live only after a settled try-on (Z-05). **RAM-only on hardware is runbook row D** |
 | SAFE-03 | 07-13 | Snapshot before any control enables, in the gated order (`fetch-serial`, `fetch-setup`, `fetch-timer`, `canWriteBack`, memory, then storage); `PUT BACK` one click from every state with a session. **Row C is user-pending** |
 | SAFE-04 | 07-13 | The record keyed by serial and page, never overwritten, surviving a throwing store; **the key is wire-unproven** — `SERIALNUMBER/FETCH` is source-verified and no capture holds it; the session-only degrade is honest and tested. **Rows A and F are user-pending; a failed row A closes SAFE-04 as partially verified, not as a lie** |
@@ -250,7 +250,7 @@ ten, each with a qualifier that must appear in 07-13's SUMMARY and in the tracea
 | 07-03-02 | 03 | 3 | SAFE-05, SAFE-08 | type + measured | `npm run check` `0 errors`; zero specifiers; fourteen lengths recorded under their caps | created here | ⬜ pending |
 | 07-03-03 | 03 | 3 | SAFE-05, SAFE-08 | unit | `... install-copy.spec.ts` **6**; the scripted match's OK/MISS list; quick +2 / +13 | created here | ⬜ pending |
 | 07-04-01 | 04 | 4 | SAFE-01 | source | `session.spec.ts` **17** green **unedited**; exactly four `from "`; `.write(` zero, `write.bind(` once | exists | ⬜ pending |
-| 07-04-02 | 04 | 4 | SAFE-04, SAFE-09 | unit | `... session-copy.spec.ts` **6** with test 5 rewritten; five measured lengths; test 1 still zero specifiers | exists | ⬜ pending |
+| 07-04-02 | 04 | 4 | SAFE-04, SAFE-09 | unit | `... session-copy.spec.ts` **6** with test 5 rewritten (`REVOKE_EXPLANATION` and `SAFE_PROMISE`); six measured lengths, `SAFE_PROMISE` 88; test 1 still zero specifiers | exists | ⬜ pending |
 | 07-04-03 | 04 | 4 | SAFE-01, SAFE-09 | unit | `... session.spec.ts` **21**; test 15 unedited; quick +0 / +4 | exists | ⬜ pending |
 | 07-05-01 | 05 | 5 | SAFE-07 | unit | `... model.spec.ts` **10**; stale count equals undefined-emit count | exists | ⬜ pending |
 | 07-05-02 | 05 | 5 | SAFE-02 | source | `tune-ui.spec.ts` **5**, `config-shape.spec.ts` **14**; no new `from` specifier in the three components | exists | ⬜ pending |
@@ -298,7 +298,7 @@ planning time (Playwright's `$lib` resolution).
       `flash` + `powerCycle`, `rigResponder` → **07-02**
 - [ ] `src/lib/device/snapshot.ts` + `snapshot.spec.ts` → **07-03**
 - [ ] `src/lib/device/install-copy.ts` + `install-copy.spec.ts` → **07-03**
-- [ ] `src/lib/device/session.svelte.ts` gains six members; `session-copy.ts` five strings;
+- [ ] `src/lib/device/session.svelte.ts` gains six members; `session-copy.ts` six string changes (`SAFE_PROMISE` amended);
       `session.spec.ts` +4; `session-copy.spec.ts` test 5 rewritten → **07-04**
 - [ ] `src/lib/tune/model.ts` `onconfig`; `TuningRegion` / `Coverflow` / `TryOnDevice` threading;
       `wire-pin.spec.ts` → **07-05**
@@ -381,7 +381,7 @@ committing.
 | 07-04 | `session.spec.ts` 19 | let the view pass `onData` through |
 | 07-04 | `session.spec.ts` 20 | fire `"closed"` from `disconnect()` unconditionally |
 | 07-04 | `session.spec.ts` 21 | drop the `!this.writeLock` guard on the unplug utterance |
-| 07-04 | `session-copy.spec.ts` 5 / 6 | Phase 6's old `REVOKE_EXPLANATION`; collapse the writing form; an ASCII apostrophe |
+| 07-04 | `session-copy.spec.ts` 5 / 6 | Phase 6's old `REVOKE_EXPLANATION`; Phase 6's old `SAFE_PROMISE`; collapse the writing form; an ASCII apostrophe |
 | 07-05 | `model.spec.ts` 9 | remove `onconfig?.(undefined)` from `moveTo`; emit from `emit()` instead of `land()` |
 | 07-05 | `wire-pin.spec.ts` 1 / 3 | compress inside `land()`; pass a non-zero reserve |
 | 07-06 | `install.spec.ts` 3 / 4 / 6 / 7 | persist before `canWriteBack`; swap the writes; take the fetch over the record; remove the `finally`'s restore; proceed on `undefined` — **observed as a write** |
