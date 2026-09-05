@@ -385,7 +385,7 @@ committing.
 | 07-05 | `model.spec.ts` 9 | remove `onconfig?.(undefined)` from `moveTo`; emit from `emit()` instead of `land()` |
 | 07-05 | `wire-pin.spec.ts` 1 / 3 | compress inside `land()`; pass a non-zero reserve |
 | 07-06 | `install.spec.ts` 3 / 4 / 6 / 7 | persist before `canWriteBack`; swap the writes; take the fetch over the record; remove the `finally`'s restore; proceed on `undefined` — **observed as a write** |
-| 07-07 | `install.spec.ts` 9 / 10 / 13 / 14 / 18 | skip `#nextHeartbeat()`; a fourth round; `armed` from `partial`; retry a NACK; escalate on a NACK; `setInterval` for the slow line |
+| 07-07 | `install.spec.ts` 9 / 10 / 13 / 14 / 17 / 18 | skip `#nextHeartbeat()`; a fourth round; `armed` from `partial`; retry a NACK; escalate on a NACK; `setInterval` for the slow line; `enabled` on a remembered module with no snapshot (test 17) |
 | 07-08 | `config-shape.spec.ts` 12 | the probe path in `src/routes/+page.svelte` |
 | 07-08 | `install.e2e.ts` 3 | remove the responder's `mismatchRefetch` handling |
 | 07-09 | `config-shape.spec.ts` 13 | `$lib/transport` in `PutBack.svelte` (direct); `$lib/transport/sequence` in `install.svelte.ts` (walk); `$lib/protocol` in `install-copy.ts` (walk, and `install-copy.spec.ts` 1) |

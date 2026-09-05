@@ -115,8 +115,10 @@ how the module is reached (Phase 6 owns the session).
   module's post-store page reload takes (the D-12 re-fetch waits for the first heartbeat after the
   PAGESTORE ACK before fetching, and re-fetches for up to three bounded rounds per 07-RESEARCH
   Pitfall 6 — reconciled after the UI checker's second pass); and whether 0 ms pacing survives two back-to-back
-  957-byte writes (the write path uses the desktop 10 ms pacing Phase 2 kept as a toggle, and the
-  runbook measures 0 ms).
+  957-byte writes (the write path ships 0 ms pre-send and escalates to the desktop's 10 ms on a write
+  timeout with no NACK, per 07-RESEARCH Pitfall 3, and the runbook records whether the escalation ever
+  fired — amended after plan check 2: the clause first read the reverse, and the 0 ms-then-escalate
+  design stands).
 
 ## Deferred / out of scope
 Firefox-specific install copy beyond Phase 6's; Android WebUSB / iOS transports; writing to any
