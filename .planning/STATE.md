@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-02-PLAN.md — Phase 6 wave 2 landed; every session string, the nine-state table and capabilityOf now live in one import-free module
-last_updated: "2026-09-05T02:05:00.000Z"
+stopped_at: Completed 06-03-PLAN.md — Phase 6 wave 3 landed; the light seam and the session up to identification, with exactly four static specifiers and eight node gates
+last_updated: "2026-09-05T02:31:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 70
-  completed_plans: 57
-  percent: 81
+  completed_plans: 59
+  percent: 84
 ---
 
 # Project State
@@ -26,19 +26,19 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 06
-Plan: 02 of 14 complete — next is 06-03 (the light seam, and the session up to identification)
-Status: Phase 6 wave 2 landed. `src/lib/device/session-copy.ts` now holds every visitor-facing session string of the approved Copywriting Contract, the seventeen-phase `SessionPhase` union, `slotStateOf` as a switch with NO `default`, the nine named states as a closed countable list, and `capabilityOf` — moved out of `try-on.ts` (which re-exports it, unedited callers and all) so the capability is decided synchronously in the first hydrated frame and the 152px header note never appears and then vanishes. The module carries ZERO import specifiers, which is what lets a header component name it on the first paint of `/`. One sentence of the contract is deliberately NOT written — the managed-computer `about:policies` line, which needs a signal that does not exist without a user-agent read — and the omission is a gate: session-copy.spec.ts test 6 fails on any exported string containing `about:` and on any export name containing MANAGED, both halves observed red. The tree stands at 67 files / 700 unit tests + 1 todo, sweep `3 13`, e2e 61 (not re-run; nothing here is browser-reachable), svelte-check 519 files 0 errors, lint clean. Phase 5.1 remains complete (11 of 11) and awaiting verification and the first deploy of the browse surface; Phase 5 likewise (12 of 12).
+Plan: 03 of 14 complete — next is 06-04 (the listener pair, the replug adoption, the watchdog, forget(), zero writes)
+Status: Phase 6 wave 3 landed. `src/lib/device/session.svelte.ts` is the D-05 store: `DeviceSession` exported beside the `session` singleton, `phase` initialised to `starting`, scalars and `$state.raw` snapshots only, and EXACTLY four static `from` specifiers (`./session-copy`, `$lib/protocol/usb`, `$lib/transport/ports`, `$lib/transport/transport`) none of which reaches the protocol package — so the capability, the granted-port offer and every failure sentence run with no dynamic import and `failureFor()` is synchronous for all nine named states. The seam that makes that possible is two pure moves, re-exported from their old homes: `ZONA_USB` into an import-free `src/lib/protocol/usb.ts`, and `grantedZonaPorts` / `portIsAttached` into `src/lib/transport/ports.ts` beside a new `isZonaPort`. `start()` is synchronous and never opens a port; `connect()` has the `#busy` guard and `requestPort()` as its first statement inside a `try`; `#refuse` maps the taxonomy onto phases with `NotAllowedError` as `cancelled` plus `permissionDeclined`; `not-zona` and `silent` close the port. Eight node tests drive the whole machine through a fake serial and a fake port, including the double click, the synchronously thrown activation failure and the rig with no ZONA, with four negative checks observed red. 06-04 fills in `#attachListeners`, the watchdog and `forget()` in the same file. The tree stands at 68 files / 708 unit tests + 1 todo, sweep `3 13`, e2e 61 (not re-run; nothing renders the session yet), svelte-check 523 files 0 errors, lint clean. Phase 5.1 remains complete (11 of 11) and awaiting verification and the first deploy of the browse surface; Phase 5 likewise (12 of 12).
 Last activity: 2026-09-05
 
-Progress: [████████░░] 83% (58 of 70 plans — the denominator now includes Phase 6's 14; Phase 7's count is still TBD)
+Progress: [████████░░] 84% (59 of 70 plans — the denominator now includes Phase 6's 14; Phase 7's count is still TBD)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 58
+- Total plans completed: 59
 - Average duration: 24 min
-- Total execution time: 23.6 hours
+- Total execution time: 24.0 hours
 
 **By Phase:**
 
@@ -50,16 +50,17 @@ Progress: [████████░░] 83% (58 of 70 plans — the denominat
 | 04 | 9 | 214 min | 24 min |
 | 05 | 12 | 307 min | 26 min |
 | 05.1 | 11 | 366 min | 33 min |
-| 06 | 2 | 47 min | 24 min |
+| 06 | 3 | 71 min | 24 min |
 | 08 | 8 | 184 min | 23 min |
 
 **Recent Trend:**
 
-- Last 5 plans (05.1-09 to 06-02): 42, 47, 30, 22, 25 min
-- Trend: still falling. 06-01 is the cheapest plan since 05.1-03, and for the same reason 05.1-11 was cheap: it discovered almost nothing. Two four-line source edits against modules Phase 2 and Phase 4 had already shaped, three tests, three observed negative checks. The expensive half was measurement — a full check, quick, sweep, build and Playwright run on a clean tree before any edit — which is wall time rather than thinking.
+- Last 5 plans (05.1-10 to 06-03): 47, 30, 22, 25, 24 min
+- Trend: flat at the phase's average. 06-03 wrote the phase's largest file (553 lines of session, 589 of spec) in 24 minutes, because 06-01 and 06-02 had already measured the ground and placed the copy: the four static specifiers were verified by reading, the taxonomy was already import-free, and every fixture the spec needed (the capture, `heartbeatFrame`, `FakeTransport.fromCapture`) already existed. The eight tests and four negative checks were green or red on the first run each; the four tool-caught issues (a readonly array, a dead assignment, the chunk's third specifier, the vacuous barrel check) each cost one run.
+- Previous note, retained: 06-01 is the cheapest plan since 05.1-03, and for the same reason 05.1-11 was cheap: it discovered almost nothing. Two four-line source edits against modules Phase 2 and Phase 4 had already shaped, three tests, three observed negative checks. The expensive half was measurement — a full check, quick, sweep, build and Playwright run on a clean tree before any edit — which is wall time rather than thinking.
 - Previous note, retained: high and flat through the integration waves, then down at the gate. 05.1-11 is the cheapest plan since 05.1-05 for a reason worth keeping: it wrote no new source at all. Three e2e tests, one new e2e file and one document, against components and pure modules the nine plans before it had already gated in node - so nothing had to be discovered, only observed. The two negative checks it did run (the D-18 revert and the removed tag) each cost one build and one targeted run rather than an investigation.
 
-*Recomputed by hand at the close of Phase 5.1 from the per-plan table below (56 plans, 1,369 minutes) and again by hand after 06-01 (57 plans, 1,391 minutes) and after 06-02 (58 plans, 1,416 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the 05.1 phase deferred-items.md item 8.*
+*Recomputed by hand at the close of Phase 5.1 from the per-plan table below (56 plans, 1,369 minutes) and again by hand after 06-01 (57 plans, 1,391 minutes), after 06-02 (58 plans, 1,416 minutes) and after 06-03 (59 plans, 1,440 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the 05.1 phase deferred-items.md item 8.*
 
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 3 tasks | 22 files |
@@ -120,6 +121,7 @@ Progress: [████████░░] 83% (58 of 70 plans — the denominat
 | Phase 05.1 P11 | 30 min | 3 tasks | 6 files |
 | Phase 06 P01 | 22 min | 3 tasks | 4 files |
 | Phase 06 P02 | 25 min | 3 tasks | 4 files |
+| Phase 06 P03 | 24 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -352,6 +354,9 @@ Recent decisions affecting current work:
 - [Phase 06]: A racing open() is its own OpenFailure member (`already-open`) but NOT a tenth UI state: it renders through the `unknown` row's title with one sentence — `HANGAR is already connecting — one moment.` — and NO steps, because the failure is a bug in this site and there is nothing for the visitor to do. `raw` is deliberately not interpolated. The spec binds it to `unknown` by comparing the two titles rather than repeating a literal
 - [Phase 06]: transport.ts's no-engine-name invariant fires on COMMENTS, not only on copy: the first draft of the InvalidStateError comment said "the two message strings above are Chromium's" and turned the existing transport.spec.ts test 6 red on `expect(transportSource()).not.toContain("Chromium")`. The comment now says "the browser's own"; serial_port.cc line citations are fine, they name a file
 - [Phase 06]: The not-zona refusal names the module reporting heartbeat type 1 (grid_decode.c:695-700, the same rule identify() uses), never seen[0] — arrival order on a chained rig names an arbitrary module. The synthetic rig test needed a FOURTH module type beyond the plan's three (PO16 RevH hwcfg 3, verified against grid.module_hwcfgs()) so that "it named the type-1 module" and "it named whichever arrived first" cannot be satisfied by the same string; the negative check names EN16 and the positive names PO16
+- [Phase 06]: session.svelte.ts has EXACTLY four static `from` specifiers — `./session-copy`, `$lib/protocol/usb`, `$lib/transport/ports`, `$lib/transport/transport` — and the fourth is what makes failureFor() synchronous for all nine named states: transport.ts was READ and has zero imports, so the taxonomy and its copy are static and `unsupported` / `insecure` render their sentence in the same frame with nothing fetched. The seam is two pure moves re-exported from their old homes (ZONA_USB into an import-free usb.ts; grantedZonaPorts and portIsAttached into ports.ts beside the new isZonaPort). The heavy chunk is fetched from ONE memoised loader with THREE specifiers ($lib/protocol is needed for BAUD_RATE, READ_BUFFER_SIZE and IDENTIFY_WINDOW_MS), reached only from the open path after the chooser
+- [Phase 06]: grantedZonaPorts takes an optional serial surface defaulting to navigator.serial AT CALL TIME: the plan's #offerGranted calls it by name, but a function that reads the global cannot run in node, and the session's whole test surface depends on an injected getPorts. Module scope still touches no global, so the prerenderer never sees a navigator, and every zero-argument caller is unchanged
+- [Phase 06]: The session's serial surface (SerialLike) and transport factory (openTransport) are injected through start(env), with every unset field filled from the browser's globals; every node test builds its own `new DeviceSession()` and the exported singleton is never imported by a test, so no phase, port or guard leaks between tests and no reset hook exists. #teardown closes the transport, then the port only if `readable` is non-null, and never clears #port (forget() needs the object); on the unplugged open failure the dead port IS dropped so the next click goes back through the chooser
 
 ### Pending Todos
 
@@ -368,6 +373,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T02:05:00.000Z
-Stopped at: Completed 06-02-PLAN.md — Phase 6 wave 2; next is 06-03 (session.svelte.ts, the light seam), which inherits PREV_FILES / PREV_TESTS of 67 / 700, carries all five names forward, initialises `phase` to `starting` (slot state S1) and maps the `already-open` OpenFailure key onto the `unknown` phase
+Last session: 2026-09-05T02:31:00.000Z
+Stopped at: Completed 06-03-PLAN.md — Phase 6 wave 3; next is 06-04 (the listener pair, the replug adoption, the watchdog, forget(), zero writes, all in session.svelte.ts), which inherits PREV_FILES / PREV_TESTS of 68 / 708, carries all five names forward, fills in the empty #attachListeners, stores MODULE_GONE_MS from the module #openAdopted already awaits, imports isZonaPort from $lib/transport/ports for the connect handler, and takes session.spec.ts from 8 to 15 using the fakePort / fakeSerial helpers (listeners kept in a Map by type)
 Resume file: None
