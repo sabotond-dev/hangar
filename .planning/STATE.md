@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 06-14-PLAN.md — Phase 6's last plan and its gate. docs/SESSION-RUNBOOK.md written (six hardware rows A to F with Do this / Passes when / why a machine cannot / Pass, the two warnings, the file:// trap, both ways of opening the page, the nine named states one line each, what to hand back; no engine named). The phase gate run once against the production build at aca8227 and green first time: svelte-check 533 files 0 errors, lint exit 0, build exit 0, quick 69 / 724 (= BASE_FILES 66 + 3 / BASE_TESTS 691 + 33), sweep 3 13, e2e 77 at --workers 3 (= BASE_E2E 61 + 16, 67 chromium + 10 webkit-phone), every per-file count as the plan quoted. docs/TESTING.md re-measured end to end (deferred item 1 resolved) with a new section on the device session's test surface and the fake serial's limits, naming SESSION-RUNBOOK as the hardware half. CONN-01..08 closed in REQUIREMENTS.md with their qualifiers; SAFE-01 and DEGR-02 explicitly left to Phase 7. deferred-items.md gained items 11-14 (BroadcastChannel second-tab detector, idle-timeout close, staleness signal, recorded-not-gated measurements) and notes on 1, 5, 7, 8 (owner passes to Phase 7), 9, 10 and two spec errata. THE HARDWARE CHECKPOINT (task 3) IS PRESENTED TO THE USER AND UNANSWERED; Phase 6 success criteria 3, 4 and 5 are verified-by-user-pending
-last_updated: "2026-09-05T10:10:00.000Z"
+status: ready-to-execute
+stopped_at: "Completed 06-14-PLAN.md — Phase 6 wave 14 and the phase gate: docs/SESSION-RUNBOOK.md (aca8227), the gate green first time against the production build (quick 69 / 724, sweep 3 13, e2e 77 at --workers 3, svelte-check 533 / 0 errors), docs/TESTING.md re-measured with the device session's test surface, CONN-01..08 closed with qualifiers, deferred items 11-14 recorded. The hardware checkpoint (task 3, six runbook rows) is PRESENTED to the user and UNANSWERED - the user runs it personally, in the daytime, with a real ZONA. Next: the user's row results, or Phase 7's 07-01"
+last_updated: "2026-09-05T10:07:08.011Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 70
+  total_plans: 83
   completed_plans: 70
   percent: 100
 ---
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 
 ## Current Position
 
-Phase: 06
-Plan: 14 of 14 complete — Phase 6 is at its gate. The hardware checkpoint (06-14 task 3, docs/SESSION-RUNBOOK.md rows A to F) is PRESENTED to the user and UNANSWERED; next is Phase 7 (07-01, which re-measures the five baselines with Phase 6 closed)
+Phase: 07
+Plan: Not started
 Status: Phase 6 is at its gate, and the gate is green. Everything a machine can check about the device session is checked in one run against the bytes that would be deployed: 724 unit tests (69 files), 13 sweep tests, 77 browser tests in two engines at --workers 3 including a scripted navigator.serial that walks every one of the nine named states, the insecure branch rendered for the first time, the degrade header on a phone-sized WebKit, the replug that hands back a different port object, and zero writes across a whole visit; svelte-check 533 files with 0 errors. The phase's arithmetic reconciles with 06-01's clean-tree baseline exactly (+3 files, +33 tests, sweep unchanged, +16 e2e) and no number was adjusted to fit. CONN-01 to CONN-08 are closed with the qualifier each earned; CONN-04, CONN-06 and CONN-07 each carry a hardware half that is docs/SESSION-RUNBOOK.md rows C, A-B and D. SAFE-01 and DEGR-02 are NOT closed - Phase 7's - though the header obeys both. What is NOT done, and is not claimed: the six-row hardware checklist has been presented to the user and is unanswered. Nobody has connected a real ZONA through the session, seen the grant survive a browser restart on any origin, unplugged a cable, asked Grid Editor to hold the port, attached a second module, or clicked FORGET THIS ZONA against a real browser profile. Phase 6's success criteria 3, 4 and 5 are verified-by-user-pending. Phase 7 (07-01) may begin; it does not need the checkpoint answered to re-measure its baselines, but its first real write does need rows A to E to have been run
 Last activity: 2026-09-05
 

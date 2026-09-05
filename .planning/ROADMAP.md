@@ -211,7 +211,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 07-01-PLAN.md — Phase 6 closed, the five baselines, the fifth descriptor and its key (wave 1)
+- [x] 07-01-PLAN.md — Phase 6 closed, the five baselines, the fifth descriptor and its key (wave 1) (completed 2026-09-05)
 - [ ] 07-02-PLAN.md — One writer for three clicks, the storeAllowed throw undone by name, the fake ZONA that refuses (wave 2)
 - [ ] 07-03-PLAN.md — snapshot.ts and install-copy.ts, each importing nothing, with the caps asserted (wave 3)
 - [ ] 07-04-PLAN.md — The session's seams: the write view, onClass, onConnection, announce, writeLock (wave 4)
