@@ -470,11 +470,13 @@ two-event RAM write plus the restore heartbeat lands inside **two frames at 60 H
    (21.6 ms), reachable only through the bounded retries; on a store leg it is roughly **50×** the
    slowest `PAGESTORE/ACKNOWLEDGE` ever observed (38.7 ms), and it sits **below** the shipped 3000 ms
    `pagestoreMs` timeout **on purpose** — the line says the module is still busy, not that anything
-   failed, and only the timeout produces a failure (I11, I12). [Post-approval amendment, plan check 2:
-   in practice the 2000 ms line is a store-leg feature. A RAM leg's bounded retries — three attempts
-   at `executeMs` 250 with 120/240 ms backoff, per event — max out at roughly 1,970 ms plus link
-   latency before ending `nothing-landed`, so the line fires only on a `PAGESTORE` leg, whose single
-   attempt runs to 3000 ms.]
+   failed, and only the timeout produces a failure (I11, I12). [Post-approval amendment, plan check 2,
+   revised in plan check 3: in practice the 2000 ms line is a store-leg feature. A RAM leg's bounded
+   retries — three attempts at `executeMs` 250 with 120/240 ms backoff, per event — end
+   `nothing-landed` at roughly 1,110 ms, and the worst-case `partial` (the Timer landing on its third
+   attempt at about 860 ms, then the Setup exhausting its three, 1,110 more) at roughly 1,970 ms,
+   which plus two acknowledgement latencies can brush 2000; so in practice the line fires on a
+   `PAGESTORE` leg, whose single attempt runs to 3000 ms.]
 8. **The live region speaks at most twice during `writing`:** `Still writing.` at 2000 ms if the leg
    is still in flight, and once on the outcome. Otherwise silent.
 9. **`Escape` is ignored while `writing`** — it neither closes the confirmation nor un-chooses the
