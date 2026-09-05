@@ -197,3 +197,53 @@ temporary probe mount). A real module beats at 4 Hz, so nothing on hardware is a
 07-12's rig test (`delayAckMs` / `rig`, `zona.script()`) pushes a ZONA heartbeat after the rig's.
 
 **Owner:** 07-12's test authoring; no code.
+
+## 14. The panel's `DISCONNECT ZONA` is disabled while `writing` with no inline reason (found by 07-10)
+
+07-UI-SPEC I3 rule 10 and Z-15 lock the HEADER's `DISCONNECT ZONA` and `FORGET THIS ZONA` while
+`writing`, with `WRITE_LOCK_REASON` inline; they say nothing about the panel's `DISCONNECT ZONA`, which
+Phase 4 put at the end of region 3's connected block and which calls the same `session.disconnect()`,
+a method with no write-lock guard of its own. Pulling the port from the panel under a RAM write is the
+same hazard as from the header, so 07-10 made the panel's control a real `disabled` while
+`install.phase === "writing"` (Rule 2) - but WITHOUT a reason line, because I3 rule 4 says nothing in
+region 3 changes during a write beyond `aria-busy`, and the write settles inside two frames. DEGR-02's
+letter (a disabled control has its reason adjacent) is therefore not met for this one control for the
+duration of a write.
+
+**Owner:** 07-11, which owns the header lock, decides whether the panel's control gets the same inline
+reason or stays protective-only, and records the decision; one attribute either way.
+
+## 15. Negative check "the `space-between` row shows two sentences side by side" is unobservable with Phase 5's exact rule at 372px (found by 07-10)
+
+07-10's plan asks to "leave the row as `space-between` and observe the two sentences side by side at
+about twenty characters a line". With Phase 5's exact rule (`display: flex; flex-wrap: wrap; gap: 8px;
+justify-content: space-between`) at the 372px column, the cells did NOT sit side by side: `flex-wrap`
+engages before `flex-shrink`, because each cell's max-content width (its 71-, 82- or 68-character
+sentence) exceeds the line, so `KEEP ON DEVICE` (top 1384.39) and `COPY LINK` (top 1492.39) stacked
+and the keep cell was 370px wide - Z-03's "column pretending to be a row", observed. The reading the
+plan wanted needed `flex-wrap: nowrap`: then both controls sat on one line (tops 1384.39 and 1384.39),
+the keep cell was 200px wide and 96px tall - four Body lines of 24px for an 82-character sentence,
+about twenty characters a line. Both readings are in 07-10-SUMMARY.md; the shipped column is unchanged.
+Re-observed by the executor that completed the plan, on a second mutated build with a snapshot in hand so
+all three cells were in the row: wrapping, the three stacked at 0 / 132 / 240 from the row's top with the
+keep cell 370px wide and 48px tall; forced `nowrap`, all three sat on one line (`PUT BACK` 108.8,
+`KEEP ON DEVICE` 110.1, `COPY LINK` 101.9 wide) and the 82-character keep line ran to seven Body lines,
+168px - about twelve characters a line. The same defect with one cell more.
+
+**Owner:** none; no code. Recorded so the check is not read as skipped, and so the next plan that
+reasons about the row knows which of the two defects Phase 5's rule actually had at 372px (stacking
+with an 8px rhythm, not side-by-side crowding).
+
+## 16. Items 6, 11 and 12 closed by 07-10 (noted by 07-10)
+
+Item 6: `TryOnDevice.svelte` binds `config`, observes it into the install store (untracked) and the
+`svelte/no-unused-props` directive is gone; `npm run lint` exit 0. Item 11: the confirmation leaves
+INSTANTLY, by decision - a leaving fade would keep `keep-confirm-yes` on the screen for 160ms beside
+the re-rendered `keep-on-device` (the never-both rule broken for exactly the interval a speech command
+could land in) and would put a ghost of the block under a control that already has focus; no
+`transition:` directive was added. Item 12: `npm run test:quick` on the clean tree before any edit read
+73 files / 774 passed / 1 todo in 29.6 s with no timeout (`lua-entries.spec.ts` test 6 included), and
+73 / 775 in 32.9 s after this plan; the timeout did not reproduce on a quiet machine. The item's owner
+is unchanged should it recur under load.
+
+**Owner:** none; closed.
