@@ -16,8 +16,9 @@
 // NO AGENT WRITES TO A DEVICE. Every byte this file sends lands in
 // FakeTransport.writes, through the store's one RequestQueue, and every one of
 // them is attributable to a named click below (D-11): connect and the snapshot
-// write zero CONFIG/EXECUTE, TRY ON DEVICE writes two, PUT BACK writes two.
-// Nothing here opens a port.
+// write zero CONFIG/EXECUTE, TRY ON DEVICE writes two, PUT BACK writes two and
+// - after a keep - one PAGESTORE/EXECUTE, KEEP ON DEVICE writes one
+// PAGESTORE/EXECUTE. Nothing here opens a port.
 //
 // THE TEE. FakeTransport has no public rx injection - only fromCapture and the
 // responder - so the session is handed a tee: an object implementing
@@ -25,27 +26,47 @@
 // whose onData(cb) keeps cb and registers on the fake a forwarder into it, and
 // which exposes push(frame) calling that same cb. So a pushed heartbeat and the
 // responder's replies both reach the ONE callback the session registers, and
-// the fake keeps its faults, which 07-07 needs. (session.spec.ts's pushable()
-// bus beside a responder would lose the faults.)
+// the fake keeps its faults, which the flash-leg gates need. (session.spec.ts's
+// pushable() bus beside a responder would lose the faults.) The tee also logs
+// every frame it delivered, decoded - so a rig's three acknowledgements to one
+// store can be counted - and the clock reading at every write, so the pacing
+// escalation is measured where it lands rather than believed.
+//
+// THE HEARTBEATS THE STORE WAITS FOR ARRIVE THROUGH push(). The store's D-12
+// proof waits for the ZONA's next heartbeat after the PAGESTORE acknowledgement
+// before it re-fetches; the responder never sends one, so every store-leg gate
+// feeds one through the tee, and records the clock reading it was fed at.
 //
 // EVERY FAKE PORT IS `connected: true`. The session's missed-disconnect
 // watchdog (MODULE_GONE_MS 750, session.svelte.ts #armWatchdog) tears the
 // session down only when the module has been silent AND portIsAttached(port)
 // is false. A port that reports attached keeps the watchdog quiet through test
-// 2's ~1.3 s of fake-timer advance and 07-07's ~9 s, so no test here lands in
-// `unplugged-while-connected` by accident.
+// 2's ~1.3 s of fake-timer advance and tests 11 and 12's ~9 s, so no test here
+// lands in `unplugged-while-connected` by accident. The one unplug this file
+// stages (test 15) is a `disconnect` fault on the fake, and the one it fires
+// (test 17) is the navigator-level event.
 //
 // THE CLOCK. setTimeout and clearTimeout are faked in every test - the queue's
-// pre-send sleep, its deadlines, its retry backoff and the live region's 500 ms
-// window are all setTimeout chains - and the queue's deadline clock is the
-// store's injected `now`, a movable value this file advances IN STEP with the
-// fake timers (until() below). The session's own clock is frozen at zero: with
-// every port attached, the watchdog never has a reason to fire.
+// pre-send sleep, its deadlines, its retry backoff, the store's 2000 ms line
+// and the live region's 500 ms window are all setTimeout chains - and the
+// queue's deadline clock is the store's injected `now`, a movable value this
+// file advances IN STEP with the fake timers (until() below). The session's
+// own clock is frozen at zero: with every port attached, the watchdog never has
+// a reason to fire.
+//
+// THE ORDER OF A FAULT LIST IS LOAD-BEARING (tests 12 and 13). fake.ts's
+// dropped() returns at the FIRST due fault and due() counts a fault only when
+// the loop reaches it. Three `nth` drops meant for acknowledgements 2, 3 and 4
+// are therefore listed DESCENDING - nth 4, 3, 2 - so every earlier-listed fault
+// sees every acknowledgement; listed ascending, the nth 2 drop would starve the
+// others of acknowledgement 2, acknowledgement 3 would find nobody due and
+// LAND, and the trace would end `settled`.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  DESKTOP_PRE_SEND_DELAY_MS,
   EVENT_SETUP,
   EVENT_TIMER,
   RETRY_ATTEMPTS,
@@ -58,9 +79,17 @@ import {
   retryBackoffMs,
 } from "$lib/protocol";
 import { ZONA_USB } from "$lib/protocol/usb";
-import { FakeTransport, type Fault, type GridTransport } from "$lib/transport";
 import {
+  type CaptureStep,
+  FakeTransport,
+  type Fault,
+  type GridTransport,
+} from "$lib/transport";
+import {
+  configNackFrame,
+  configReportFrame,
   heartbeatFrame,
+  rigResponder,
   serialNumberReportFrame,
   zonaResponder,
   type ZonaState,
@@ -68,9 +97,19 @@ import {
 import {
   LIVE_RESTORED,
   LIVE_SNAPSHOT_SAVED,
+  LIVE_STILL_WRITING,
+  TRY_ON_LABEL,
   announceTitle,
+  confirmRig,
+  keptMismatchBlock,
+  liveKept,
   liveSettled,
+  lostBlock,
+  nothingLandedBlock,
+  partialBlock,
+  restoredUnconfirmedBlock,
   snapshotFailedBlock,
+  unconfirmedBlock,
 } from "./install-copy";
 import {
   type ConfigStrings,
@@ -78,7 +117,12 @@ import {
   InstallStore,
 } from "./install.svelte";
 import { DeviceSession, type SerialLike } from "./session.svelte";
-import { SNAPSHOT_KEY, type SnapshotStore, persistIfAbsent } from "./snapshot";
+import {
+  SNAPSHOT_KEY,
+  type SnapshotStore,
+  persistIfAbsent,
+  rememberLast,
+} from "./snapshot";
 
 // ---------------------------------------------------------------------------
 // The module, and what it holds.
@@ -89,6 +133,8 @@ const ACTIVE_PAGE = 2;
 /** What the module holds when the visitor connects: the strings the snapshot must copy. */
 const MODULE_SETUP = "--[[@cb]]print(1)";
 const MODULE_TIMER = "--[[@cb]]print(2)";
+/** The module's original, as a pair. */
+const ORIGINAL: ConfigStrings = { setup: MODULE_SETUP, timer: MODULE_TIMER };
 /** The tuner's pair, different from the module's in both events. */
 const PAIR: ConfigStrings = {
   setup: "--[[@cb]]print(3)",
@@ -96,6 +142,9 @@ const PAIR: ConfigStrings = {
 };
 /** WORD0..WORD3, with a word above 2^31 so moduleKeyOf's unsigned rule is exercised. */
 const SERIAL = [0x9abcdef0, 0x12345678, 0, 0] as const;
+/** Two modules that share a cable with the ZONA in test 16, by their RevH hwcfg. */
+const EN16_HWCFG = 195;
+const BU16_HWCFG = 131;
 
 /** The key 07-01's moduleKeyOf derives from that serial, through the same decoder the store uses. */
 function expectedKey(): string {
@@ -114,6 +163,17 @@ const zonaHeartbeat = (activePage = ACTIVE_PAGE) =>
     firmware: FIRMWARE,
   });
 
+/** A chained module's heartbeat: TYPE 0, one class, no page report. */
+const otherHeartbeat = (sx: number, hwcfg: number) =>
+  heartbeatFrame({
+    sx,
+    sy: 0,
+    type: 0,
+    hwcfg,
+    activePage: ACTIVE_PAGE,
+    firmware: FIRMWARE,
+  });
+
 // ---------------------------------------------------------------------------
 // The clock, and how the tests wait.
 
@@ -121,17 +181,23 @@ const zonaHeartbeat = (activePage = ACTIVE_PAGE) =>
 const clock = { t: 0 };
 const STEP_MS = 5;
 
+/** One turn of the real macrotask queue, so pending microtasks run before the clock moves. */
+const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+/** Advance the clock and the fake timers together by exactly `ms`, once. */
+async function tick(ms: number): Promise<void> {
+  clock.t += ms;
+  await vi.advanceTimersByTimeAsync(ms);
+  await settle();
+}
+
 /**
  * Advance the clock and the fake timers together by `ms`, in small steps, and
  * yield to the macrotask queue between them so real promise chains (the
  * store's dynamic imports) can make progress too.
  */
 async function after(ms: number): Promise<void> {
-  for (let done = 0; done < ms; done += STEP_MS) {
-    clock.t += STEP_MS;
-    await vi.advanceTimersByTimeAsync(STEP_MS);
-    await new Promise<void>((resolve) => setImmediate(resolve));
-  }
+  for (let done = 0; done < ms; done += STEP_MS) await tick(STEP_MS);
 }
 
 /** Advance until the predicate holds, or fail after 20 virtual seconds. */
@@ -143,8 +209,14 @@ async function until(predicate: () => boolean, what: string): Promise<void> {
   throw new Error(`timed out waiting for ${what}`);
 }
 
-/** Drive a store action to completion under the fake timers, and rethrow what it threw. */
-async function drive(action: Promise<void>): Promise<void> {
+/**
+ * Start a store action without waiting for it, and return the wait: the
+ * flash-leg gates need to feed a heartbeat while the action is in flight.
+ * The wait yields one macrotask BEFORE the clock moves, so the action's own
+ * microtasks - the phase going to `writing`, the queue stamping sentAt - run
+ * at the clock reading the caller took, not one step later.
+ */
+function begin(action: Promise<void>): () => Promise<void> {
   let done = false;
   let failure: unknown;
   action.then(
@@ -156,8 +228,16 @@ async function drive(action: Promise<void>): Promise<void> {
       done = true;
     },
   );
-  await until(() => done, "the action to settle");
-  if (failure !== undefined) throw failure;
+  return async () => {
+    await settle();
+    await until(() => done, "the action to settle");
+    if (failure !== undefined) throw failure;
+  };
+}
+
+/** Drive a store action to completion under the fake timers, and rethrow what it threw. */
+async function drive(action: Promise<void>): Promise<void> {
+  await begin(action)();
 }
 
 /**
@@ -208,16 +288,34 @@ function fakePort(): SerialPort {
   return port as unknown as SerialPort;
 }
 
-/** A navigator.serial with one granted port and no chooser: requestPort() would throw. */
-function fakeSerial(granted: SerialPort[]): SerialLike {
-  return {
+/**
+ * A navigator.serial with one granted port and no chooser: requestPort() would
+ * throw. It keeps the session's listener pair so a test can fire the
+ * navigator-level `disconnect` (test 17) and `connect` (test 15's replug) at a
+ * port, the way the browser would.
+ */
+function fakeSerial(granted: SerialPort[]) {
+  const listeners = new Map<string, Set<(ev: Event) => void>>();
+  const serial: SerialLike = {
     requestPort: () => {
       throw new Error("the test gave requestPort no cue");
     },
     getPorts: async () => granted,
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    addEventListener: (type, listener) => {
+      const set = listeners.get(type) ?? new Set();
+      set.add(listener);
+      listeners.set(type, set);
+    },
+    removeEventListener: (type, listener) => {
+      listeners.get(type)?.delete(listener);
+    },
   };
+  const fire = (type: "connect" | "disconnect", port: SerialPort): void => {
+    for (const listener of listeners.get(type) ?? []) {
+      listener({ target: port } as unknown as Event);
+    }
+  };
+  return { serial, fire };
 }
 
 /** A Map-backed store in the shape the snapshot module takes. */
@@ -235,23 +333,45 @@ function mapStorage() {
   return { store, map };
 }
 
-/** The tee over a FakeTransport; see the header. `initial` is delivered on the first onData, as pushable() does. */
+/** One frame's classes, or undefined when it did not decode. */
+function classesOf(bytes: Uint8Array | number[]): DecodedClass[] | undefined {
+  const frame = [...bytes];
+  if (frame[frame.length - 1] === TERMINATOR) frame.pop();
+  const decoded = decodeFrame(frame);
+  return decoded.ok ? decoded.classes : undefined;
+}
+
+/**
+ * The tee over a FakeTransport; see the header. `initial` is delivered on the
+ * first onData, as pushable() does. `received` is every frame delivered to the
+ * session, decoded; `writeAt` is the clock reading at every write.
+ */
 function tee(fake: FakeTransport, initial: number[][]) {
   let callback: ((chunk: Uint8Array) => void) | undefined;
   let forwarding = false;
   let delivered = false;
+  const received: DecodedClass[][] = [];
+  const writeAt: number[] = [];
+  const deliver = (chunk: Uint8Array) => {
+    const classes = classesOf(chunk);
+    if (classes) received.push(classes);
+    callback?.(chunk);
+  };
   const push = (frame: number[]) =>
-    callback?.(Uint8Array.from([...frame, TERMINATOR]));
+    deliver(Uint8Array.from([...frame, TERMINATOR]));
   const transport: GridTransport = {
     get isOpen() {
       return fake.isOpen;
     },
-    write: (data) => fake.write(data),
+    write: (data) => {
+      writeAt.push(clock.t);
+      return fake.write(data);
+    },
     onData: (next) => {
       callback = next;
       if (!forwarding) {
         forwarding = true;
-        fake.onData((chunk) => callback?.(chunk));
+        fake.onData(deliver);
       }
       if (delivered) return;
       delivered = true;
@@ -260,27 +380,35 @@ function tee(fake: FakeTransport, initial: number[][]) {
     onClose: (handler) => fake.onClose(handler),
     close: () => fake.close(),
   };
-  return { transport, push };
+  return { transport, push, received, writeAt };
 }
 
 /** Every outbound frame, decoded back into the classes it carried. */
 function written(fake: FakeTransport): DecodedClass[][] {
   return fake.writes.map((bytes) => {
-    const frame = [...bytes];
-    if (frame[frame.length - 1] === TERMINATOR) frame.pop();
-    const decoded = decodeFrame(frame);
-    if (!decoded.ok) throw new Error(`an outbound frame did not decode`);
-    return decoded.classes;
+    const classes = classesOf(bytes);
+    if (!classes) throw new Error(`an outbound frame did not decode`);
+    return classes;
   });
 }
 
 const settledPhase = (phase: InstallPhase) =>
   phase !== "idle" && phase !== "snapshotting";
 
+type Responder = (outbound: DecodedClass, requestId: number) => number[][];
+
 interface ConnectOptions {
   state?: Partial<ZonaState>;
   storage?: ReturnType<typeof mapStorage>;
   faults?: Fault[];
+  /** Other modules on the cable: they answer through rigResponder and their heartbeats ride in the initial frames. */
+  others?: { sx: number; hwcfg: number }[];
+  /** Wrap the scripted module's answers - a re-fetch that lies, a refusal of one event. */
+  wrap?: (inner: Responder) => Responder;
+  /** The store's wait between re-fetch rounds, so a test can see the backoffs it asked for. */
+  sleep?: (ms: number) => Promise<void>;
+  /** False to return as soon as the session is connected, before the snapshot lands. */
+  settle?: boolean;
 }
 
 /**
@@ -298,22 +426,41 @@ async function connected(opts: ConnectOptions = {}) {
     serial: SERIAL,
     ...opts.state,
   };
-  const fake = new FakeTransport({
-    responder: zonaResponder(state),
-    faults: opts.faults,
-  });
-  const bus = tee(fake, [zonaHeartbeat()]);
+  const others = opts.others ?? [];
+  const otherStates: ZonaState[] = others.map((m) => ({
+    sx: m.sx,
+    sy: 0,
+    activePage: ACTIVE_PAGE,
+    configs: {},
+  }));
+  const base: Responder =
+    otherStates.length > 0
+      ? rigResponder([state, ...otherStates])
+      : zonaResponder(state);
+  const responder = opts.wrap ? opts.wrap(base) : base;
+  const fake = new FakeTransport({ responder, faults: opts.faults });
+  /** The ZONA's heartbeat and, on a rig, every other module's: what identifies the cable and what a store leg waits for. */
+  const heartbeats = [
+    zonaHeartbeat(),
+    ...others.map((m) => otherHeartbeat(m.sx, m.hwcfg)),
+  ];
+  let bus = tee(fake, heartbeats);
   const port = fakePort();
   const storage = opts.storage ?? mapStorage();
+  const { serial, fire } = fakeSerial([port]);
 
   const session = new DeviceSession();
   const store = new InstallStore(session);
   const phases = record(store, "phase");
-  store.start({ storage: storage.store, now: () => clock.t });
+  store.start({
+    storage: storage.store,
+    now: () => clock.t,
+    sleep: opts.sleep,
+  });
   session.start({
     hasSerial: true,
     secure: true,
-    serial: fakeSerial([port]),
+    serial,
     openTransport: async (p) => {
       await p.open({ baudRate: 2_000_000 });
       return bus.transport;
@@ -324,7 +471,9 @@ async function connected(opts: ConnectOptions = {}) {
   await until(() => session.phase === "detected", "the offer");
   session.connect();
   await until(() => session.phase === "connected", "identification");
-  await until(() => settledPhase(store.phase), "the snapshot to land");
+  if (opts.settle !== false) {
+    await until(() => settledPhase(store.phase), "the snapshot to land");
+  }
 
   const writesOf = (className: string, instr: string): number =>
     written(fake)
@@ -332,9 +481,40 @@ async function connected(opts: ConnectOptions = {}) {
       .filter((c) => c.class_name === className && c.class_instr === instr)
       .length;
 
+  /**
+   * Replug: a fresh fake over the same scripted module, a new port object
+   * arriving on the navigator-level `connect` (the session adopts it by
+   * getInfo), one click, and the snapshot left to land again.
+   */
+  const reconnect = async (faults?: Fault[]) => {
+    const next = new FakeTransport({ responder, faults });
+    bus = tee(next, heartbeats);
+    const replugged = fakePort();
+    fire("connect", replugged);
+    await until(() => session.phase === "detected", "the replug offer");
+    session.connect();
+    await until(() => session.phase === "connected", "re-identification");
+    await until(() => settledPhase(store.phase), "the snapshot to land again");
+    const nextWritesOf = (className: string, instr: string): number =>
+      written(next)
+        .flat()
+        .filter((c) => c.class_name === className && c.class_instr === instr)
+        .length;
+    return { fake: next, writesOf: nextWritesOf };
+  };
+
   return {
     fake,
-    push: bus.push,
+    port,
+    fire,
+    push: (frame: number[]) => bus.push(frame),
+    /** Feed the cable's heartbeats - the ZONA's and, on a rig, the others' - as the modules would. */
+    heartbeat: () => {
+      for (const frame of heartbeats) bus.push(frame);
+    },
+    received: () => bus.received,
+    writeAt: () => bus.writeAt,
+    reconnect,
     state,
     storage,
     session,
@@ -342,6 +522,57 @@ async function connected(opts: ConnectOptions = {}) {
     phases,
     writesOf,
   };
+}
+
+type Rig = Awaited<ReturnType<typeof connected>>;
+
+/**
+ * Run an action with a store leg the way the module would let it run: the
+ * PAGESTORE goes out, and once its acknowledgement is recorded the cable's
+ * heartbeats are fed - after a 20 ms pause in which a store that did NOT wait
+ * for them would already have re-fetched. Returns the clock reading the
+ * heartbeats were fed at, or undefined when the leg ended without one (a
+ * store that never acknowledged, a refusal).
+ */
+async function throughStore(
+  rig: Rig,
+  action: Promise<void>,
+): Promise<number | undefined> {
+  const finish = begin(action);
+  await settle();
+  const acknowledged = () =>
+    rig.store.steps.some((s) => s.id === "store" && s.outcome === "ok");
+  await until(
+    () => acknowledged() || rig.store.phase !== "writing",
+    "the store acknowledgement or a failure",
+  );
+  let fedAt: number | undefined;
+  if (rig.store.phase === "writing" && acknowledged()) {
+    await after(20);
+    fedAt = clock.t;
+    rig.heartbeat();
+  }
+  await finish();
+  return fedAt;
+}
+
+/** A settled try-on of the pair, the road every flash-leg gate starts from. */
+async function triedOn(rig: Rig, name = "Aurora"): Promise<void> {
+  rig.store.observeConfig(PAIR);
+  await drive(rig.store.tryOnDevice(PAIR, name));
+  expect(rig.store.phase).toBe("settled");
+}
+
+/** The step ids and outcomes, in order. */
+const outcomes = (steps: readonly CaptureStep[]) =>
+  steps.map((s) => [s.id, s.outcome]);
+
+/** The one page entry under the key, or undefined. */
+function pageEntry(storage: ReturnType<typeof mapStorage>, page: number) {
+  const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY) ?? "{}") as {
+    modules?: Record<string, { pages: Record<string, unknown> }>;
+  };
+  return parsed.modules?.[expectedKey()]?.pages[String(page)];
 }
 
 /** The class name, instruction and the parameters an assertion reads, for one outbound frame. */
@@ -381,7 +612,24 @@ const ramLegFrames = (strings: ConfigStrings) => [
   ],
 ];
 
-/** try-on.spec.ts's comment stripper, for test 8. */
+/**
+ * Three `nth` drops of one acknowledgement class, for acknowledgements 2, 3
+ * and 4 - one fault object per attempt, each with its own counter, LISTED
+ * DESCENDING (see the header): dropped() returns at the first due fault, so
+ * listed ascending the nth 2 drop starves nth 3 and nth 4 of acknowledgement
+ * 2, acknowledgement 3 finds nobody due and lands, and the trace ends
+ * `settled`. A single `nth: 2` cannot produce the trace either: the request id
+ * is minted per attempt, so attempt 2's acknowledgement carries a fresh id and
+ * lands.
+ */
+const dropAcks234 = (class_name: string): Fault[] =>
+  [4, 3, 2].map((nth) => ({
+    kind: "drop" as const,
+    match: { class_name, class_instr: "ACKNOWLEDGE" },
+    nth,
+  }));
+
+/** try-on.spec.ts's comment stripper, for tests 8 and 18. */
 const strip = (t: string) =>
   t
     .replace(/^[ ]*[/][/].*$/gm, "")
@@ -779,5 +1027,655 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         )
         .toBe(false);
     }
+  });
+
+  // -------------------------------------------------------------------------
+  // The flash leg, the taxonomy and the bounds (07-07; SAFE-05 to SAFE-09).
+
+  it("kept is said after the store acknowledgement, a heartbeat, and a matching re-fetch", async () => {
+    const rig = await connected();
+    const { store, state, session, writesOf } = rig;
+    await triedOn(rig);
+    expect(
+      store.keepReason(true),
+      "live after a settled try-on",
+    ).toBeUndefined();
+    const locks = record(session, "writeLock");
+    const spoken = record(session, "speech");
+
+    store.openConfirm();
+    expect(store.confirmOpen).toBe(true);
+    const fedAt = await throughStore(rig, store.keepOnDevice());
+
+    expect(store.confirmOpen, "the confirmation closed on the click").toBe(
+      false,
+    );
+    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(1);
+    expect(outcomes(store.steps)).toEqual([
+      ["store", "ok"],
+      ["refetch-setup", "ok"],
+      ["refetch-timer", "ok"],
+    ]);
+
+    // D-12 through Pitfall 6: the re-fetch went out only AFTER the heartbeat
+    // was fed - at the feed's clock reading or later (the send is the
+    // microtask after the feed). throughStore paused 20 ms between the
+    // acknowledgement and the feed, so a store that did not wait would have
+    // sent its re-fetch strictly before fedAt.
+    expect(fedAt, "a heartbeat was fed while the store waited").toBeDefined();
+    for (const step of store.steps.filter((s) => s.id.startsWith("refetch"))) {
+      expect(
+        step.sentAt,
+        `${step.id} was sent before the heartbeat`,
+      ).toBeGreaterThanOrEqual(fedAt ?? Number.POSITIVE_INFINITY);
+    }
+
+    expect(store.phase).toBe("kept");
+    expect(store.action).toBe("keep");
+    expect(store.leg).toBe("store");
+    expect(store.cause).toBeUndefined();
+    expect(store.keptThisSession).toBe(true);
+    expect(store.refetchRounds).toBe(1);
+    expect(store.keepReason(true)).toBe("already-kept");
+    expect(store.armed).toBe(false);
+    expect(store.slow).toBe(false);
+    expect(state.flash, "the fake's flash holds the pair").toEqual({
+      [EVENT_SETUP]: PAIR.setup,
+      [EVENT_TIMER]: PAIR.timer,
+    });
+    expect(locks).toEqual([true, false]);
+    expect(session.writeLock).toBe(false);
+    await after(500);
+    expect(session.speech).toBe(liveKept("Aurora"));
+    expect(
+      spoken.filter((s) => s === liveKept("Aurora")),
+      "spoken once - not for the ACK and again for the proof",
+    ).toHaveLength(1);
+  });
+
+  it("a read-back that never matches is kept-mismatch after three rounds", async () => {
+    const sleeps: number[] = [];
+    let stored = false;
+    const rig = await connected({
+      // After the store, the module answers every fetch of Setup with
+      // something other than what was sent: the shape of a reload that
+      // never settles, unreachable on healthy hardware.
+      wrap: (inner) => (outbound, requestId) => {
+        const p = outbound.class_parameters;
+        if (
+          stored &&
+          outbound.class_name === "CONFIG" &&
+          outbound.class_instr === "FETCH" &&
+          Number(p.EVENTTYPE) === EVENT_SETUP
+        ) {
+          return [
+            configReportFrame({
+              sx: 0,
+              sy: 0,
+              page: Number(p.PAGENUMBER),
+              event: EVENT_SETUP,
+              config: "--[[@cb]]print(9)",
+            }),
+          ];
+        }
+        const replies = inner(outbound, requestId);
+        if (outbound.class_name === "PAGESTORE") stored = true;
+        return replies;
+      },
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+    const { store, session } = rig;
+    await triedOn(rig);
+    store.openConfirm();
+    await throughStore(rig, store.keepOnDevice());
+
+    // Exactly three rounds, each of both events, a backoff after each.
+    expect(outcomes(store.steps)).toEqual([
+      ["store", "ok"],
+      ["refetch-setup", "ok"],
+      ["refetch-timer", "ok"],
+      ["refetch-setup", "ok"],
+      ["refetch-timer", "ok"],
+      ["refetch-setup", "ok"],
+      ["refetch-timer", "ok"],
+    ]);
+    expect(sleeps).toEqual([
+      retryBackoffMs(0),
+      retryBackoffMs(1),
+      retryBackoffMs(2),
+    ]);
+    expect(store.refetchRounds).toBe(3);
+
+    expect(store.phase).toBe("kept-mismatch");
+    expect(store.cause).toBe("mismatch");
+    expect(store.keptThisSession, "not called kept").toBe(false);
+    expect(store.keepReason(true)).toBe("after-mismatch");
+    expect(store.putBackState()).toBe("enabled");
+    expect(store.armed).toBe(false);
+    expect(session.writeLock).toBe(false);
+    await after(500);
+    expect(session.speech).toBe(announceTitle(keptMismatchBlock().title));
+    expect(session.speech.endsWith(".")).toBe(true);
+  });
+
+  it("a store that never acknowledges is unconfirmed, and KEEP ON DEVICE stays live", async () => {
+    const rig = await connected({
+      faults: [
+        {
+          kind: "drop",
+          match: { class_name: "PAGESTORE", class_instr: "ACKNOWLEDGE" },
+        },
+      ],
+    });
+    const { store, session, writesOf } = rig;
+    await triedOn(rig);
+    store.openConfirm();
+    const started = clock.t;
+    const fedAt = await throughStore(rig, store.keepOnDevice());
+
+    // Three bounded attempts at pagestoreMs each, two backoffs between, and
+    // no heartbeat was ever waited for because no acknowledgement came.
+    expect(fedAt).toBeUndefined();
+    expect(clock.t - started).toBeGreaterThanOrEqual(
+      RETRY_ATTEMPTS * TIMEOUTS.pagestoreMs +
+        retryBackoffMs(0) +
+        retryBackoffMs(1),
+    );
+    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(RETRY_ATTEMPTS);
+    expect(outcomes(store.steps)).toEqual([["store", "timeout"]]);
+    expect(store.steps[0].attempts).toBe(RETRY_ATTEMPTS);
+
+    expect(store.phase).toBe("unconfirmed");
+    expect(store.cause).toBe("timeout");
+    expect(store.keptThisSession).toBe(false);
+    // Memory still holds what was heard, so the store may be sent again.
+    expect(store.armed).toBe(true);
+    expect(store.keepReason(true)).toBeUndefined();
+    expect(store.putBackState()).toBe("enabled");
+    expect(store.slow, "the slow line is cleared with the leg").toBe(false);
+    expect(session.writeLock).toBe(false);
+    await after(500);
+    expect(session.speech).toBe(
+      announceTitle(unconfirmedBlock("Aurora").title),
+    );
+
+    store.openConfirm();
+    expect(store.confirmOpen, "the confirmation opens again").toBe(true);
+  });
+
+  it("after a keep, PUT BACK stores too; when its store never confirms, it is restored-unconfirmed", async () => {
+    // Part one: the store lands and is proved.
+    const rig = await connected();
+    const { store, fake, state, session, writesOf } = rig;
+    await triedOn(rig);
+    store.openConfirm();
+    await throughStore(rig, store.keepOnDevice());
+    expect(store.phase).toBe("kept");
+    const framesBefore = fake.writes.length;
+    const spoken = record(session, "speech");
+
+    await throughStore(rig, store.putBack());
+
+    // The RAM leg with the SNAPSHOT's strings, its restore, then one
+    // PAGESTORE/EXECUTE, then the re-fetch of both.
+    const frames = written(fake).slice(framesBefore).map(shape);
+    expect(frames).toHaveLength(6);
+    expect(frames.slice(0, 3)).toEqual(ramLegFrames(ORIGINAL));
+    expect(frames[3][0].cls).toBe("PAGESTORE/EXECUTE");
+    expect(frames.slice(4).map((f) => f[0].cls)).toEqual([
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+    ]);
+    expect(outcomes(store.steps)).toEqual([
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+      ["restore-page-change", "sent"],
+      ["store", "ok"],
+      ["refetch-setup", "ok"],
+      ["refetch-timer", "ok"],
+    ]);
+    expect(writesOf("PAGESTORE", "EXECUTE"), "one keep, one put-back").toBe(2);
+
+    expect(store.phase).toBe("restored");
+    expect(store.action).toBe("put-back");
+    expect(store.leg).toBe("store");
+    expect(store.keptThisSession, "cleared by a put-back that stored").toBe(
+      false,
+    );
+    expect(state.configs).toEqual({
+      [EVENT_SETUP]: MODULE_SETUP,
+      [EVENT_TIMER]: MODULE_TIMER,
+    });
+    expect(state.flash, "the fake's flash holds the original again").toEqual({
+      [EVENT_SETUP]: MODULE_SETUP,
+      [EVENT_TIMER]: MODULE_TIMER,
+    });
+    await after(500);
+    expect(session.speech).toBe(LIVE_RESTORED);
+    expect(spoken.filter((s) => s === LIVE_RESTORED)).toHaveLength(1);
+
+    // Part two: a fresh rig whose flash never confirms the put-back's store.
+    // Faults are fixed at construction: the keep takes acknowledgement 1, and
+    // the put-back's three attempts are acknowledgements 2, 3 and 4 - listed
+    // DESCENDING, see dropAcks234 and the header.
+    const second = await connected({ faults: dropAcks234("PAGESTORE") });
+    await triedOn(second);
+    second.store.openConfirm();
+    await throughStore(second, second.store.keepOnDevice());
+    expect(second.store.phase).toBe("kept");
+    const spokenSecond = record(second.session, "speech");
+
+    await throughStore(second, second.store.putBack());
+
+    expect(second.writesOf("PAGESTORE", "EXECUTE"), "1 + 3 attempts").toBe(4);
+    expect(outcomes(second.store.steps)).toEqual([
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+      ["restore-page-change", "sent"],
+      ["store", "timeout"],
+    ]);
+    expect(second.store.phase).toBe("restored-unconfirmed");
+    expect(second.store.cause).toBe("timeout");
+    expect(
+      second.store.keptThisSession,
+      "still set: the store did not prove",
+    ).toBe(true);
+    expect(second.store.putBackState()).toBe("enabled");
+    expect(second.store.keepReason(true)).toBe("never-tried");
+    // RAM is the original. The fake's flash is not asserted: zonaResponder
+    // stores before the fault drops its acknowledgement, so what the fake's
+    // flash holds is exactly what HANGAR cannot know - the sentence I12 speaks.
+    expect(second.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(second.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
+    await after(500);
+    expect(second.session.speech).toBe(
+      announceTitle(restoredUnconfirmedBlock().title),
+    );
+    expect(
+      spokenSecond.includes(LIVE_RESTORED),
+      "LIVE_RESTORED spoken on an unproved store",
+    ).toBe(false);
+  });
+
+  it("one landed script is partial, and it names the halves", async () => {
+    // Acknowledgement 1 (Timer) lands; 2, 3 and 4 (Setup's three attempts)
+    // are dropped - listed DESCENDING, see dropAcks234 and the header.
+    const rig = await connected({ faults: dropAcks234("CONFIG") });
+    const { store, state, session, writesOf } = rig;
+    store.observeConfig(PAIR);
+    await drive(store.tryOnDevice(PAIR, "Aurora"));
+
+    expect(outcomes(store.steps)).toEqual([
+      ["write-timer", "ok"],
+      ["write-setup", "timeout"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(store.steps[1].attempts).toBe(RETRY_ATTEMPTS);
+    expect(writesOf("CONFIG", "EXECUTE"), "Timer once, Setup three times").toBe(
+      4,
+    );
+    // The restore went out exactly once, after the failed step.
+    const restores = store.steps.filter((s) => s.id === "restore-page-change");
+    expect(restores).toHaveLength(1);
+    expect(store.steps.indexOf(restores[0])).toBeGreaterThan(
+      store.steps.findIndex((s) => s.outcome === "timeout"),
+    );
+
+    expect(store.phase).toBe("partial");
+    expect(store.landed).toBe("Timer");
+    expect(store.failed).toBe("Setup");
+    expect(store.cause).toBe("timeout");
+    expect(store.keepReason(true)).toBe("after-partial");
+    expect(store.armed, "never armed from partial").toBe(false);
+    expect(store.putBackState()).toBe("enabled");
+    expect(store.lastWritten, "nothing counts as written").toBeUndefined();
+    expect(state.configs[EVENT_TIMER], "the half that landed").toBe(PAIR.timer);
+    expect(session.writeLock).toBe(false);
+    await after(500);
+    expect(session.speech).toBe(
+      announceTitle(partialBlock("Timer", "Setup").title),
+    );
+
+    // The same pair again: acknowledgements 5 and 6 are past every fault.
+    await drive(store.tryOnDevice(PAIR, "Aurora"));
+    expect(outcomes(store.steps)).toEqual([
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(store.phase).toBe("settled");
+    expect(store.landed).toBeUndefined();
+    expect(store.failed).toBeUndefined();
+    expect(writesOf("CONFIG", "EXECUTE")).toBe(6);
+  });
+
+  it("none landed is nothing-landed - by refusal with one attempt, by timeout with three, and the timeout escalates the pacing", async () => {
+    // Part one: the module refuses the Timer write. One attempt, no Setup
+    // write, one restore, and no escalation - a refusal is not congestion.
+    const refused = await connected({
+      wrap: (inner) => (outbound, requestId) =>
+        outbound.class_name === "CONFIG" &&
+        outbound.class_instr === "EXECUTE" &&
+        Number(outbound.class_parameters.EVENTTYPE) === EVENT_TIMER
+          ? [configNackFrame({ sx: 0, sy: 0, lastheader: requestId })]
+          : inner(outbound, requestId),
+    });
+    refused.store.observeConfig(PAIR);
+    await drive(refused.store.tryOnDevice(PAIR, "Aurora"));
+
+    expect(outcomes(refused.store.steps)).toEqual([
+      ["write-timer", "nack"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(refused.store.steps[0].attempts).toBe(1);
+    expect(refused.writesOf("CONFIG", "EXECUTE")).toBe(1);
+    expect(refused.store.phase).toBe("nothing-landed");
+    expect(refused.store.cause).toBe("nack");
+    expect(refused.store.pacingEscalated, "a NACK was seen").toBe(false);
+    expect(refused.store.landed).toBeUndefined();
+    expect(refused.store.keepReason(true)).toBe("never-tried");
+    expect(refused.store.putBackState()).toBe("enabled");
+    expect(refused.state.configs[EVENT_TIMER], "nothing changed").toBe(
+      MODULE_TIMER,
+    );
+    await after(500);
+    expect(refused.session.speech).toBe(
+      announceTitle(nothingLandedBlock("try").title),
+    );
+
+    // Part two: every acknowledgement arrives later than executeMs, so the
+    // Timer write times out three times with no NACK anywhere.
+    const slow = await connected({
+      faults: [
+        {
+          kind: "delay",
+          match: { class_name: "CONFIG", class_instr: "ACKNOWLEDGE" },
+          byMs: TIMEOUTS.executeMs + 50,
+        },
+      ],
+    });
+    const firstWrite = slow.fake.writes.length;
+    const firstCallAt = clock.t;
+    slow.store.observeConfig(PAIR);
+    await drive(slow.store.tryOnDevice(PAIR, "Aurora"));
+
+    expect(outcomes(slow.store.steps)).toEqual([
+      ["write-timer", "timeout"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(slow.store.steps[0].attempts).toBe(RETRY_ATTEMPTS);
+    expect(slow.store.phase).toBe("nothing-landed");
+    expect(slow.store.cause).toBe("timeout");
+    expect(slow.store.pacingEscalated, "a timeout with zero NACKs").toBe(true);
+    // Before the escalation the first frame left within one clock step of the
+    // call, at PRE_SEND_DELAY_MS 0.
+    expect(slow.writeAt()[firstWrite] - firstCallAt).toBeLessThan(
+      DESKTOP_PRE_SEND_DELAY_MS,
+    );
+
+    // The NEXT action runs at the desktop's gap: its first frame leaves at
+    // least DESKTOP_PRE_SEND_DELAY_MS after the call, on the injected clock,
+    // and after the step's own sentAt.
+    const nextWrite = slow.fake.writes.length;
+    const callAt = clock.t;
+    await drive(slow.store.tryOnDevice(PAIR, "Aurora"));
+    const step = slow.store.steps.find((s) => s.id === "write-timer");
+    expect(step?.sentAt).toBeDefined();
+    const leftAt = slow.writeAt()[nextWrite];
+    expect(leftAt - callAt).toBeGreaterThanOrEqual(DESKTOP_PRE_SEND_DELAY_MS);
+    expect(leftAt - (step?.sentAt ?? Number.NaN)).toBeGreaterThanOrEqual(
+      DESKTOP_PRE_SEND_DELAY_MS,
+    );
+    expect(slow.store.pacingEscalated).toBe(true);
+  });
+
+  it("an unplug mid-write is lost, the session keeps quiet, and a reconnect finds the record", async () => {
+    // Three fetches at connect; the fourth frame is the first CONFIG/EXECUTE,
+    // and the port dies under it.
+    const rig = await connected({
+      faults: [{ kind: "disconnect", afterTxFrames: 4 }],
+    });
+    const { store, session, storage } = rig;
+    expect(rig.fake.writes, "the fault sits on the first write").toHaveLength(
+      3,
+    );
+    const spoken = record(session, "speech");
+    const entryBefore = pageEntry(storage, ACTIVE_PAGE);
+    expect(entryBefore).toBeDefined();
+
+    store.observeConfig(PAIR);
+    await drive(store.tryOnDevice(PAIR, "Aurora"));
+
+    expect(store.phase).toBe("lost");
+    expect(store.cause).toBe("aborted");
+    expect(store.steps[0].id).toBe("write-timer");
+    expect(store.steps[0].outcome).toBe("aborted");
+    expect(session.phase).toBe("unplugged-while-connected");
+    expect(session.writeLock, "released with the leg").toBe(false);
+    expect(session.unpluggedWhileWriting).toBe(true);
+    expect(store.putBackState()).toBe("needs-zona");
+    expect(store.confirmOpen).toBe(false);
+    expect(store.snapshot, "the way back survives the unplug").toEqual(
+      ORIGINAL,
+    );
+    await after(500);
+    expect(session.speech).toBe(
+      announceTitle(lostBlock(false, TRY_ON_LABEL).title),
+    );
+    expect(
+      spoken.some((s) => s.includes("Nothing was written")),
+      "the session's unplug sentence under a write",
+    ).toBe(false);
+
+    // The replug: a new port on the navigator-level event, one click, and
+    // the store reads the module again - and the record it finds wins.
+    const again = await rig.reconnect();
+    expect(session.phase).toBe("connected");
+    expect(store.phase).toBe("ready");
+    expect(store.snapshot).toEqual(ORIGINAL);
+    expect(store.snapshotPage).toBe(ACTIVE_PAGE);
+    expect(pageEntry(storage, ACTIVE_PAGE), "the record was touched").toEqual(
+      entryBefore,
+    );
+    expect(store.putBackState()).toBe("enabled");
+    expect(again.writesOf("CONFIG", "EXECUTE"), "a write on reconnect").toBe(0);
+  });
+
+  it("on a rig the store is allowed, resolves once, and the confirmation names the others", async () => {
+    const rig = await connected({
+      others: [
+        { sx: 1, hwcfg: EN16_HWCFG },
+        { sx: 2, hwcfg: BU16_HWCFG },
+      ],
+    });
+    const { store, session, writesOf, received } = rig;
+    expect(
+      session.identity?.otherModules.map((m) => [m.sx, m.moduleType]),
+    ).toEqual([
+      [1, "EN16"],
+      [2, "BU16"],
+    ]);
+    await triedOn(rig);
+    store.openConfirm();
+    expect(store.confirmOpen, "the store is allowed on a rig").toBe(true);
+    const acksBefore = received()
+      .flat()
+      .filter((c) => c.class_name === "PAGESTORE").length;
+
+    await throughStore(rig, store.keepOnDevice());
+
+    // One store on the wire, three acknowledgements back, one resolution.
+    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(1);
+    const acks = received()
+      .flat()
+      .filter(
+        (c) => c.class_name === "PAGESTORE" && c.class_instr === "ACKNOWLEDGE",
+      );
+    expect(acks.length - acksBefore, "one per module on the cable").toBe(3);
+    const storeStep = store.steps.find((s) => s.id === "store");
+    expect(storeStep?.attempts).toBe(1);
+    expect(storeStep?.outcome).toBe("ok");
+    expect(store.phase).toBe("kept");
+
+    // SAFE-06: the confirmation names them in sx order, from the identity.
+    const others = session.identity?.otherModules ?? [];
+    const names = others.map((m) => m.moduleType ?? "module");
+    expect(names).toEqual(["EN16", "BU16"]);
+    expect(confirmRig(names)).toContain(
+      "Your EN16 and BU16 are on the same cable.",
+    );
+  });
+
+  it("flash only what you have heard - the confirmation closes on a knob move and a session drop, and a page change re-snapshots", async () => {
+    // The four exits of the confirmation, two of them here: a knob move that
+    // disarms, and the session dropping.
+    const first = await connected();
+    await triedOn(first);
+    first.store.openConfirm();
+    expect(first.store.confirmOpen).toBe(true);
+    first.store.observeConfig({ setup: PAIR.setup, timer: MODULE_TIMER });
+    expect(first.store.confirmOpen, "closed by the knob move").toBe(false);
+    expect(first.store.armed).toBe(false);
+    expect(first.store.keepReason(true)).toBe("knobs-moved");
+    expect(first.store.openConfirm(), "refused while disarmed").toBeUndefined();
+    expect(first.store.confirmOpen).toBe(false);
+    first.store.observeConfig({ ...PAIR });
+    expect(first.store.armed, "identical strings arm again").toBe(true);
+    first.store.openConfirm();
+    expect(first.store.confirmOpen).toBe(true);
+    expect(first.writesOf("PAGESTORE", "EXECUTE"), "opening wrote").toBe(0);
+    first.fire("disconnect", first.port);
+    await until(() => first.session.phase !== "connected", "the unplug");
+    expect(first.store.confirmOpen, "closed by the session drop").toBe(false);
+    expect(first.store.phase).toBe("idle");
+    expect(first.writesOf("PAGESTORE", "EXECUTE")).toBe(0);
+
+    // A page change on the module, seen from the heartbeat, re-snapshots for
+    // the new page: through snapshotting, back to ready, a second entry.
+    const second = await connected();
+    expect(second.store.phase).toBe("ready");
+    const readyAt = second.phases.length;
+    second.state.activePage = ACTIVE_PAGE + 1;
+    second.push(zonaHeartbeat(ACTIVE_PAGE + 1));
+    await until(
+      () =>
+        second.store.phase === "ready" &&
+        second.store.snapshotPage === ACTIVE_PAGE + 1,
+      "the re-snapshot",
+    );
+    expect(second.phases.slice(readyAt)).toEqual(["snapshotting", "ready"]);
+    expect(second.session.identity?.activePage).toBe(ACTIVE_PAGE + 1);
+    expect(second.store.snapshot).toEqual(ORIGINAL);
+    expect(pageEntry(second.storage, ACTIVE_PAGE)).toBeDefined();
+    expect(pageEntry(second.storage, ACTIVE_PAGE + 1)).toBeDefined();
+    expect(
+      second.writesOf("CONFIG", "EXECUTE"),
+      "a re-snapshot is a read",
+    ).toBe(0);
+
+    // putBackState()'s no-snapshot rows. A remembered module - the record and
+    // `last` pre-seeded under the state's key - whose fetch answers empty:
+    // never `enabled`, because a remembered module is not a snapshot.
+    const storage = mapStorage();
+    const key = expectedKey();
+    persistIfAbsent(
+      storage.store,
+      key,
+      ACTIVE_PAGE,
+      ORIGINAL,
+      "2026-09-01T09:00:00.000Z",
+    );
+    rememberLast(storage.store, key);
+    const third = await connected({
+      storage,
+      state: { activePage: ACTIVE_PAGE + 1 },
+      // The serial report is held 50 ms so `snapshotting` is observable.
+      faults: [
+        {
+          kind: "delay",
+          match: { class_name: "SERIALNUMBER", class_instr: "REPORT" },
+          byMs: 50,
+        },
+      ],
+      settle: false,
+    });
+    expect(third.store.rememberedModule, "remembered from the record").toBe(
+      true,
+    );
+    await until(() => third.store.phase === "snapshotting", "snapshotting");
+    expect(third.session.phase).toBe("connected");
+    expect(third.store.snapshot).toBeUndefined();
+    expect(third.store.putBackState(), "while fetch-serial is pending").toBe(
+      "absent",
+    );
+    await until(() => settledPhase(third.store.phase), "the snapshot to fail");
+    expect(third.store.phase).toBe("snapshot-failed");
+    expect(third.store.snapshot).toBeUndefined();
+    expect(third.store.rememberedModule).toBe(true);
+    expect(
+      third.store.putBackState(),
+      "a remembered module is not a snapshot",
+    ).toBe("absent");
+  });
+
+  it("the slow line is a timer on the store, spoken once, and never an interval", async () => {
+    // On the STORE leg: the acknowledgement is held 2500 ms - under
+    // pagestoreMs 3000, so the one attempt never times out. A RAM leg cannot
+    // host this: the request id is minted per attempt and the waiter armed
+    // before the write (queue.ts), so a CONFIG/ACKNOWLEDGE later than
+    // executeMs 250 is stale, and three attempts with the 120/240 backoff end
+    // `nothing-landed` at roughly 1,110 ms - before the line could fire.
+    const rig = await connected({
+      faults: [
+        {
+          kind: "delay",
+          match: { class_name: "PAGESTORE", class_instr: "ACKNOWLEDGE" },
+          byMs: 2500,
+        },
+      ],
+    });
+    const { store, session } = rig;
+    await triedOn(rig);
+    store.openConfirm();
+    const spoken = record(session, "speech");
+
+    const finish = begin(store.keepOnDevice());
+    // Let the leg arm its timer at this clock reading before any time passes.
+    await settle();
+    expect(store.phase).toBe("writing");
+    expect(store.leg).toBe("store");
+    expect(store.slow).toBe(false);
+
+    await after(1995);
+    await tick(4);
+    expect(store.slow, "at 1999 ms").toBe(false);
+    await tick(1);
+    expect(store.slow, "at 2000 ms").toBe(true);
+    expect(store.phase, "still in flight, not failed").toBe("writing");
+    await after(500);
+    expect(session.speech).toBe(LIVE_STILL_WRITING);
+
+    // The acknowledgement landed at 2500; the proof then needs a heartbeat.
+    await until(
+      () => store.steps.some((s) => s.id === "store" && s.outcome === "ok"),
+      "the delayed acknowledgement",
+    );
+    expect(store.steps[0].attempts).toBe(1);
+    rig.heartbeat();
+    await finish();
+
+    expect(store.phase).toBe("kept");
+    expect(store.slow, "cleared at settle").toBe(false);
+    await after(500);
+    expect(session.speech).toBe(liveKept("Aurora"));
+    expect(spoken.filter((s) => s === LIVE_STILL_WRITING)).toHaveLength(1);
+
+    // And structurally: a setTimeout on the store, zero intervals.
+    const source = strip(sourceOf("./install.svelte.ts"));
+    expect(source).toContain("SLOW_LINE_MS = 2000");
+    expect(source).toContain(["set", "Timeout("].join(""));
+    expect(source.includes(["set", "Interval"].join(""))).toBe(false);
   });
 });
