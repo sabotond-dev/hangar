@@ -14,17 +14,31 @@ const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
 
 /**
- * The shipped protocol and transport source: every .ts that ends up in the
+ * The shipped library source: every .ts under src/lib that ends up in the
  * bundle, minus the specs (which must be able to NAME what they forbid) and
  * minus recorded fixtures (which are captured wire bytes, not authored code).
+ *
+ * AMENDMENT (Phase 6, plan 06-05). This scan covered src/lib/protocol and
+ * src/lib/transport only, from the day it was written. src/lib/device/ - the
+ * directory that would do the writing if this site were ever wrong about
+ * itself - has been outside it since Phase 4 wrote try-on.ts, and
+ * 04-first-experience/deferred-items.md carried that gap forward from plans
+ * 04-04 and 04-07. A phase whose whole promise is "this never writes" is where
+ * it ends: the scan reads all of src/lib now, which takes it from 16 files to
+ * 65 at this commit with no new match (descriptors.ts is still the only file
+ * naming encode_packet, and no file names an erase or clear instruction).
+ * src/vendor/ is not under src/lib and is unaffected. Read comments and all,
+ * on purpose: the subject is the vocabulary the codebase may contain, and a
+ * forbidden name in a comment is one uncomment away from being revived.
+ * Components are .svelte and are not read here - a stated limit rather than
+ * an exemption, recorded in the phase's deferred items.
  */
-const SCANNED_DIRS = ["src/lib/protocol", "src/lib/transport"];
+const SCANNED_DIRS = ["src/lib"];
 
 const shipped = (): { rel: string; source: string }[] => {
   const out: { rel: string; source: string }[] = [];
   for (const dir of SCANNED_DIRS) {
     const root = repo(dir);
-    // src/lib/transport/ arrives in a later plan of this phase.
     if (!existsSync(root)) continue;
     for (const entry of readdirSync(root, { recursive: true })) {
       const rel = String(entry).split(sep).join("/");
