@@ -41,9 +41,17 @@ export function isZonaPort(port: SerialPort): boolean {
  * Ports this origin has already been granted. Needs no user gesture, so it can
  * run on load: if a permitted ZONA is already attached, the page can offer an
  * instant reconnect instead of a fresh chooser.
+ *
+ * `serial` is the surface to ask, and it defaults to the browser's own AT CALL
+ * TIME rather than at module scope, so importing this file touches no global
+ * and the prerenderer never sees a `navigator`. The session passes its
+ * injected surface here, which is what lets the reconnect offer run in node
+ * against a fake; every other caller keeps the zero-argument form.
  */
-export async function grantedZonaPorts(): Promise<SerialPort[]> {
-  const ports = await navigator.serial.getPorts();
+export async function grantedZonaPorts(
+  serial: { getPorts(): Promise<SerialPort[]> } = navigator.serial,
+): Promise<SerialPort[]> {
+  const ports = await serial.getPorts();
   return ports.filter(isZonaPort);
 }
 
