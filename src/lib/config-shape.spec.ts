@@ -23,13 +23,66 @@ const FRONT_DOOR_PAGES = [
   "src/routes/+page.svelte",
   "src/routes/c/[id]/+page.svelte",
   "src/routes/c/[id]/+page.ts",
+  // Phase 6 (plan 06-05): the layout renders on every route including `/`,
+  // and it is where the device session is started and the one session live
+  // region is mounted (06-09) - the file most likely to hold the session's own
+  // static import, and so the one this rule can least afford not to read.
+  "src/routes/+layout.svelte",
 ];
 const UI_DIR = "src/lib/ui";
 /** Plan 05.1-08's page, and the pure modules it and its toolbar are built on. */
 const BROWSE_PAGE = "src/routes/browse/+page.svelte";
 const BROWSE_DIR = "src/lib/browse";
 /** Anything that would drag @intechstudio/grid-protocol onto the first paint. */
-const COMPILER_MARKERS = ["vendor", "intechstudio", "lib/pad"];
+const COMPILER_MARKERS = [
+  "vendor",
+  "intechstudio",
+  "lib/pad",
+  // Widened in Phase 6 (plan 06-05). The session's neighbours all reach the
+  // package at module scope: constants.ts, decode.ts, descriptors.ts and
+  // sequence.ts each import it, and device/try-on.ts imports both barrels.
+  // None of those three strings matched before, so a header component could
+  // have imported the whole 131,101-byte chunk with this gate green. OBSERVED,
+  // not assumed: a static `from "$lib/transport"` in a src/lib/ui/ component
+  // left this file at 14 passed before the widening and is red after it.
+  "lib/transport",
+  "lib/protocol",
+  "lib/device",
+];
+
+/*
+  AMENDMENT (Phase 6, plan 06-05). The device session renders in the header on
+  the first paint of `/` (06-CONTEXT D-02, D-05), so the modules a header
+  component names statically have to be free of the protocol package. Every
+  one of them lives in a directory COMPILER_MARKERS now forbids, which is why
+  the rule is markers PLUS an allow-list of exact paths - never a prefix, per
+  05.1-08's lesson - and why the allow-list is itself CHECKED rather than
+  trusted: test 13 walks what these five modules import, and a walk that
+  marker-checked its own allow-list would be red on its first step, so the
+  walk FOLLOWS an exactly matching permitted specifier and marker-checks every
+  other. `$lib/protocol` is not `$lib/protocol/usb`; a barrel import inside a
+  permitted module is an offender on the walk. The test count stays 14.
+*/
+
+/**
+ * The five modules a first-paint component MAY name, by exact path and never by
+ * prefix (05.1-08's lesson: the allowance is a list of paths, not a namespace).
+ * Each one is verified light below rather than trusted.
+ */
+const PERMITTED_SPECIFIERS = [
+  "$lib/device/session.svelte",
+  "$lib/device/session-copy",
+  "$lib/protocol/usb",
+  "$lib/transport/ports",
+  // Fifth, and the least obvious: src/lib/transport/transport.ts has ZERO
+  // imports. Verified by reading it - its only exports are GridTransport,
+  // OpenFailure, FailureCopy, classifyOpenError and failureCopy, and the
+  // DOMException and SerialPort it names are globals, not specifiers. So the
+  // session can hold the failure taxonomy and its copy STATICALLY, which is
+  // what makes failureFor() synchronous for all nine states and lets a
+  // capability failure render its sentence in the first hydrated frame.
+  "$lib/transport/transport",
+];
 
 /*
   AMENDMENT (plan 05.1-08). COMPILER_MARKERS matches the TEXT of a specifier,
@@ -242,6 +295,15 @@ describe("build configuration shape", () => {
     // COMPILE_SURFACE rule declared at the top - see the block there for what
     // COMPILER_MARKERS could not see and why two catalog specifiers are
     // permitted. The test count stays 14.
+    //
+    // AMENDMENT (Phase 6, plan 06-05). The walk gained src/routes/+layout.svelte
+    // through FRONT_DOOR_PAGES, COMPILER_MARKERS gained the session's three
+    // directories, and the collection below became a WALK: every specifier is
+    // resolved, an exact match for one of PERMITTED_SPECIFIERS is followed
+    // into the file it names, and everything else is marker-checked. The five
+    // permitted modules are seeded into the walk themselves, so the allowance
+    // is verified today, before any component has imported it. The test count
+    // still stays 14.
     const files = [
       ...FRONT_DOOR_PAGES,
       BROWSE_PAGE,
@@ -283,8 +345,22 @@ describe("build configuration shape", () => {
     const asPath = (specifier: string) => `src/lib/${specifier.slice(5)}`;
     const SURFACE = COMPILE_SURFACE.map(asPath);
     const ALLOWED = COMPILE_SURFACE_ALLOWED.map(asPath);
+    const PERMITTED = PERMITTED_SPECIFIERS.map(asPath);
     const reaches = (path: string) =>
       SURFACE.some((entry) => path === entry || path.startsWith(`${entry}/`));
+
+    /** A resolved module path to its file on disk: `.ts` first, then `/index.ts`. */
+    const fileOf = (path: string): string | undefined =>
+      [`${path}.ts`, `${path}/index.ts`].find((candidate) =>
+        existsSync(root(candidate)),
+      );
+
+    // A permitted path that resolves to no file is an allowance for nothing,
+    // and the walk below would "verify" it by never reading it.
+    expect(
+      PERMITTED.filter((path) => fileOf(path) === undefined),
+      "a permitted specifier names no file on disk",
+    ).toEqual([]);
 
     // THE WHOLE STATEMENT IS COLLECTED, not only the specifier, because the
     // `import type` exemption below is a property of the statement. Every
@@ -296,26 +372,69 @@ describe("build configuration shape", () => {
       specifier: string;
       path: string;
     }[] = [];
-    for (const file of files) {
+
+    // THE WALK. The worklist starts with the front-door set AND the five
+    // permitted modules, so the allowance is verified today rather than on
+    // the day a component first imports it. Each permitted module the walk
+    // reads is recorded, and so is every permitted edge it follows, because
+    // a matcher that had gone blind inside a .ts file would otherwise report
+    // the allow-list clean for the wrong reason.
+    const seen = new Set<string>();
+    const walked: string[] = [];
+    const followed: string[] = [];
+    const queue = [
+      ...files,
+      ...PERMITTED.map((path) => fileOf(path) as string),
+    ];
+    while (queue.length > 0) {
+      const file = queue.shift() as string;
+      if (seen.has(file)) continue;
+      seen.add(file);
+      if (PERMITTED.some((path) => fileOf(path) === file)) walked.push(file);
       const source = stripComments(text(file));
       for (const match of source.matchAll(
         /(?:^|[;}\s])((?:import|export)[^;]*?from\s*["']([^"']+)["'])/g,
       )) {
+        const specifier = match[2];
+        const path = normalise(file, specifier);
+        // THE BRANCH THAT MAKES THE ALLOW-LIST MORE THAN A COMMENT. An EXACT
+        // match for a permitted path is FOLLOWED - the file it names joins the
+        // walk and its own imports are read - and it is never marker-checked,
+        // because all five permitted paths contain a marker substring and a
+        // check here would go red on the allowance itself. Everything else is
+        // collected and marker-checked below. Exact, never prefix: $lib/protocol
+        // is not $lib/protocol/usb, so a barrel import inside a permitted
+        // module is an offender on the walk, named with the file that wrote it.
+        if (PERMITTED.includes(path)) {
+          followed.push(`${file} -> ${specifier}`);
+          queue.push(fileOf(path) as string);
+          continue;
+        }
         imports.push({
           file,
           statement: match[1].trim(),
-          specifier: match[2],
-          path: normalise(file, match[2]),
+          specifier,
+          path,
         });
       }
     }
 
-    // Both guards against a silently broken matcher: an empty walk and an
-    // empty match set would each make the assertion below pass vacuously.
+    // Guards against a silently broken matcher: an empty front-door list, an
+    // empty match set and a silent walk would each make the assertions below
+    // pass vacuously. The walk must have read at least four of the five
+    // permitted modules and followed at least one permitted edge.
     expect(files.length, "front-door files were listed").toBeGreaterThan(3);
     expect(
       imports.length,
       "static imports were actually collected",
+    ).toBeGreaterThan(0);
+    expect(
+      walked.length,
+      `the walk read ${walked.length} permitted module(s) - it has gone silent`,
+    ).toBeGreaterThanOrEqual(4);
+    expect(
+      followed.length,
+      "the walk followed no permitted specifier - the matcher has gone blind inside the permitted modules",
     ).toBeGreaterThan(0);
 
     const offenders = imports.filter(({ specifier }) =>
@@ -323,7 +442,7 @@ describe("build configuration shape", () => {
     );
     expect(
       offenders.map((o) => `${o.file} -> ${o.specifier}`),
-      "a front-door file imports the compiler at module scope",
+      "a front-door file, or a permitted module the walk followed, statically imports the compiler, the protocol package, the transport or the device path at module scope",
     ).toEqual([]);
 
     // The compile-surface rule, in three lines and one more non-vacuity guard.
