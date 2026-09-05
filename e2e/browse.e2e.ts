@@ -34,6 +34,9 @@
 // filter.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import { sortListing } from "../src/lib/browse/sort";
 import { LISTING } from "../src/lib/catalog/listing";
@@ -122,6 +125,89 @@ async function expectOrder(page: Page, expected: string[]): Promise<void> {
     `card-${expected[0]}`,
   );
   expect(await renderedIds(page)).toEqual(expected);
+}
+
+const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
+
+/**
+ * The 9x9 backing store as a comma-joined string of its 324 RGBA bytes, or null
+ * when the element or its context is missing. A string rather than an array so
+ * an assertion diff is one line instead of 324. (e2e/first-experience.e2e.ts)
+ */
+function samplePad(page: Page, id: string): Promise<string | null> {
+  return page.evaluate((sel) => {
+    const c = document.querySelector(sel) as HTMLCanvasElement | null;
+    if (!c) return null;
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    return Array.from(ctx.getImageData(0, 0, 9, 9).data).join(",");
+  }, canvasOf(id));
+}
+
+/**
+ * Wait until the pad has a picture at all. Sampling before this point compares
+ * two empty canvases, which is a test that passes for the wrong reason - and
+ * the canvases genuinely are empty for a moment, because the simulator arrives
+ * through a dynamic import after the prerendered frames have already painted.
+ */
+async function waitForPicture(page: Page, id: string): Promise<void> {
+  await page.waitForFunction(
+    (sel) => {
+      const c = document.querySelector(sel) as HTMLCanvasElement | null;
+      if (!c) return false;
+      const ctx = c.getContext("2d");
+      if (!ctx) return false;
+      return ctx.getImageData(0, 0, 9, 9).data.some((b) => b !== 0);
+    },
+    canvasOf(id),
+    { timeout: 30_000 },
+  );
+}
+
+/** The formatter's asset, which is a different gate (e2e/fidelity.e2e.ts). */
+const FORMATTER = "lua_fmt_bg";
+
+/** The symbol src/lib/config-shape.spec.ts measures the protocol chunk by. */
+const PROTOCOL_SYMBOL = "GRID_PARAMETER_ELEMENT_POTMETER";
+
+type WasmResponse = { url: string; status: number; type: string | null };
+
+/**
+ * Every .wasm response, every JavaScript response and every error-level console
+ * line, collected from the moment the listener is attached. Discriminating the
+ * VM's asset by the ABSENCE of the formatter's name rather than by its own
+ * filename keeps a Vite hashing change from turning this red for the wrong
+ * reason. (e2e/catalog.e2e.ts)
+ */
+function watchWasm(page: Page): {
+  wasm: WasmResponse[];
+  scripts: string[];
+  consoleErrors: string[];
+  vmOnly: () => WasmResponse[];
+} {
+  const wasm: WasmResponse[] = [];
+  const scripts: string[] = [];
+  const consoleErrors: string[] = [];
+  page.on("response", (r) => {
+    const url = r.url();
+    if (url.endsWith(".wasm")) {
+      wasm.push({
+        url,
+        status: r.status(),
+        type: r.headers()["content-type"] ?? null,
+      });
+    }
+    if (url.endsWith(".js")) scripts.push(url);
+  });
+  page.on("console", (m) => {
+    if (m.type() === "error") consoleErrors.push(m.text());
+  });
+  return {
+    wasm,
+    scripts,
+    consoleErrors,
+    vmOnly: () => wasm.filter((w) => !w.url.includes(FORMATTER)),
+  };
 }
 
 test.describe("the browse screen, with nothing plugged in", () => {
@@ -515,5 +601,221 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
     }
 
     expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe("the wall is really running, and it is measured rather than gated", () => {
+  test("the cards animate, and the paint count over two seconds is recorded", async ({
+    page,
+  }, testInfo) => {
+    // Count the paints at their only exit. src/lib/sim/paint.ts ends in exactly
+    // one ctx.putImageData per pad per paint, and paint.spec.ts pins that, so a
+    // counter on the prototype is a count of painted pad frames and nothing
+    // else. (e2e/first-experience.e2e.ts)
+    await page.addInitScript(() => {
+      const store = window as unknown as { __padPaints: number };
+      store.__padPaints = 0;
+      const proto = CanvasRenderingContext2D.prototype;
+      const original = proto.putImageData;
+      proto.putImageData = function (
+        this: CanvasRenderingContext2D,
+        ...args: unknown[]
+      ) {
+        store.__padPaints += 1;
+        return (original as unknown as (...a: unknown[]) => void).apply(
+          this,
+          args,
+        );
+      } as typeof proto.putImageData;
+    });
+
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+
+    // THE PRECONDITION, AND IT IS THE HALF THAT IS ACTUALLY ASSERTED: the pads
+    // on the wall are running the firmware simulator with nothing plugged in.
+    // aurora is declared animated in the listing and that declaration is
+    // derived from golden-frames.json, so this test and that gate cannot
+    // disagree.
+    const moving = LISTING.find(
+      (entry) => entry.motion === "animated" && !entry.restsBlack,
+    );
+    expect(moving, "the catalog declares an animated entry").toBeDefined();
+    const movingId = (moving as { id: string }).id;
+
+    await waitForPicture(page, movingId);
+    const before = await samplePad(page, movingId);
+    expect(before, "the card canvas was readable").not.toBeNull();
+    await page.waitForTimeout(400);
+    expect(
+      await samplePad(page, movingId),
+      `${movingId} is declared animated, so 400ms of firmware ticks must move it`,
+    ).not.toBe(before);
+
+    const read = () =>
+      page.evaluate(
+        () => (window as unknown as { __padPaints: number }).__padPaints,
+      );
+    const start = await read();
+    await page.waitForTimeout(2_000);
+    const painted = (await read()) - start;
+
+    // The conditions the number was taken under. A paint count with no viewport
+    // and no visible-card count beside it is not evidence of anything.
+    const conditions = await page.evaluate(() => {
+      const cards = Array.from(
+        document.querySelectorAll('[data-testid="browse-grid"] > li'),
+      );
+      const onScreen = cards.filter((li) => {
+        const box = li.getBoundingClientRect();
+        return box.bottom > 0 && box.top < window.innerHeight;
+      }).length;
+      const built = Array.from(
+        document.querySelectorAll('[data-testid^="pad-canvas-"]'),
+      ).filter((el) => (el as HTMLCanvasElement).width === 9).length;
+      return { cards: cards.length, onScreen, built };
+    });
+
+    const viewport = page.viewportSize();
+    const where = viewport ? `${viewport.width}x${viewport.height}` : "unknown";
+    const line =
+      `browse pad frames painted in two seconds: ${painted} ` +
+      `(viewport ${where}, ${conditions.onScreen} of ${conditions.cards} cards on screen, ` +
+      `${conditions.built} engines built)`;
+    console.log(line);
+    testInfo.annotations.push({ type: "measurement", description: line });
+
+    // A RECORDED MEASUREMENT, NOT A BUDGET GATE, and the reason is written
+    // down rather than assumed. .planning/research/STACK.md's own estimate -
+    // 10-16 concurrently visible animating cards before stutter with the
+    // vendored blit, 30+ after the two fixes HANGAR already ships - is marked
+    // "Unverified estimate - profile it", and this phase does not turn an
+    // unverified estimate into a threshold that would go red on somebody
+    // else's machine for reasons that are not regressions. If the wall ever
+    // does stutter the first lever is the column count, and it is never
+    // SIDE_INTERVAL_MS, which schedule.spec.ts pins against the vendored host.
+    //
+    // The arithmetic to compare it against, for whoever reads the number
+    // later: intervalFor(hero = false, lowPower = false) is 50 ms, so a fully
+    // visible wall of n animating cards approaches 40n paints in two seconds.
+    expect(painted, "the shared rAF loop is painting").toBeGreaterThan(0);
+  });
+
+  test("a browse view with no Lua configuration in it fetches no WebAssembly", async ({
+    page,
+    request,
+  }) => {
+    const seen = watchWasm(page);
+
+    // THE QUERY IS LOAD-BEARING AND IT IS NOT A BARE /browse/. D-06 asks for
+    // "a cold /browse/ with no Lua card in view fetches no WebAssembly", but
+    // with the default Featured sort the first screenful holds several Lua
+    // cards, so a genuine cold /browse/ at the top of the page WILL fetch the
+    // VM - correctly, and immediately. The honest claim is that a visitor who
+    // never brings a Lua card into view never downloads the VM, and the honest
+    // test is a filtered load. "aurora" leaves exactly one card in the grid and
+    // that card is declared padsim. Do not "simplify" this to a bare /browse/:
+    // it goes red for a good reason, which the negative check below observed.
+    const matched = LISTING.filter((entry) =>
+      [entry.name, entry.description, ...entry.tags]
+        .join(" ")
+        .toLowerCase()
+        .includes("aurora"),
+    );
+    expect(matched.length, "?q=aurora leaves exactly one card").toBe(1);
+    expect(matched[0].preview, "and that card is not a Lua card").toBe(
+      "padsim",
+    );
+    const soloId = matched[0].id;
+
+    await coldGoto(page, "/browse/?q=aurora");
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+    await expect(page.locator(CARDS)).toHaveCount(1);
+    await waitForPicture(page, soloId);
+    await page.waitForLoadState("networkidle");
+
+    // NOT "not much" - NONE. Neither the VM nor the formatter.
+    expect(
+      seen.wasm.map((w) => w.url),
+      "a browse view with no Lua card in it fetched WebAssembly",
+    ).toEqual([]);
+
+    // AND NO PROTOCOL CHUNK ON THE FIRST PAINT. This half is asserted against
+    // the SERVED HTML rather than against the live DOM, and that is the whole
+    // point: Vite's preload helper inserts modulepreload links for a DYNAMIC
+    // import's dependencies too, so by the time the grid has built an engine
+    // the document carries links a first paint never saw. The bytes the Worker
+    // serves for /browse/ are what the browser fetches before it can paint, and
+    // they are race-free.
+    const chunkDir = fileURLToPath(
+      new URL("../build/_app/immutable/chunks", import.meta.url),
+    );
+    const carriers = readdirSync(chunkDir)
+      .map(String)
+      .filter((name) => name.endsWith(".js"))
+      .filter((name) =>
+        readFileSync(join(chunkDir, name), "utf8").includes(PROTOCOL_SYMBOL),
+      );
+    // A guard that can no longer see the thing it guards must fail rather than
+    // pass. The symbol is the one 04-RESEARCH measured the 131,101-byte chunk
+    // by, and src/lib/config-shape.spec.ts walks the same graph in node.
+    expect(
+      carriers.length,
+      `no built chunk contains ${PROTOCOL_SYMBOL} - this guard has gone blind`,
+    ).toBeGreaterThan(0);
+
+    const html = await (await request.get(BROWSE)).text();
+    const declared = [
+      ...new Set(
+        [...html.matchAll(/_app\/immutable\/[^"'\s]+\.js/g)].map((m) => m[0]),
+      ),
+    ];
+    expect(
+      declared.length,
+      "/browse/ names the modules it loads",
+    ).toBeGreaterThan(0);
+    expect(
+      declared.filter((rel) =>
+        carriers.includes(rel.slice(rel.lastIndexOf("/") + 1)),
+      ),
+      "/browse/ names the protocol chunk in the graph it paints from",
+    ).toEqual([]);
+
+    // The other side of the same claim, so the assertion above is not vacuous:
+    // the chunk is DEFERRED rather than absent. The grid pulls it through
+    // await import() when it builds its first engine, which is after paint.
+    const fetched = seen.scripts.map((url) =>
+      url.slice(url.lastIndexOf("/") + 1),
+    );
+    expect(
+      fetched.filter((name) => carriers.includes(name)).length,
+      "the protocol chunk never arrived at all - this measurement proves nothing",
+    ).toBeGreaterThan(0);
+
+    // AND THE VM ARRIVES WHEN A LUA CARD DOES. Clearing the filter puts the
+    // whole shelf back; the first Lua entry in Featured order is scrolled to
+    // explicitly rather than relied on to be on screen.
+    await page.getByTestId("browse-clear-filters").click();
+    await expect(page.locator(CARDS)).toHaveCount(LISTING.length);
+
+    const luaId = orderOf("featured").find(
+      (id) => LISTING.find((entry) => entry.id === id)?.preview === "lua",
+    );
+    expect(luaId, "the catalog ships a Lua configuration").toBeDefined();
+    await page
+      .locator(`[data-testid="card-${luaId as string}"]`)
+      .scrollIntoViewIfNeeded();
+
+    await expect
+      .poll(() => seen.vmOnly().length, { timeout: 30_000 })
+      .toBeGreaterThan(0);
+    const vm = seen.vmOnly();
+    expect(vm[0].status).toBe(200);
+    // A wrong MIME breaks nothing visibly - the loader falls back from
+    // instantiateStreaming to WebAssembly.instantiate with only a console
+    // warning and then runs the slow path forever. So assert it.
+    expect(vm[0].type).toBe("application/wasm");
+
+    expect(seen.consoleErrors).toEqual([]);
   });
 });
