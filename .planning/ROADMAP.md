@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 13/13 | Complete (the gate green against the production build at f20d74f: quick 73 / 776 = BASE + 4 / + 52 with no timeout, sweep 3 13, e2e 89 = BASE_E2E 77 + 12 at --workers 3 first time, svelte-check 545 / 0; SAFE-01..09 and DEGR-02 closed with qualifiers; docs/INSTALL-RUNBOOK.md rows A-G presented to the user and unanswered - the five hardware halves are verified-by-user-pending and no agent has written a byte to a real ZONA) | 2026-09-05 |
+| 7. Install Flow | 13/13 | Complete (hardware rows A-G awaiting the user) | 2026-09-05 |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage
