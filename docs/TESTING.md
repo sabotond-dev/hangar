@@ -22,7 +22,7 @@ than run is worse than no row at all.
 | `npm run test:quick`         | the `server` Vitest project — everything except the two sweeps       | 58 files, 646 passed + 1 todo (647); 33 s wall (31.5 s)                        |
 | `npm run test:sweep`         | the `sweep` project: three files, and 96% of its cost is one of them | 3 files, 13 tests; 144 s wall (141.2 s)                                        |
 | `npm run test:unit -- --run` | both Vitest projects in one run                                      | 61 files, 659 passed + 1 todo (660); 129 s wall (127.0 s)                      |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 44 tests; 37.8 s runner time, 39 s wall including the build and the cold start |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 52 tests; 41.5 s runner time, 46 s wall including the build and the cold start |
 | `npm run check`              | `svelte-check` over the whole project                                | 494 files, 0 errors, 0 warnings; 7 s wall                                      |
 | `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 14 s wall                                                              |
 
@@ -524,13 +524,14 @@ Capture e2e output to `.tmp-e2e/` (gitignored), never under `test-results/` or
 `playwright-report/`: Playwright deletes its `outputDir` at the start of every run, so a redirect
 target inside it is unlinked mid-run.
 
-The whole Playwright suite is **44 tests** as of 2026-09-04, and it is 44 rather than 39 because the
+The whole Playwright suite is **52 tests** as of 2026-09-05, and it is 52 rather than 47 because the
 five titles in `tuning-webkit.e2e.ts` run in both projects. Observed, per file and per project:
 
 | File                      | chromium | webkit-phone |
 | ------------------------- | -------- | ------------ |
 | `first-experience.e2e.ts` | 11       | -            |
 | `tuning.e2e.ts`           | 10       | -            |
+| `browse.e2e.ts`           | 8        | -            |
 | `tuning-webkit.e2e.ts`    | 5        | 5            |
 | `smoke.e2e.ts`            | 4        | -            |
 | `artifacts.e2e.ts`        | 3        | -            |

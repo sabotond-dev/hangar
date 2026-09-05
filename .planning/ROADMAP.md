@@ -163,7 +163,7 @@ Plans:
 - [x] 05.1-07-PLAN.md — The toolbar: search, the sort word row, the tag chips and the one live region (wave 7)
 - [x] 05.1-08-PLAN.md — /browse/ itself, the lifted fidelity sentence, and the two chunk guards that could not see it (wave 8)
 - [x] 05.1-09-PLAN.md — The header slot: BROWSE ALL, BACK TO BROWSE and the round trip walked by hand (wave 9)
-- [ ] 05.1-10-PLAN.md — e2e/browse.e2e.ts: seven tests, the frame measurement and the WebAssembly proof (wave 10)
+- [x] 05.1-10-PLAN.md — e2e/browse.e2e.ts: eight tests (seven planned plus the authorised popstate regression), the frame measurement and the WebAssembly proof (wave 10)
 - [ ] 05.1-11-PLAN.md — The keyboard, the return, the D-18 hazard, the phone, and the phase gate (wave 11)
 
 ### Phase 6: Device Session

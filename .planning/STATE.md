@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-09-PLAN.md
-last_updated: "2026-09-05T02:15:00.000Z"
+stopped_at: Completed 05.1-10-PLAN.md
+last_updated: "2026-09-05T03:35:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 54
-  percent: 96
+  completed_plans: 55
+  percent: 98
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 10 (next)
-Status: Phase 5.1 in progress — 05.1-09 complete (9 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 11 (next)
+Status: Phase 5.1 in progress — 05.1-10 complete (10 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-05
 
-Progress: [█████████░] 96% (54 of 56 plans)
+Progress: [█████████░] 98% (55 of 56 plans)
 
 ## Performance Metrics
 
@@ -53,8 +53,8 @@ Progress: [█████████░] 96% (54 of 56 plans)
 
 **Recent Trend:**
 
-- Last 5 plans (05-08 to 05-12): 31, 19, 32, 28, 43 min
-- Trend: rising, and legibly so. The last four waves were all integration rather than construction — the four leaf components, the coverflow wiring, and then a wave that had to measure a reserve, rehearse it, and prove five assertions on two engines. 05-12 is the longest plan of the phase and four of its minutes were spent finding out that headless Chromium will not write to a clipboard it has not been granted.
+- Last 5 plans (05.1-06 to 05.1-10): 61, 37, 41, 42, 47 min
+- Trend: high and flat, which is what a phase of integration waves looks like. Every plan since 05.1-06 has been a component or a page assembled out of parts that already existed, and each of the last three has spent a third of its time on measurement rather than construction — 05.1-08 on a MutationObserver probe, 05.1-09 on a hand-walked round trip, 05.1-10 on four popstate journeys and three negative checks. 05.1-10 also carries a fourth task the plan did not have: a real user-visible defect, reproduced and repaired.
 
 *Recomputed by hand at the close of Phase 5 from the per-plan table below (44 plans before this one, 960 minutes). `gsd-tools state record-metric` appends a row and never touches this block, so it goes stale again with the next plan — see the phase's deferred-items.md.*
 
@@ -113,6 +113,7 @@ Progress: [█████████░] 96% (54 of 56 plans)
 | Phase 05.1 P07 | 37 min | 3 tasks | 2 files |
 | Phase 05.1 P08 | 41 min | 3 tasks | 5 files |
 | Phase 05.1 P09 | 42 min | 3 tasks | 4 files |
+| Phase 05.1 P10 | 47 min | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -327,6 +328,11 @@ Recent decisions affecting current work:
 - [Phase 05.1]: A record's end of life belongs in beforeNavigate, never afterNavigate: Kit's add_navigation_callback (client.js:2240-2248) registers in onMount and DELETES in the teardown, and the teardown runs while the new page renders - before client.js:2042 walks after_navigate_callbacks. An afterNavigate in /c/[id]/ fires for a hop to another /c/ route and never for the departure that unmounts it; observed, the front door then offered BACK TO BROWSE to a view already left. The willUnload branch is skipped so a reload keeps the record
 - [Phase 05.1]: A navigation target read out of storage is rebuilt through resolve() from the component's own path literal plus the recorded query, never handed over whole - svelte/no-navigation-without-resolve accepts a resolve() call or a value whose TYPE is structurally ResolvedPathname, and a string out of JSON can never be the second without a cast. It doubles as the safety half: a poisoned record cannot navigate anywhere but /browse/
 - [Phase 05.1]: flushAddress() does NOT protect the return record - the record is composed from the page's own state, so it names the chip either way. What it protects is the history entry left behind: without it, the browser's own Back restores a view one chip stale. Measured on both builds inside the 500 ms timer
+- [Phase 05.1]: page.url is stale in BOTH directions, not just on write - Kit's replaceState records [PAGE_URL_KEY]: page.url.href into the history entry (client.js:2573), which is the PAGE STORE's url and never the url it is putting in the address bar, so every shallow write leaves the entry remembering the address the DOCUMENT was entered with and the popstate handler (client.js:2883) hands update_url a URL one visit old. This corrects 05.1-RESEARCH.md Pitfall 2. The /browse/ popstate re-seed therefore reads window.location.search, the browser's own answer; reading page.url there was measured byte-identical to no fix at all
+- [Phase 05.1]: The browser Back repair is a SECOND seed in afterNavigate gated on type === popstate, never a moved one - the init-scope seed keeps the cold-arrival first paint D-16 and Pitfall 7a require and keeps 05.1-08's measured silence of the live region. Accepted cost: Kit sets the scroll before it runs the after-navigate callbacks (client.js:2003 then :2042), so the grid shrinks one frame after the offset is restored
+- [Phase 05.1]: The browse laziness proof is a FILTERED cold load (?q=aurora, one card, declared padsim) and not a bare /browse/ - with the default Featured sort the first screenful holds several Lua cards and a bare cold load correctly fetches the VM immediately; observed red on exactly that substitution, with glue.<hash>.wasm in the list
+- [Phase 05.1]: A first-paint module-graph claim is asserted against the SERVED HTML through the request fixture, never against the live DOM - Vite's preload helper inserts modulepreload links for a DYNAMIC import's dependencies too, so a settled DOM is not a first-paint graph, and a response-order mark races the grid's own onMount import by milliseconds
+- [Phase 05.1]: The browse wall's two-second paint count is RECORDED with its conditions and never gated: 139-156 paints at 1280x720 with 4 of 16 cards on screen and 4 engines built, against a ceiling of 40n = 160 at SIDE_INTERVAL_MS 50 ms. STACK.md's 10-16 / 30+ estimate stays unverified - four visible cards does not test it either way
 
 ### Pending Todos
 
@@ -343,6 +349,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T02:15:00.000Z
-Stopped at: Completed 05.1-09-PLAN.md
+Last session: 2026-09-05T03:35:00.000Z
+Stopped at: Completed 05.1-10-PLAN.md
 Resume file: None
