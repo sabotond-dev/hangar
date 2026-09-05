@@ -30,3 +30,27 @@ the line they tick was not already ticked, and the roadmap's Phase 7 row should 
 SUMMARY files on disk rather than from the checklist.
 
 **Owner:** each later plan's roadmap update; no code.
+
+## 2. `storeToFlash`'s `id` parameter is unread and carries a lint directive (found by 07-02)
+
+07-02 removed the `storeAllowed` throw (D-18), which was the only reader of `id` inside
+`storeToFlash(q, id)`. The plan keeps the parameter for provenance and symmetry, so the function now
+carries `// eslint-disable-next-line @typescript-eslint/no-unused-vars` above it. The first plan
+that reads `id` in the store path (07-07's `KEEP ON DEVICE`, which re-fetches on `id.activePage`
+after the ACK, or any plan that stamps the step with the module's address) should delete the
+directive in the same edit; a stale disable directive is reported by eslint and would fail
+`npm run lint`.
+
+**Owner:** 07-07, or the first plan that reads `id` in `storeToFlash`; one line.
+
+## 3. `/dev/skeleton/+page.svelte` still greys its store button on `storeAllowed` (noted by 07-02)
+
+Phase 2's skeleton page reads `Identity.storeAllowed` to disable its store control on a rig. The
+field still exists and is still computed, so the page works exactly as Phase 2 built it; but the
+rule it renders is the one SAFE-06 superseded. 07-02 edits no route by design. Whether the skeleton
+page should follow SAFE-06 (store allowed, other modules named) or keep Phase 2's rule as a record
+of what the hardware run was measured under is a call for whoever next touches that page; the
+shipped install surface is not affected.
+
+**Owner:** none assigned; not a Phase 7 requirement. Recorded so nobody reads the skeleton page as
+the current rule.
