@@ -151,3 +151,32 @@ flake.
 **Owner:** unowned, beside item 5. Whoever next edits `playwright.config.ts` should decide
 the worker count against a cold `wrangler dev` on this machine and write the measured
 number into the config's header, as the 4.6 s cold start already is.
+
+## 8. `first-experience.e2e.ts:156` presses keys before any hydration marker (found by 06-09)
+
+In this plan's first full e2e run (`.tmp-e2e/06-09-suite.log`) "a still configuration really
+is still" failed once: two `ArrowRight` presses moved the band one step (`aria-activedescendant`
+read `slot-pinwheel`, not `slot-ninepads`) and the band still read `data-ready="false"` for the
+first four polls of the assertion. The test asserts `toBeVisible()` and
+`aria-activedescendant="slot-aurora"` first - both of which the PRERENDERED document already
+satisfies - and then presses two keys with no hydration marker in between, without the file's
+own `waitForFrontDoor()` helper, whose comment describes exactly this race against the splash's
+window-level `keydown` skip listener (`src/lib/ui/Splash.svelte:209`). A press that lands before
+the band's `onkeydown` is attached is lost. The file re-ran 11 passed and the `--workers 3` full
+run passed it; the 06-08 log's failure of the same title was the wrangler death, not this race,
+so this run is the first record of it.
+
+This plan widens the window slightly and by design: `src/routes/+layout.svelte` now statically
+imports the session, so the layout chunk (`nodes/0.*.js`, 5,878 bytes) pulls the session's chunk
+(6,987 bytes) before hydration can begin on every route. That is the permitted, chunk-guarded
+import 06-05 allow-listed (`config-shape.spec.ts` test 13 is green), not a defect - but the
+pre-hydration window on `/` is longer than when the test was written, and it will grow again
+when 06-11 mounts the header slot and the note.
+
+**Not fixed here, deliberately.** `e2e/first-experience.e2e.ts` is not in this plan's
+`files_modified`. The fix is a one-line wait for a hydration marker before the first press:
+`waitForFrontDoor(page)` as the file's other tests do, or
+`await expect(band).toHaveAttribute("data-ready", "true")`.
+
+**Owner:** plan 06-13, which re-measures `PREV_E2E` and owns the shipped-chrome e2e changes;
+or whoever edits that file first.
