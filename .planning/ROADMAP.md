@@ -219,7 +219,7 @@ Plans:
 - [x] 07-06-PLAN.md — The install store: the snapshot at connect, TRY ON DEVICE and PUT BACK in RAM (wave 6) (completed 2026-09-05)
 - [x] 07-07-PLAN.md — The install store: KEEP ON DEVICE with the read-back proof, the taxonomy, the bounds (wave 7) (completed 2026-09-05)
 - [x] 07-08-PLAN.md — The shim answers with the real fake, the /dev/install/ probe, the fourteen states walked (wave 8) (completed 2026-09-05)
-- [ ] 07-09-PLAN.md — The allow-list mutations observed, then PutBack, KeepConfirm and InstallState (wave 9)
+- [x] 07-09-PLAN.md — The allow-list mutations observed, then PutBack, KeepConfirm and InstallState (wave 9) (completed 2026-09-05)
 - [ ] 07-10-PLAN.md — The panel writes: the never-writes literals retired, KEEP ON DEVICE quiet, the column row (wave 10)
 - [ ] 07-11-PLAN.md — The header lock, the snapshot line, and the degrade test extended (wave 11)
 - [ ] 07-12-PLAN.md — The install flow on the real page in two engines (wave 12)
@@ -267,7 +267,7 @@ Phases 6 and 7.
 | 5. Tuning, Budgets and Shareable Links | 12/12 | Complete    | 2026-09-04 |
 | 5.1. Catalog Browse | 11/11 | Complete    | 2026-09-05 |
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
-| 7. Install Flow | 8/13 | In progress (every install state visited in a browser against the production build through the /dev/install/ probe's trace, with a ZONA that is the node suite's responder exposed into the page; the layout starts the install store; SAFE-01 counted by class on the wire; e2e 83 in both projects) | - |
+| 7. Install Flow | 9/13 | In progress (the chunk guard's widening proven by three mutations on the walk; the three install leaves exist and were measured on the served build - PutBack's cell one height across its three lines and its busy state, KeepConfirm a group that holds focus and is not a dialog with the rig sentence naming EN16 and BU16, InstallState's twelve blocks through FailureBlock; device-ui 9; nothing mounted yet) | - |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 
 ## Requirement Coverage

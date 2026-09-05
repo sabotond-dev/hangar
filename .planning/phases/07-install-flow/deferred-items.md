@@ -159,3 +159,41 @@ on their first run. The readout keeps the name (07-12's tests will read it); the
 `install-put-back-click`. Recorded so 07-12 reads the probe, not the plan's table, for the click.
 
 **Owner:** none required. Fixed in 07-08 (commit 3 of this plan).
+
+## 11. The confirmation's fade OUT belongs to the panel's `{#if}`, not to the leaf (found by 07-09)
+
+07-UI-SPEC's Motion Contract gives the confirmation block 160ms of opacity "appearing or leaving".
+`KeepConfirm.svelte` fades IN with a CSS animation on mount (instant under reduced motion), but a leaf
+cannot fade itself OUT in CSS alone: it is unmounted by the panel's `{#if install.confirmOpen}` and is
+gone the same frame. A Svelte `transition:` directive on the mount point would do it, at the cost of
+a JS-orchestrated leave and a reduced-motion read the leaf has no business making. Whether the leave
+should fade at all is also open: NOT NOW re-renders the row's `KEEP ON DEVICE` in the block's place
+and moves focus to it, and a 160ms ghost of the block under a control that already has focus may be
+worse than an instant swap.
+
+**Owner:** 07-10, which owns the `{#if}` and the focus return; a decision, then at most one directive.
+
+## 12. `lua-entries.spec.ts` test 6 breaches Vitest's 5000 ms default under the parallel quick run (found by 07-09)
+
+`src/lib/catalog/lua-entries.spec.ts` > "stays canonical and in budget across the whole knob
+cross-product" (Phase 8's, last edited by `5e230ec`) took 5333 ms and then 6143 ms inside two full
+`npm run test:quick` runs on 2026-09-05 and was reported failed by timeout both times, while the same
+file run alone passes in 1.68 s (6 passed, 2.20 s). The machine was also running two heavyweight
+desktop applications at the time. Nothing in 07-09 touches the catalog, the Lua entries, wasmoon or
+the vitest configuration; the quick run's other 773 tests passed, which is 07-08's 772 plus this
+plan's 2. The test is a whole cross-product and is the natural candidate for an explicit
+`{ timeout }` argument, or the fix is a quieter machine.
+
+**Owner:** the next plan that edits `lua-entries.spec.ts` (Phase 8's gate), or whoever runs the
+quick suite on a quiet machine and observes 73 / 774 - 07-10 should re-measure first.
+
+## 13. After `connected`, a rig's other modules reach the identity only on the ZONA's next heartbeat (noted by 07-09)
+
+`session.svelte.ts` `#startFold` begins a FRESH `IdentifyState` at `connected`, so `identify(fold)`
+returns undefined - and nothing republishes - until that fold has seen a type-1 ZONA heartbeat and a
+page. A test that pushes EN16 and BU16 heartbeats after connect and reads `identity.otherModules`
+straight away sees none; one ZONA beat later it sees both (observed on the served build through the
+temporary probe mount). A real module beats at 4 Hz, so nothing on hardware is affected; recorded so
+07-12's rig test (`delayAckMs` / `rig`, `zona.script()`) pushes a ZONA heartbeat after the rig's.
+
+**Owner:** 07-12's test authoring; no code.
