@@ -85,3 +85,16 @@ If the contract's owner adds the row (and, if preferred, wants the literal besid
 sentences), the row and a one-line move change together and either spec can hold it.
 
 **Owner:** the contract's owner, at the next revision of 07-UI-SPEC; no code until then.
+
+## 6. `TryOnDevice.svelte` carries a `svelte/no-unused-props` directive for a prop nothing reads yet (found by 07-05)
+
+07-05 threads the tuner's compiled pair to `TryOnDevice.svelte` as `config?: { setup: string; timer: string }`
+and the plan says the component "reads it nowhere yet" - 07-10 is its consumer. An unread prop fails lint from
+either side: bound in the destructure, `@typescript-eslint/no-unused-vars` fires; declared in the props type and
+left unbound, `svelte/no-unused-props` fires on the destructure line. 07-05 chose the unbound form (one rule, not
+two) with `// eslint-disable-next-line svelte/no-unused-props -- ...` and its reason directly above `let {`, the
+form `Coverflow.svelte` and `BrowseGrid.svelte` already carry for `prefer-svelte-reactivity`. Inventing a read (a
+data attribute, say) to satisfy the linter would have shipped behaviour the plan did not ask for.
+
+**Owner:** 07-10, which binds `config`, hands it to the install store and must remove the directive - eslint
+reports an unused directive as a warning the moment the prop is read, so it cannot be forgotten silently.
