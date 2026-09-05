@@ -20,11 +20,24 @@
   THE STATE IS A RUNE SEEDED ONCE, AND THE ADDRESS IS A PROJECTION OF IT. Read
   out of Kit 2.70.3's own source in both directions: client.js:2551-2581
   (`replaceState`) sets `page.state` and re-clones the page object but NEVER
-  touches `page.url`, while client.js:2871-2905 - the popstate shallow branch -
-  DOES call `update_url`. `page.url` is therefore stale on write and fresh on
-  back, and a `$derived` over it would be a bug pointing two ways at once. The
-  three runes below are the source of truth; the address is written from them
-  and never read again after the seed.
+  touches `page.url`, while client.js:2871-2905 - the popstate branch - DOES
+  call `update_url`. So a `$derived` over `page.url` would be a bug: it goes
+  stale the instant the first chip is pressed. The three runes below are the
+  source of truth; the address is written from them and never read again after
+  the seed.
+
+  AMENDMENT (plan 05.1-10), and it CORRECTS the sentence this file and
+  05.1-RESEARCH.md used to carry - that `page.url` is "stale on write and fresh
+  on back". It is stale in BOTH directions, for a reason one line further down
+  in the same function: `replaceState` writes `[PAGE_URL_KEY]: page.url.href`
+  into the history entry (client.js:2573), which is the page store's url and not
+  the url it is putting in the address bar. Every shallow write therefore leaves
+  the entry remembering the address the DOCUMENT was entered with, the popstate
+  handler reads that key back (client.js:2883), and `update_url` is handed a
+  stale URL. The address bar is right; Kit's idea of it is a visit behind. That
+  is the whole defect logged in the phase's deferred-items.md, and the second
+  seed further down - which reads `window.location`, the browser's own answer -
+  is the repair. Measured in four journeys before and after.
 
   AND THE SEED HAPPENS AT COMPONENT INIT, NOT IN onMount. 05.1-CONTEXT.md D-16
   says "inside onMount"; the two reasons D-16 gives are prerender safety and the
@@ -61,7 +74,7 @@
 -->
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { beforeNavigate, replaceState } from "$app/navigation";
+  import { afterNavigate, beforeNavigate, replaceState } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { onDestroy, onMount, untrack } from "svelte";
@@ -274,6 +287,81 @@
       href: currentHref(),
       scrollY: window.scrollY,
     });
+  });
+
+  /*
+    THE SECOND SEED, AND IT IS ONLY FOR THE BROWSER'S OWN BACK BUTTON.
+
+    Measured on the served production build during 05.1-09 and logged in the
+    phase's deferred-items.md: a Back into /browse/?tag=playable rendered all
+    sixteen cards with no chip active while the address still read
+    ?tag=playable. Reproduced here in four journeys before this block was
+    written, and the mechanism is sharper than the note guessed:
+
+      - arrive cold on /browse/, press the playable chip (a replaceState),
+        open a card, press Back  ->  16 cards, no chip, url ?tag=playable
+      - arrive cold on /browse/?tag=playable, press the drums chip,
+        open a card, press Back  ->  4 cards, ONE chip, url ?tag=playable&tag=drums
+
+    The second line is what names the cause. What comes back is not the default
+    and not the popped address: it is the address the browse DOCUMENT was
+    entered with.
+
+    AND THE SOURCE HERE IS `location`, NOT `page.url`. That is a correction to
+    05.1-RESEARCH.md, which records that the popstate branch calls `update_url`
+    and concludes `page.url` is "stale on write and fresh on back". The first
+    half is true and the second is not, for a reason one line further down in
+    Kit's own source: `replaceState` writes
+    `[PAGE_URL_KEY]: page.url.href` into the history entry
+    (client.js:2573) - the PAGE STORE's url, never the url it is putting in the
+    address bar - and `page.url` is exactly what `replaceState` does not update.
+    So every shallow write leaves the entry recording the address the document
+    was entered with, the popstate handler reads that key back
+    (client.js:2883), and `update_url` is handed the stale URL. The address bar
+    is right, because `history.replaceState(opts, "", resolve_url(url))` really
+    did change it; Kit's idea of the URL is a visit behind.
+
+    `window.location.search` is the browser's own answer and it is correct in
+    every case: the browser applies a history entry's URL before it fires
+    popstate. It is read only here, only in the browser, and only on a popstate.
+
+    The repair is a SECOND seed rather than a moved one. The init-scope seed
+    stays exactly where it is and keeps doing the job D-16 and Pitfall 7a gave
+    it - a cold arrival on a filtered address paints its own set on the first
+    frame, and 05.1-08 measured that moving it into onMount costs a spurious
+    live-region announcement.
+
+    `type === "popstate"` and not `!== "enter"`: afterNavigate fires on mount
+    with type "enter" (client.js:739) and for every link and goto too, and a
+    re-seed on those would re-read an address the visitor is mid-way through
+    composing. A `goto` back from a detail page carries its own href, and
+    05.1-09's BACK TO BROWSE already restores sort, query, chips and scroll
+    through that path.
+
+    The `browser` guard is the house rule rather than a live branch:
+    afterNavigate registers through onMount, which never runs on the server, so
+    this callback cannot fire during prerender - which matters, because there is
+    no `window` there.
+
+    KNOWN AND ACCEPTED: Kit restores the scroll offset before it runs the
+    after-navigate callbacks (client.js:2003 then :2042), so the grid shrinks
+    one frame after the scroll has been set. That is a smaller wrong than the
+    screen and the address bar disagreeing, which is what happened before.
+  */
+  afterNavigate((navigation) => {
+    if (!browser || navigation.type !== "popstate") return;
+    const restored = parseBrowseQuery(
+      new URLSearchParams(window.location.search),
+      TAGS,
+    );
+    // Any pending projection belongs to the view being left, not to this one.
+    if (addressTimer !== undefined) {
+      clearTimeout(addressTimer);
+      addressTimer = undefined;
+    }
+    sort = restored.sort;
+    q = restored.q;
+    tags = [...restored.tags];
   });
 
   /*

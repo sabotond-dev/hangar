@@ -819,3 +819,72 @@ test.describe("the wall is really running, and it is measured rather than gated"
     expect(seen.consoleErrors).toEqual([]);
   });
 });
+
+test.describe("coming back to a browse screen you had already narrowed", () => {
+  test("the browser Back button returns the filtered view it left", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+
+    const playable = sortListing(
+      LISTING.filter((entry) => entry.tags.includes("playable")),
+      "featured",
+    ).map((entry) => entry.id);
+    expect(playable.length).toBeGreaterThan(1);
+    expect(playable.length).toBeLessThan(LISTING.length);
+
+    // THE JOURNEY IS THE ASSERTION, AND THE CHIP PRESS IS THE PART THAT
+    // MATTERS. A Back into an address the document was LOADED with was already
+    // green before this test existed - measured. The defect logged in the
+    // phase's deferred-items.md needs the filtered address to have been
+    // composed by a shallow replaceState, because Kit's replaceState records
+    // `page.url.href` - the page store's url, which replaceState itself never
+    // updates - into the history entry, so the entry remembers the address the
+    // document was entered with and Back hands the page a url one visit stale.
+    // Arriving on a bare /browse/ and pressing a chip is exactly that, and it
+    // is also what a visitor does.
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+
+    await page.getByTestId("tag-playable").click();
+    await expect(page.locator(CARDS)).toHaveCount(playable.length);
+    // Let the 500 ms projection land, so the address really is the composed one
+    // rather than one beforeNavigate is about to flush.
+    await expect(page).toHaveURL(/\/browse\/\?tag=playable$/);
+
+    await page.getByTestId(`card-name-${playable[0]}`).click();
+    await expect(page).toHaveURL(new RegExp(`/c/${playable[0]}/$`));
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+
+    // THE ADDRESS BAR AND THE SCREEN MUST AGREE. Before the fix this read
+    // sixteen cards and no active chip while the address still said
+    // ?tag=playable - the screen and the address bar contradicting each other,
+    // on a link the visitor could then copy and send to somebody.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/browse\/\?tag=playable$/);
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+    await expect(page.locator(CARDS)).toHaveCount(playable.length);
+    expect(await renderedIds(page)).toEqual(playable);
+    await expect(
+      page.getByTestId("tag-playable").locator("input"),
+    ).toBeChecked();
+    await expectCount(page, playable.length, LISTING.length);
+
+    // AND THE OTHER DIRECTION, WHICH IS THE ONE THAT WAS NEVER BROKEN: a Back
+    // into an address the document was loaded with. It is asserted because a
+    // repair that fixed the composed case by breaking this one would otherwise
+    // ship green.
+    await coldGoto(page, "/browse/?tag=playable");
+    await expect(page.locator(CARDS)).toHaveCount(playable.length);
+    await page.getByTestId(`card-name-${playable[0]}`).click();
+    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/browse\/\?tag=playable$/);
+    await expect(page.locator(CARDS)).toHaveCount(playable.length);
+    await expect(
+      page.getByTestId("tag-playable").locator("input"),
+    ).toBeChecked();
+
+    expect(consoleErrors).toEqual([]);
+  });
+});
