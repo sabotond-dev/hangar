@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-08-PLAN.md
-last_updated: "2026-09-05T01:35:00.000Z"
+stopped_at: Completed 05.1-09-PLAN.md
+last_updated: "2026-09-05T02:15:00.000Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 56
-  completed_plans: 53
-  percent: 95
+  completed_plans: 54
+  percent: 96
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 05.1
-Plan: 09 (next)
-Status: Phase 5.1 in progress — 05.1-08 complete (8 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
+Plan: 10 (next)
+Status: Phase 5.1 in progress — 05.1-09 complete (9 of 11). Phase 5 remains complete (12 of 12) and awaiting its verification pass.
 Last activity: 2026-09-05
 
-Progress: [█████████░] 95% (53 of 56 plans)
+Progress: [█████████░] 96% (54 of 56 plans)
 
 ## Performance Metrics
 
@@ -112,6 +112,7 @@ Progress: [█████████░] 95% (53 of 56 plans)
 | Phase 05.1 P06 | 61 min | 3 tasks | 2 files |
 | Phase 05.1 P07 | 37 min | 3 tasks | 2 files |
 | Phase 05.1 P08 | 41 min | 3 tasks | 5 files |
+| Phase 05.1 P09 | 42 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -322,6 +323,10 @@ Recent decisions affecting current work:
 - [Phase 05.1]: config-shape.spec.ts test 13 grew a COMPILE_SURFACE rule beside COMPILER_MARKERS, because the markers match SPECIFIER TEXT and are blind to $lib/catalog, $lib/sim/engine and $lib/tune/model, all three of which reach src/vendor/botor/_pad at module scope. Relative forms are normalised to a repo-relative path, `import type` and `await import()` are exempt, exactly two catalog paths (front-door, listing) are permitted and never a prefix, and a pre-exemption non-vacuity assertion tells an empty offender list apart from a blind normaliser. The replacement statement matcher was proved to collect an identical specifier list to the one it replaced across all 34 walked files, so the COMPILER_MARKERS half was not weakened
 - [Phase 05.1]: A mutation the bundler can delete is not a negative check: the first attempt at test 14's row added an UNUSED `import { CATALOG } from "$lib/catalog"` to /browse/, which Vite would have tree-shaken, so the guard would have stayed green on a page that carries no chunk. The import was made load-bearing before the build, and only then did build/browse/index.html reach the 131 KB chunk
 - [Phase 05.1]: The default Featured order renders ARC, Aurora, CHORUS, EUCLID, LATTICE, MORPH, Nine pads, Pinwheel then Dial, Four faders, GHOST, Joystick, Radar, SONAR, Starfield, Trackpad - featured-first then CODE POINT, so "ARC" precedes "Aurora" and the eight uppercase Lua names interleave with the eight mixed-case ported ones. It is D-10 as amended working as specified; the alternative is the case-folding collator D-10 deliberately rejected
+- [Phase 05.1]: BACK TO BROWSE navigates with { noScroll: true } and NOT { replaceState: true }, against 05.1-UI-SPEC.md and with plan 05.1-09's interfaces table - on Kit 2.70.3 navigate() does `const change = replace_state ? 0 : 1` (client.js:1874) and bumps the NAVIGATION index by change, so a replacing navigation leaves current_navigation_index untouched and the popstate handler (client.js:2886) then takes its shallow branch. Coverflow.choose()'s pushState lines the indices up; observed, the address bar read /c/ghost/ over a rendered browse screen five seconds after the Back. The price is one history entry per round trip
+- [Phase 05.1]: A record's end of life belongs in beforeNavigate, never afterNavigate: Kit's add_navigation_callback (client.js:2240-2248) registers in onMount and DELETES in the teardown, and the teardown runs while the new page renders - before client.js:2042 walks after_navigate_callbacks. An afterNavigate in /c/[id]/ fires for a hop to another /c/ route and never for the departure that unmounts it; observed, the front door then offered BACK TO BROWSE to a view already left. The willUnload branch is skipped so a reload keeps the record
+- [Phase 05.1]: A navigation target read out of storage is rebuilt through resolve() from the component's own path literal plus the recorded query, never handed over whole - svelte/no-navigation-without-resolve accepts a resolve() call or a value whose TYPE is structurally ResolvedPathname, and a string out of JSON can never be the second without a cast. It doubles as the safety half: a poisoned record cannot navigate anywhere but /browse/
+- [Phase 05.1]: flushAddress() does NOT protect the return record - the record is composed from the page's own state, so it names the chip either way. What it protects is the history entry left behind: without it, the browser's own Back restores a view one chip stale. Measured on both builds inside the 500 ms timer
 
 ### Pending Todos
 
@@ -338,6 +343,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-05T01:35:00.000Z
-Stopped at: Completed 05.1-08-PLAN.md
+Last session: 2026-09-05T02:15:00.000Z
+Stopped at: Completed 05.1-09-PLAN.md
 Resume file: None
