@@ -1,9 +1,18 @@
-// The four outbound instructions HANGAR is allowed to send (FOUND-01, D-06).
+// The five outbound instructions HANGAR is allowed to send (FOUND-01, D-06).
+//
+// Four of them are the walking skeleton's. The fifth, fetchSerialNumber, was
+// added by Phase 7 (07-CONTEXT D-04 amended) because the durable snapshot
+// behind PUT BACK needs a key that names one module and survives a closed tab,
+// and the browser refuses to expose the USB serial it keys its own grant on.
+// It is the last one: the set is closed at five, and
+// forbidden-instructions.spec.ts test 4 counts them.
 //
 // Parameter names are copied verbatim from grid-editor's
 // src/renderer/serialport/instructions.ts - SendHeartbeatImmediate :28-64,
 // FetchConfig :66-116, SendConfig :118-178, StorePage :341-370. Those names are
-// generated from firmware tables, so a paraphrase is a silent fork.
+// generated from firmware tables, so a paraphrase is a silent fork. The desktop
+// never sends a serial-number fetch, so that one's names (WORD0..WORD3) come
+// from the pinned package's own tables and grid_protocol.h:952-965.
 //
 // This is the ONLY shipped module that encodes a packet; everything else under
 // src/lib/protocol/ is decoding or policy, and forbidden-instructions.spec.ts
@@ -18,6 +27,7 @@ import {
   PROTOCOL_VERSION,
   TIMEOUTS,
 } from "./constants";
+import type { DecodedClass } from "./decode";
 
 export interface GridDescriptor {
   brc_parameters: Record<string, number>;
@@ -192,8 +202,11 @@ export function sendConfig(
  *
  * The page stored is the module's own active page and is never a parameter
  * (grid_decode.c:976). The instruction is a global broadcast and so is its
- * acknowledgement, which is why the filter names no address at all - and why
- * D-12 disables this button when a second module is on the bus.
+ * acknowledgement, which is why the filter names no address at all. Phase 2's
+ * D-12 disabled the store when a second module was on the bus; SAFE-06
+ * (07-CONTEXT D-05) supersedes that rule: the store stays allowed on a rig, and
+ * the confirmation names the other modules and says their current pages are
+ * stored too, because every module on the bus answers this broadcast.
  */
 export function storePage(): GridRequest {
   return {
@@ -208,6 +221,56 @@ export function storePage(): GridRequest {
     timeoutMs: TIMEOUTS.pagestoreMs,
     correlateById: true,
   };
+}
+
+/**
+ * Ask the module for its factory serial number (07-CONTEXT D-04 amended).
+ *
+ * ADDRESSED, NEVER BROADCAST. Firmware accepts this FETCH with
+ * GRID_DESTINATION_IS_ME | GRID_DESTINATION_IS_GLOBAL (grid_decode.c:839-869)
+ * and builds its REPORT at the global position, so a broadcast on a rig makes
+ * EVERY module answer with frames that cannot be told apart. That is the whole
+ * reason this takes sx and sy. The REPORT sets no LASTHEADER, so correlateById
+ * is false, and the filter names no address, for the same reason storePage()'s
+ * does not.
+ *
+ * WORD0..WORD3 are the ESP32-S3 eFuse MAC (grid_esp32_platform.c:139-181) -
+ * the same six bytes the module's USB iSerialNumber is built from
+ * (grid_esp32_usb.c:20-24), which the browser keys its permission on and
+ * getInfo() refuses to expose. WORD2 and WORD3 are always zero on this chip;
+ * the key still spans all four so a future chip cannot collide with this one.
+ *
+ * Source-verified, wire-unproven: no hardware capture holds a frame of this
+ * class and the desktop editor never sends one. docs/INSTALL-RUNBOOK.md row A
+ * is where it meets a module.
+ */
+export function fetchSerialNumber(sx: number, sy: number): GridRequest {
+  return {
+    label: "fetch-serial",
+    descr: {
+      brc_parameters: { DX: sx, DY: sy },
+      class_name: "SERIALNUMBER",
+      class_instr: "FETCH",
+      class_parameters: {},
+    },
+    filter: { class_name: "SERIALNUMBER", class_instr: "REPORT" },
+    timeoutMs: TIMEOUTS.fetchMs,
+    correlateById: false,
+  };
+}
+
+/**
+ * 32 lowercase hex characters: WORD0..WORD3, each unsigned, each padded to
+ * eight. The `>>> 0` is load-bearing: a word above 2^31 can decode as a
+ * negative number through Number() on some paths, and toString(16) of a
+ * negative carries a sign, which would put a `-` in a key that is supposed to
+ * be hex. The padding is what keeps two keys the same length whatever their
+ * leading digits, so a key is comparable by string equality alone.
+ */
+export function moduleKeyOf(cls: DecodedClass): string {
+  const word = (name: string) =>
+    (Number(cls.class_parameters[name]) >>> 0).toString(16).padStart(8, "0");
+  return word("WORD0") + word("WORD1") + word("WORD2") + word("WORD3");
 }
 
 /**

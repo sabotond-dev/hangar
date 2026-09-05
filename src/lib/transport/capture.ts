@@ -43,6 +43,8 @@ export type CaptureEvent =
  */
 export const STEP_IDS = [
   "identify",
+  // Phase 7 (07-01): the module's own key, fetched before the snapshot.
+  "fetch-serial",
   "fetch-setup",
   "fetch-timer",
   "write-timer",
