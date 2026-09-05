@@ -3,9 +3,9 @@
   frame AND the state the site shows while it waits (04-UI-SPEC W-23), and this
   is the only place in Phase 4 that waits at all.
 
-  32px of the pad recipe's first layer - one dot per unlit cell, painted once by
-  the browser - with a single cell lit at full accent walking the perimeter, 90ms
-  per step, 32 cells, 2,880ms a lap.
+  32px (by default) of the pad recipe's first layer - one dot per unlit cell,
+  painted once by the browser - with a single cell lit at full accent walking
+  the perimeter, 90ms per step, 32 cells, 2,880ms a lap.
 
   THE WALK IS A CSS ANIMATION AND NEVER A TIMER. A JavaScript walker would be a
   second scheduler beside src/lib/sim/host.ts's single requestAnimationFrame
@@ -23,13 +23,45 @@
   This component never uses the word the copy contract forbids. The status line
   beside it says what is actually being waited for.
 
+  TWO PROPS, NO BEHAVIOUR (Phase 6, 06-UI-SPEC Modified). `size` drives one
+  custom property, --spinner-size, and nothing else: the keyframes below are
+  percentage translates on an 11.111% cell, so the walk scales with no second
+  animation and no new keyframes - which is the whole reason the header's 24px
+  device mark renders THIS component rather than a copy of it. `decorative`
+  drops three attributes together: role="img", aria-label="Connecting" AND
+  data-testid="pad-spinner". The third is not an afterthought. Throughout the
+  connecting state the header's mark and the panel's spinner are on screen AT
+  THE SAME TIME, and a selector that matched two elements would make every
+  existing assertion about the panel's spinner ambiguous; a decorative
+  instance is therefore invisible to the accessibility tree and to the test
+  suite alike, and the text beside it carries the meaning. Both defaults - 32
+  and false - reproduce the Phase 4 output exactly, so TryOnDevice and
+  CatalogCard render what they rendered before these props existed.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
+<script lang="ts">
+  let {
+    size = 32,
+    decorative = false,
+  }: {
+    /** Drives one custom property. The keyframes are percentage translates, so they scale. */
+    size?: number;
+    /**
+     * True drops role="img", aria-label and data-testid, so a decorative
+     * instance never collides with the panel's spinner in a selector - the
+     * two are on screen together throughout the connecting state.
+     */
+    decorative?: boolean;
+  } = $props();
+</script>
+
 <div
   class="spinner"
-  data-testid="pad-spinner"
-  role="img"
-  aria-label="Connecting"
+  style:--spinner-size="{size}px"
+  data-testid={decorative ? undefined : "pad-spinner"}
+  role={decorative ? undefined : "img"}
+  aria-label={decorative ? undefined : "Connecting"}
 >
   <div class="walker" aria-hidden="true"></div>
   <div class="still still-a" aria-hidden="true"></div>
@@ -38,11 +70,11 @@
 </div>
 
 <style>
-  /* Layer 1 of the pad recipe, at 32px. Same gradient, same 11.111% pitch. */
+  /* Layer 1 of the pad recipe, at --spinner-size (32px by default). Same gradient, same 11.111% pitch. */
   .spinner {
     position: relative;
-    inline-size: 32px;
-    block-size: 32px;
+    inline-size: var(--spinner-size);
+    block-size: var(--spinner-size);
     flex: none;
     background-image: radial-gradient(
       circle at 50% 50%,
