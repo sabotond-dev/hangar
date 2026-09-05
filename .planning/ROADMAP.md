@@ -206,8 +206,23 @@ Plans:
   3. *(hardware)* `PUT BACK` restores the snapshotted configuration with one click at any time, including in a fresh tab after the browser was closed, because the snapshot persists in `localStorage` keyed by module identity.
   4. *(hardware)* `KEEP ON DEVICE` is a visibly secondary, separate action — never an equal-weight button beside `TRY ON DEVICE` — and requires a confirmation naming what is being replaced ("the Setup and Timer scripts on your ZONA's touch element") and stating that it survives a power cycle. On a rig with other Grid modules the confirmation also names them and states that their current pages are stored too, while still allowing the action.
   5. *(happy path on hardware; failure paths exercised against recorded frames with no hardware)* "Installed" means an ACKNOWLEDGE frame arrived for each event write: a write that lands one event but not the other is detected and reported plainly with retry and `PUT BACK` both offered, retries on timeout are bounded, and a connection lost mid-write ends in a named failure state rather than an infinite retry loop. On browsers without Web Serial the install controls are present but disabled with the reason inline, never hidden.
-**Plans**: TBD
+**Plans**: 13 plans in 13 waves
 **UI hint**: yes
+
+Plans:
+- [ ] 07-01-PLAN.md — Phase 6 closed, the five baselines, the fifth descriptor and its key (wave 1)
+- [ ] 07-02-PLAN.md — One writer for three clicks, the storeAllowed throw undone by name, the fake ZONA that refuses (wave 2)
+- [ ] 07-03-PLAN.md — snapshot.ts and install-copy.ts, each importing nothing, with the caps asserted (wave 3)
+- [ ] 07-04-PLAN.md — The session's seams: the write view, onClass, onConnection, announce, writeLock (wave 4)
+- [ ] 07-05-PLAN.md — The tuner's onconfig channel and the byte-for-byte wire pin (wave 5)
+- [ ] 07-06-PLAN.md — The install store: the snapshot at connect, TRY ON DEVICE and PUT BACK in RAM (wave 6)
+- [ ] 07-07-PLAN.md — The install store: KEEP ON DEVICE with the read-back proof, the taxonomy, the bounds (wave 7)
+- [ ] 07-08-PLAN.md — The shim answers with the real fake, the /dev/install/ probe, the fourteen states walked (wave 8)
+- [ ] 07-09-PLAN.md — The allow-list mutations observed, then PutBack, KeepConfirm and InstallState (wave 9)
+- [ ] 07-10-PLAN.md — The panel writes: the never-writes literals retired, KEEP ON DEVICE quiet, the column row (wave 10)
+- [ ] 07-11-PLAN.md — The header lock, the snapshot line, and the degrade test extended (wave 11)
+- [ ] 07-12-PLAN.md — The install flow on the real page in two engines (wave 12)
+- [ ] 07-13-PLAN.md — INSTALL-RUNBOOK, the phase gate, and the hardware checkpoint - the first real write (wave 13)
 
 ### Phase 8: New Configurations
 **Goal**: The catalog stops being a port of BOTOR's shelf and becomes HANGAR's own — configurations authored for spectacle against a working simulator and a live budget meter.
