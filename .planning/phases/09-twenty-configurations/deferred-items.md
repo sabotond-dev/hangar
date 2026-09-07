@@ -63,3 +63,23 @@ one extra engine build per entry.
 
 Numbered 4 rather than 3: 09-08's plan was written before 09-07 landed its own
 third item, and the file is appended to, never overwritten.
+
+## 5. The tune panel has no widget for a multi-colour palette (recorded by 09-09)
+
+`src/lib/tune/view.ts`'s `widgetFor` gives a `kind: "colour"` knob a swatch row
+only when EVERY value parses as one RGB triple, and
+`src/lib/tune/knobs.lua.spec.ts` turns that into a rule with a stated reason:
+*"a colour that reaches a rail is a malformed value set, not a rendering
+choice"*. QUADRANT's palette is four colours in one twelve-number value, which
+is neither malformed nor a single colour, and it went red on both that spec and
+`view.spec.ts`'s totality assertion over every colour value in the catalog. The
+entry was corrected - the knob ships `kind: "mode"` and renders as a
+four-position rail - because `src/lib/tune/` is not an entry wave's to edit and
+09-01's rule is that the entry is wrong, not the gate. But the consequence is
+that a visitor tuning QUADRANT sees four unlabelled positions where the thing
+being chosen is four colours, which is exactly the case a swatch exists for.
+What would close this: a fourth widget - a swatch STRIP, n squares per value -
+chosen when a `colour` knob's values each parse as a whole number of triples,
+plus the corresponding `swatchOf`/`hueName` generalisation. It is the only
+multi-colour knob in the catalog today, so the cost of leaving it is one card's
+tune panel and the cost of fixing it is a widget nothing else needs yet.
