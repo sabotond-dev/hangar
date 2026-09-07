@@ -104,6 +104,16 @@ here is planned yet. [user] decisions are the user's and are not open to orchest
   `prefers-reduced-motion` contract Phase 4 set and Playwright asserts in both engines. Whether the
   switch is also a visible control the visitor can reach, beyond the OS setting, is the UI spec's call.
 
+- **D-14 [user] Grifter ships; the licence is confirmed in parallel.** The font binaries on disk
+  declare `PERSONAL USE` in the OpenType `name` table (nameID 13, copyright `HANSON METHOD™ DESIGN`,
+  no licence URL) — verified by parsing `GRIFTER-Regular.otf` directly, and the same string is in the
+  file Intech Studio serves live. The user holds that a licence exists and will confirm it against the
+  purchase record or Intech's company licence while the phase proceeds. **The engineering
+  consequence is that the headline face must be swappable by one token**: a single custom property
+  and a single `@font-face` block, never a family name written into components, so that if the
+  licence does not cover this the change is a token edit late in the phase and not a redesign. D-13's
+  archive exclusion stands regardless.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
