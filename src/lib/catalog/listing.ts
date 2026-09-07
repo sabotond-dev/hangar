@@ -294,6 +294,18 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "hold",
+    name: "HOLD",
+    description:
+      "A latching effect pad: lift your finger and the value stays where you left it, lit and breathing.",
+    motion: "animated",
+    tags: ["latching", "hands-free", "expressive", "xy-control"],
+    featured: true,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

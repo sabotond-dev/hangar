@@ -95,6 +95,7 @@ const KNOWN_TAGS = [
   "hypnotic",
   "instrument",
   "isomorphic",
+  "latching",
   "looper",
   "macros",
   "mixing",

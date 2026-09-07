@@ -11,6 +11,7 @@ import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { EUCLID } from "./entries/euclid";
 import { GHOST } from "./entries/ghost";
+import { HOLD } from "./entries/hold";
 import { LATTICE } from "./entries/lattice";
 import { MORPH } from "./entries/morph";
 import { PORTED } from "./entries/ported";
@@ -32,7 +33,8 @@ export type {
   PadConfigObject,
 } from "./types";
 
-// Hand-authored Lua entries are appended here as they are authored (waves 4-6).
+// Hand-authored Lua entries are appended here as they are authored: Phase 8's
+// seven first, then Phase 9's twenty in the order their waves land.
 export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   ...PORTED,
   EUCLID,
@@ -42,6 +44,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   LATTICE,
   MORPH,
   SONAR,
+  HOLD,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -51,6 +54,7 @@ export { GHOST } from "./entries/ghost";
 export { LATTICE } from "./entries/lattice";
 export { MORPH } from "./entries/morph";
 export { SONAR } from "./entries/sonar";
+export { HOLD } from "./entries/hold";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
