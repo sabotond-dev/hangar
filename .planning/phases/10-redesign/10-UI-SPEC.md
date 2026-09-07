@@ -1,7 +1,9 @@
 ---
 phase: 10
 slug: redesign
-status: draft
+status: approved
+reviewed_at: 2026-09-08
+reviewed_by: gsd-ui-checker (three passes; pass 1 blocked Visuals on CRT placement derived against a described DOM, pass 2 blocked Visuals and Color on two measured numbers, pass 3 approved with five clerical corrections applied by the orchestrator)
 shadcn_initialized: false
 preset: none
 created: 2026-09-07
@@ -151,7 +153,7 @@ later reader does not resolve it the other way.
 ## 3. The amendment register
 
 Every retirement in this document, in one table, so the planner can turn it into tasks and the
-checker can count it. **Eleven copy retirements, nine gate amendments, four data re-cuts.** Nothing
+checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts.** Nothing
 is deleted; everything is rewritten by name.
 
 ### 3.1 Copy retirements (ten, in a register of eleven rows)
@@ -168,7 +170,7 @@ is deleted; everything is rewritten by name.
 | R-08 | `RECONNECT_OFFER` | `session-copy.ts` | **88** | **Retired, rewritten at 37.** Its "nothing is sent until you do" clause is now carried permanently by `SAFE_NOTE`, so repeating it here was the same promise twice | 13.3 |
 | R-09 | `KEPT` body 2, first sentence | `install-copy.ts` | ≤ cap | **Retired.** `HANGAR read both scripts back and they match, character for character.` is a boast about a check the site would not have called `KEPT` without. The restart sentence stays, at 53 | 13.3 |
 | R-10 | `RESTS_DARK_NOTE` | `listing.ts:65`, asserted in both directions by `listing.spec.ts:249-252` and `copy.spec.ts:173-174` | literal | **Retired.** D-09 makes it false: after this phase no card rests dark | 9.3 |
-| R-11 | `TWO_STEP`, `PERMISSION_DECLINED`, `PUT_BACK_LINE`, `KEEP_ON_DEVICE`'s enabled line and all six reasons, every failure detail and every step | various | various | **NOT retired, and the rule is stated so nobody retires them next.** See the audit rule below |
+| R-11 | `TWO_STEP`, `PERMISSION_DECLINED`, `PUT_BACK_LINE`, `KEEP_ON_DEVICE`'s enabled line and all six reasons, every failure detail and every step | various | various | **NOT retired, and the rule is stated so nobody retires them next.** See the audit rule below | — |
 
 **The audit rule, which closes D-08's "and others of the same kind" at ten:**
 
@@ -708,7 +710,10 @@ legitimately keep out of the DOM, and `getComputedStyle` of nothing asserts noth
    .getPropertyValue("--crt")` is `0`; `getComputedStyle(document.body, "::before").backgroundImage`
    is `none` (**G**); `getComputedStyle(padFrame, "::after").content` is `none` (**S**); the roll bar
    is absent from the DOM (**R**); `getComputedStyle(crtBand, "::after").content` is `none` (**T**).
-   The same four selectors are asserted **present** first with `SCREEN: TEXTURED`, so the test proves
+   The same four selectors are asserted **present** first with `SCREEN: TEXTURED` and with
+   `navigator.hardwareConcurrency` forced to 8 exactly as test 1 does — without the forcing,
+   Switch 3 drops Layer R on a four-core runner and the presence half fails on correct code.
+   The test proves
    a change rather than an absence.
 3. **The `SCREEN` choice survives** a navigation from `/` to `/browse/` and a reload.
 4. **Switch 3 is asserted in its own right.** With `navigator.hardwareConcurrency` forced to `4`
@@ -1264,7 +1269,7 @@ answer to the picker's character-cost problem at the same time.
 is a multiple of 17, so it is one, two or three digits, and the three together are **3 to 9
 characters** — not the "3 to 11" this document claimed on its first pass, which counted the separators
 at one end of the range and not at the other. Measured end to end on aurora's Setup: `0,0,0` costs
-**253**, today's default `0,204,255` costs **257**, `119,187,238` costs **259**, and the dearest lattice colour `255,255,255` costs **261**. **The
+**253**, today's default `0,204,255` costs **257**, `119,187,238` costs **259**, and so does `255,255,255`: a card that emits its colour once charges one character per digit, so every three-digit-per-channel literal ties. `255,255,255` pulls ahead only on `ninepads`, whose checkerboard emits a dimmed second copy — `102,102,102` against `47,74,95`, three characters dearer. **The
 whole 4,096-colour lattice is worth six characters.**
 
 **And the `tpad` claim was false.** `knobs.preset.ts:688` reads
@@ -1280,10 +1285,10 @@ figure is `max(setup.used, timer.used)` from a real `cost(compile(state))` run):
 
 | preset | colour knob | worst of 908 | free |
 |--------|-------------|--------------|------|
-| aurora | yes | 261 | 647 |
+| aurora | yes | 260 | 648 |
 | pinwheel | yes | 310 | 598 |
 | starfield | yes | 254 | 654 |
-| radar | yes | 452 | 456 |
+| radar | yes | 451 | 457 |
 | joystick | yes | 544 | 364 |
 | ninepads | yes | **640** | **268** |
 | faders | no | 517 | 391 |
@@ -1543,7 +1548,7 @@ rewritten in the same commit as the string it pins.
 | **`cleared` caption / body** | `CLEARED` / `Your ZONA’s touch element is empty. PUT BACK restores what was there when you connected.` | **7 / 88** |
 | **`nothing-landed` detail after a clear** | `Neither script got through. Nothing on the module changed, so what was playing is still playing.` | 96 — Phase 7's `PUT BACK` form, reused verbatim because it is exactly true of a clear |
 | **Live region — cleared** | `The touch element is cleared.` | **29** |
-| **Destructive confirmations** | **Two, and now that is the number.** `KEEP ON DEVICE` (caption `PERMANENT`, Phase 7's block, unchanged) and `CLEAR` (caption `REMOVES`, above). `PUT BACK` still gets none (Z-04) and neither does `FORGET THIS ZONA` (Phase 6's ruling, unchanged) |
+| **Destructive confirmations** | **Two, and now that is the number.** `KEEP ON DEVICE` (caption `PERMANENT`, Phase 7's block, unchanged) and `CLEAR` (caption `REMOVES`, above). `PUT BACK` still gets none (Z-04) and neither does `FORGET THIS ZONA` (Phase 6's ruling, unchanged) | — |
 
 ### 13.4 Tuning
 
@@ -1893,4 +1898,4 @@ Nothing below is assumed. Each is a real fork with the cost of each side stated.
 - [ ] Dimension 5 Spacing: PASS
 - [ ] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-09-08 — six dimensions clear on revision 1 plus eight orchestrator corrections. Pass 1's seven blockers (the CRT layers re-derived against the real `Coverflow.svelte` DOM, the tear reduced to one surface and one event, the sweep computed rather than asserted, one picker per panel) closed in revision 1. Pass 2's two blockers (Pass A pinned at a colour that is not the dearest, and three of four contrast ratios) and its six recommendations closed by hand. Pass 3's five clerical items closed by hand, including an over-correction of my own: `aurora` and `radar` emit their colour once and therefore tie at any three-digit-per-channel literal, so only `ninepads` moved.
