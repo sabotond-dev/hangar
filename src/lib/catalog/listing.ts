@@ -388,6 +388,34 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "strip",
+    name: "STRIP",
+    description:
+      "The whole pad is one long fader, with a fine row along the bottom for the last few numbers.",
+    motion: "static",
+    quiet:
+      "The bar rests at the number you last sent; nothing here moves on its own.",
+    tags: ["precise", "readable", "modulation", "hands-free"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "learn",
+    name: "LEARN",
+    description:
+      "Mapping helper: it sends one axis at a time and lights the row or column it is sending on.",
+    motion: "static",
+    quiet:
+      "The lit row or column is the legend, and it stays lit until you change the mode.",
+    tags: ["utility", "readable", "xy-control", "precise"],
+    featured: true,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**
