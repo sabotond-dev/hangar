@@ -29,11 +29,24 @@
 //     anticlockwise from the same starting cell. Four cells per unit of speed,
 //     so |v| = 4 lights the whole ring.
 //     THE RING SHIPPED, NOT THE BAR the plan allowed as a fallback: the table
-//     is sixty-five characters and the whole Setup came in at 524 of 908, so
+//     is sixty-five characters and the whole Setup came in at 663 of 908, so
 //     there was never a reason to spend the card's own word on a straight line.
-//   - Lit cells get glf(a,_,@GAIN*k) on BOTH LAYERS, so the spin rate rises
-//     with the speed. Unlit ring cells get @RESTC, rate 0 and phase 255 - a
-//     dim, still, full ring, painted by the same function at v = 0.
+//   - THE SIXTEEN PHASES ARE SET ONCE, IN SETUP, AND STAGGERED: cell j starts
+//     at phase j*16, which is the whole 0..255 cycle spread evenly around the
+//     ring. That stagger is what makes the ring SPIN rather than pulse in
+//     unison - every cell is at a different point of the same gradient, so a
+//     common rate moves a bright point around the circle. Sixteen times
+//     sixteen is 256, which wraps to 0 and is why the spacing is exact.
+//     A(v) therefore writes only COLOUR and RATE and never touches the phase
+//     again, so a speed change accelerates the spin instead of restarting it.
+//   - Lit cells get the rate f on both layers; unlit ring cells get the idle
+//     rate 2 and @RESTC. At rest the whole ring drifts slowly - see the look
+//     note, which is where that turned out to be load-bearing rather than
+//     decorative.
+//   - THE SPIN REVERSES WITH THE TRANSPORT: f is @GAIN*k forwards and
+//     256 - @GAIN*k backwards. The phase is a uint8, so advancing by 256 - r
+//     each tick IS advancing by -r, and the arc turns the way the video is
+//     going for the price of one subtraction.
 //   - BOTH LAYERS CARRY THE SAME COLOUR AND THE SAME RATE. One layer caps at
 //     254/512 of the colour asked for, and on layer 2 alone the arc measured
 //     0/99/126 at its brightest instead of 0/198/253 - a card whose whole
@@ -41,12 +54,18 @@
 //     in lockstep because every write sets both from the same value in the
 //     same pass, so they can never beat against each other.
 //
-// THE UINT8 RATE WRAP, WRITTEN OUT. The animation rate is a uint8 and wraps at
-// 256, so a rate of 260 is a rate of 4 - a fast spin that silently becomes a
-// crawl. The rate here is @GAIN*k with k <= 4, so the maximum over the knob's
-// own values is 8*4 = 32, 16*4 = 64, 24*4 = 96 and 32*4 = 128. ALL FOUR ARE
-// UNDER 256, checked at the largest speed rather than at the default, and 128
-// is also comfortably under the rate floor pitfall 1's guard discriminates on.
+// THE UINT8 RATE WRAP, WRITTEN OUT, AND IT IS USED ON PURPOSE IN ONE PLACE.
+// The animation rate is a uint8 and wraps at 256, so a rate of 260 is a rate
+// of 4 - a fast spin that silently becomes a crawl. The forward rate is
+// @GAIN*k with k <= 4, so the maximum over the knob's own values is 8*4 = 32,
+// 16*4 = 64, 24*4 = 96 and 32*4 = 128. ALL FOUR ARE UNDER 256, checked at the
+// largest speed rather than at the default. The BACKWARD rate is 256 - that
+// number, which is 128 at its smallest and 248 at its largest and is the same
+// wrap read as a negative step. Because those backward rates cross the rate
+// floor pitfall 1's guard discriminates on, THE TIMEOUT IS 30000 AND NOT
+// 65535: a maximum timeout beside a rate of 248 is exactly the signature that
+// guard exists to catch, and 30000 ticks refreshed every period answers the
+// firmware ceiling just as completely without wearing the signature.
 //
 // THE gtt ZERO GUARD, AND THE SILENT STOP IT PREVENTS. gtt(0, 0) NEVER FIRES.
 // A Timer that re-arms itself with a period of zero does not run fast, it
@@ -77,12 +96,22 @@
 // by a whole period, and the Timer would never fire at all while the finger
 // was moving. The 0-to-non-zero test is what makes the kick a kick.
 //
-// THE LOOK, and why restsBlack is FALSE. Setup paints the full ring dim in
-// @RESTC, so the card arrives showing a sixteen-cell ring around an empty
-// centre. Nothing advances at rest - every rate is 0 until a finger asks for a
-// speed - so THE DECLARED MOTION IS `static`, confirmed against the fixture
-// rather than assumed, and the entry carries a quiet line in its LISTING row
-// for exactly that reason.
+// THE LOOK, why restsBlack is FALSE, AND WHY THE RING DRIFTS AT REST.
+// Setup paints the full ring dim in @RESTC, so the card arrives showing a
+// sixteen-cell ring around an empty centre.
+//
+// The ring drifts at rate 2 with nobody touching it, and THAT IS NOT
+// DECORATION - it is what makes the declared motion true. The listing derives
+// motion from frames.json, and for a Lua entry the engine reports
+// `host.animating || host.timerArmed` (lua-pad-sim.ts:150-152): a Timer that
+// re-arms itself on every fire NEVER SETTLES, so any entry with a stored Timer
+// classifies as `animated` whatever its picture is doing. A still ring
+// declared `animated` would be the one thing front-door.ts says this field
+// must never be - "never guessed and never aspirational... faking motion here
+// would be faking the one thing the product claims". The first draft of this
+// entry had a still ring and the fixture called it animated; rather than
+// declare a motion the pad did not have, the pad was given the motion. It
+// costs four characters and it is a better card.
 //
 // THE TRAPS THIS ENTRY CONTAINS.
 //
@@ -94,14 +123,19 @@
 //     one tuple, and (4 - 1) % 3 = 0. Firmware rejects any other shape and the
 //     rejection is silent.
 //   - CODE 9 IS HANDLED, and it stops rather than starts. See the lift note.
-//   - THE 65535 KEEPER IS ON A LAYER WITH NO DECAY - DO NOT FIX IT. Pitfall 1
-//     is a keeper on a layer carrying a trail that has to reach black; this
-//     ring is a continuous spin whose highest possible rate is 128, and the
-//     Timer refreshes the timeout every period so the firmware ceiling of
-//     655 s is never approached. The Timer refreshes both layers of all
-//     eighty-one cells rather than the sixteen, because a bare `for n=0,80`
+//   - THE TIMEOUT IS 30000, NOT A 65535 KEEPER, AND THE REASON IS THE
+//     BACKWARD RATE. See the wrap note above: a maximum timeout beside a rate
+//     of 248 is pitfall 1's exact signature, and this ring carries no decay at
+//     all. The Timer refreshes both layers of all eighty-one cells every
+//     period, so the firmware ceiling of 655 s is never approached; it
+//     refreshes eighty-one rather than sixteen because a bare `for n=0,80`
 //     costs less than declaring the ring table a second time in the second
 //     event, and a timeout on a cell with no colour stops renders nothing.
+//   - THE PHASES ARE SET ONCE AND NEVER RE-WRITTEN - DO NOT "FIX" A(v) TO USE
+//     glpfs. Writing the phase on a speed change would snap all sixteen cells
+//     back to their starting stagger every time the finger crossed a column
+//     boundary, which is a visible jolt exactly while the user is doing the
+//     one thing this card is for.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP. Every channel of every value of
 //     @ARCC and @RESTC is inside 0..255 by construction.
 //
@@ -130,10 +164,10 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 524 characters, Timer 201, both fixed
+// against the pinned minifier: Setup 663 characters, Timer 201, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 524 / 201, leaving 384 free of 908,
-// and the all-shortest corner is 520 / 201.
+// corner of the six-knob cross-product is 663 / 201, leaving 245 free of 908,
+// and the all-shortest corner is 659 / 201.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -145,10 +179,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local R={22,23,24,33,42,51,60,59,58,57,56,47,38,29,20,21}local function A(v)local k=v<0 and -v or v for j=1,16 do local a=glag(0,R[v<0 and 17-j or j])if j<=k*4 then glc(a,1,@ARCC,1)glc(a,2,@ARCC,1)glf(a,1,@GAIN*k)glf(a,2,@GAIN*k)else glc(a,1,@RESTC,1)glc(a,2,@RESTC,1)glf(a,1,0)glf(a,2,0)glp(a,1,255)glp(a,2,255)end glt(a,1,65535)glt(a,2,65535)end end self.s=0 A(0)self.touch_cb=function(s,i,e,x,y)local v=(e==1 or e==4)and x*9//128-4 or 0 if v~=s.s then if s.s==0 then gtt(0,20)end s.s=v A(v)end end gtt(0,@BASEP)";
+  "--[[@cb]]local R={22,23,24,33,42,51,60,59,58,57,56,47,38,29,20,21}for j=1,16 do local a=glag(0,R[j])glc(a,1,@RESTC,1)glc(a,2,@RESTC,1)glpfs(a,1,j*16,2,3)glpfs(a,2,j*16,2,3)glt(a,1,30000)glt(a,2,30000)end local function A(v)local k=v<0 and -v or v local f=v<0 and 256-@GAIN*k or @GAIN*k for j=1,16 do local a=glag(0,R[v<0 and 17-j or j])if j<=k*4 then glc(a,1,@ARCC,1)glc(a,2,@ARCC,1)glf(a,1,f)glf(a,2,f)else glc(a,1,@RESTC,1)glc(a,2,@RESTC,1)glf(a,1,2)glf(a,2,2)end glt(a,1,30000)glt(a,2,30000)end end self.s=0 self.touch_cb=function(s,i,e,x,y)local v=(e==1 or e==4)and x*9//128-4 or 0 if v~=s.s then if s.s==0 then gtt(0,20)end s.s=v A(v)end end gtt(0,@BASEP)";
 
 const TIMER =
-  "--[[@cb]]local v=self.s local k=v<0 and -v or v gtt(0,math.max(@BASEP//(1+k),20)//1)for n=0,80 do local a=glag(0,n)glt(a,1,65535)glt(a,2,65535)end if v>0 then gks(0,0,2,@KEYF)elseif v<0 then gks(0,0,2,@KEYB)end";
+  "--[[@cb]]local v=self.s local k=v<0 and -v or v gtt(0,math.max(@BASEP//(1+k),20)//1)for n=0,80 do local a=glag(0,n)glt(a,1,30000)glt(a,2,30000)end if v>0 then gks(0,0,2,@KEYF)elseif v<0 then gks(0,0,2,@KEYB)end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 

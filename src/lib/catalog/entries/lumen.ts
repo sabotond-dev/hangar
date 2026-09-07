@@ -55,12 +55,16 @@
 //                All twelve channels inside 0..255, none of them zero that was
 //                not zero at the top.
 //
-// THE LOOK, and why restsBlack is FALSE. Setup lights all eighty-one cells and
-// this is the most lit card in the catalog: 171 non-zero bytes of 243 at tick
-// 0, against STRIP's 163, LEARN's 162 and CONSOLE's 99. Eight of the nine
-// columns are a two-channel hue and the ninth is a three-channel white, which
-// is where the extra nine bytes come from and is a second reason the white
-// column earns its place.
+// THE LOOK, and why restsBlack is FALSE. Setup lights all eighty-one cells,
+// and the frame carries 171 non-zero bytes of 243 at every sampled tick.
+// MEASURED, NOT ASSUMED, AND IT IS NOT THE HIGHEST IN THE CATALOG: the ported
+// starfield holds 222 to 226 and the hand-authored CHORUS holds a flat 198, so
+// LUMEN is THIRD. It is the highest of the three configurations landed in this
+// wave and it is ahead of STRIP's 163, LEARN's 162 and CONSOLE's 99, but a
+// pure hue is two channels by definition and eight of the nine columns are
+// therefore two-channel. The ninth column - the amber white - is the only
+// three-channel one and is worth nine of the 171 on its own, which is a second
+// reason it earns its place beside the first.
 //
 // THE TRAPS THIS ENTRY CONTAINS.
 //
@@ -211,9 +215,9 @@ export const LUMEN: CatalogEntry = {
     depth: 2,
   },
 
-  // FALSE, and further from true than any other entry in the catalog: Setup
-  // lights all eighty-one cells and 171 of the frame's 243 bytes are non-zero
-  // at tick 0. frames.spec.ts test 5 turns that declaration into a checked
-  // fact.
+  // FALSE, and about as far from true as this catalog gets: Setup lights all
+  // eighty-one cells and 171 of the frame's 243 bytes are non-zero at every
+  // sampled tick - third in the catalog, behind starfield and CHORUS.
+  // frames.spec.ts test 5 turns that declaration into a checked fact.
   restsBlack: false,
 };

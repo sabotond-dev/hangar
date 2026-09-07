@@ -14,7 +14,7 @@ This document is the list of things a machine cannot check. Perceived polyrhythm
 codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brightness after the
 divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
 real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
-left alone for fifteen minutes. Twenty-one rows, each with the reason it belongs to a bench and not
+left alone for fifteen minutes. Twenty-four rows, each with the reason it belongs to a bench and not
 to a test suite.
 
 It runs on your bench, in daytime, and it blocks nothing. The phase is complete and green without it.
@@ -38,10 +38,10 @@ vendored.
    immediately in the live VM — so a Setup-first paste arms a timer that does not exist yet, and the
    pad simply sits still. It looks exactly like a broken configuration and it is not one.
    `_pad.ts`'s own `writePad` encodes the same rule. Row 1 of the checklist is this rule.
-4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP and LEARN are Setup only** — none of the
-   eight has a Timer at all, the Timer event of each is the empty string, and they are the eight
-   cards that start from the Setup alone. They are the exceptions that prove the rule above.
-5. **Have somewhere to write twenty-one lines.** The results go back into this document under a dated
+4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN and LUMEN are Setup only** — none
+   of the nine has a Timer at all, the Timer event of each is the empty string, and they are the
+   nine cards that start from the Setup alone. They are the exceptions that prove the rule above.
+5. **Have somewhere to write twenty-four lines.** The results go back into this document under a dated
    `Results` heading; see [What to record](#what-to-record).
 
 ## Getting the exact text
@@ -53,7 +53,7 @@ AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
 ```
 
 It writes `.tmp-audition/<id>.setup.lua` for every hand-authored configuration and
-`.tmp-audition/<id>.timer.lua` for every one that has a Timer — sixteen Setup files and eight Timer
+`.tmp-audition/<id>.timer.lua` for every one that has a Timer — nineteen Setup files and ten Timer
 files — rendered at that configuration's default knob positions, and prints each file's character
 count beside the 908-character budget. `.tmp-audition/` is gitignored; the command commits nothing
 and, unlike the repository's other env-guarded writers, it does not fail the run.
@@ -64,7 +64,7 @@ what the dump writes. Retyping a line of it by hand is how a one-character diffe
 of confusion — and because every configuration is stored in canonical compressed form, one stray
 space is also a budget change.
 
-## The sixteen, and what they cost
+## The nineteen, and what they cost
 
 Measured at their default knob positions with the pinned minifier. The first seven come from
 `08-06-SUMMARY.md`; HOLD, STEPS and SLAM were measured by `09-03-SUMMARY.md`, KEYS, GRIDLOCK and
@@ -88,14 +88,18 @@ TABLE by `09-04-SUMMARY.md`, and CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`:
 | `console`  | CONSOLE  | 785   | 0 — **no Timer** | 5     | no           |
 | `strip`    | STRIP    | 638   | 0 — **no Timer** | 5     | no           |
 | `learn`    | LEARN    | 657   | 0 — **no Timer** | 5     | no           |
+| `lumen`    | LUMEN    | 604   | 0 — **no Timer** | 4     | no           |
+| `stage`    | STAGE    | 505   | 109              | 4     | no           |
+| `shuttle`  | SHUTTLE  | 663   | 201              | 6     | no           |
 
-**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP and LEARN are Setup-only, and that is
+**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN and LUMEN are Setup only, and that is
 legitimate rather than an omission.** MORPH and SLAM animate only under a finger, with a per-touch
 decay that firmware runs down to black on its own; KEYS paints a scale map once and never moves it;
 GRIDLOCK's ripple carries its own countdown down to exact black; TABLE redraws only when a finger
-crosses a shape boundary; and CONSOLE, STRIP and LEARN are control surfaces whose picture is a
-readout of the last value you sent, repainted on the change that caused it and never otherwise.
-None of the eight has anything for a Timer to advance. Store nothing into event 6 for any of them;
+crosses a shape boundary; CONSOLE, STRIP and LEARN are control surfaces whose picture is a readout
+of the last value you sent, repainted on the change that caused it and never otherwise; and LUMEN
+computes eighty-one colours once and then has nothing left to do.
+None of the nine has anything for a Timer to advance. Store nothing into event 6 for any of them;
 row 1's install-order rule below does not apply to a configuration that has no Timer at all.
 
 GHOST and MORPH being dark at rest is a declared fact about them, not a fault: GHOST has nothing to
@@ -109,7 +113,7 @@ research document prints 42 there; 41 is what the arithmetic says and what the m
 
 ## The checklist
 
-Twenty-one rows, in order. Each names why it cannot be simulated, so no row is busywork.
+Twenty-four rows, in order. Each names why it cannot be simulated, so no row is busywork.
 
 | #   | Config            | What to check                                                                                                                                                                                                                                                                             | Why it cannot be simulated                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -134,6 +138,9 @@ Twenty-one rows, in order. Each names why it cannot be simulated, so no row is b
 | 19  | **CONSOLE**       | Mute and unmute a strip a dozen times quickly, in different columns. Does a mute ever stick on, or clear on its own?                                                                                                                                                                      | The same firmware stuck-contact bug row 13 covers: `prev_*` advances before the writability check, and the simulator states it cannot manufacture a stuck contact. A latch is where that bug shows.                                                                                                                                                                                                                                                                               |
 | 20  | **STRIP**         | Move slowly across one cell's worth of travel while watching the host's value. Do the low seven bits move smoothly, or jump?                                                                                                                                                              | **This is where the two-message claim is checked, and it is the only place it can be.** One `gms` with `mode: 1` becomes two CC messages on the wire — `@CC` then `@CC + 32` — and firmware, not HANGAR, does the expanding: `lua-host.ts` records one message per call and stores `mode` as a field, so the browser never sees a pair. Whether the two arrive, arrive in order, and arrive in the same cycle for the host to reassemble is a wire question no simulator answers. |
 | 21  | **LEARN**         | Put your host into learn mode, choose X-only, and move. Does it latch onto exactly one control?                                                                                                                                                                                           | Whether a host's learn function is satisfied by this message pattern is a property of the host, and there is no host in a browser.                                                                                                                                                                                                                                                                                                                                                |
+| 22  | **LUMEN**         | Hold the module beside a lit fixture driven by the colours it is sending and compare the two by eye, at three points across the pad and at the top and bottom of a column.                                                                                                                | No gamma correction anywhere in the WS2812 path and no colour management at either end — the desk has its own curve and the lamp its own gamut. Whether two lights match is the one question only two lights answer.                                                                                                                                                                                                                                                              |
+| 23  | **STAGE**         | Plug the module into a computer with OBS open, bind three scenes to the keys this card sends, and press them. **Do the keystrokes arrive at all, and do they arrive as the right keys?** Try it with a modifier and without one.                                                          | **`gks` is recorded and inert in the browser** — `src/lib/sim/lua-host.ts` binds it to `recordHid` and says at `:429` that nothing in HANGAR consumes them. Every keystroke configuration in this catalog is unverified until this row is run, and no gate in this repository can catch a wrong usage id.                                                                                                                                                                         |
+| 24  | **SHUTTLE**       | Scrub in a video editor at each of the four speeds, in both directions. Do the keystrokes keep up, does the transport actually reverse, and does the arc's spin match how fast the picture is moving?                                                                                     | The same HID invisibility as row 23, plus the 256-byte per-cycle protocol buffer: `gks` costs 10 + 4n bytes and one 10 ms cycle holds about sixty-one key steps, so whether the module can press a key as fast as the top speed asks is a firmware question a simulator cannot answer.                                                                                                                                                                                            |
 
 ## What to record
 

@@ -447,9 +447,7 @@ export const LISTING: readonly ListingEntry[] = [
     name: "SHUTTLE",
     description:
       "Scrub video with your finger, and the arc grows and spins faster the harder you push it.",
-    motion: "static",
-    quiet:
-      "The ring rests dim and still; it only spins while your finger is asking the video to move.",
+    motion: "animated",
     tags: ["video", "hotkeys", "gestural", "hypnotic"],
     featured: false,
     addedAt: "2026-09-07",

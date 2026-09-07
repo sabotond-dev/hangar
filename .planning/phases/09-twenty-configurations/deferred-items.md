@@ -16,3 +16,16 @@ exactly the block D-04 places on the whole clock-locked family.
 `docs/MIDI-IN-PROBE.md` is the bench test that would unblock it. CONSOLE ships as
 plain controller messages and says so on the card; an MCU surface would be a
 different configuration, not a knob on this one.
+
+## 2. Keystroke configurations animate correctly and prove nothing about their output (recorded by 09-06)
+
+`gmms`, `gmbs` and `gks` resolve in `src/lib/sim/lua-host.ts` and are recorded
+into `hidLog`; `lua-host.ts:429` states that nothing in HANGAR consumes them.
+STAGE and SHUTTLE — and CULL, FORGE and SWITCH in wave 7 — therefore pass every
+automated gate in this repository while their actual output is unchecked.
+`lua-smoke.spec.ts` was widened in 09-02 to accept HID as output, which is
+honest, and it is not the same as verifying a keystroke. What would close this:
+either a HID consumer in the simulator that decodes `gks` tuples into named key
+events and asserts them against a per-entry expectation, or the bench rows 23
+and 24. The first is cheap and worth planning; the second is the only thing that
+proves the wire.
