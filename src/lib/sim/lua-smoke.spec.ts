@@ -18,14 +18,15 @@
 // The Lua text and the wrapped simulator are identical either way - this is the
 // same construction createLuaPadSim performs.
 //
-// Set SMOKE_REPORT=1 to print the per-entry MIDI summary test 2 asserts on.
+// Set SMOKE_REPORT=1 to print the per-entry MIDI and HID summary test 2 asserts
+// on.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
 import { CELLS } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
-import { createLuaHost, type HostMidi } from "./lua-host";
+import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, renderLua } from "./lua-pad-sim";
 
 /** Ticks after the gesture, long enough for a decay to expire many times. */
@@ -78,6 +79,8 @@ type SmokeRun = {
   totalTicks: number;
   errors: readonly string[];
   midi: readonly HostMidi[];
+  /** gmms, gmbs and gks - recorded and inert. See test 2. */
+  hid: readonly HostHid[];
   pendingAtEnd: number;
   strobe: Strobe | null;
 };
@@ -176,6 +179,7 @@ async function smoke(entry: CatalogEntry): Promise<SmokeRun> {
       totalTicks: tick,
       errors: [...host.errors],
       midi: [...host.midi],
+      hid: [...host.hid],
       pendingAtEnd: host.pendingTouches,
       strobe,
     };
@@ -221,14 +225,16 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     }
   });
 
-  it("survives the gesture plus two hundred further ticks, and plays", async () => {
+  it("survives the gesture plus two hundred further ticks, and sends something", async () => {
     const entries = luaEntries();
     expect(entries.length, "there are hand-authored entries").toBeGreaterThan(
       0,
     );
     const report: string[] = [];
+    const runs: SmokeRun[] = [];
     for (const entry of entries) {
       const run = await runFor(entry);
+      runs.push(run);
       expect(
         run.errors,
         `${entry.id}: a handler raised - ${run.errors.join(" | ")}`,
@@ -241,21 +247,50 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         run.pendingAtEnd,
         `${entry.id}: touch samples were left in the queue`,
       ).toBe(0);
-      // An entry that plays nothing was not exercised by the gesture. Fix the
+      // An entry that emits nothing was not exercised by the gesture. Fix the
       // gesture, never this assertion: a silent instrument is exactly what the
       // gate exists to notice.
+      //
+      // WHAT COUNTS AS NON-SILENT IS MIDI OR HID. gmms, gmbs and gks are
+      // recorded and inert in the browser (lua-host.ts:429), and a
+      // configuration whose whole output is keystrokes - a scene switcher, a
+      // shuttle, a macro pad - is a keyboard, not a silent instrument. Its
+      // output is invisible in HANGAR, and that is a fact about the simulator,
+      // stated on the card and auditioned at a bench, rather than a failure of
+      // the entry.
+      const output = run.midi.length + run.hid.length;
       expect(
-        run.midi.length,
-        `${entry.id}: produced no MIDI at all across ${run.totalTicks} ticks`,
+        output,
+        `${entry.id}: produced no MIDI and no HID at all across ${run.totalTicks} ` +
+          "ticks - the scripted gesture never reached anything this configuration sends",
       ).toBeGreaterThan(0);
       report.push(
-        `${entry.id}: ${run.midi.length} messages, first three ` +
+        `${entry.id}: ${run.midi.length} MIDI, ${run.hid.length} HID, first three MIDI ` +
           run.midi
             .slice(0, 3)
             .map((m) => `(${m.ch},${m.cmd},${m.p1},${m.p2},${m.mode})`)
             .join(" "),
       );
     }
+
+    // THE NON-VACUITY HALF, so widening the question above cannot hide a
+    // regression: if the host stopped delivering MIDI altogether, every entry
+    // would still "produce output" through some incidental HID call and the
+    // gate would go on passing.
+    const midiEntries = runs.filter((r) => r.midi.length > 0).map((r) => r.id);
+    expect(
+      midiEntries.length,
+      "no hand-authored configuration produced MIDI at all - the widening above " +
+        "would then be hiding a broken host rather than admitting a keyboard",
+    ).toBeGreaterThan(0);
+
+    // THE HID SIDE OF THAT GUARANTEE IS SCHEDULED, NOT WRITTEN HERE. The
+    // matching assertion - at least one entry produced HID - belongs at this
+    // exact spot and plan 09-06 adds it, with STAGE and SHUTTLE, the first two
+    // configurations whose whole output is keystrokes. It is deliberately not
+    // here: no entry in the catalog sends HID today, so the assertion would be
+    // red on arrival, and an assertion that cannot be true yet is not a gate,
+    // it is a scheduled failure.
     if ((process.env.SMOKE_REPORT ?? "") !== "") {
       for (const line of report) console.log(line);
     }
