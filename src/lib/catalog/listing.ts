@@ -346,6 +346,34 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "gridlock",
+    name: "GRIDLOCK",
+    description:
+      "Eighty-one clips under one hand, and a ring rolls out from the one you fired so you know it took.",
+    motion: "static",
+    quiet:
+      "The nine track blocks stay put until you fire a cell; every ring on this pad is one you started.",
+    tags: ["clips", "launcher", "rippling", "playable"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "table",
+    name: "TABLE",
+    description:
+      "Slide across to change the wave and down to filter it, and the grid draws the shape you land on.",
+    motion: "static",
+    quiet:
+      "The plot holds the shape you last landed on; move across the pad and it redraws.",
+    tags: ["wavetable", "sound-design", "xy-control", "gestural"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

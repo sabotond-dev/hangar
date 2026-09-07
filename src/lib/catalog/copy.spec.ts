@@ -81,6 +81,7 @@ const KNOWN_TAGS = [
   "blooming",
   "calm",
   "chords",
+  "clips",
   "colour",
   "desktop",
   "drums",
@@ -97,6 +98,7 @@ const KNOWN_TAGS = [
   "instrument",
   "isomorphic",
   "latching",
+  "launcher",
   "looper",
   "macros",
   "mixing",
@@ -114,9 +116,11 @@ const KNOWN_TAGS = [
   "rippling",
   "rotating",
   "sequencer",
+  "sound-design",
   "sprung",
   "still",
   "utility",
+  "wavetable",
   "xy-control",
 ] as const;
 

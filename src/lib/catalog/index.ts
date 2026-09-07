@@ -11,6 +11,7 @@ import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { EUCLID } from "./entries/euclid";
 import { GHOST } from "./entries/ghost";
+import { GRIDLOCK } from "./entries/gridlock";
 import { HOLD } from "./entries/hold";
 import { KEYS } from "./entries/keys";
 import { LATTICE } from "./entries/lattice";
@@ -19,6 +20,7 @@ import { PORTED } from "./entries/ported";
 import { SLAM } from "./entries/slam";
 import { SONAR } from "./entries/sonar";
 import { STEPS } from "./entries/steps";
+import { TABLE } from "./entries/table";
 import type { CatalogEntry } from "./types";
 
 export {
@@ -51,6 +53,8 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   STEPS,
   SLAM,
   KEYS,
+  GRIDLOCK,
+  TABLE,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -64,6 +68,8 @@ export { HOLD } from "./entries/hold";
 export { STEPS } from "./entries/steps";
 export { SLAM } from "./entries/slam";
 export { KEYS } from "./entries/keys";
+export { GRIDLOCK } from "./entries/gridlock";
+export { TABLE } from "./entries/table";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
