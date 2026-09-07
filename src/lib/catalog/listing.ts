@@ -496,6 +496,18 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "snake",
+    name: "SNAKE",
+    description:
+      "Snake on eighty-one lights: steer with a finger, eat, grow, and hear a note for every bite.",
+    motion: "animated",
+    tags: ["game", "playable", "generative", "grid"],
+    featured: true,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

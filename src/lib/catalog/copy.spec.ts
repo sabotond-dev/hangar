@@ -89,6 +89,7 @@ const KNOWN_TAGS = [
   "endless",
   "expressive",
   "flowing",
+  "game",
   "generative",
   "gestural",
   "grid",
