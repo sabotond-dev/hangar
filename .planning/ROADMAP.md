@@ -245,10 +245,22 @@ Plans:
 - [x] 08-07-PLAN.md — The production-build laziness proof and the testing docs (wave 7)
 - [x] 08-08-PLAN.md — docs/HARDWARE-AUDITION.md and the hardware checkpoint (wave 8)
 
+### Phase 9: Twenty Configurations
+**Goal**: The catalog stops being a demo of what a ZONA can look like and becomes a library of what a ZONA is for - twenty configurations, each one useful to a named person in a named application and worth watching on a card.
+**Depends on**: Phase 8
+**Requirements**: CONT-02
+**Success Criteria** (what must be TRUE):
+  1. Twenty new configurations are in the catalog, taking it from sixteen to thirty-six, each with its name, one-line description, feel-based tags and default state filled in, and each declared in all three places the catalog gates in both directions.
+  2. Every new configuration fits both the 908-character Setup and Timer budgets at its defaults and at every corner of its knob cross-product, and every hand-authored one runs in a real Lua VM without error with a recorded golden frame set.
+  3. No configuration in the phase depends on inbound host MIDI, on Grid Editor running, or on a capability the simulator cannot render; the clock-locked family stays deferred behind docs/MIDI-IN-PROBE.md.
+  4. A call the Lua host does not register is refused by a gate before it can reach an entry, closing the gap where recipe-book code passes the static trap scanner and raises at runtime.
+  5. The front-door ring is unchanged at eight entries, and the browse page, the catalog gates and the budget sweep stay green at thirty-six.
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
 
 **Parallelism** (config: `parallelization: true`):
 After Phase 1 the project forks into two independent tracks that may run concurrently:
@@ -269,6 +281,7 @@ Phases 6 and 7.
 | 6. Device Session | 14/14 | Complete (hardware rows A-F awaiting the user) | 2026-09-05 |
 | 7. Install Flow | 13/13 | Complete (hardware rows A-G awaiting the user) | 2026-09-05 |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
+| 9. Twenty Configurations | 0/TBD | Planning | - |
 
 ## Requirement Coverage
 
