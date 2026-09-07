@@ -508,6 +508,33 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "etch",
+    name: "ETCH",
+    description:
+      "Draw on the pad with a finger and it stays; sweep across it fast and the whole thing wipes.",
+    motion: "dark",
+    // Byte-equal to RESTS_DARK_NOTE, as listing.spec.ts requires of every
+    // resting-black card. ETCH is the third of them, after GHOST and MORPH.
+    quiet: RESTS_DARK_NOTE,
+    tags: ["drawing", "playable", "gestural", "still"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: true,
+    preview: "lua",
+  },
+  {
+    id: "life",
+    name: "LIFE",
+    description:
+      "Conway’s Life on the pad: tap to seed it, and the pattern plays itself out in light and notes.",
+    motion: "animated",
+    tags: ["game", "generative", "hypnotic", "grid"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

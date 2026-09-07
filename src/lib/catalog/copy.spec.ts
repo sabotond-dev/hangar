@@ -85,6 +85,7 @@ const KNOWN_TAGS = [
   "clips",
   "colour",
   "desktop",
+  "drawing",
   "drums",
   "endless",
   "expressive",

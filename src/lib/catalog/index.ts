@@ -11,12 +11,14 @@ import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { CONSOLE } from "./entries/console";
 import { CULL } from "./entries/cull";
+import { ETCH } from "./entries/etch";
 import { EUCLID } from "./entries/euclid";
 import { FORGE } from "./entries/forge";
 import { GHOST } from "./entries/ghost";
 import { GRIDLOCK } from "./entries/gridlock";
 import { HOLD } from "./entries/hold";
 import { KEYS } from "./entries/keys";
+import { LIFE } from "./entries/life";
 import { LEARN } from "./entries/learn";
 import { LATTICE } from "./entries/lattice";
 import { LUMEN } from "./entries/lumen";
@@ -75,6 +77,8 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   FORGE,
   SWITCH,
   SNAKE,
+  ETCH,
+  LIFE,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -100,6 +104,8 @@ export { CULL } from "./entries/cull";
 export { FORGE } from "./entries/forge";
 export { SWITCH } from "./entries/switch";
 export { SNAKE } from "./entries/snake";
+export { ETCH } from "./entries/etch";
+export { LIFE } from "./entries/life";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
