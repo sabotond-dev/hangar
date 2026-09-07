@@ -32,33 +32,48 @@ created: 2026-09-07
 **Baselines are NOT known at planning time.** Phase 7 closed on 2026-09-05 and this phase was planned
 on 2026-09-07 against a tree nobody has re-measured since. **Task 09-01-01 confirms Phase 7 has
 closed** (`07-13-SUMMARY.md` and `07-VERIFICATION.md` on disk, ROADMAP marked complete) **and measures
-all five on the clean tree**, reconciling against 07-13's closing block. No number in this document is
-asserted anywhere in a plan; every plan asserts `BASE_* ± delta`.
+the block on the clean tree**, reconciling against 07-13's closing block. No number in this document is
+asserted anywhere in a plan; every plan asserts a carried name plus a stated delta - `PREV_* ± n` in
+the waves, `BASE_* ± n` only in 09-10.
 
 For provenance only, `docs/TESTING.md`'s Phase 7 gate reads quick **73 / 776 + 1 todo**, sweep
 **`3 13`**, e2e **89**, `svelte-check` **545 / 0 / 0**, build **12 s**. If 09-01 observes something
 else, **the observation is the phase's** and every plan quotes it.
 
-### The five-name carry-forward block
+### The seven-name carry-forward block
 
-Phase 5.1 established it, Phases 6 and 7 carried it, and this phase inherits it unchanged:
+Phase 5.1 established it and Phases 6 and 7 carried it as five names. **This phase splits one of them
+in two**, for the reason the e2e pair was already split:
 
-> **Every SUMMARY in this phase carries the same five names, whether or not that plan moved them.**
+> **Every SUMMARY in this phase carries the same seven names, whether or not that plan moved them.**
 
 | Name | What it is | How it moves |
 |---|---|---|
-| `BASE_FILES` | the `test:quick` **file** count as that plan left the tree | re-measured by every plan that changes it; copied verbatim otherwise |
-| `BASE_TESTS` | the `test:quick` **passing test** count as that plan left the tree | same. The todo count is reported and never asserted |
+| `BASE_FILES` | the `test:quick` **file** count on the clean tree Phase 7 closed, measured once in 09-01 | **never moves.** Only 09-10 writes an arithmetic against it |
+| `BASE_TESTS` | the `test:quick` **passing test** count on that same clean tree | **never moves.** The todo count is reported and never asserted |
+| `PREV_FILES` | the `test:quick` **file** count **as that plan left the tree** | starts equal to `BASE_FILES`; re-measured by every plan that changes it; copied verbatim otherwise |
+| `PREV_TESTS` | the `test:quick` **passing test** count as that plan left the tree | starts equal to `BASE_TESTS`; moves the way `PREV_FILES` does |
 | `BASE_SWEEP` | the literal the sweep printed | **moves once, in 09-01**, from `3 13` to `4 19`, and never again |
 | `BASE_E2E` | the Playwright total on the clean tree Phase 7 closed, measured once in 09-01 | **never moves.** 09-10's phase gate asserts against it |
 | `PREV_E2E` | the **last measured** Playwright total, with the plan that measured it named beside it | starts equal to `BASE_E2E`; re-measured by 09-09 and 09-10; copied verbatim otherwise |
 
-A plan's `PREV_FILES` / `PREV_TESTS` are the immediately preceding SUMMARY's `BASE_FILES` /
-`BASE_TESTS`. Any plan that finds a name missing from the SUMMARY it reads **stops rather than
-guessing**. `BASE_CHECK` (the `svelte-check` file count) is provenance only; only `0 errors, 0
+**Why the split.** Phases 6 and 7 let `BASE_FILES` and `BASE_TESTS` roll, which works while only one
+plan moves them. This phase has one plan that moves them down (09-01, `-1`), one that moves them up
+(09-02, `+1 / +5`), seven that must assert they moved nothing, and a phase gate that asserts one
+cumulative delta - `BASE_FILES + 1` and `BASE_TESTS + 4` - against the tree the phase started on. Under
+one rolling name those are two different arithmetics wearing the same word, and 09-02's `+5` and
+09-10's `+4` read as a contradiction rather than as the same chain seen from two ends. So:
+
+- **A wave asserts against `PREV_FILES` / `PREV_TESTS`**, the tree the previous plan left. 09-03 to
+  09-09 each assert `PREV_FILES + 0` / `PREV_TESTS + 0`, seven times over.
+- **Only 09-10 asserts against `BASE_FILES` / `BASE_TESTS`**, and its number is the phase total.
+- The chain has to close: `BASE_TESTS` → `-1` (09-01) → `+5` (09-02) → `+0` × 7 = `BASE_TESTS + 4`.
+  09-10 writes that chain out rather than the total alone.
+
+Any plan that finds a name missing from the SUMMARY it reads **stops rather than guessing**. `BASE_CHECK` (the `svelte-check` file count) is provenance only; only `0 errors, 0
 warnings` is asserted, and it is read with `grep -Ei "error|warning"` rather than off the count line.
 
-**`PHASE_ADDED_AT`** is a sixth name, introduced by 09-02 and unique to this phase: the one `addedAt`
+**`PHASE_ADDED_AT`** is an eighth name, introduced by 09-02 and unique to this phase: the one `addedAt`
 date every one of the twenty configurations carries. Plans 09-03 to 09-09 copy it verbatim and none of
 them uses today's date. One date rather than seven is what keeps the NEWEST sort three blocks instead
 of nine.
@@ -98,9 +113,14 @@ Read from this repository on 2026-09-07 by the planner, from the sources, not es
   (`_pad.ts:901-983` is reached only from the compile path). D-09's *decision* still applies — every
   entry states which layer carries what — but the mechanism binding a hand-authored entry is the
   **49.6 % single-layer cap** and the two free layers, not `planLayers`.
-- **`filter.spec.ts` and `sort.spec.ts` hard-code the catalog's shape** in eleven places; 09-02 derives
-  what is arithmetic and moves what is a review into one `RECORDED` block per file. The full list is in
-  the plan's interfaces table.
+- **`filter.spec.ts` and `sort.spec.ts` hard-code the catalog's shape** in **seventeen** places, not
+  the eleven an earlier count of this document claimed; 09-02 derives what is arithmetic and moves what
+  is a review into one `RECORDED` block per file. The full list is in the plan's interfaces table,
+  nineteen rows with the two `>= 16` floors 09-10 raises. Three of the seventeen are invisible to the
+  obvious grep because Prettier wrapped `.toHaveLength(\n  16,\n)` and left the number alone on
+  `sort.spec.ts:110`, `:146` and `:167`; two more are the featured/plain split at `sort.spec.ts:133`
+  and `:136`, which hard-code **8** rather than 16 and go red the moment 09-03 makes a ninth entry
+  featured. Enumeration, not grep, is what makes that table trustworthy.
 - **`audition.spec.ts:52` pins `ROW_COUNT = 12`** and test 3 requires every hand-authored entry's name
   in some row's Config column, so a new entry with no row is red on arrival. `ROW_COUNT` moves in every
   entry wave: 12 → 15 → 18 → 21 → 24 → 27 → 30 → 32.
@@ -139,7 +159,7 @@ Read from this repository on 2026-09-07 by the planner, from the sources, not es
 | `lua-smoke` asks **"any output"**, and the HID non-vacuity half lands with the first HID entry | 09-02, 09-06 | A keyboard is not a silent instrument. An assertion that cannot be true yet is a scheduled failure, not a gate |
 | **One `addedAt` for all twenty** | 09-02 | Seven waves on seven days would be seven blocks of three on the NEWEST page |
 | **No entry ships a sixteen-value channel knob** | 09-03 to 09-09 | A sixteen-value channel knob alone is 112 of the current 283 sweep combinations. Four common channels keeps twenty-seven entries affordable in a project that already costs 118 s |
-| Entries land **three per wave** (two in the last) | 09-03 to 09-09 | Phase 8 proved three per plan is holdable in one context, with the gate already built. Seven waves, grouped by what the card is for rather than by what the code does |
+| Entries land **three per wave** (two in the last) | 09-03 to 09-09 | Phase 8 is a **weaker** precedent than it first looks, and the comparison should be made honestly: its entry plans shipped canonical Lua **verbatim**, drafted and measured in its research document before its plans were written, so the executor was transcribing and gating. Phase 9's executor authors, minifies, corner-measures and budget-fits three configurations from scratch. What actually carries the three-per-wave size is different: the gate is already built (09-01 and 09-02), every mechanism, layer plan, knob table, trap list and honest limit is fixed in the plan, and the measurement is the oracle - so the work is authoring against a specification, not designing. **09-03 is the densest of the seven** - HOLD's re-arming Timer, STEPS's 64-cell sequencer, SLAM's per-contact state - and it says so in its own objective, with task 1 named as the resumption boundary if context runs short. Seven waves, grouped by what the card is for rather than by what the code does |
 | Each entry wave updates the audition **in its own wave** | 09-03 to 09-09 | `audition.spec.ts` test 3 goes red on arrival otherwise. Three or four lines per wave, and the document never lies about the catalog |
 | `frames.json` is regenerated **once per wave**, not once per entry | 09-03 to 09-09 | Regeneration rewrites the whole fixture; three regenerations is three chances to commit a half-written one |
 | CONSOLE ships as **plain controller messages, not Mackie** | 09-05 | MCU is bidirectional and nothing in this phase receives. The question is a deferred item, not a silence |
@@ -260,7 +280,7 @@ Phase 9's success criteria 4 and 5 in the ROADMAP map to 09-01 (the host-surface
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 09-01-01 | 01 | 1 | all | precondition + baseline | Phase 7 closed; five baselines measured and reconciled against 07-13; ten per-file counts and the 283-combination table recorded; `git status --porcelain` empty | n/a | pending |
+| 09-01-01 | 01 | 1 | all | precondition + baseline | Phase 7 closed; the seven-name block measured and reconciled against 07-13, with PREV_FILES / PREV_TESTS equal to BASE_FILES / BASE_TESTS on the clean tree; ten per-file counts and the 283-combination table recorded; `git status --porcelain` empty | n/a | pending |
 | 09-01-02 | 01 | 1 | CONT-02 | unit + source | `host-surface.spec.ts` **4**; `lua-host.spec.ts` **9**; `registerGlobals` iterates `HOST_GLOBALS`; `findTraps` accepts `gln` and the classifier refuses it; the seven shipped entries pass unedited; negative check red on test 2 naming `euclid`/`setup`/`gld` | created here | pending |
 | 09-01-03 | 01 | 1 | CONT-02 | infrastructure | `lua-entries.sweep.spec.ts` **6** under `--project sweep`; `test:sweep` `4 19`; `grep -rn "lua-entries.spec"` empty; `vite.config.ts` unedited; four wall times recorded | renamed here | pending |
 | 09-02-01 | 02 | 2 | CONT-02 | unit | `filter.spec.ts` **6**, `sort.spec.ts` **6**, counts unmoved; one `RECORDED` block per file; no bare 16; two negative checks with their stated outcomes | exists | pending |
@@ -273,7 +293,7 @@ Phase 9's success criteria 4 and 5 in the ROADMAP map to 09-01 (the host-surface
 | 09-04-02 | 04 | 4 | CONT-02, 03, TUNE-01 | unit + measured | GRIDLOCK and TABLE: four gates; GRIDLOCK's `glim` phase clamp; TABLE's gated redraw | created here | pending |
 | 09-04-03 | 04 | 4 | CONT-02, CONT-03 | fixture + docs | frames 22; `ROW_COUNT` **18**; `RECORDED` 22 / 10; five tags added; quick `+0/+0`; two negative checks red | exists | pending |
 | 09-05-01 | 05 | 5 | CONT-02, 03, TUNE-01 | unit + measured | CONSOLE: four gates; the not-Mackie sentence; `@CC + 8 < 128`; deferred item 1 written | created here | pending |
-| 09-05-02 | 05 | 5 | CONT-02, 03, TUNE-01 | unit + measured | STRIP and LEARN: four gates; every `@CC` 0..31; two messages per send observed; LEARN's per-mode message counts | created here | pending |
+| 09-05-02 | 05 | 5 | CONT-02, 03, TUNE-01 | unit + measured | STRIP and LEARN: four gates; every `@CC` 0..31; one recorded `gms` per send with `mode: 1` and `p1` in range (the two-message pair is firmware expansion the host does not model, `lua-host.ts:556-572`, and is audition row 20's question); LEARN's per-mode message counts | created here | pending |
 | 09-05-03 | 05 | 5 | CONT-02, CONT-03 | fixture + docs | frames 25; `ROW_COUNT` **21**; `RECORDED` 25 / 11; `latching` crosses into the chip row; two negative checks red | exists | pending |
 | 09-06-01 | 06 | 6 | CONT-02, 03, TUNE-01 | unit + measured | LUMEN: four gates; both hue forms measured; channels inside 0..255 at every `@DEPTH` | created here | pending |
 | 09-06-02 | 06 | 6 | CONT-02, 03, TUNE-01 | unit + source | STAGE and SHUTTLE: four gates; every HID usage id verified against a named table; `gks` arity per call; **`lua-smoke.spec.ts` asserts HID non-vacuity and passes** | created here | pending |
@@ -305,8 +325,9 @@ shipped rules to extend.
 - [ ] `src/lib/sim/lua-host.ts` gains `HOST_GLOBALS` and `HOST_SELF_METHODS`, and `registerGlobals`
       iterates them → **09-01-02**
 - [ ] `src/lib/catalog/host-surface.spec.ts` → **09-01-02** (created)
-- [ ] `src/lib/catalog/lua-entries.spec.ts` renamed to `*.sweep.spec.ts`, fifteen references fixed →
-      **09-01-03**
+- [ ] `src/lib/catalog/lua-entries.spec.ts` renamed to `*.sweep.spec.ts`, **nineteen** references fixed
+      - twelve source-comment lines and seven document lines across two documents
+      (`docs/PIN-POLICY.md:54`; `docs/TESTING.md:31, 288, 299, 302, 323, 661`) → **09-01-03**
 - [ ] `src/lib/browse/filter.spec.ts` and `sort.spec.ts` rewritten inside, counts unmoved → **09-02-01**
 - [ ] `src/lib/catalog/copy.spec.ts` → **09-02-02** (created)
 - [ ] `src/lib/sim/lua-smoke.spec.ts` test 2 widened to any output → **09-02-03**, completed **09-06-02**
@@ -443,7 +464,7 @@ path `git checkout --` fails outright and `git diff --quiet` passes vacuously.
 
 ## Validation Sign-Off
 
-- [ ] Phase 7 confirmed closed and the five baselines measured and reconciled (09-01-01)
+- [ ] Phase 7 confirmed closed and the seven-name block measured and reconciled (09-01-01)
 - [ ] The D-07 host-surface gate exists, is red on a `gln`, and the seven shipped entries pass it
       unedited (09-01-02)
 - [ ] The knob sweep runs in the `sweep` project with nothing trimmed (09-01-03)
