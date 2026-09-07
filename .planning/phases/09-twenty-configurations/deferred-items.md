@@ -48,3 +48,18 @@ extracts each entry's declared per-cell picture — the row masks, the glyph tab
 one channel per cell and asserts the named regions differ. It is a small spec and
 QUADRANT in wave 9 makes the same kind of accessibility claim, so it has at least
 three carriers already.
+
+## 4. Determinism is proved per entry by hand, not by a gate (recorded by 09-08)
+
+`lua-entries.sweep.spec.ts` test 4 refuses `math.random`, which is the only
+_source_ of non-determinism this repository can see statically. Nothing asserts
+that two builds of the same entry produce the same frames — `frames.spec.ts`
+compares against a recorded fixture, so a non-deterministic entry would first
+show up as an inexplicable hash mismatch in a later wave rather than as a
+finding here. Plan 09-08's tasks 1 and 2 ran the check by hand for SNAKE and
+LIFE and recorded the result. What would close this: a sixth test in
+`frames.spec.ts` that builds each entry twice and compares, at one tick, costing
+one extra engine build per entry.
+
+Numbered 4 rather than 3: 09-08's plan was written before 09-07 landed its own
+third item, and the file is appended to, never overwritten.

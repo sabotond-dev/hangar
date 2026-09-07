@@ -993,6 +993,102 @@
         "nonZeroBytes": 243,
         "animating": false
       }
+    ],
+    "snake": [
+      {
+        "tick": 0,
+        "sha256": "a7d053cc643f72ed98bbe1d09b74398a3df6022162a195a6f8d81118371a0f71",
+        "nonZeroBytes": 6,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "e6fa51026ddb300f34c10f0ad81f4c2f934e2c7be13b5c4432e97e08c7a661dc",
+        "nonZeroBytes": 8,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "0c67a07248ef536ea4eb10e28660d6e5e6249d65c4209241a7fbd934b28f90db",
+        "nonZeroBytes": 8,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "c7ac26fdeafa8475f75d5d37321b341f32188286157cec5766a4938598a274ae",
+        "nonZeroBytes": 12,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "fe9da6ce3a5b0378f1bbfe3fce0b2d9a9b4cd28ed66b9458c7041167ee36a31e",
+        "nonZeroBytes": 12,
+        "animating": true
+      }
+    ],
+    "etch": [
+      {
+        "tick": 0,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 37,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 101,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 500,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      },
+      {
+        "tick": 1009,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
+        "animating": false
+      }
+    ],
+    "life": [
+      {
+        "tick": 0,
+        "sha256": "4d8b2f65fce04956e42feb0832d3dc4d91304345dcd7345ea6a56434acb2649c",
+        "nonZeroBytes": 10,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "4d8b2f65fce04956e42feb0832d3dc4d91304345dcd7345ea6a56434acb2649c",
+        "nonZeroBytes": 10,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "c6f8bad34f84decde9cddd04b7b5274642c4f9215666a8229aca43ea635d5844",
+        "nonZeroBytes": 14,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "3a96aac5ee3620013fffd58a271289b1ebfa4e4d6060e9bd7a43b50df3938bb2",
+        "nonZeroBytes": 14,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "1a777083c3952421dd6250f38eb428f15fe8555d028df86643a8773785d0ebd1",
+        "nonZeroBytes": 14,
+        "animating": true
+      }
     ]
   }
 }

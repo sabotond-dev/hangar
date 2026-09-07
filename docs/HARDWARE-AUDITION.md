@@ -14,7 +14,7 @@ This document is the list of things a machine cannot check. Perceived polyrhythm
 codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brightness after the
 divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
 real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
-left alone for fifteen minutes. Twenty-seven rows, each with the reason it belongs to a bench and not
+left alone for fifteen minutes. Thirty rows, each with the reason it belongs to a bench and not
 to a test suite.
 
 It runs on your bench, in daytime, and it blocks nothing. The phase is complete and green without it.
@@ -38,11 +38,11 @@ vendored.
    immediately in the live VM — so a Setup-first paste arms a timer that does not exist yet, and the
    pad simply sits still. It looks exactly like a broken configuration and it is not one.
    `_pad.ts`'s own `writePad` encodes the same rule. Row 1 of the checklist is this rule.
-4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL and SWITCH are Setup
-   only** — none of the eleven has a Timer at all, the Timer event of each is the empty string, and
-   they are the eleven cards that start from the Setup alone. They are the exceptions that prove the
-   rule above.
-5. **Have somewhere to write twenty-seven lines.** The results go back into this document under a dated
+4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL, SWITCH and ETCH are
+   Setup only** — none of the twelve has a Timer at all, the Timer event of each is the empty string,
+   and they are the twelve cards that start from the Setup alone. They are the exceptions that prove
+   the rule above.
+5. **Have somewhere to write thirty lines.** The results go back into this document under a dated
    `Results` heading; see [What to record](#what-to-record).
 
 ## Getting the exact text
@@ -54,8 +54,8 @@ AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
 ```
 
 It writes `.tmp-audition/<id>.setup.lua` for every hand-authored configuration and
-`.tmp-audition/<id>.timer.lua` for every one that has a Timer — twenty-two Setup files and eleven Timer
-files — rendered at that configuration's default knob positions, and prints each file's character
+`.tmp-audition/<id>.timer.lua` for every one that has a Timer — twenty-five Setup files and thirteen
+Timer files — rendered at that configuration's default knob positions, and prints each file's character
 count beside the 908-character budget. `.tmp-audition/` is gitignored; the command commits nothing
 and, unlike the repository's other env-guarded writers, it does not fail the run.
 
@@ -65,12 +65,13 @@ what the dump writes. Retyping a line of it by hand is how a one-character diffe
 of confusion — and because every configuration is stored in canonical compressed form, one stray
 space is also a budget change.
 
-## The twenty-two, and what they cost
+## The twenty-five, and what they cost
 
 Measured at their default knob positions with the pinned minifier. The first seven come from
 `08-06-SUMMARY.md`; HOLD, STEPS and SLAM were measured by `09-03-SUMMARY.md`, KEYS, GRIDLOCK and
 TABLE by `09-04-SUMMARY.md`, CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`, LUMEN, STAGE and SHUTTLE by
-`09-06-SUMMARY.md`, and CULL, FORGE and SWITCH by `09-07-SUMMARY.md`:
+`09-06-SUMMARY.md`, CULL, FORGE and SWITCH by `09-07-SUMMARY.md`, and SNAKE, ETCH and LIFE by
+`09-08-SUMMARY.md`:
 
 | id         | name     | Setup | Timer            | knobs | dark at rest |
 | ---------- | -------- | ----- | ---------------- | ----- | ------------ |
@@ -96,21 +97,27 @@ TABLE by `09-04-SUMMARY.md`, CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`, LUM
 | `cull`     | CULL     | 564   | 0 — **no Timer** | 4     | no           |
 | `forge`    | FORGE    | 716   | 373              | 5     | no           |
 | `switch`   | SWITCH   | 487   | 0 — **no Timer** | 4     | no           |
+| `snake`    | SNAKE    | 581   | 870              | 5     | no           |
+| `etch`     | ETCH     | 535   | 0 — **no Timer** | 4     | yes          |
+| `life`     | LIFE     | 435   | 674              | 5     | no           |
 
-**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL and SWITCH are Setup only,
-and that is legitimate rather than an omission.** MORPH and SLAM animate only under a finger, with a per-touch
+**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL, SWITCH and ETCH are Setup
+only, and that is legitimate rather than an omission.** MORPH and SLAM animate only under a finger, with a per-touch
 decay that firmware runs down to black on its own; KEYS paints a scale map once and never moves it;
 GRIDLOCK's ripple carries its own countdown down to exact black; TABLE redraws only when a finger
 crosses a shape boundary; CONSOLE, STRIP and LEARN are control surfaces whose picture is a readout
 of the last value you sent, repainted on the change that caused it and never otherwise; and LUMEN
 computes eighty-one colours once and then has nothing left to do; and CULL and SWITCH both paint a
-legend once and then have only a per-press decay, which firmware runs down to exact black on its own.
-None of the eleven has anything for a Timer to advance. Store nothing into event 6 for any of them;
+legend once and then have only a per-press decay, which firmware runs down to exact black on its own;
+and ETCH is a canvas whose marks are written once and never counted down, so a Timer would have
+nothing to advance and a timeout on the ink would make the drawing fade.
+None of the twelve has anything for a Timer to advance. Store nothing into event 6 for any of them;
 row 1's install-order rule below does not apply to a configuration that has no Timer at all.
 
-GHOST and MORPH being dark at rest is a declared fact about them, not a fault: GHOST has nothing to
-show until you draw a gesture for it to replay, and MORPH's corners light under a finger. If either
-looks black on arrival, that is correct.
+GHOST, MORPH and ETCH being dark at rest is a declared fact about them, not a fault: GHOST has
+nothing to show until you draw a gesture for it to replay, MORPH's corners light under a finger, and
+ETCH is a blank canvas until somebody draws on it. If any of the three looks black on arrival, that
+is correct.
 
 LATTICE is worth one line of arithmetic before you play it, because the layout is isomorphic and a
 wrong note reads as a broken configuration: at the defaults the bottom-left cell is note 36, one
@@ -119,7 +126,7 @@ research document prints 42 there; 41 is what the arithmetic says and what the m
 
 ## The checklist
 
-Twenty-seven rows, in order. Each names why it cannot be simulated, so no row is busywork.
+Thirty rows, in order. Each names why it cannot be simulated, so no row is busywork.
 
 | #   | Config            | What to check                                                                                                                                                                                                                                                                             | Why it cannot be simulated                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -150,6 +157,9 @@ Twenty-seven rows, in order. Each names why it cannot be simulated, so no row is
 | 25  | **CULL**          | Look at the pad through a colour-blindness simulator, or squint until the five colours merge into one. Are the five ratings still tellable apart, and can you name which band is which without checking?                                                                                  | The claim is about perception under a condition no frame hash models. A physical diffuser blurs a one-cell fill in a way a pixel grid does not, and whether a checker and a three-pip row survive that blur is the whole accessibility claim this card makes.                                                                                                                                                                                                                     |
 | 26  | **FORGE**         | Hold the bottom-right corner, run three macros, release. Then hold it and lift with a fast flick a dozen times, and once slide off the corner before lifting. **Does the bank ever stay stuck in B?** Then hold it still for fifteen seconds and confirm the watchdog drops it back to A. | **The dropped-release bug.** Firmware advances `prev_*` before the writability check (`grid_ui_touch.c:126-142`) and `pad-sim.ts` states it only runs the watchdog semantics and cannot manufacture the stuck contact, so a stranded bank is invisible in a browser. The watchdog that answers it is a mitigation nobody has watched fire on hardware.                                                                                                                            |
 | 27  | **SWITCH**        | Stand two metres back. Can you name which block is which without reading a label, and does the pressed block read as a solid flash rather than as a brighter mark?                                                                                                                        | Whether nine three-cell marks are distinguishable at a distance through a diffuser is exactly the kind of judgement a frame comparison cannot make, and the field colour that separates them is nine times dimmer than the marks with no gamma correction anywhere in the path.                                                                                                                                                                                                   |
+| 28  | **SNAKE**         | Play a full game. Does the snake turn where you meant it to, or does the turn arrive a beat late? Then take your finger off and watch it play itself.                                                                                                                                     | One touch sample per 10 ms cycle across all contacts, plus a display that appears 0 to 10 ms after the write on a different core — the felt latency of a steer is exactly what a deterministic simulator cannot report.                                                                                                                                                                                                                                                           |
+| 29  | **ETCH**          | Draw a slow line, then sweep. Does the wipe fire when you expect, and never when you did not want it? Try each of the four wipe distances.                                                                                                                                                | The wipe threshold is measured in cells between consecutive samples, and how far a real finger moves between samples depends on the sensor's delta gate and on how fast people actually sweep. A browser's scripted drag chooses that distance; a hand does not.                                                                                                                                                                                                                  |
+| 30  | **LIFE**          | Leave it for fifteen minutes. Does it keep re-seeding, and does the light stay steady or start to strobe? Then tap a dense block and listen for whether every birth is heard.                                                                                                             | The 655 s `glt` ceiling and pitfall 1 — a keeper on a decaying trail wraps the countdown and strobes forever, which only time on hardware surfaces. The note ceiling is the other half: a `gms` that does not fit the 256-byte cycle buffer is refused with no error, so only ears can tell a capped generation from a lost one.                                                                                                                                                  |
 
 ## What to record
 

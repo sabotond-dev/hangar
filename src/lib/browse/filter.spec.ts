@@ -83,7 +83,11 @@ const search = (query: string) =>
  *
  * Re-recorded by: 08-06 (sixteen entries), then 09-03 (nineteen), then 09-04
  * (twenty-two), then 09-05 (twenty-five), then 09-06 (twenty-eight), then 09-07
- * (thirty-one), and every later entry wave of phase 09.
+ * (thirty-one), then 09-08 (thirty-four), and every later entry wave of phase 09.
+ *
+ * 09-08 is where `game` and `still` cross to two carriers and become chips, and
+ * where `playable` takes the head of the row back from `readable`: the two are
+ * tied at ten and the tie breaks on name ascending.
  *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
  * "The tag chips", quotes the row and its counts verbatim. A wave that moves
@@ -91,26 +95,27 @@ const search = (query: string) =>
  * carries the instruction.
  */
 const RECORDED = {
-  entries: 31,
-  tags: 53,
+  entries: 34,
+  tags: 55,
   singletons: 29,
   chips: [
-    "readable",
     "playable",
+    "readable",
+    "gestural",
     "utility",
     "expressive",
-    "gestural",
+    "generative",
+    "grid",
+    "hypnotic",
     "drums",
     "hotkeys",
-    "hypnotic",
     "precise",
     "xy-control",
     "colour",
-    "generative",
-    "grid",
     "hands-free",
     "ambient",
     "blooming",
+    "game",
     "harmonic",
     "latching",
     "macros",
@@ -119,9 +124,11 @@ const RECORDED = {
     "rails",
     "rippling",
     "sequencer",
+    "still",
   ] as const,
   chipCounts: [
-    10, 8, 6, 5, 5, 4, 4, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    10, 10, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    2,
   ] as const,
 } as const;
 
