@@ -179,6 +179,14 @@ Progress: [██████████] 100% (83 of 83 plans — Phase 7 at 1
 | Phase 07 P09 | 33 min | 3 tasks | 4 files |
 | Phase 07 P13 | 35 min | 3 tasks | 8 files |
 
+## Quick Tasks Completed
+
+Ad-hoc work outside the phase plan. Each row is a `.planning/quick/<id>-<slug>/` directory with its own PLAN and SUMMARY. These do not move the phase counter and are not part of the 83-plan arithmetic above.
+
+| Quick ID  | Slug            | Date       | Duration | Files | What it did                                                                                                                                                                                                                                              |
+| --------- | --------------- | ---------- | -------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 260907-gs0 | midi-in-probe   | 2026-09-07 | 12 min   | 2     | `docs/MIDI-IN-PROBE.md`: two paste-ready Setup scripts (264 and 328 characters against 908, `checkSyntax` true, fixed points of `compressScript`) answering whether plain host MIDI and MIDI clock reach a ZONA touch element, plus the row 11 pointer in `docs/HARDWARE-AUDITION.md`. Docs only; no source file, no test-count delta, `audition.spec.ts` 4 green, lint 0. Commits 4e392df, 5a4ef57. |
+
 ## Accumulated Context
 
 ### Decisions
