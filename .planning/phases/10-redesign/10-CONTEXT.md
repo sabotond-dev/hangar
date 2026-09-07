@@ -80,6 +80,30 @@ here is planned yet. [user] decisions are the user's and are not open to orchest
   into date blocks), `BrowseToolbar.svelte`, the browse e2e, and the URL parameter's accepted values.
   Whether `addedAt` survives as a field at all is the UI spec's call — nothing else reads it today.
 
+### Type and motion, settled by the user (2026-09-07)
+- **D-02 amended [user].** **Grifter is licensed** — the user holds the licence. The files are already
+  on this machine: nine OTF weights in `C:\Users\sabot\Downloads\Fonts\` (Thin through Black), and
+  woff plus woff2 already converted for Light, Regular, Medium and Bold in two sibling projects
+  (`gridstrument-landing\fonts\grifter\` and `fulfilment-dashboard\public\fonts\grifter`), which is a
+  working precedent for self-hosting it. Those siblings are read-only: copy the files in, never edit
+  them there.
+- **D-12 [user] Body text is Inter, upright — not italic.** The brief first said Inter Italic; the
+  user withdrew the italic on being told what all-italic body text costs at small sizes and long
+  measures. Grifter carries headlines, Inter carries body.
+- **D-13 [orchestrator] The font binary is excluded from the source archive.** Not a challenge to the
+  licence, a narrower point: HANGAR serves its own corresponding source as a per-deploy archive from
+  the site, so a font file placed in the tree would be *redistributed*, which is a different
+  permission from displaying it on your own site and the one most foundry licences withhold. GPLv3
+  does not oblige us to ship a third-party font we may not redistribute. The default is therefore to
+  serve the font from the site and exclude the binary from `scripts/deploy.mjs`'s archive, with a
+  short note in its place saying which family is required and where to obtain it — the same shape as
+  any GPL project that depends on a proprietary asset. `scripts/gen-licenses.mjs` records the family,
+  the licensee and the licence name rather than a redistributable file. If the user's licence does
+  permit redistribution, this reverses to a one-line change; the plan asks rather than assumes.
+- **D-07 confirmed [user].** The CRT and glitch treatment ships **with an off switch**, satisfying the
+  `prefers-reduced-motion` contract Phase 4 set and Playwright asserts in both engines. Whether the
+  switch is also a visible control the visitor can reach, beyond the OS setting, is the UI spec's call.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
