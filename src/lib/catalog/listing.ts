@@ -468,6 +468,34 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "forge",
+    name: "FORGE",
+    description:
+      "Editor and terminal macros in colour families, with a second bank under a held corner.",
+    motion: "static",
+    quiet:
+      "The three colour bands sit still; the pad only changes when you hold the corner.",
+    tags: ["macros", "hotkeys", "utility", "readable"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "switch",
+    name: "SWITCH",
+    description:
+      "Nine apps in nine blocks, each with its own mark, so you find one without reading anything.",
+    motion: "static",
+    quiet:
+      "The nine marks are painted once and stay; the block you press is the only thing that moves.",
+    tags: ["hotkeys", "grid", "readable", "utility"],
+    featured: true,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

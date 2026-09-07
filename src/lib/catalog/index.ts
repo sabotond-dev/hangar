@@ -12,6 +12,7 @@ import { CHORUS } from "./entries/chorus";
 import { CONSOLE } from "./entries/console";
 import { CULL } from "./entries/cull";
 import { EUCLID } from "./entries/euclid";
+import { FORGE } from "./entries/forge";
 import { GHOST } from "./entries/ghost";
 import { GRIDLOCK } from "./entries/gridlock";
 import { HOLD } from "./entries/hold";
@@ -25,6 +26,7 @@ import { SHUTTLE } from "./entries/shuttle";
 import { SLAM } from "./entries/slam";
 import { SONAR } from "./entries/sonar";
 import { STAGE } from "./entries/stage";
+import { SWITCH } from "./entries/switch";
 import { STRIP } from "./entries/strip";
 import { STEPS } from "./entries/steps";
 import { TABLE } from "./entries/table";
@@ -69,6 +71,8 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   STAGE,
   SHUTTLE,
   CULL,
+  FORGE,
+  SWITCH,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -91,6 +95,8 @@ export { LUMEN } from "./entries/lumen";
 export { STAGE } from "./entries/stage";
 export { SHUTTLE } from "./entries/shuttle";
 export { CULL } from "./entries/cull";
+export { FORGE } from "./entries/forge";
+export { SWITCH } from "./entries/switch";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
