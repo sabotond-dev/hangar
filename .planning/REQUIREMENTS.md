@@ -59,7 +59,7 @@ feature table in `.planning/research/FEATURES.md`.
 
 - [ ] **CONT-01**: The nine BOTOR shelf presets — starfield, aurora, pinwheel, radar, faders, ninepads, tpad, dial, joystick — are in the catalog, each compiling to the same Lua as BOTOR at the pinned protocol version
 - [x] **CONT-02**: At least six new configurations authored for spectacle are in the catalog, each fitting the 908/908 budget at its default knob positions and verified in the simulator
-- [ ] **CONT-03**: Every catalog entry has a name, a one-line description, feel-based tags, a Featured flag and a default knob state
+- [x] **CONT-03**: Every catalog entry has a name, a one-line description, feel-based tags, a Featured flag and a default knob state
 
 ### Tuning [F]
 
@@ -186,9 +186,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CAT-03 | Phase 5.1 | Complete with one qualifier that must not be read past: the INSTALL CONTROLS ARE PHASE 7'S AND ARE STILL ABSENT OR DISABLED. What this phase delivers is the focus view itself - all sixteen configurations now have a real prerendered /c/<id>/ page (05.1-05), an off-row entry gets a row of one with an arrow-less plate, the hero runs at full frame rate and takes mouse-as-finger, Phase 5's knobs and both 908 meters are there, and the way back restores sort, query, tags and scroll offset. TRY ON DEVICE connects and identifies only, KEEP ON DEVICE is really disabled, and nothing writes. The install half is docked, not built |
 | CAT-04 | Phase 4 | Pending |
 | CONT-01 | Phase 4 | Pending |
-| CONT-02 | Phase 8 | Complete (seven configurations against a floor of six — EUCLID, CHORUS, ARC, GHOST, LATTICE, MORPH, SONAR — canonical, in budget across their whole knob range, run in a Lua VM over the unmodified simulator; the twelve-row hardware audition is presented to the user and unanswered) |
-| CONT-03 | Phase 4 (metadata gate for new entries: Phase 8) | Pending |
-| TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8) | Complete |
+| CONT-02 | Phase 8, closed at Phase 9 | Complete (twenty configurations authored in Phase 9 taking the catalog from sixteen to thirty-six, twenty-seven of them hand-authored Lua; every one canonical, in budget on both events at its defaults AND at every corner of its own knob cross-product — 701 combinations over 1,402 measured events, proved by the separability identity rather than by enumeration — every one running in a real Lua 5.4 VM through the scripted gesture without error, and EVERY CALL SITE checked against the registered host surface by the new D-07 gate. Hardware: the thirty-two-row audition is presented to the user and unanswered) |
+| CONT-03 | Phase 4 (metadata gate for new entries: Phase 8; closed at Phase 9) | Complete (every entry's name, one-line description, four feel tags, Featured flag and arrival date declared in the entry file and restated in LISTING, gated field by field in both directions, with the copy counted by src/lib/catalog/copy.spec.ts rather than read) |
+| TUNE-01 | Phase 5 (knob data for Lua entries: Phase 8; re-confirmed at Phase 9) | Complete (every hand-authored entry carries three to six knobs over the vendored KnobKind vocabulary, each with an index default, each token live in at least one event and none a prefix of another, and the whole cross-product measured. No Phase 9 entry ships a sixteen-value channel knob, which is what kept the sweep affordable at twenty-seven entries) |
 | TUNE-02 | Phase 5 | Complete |
 | TUNE-03 | Phase 5 | Complete |
 | TUNE-04 | Phase 5 | Complete (guard, unreachable in practice: reachability.sweep.spec.ts costs all 32,852 reachable knob states and none crosses 908, so the fit ladder is proven against a measured over-budget reserve in ladder.spec.ts and watched in a browser on /dev/tune/, never met by a visitor) |
