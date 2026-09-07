@@ -54,7 +54,7 @@ const strip = (source: string) =>
 const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
 
 /** Recorded on purpose; see filter.spec.ts's RECORDED. */
-const RECORDED = { entries: 34, featured: 14 } as const;
+const RECORDED = { entries: 36, featured: 15 } as const;
 
 /**
  * Two deterministic permutations of the listing, not a random shuffle: a sort

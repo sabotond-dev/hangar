@@ -161,7 +161,17 @@ export const QUADRANT: CatalogEntry = {
     {
       id: "hue",
       label: "Palette",
-      kind: "colour",
+      // "mode", NOT "colour", AND THAT IS A MEASURED CONSTRAINT RATHER THAN A
+      // preference. src/lib/tune/view.ts's widgetFor requires every value of a
+      // "colour" knob to be a single RGB triple, because the swatch row paints
+      // one square per value; knobs.lua.spec.ts turns that into a rule -
+      // "a colour that reaches a rail is a malformed value set, not a
+      // rendering choice" - and view.spec.ts asserts swatchOf and hueName over
+      // every colour value in the catalog. A four-colour palette is four
+      // squares, so it is not a colour by that vocabulary and it renders as a
+      // four-position rail. src/lib/tune/ is not this entry's to edit, so the
+      // entry carries the correct kind instead. Recorded in 09-09-SUMMARY.md.
+      kind: "mode",
       token: "@HUE",
       // FOUR COLOURS AS ONE FLAT TWELVE-NUMBER VALUE, read at i = q*3. Every
       // palette is EXACTLY 39 characters - twenty-eight digits and eleven

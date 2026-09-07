@@ -3,8 +3,8 @@
 Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 Phase 8 authored seven configurations for HANGAR — EUCLID, CHORUS, ARC, GHOST, LATTICE, MORPH and
-SONAR — and Phase 9 is adding twenty more, of which HOLD, STEPS, SLAM, KEYS, GRIDLOCK, TABLE,
-CONSOLE, STRIP and LEARN are the first nine.
+SONAR — and Phase 9 added twenty more, closing at QUADRANT and POMODORO. **All twenty are in, so
+this document now covers every hand-authored configuration in the catalog: twenty-seven of them.**
 Everything a machine can check about them is already green: each one is stored in canonical
 compressed form, fits both 908-character budgets at its defaults and across its entire knob
 cross-product, runs in a real Lua 5.4 VM driving the firmware-faithful LED engine without error, and
@@ -14,7 +14,7 @@ This document is the list of things a machine cannot check. Perceived polyrhythm
 codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brightness after the
 divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
 real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
-left alone for fifteen minutes. Thirty rows, each with the reason it belongs to a bench and not
+left alone for fifteen minutes. Thirty-two rows, each with the reason it belongs to a bench and not
 to a test suite.
 
 It runs on your bench, in daytime, and it blocks nothing. The phase is complete and green without it.
@@ -38,11 +38,11 @@ vendored.
    immediately in the live VM — so a Setup-first paste arms a timer that does not exist yet, and the
    pad simply sits still. It looks exactly like a broken configuration and it is not one.
    `_pad.ts`'s own `writePad` encodes the same rule. Row 1 of the checklist is this rule.
-4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL, SWITCH and ETCH are
-   Setup only** — none of the twelve has a Timer at all, the Timer event of each is the empty string,
-   and they are the twelve cards that start from the Setup alone. They are the exceptions that prove
+4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL, SWITCH, ETCH and
+   QUADRANT are Setup only** — none of the thirteen has a Timer at all, the Timer event of each is
+   the empty string, and they are the thirteen cards that start from the Setup alone. They are the exceptions that prove
    the rule above.
-5. **Have somewhere to write thirty lines.** The results go back into this document under a dated
+5. **Have somewhere to write thirty-two lines.** The results go back into this document under a dated
    `Results` heading; see [What to record](#what-to-record).
 
 ## Getting the exact text
@@ -54,7 +54,7 @@ AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
 ```
 
 It writes `.tmp-audition/<id>.setup.lua` for every hand-authored configuration and
-`.tmp-audition/<id>.timer.lua` for every one that has a Timer — twenty-five Setup files and thirteen
+`.tmp-audition/<id>.timer.lua` for every one that has a Timer — twenty-seven Setup files and fourteen
 Timer files — rendered at that configuration's default knob positions, and prints each file's character
 count beside the 908-character budget. `.tmp-audition/` is gitignored; the command commits nothing
 and, unlike the repository's other env-guarded writers, it does not fail the run.
@@ -65,13 +65,14 @@ what the dump writes. Retyping a line of it by hand is how a one-character diffe
 of confusion — and because every configuration is stored in canonical compressed form, one stray
 space is also a budget change.
 
-## The twenty-five, and what they cost
+## The twenty-seven, and what they cost — every hand-authored configuration in the catalog
 
 Measured at their default knob positions with the pinned minifier. The first seven come from
 `08-06-SUMMARY.md`; HOLD, STEPS and SLAM were measured by `09-03-SUMMARY.md`, KEYS, GRIDLOCK and
 TABLE by `09-04-SUMMARY.md`, CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`, LUMEN, STAGE and SHUTTLE by
-`09-06-SUMMARY.md`, CULL, FORGE and SWITCH by `09-07-SUMMARY.md`, and SNAKE, ETCH and LIFE by
-`09-08-SUMMARY.md`:
+`09-06-SUMMARY.md`, CULL, FORGE and SWITCH by `09-07-SUMMARY.md`, SNAKE, ETCH and LIFE by
+`09-08-SUMMARY.md`, and QUADRANT and POMODORO by `09-09-SUMMARY.md`. The catalog holds nine more
+configurations, and those nine are BOTOR's shelf presets rather than HANGAR's own Lua:
 
 | id         | name     | Setup | Timer            | knobs | dark at rest |
 | ---------- | -------- | ----- | ---------------- | ----- | ------------ |
@@ -100,18 +101,22 @@ TABLE by `09-04-SUMMARY.md`, CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`, LUM
 | `snake`    | SNAKE    | 581   | 870              | 5     | no           |
 | `etch`     | ETCH     | 535   | 0 — **no Timer** | 4     | yes          |
 | `life`     | LIFE     | 435   | 674              | 5     | no           |
+| `quadrant` | QUADRANT | 835   | 0 — **no Timer** | 4     | no           |
+| `pomodoro` | POMODORO | 733   | 647              | 5     | no           |
 
-**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL, SWITCH and ETCH are Setup
-only, and that is legitimate rather than an omission.** MORPH and SLAM animate only under a finger, with a per-touch
+**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL, SWITCH, ETCH and QUADRANT
+are Setup only, and that is legitimate rather than an omission.** MORPH and SLAM animate only under a finger, with a per-touch
 decay that firmware runs down to black on its own; KEYS paints a scale map once and never moves it;
 GRIDLOCK's ripple carries its own countdown down to exact black; TABLE redraws only when a finger
 crosses a shape boundary; CONSOLE, STRIP and LEARN are control surfaces whose picture is a readout
 of the last value you sent, repainted on the change that caused it and never otherwise; and LUMEN
 computes eighty-one colours once and then has nothing left to do; and CULL and SWITCH both paint a
 legend once and then have only a per-press decay, which firmware runs down to exact black on its own;
-and ETCH is a canvas whose marks are written once and never counted down, so a Timer would have
-nothing to advance and a timeout on the ink would make the drawing fade.
-None of the twelve has anything for a Timer to advance. Store nothing into event 6 for any of them;
+ETCH is a canvas whose marks are written once and never counted down, so a Timer would have
+nothing to advance and a timeout on the ink would make the drawing fade; and QUADRANT is four
+targets that are supposed to sit still, so a Timer would be motion nobody asked for on the one card
+whose whole claim is that you can find it without looking.
+None of the thirteen has anything for a Timer to advance. Store nothing into event 6 for any of them;
 row 1's install-order rule below does not apply to a configuration that has no Timer at all.
 
 GHOST, MORPH and ETCH being dark at rest is a declared fact about them, not a fault: GHOST has
@@ -126,7 +131,7 @@ research document prints 42 there; 41 is what the arithmetic says and what the m
 
 ## The checklist
 
-Thirty rows, in order. Each names why it cannot be simulated, so no row is busywork.
+Thirty-two rows, in order. Each names why it cannot be simulated, so no row is busywork.
 
 | #   | Config            | What to check                                                                                                                                                                                                                                                                             | Why it cannot be simulated                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,6 +165,8 @@ Thirty rows, in order. Each names why it cannot be simulated, so no row is busyw
 | 28  | **SNAKE**         | Play a full game. Does the snake turn where you meant it to, or does the turn arrive a beat late? Then take your finger off and watch it play itself.                                                                                                                                     | One touch sample per 10 ms cycle across all contacts, plus a display that appears 0 to 10 ms after the write on a different core — the felt latency of a steer is exactly what a deterministic simulator cannot report.                                                                                                                                                                                                                                                           |
 | 29  | **ETCH**          | Draw a slow line, then sweep. Does the wipe fire when you expect, and never when you did not want it? Try each of the four wipe distances.                                                                                                                                                | The wipe threshold is measured in cells between consecutive samples, and how far a real finger moves between samples depends on the sensor's delta gate and on how fast people actually sweep. A browser's scripted drag chooses that distance; a hand does not.                                                                                                                                                                                                                  |
 | 30  | **LIFE**          | Leave it for fifteen minutes. Does it keep re-seeding, and does the light stay steady or start to strobe? Then tap a dense block and listen for whether every birth is heard.                                                                                                             | The 655 s `glt` ceiling and pitfall 1 — a keeper on a decaying trail wraps the countdown and strobes forever, which only time on hardware surfaces. The note ceiling is the other half: a `gms` that does not fit the 256-byte cycle buffer is refused with no error, so only ears can tell a capped generation from a lost one.                                                                                                                                                  |
+| 31  | **QUADRANT**      | Stand back two metres. Can you name each quadrant by its fill alone, with the colours ignored? Then hit each one without looking, ten times each, and count the misses that landed on the dark cross.                                                                                     | The claim is about perception at a distance through a physical diffuser, and whether a target is hittable without looking is a question about hands. A pixel comparison says the four fills differ; it cannot say a person can tell them apart, and it cannot say a finger lands where its owner meant it to.                                                                                                                                                                     |
+| 32  | **POMODORO**      | Start it and leave the module alone for the full interval. **Does the inner breathe still move at the end, and does the ring reach zero at the right time?** Note how far behind a wall clock it finishes.                                                                                | The 655 s `glt` ceiling: the animation freezes when the countdown expires and only a re-issued rate restarts it. The re-issue is checked in a browser over 160,000 simulated ticks and has never run on hardware, where the Timer fires on the next 100 Hz cycle after its countdown and drifts under load over 1500 of them.                                                                                                                                                     |
 
 ## What to record
 
@@ -181,8 +188,8 @@ None yet. This audition has not been run.
 
 ## A closing note on colour
 
-Every RGB triple in the seven configurations is a starting point chosen on a screen, not a measured
-result. One layer caps at 49.6 % and there is no gamma correction anywhere in the path, so a colour
+Every RGB triple in the twenty-seven configurations is a starting point chosen on a screen, not a
+measured result. One layer caps at 49.6 % and there is no gamma correction anywhere in the path, so a colour
 that reads well in the simulator can be muddy or blinding on a diffuser. Changing one is a knob-value
 edit in the entry file plus a `frames.json` regeneration — it touches no gate, no host and nothing
 vendored.
