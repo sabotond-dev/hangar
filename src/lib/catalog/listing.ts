@@ -430,6 +430,32 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "stage",
+    name: "STAGE",
+    description:
+      "Nine scenes for your stream: the live one glows and the one you are lining up breathes.",
+    motion: "animated",
+    tags: ["streaming", "hotkeys", "readable", "utility"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "shuttle",
+    name: "SHUTTLE",
+    description:
+      "Scrub video with your finger, and the arc grows and spins faster the harder you push it.",
+    motion: "static",
+    quiet:
+      "The ring rests dim and still; it only spins while your finger is asking the video to move.",
+    tags: ["video", "hotkeys", "gestural", "hypnotic"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

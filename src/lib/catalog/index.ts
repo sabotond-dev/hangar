@@ -20,8 +20,10 @@ import { LATTICE } from "./entries/lattice";
 import { LUMEN } from "./entries/lumen";
 import { MORPH } from "./entries/morph";
 import { PORTED } from "./entries/ported";
+import { SHUTTLE } from "./entries/shuttle";
 import { SLAM } from "./entries/slam";
 import { SONAR } from "./entries/sonar";
+import { STAGE } from "./entries/stage";
 import { STRIP } from "./entries/strip";
 import { STEPS } from "./entries/steps";
 import { TABLE } from "./entries/table";
@@ -63,6 +65,8 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   STRIP,
   LEARN,
   LUMEN,
+  STAGE,
+  SHUTTLE,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -82,6 +86,8 @@ export { CONSOLE } from "./entries/console";
 export { STRIP } from "./entries/strip";
 export { LEARN } from "./entries/learn";
 export { LUMEN } from "./entries/lumen";
+export { STAGE } from "./entries/stage";
+export { SHUTTLE } from "./entries/shuttle";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {

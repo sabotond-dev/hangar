@@ -93,6 +93,7 @@ const KNOWN_TAGS = [
   "grid",
   "hands-free",
   "harmonic",
+  "hotkeys",
   "hypnotic",
   "in-key",
   "instrument",
@@ -120,7 +121,9 @@ const KNOWN_TAGS = [
   "sound-design",
   "sprung",
   "still",
+  "streaming",
   "utility",
+  "video",
   "wavetable",
   "xy-control",
 ] as const;

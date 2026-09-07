@@ -284,13 +284,17 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "would then be hiding a broken host rather than admitting a keyboard",
     ).toBeGreaterThan(0);
 
-    // THE HID SIDE OF THAT GUARANTEE IS SCHEDULED, NOT WRITTEN HERE. The
-    // matching assertion - at least one entry produced HID - belongs at this
-    // exact spot and plan 09-06 adds it, with STAGE and SHUTTLE, the first two
-    // configurations whose whole output is keystrokes. It is deliberately not
-    // here: no entry in the catalog sends HID today, so the assertion would be
-    // red on arrival, and an assertion that cannot be true yet is not a gate,
-    // it is a scheduled failure.
+    // THE HID SIDE OF THAT GUARANTEE, landed by 09-06 with STAGE and SHUTTLE -
+    // the first two configurations in this catalog whose whole output is
+    // keystrokes, and therefore the first wave in which this assertion could
+    // be true rather than scheduled.
+    const hidEntries = runs.filter((r) => r.hid.length > 0).map((r) => r.id);
+    expect(
+      hidEntries.length,
+      "no hand-authored configuration produced HID at all - the widening in 09-02 " +
+        "would then be admitting a kind of output the catalog does not actually have",
+    ).toBeGreaterThan(0);
+
     if ((process.env.SMOKE_REPORT ?? "") !== "") {
       for (const line of report) console.log(line);
     }
