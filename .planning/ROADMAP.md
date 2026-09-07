@@ -30,6 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Device Session** - Feature-detected connect, ZONA identification, and every failure mode named in plain language (completed 2026-09-05; the six-row hardware checklist in docs/SESSION-RUNBOOK.md is presented to the user and unanswered, so success criteria 3, 4 and 5 are verified-by-user-pending)
 - [x] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames (completed 2026-09-05; the full suite green against the production build at 776 unit + 13 sweep + 89 e2e; the seven-row hardware checklist in docs/INSTALL-RUNBOOK.md is presented to the user and unanswered, so the five *(hardware)* halves of its success criteria are verified-by-user-pending and no agent has written a byte to a real ZONA)
 - [x] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter (completed 2026-09-04; the hardware audition is presented to the user and unanswered)
+- [ ] **Phase 9: Twenty Configurations** - The catalog goes from sixteen entries to thirty-six, each one useful to a named person in a named application (in progress; 1 of 10 plans complete as of 2026-09-07 — the baselines measured and reconciled, the host-surface gate closing the trap-scanner gap, and the knob sweep out of the quick run)
 
 ## Phase Details
 
@@ -255,10 +256,10 @@ Plans:
   3. No configuration in the phase depends on inbound host MIDI, on Grid Editor running, or on a capability the simulator cannot render; the clock-locked family stays deferred behind docs/MIDI-IN-PROBE.md.
   4. A call the Lua host does not register is refused by a gate before it can reach an entry, closing the gap where recipe-book code passes the static trap scanner and raises at runtime.
   5. The front-door ring is unchanged at eight entries, and the browse page, the catalog gates and the budget sweep stay green at thirty-six.
-**Plans**: 10 plans in 10 waves
+**Plans**: 10 plans in 10 waves — **1 of 10 complete**
 
 Plans:
-- [ ] 09-01-PLAN.md — The five baselines, the host-surface gate that closes the trap-scanner gap, and the knob sweep out of the quick run (wave 1)
+- [x] 09-01-PLAN.md — The five baselines, the host-surface gate that closes the trap-scanner gap, and the knob sweep out of the quick run (wave 1) — completed 2026-09-07; seven names measured on the clean tree at 34d0fd6 and reconciled against 07-13 with no discrepancy (BASE_FILES 73, BASE_TESTS 776 + 1 todo, both frozen; PREV_FILES 73, PREV_TESTS 775; BASE_SWEEP `3 13` -> `4 19`; BASE_E2E 89 frozen, PREV_E2E 89); HOST_GLOBALS and HOST_SELF_METHODS exported and iterated by registerGlobals; host-surface.spec.ts at 4 with findTraps accepting a gln body the classifier refuses, proved in one test; the seven shipped entries passing unedited; lua-entries.spec.ts renamed into the sweep project with vite.config.ts unedited. Commits 71d66c0, be7c004
 - [ ] 09-02-PLAN.md — The browse literals derived or recorded, the catalog copy gate, and an execution gate that counts a keystroke as output (wave 2)
 - [ ] 09-03-PLAN.md — HOLD, STEPS and SLAM: latching, a sweeping column, and velocity from position (wave 3)
 - [ ] 09-04-PLAN.md — KEYS, GRIDLOCK and TABLE: an in-key grid, eighty-one clips, and a drawn waveform (wave 4)
