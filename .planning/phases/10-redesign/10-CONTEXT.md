@@ -55,6 +55,31 @@ here is planned yet. [user] decisions are the user's and are not open to orchest
   - `Copies this configuration, knobs and all, as a link anyone can open.`
   - and others of the same kind — the list is illustrative, not exhaustive.
 
+### Added by the user during planning (2026-09-07)
+- **D-09 [user] No pad thumbnail stays dark.** Every card shows something. Consequences, all shipped
+  today: four entries declare `restsBlack: true` — Trackpad, GHOST, MORPH and ETCH — and each carries
+  `RESTS_DARK_NOTE` byte-for-byte, a rule `listing.spec.ts` asserts in both directions; nineteen of
+  thirty-six entries rest still and carry a `quiet` line; and the generated OG image for a dark card
+  is a black square (ETCH's is the smallest in `static/og/` at 4,192 bytes, and 09-08 recorded it as
+  "correctly black"). Satisfying this means one of: giving those cards a resting state that is not
+  black, or making a thumbnail show a representative frame from the card's motion rather than its
+  rest state. The second is cheaper and does not touch a single configuration; the first changes what
+  the pad actually does. The UI spec decides which, and whichever it picks, `restsBlack`,
+  `RESTS_DARK_NOTE` and the specs that pin them are retired or rewritten by name.
+- **D-10 [user] There are too many tags in browsing.** The catalog carries **55 distinct tags across
+  thirty-six entries, 27 of them on exactly one entry**, and the toolbar shows **28 chips**. A
+  vocabulary where three quarters of the terms match a single card is a list, not a filter. The UI
+  spec sets a target size and a rule for what earns a chip, and the tags on all thirty-six entries are
+  re-cut to it — which moves `KNOWN_TAGS` in `copy.spec.ts`, the `RECORDED` blocks in
+  `filter.spec.ts` and `sort.spec.ts`, every entry's tag array, the four-tags-per-entry rule that nine
+  shelf presets already break by carrying three, and `05.1-UI-SPEC.md`'s census.
+- **D-11 [user] Remove the Newest sort.** Twenty of the thirty-six entries ship on the same date, so
+  ordering by date says nothing: `addedAt` has three distinct values across the catalog and one of
+  them covers twenty entries. Removing it touches `BROWSE_SORTS`, `sort.spec.ts` (which asserts three
+  sorts and a `3 × n × (n − 1)` comparator sweep, and whose NEWEST test is the one 09-02 restructured
+  into date blocks), `BrowseToolbar.svelte`, the browse e2e, and the URL parameter's accepted values.
+  Whether `addedAt` survives as a field at all is the UI spec's call — nothing else reads it today.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
