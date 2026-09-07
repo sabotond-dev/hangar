@@ -3,8 +3,8 @@
 // src/lib/browse/sort.ts RESTATES src/lib/catalog/index.ts's nameAsc, because
 // nameAsc is module-private there and the browse page may not import
 // $lib/catalog at runtime (D-12: entries/ported.ts reaches the vendored
-// compiler, a 131,101-byte chunk, and a page whose job is to list sixteen names
-// must not drag it onto first paint).
+// compiler, a 131,101-byte chunk, and a page whose job is to list the catalog's
+// names must not drag it onto first paint).
 //
 // A restatement with no gate is a divergence waiting to happen, so tests 2, 3
 // and 4 run the shipped byFeatured(), byNewest() and byName() and compare id
@@ -15,6 +15,19 @@
 // anywhere in the module. 05.1-RESEARCH.md's Standard Stack row and its
 // Don't Hand-Roll row both recommend Intl.Collator and are both superseded;
 // 05.1-UI-SPEC.md W-08 agrees with this file and is not.
+//
+// DERIVED, OR RECORDED. The rule that decides every number in this file, the
+// same one filter.spec.ts states:
+//
+//   A number that is ARITHMETIC OVER THE SHIPPED DATA is derived. A number that
+//   is A REVIEW OF THE SHIPPED DATA stays a literal, in one named block, so
+//   that changing it is a decision somebody made rather than a test somebody
+//   silenced.
+//
+// So every length is LISTING.length, the featured/plain boundary is counted off
+// the data, the NEWEST order is asserted as date blocks rather than as two
+// fixed sizes, and the NAME order is a property against a comparator written
+// out below plus two reviewable witness pairs.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
@@ -40,6 +53,9 @@ const strip = (source: string) =>
 
 const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
 
+/** Recorded on purpose; see filter.spec.ts's RECORDED. */
+const RECORDED = { entries: 16, featured: 8 } as const;
+
 /**
  * Two deterministic permutations of the listing, not a random shuffle: a sort
  * that disagreed with itself once in fifty runs would be a flake rather than a
@@ -56,7 +72,13 @@ const CATALOG_ORDER = ids(LISTING);
 
 describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
   it("the three orders are stable and total over the catalog", () => {
-    expect(LISTING.length, "the listing was actually read").toBe(16);
+    // The one floor in this file, and it is the non-vacuity guard: everything
+    // below counts off LISTING, so a listing that had quietly emptied would
+    // make the rest pass on nothing.
+    expect(
+      LISTING.length,
+      "the listing was actually read",
+    ).toBeGreaterThanOrEqual(RECORDED.entries);
     expect(BROWSE_SORTS, "the three sorts, in the toolbar's order").toEqual([
       "featured",
       "newest",
@@ -80,7 +102,7 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
       expect(
         fromReversed,
         `${sort}: nothing was lost or duplicated`,
-      ).toHaveLength(16);
+      ).toHaveLength(LISTING.length);
     }
 
     // Totality: no two DISTINCT entries may compare 0, or Array.sort's
@@ -99,17 +121,21 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
         }
       }
     }
-    expect(compared, "pairs were actually compared").toBe(3 * 16 * 15);
+    expect(compared, "pairs were actually compared").toBe(
+      BROWSE_SORTS.length * LISTING.length * (LISTING.length - 1),
+    );
   });
 
   it("FEATURED puts the featured first and then sorts by name, exactly as the catalog does", () => {
     const shipped = ids(byFeatured());
     const ours = ids(sortListing(LISTING, "featured"));
 
-    expect(shipped, "the shipped comparator returned all sixteen").toHaveLength(
-      16,
+    expect(shipped, "the shipped comparator returned every entry").toHaveLength(
+      LISTING.length,
     );
-    expect(ours, "the browse comparator returned all sixteen").toHaveLength(16);
+    expect(ours, "the browse comparator returned every entry").toHaveLength(
+      LISTING.length,
+    );
     expect(ours, "FEATURED disagrees with the catalog's byFeatured()").toEqual(
       shipped,
     );
@@ -121,78 +147,108 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
       lastFeatured,
       "the featured block ends where the plain block begins",
     ).toBe(firstPlain - 1);
+    // The RULE and the REVIEW, side by side: the equality is the test, and the
+    // recorded number is what a wave that flags a ninth entry has to change on
+    // purpose.
+    expect(
+      sorted.filter((e) => e.featured).length,
+      "the sorted page carries every featured entry the catalog declares",
+    ).toBe(LISTING.filter((e) => e.featured).length);
     expect(
       sorted.filter((e) => e.featured),
-      "eight are featured",
-    ).toHaveLength(8);
+      "the recorded featured count",
+    ).toHaveLength(RECORDED.featured);
 
-    // Within each block, name ascending - and NOT addedAt: only two distinct
-    // dates exist, so a date tie-break inside the featured group would be a
-    // coin toss dressed as an order (UI-SPEC, The sort control).
+    // Within each block, name ascending - and NOT addedAt: whole blocks of
+    // entries share one date, so a date tie-break inside the featured group
+    // would be a coin toss dressed as an order (UI-SPEC, The sort control).
+    //
+    // The boundary is COUNTED, never written down: it is the same quantity the
+    // lastFeatured / firstPlain pair above already pins, so it belongs on the
+    // derived side of this file's rule.
     const names = sorted.map((e) => e.name);
-    expect(names.slice(0, 8), "the featured block is in name order").toEqual(
-      [...names.slice(0, 8)].sort(nameOrderOnNames),
+    const f = LISTING.filter((e) => e.featured).length;
+    expect(names.slice(0, f), "the featured block is in name order").toEqual(
+      [...names.slice(0, f)].sort(nameOrderOnNames),
     );
-    expect(names.slice(8), "the plain block is in name order").toEqual(
-      [...names.slice(8)].sort(nameOrderOnNames),
+    expect(names.slice(f), "the plain block is in name order").toEqual(
+      [...names.slice(f)].sort(nameOrderOnNames),
     );
   });
 
-  it("NEWEST puts the seven newest before the nine older, and agrees with the catalog", () => {
+  it("NEWEST orders the dates newest first, name ascending inside each block, and agrees with the catalog", () => {
     const shipped = ids(byNewest());
     const sorted = sortListing(LISTING, "newest");
 
-    expect(shipped, "the shipped comparator returned all sixteen").toHaveLength(
-      16,
+    expect(shipped, "the shipped comparator returned every entry").toHaveLength(
+      LISTING.length,
     );
     expect(
       ids(sorted),
       "NEWEST disagrees with the catalog's byNewest()",
     ).toEqual(shipped);
 
+    // STRUCTURE, not sizes. This used to read "the seven newest come first" and
+    // "the nine older follow", which is a claim about two block sizes rather
+    // than about the order: a phase that adds configurations adds a third date,
+    // and an assertion shaped that way goes red for a reason that is not a
+    // fault. What NEWEST actually promises is that the dates run newest first,
+    // that each date's entries are contiguous, and that inside a date the
+    // catalog's name tie-break decides.
     const dates = sorted.map((e) => e.addedAt);
-    expect(dates.slice(0, 7), "the seven newest come first").toEqual(
-      Array.from({ length: 7 }, () => "2026-09-04"),
+    const distinct = [...new Set(dates)];
+    expect(
+      distinct.length,
+      "there is more than one date to order",
+    ).toBeGreaterThan(1);
+    expect(distinct, "the blocks run newest first").toEqual(
+      [...distinct].sort().reverse(),
     );
-    expect(dates.slice(7), "the nine older follow").toEqual(
-      Array.from({ length: 9 }, () => "2026-09-02"),
+    expect(dates, "the sequence is exactly its blocks, concatenated").toEqual(
+      distinct.flatMap((d) =>
+        LISTING.filter((e) => e.addedAt === d).map(() => d),
+      ),
     );
+    for (const d of distinct) {
+      const block = sorted.filter((e) => e.addedAt === d).map((e) => e.name);
+      expect(block, `${d}: the block is in name order`).toEqual(
+        [...block].sort(nameOrderOnNames),
+      );
+    }
   });
 
   it("NAME agrees with the catalog's own name order", () => {
     const shipped = ids(byName());
     const sorted = sortListing(LISTING, "name");
 
-    expect(shipped, "the shipped comparator returned all sixteen").toHaveLength(
-      16,
+    expect(shipped, "the shipped comparator returned every entry").toHaveLength(
+      LISTING.length,
     );
     expect(ids(sorted), "NAME disagrees with the catalog's byName()").toEqual(
       shipped,
     );
 
-    // The rendered sequence, written out, so the code-point consequence is a
-    // reviewable fact rather than something discovered on screen. ARC precedes
-    // Aurora because R (82) is below u (117); SONAR precedes Starfield for the
-    // same reason. On these sixteen names an English collation agrees entry for
-    // entry, because no two names differ only in case.
-    expect(sorted.map((e) => e.name)).toEqual([
-      "ARC",
-      "Aurora",
-      "CHORUS",
-      "Dial",
-      "EUCLID",
-      "Four faders",
-      "GHOST",
-      "Joystick",
-      "LATTICE",
-      "MORPH",
-      "Nine pads",
-      "Pinwheel",
-      "Radar",
-      "SONAR",
-      "Starfield",
-      "Trackpad",
-    ]);
+    // The PROPERTY, against a comparator written out here rather than imported
+    // from the module under test - that is what stops it being a tautology. It
+    // replaces a sixteen-name sequence written out in full, which would have
+    // become thirty-six names and been rewritten once per entry wave.
+    const byCodePoint = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+    expect(sorted.map((e) => e.name)).toEqual(
+      [...LISTING].map((e) => e.name).sort(byCodePoint),
+    );
+
+    // And the reviewable half, by position rather than by a full list, so the
+    // code-point consequence stays a fact somebody can read at any catalog
+    // size: ARC precedes Aurora because R (82) is below u (117), and SONAR
+    // precedes Starfield for the same reason. An English collation would put
+    // both pairs the other way round.
+    const seq = sorted.map((e) => e.name);
+    const before = (a: string, b: string) =>
+      expect(seq.indexOf(a), `${a} precedes ${b} by code point`).toBeLessThan(
+        seq.indexOf(b),
+      );
+    before("ARC", "Aurora");
+    before("SONAR", "Starfield");
   });
 
   it("the name comparison is by code point, not by locale", () => {

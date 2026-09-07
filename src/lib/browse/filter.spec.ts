@@ -7,11 +7,24 @@
 //         power syntax - a typed "$tag:drums" is four literal words, not a
 //         query language (test 3).
 //   W-04  active chips INTERSECT. Union was considered and rejected in the
-//         approved spec: 32 of the 41 tags sit on exactly one entry, so a union
-//         would make a second chip ADD one card, which reads as a bug (test 4).
+//         approved spec: most tags sit on exactly one entry - RECORDED below
+//         counts how many - so a union would make a second chip ADD one card,
+//         which reads as a bug (test 4).
 //   D-15  the standing chip row is every tag carried by two or more entries -
 //         DERIVED from the data, so it stays right as the catalog grows, and
-//         asserted by name today, so a data change is visible (test 5).
+//         recorded by name today, so a data change is visible (test 5).
+//
+// DERIVED, OR RECORDED. The rule that decides every number in this file:
+//
+//   A number that is ARITHMETIC OVER THE SHIPPED DATA is derived. A number that
+//   is A REVIEW OF THE SHIPPED DATA stays a literal, in one named block, so
+//   that changing it is a decision somebody made rather than a test somebody
+//   silenced.
+//
+// So the id lists, the per-tag expectations and the disabled row are computed
+// from LISTING with the same predicate the module is being asked about, and the
+// census - how many entries, how many tags, how many singletons, and which nine
+// chips stand - lives in RECORDED and nowhere else.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
@@ -40,21 +53,58 @@ const byId = (id: string) => {
   return entry;
 };
 
+/** The ids carrying a tag, in listing order - the tag predicate, restated. */
+const carrying = (tag: string) =>
+  LISTING.filter((e) => e.tags.includes(tag)).map((e) => e.id);
+
 /**
- * The nine standing chips as they stand on 2026-09-04, count first.
- * 05.1-UI-SPEC.md, The tag chips, quotes exactly this row.
+ * The search predicate written out HERE rather than imported, so that agreeing
+ * with it is evidence rather than a tautology: every folded term must appear
+ * somewhere in the folded name, description and tags.
  */
-const NINE_CHIPS = [
-  "playable",
-  "generative",
-  "gestural",
-  "hypnotic",
-  "ambient",
-  "colour",
-  "drums",
-  "expressive",
-  "readable",
-] as const;
+const search = (query: string) =>
+  LISTING.filter((e) => {
+    const hay = fold([e.name, e.description, ...e.tags].join(" "));
+    return fold(query)
+      .split(" ")
+      .filter((term) => term !== "")
+      .every((term) => hay.includes(term));
+  }).map((e) => e.id);
+
+/**
+ * TODAY'S TAG CENSUS, RECORDED ON PURPOSE.
+ *
+ * Derived facts - a chip is a tag two or more entries carry, count descending
+ * then name ascending (filter.ts:121-125) - are asserted as rules below and
+ * need no maintenance. These four are a REVIEW: they say what the vocabulary
+ * currently looks like, so a wave that adds configurations sees the row it
+ * moved and decides whether it likes it. A wave updates this block; it never
+ * deletes an assertion against it.
+ *
+ * Re-recorded by: 08-06 (sixteen entries), then every entry wave of phase 09.
+ *
+ * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
+ * "The tag chips", quotes the row and its counts verbatim. A wave that moves
+ * the row updates that document in the same commit - 09-03 is the first, and it
+ * carries the instruction.
+ */
+const RECORDED = {
+  entries: 16,
+  tags: 41,
+  singletons: 32,
+  chips: [
+    "playable",
+    "generative",
+    "gestural",
+    "hypnotic",
+    "ambient",
+    "colour",
+    "drums",
+    "expressive",
+    "readable",
+  ] as const,
+  chipCounts: [4, 3, 3, 3, 2, 2, 2, 2, 2] as const,
+} as const;
 
 describe("the browse filter (src/lib/browse/filter.ts)", () => {
   it("folds case and diacritics, and does it locale-independently", () => {
@@ -67,7 +117,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     // A composed U+00E9 and a decomposed e + U+0301 are different bytes and the
     // same word. NFD-then-strip is what makes them fold to one.
     expect(fold("café"), "composed").toBe("cafe");
-    expect(fold("café"), "decomposed").toBe("cafe");
+    expect(fold("café"), "decomposed").toBe("cafe");
 
     // The mechanical half: matching must not depend on the visitor's locale.
     // .toLocaleLowerCase() under a Turkish locale folds I to a dotless i, so a
@@ -104,7 +154,13 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
   });
 
   it("searches the name, the description and the tags, and requires every term", () => {
-    expect(LISTING.length, "the listing was actually read").toBe(16);
+    // A FLOOR, not an equality: this assertion's job is non-vacuity - that the
+    // listing was actually read - and the catalog's size is RECORDED once, in
+    // the census above, rather than restated in every test that touches it.
+    expect(
+      LISTING.length,
+      "the listing was actually read",
+    ).toBeGreaterThanOrEqual(RECORDED.entries);
 
     // One term from each of the three fields, each found on exactly one entry.
     expect(matches(byId("pinwheel"), "pinwheel"), "a term in the name").toBe(
@@ -134,19 +190,33 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     }
 
     // Two terms are AND, and they may come from different fields: "nine" is in
-    // Nine pads' name, "drums" is one of its tags. EUCLID carries drums and not
-    // nine, so an OR would return two.
+    // Nine pads' name, "drums" is one of its tags. The expectation is DERIVED
+    // from the search predicate restated at the top of this file, and the
+    // property that catches an OR is asserted beside it: the second term must
+    // narrow the result without emptying it.
+    const oneTerm = search("drums");
+    const twoTerms = search("nine drums");
+    expect(
+      oneTerm.length,
+      "drums alone is carried by more than one entry",
+    ).toBeGreaterThan(1);
+    expect(twoTerms.length, "nine drums still finds one").toBeGreaterThan(0);
+    expect(
+      twoTerms.length,
+      "the second term narrows rather than widens",
+    ).toBeLessThan(oneTerm.length);
+
     expect(ids(LISTING.filter((e) => matches(e, "drums"))), "one term").toEqual(
-      ["ninepads", "euclid"],
+      oneTerm,
     );
     expect(
       ids(LISTING.filter((e) => matches(e, "nine drums"))),
       "both terms required",
-    ).toEqual(["ninepads"]);
+    ).toEqual(twoTerms);
     expect(
       ids(LISTING.filter((e) => matches(e, "  NINE   DrUmS  "))),
       "case and repeated spaces change nothing",
-    ).toEqual(["ninepads"]);
+    ).toEqual(twoTerms);
   });
 
   it("has no power syntax: a typed $tag: is four literal characters", () => {
@@ -164,11 +234,14 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     ).toEqual([]);
 
     // Proof that it is the literal, not the word: dropping the prefix finds the
-    // two entries again.
-    expect(ids(filterListing(LISTING, "drums", [])), "drums alone").toEqual([
-      "ninepads",
-      "euclid",
-    ]);
+    // entries again - derived, so a new drum configuration joins the list
+    // instead of reddening it.
+    expect(search("drums").length, "drums alone finds entries").toBeGreaterThan(
+      1,
+    );
+    expect(ids(filterListing(LISTING, "drums", [])), "drums alone").toEqual(
+      search("drums"),
+    );
   });
 
   it("combines active tags with AND, and an unknown tag returns nothing", () => {
@@ -176,21 +249,42 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     const gestural = ids(filterListing(LISTING, "", ["gestural"]));
     const both = ids(filterListing(LISTING, "", ["generative", "gestural"]));
 
-    expect(generative, "generative is carried by three").toEqual([
-      "starfield",
-      "euclid",
-      "ghost",
-    ]);
-    expect(gestural, "gestural is carried by three").toEqual([
-      "dial",
-      "arc",
-      "ghost",
-    ]);
-    // The intersection is SMALLER than either. A union would be five - larger
-    // than either - which is the mutation this assertion exists to catch.
-    expect(both, "two chips intersect").toEqual(["ghost"]);
-    expect(both.length).toBeLessThan(generative.length);
-    expect(both.length).toBeLessThan(gestural.length);
+    // Each chip returns exactly the entries carrying it - derived, with a floor
+    // beside it so a predicate that returned everything could not pass.
+    expect(
+      carrying("generative").length,
+      "generative is carried by more than one entry",
+    ).toBeGreaterThan(1);
+    expect(generative, "the generative chip").toEqual(carrying("generative"));
+    expect(
+      carrying("gestural").length,
+      "gestural is carried by more than one entry",
+    ).toBeGreaterThan(1);
+    expect(gestural, "the gestural chip").toEqual(carrying("gestural"));
+
+    // The intersection is never LARGER than either. A union would be their sum
+    // less the overlap - larger than either - which is the mutation this
+    // assertion exists to catch. It is <=, not <, because a growing catalog may
+    // legitimately empty one particular pair; the property that keeps the rule
+    // observed on real data is the one below it.
+    expect(both, "two chips intersect").toEqual(
+      carrying("generative").filter((id) => carrying("gestural").includes(id)),
+    );
+    expect(both.length).toBeLessThanOrEqual(
+      Math.min(generative.length, gestural.length),
+    );
+
+    const chips = chipTags(LISTING);
+    const intersecting = chips.flatMap((a, i) =>
+      chips
+        .slice(i + 1)
+        .filter((b) => filterListing(LISTING, "", [a, b]).length > 0)
+        .map((b) => `${a}+${b}`),
+    );
+    expect(
+      intersecting.length,
+      "some pair of standing chips still intersects on the shipped data",
+    ).toBeGreaterThan(0);
 
     expect(
       ids(filterListing(LISTING, "", ["nosuchtag"])),
@@ -229,12 +323,14 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     const count = (tag: string) =>
       LISTING.filter((e) => e.tags.includes(tag)).length;
 
-    expect(known, "41 distinct tags across the sixteen").toHaveLength(41);
+    expect(known, "the recorded distinct-tag census").toHaveLength(
+      RECORDED.tags,
+    );
     expect(chips, "today's standing row, count descending then name").toEqual([
-      ...NINE_CHIPS,
+      ...RECORDED.chips,
     ]);
     expect(chips.map(count), "and their counts").toEqual([
-      4, 3, 3, 3, 2, 2, 2, 2, 2,
+      ...RECORDED.chipCounts,
     ]);
 
     // The RULE, not the list: every chip is carried twice or more, and every
@@ -244,10 +340,20 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       expect(count(tag), `${tag} is a chip`).toBeGreaterThanOrEqual(2);
     }
     const excluded = known.filter((tag) => !chips.includes(tag));
-    expect(excluded, "the 32 singletons stay searchable text").toHaveLength(32);
+    expect(
+      excluded,
+      "the recorded singletons stay searchable text",
+    ).toHaveLength(RECORDED.singletons);
     for (const tag of excluded) {
       expect(count(tag), `${tag} is not a chip`).toBe(1);
     }
+    // And the two recorded counts are a PARTITION of the vocabulary rather than
+    // two numbers that happen to sit near each other: a tag is a chip or a
+    // singleton, never both and never neither.
+    expect(
+      chips.length + excluded.length,
+      "the chips and the singletons account for every known tag",
+    ).toBe(known.length);
   });
 
   it("disables a chip that would return nothing, and disables none when nothing is active", () => {
@@ -258,24 +364,33 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       "with nothing active and nothing typed, every chip is live",
     ).toEqual([]);
 
-    // drums is carried by Nine pads and EUCLID only. Between them they carry
-    // playable and generative; the other six chips would empty the grid.
+    // The chips that would empty the grid beside drums, DERIVED with the same
+    // question the module answers, in the order the module returns them.
     const withDrums = disabledTags(LISTING, "", ["drums"], chips);
-    expect(withDrums, "the six that would return zero beside drums").toEqual([
-      "gestural",
-      "hypnotic",
-      "ambient",
-      "colour",
-      "expressive",
-      "readable",
-    ]);
+    const shouldDisable = chips.filter(
+      (tag) =>
+        filterListing(LISTING, "", tag === "drums" ? ["drums"] : ["drums", tag])
+          .length === 0,
+    );
+    expect(withDrums, "the chips that would return zero beside drums").toEqual(
+      shouldDisable,
+    );
+    // Neither empty nor everything, so the test still says something.
+    expect(
+      shouldDisable.length,
+      "some chip is disabled beside drums",
+    ).toBeGreaterThan(0);
+    expect(
+      shouldDisable.length,
+      "and not every chip is disabled beside drums",
+    ).toBeLessThan(chips.length);
     expect(
       withDrums,
       "an active chip is never its own disabled chip",
     ).not.toContain("drums");
     expect(
       withDrums,
-      "playable survives - Nine pads and EUCLID both carry it",
+      "playable survives - the drum entries carry it too",
     ).not.toContain("playable");
 
     // Every reported chip really is empty, and every unreported one really is
