@@ -19,7 +19,7 @@ extends:
 > The redesign. A new type pair behind one swappable token, a CRT and glitch treatment that cannot
 > reach a text node or the coverflow's 3D context, a browse experience cut from fifty-five tags to
 > sixteen across two facets, a fourth and destructive device write, a colour picker built on the
-> hardware's own 4,096-colour lattice, and eleven named retirements of shipped copy.
+> hardware's own 4,096-colour lattice, and ten named retirements of shipped copy.
 >
 > Binding upstream: `10-CONTEXT.md` (D-01 to D-14, three planning notes, seven tensions) and
 > `10-RESEARCH.md` (1,942 lines, committed at `3df99da`). Where this document adds detail it never
@@ -117,7 +117,7 @@ Either route is under a third of the 271,581-byte `wasmoon` glue that already sh
 latin-only and self-hosted from `node_modules`; the one Grifter face is self-hosted from
 `static/fonts/`; neither route ever reaches a CDN, exactly as `src/app.css:3-8` already requires.
 The D-14 route is also **one display weight rather than two**, because the shipped Grifter family is
-four static files and 900 is not among them — see §5.2.
+five static files and 900 is not among them — see §5.2.
 
 ---
 
@@ -154,7 +154,7 @@ Every retirement in this document, in one table, so the planner can turn it into
 checker can count it. **Eleven copy retirements, nine gate amendments, four data re-cuts.** Nothing
 is deleted; everything is rewritten by name.
 
-### 3.1 Copy retirements (eleven)
+### 3.1 Copy retirements (ten, in a register of eleven rows)
 
 | # | String | Where it lives | Pinned | Ruling | §  |
 |---|--------|----------------|--------|--------|----|
@@ -170,11 +170,11 @@ is deleted; everything is rewritten by name.
 | R-10 | `RESTS_DARK_NOTE` | `listing.ts:65`, asserted in both directions by `listing.spec.ts:249-252` and `copy.spec.ts:173-174` | literal | **Retired.** D-09 makes it false: after this phase no card rests dark | 9.3 |
 | R-11 | `TWO_STEP`, `PERMISSION_DECLINED`, `PUT_BACK_LINE`, `KEEP_ON_DEVICE`'s enabled line and all six reasons, every failure detail and every step | various | various | **NOT retired, and the rule is stated so nobody retires them next.** See the audit rule below |
 
-**The audit rule, which closes D-08's "and others of the same kind" at eleven:**
+**The audit rule, which closes D-08's "and others of the same kind" at ten:**
 
 > A string is retired only when the control beside it, or the pixels beside it, already say the same
 > thing. **A string that names a risk, a consequence, a way back or a next step is never retired**,
-> however long it is. That is why the eleven above go and the seven failure blocks stay whole.
+> however long it is. That is why the ten above go — R-11 is listed to record that it stays — and the seven failure blocks stay whole.
 
 ### 3.2 Gate amendments (nine)
 
@@ -314,7 +314,7 @@ floor.
 
 **The weight rule, amended by name, and the D-14 route is the tighter of the two.** Phase 4 W-04
 declared *exactly two weights*. This phase declares **at most two weights per family, and the
-families are two**. Under D-14 the shipped Grifter family is four static files — Thin, Light,
+families are two**. Under D-14 the shipped Grifter family is five static files — Thin, Light, Medium,
 Regular, Bold — and **900 is not among them**, so the display family ships **one** weight, 700, and
 the Display, Heading and Micro roles are separated by **size and tracking rather than by weight**:
 28px at 0.50em, 20px at 0.02em, 12px at 0.18em. That is three weights on the whole site (display 700,
@@ -559,7 +559,7 @@ So the shell is added in `FrontDoor.svelte`, as a **sibling of the whole Coverfl
 names both files. `/browse/` has no `.crt-band`, so Layers R and T never appear on that route at all.
 
 This is the whole answer to `10-RESEARCH.md` §3.5's second silent-green hole. The arithmetic there is
-not disputed: a 0.186-alpha black line over `--color-ink-quiet` drops it from 5.58:1 to about 3.9:1,
+not disputed: a 0.186-alpha black line over `--color-ink-quiet` drops it from 5.57:1 to about 3.9:1,
 below AA, while `identity.spec.ts` stays green because it computes contrast from the **declared
 alpha**. The resolution is not to make the spec composite an overlay; it is to make the overlay
 unable to reach the text, and to **assert the scoping structurally** so the honesty of the existing
@@ -669,7 +669,7 @@ texture, has no OS setting that reaches Layers G and S. So:
 | Default | `TEXTURED`, **except** when `prefers-reduced-motion: reduce` is set at first paint, where the default is `FLAT` |
 | Effect of `FLAT` | **All four layers off**, including the two static ones. `--crt: 0` |
 | Persistence | `localStorage` key `hangar.screen.v1`, a single string. Guarded read, exactly as the snapshot store is (a throwing store must not break the page). It never touches `hangar.snapshot.v1` |
-| Floor | `min-block-size: 44px` per option |
+| Floor | `min-block-size: 44px` **and `min-inline-size: 44px`** per option — both axes, as the identical word-row widget in §11.2 declares and as `device-ui.spec.ts:278-306` requires. `FLAT` is four characters at 12px/0.18em, about 38px wide, so the inline floor is load-bearing here rather than free |
 
 **Switch 3, automatic and not visible.** Layer R does not mount at all when
 `navigator.hardwareConcurrency <= 4`. It is the only layer with a per-frame compositor cost and the
@@ -735,9 +735,10 @@ legitimately keep out of the DOM, and `getComputedStyle` of nothing asserts noth
 5. No CRT selector names a `canvas`.
 6. The noise data-URI declares no `fill` attribute other than the filter's own output, so the tile
    cannot smuggle in a hue.
-7. **The `.crt-band` geometry is string-equal to `.band`'s.** Four literals —
-   `clamp(260px, 52vmin, 560px)`, `min(100vw, 1280px)`, the `mask-image` linear-gradient and
-   `translateY(-24px)` — are read out of `Coverflow.svelte`'s `.band` rules and out of
+7. **The `.crt-band` geometry is string-equal to `.band`'s.** Five literals —
+   `clamp(260px, 52vmin, 560px)`, `min(100vw, 1280px)`, `overflow-clip-margin: 6px`, the
+   `mask-image` linear-gradient and `translateY(-24px)` — are read out of `Coverflow.svelte`'s
+   `.band` rules and out of
    `FrontDoor.svelte`'s `.crt-band` rules and compared after the same whitespace normalisation
    `identity.spec.ts` uses. A change to one that is not made to the other goes red and names both
    files (§8.3).
@@ -1052,7 +1053,7 @@ line. It is *stronger* than what it replaces: today the promise renders in the h
 disclosure and is absent from the panel where the click happens; tomorrow it is under the button, in
 every state, on both surfaces that carry the primary.
 
-**`SAFE_NOTE`'s exact contract:** unconditional; never swapped; never a twin; `--color-ink` at 9.03:1
+**`SAFE_NOTE`'s exact contract:** unconditional; never swapped; never a twin; `--color-ink` at 9.26:1
 because a safety statement is not quiet; 12px Micro (title) so it reads as a sub-label rather than as
 prose; 8px beneath the primary; above the honesty slot. It renders on the chosen panel and, when the
 panel is closed, beneath the header's device slot, so `panelOwnsProse` covers it exactly as it covers
@@ -1216,7 +1217,7 @@ separate ways at once, and `knobs.preset.ts:135-137` already says so.
 | **Three rails** | One per channel of the **selected** colour knob, sixteen detents each, using **the existing detent-track widget** (05-UI-SPEC's `n ≥ 9` skin: a 4px `--color-line-soft` track filled to the index in `--color-accent`, a 12px accent thumb). One `<input type="range" min="0" max="15" step="1">` per rail, `opacity: 0`, over the painted detents, filling the 44px box, with a real `<label for>`. Arrow keys step one, `Home` / `End` jump to the ends, double-click resets. **No new widget, no new keyboard model, no new focus behaviour** |
 | **Detent fills** | Each detent on the R rail is painted in the exact RGB444 colour that index would produce **given the current G and B**. The rail is therefore a gradient made of sixteen discrete, storable, reachable colours, and it re-paints when either other rail moves. This is what "stylized" means here, and it is legal under A-09 precisely because every cell is a flat fill of a stored value rather than a CSS gradient |
 | **Cheap-step ticks** | A 2px `--color-line` tick 4px beneath the detents whose literal is short — `0`, `17`, `85`, `170`, `255` and their one- to three-digit neighbours. The same shape as the default marker, so it is already a learned mark. It is the visible answer to "which colours cost the fewest characters" |
-| **Unaffordable detents** | A detent whose literal would push the state past 908 is a real `disabled` option, painted in `--color-ground` with a 1px `--color-line-soft` hairline: **absent as a colour, present as a position**. No adjacent reason line — the meter two centimetres away is the cause, which is Phase 5's X-17 precedent and 05.1's disabled-chip precedent. **Measured: on today's shelf this never fires** — the dearest colour on the dearest colour-bearing preset leaves 271 characters free, and zero of the 24,576 Pass B states crosses 908 (§11.4). It is built as a guard, not as a feature |
+| **Unaffordable detents** | A detent whose literal would push the state past 908 is a real `disabled` option, painted in `--color-ground` with a 1px `--color-line-soft` hairline: **absent as a colour, present as a position**. No adjacent reason line — the meter two centimetres away is the cause, which is Phase 5's X-17 precedent and 05.1's disabled-chip precedent. **Measured: on today's shelf this never fires** — the dearest colour on the dearest colour-bearing preset leaves 268 characters free, and zero of the 24,576 Pass B states crosses 908 (§11.4). It is built as a guard, not as a feature |
 | **The result** | **A 9×9 miniature of the pad running this entry's own animation, with every colour knob at its current value** — one pad, not one per knob, because the pad is the entry and a three-colour entry has one appearance. Not a rectangle. It costs one more `PadCanvas` instance, gated by the same `IntersectionObserver`. Given that one layer emits at most 49.6% and there is no gamma correction, **a flat swatch is the lie and the miniature pad is the truth**: it answers "what will this look like on my ZONA" instead of "what does this hex look like on my monitor" |
 | **Caption** | `COLOUR` (6), Micro, `--color-ink-quiet`. On a single-colour entry the knob's own label sits beside it as the Micro (title) sub-label the knob rack already renders |
 | **Accessible names** | Each rail's visually-hidden label is `Red, 16 steps` / `Green, 16 steps` / `Blue, 16 steps` (13 / 15 / 14), prefixed by the selected knob's label when a selector is present (`Mute red, 16 steps`). The selector's group label is `Which colour` (12). The composed value is announced by the group's `aria-valuetext` as the three stored integers, never as a hex |
@@ -1245,7 +1246,7 @@ answer to the picker's character-cost problem at the same time.
 | The meter | A **ghost fill** on the affected meter: `--color-line-soft` from the current value to the forecast value, behind the accent fill. When the forecast is lower, the ghost is a notch cut out of the fill at the same alpha. No animation |
 | The number | A signed delta beside the hovered option, `--font-mono` 12px, `--color-ink`: `+6`, `−3`, `0` |
 | Hidden expansion | `Choosing this would put Setup at {n} of 908.` (44), so the forecast is not pointer-only information |
-| Over-budget forecast | The delta renders in `--color-over` **only** when the forecast crosses 908. **This is a fourth use of the third colour and it is not taken**: instead the option is already `disabled` (§11.2), so an unaffordable forecast cannot be hovered. On today's shelf neither branch is reachable at all — §11.4 measures 271 characters free on the dearest colour-bearing preset — so this is a guard on a guard, and `--color-over` stays at three uses |
+| Over-budget forecast | The delta renders in `--color-over` **only** when the forecast crosses 908. **This is a fourth use of the third colour and it is not taken**: instead the option is already `disabled` (§11.2), so an unaffordable forecast cannot be hovered. On today's shelf neither branch is reachable at all — §11.4 measures 268 characters free on the dearest colour-bearing preset — so this is a guard on a guard, and `--color-over` stays at three uses |
 
 **Two amendments this costs, both named:**
 1. **A fifth `--font-mono` use.** Phase 5 confined the mono stack to four; the delta is the fifth, and
@@ -1263,7 +1264,7 @@ answer to the picker's character-cost problem at the same time.
 is a multiple of 17, so it is one, two or three digits, and the three together are **3 to 9
 characters** — not the "3 to 11" this document claimed on its first pass, which counted the separators
 at one end of the range and not at the other. Measured end to end on aurora's Setup: `0,0,0` costs
-**253**, today's default `0,204,255` costs **257**, and the dearest `119,187,238` costs **259**. **The
+**253**, today's default `0,204,255` costs **257**, `119,187,238` costs **259**, and the dearest lattice colour `255,255,255` costs **261**. **The
 whole 4,096-colour lattice is worth six characters.**
 
 **And the `tpad` claim was false.** `knobs.preset.ts:688` reads
@@ -1279,28 +1280,28 @@ figure is `max(setup.used, timer.used)` from a real `cost(compile(state))` run):
 
 | preset | colour knob | worst of 908 | free |
 |--------|-------------|--------------|------|
-| aurora | yes | 260 | 648 |
+| aurora | yes | 261 | 647 |
 | pinwheel | yes | 310 | 598 |
 | starfield | yes | 254 | 654 |
-| radar | yes | 451 | 457 |
+| radar | yes | 452 | 456 |
 | joystick | yes | 544 | 364 |
-| ninepads | yes | **637** | **271** |
+| ninepads | yes | **640** | **268** |
 | faders | no | 517 | 391 |
 | dial | no | 707 | 201 |
 | tpad | **no** | **907** | **1** |
 
 **The ruling: TUNE-05 stays proven-unreachable — and the picker is not what keeps it that way.**
 
-> The dearest state on any preset that *has* a colour knob is **ninepads at 637 of 908**, with the
-> colour pinned at a three-digit-per-channel literal: **271 characters free**. Pass B costs all 4,096
+> The dearest state on any preset that *has* a colour knob is **ninepads at 640 of 908**, with the
+> colour pinned at the dearest lattice literal, `255,255,255`: **268 characters free**. Pass B costs all 4,096
 > colours on each of the six and **zero of its 24,576 states crosses 908**. So on today's shelf **no
 > detent is ever unaffordable**, and the honest sentence is not "a colour picker where some colours
 > are greyed out because they cost too many characters" but "**a colour picker that can say that, and
 > that today never has to.**"
 
 **The machinery still ships, and that is not waste.** Three reasons, in order of weight: it is what
-makes the claim *checkable* rather than assumed, and the sweep records the 271-character margin as a
-number so the day it stops being 271 the suite says so; the Lua route's colour knobs sit inside
+makes the claim *checkable* rather than assumed, and the sweep records the 268-character margin as a
+number so the day it stops being 268 the suite says so; the Lua route's colour knobs sit inside
 hand-authored templates with far less headroom, and `lua-entries.sweep.spec.ts` only proves the
 corner fits today; and the catalog grows — a thirty-seventh entry authored near the wall is exactly
 the case a guard exists for. What changes is the *claim*: A-11 no longer says the picker is what
@@ -1496,7 +1497,7 @@ role rather than a caption, and it is the only uppercase string on the site long
 **Every string below was counted by script**, not by eye. The counts are code-point counts of the
 exact literal.
 
-### 13.1 The eleven retirements
+### 13.1 The ten retirements
 
 Listed in §3.1 with their replacements. Nothing is deleted from a spec; every pinning assertion is
 rewritten in the same commit as the string it pins.
@@ -1619,8 +1620,8 @@ existing live `matchMedia` subscription. No component adds a second one.
 | CLEAR | A real `<button>`; its confirmation is a `role="group"` and **not a dialog**, matching `KeepConfirm`. Focus moves into the block on open and back to the control that owns the cell on dismiss |
 | The facets | Two `role="group"` blocks of real `<input type="checkbox">` inside `<label>`s, each chip its own tab stop, `Space` toggles. Unchanged from 05.1 |
 | The `SCREEN` toggle | A `role="radiogroup"` of real radios, one tab stop, arrows move and select. Reachable by keyboard from the footer on every route |
-| Text contrast | Unchanged, and **still honest**, because §8.3 keeps every CRT layer off every text node. The four ratios, recomputed from the declared alphas over `#000000` rather than quoted from `app.css`'s rounded comments: **`--color-ink` 9.03:1, `--color-ink-quiet` 5.58:1, `--color-ink-dim` 4.77:1, `--color-line` 3.42:1.** All three text tokens clear AA and the structural token clears the 3:1 non-text floor. `identity.spec.ts`'s computation from declared alphas remains a true statement about rendered pixels |
-| Non-text contrast | Functional borders stay `--color-line` at **3.42:1**, above the 3:1 floor. The scanline is decoration whose meaning is carried nowhere, over content whose meaning is the pad's lit cells |
+| Text contrast | Unchanged, and **still honest**, because §8.3 keeps every CRT layer off every text node. The four ratios, recomputed with `identity.spec.ts`'s own `contrastOnBlack`, and agreeing with `app.css`'s rounded comments: **`--color-ink` 9.26:1, `--color-ink-quiet` 5.57:1, `--color-ink-dim` 4.72:1, `--color-line` 3.31:1.** All three text tokens clear AA and the structural token clears the 3:1 non-text floor. `identity.spec.ts`'s computation from declared alphas remains a true statement about rendered pixels |
+| Non-text contrast | Functional borders stay `--color-line` at **3.31:1**, above the 3:1 floor. The scanline is decoration whose meaning is carried nowhere, over content whose meaning is the pad's lit cells |
 | Motion | Honoured completely per §14, **and asserted at the compositor level** by the two new gates, because the existing canvas-backing-store assertions cannot see a CSS overlay |
 | Touch targets | 44×44 minimum on every control, including every picker rail, every lock toggle, every facet chip, `CLEAR`, `MIX TWO`, each `MIX TWO` child and each `SCREEN` option |
 | Colour is never the only channel | Over budget still has six signals. A held knob has two. A disabled detent has two (absent fill, `disabled` state). CLEAR has five |
@@ -1784,7 +1785,7 @@ approved phase's ruling, and says so where it does.
 | A-08 | **The glitch fires on exactly one surface and one event** — `.crt-band::after`, on `navigator.serial`'s `connect`. It is a pseudo-element overlay, never the element it decorates. The reroll and the over-budget firings are **retired**, and it never fires on a failure state | A `clip-path` and a `transform` apply to every descendant, so a tear on a panel translates and clips that panel's own text and lands motion on a Product surface, which §0's own load-bearing rule forbids. At the connect moment it would have displaced `TRY ON DEVICE` under a hand already reaching for it |
 | A-09 | **The pad exemption extends to the picker's detents and its result pad, and to nothing else**; HSV fields, hue rings, SV squares, CSS gradients on a rail and `<input type="color">` are forbidden **by name** | 05-UI-SPEC's "no CSS authors a colour the simulator did not" is what forbids a gradient field; naming the forbidden shapes is what stops a later reader guessing |
 | A-10 | **The picker is three 16-detent rails plus a 9×9 result pad**, not a wheel or an area — and there is **one picker per panel, not one per colour knob**. The rails edit whichever colour knob a compact word-row selector names; the result pad stays single. 14 entries show no selector, 14 show two options, 3 show three | The state is a 4,096-point lattice; a continuous surface implies a resolution it does not have. And three colour knobs × three rails is nine rails and three extra canvases on `console`, `strip` and `forge`, which breaks the six-canvas budget and the amended TUNE-01 in one stroke |
-| A-11 | **Unaffordable detents are `disabled` and painted in the ground — as a guard that today never fires.** TUNE-05 stays proven-unreachable, but the picker is not what keeps it so: the worst reachable state on the shelf is `tpad` at 907 of 908 and **`tpad` has no colour knob**; the dearest colour on the dearest colour-bearing preset leaves **271** characters free; zero of Pass B's 24,576 states crosses 908 | Measured, not assumed. The machinery still ships because it makes the claim checkable, because the Lua route's templates have far less headroom, and because the catalog grows — but the *claim* is now "a picker that can grey a colour out, and today never has to" |
+| A-11 | **Unaffordable detents are `disabled` and painted in the ground — as a guard that today never fires.** TUNE-05 stays proven-unreachable, but the picker is not what keeps it so: the worst reachable state on the shelf is `tpad` at 907 of 908 and **`tpad` has no colour knob**; the dearest colour on the dearest colour-bearing preset leaves **268** characters free; zero of Pass B's 24,576 states crosses 908 | Measured, not assumed. The machinery still ships because it makes the claim checkable, because the Lua route's templates have far less headroom, and because the catalog grows — but the *claim* is now "a picker that can grey a colour out, and today never has to" |
 | A-12 | **The reachability sweep is restructured into two passes**, colour costed separately — and the honest total **rises**, 32,852 → 44,078 (+34%), rather than falling | A 4,096-option knob is a 683× multiplier; the sweep would become unrunnable. Restructured, the growth is additive instead. Saying it gets smaller when it gets a third bigger is the kind of claim CI corrects at the worst possible moment |
 | A-13 | **Format `w` is claimed for Lua colour; format `x` keeps decoding forever** | Links already shared must still land `restored`. This is the one change in the phase with a user-visible failure mode if it is got wrong |
 | A-14 | **T2 (forecast) and T4 (`MIX TWO`) ship; T1 (locks) enables both. T3, T5 and T6 do not ship** and are named as deferred | T2 and T4 are the two the survey could not find in any product in the category; T5 is a safety risk that adds a class of click writing twice per gesture and cannot be verified without hardware |
@@ -1803,7 +1804,7 @@ approved phase's ruling, and says so where it does.
 | A-27 | **CLEAR's confirmation exists for comprehension, not for permanence** | After a try-on the pad still does something; after a clear it does nothing, and a visitor who does not understand that will believe they broke their module |
 | A-28 | **CLEAR reuses `partial`, `lost` and `nothing-landed` rather than inventing three failure states.** Fourteen phases become fifteen, not eighteen | Those three already mean "one of two landed", "the connection went" and "zero of two", which is exactly how a clear fails; the copy is selected by `lastAction`, which the store already tracks |
 | A-29 | **`WRITE_CLICKS` is a named constant of length four**, replacing the word "three" in prose | The number has now changed once and will change again; a constant moves, a sentence rots |
-| A-30 | **The eleven retirements are the whole of D-08**, closed by a stated rule: a string goes only when the control or the pixels beside it already say the same thing, and a string naming a risk, a consequence, a way back or a next step never goes | "And others of the same kind" is an invitation to over-delete; the seven failure blocks are the thing most worth protecting from it |
+| A-30 | **The ten retirements are the whole of D-08**, closed by a stated rule: a string goes only when the control or the pixels beside it already say the same thing, and a string naming a risk, a consequence, a way back or a next step never goes | "And others of the same kind" is an invitation to over-delete; the seven failure blocks are the thing most worth protecting from it |
 | A-31 | **`SAFE_NOTE` (35) beneath the primary, in every state, unconditionally** — SAFE-01 kept whole rather than retired | It is stronger than what it replaces: today the promise is in the header note and the disclosure and absent from the panel where the click happens |
 | A-32 | **The fidelity line goes from 231 to 44 characters**, keeping PREV-03's claim and retiring its apology | "What a screen cannot show" is the padding; "the firmware's own code" is the product |
 | A-33 | **`CH_PER_LINE` is measured in Wave 0 and every reservation is its formula's output**, provisionally 46 | These numbers are arithmetic from a font metric, and a wrong one reflows a device panel mid-install |
@@ -1854,14 +1855,14 @@ Nothing below is assumed. Each is a real fork with the cost of each side stated.
    token. Four changes, and one of them is a new class of test.
 9. **TUNE-05 stays unreachable, and the measured margin is much wider than this document first
    thought** (A-11). The worst state on the shelf is `tpad` at 907 of 908 and `tpad` **has no colour
-   knob**; the dearest colour-bearing preset, `ninepads`, tops out at 637 with 271 characters free;
+   knob**; the dearest colour-bearing preset, `ninepads`, tops out at 640 with 268 characters free;
    zero of Pass B's 24,576 colour states crosses 908. So the disabled-detent machinery ships as a
    guard that never fires today. **The fork is whether to build it at all.** Building it costs a
    `disabled` branch on a detent and one assertion; not building it means the day a thirty-seventh
    entry sits near the wall, the over-budget path becomes reachable in production for the first time
    — which the guards are built and tested for, and which would be a requirement-status change worth
    recording rather than a bug. **Recommended: build it**, precisely because the sweep then records
-   the 271-character margin as a number that can move.
+   the 268-character margin as a number that can move.
 10. **The tag re-cut**: 55 terms and 28 chips become 16 terms and 16 chips, three per entry, OR within
     a facet. The full assignment for all thirty-six is in §9.4 and is the thing most worth a read.
 11. **`RESTS_DARK_NOTE` and `restsBlack`-as-rendering-input are retired; four demo paths ship**
@@ -1875,7 +1876,7 @@ Nothing below is assumed. Each is a real fork with the cost of each side stated.
     is written.
 15. **Five strings beyond the six the user named are retired** — `RECONNECT_OFFER`, `KEPT` body 2's
     first sentence, `RESTS_DARK_NOTE`, and the two honesty-slot rewrites — and the audit is **closed
-    at eleven** by the rule in §3.1. If more should go, the rule is the thing to change, not the list.
+    at ten** by the rule in §3.1. If more should go, the rule is the thing to change, not the list.
 16. **`$impeccable teach` and `$impeccable document` were not run**, so no `PRODUCT.md` or
     `DESIGN.md` exists (A-36). If the skill's own context files are wanted for future sessions, that
     is a separate one-task change and `document` can generate `DESIGN.md` from this contract plus
