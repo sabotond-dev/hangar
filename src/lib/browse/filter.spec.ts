@@ -82,7 +82,8 @@ const search = (query: string) =>
  * deletes an assertion against it.
  *
  * Re-recorded by: 08-06 (sixteen entries), then 09-03 (nineteen), then 09-04
- * (twenty-two), and every later entry wave of phase 09.
+ * (twenty-two), then 09-05 (twenty-five), and every later entry wave of phase
+ * 09.
  *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
  * "The tag chips", quotes the row and its counts verbatim. A wave that moves
@@ -90,28 +91,36 @@ const search = (query: string) =>
  * carries the instruction.
  */
 const RECORDED = {
-  entries: 22,
+  entries: 25,
   tags: 47,
-  singletons: 31,
+  singletons: 25,
   chips: [
     "playable",
+    "readable",
     "drums",
     "expressive",
     "gestural",
-    "generative",
-    "hypnotic",
-    "readable",
     "xy-control",
+    "generative",
+    "hands-free",
+    "hypnotic",
+    "precise",
     "ambient",
     "blooming",
     "colour",
     "grid",
-    "hands-free",
     "harmonic",
+    "latching",
+    "mixing",
+    "modulation",
+    "rails",
     "rippling",
     "sequencer",
+    "utility",
   ] as const,
-  chipCounts: [8, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2] as const,
+  chipCounts: [
+    8, 6, 4, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  ] as const,
 } as const;
 
 describe("the browse filter (src/lib/browse/filter.ts)", () => {
