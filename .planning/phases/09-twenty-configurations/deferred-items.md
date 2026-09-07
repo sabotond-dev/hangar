@@ -83,3 +83,98 @@ chosen when a `colour` knob's values each parse as a whole number of triples,
 plus the corresponding `swatchOf`/`hueName` generalisation. It is the only
 multi-colour knob in the catalog today, so the cost of leaving it is one card's
 tune panel and the cost of fixing it is a widget nothing else needs yet.
+
+## 6. `kind: "state"` was preferred and used zero times (recorded by 09-10)
+
+D-06 asked every configuration in this phase to reach for `source.kind: "state"`
+first and to fall back to `lua` only with a stated reason. **All twenty were
+checked against the `PadState` vocabulary and all twenty moved to `lua`**, each
+with its reason written into its own entry file's route note. The catalog closes
+the phase at thirty-six entries with `state` reading **zero**, and the two
+structural reasons behind that are worth having in one place rather than spread
+across twenty route notes.
+
+**Half one: no slate entry's identity survives the translation.** A `state`
+entry is a `PadState`, which offers six `look.kind`s and six `sends.kind`s and
+nothing else. Every one of the twenty needed something outside that grid, and
+the failures are not near-misses. `sends.grid` is `3x3 | 4x4 | 9x9` and there is
+no 2x2, so QUADRANT's four zones are outside the vocabulary by arithmetic.
+Nothing in `PadState` counts, so POMODORO's twenty-five minute countdown has no
+representation at all - every `look.kind` computes a colour from a tick and has
+no memory of how many ticks have gone by. `showGrid` paints its zones in one
+`gridColour`, so a per-cell picture cannot be drawn there even where a zone
+count fits. The route note in each entry file is the per-entry version of this.
+
+**Half two, and it is the half that would bite a future author who solved half
+one: a `state` entry carries no knobs and no shareable stamp today.**
+`compilerKnobs` (`src/lib/share/stamp.ts:115-119`) returns an empty list for any
+source kind that is not `preset`, and it says so in its own comment - *"a
+`state`-kind source is compiler driven and has no descriptor table of its own,
+so it exposes no knobs and can carry no stamp - a true answer rather than an
+invented rack"*. `stampKnobs` reads through it, so a `state` entry's tune panel
+renders its empty-rack copy and its URL carries nothing. **An entry that fitted
+the sheet perfectly would still ship with no tuning and no sharing**, which is
+two of the three things a HANGAR card is for.
+
+What would close this: an optional `knobKinds` on the `state` source that
+`compilerKnobs` reads, giving a `state` entry a descriptor table without
+inventing one. Note the second-order cost before starting: that same change
+pulls `state` entries into `src/lib/tune/reachability.sweep.spec.ts`'s `racked()`
+set, which today filters to `preview === "padsim"` and already costs 75.8 s over
+32,852 states for nine presets. It is a phase, not a patch.
+
+## 7. `planLayers`'s exclusions do not bind a hand-authored entry (recorded by 09-10)
+
+D-09 asked for a layer plan per entry, and every one of the twenty has one. But
+the mechanism D-09 named is a **compiler** rule: `planLayers` lives in
+`src/vendor/botor/_pad.ts:901` and is called from `pad-sim.ts:357` against a
+`PadState`. A `lua` entry owns layers 1 and 2 directly, in its own Lua, and
+`planLayers` never runs for it - so its exclusions constrain nothing about any
+configuration authored in this phase, and a plan that cites them is citing a
+rule that is not enforced on this route.
+
+What actually binds a hand-authored entry is two facts, and they are the ones a
+future wave should be given instead: **a single layer caps at 49.6 % brightness**,
+which is why every bright picture in this catalog paints two layers, and **there
+are two free layers rather than three**, because firmware reserves one. Both are
+in `.planning/research/ZONA-CAPABILITIES.md` and neither is gated.
+
+What would close this: nothing, if the next phase's context says "two layers,
+49.6 % each" rather than "follow `planLayers`". It is recorded so that the next
+phase does not re-derive it from a failing pad.
+
+## 8. A spec's cost grows with the catalog and no gate notices until it fails (recorded by 09-10)
+
+Three tests crossed a wall-clock limit at the Phase 9 gate, and all three were
+found by running the commands rather than by any gate:
+`src/lib/og/build.spec.ts`'s "paints real LEDs" and
+`src/lib/catalog/lua-entries.sweep.spec.ts` test 6 both hit Vitest's **default
+5,000 ms per-test timeout**, and `src/lib/transport/queue.spec.ts` lost a fixed
+`await sleep(5)` race to the load the first two created. All three were fixed in
+plan 09-10 - the first made allocation-free, the second given the explicit
+600,000 ms timeout its sibling sweep already carries, the third made to poll a
+condition instead of a clock - and `docs/TESTING.md` records each with its
+before and after.
+
+**What is not fixed is the shape of the problem.** Every one of those specs is
+linear in `CATALOG.length`, nothing asserts a cost ceiling anywhere, and the
+default timeout is a silent line the catalog walks towards one entry at a time.
+The next twenty configurations will cross it again, in specs nobody has thought
+about, and the failure will look like flakiness on somebody's machine rather
+than like growth.
+
+There is a second, sharper version of the same gap: **the sweep is affordable at
+twenty-seven entries only because of an authoring convention with no gate behind
+it.** All seven Phase 8 entries carry a sixteen-value MIDI-channel knob - 112 of
+their 283 combinations in one knob - and no entry authored in Phase 9 ships one,
+which is why the sweep came in at 701 combinations rather than the ~1,090
+`.planning/research/CATALOG-SURFACE.md` projected. Nothing refuses a
+sixteen-value knob, or even reports the cost of adding one.
+
+What would close this: a single reported number rather than an assertion - a
+line at the end of `lua-entries.sweep.spec.ts` printing the combination total and
+the per-entry worst case, the way `AUDITION_DUMP` prints character counts, so a
+wave that adds an expensive knob sees the cost in its own run instead of
+discovering it two phases later. A hard cap is the wrong shape here: the D-08 and
+D-10 rule is that a sweep is never trimmed to fit, so the number wants to be
+visible, not enforced.

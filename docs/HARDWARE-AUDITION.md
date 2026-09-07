@@ -15,7 +15,9 @@ codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brigh
 divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
 real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
 left alone for fifteen minutes. Thirty-two rows, each with the reason it belongs to a bench and not
-to a test suite.
+to a test suite. **Six of the thirty-two are the ones where a green test is not evidence**, and they
+are pulled together in their own section below so that a person with an hour rather than an afternoon
+knows where to start.
 
 It runs on your bench, in daytime, and it blocks nothing. The phase is complete and green without it.
 A failing row is a bug report against a configuration — a knob value or a colour in an entry file
@@ -129,9 +131,44 @@ wrong note reads as a broken configuration: at the defaults the bottom-left cell
 column right is 37 — a semitone — and one row up is **41**, a perfect fourth of five semitones. The
 research document prints 42 there; 41 is what the arithmetic says and what the module will play.
 
+## The six rows where a green test is not evidence
+
+If you have an hour rather than an afternoon, run these six first. Everything in this document is
+something a machine cannot check, but most of the rows are asking you to judge something — whether a
+polyrhythm grooves, whether a colour reads at two metres. **These six are different. On each of them
+the automated suite is green and the automated suite is not evidence**, and the reason splits cleanly
+into two families that fail in two different ways.
+
+**The latch-and-time family — rows 13, 19, 26 and 32. HOLD, CONSOLE, FORGE and POMODORO.** Three of
+them latch: a contact goes down, something stays on, and the contact comes up. Firmware advances
+`prev_*` **before** the writability check, so a release that is dropped under load leaves a
+permanently stuck contact, and `pad-sim.ts` states in its own comment that it implements only the
+watchdog semantics and **cannot manufacture that stuck contact**. The simulator is not failing to
+model the bug; it deliberately does not model it, which means a green frame comparison over a latch
+is a statement about a pad that does not have the bug. The fourth, POMODORO, is the time half of the
+same problem: it runs for twenty-five minutes past a 655-second `glt` ceiling, and the re-issue that
+carries it across has been checked over 160,000 simulated ticks on a clock that is exact and never on
+one that is not. **What to do about it:** work the latch fast and repeatedly, in different places,
+and count. A stuck contact is a thing you see once in fifty gestures, not once in five.
+
+**The keystroke family — rows 23 and 24. STAGE and SHUTTLE.** These do not fail; they are simply not
+observed. `gks` resolves in `src/lib/sim/lua-host.ts`, is recorded into `hidLog`, and `lua-host.ts`
+says at `:429` that **nothing in HANGAR consumes it**. The card animates correctly, the smoke gate
+counts the keystroke as output, the budget fits, the frames match — and not one of those says a key
+was pressed, let alone which key. Five configurations in this catalog send keystrokes (STAGE,
+SHUTTLE, CULL, FORGE and SWITCH); every usage id in all five was checked by hand against the USB HID
+Usage Tables Keyboard/Keypad page 0x07 and by nothing else. **What to do about it:** put a real
+application in front of it and watch what arrives. A wrong usage id looks exactly like a right one
+from here.
+
+The difference between the two families matters when a row fails. A latch that sticks is a
+**firmware** behaviour the configuration has to survive; a keystroke that arrives as the wrong key is
+a **number in an entry file**. The first is a note in the results below, the second is a one-line fix.
+
 ## The checklist
 
-Thirty-two rows, in order. Each names why it cannot be simulated, so no row is busywork.
+Thirty-two rows, in order. Each names why it cannot be simulated, so no row is busywork. The six
+above are 13, 19, 23, 24, 26 and 32.
 
 | #   | Config            | What to check                                                                                                                                                                                                                                                                             | Why it cannot be simulated                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -177,6 +214,11 @@ One line per row: pass, fail, or a note.
   observed. That single answer is what unblocks or permanently drops MIRROR. `docs/MIDI-IN-PROBE.md`
   holds the script for this row, and it names the two answers it wants — inbound CC, and MIDI clock —
   and where to write them.
+- **Rows 13, 19 and 26 want a count, not a verdict.** A stuck contact is intermittent by nature, so
+  "it did not stick" is only useful with a number beside it: how many fast flicks, and how many of
+  them stuck. Row 26 in particular — how many flicks before the bank stayed in B, if it ever did.
+- **Rows 23 and 24 want the keys that actually arrived**, not just whether something arrived. A wrong
+  usage id looks exactly like a right one from a browser, so write down what the application saw.
 
 The results belong in this document, under a dated `## Results` heading below. A failing row is a bug
 report against the configuration it names: the fix is a knob value or a colour in
