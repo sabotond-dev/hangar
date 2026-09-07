@@ -29,3 +29,22 @@ either a HID consumer in the simulator that decodes `gks` tuples into named key
 events and asserts them against a per-entry expectation, or the bench rows 23
 and 24. The first is cheap and worth planning; the second is the only thing that
 proves the wire.
+
+## 3. Nothing in the repository checks that a per-cell picture is distinguishable from itself (recorded by 09-07)
+
+CULL's five fill patterns and SWITCH's nine glyphs are both claims about
+DISTINCTNESS: five bands you can tell apart with the colour taken away, nine
+marks you can tell apart at three cells across. Both were measured by hand
+before shipping, and 09-07 then checked what the repository would say if they
+were wrong. Two of SWITCH's nine glyphs were made identical and the whole quick
+suite was run: only `frames.spec.ts` test 3 went red, and it went red on the
+frame HASH — a change detector that fires for any pixel change and says nothing
+about distinctness. With the fixture re-taken over the perturbed entry the suite
+was **74 files, 780 passed**, shipping a card whose card copy promises nine
+different marks and whose pad has eight. What would close this: a spec that
+extracts each entry's declared per-cell picture — the row masks, the glyph table
+— and asserts the intended sets are pairwise distinct, or, more generally, a
+`frames.spec.ts` test that reduces a declared-distinct entry's tick-0 frame to
+one channel per cell and asserts the named regions differ. It is a small spec and
+QUADRANT in wave 9 makes the same kind of accessibility claim, so it has at least
+three carriers already.

@@ -38,9 +38,10 @@ vendored.
    immediately in the live VM — so a Setup-first paste arms a timer that does not exist yet, and the
    pad simply sits still. It looks exactly like a broken configuration and it is not one.
    `_pad.ts`'s own `writePad` encodes the same rule. Row 1 of the checklist is this rule.
-4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN and LUMEN are Setup only** — none
-   of the nine has a Timer at all, the Timer event of each is the empty string, and they are the
-   nine cards that start from the Setup alone. They are the exceptions that prove the rule above.
+4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL and SWITCH are Setup
+   only** — none of the eleven has a Timer at all, the Timer event of each is the empty string, and
+   they are the eleven cards that start from the Setup alone. They are the exceptions that prove the
+   rule above.
 5. **Have somewhere to write twenty-seven lines.** The results go back into this document under a dated
    `Results` heading; see [What to record](#what-to-record).
 
