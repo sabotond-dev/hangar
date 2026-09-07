@@ -23,7 +23,12 @@
 import { describe, expect, it } from "vitest";
 import { CELLS, DEFAULT_PAD_STATE, GRID } from "../../vendor/botor/_pad";
 import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
-import { createLuaHost, type LuaHost } from "./lua-host";
+import {
+  createLuaHost,
+  HOST_GLOBALS,
+  HOST_SELF_METHODS,
+  type LuaHost,
+} from "./lua-host";
 import { luaReady, resetLuaReadyForTests } from "./ready";
 
 /**
@@ -261,5 +266,64 @@ describe("the Lua host", () => {
     await expect(
       createLuaHost({ sim: blank(), setup: "gnothere(1)" }),
     ).rejects.toThrow(/gnothere/);
+  });
+
+  it("exports the surface the VM actually has, in both directions", async () => {
+    // HOST_GLOBALS and HOST_SELF_METHODS are what src/lib/catalog/host-surface.spec.ts
+    // gates every hand-authored configuration against, so an array that drifted
+    // from the VM would not fail - it would quietly widen or narrow the gate.
+    // This test is what makes the arrays evidence rather than documentation,
+    // and it asserts in BOTH directions: every listed name is really there, and
+    // every Grid-shaped name really there is really listed.
+    //
+    // The callability half runs INSIDE the VM, because nothing public on
+    // LuaHost evaluates a string: the probe is the Setup, `error` aborts it,
+    // and createLuaHost rejects. A host that constructs at all has already
+    // proved every name resolves to a function.
+    const probes = [
+      ...HOST_GLOBALS.map(
+        (name) =>
+          `if type(${name})~="function" then error("global ${name} is "..type(${name})) end`,
+      ),
+      // The asymmetry, asserted from inside: a bare gms must still raise, which
+      // is only true while it is bridged under __hangar_gms.
+      'if type(gms)~="nil" then error("a bare gms resolved to "..type(gms)) end',
+      ...HOST_SELF_METHODS.map(
+        (name) =>
+          `if type(self.${name})~="function" then error("self:${name} is "..type(self.${name})) end`,
+      ),
+    ].join(" ");
+
+    const host = await createLuaHost({ sim: blank(), setup: probes });
+    expect(host.errors).toEqual([]);
+
+    const keys = host.globalKeys();
+    for (const name of HOST_GLOBALS) {
+      expect(keys, `${name} is exported but absent from _G`).toContain(name);
+    }
+    expect(
+      keys,
+      "a bare gms is reachable, so the bridge stopped bridging",
+    ).not.toContain("gms");
+
+    // The other direction, and the one that catches the real mistake: a binding
+    // added to registerGlobals with no entry in HOST_GLOBALS would be callable
+    // by a configuration and invisible to the gate. Every Grid short name is
+    // g + one to four lower-case letters, or one of the four axis-maximum
+    // spellings; the host's own bridges are __hangar_-prefixed and no Lua base
+    // name has that shape, so the filter needs no exceptions.
+    const gridShaped = /^(g[a-z]{1,4}|t[xy]m[ai])$/;
+    const listed = HOST_GLOBALS as readonly string[];
+    const unlisted = keys.filter(
+      (k) => gridShaped.test(k) && !listed.includes(k),
+    );
+    expect(
+      unlisted,
+      `these Grid names are in _G but not in HOST_GLOBALS, so the ` +
+        `host-surface gate would let a configuration call them unchecked: ` +
+        unlisted.join(", "),
+    ).toEqual([]);
+
+    host.close();
   });
 });

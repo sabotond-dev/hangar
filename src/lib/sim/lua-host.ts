@@ -128,6 +128,53 @@ function clampIndex(n: number): number {
   return Math.min(Math.max(n, 0), CELLS - 1);
 }
 
+/**
+ * Every Grid name a hand-authored entry may call BARE, and nothing else.
+ *
+ * This is the list, not a description of the list: registerGlobals() below
+ * iterates it, so a name added here without a binding fails to construct and a
+ * binding added without a name here is unreachable. src/lib/catalog/host-surface.spec.ts
+ * refuses any call outside it, and cross-checks this array against a booted
+ * VM's own _G rather than trusting it.
+ *
+ * gms is ABSENT on purpose - it is bridged under a private name so a bare
+ * gms(...) still raises. gmms, gmbs and gks are PRESENT on purpose - tpad's
+ * Setup opens with a bare gmbs(3,0).
+ */
+export const HOST_GLOBALS = [
+  "glag",
+  "glc",
+  "glp",
+  "glf",
+  "gls",
+  "glt",
+  "glpfs",
+  "glim",
+  "gtt",
+  "grxm",
+  "txma",
+  "tyma",
+  "gmms",
+  "gmbs",
+  "gks",
+] as const;
+
+/** Every name reachable only as self:<name>(...). */
+export const HOST_SELF_METHODS = [
+  "gms",
+  "grxm",
+  "txma",
+  "tyma",
+  "touch_pop",
+  "tid",
+  "tev",
+  "txv",
+  "tyv",
+] as const;
+
+/** One bare Grid call, as the VM sees it: everything in, anything out. */
+type HostBinding = (...args: unknown[]) => unknown;
+
 // `self` is the element table every configuration hangs its state off. Its four
 // colon-called methods bridge into JS; everything else a config puts on it
 // (self.q, self.m, self.h, its own helper methods) is the config's own state
@@ -138,6 +185,14 @@ function clampIndex(n: number): number {
 // `o=s:touch_pop() i=s:tid() e=s:tev() x=s:txv() y=s:tyv()` inside a
 // `while o and g<24` loop (_pad.ts:2259). Without them tpad raises on the first
 // finger rather than on load, which is the worst place for a gap to be.
+//
+// HOST_SELF_METHODS above names exactly what this prelude installs. It is a
+// plain restatement rather than a generated one, because the prelude is Lua
+// SOURCE and a generated string would be less readable than the list it
+// replaced. What holds the two together is a test, not a loop:
+// src/lib/sim/lua-host.spec.ts asserts every member is a function on `self`,
+// and src/lib/catalog/host-surface.spec.ts asserts it again from the catalog's
+// side and refuses every `self:` call outside it.
 const SELF_PRELUDE = [
   "self = {}",
   "self.gms = function(s, ch, cmd, p1, p2, mode) __hangar_gms(ch, cmd, p1, p2, mode) end",
@@ -360,10 +415,28 @@ export class LuaHost {
 
   private registerGlobals(): void {
     const g = this.engine.global;
-    g.set("glag", (_slot: unknown, n: unknown) => this.glag(n));
-    g.set(
-      "glc",
-      (
+
+    // THE REGISTRATION IS THE LIST. This record is keyed by HOST_GLOBALS, so
+    // TypeScript itself fails the build on a name in the list with no binding
+    // and on a binding with no name in the list - there is no third place the
+    // two could drift apart in. The loop below is what installs them, and
+    // src/lib/catalog/host-surface.spec.ts refuses every call outside the same
+    // array.
+    //
+    // grxm, txma and tyma appear here AND in HOST_SELF_METHODS: the recipe
+    // book's own configurations call `grxm(0,2)` bare while calling
+    // `self:txma(1023)` with a colon, so both spellings are real and both must
+    // work.
+    //
+    // gmms, gmbs and gks are the compiler's other three out-calls, recorded and
+    // otherwise inert. These ARE called bare - tpad's Setup opens
+    // `self:txma(1023)self:tyma(1023)gmbs(3,0)` - so unlike gms they cannot be
+    // method-only. Variadic on purpose: what matters here is that the symbol
+    // resolves and the call is observable, not that HANGAR re-derives a HID
+    // arity it has no host for.
+    const bindings: Record<(typeof HOST_GLOBALS)[number], HostBinding> = {
+      glag: (_slot: unknown, n: unknown) => this.glag(n),
+      glc: (
         a: unknown,
         l: unknown,
         r: unknown,
@@ -371,46 +444,38 @@ export class LuaHost {
         b: unknown,
         k: unknown,
       ) => this.glc(a, l, r, gr, b, k),
-    );
-    g.set("glp", (a: unknown, l: unknown, p: unknown) => this.glp(a, l, p));
-    g.set("glf", (a: unknown, l: unknown, f: unknown) => this.glf(a, l, f));
-    g.set("gls", (a: unknown, l: unknown, s: unknown) => this.gls(a, l, s));
-    g.set("glt", (a: unknown, l: unknown, t: unknown) => this.glt(a, l, t));
-    g.set(
-      "glpfs",
-      (a: unknown, l: unknown, p: unknown, f: unknown, s: unknown) =>
+      glp: (a: unknown, l: unknown, p: unknown) => this.glp(a, l, p),
+      glf: (a: unknown, l: unknown, f: unknown) => this.glf(a, l, f),
+      gls: (a: unknown, l: unknown, s: unknown) => this.gls(a, l, s),
+      glt: (a: unknown, l: unknown, t: unknown) => this.glt(a, l, t),
+      glpfs: (a: unknown, l: unknown, p: unknown, f: unknown, s: unknown) =>
         this.glpfs(a, l, p, f, s),
-    );
-    g.set("glim", (v: unknown, lo: unknown, hi: unknown) =>
-      this.glim(v, lo, hi),
-    );
-    g.set("gtt", (_slot: unknown, ms: unknown) => this.gtt(ms));
+      glim: (v: unknown, lo: unknown, hi: unknown) => this.glim(v, lo, hi),
+      gtt: (_slot: unknown, ms: unknown) => this.gtt(ms),
+      grxm: (_slot: unknown, mode: unknown) => this.grxm(mode),
+      txma: (v: unknown) => this.axisMax(v),
+      tyma: (v: unknown) => this.axisMax(v),
+      gmms: (...args: unknown[]) => this.recordHid("gmms", args),
+      gmbs: (...args: unknown[]) => this.recordHid("gmbs", args),
+      gks: (...args: unknown[]) => this.recordHid("gks", args),
+    };
+    for (const name of HOST_GLOBALS) g.set(name, bindings[name]);
 
-    // The self-methods' JS side. gms is bridged under a private name so a bare
-    // `gms(...)` still raises - it is only ever called as `self:gms(...)`.
-    // grxm, txma and tyma are ALSO plain globals: the recipe book's own
-    // configurations call `grxm(0,2)` bare while calling `self:txma(1023)` with
-    // a colon, so both spellings are real and both must work.
+    // THE THREE BRIDGES, DELIBERATELY OUTSIDE THE LIST. Each is bound under a
+    // private __hangar_ name that no configuration may spell, so the only way
+    // to reach it is the `self:` form SELF_PRELUDE installs over it. They are
+    // not members of HOST_GLOBALS because they are not part of the surface an
+    // entry may call; HOST_SELF_METHODS is where their public spelling lives.
+    //
+    // gms is the one that matters: bridging it here rather than binding it bare
+    // is what makes a bare `gms(...)` still raise. The touch queue's four
+    // accessors have no bare form in firmware either, so tpop and tfield follow
+    // the same rule.
     g.set(
       "__hangar_gms",
       (ch: unknown, cmd: unknown, p1: unknown, p2: unknown, mode: unknown) =>
         this.gms(ch, cmd, p1, p2, mode),
     );
-    g.set("grxm", (_slot: unknown, mode: unknown) => this.grxm(mode));
-    g.set("txma", (v: unknown) => this.axisMax(v));
-    g.set("tyma", (v: unknown) => this.axisMax(v));
-
-    // The compiler's other three out-calls, recorded and otherwise inert. These
-    // ARE called bare - tpad's Setup opens `self:txma(1023)self:tyma(1023)
-    // gmbs(3,0)` - so unlike gms they cannot be method-only. Variadic on
-    // purpose: what matters here is that the symbol resolves and the call is
-    // observable, not that HANGAR re-derives a HID arity it has no host for.
-    g.set("gmms", (...args: unknown[]) => this.recordHid("gmms", args));
-    g.set("gmbs", (...args: unknown[]) => this.recordHid("gmbs", args));
-    g.set("gks", (...args: unknown[]) => this.recordHid("gks", args));
-
-    // The touch queue's JS side, bridged under private names so only the
-    // `self:` spellings in SELF_PRELUDE reach them - firmware has no bare form.
     g.set("__hangar_tpop", () => this.touchPop());
     g.set("__hangar_tfield", (which: unknown) => this.touchField(which));
   }
