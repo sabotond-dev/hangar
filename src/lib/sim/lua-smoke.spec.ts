@@ -3,7 +3,7 @@
 // Three tests, and the count never moves - each loops over the Lua entries
 // internally and names the entry in its message, so waves 5 and 6 add
 // configurations without touching a number here. The budget, canonical form and
-// subset questions belong to src/lib/catalog/lua-entries.spec.ts; this file asks
+// subset questions belong to src/lib/catalog/lua-entries.sweep.spec.ts; this file asks
 // the only question a static analysis cannot: does it work.
 //
 // Every entry is put through the SAME scripted gesture, so the gate is uniform:

@@ -19,7 +19,7 @@
 // test 3's last assertion is the negative that proves the write did not.
 //
 // FOR A LUA ENTRY the rendered text is already a fixed point of compressScript
-// across its whole knob cross-product - src/lib/catalog/lua-entries.spec.ts
+// across its whole knob cross-product - src/lib/catalog/lua-entries.sweep.spec.ts
 // test 1 sweeps that, and test 2 here CITES it rather than re-sweeping: the
 // landed pair is renderLua's output, and at the defaults its length is its
 // own measure.
@@ -369,7 +369,7 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
             emptyTimers += 1;
             continue;
           }
-          // The fixed-point property lua-entries.spec.ts test 1 holds
+          // The fixed-point property lua-entries.sweep.spec.ts test 1 holds
           // across the whole knob cross-product, cited at the defaults: a
           // canonical string's measure IS its length.
           expect(

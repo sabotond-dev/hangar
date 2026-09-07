@@ -38,7 +38,7 @@
 // against the pinned minifier: Setup 379 characters, Timer 251, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
 // corner of the five-knob cross-product is 382 / 253, against a budget of 908
-// an event. src/lib/catalog/lua-entries.spec.ts asserts every one of those.
+// an event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.

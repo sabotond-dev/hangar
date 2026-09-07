@@ -166,7 +166,7 @@ export type Tuner = {
  * strings therefore go on the wire verbatim: the written length IS the meter,
  * and the module's own compressed-length check has one character of slack per
  * action. A Lua entry's rendered text is already a fixed point of the
- * compressor (lua-entries.spec.ts test 1), so both routes agree.
+ * compressor (lua-entries.sweep.spec.ts test 1), so both routes agree.
  */
 export type ConfigStrings = { readonly setup: string; readonly timer: string };
 

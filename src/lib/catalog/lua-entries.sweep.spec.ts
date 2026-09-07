@@ -7,6 +7,29 @@
 // 08-VALIDATION.md. Nothing here is parameterised by the runner, for the same
 // reason: a per-entry test block would make the total move with the catalog.
 //
+// WHY THIS FILE IS NAMED *.sweep.spec.ts (D-08, plan 09-01). It measures 283
+// knob combinations through the WASM minifier - test 6 alone renders every
+// value of every knob plus both corners of every entry, and calls
+// compressScript on each of the two events - which makes it the load-sensitive
+// test of the quick run. docs/TESTING.md records it timing out three times on
+// 2026-09-05 at 0.8 to 1.7 GB free, on a tree that had not changed a vitest
+// file. Phase 9 roughly quadruples the entry count, so it moved before that
+// happened, while the move was still a rename.
+//
+// The move IS the rename. vite.config.ts was not edited: the `server` project
+// already excludes src/**/*.sweep.spec.ts and the `sweep` project already
+// includes it, by a FILE-NAME rule both that file and src/lib/config-shape.spec.ts
+// state in prose. The naming convention is the rule, so honouring it costs no
+// configuration.
+//
+// NOTHING IT COVERS WAS TRIMMED. Six tests before, six tests after, the same
+// 283 combinations. Phase 8's D-10 set the precedent when it moved
+// pad-invariants.test.js for exactly this reason, in exactly these words: it
+// runs less OFTEN, never less FULLY. A wave authoring configurations runs it
+// directly:
+//
+//   npx vitest run --project sweep src/lib/catalog/lua-entries.sweep.spec.ts
+//
 // WHY THE FORMATTER GATE IS THE FIRST THING THAT HAPPENS. compressScript throws
 // before the WASM Lua formatter resolves, and checkSyntax silently returns false
 // - so a gate that skipped padReady() would report every correct configuration

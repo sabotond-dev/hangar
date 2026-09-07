@@ -29,7 +29,7 @@
 // THE TOKEN FOR THE SWEEP PERIOD IS @PERIOD, NOT @SWEEP. renderLua substitutes
 // by plain string replacement, so a token that is a PREFIX of another token is
 // eaten or corrupted depending on knob order - "@SWEEP" inside "@SWEEPC" would
-// render the colour as "70C" - and lua-entries.spec.ts's per-event occurrence
+// render the colour as "70C" - and lua-entries.sweep.spec.ts's per-event occurrence
 // count would see two @SWEEP sites in the Setup where the knob only moves one.
 // The period knob therefore carries @PERIOD. Its knob id is still "sweep";
 // only the substitution token moved.
@@ -46,7 +46,7 @@
 // against the pinned minifier: Setup 432 characters, Timer 279, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
 // corner of the five-knob cross-product is 433 / 282, against a budget of 908
-// an event. src/lib/catalog/lua-entries.spec.ts asserts every one of those
+// an event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those
 // claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because

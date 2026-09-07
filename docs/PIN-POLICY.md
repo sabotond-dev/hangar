@@ -42,7 +42,7 @@ order, and all six items must hold:
 1. The vendored compiler and simulator suite is green: `npm run test:quick` reports 176 tests in
    `src/vendor/botor/tests/pad.test.js` and 96 in `pad-sim.test.js`, and
    `src/vendor/botor/tests/pad-invariants.test.js` reports 9 inside a `npm run test:sweep` run of
-   3 files / 13 tests.
+   4 files / 19 tests.
 2. Every catalog preset's `compressScript` **length** is byte-identical to
    `src/lib/fidelity/preset-baseline.json`. Not `cost().used`: that is
    `max(compressed, raw) + reserved`, and the raw length wins for all nine presets, so it is blind to
@@ -51,7 +51,8 @@ order, and all six items must hold:
 3. All three sources above are edited in **one commit** — `package.json`, `package-lock.json` and
    `PROTOCOL_PIN`. Never one without the others.
 4. **Every hand-authored catalog entry is re-measured, not only the nine presets:**
-   `npx vitest run --project server src/lib/catalog/lua-entries.spec.ts` reports **6 passed**. Why this
+   `npx vitest run --project sweep src/lib/catalog/lua-entries.sweep.spec.ts` reports **6 passed**. Why
+   this
    is its own item: HANGAR's hand-authored configurations are stored in **canonical compressed form**,
    and canonical form is a property _of a specific minifier version_ — a bump can turn a stored string
    non-canonical, and its budget wrong, without changing a single character of HANGAR's source. A red
@@ -60,7 +61,7 @@ order, and all six items must hold:
    log. Item (2) cannot see any of this — it covers the nine shelf presets only.
 5. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
    below. A moved cost is a change to the budget every preset is calibrated against, not a detail.
-6. **The reachability sweep is re-run:** `npm run test:sweep` reports **3 files / 13 tests**. The
+6. **The reachability sweep is re-run:** `npm run test:sweep` reports **4 files / 19 tests**. The
    unreachability finding behind TUNE-04 and TUNE-05 — no knob state any visitor can produce goes
    over 908, measured across all 32,852 of them — is a property of the pinned compiler, not a law.
    `src/lib/tune/reachability.sweep.spec.ts` is what turns a bump that moves the 908-character ladder
@@ -69,8 +70,9 @@ order, and all six items must hold:
 Items (1), (2) and (4) are **enforceable as of Phase 8** — (1) and (2) since Phase 3, (4) since the
 catalog gate landed. Item (6) is enforceable as of Phase 5. The vendored suite lives in
 `src/vendor/botor/tests/` and runs under `npm run test:quick` (the compiler and simulator suites) and
-`npm run test:sweep`, whose 13 tests are the 9-test invariant sweep plus the two Phase 5 sweeps item
-(6) is about. The recorded baseline is
+`npm run test:sweep`, whose 19 tests are the 9-test invariant sweep, the two Phase 5 sweeps item
+(6) is about (4 tests), and the 6 tests of `src/lib/catalog/lua-entries.sweep.spec.ts` item (4) is
+about, which joined the project in plan 09-01. The recorded baseline is
 `src/lib/fidelity/preset-baseline.json`, captured from BOTOR's own compiler at the pinned commit by
 `scripts/capture-preset-baseline.mjs`; `src/lib/fidelity/preset-baseline.spec.ts` asserts the vendored
 compiler reproduces it character for character, and the last test in `src/lib/protocol-pin.spec.ts`

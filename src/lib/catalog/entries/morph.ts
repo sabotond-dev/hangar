@@ -48,7 +48,7 @@
 // pinned minifier: Setup 507 characters, a fixed point of compressScript and
 // accepted by checkSyntax. The all-longest corner of the five-knob
 // cross-product is 510, against a budget of 908 an event.
-// src/lib/catalog/lua-entries.spec.ts asserts every one of those claims.
+// src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.

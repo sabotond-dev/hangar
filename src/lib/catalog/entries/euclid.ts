@@ -16,7 +16,7 @@
 // points of compressScript and both accepted by checkSyntax. That is what makes
 // the budget meter honest, because cost() charges max(compressed, raw) and a
 // readable, indented version of this configuration would be charged its raw
-// length. src/lib/catalog/lua-entries.spec.ts asserts all of it, at the
+// length. src/lib/catalog/lua-entries.sweep.spec.ts asserts all of it, at the
 // defaults and across the whole knob cross-product.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because

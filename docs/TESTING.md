@@ -23,14 +23,27 @@ no row at all.
 | `npm run check`              | `svelte-check` over the whole project                                | 545 files, 0 errors, 0 warnings; 9 s wall                                                                                    |
 | `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 18 s wall                                                                                                            |
 | `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 12 s wall                                                                                                            |
-| `npm run test:quick`         | the `server` Vitest project — everything except the three sweeps     | 73 files, 776 passed + 1 todo (777); 31 s wall (27.8 s), no timeout                                                          |
-| `npm run test:sweep`         | the `sweep` project: three files, and 97% of its cost is one of them | 3 files, 13 tests; 118 s wall (115.5 s)                                                                                      |
+| `npm run test:quick`         | the `server` Vitest project — everything except the four sweeps      | 73 files, 775 passed + 1 todo (776); 30 s wall (28.3 s), no timeout (re-measured 2026-09-07)                                 |
+| `npm run test:sweep`         | the `sweep` project: four files, and most of its cost is one of them | 4 files, 19 tests; 87 s wall (85.8 s) (re-measured 2026-09-07)                                                               |
 | `npm run test:unit -- --run` | both Vitest projects in one run                                      | not re-run at the Phase 7 gate; Phase 6 measured 72 files, 737 passed + 1 todo (738); 85 s wall (82.7 s)                     |
 | `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 89 tests (78 chromium, 11 webkit-phone) at `--workers 3`; 1.8 m runner time, 112 s wall including the cold start, first time |
 
-The quick run's one load-sensitive test (`lua-entries.spec.ts` test 6, Phase 7 deferred items 12 and 21) did not time out in this run at 1.7 GB free; on 2026-09-05 it did so three times at 0.8 to 1.7 GB
-free on a tree that had not changed a vitest file. If a quick run reads 775 passed and one timeout in
-that file, run the file alone before reading it as a regression.
+**Only the two rows above marked `re-measured 2026-09-07` were re-taken by plan 09-01**, on the same
+machine in the same session as the figures they replace; every other row is Phase 7's and is left
+alone until plan 09-10 re-measures the whole table. A half-updated table read as a whole is worse
+than a stale one, so the two that moved say when they moved.
+
+**The quick run's one load-sensitive test has left it.** `lua-entries.sweep.spec.ts` test 6 measures
+283 knob combinations through the WASM minifier — every value of every knob of every
+hand-authored entry, plus both corners, compressed and budget-checked on both events. It timed out
+three times on 2026-09-05 at 0.8 to 1.7 GB free on a tree that had not changed a vitest file (Phase 7
+deferred items 12 and 21). **Plan 09-01 took the escape hatch those items named**: the file was
+renamed `*.sweep.spec.ts`, which the shipped file-name rule routes into the `sweep` project with no
+configuration edit at all, so it now runs per wave rather than per task. Nothing it covers was
+trimmed — six tests before, six after, the same 283 combinations — and Phase 9 roughly
+quadruples the entries it sweeps, which is why the move happened before those entries arrived rather
+than after. Run it directly with `npx vitest run --project sweep
+src/lib/catalog/lua-entries.sweep.spec.ts`.
 
 **Run `test:quick` after a build, not only before one.** `src/lib/config-shape.spec.ts` test 14 and
 `src/lib/og/build.spec.ts` tests 1, 4 and 5 read `build/`, so they are only armed when the directory
@@ -285,23 +298,32 @@ its own, with the wall time of that single-file run beside it.
 | ------------------------------------- | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `src/lib/catalog/catalog.spec.ts`     | 10    | 0.48 s | the entry shape: unique ids, the preview kind derived from the source kind, knob ids and defaults that index their own value lists  |
 | `src/lib/catalog/frames.spec.ts`      | 5     | 0.81 s | the golden-frame fixture: every entry renders, every recorded hash still matches, and the fixture covers the catalog exactly        |
-| `src/lib/catalog/lua-entries.spec.ts` | 6     | 2.18 s | the CONT-02 gate on every hand-authored entry: canonical compressed form, both 908-character budgets, the knob sweep, execution     |
 | `src/lib/sim/lua-host.spec.ts`        | 8     | 0.49 s | the Grid API the VM is handed - `led`, timers, MIDI, the element table - and the globals a configuration may not reach              |
 | `src/lib/sim/lua-smoke.spec.ts`       | 3     | 0.66 s | the end-to-end shape: a hand-authored entry boots a VM, runs its Setup and Timer, and lights a 243-byte frame                       |
 | `src/lib/fidelity/lua-parity.spec.ts` | 5     | 0.93 s | the nine shelf presets rendered twice - once by the vendored simulator, once by real Lua - and asserted equal                       |
 | `src/lib/sim/lazy.spec.ts`            | 3     | 0.23 s | the fast half of D-14: the catalog reaches no engine, `engine.ts` reaches the Lua wrapper only dynamically, one module names the VM |
+
+The seventh catalog gate is not in that table because it is not in the quick run.
+`src/lib/catalog/lua-entries.sweep.spec.ts` — the CONT-02 gate on every hand-authored entry:
+canonical compressed form, both 908-character budgets across the whole knob cross-product, the
+restricted Lua subset, and token separability — reports **6 tests in 1.91 s** run alone under
+`--project sweep` (2026-09-07). It moved there in plan 09-01; see the note under the How-to-run
+table. `src/lib/catalog/host-surface.spec.ts` (**4 tests**, plan 09-01) is the newest quick-run
+catalog gate: it resolves every call site in every hand-authored entry against the surface
+`src/lib/sim/lua-host.ts` actually registers, and refuses everything outside it.
 
 **Adding a configuration changes no test count.** Every catalog gate loops over `CATALOG` (or over
 the hand-authored subset) _inside_ a single `it`, deliberately rather than through `it.each`. Three
 configurations landed in plan 08-06 and `npm run test:quick` reported the same 41 files and 556 tests
 before and after. That is what makes the counts above worth writing down: a moved number means a
 moved gate, never a bigger catalog. The cost of an added entry is paid in the wall time of
-`lua-entries.spec.ts` and `frames.spec.ts`, which is where it belongs.
+`lua-entries.sweep.spec.ts` and `frames.spec.ts`, which is where it belongs.
 
 **The VM-backed specs are cheap, and the expensive one is not the one anybody expected.**
-`lua-entries.spec.ts` is the costliest at **2.18 s** - it calls `compressScript` for every event of
-every hand-authored entry and then runs each one through a real VM at every knob position - against
-the 10-second threshold its plan set. `lua-parity.spec.ts` renders all nine presets through both
+`lua-entries.sweep.spec.ts` was the costliest of them at **2.18 s** while it was still in the quick
+run - it calls `compressScript` for every event of every hand-authored entry and then runs each one
+through a real VM at every knob position - against the 10-second threshold its plan set. It now runs
+in the `sweep` project (1.91 s alone, 2026-09-07), so the quick run no longer pays it at all. `lua-parity.spec.ts` renders all nine presets through both
 engines in **0.93 s**, against the 20-second threshold its plan set; it was the one expected to hurt
 and it does not, because wasmoon boots in milliseconds under Node and its per-preset samples are
 memoised at module scope. Neither needs a carve-out today. If a future wave pushes one of them over,
@@ -320,7 +342,8 @@ engine they are used to check, so a red `frames.spec.ts` says rendering moved an
 which side of the move was right. That answer comes from the parity spec and from
 `src/lib/fidelity/firmware-oracle.spec.ts`, never from regenerating the fixture.
 
-`src/lib/catalog/lua-entries.spec.ts` is a **budget gate valid only at the current protocol pin**.
+`src/lib/catalog/lua-entries.sweep.spec.ts` is a **budget gate valid only at the current protocol
+pin**.
 Canonical compressed form is a property of a specific minifier version, so a green run means "these
 entries fit at `1.20260825.1135`" and nothing more. `docs/PIN-POLICY.md` carries the checklist item
 that re-measures it after a bump.
@@ -658,7 +681,8 @@ own.
 
 Standing gates untouched and green at the gate: `src/lib/ui/identity.spec.ts` (6),
 `src/lib/ui/tune-ui.spec.ts` (5), `src/lib/sim/lazy.spec.ts` (3), `src/lib/transport/fixtures/fixtures.spec.ts`
-(4), `src/lib/catalog/lua-entries.spec.ts` (6), `e2e/session.e2e.ts` (14 titles), `e2e/first-experience.e2e.ts`
+(4), `src/lib/catalog/lua-entries.sweep.spec.ts` (6, in the `sweep` project since plan 09-01),
+`e2e/session.e2e.ts` (14 titles), `e2e/first-experience.e2e.ts`
 (11 titles, three assertions appended to its degrade test).
 
 **The fake ZONA in the browser is the node suite's own responder, exposed into the page.** Phase 6's
