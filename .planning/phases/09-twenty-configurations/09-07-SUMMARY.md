@@ -1013,6 +1013,7 @@ file under `src/lib/catalog/` that was deleted before every commit and never lef
 | `c9ec8c9` | `feat(09-07): CULL - five ratings that read without colour`                            |
 | `0b32565` | `feat(09-07): FORGE and SWITCH - a bank that cannot get stuck, and nine marks`         |
 | `ce21926` | `chore(09-07): the fixture at thirty-one, a twenty-four chip row, three bench rows`    |
+| `571d341` | `docs(09-07): the fifth entry wave recorded, and a negative check that stayed green` |
 
 ## Self-Check: PASSED
 
