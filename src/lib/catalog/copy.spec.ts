@@ -99,6 +99,7 @@ const KNOWN_TAGS = [
   "isomorphic",
   "latching",
   "launcher",
+  "lighting",
   "looper",
   "macros",
   "mixing",

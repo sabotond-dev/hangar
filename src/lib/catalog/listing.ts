@@ -416,6 +416,20 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "lumen",
+    name: "LUMEN",
+    description:
+      "A colour picker for a lighting desk: hue across, depth down, and the pad is the colour it sends.",
+    motion: "static",
+    quiet:
+      "The whole field stays lit and still, so you read the colour instead of watching it.",
+    tags: ["colour", "lighting", "readable", "expressive"],
+    featured: true,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**
