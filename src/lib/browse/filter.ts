@@ -112,11 +112,13 @@ export function allTags(entries: readonly ListingEntry[]): readonly string[] {
  * D-15: the standing chip row is every tag carried by TWO OR MORE entries,
  * count descending then name ascending.
  *
- * DERIVED, never declared. Today it is nine of the forty-one; the other 32 sit
- * on exactly one entry each and stay reachable through the search field, which
- * does that job better than a chip that filters sixteen down to one. Deriving
- * it means the row stays right as the catalog grows, and filter.spec.ts asserts
- * today's nine by name so a data change is visible rather than silent.
+ * DERIVED, never declared. Most of the vocabulary sits on exactly one entry and
+ * stays reachable through the search field, which does that job better than a
+ * chip that filters the whole catalog down to one card. Deriving the row means
+ * it stays right as the catalog grows, and filter.spec.ts's RECORDED block
+ * asserts today's row by name so a data change is visible rather than silent.
+ * The census itself lives THERE and is deliberately not restated here: a count
+ * in a comment is the thing that teaches the next reader the wrong number.
  */
 export function chipTags(entries: readonly ListingEntry[]): readonly string[] {
   return allTags(entries)

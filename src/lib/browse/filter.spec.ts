@@ -23,7 +23,7 @@
 //
 // So the id lists, the per-tag expectations and the disabled row are computed
 // from LISTING with the same predicate the module is being asked about, and the
-// census - how many entries, how many tags, how many singletons, and which nine
+// census - how many entries, how many tags, how many singletons, and which
 // chips stand - lives in RECORDED and nowhere else.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -81,7 +81,8 @@ const search = (query: string) =>
  * moved and decides whether it likes it. A wave updates this block; it never
  * deletes an assertion against it.
  *
- * Re-recorded by: 08-06 (sixteen entries), then every entry wave of phase 09.
+ * Re-recorded by: 08-06 (sixteen entries), then 09-03 (nineteen), and every
+ * later entry wave of phase 09.
  *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
  * "The tag chips", quotes the row and its counts verbatim. A wave that moves
@@ -89,21 +90,26 @@ const search = (query: string) =>
  * carries the instruction.
  */
 const RECORDED = {
-  entries: 16,
-  tags: 41,
-  singletons: 32,
+  entries: 19,
+  tags: 42,
+  singletons: 28,
   chips: [
     "playable",
+    "drums",
+    "expressive",
     "generative",
     "gestural",
     "hypnotic",
     "ambient",
+    "blooming",
     "colour",
-    "drums",
-    "expressive",
+    "grid",
+    "hands-free",
     "readable",
+    "sequencer",
+    "xy-control",
   ] as const,
-  chipCounts: [4, 3, 3, 3, 2, 2, 2, 2, 2] as const,
+  chipCounts: [6, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2] as const,
 } as const;
 
 describe("the browse filter (src/lib/browse/filter.ts)", () => {
