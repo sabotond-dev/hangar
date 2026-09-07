@@ -306,6 +306,32 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "steps",
+    name: "STEPS",
+    description:
+      "Tap a cell to arm it and a bright column sweeps across, playing back the pattern you drew.",
+    motion: "animated",
+    tags: ["sequencer", "playable", "drums", "grid"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "slam",
+    name: "SLAM",
+    description:
+      "Nine drum pads where how high you hit is how hard it plays, and the bloom shows the velocity.",
+    motion: "static",
+    quiet:
+      "The nine zone outlines sit still until you hit one; every bloom is a hit you made.",
+    tags: ["drums", "playable", "expressive", "blooming"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

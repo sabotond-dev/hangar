@@ -94,6 +94,14 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     id: "hold",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
+  {
+    id: "steps",
+    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+  },
+  {
+    id: "slam",
+    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+  },
 ];
 
 /**
