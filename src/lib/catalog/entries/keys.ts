@@ -37,21 +37,22 @@
 // because a wrong list is a card that plays a scale nobody asked for and no gate
 // would notice:
 //
-//   0,2,4,5,7,9,11   major               41 of 81 cells lit at the defaults
-//   0,2,3,5,7,8,10   natural minor       40
-//   0,2,4,7,9        major pentatonic    29
-//   0,2,4,6,8        whole tone          31
+//   0,2,4,5,7,9,11   major               47 of 81 cells lit at the defaults
+//   0,2,3,5,7,8,10   natural minor       46
+//   0,2,4,7,9        major pentatonic    33
+//   0,2,4,6,8        whole tone          35
 //
 // A TWELVE-BIT MASK WAS MEASURED AND REJECTED. The obvious cheaper build is one
 // decimal integer per scale - 2741, 1453, 661, 1365 - tested with
-// (@SCALE >> note%12) & 1. It works, it is 33 characters cheaper, the bit
-// operators survive the pinned minifier and the VM, and it is WRONG HERE: a
-// `scale` knob's values are read by src/lib/tune/view.ts's SCALE_WORDS, which
-// names semitone sets and knows nothing about masks, so the tune panel would
-// render "2741" on a rail instead of "Major". Two shipped gates say so out
-// loud - knobs.lua.spec.ts wants a word row and view.spec.ts derives its scale
-// vocabulary FROM the catalog. The semitone list is the vocabulary this
-// repository already has; the mask would have needed a second one.
+// (@SCALE >> note%12) & 1. It works, it is 48 characters cheaper - 596 at the
+// defaults against 644 - the bit operators survive the pinned minifier and the
+// VM, and it is WRONG HERE: a `scale` knob's values are read by
+// src/lib/tune/view.ts's SCALE_WORDS, which names semitone sets and knows
+// nothing about masks, so the tune panel would render "2741" on a rail instead
+// of "Major". Two shipped gates say so out loud - knobs.lua.spec.ts wants a
+// word row and view.spec.ts derives its scale vocabulary FROM the catalog. The
+// semitone list is the vocabulary this repository already has; the mask would
+// have needed a second one.
 //
 // THE NOTE RANGE, worked out before the knob values were chosen. The highest
 // cell is @BASE + 8 + 8*@ROW, so the largest pair the two knobs can select must
@@ -201,7 +202,7 @@ export const KEYS: CatalogEntry = {
       // and CHORUS ship - and that is not a style choice. src/lib/tune/view.ts's
       // SCALE_WORDS turns exactly these strings into "Major", "Minor", "Major
       // pentatonic" and "Whole tone" on the tune panel; anything outside it
-      // renders as a numbered rail. A twelve-bit mask was measured, is 33
+      // renders as a numbered rail. A twelve-bit mask was measured, is 48
       // characters cheaper, and was rejected for that reason - see the header.
       values: ["0,2,4,5,7,9,11", "0,2,3,5,7,8,10", "0,2,4,7,9", "0,2,4,6,8"],
       default: 0,
