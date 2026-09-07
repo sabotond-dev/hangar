@@ -9,6 +9,7 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
+import { CONSOLE } from "./entries/console";
 import { EUCLID } from "./entries/euclid";
 import { GHOST } from "./entries/ghost";
 import { GRIDLOCK } from "./entries/gridlock";
@@ -55,6 +56,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   KEYS,
   GRIDLOCK,
   TABLE,
+  CONSOLE,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -70,6 +72,7 @@ export { SLAM } from "./entries/slam";
 export { KEYS } from "./entries/keys";
 export { GRIDLOCK } from "./entries/gridlock";
 export { TABLE } from "./entries/table";
+export { CONSOLE } from "./entries/console";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {

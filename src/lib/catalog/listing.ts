@@ -374,6 +374,20 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "console",
+    name: "CONSOLE",
+    description:
+      "Nine strips with rails: slide anywhere in a column to set its level, tap the top cell to mute it.",
+    motion: "static",
+    quiet:
+      "The nine levels hold where you left them; this pad only moves when your hand does.",
+    tags: ["mixing", "rails", "readable", "latching"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**
