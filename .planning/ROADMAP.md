@@ -269,10 +269,23 @@ Plans:
 - [ ] 09-09-PLAN.md — QUADRANT and POMODORO: four large targets and a draining ring, and the twentieth entry lands (wave 9)
 - [ ] 09-10-PLAN.md — The measured cost of thirty-six, the audition as one document, the phase gate and the hardware checkpoint (wave 10)
 
+### Phase 10: Redesign
+**Goal**: HANGAR stops looking like a well-behaved documentation site and starts looking like the ZONA landing - CRT and glitch, Grifter and Inter Italic - with a browse experience built for thirty-six configurations, a device flow that reads as one sequence, and tuning that is a pleasure rather than a rack of sliders.
+**Depends on**: Phase 9
+**Requirements**: TBD - the phase retires or reshapes several shipped copy requirements; SAFE-01 is the first to resolve
+**Success Criteria** (what must be TRUE):
+  1. The impeccable design skill is installed and the redesign is authored through it; Grifter carries headlines and Inter Italic carries body text, with the licence question resolved and discharged into THIRD-PARTY.md.
+  2. A visitor can choose a configuration immediately from the front door and can also browse thirty-six by niche and workflow, both paths first-class.
+  3. TRY ON DEVICE, PUT BACK and KEEP ON DEVICE read as one sequence, and a fourth control - CLEAR - removes the current page's configuration from the module under every Phase 7 safety rail, with its own confirmation and its own bench row.
+  4. Tuning is playful and legible, colour is chosen from a stylized RGB picker, and at least one tuning idea is something no configuration editor does today.
+  5. The explanatory paragraphs the brief names are gone, each by a named amendment with its spec rewritten rather than deleted and its sizing reservation re-measured - and whatever SAFE-01 becomes is stated out loud rather than dropped silently.
+  6. The CRT and glitch treatment has a reduced-motion escape hatch asserted in both browser projects, and the accent palette still governs the chrome even though the picker can produce any colour for the pad.
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
 **Parallelism** (config: `parallelization: true`):
 After Phase 1 the project forks into two independent tracks that may run concurrently:
@@ -294,6 +307,7 @@ Phases 6 and 7.
 | 7. Install Flow | 13/13 | Complete (hardware rows A-G awaiting the user) | 2026-09-05 |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 | 9. Twenty Configurations | 0/TBD | Planning | - |
+| 10. Redesign | 0/TBD | Not started | - |
 
 ## Requirement Coverage
 
