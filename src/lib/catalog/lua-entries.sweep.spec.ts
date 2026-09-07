@@ -462,5 +462,16 @@ describe("hand-authored Lua entries (CONT-02)", () => {
       }
     }
     expect(measured, "the sweep measured something").toBeGreaterThan(0);
-  });
+    // AN EXPLICIT TIMEOUT, THE SAME IDIOM src/lib/tune/reachability.sweep.spec.ts
+    // USES AT ITS OWN LONG TEST. Vitest's default is 5,000 ms, which is a
+    // sensible number for a unit test and the wrong number for an exhaustive
+    // sweep. This test was 1.47 s at seven hand-authored entries and 283 knob
+    // combinations; at twenty-seven entries and 701 combinations it measures
+    // 3.89 s run alone, and on 2026-09-07 it failed `npm run test:sweep` and
+    // `npm run test:unit` with `Test timed out in 5000ms` whenever the machine
+    // dropped below about 0.6 GB of free memory. NOTHING HERE IS SAMPLED OR
+    // TRIMMED TO FIT - that is the D-08 and D-10 rule - so the number that moves
+    // is the timeout. 600,000 ms is the sibling sweep's value and it is a
+    // ceiling, not a budget: exceeding it means something is genuinely wrong.
+  }, 600000);
 });

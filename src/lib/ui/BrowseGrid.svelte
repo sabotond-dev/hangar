@@ -66,6 +66,23 @@
   with lazy mounting or virtualisation - the limit there is compositor memory for
   mounted canvases, not simulation.
 
+  THE CEILING, MEASURED RATHER THAN PROJECTED (plan 09-10, 2026-09-07). The
+  sentence above was written when the catalog was sixteen and the number 40 was
+  an estimate. At THIRTY-SIX entries, observed on the production build through
+  the real Worker in Chromium at 1280x720: 36 canvases mounted - every card,
+  exactly as W-16 says - and FOUR of them intersecting the viewport. The
+  research (.planning/research/CATALOG-SURFACE.md 4b) projected 8-12 on screen
+  at both catalog sizes; four is what a 1280x720 window actually holds at the
+  four-column cap, and the important half of the projection was right anyway:
+  THE ON-SCREEN COUNT IS VIEWPORT-BOUND AND DOES NOT MOVE WITH CATALOG SIZE.
+  First contentful paint 584 ms, load 731 ms, 30 resources, an 8,330-byte
+  compressed browse document over 61,673 bytes of prerendered HTML. Nothing
+  here is near a limit; what grows with the catalog is only the mounted-canvas
+  count, which is the thing the 40 is about. THE NEXT CONFIGURATION WAVE IS THE
+  ONE THAT HAS TO ANSWER IT - thirty-six is four entries from the line - and the
+  two named answers are still the answers: lazy mounting, or virtualisation on
+  top of the IntersectionObserver gating that is already here.
+
   THE GRID NEVER ANIMATES ITS OWN LAYOUT. No FLIP, no stagger, no fade-in, 0 ms
   on a filter change (W-11). Animating sixteen live canvases through a reflow
   fights the shared rAF loop for exactly the frames the pads need, and the pads

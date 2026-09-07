@@ -212,7 +212,12 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
     // (D-07), which is what "one per routed configuration" means today. The
     // floor is non-vacuity: a routed set that quietly shortened would otherwise
     // make this test pass on fewer images rather than fail on the missing ones.
-    expect(wanted.length).toBeGreaterThanOrEqual(16);
+    // A HUMAN-CHOSEN NON-VACUITY FLOOR, NOT A COUNT. It was 16 when the catalog
+    // was sixteen and stopped saying anything at thirty-six; plan 09-10 raised
+    // it. It stays a literal deliberately: comparing against ROUTED.length
+    // would be a tautology, and the whole value of the line is that a number a
+    // person chose has to be re-chosen when the catalog shrinks past it.
+    expect(wanted.length).toBeGreaterThanOrEqual(36);
   });
 
   it("writes 1200 x 630 truecolour PNGs under a megabyte", () => {
@@ -247,9 +252,19 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
     // a renderer that dropped every LED. So count the pixels that are none of
     // the three structural colours, and exempt a dark entry by its own declared
     // restsBlack (D-19) rather than by a guess.
-    const black = "0,0,0";
-    const dot = [...UNLIT_DOT_RGB].join(",");
-    const frame = [...FRAME_RGB].join(",");
+    // THE COMPARISON IS NUMERIC, NOT A STRING, AND THAT IS NOT A STYLE CHOICE.
+    // The loop below visits OG_WIDTH * OG_HEIGHT = 756,000 pixels per image, and
+    // at thirty-six images that is 27.2 MILLION iterations. Building a
+    // `${r},${g},${b}` key per pixel allocated 27.2 million short-lived strings
+    // and made this the second load-sensitive test in the quick run: measured on
+    // 2026-09-07 at thirty-six entries it took 4.27 s of a 5,000 ms default
+    // timeout and FAILED TWICE at 0.4 GB of memory free, on a tree whose only
+    // change was a comment. Comparing three numbers costs no allocation, covers
+    // exactly the same pixels and asserts exactly the same thing - nothing here
+    // is sampled or trimmed, which is the D-08 / D-10 rule for a spec that gets
+    // expensive.
+    const [dotR, dotG, dotB] = UNLIT_DOT_RGB;
+    const [frameR, frameG, frameB] = FRAME_RGB;
 
     const files = pngs();
     expect(files.length, "there were images to check").toBeGreaterThan(0);
@@ -260,9 +275,17 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
       let led = 0;
       let structure = 0;
       for (let i = 0; i < px.length; i += 3) {
-        const rgb = `${px[i]},${px[i + 1]},${px[i + 2]}`;
-        if (rgb === frame || rgb === dot) structure++;
-        else if (rgb !== black) led++;
+        const r = px[i];
+        const g = px[i + 1];
+        const b = px[i + 2];
+        if (
+          (r === frameR && g === frameG && b === frameB) ||
+          (r === dotR && g === dotG && b === dotB)
+        ) {
+          structure++;
+        } else if (r !== 0 || g !== 0 || b !== 0) {
+          led++;
+        }
       }
       // The frame stroke is in every image whatever the pad is doing, so this
       // is the one structural claim that holds for a fully lit pad as well -

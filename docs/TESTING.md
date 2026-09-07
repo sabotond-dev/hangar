@@ -11,39 +11,88 @@ work) and is not repeated here.
 
 ## How to run it
 
-Measured on this machine (Windows 11, Node v24.14.0) on 2026-09-05, at the end of Phase 7 — the
-install-flow work, against a fresh `npm run build` at `f20d74f`, with 1.7 GB of memory free. Wall times
-are the whole command including npm and process startup, each command run alone in the order below; the
-parenthesised figure is the runner's own reported duration. Every number here is **observed**, never
-predicted — the tree is shared between phases, so a row that was guessed rather than run is worse than
-no row at all.
+**Re-measured whole on 2026-09-07 at the Phase 9 gate (plan 09-10), at commit `36a1965`**, on this
+machine (Windows 11, Node v24.14.0), against a fresh `npm run build`, with **1.29 GB of 15.26 GB of
+memory free** at the time of the quick run. Wall times are the whole command including npm and
+process startup, each command run alone in the order below; the parenthesised figure is the runner's
+own reported duration. Every number here is **observed**, never predicted — the tree is shared
+between phases, so a row that was guessed rather than run is worse than no row at all. The catalog
+under these numbers is **thirty-six configurations, twenty-seven of them hand-authored Lua**; the
+figures they replace were taken at sixteen and seven.
 
 | Command                      | Covers                                                               | Measured                                                                                                                     |
 | ---------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`              | `svelte-check` over the whole project                                | 545 files, 0 errors, 0 warnings; 9 s wall                                                                                    |
+| `npm run check`              | `svelte-check` over the whole project                                | 567 files, 0 errors, 0 warnings; 8 s wall                                                                                    |
 | `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 18 s wall                                                                                                            |
-| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 12 s wall                                                                                                            |
-| `npm run test:quick`         | the `server` Vitest project — everything except the four sweeps      | 73 files, 775 passed + 1 todo (776); 30 s wall (28.3 s), no timeout (re-measured 2026-09-07)                                 |
-| `npm run test:sweep`         | the `sweep` project: four files, and most of its cost is one of them | 4 files, 19 tests; 87 s wall (85.8 s) (re-measured 2026-09-07)                                                               |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                      | not re-run at the Phase 7 gate; Phase 6 measured 72 files, 737 passed + 1 todo (738); 85 s wall (82.7 s)                     |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 89 tests (78 chromium, 11 webkit-phone) at `--workers 3`; 1.8 m runner time, 112 s wall including the cold start, first time |
+| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 12 s wall (12.08 s) — **unmoved from sixteen entries**, and see "The cost of thirty-six" below                       |
+| `npm run test:quick`         | the `server` Vitest project — everything except the four sweeps      | 74 files, 780 passed + 1 todo (781); 28 s wall (25.1 s), no timeout at 1.29 GB free                                          |
+| `npm run test:sweep`         | the `sweep` project: four files, and most of its cost is one of them | 4 files, 19 tests; 93 s wall (89.7 s) at 1.3 GB free, 162 s wall (157.2 s) at 0.43 GB free — the machine, not the tree       |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 78 files, 799 passed + 1 todo (800); 169 s wall (164.6 s). **Green again since the two fixes below**                         |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 89 tests (78 chromium, 11 webkit-phone) at `--workers 3`; 1.9 m runner time, 114 s wall including the cold start, first time |
 
-**Only the two rows above marked `re-measured 2026-09-07` were re-taken by plan 09-01**, on the same
-machine in the same session as the figures they replace; every other row is Phase 7's and is left
-alone until plan 09-10 re-measures the whole table. A half-updated table read as a whole is worse
-than a stale one, so the two that moved say when they moved.
+**The counts reconcile across the three commands, and that is worth one line:** `test:quick` is 74
+files / 780 tests, `test:sweep` is 4 / 19, and `test:unit` is exactly their sum, **78 / 799**. A
+combined run that does not add up is a project-routing bug, not a rounding difference.
 
-**The quick run's one load-sensitive test has left it.** `lua-entries.sweep.spec.ts` test 6 measures
-283 knob combinations through the WASM minifier — every value of every knob of every
-hand-authored entry, plus both corners, compressed and budget-checked on both events. It timed out
-three times on 2026-09-05 at 0.8 to 1.7 GB free on a tree that had not changed a vitest file (Phase 7
-deferred items 12 and 21). **Plan 09-01 took the escape hatch those items named**: the file was
-renamed `*.sweep.spec.ts`, which the shipped file-name rule routes into the `sweep` project with no
-configuration edit at all, so it now runs per wave rather than per task. Nothing it covers was
-trimmed — six tests before, six after, the same 283 combinations — and Phase 9 roughly
-quadruples the entries it sweeps, which is why the move happened before those entries arrived rather
-than after. Run it directly with `npx vitest run --project sweep
-src/lib/catalog/lua-entries.sweep.spec.ts`.
+**Three load-sensitive tests were found and fixed at the Phase 9 gate, and all three were found by
+running the commands rather than by reading them.** Thirty-six configurations is roughly twice the
+work of sixteen in the specs whose cost is linear in the catalog; two of those crossed Vitest's
+**default 5,000 ms per-test timeout**, and a third — a spec with nothing to do with the catalog — lost
+a wall-clock race to the load the first two created. Each was reproduced at least twice on 2026-09-07,
+each on a tree whose only change to the failing file was a comment, and each only when free memory
+fell below about 0.7 GB:
+
+- **`src/lib/og/build.spec.ts`, "paints real LEDs"** — `Test timed out in 5000ms`, failing
+  `npm run test:quick` at 0.37 and 0.47 GB free. **Made cheaper**, see below.
+- **`src/lib/catalog/lua-entries.sweep.spec.ts` test 6** — `Test timed out in 5000ms`, failing
+  `npm run test:sweep` at 0.56 GB free and `npm run test:unit` twice. **Given the explicit timeout its
+  sibling sweep already carries**, see below.
+- **`src/lib/transport/queue.spec.ts`** — `the bytes went out: expected [] to have a length of 1`,
+  failing `npm run test:quick` at 0.67 GB free and `npm run test:unit` once. Three of its tests waited
+  `await sleep(5)` for the queue to put a request's bytes on the transport, and **5 ms of wall clock
+  is not 5 ms of scheduled CPU** on a machine two other tests are starving. All three now poll for the
+  condition they meant, behind a 2,000 ms deadline whose failure message says the write never
+  happened. Eight tests before, eight after; the queue itself was never wrong.
+
+**A test that writes down a number of milliseconds where it means a condition is a bug in the test,
+and the catalog's growth is what made all three of them visible.** None of the three was introduced by
+Phase 9's configurations; two were made expensive by them and one was made unlucky by them.
+
+**The quick run's one load-sensitive test left it in plan 09-01, and the move has held.**
+`lua-entries.sweep.spec.ts` test 6 measures every value of every knob of every hand-authored entry,
+plus both corners, compressed and budget-checked on both events. It **was** the quick run's
+load-sensitive test: it timed out three times on 2026-09-05 at 0.8 to 1.7 GB free on a tree that had
+not changed a vitest file (Phase 7 deferred items 12 and 21). **Plan 09-01 took the escape hatch
+those items named, under D-08**: the file was renamed `*.sweep.spec.ts`, which the shipped file-name
+rule routes into the `sweep` project with no configuration edit at all, so it now runs per wave
+rather than per task. Nothing it covers was trimmed — six tests before, six after — and the decision
+has since been paid off exactly as predicted. **Its work has grown from 283 knob combinations over
+seven entries to 701 over twenty-seven**, and the cost of that growth is wall time in a per-wave
+project (**1.47 s of test time in 2026-09-04's quick run, 3.89 s alone under `sweep` today**) rather
+than a flaky per-task run. Run it directly with
+`npx vitest run --project sweep src/lib/catalog/lua-entries.sweep.spec.ts`.
+
+**What the move did not buy it was a timeout, and plan 09-10 gave it one.** 3.89 s against a 5,000 ms
+default is about a second of headroom, and a loaded machine takes that. Test 6 now carries an
+explicit `600000` as its second `it` argument — **exactly the idiom
+`src/lib/tune/reachability.sweep.spec.ts:254` already uses at its own long test**, which is why that
+75-second sweep has never had this problem. A sweep project's tests are long by definition; 5,000 ms
+is the right default for a unit test and the wrong one here. Nothing about what the test covers
+changed: still six tests, still 701 combinations, still both events, still no sampling. The number
+that moved is the ceiling, and 600 s is a ceiling rather than a budget — reaching it means something
+is genuinely wrong.
+
+**A second load-sensitive test appeared at thirty-six entries, and it was fixed rather than moved.**
+`src/lib/og/build.spec.ts`'s "paints real LEDs" test decodes every image in `static/og/` and
+classifies every pixel of each. At sixteen images that was 12.1 million pixels; at thirty-six it is
+**27.2 million**, and on 2026-09-07 the test took **4.27 s of a 5,000 ms default timeout and failed
+`npm run test:quick` twice** at 0.37 and 0.47 GB of memory free — on a tree whose only change to that
+file was a comment. The cost was not the decode: it was a `${r},${g},${b}` template string built once
+per pixel, 27.2 million short-lived allocations per run. Comparing the three channels numerically
+covers **exactly** the same pixels and asserts exactly the same thing, and took the test from **4.27 s
+to 0.56 s**. Nothing was sampled and nothing was trimmed, which is the D-08 and D-10 rule for a spec
+that gets expensive: make it cheaper or move it, never make it smaller. The quick run was green at
+74 / 780 immediately afterwards at 0.85 GB free.
 
 **Run `test:quick` after a build, not only before one.** `src/lib/config-shape.spec.ts` test 14 and
 `src/lib/og/build.spec.ts` tests 1, 4 and 5 read `build/`, so they are only armed when the directory
@@ -66,6 +115,32 @@ there and never re-derived): quick **69 → 73 files** and **724 → 776 tests**
 **unchanged**, e2e **77 → 89** (+12: six untagged probe walks, four untagged titles on the real page,
 and one `@webkit` title counted twice). No number was adjusted to fit.
 
+Phase 8's, from its own gate (`08-VERIFICATION.md`) against the baseline `08-01-SUMMARY.md` measured
+on the clean tree it started from: quick **26 → 43 files** and **453 → 563 tests** (+17 / +110),
+sweep **1 file / 9 tests, unchanged**, e2e **10 → 23**.
+
+**Phase 9's, reconciled at its gate on 2026-09-07 against the baseline `09-01-SUMMARY.md` froze on
+the clean tree Phase 7 closed (`BASE_FILES` 73, `BASE_TESTS` 776 + 1 todo, `BASE_E2E` 89):**
+
+| Suite | Phase 9                  | Where the delta came from                                                                                                                                                                      |
+| ----- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| quick | **73 → 74 files (+1)**   | `src/lib/catalog/host-surface.spec.ts` arrived (09-01, +1); `src/lib/catalog/lua-entries.spec.ts` left for the `sweep` project (09-01, −1); `src/lib/catalog/copy.spec.ts` arrived (09-02, +1) |
+| quick | **776 → 780 tests (+4)** | `host-surface.spec.ts` +4, `lua-host.spec.ts` +1, `copy.spec.ts` +5, `lua-entries` moved out −6. Net **+4**                                                                                    |
+| sweep | **`3 13` → `4 19`**      | the one file `lua-entries.sweep.spec.ts` moved in, with its six tests, in 09-01. Nothing else joined or left                                                                                   |
+| e2e   | **89 → 89, unchanged**   | no e2e title was added anywhere in the phase; every count in the browse suites is `LISTING.length` and `catalog.e2e.ts` reads its entry count from `frames.json`                               |
+
+**Two baselines, two names, and they meet here.** Phase 9 was ten plans deep and split its quick-run
+baseline in two, exactly as it split `BASE_E2E` from `PREV_E2E`. `BASE_FILES` and `BASE_TESTS` are
+**frozen** at the clean tree (73 / 776) and are written against once, at this gate. `PREV_FILES` and
+`PREV_TESTS` are the **rolling** pair — the tree as the previous plan left it — and every wave
+asserted "I moved nothing" against them. The chain, and it has to close: 09-01 left
+`BASE_TESTS − 1` (775), 09-02 added five to reach `BASE_TESTS + 4` (780), and 09-03 through 09-09
+each asserted `PREV_TESTS + 0` seven times over. **`776 − 1 + 5 + 0×7 = 780 = BASE_TESTS + 4`**, which
+is the number the gate observed. A reader who does not notice that `BASE_*` and `PREV_*` are
+different names will read `BASE_TESTS + 5` in 09-02's SUMMARY and `BASE_TESTS + 4` here and conclude
+one of them is wrong; they are both right, and 09-02's five is measured against the 775 that 09-01
+left rather than against the 776 that Phase 7 closed on. No number was adjusted to fit.
+
 The sampling rule, in three lines:
 
 - After every task: `npm run test:quick`, plus `npm run lint` when the task touched a source file.
@@ -80,7 +155,9 @@ it accounted for almost all of the whole-run wall time: 36.4 s of a 38.3 s two-p
 3.9 s for the other twenty-six files. That is the whole reason it is a separate project rather than
 one more file in `server`.
 
-**The project has three members as of Phase 5**, and the rule that admits a file is its cost, never
+**The project has four members as of Phase 9** — three since Phase 5, plus
+`src/lib/catalog/lua-entries.sweep.spec.ts`, which plan 09-01 moved in under D-08 — and the rule that
+admits a file is its cost, never
 its subject: anything matching `*.sweep.spec.ts` joins it. See the Phase 5 section below for the
 per-file numbers — the short version is that `src/lib/tune/reachability.sweep.spec.ts` now dominates
 the run, at 75.8 s of a 78.0 s three-file run re-measured on 2026-09-05.
@@ -230,7 +307,7 @@ dissolve, that choosing the centre pad reveals the panel and that both Escape an
 button take it away again, that a browser with no Web Serial still shows the device control —
 present, really `disabled`, naming Chrome, Edge and desktop Firefox 151 and no engine — that reduced
 motion holds one lit still frame while stepping becomes instant, that `/c/radar/` lands with radar
-centred, alive and with no splash, that all sixteen routed configurations are real files with their
+centred, alive and with no splash, that all thirty-six routed configurations are real files with their
 own descriptions while an off-row page is a row of one (a solo pad and an arrow-less plate on
 `/c/euclid/`, against the shelf with both arrows on `/c/aurora/`) and a genuinely unknown address
 still lands on the shelf with a line saying so, and that the shared animation loop is really painting. All but one assert an
@@ -291,44 +368,114 @@ reduced-motion title. The test therefore also calls `page.emulateMedia({ reduced
 ## The catalog and the Lua host
 
 Phase 8 added the catalog module, a real Lua 5.4 VM (`wasmoon`, lazily loaded) and seven
-hand-authored configurations. Every count below was observed on 2026-09-04 by running each file on
-its own, with the wall time of that single-file run beside it.
+hand-authored configurations. Phase 9 took the catalog to **thirty-six entries, twenty-seven of them
+hand-authored Lua**, and added two gates. Every count and cost below was re-observed on **2026-09-07
+at commit `36a1965`** by running each file on its own; the cost is that single-file run's reported
+duration, which includes transform and import and is therefore dominated by startup for the cheap
+ones.
 
-| File                                  | Tests | Cost   | What it holds                                                                                                                       |
-| ------------------------------------- | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/catalog/catalog.spec.ts`     | 10    | 0.48 s | the entry shape: unique ids, the preview kind derived from the source kind, knob ids and defaults that index their own value lists  |
-| `src/lib/catalog/frames.spec.ts`      | 5     | 0.81 s | the golden-frame fixture: every entry renders, every recorded hash still matches, and the fixture covers the catalog exactly        |
-| `src/lib/sim/lua-host.spec.ts`        | 8     | 0.49 s | the Grid API the VM is handed - `led`, timers, MIDI, the element table - and the globals a configuration may not reach              |
-| `src/lib/sim/lua-smoke.spec.ts`       | 3     | 0.66 s | the end-to-end shape: a hand-authored entry boots a VM, runs its Setup and Timer, and lights a 243-byte frame                       |
-| `src/lib/fidelity/lua-parity.spec.ts` | 5     | 0.93 s | the nine shelf presets rendered twice - once by the vendored simulator, once by real Lua - and asserted equal                       |
-| `src/lib/sim/lazy.spec.ts`            | 3     | 0.23 s | the fast half of D-14: the catalog reaches no engine, `engine.ts` reaches the Lua wrapper only dynamically, one module names the VM |
+| File                                   | Tests | Cost   | What it holds                                                                                                                       |
+| -------------------------------------- | ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/catalog/catalog.spec.ts`      | 10    | 0.58 s | the entry shape: unique ids, the preview kind derived from the source kind, knob ids and defaults that index their own value lists  |
+| `src/lib/catalog/listing.spec.ts`      | 5     | 0.65 s | the browse listing restated against `CATALOG` field by field, in both directions, and the quiet line every non-animated entry owes  |
+| `src/lib/catalog/front-door.spec.ts`   | 8     | 0.57 s | the eight-entry ring and the partition: the row plus the exclusion list is exactly `CATALOG`, and the failure names the missing id  |
+| `src/lib/catalog/frames.spec.ts`       | 5     | 1.25 s | the golden-frame fixture: every entry renders, every recorded hash still matches, and the fixture covers the catalog exactly        |
+| `src/lib/catalog/copy.spec.ts`         | 5     | 0.60 s | the Copywriting Contract over catalog copy, `KNOWN_TAGS` gated in both directions, and the census (plan 09-02)                      |
+| `src/lib/catalog/host-surface.spec.ts` | 4     | 0.69 s | the D-07 gate: every call site in every hand-authored entry classified against the surface `lua-host.ts` registers (plan 09-01)     |
+| `src/lib/catalog/audition.spec.ts`     | 4     | 0.63 s | the shape of `docs/HARDWARE-AUDITION.md`: its thirty-two rows, its numbering, its reasons and the install-order sentence            |
+| `src/lib/sim/lua-host.spec.ts`         | 9     | 0.47 s | the Grid API the VM is handed - `led`, timers, MIDI, the element table - and the globals a configuration may not reach              |
+| `src/lib/sim/lua-smoke.spec.ts`        | 3     | 0.93 s | the end-to-end shape: every hand-authored entry boots a VM, runs a scripted gesture, and sends MIDI or HID                          |
+| `src/lib/fidelity/lua-parity.spec.ts`  | 5     | 0.98 s | the nine shelf presets rendered twice - once by the vendored simulator, once by real Lua - and asserted equal                       |
+| `src/lib/sim/lazy.spec.ts`             | 3     | 0.30 s | the fast half of D-14: the catalog reaches no engine, `engine.ts` reaches the Lua wrapper only dynamically, one module names the VM |
 
-The seventh catalog gate is not in that table because it is not in the quick run.
+**The catalog gate that is not in that table is not in the quick run.**
 `src/lib/catalog/lua-entries.sweep.spec.ts` — the CONT-02 gate on every hand-authored entry:
 canonical compressed form, both 908-character budgets across the whole knob cross-product, the
-restricted Lua subset, and token separability — reports **6 tests in 1.91 s** run alone under
-`--project sweep` (2026-09-07). It moved there in plan 09-01; see the note under the How-to-run
-table. `src/lib/catalog/host-surface.spec.ts` (**4 tests**, plan 09-01) is the newest quick-run
-catalog gate: it resolves every call site in every hand-authored entry against the surface
-`src/lib/sim/lua-host.ts` actually registers, and refuses everything outside it.
+restricted Lua subset, and token separability — reports **6 tests in 4.54 s** run alone under
+`--project sweep`, of which **3.89 s is test time** (2026-09-07, twice, 4.54 s and 4.37 s). It moved
+there in plan 09-01 under D-08; see the note under the How-to-run table. **It costs 701 knob
+combinations over twenty-seven entries — 1,402 measured events**, by `Σ(knob arities) + 2` per entry,
+the two corners being the `+2` licensed by the separability identity the same file proves.
 
-**Adding a configuration changes no test count.** Every catalog gate loops over `CATALOG` (or over
-the hand-authored subset) _inside_ a single `it`, deliberately rather than through `it.each`. Three
+**Adding a configuration changes no test count, and the evidence for that is now much stronger than
+it was.** Every catalog gate loops over `CATALOG` (or over the hand-authored subset) _inside_ a
+single `it`, deliberately rather than through `it.each`. The claim used to rest on one wave: three
 configurations landed in plan 08-06 and `npm run test:quick` reported the same 41 files and 556 tests
-before and after. That is what makes the counts above worth writing down: a moved number means a
-moved gate, never a bigger catalog. The cost of an added entry is paid in the wall time of
-`lua-entries.sweep.spec.ts` and `frames.spec.ts`, which is where it belongs.
+before and after. **Phase 9 landed twenty configurations across seven waves and every one of those
+seven asserted `PREV_FILES + 0` / `PREV_TESTS + 0` through `scripts/check-counts.mjs`** — 74 files
+and 780 tests before HOLD, STEPS and SLAM, and 74 files and 780 tests after QUADRANT and POMODORO,
+with nothing but wall time between them. The phase's whole quick-run delta, **+1 file and +4 tests**,
+is three new spec files, one moved-out spec file and one added test, and not one of the five is a
+configuration. That is what makes the counts above worth writing down: a moved number means a moved
+gate, never a bigger catalog. The cost of an added entry is paid in the wall time of
+`lua-entries.sweep.spec.ts` and `frames.spec.ts`, which is where it belongs, and Phase 9 paid it:
+`lua-entries` from 1.47 s to 3.89 s of test time, `frames.spec.ts` from 318 ms to 649 ms.
 
 **The VM-backed specs are cheap, and the expensive one is not the one anybody expected.**
 `lua-entries.sweep.spec.ts` was the costliest of them at **2.18 s** while it was still in the quick
 run - it calls `compressScript` for every event of every hand-authored entry and then runs each one
 through a real VM at every knob position - against the 10-second threshold its plan set. It now runs
-in the `sweep` project (1.91 s alone, 2026-09-07), so the quick run no longer pays it at all. `lua-parity.spec.ts` renders all nine presets through both
-engines in **0.93 s**, against the 20-second threshold its plan set; it was the one expected to hurt
-and it does not, because wasmoon boots in milliseconds under Node and its per-preset samples are
-memoised at module scope. Neither needs a carve-out today. If a future wave pushes one of them over,
+in the `sweep` project (4.54 s alone at twenty-seven entries, 2026-09-07), so the quick run no longer
+pays it at all. `lua-parity.spec.ts` renders all nine presets through both
+engines in **0.98 s** and is **unchanged by the catalog's growth**, because it is pinned to the nine
+shelf presets and nothing else; it was the one expected to hurt and it does not, because wasmoon
+boots in milliseconds under Node and its per-preset samples are memoised at module scope. Neither
+needs a carve-out today. If a future wave pushes one of them over,
 the precedent is D-10's invariant sweep: **move it into its own Vitest project and run it per wave**,
 never trim what it covers.
+
+### The cost of thirty-six, measured
+
+`.planning/research/CATALOG-SURFACE.md` section 4 projected the cost of twenty more entries before
+any of them existed, and said so plainly: _"nothing was built or benchmarked at 36 entries."_ All of
+it was MEDIUM confidence and all of it was arithmetic. Plan 09-10 built and benchmarked at
+thirty-six, on this machine, at commit `36a1965`, and this is the comparison.
+
+| Thing                             | At 16 (measured 2026-09-07) | Projected at 36         | **Observed at 36**                | Verdict                                         |
+| --------------------------------- | --------------------------- | ----------------------- | --------------------------------- | ----------------------------------------------- |
+| `build/browse/index.html`         | 34,041 B                    | ~57,400 B               | **61,673 B**                      | +7 % over the projection                        |
+| listing chunk                     | 4,665 B                     | ~10,500 B               | **11,008 B**                      | +5 %                                            |
+| `glue.<hash>.wasm` (the Lua VM)   | 271,581 B                   | 271,581 B, +0           | **271,581 B**                     | **exactly zero growth, confirmed**              |
+| `lua_fmt_bg.<hash>.wasm`          | 628,148 B                   | 628,148 B, +0           | **628,148 B**                     | **exactly zero growth, confirmed**              |
+| protocol chunk                    | 39,269 B                    | unchanged               | **39,269 B**                      | unchanged                                       |
+| `static/og/`                      | 132 KB, 16 images           | ~300 KB                 | **292 KB, 36 images** (210,926 B) | within 3 %                                      |
+| `npm run build`                   | 12 s                        | ~16-20 s                | **12.08 s**                       | **the projection was wrong: it did not grow**   |
+| `frames.json`                     | 15,259 B                    | ~34,300 B               | **33,553 B**                      | −2 %                                            |
+| `lua-entries` sweep, combinations | 283                         | ~1,090                  | **701**                           | **−36 %** — see below                           |
+| `lua-entries` sweep, test time    | 1.47 s                      | ~5.7 s                  | **3.89 s**                        | −32 %                                           |
+| `frames.spec.ts` test time        | 318 ms                      | ~1.2 s                  | **649 ms**                        | −46 %                                           |
+| `lua-smoke.spec.ts` test time     | 129 ms                      | ~500 ms                 | **286 ms**                        | −43 %                                           |
+| mounted canvases on `/browse/`    | 16                          | 36, under a ~40 ceiling | **36**                            | exact                                           |
+| on-screen ticking cards           | ~8-12                       | ~8-12, unchanged        | **4 at 1280x720**                 | the shape of the claim held, the number did not |
+
+**Why the sweep came in at 701 rather than 1,090, and why it matters.** The projection assumed the
+twenty new entries would look like the seven that existed, and **all seven** of those carry a
+**sixteen-value MIDI-channel knob** — 7 x 16 = 112 of their 283 combinations, in one knob. **No entry
+authored in Phase 9 ships a sixteen-value channel knob**; the widest knob in any of the twenty has
+five values. The twenty added 418 combinations between them, an average of 20.9 each against the
+seven originals' 40.4. That single authoring choice is what kept the sweep affordable at twenty-seven
+entries, and it is written into TUNE-01's qualifier for the phase.
+
+**Why the build did not grow.** `gen-og.mjs` renders thirty-six 1200x630 PNGs where it used to render
+sixteen, and the whole three-stage build still finishes in 12.08 s against 12 s at sixteen entries.
+The OG stage was never the build's critical path — a Vite dev-server boot and
+`vite-plugin-sveltekit-compile`'s `writeBundle` (3.6 s of a 4.9 s Vite build, from the build's own
+`PLUGIN_TIMINGS`) are — so doubling a linear stage that was not the bottleneck cost nothing
+observable.
+
+**The zero-growth WASM claim is confirmed rather than assumed**, and it is the row worth having.
+`luaReady()` memoises the `LuaFactory` and wasmoon memoises the module inside it, so twenty more Lua
+entries add exactly **0 bytes** of WebAssembly download; both `.wasm` assets are byte-for-byte the
+sizes recorded at sixteen entries. `e2e/catalog.e2e.ts` proves the stronger half separately: a cold
+catalog load fetches neither.
+
+**The on-screen count is the one row the research got numerically wrong, and it got the reasoning
+right.** It projected ~8-12 ticking cards at both catalog sizes on the argument that the count is
+viewport-bound rather than catalog-bound. That argument is correct and it is the important half: at
+thirty-six entries, thirty-six canvases mount and **four** intersect a 1280x720 viewport at the
+four-column cap. The projection's 8-12 assumed roughly two rows plus the 200 px `rootMargin`; one row
+is what fits. Measured in Chromium against the production build through the real Worker: 36 mounted,
+4 on screen, first contentful paint 584 ms, load 731 ms, 30 resources.
 
 ### What the catalog gates prove, and what they do not
 
@@ -372,23 +519,23 @@ Phase 5 added **fifteen** `server` spec files, **two** `sweep` files, **two** Pl
 more unlinked probe route. Every count below was observed on 2026-09-04 after the phase's last plan,
 by running each file on its own; the cost column is the wall time of that single-file run.
 
-| File                                | Tests | Cost    | What it holds                                                                                                            |
-| ----------------------------------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `src/lib/tune/copy.spec.ts`         | 6     | 0.38 s  | the Copywriting Contract as executable rules: sentence case, no exclamation, the compiler's own words never rewritten    |
-| `src/lib/tune/idle.spec.ts`         | 3     | 0.22 s  | D-08's prefetch shim: `requestIdleCallback` where it exists, `setTimeout` where it does not, and an idempotent cancel    |
-| `src/lib/tune/view.spec.ts`         | 8     | 0.53 s  | the zero-import view seam: the twelve knob kinds, the widget rule, and `over` outranking staleness on a meter            |
-| `src/lib/tune/state.spec.ts`        | 5     | 0.44 s  | the reimplemented `withChange`, pinned against the vendored private it replaces                                          |
-| `src/lib/tune/knobs.preset.spec.ts` | 6     | 0.43 s  | the nine per-card descriptor lists held against `presetById(id).knobs`, and every default derived from the shipped state |
-| `src/lib/tune/knobs.lua.spec.ts`    | 4     | 0.45 s  | the Lua route arriving in the same descriptor shape, so the panel cannot tell the two routes apart                       |
-| `src/lib/tune/model.spec.ts`        | 7     | 1.35 s  | the tuner: an immediate `PadSim` preview, a 120 ms debounced compile, and the stamp precomputed on every change          |
-| `src/lib/tune/ladder.spec.ts`       | 5     | 0.71 s  | TUNE-04 and TUNE-05 against a real over-budget measurement, plus the never-writes scan over `src/lib/tune/`              |
-| `src/lib/tune/surprise.spec.ts`     | 4     | 21.64 s | `SURPRISE ME` as a property, with 18,000 draws behind it: it moves something, it lands in budget, it terminates          |
-| `src/lib/share/url.spec.ts`         | 4     | 0.37 s  | the two restated literals — the deployed origin and the vendored `STAMP_PREFIX` — held against their real sources        |
-| `src/lib/share/stamp.spec.ts`       | 8     | 0.55 s  | the base36 stamp, the entry-consistency guard and the three landings (restored, older, unreadable)                       |
-| `src/lib/og/png.spec.ts`            | 5     | 0.29 s  | the PNG encoder over `node:zlib` alone, verified byte by byte                                                            |
-| `src/lib/og/render.spec.ts`         | 4     | 0.28 s  | the 1200x630 pad, with both structural colours computed from `src/app.css`'s tokens rather than typed                    |
-| `src/lib/og/build.spec.ts`          | 5     | 0.86 s  | the `<head>` and the built artefact: every absolute `og:image` resolves back to a real file under `build/`               |
-| `src/lib/ui/tune-ui.spec.ts`        | 5     | 0.23 s  | five structural rules over the seven tuning components, including the dynamic-import rule `config-shape` test 13 misses  |
+| File                                | Tests | Cost    | What it holds                                                                                                                                                                       |
+| ----------------------------------- | ----- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/tune/copy.spec.ts`         | 6     | 0.38 s  | the Copywriting Contract as executable rules: sentence case, no exclamation, the compiler's own words never rewritten                                                               |
+| `src/lib/tune/idle.spec.ts`         | 3     | 0.22 s  | D-08's prefetch shim: `requestIdleCallback` where it exists, `setTimeout` where it does not, and an idempotent cancel                                                               |
+| `src/lib/tune/view.spec.ts`         | 8     | 0.53 s  | the zero-import view seam: the twelve knob kinds, the widget rule, and `over` outranking staleness on a meter                                                                       |
+| `src/lib/tune/state.spec.ts`        | 5     | 0.44 s  | the reimplemented `withChange`, pinned against the vendored private it replaces                                                                                                     |
+| `src/lib/tune/knobs.preset.spec.ts` | 6     | 0.43 s  | the nine per-card descriptor lists held against `presetById(id).knobs`, and every default derived from the shipped state                                                            |
+| `src/lib/tune/knobs.lua.spec.ts`    | 4     | 0.45 s  | the Lua route arriving in the same descriptor shape, so the panel cannot tell the two routes apart                                                                                  |
+| `src/lib/tune/model.spec.ts`        | 7     | 1.35 s  | the tuner: an immediate `PadSim` preview, a 120 ms debounced compile, and the stamp precomputed on every change                                                                     |
+| `src/lib/tune/ladder.spec.ts`       | 5     | 0.71 s  | TUNE-04 and TUNE-05 against a real over-budget measurement, plus the never-writes scan over `src/lib/tune/`                                                                         |
+| `src/lib/tune/surprise.spec.ts`     | 4     | 21.64 s | `SURPRISE ME` as a property, with 18,000 draws behind it: it moves something, it lands in budget, it terminates                                                                     |
+| `src/lib/share/url.spec.ts`         | 4     | 0.37 s  | the two restated literals — the deployed origin and the vendored `STAMP_PREFIX` — held against their real sources                                                                   |
+| `src/lib/share/stamp.spec.ts`       | 8     | 0.55 s  | the base36 stamp, the entry-consistency guard and the three landings (restored, older, unreadable)                                                                                  |
+| `src/lib/og/png.spec.ts`            | 5     | 0.29 s  | the PNG encoder over `node:zlib` alone, verified byte by byte                                                                                                                       |
+| `src/lib/og/render.spec.ts`         | 4     | 0.28 s  | the 1200x630 pad, with both structural colours computed from `src/app.css`'s tokens rather than typed                                                                               |
+| `src/lib/og/build.spec.ts`          | 5     | 1.38 s  | the `<head>` and the built artefact: every absolute `og:image` resolves back to a real file under `build/` — 0.86 s at sixteen images, 1.38 s at thirty-six, re-measured 2026-09-07 |
+| `src/lib/ui/tune-ui.spec.ts`        | 5     | 0.23 s  | five structural rules over the seven tuning components, including the dynamic-import rule `config-shape` test 13 misses                                                             |
 
 **The costliest file in the `server` project is now `surprise.spec.ts` at 21.6 s on its own.** It
 stays in `server` deliberately: it is 18,000 draws against a pure function with no compiler in the
@@ -399,22 +546,30 @@ parallel run it overlaps with the other 65 files — the whole `server` project 
 
 `*.sweep.spec.ts` is the file-name rule, and Phase 5 is what made it more than a convention.
 
-| File                                            | Tests | Cost alone | Why it is a sweep                                                                   |
-| ----------------------------------------------- | ----- | ---------- | ----------------------------------------------------------------------------------- |
-| `src/lib/tune/reachability.sweep.spec.ts`       | 2     | 75.8 s     | it costs all 32,852 reachable knob states of the nine shelf cards, with no sampling |
-| `src/vendor/botor/tests/pad-invariants.test.js` | 9     | 36.2 s     | 4,860 labelled states: 1,620 kind combinations times three brightness levels        |
-| `src/lib/share/stamp-roundtrip.sweep.spec.ts`   | 2     | 1.6 s      | it round-trips every one of those states through the encoder and back               |
+| File                                            | Tests | Cost alone | Why it is a sweep                                                                                                                                     |
+| ----------------------------------------------- | ----- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/tune/reachability.sweep.spec.ts`       | 2     | 75.8 s     | it costs all 32,852 reachable knob states of the nine shelf cards, with no sampling                                                                   |
+| `src/vendor/botor/tests/pad-invariants.test.js` | 9     | 36.2 s     | 4,860 labelled states: 1,620 kind combinations times three brightness levels                                                                          |
+| `src/lib/share/stamp-roundtrip.sweep.spec.ts`   | 2     | 1.6 s      | it round-trips every one of those states through the encoder and back                                                                                 |
+| `src/lib/catalog/lua-entries.sweep.spec.ts`     | 6     | 4.5 s      | 701 knob combinations over twenty-seven hand-authored entries, each `compressScript`-d and budget-checked on both events (joined in plan 09-01, D-08) |
 
-The whole `sweep` project is **3 files / 13 tests, 78.0 s** (80 s wall) against **1 file / 9 tests,
-38.3 s** before Phase 5. The invariant sweep it used to be alone in is no longer the expensive one:
+The whole `sweep` project is **4 files / 19 tests, 89.7 s** (93 s wall, 2026-09-07) against **3 files
+/ 13 tests, 78.0 s** before Phase 9 and **1 file / 9 tests, 38.3 s** before Phase 5. The invariant
+sweep it used to be alone in is no longer the expensive one:
 the reachability sweep is, and that is the price of the finding below being a measurement rather
-than an opinion.
+than an opinion. The newest member is the cheapest by an order of magnitude and it is here for
+**memory, not wall time**: it is the file that timed out three times in the quick run, and the
+project it moved into runs per wave.
 
 **Two of the three single-file costs above moved between 2026-09-04 and 2026-09-05 without a line of
 either file changing** — reachability from 125.4 s to 75.8 s, `stamp-roundtrip` from 2.3 s to 1.6 s.
 Nothing about the sweep got faster; the machine was less busy. That is the reason these numbers are
-dated and the reason no threshold is asserted against any of them. The three files run in parallel,
-which is why 75.8 + 36.2 + 1.6 is 113.6 s alone and 78.0 s together.
+dated and the reason no threshold is asserted against any of them. The files run in parallel, which
+is why 75.8 + 36.2 + 1.6 was 113.6 s alone and 78.0 s together at three members. The project reported
+**89.7 s at four members on 2026-09-07**; how much of the 11.7 s is the new file and how much is the
+machine is not separable from these two readings, and it is not claimed to be. Plan 09-01 measured
+the move in the other direction on the same day it happened, from 110 s to 87 s, because four files
+distribute across the worker pool better than three did around `pad-invariants`.
 
 ### The phase's central finding, and how it is exercised
 
@@ -504,7 +659,8 @@ entry a prerendered `/c/<id>/` page, and the routed set has exactly one declarat
 `src/lib/og/build.spec.ts` and by `e2e/artifacts.e2e.ts`. Before that widening the row WAS the routed
 set and the gate asserted the eight that had an address; the four files were amended together
 because widening any one of them alone ships eight pages whose `og:image` 404s with nothing red
-anywhere — observed between that plan's two commits. Three of the sixteen images (tpad, ghost, morph)
+anywhere — observed between that plan's two commits. **Four of the thirty-six images** (tpad, ghost,
+morph and etch — three of thirty-four until ETCH arrived in plan 09-08)
 carry no lit LED at all and are exempted by their own declared `restsBlack`, not by a list.
 
 **And a real Discord unfurl cannot be verified until the Basic Auth gate comes down.** Every crawler —
@@ -520,16 +676,16 @@ tabindex and a way back from a detail page. It added **eight** `server` spec fil
 file, **three** tests to the existing `e2e/browse.e2e.ts` and a second `@webkit`-tagged Playwright
 file. Every count below was observed on 2026-09-05 by running each file on its own.
 
-| File                                 | Tests | Cost   | What it holds                                                                                                        |
-| ------------------------------------ | ----- | ------ | -------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/catalog/listing.spec.ts`    | 5     | 0.40 s | the sixteen restated entries held against the catalog in both directions, and the zero-import scan over the source   |
-| `src/lib/browse/sort.spec.ts`        | 6     | 0.42 s | the three comparators against literal id sequences, and a scan asserting neither `localeCompare` nor `Intl` is named |
-| `src/lib/browse/filter.spec.ts`      | 6     | 0.23 s | case-and-diacritic folding, the term split, AND-combining chips, and the standing chip row derived from the data     |
-| `src/lib/browse/grid.spec.ts`        | 6     | 0.21 s | the column ladder and the whole keyboard model: clamp-never-wrap, `Home`/`End`, and `undefined` for a foreign key    |
-| `src/lib/browse/query.spec.ts`       | 5     | 0.23 s | the URL-visible state: parsed defensively, serialised canonically, an unknown `?tag=` dropped silently               |
-| `src/lib/browse/return.spec.ts`      | 4     | 0.21 s | the `sessionStorage` record, and that nothing in it ever throws                                                      |
-| `src/lib/browse/typographic.spec.ts` | 4     | 0.39 s | the apostrophe and quotation-mark rules applied to a visitor's own query                                             |
-| `src/lib/ui/browse-ui.spec.ts`       | 6     | 0.21 s | six structural rules over the browse components, including the comment-stripped "no popularity metric" scan          |
+| File                                 | Tests | Cost   | What it holds                                                                                                                                                                                                |
+| ------------------------------------ | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/catalog/listing.spec.ts`    | 5     | 0.40 s | the restated entries held against the catalog in both directions, and the zero-import scan over the source — sixteen when this row was measured, thirty-six and 0.65 s today (see the catalog section above) |
+| `src/lib/browse/sort.spec.ts`        | 6     | 0.42 s | the three comparators against literal id sequences, and a scan asserting neither `localeCompare` nor `Intl` is named                                                                                         |
+| `src/lib/browse/filter.spec.ts`      | 6     | 0.23 s | case-and-diacritic folding, the term split, AND-combining chips, and the standing chip row derived from the data                                                                                             |
+| `src/lib/browse/grid.spec.ts`        | 6     | 0.21 s | the column ladder and the whole keyboard model: clamp-never-wrap, `Home`/`End`, and `undefined` for a foreign key                                                                                            |
+| `src/lib/browse/query.spec.ts`       | 5     | 0.23 s | the URL-visible state: parsed defensively, serialised canonically, an unknown `?tag=` dropped silently                                                                                                       |
+| `src/lib/browse/return.spec.ts`      | 4     | 0.21 s | the `sessionStorage` record, and that nothing in it ever throws                                                                                                                                              |
+| `src/lib/browse/typographic.spec.ts` | 4     | 0.39 s | the apostrophe and quotation-mark rules applied to a visitor's own query                                                                                                                                     |
+| `src/lib/ui/browse-ui.spec.ts`       | 6     | 0.21 s | six structural rules over the browse components, including the comment-stripped "no popularity metric" scan                                                                                                  |
 
 Eight files, **42 tests**, and the whole set runs in well under a second. That is deliberate: every
 decidable thing on this screen lives in a pure `.ts` module with its own spec, because this
@@ -540,12 +696,19 @@ entry is proven in a browser instead — `e2e/browse.e2e.ts` (11 chromium tests)
 
 ### What the browse gates prove, and what they do not
 
-**The sixteen-canvas frame budget is a recorded measurement, not a threshold.** Test 6 of
+**The mounted-canvas frame budget is a recorded measurement, not a threshold.** Test 6 of
 `e2e/browse.e2e.ts` patches `CanvasRenderingContext2D.prototype.putImageData` in an init script and
 counts pad frames for two seconds on the built site, then records the viewport, how many cards were
 on screen and how many engines had been built beside the number. Observed at 1280x720 with 4 of 16
 cards on screen and 4 engines built: **139–156** over four runs, and **152** in the Phase 5.1 gate
-run. The test asserts only that the number is greater than zero. `.planning/research/STACK.md`'s own
+run. The test asserts only that the number is greater than zero. **At thirty-six entries the count
+that moved is the mounted one, and only that one**: plan 09-10 measured **36 canvases mounted and
+still 4 on screen** at the same 1280x720 viewport, because the four-column cap and the window decide
+the second number and the catalog decides only the first. The two independent readings of "4 on
+screen", taken four days apart at sixteen and at thirty-six entries, are the evidence that
+`.planning/research/CATALOG-SURFACE.md`'s projected 8-12 was a viewport estimate rather than a
+measurement — and that its actual claim, _"unchanged — viewport-bound"_, was right.
+`.planning/research/STACK.md`'s own
 estimate — 10–16 concurrently visible animating cards before stutter with the vendored blit, 30+
 after the two fixes HANGAR ships — is marked _"Unverified estimate — profile it"_, and this phase
 does not promote an unverified estimate into a gate that would go red on somebody else's machine for

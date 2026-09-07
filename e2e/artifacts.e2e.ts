@@ -66,7 +66,11 @@ test("every configuration's link image is served by the built site", async ({
 }) => {
   // Non-vacuous: a shortened routed set would otherwise make this test pass on
   // fewer images rather than fail on the ones that stopped being served.
-  expect(ROUTED.length, "there are images to check").toBeGreaterThanOrEqual(16);
+  // A HUMAN-CHOSEN NON-VACUITY FLOOR, NOT A COUNT. It was 16 while the catalog
+  // was sixteen and said nothing at all at thirty-six; plan 09-10 raised it. It
+  // stays a literal on purpose - `toBeGreaterThanOrEqual(ROUTED.length)` is a
+  // tautology, and the point of the line is a number somebody picked.
+  expect(ROUTED.length, "there are images to check").toBeGreaterThanOrEqual(36);
   for (const entry of ROUTED) {
     const path = `/og/${entry.id}.png`;
     const response = await request.get(path);

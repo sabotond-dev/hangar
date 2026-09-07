@@ -74,6 +74,39 @@ function pump(transport: FakeTransport, queue: RequestQueue): void {
   transport.onClose((reason) => queue.abort(reason));
 }
 
+/**
+ * Wait until the queue has actually put a request's bytes on the transport.
+ *
+ * WHY THIS IS A POLL AND NOT A `sleep`. Three tests below used `await sleep(5)`
+ * here, and 5 ms of wall clock is not 5 ms of scheduled CPU: on 2026-09-07, at
+ * the Phase 9 gate, `a request is not complete until an acknowledgement arrives`
+ * failed `npm run test:quick` with `the bytes went out: expected [] to have a
+ * length of 1` whenever free memory fell to around 0.6 GB and two other specs
+ * were saturating the pool. Nothing about the queue was wrong; the test had
+ * written down a number of milliseconds where it meant a CONDITION.
+ *
+ * The deadline is generous on purpose. It is a ceiling that says "the write
+ * never happened", not a budget: a queue that takes two seconds to write one
+ * request is a real failure and this still catches it, with a message that names
+ * what was being waited for.
+ */
+async function awaitWrite(
+  transport: FakeTransport,
+  count = 1,
+  deadlineMs = 2000,
+): Promise<void> {
+  const started = Date.now();
+  while (transport.writes.length < count) {
+    if (Date.now() - started > deadlineMs) {
+      throw new Error(
+        `the bytes never went out: waited ${deadlineMs} ms for ${count} ` +
+          `write(s) and saw ${transport.writes.length}`,
+      );
+    }
+    await sleep(1);
+  }
+}
+
 const PENDING: unique symbol = Symbol("pending");
 /** Resolves to PENDING if the promise has not settled within a beat. */
 async function settledYet<T>(p: Promise<T>): Promise<T | typeof PENDING> {
@@ -111,7 +144,7 @@ describe("request queue", () => {
       sendConfig(0, 0, 0, EVENT_TIMER, TIMER_CONFIG),
       "write-timer",
     );
-    await sleep(5);
+    await awaitWrite(transport);
     expect(transport.writes, "the bytes went out").toHaveLength(1);
     expect(
       await settledYet(pending),
@@ -265,7 +298,7 @@ describe("request queue", () => {
     const req = fetchConfig(0, 0, 0, EVENT_SETUP);
     req.timeoutMs = 2000;
     const pending = queue.request(req, "fetch-setup");
-    await sleep(5);
+    await awaitWrite(transport);
 
     // Four of these a second arrive on a real link, and this one carries the
     // active page beside it - two classes, both offered to the waiter.
@@ -357,7 +390,7 @@ describe("request queue", () => {
     const abortPromise = rejectionOf(
       abortQueue.request(abortReq, "fetch-setup"),
     );
-    await sleep(5);
+    await awaitWrite(dropped);
     abortQueue.abort("the ZONA was unplugged");
     const abortError = await abortPromise;
 

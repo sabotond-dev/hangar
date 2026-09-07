@@ -58,7 +58,11 @@ order, and all six items must hold:
    non-canonical, and its budget wrong, without changing a single character of HANGAR's source. A red
    canonical-form or budget test after a bump means the minifier moved: re-canonicalise every affected
    entry with the new `compressScript`, re-commit the entry modules, and record the move in the bump
-   log. Item (2) cannot see any of this — it covers the nine shelf presets only.
+   log. Item (2) cannot see any of this — it covers the nine shelf presets only. **This item is worth
+   nearly four times what it was when it was written**: the re-measure covered seven hand-authored
+   entries at the end of Phase 8 and covers **twenty-seven** after Phase 9, over 701 knob
+   combinations on both events, and a minifier bump can turn any one of the twenty-seven
+   non-canonical on its own.
 5. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
    below. A moved cost is a change to the budget every preset is calibrated against, not a detail.
 6. **The reachability sweep is re-run:** `npm run test:sweep` reports **4 files / 19 tests**. The
