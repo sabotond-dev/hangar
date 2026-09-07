@@ -535,6 +535,25 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "quadrant",
+    name: "QUADRANT",
+    description:
+      "Four targets big enough to hit without looking, each with its own colour and its own fill.",
+    motion: "static",
+    // Written WITH the entry, not after it: the mechanism ships timer: "" and
+    // nothing on this pad moves, so the fixture classifies it static and
+    // listing.spec.ts requires a quiet line of every entry whose motion is not
+    // animated. Never RESTS_DARK_NOTE - that sentence belongs to a
+    // restsBlack: true card and this one paints forty cells.
+    quiet:
+      "The four targets and the dark cross between them never move; that is what makes them findable.",
+    tags: ["accessible", "readable", "still", "utility"],
+    featured: true,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

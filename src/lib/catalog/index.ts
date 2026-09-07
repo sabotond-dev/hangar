@@ -24,6 +24,7 @@ import { LATTICE } from "./entries/lattice";
 import { LUMEN } from "./entries/lumen";
 import { MORPH } from "./entries/morph";
 import { PORTED } from "./entries/ported";
+import { QUADRANT } from "./entries/quadrant";
 import { SHUTTLE } from "./entries/shuttle";
 import { SLAM } from "./entries/slam";
 import { SNAKE } from "./entries/snake";
@@ -79,6 +80,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   SNAKE,
   ETCH,
   LIFE,
+  QUADRANT,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -106,6 +108,7 @@ export { SWITCH } from "./entries/switch";
 export { SNAKE } from "./entries/snake";
 export { ETCH } from "./entries/etch";
 export { LIFE } from "./entries/life";
+export { QUADRANT } from "./entries/quadrant";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
