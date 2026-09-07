@@ -71,6 +71,32 @@ how a card is tuned and shared (Phase 5). It does not widen the front-door ring.
 - **D-12 [user, standing]** No agent writes to or connects to a device. Nothing under `src/vendor/`
   is edited. The hardware checklists stay the user's.
 
+### Amended after planning (2026-09-07) **[orchestrator]**
+- **D-06 reversed.** `kind: "state"` is not the safe default; it is the *less* integrated route, and
+  no entry on the slate can use it. Two findings, both checked against shipped code:
+  `src/lib/share/stamp.ts:115-119` returns `[]` from `compilerKnobs` unless the source is a `preset`,
+  so a `state` entry carries **no knobs and no shareable stamp** and `KnobRack` renders its empty
+  copy; and every one of the twenty slate entries fails the `PadState` vocabulary individually
+  (`_pad.ts:245-356` — `sends.grid` has no 2×2, `sends.faders` is 3 or 4 only, `toggle` is
+  zones-only, `scale` is refused on the 9×9 in writing, the only HID kind is a trackpad, and nothing
+  in the sheet has a clock, a state machine or a per-cell colour map). **The phase therefore ships
+  twenty `lua` entries and zero `state` ones**, each with a per-entry route note. Making `state`
+  viable means an optional `knobKinds` on the source, which pulls those entries into the
+  reachability sweep — a phase of its own, not a patch, and it is recorded as a deferred item.
+- **D-07 widened.** The gap is larger than the three missing LED calls: `findTraps` is exported from
+  the vendored compiler and **is called by no HANGAR spec at all**, so there is no static gate over a
+  hand-authored entry's call surface today. The only backstop is a runtime raise inside whichever
+  branch the smoke gesture happens to reach. The new gate is therefore a call-site classifier, not a
+  blocklist, and the disagreement between it and `findTraps` is proved in both directions.
+- **D-09 corrected.** `planLayers` is reached only from the compile path, so it never runs for a
+  hand-authored entry and its mutual exclusions do not bind. What binds instead is the 49.6 per cent
+  single-layer cap and the two layers an entry owns directly. The decision survives in substance —
+  every entry states its layer plan — but for the right reason.
+- **Consequence for D-02.** Twenty-seven of thirty-six entries will be hand-authored Lua, and no Lua
+  entry can enter the front-door ring while `front-door.spec.ts:110-112` requires `preview ===
+  "padsim"`. The ring stays at eight as the user ruled; whether that rule should be retired is now
+  the sharper question and is left open below.
+
 ## The slate
 
 Twenty configurations, cut from forty-four candidates in `.planning/research/USE-CASES.md`.

@@ -255,7 +255,19 @@ Plans:
   3. No configuration in the phase depends on inbound host MIDI, on Grid Editor running, or on a capability the simulator cannot render; the clock-locked family stays deferred behind docs/MIDI-IN-PROBE.md.
   4. A call the Lua host does not register is refused by a gate before it can reach an entry, closing the gap where recipe-book code passes the static trap scanner and raises at runtime.
   5. The front-door ring is unchanged at eight entries, and the browse page, the catalog gates and the budget sweep stay green at thirty-six.
-**Plans**: TBD
+**Plans**: 10 plans in 10 waves
+
+Plans:
+- [ ] 09-01-PLAN.md — The five baselines, the host-surface gate that closes the trap-scanner gap, and the knob sweep out of the quick run (wave 1)
+- [ ] 09-02-PLAN.md — The browse literals derived or recorded, the catalog copy gate, and an execution gate that counts a keystroke as output (wave 2)
+- [ ] 09-03-PLAN.md — HOLD, STEPS and SLAM: latching, a sweeping column, and velocity from position (wave 3)
+- [ ] 09-04-PLAN.md — KEYS, GRIDLOCK and TABLE: an in-key grid, eighty-one clips, and a drawn waveform (wave 4)
+- [ ] 09-05-PLAN.md — CONSOLE, STRIP and LEARN: nine strips with a mute, one fourteen-bit fader, and the mapping helper (wave 5)
+- [ ] 09-06-PLAN.md — LUMEN, STAGE and SHUTTLE: a colour picker, a scene switcher and a shuttle, and the first cards HANGAR cannot show working (wave 6)
+- [ ] 09-07-PLAN.md — CULL, FORGE and SWITCH: ratings by shape, a modal macro bank, and nine glyph blocks (wave 7)
+- [ ] 09-08-PLAN.md — SNAKE, ETCH and LIFE: the three cards a visitor who owns no ZONA opens the site for (wave 8)
+- [ ] 09-09-PLAN.md — QUADRANT and POMODORO: four large targets and a draining ring, and the twentieth entry lands (wave 9)
+- [ ] 09-10-PLAN.md — The measured cost of thirty-six, the audition as one document, the phase gate and the hardware checkpoint (wave 10)
 
 ## Progress
 
