@@ -932,6 +932,7 @@ editing or edited. Nothing under `src/lib/tune/` was touched. No sibling reposit
 | `5020956` | `feat(09-08): SNAKE - a game that plays itself on the shelf, identically every time`         |
 | `a8964c2` | `feat(09-08): ETCH and LIFE - a canvas that is honestly black, and an automaton that re-seeds` |
 | `49c1479` | `chore(09-08): the fixture at thirty-four, a twenty-six chip row, three bench rows`          |
+| `51a46d3` | `docs(09-08): the sixth entry wave recorded, and the two corrections it needed to be a game at all` |
 
 ## Self-Check: PASSED
 
