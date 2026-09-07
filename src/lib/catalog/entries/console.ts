@@ -79,8 +79,10 @@
 //     every value of @LEVELC, @RAILC and @MUTEC is inside 0..255 by
 //     construction.
 //   - NO KEEPER AND NO DECAY. Nothing here writes glt, glf or glpfs at all, so
-//     there is no countdown to freeze and no rate to wrap. `grep -c "65535"`
-//     over this file prints 0.
+//     there is no countdown to freeze and no rate to wrap, and pitfall 1 cannot
+//     arise. Count the maximum timeout in the SETUP STRING rather than in this
+//     file, for the reason STRIP's header gives about its own trap number: a
+//     trap nobody wrote down is a trap somebody re-introduces.
 //   - THE LATCH WARNING, and it is the same one HOLD carries. Firmware advances
 //     prev_* before the writability check, so a dropped release leaves a
 //     permanently stuck contact, and pad-sim.ts states plainly that it cannot

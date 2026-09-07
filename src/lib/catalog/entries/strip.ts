@@ -54,8 +54,12 @@
 // for the full fourteen-bit range directly. It does not work: the sensor
 // resolves 1024 steps whatever maximum is set, and 16384*1023/1024 is 16368, so
 // the top fifteen codes would be permanently unreachable and the fader would
-// stop short of the top for no visible reason. Set 1023 and scale in Lua. The
-// only 16383 in this file is the value clamp.
+// stop short of the top for no visible reason. Set 1023 and scale in Lua.
+// THE STORED LUA CONTAINS EXACTLY ONE 16383 AND IT IS THE VALUE CLAMP -
+// measured, not asserted: the template splits on "16383" into two pieces, and
+// both txma and tyma take 1023. This header names the number five more times on
+// purpose, because a trap nobody wrote down is a trap somebody re-introduces, so
+// count the occurrences in the SETUP string rather than in the file.
 //
 // THE LOOK, and why restsBlack is FALSE. Setup paints the bar at h = 4, so the
 // card arrives as a half-open fader over a dim rail rather than as a black
