@@ -14,7 +14,7 @@ This document is the list of things a machine cannot check. Perceived polyrhythm
 codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brightness after the
 divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
 real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
-left alone for fifteen minutes. Twenty-four rows, each with the reason it belongs to a bench and not
+left alone for fifteen minutes. Twenty-seven rows, each with the reason it belongs to a bench and not
 to a test suite.
 
 It runs on your bench, in daytime, and it blocks nothing. The phase is complete and green without it.
@@ -41,7 +41,7 @@ vendored.
 4. **MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN and LUMEN are Setup only** — none
    of the nine has a Timer at all, the Timer event of each is the empty string, and they are the
    nine cards that start from the Setup alone. They are the exceptions that prove the rule above.
-5. **Have somewhere to write twenty-four lines.** The results go back into this document under a dated
+5. **Have somewhere to write twenty-seven lines.** The results go back into this document under a dated
    `Results` heading; see [What to record](#what-to-record).
 
 ## Getting the exact text
@@ -53,7 +53,7 @@ AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
 ```
 
 It writes `.tmp-audition/<id>.setup.lua` for every hand-authored configuration and
-`.tmp-audition/<id>.timer.lua` for every one that has a Timer — nineteen Setup files and ten Timer
+`.tmp-audition/<id>.timer.lua` for every one that has a Timer — twenty-two Setup files and eleven Timer
 files — rendered at that configuration's default knob positions, and prints each file's character
 count beside the 908-character budget. `.tmp-audition/` is gitignored; the command commits nothing
 and, unlike the repository's other env-guarded writers, it does not fail the run.
@@ -64,11 +64,12 @@ what the dump writes. Retyping a line of it by hand is how a one-character diffe
 of confusion — and because every configuration is stored in canonical compressed form, one stray
 space is also a budget change.
 
-## The nineteen, and what they cost
+## The twenty-two, and what they cost
 
 Measured at their default knob positions with the pinned minifier. The first seven come from
 `08-06-SUMMARY.md`; HOLD, STEPS and SLAM were measured by `09-03-SUMMARY.md`, KEYS, GRIDLOCK and
-TABLE by `09-04-SUMMARY.md`, and CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`:
+TABLE by `09-04-SUMMARY.md`, CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`, LUMEN, STAGE and SHUTTLE by
+`09-06-SUMMARY.md`, and CULL, FORGE and SWITCH by `09-07-SUMMARY.md`:
 
 | id         | name     | Setup | Timer            | knobs | dark at rest |
 | ---------- | -------- | ----- | ---------------- | ----- | ------------ |
@@ -91,15 +92,19 @@ TABLE by `09-04-SUMMARY.md`, and CONSOLE, STRIP and LEARN by `09-05-SUMMARY.md`:
 | `lumen`    | LUMEN    | 604   | 0 — **no Timer** | 4     | no           |
 | `stage`    | STAGE    | 505   | 109              | 4     | no           |
 | `shuttle`  | SHUTTLE  | 663   | 201              | 6     | no           |
+| `cull`     | CULL     | 564   | 0 — **no Timer** | 4     | no           |
+| `forge`    | FORGE    | 716   | 373              | 5     | no           |
+| `switch`   | SWITCH   | 487   | 0 — **no Timer** | 4     | no           |
 
-**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN and LUMEN are Setup only, and that is
-legitimate rather than an omission.** MORPH and SLAM animate only under a finger, with a per-touch
+**MORPH, SLAM, KEYS, GRIDLOCK, TABLE, CONSOLE, STRIP, LEARN, LUMEN, CULL and SWITCH are Setup only,
+and that is legitimate rather than an omission.** MORPH and SLAM animate only under a finger, with a per-touch
 decay that firmware runs down to black on its own; KEYS paints a scale map once and never moves it;
 GRIDLOCK's ripple carries its own countdown down to exact black; TABLE redraws only when a finger
 crosses a shape boundary; CONSOLE, STRIP and LEARN are control surfaces whose picture is a readout
 of the last value you sent, repainted on the change that caused it and never otherwise; and LUMEN
-computes eighty-one colours once and then has nothing left to do.
-None of the nine has anything for a Timer to advance. Store nothing into event 6 for any of them;
+computes eighty-one colours once and then has nothing left to do; and CULL and SWITCH both paint a
+legend once and then have only a per-press decay, which firmware runs down to exact black on its own.
+None of the eleven has anything for a Timer to advance. Store nothing into event 6 for any of them;
 row 1's install-order rule below does not apply to a configuration that has no Timer at all.
 
 GHOST and MORPH being dark at rest is a declared fact about them, not a fault: GHOST has nothing to
@@ -113,7 +118,7 @@ research document prints 42 there; 41 is what the arithmetic says and what the m
 
 ## The checklist
 
-Twenty-four rows, in order. Each names why it cannot be simulated, so no row is busywork.
+Twenty-seven rows, in order. Each names why it cannot be simulated, so no row is busywork.
 
 | #   | Config            | What to check                                                                                                                                                                                                                                                                             | Why it cannot be simulated                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -141,6 +146,9 @@ Twenty-four rows, in order. Each names why it cannot be simulated, so no row is 
 | 22  | **LUMEN**         | Hold the module beside a lit fixture driven by the colours it is sending and compare the two by eye, at three points across the pad and at the top and bottom of a column.                                                                                                                | No gamma correction anywhere in the WS2812 path and no colour management at either end — the desk has its own curve and the lamp its own gamut. Whether two lights match is the one question only two lights answer.                                                                                                                                                                                                                                                              |
 | 23  | **STAGE**         | Plug the module into a computer with OBS open, bind three scenes to the keys this card sends, and press them. **Do the keystrokes arrive at all, and do they arrive as the right keys?** Try it with a modifier and without one.                                                          | **`gks` is recorded and inert in the browser** — `src/lib/sim/lua-host.ts` binds it to `recordHid` and says at `:429` that nothing in HANGAR consumes them. Every keystroke configuration in this catalog is unverified until this row is run, and no gate in this repository can catch a wrong usage id.                                                                                                                                                                         |
 | 24  | **SHUTTLE**       | Scrub in a video editor at each of the four speeds, in both directions. Do the keystrokes keep up, does the transport actually reverse, and does the arc's spin match how fast the picture is moving?                                                                                     | The same HID invisibility as row 23, plus the 256-byte per-cycle protocol buffer: `gks` costs 10 + 4n bytes and one 10 ms cycle holds about sixty-one key steps, so whether the module can press a key as fast as the top speed asks is a firmware question a simulator cannot answer.                                                                                                                                                                                            |
+| 25  | **CULL**          | Look at the pad through a colour-blindness simulator, or squint until the five colours merge into one. Are the five ratings still tellable apart, and can you name which band is which without checking?                                                                                  | The claim is about perception under a condition no frame hash models. A physical diffuser blurs a one-cell fill in a way a pixel grid does not, and whether a checker and a three-pip row survive that blur is the whole accessibility claim this card makes.                                                                                                                                                                                                                     |
+| 26  | **FORGE**         | Hold the bottom-right corner, run three macros, release. Then hold it and lift with a fast flick a dozen times, and once slide off the corner before lifting. **Does the bank ever stay stuck in B?** Then hold it still for fifteen seconds and confirm the watchdog drops it back to A. | **The dropped-release bug.** Firmware advances `prev_*` before the writability check (`grid_ui_touch.c:126-142`) and `pad-sim.ts` states it only runs the watchdog semantics and cannot manufacture the stuck contact, so a stranded bank is invisible in a browser. The watchdog that answers it is a mitigation nobody has watched fire on hardware.                                                                                                                            |
+| 27  | **SWITCH**        | Stand two metres back. Can you name which block is which without reading a label, and does the pressed block read as a solid flash rather than as a brighter mark?                                                                                                                        | Whether nine three-cell marks are distinguishable at a distance through a diffuser is exactly the kind of judgement a frame comparison cannot make, and the field colour that separates them is nine times dimmer than the marks with no gamma correction anywhere in the path.                                                                                                                                                                                                   |
 
 ## What to record
 
