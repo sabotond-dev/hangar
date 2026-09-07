@@ -554,6 +554,19 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+
+  {
+    id: "pomodoro",
+    name: "POMODORO",
+    description:
+      "A twenty-five minute ring draining around the edge, so the time left is a thing in the room.",
+    motion: "animated",
+    tags: ["ambient", "calm", "still", "utility"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**
