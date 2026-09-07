@@ -75,6 +75,7 @@ type Copy = {
  * wave of phase 09.
  */
 const KNOWN_TAGS = [
+  "accessible",
   "ambient",
   "automation",
   "blend",
@@ -106,6 +107,7 @@ const KNOWN_TAGS = [
   "mixing",
   "modulation",
   "multi-touch",
+  "photo",
   "pitch-bend",
   "playable",
   "pointer",

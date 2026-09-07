@@ -10,6 +10,7 @@
 import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { CONSOLE } from "./entries/console";
+import { CULL } from "./entries/cull";
 import { EUCLID } from "./entries/euclid";
 import { GHOST } from "./entries/ghost";
 import { GRIDLOCK } from "./entries/gridlock";
@@ -67,6 +68,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   LUMEN,
   STAGE,
   SHUTTLE,
+  CULL,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -88,6 +90,7 @@ export { LEARN } from "./entries/learn";
 export { LUMEN } from "./entries/lumen";
 export { STAGE } from "./entries/stage";
 export { SHUTTLE } from "./entries/shuttle";
+export { CULL } from "./entries/cull";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {

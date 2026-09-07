@@ -454,6 +454,20 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "cull",
+    name: "CULL",
+    description:
+      "Rate a photo without leaving the keyboard: each rating has its own colour and its own shape.",
+    motion: "static",
+    quiet:
+      "The five bands are a legend, not an animation; only the band you press flashes.",
+    tags: ["photo", "accessible", "utility", "precise"],
+    featured: false,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**
