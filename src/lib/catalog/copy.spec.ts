@@ -93,6 +93,7 @@ const KNOWN_TAGS = [
   "hands-free",
   "harmonic",
   "hypnotic",
+  "in-key",
   "instrument",
   "isomorphic",
   "latching",

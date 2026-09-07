@@ -332,6 +332,20 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "keys",
+    name: "KEYS",
+    description:
+      "Every note of one key across the pad: roots bright, the scale dim, and the wrong notes dark.",
+    motion: "static",
+    quiet:
+      "The key sits on the pad whether or not anyone is playing it; the light is the map, not the motion.",
+    tags: ["harmonic", "in-key", "playable", "readable"],
+    featured: true,
+    addedAt: "2026-09-07",
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**
