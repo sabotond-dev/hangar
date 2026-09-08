@@ -172,7 +172,7 @@ is deleted; everything is rewritten by name.
 
 | # | String | Where it lives | Pinned | Ruling | §  |
 |---|--------|----------------|--------|--------|----|
-| R-01 | `You’ve got to start somewhere…` | `FrontDoor.svelte:180` | literal | **Retired.** Replaced by `PICK ONE · IT IS ALREADY RUNNING` (32) in the Micro role | 13.2 |
+| R-01 | `You’ve got to start somewhere…` | `FrontDoor.svelte:180` | literal | **Retired.** Replaced by `START EXPLORING` (15) in the Micro role | 13.2 |
 | R-02 | `PICKER_EXPLAINER` | `session-copy.ts:193-194` | **130** | **Retired outright.** The browser's own prompt explains itself the instant it appears; a paragraph predicting it is the definition of unnecessary text. CONN-03 is satisfied by the `SAFE_NOTE` beneath the control | 13.2 |
 | R-03 | `SAFE_PROMISE` | `session-copy.ts:220-221`, rendered at `DeviceDetails.svelte:305` and `DeviceNote.svelte:191` | **88**, `session-copy.spec.ts:298` | **Retired as a paragraph, preserved as a guarantee.** Replaced by `SAFE_NOTE` (35), a permanent unconditional line on the primary control. SAFE-01 stays `[x]`; `REQUIREMENTS.md:169`'s closure record is amended by name and dated. **This is Open for the user, item 1** | 10.1 |
 | R-04 | `FIDELITY_LINE` | `fidelity-line.ts:28-29` | **231** | **Retired at 231, rewritten at 44.** `Every pad here runs the firmware’s own code.` PREV-03's claim is kept whole; the "what a screen cannot show" apology is retired | 13.2 |
@@ -226,6 +226,7 @@ an A-number in §19's register, so the two tables cannot disagree about how many
 | A-40 | The lattice is **monochrome**; the distinguished cross is scale and opacity. **The reserved list stays at eight** | nothing. §7.2's table gains a fifth row | 19.1a, 7.2 |
 | A-41 | The **pill** is Secondary's shape and the word row's selected option; **Quiet and Bare stay shapeless** | nothing. §10.3's four tiers stand verbatim; two rows change shape | 19.1b, 10.3 |
 | A-42 | The **index-and-em-dash headline** is sibling furniture on `/browse/` only, never in the device flow | nothing. **A-23's "no step numerals" is upheld against D-15** | 19.1f |
+| A-43 | **The front-door headline is `START EXPLORING` (15), not `PICK ONE · IT IS ALREADY RUNNING` (32)** (user, 2026-09-08). At two words it is inside §5.2's uppercase rule, so the exception declared for the old headline is retired and the middle dot goes with it. The shipped edit belongs to 10-13.1, which owns the headline | **R-01's replacement text**, §5.2's exception paragraph, §13.0's declaration and §13.1's row. A-42's index form becomes the only declared exception | 13.1 |
 
 **No copy retirement, no gate retirement and no data re-cut is added by these six.** §3.1 stays at ten
 retirements in a register of eleven rows, §3.2 stays at nine gate amendments, §3.3 stays at four data
@@ -359,10 +360,10 @@ carrying one weight each cannot make a poster and a paragraph out of the same la
 **Rules that survive unchanged.**
 
 - Uppercase stays reserved for the wordmark, button labels and structural captions of **at most two
-  words**. Every new uppercase string in §13 is a label or a one- or two-word caption. `PICK ONE ·
-  IT IS ALREADY RUNNING` is the single exception and it is declared as one: it is a **headline set in
-  the Micro role**, not a caption, and it earns the case because it is the only line on the front
-  door that is not a sentence.
+  words**. Every new uppercase string in §13 is a label or a one- or two-word caption, and
+  **there is no exception**. The headline `START EXPLORING` is two words, so it satisfies the rule as
+  written rather than standing outside it — A-43 retired the exception the previous headline
+  needed, and with it the middle dot that separated its two halves.
 - "Quiet" is achieved with colour, never with a smaller size.
 - **No italics anywhere** (D-12). Inter's italic file is not installed, not imported, and not
   referenced. `10-RESEARCH.md` §2.5's five mitigations for all-italic body text are moot and the
@@ -821,7 +822,7 @@ entry to browse instead of a rival to it**.
 
 1. Splash, unchanged.
 2. Header: wordmark · device slot · header note (now 24px, §12) · `BROWSE ALL`.
-3. **Headline**, Micro role: `PICK ONE · IT IS ALREADY RUNNING` (32).
+3. **Headline**, Micro role: `START EXPLORING` (15).
 4. Coverflow band, seven pads, unchanged geometry and unchanged depth ladder.
 5. Name plate, unchanged.
 6. **New — the `FOR` row.** The ten workflow terms, rendered on `/` as **links**, not checkboxes:
@@ -1564,8 +1565,8 @@ user is never ambiguous, and `CLEAR FILTERS` is a third string that names its ob
 unaffected. The alternative, renaming one of them, would either put a verb the site does not use on a
 search field or weaken the one word that says exactly what the device control does.
 
-**One case exception is declared:** `PICK ONE · IT IS ALREADY RUNNING` is a headline set in the Micro
-role rather than a caption, and it is the only uppercase string on the site longer than two words.
+**No case exception is declared.** The headline `START EXPLORING` is set in the Micro role rather than
+as a caption, but at two words it is inside §5.2's rule and needs no exemption (A-43).
 
 **Every string below was counted by script**, not by eye. The counts are code-point counts of the
 exact literal.
@@ -1580,7 +1581,7 @@ rewritten in the same commit as the string it pins.
 | Element | Copy | n |
 |---------|------|---|
 | Splash wordmark · header wordmark | `HANGAR` | 6 |
-| **Headline** *(replaces R-01)* | `PICK ONE · IT IS ALREADY RUNNING` | **32** |
+| **Headline** *(replaces R-01)* | `START EXPLORING` | **15** |
 | **Fidelity line** *(replaces R-04)* | `Every pad here runs the firmware’s own code.` | **44** |
 | `FOR` row caption | `FOR` | 3 |
 | Name plate | `{entry.name}`, verbatim | — |
@@ -1999,8 +2000,8 @@ than mono so §19.1c's count stays at six.
 
 **On `/browse/`'s two facet rows and on nothing else in this phase** (A-42). Uppercase captions of at
 most two words are unaffected: the index is not a word and the rule counts words in the string, which
-does not change. This is the **second** declared exception to §5.2's uppercase rule after
-`PICK ONE · IT IS ALREADY RUNNING`, and it is declared as one.
+does not change. This is now the **only** declared exception to §5.2's uppercase rule — A-43 retired the
+headline's, so the index form stands alone, and it is declared as one.
 
 ### §19.1g — How the instrument register is held
 
@@ -2105,7 +2106,7 @@ Nothing below is assumed. Each is a real fork with the cost of each side stated.
     a facet. The full assignment for all thirty-six is in §9.4 and is the thing most worth a read.
 11. **`RESTS_DARK_NOTE` and `restsBlack`-as-rendering-input are retired; four demo paths ship**
     (A-16). The alternative changes four configurations.
-12. **The headline** `PICK ONE · IT IS ALREADY RUNNING` (32) replaces `You’ve got to start
+12. **The headline** `START EXPLORING` (15, A-43) replaces `You’ve got to start
     somewhere…`. It is the one piece of brand voice in this document that is entirely mine.
 13. **The fidelity line at 44 characters** (A-32). It is a signed-off PREV-03 string being cut by 187
     characters.

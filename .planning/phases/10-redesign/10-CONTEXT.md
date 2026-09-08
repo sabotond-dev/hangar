@@ -172,6 +172,21 @@ wave 15 and its `depends_on` from `10-13` to `10-13.1`, and that is the whole ri
 seven downstream plans is what this phase's checker warned against three times, and the 5.1 precedent
 says a decimal insert is the house answer.
 
+### D-18 [user] The front-door headline is `START EXPLORING`
+
+Replacing `PICK ONE · IT IS ALREADY RUNNING` (32) with **`START EXPLORING` (15)**, given 2026-09-08.
+
+Two consequences beyond the string. At **two words** it is inside §5.2's rule that uppercase is
+reserved for the wordmark, button labels and captions of at most two words — so **the case exception
+the previous headline required is retired**, and A-42's index-and-em-dash form becomes the only
+declared exception in the phase rather than the second. The middle dot goes with it, and §13's
+separator inventory loses a use.
+
+Nothing in `src/` or `e2e/` pins the old literal or its length — the only shipped occurrence is
+`FrontDoor.svelte:307` plus the comment above it arguing for the exception. The edit is **10-13.1's**,
+the wave that owns the headline, so it lands with that wave's gates rather than as a loose change.
+Recorded as **A-43** in the UI spec.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
