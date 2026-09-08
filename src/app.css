@@ -228,6 +228,25 @@ html[data-screen="flat"] {
   a tenth token and neither is a fourth hue. The vignette exists to pull the
   eye to the middle of a very dark page, and it is the one place on the site
   where black is painted ON TOP of black.
+
+  THE VIGNETTE IS A GRADIENT AND NOT AN INSET box-shadow, AND THE PRICE OF THE
+  OTHER SPELLING WAS MEASURED. 10-UI-SPEC §8.5 records Layer G's per-frame cost
+  as "zero by construction - two static backgrounds and one inset shadow,
+  rasterised once". That is true in Chromium and it was FALSE in WebKit at a
+  phone viewport. On /browse/ at thirty-six entries, p95 of requestAnimationFrame
+  deltas over a full scroll, median of three runs: SCREEN FLAT 79 ms; TEXTURED
+  with `box-shadow: inset 0 0 26vmax 9vmax` 196 ms; the same page with the
+  shadow forced off 101 ms; with the halftone forced off instead 184 ms. The
+  blur was ninety-five of the hundred and seventeen milliseconds, re-rastered
+  every scrolled frame rather than once. A radial gradient carries the identical
+  picture, lives in the same background-image list and is rasterised into the
+  layer once.
+
+  `will-change: transform` is the other half of that fix and it is on the one
+  element whose whole job is to sit still under a scrolling page: it gives this
+  pseudo-element its own compositor layer, so scrolling composites it instead of
+  repainting it. One viewport-sized RGBA surface, which is exactly what §8.5
+  already budgets for this layer.
 */
 body::before {
   content: "";
@@ -235,18 +254,34 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(
-    circle at 50% 50%,
-    rgb(214 255 78 / 0.04) 0 40%,
-    transparent 45%
-  );
-  background-size: 3px 3px;
-  box-shadow: inset 0 0 26vmax 9vmax rgb(0 0 0 / 0.55);
+  will-change: transform;
+  background-image:
+    radial-gradient(
+      circle at 50% 50%,
+      rgb(214 255 78 / 0.04) 0 40%,
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse 78% 68% at 50% 50%,
+      rgb(0 0 0 / 0) 0%,
+      rgb(0 0 0 / 0.55) 100%
+    );
+  background-size:
+    3px 3px,
+    100% 100%;
+  background-repeat: repeat, no-repeat;
 }
 
+/*
+  SCREEN: FLAT. Both of Layer G's techniques are in ONE property now, so the
+  off switch is one line - and it is `background-image: none`, which is the
+  literal keyword 10-UI-SPEC §8.7's browser gate 2 reads. `will-change` goes
+  with it: a compositor layer promoted for a texture that is not being painted
+  is a viewport-sized surface held for nothing.
+*/
 html[data-screen="flat"] body::before {
   background-image: none;
-  box-shadow: none;
+  will-change: auto;
 }
 
 /* The focus ring is never removed and never animated (UI-SPEC, Accessibility

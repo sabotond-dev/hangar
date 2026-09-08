@@ -35,6 +35,19 @@
   "no preference recorded". A missing courtesy may never be the reason a
   visitor has no page. Nothing here reads or writes `hangar.snapshot.v1`.
 
+  ONE FRAME IS NOT COVERED, AND IT WAS OBSERVED RATHER THAN REASONED ABOUT.
+  Every route is prerendered, and the static HTML carries no `data-screen`, so
+  a visitor who chose FLAT sees a frame or two of texture on a COLD arrival
+  before this module runs - src/app.css's `--crt: 1` default is what stands
+  until then. e2e/aesthetic.e2e.ts caught it: a single read of the attribute
+  straight after a reload came back null on webkit-phone and "flat" on
+  chromium, purely on timing, which is why that assertion is a poll and says
+  "once this page has hydrated". Closing the window entirely means a BLOCKING
+  INLINE SCRIPT in src/app.html, which would put a second copy of the default
+  rule (recorded choice, else reduced motion, else textured) in a file no test
+  reads. That is a drift hazard this phase has spent three plans refusing to
+  accept elsewhere, so the window is recorded rather than papered over.
+
   THE DEFAULT IS READ ONCE AND NEVER SUBSCRIBED TO. `prefers-reduced-motion`
   picks the default at first paint and nothing more: a live subscription would
   flip a visitor's own explicit choice out from under them the moment the
