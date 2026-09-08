@@ -1,13 +1,49 @@
 @import "tailwindcss";
 
 /*
-  D-24 / UI-SPEC W-01: Quicksand, self-hosted from node_modules, two weights and
-  the latin subset only. Never a CDN — the site works offline, makes no
-  third-party request, and asks no font-src question of a future CSP. Every
-  @import must precede the rules below it or the browser drops it.
+  D-24 / UI-SPEC W-01, amended by 10-UI-SPEC §5.1 (D-14): two faces, both
+  self-hosted, latin only. Inter Variable carries every sentence on the site
+  (D-12: upright, never italic); Grifter carries the wordmark, the one heading
+  and every micro label. Never a CDN — the site works offline, makes no
+  third-party request, and asks no font-src question of a future CSP.
+
+  Inter is written out as an @font-face rather than @import-ed because
+  @fontsource-variable ships only axis-scoped CSS carrying all seven subsets,
+  six of which HANGAR never uses. The relative url() below is §5.1 candidate
+  (b), proved by plan 10-01 under `vite build` AND `vite preview` at this
+  file's own depth: Vite fingerprints it into _app/immutable/assets/ and serves
+  it 200 as font/woff2, 48,256 bytes. The un-fingerprinted path 404s, so the
+  rewrite is load-bearing and a hand-written path would not have worked. A bare
+  package specifier inside url() is NOT a resolution Vite documents and would
+  have shipped verbatim into the built stylesheet.
 */
-@import "@fontsource/quicksand/latin-400.css";
-@import "@fontsource/quicksand/latin-600.css";
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+/* THE ONE SWAPPABLE BLOCK (D-14). Grifter, ONE static face, served from the
+   site and excluded from the source archive (D-13). No unicode-range: the
+   shipped .woff2 is not subset, and an incomplete range would silently fall
+   through to system-ui for any character outside it. If the licence answer is
+   no - or if the user takes the A-02 reversal in Open item 2 - this block's
+   family, weight and src become one Archivo Variable face and
+   --font-display's first family changes. Two lines. Nothing else moves. */
+@font-face {
+  font-family: "Grifter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/GRIFTER-Bold.woff2") format("woff2");
+}
 
 /*
   IDENT-01 — the HANGAR design system.
@@ -26,10 +62,22 @@
   over-budget message. It is never a button fill, never a button border, never a
   knob, never body text, and never applied to TRY ON DEVICE.
 
+  10-UI-SPEC §5.1 and §7.1 amend this block in two ways and in no others. TYPE:
+  there are two faces and two font tokens — --font-sans for every sentence and
+  --font-display for the wordmark, the heading and the micro labels. The display
+  face is reachable through exactly ONE custom property and exactly ONE
+  @font-face block, and no component, no utility class and no other rule ever
+  writes a display family name, so answering the licence question differently
+  costs two lines here and moves nothing else (D-14). COLOUR: --crt-scanline
+  joins the file below the @theme block. It is the ground at an alpha, not a
+  hue — it darkens, it never tints — so THE LADDER IS STILL NINE and the hex set
+  is still three.
+
   src/lib/ui/identity.spec.ts still guards all of it: it goes red if a TENTH
   token is added to this block, if a FOURTH hue appears anywhere in this file,
-  or if a text token drops below WCAG AA on the ground. The favicon's own guard
-  is untouched and still permits two colours only — no red enters the mark.
+  if a text token drops below WCAG AA on the ground, or if --font-display names
+  a family that no @font-face in this file declares. The favicon's own guard is
+  untouched and still permits two colours only — no red enters the mark.
 
   The contrast figure beside each text token is the value the spec approved and
   the value the spec file recomputes from the alpha; it is documentation of an
@@ -68,12 +116,27 @@
      are distinguishable by luminance rather than by hue. */
   --color-over: #ff3b30;
 
+  /* The display face, named once. Editing this line without the @font-face
+     above it — or that block without this line — is red, not a silent fall
+     through to ui-sans-serif. */
+  --font-display: "Grifter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-sans:
-    "Quicksand", ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display",
-    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
     monospace;
+}
+
+/* The scanline, declared HERE and not in the component that paints it
+   (10-UI-SPEC §7.1). identity.spec.ts reads this one file and nothing else, so
+   a rgb(0 0 0 / 0.50) written inside PadFrame.svelte's <style> would be
+   invisible to every colour gate the site has. It is deliberately NOT a
+   --color-* token and deliberately NOT inside @theme: it is the ground at an
+   alpha rather than a rung of the nine-token ladder, and a tenth --color-* is
+   still red. */
+:root {
+  --crt-scanline: rgb(0 0 0 / 0.5);
 }
 
 html {

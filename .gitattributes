@@ -6,6 +6,13 @@
 CLAUDE.md export-ignore
 .gitattributes export-ignore
 
+# D-13: the Grifter binary is SERVED from the site but is not redistributed with it.
+# `git archive HEAD` publishes this tree at an unauthenticated URL, which is a different
+# permission from displaying a face on your own site, and the one most foundry licences
+# withhold. static/fonts/README.md stands in the archive in its place, naming the family
+# and where to obtain it. src/lib/ui/font-assets.spec.ts asserts this line exists.
+static/fonts/GRIFTER-Bold.woff2 export-ignore
+
 # LF in the index everywhere; this is a Windows checkout with CRLF working copies.
 * text=auto eol=lf
 
