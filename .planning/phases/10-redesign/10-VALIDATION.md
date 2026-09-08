@@ -227,7 +227,7 @@ per-file count. The `test:quick` file column counts spec files added or removed.
 | 10-12 | 12 | +0 | **+3** | unchanged | unchanged | `install.spec.ts` 18 → 21 and **nothing else moves**: `install-copy.spec.ts` 6, `session.spec.ts` 21 (test 15's needles go 9 → 10 *inside* it), `device-ui.spec.ts` 11, `snapshot.spec.ts` 7, and no spec file is created. Revision 1 read `+4` on a `session.spec.ts +1` that `:255` below and 10-12's own task 02 both deny; **term retired 2026-09-08** |
 | 10-13 | 13 | +0 | **+3** | unchanged | **+4** | `device-ui.spec.ts` +3; `install.e2e.ts` +2 × 2 projects |
 | 10-14 | 14 | +0 | +0 | unchanged | unchanged (measured) | the gate |
-| **Phase total** | | **+5** | **+38** | `4 19`, **+1 restructure** | **+12** | reconciled at 10-14, never asserted before it, and **re-derived from the per-file table below rather than from the plans’ own `check-counts` lines**: 6+1+0+6+5+4−1+0+3+6+2+3+3 = 38. The e2e total is `BASE_E2E + 12` in four terms: aesthetic 4×2 (10-04), **10-05 0**, **10-07 0**, install 2×2 (10-13) |
+| **Phase total** | | **+6** | **+40** | `4 19`, **+1 restructure** | **+12** | reconciled at 10-14, never asserted before it, and **re-derived from the per-file table below rather than from the plans’ own `check-counts` lines**: 6+1+0+6+5+4−1+0+3+6+4+3+3 = 40. The e2e total is `BASE_E2E + 12` in four terms: aesthetic 4×2 (10-04), **10-05 0**, **10-07 0**, install 2×2 (10-13) |
 
 **A wave asserts against `PREV_FILES` / `PREV_TESTS`**, the tree the previous plan left. **Only 10-14
 asserts against `BASE_FILES` / `BASE_TESTS`**, and its number is the phase total written out as a
@@ -248,6 +248,8 @@ Per-file counts, which **are** asserted absolutely:
 | `src/lib/browse/filter.spec.ts` | **6**, unchanged (rewritten inside) | 10-06, 10-07 |
 | `src/lib/catalog/copy.spec.ts` | **5**, unchanged (`KNOWN_TAGS` re-cut) | 10-06 |
 | `src/lib/tune/colour-picker.spec.ts` | **6** | 10-10 (created) |
+| `src/lib/browse/query.spec.ts` | **5**, unchanged (G-10's cases land inside the existing blocks; case 3's title is rewritten, not added to) | 10-07 |
+| `src/lib/tune/copy.spec.ts` | **5**, unchanged (touched by three plans, none of which adds a block) | 10-03, 10-09, 10-11 |
 | `src/lib/tune/mix.spec.ts` | created with **2** | 10-11 |
 | `src/lib/tune/surprise.spec.ts` | 4 → **5** | 10-09 |
 | `src/lib/ui/tune-ui.spec.ts` | 5 → **9** | 10-03, 10-09, 10-11 |
