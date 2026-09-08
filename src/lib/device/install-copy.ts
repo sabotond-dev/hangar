@@ -48,8 +48,8 @@
 // the screen - which is why the lost block takes the label of the surface
 // rendering it (Y-13).
 //
-// THE THREE CAPS - THREE BECOMING FOUR IN PLAN 10-12 - ARE THE CONTRACT'S, NOT
-// THIS MODULE'S TO MOVE.
+// THE FOUR CAPS - THREE UNTIL PLAN 10-12 - ARE THE CONTRACT'S, NOT THIS
+// MODULE'S TO MOVE.
 //
 // A cap is `lines x CH_PER_LINE`, where CH_PER_LINE is the capacity of one Body
 // line box in the panel's 372px content column. Phases 6 and 7 used 43,
@@ -62,6 +62,7 @@
 //   HONESTY_CAP   2 x 43 =  86   the honesty slot, 48px, two lines
 //   PUT_BACK_CAP  3 x 43 = 129   the PUT BACK cell, 72px, three lines
 //   KEEP_CAP      2 x 43 =  86   the KEEP ON DEVICE cell, 48px, two lines
+//   CLEAR_CAP     2 x 43 =  86   the CLEAR cell, 48px, two lines
 //
 // PUT_BACK_CAP and KEEP_CAP land byte-for-byte on the numbers this module
 // already shipped. HONESTY_CAP moves 129 to 86, which is 10-UI-SPEC 12.2's
@@ -72,9 +73,19 @@
 // the reservation is the entire reason the caps exist. HONESTY_READY was 104
 // here and 90 in the approved contract, both over 86, and it is 85 below.
 //
-// CLEAR_CAP (2 x 43 = 86) is NOT here. It arrives in plan 10-12 with the
-// control it caps, and the count above becomes four then. CLEAR_LINE is exactly
-// 86 - it fits with zero headroom, and one added character breaks it.
+// CLEAR_CAP'S SECOND LINE IS HEADROOM RATHER THAN OCCUPANCY, AND THAT IS A
+// DEPARTURE FROM THE FORMULA RATHER THAN AN OVERSIGHT (A-52). The sentence
+// that stood here - "CLEAR_LINE is exactly 86, it fits with zero headroom, and
+// one added character breaks it" - IS RETIRED BY NAME, dated 2026-09-08: D-21
+// fixed the line at 41 characters, so it is no longer true of any string this
+// module ships. What replaces it: the four candidates in the CLEAR cell are
+// CLEAR_LINE at 41 and the three reasons at 43, 26 and 36, so 12's rule
+// (ceil(longest / CH_PER_LINE) x 24) would give ONE line and 24px. DO NOT TAKE
+// IT. A one-line cap of 43 would put a shipped string exactly on its own cap -
+// the zero-headroom defect plan 10-01 flagged against the old CLEAR_LINE,
+// reintroduced at a different number. Two lines is the smallest reservation
+// that leaves the cap a promise about strings not yet written, which is the
+// entire reason the caps exist, and the 48px cell is sized for two.
 //
 // The spec asserts every string against its cap by name (Z-18).
 //
@@ -99,8 +110,8 @@ export interface InstallBlock {
 }
 
 // ---------------------------------------------------------------------------
-// The three caps (07-UI-SPEC, Copywriting Contract, last rule; 10-UI-SPEC 12.2,
-// re-derived at the measured CH_PER_LINE). Three here, four after plan 10-12.
+// The four caps (07-UI-SPEC, Copywriting Contract, last rule; 10-UI-SPEC 12.2,
+// re-derived at the measured CH_PER_LINE). Three until plan 10-12.
 
 /** Every honesty-slot string: TWO lines at 43 characters, 48px reserved. Was 129 at three lines. */
 export const HONESTY_CAP = 86;
@@ -108,6 +119,8 @@ export const HONESTY_CAP = 86;
 export const PUT_BACK_CAP = 129;
 /** The KEEP ON DEVICE enabled line and all six reasons: two lines at 43, 48px. */
 export const KEEP_CAP = 86;
+/** The CLEAR line and all three reasons: two lines at 43, 48px - the second declared headroom (A-52, see the header). */
+export const CLEAR_CAP = 86;
 
 // ---------------------------------------------------------------------------
 // The labels. Uppercase, wide-tracked, never the wire's words.
@@ -121,6 +134,25 @@ export const PUTTING_BACK_LABEL = "PUTTING BACK…";
 /** Phase 4's, unchanged. */
 export const KEEP_LABEL = "KEEP ON DEVICE";
 export const NOT_NOW_LABEL = "NOT NOW";
+/** Plan 10-12's fourth click. The Editor's own word, kept (D-21); what it does is said in the line beneath it. */
+export const CLEAR_LABEL = "CLEAR";
+export const CLEARING_LABEL = "CLEARING…";
+
+/**
+ * THE NUMBER OF WRITE CLICKS, AS A CONSTANT RATHER THAN AS A WORD IN PROSE.
+ *
+ * It has now changed once - three to four, plan 10-12 - and it will change
+ * again. A sentence saying "one of three clicks" rots silently in a
+ * requirements table; a constant of length four, asserted equal to the four
+ * control labels, moves with the labels or turns a gate red. Every write this
+ * site can perform is attributable to one of these (SAFE-01).
+ */
+export const WRITE_CLICKS = [
+  "TRY ON DEVICE",
+  "PUT BACK",
+  "KEEP ON DEVICE",
+  "CLEAR",
+] as const;
 
 // ---------------------------------------------------------------------------
 // The honesty slot. Four strings here; the fifth is Phase 5's
@@ -218,6 +250,24 @@ export function keptBody(name: string): string {
  */
 export const KEPT_PROOF_LINE =
   "The pad restarts once as it loads the stored version.";
+
+/**
+ * I14, the fifteenth state (A-50). THE CAPTION NAMES THE STATE, NOT THE
+ * BUTTON, exactly as PLAYING NOW names the state TRY ON DEVICE leaves behind -
+ * and it is two words, so 5.2's uppercase rule needs no exception.
+ */
+export const CLEARED_CAPTION = "FACTORY DEFAULT";
+
+/**
+ * The body names PUT BACK, which is enabled in `cleared` by construction (a
+ * snapshot is a term of CLEAR's own enablement rule), so the
+ * no-string-names-an-absent-control rule holds. And it says what the module is
+ * DOING rather than what was taken away: after a clear the pad runs a
+ * proximity-weighted touch highlight the firmware itself ships (A-48), so
+ * "empty" would be false as well as unkind.
+ */
+export const CLEARED_BODY =
+  "Your ZONA is running the firmware’s own default configuration. PUT BACK restores what was there when you connected.";
 
 // ---------------------------------------------------------------------------
 // Region 3, the seven failure-shaped blocks. Titles end without punctuation;
@@ -419,9 +469,28 @@ export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
 };
 
 // ---------------------------------------------------------------------------
-// The CLEAR cell: the three reasons it can be disabled for, and no fourth.
-// The line, the labels and the cap are plan 10-12 task 02's; these three
-// arrive with the machine that decides between them (10-UI-SPEC 10.5).
+// The CLEAR cell: one line, and the three reasons it can be disabled for.
+
+/**
+ * The user's own sentence, verbatim (D-21, A-49), at 41 against a cap of 86.
+ *
+ * IT SAYS RESET TO FACTORY DEFAULT AND NEVER CLEARS, EMPTIES OR REMOVES. A
+ * control labelled CLEAR that restores the firmware's own configuration must
+ * not imply emptiness - that would be the same class of lie as the
+ * never-writes sentence this phase already retired (A-48). The spec asserts
+ * the three stems' absence over every string in this cell rather than trusting
+ * this comment.
+ *
+ * On the way back, which the old line carried and this one does not: 3.1's
+ * rule is that a string naming a risk, a consequence or a way back is never
+ * retired, and it is satisfied by the action no longer having a consequence
+ * that needs one. PUT BACK sits directly above CLEAR, enabled, with its own
+ * line naming what it restores. THE COST IS RECORDED RATHER THAN HIDDEN: a
+ * visitor is not told that a power cycle brings their STORED configuration
+ * back rather than the factory default. That fact is now held by
+ * install.spec.ts's by-class assertion and by runbook row C, not by copy.
+ */
+export const CLEAR_LINE = "Reset the current page to factory default";
 
 /**
  * The three reasons CLEAR can be disabled for, and no fourth. Closed over the

@@ -3,10 +3,12 @@
 // (Phase 7, SAFE-01, SAFE-03 to SAFE-09).
 //
 // WHY THIS IS A SEPARATE FILE AND NOT PART OF THE SESSION. Phase 6 plan 06-04's
-// test 15 scans session.svelte.ts, comment-stripped, for eight write-shaped
-// needles - the queue class, the host heartbeat, the config send, the page
-// store, the fetch, the flash store, the write-back and the interval - and
-// asserts every one is absent. That scan is a structural guarantee that the
+// test 15 scans session.svelte.ts, comment-stripped, for TEN write-shaped
+// needles - the transport write, the queue class, the host heartbeat, the
+// config send, the page store, the fetch, the flash store, the write-back, the
+// clear and the interval - and asserts every one is absent. It was eight when
+// this paragraph was written and nine before Phase 10; plan 10-12's fourth
+// write click made it ten. That scan is a structural guarantee that the
 // session never writes, and it is worth more than the convenience of one file:
 // a write added to the session would turn the gate red with no honest
 // replacement. So every write of this site lives HERE, in a second runes store

@@ -1136,6 +1136,13 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     // file's own source does not contain what it forbids, and the scan runs
     // over comment-stripped source because the session's header legitimately
     // names every one of these while explaining their absence.
+    //
+    // TEN NEEDLES SINCE PLAN 10-12, nine before it. The tenth is the fourth
+    // write click: this scan exists to catch a `write.bind`-shaped export
+    // slipping into the session, and a `clearToDefault.bind`-shaped one is
+    // exactly that shape. (REQUIREMENTS.md said EIGHT until 10-12 - it was
+    // already stale at nine before this phase, and the correction is recorded
+    // in the same named amendment rather than renumbered quietly.)
     const source = strip(sessionSource());
     expect(source.length, "the source was actually read").toBeGreaterThan(1000);
     for (const needle of [
@@ -1147,6 +1154,7 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
       ["fetch", "Config"].join(""),
       ["store", "ToFlash"].join(""),
       ["write", "Back"].join(""),
+      ["clear", "ToDefault"].join(""),
       ["set", "Interval"].join(""),
     ]) {
       expect

@@ -1017,6 +1017,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     // And the session is still clean after this plan: test 15's needle list,
     // run here over session.svelte.ts so the two files are checked together.
+    // TEN since plan 10-12, and this copy moves with the original or the
+    // sentence above it stops being true.
     const sessionSource = strip(sourceOf("./session.svelte.ts"));
     expect(sessionSource.length).toBeGreaterThan(1000);
     for (const needle of [
@@ -1028,6 +1030,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       ["fetch", "Config"].join(""),
       ["store", "ToFlash"].join(""),
       ["write", "Back"].join(""),
+      ["clear", "ToDefault"].join(""),
       ["set", "Interval"].join(""),
     ]) {
       expect

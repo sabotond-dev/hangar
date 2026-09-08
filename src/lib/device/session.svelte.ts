@@ -101,8 +101,9 @@
 //
 // WHY THE INSTALL STORE IS A SEPARATE FILE AND WHAT IT BORROWS (plan 07-04,
 // 07-CONTEXT D-16). Every write of this site lives in install.svelte.ts (plan
-// 07-06), never here, so that test 15's eight write-shaped needles keep
-// meaning what they meant in Phase 6. The store borrows six members: the
+// 07-06), never here, so that test 15's TEN write-shaped needles keep meaning
+// what they meant in Phase 6. (Eight when this was written, nine before Phase
+// 10, ten since plan 10-12 gave the site a fourth write click.) The store borrows six members: the
 // `transport` view, whose onData THROWS on purpose (GridTransport carries one
 // data callback and this session owns it after identification - a second raw
 // registration would silently unhook the fold that keeps the page number and
