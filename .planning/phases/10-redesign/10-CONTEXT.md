@@ -114,6 +114,38 @@ here is planned yet. [user] decisions are the user's and are not open to orchest
   licence does not cover this the change is a token edit late in the phase and not a redesign. D-13's
   archive exclusion stands regardless.
 
+### D-15 [user] Three aesthetic references, given 2026-09-08 mid-execution
+
+The user supplied three images with the instruction "use attached as well for the aesthetic redesign".
+They cannot be committed, so what they carry is extracted here as rules. All three share one
+character: **a technical instrument rather than a screen effect** — registration marks, monospace
+metadata, tabular density, high contrast, one accent, and no mark that is not information.
+
+**Reference A — viewfinder.** A photographic field thrown fully out of focus, with sharp UI over it.
+A regular lattice of thin **registration crosses** across the whole frame at low opacity, and exactly
+**one cross in the accent colour**, larger and set apart, marking the focus point. Headline is large,
+tight, uppercase, prefixed by an index and an em dash (`03 — PRJCT A`). Beneath it a three-line
+metadata block in small caps, **column-aligned with `+` as the separator**, carrying a place, a
+trademark superscript, katakana as a second script, and a quarter-year (`Q2—2026`). The subject is
+blurred; the interface is not.
+
+**Reference B — generative print.** Pure black, white marks only. A **halftone dot field** whose
+density is modulated to describe three stacked surfaces — the image is made of the grid, not drawn on
+it. Plus marks at the margins, not a full lattice. One enormous lowercase word, heavily letterspaced,
+as the anchor. A small justified monospace paragraph as a definition. A tiny centred header carrying
+date, series number and author.
+
+**Reference C — terminal.** Monospace throughout, over black with fine grain. **Pill outlines** —
+fully rounded, one-pixel, transparent fill — as the universal control shape, with a **filled pill for
+the active state**. A dense tabular listing: date, city, venue, underlined action, column-aligned and
+unruled. A status strip reading time, place, temperature and condition. ASCII glyphs used as
+interface elements rather than decoration. Progress shown as outlined bars with a single letter.
+
+**What this gives the redesign, concretely:** the registration lattice with one accent cross; the
+`+`-separated metadata block; the index-and-em-dash headline; halftone density as an image-making
+device; pill outlines with a filled active state; ASCII glyphs as legitimate interface furniture; and
+tabular rows that align without rules.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
