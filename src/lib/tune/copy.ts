@@ -258,6 +258,67 @@ export const COLOUR_UNAFFORDABLE =
   "The colours left out would not fit inside 908 characters.";
 
 // ---------------------------------------------------------------------------
+// MIX TWO (10-UI-SPEC §11.6, plan 10-11). Four strings and one composer.
+//
+// THE COPY DISCIPLINE IS THE FEATURE HERE, not decoration on it (A-15). The
+// idea underneath is genetic crossover and the vocabulary that comes with it -
+// breed, parent, mutate, DNA - would arrive free and would be wrong: it names
+// a mechanism where the house style names a result. So the interface says two
+// candidates, four results, one button, and copy.spec.ts scans every string
+// this module can produce, plus MixTwo.svelte's own text nodes and literal
+// aria-labels, for that whole vocabulary. `child` is on the forbidden list as
+// USER-FACING TEXT and permitted as an identifier, which is why the scan reads
+// rendered strings rather than code.
+
+/** The control. 7, Secondary tier - bordered, never filled (A-41). */
+export const MIX_TWO = "MIX TWO";
+
+/**
+ * The line under it. 75.
+ *
+ * The second sentence is not reassurance, it is the truth about what the
+ * control does: `MIX TWO` composes index vectors and touches no port. Phase 7
+ * owns every sentence that names a write, and this one names the absence of
+ * one because a control that produces four new configurations beside
+ * TRY ON DEVICE is exactly where a visitor would wonder.
+ */
+export const MIX_LINE =
+  "Takes half its settings from each, at random. Nothing is sent to your ZONA.";
+
+/**
+ * The two candidates. 8 and 8, and the same length is not a coincidence: they
+ * label two slots side by side, and two labels of different widths would move
+ * the second slot as the first one changed.
+ *
+ * `THIS ONE` is the configuration on the screen. `THAT ONE` is a candidate
+ * from the last `SURPRISE ME` or a pasted link. Neither says "parent", and
+ * neither has to: what the words point at is on the screen beside them.
+ */
+export const MIX_THIS = "THIS ONE";
+export const MIX_THAT = "THAT ONE";
+
+/**
+ * One result's accessible name, composed from what would change.
+ *
+ * The children are four pictures of 81 lights, so their accessible names are
+ * the whole of what a screen reader gets: "Option 1" would be four
+ * indistinguishable buttons. Each change arrives already worded by the rack -
+ * `Speed 3`, `Colour 214 255 78` - and this joins them into the sentence,
+ * exactly as `ladderLine` joins the compiler's own labels rather than
+ * rewriting them.
+ *
+ * The no-change form is a real case rather than defensive padding: with every
+ * knob held there is nothing to cross and nothing to redraw, so all four
+ * results are the configuration on the screen, and a button that claimed to
+ * change something would be lying.
+ */
+export function mixChildName(changes: readonly string[]): string {
+  return changes.length === 0
+    ? "Take this: the same settings as now."
+    : `Take this: ${changes.join(", ")}.`;
+}
+
+// ---------------------------------------------------------------------------
 // The rack.
 
 export const EMPTY_RACK =

@@ -29,6 +29,11 @@ import {
   LINK_COPIED_ANNOUNCEMENT,
   MEASURING,
   METERS_UNAVAILABLE,
+  MIX_LINE,
+  MIX_THAT,
+  MIX_THIS,
+  MIX_TWO,
+  mixChildName,
   RESET_ALL,
   SETUP_CAPTION,
   SURPRISE_ALL_HELD,
@@ -105,6 +110,34 @@ const stripComments = (text: string) =>
     .replace(/<!--[^]*?-->/g, "");
 
 /**
+ * A-15's forbidden vocabulary, each word with the reason it is forbidden, so a
+ * red run explains itself rather than printing a banned list.
+ *
+ * `child` is on it as USER-FACING TEXT and is permitted as an identifier:
+ * `mix.ts` and `MixTwo.svelte` both use it, and the scan that reads this list
+ * reads rendered strings and never code.
+ *
+ * The match is by STEM, so `gene` already covers `genetic` and `genetics`, and
+ * `mutate` covers `mutated`. Both nouns are listed anyway - `mutation` does not
+ * begin with `mutate` - and a root that subsumes another costs nothing.
+ *
+ * NINE ROOTS RATHER THAN ONE ALTERNATION, because the failure message has to
+ * say WHICH word was found and in what form: "the copy matches
+ * /breed|parent|…/" is a rule restated, not a finding.
+ */
+const GENETICS: ReadonlyArray<readonly [string, string]> = [
+  ["breed", "the mechanism, named where the result should be"],
+  ["parent", "the two slots are two candidates, and the screen shows them"],
+  ["mutate", "a knob was redrawn; that is a sentence anybody can read"],
+  ["mutation", "the noun form of the same borrowed word"],
+  ["dna", "there is no DNA here, there is an index vector"],
+  ["gene", "the metaphor's root"],
+  ["genetic", "the metaphor by its own name"],
+  ["offspring", "four results, and they are on the screen"],
+  ["child", "fine as an identifier, wrong on a button"],
+];
+
+/**
  * The compiler writes its ladder labels as whole sentences. This one has a
  * proper noun in its second word on purpose: a naive `toLowerCase()` would
  * flatten it and the lower-casing tests would go red, which is exactly what
@@ -127,6 +160,7 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   forecastDelta: [-3],
   forecastExpansion: ["Setup", 714],
   colourRailName: ["r", "Mute"],
+  mixChildName: [["Speed 3", "Colour 214 255 78"]],
   lowerFirst: [LADDER_LABEL],
   ladderLine: [1, LADDER_LABEL],
   overBudgetKnob: ["Trail", "Setup", 33],
@@ -177,12 +211,15 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       LINK_COPIED,
       KNOB_HOLD,
       KNOB_HELD,
+      MIX_TWO,
     ];
     const captions = [
       TUNING_CAPTION,
       SETUP_CAPTION,
       TIMER_CAPTION,
       COLOUR_CAPTION,
+      MIX_THIS,
+      MIX_THAT,
     ];
 
     expect(SURPRISE_ME).toBe("SURPRISE ME");
@@ -236,6 +273,58 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "the prefixed form is a literal rather than a composition",
     ).toBe("Level blue, 16 steps");
 
+    // -----------------------------------------------------------------------
+    // MIX TWO'S FOUR STRINGS, CHARACTER FOR CHARACTER AND THEN COUNTED
+    // (10-UI-SPEC §11.6 and §13.4, plan 10-11). They ride inside this test for
+    // the same reason the picker's seven do: what they are is a label, two
+    // slot captions and one sentence, and this file's job is to hold each of
+    // them to the contract's own words. The counts are asserted HERE rather
+    // than in mix.spec.ts, because §13.4 gives the numbers and this is the
+    // file that holds §13.4.
+    expect(MIX_TWO).toBe("MIX TWO");
+    expect(MIX_LINE).toBe(
+      "Takes half its settings from each, at random. Nothing is sent to your ZONA.",
+    );
+    expect(MIX_THIS).toBe("THIS ONE");
+    expect(MIX_THAT).toBe("THAT ONE");
+
+    expect([...MIX_TWO].length, "the mix label is no longer 7").toBe(7);
+    expect([...MIX_LINE].length, "the mix line is no longer 75").toBe(75);
+    expect(
+      [...MIX_THIS].length,
+      "the first candidate's label is no longer 8",
+    ).toBe(8);
+    expect(
+      [...MIX_THAT].length,
+      "the second candidate's label is no longer 8",
+    ).toBe(8);
+    // The two slot labels are the SAME WIDTH on purpose - they head two slots
+    // side by side, and two labels of different lengths would move the second
+    // as the first one changed.
+    expect(
+      [...MIX_THIS].length,
+      "the two candidate labels are no longer the same length, so the second slot moves with the first",
+    ).toBe([...MIX_THAT].length);
+
+    // The line says what the control does AND what it does not do, and the
+    // second half is the load-bearing one: four new configurations appearing
+    // beside TRY ON DEVICE is exactly where a visitor would wonder.
+    expect(
+      MIX_LINE,
+      "the mix line no longer says that nothing is sent to the module",
+    ).toContain("Nothing is sent to your ZONA.");
+
+    // The child's accessible name is COMPOSED from what would change, never
+    // written down: four buttons called "Option 1" are four indistinguishable
+    // buttons, and the changes are the only thing that tells them apart.
+    expect(mixChildName(["Speed 3"])).toBe("Take this: Speed 3.");
+    expect(mixChildName(["Speed 3", "Colour 214 255 78"])).toBe(
+      "Take this: Speed 3, Colour 214 255 78.",
+    );
+    // Every knob held is a real case, not defensive padding: nothing is
+    // crossed and nothing is redrawn, so a name claiming a change would lie.
+    expect(mixChildName([])).toBe("Take this: the same settings as now.");
+
     for (const label of [...buttonLabels, ...captions]) {
       expect(label, label).toBe(label.toUpperCase());
     }
@@ -271,6 +360,19 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "the module was actually read - too few strings to be checking anything",
     ).toBeGreaterThanOrEqual(25);
 
+    // Non-vacuity for A-15's scan below, in both halves: the vocabulary is the
+    // nine words the plan names, and the word split it matches against really
+    // splits. A scan whose tokeniser returned one long string would find no
+    // forbidden word for the happiest of reasons.
+    expect(GENETICS.length, "the forbidden vocabulary is nine words").toBe(9);
+    expect(
+      "Take this: Speed 3."
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter(Boolean),
+      "the word split the metaphor scan depends on no longer splits",
+    ).toEqual(["take", "this", "speed"]);
+
     for (const { name, text } of strings) {
       expect(text, `${name} is empty`).not.toBe("");
       expect(text, `${name} carries an emoji`).not.toMatch(
@@ -291,6 +393,38 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
           text,
           `${name} carries U+2212, which is permitted in the forecast delta and nowhere else`,
         ).not.toContain(MINUS);
+      }
+      // -----------------------------------------------------------------
+      // A-15: NO GENETICS METAPHOR REACHES THE INTERFACE (plan 10-11).
+      // MIX TWO is crossover, and the vocabulary that comes with crossover
+      // would arrive free and would be wrong - it names a mechanism where
+      // the house style names a result. Two candidates, four results, one
+      // button. The scan is over EVERY string this module can produce
+      // rather than over MIX TWO's four, because a metaphor that leaked
+      // would leak into a sentence next door just as easily.
+      //
+      // `child` is here as USER-FACING TEXT and is fine as an identifier -
+      // mix.ts and MixTwo.svelte both use it - which is exactly why this
+      // scan reads rendered strings and never code. `mixChildName`'s output
+      // is in this walk, so the component's composed accessible name is
+      // covered here as well as in tune-ui.spec.ts's text-node scan.
+      // BY STEM, NOT BY WHOLE WORD, AND THE DIFFERENCE WAS MEASURED RATHER
+      // THAN REASONED. The first spelling of this scan asked whether the word
+      // list CONTAINED the root; the plan's negative check then put `Breeds`
+      // in the mix line and this scan stayed GREEN, because "breeds" is not
+      // "breed". A metaphor arrives inflected far more often than bare, so a
+      // word is an offender when it BEGINS with a forbidden root, and the
+      // found form is in the message beside the root it came from.
+      const words = text
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter(Boolean);
+      for (const [word, why] of GENETICS) {
+        const found = words.filter((each) => each.startsWith(word));
+        expect(
+          found,
+          `${name} says "${found.join('", "')}" - ${why}. A-15: no genetics metaphor reaches the interface. Two candidates, four results, one button`,
+        ).toEqual([]);
       }
     }
   });
