@@ -1,8 +1,8 @@
-// The colour picker's gate. Every test in it is a property of
+// The colour picker's gate: six tests, and every one of them is a property of
 // the SOURCE or of pure arithmetic, so none of them needs a browser.
 //
 // It lives under src/lib/tune/ rather than beside the component because three
-// of them have to import the vendored compiler - `colourAt`, `colourIndexOf`
+// of the six have to import the vendored compiler - `colourAt`, `colourIndexOf`
 // and `COLOUR_LATTICE_SIZE` are the real lattice, and the picker's own copy of
 // that arithmetic is only trustworthy if something holds the two together. A
 // spec may import the compiler freely; a spec is never bundled.
@@ -44,10 +44,14 @@ import {
   COLOUR_RAIL_STEP,
   COLOUR_RAIL_STEPS,
   colourChannel,
+  colourCheapLevel,
   colourLevels,
+  colourLiteralLength,
   colourPosition,
   colourRail,
+  colourRailMax,
   colourValueText,
+  isColourLattice,
   widgetFor,
 } from "./view";
 
@@ -55,6 +59,7 @@ const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
 
 const PICKER = "src/lib/ui/ColourPicker.svelte";
+const KNOB = "src/lib/ui/Knob.svelte";
 const RACK = "src/lib/ui/KnobRack.svelte";
 
 /** The house comment stripper: line, block and markup. */
@@ -69,6 +74,20 @@ const code = (rel: string) => stripComments(raw(rel));
 
 const occurrences = (text: string, needle: string) =>
   text.split(needle).length - 1;
+
+/** A style block split into rules. tune-ui.spec.ts's, copied not reinvented. */
+function rulesOf(source: string): { selector: string; body: string }[] {
+  const start = source.indexOf("<style>");
+  if (start < 0) return [];
+  const out: { selector: string; body: string }[] = [];
+  for (const match of source.slice(start).matchAll(/([^{}]+)[{]([^{}]*)[}]/g)) {
+    out.push({ selector: match[1].trim(), body: match[2] });
+  }
+  return out;
+}
+
+const ruleFor = (source: string, selector: string) =>
+  rulesOf(source).find((rule) => rule.selector.trim() === selector);
 
 /** Every colour knob an entry declares, in rack order, on either route. */
 const colourKnobsOf = (entryId: string) => {
@@ -183,6 +202,339 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
       picker,
       "the picker composes a position by hand instead of through colourPosition",
     ).toContain("colourPosition");
+  });
+
+  it("the fence: none of A-09's six forbidden shapes appears, and rgb() is carved out to the detents", () => {
+    const source = code(PICKER);
+
+    // NON-VACUITY FIRST, in three ways: the file was found, it declares
+    // something, and it really does contain the one construct the carve-out
+    // below is about. Without the third, "every rgb() is on a detent line"
+    // passes on a file with no fills at all.
+    expect(source.length, "ColourPicker.svelte was read").toBeGreaterThan(2000);
+    expect(
+      occurrences(source, ":"),
+      "the picker declares fewer than twenty things - the scan has nothing to discriminate against",
+    ).toBeGreaterThan(20);
+    expect(
+      occurrences(source, "rgb("),
+      "the picker paints no rgb() at all, so the carve-out below proves nothing",
+    ).toBeGreaterThan(0);
+
+    const NAMED =
+      "A-09: an HSV field, a hue ring, a saturation/value square, a continuous slider, a CSS gradient on a rail and <input type=color> are each forbidden BY NAME, for the same reason - every one of them authors colour in CSS and every one of them implies a resolution the state does not have";
+
+    // 1. No gradient of any kind, including the repeating forms.
+    const gradients = [
+      "linear-gradient",
+      "radial-gradient",
+      "conic-gradient",
+      "repeating-linear-gradient",
+      "repeating-radial-gradient",
+      "repeating-conic-gradient",
+    ].filter((name) => source.includes(name));
+    expect(gradients, `the picker declares a gradient. ${NAMED}`).toEqual([]);
+
+    // 2. No colour input.
+    expect(source, `the picker uses a colour input. ${NAMED}`).not.toContain(
+      'type="color"',
+    );
+
+    // 3. No filter of any kind, in the style block or out of it.
+    expect(
+      /filter[ ]*:/.test(source),
+      `the picker declares a filter. ${NAMED}`,
+    ).toBe(false);
+    expect(source).not.toContain("backdrop-filter");
+
+    // 4. No colour function but the plain three-channel one.
+    const spaces = ["hsl(", "hsla(", "hwb(", "lab(", "lch(", "oklab(", "oklch("]
+      .concat(["color("])
+      .filter((fn) => source.includes(fn));
+    expect(
+      spaces,
+      `the picker names a colour space that is not the one the firmware stores. ${NAMED}`,
+    ).toEqual([]);
+
+    // 5. The NAME check, and it is secondary to the four above it: those four
+    // are what the rule actually forbids, and this catches a shape that
+    // smuggled itself in under a different declaration.
+    //
+    // OVER NAMES, NOT OVER THE WHOLE FILE, and that is a correction rather
+    // than a convenience: a substring scan for `ring` matches the word
+    // `string` in every TypeScript annotation in the component, so the check
+    // would have been red on correct code from its first run. What A-09 talks
+    // about is "an element whose class or testid suggests a hue ring", so the
+    // haystack is the class names, the testids and the CSS selectors.
+    const declaredNames: string[] = [];
+    for (const match of source.matchAll(/class(:|[ ]*=[ ]*")([^"= />]+)/g)) {
+      declaredNames.push(match[2]);
+    }
+    for (const match of source.matchAll(/data-testid[ ]*=[ ]*"([^"]*)"/g)) {
+      declaredNames.push(match[1]);
+    }
+    for (const rule of rulesOf(source)) declaredNames.push(rule.selector);
+    const haystack = declaredNames.join(" ").toLowerCase();
+    expect(
+      declaredNames.length,
+      "no class, testid or selector was collected, so the name check below reads an empty string",
+    ).toBeGreaterThan(20);
+    expect(
+      haystack,
+      "the name collector no longer finds the picker's own detent class",
+    ).toContain("detent");
+    const names = ["hue", "wheel", "ring", "saturation", "value-square"].filter(
+      (word) => haystack.includes(word),
+    );
+    expect(
+      names,
+      `the picker names a hue ring, an SV square or an HSV field. This is a SECONDARY check - the four assertions above it are the rule; this one catches a shape that arrived under another declaration. ${NAMED}`,
+    ).toEqual([]);
+
+    // 6. THE ONE CARVE-OUT. rgb() is permitted, and only where A-09 permits
+    // it: a detent fill or the result. Expressed as a property of the LINE, so
+    // a fill that wandered into the chrome is named with its line.
+    const strays = source
+      .split("\n")
+      .filter((line) => line.includes("rgb("))
+      .filter((line) => !/detent|result/i.test(line));
+    expect(
+      strays,
+      "an rgb() in the picker is not on a detent or result line - A-09's exemption covers the picker's detents and its result pad, and nothing else",
+    ).toEqual([]);
+
+    // And the ninth token is not here either: a knob is never red, and an
+    // unaffordable colour is absent rather than alarming.
+    expect(
+      source,
+      "the picker names the alarm red, which would be X-01's fourth use",
+    ).not.toContain("--color-over");
+  });
+
+  it("the cheap-step ticks are derived from the literal, and share the default marker's shape", () => {
+    // THE RULE, STATED: a step is marked when its channel literal is one or
+    // two digits, plus 255 - the top of the rail, marked because a visitor
+    // reaching for full brightness should not have to learn that it is the
+    // expensive end. Derived from the literal length rather than listed, so a
+    // step rule change moves the marks with it.
+    const derived: number[] = [];
+    for (let level = 0; level < COLOUR_RAIL_STEPS; level += 1) {
+      const value = colourChannel(level);
+      if (String(value).length <= 2 || value === 255) derived.push(value);
+    }
+    expect(
+      derived,
+      "the derivation itself is wrong - these are the one- and two-digit channel values plus 255",
+    ).toEqual([0, 17, 34, 51, 68, 85, 255]);
+
+    const marked: number[] = [];
+    for (let level = 0; level < COLOUR_RAIL_STEPS; level += 1) {
+      if (colourCheapLevel(level)) marked.push(colourChannel(level));
+    }
+    expect(
+      marked,
+      "the shipped tick set is not the derived one, so the marks are a hand list rather than a rule",
+    ).toEqual(derived);
+    expect(
+      marked.length,
+      "seven of the sixteen steps are marked - fewer would say nothing, more would say everything",
+    ).toBe(7);
+
+    // The literal-length arithmetic the rule and the guard both rest on: the
+    // whole lattice is worth SIX characters, five at `0,0,0` and eleven at
+    // `102,102,102`.
+    expect(colourLiteralLength(0), "0,0,0 is five characters").toBe(5);
+    expect(
+      colourLiteralLength(colourPosition([6, 6, 6])),
+      "102,102,102 is eleven characters",
+    ).toBe(11);
+    let dearest = 0;
+    for (let at = 0; at < COLOUR_LATTICE_SIZE; at += 1) {
+      dearest = Math.max(dearest, colourLiteralLength(at));
+    }
+    expect(
+      dearest - colourLiteralLength(0),
+      "the lattice is no longer worth six characters, which moves both the tick rule and the guard",
+    ).toBe(6);
+
+    // THE SHAPE IS SHARED, NOT RE-DECLARED. The tick is the 2px round mark
+    // Knob.svelte already draws for a default position, one rung up the ink
+    // ladder - so it is a mark a visitor has already learnt.
+    const tick = ruleFor(code(PICKER), ".tick");
+    const home = ruleFor(code(KNOB), ".home");
+    expect(
+      tick,
+      "ColourPicker.svelte no longer has a .tick rule",
+    ).toBeDefined();
+    expect(home, "Knob.svelte no longer has a .home rule").toBeDefined();
+    const geometry = (body: string) =>
+      body
+        .split(";")
+        .map((line) => line.trim())
+        .filter((line) => /inline-size|block-size|border-radius/.test(line))
+        .sort();
+    expect(
+      geometry(tick?.body ?? ""),
+      "the tick is not the same 2px round mark as the default marker, so it is a second shape a visitor has to learn",
+    ).toEqual(geometry(home?.body ?? ""));
+    expect(
+      tick?.body,
+      "the tick is not --color-line, so it is either invisible or on a token it has no claim to",
+    ).toContain("var(--color-line)");
+    expect(
+      tick?.body,
+      "the tick spends accent - the reserved list stays at eight and a tick is information, not a selection",
+    ).not.toContain("--color-accent");
+  });
+
+  it("the unaffordable guard fires on a synthetic near-wall entry and is measured at zero on the shelf", () => {
+    // -----------------------------------------------------------------------
+    // THE PROOF, on a synthetic budget rather than on a real card, because no
+    // colour-bearing card is anywhere near the wall (see the measurement
+    // below). The synthetic is `tpad`'s own measured worst state given a
+    // colour knob: SETUP AT 907 OF 908, one character free. That is not an
+    // invented number - 10-08 measured `tpad` at exactly 907, and the only
+    // reason the guard has never fired on the shelf is that `tpad` has no
+    // colour knob to fire on.
+    //
+    // At `0,0,0` the current literal is five characters. One rail's whole
+    // spread is TWO characters - one digit to three - so with one free the
+    // two-digit steps still fit and every three-digit step is out. (The whole
+    // LATTICE is worth six because three rails move independently; a single
+    // rail is worth two, and conflating the two numbers is the easiest
+    // mistake to make here.)
+    const CURRENT = colourPosition([0, 0, 0]);
+    const NEAR_WALL = { free: 1, copies: 1 };
+    const rail = colourRail(0, CURRENT, NEAR_WALL);
+
+    const excluded = rail.filter((detent) => !detent.affordable);
+    expect(
+      excluded.map((detent) => detent.level),
+      "the guard does not fire one character from the wall - a rail that cannot exclude anything is not a guard",
+    ).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    expect(
+      excluded.length,
+      "ten of the sixteen steps are the three-digit ones, and those are exactly the ones a single character cannot buy",
+    ).toBe(10);
+    for (const detent of excluded) {
+      expect(
+        colourLiteralLength(detent.position) - colourLiteralLength(CURRENT),
+        `level ${detent.level} was excluded but fits`,
+      ).toBeGreaterThan(NEAR_WALL.free);
+    }
+    for (const detent of rail.filter((d) => d.affordable)) {
+      expect(
+        colourLiteralLength(detent.position) - colourLiteralLength(CURRENT),
+        `level ${detent.level} was offered but does not fit`,
+      ).toBeLessThanOrEqual(NEAR_WALL.free);
+    }
+
+    // ABSENT AS A COLOUR, PRESENT AS A POSITION. The rail still draws sixteen
+    // detents; the CONTROL's own max stops below the excluded ones, which is
+    // what makes the exclusion real rather than decorative and what makes the
+    // platform announce it. The exclusion is always a suffix, and that is
+    // arithmetic rather than luck: a channel's digit count is monotonic in its
+    // level, so there is never a hole.
+    expect(
+      rail,
+      "the rail lost detents instead of disabling them",
+    ).toHaveLength(COLOUR_RAIL_STEPS);
+    expect(
+      colourRailMax(rail),
+      "the rail's max does not stop below the excluded steps, so the exclusion is paint only",
+    ).toBe(5);
+    expect(
+      colourRailMax(colourRail(0, CURRENT)),
+      "an unmeasured budget excludes something - the picker must offer the whole lattice until a number says otherwise",
+    ).toBe(COLOUR_RAIL_STEPS - 1);
+
+    // The paint, and the absence of an adjacent reason line. X-17's precedent
+    // and 05.1's disabled chip: the meter two centimetres away is the cause,
+    // and a sentence beside the rail would be a third place saying 908.
+    const picker = code(PICKER);
+    const rule = ruleFor(picker, ".detent.unaffordable");
+    expect(
+      rule,
+      "ColourPicker.svelte no longer has a .detent.unaffordable rule, so an excluded colour looks like an available one",
+    ).toBeDefined();
+    expect(
+      rule?.body,
+      "an excluded detent is not painted in --color-ground",
+    ).toContain("var(--color-ground)");
+    expect(
+      rule?.body,
+      "an excluded detent has no 1px --color-line-soft hairline, so it reads as a hole rather than as a position",
+    ).toMatch(/1px var[(]--color-line-soft[)]/);
+    expect(
+      picker,
+      "the exclusion is announced only in the paint - it needs the visually-hidden sentence, which is what makes it audible",
+    ).toContain("COLOUR_UNAFFORDABLE");
+    expect(
+      picker,
+      "the picker transcribes the exclusion sentence instead of importing it",
+    ).not.toContain(`"${COLOUR_UNAFFORDABLE}"`);
+    // No ADJACENT reason line: the sentence is sr-only and it is wired by
+    // aria-describedby, never rendered as visible prose beside the rail.
+    // Every RENDER of the sentence - an interpolation, not the import - has to
+    // be inside a visually-hidden element.
+    const visibleReason = picker
+      .split("\n")
+      .filter((line) => line.includes("{COLOUR_UNAFFORDABLE}"))
+      .filter((line) => !line.includes("sr-only"));
+    expect(
+      picker,
+      "the sentence is never rendered at all, so the scan below has nothing to discriminate against",
+    ).toContain("{COLOUR_UNAFFORDABLE}");
+    expect(
+      visibleReason,
+      "the exclusion has an adjacent visible reason line. X-17's precedent: the meter two centimetres away is the cause, and a third sentence saying 908 is noise",
+    ).toEqual([]);
+
+    // -----------------------------------------------------------------------
+    // THE MEASUREMENT, on the real shelf: the guard NEVER FIRES. This is the
+    // honest sentence - not "a colour picker where some colours are greyed out
+    // because they cost too many characters" but "a colour picker that CAN say
+    // that, and that today never has to". The machinery ships because it makes
+    // the claim checkable, because the Lua route's hand-authored templates have
+    // far less headroom, and because the catalog grows.
+    //
+    // 10-08's reachability sweep measured the numbers this rests on: the
+    // dearest colour-bearing preset is `ninepads` at 640 of 908, leaving 268
+    // free, and ZERO of Pass B's 24,576 colour states crosses the wall. The
+    // whole lattice is worth six characters per copy, and `ninepads` is the one
+    // card that emits its colour twice - so the worst demand any colour can
+    // make of any card on the shelf is TWELVE characters against 268.
+    const NINEPADS_WORST = 640;
+    const NINEPADS_FREE = 908 - NINEPADS_WORST;
+    const WORST_COPIES = 2;
+    expect(NINEPADS_FREE, "10-08 measured 268 characters free").toBe(268);
+
+    let checked = 0;
+    let unaffordable = 0;
+    for (const entry of CATALOG) {
+      for (const knob of colourKnobsOf(entry.id)) {
+        if (!isColourLattice(knob.options)) continue;
+        const budget = { free: NINEPADS_FREE, copies: WORST_COPIES };
+        for (let axis = 0; axis < 3; axis += 1) {
+          for (const detent of colourRail(
+            axis as 0 | 1 | 2,
+            knob.default,
+            budget,
+          )) {
+            if (!detent.affordable) unaffordable += 1;
+            checked += 1;
+          }
+        }
+      }
+    }
+    expect(
+      checked,
+      "no lattice colour knob was found on the shelf, so the count of zero below means nothing",
+    ).toBe(6 * 3 * COLOUR_RAIL_STEPS);
+    expect(
+      unaffordable,
+      `the guard now FIRES on the shelf. 10-08 measured ninepads at ${NINEPADS_WORST} of 908 - ${NINEPADS_FREE} free - against a lattice worth six characters per copy and at most ${WORST_COPIES} copies, so twelve against ${NINEPADS_FREE}. If this is no longer zero, either the minifier got worse or a card got dearer, and docs/PIN-POLICY.md item 4 is the document that says so`,
+    ).toBe(0);
   });
 
   it("the selector is rendered only when an entry has more than one colour knob, and the shelf splits 14 / 14 / 3 / 5", () => {
