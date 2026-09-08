@@ -1,4 +1,4 @@
-// The structural gate over the seven components Phase 5 added to src/lib/ui/.
+// The structural gate over the eight components the tuning UI is made of.
 //
 // These are the rules that keep the tuning UI light, scroll-free, reachable by
 // thumb and correctly coloured. Every one of them is a property of the SOURCE
@@ -35,15 +35,21 @@ const repo = (rel: string) =>
 const UI_DIR = "src/lib/ui";
 
 /**
- * The seven components this phase added. A literal list is unavoidable - the
- * directory also holds Phase 4's components, which these rules do not all bind
- * - so its length is asserted and every name is checked against the directory
- * listing. A rename, a deletion or an eighth component added without being
- * listed is then a visible omission rather than a silent gap.
+ * The eight tuning components. A literal list is unavoidable - the directory
+ * also holds Phase 4's components, which these rules do not all bind - so its
+ * length is asserted and every name is checked against the directory listing.
+ * A rename, a deletion or a NINTH component added without being listed is then
+ * a visible omission rather than a silent gap.
+ *
+ * The eighth is plan 10-10's ColourPicker.svelte, and adding it here is not
+ * bookkeeping: a component omitted from a hand-declared list passes every walk
+ * in this file silently, which would have left the picker outside the compiler
+ * guard, the scroll prohibition, the 44px floor and the accent census at once.
  */
 const TUNING_COMPONENTS: readonly string[] = [
   "BudgetMessage.svelte",
   "BudgetMeter.svelte",
+  "ColourPicker.svelte",
   "CopyLink.svelte",
   "Knob.svelte",
   "KnobRack.svelte",
@@ -76,7 +82,7 @@ const occurrences = (text: string, needle: string) =>
 
 /**
  * A style block split into rules. Crude on purpose: a real CSS parser would be
- * a dependency, and every selector in these seven files is a plain class or
+ * a dependency, and every selector in these eight files is a plain class or
  * element selector on one line.
  */
 function rulesOf(source: string): { selector: string; body: string }[] {
@@ -105,13 +111,13 @@ describe("the tuning UI's structural rules", () => {
   it("no tuning component names the compiler", () => {
     // The list is checked against the directory here, once, because every test
     // below reads through it: a renamed or deleted component would otherwise
-    // make all five pass while covering six files, or five.
+    // make every test below pass while covering seven files, or six.
     const present = new Set(
       readdirSync(repo(UI_DIR))
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(TUNING_COMPONENTS.length, "seven components were listed").toBe(7);
+    expect(TUNING_COMPONENTS.length, "eight components were listed").toBe(8);
     expect(
       TUNING_COMPONENTS.filter((name) => !present.has(name)),
       "a listed tuning component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -193,7 +199,7 @@ describe("the tuning UI's structural rules", () => {
 
     expect(
       declarations,
-      "the seven components' code was actually read",
+      "the eight components' code was actually read",
     ).toBeGreaterThan(100);
     expect(
       offenders,
@@ -411,17 +417,27 @@ describe("the tuning UI's structural rules", () => {
     ).not.toContain("SURPRISE ME");
   });
 
-  it("the accent census over the seven tuning components is unmoved at fourteen", () => {
+  it("the accent census moves with the picker and the reserved list does not", () => {
     // THE RESERVED LIST IS EIGHT AND THIS IS WHAT HOLDS IT THERE (10-UI-SPEC
     // 7.2). Every entry is named in the failure message below, because a
     // census that fails with a bare number tells the next author the count
     // moved and nothing about which of the eight they were entitled to.
     //
-    // A COUNT, NOT AN INSPECTION. Two waves of this phase add controls to
-    // these files - a lock, a forecast delta, a ghost fill - and each one is a
-    // chance to reach for the one colour that is already spoken for. Nothing
-    // in either wave took it, and this is the assertion that says so rather
-    // than the comment.
+    // A COUNT, NOT AN INSPECTION. Three waves of this phase add controls to
+    // these files - a lock, a forecast delta, a ghost fill, and now a picker
+    // with three rails and a knob selector - and each one is a chance to reach
+    // for a colour that is already spoken for. None of them took a NINTH, and
+    // this is the assertion that says so rather than the comment.
+    //
+    // THE CENSUS MOVES; THE LIST DOES NOT, AND THAT DISTINCTION IS THE WHOLE
+    // POINT (plan 10-10). Fourteen becomes twenty-one because ColourPicker
+    // .svelte joins the eight files this test reads, and every one of its seven
+    // declarations is one of the eight entries already on the list: three are
+    // the focus ring (entry 4) on the rail, the selector option and nothing
+    // else, and four are the selected value of a knob (entry 8) - the track
+    // fill, the thumb, the selected detent's outline and the selected pill.
+    // A wave that legitimately spends a ninth has to move the census AND the
+    // list together.
     const RESERVED = [
       "the splash wordmark and its punched rectangles",
       "the name plate's triangles",
@@ -447,6 +463,7 @@ describe("the tuning UI's structural rules", () => {
     ).toEqual({
       "BudgetMessage.svelte": 2,
       "BudgetMeter.svelte": 1,
+      "ColourPicker.svelte": 7,
       "CopyLink.svelte": 1,
       "Knob.svelte": 9,
       "KnobRack.svelte": 0,
@@ -455,14 +472,27 @@ describe("the tuning UI's structural rules", () => {
     });
     expect(
       total,
-      "the accent declaration count across the seven tuning components is no longer fourteen",
-    ).toBe(14);
+      "the accent declaration count across the eight tuning components is no longer twenty-one",
+    ).toBe(21);
 
     // Non-vacuity: the walk really read files with accent in them.
     expect(
       Object.values(census).filter((n) => n > 0).length,
-      "the census found accent in fewer files than the four that carry it",
-    ).toBe(5);
+      "the census found accent in fewer files than the six that carry it",
+    ).toBe(6);
+
+    // AND THE PICKER SPENT NONE OF IT ON THE THINGS THAT WOULD HAVE BEEN A
+    // NINTH ENTRY. The cheap-step tick is --color-line, the unaffordable
+    // detent is --color-ground behind a --color-line-soft hairline, and the
+    // default marker is the soft dot it always was. Named individually,
+    // because the total above would absorb a swap between two of them.
+    const picker = code(componentPath("ColourPicker.svelte"));
+    for (const selector of [".tick", ".detent.unaffordable", ".home"]) {
+      expect(
+        rulesOf(picker).find((rule) => rule.selector.trim() === selector)?.body,
+        `${selector} paints in accent, which is a ninth entry on the reserved list`,
+      ).not.toContain("--color-accent");
+    }
   });
 
   it("the alarm red lives in exactly two components and on no button", () => {
@@ -575,12 +605,36 @@ describe("the tuning UI's structural rules", () => {
     // under-reserves by 52px at exactly the two widths DEGR-01 exists for.
     expect(
       regionRaw,
-      "the one-line height constant 194 + 48r + 66w - 4 is not written down - the region's height is no longer auditable",
-    ).toContain("194 + 48r + 66w - 4");
+      "the one-line height constant 194 + 48r + 66w + 196p - 4 is not written down - the region's height is no longer auditable",
+    ).toContain("194 + 48r + 66w + 196p - 4");
     expect(
       regionRaw,
-      "the WRAPPED height constant 246 + 48r + 66w - 4 is missing - a region reserving only the one-line form is 52px short at 320px and at 375px, where the actions row wraps",
-    ).toContain("246 + 48r + 66w - 4");
+      "the WRAPPED height constant 246 + 48r + 66w + 196p - 4 is missing - a region reserving only the one-line form is 52px short at 320px and at 375px, where the actions row wraps",
+    ).toContain("246 + 48r + 66w + 196p - 4");
+
+    // THE PICKER'S TERM, AND WHY IT IS `p` RATHER THAN A THIRD KNOB COUNT
+    // (plan 10-10). The colour knobs are billed at ZERO and one 196px block is
+    // billed once, because 10-UI-SPEC §11.2 renders one picker per panel
+    // however many colour knobs an entry declares. Billing them one each would
+    // over-reserve by 48px on `console`, `strip` and `forge` - the three
+    // entries the rule exists for - and would contradict it in the arithmetic
+    // while obeying it in the markup.
+    expect(
+      regionCode,
+      "the picker's 196px is not a constant, so the reservation and the block can drift apart",
+    ).toContain("PICKER_PX = 196");
+    expect(
+      regionCode,
+      "the rack height still bills every colour knob as a row, so a three-colour entry reserves three pickers",
+    ).toContain("colours > 0 ? PICKER_PX : 0");
+    expect(
+      code(componentPath("ColourPicker.svelte")),
+      "the picker's block is not the 192px the region reserves 196 for - 44 head + 8 gap + 140 rails, plus the rack's own 4px",
+    ).toContain("block-size: 192px");
+    expect(
+      raw(rack),
+      "KnobRack.svelte no longer carries the picker's term in the derivation it owns",
+    ).toContain("196p");
 
     // The two constants, less ChosenPanel's 32px of region padding, as the
     // shipped declarations. Comments that no longer match the CSS are worse

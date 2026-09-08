@@ -71,6 +71,7 @@
   let {
     view,
     stacked = false,
+    lock = true,
     held = false,
     forecastAt = undefined,
     forecastLabel = undefined,
@@ -88,6 +89,18 @@
      * under 220px whatever this says.
      */
     stacked?: boolean;
+    /**
+     * Render the HOLD / HELD toggle, or leave it to a parent that already has
+     * one for this knob.
+     *
+     * True everywhere but inside ColourPicker.svelte, which shows a
+     * hand-authored palette as this component's own swatch row and carries the
+     * lock for the selected colour knob in its own head row. Two locks on one
+     * knob is not a layout choice - `aria-pressed` would be announced twice
+     * for the same state - so the picker turns this one off rather than
+     * redrawing the row without it.
+     */
+    lock?: boolean;
     /**
      * Locked out of SURPRISE ME's roll. EPHEMERAL: the region owns the set, it
      * is never encoded into a stamp, and a held knob's link is byte-identical
@@ -210,21 +223,18 @@
   /**
    * A slot on the control becomes a KNOB POSITION.
    *
-   * `view.positions` is undefined for every knob but one, and then this is the
-   * identity it has always been. It is defined only when the view is a WINDOW
-   * onto a larger knob - today only a lattice colour knob between plan 10-08,
-   * which widens it to 4,096 positions, and 10-10, which builds the picker
-   * that renders them. See `KnobView.positions`: without the translation a
-   * click on the second swatch would write position 1 instead of position
-   * 1,638, which is a wrong colour rather than a rendering detail.
+   * Through `knobPosition` rather than by comparing `view.index` directly, for
+   * the reason that function's own comment gives: the identity is a
+   * measurement this component must not restate. Plan 10-08's two-swatch
+   * window made the two coordinate systems differ for one knob and one
+   * interval, and 10-10's picker removed it; the door stays.
    */
   function pick(slot: number) {
-    const index = view.positions?.[slot] ?? slot;
-    if (index !== knobPosition(view)) onchange(index);
+    if (slot !== knobPosition(view)) onchange(slot);
   }
 
   /** A slot's knob position, without the "did it move" test `pick` makes. */
-  const positionOf = (slot: number) => view.positions?.[slot] ?? slot;
+  const positionOf = (slot: number) => slot;
 
   /**
    * THE FORECAST'S TWO TRIGGERS, AND THE ONE IT MUST NEVER HAVE (TUNE-02, T2).
@@ -426,17 +436,19 @@
     long press on a coarse pointer the same way, so a visitor holding a knob
     with two quick taps would otherwise also send it home.
   -->
-  <button
-    class="lock"
-    type="button"
-    data-testid="knob-{view.id}-hold"
-    aria-pressed={held}
-    onclick={onhold}
-    ondblclick={(event) => event.stopPropagation()}
-    onpointerdown={(event) => event.stopPropagation()}
-  >
-    {held ? KNOB_HELD : KNOB_HOLD}
-  </button>
+  {#if lock}
+    <button
+      class="lock"
+      type="button"
+      data-testid="knob-{view.id}-hold"
+      aria-pressed={held}
+      onclick={onhold}
+      ondblclick={(event) => event.stopPropagation()}
+      onpointerdown={(event) => event.stopPropagation()}
+    >
+      {held ? KNOB_HELD : KNOB_HOLD}
+    </button>
+  {/if}
 </div>
 
 <style>

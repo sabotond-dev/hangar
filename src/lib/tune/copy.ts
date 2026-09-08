@@ -174,6 +174,90 @@ export const METERS_UNAVAILABLE =
   "The character counter could not load, so the two budgets are not shown. Everything else on this page still works.";
 
 // ---------------------------------------------------------------------------
+// The colour picker (10-UI-SPEC §11.2, plan 10-10). Seven strings, all counted.
+
+/** The picker's caption. 6, Micro, --color-ink-quiet. */
+export const COLOUR_CAPTION = "COLOUR";
+
+/**
+ * The knob selector's group label. 12.
+ *
+ * It names the QUESTION rather than the control, because the options beside it
+ * are already the knobs' own labels and "Which colour knob" would repeat the
+ * word the caption above it has just said.
+ */
+export const COLOUR_WHICH = "Which colour";
+
+/**
+ * Each rail's visually-hidden label. 13 / 15 / 14.
+ *
+ * "16 steps" rather than "0 to 255", and the difference is the whole argument
+ * of the picker: the state holds sixteen values per channel and offering 256
+ * would be a resolution it does not have.
+ */
+export const COLOUR_RED_RAIL = "Red, 16 steps";
+export const COLOUR_GREEN_RAIL = "Green, 16 steps";
+export const COLOUR_BLUE_RAIL = "Blue, 16 steps";
+
+/**
+ * Three exported constants and a private map, rather than one exported record.
+ *
+ * `copy.spec.ts`'s mechanical-rules walk iterates this module's exports and
+ * only looks at the ones that are STRINGS or FUNCTIONS - a record of strings
+ * is skipped in silence, which is how three sentences would escape every rule
+ * in the contract at once. Three constants are three rows in that walk.
+ */
+const COLOUR_RAIL_NAMES = {
+  r: COLOUR_RED_RAIL,
+  g: COLOUR_GREEN_RAIL,
+  b: COLOUR_BLUE_RAIL,
+} as const;
+
+/**
+ * The prefixed form, COMPOSED and never written down: `Mute red, 16 steps`.
+ *
+ * A picker on an entry with more than one colour knob has to say WHICH knob a
+ * rail belongs to, and the seventeen entries that need it carry seventeen
+ * different knob labels - so writing the prefixed strings out would be a table
+ * of fifty-one sentences that drifts from the catalog. The knob's own label
+ * leads and the channel word drops to lower case behind it, which is the same
+ * "lower-case only the first character of the compiler's own label" rule
+ * `ladderLine` already uses.
+ */
+export function colourRailName(
+  channel: keyof typeof COLOUR_RAIL_NAMES,
+  knobLabel?: string,
+): string {
+  const base = COLOUR_RAIL_NAMES[channel];
+  if (!knobLabel) return base;
+  return `${knobLabel} ${base[0].toLowerCase()}${base.slice(1)}`;
+}
+
+/**
+ * The cheap-step ticks' hidden expansion. 40.
+ *
+ * The ticks are a 2px mark under six of the sixteen detents, which is
+ * information no assistive technology can reach. It says what the mark MEANS
+ * rather than where the marks are, because the rail already announces its own
+ * position and a list of six numbers would be a second copy of the arithmetic.
+ */
+export const COLOUR_CHEAP_STEPS = "Marked steps cost the fewest characters.";
+
+/**
+ * The unaffordable detents' hidden expansion. 57.
+ *
+ * NO ADJACENT REASON LINE - X-17's precedent, and 05.1's disabled chip. The
+ * meter two centimetres away is the cause, and a sentence beside the rail
+ * would be a third place saying the same 908. This is the accessible twin of a
+ * shortened rail, not a message.
+ *
+ * MEASURED NEVER TO APPEAR on today's shelf: the dearest colour-bearing preset
+ * is `ninepads` at 640 of 908 and the whole lattice is worth six characters.
+ */
+export const COLOUR_UNAFFORDABLE =
+  "The colours left out would not fit inside 908 characters.";
+
+// ---------------------------------------------------------------------------
 // The rack.
 
 export const EMPTY_RACK =

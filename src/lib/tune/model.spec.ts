@@ -39,7 +39,7 @@ import {
   type OverBudgetView,
 } from "./model";
 import { resetAll } from "./state";
-import { knobPosition, type TuneView } from "./view";
+import { COLOUR_LATTICE_SIZE, knobPosition, type TuneView } from "./view";
 
 /** The card whose ladder is genuinely reachable with a reserve - see ladder.spec.ts. */
 const OVER_RESERVE = { setup: 300, timer: 0 };
@@ -163,15 +163,17 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       "the new engine paints the same picture as the old one",
     ).toBe(false);
 
-    // THE WINDOW'S INVARIANT, asserted where a colour knob is already being
-    // turned (plan 10-08). `KnobView.index` indexes `values`, and for a
-    // lattice colour knob `values` is a WINDOW - two swatches, not 4,096 - so
-    // the view's index is a window slot and `knobPosition` is the only honest
-    // way back to the knob's own position. Anything outside the widget that
-    // reads `.index` directly reports the wrong number, which was MEASURED as
-    // `install.e2e.ts` disabling KEEP ON DEVICE with `knobs-moved` after a
-    // write nobody had touched. Held for EVERY knob, so the identity case is
-    // covered beside the windowed one.
+    // THE POSITION INVARIANT, asserted where a colour knob is already being
+    // turned (plans 10-08 and 10-10). `KnobView.index` indexes `values`, and
+    // `knobPosition` is the ONE named door back to the knob's own position.
+    // Anything outside the widget that reads `.index` directly is one data
+    // widening away from reporting the wrong number, which was MEASURED once:
+    // 10-08's two-swatch window read aurora's colour back as slot 0 instead of
+    // lattice position 95, and `install.e2e.ts` disabled KEEP ON DEVICE with
+    // `knobs-moved` after a write nobody had touched. 10-10's picker removed
+    // the window, so the translation is the identity again - and this is what
+    // makes the identity a MEASUREMENT rather than an assumption. Held for
+    // EVERY knob on the view, not only the colour one.
     const views = rec.views.at(-1)?.knobs ?? [];
     expect(views.length, "the last view carried the rack").toBe(
       tuner.knobs.length,
@@ -186,12 +188,25 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
         `${each.id}: the view's index is not a position in its own values`,
       ).toBeLessThan(each.values.length);
     }
+    // AND THE WINDOW IS GONE. 10-08 shipped a two-swatch bridge because a
+    // 4,096-option swatch row broke the panel; 10-10's picker draws 48 detents
+    // instead of 4,096 options, so the whole lattice reaches the view again.
+    // Asserted in BOTH directions - the count is the lattice's, and the view
+    // carries no `positions` field to translate through - so the bridge cannot
+    // come back quietly beside the picker that replaced it.
     const colourView = views.find((each) => each.id === "colour");
-    expect(colourView?.positions, "the colour view is a window").toBeDefined();
     expect(
       colourView?.values.length,
-      "the rack shows where the card ships and where the visitor is",
-    ).toBe(2);
+      "the colour view is not the whole lattice - the rack window is back, or the knob shrank",
+    ).toBe(COLOUR_LATTICE_SIZE);
+    expect(
+      Object.keys(colourView ?? {}),
+      "KnobView carries a `positions` window again beside the picker that removed it",
+    ).not.toContain("positions");
+    expect(
+      colourView && knobPosition(colourView),
+      "a colour view's position is not its own index, so a coordinate system came back",
+    ).toBe(colourView?.index);
 
     tuner.destroy();
   });

@@ -88,9 +88,9 @@ import { applyKnob, baseStateFor, resetAll } from "./state";
 import { surpriseIndices } from "./surprise";
 import {
   integerReadout,
+  isColourLattice,
   meterView,
   positionText,
-  SWATCH_ROW_MAX,
   railSkin,
   swatchName,
   swatchOf,
@@ -285,7 +285,7 @@ function valueView(
 ): KnobValueView {
   const literal = options[index];
   const count = options.length;
-  if (widget === "swatch") {
+  if (widget === "swatch" || widget === "colour") {
     const name = swatchName(literal, index, count);
     return {
       label: name ?? positionText(index, count),
@@ -297,6 +297,36 @@ function valueView(
   if (typeof word === "string") return { label: word };
   const integer = integerReadout(options, index);
   return { label: integer ?? positionText(index, count) };
+}
+
+/**
+ * The 4,096 resolved colour views, built ONCE and shared.
+ *
+ * THE WINDOW IS GONE AND THIS IS WHAT REPLACES IT (plan 10-10). Between 10-08
+ * and 10-10 a lattice colour knob was shown as a two-swatch WINDOW - where the
+ * card ships and where the visitor is - because `Knob.svelte`'s swatch row
+ * draws one element per option and 4,096 radio inputs was not a slow row but a
+ * broken panel: measured on /dev/tune/, the row overflowed and intercepted the
+ * pointer events of RESET ALL, SURPRISE ME and COPY LINK, and thirteen of the
+ * twenty tuning e2e tests went red. `ColourPicker.svelte` draws forty-eight
+ * detents instead of 4,096 options, so the window and `KnobView.positions` and
+ * `SWATCH_ROW_MAX` all went with it.
+ *
+ * What did NOT go away is the cost of MATERIALISING 4,096 views, and that is
+ * why this is a module-scope cache rather than a map inside `knobViews`. Every
+ * colour-bearing preset offers the same 4,096 literals in the same order
+ * (`knobs.preset.ts` builds them once from `colourAt`), so the resolved views
+ * are the same list too - and resolving them per emit would run `swatchName`'s
+ * HSL arithmetic 4,096 times on every knob turn, inside a debounce window
+ * whose whole purpose is to keep a drag cheap.
+ */
+let latticeViews: readonly KnobValueView[] | undefined;
+
+function colourViews(options: readonly string[]): readonly KnobValueView[] {
+  latticeViews ??= Object.freeze(
+    options.map((_, at) => valueView("colour", "colour", options, at)),
+  );
+  return latticeViews;
 }
 
 function knobViews(
@@ -314,39 +344,16 @@ function knobViews(
       skin: widget === "rail" ? railSkin(knob.options.length) : undefined,
       readout: integerReadout(knob.options, index),
     };
-    // THE RACK WINDOW, and the interval it exists for (D-06, plan 10-08).
-    //
-    // A swatch row draws one element per option. That is right at six and
-    // right at the four or five a Lua entry declares; at the 4,096 positions
-    // D-06 gives a preset's colour knob it is not a slow row, it is a broken
-    // panel - measured on /dev/tune/, the row overflows and its labels
-    // intercept the pointer events of RESET ALL, SURPRISE ME and COPY LINK.
-    // The picker that renders the lattice properly - three sixteen-detent
-    // rails and a result pad - is 10-10's, and it is deliberately NOT
-    // improvised here.
-    //
-    // So the rack shows the two positions it can honestly show without one:
-    // where the card ships, and where the visitor is. `positions` carries the
-    // real knob index of each, so a click still writes a lattice position and
-    // the default marker still lands on the card as published. Nothing else in
-    // the rack changes, and no other kind takes this branch.
-    if (widget === "swatch" && knob.options.length > SWATCH_ROW_MAX) {
-      const window = [...new Set([knob.default, index])].sort((a, b) => a - b);
-      return {
-        ...head,
-        values: window.map((at) =>
-          valueView(knob.kind, widget, knob.options, at),
-        ),
-        positions: window,
-        index: window.indexOf(index),
-        default: window.indexOf(knob.default),
-      };
-    }
     return {
       ...head,
-      values: knob.options.map((_, at) =>
-        valueView(knob.kind, widget, knob.options, at),
-      ),
+      // The lattice's 4,096 come from the shared cache; every other knob
+      // resolves its own handful. See `colourViews`.
+      values:
+        widget === "colour" && isColourLattice(knob.options)
+          ? colourViews(knob.options)
+          : knob.options.map((_, at) =>
+              valueView(knob.kind, widget, knob.options, at),
+            ),
       index,
       default: knob.default,
     };

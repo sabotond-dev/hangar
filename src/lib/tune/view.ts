@@ -71,8 +71,21 @@ export const KNOB_KIND_NAMES: readonly KnobKindName[] = [
   "scale",
 ];
 
-/** Three widgets, and only three. Every knob resolves to one of them. */
-export type KnobWidget = "swatch" | "words" | "rail";
+/**
+ * Four names, three row skins and one picker.
+ *
+ * `swatch`, `words` and `rail` are what a KNOB ROW can be, and `widgetFor`
+ * chooses between the last two. `colour` is the fourth, and it is not a row at
+ * all: it is the whole ColourPicker block, which the rack renders ONCE per
+ * panel however many colour knobs an entry declares (10-UI-SPEC §11.2).
+ *
+ * `widgetFor` never returns `swatch` any more. The picker synthesises it for
+ * the one case that still needs it - a hand-authored Lua palette, whose four
+ * or five literals cannot be reached from three sixteen-detent rails - and
+ * hands that view to the SHIPPED `Knob.svelte` swatch row rather than drawing
+ * a second one. See ColourPicker.svelte's header.
+ */
+export type KnobWidget = "colour" | "swatch" | "words" | "rail";
 
 /** A rail's two skins: a dot per option, or a track with a thumb. */
 export type RailSkin = "dots" | "track";
@@ -81,15 +94,6 @@ export type RailSkin = "dots" | "track";
 export const WORD_ROW_MAX = 8;
 /** Above this many options a dot rail becomes a detent track. */
 export const DOT_RAIL_MAX = 8;
-/**
- * Above this many options a swatch row is a WINDOW rather than the whole knob.
- *
- * Sixteen is above every swatch row this site has ever shipped - six on a
- * preset before D-06, five at most on a Lua entry - and far below the 4,096 a
- * lattice colour knob carries, so it separates "a row" from "a picker's job"
- * without being a number tuned to today's data. See `KnobView.positions`.
- */
-export const SWATCH_ROW_MAX = 16;
 
 // ---------------------------------------------------------------------------
 // The view types a component names.
@@ -113,23 +117,6 @@ export type KnobView = {
   values: readonly KnobValueView[];
   index: number;
   default: number;
-  /**
-   * The KNOB POSITION each member of `values` stands for, when the view is a
-   * WINDOW onto a larger knob rather than the whole of it. `undefined` means
-   * the identity, which is every knob but one.
-   *
-   * It exists for exactly one knob and one interval. D-06 widens the colour
-   * knob to 4,096 positions (plan 10-08) and the picker that renders them as
-   * three sixteen-detent rails arrives at 10-10; in between, a swatch row that
-   * enumerated the lattice would put 4,096 radio inputs in the rack, which is
-   * not slow so much as broken - measured, it overflows the panel and
-   * intercepts every other control's pointer events. So `model.ts` shows the
-   * two swatches a rack can honestly show without a picker - where the card
-   * ships and where the visitor is - and `positions` is what keeps a click on
-   * the second one writing lattice position 1,638 rather than window slot 1.
-   * When 10-10 lands the picker this field goes with it.
-   */
-  positions?: readonly number[];
   /** The right-aligned integer, when every value is a single integer. */
   readout?: string;
 };
@@ -353,15 +340,15 @@ const WORD_KINDS: readonly KnobKindName[] = [
  * rail. That fall-through is the design, not a safety net: a rail always works,
  * because position is always meaningful.
  *
- * THE X-05 / X-06 AMENDMENT, BY NAME (10-UI-SPEC §11.2, plan 10-08). X-05 and
- * X-06 say widget selection is "chosen by `kind` and by `n`, never per
- * configuration". `colour` is now chosen by `kind` ALONE. The reason is not
- * tidiness: under D-06 a colour knob carries `n = 4096`, and any rule that
+ * THE X-05 / X-06 AMENDMENT, BY NAME (10-UI-SPEC §11.2, plans 10-08 and
+ * 10-10). X-05 and X-06 say widget selection is "chosen by `kind` and by `n`,
+ * never per configuration". `colour` is chosen by `kind` ALONE. The reason is
+ * not tidiness: under D-06 a colour knob carries `n = 4096`, and any rule that
  * consults `n` sends it to a single detent track - one 4,096-position rail,
  * which is precisely the picker that lies about what the pad can show. The
- * colour widget renders three channel rails and a result pad at any `n`.
- * Every other kind's mapping is untouched, and `view.spec.ts` asserts that
- * rather than leaving it to be believed.
+ * colour widget is the PICKER at any `n`. Every other kind's mapping is
+ * untouched, and `view.spec.ts` compares the whole mapping rather than the one
+ * row that moved.
  *
  * The old `values.every(v => rgbOf(v) !== undefined)` guard is gone with it.
  * It was a per-configuration test - exactly what X-05 forbids - and at 4,096
@@ -372,7 +359,7 @@ export function widgetFor(
   kind: KnobKindName,
   values: readonly string[],
 ): KnobWidget {
-  if (kind === "colour") return "swatch";
+  if (kind === "colour") return "colour";
   if (WORD_KINDS.includes(kind)) {
     const fits = values.length > 0 && values.length <= WORD_ROW_MAX;
     return fits && values.every((v) => wordFor(kind, v) !== undefined)
@@ -383,27 +370,264 @@ export function widgetFor(
 }
 
 /**
- * The KNOB POSITION a view is currently at, whether or not it is a window.
+ * The KNOB POSITION a view is currently at: the ONE named door between a
+ * view's coordinate system and the knob's.
  *
- * `KnobView.index` and `KnobView.default` are indices into `values`, and for
- * every knob but the lattice colour one that IS the knob position. When
- * `positions` is present the two coordinate systems part company, and anything
- * outside the widget that reads a view's index has to come back through here.
+ * It is the identity for every knob today, and it is kept as a function rather
+ * than inlined because the class of bug it was introduced for is not
+ * hypothetical. Plan 10-08 gave a lattice colour knob a two-swatch WINDOW and
+ * `KnobView.positions` to translate the slots back; `TuningRegion.svelte` read
+ * `knob.index` directly and reported window slot 0 where the knob stood at
+ * lattice position 95, which was MEASURED as `install.e2e.ts` disabling KEEP
+ * ON DEVICE with `knobs-moved` after a write nobody had touched. Plan 10-10
+ * removed the window with the picker that replaces it, so the translation is
+ * the identity again - and `model.spec.ts` asserts it for EVERY knob on every
+ * view, which is what makes the identity a measurement rather than an
+ * assumption.
  *
- * There is exactly one such reader - `TuningRegion.svelte` reports the rack's
- * indices to the panel, and the install store compares them against what it
- * wrote. Getting this wrong is not a rendering bug: it was MEASURED as
- * `install.e2e.ts` reporting `knobs-moved` and disabling KEEP ON DEVICE after
- * a write nobody had touched, because aurora's colour read back as window slot
- * 0 instead of lattice position 95.
+ * A VIEW POSITION IS STILL NOT A KNOB INDEX, and the picker is where that is
+ * live: a rail detent is 0..15 and the knob position it composes to is
+ * 0..4095. That translation has its own named door, `colourPosition`, for
+ * exactly the same reason this one exists.
  */
 export function knobPosition(view: KnobView): number {
-  return view.positions?.[view.index] ?? view.index;
+  return view.index;
 }
 
 /** A dot per option up to eight; a detent track from nine. */
 export function railSkin(n: number): RailSkin {
   return n <= DOT_RAIL_MAX ? "dots" : "track";
+}
+
+// ---------------------------------------------------------------------------
+// The colour lattice, restated for the picker (D-06, 10-UI-SPEC §11.2).
+//
+// WHY IT IS RESTATED HERE RATHER THAN IMPORTED. The real arithmetic is
+// src/lib/tune/knobs.preset.ts's `colourAt` / `colourIndexOf`, which go through
+// the vendored `quantiseColour`. That file imports the vendored compiler, and
+// D-18's front-door guard fails any file under src/lib/ui/ that names it - by
+// SPECIFIER TEXT, so even a type-only import fails. So this is the same move
+// EVENT_BUDGET and the KnobKind union already make in this file: a literal
+// restatement HELD AGAINST ITS REAL SOURCE BY A SPEC. `colour-picker.spec.ts`
+// walks all 4,096 positions and asserts `colourLevels`/`colourChannel` against
+// the vendored `colourAt`, and `colourPosition` against `colourIndexOf`, in
+// both directions. A drift in `_pad.ts`'s 17-step quantisation stops the suite,
+// not the picker.
+//
+// This is what "every detent is index-to-RGB444 arithmetic through the lattice
+// knob, never a hand-typed list" means in a file that may not import the knob.
+
+/** Sixteen detents per rail. Three rails span 16^3 = 4,096 and no more. */
+export const COLOUR_RAIL_STEPS = 16;
+/**
+ * 255 / 15. `quantiseColour` snaps every stored channel to a multiple of 17
+ * (`src/vendor/botor/_pad.ts:490-493`), which is what makes the lattice exactly
+ * sixteen steps wide and exactly reachable.
+ */
+export const COLOUR_RAIL_STEP = 17;
+/** 4,096. The whole reachable colour space, not a sample of it. */
+export const COLOUR_LATTICE_SIZE =
+  COLOUR_RAIL_STEPS * COLOUR_RAIL_STEPS * COLOUR_RAIL_STEPS;
+
+/** The three rails, in the order they are drawn and in the order of the bits. */
+export type ColourChannel = "r" | "g" | "b";
+export const COLOUR_CHANNELS: readonly ColourChannel[] = ["r", "g", "b"];
+
+const clampLevel = (level: number) =>
+  Math.min(
+    COLOUR_RAIL_STEPS - 1,
+    Math.max(0, Math.trunc(Number.isFinite(level) ? level : 0)),
+  );
+
+const clampPosition = (position: number) =>
+  Math.min(
+    COLOUR_LATTICE_SIZE - 1,
+    Math.max(0, Math.trunc(Number.isFinite(position) ? position : 0)),
+  );
+
+/** A lattice position -> its three rail LEVELS, red first. */
+export function colourLevels(
+  position: number,
+): readonly [number, number, number] {
+  const i = clampPosition(position);
+  return [(i >> 8) & 15, (i >> 4) & 15, i & 15];
+}
+
+/**
+ * Three rail levels -> the lattice position.
+ *
+ * THE PICKER'S `knobPosition`. A detent is 0..15 and a knob position is
+ * 0..4095, and every place the picker reports a move upward comes through
+ * here, for the reason `knobPosition`'s comment gives.
+ */
+export function colourPosition(
+  levels: readonly [number, number, number],
+): number {
+  return (
+    (clampLevel(levels[0]) << 8) |
+    (clampLevel(levels[1]) << 4) |
+    clampLevel(levels[2])
+  );
+}
+
+/** A rail level -> its stored channel value. Exactly `level * 17`, never a round. */
+export function colourChannel(level: number): number {
+  return clampLevel(level) * COLOUR_RAIL_STEP;
+}
+
+/**
+ * "102, 102, 102" - the three STORED INTEGERS, and this is what a rail's
+ * `aria-valuetext` announces.
+ *
+ * NEVER A HEX. `#666666` would be a number the state does not hold written in
+ * a base the firmware never sees, and it implies a 24-bit resolution the pad
+ * cannot reach. The spaces after the commas are deliberate: a screen reader
+ * pauses on them and reads three numbers rather than one long one.
+ */
+export function colourValueText(position: number): string {
+  return colourLevels(position).map(colourChannel).join(", ");
+}
+
+/**
+ * How many characters `glc(a, layer, r, g, b, 1)` spends on this colour: three
+ * decimal literals and the two commas between them.
+ *
+ * The whole lattice is worth SIX characters - `0,0,0` is five and `102,102,102`
+ * is eleven - and that is the entire arithmetic the affordability guard rests
+ * on, because a colour change moves nothing else in the emitted script.
+ */
+export function colourLiteralLength(position: number): number {
+  return colourLevels(position).reduce(
+    (sum, level) => sum + String(colourChannel(level)).length,
+    2,
+  );
+}
+
+/**
+ * The cheap-step rule, DERIVED from the literal rather than listed.
+ *
+ * A marked step is one whose channel literal is one or two digits, plus 255.
+ * That is `0` (one digit), `17` `34` `51` `68` `85` (two), and `255` - the top
+ * of the rail, marked because a visitor reaching for full brightness should not
+ * have to learn that it is the expensive end. `102` and everything between it
+ * and `238` is three digits and unmarked.
+ */
+export function colourCheapLevel(level: number): boolean {
+  const value = colourChannel(level);
+  return String(value).length <= 2 || value === 255;
+}
+
+/**
+ * What the picker is allowed to spend, or `undefined` when nothing has
+ * measured yet.
+ *
+ * `free` is the characters left on the tighter of the two events at the colour
+ * the knob currently stands at; `copies` is how many times the emitted script
+ * writes the literal (one on every card but `ninepads`, whose checkerboard
+ * emits a dimmed second copy).
+ */
+export type ColourBudget = { free: number; copies: number };
+
+/**
+ * One detent of one rail, fully resolved: where it sits, what colour it is,
+ * whether it is a cheap step, and whether it fits.
+ */
+export type ColourDetent = {
+  /** 0..15 along this rail. */
+  level: number;
+  /** The lattice position this detent composes to, with the other two rails held. */
+  position: number;
+  /** The three stored channel values of that position. */
+  rgb: readonly [number, number, number];
+  cheap: boolean;
+  /**
+   * False when this colour's literal would push the state past 908.
+   *
+   * MEASURED AT ZERO ON TODAY'S SHELF: the dearest colour-bearing preset is
+   * `ninepads` at 640 of 908, leaving 268 free, and the whole lattice is worth
+   * six characters per copy. The guard ships because it makes that claim
+   * CHECKABLE, because the Lua route's hand-authored templates have far less
+   * headroom, and because the catalog grows.
+   */
+  affordable: boolean;
+};
+
+/**
+ * One rail, resolved: sixteen detents of `axis`, each painted in the colour it
+ * would produce GIVEN THE OTHER TWO RAILS WHERE THEY STAND.
+ *
+ * That "given the other two" is why a rail re-paints when either other rail
+ * moves, and it is what makes the strip sixteen discrete storable colours
+ * rather than a gradient.
+ */
+export function colourRail(
+  axis: 0 | 1 | 2,
+  position: number,
+  budget?: ColourBudget,
+): readonly ColourDetent[] {
+  const current = colourLevels(position);
+  const currentLength = colourLiteralLength(position);
+  return Array.from({ length: COLOUR_RAIL_STEPS }, (_, level) => {
+    const levels: [number, number, number] = [...current];
+    levels[axis] = level;
+    const at = colourPosition(levels);
+    return {
+      level,
+      position: at,
+      rgb: [
+        colourChannel(levels[0]),
+        colourChannel(levels[1]),
+        colourChannel(levels[2]),
+      ] as const,
+      cheap: colourCheapLevel(level),
+      affordable:
+        budget === undefined ||
+        (colourLiteralLength(at) - currentLength) * budget.copies <=
+          budget.free,
+    };
+  });
+}
+
+/**
+ * The highest level a rail's `<input type="range">` may reach.
+ *
+ * ABSENT AS A COLOUR, PRESENT AS A POSITION. An unaffordable detent is still
+ * painted - in `--color-ground` behind a 1px `--color-line-soft` hairline - so
+ * the rail keeps its shape and a visitor can see that the space continues; the
+ * control's own `max` is what stops there, which is what makes the exclusion
+ * real rather than decorative and what makes the platform announce it.
+ *
+ * The unaffordable set is always a SUFFIX, and that is arithmetic rather than
+ * luck: the cost of a colour is the digit count of its three channels, and a
+ * channel's digit count is monotonic in its level (1 digit at 0, 2 up to 85, 3
+ * from 102). So there is always a single top level and never a hole.
+ */
+export function colourRailMax(rail: readonly ColourDetent[]): number {
+  let top = 0;
+  for (const detent of rail) {
+    if (!detent.affordable) break;
+    top = detent.level;
+  }
+  return top;
+}
+
+/**
+ * True when this colour knob carries the whole lattice rather than a
+ * hand-authored palette.
+ *
+ * THIS IS NOT WIDGET SELECTION AND IT IS NOT X-05's `n`. `widgetFor` has
+ * already chosen the picker by kind alone; this is the picker asking what it
+ * is holding. A compiler-route colour knob IS the lattice (`knobs.preset.ts`
+ * builds its options from `colourAt` over all 4,096). A Lua entry's colour knob
+ * is still the four or five literals its author wrote, and three sixteen-detent
+ * rails cannot travel between `0,204,255` and `255,85,0` without passing
+ * through 4,094 colours that knob cannot name - so the picker shows that knob
+ * the SHIPPED swatch row instead, inside the same block, with the same caption
+ * and the same selector. Widening the Lua route onto the lattice regenerates
+ * every colour-bearing entry's frames and is `deferred-items.md` item 3.
+ */
+export function isColourLattice(values: readonly unknown[]): boolean {
+  return values.length === COLOUR_LATTICE_SIZE;
 }
 
 /**

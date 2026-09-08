@@ -40,7 +40,7 @@
       TUNING caption           (the region's fixed 14px line box) 14
       gap                                                        16
       message slot A           auto, and only when a stamp landed  -
-      knob rack                                       48r + 66w - 4
+      knob rack                               48r + 66w + 196p - 4
       gap                                                        16
       actions row              SURPRISE ME / RESET ALL            44
       gap                                                        16
@@ -50,8 +50,14 @@
 
   which sums to
 
-      194 + 48r + 66w - 4     the actions row on one line
-      246 + 48r + 66w - 4     the actions row wrapped to two
+      194 + 48r + 66w + 196p - 4     the actions row on one line
+      246 + 48r + 66w + 196p - 4     the actions row wrapped to two
+
+  `p` is 1 when the entry declares ANY colour knob and 0 otherwise, because
+  plan 10-10 renders one ColourPicker per panel rather than one per knob
+  (10-UI-SPEC 11.2). Its 192px block is width-independent by construction, so
+  it needs no third constant. The colour knobs themselves are billed at zero:
+  they are inside the picker, not beside it.
 
   246 = 194 + 44 + 8: the second 44px button row plus the 8px `sm` gap that
   05-UI-SPEC's Spacing table defines as the gap between SURPRISE ME and RESET
@@ -210,6 +216,7 @@
     onstamp,
     onbudget,
     onconfig,
+    onresult,
   }: {
     /**
      * The catalog id, NOT an entry object, so /dev/tune/ can mount the region
@@ -245,6 +252,16 @@
      * click time.
      */
     onconfig?: (config: { setup: string; timer: string } | undefined) => void;
+    /**
+     * The colour picker's result pad, for whoever owns the page's SimHost.
+     *
+     * The region has no host of its own - it hands the tuner's engine upward
+     * through `onpreview` and the owner registers it - so the result canvas
+     * goes the same way. A consumer that supplies this registers the element
+     * against the id it is handed and unregisters it on teardown; one that
+     * does not gets no result pad at all rather than a blank one.
+     */
+    onresult?: (id: string, canvas: HTMLCanvasElement) => void;
   } = $props();
 
   /**
@@ -265,6 +282,8 @@
   /** A row-layout knob is 44 + 4; a word row is 62 + 4; the rack drops its trailing gap. */
   const ROW_KNOB_PX = 48;
   const WORD_ROW_PX = 66;
+  /** The colour picker's 192px block plus the same 4px gap. Billed ONCE. */
+  const PICKER_PX = 196;
   const RACK_GAP_PX = 4;
 
   let view: TuneView | undefined = $state(undefined);
@@ -408,16 +427,69 @@
     };
   });
 
+  /**
+   * WHAT A COLOUR MAY STILL SPEND (TUNE-05, 10-UI-SPEC 11.2).
+   *
+   * The tighter of the two events' free margins, and the number of times the
+   * emitted script writes the literal. A colour change moves nothing else in
+   * the script, so a candidate's cost is exactly the digit-count difference of
+   * its three channels times the copy count - which is why this is arithmetic
+   * the picker can do without ever reaching the compiler, and why it does not
+   * cost 4,096 compiles to answer.
+   *
+   * `copies` is 1, and the ONE card that emits its colour twice is `ninepads`,
+   * whose checkerboard draws a dimmed second copy. So the guard is
+   * conservative by at most six characters on exactly one entry, and what
+   * catches that six is the path that already exists: the meters go over, the
+   * message appears and TRY ON DEVICE is disabled with a reason. Under-warning
+   * into a state the panel already handles is the right side to err on;
+   * over-warning would grey out a colour that fits.
+   *
+   * Clamped at zero because an ALREADY over-budget state must not shorten
+   * every rail to one detent: the colour the knob stands at is always
+   * affordable by construction, and 908 is the meters' business to report.
+   *
+   * MEASURED AT ZERO EXCLUSIONS ON TODAY'S SHELF. The dearest colour-bearing
+   * preset is `ninepads` at 640 of 908 - 268 free against a lattice worth six
+   * characters - and zero of the reachability sweep's 24,576 colour states
+   * crosses the wall.
+   */
+  const colourBudget = $derived.by(() => {
+    const current = view;
+    if (current === undefined) return undefined;
+    return {
+      free: Math.max(
+        0,
+        Math.min(
+          current.setup.limit - current.setup.used,
+          current.timer.limit - current.timer.used,
+        ),
+      ),
+      copies: 1,
+    };
+  });
+
   function waiting(state: string): boolean {
     return state === "measuring" || state === "stale";
   }
 
-  /** `48r + 66w - 4`, and zero for an entry with nothing to turn. */
+  /** `48r + 66w + 196p - 4`, and zero for an entry with nothing to turn. */
   function rackHeight(next: TuneView): number {
     const words = next.knobs.filter((knob) => knob.widget === "words").length;
-    const rows = next.knobs.length - words;
+    const colours = next.knobs.filter(
+      (knob) => knob.widget === "colour",
+    ).length;
+    const rows = next.knobs.length - words - colours;
     if (next.knobs.length === 0) return 0;
-    return ROW_KNOB_PX * rows + WORD_ROW_PX * words - RACK_GAP_PX;
+    // ONE picker, however many colour knobs it holds. Billing them one each
+    // would over-reserve by 48px on `console`, `strip` and `forge` and would
+    // contradict the one thing 10-UI-SPEC 11.2 is about.
+    return (
+      ROW_KNOB_PX * rows +
+      WORD_ROW_PX * words +
+      (colours > 0 ? PICKER_PX : 0) -
+      RACK_GAP_PX
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -663,9 +735,12 @@
     {/if}
 
     <KnobRack
+      entry={{ id: entryId, name }}
       knobs={knobViews}
       held={heldKnobs}
+      budget={colourBudget}
       forecast={rackForecast}
+      {onresult}
       onchange={changeKnob}
       onreset={resetKnob}
       onhold={holdKnob}

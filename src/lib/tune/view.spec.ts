@@ -114,7 +114,48 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
   });
 
   it("gives every one of the twelve kinds a widget, and falls through to a rail", () => {
-    const widgets: KnobWidget[] = ["swatch", "words", "rail"];
+    const widgets: KnobWidget[] = ["colour", "swatch", "words", "rail"];
+
+    // THE WHOLE MAPPING, COMPARED AS ONE OBJECT (plan 10-10). The amendment
+    // below moves ONE row, and "no other kind's mapping moved" is a claim
+    // about the other eleven - so it is asserted as an equality over the whole
+    // table rather than as a handful of spot checks that a twelfth kind could
+    // slip past. Each kind is handed a value set that its own table cannot
+    // name, so a kind that stopped consulting its values shows up here.
+    const UNNAMEABLE: Readonly<Record<KnobKindName, readonly string[]>> = {
+      colour: ["0,200,255", "255,90,0"],
+      speed: ["240", "180", "110"],
+      direction: ["x", "sideways"],
+      size: ["1", "2", "3"],
+      count: ["1", "2", "3"],
+      note: ["24", "26", "28", "30", "32", "34", "36", "38", "40"],
+      feel: ["0", "1"],
+      amount: ["0", "1", "2"],
+      mode: ["relative", "sideways"],
+      bend: ["none", "sideways"],
+      spring: ["off", "sideways"],
+      scale: ["0,1,2", "0,1,3"],
+    };
+    const mapping = Object.fromEntries(
+      KNOB_KIND_NAMES.map((kind) => [kind, widgetFor(kind, UNNAMEABLE[kind])]),
+    );
+    expect(
+      mapping,
+      "a kind's widget moved. `colour` is the picker BY KIND ALONE (X-05 / X-06 as plan 10-10 amends them); every other kind still consults its values and falls through to a rail when it cannot name them",
+    ).toEqual({
+      colour: "colour",
+      speed: "rail",
+      direction: "rail",
+      size: "rail",
+      count: "rail",
+      note: "rail",
+      feel: "rail",
+      amount: "rail",
+      mode: "rail",
+      bend: "rail",
+      spring: "rail",
+      scale: "rail",
+    });
 
     // Totality first: no knob can fail to render, whatever its kind and
     // whatever its values.
@@ -126,7 +167,7 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     expect(seen, "the loop ran over all twelve kinds").toBe(12);
 
     // Then the three rules.
-    expect(widgetFor("colour", ["0,200,255", "255,90,0"])).toBe("swatch");
+    expect(widgetFor("colour", ["0,200,255", "255,90,0"])).toBe("colour");
     expect(widgetFor("scale", ["0,2,4,5,7,9,11", "0,2,3,5,7,8,10"])).toBe(
       "words",
     );
@@ -138,27 +179,27 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     expect(widgetFor("speed", ["240", "180", "110"])).toBe("rail");
     expect(widgetFor("amount", ["0", "1", "2"])).toBe("rail");
 
-    // THE X-05 / X-06 AMENDMENT (10-UI-SPEC §11.2, plan 10-08): `colour` is
-    // chosen by KIND ALONE. The two assertions this replaces asserted the
-    // opposite - that a colour whose values are not RGB falls through to a rail
-    // - and they were right for a six-swatch palette and wrong for a 4,096
-    // position lattice, where any rule that consults `n` sends the colour knob
-    // to a single detent track: one 4,096-position rail, which is exactly the
-    // picker that lies about what the pad can show. Kept as assertions rather
-    // than deleted, with the verdict inverted, so the change is visible in the
-    // suite rather than only in a diff.
+    // THE X-05 / X-06 AMENDMENT (10-UI-SPEC §11.2, plans 10-08 and 10-10):
+    // `colour` is chosen by KIND ALONE. The two assertions this replaces
+    // asserted the opposite - that a colour whose values are not RGB falls
+    // through to a rail - and they were right for a six-swatch palette and
+    // wrong for a 4,096-position lattice, where any rule that consults `n`
+    // sends the colour knob to a single detent track: one 4,096-position rail,
+    // which is exactly the picker that lies about what the pad can show. Kept
+    // as assertions rather than deleted, with the verdict inverted, so the
+    // change is visible in the suite rather than only in a diff.
     expect(
       widgetFor("colour", ["red"]),
       "a colour is chosen by kind alone, even when a value is not RGB",
-    ).toBe("swatch");
+    ).toBe("colour");
     expect(
       widgetFor("colour", ["0,200,255", "0,200,300"]),
       "a colour is chosen by kind alone, even with a channel outside 0..255",
-    ).toBe("swatch");
+    ).toBe("colour");
     expect(
       widgetFor("colour", []),
       "a colour is chosen by kind alone, even with no values at all",
-    ).toBe("swatch");
+    ).toBe("colour");
     // The lattice itself, at the size D-06 gives it. `n = 4096` must not move
     // the answer, which is the whole content of the amendment.
     expect(
@@ -167,22 +208,16 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
         Array.from({ length: COLOUR_LATTICE_SIZE }, (_, i) => String(i)),
       ),
       "the 4,096-position lattice is still the colour widget",
-    ).toBe("swatch");
+    ).toBe("colour");
 
-    // And NO OTHER KIND'S MAPPING MOVED. Each of the other eleven is asserted
-    // to still consult its values, by handing it a value set it cannot name.
+    // `swatch` is still a widget and it is no longer CHOSEN. ColourPicker
+    // synthesises it for a hand-authored Lua palette and hands that view to
+    // the shipped Knob.svelte swatch row; nothing else may produce it, or the
+    // rack would draw a colour knob twice.
     expect(
-      widgetFor("scale", ["0,1,2", "0,1,3"]),
-      "a semitone set not in the table",
-    ).toBe("rail");
-    expect(
-      widgetFor("note", ["24", "26", "28", "30", "32", "34", "36", "38", "40"]),
-      "a note knob with nine options",
-    ).toBe("rail");
-    expect(
-      widgetFor("direction", ["x", "sideways"]),
-      "a direction with no word",
-    ).toBe("rail");
+      Object.values(mapping),
+      "widgetFor still returns a swatch row for some kind - the picker owns that skin now",
+    ).not.toContain("swatch");
   });
 
   it("skins a rail with dots at eight options and a track at nine", () => {

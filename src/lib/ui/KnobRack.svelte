@@ -33,13 +33,22 @@
   it.
 
   A row-layout knob is 44 + 4 = 48. A word row is 62 + 4 = 66 (a 14px label
-  line box, a 4px gap, a 44px control). The rack drops its trailing gap. With
-  no messages, and `r` row-layout knobs against `w` word rows:
+  line box, a 4px gap, a 44px control). THE COLOUR PICKER IS 192 + 4 = 196, and
+  it is billed ONCE however many colour knobs an entry declares, because plan
+  10-10 renders one picker per panel rather than one per knob - so `p` below is
+  1 or 0, never 2 and never 3, and the colour knobs themselves cost nothing.
+  The rack drops its trailing gap. With no messages, and `r` row-layout knobs
+  against `w` word rows and `p` pickers:
 
-      194 + 48r + 66w - 4     the actions row fits on one line
-      246 + 48r + 66w - 4     the actions row wraps to two
+      194 + 48r + 66w + 196p - 4     the actions row fits on one line
+      246 + 48r + 66w + 196p - 4     the actions row wraps to two
 
   246 = 194 + 44 + 8: the second 44px button row plus the 8px `sm` gap.
+
+  192 = 44 (the picker's head) + 8 + 140 (three 44px rails and two 4px gaps),
+  and it is width-independent BY CONSTRUCTION: the picker's rails shrink rather
+  than wrap, and its result pad is a fixed 88px square, so the reservation is
+  true at 320px and at 420px alike.
 
   THIS IS A CORRECTION TO THE APPROVED UI SPEC AND IS RECORDED AS ONE.
   05-UI-SPEC's "Vertical arithmetic" table bills the actions row at a flat 44px
@@ -82,18 +91,28 @@
 -->
 <script lang="ts">
   import { EMPTY_RACK } from "$lib/tune/copy";
-  import type { KnobView } from "$lib/tune/view";
+  import type { ColourBudget, KnobView } from "$lib/tune/view";
+  import ColourPicker from "./ColourPicker.svelte";
   import Knob from "./Knob.svelte";
 
   let {
+    entry,
     knobs,
     held,
+    budget,
     forecast,
     onchange,
     onreset,
     onhold,
     onforecast,
+    onresult,
   }: {
+    /**
+     * The configuration, for the picker's result pad. Declared STRUCTURALLY -
+     * the src/lib/sim/host.ts HostEngine pattern - so this file names no
+     * catalog type and costs no chunk.
+     */
+    entry: { id: string; name: string };
     /** Every knob of the chosen configuration, in the order the entry gives. */
     knobs: readonly KnobView[];
     /** One knob moved to one index. The region owns what that means. */
@@ -122,32 +141,69 @@
     };
     /** An option was hovered or focused, by knob and KNOB POSITION. */
     onforecast?: (id: string, position: number | undefined) => void;
+    /**
+     * What a colour may still spend. Forwarded to the picker, which is the
+     * only thing on the panel with a domain large enough for the question to
+     * arise.
+     */
+    budget?: ColourBudget;
+    /** The picker's result pad, for whoever owns the page's SimHost. */
+    onresult?: (id: string, canvas: HTMLCanvasElement) => void;
   } = $props();
+
+  /**
+   * ONE PICKER PER PANEL, NOT ONE PER KNOB (10-UI-SPEC 11.2).
+   *
+   * The colour knobs come out of the rack's row list and go into a single
+   * ColourPicker block, rendered in the place of the FIRST of them so the
+   * entry's own knob order survives. Six entries carry two or three colour
+   * knobs; giving each its own three rails and its own result pad would put
+   * nine rails and three extra canvases on `console`, `strip` and `forge`.
+   */
+  const colourKnobs = $derived(knobs.filter((k) => k.widget === "colour"));
+  /** The one colour knob whose slot the picker takes; the others render nothing. */
+  const pickerAt = $derived(colourKnobs[0]?.id);
 </script>
 
 <div class="rack" data-testid="knob-rack">
   {#if knobs.length === 0}
     <p class="empty">{EMPTY_RACK}</p>
   {:else}
-    {#each knobs as knob (knob.id)}
-      <Knob
-        view={knob}
-        stacked={knob.widget === "words"}
-        held={held.has(knob.id)}
-        forecastAt={forecast?.knobId === knob.id
-          ? forecast.position
-          : undefined}
-        forecastLabel={forecast?.knobId === knob.id
-          ? forecast.label
-          : undefined}
-        forecastSentence={forecast?.knobId === knob.id
-          ? forecast.sentence
-          : undefined}
-        onchange={(index) => onchange(knob.id, index)}
-        onreset={() => onreset(knob.id)}
-        onhold={() => onhold(knob.id)}
-        onforecast={(position) => onforecast?.(knob.id, position)}
-      />
+    {#each knobs as row (row.id)}
+      {#if row.widget === "colour"}
+        {#if row.id === pickerAt}
+          <ColourPicker
+            {entry}
+            {held}
+            {budget}
+            {onresult}
+            knobs={colourKnobs}
+            onchange={(id, position) => onchange(id, position)}
+            onreset={(id) => onreset(id)}
+            onhold={(id) => onhold(id)}
+            onforecast={(id, position) => onforecast?.(id, position)}
+          />
+        {/if}
+      {:else}
+        <Knob
+          view={row}
+          stacked={row.widget === "words"}
+          held={held.has(row.id)}
+          forecastAt={forecast?.knobId === row.id
+            ? forecast.position
+            : undefined}
+          forecastLabel={forecast?.knobId === row.id
+            ? forecast.label
+            : undefined}
+          forecastSentence={forecast?.knobId === row.id
+            ? forecast.sentence
+            : undefined}
+          onchange={(index) => onchange(row.id, index)}
+          onreset={() => onreset(row.id)}
+          onhold={() => onhold(row.id)}
+          onforecast={(position) => onforecast?.(row.id, position)}
+        />
+      {/if}
     {/each}
   {/if}
 </div>

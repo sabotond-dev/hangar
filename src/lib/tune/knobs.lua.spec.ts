@@ -146,7 +146,12 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
   });
 
   it("renders: every shipped Lua knob gets a widget, and none falls through on malformed data", () => {
-    const WIDGETS: readonly KnobWidget[] = ["swatch", "words", "rail"];
+    const WIDGETS: readonly KnobWidget[] = [
+      "colour",
+      "swatch",
+      "words",
+      "rail",
+    ];
     let colours = 0;
     let words = 0;
     let rails = 0;
@@ -159,9 +164,14 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
 
         if (knob.kind === "colour") {
           // A colour that reaches a rail is a malformed value set, not a
-          // rendering choice: the swatch row is the only honest widget for a
-          // colour and the fall-through would hide a broken literal.
-          expect(widget, `${where} is not a swatch`).toBe("swatch");
+          // rendering choice: the fall-through would hide a broken literal.
+          // Since plan 10-10 the widget is the PICKER, chosen by kind alone
+          // (X-05 / X-06 as that plan amends them) - and inside it a
+          // hand-authored palette like this one is still shown as the shipped
+          // swatch row, because three sixteen-detent rails cannot travel
+          // between five arbitrary literals. So the widget moved and the
+          // requirement on the LITERALS did not.
+          expect(widget, `${where} is not the colour picker`).toBe("colour");
           for (const option of knob.options) {
             expect(swatchOf(option), `${where} value ${option}`).toBeDefined();
           }

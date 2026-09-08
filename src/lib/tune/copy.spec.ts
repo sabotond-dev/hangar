@@ -12,6 +12,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as copy from "./copy";
 import {
+  COLOUR_BLUE_RAIL,
+  COLOUR_CAPTION,
+  COLOUR_CHEAP_STEPS,
+  COLOUR_GREEN_RAIL,
+  COLOUR_RED_RAIL,
+  COLOUR_UNAFFORDABLE,
+  COLOUR_WHICH,
+  colourRailName,
   COPY_LINK,
   DESTRUCTIVE_CONFIRMATIONS,
   EMPTY_RACK,
@@ -118,6 +126,7 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   emptyTimerExpansion: [],
   forecastDelta: [-3],
   forecastExpansion: ["Setup", 714],
+  colourRailName: ["r", "Mute"],
   lowerFirst: [LADDER_LABEL],
   ladderLine: [1, LADDER_LABEL],
   overBudgetKnob: ["Trail", "Setup", 33],
@@ -169,7 +178,12 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       KNOB_HOLD,
       KNOB_HELD,
     ];
-    const captions = [TUNING_CAPTION, SETUP_CAPTION, TIMER_CAPTION];
+    const captions = [
+      TUNING_CAPTION,
+      SETUP_CAPTION,
+      TIMER_CAPTION,
+      COLOUR_CAPTION,
+    ];
 
     expect(SURPRISE_ME).toBe("SURPRISE ME");
     expect(RESET_ALL).toBe("RESET ALL");
@@ -192,6 +206,35 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(TUNING_CAPTION).toBe("TUNING");
     expect(SETUP_CAPTION).toBe("SETUP");
     expect(TIMER_CAPTION).toBe("TIMER");
+    expect(COLOUR_CAPTION).toBe("COLOUR");
+
+    // -----------------------------------------------------------------------
+    // THE PICKER'S SEVEN STRINGS, CHARACTER FOR CHARACTER (10-UI-SPEC §11.2,
+    // plan 10-10). They ride inside this test rather than becoming an eighth
+    // because what they are is a caption plus six sentences, and this file's
+    // job is to hold each of them to the contract's own words. Their COUNTS
+    // are asserted in colour-picker.spec.ts, beside the picker they belong to.
+    expect(COLOUR_WHICH).toBe("Which colour");
+    expect(COLOUR_RED_RAIL).toBe("Red, 16 steps");
+    expect(COLOUR_GREEN_RAIL).toBe("Green, 16 steps");
+    expect(COLOUR_BLUE_RAIL).toBe("Blue, 16 steps");
+    expect(COLOUR_CHEAP_STEPS).toBe("Marked steps cost the fewest characters.");
+    expect(COLOUR_UNAFFORDABLE).toBe(
+      "The colours left out would not fit inside 908 characters.",
+    );
+
+    // The prefixed rail name is COMPOSED and never written down: seventeen
+    // entries carry more than one colour knob, so the alternative is
+    // fifty-one sentences that drift from the catalog. Composed the same way
+    // `ladderLine` lower-cases the compiler's own label - first character
+    // only, so a proper noun in a knob's label survives.
+    expect(colourRailName("r")).toBe(COLOUR_RED_RAIL);
+    expect(colourRailName("r", "Mute")).toBe("Mute red, 16 steps");
+    expect(colourRailName("g", "Rail")).toBe("Rail green, 16 steps");
+    expect(
+      colourRailName("b", "Level"),
+      "the prefixed form is a literal rather than a composition",
+    ).toBe("Level blue, 16 steps");
 
     for (const label of [...buttonLabels, ...captions]) {
       expect(label, label).toBe(label.toUpperCase());
