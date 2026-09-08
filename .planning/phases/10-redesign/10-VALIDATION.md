@@ -65,6 +65,25 @@ quick **74 / 780 + 1 todo**, sweep **`4 19`**, e2e **89 (2.0m, `--workers 3`)**,
 `static/og/` **210,926 bytes over 36 files**. If 10-01 observes something else, **the observation is
 the phase's** and every plan quotes it.
 
+### Measured 2026-09-08 by 10-01, and it agrees with all seven
+
+`10-01-SUMMARY.md` carries the block in full and it is the document every later plan in this phase
+reads. **There is no disagreement with 09-VERIFICATION on any of the seven carried names:** quick
+**74 / 780 + 1 todo**, sweep **`4 19`**, e2e **89** (110 s at `--workers 3`), `svelte-check`
+**567 / 0 / 0**, catalog **36** (9 preset, 27 Lua), `FRONT_DOOR` **8**, `EXCLUDED_FROM_ROW` **28**.
+`KNOWN_TAGS` is **55**, and the colour census reconciles exactly: 45 `kind: "colour"` occurrences
+across 25 hand-authored entry files (3 / 14 / 8), plus `colourKnob` on six of the nine presets, for
+51 colour knobs across 31 colour-bearing entries.
+
+The four names this phase adds landed at **`CH_PER_LINE` 43**, **`FONT_SRC` candidate (b)**,
+**`BASE_SWEEP_WALL` 123 s** and **`PREV_SWEEP_WALL` 123 s**. `PREV_FILES` / `PREV_TESTS` are
+**76 / 786** as 10-01 leaves the tree, and `PREV_E2E` is **89**, re-measured there.
+
+**One reading correction.** This document says `npm run check` is read with
+`grep -Ei "error|warning"` and must print nothing. It cannot: `svelte-check`'s own summary line is
+`COMPLETED 571 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS`, which matches the pattern. The grep
+prints exactly one line and what is asserted is that the line reads `0 ERRORS 0 WARNINGS`.
+
 ### The seven-name carry-forward block, plus four names this phase adds
 
 Phase 9 established the seven. This phase carries all seven verbatim and adds four, because four
@@ -79,9 +98,9 @@ numbers in this phase are load-bearing arithmetic that a later plan must not re-
 | `BASE_SWEEP` | the sweep project's **member list** — files and tests — as printed on the clean tree, expected `4 19` | **never moves.** 10-08 restructures the three sweep files **from the inside**: two passes replace one inside `reachability` and `stamp-roundtrip`, the test count per file is unchanged, and what moves is the enumeration and `PREV_SWEEP_WALL`. Every plan from 10-08 onward asserts `4 19` **unchanged**, and this is the name for that. If the member list moves, a sweep file was added or a test split — say which |
 | `BASE_E2E` | the Playwright total on the clean tree Phase 9 closed, measured once in 10-01 | **never moves.** 10-14's phase gate asserts against it |
 | `PREV_E2E` | the **last measured** Playwright total, with the plan that measured it named beside it | starts equal to `BASE_E2E`; re-measured by 10-04, 10-05, 10-07, 10-13 and 10-14 |
-| **`CH_PER_LINE`** | characters per line of Body (16px Inter Variable at line-height 1.5) in the 372px panel content column, **measured in both engines** in 10-01-02 | **never moves after 10-01.** Every reservation and every cap in §12 of the spec is this number's arithmetic. Provisionally 46; the measurement rules |
-| **`FONT_SRC`** | which of §5.1's three `url()` candidates was proved under `vite build` **and** `vite preview`, quoted verbatim | **never moves after 10-01.** 10-02 ships exactly the string 10-01 proved |
-| **`BASE_SWEEP_WALL`** | the `npm run test:sweep` wall-clock on the clean tree, **before it grows**, with free memory beside it | **never moves.** 10-08 and 10-14 compare against it |
+| **`CH_PER_LINE`** | characters per line of Body (16px Inter Variable at line-height 1.5) in the 372px panel content column, **measured in both engines** in 10-01-02 | **never moves after 10-01.** Every reservation and every cap in §12 of the spec is this number's arithmetic. Provisionally 46; the measurement rules. **MEASURED 2026-09-08 by 10-01-02: 43**, the minimum full-line-box occupancy over thirty-six full lines, in both engines, and the two engines agree on every row. The premise behind 46 is refuted rather than missed: Inter is 2.35 per cent WIDER than Quicksand at 16px, not narrower. Consequences: `HONESTY_CAP` 129 → **86**, `PUT_BACK_CAP` **129** unchanged, `KEEP_CAP` **86** unchanged, `CLEAR_CAP` **86** new, all five §12.2 reservations unchanged — and `HONESTY_READY` (90) and `tryOnBudgetReason`'s worst form (90) must each shorten by 4 in 10-03. `CLEAR_LINE` is exactly 86, at its cap with no headroom |
+| **`FONT_SRC`** | which of §5.1's three `url()` candidates was proved under `vite build` **and** `vite preview`, quoted verbatim | **never moves after 10-01.** 10-02 ships exactly the string 10-01 proved. **MEASURED 2026-09-08 by 10-01-02: candidate (b)**, `url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")`, proved at the probe route's own depth AND, by a perturbation of `src/app.css` reverted byte-identical, at the depth 10-02 ships from. Emitted as a fingerprinted asset and served **200 / `font/woff2` / 48,256 bytes**; the un-fingerprinted path 404s. **MEASURED 2026-09-08 in 10-01-02: candidate (b)**, `url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")`, proved at the probe route's depth AND, by a reverted perturbation, at `src/app.css`'s. Served 200 as `font/woff2`, 48,256 bytes |
+| **`BASE_SWEEP_WALL`** | the `npm run test:sweep` wall-clock on the clean tree, **before it grows**, with free memory beside it | **never moves.** 10-08 and 10-14 compare against it. **MEASURED 2026-09-08 by 10-01-01: 123 s** at `4 19` (Vitest's own Duration 120.81 s), 4.52 → 3.54 GB free. **MEASURED 2026-09-08 in 10-01-01: 123 s** at `4 19`, 4.52 -> 3.54 GB free |
 | **`PREV_SWEEP_WALL`** | the last measured sweep wall-clock | re-measured by 10-08 and 10-14 |
 
 Any plan that finds a name missing from the SUMMARY it reads **stops rather than guessing**.
@@ -333,9 +352,9 @@ is either extended, amended or closed by a named plan, and 10-14 writes each qua
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command / evidence | File Exists | Status |
 |---------|------|------|-------------|-----------|------------------------------|-------------|--------|
-| 10-01-01 | 01 | 1 | all | precondition + baseline | Phase 9 closed; the eleven-name block measured on a clean tree; `BASE_SWEEP_WALL` and free memory recorded; `impeccable` file list recorded and nothing under `src/`/`static/`; `git ls-files` font census stated; `git status --porcelain` empty | n/a | pending |
-| 10-01-02 | 01 | 1 | IDENT-01 | measured + build | `FONT_SRC` proved under `vite build` **and** `vite preview` with the asset fetched 200; `CH_PER_LINE` measured in `chromium` and `webkit-phone`; the five reservations and four caps re-derived and tabulated | `/dev/type/` created here | pending |
-| 10-01-03 | 01 | 1 | IDENT-01, IDENT-02 | unit (source scan) | `font-assets.spec.ts` **5**; `aesthetic.spec.ts` **1** (Coverflow both directions); two negative checks red with both files named | created here | pending |
+| 10-01-01 | 01 | 1 | all | precondition + baseline | Phase 9 closed; the eleven-name block measured on a clean tree; `BASE_SWEEP_WALL` and free memory recorded; `impeccable` file list recorded and nothing under `src/`/`static/`; `git ls-files` font census stated; `git status --porcelain` empty | n/a | green |
+| 10-01-02 | 01 | 1 | IDENT-01 | measured + build | `FONT_SRC` proved under `vite build` **and** `vite preview` with the asset fetched 200; `CH_PER_LINE` measured in `chromium` and `webkit-phone`; the five reservations and four caps re-derived and tabulated | `/dev/type/` created here | green |
+| 10-01-03 | 01 | 1 | IDENT-01, IDENT-02 | unit (source scan) | `font-assets.spec.ts` **5**; `aesthetic.spec.ts` **1** (Coverflow both directions); two negative checks red with both files named | created here | green |
 | 10-02-01 | 02 | 2 | IDENT-01 | unit + build | `src/app.css` carries the Inter face at `FONT_SRC`, the one swappable Grifter block and `--font-display`; `--crt-scanline` declared; `npm run build` green; the woff2 served 200 from `/fonts/` | exists | pending |
 | 10-02-02 | 02 | 2 | IDENT-01 | unit | `identity.spec.ts` **7**: nine tokens, three hexes, the widened `rgb()` regex, `--font-sans` leads `"Inter Variable"`, `--font-display`'s first family equals **every** display `@font-face` family; three negative checks red | exists | pending |
 | 10-02-03 | 02 | 2 | FOUND-02 | unit + script | Quicksand uninstalled, `npm run licenses` clean and the stale `licenses/` file gone; the Grifter record present; `.gitattributes export-ignore` plus the replacement note; `deploy.mjs` step 5 asserts the archive **omits** the binary and **carries** the note; `font-assets.spec.ts` still **5** and now allowlisting exactly one path | exists | pending |
@@ -381,15 +400,15 @@ is either extended, amended or closed by a named plan, and 10-14 writes each qua
 None is a framework gap. Vitest, Playwright, both browser binaries, `wrangler`, `svelte-check`, ESLint
 and Prettier are installed and pinned. The gaps are two measurements, one proof and two files.
 
-- [ ] **Phase 9 closed and the eleven-name block measured** → **10-01-01** (a precondition, not a file)
-- [ ] **`FONT_SRC` proved** — one of §5.1's three candidates, under `vite build` **and**
+- [x] **Phase 9 closed and the eleven-name block measured** → **10-01-01** (a precondition, not a file)
+- [x] **`FONT_SRC` proved** — one of §5.1's three candidates, under `vite build` **and**
       `vite preview`, with the built stylesheet's `url()` fetched and its status stated → **10-01-02**
-- [ ] **`CH_PER_LINE` measured** in both engines and the nine dependent numbers re-derived →
+- [x] **`CH_PER_LINE` measured** in both engines and the nine dependent numbers re-derived →
       **10-01-02**
-- [ ] **`BASE_SWEEP_WALL` recorded before the sweep grows** → **10-01-01**
-- [ ] `src/lib/ui/font-assets.spec.ts` — no tracked `.woff|.woff2|.ttf|.otf` outside `licenses/`
+- [x] **`BASE_SWEEP_WALL` recorded before the sweep grows** → **10-01-01**
+- [x] `src/lib/ui/font-assets.spec.ts` — no tracked `.woff|.woff2|.ttf|.otf` outside `licenses/`
       without an allowlist entry carrying a licence record → **10-01-03** (created)
-- [ ] `src/lib/ui/aesthetic.spec.ts` — **scan 4 only**, both directions on `Coverflow.svelte`
+- [x] `src/lib/ui/aesthetic.spec.ts` — **scan 4 only**, both directions on `Coverflow.svelte`
       (V-01) → **10-01-03** (created); scans 1, 2, 3, 5, 6, 7 → **10-04**, in the layers' own commits
 - [ ] `e2e/aesthetic.e2e.ts` → **10-04-03** (created), with the Layer S measurement taken at
       **10-04-01** by injected stylesheet (V-02)
@@ -551,10 +570,10 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
 
 ## Validation Sign-Off
 
-- [ ] Phase 9 confirmed closed and the eleven-name block measured on a clean tree (10-01-01)
-- [ ] `FONT_SRC` proved under both `vite build` and `vite preview`; `CH_PER_LINE` measured in both
+- [x] Phase 9 confirmed closed and the eleven-name block measured on a clean tree (10-01-01)
+- [x] `FONT_SRC` proved under both `vite build` and `vite preview`; `CH_PER_LINE` measured in both
       engines and every dependent number re-derived from it (10-01-02)
-- [ ] The font-asset gate exists and is red on an unallowlisted binary; `Coverflow.svelte` is
+- [x] The font-asset gate exists and is red on an unallowlisted binary; `Coverflow.svelte` is
       protected in both directions before anything touches it (10-01-03)
 - [ ] The type settlement ships behind one token, the licence pipeline is clean, and the archive
       omits the binary while carrying its note (10-02)

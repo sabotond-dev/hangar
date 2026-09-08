@@ -281,7 +281,8 @@ Plans:
   4. Tuning is playful and legible, colour is chosen from a stylized RGB picker, and at least one tuning idea is something no configuration editor does today.
   5. The explanatory paragraphs the brief names are gone, each by a named amendment with its spec rewritten rather than deleted and its sizing reservation re-measured - and whatever SAFE-01 becomes is stated out loud rather than dropped silently.
   6. The CRT and glitch treatment has a reduced-motion escape hatch asserted in both browser projects, and the accent palette still governs the chrome even though the picker can produce any colour for the pad.
-**Plans**: 14 plans in 14 waves
+**Plans**: 14 plans in 14 waves — **1 of 14 complete**
+- [x] 10-01-PLAN.md — Wave 0: the eleven-name block, the font specifier and CH_PER_LINE (wave 1) — completed 2026-09-08; the three things the phase rested on are numbers rather than assumptions. CH_PER_LINE is **43**, not the provisional 46, measured as the minimum full-line-box occupancy over thirty-six full lines in both engines — and the premise behind 46 is refuted rather than missed: Inter is 2.35 per cent WIDER than Quicksand at 16px (673.39px against 657.95px on the 86-character CLEAR line), takes more line boxes on two of twenty-eight Body sentences and fewer on none. All five §12.2 reservations survive intact; only HONESTY_CAP moves, 129 → 86, and two shipped literals must shorten by four characters each (HONESTY_READY and tryOnBudgetReason's worst form), while CLEAR_LINE sits exactly on its 86 cap. FONT_SRC is §5.1 candidate (b), proved at the probe route's depth AND at src/app.css's by a perturbation reverted byte-identical: 200, font/woff2, 48,256 bytes, and the un-fingerprinted path 404s. BASE_SWEEP_WALL is 123 s at 4 19, taken before 10-08 grows the sweep by a third. Two gates landed — font-assets.spec.ts (5) over `git ls-files`, and aesthetic.spec.ts scan 4 (1) matching on rightmost compound and property name so Coverflow.svelte:1013 stays legal — with three negative checks observed red and both files restored byte-identical. Inter installed as a production dependency rather than -D, because /dev/type/ ships in the artefact and the licence gate runs --production. Quick 74 / 780 → 76 / 786, sweep 4 19, e2e 89 unchanged, src/app.css byte-unchanged. Commits 5e1e72c, 4fbe5e5
 
 ## Progress
 
@@ -308,7 +309,7 @@ Phases 6 and 7.
 | 7. Install Flow | 13/13 | Complete (hardware rows A-G awaiting the user) | 2026-09-05 |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 | 9. Twenty Configurations | 10/10 | Complete (audition rows awaiting the user) | 2026-09-07 |
-| 10. Redesign | 0/TBD | Not started | - |
+| 10. Redesign | 1/14 | In progress | - |
 
 ## Requirement Coverage
 
