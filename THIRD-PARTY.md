@@ -22,6 +22,7 @@ Full licence texts for every package below are in `licenses/`.
 
 ## Production dependencies
 
+- [@fontsource-variable/inter@5.3.0](https://github.com/fontsource/font-files) — OFL-1.1
 - [@fontsource/quicksand@5.3.0](https://github.com/fontsource/font-files) — OFL-1.1
 - [@intechstudio/grid-protocol@1.20260825.1135](https://github.com/intechstudio/grid-protocol) — GPL-3.0 (inferred from the shipped LICENSE file)
 - [@types/emscripten@1.39.10](https://github.com/DefinitelyTyped/DefinitelyTyped) — MIT
