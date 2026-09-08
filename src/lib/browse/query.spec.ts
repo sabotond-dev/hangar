@@ -39,6 +39,15 @@ const parse = (search: string): BrowseQuery =>
  * The five states the round trip is asserted over: sort only, query only, one
  * tag, three tags in a deliberate order that is NOT alphabetical, and all three
  * together with a space and a diacritic in the query.
+ *
+ * THE SAMPLE TAGS MOVED IN 10-06 AND NOTHING ELSE DID. They used to be
+ * `gestural`, `hypnotic` and `ambient`; D-10's re-cut retired all three, and
+ * KNOWN above is derived from the catalog, so a parser that is working
+ * perfectly drops a sample word nobody carries. They are now `modulation`,
+ * `precise` and `readable` - three of the sixteen. No behaviour of query.ts is
+ * asserted differently, and query.ts itself is untouched: `?tag=` becomes
+ * `?for=` and `?feels=` in 10-07, which owns the migration and the ruling that
+ * an unmapped legacy value becomes `?q=` rather than being dropped.
  */
 const STATES: readonly {
   readonly what: string;
@@ -46,13 +55,13 @@ const STATES: readonly {
 }[] = [
   { what: "sort only", query: { sort: "newest", q: "", tags: [] } },
   { what: "query only", query: { sort: "featured", q: "ghost", tags: [] } },
-  { what: "one tag", query: { sort: "featured", q: "", tags: ["gestural"] } },
+  { what: "one tag", query: { sort: "featured", q: "", tags: ["modulation"] } },
   {
     what: "three tags, in activation order",
     query: {
       sort: "featured",
       q: "",
-      tags: ["hypnotic", "ambient", "gestural"],
+      tags: ["precise", "readable", "modulation"],
     },
   },
   {
@@ -149,20 +158,20 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
       "an unknown tag survived into the browse state",
     ).toEqual([]);
     expect(
-      parse("tag=gestural&tag=nonesuch&tag=hypnotic").tags,
+      parse("tag=modulation&tag=nonesuch&tag=precise").tags,
       "the unknown tag was dropped but took a known one with it",
-    ).toEqual(["gestural", "hypnotic"]);
+    ).toEqual(["modulation", "precise"]);
     expect(
-      parse("tag=nonesuch&tag=gestural").tags,
+      parse("tag=nonesuch&tag=modulation").tags,
       "an unknown tag in FIRST position must not shift the rest",
-    ).toEqual(["gestural"]);
+    ).toEqual(["modulation"]);
 
     // A repeat is the same tag pressed twice; the set is what the grid filters
     // by, so the second one is not a second chip.
     expect(
-      parse("tag=gestural&tag=gestural").tags,
+      parse("tag=modulation&tag=modulation").tags,
       "a repeated tag was activated twice",
-    ).toEqual(["gestural"]);
+    ).toEqual(["modulation"]);
 
     expect(parse("q=++ghost++").q, "the query is trimmed on parse").toBe(
       "ghost",
@@ -200,35 +209,35 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
       serialiseBrowseQuery({
         sort: "featured",
         q: "",
-        tags: ["hypnotic", "ambient", "gestural"],
+        tags: ["precise", "readable", "modulation"],
       }),
       "tag repeats once per active tag, in activation order",
-    ).toBe("tag=hypnotic&tag=ambient&tag=gestural");
+    ).toBe("tag=precise&tag=readable&tag=modulation");
     expect(
       serialiseBrowseQuery({
         sort: "featured",
         q: "",
-        tags: ["gestural", "ambient", "hypnotic"],
+        tags: ["modulation", "readable", "precise"],
       }),
       "a different activation order is a different address",
-    ).toBe("tag=gestural&tag=ambient&tag=hypnotic");
+    ).toBe("tag=modulation&tag=readable&tag=precise");
 
     // The whole address, in the order the UI spec writes it: sort, q, then tags.
     expect(
       serialiseBrowseQuery({
         sort: "newest",
         q: "ghost",
-        tags: ["gestural", "generative"],
+        tags: ["modulation", "generative"],
       }),
       "the address is not the one 05.1-UI-SPEC.md prints",
-    ).toBe("sort=newest&q=ghost&tag=gestural&tag=generative");
+    ).toBe("sort=newest&q=ghost&tag=modulation&tag=generative");
 
     // And the parser reads that sequence back as the sequence, so a link
     // somebody sends restores the chips in the order they were pressed.
     expect(
-      parse("tag=hypnotic&tag=ambient&tag=gestural").tags,
+      parse("tag=precise&tag=readable&tag=modulation").tags,
       "the parser sorted or reversed the tags",
-    ).toEqual(["hypnotic", "ambient", "gestural"]);
+    ).toEqual(["precise", "readable", "modulation"]);
   });
 
   it("imports nothing but ./sort, and names no catalog, no $app and no vendor in code", () => {

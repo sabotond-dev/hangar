@@ -53,7 +53,19 @@ const strip = (source: string) =>
 
 const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
 
-/** Recorded on purpose; see filter.spec.ts's RECORDED. */
+/**
+ * Recorded on purpose; see filter.spec.ts's RECORDED.
+ *
+ * 10-06 (D-10) MOVED NO NUMBER HERE, and that is worth writing down rather than
+ * leaving as an absence. The re-cut of fifty-five tags to sixteen changed every
+ * entry's `tags` array and nothing else about the listing: the count is still
+ * 36, the Featured boundary is still 15, and ordering has never read a tag.
+ * The tag figures the re-cut moved live in filter.spec.ts's block, which is the
+ * one place that holds them. This file's `tags: []` fixture below is a stub for
+ * a synthetic entry and names no term, so it survived the re-cut untouched.
+ *
+ * The NEWEST retirement (D-11) is 10-07's and moves this file's test count.
+ */
 const RECORDED = { entries: 36, featured: 15 } as const;
 
 /**

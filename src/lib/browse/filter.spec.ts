@@ -7,12 +7,20 @@
 //         power syntax - a typed "$tag:drums" is four literal words, not a
 //         query language (test 3).
 //   W-04  active chips INTERSECT. Union was considered and rejected in the
-//         approved spec: most tags sit on exactly one entry - RECORDED below
-//         counts how many - so a union would make a second chip ADD one card,
-//         which reads as a bug (test 4).
+//         approved spec: most tags sat on exactly one entry, so a union would
+//         make a second chip ADD one card, which reads as a bug (test 4).
+//         AMENDED BY 10-06 (D-10), and the amendment is 10-07's to wire: within
+//         a facet chips are OR, across facets they are AND - see
+//         matchesFacets() in ./facets.ts and the reason written above it. What
+//         filterListing() does is unchanged in this plan and asserted here
+//         unchanged; the two predicates coexist until 10-07 retires one.
 //   D-15  the standing chip row is every tag carried by two or more entries -
-//         DERIVED from the data, so it stays right as the catalog grows, and
-//         recorded by name today, so a data change is visible (test 5).
+//         DERIVED from the data (test 5). RETIRED BY 10-06 (G-09), and
+//         replaced by name: CHIPS ARE THE FACET MEMBERS. The vocabulary is
+//         closed at sixteen in ./facets.ts and is not derived from counts, so
+//         the row cannot drift as the catalog grows and no entry can move it by
+//         arriving. chipTags() still computes the old row and this test still
+//         pins it, because the toolbar still calls it; both go in 10-07.
 //
 // DERIVED, OR RECORDED. The rule that decides every number in this file:
 //
@@ -31,6 +39,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { LISTING } from "$lib/catalog/listing";
+import { FEELS_TERMS, FOR_TERMS } from "./facets";
 import {
   allTags,
   chipTags,
@@ -75,66 +84,66 @@ const search = (query: string) =>
  * TODAY'S TAG CENSUS, RECORDED ON PURPOSE.
  *
  * Derived facts - a chip is a tag two or more entries carry, count descending
- * then name ascending (filter.ts:121-125) - are asserted as rules below and
- * need no maintenance. These four are a REVIEW: they say what the vocabulary
- * currently looks like, so a wave that adds configurations sees the row it
- * moved and decides whether it likes it. A wave updates this block; it never
- * deletes an assertion against it.
+ * then name ascending (filter.ts) - are asserted as rules below and need no
+ * maintenance. These four are a REVIEW: they say what the vocabulary currently
+ * looks like, so a wave that changes it sees the row it moved and decides
+ * whether it likes it. A wave updates this block; it never deletes an assertion
+ * against it.
+ *
+ * 10-06 (D-10), 2026-09-08: THE DERIVATION IS RETIRED AND REPLACED BY NAME.
+ *
+ *   was  "chips are the tags carried by two or more entries"
+ *   is   "chips are the facet members"                              (G-09)
+ *
+ * The vocabulary is CLOSED at sixteen and DECLARED in ./facets.ts - ten `FOR`
+ * terms and six `FEELS`, exactly three on every entry - so it is no longer
+ * derived from counts, does not drift as the catalog grows, and no entry can
+ * move the row by arriving. The `chips` and `chipCounts` arrays below therefore
+ * stop being a census of what happened and become a restatement of a declared
+ * list, which is why they retire in 10-07 with the toolbar that calls
+ * chipTags(). They are re-recorded here rather than deleted so that this
+ * commit's data change is visible in one diff.
+ *
+ * `singletons` IS ZERO, AND IT IS ASSERTED RATHER THAN OMITTED. It was 27 of
+ * 55 - three quarters of the vocabulary matching a single card each, which is
+ * what D-10 was raised about. Zero is the whole point of a closed vocabulary,
+ * and an omitted zero is how a closed vocabulary quietly reopens: a wave that
+ * coined one word would move `tags` and nothing would say the row had grown a
+ * term that matches one card.
  *
  * Re-recorded by: 08-06 (sixteen entries), then 09-03 (nineteen), then 09-04
  * (twenty-two), then 09-05 (twenty-five), then 09-06 (twenty-eight), then 09-07
- * (thirty-one), then 09-08 (thirty-four), then 09-09 (thirty-six). 09-09 is the
- * last entry wave of phase 09, so this is the finished vocabulary and 09-10
- * confirms it rather than moving it.
- *
- * 09-09 is where `accessible` and `calm` cross to two carriers and become chips,
- * and where `readable` takes the head of the row back from `playable` at eleven
- * against ten. QUADRANT and POMODORO carry `utility` between them, which is what
- * takes it past `gestural` into third place.
+ * (thirty-one), then 09-08 (thirty-four), then 09-09 (thirty-six) - which was
+ * the last entry wave of phase 09 and the finished OPEN vocabulary - then
+ * 10-06, which re-cut all thirty-six entries from 55 terms to 16.
  *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
- * "The tag chips", quotes the row and its counts verbatim. A wave that moves
- * the row updates that document in the same commit - 09-03 is the first, and it
- * carries the instruction.
+ * "The tag chips", quoted the row and its counts verbatim. 10-06 amends that
+ * document by name rather than restating the new row there.
  */
 const RECORDED = {
   entries: 36,
-  tags: 55,
-  singletons: 27,
+  tags: 16,
+  singletons: 0,
   chips: [
     "readable",
-    "playable",
-    "utility",
-    "gestural",
     "expressive",
     "generative",
-    "grid",
-    "hypnotic",
-    "drums",
-    "hotkeys",
+    "playable",
+    "modulation",
     "precise",
     "still",
-    "xy-control",
-    "ambient",
-    "colour",
-    "hands-free",
-    "accessible",
-    "blooming",
-    "calm",
-    "game",
-    "harmonic",
-    "latching",
-    "macros",
+    "show",
+    "keys",
     "mixing",
-    "modulation",
-    "rails",
-    "rippling",
-    "sequencer",
+    "play",
+    "pointing",
+    "sequencing",
+    "shortcuts",
+    "clips",
+    "drums",
   ] as const,
-  chipCounts: [
-    11, 10, 8, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    2, 2, 2,
-  ] as const,
+  chipCounts: [16, 14, 13, 13, 9, 8, 8, 5, 3, 3, 3, 3, 3, 3, 2, 2] as const,
 } as const;
 
 describe("the browse filter (src/lib/browse/filter.ts)", () => {
@@ -201,12 +210,17 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       matches(byId("aurora"), "glowing"),
       "a term in the description only",
     ).toBe(true);
+    // "sequencing" is one of EUCLID's three tags and appears in neither its
+    // name nor its description, which is what makes it a tags-only term. It
+    // replaces "polyrhythm", which was one of the twenty-seven singletons D-10
+    // retired - and a search that could only be anchored on a singleton is
+    // itself a symptom of the vocabulary this plan re-cut.
     expect(
-      matches(byId("euclid"), "polyrhythm"),
+      matches(byId("euclid"), "sequencing"),
       "a term in the tags only",
     ).toBe(true);
     expect(
-      matches(byId("aurora"), "polyrhythm"),
+      matches(byId("aurora"), "sequencing"),
       "and a term nothing on this entry carries",
     ).toBe(false);
 
@@ -221,31 +235,41 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     }
 
     // Two terms are AND, and they may come from different fields: "nine" is in
-    // Nine pads' name, "drums" is one of its tags. The expectation is DERIVED
+    // Nine pads' name, "playable" is one of its tags. The expectation is DERIVED
     // from the search predicate restated at the top of this file, and the
     // property that catches an OR is asserted beside it: the second term must
     // narrow the result without emptying it.
-    const oneTerm = search("drums");
-    const twoTerms = search("nine drums");
+    //
+    // THE PAIR MOVED IN 10-06 AND THE REASON IS THE POINT. It was "drums" and
+    // "nine drums". D-10 gives "drums" to the two entries that are drum pads,
+    // Nine pads and SLAM - and BOTH of them say "Nine" in their first word, so
+    // the second term stopped narrowing anything: 2 of 2. "playable" is carried
+    // by thirteen entries and four of them say "nine", which is 4 of 13 and a
+    // real narrowing again.
+    const oneTerm = search("playable");
+    const twoTerms = search("nine playable");
     expect(
       oneTerm.length,
-      "drums alone is carried by more than one entry",
+      "playable alone is carried by more than one entry",
     ).toBeGreaterThan(1);
-    expect(twoTerms.length, "nine drums still finds one").toBeGreaterThan(0);
+    expect(twoTerms.length, "nine playable still finds some").toBeGreaterThan(
+      0,
+    );
     expect(
       twoTerms.length,
       "the second term narrows rather than widens",
     ).toBeLessThan(oneTerm.length);
 
-    expect(ids(LISTING.filter((e) => matches(e, "drums"))), "one term").toEqual(
-      oneTerm,
-    );
     expect(
-      ids(LISTING.filter((e) => matches(e, "nine drums"))),
+      ids(LISTING.filter((e) => matches(e, "playable"))),
+      "one term",
+    ).toEqual(oneTerm);
+    expect(
+      ids(LISTING.filter((e) => matches(e, "nine playable"))),
       "both terms required",
     ).toEqual(twoTerms);
     expect(
-      ids(LISTING.filter((e) => matches(e, "  NINE   DrUmS  "))),
+      ids(LISTING.filter((e) => matches(e, "  NINE   PlAyAbLe  "))),
       "case and repeated spaces change nothing",
     ).toEqual(twoTerms);
   });
@@ -276,9 +300,11 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
   });
 
   it("combines active tags with AND, and an unknown tag returns nothing", () => {
+    // "playable" replaces "gestural", which D-10 retired: its six carriers
+    // scattered across the new vocabulary, so LEGACY_TAG_MAP sends it nowhere.
     const generative = ids(filterListing(LISTING, "", ["generative"]));
-    const gestural = ids(filterListing(LISTING, "", ["gestural"]));
-    const both = ids(filterListing(LISTING, "", ["generative", "gestural"]));
+    const playable = ids(filterListing(LISTING, "", ["playable"]));
+    const both = ids(filterListing(LISTING, "", ["generative", "playable"]));
 
     // Each chip returns exactly the entries carrying it - derived, with a floor
     // beside it so a predicate that returned everything could not pass.
@@ -288,10 +314,10 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     ).toBeGreaterThan(1);
     expect(generative, "the generative chip").toEqual(carrying("generative"));
     expect(
-      carrying("gestural").length,
-      "gestural is carried by more than one entry",
+      carrying("playable").length,
+      "playable is carried by more than one entry",
     ).toBeGreaterThan(1);
-    expect(gestural, "the gestural chip").toEqual(carrying("gestural"));
+    expect(playable, "the playable chip").toEqual(carrying("playable"));
 
     // The intersection is never LARGER than either. A union would be their sum
     // less the overlap - larger than either - which is the mutation this
@@ -299,10 +325,10 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     // legitimately empty one particular pair; the property that keeps the rule
     // observed on real data is the one below it.
     expect(both, "two chips intersect").toEqual(
-      carrying("generative").filter((id) => carrying("gestural").includes(id)),
+      carrying("generative").filter((id) => carrying("playable").includes(id)),
     );
     expect(both.length).toBeLessThanOrEqual(
-      Math.min(generative.length, gestural.length),
+      Math.min(generative.length, playable.length),
     );
 
     const chips = chipTags(LISTING);
@@ -348,7 +374,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     expect(filterListing(input, "", [])).not.toBe(input);
   });
 
-  it("stands nine chips, derived from the data and not declared", () => {
+  it("stands sixteen chips, and every one of them is a facet member", () => {
     const chips = chipTags(LISTING);
     const known = allTags(LISTING);
     const count = (tag: string) =>
@@ -365,19 +391,32 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     ]);
 
     // The RULE, not the list: every chip is carried twice or more, and every
-    // excluded tag exactly once. A catalog change moves the nine without
-    // breaking this pair.
+    // excluded tag exactly once. Under the closed vocabulary both halves are
+    // still true and the second is now EMPTY, which is the point rather than a
+    // gap: chipTags()'s two-or-more filter excludes nothing, because no term
+    // matches one entry any more. The loop below runs zero times and the
+    // LENGTH assertion above it is what carries the claim - RECORDED.singletons
+    // is 0 and is asserted rather than omitted.
     for (const tag of chips) {
       expect(count(tag), `${tag} is a chip`).toBeGreaterThanOrEqual(2);
     }
     const excluded = known.filter((tag) => !chips.includes(tag));
     expect(
       excluded,
-      "the recorded singletons stay searchable text",
+      "no tag is left out of the row: the vocabulary is closed and every member is a chip",
     ).toHaveLength(RECORDED.singletons);
     for (const tag of excluded) {
       expect(count(tag), `${tag} is not a chip`).toBe(1);
     }
+    // The other half of "every facet member is always a chip", said as a set
+    // rather than as a count: the derived row and the declared vocabulary are
+    // the same sixteen words. When 10-07 deletes chipTags() this is the
+    // assertion that will have proved the replacement was equivalent on the
+    // shipped data before it was made.
+    expect(
+      [...chips].sort(),
+      "the derived row and the declared facets are the same set",
+    ).toEqual([...FOR_TERMS, ...FEELS_TERMS].sort());
     // And the two recorded counts are a PARTITION of the vocabulary rather than
     // two numbers that happen to sit near each other: a tag is a chip or a
     // singleton, never both and never neither.

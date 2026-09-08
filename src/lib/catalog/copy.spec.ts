@@ -38,6 +38,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
+import { FEELS_TERMS, FOR_TERMS } from "$lib/browse/facets";
 import { allTags, chipTags, fold } from "$lib/browse/filter";
 import { CATALOG } from "./index";
 import { FRONT_DOOR } from "./front-door";
@@ -63,74 +64,29 @@ type Copy = {
 };
 
 /**
- * THE VOCABULARY, MAINTAINED ON PURPOSE.
+ * THE VOCABULARY, IMPORTED RATHER THAN MAINTAINED - and that is the change
+ * D-10 made here.
  *
- * Sorted, and asserted in BOTH directions by test 3: every tag in the catalog
- * is a member, and every member is carried by at least one entry, so a coined
- * tag and a retired tag are equally red. This is the whole mechanism against
- * "playble" shipping quietly beside "playable" - a typo is a tag nobody has
- * declared, and declaring one is a line in this array that a reviewer sees.
+ * It was a fifty-five-line array in this file, hand-kept, with the comment
+ * "declaring one is a line in this array that a reviewer sees". That was the
+ * right shape while the vocabulary was open and a new entry could coin a word.
+ * It is not the right shape now: the vocabulary is CLOSED at sixteen and
+ * DECLARED in src/lib/browse/facets.ts, so the line a reviewer sees moved
+ * there, where the two facets and the health rules are. Restating the sixteen
+ * here would be a second source for one list, which is the thing this
+ * repository refuses everywhere else.
+ *
+ * THE BOTH-DIRECTIONS LOOP IN TEST 3 STAYS, and it is not a duplicate of
+ * facets.spec.ts test 2. That one holds facets.ts against LISTING, the browse
+ * PROJECTION. This one holds it against CATALOG, the source those records are
+ * projected FROM - and it is the direction that catches "playble" shipping
+ * quietly beside "playable", because a typo is a tag no facet declares.
  *
  * Re-recorded by: 08-06 (forty-one across sixteen entries), then every entry
- * wave of phase 09.
+ * wave of phase 09 (fifty-five across thirty-six), then 10-06, which re-cut
+ * the fifty-five to sixteen and moved the declaration out of this file.
  */
-const KNOWN_TAGS = [
-  "accessible",
-  "ambient",
-  "automation",
-  "blend",
-  "blooming",
-  "calm",
-  "chords",
-  "clips",
-  "colour",
-  "desktop",
-  "drawing",
-  "drums",
-  "endless",
-  "expressive",
-  "flowing",
-  "game",
-  "generative",
-  "gestural",
-  "grid",
-  "hands-free",
-  "harmonic",
-  "hotkeys",
-  "hypnotic",
-  "in-key",
-  "instrument",
-  "isomorphic",
-  "latching",
-  "launcher",
-  "lighting",
-  "looper",
-  "macros",
-  "mixing",
-  "modulation",
-  "multi-touch",
-  "photo",
-  "pitch-bend",
-  "playable",
-  "pointer",
-  "polar",
-  "polyrhythm",
-  "precise",
-  "radial",
-  "rails",
-  "readable",
-  "rippling",
-  "rotating",
-  "sequencer",
-  "sound-design",
-  "sprung",
-  "still",
-  "streaming",
-  "utility",
-  "video",
-  "wavetable",
-  "xy-control",
-] as const;
+const KNOWN_TAGS: readonly string[] = [...FOR_TERMS, ...FEELS_TERMS];
 
 /**
  * Every string HANGAR authored, assembled BY SOURCE KIND.
@@ -270,8 +226,14 @@ describe("catalog copy, counted rather than read (CONT-03)", () => {
       if (field.startsWith("tag ")) continue;
 
       // A hyphen is not a dash. A tag may carry one because the slug grammar
-      // requires it (hands-free, multi-touch), so tags are exempt from THIS
-      // rule and only this one.
+      // permits it, so tags are exempt from THIS rule and only this one.
+      //
+      // The exemption is VACUOUS TODAY and kept deliberately. It was written
+      // for `hands-free` and `multi-touch`; D-10 retired both, and not one of
+      // the sixteen facet terms contains a hyphen. Deleting the exemption would
+      // work right now and would silently forbid a hyphenated term the day the
+      // vocabulary gains one - which the slug grammar in `SLUG` still allows.
+      // A rule that is currently unexercised is not the same as a wrong rule.
       expect(
         text.includes(" - "),
         `${at} uses a spaced hyphen where a dash (${codePoint(EM_DASH)}) or a semicolon belongs - "${text}"`,
@@ -307,23 +269,26 @@ describe("catalog copy, counted rather than read (CONT-03)", () => {
           SLUG,
         );
         expect(
-          KNOWN_TAGS.includes(tag as (typeof KNOWN_TAGS)[number]),
-          `${entry.id}: "${tag}" is not in KNOWN_TAGS. If it is a new word, add it there on purpose; if it is a typo, this is the message that caught it`,
+          KNOWN_TAGS.includes(tag),
+          `${entry.id}: "${tag}" is in no facet. The vocabulary is CLOSED at sixteen: if this is a new word, the answer is that the vocabulary is wrong rather than that the entry needs one, and if it is a typo, this is the message that caught it`,
         ).toBe(true);
         carried.add(tag);
       }
-      // The two shipped conventions, as rules with the entry named: the shelf
-      // gave its nine three tags each, and a hand-authored entry declares four.
+      // ONE RULE NOW, NOT TWO. The shelf's nine used to carry three terms each
+      // and a hand-authored entry four, which is the split CONT-03's "four feel
+      // tags" described; D-10 amends it to EXACTLY THREE everywhere - one FOR
+      // and two FEELS. Which of the three is which is facets.spec.ts's test 2;
+      // this one only counts, so a preset and a Lua entry are the same claim.
       expect(
         entry.tags.length,
-        `${entry.id}: a ${entry.source.kind} entry carries the wrong number of tags`,
-      ).toBe(entry.source.kind === "preset" ? 3 : 4);
+        `${entry.id}: a ${entry.source.kind} entry carries ${entry.tags.length} tags; three is the rule for every entry since D-10`,
+      ).toBe(3);
     }
 
     for (const tag of KNOWN_TAGS) {
       expect(
         carried.has(tag),
-        `"${tag}" is declared in KNOWN_TAGS and carried by no entry; a retired tag is red too`,
+        `"${tag}" is declared in a facet and carried by no entry in the CATALOG; a retired tag is red too`,
       ).toBe(true);
     }
     expect(

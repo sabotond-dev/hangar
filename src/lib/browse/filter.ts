@@ -72,11 +72,19 @@ export function matches(entry: ListingEntry, query: string): boolean {
  * The search and the tag intersection in one pass. Always a new array.
  *
  * ACTIVE TAGS COMBINE WITH AND (05.1-UI-SPEC.md W-04). Union was considered and
- * rejected in the approved spec: 32 of the 41 tags sit on exactly one entry, so
- * a union would make a second chip ADD one card to the grid, which reads as a
- * bug rather than as a filter. An unknown tag is not dropped here - it simply
- * intersects to nothing, and the query parser is what drops one it does not
- * know (see allTags).
+ * rejected in the approved spec: at the time, 32 of the 41 tags sat on exactly
+ * one entry, so a union would make a second chip ADD one card to the grid,
+ * which reads as a bug rather than as a filter. An unknown tag is not dropped
+ * here - it simply intersects to nothing, and the query parser is what drops
+ * one it does not know (see allTags).
+ *
+ * AMENDED BY 10-06 (D-10), AND THE AMENDMENT IS 10-07'S TO WIRE. The vocabulary
+ * is now sixteen closed terms in two facets, and the rule becomes: OR within a
+ * facet, AND across facets. That is required rather than conventional - `FOR`
+ * gives every entry exactly one term, so under a pure AND the second `FOR` chip
+ * would always return zero and disable itself. The replacement predicate is
+ * matchesFacets() in ./facets.ts and it is already written and tested; this
+ * function is unchanged and still the one the toolbar calls, until 10-07.
  */
 export function filterListing(
   entries: readonly ListingEntry[],
@@ -109,6 +117,20 @@ export function allTags(entries: readonly ListingEntry[]): readonly string[] {
 }
 
 /**
+ * DEPRECATED BY 10-06 (D-10, G-09), AND DELETED BY 10-07 WITH THE TOOLBAR THAT
+ * CALLS IT. Do not add a caller.
+ *
+ * The rule it implements is retired and replaced by name: "chips are the tags
+ * carried by two or more entries" becomes "CHIPS ARE THE FACET MEMBERS". The
+ * vocabulary is closed at sixteen in ./facets.ts and is not derived from
+ * counts, so the row cannot drift as the catalog grows and no entry can move it
+ * by arriving. On today's data the two agree exactly - filter.spec.ts test 5
+ * asserts the derived row and the declared facets are the same sixteen words,
+ * which is the evidence that 10-07's deletion is a replacement rather than a
+ * change. The OUTSIDER CHIP in BrowseToolbar.svelte goes at the same time and
+ * for the same reason: no active facet member can fall outside a standing row
+ * that IS the facet. disabledTags() below is NOT deprecated and stays.
+ *
  * D-15: the standing chip row is every tag carried by TWO OR MORE entries,
  * count descending then name ascending.
  *
@@ -140,6 +162,15 @@ export function chipTags(entries: readonly ListingEntry[]): readonly string[] {
  * empty result falls out of the derivation instead of being asserted on top of
  * it. When a query alone empties a chip the chip is still reported, and that is
  * deliberate - a click that cannot change the grid should not look live.
+ *
+ * 10-06 (D-10) LEAVES THIS FUNCTION ALONE, on purpose and by name. It is pure,
+ * it is pinned in node, and it is what turns a chip that would empty the grid
+ * into a real `disabled` checkbox without printing a number beside the word -
+ * so it survives the closed vocabulary intact. What changes is only how OFTEN
+ * it fires: under OR-within / AND-across a chip is disabled only when it would
+ * return zero given the OTHER facet's active set, which makes it rare rather
+ * than common. That narrowing arrives with the predicate in 10-07; here the
+ * behaviour is unchanged and asserted unchanged against the new sixteen.
  */
 export function disabledTags(
   entries: readonly ListingEntry[],
