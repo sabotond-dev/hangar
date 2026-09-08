@@ -63,6 +63,16 @@ skill contributes to this phase, because **it is also where the CRT is allowed t
 > never a property
 > of a panel, a control, a toolbar or a text node.
 
+**AMENDED 2026-09-08 by A-37 (§19.1), and the amendment is a narrowing rather than a rewrite.** The
+line above moves from *brand versus product* to **front door versus everything else**: the front door
+keeps Layers G, S, R and T exactly as wave 4 built them, with the `SCREEN` toggle and all three
+switches; **browse, the panels, the tuning region and the whole device flow are the instrument
+register**, whose six rules are §19.1a to §19.1f. Every sentence above still holds — the CRT is still
+never a property of a panel, a control, a toolbar or a text node — and one clause is added: it is no
+longer a property of a **browse** pad frame either. The Brand row therefore reads *the splash, the
+coverflow band and its pad frames, the page ground*, and the browse grid's cards move to the
+instrument register.
+
 ### Colour strategy (the skill's four-step commitment axis)
 
 **Restrained chrome over drenched content.** The interface is two tokens and one alarm; the pads are
@@ -153,7 +163,9 @@ later reader does not resolve it the other way.
 ## 3. The amendment register
 
 Every retirement in this document, in one table, so the planner can turn it into tasks and the
-checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts.** Nothing
+checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts** — and, after approval, **six
+amendments in §3.4** (A-37 to A-42, 2026-09-08, D-15/D-16/D-17), which add no eleventh retirement,
+no tenth gate amendment and no fifth data re-cut. Nothing
 is deleted; everything is rewritten by name.
 
 ### 3.1 Copy retirements (ten, in a register of eleven rows)
@@ -200,6 +212,25 @@ is deleted; everything is rewritten by name.
 | D-b | `ListingEntry.addedAt` | **Removed from the browse projection**, kept in the catalog entries as provenance. `listing.spec.ts`'s equality loop drops one field and no entry file is touched |
 | D-c | `restsBlack` | **Kept as a recorded fact** (it is what selects a demo path, and its two-directional assertion against `frames.json` is the site's proof that no card is accidentally black) and **retired as a rendering input** |
 | D-d | `static/og/` | Four OG images regenerate from the end of their demo path rather than from a black rest frame. ETCH's 4,192-byte black square is the marker that this landed |
+
+### 3.4 Post-approval amendments (six, all dated 2026-09-08)
+
+Added after approval, from D-15, D-16 and D-17. Each is stated in full in **§19.1** and each carries
+an A-number in §19's register, so the two tables cannot disagree about how many there are.
+
+| # | Amendment | Supersedes | § |
+|---|-----------|------------|---|
+| A-37 | The register line moves to **front door versus everything else** (D-16) | **A-01**'s placement half. §0's register table and §8.3's scope rule read against it | 19.1 |
+| A-38 | **Layer S's selector does not change** — `:global(.front-door) .pad::after` already confines it. The rule gains a second, independent reason | nothing. §8.5's measured fallback stands and is now doubly held | 19.1, 8.5 |
+| A-39 | The instrument register's six rules, in numbers (D-15) | nothing. New | 19.1a–f |
+| A-40 | The lattice is **monochrome**; the distinguished cross is scale and opacity. **The reserved list stays at eight** | nothing. §7.2's table gains a fifth row | 19.1a, 7.2 |
+| A-41 | The **pill** is Secondary's shape and the word row's selected option; **Quiet and Bare stay shapeless** | nothing. §10.3's four tiers stand verbatim; two rows change shape | 19.1b, 10.3 |
+| A-42 | The **index-and-em-dash headline** is sibling furniture on `/browse/` only, never in the device flow | nothing. **A-23's "no step numerals" is upheld against D-15** | 19.1f |
+
+**No copy retirement, no gate retirement and no data re-cut is added by these six.** §3.1 stays at ten
+retirements in a register of eleven rows, §3.2 stays at nine gate amendments, §3.3 stays at four data
+re-cuts. That is the point of A-42: furniture beside a pinned string costs no amendment, and the audit
+A-30 closed at ten stays closed.
 
 ---
 
@@ -337,7 +368,8 @@ carrying one weight each cannot make a poster and a paragraph out of the same la
   referenced. `10-RESEARCH.md` §2.5's five mitigations for all-italic body text are moot and the
   document should be read as superseded on that point.
 - `--font-mono` is unchanged and stays confined to numerals and machine text. Phase 5 confined it to
-  four uses; **§11.3 adds a fifth**, the forecast delta, and names it.
+  four uses; **§11.3 adds a fifth**, the forecast delta, and names it; **§19.1c adds a sixth**, the
+  `+`-separated metadata block, and names it. Six, and the list is asserted.
 - Canvas-drawn texture stays exempt.
 
 ### 5.3 What the family change costs downstream, and it is not a cleanup
@@ -367,7 +399,7 @@ Phase 4's tokens, unchanged, and this phase adds no spacing value.
 viewport-relative geometry; the 2 / 6 / 10px radius scale and the insets derived from it; the 14px
 fixed line box on every 12px line inside the tuning region.
 
-**One new declared exception, and it is a texture metric rather than spacing:**
+**Three new declared exceptions — one texture metric here, two added by §19.1:**
 
 5. **The scanline period is 5px** — one 1px dark line every 5px. Not 4px, which is the reference's.
    At Phase 4's 16px Body in a 24px line box, a 4px period crosses a line of text six times and a 5px
@@ -376,6 +408,15 @@ fixed line box on every 12px line inside the tuning region.
    frames, where a 5px period over a 9-cell grid upscaled to 260–560px reads as scan structure rather
    than as a screen door. It is a texture metric in the same class as the coverflow's depth ladder,
    and it is not on the 4-point scale on purpose.
+
+6. **The registration lattice is 48px pitch, 7px arm, 1px stroke** (A-39, §19.1a). The pitch is the
+   `2xl` token and adds no spacing value; the arm and the stroke are a texture metric in exception
+   5’s class. The distinguished cross is the same metric at 2× the arm.
+
+7. **The pill radius is 999px** (A-41, §19.1b). **Not a fourth rung on the 2 / 6 / 10px radius
+   scale**: it is degenerate, resolving to half the block size — 22px at the 44px floor — so it
+   cannot drift the way a fourth literal would. Its 24px inline padding is the `lg` token and clears
+   the resolved curve by 2px.
 
 `overflow-x: auto` and `overflow-x: scroll` still appear nowhere inside the tuning region, and the
 prohibition now extends to the picker's three rails: a rail wraps or shrinks, it never scrolls.
@@ -420,8 +461,8 @@ on any third set of channels.
 8. The selected value of a knob: the filled dot, the detent fill and thumb, the selected word, and
    the 2px ring around the selected swatch.
 
-**It stays at eight, and that is a result rather than an accident.** Four things in this phase were
-candidates and each was solved without accent:
+**It stays at eight, and that is a result rather than an accident.** **Five** things in this phase
+were candidates and each was solved without accent — the fifth added 2026-09-08 by A-40:
 
 | Candidate | Solved by |
 |-----------|-----------|
@@ -429,6 +470,7 @@ candidates and each was solved without accent:
 | A knob's held state (§11.5) | The word changes `HOLD` → `HELD`, and the default marker changes from a 2px dot to a 2px `--color-line` bar. Two non-colour channels |
 | The `NEXT` sequence marks | There are none. The sequence is a caption, DOM order and enablement (§10.2) |
 | CLEAR's destructive weight | Tracking, position, a second hairline and a confirmation (§10.4) |
+| **The registration lattice's one distinguished cross** (D-15 reference A; added by **A-40**) | **Scale and opacity.** A 14px arm against 7px, `--color-line` (0.4) against `--color-line-soft` (0.2). Reference A's accent cross does **not** ship, and the ruling is held by a shipped gate rather than by taste: `tune-ui.spec.ts`'s accent census over the seven tuning components is asserted **unmoved at fourteen** (10-09-02), so a ninth accent use inside the tuning region is red on sight (§19.1a) |
 
 ### 7.3 The picker's arbitrary colour, and the fence around it
 
@@ -527,7 +569,9 @@ that does not scroll with the pads reads as glass on the screen rather than as t
 ### 8.3 Scope — the rule that keeps the contrast gate honest
 
 > **The CRT layer never covers a text node, and never lands motion on a product surface.** Layer G
-> sits behind all content. Layer S is scoped to pad frames. Layers R and T are scoped to
+> sits behind all content. Layer S is scoped to pad frames **on the front door** — A-38, and the
+> selector that shipped in wave 4 already says so, so the register is its second reason rather than
+> its first edit. Layers R and T are scoped to
 > **`.crt-band`**, whose box is defined immediately below and contains no rendered text. Layer T
 > clips and translates **itself** — a pseudo-element — and never an element with contents. Every
 > layer carries `pointer-events: none` and `aria-hidden="true"`, and **no text-bearing element is a
@@ -631,6 +675,18 @@ exists for a CSS scanline overlay above N animating canvases, and none was run o
 > 2 ms at the 95th percentile, Layer S is scoped to the front door's seven frames only and the browse
 > grid keeps Layer G alone. That fallback is a one-line selector change and it is declared here so it
 > is a decision rather than a discovery.
+
+**TAKEN, 2026-09-08, in wave 4, and the fallback applies.** chromium **0.00 ms** at p95;
+webkit-phone **61.00 ms** against a 2 ms threshold, with the sampled frame count halving from 128
+to 65. Layer S's selector is therefore `:global(.front-door) .pad::after` in `PadFrame.svelte`, and
+`e2e/aesthetic.e2e.ts` test 3 holds it in the browser. **A-38 (§19.1) gives that one selector a
+second and independent reason** — the register line of A-37 — so a future engine that closes the
+61 ms gap does not argue the browse grid's thirty-six overlays back.
+
+**And the table's Layer G row was measured false on one engine.** It says *zero by construction …
+one inset shadow, rasterised once*; the `box-shadow: inset 0 0 26vmax 9vmax` cost **105 ms per
+scrolled frame at p95 on webkit-phone**. It ships as a `radial-gradient` on a promoted layer. The
+corrected row is in §19.1e with the four-arm decomposition behind it.
 
 **What is forbidden outright**, inherited from `CLAUDE.md` and `10-RESEARCH.md` §3.3 and restated so
 a redesign does not reach for it: `backdrop-filter` anywhere; one WebGL context per card (Chrome caps
@@ -1088,6 +1144,15 @@ tier table below is Phase 7's, with one row added.
 
 ### 10.3 The control hierarchy, restated in full with one addition
 
+**AMENDED 2026-09-08 by A-41 (§19.1b).** The four tiers below stand **verbatim** — what changes is the
+shape of two of them. **Secondary** becomes a fully-rounded 1px outline with a transparent fill and
+24px inline padding; **Primary** takes the same radius on its existing accent fill; **Quiet and Bare
+are untouched — borderless, shapeless, no radius, no background**. Pilling Quiet would give
+`KEEP ON DEVICE` a border and flatten it into Secondary, which is the exact regression §10.2 exists to
+prevent; pilling Bare would give `CLEAR` a box, and A-24's whole argument is that it has none.
+**Where D-15's “universal pill” and this ladder collide, the ladder wins, because SAFE-02 is a
+requirement and a control shape is a style.**
+
 | Tier | Controls | Treatment |
 |------|----------|-----------|
 | **Primary** — one per panel | `TRY ON DEVICE` | Phase 7's, verbatim |
@@ -1486,7 +1551,10 @@ a real ellipsis (`…` U+2026), a real em dash (`—` U+2014), a real middle dot
 "Error". Never "loading". Never a browser engine named. **No string names a control that is not on
 the screen.** No hyphen used as a dash.
 
-**One character is added:** `−` U+2212, permitted in the forecast delta (§11.3) and nowhere else.
+**Two characters are added.** `−` U+2212, permitted in the forecast delta (§11.3) and nowhere else;
+and `+` U+002B **with one space either side**, permitted as the separator inside the monospace
+metadata block (§19.1c, added 2026-09-08 by A-39) and nowhere else. Neither is a hyphen and neither
+is a dash, so “no hyphen used as a dash” is untouched.
 
 **The site now has two `CLEAR`s, and that is deliberate rather than an oversight.** The browse
 toolbar's search field has cleared itself with a `CLEAR` since 05.1 (§13.5), and the device panel
@@ -1653,6 +1721,7 @@ existing live `matchMedia` subscription. No component adds a second one.
 | `src/lib/browse/facets.ts` | The sixteen terms, the two facets, the OR-within / AND-across predicate, the legacy `?tag=` map. **Imports nothing at runtime**, scanned by `facets.spec.ts` |
 | `src/lib/sim/demo.ts` | The `DemoPath` type, the four authored paths and the tick-locked driver. `SimHost.stillFrame()`'s second branch stays in `host.ts`, where the method is |
 | `src/lib/ui/aesthetic.spec.ts` | §8.7's **seven** source-scan gates, including the `.crt-band` / `.band` geometry equality |
+| `src/lib/ui/instrument.spec.ts` | §19.1g's **five** source-scan gates for the instrument register, added 2026-09-08 by A-39. It reads `CRT_FILES` out of `aesthetic.spec.ts` as text and asserts the two registers **partition** `src/lib/ui/*.svelte` — total and disjoint, with a floor — so the register line lives in one place. **Its own walk is derived from the directory**, which is what `DEVICE_COMPONENTS` and `browseFiles()` are not |
 | `e2e/aesthetic.e2e.ts` | §8.7's **four** browser gates, both projects, each with its non-vacuity assertion first |
 
 **Modified:**
@@ -1816,6 +1885,170 @@ approved phase's ruling, and says so where it does.
 | A-34 | **The 152px header note becomes 24px; the honesty slot 72px becomes 48px; `PUT BACK` stays 72px; `KEEP` stays 48px; CLEAR is a new 48px; the tuning region's 152px is untouched** | Two of the note's three collapsing strings were the two longest on the site; the rest follow from the caps |
 | A-35 | **The repository's em-dash requirement beats the skill's ban**, recorded rather than silently resolved | It is a project instruction enforced by a shipped test |
 | A-36 | **`PRODUCT.md` and `DESIGN.md` are not written**, and the skill's Product gate is resolved against the existing artefacts | This task creates one file, and a thinner second source of truth beside 5,115 lines of test-enforced spec would drift |
+
+---
+
+## 19.1 Post-approval amendments — 2026-09-08 (D-15, D-16, D-17)
+
+**Status stays `approved`.** Nothing below re-opens a ruling the checker passed. Six new decisions
+join §19's register in §19's own shape, and §3 gains a fourth sub-table (§3.4) listing them, because
+a post-approval edit that is not in the amendment register is an edit nobody can audit.
+
+The trigger is three user decisions taken mid-execution, after wave 9 closed: **D-15** (three
+aesthetic references, extracted as rules), **D-16** (the register line moves to front door versus
+everything else) and **D-17** (the new rules fold into the waves still ahead, plus one aesthetic pass
+inserted as **10-13.1** at wave 14).
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| A-37 | **The register line moves from brand-versus-product to front-door-versus-everything-else** (D-16), superseding **A-01**'s placement half. The front door keeps Layers G, S, R and T exactly as wave 4 built them, the `SCREEN` toggle and all three switches. **Browse, the panels, the tuning region and the whole device flow are the instrument register**, whose rules are §19.1's | A-01's split was authored before anything shipped and it drew the line at *brand versus product*, which put the browse grid's thirty-six pad frames on the brand side. Wave 4 then measured what that costs — **61 ms p95 on webkit-phone** — and scoped Layer S off `/browse/` for a performance reason. D-16 moves the line to where the measurement already put it and gives it a second, non-performance reason, which is strictly the stronger arrangement: two independent reasons hold one selector, so a faster engine cannot argue the selector back |
+| A-38 | **Layer S's selector does not change, and that is the finding.** `:global(.front-door) .pad::after` in `PadFrame.svelte` already confines Layer S to the front door's seven frames. **D-16 changes the *reason*, not the rule.** §8.5's declared fallback applied it as a measured performance decision; §19.1 additionally makes it a **register** rule, and `e2e/aesthetic.e2e.ts` test 3 — which already asserts that the browse grid carries Layer G and nothing else — is now holding two rules with one assertion, and says so in its comment | The one thing a rule held by a single measurement cannot survive is the measurement changing. 10-04 recorded chromium at **0.00 ms** and webkit-phone at **61 ms**; a WebKit release that closes that gap would leave §8.5's fallback with no argument behind it and the browse grid would grow thirty-six scanline overlays by default. A register rule does not expire |
+| A-39 | **The instrument register's rules are the six below, stated in numbers rather than adjectives** (D-15): the registration lattice (§19.1a), the pill (§19.1b), monospace metadata in `+`-separated columns (§19.1c), tabular rows without rules (§19.1d), halftone density at two pitches (§19.1e) and the index-and-em-dash headline (§19.1f) | "Technical instrument" is a description; `48px` pitch, `999px` radius, `24px` inline padding, two halftone pitches and a two-digit index are a contract. A register nobody can grep is a mood board |
+| A-40 | **The registration lattice is monochrome, and the distinguished cross is distinguished by scale and by opacity — never by hue. The eight-item accent reserved list does not grow.** The lattice is `--color-line-soft` (rgb 214 255 78 / 0.2, already declared *decorative only*); the one distinguished cross is `--color-line` (0.4) at twice the arm length. **Reference A's accent cross does not ship, and this is a deliberate departure from the reference** | The list has stayed at eight through four candidates in §7.2, and a ninth entry is exactly what "restrained chrome over drenched content" (§0) exists to refuse. It is also **decided by a shipped gate rather than by taste**: `tune-ui.spec.ts` asserts the accent census over the seven tuning components is *unmoved at fourteen* (10-09-02), so an accent cross on the tuning region turns that test red on correct-looking code. Two non-colour channels — scale and opacity — are the same answer §7.2's table gave four times already, and this is its fifth row |
+| A-41 | **The pill is the Secondary tier's shape and the word row's selected option, and nowhere else.** Secondary becomes a fully-rounded 1px outline with a transparent fill; the Primary's accent fill takes the same radius; **Quiet and Bare stay shapeless**. The "filled pill for the active state" is carried by controls that already own their fill — reserved-list item 3 (`TRY ON DEVICE`) and item 8 (the selected word of a knob-vocabulary row) — so **nothing joins the reserved list** | Reference C makes the pill *universal*; HANGAR's four-tier ladder is SAFE-02's mechanism and it is carried by border-versus-no-border. Pilling Quiet would give `KEEP ON DEVICE` a border and flatten it into Secondary, which is the precise regression §10.2 forbids; pilling Bare would give `CLEAR` a box, and A-24's whole argument is that its five channels are tracking, position, its own line, its confirmation and its disabled set — **not** a box. **Where D-15 and the shipped tier system collide, the tier system wins, because SAFE-02 is a requirement and a control shape is a style** |
+| A-42 | **The index-and-em-dash headline is sibling furniture, not a rewritten string, and it appears on `/browse/` only.** A two-digit index and a U+2014 in their own elements, before a caption whose bytes do not change. **It never appears in the device flow**, where A-23 forbids step numerals | Every caption in this phase is pinned character-for-character by a spec, and prefixing one is a copy retirement — the audit A-30 closed at ten. Furniture beside a string costs no amendment. And on the chosen panel the regions **are** the device sequence, so an index there would read as the step numeral A-23 rules out by name; `/browse/`'s facet rows are an unordered set of filters on a surface with no sequence at all, which is the only place on the site where an index is a register mark rather than an instruction |
+
+### §19.1a — The registration lattice
+
+| Property | Value |
+|----------|-------|
+| Pitch | **48px**, the `2xl` spacing token. No new spacing value |
+| Arm | **7px**, stroke **1px**. A texture metric in the 5px-scanline-period class, declared as §6 exception 6 |
+| Colour | `var(--color-line-soft)` — a token, referenced, never a literal. **No new token, no new hex, no fourth hue** |
+| The distinguished cross | **One per surface.** Arm **14px** (2×), `var(--color-line)` (2× the alpha), `background-repeat: no-repeat`, at one declared position. Two non-colour channels (A-40) |
+| Element | A `::before` on the **instrument surface's own root** — `aria-hidden` by construction, `pointer-events: none`, `z-index` behind all content |
+| Composition | Two `repeating-linear-gradient`s forming a 1px grid, **intersected by a `mask-image` pair of 7px bands at the same pitch**, so what paints is a field of plus marks rather than a field of rules. Realised in CSS with **no data-URI**, ever |
+| Where it may not go | **Never on `.stage`, and never on an element between `.stage` and a `.slot`** (§8.2, unchanged and unweakened). `ChosenPanel.svelte`'s root is inside `.panel`, which `Coverflow.svelte:930` renders as a **sibling** of `.band` and outside the 3D context, so a lattice there is legal — and it is asserted rather than assumed. **`Coverflow.svelte` is not edited** |
+
+**Why no data-URI, stated with the measurement behind it.** 10-04 declared the CRT noise tile as
+`--crt-noise` at `:root` in `src/app.css`, ran `identity.spec.ts` — seven passed — then wrote
+`fill='%23ff0000'`, a pure red and a fourth hue, into the same tile and ran it again: **seven passed
+again.** That file's hex walk matches a literal `#`, and a percent-encoded one is not one. A lattice
+authored as an SVG data-URI would be invisible to every colour gate this site has. Gradients
+referencing a token are visible to all of them.
+
+**A `mask-image` here is not a §8.2 violation and the distinction is exact.** §8.2's prohibition is
+about *grouping properties on or above the 3D rendering context `.stage` establishes*. The lattice
+element is a leaf pseudo-element of a surface root that is not an ancestor of any `.slot`; `.band`
+itself carries a `mask-image` at `Coverflow.svelte:962-970` for the same structural reason, and §8.2
+asserts that mask **present** rather than merely tolerating it.
+
+### §19.1b — The pill
+
+| Property | Value |
+|----------|-------|
+| Radius | **`999px`**. A shape, not a fourth rung on the 2 / 6 / 10px radius scale: it resolves to half the block size and therefore cannot drift. Declared as §6 exception 7 |
+| Border | **1px `var(--color-line)`** — 3.31:1, above the 3:1 non-text floor, unchanged from the Secondary tier's existing border |
+| Fill | **transparent**, except where the control already owns a fill (Primary's accent, the selected word) |
+| Inline padding | **24px**, the `lg` token. At the 44px block floor the radius resolves to **22px per end**, so 24px clears the curve by 2px and a one-character label still sits on the flat |
+| Floor | `min-block-size: 44px` **and** `min-inline-size: 44px`. Both axes, on every pill, **asserted by a directory-derived walk** (§19.1g) rather than by a hand-declared list |
+| Tiers | **Secondary → pill outline. Primary → pill radius on its existing accent fill. Quiet → unchanged, borderless and shapeless. Bare (`CLEAR`) → unchanged, no border, no radius, no background** (A-41) |
+
+§10.3's four-tier table stands verbatim; this amendment changes the **shape** of two rows and
+explicitly does not touch the other two.
+
+### §19.1c — Monospace metadata
+
+`+`-separated, column-aligned, `--font-mono`, `font-variant-numeric: tabular-nums`,
+`--color-ink-quiet`. The separator is **U+002B with one space either side**, which joins §13.0's
+character list beside U+2212.
+
+**This is `--font-mono`'s sixth named use, and the count is the rule.** Phase 5 confined it to four;
+§11.3 named the forecast delta as the fifth; the metadata block is the **sixth and last in this
+phase**. A use that is not on the list is a defect, and the list is asserted.
+
+### §19.1d — Tabular rows without rules
+
+Column alignment carries the row; **no divider, no border, no zebra, no new `--color-line` use** is
+added to make a row read. Where a rule already exists it stays — the two hairlines in region 6 are
+structural and A-23 depends on the second one.
+
+**Where this collides with the shipped browse grid, the grid wins.** Reference C's dense tabular
+listing is not adopted as `/browse/`'s layout: the card grid is what carries thirty-six live pad
+canvases, and the pads are the product. Tabular alignment applies **inside** a card's metadata block
+and to any multi-row listing, never as a replacement for the grid.
+
+### §19.1e — Halftone density as an image-making device
+
+Layer G's halftone ships today at a single **3px** pitch on every route. This amendment adds a
+**second declared density, 6px**, behind the header and footer bands, so the page's own structure is
+described by the grain rather than by a rule — which is what §19.1d asks for from the other side.
+
+**Two pitches, not a gradient.** A continuously modulated halftone is a per-pixel image, and the
+uniform one already costs **+22 ms at p95 on webkit-phone** on `/browse/` (10-04, decomposed and
+deferred). Two static `background-size` values cost one extra background layer.
+
+> **Declared fallback, in §8.5's own shape.** The second density is measured on `/browse/` in
+> `chromium` and `webkit-phone` against 10-04's recorded figures — **101 ms** textured, **78 ms**
+> `SCREEN: FLAT`. **If the delta exceeds 2 ms at the 95th percentile the second density does not
+> ship** and the halftone stays at one pitch. That is a decision declared here rather than discovered
+> in a wave summary.
+
+**And §8.5's Layer G row is corrected while this section is open.** It reads *"Zero by construction.
+Two static backgrounds and one inset shadow, rasterised once."* 10-04 measured the inset shadow at
+**105 ms per scrolled frame at p95 on webkit-phone** and replaced it with a `radial-gradient` plus
+`will-change: transform`. The row now describes what ships: **two static backgrounds and a gradient
+vignette on a promoted layer; zero on chromium, +22 ms on webkit-phone at thirty-six animating
+canvases, decomposed in 10-04 and deferred.** Recording an observation is not re-opening a ruling.
+
+### §19.1f — The index-and-em-dash headline
+
+`01` `—` `FOR`. Three elements: a two-digit index in the **Micro** role at `--color-ink-dim`, a real
+**U+2014** in its own element, and the existing caption **byte-unchanged**. The index is Micro rather
+than mono so §19.1c's count stays at six.
+
+**On `/browse/`'s two facet rows and on nothing else in this phase** (A-42). Uppercase captions of at
+most two words are unaffected: the index is not a word and the rule counts words in the string, which
+does not change. This is the **second** declared exception to §5.2's uppercase rule after
+`PICK ONE · IT IS ALREADY RUNNING`, and it is declared as one.
+
+### §19.1g — How the instrument register is held
+
+A new source-scan gate, `src/lib/ui/instrument.spec.ts`, sits opposite `aesthetic.spec.ts` and holds
+the register from the other side. **Its walk is derived from the directory, which is the whole reason
+it is a second file rather than three more scans in the first.**
+
+Three hand-declared lists gate this repository today and each one lets an omitted file through in
+silence:
+
+- `device-ui.spec.ts:63-71`'s `DEVICE_COMPONENTS` — the list the 44px both-axes walk at `:277-306`
+  iterates. **Six names today.** A component omitted from it passes the walk without being read.
+- `browse-ui.spec.ts:60`'s `browseFiles()` — a hand list of six component paths. A new browse
+  component omitted from it escapes every browse gate.
+- `aesthetic.spec.ts:239`'s `CRT_FILES` — correct for its purpose, because that file's claim is
+  *only these four*.
+
+**The register line is a CLASS, not a file list, and that is forced by what already ships.**
+`PadFrame.svelte` renders on `/` and on `/browse/` both, and wave 4 already drew the line through it
+with one selector: `:global(.front-door) .pad::after`. `ScreenToggle.svelte` is in `CRT_FILES`
+because it *names* the CRT vocabulary, not because it *wears* the CRT, and it renders in the footer
+of every route including the front door. A file-level partition would be false on both counts. So:
+
+> **The front-door register is everything inside `.front-door` — `FrontDoor.svelte`'s own root class,
+> already shipped and already load-bearing for Layer S. The instrument register is everything that is
+> not.**
+
+`instrument.spec.ts` reads `CRT_FILES` **out of `aesthetic.spec.ts` as text**, in the idiom §8.7
+scan 7 already uses on `Coverflow.svelte`'s literals, and asserts the line from **both sides**: every
+moving or texturing CRT layer resolves under `.front-door`, and no instrument rule is authored inside
+`FrontDoor.svelte` or under a `.front-door` scope. The line then lives in exactly one place and
+cannot be moved in one file and not the other — which is the lesson scan 7 exists to teach.
+
+**Layer G is the one declared exception, and D-16 gets this half wrong.** D-16 says *“the ground and
+the roll bar are already the hero shell's”*. The roll bar is — Layers R and T live in `.crt-band` in
+`FrontDoor.svelte`, and `/browse/` has no `.crt-band` at all. **The ground is not.** Layer G is
+`body::before` in `src/app.css` and it is on every route; 10-04 measured `/browse/` explicitly as
+*“Layer G alone”*. Rather than scope it off, **Layer G stays on every route and is reclassified**: a
+halftone whose density describes a page is D-15 reference B's own device (§19.1e), not a screen
+effect, and it is the only one of the four layers that neither moves nor scans. The exception is
+declared here with its reason so it is a ruling rather than an oversight.
+
+**And the file-level walk is still worth having, for the other four scans.** `INSTRUMENT_FILES` is
+**every `src/lib/ui/*.svelte` minus a short declared front-door-only list**, asserted against the
+directory with a length — so a component added in a later phase is walked on the day it appears.
+`DEVICE_COMPONENTS` and `browseFiles()` are both hand lists and both let an omitted file through in
+silence; this walk does not, and that difference is the reason §19.1g is a second file rather than
+five more scans in the first.
 
 ---
 

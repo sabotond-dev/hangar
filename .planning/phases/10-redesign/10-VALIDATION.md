@@ -219,8 +219,8 @@ and 10-06 corrects the document in passing.
 No two plans in this phase run concurrently, for the arithmetic reason Phases 5.1, 6, 7 and 9 gave:
 every acceptance criterion asserts an exact cumulative count, and two plans landing in the same wave
 would both compute the wrong total. There is a second reason here and it is stronger than Phase 9's:
-**`src/app.css` is touched by four plans, `install-copy.ts` by three, `listing.ts` by two, and
-`device-ui.spec.ts` by four.** The `wave` numbers in the frontmatter are dependency groupings, one
+**`src/app.css` is touched by four plans — five since 10-13.1 — `install-copy.ts` by three,
+`listing.ts` by two, and `device-ui.spec.ts` by four, five with 10-13.1's tier assertions.** The `wave` numbers in the frontmatter are dependency groupings, one
 plan each; `depends_on` names the previous plan explicitly.
 
 ---
@@ -245,8 +245,9 @@ per-file count. The `test:quick` file column counts spec files added or removed.
 | 10-11 | 11 | **+1** | **+4** | unchanged | unchanged | `mix.spec.ts` created with 2, `tune-ui.spec.ts` +2 |
 | 10-12 | 12 | +0 | **+3** | unchanged | unchanged | `install.spec.ts` 18 → 21 and **nothing else moves**: `install-copy.spec.ts` 6, `session.spec.ts` 21 (test 15's needles go 9 → 10 *inside* it), `device-ui.spec.ts` 11, `snapshot.spec.ts` 7, and no spec file is created. Revision 1 read `+4` on a `session.spec.ts +1` that `:255` below and 10-12's own task 02 both deny; **term retired 2026-09-08** |
 | 10-13 | 13 | +0 | **+3** | unchanged | **+4** | `device-ui.spec.ts` +3; `install.e2e.ts` +2 × 2 projects |
-| 10-14 | 14 | +0 | +0 | unchanged | unchanged (measured) | the gate |
-| **Phase total** | | **+6** | **+40** | `4 19`, **+1 restructure** | **+12** | reconciled at 10-14, never asserted before it, and **re-derived from the per-file table below rather than from the plans’ own `check-counts` lines**: 6+1+0+6+5+4−1+0+3+6+4+3+3 = 40. The e2e total is `BASE_E2E + 12` in four terms: aesthetic 4×2 (10-04), **10-05 0**, **10-07 0**, install 2×2 (10-13) |
+| **10-13.1** | **14** | **+1** | **+5** | **not run** | **+0** (**but the suite IS run**) | `instrument.spec.ts` created with **5**: two in task 1 (the register line both sides, the pill), two in task 2 (the lattice, the halftone densities), one in task 3 (the headline form, the six mono uses, no rules). **Inserted 2026-09-08 by D-17** at wave 14 so nothing renumbers; `10-14` moves to wave 15. The sweep is not run and the plan proves it by grep. **The e2e term is 0 and the suite still runs** — this wave repaints every surface `browse.e2e.ts`, `install.e2e.ts` and `aesthetic.e2e.ts` measure, and it touches `src/app.css`, which is a build trigger. That makes it the **sixth** e2e wave and the Sampling Rate line below is amended by name |
+| 10-14 | **15** | +0 | +0 | unchanged | unchanged (measured) | the gate |
+| **Phase total** | | **+7** | **+45** | `4 19`, **+1 restructure** | **+12** | reconciled at 10-14, never asserted before it, and **re-derived from the per-file table below rather than from the plans’ own `check-counts` lines**: 6+1+0+6+5+4−1+0+3+6+4+3+3+5 = **45**, in **fifteen** terms. **It was `+6` / `+40` in fourteen terms until 2026-09-08**, when D-17 inserted 10-13.1; the only term that moved is the new one, and every earlier term is byte-identical. The e2e total is `BASE_E2E + 12` in **five** terms: aesthetic 4×2 (10-04), **10-05 0**, **10-07 0**, install 2×2 (10-13), **10-13.1 0**. **The seven created files** are `aesthetic`, `font-assets`, `demo`, `facets`, `mix`, `colour-picker`, `instrument` |
 
 **A wave asserts against `PREV_FILES` / `PREV_TESTS`**, the tree the previous plan left. **Only 10-14
 asserts against `BASE_FILES` / `BASE_TESTS`**, and its number is the phase total written out as a
@@ -257,6 +258,7 @@ Per-file counts, which **are** asserted absolutely:
 | File | Tests | Plan |
 |---|---|---|
 | `src/lib/ui/aesthetic.spec.ts` | **1**, then **7** | 10-01 (created), 10-04 |
+| `src/lib/ui/instrument.spec.ts` | **5** | 10-13.1 (created) |
 | `src/lib/ui/font-assets.spec.ts` | **5** | 10-01 (created) |
 | `src/lib/ui/identity.spec.ts` | 6 → **7** | 10-02 |
 | `e2e/aesthetic.e2e.ts` | **4** titles, both projects | 10-04 (created) |
@@ -268,7 +270,7 @@ Per-file counts, which **are** asserted absolutely:
 | `src/lib/catalog/copy.spec.ts` | **5**, unchanged (`KNOWN_TAGS` re-cut) | 10-06 |
 | `src/lib/tune/colour-picker.spec.ts` | **6** | 10-10 (created) |
 | `src/lib/browse/query.spec.ts` | **5**, unchanged (G-10's cases land inside the existing blocks; case 3's title is rewritten, not added to) | 10-07 |
-| `src/lib/tune/copy.spec.ts` | **5**, unchanged (touched by three plans, none of which adds a block) | 10-03, 10-09, 10-11 |
+| `src/lib/tune/copy.spec.ts` | **6**, unchanged (touched by three plans, none of which adds a block) | 10-03, 10-09, 10-11 |
 | `src/lib/tune/mix.spec.ts` | created with **2** | 10-11 |
 | `src/lib/tune/surprise.spec.ts` | 4 → **5** | 10-09 |
 | `src/lib/ui/tune-ui.spec.ts` | 5 → **9** | 10-03, 10-09, 10-11 |
@@ -281,6 +283,14 @@ Per-file counts, which **are** asserted absolutely:
 | `src/lib/tune/reachability.sweep.spec.ts` | **2**, unchanged (two passes inside) | 10-08 |
 | `src/lib/share/stamp-roundtrip.sweep.spec.ts` | unchanged (two passes inside, format `w`) | 10-08 |
 | `src/lib/catalog/lua-entries.sweep.spec.ts` | **6**, unchanged (27-literal colour sample) | 10-08 |
+
+**`src/lib/tune/copy.spec.ts` was printed as 5 in revision 1 of this table and it is, and was, 6.**
+Corrected 2026-09-08. 10-09 observed it at 6 at `256db24` and flagged it for re-derivation
+(`10-09-SUMMARY.md:125`, and again in its own per-file split table). **The correction moves no total**
+and that is the point of stating it rather than quietly editing it: the file is *unchanged* by every
+plan that touches it, so it contributes **+0** to the delta chain either way, and `BASE_TESTS` already
+counted it at 6 on the clean tree 10-01 measured. An absolute in this table that disagrees with the
+tree teaches the next reader to distrust the column that **is** asserted.
 
 Standing gates that must be green at the phase gate and are **not** edited:
 `src/lib/fidelity/vendored-diff.spec.ts` (**14**), `src/lib/fidelity/lua-parity.spec.ts` (**5**),
@@ -340,9 +350,16 @@ is either extended, amended or closed by a named plan, and 10-14 writes each qua
   any wave that touches `src/app.css`, `static/`, `scripts/` or a prerendered page — then
   **`npm run test:quick` again**, because `config-shape.spec.ts` test 14 and `og/build.spec.ts` read
   `build/`.
-- **e2e runs in five waves only** — 10-04, 10-05, 10-07, 10-13 and 10-14 — at `--workers 3`, with
-  `test-results/` removed by hand afterwards and `git status --porcelain` confirmed empty. No other
-  wave runs e2e, because no e2e title moves in it and a two-minute run buys nothing.
+- **e2e runs in SIX waves** — 10-04, 10-05, 10-07, 10-13, **10-13.1** and 10-14 — at `--workers 3`,
+  with `test-results/` removed by hand afterwards and `git status --porcelain` confirmed empty. No
+  other wave runs e2e, because no e2e title moves in it and a two-minute run buys nothing.
+  **Amended 2026-09-08.** The rule was five waves and its stated reason was *"no e2e title moves in
+  it"*. **10-13.1 moves no title either, and runs anyway**, because the reason is wrong for this one
+  wave: it changes the shape of nine controls and adds a background layer across `/browse/` and the
+  chosen panel — every surface `browse.e2e.ts`, `install.e2e.ts` and `aesthetic.e2e.ts` measure — and
+  it touches `src/app.css`, which this same list makes a build trigger. A run that finds nothing is
+  the evidence; a run nobody made is not. Its delta is **`PREV_E2E` unchanged**, proved with
+  `grep -c "test("` before and after, the way 10-07 proved its own zero.
 - **Max feedback latency:** ~35 s (quick), ~2 min (wave with a build), ~5 min (wave with e2e),
   ~10 min (10-08 and 10-14, with the sweep).
 
@@ -387,9 +404,12 @@ is either extended, amended or closed by a named plan, and 10-14 writes each qua
 | 10-13-01 | 13 | 13 | SAFE-02, SAFE-05 | unit | `Clear.svelte` Bare tier at `letter-spacing: 0.28em` — **grep-proved unique** — with both 44px axes, its 48px cell and its three reasons; `ClearConfirm.svelte` replacing the control that opened it; `device-ui.spec.ts` **14** | created here | pending |
 | 10-13-02 | 13 | 13 | SAFE-02, DEGR-02 | unit | the `NEXT` caption, the second hairline at 24 / 1px / 24, the `CLEARED` block, CLEAR's details on the three reused failure states; DEGR-02 present-but-disabled with the reason inline; SAFE-02's weights unchanged | exists | pending |
 | 10-13-03 | 13 | 13 | SAFE-03, DEGR-02 | e2e + docs | `install.e2e.ts` +2 titles across both projects walking clear → `cleared` → `PUT BACK` → `restored` against the fake; `INSTALL-RUNBOOK.md` **row H**; `docs/TESTING.md:840` "the three clicks" → four; e2e `PREV_E2E + 4` | exists | pending |
-| 10-14-01 | 14 | 14 | all | measured + docs | every projection in this document replaced by an observation; `docs/TESTING.md` re-measured; `deferred-items.md` written; ROADMAP's `Requirements: TBD` replaced by the owned list | exists | pending |
-| 10-14-02 | 14 | 14 | all | phase gate | quick `BASE_FILES + 6` / `BASE_TESTS + 40` written as a chain, sweep `4 19` restructured, e2e `BASE_E2E + 12`, against a fresh production build; **ROADMAP's six Phase 10 success criteria walked one at a time**, criterion 1 recorded as discharged into `THIRD-PARTY.md` with the resolution handed to the user as Open item 2; `git diff --stat HEAD -- src/vendor/` empty; the archive listed and the font absent from it | exists | pending |
-| 10-14-03 | 14 | 14 | SAFE-03, SAFE-05 (hardware) | **checkpoint:human-verify** | not automatable — `INSTALL-RUNBOOK.md` row H on a real ZONA, plus the three Open-for-the-user reversals restated with their measured costs | n/a | pending |
+| 10-13.1-01 | 13.1 | 14 | IDENT-01, SAFE-02 | unit (source scan) | `instrument.spec.ts` **created with 2**: scan 1 holds the register line from **both sides** (`CRT_FILES` read out of `aesthetic.spec.ts` as text; **Layer G named as the one declared exception**) and scan 2 holds the pill — Secondary and the word rows carry `.pill`, **Quiet and Bare provably do not**, and every pill declares both 44px axes on a **directory-derived** walk. `device-ui.spec.ts` unmoved; `identity.spec.ts` **7**; `tune-ui.spec.ts` **9** with the accent census still **14**. Two negative checks red | created here | pending |
+| 10-13.1-02 | 13.1 | 14 | IDENT-01, IDENT-02 | measured + unit | the second halftone density **measured before it ships** in both engines against 10-04's 101 ms / 78 ms, with the over/under verdict stated in words; the lattice as gradients plus a `mask-image`, **monochrome, no data-URI, no SVG**, on exactly two roots; `.panel`'s position outside `.stage` asserted by **reading** `Coverflow.svelte`; `instrument.spec.ts` **4**; `aesthetic.spec.ts` **7**; three negative checks red | exists | pending |
+| 10-13.1-03 | 13.1 | 14 | CAT-03 | unit + e2e | the index and the em dash as **sibling elements** with every pinned caption byte-identical; the `+`-separated monospace metadata as `--font-mono`'s **sixth named use**; **no divider, border or zebra added**; `instrument.spec.ts` **5**; quick `PREV_FILES + 1` / `PREV_TESTS + 5`; **the full e2e suite run at `PREV_E2E` unchanged**, proved by `grep -c` before and after; two negative checks red | exists | pending |
+| 10-14-01 | 14 | 15 | all | measured + docs | every projection in this document replaced by an observation; `docs/TESTING.md` re-measured; `deferred-items.md` written; ROADMAP's `Requirements: TBD` replaced by the owned list | exists | pending |
+| 10-14-02 | 14 | 15 | all | phase gate | quick `BASE_FILES + 7` / `BASE_TESTS + 45` written as a **fifteen-term** chain, sweep `4 19` restructured, e2e `BASE_E2E + 12`, against a fresh production build; **ROADMAP's six Phase 10 success criteria walked one at a time**, criterion 1 recorded as discharged into `THIRD-PARTY.md` with the resolution handed to the user as Open item 2; `git diff --stat HEAD -- src/vendor/` empty; the archive listed and the font absent from it | exists | pending |
+| 10-14-03 | 14 | 15 | SAFE-03, SAFE-05 (hardware) | **checkpoint:human-verify** | not automatable — `INSTALL-RUNBOOK.md` row H on a real ZONA, plus the three Open-for-the-user reversals restated with their measured costs | n/a | pending |
 
 *Status: pending / green / red / flaky. Every row starts pending; an executing plan updates only its own rows.*
 
@@ -511,14 +531,22 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
 | 10-12 | export `clear` as a `clear.bind`-shaped view | `session.spec.ts` test 15, tenth needle |
 | 10-13 | give `Clear.svelte` an `auto` inline size | `device-ui.spec.ts:278-306`, naming `Clear.svelte -> .clear` |
 | 10-13 | add `letter-spacing: 0.28em` to a second control | the uniqueness grep in `device-ui.spec.ts`, naming both |
+| 10-13.1 | add `.pill` to `Clear.svelte` | `instrument.spec.ts` scan 2, naming `Clear.svelte`, the Bare tier and A-24's five channels |
+| 10-13.1 | author an instrument rule inside `FrontDoor.svelte` | `instrument.spec.ts` scan 1, naming the file and the register line |
+| 10-13.1 | change the lattice colour to `var(--color-accent)` | `instrument.spec.ts` scan 3, naming the accent and the reserved list at **eight** |
+| 10-13.1 | author the lattice as an SVG data-URI | `instrument.spec.ts` scan 3, and **the message must carry 10-04's finding** — `identity.spec.ts` stayed green on `fill='%23ff0000'`, measured twice — so the next reader learns why and not only that |
+| 10-13.1 | scope a lattice rule under `.front-door` | `instrument.spec.ts` scan 1, naming the register line |
+| 10-13.1 | write `01 — FOR` as one caption literal | `instrument.spec.ts` scan 5, naming the caption and the digit — the index is **always** a sibling, which is what keeps §3.1's audit closed at ten |
+| 10-13.1 | add a `border-block-end` to a metadata row | `instrument.spec.ts` scan 5, naming the declaration and §19.1d |
 | 10-14 | raise a non-vacuity floor by one | its own floor test, naming the observed count |
 
 ---
 
 ## Standing hazards carried into this phase
 
-- **`src/app.css` is the most-touched file in the phase — and it is touched by exactly two plans,
-  10-02 and 10-04.** Those are the only two carrying it in `files_modified`. 10-09 is **not** one of
+- **`src/app.css` is the most-touched file in the phase — and it is touched by exactly three plans,
+  10-02, 10-04 and 10-13.1** (the `.pill` rule, the lattice and the second halftone density; amended
+  2026-09-08). Those are the only two carrying it in `files_modified`. 10-09 is **not** one of
   them: the forecast's ghost fill is `--color-line-soft` and its delta is `--color-ink`, both already
   declared, and its `--font-mono` fifth use is a *use*, not a declaration — so it needs no token and
   no `app.css` edit. `identity.spec.ts` reads the file whole, so 10-02 and 10-04 each run that spec in
@@ -542,6 +570,26 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
 - **`prefers-reduced-motion` reaches only two of the four CRT layers.** The other two are turned off
   by a control, not by a preference. Every assertion about "the CRT is off" must say which switch it
   means.
+- **Three hand-declared lists let an omitted file through in silence, and two of them gate controls.**
+  `device-ui.spec.ts:63-71`'s `DEVICE_COMPONENTS` is **six today** and the 44px both-axes walk at
+  `:277-306` iterates it, so a component omitted from it passes without being read — **and 10-13's own
+  task text says to move the length assertion at `:199` "from 7 to 9" when the assertion currently
+  reads 6 and two additions make it 8. Reconcile against 10-13's SUMMARY, not against its plan.**
+  `browse-ui.spec.ts:60`'s `browseFiles()` is a hand list of six component paths, so a new browse
+  component omitted from it escapes every browse gate. `aesthetic.spec.ts:239`'s `CRT_FILES` is
+  correct for its purpose. 10-13.1's `INSTRUMENT_FILES` is **derived from the directory** and is the
+  only walk in the phase that covers `ChosenPanel.svelte`, `TryOnDevice.svelte`, `CopyLink.svelte`,
+  `Knob.svelte`, `TagChip.svelte` and `BrowseToolbar.svelte`.
+- **A colour percent-encoded inside a data-URI is invisible to `identity.spec.ts`.** Measured twice by
+  10-04. This is why the noise tile lives in `PadFrame.svelte` behind `aesthetic.spec.ts` scan 6, and
+  why 10-13.1's lattice is gradients and a mask rather than an SVG.
+- **`npm run build` fails with `EPERM` while `wrangler dev` holds `build/`, and the e2e run then
+  silently tests the STALE artefact.** Stop wrangler parents-first, including both `workerd`
+  children, which do not match a `wrangler` command-line filter. The e2e web server also dies under
+  memory pressure; starting `npx wrangler dev --port 4173 --ip 127.0.0.1` by hand first gives a clean
+  run.
+- **Nothing type-checks `e2e/`.** A wrong type in a Playwright file is found by the run, never by
+  `npm run check`.
 - **Switch 3 removes Layer R on a four-core machine.** Any browser assertion about Layer R must force
   `navigator.hardwareConcurrency` first or it passes on an element that was never mounted.
 
@@ -594,8 +642,13 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
       (10-09, 10-10, 10-11)
 - [ ] CLEAR is a fourth click that extends the never-writes proof rather than denting it, with its
       own confirmation and its own runbook row (10-12, 10-13)
-- [ ] The phase gate green against a production build at quick `BASE_FILES + 6` / `BASE_TESTS + 40`,
-      sweep `4 19` and e2e **`BASE_E2E + 12`**; every projection in this document replaced by an
+- [ ] The instrument register is visible and gated: the register line asserted from both sides with
+      Layer G as its one declared exception, the pill on Secondary and the word rows with Quiet and
+      Bare proved untouched, the lattice monochrome and data-URI-free, and the second halftone density
+      measured before it shipped (10-13.1)
+- [ ] The phase gate green against a production build at quick `BASE_FILES + 7` / `BASE_TESTS + 45`,
+      written as a **fifteen-term** chain, sweep `4 19` and e2e **`BASE_E2E + 12`** in **five** terms;
+      every projection in this document replaced by an
       observation; ROADMAP's six Phase 10 success criteria each walked with its answering plan and its
       unanswered half named (10-14)
 - [ ] Row H handed to the user, unanswered, with no agent having touched a device (10-14-03)
