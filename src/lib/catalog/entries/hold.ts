@@ -116,9 +116,13 @@ export const HOLD: CatalogEntry = {
   name: "HOLD",
   description:
     "A latching effect pad: lift your finger and the value stays where you left it, lit and breathing.",
-  // Feel-based, never a compiler kind (CONT-03). "latching" is coined here and
-  // is a singleton until wave 5; copy.spec.ts's KNOWN_TAGS carries it.
-  tags: ["latching", "hands-free", "expressive", "xy-control"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "latching" was coined here and was a singleton until CONSOLE reached it in
+  // wave 5. It retires: latching is how this pad works, not something a
+  // visitor would filter on. What survives is that the held value is readable
+  // across the room.
+  tags: ["modulation", "expressive", "readable"],
   featured: true,
   addedAt: "2026-09-07",
   source: SOURCE,

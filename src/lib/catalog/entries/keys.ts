@@ -156,8 +156,9 @@ export const KEYS: CatalogEntry = {
   name: "KEYS",
   description:
     "Every note of one key across the pad: roots bright, the scale dim, and the wrong notes dark.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["harmonic", "in-key", "playable", "readable"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["keys", "playable", "readable"],
   featured: true,
   addedAt: "2026-09-07",
   source: SOURCE,

@@ -127,8 +127,9 @@ export const SLAM: CatalogEntry = {
   name: "SLAM",
   description:
     "Nine drum pads where how high you hit is how hard it plays, and the bloom shows the velocity.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["drums", "playable", "expressive", "blooming"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["drums", "playable", "expressive"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

@@ -36,7 +36,15 @@ import type { FrontDoorEntry, PreviewMotion } from "./front-door";
  * intersection, a "padsim" entry never loads it at all.
  */
 export type ListingEntry = FrontDoorEntry & {
-  /** Feel-based, verbatim from the catalog entry; the spec asserts deep equality. */
+  /**
+   * Verbatim from the catalog entry; the spec asserts deep equality in both
+   * directions, which is what makes re-cutting this file alone go red.
+   *
+   * EXACTLY THREE since D-10: one FOR term then two FEELS, drawn from the
+   * closed sixteen in src/lib/browse/facets.ts, whose facets.spec.ts holds
+   * every entry here against that vocabulary. Still feel-based and still never
+   * a compiler kind (CONT-03), which is amended from four tags to three.
+   */
   readonly tags: readonly string[];
   readonly featured: boolean;
   /** "YYYY-MM-DD". Drives the Newest sort. */
@@ -114,7 +122,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "A band of light crosses the pad, and your finger leaves a glowing tail behind it.",
     motion: "animated",
-    tags: ["ambient", "flowing", "colour"],
+    tags: ["show", "generative", "expressive"],
     featured: true,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -126,7 +134,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Light turns around the centre, and each finger paints in its own colour.",
     motion: "animated",
-    tags: ["rotating", "multi-touch", "colour"],
+    tags: ["show", "generative", "expressive"],
     featured: true,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -138,7 +146,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Every light breathes at its own pace, so the pad never repeats itself.",
     motion: "animated",
-    tags: ["ambient", "generative", "calm"],
+    tags: ["show", "generative", "readable"],
     featured: false,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -150,7 +158,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Rings roll out from the centre, and the pad sends your finger's position to your computer.",
     motion: "animated",
-    tags: ["rippling", "xy-control", "hypnotic"],
+    tags: ["modulation", "generative", "expressive"],
     featured: false,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -164,7 +172,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
-    tags: ["expressive", "pitch-bend", "sprung"],
+    tags: ["modulation", "expressive", "still"],
     featured: false,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -178,7 +186,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "This one is an instrument rather than a light show. The nine zones stay lit and wait for a finger.",
-    tags: ["drums", "playable", "grid"],
+    tags: ["drums", "playable", "readable"],
     featured: true,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -191,7 +199,7 @@ export const LISTING: readonly ListingEntry[] = [
       "Four faders side by side, each with a white rail and a coloured level you can see across the room.",
     motion: "static",
     quiet: "Four rails, lit and still. They move when you move them.",
-    tags: ["mixing", "readable", "rails"],
+    tags: ["mixing", "readable", "still"],
     featured: false,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -205,7 +213,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     quiet:
       "Clockwise raises, counter-clockwise lowers. The middle of the pad stays quiet.",
-    tags: ["endless", "gestural", "precise"],
+    tags: ["modulation", "precise", "expressive"],
     featured: false,
     addedAt: "2026-09-02",
     restsBlack: false,
@@ -226,7 +234,7 @@ export const LISTING: readonly ListingEntry[] = [
     // exclusion reason, which has said the same thing since Phase 4.
     quiet:
       "Trackpad writes no lights at all: it is a pointer for your computer, and there is nothing here to light.",
-    tags: ["desktop", "pointer", "utility"],
+    tags: ["pointing", "precise", "still"],
     featured: false,
     addedAt: "2026-09-02",
     restsBlack: true,
@@ -238,7 +246,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Three Euclidean rings turn at their own speeds and beat against each other; tap a step to change the pattern.",
     motion: "animated",
-    tags: ["polyrhythm", "generative", "drums", "playable"],
+    tags: ["sequencing", "generative", "playable"],
     featured: true,
     addedAt: "2026-09-04",
     restsBlack: false,
@@ -250,7 +258,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit.",
     motion: "animated",
-    tags: ["chords", "harmonic", "blooming", "playable"],
+    tags: ["keys", "playable", "expressive"],
     featured: true,
     addedAt: "2026-09-04",
     restsBlack: false,
@@ -262,7 +270,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Draw a modulation shape with your finger; it keeps sending after you let go, and the swirl shows the rate.",
     motion: "animated",
-    tags: ["modulation", "hands-free", "hypnotic", "gestural"],
+    tags: ["modulation", "generative", "expressive"],
     featured: true,
     addedAt: "2026-09-04",
     restsBlack: false,
@@ -275,7 +283,7 @@ export const LISTING: readonly ListingEntry[] = [
       "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger’s.",
     motion: "dark",
     quiet: DEMO_TOUCH_NOTE,
-    tags: ["looper", "automation", "gestural", "generative"],
+    tags: ["modulation", "generative", "expressive"],
     featured: false,
     addedAt: "2026-09-04",
     restsBlack: true,
@@ -287,7 +295,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "The whole pad tuned in fourths, so every chord shape is the same shape in every key.",
     motion: "animated",
-    tags: ["isomorphic", "playable", "still", "instrument"],
+    tags: ["keys", "playable", "readable"],
     featured: true,
     addedAt: "2026-09-04",
     restsBlack: false,
@@ -300,7 +308,7 @@ export const LISTING: readonly ListingEntry[] = [
       "Four macros in the corners; slide between them and each corner’s brightness is its own weight.",
     motion: "dark",
     quiet: DEMO_TOUCH_NOTE,
-    tags: ["macros", "blend", "readable", "expressive"],
+    tags: ["modulation", "expressive", "still"],
     featured: true,
     addedAt: "2026-09-04",
     restsBlack: true,
@@ -312,7 +320,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "A sweep turns like radar and fires the cells you armed: the ring is the pitch, the angle the time.",
     motion: "animated",
-    tags: ["radial", "sequencer", "polar", "hypnotic"],
+    tags: ["sequencing", "generative", "playable"],
     featured: false,
     addedAt: "2026-09-04",
     restsBlack: false,
@@ -324,7 +332,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "A latching effect pad: lift your finger and the value stays where you left it, lit and breathing.",
     motion: "animated",
-    tags: ["latching", "hands-free", "expressive", "xy-control"],
+    tags: ["modulation", "expressive", "readable"],
     featured: true,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -336,7 +344,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Tap a cell to arm it and a bright column sweeps across, playing back the pattern you drew.",
     motion: "animated",
-    tags: ["sequencer", "playable", "drums", "grid"],
+    tags: ["sequencing", "generative", "playable"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -350,7 +358,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The nine zone outlines sit still until you hit one; every bloom is a hit you made.",
-    tags: ["drums", "playable", "expressive", "blooming"],
+    tags: ["drums", "playable", "expressive"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -364,7 +372,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The key sits on the pad whether or not anyone is playing it; the light is the map, not the motion.",
-    tags: ["harmonic", "in-key", "playable", "readable"],
+    tags: ["keys", "playable", "readable"],
     featured: true,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -378,7 +386,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The nine track blocks stay put until you fire a cell; every ring on this pad is one you started.",
-    tags: ["clips", "launcher", "rippling", "playable"],
+    tags: ["clips", "playable", "readable"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -392,7 +400,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The plot holds the shape you last landed on; move across the pad and it redraws.",
-    tags: ["wavetable", "sound-design", "xy-control", "gestural"],
+    tags: ["modulation", "expressive", "precise"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -406,7 +414,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The nine levels hold where you left them; this pad only moves when your hand does.",
-    tags: ["mixing", "rails", "readable", "latching"],
+    tags: ["mixing", "precise", "readable"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -420,7 +428,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The bar rests at the number you last sent; nothing here moves on its own.",
-    tags: ["precise", "readable", "modulation", "hands-free"],
+    tags: ["mixing", "precise", "still"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -434,7 +442,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The lit row or column is the legend, and it stays lit until you change the mode.",
-    tags: ["utility", "readable", "xy-control", "precise"],
+    tags: ["pointing", "precise", "readable"],
     featured: true,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -448,7 +456,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The whole field stays lit and still, so you read the colour instead of watching it.",
-    tags: ["colour", "lighting", "readable", "expressive"],
+    tags: ["show", "expressive", "readable"],
     featured: true,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -460,7 +468,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Nine scenes for your stream: the live one glows and the one you are lining up breathes.",
     motion: "animated",
-    tags: ["streaming", "hotkeys", "readable", "utility"],
+    tags: ["clips", "playable", "readable"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -472,7 +480,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Scrub video with your finger, and the arc grows and spins faster the harder you push it.",
     motion: "animated",
-    tags: ["video", "hotkeys", "gestural", "hypnotic"],
+    tags: ["modulation", "expressive", "generative"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -486,7 +494,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The five bands are a legend, not an animation; only the band you press flashes.",
-    tags: ["photo", "accessible", "utility", "precise"],
+    tags: ["shortcuts", "precise", "readable"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -500,7 +508,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The three colour bands sit still; the pad only changes when you hold the corner.",
-    tags: ["macros", "hotkeys", "utility", "readable"],
+    tags: ["shortcuts", "readable", "still"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -514,7 +522,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The nine marks are painted once and stay; the block you press is the only thing that moves.",
-    tags: ["hotkeys", "grid", "readable", "utility"],
+    tags: ["shortcuts", "readable", "still"],
     featured: true,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -526,7 +534,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Snake on eighty-one lights: steer with a finger, eat, grow, and hear a note for every bite.",
     motion: "animated",
-    tags: ["game", "playable", "generative", "grid"],
+    tags: ["play", "playable", "generative"],
     featured: true,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -542,7 +550,7 @@ export const LISTING: readonly ListingEntry[] = [
     // listing.spec.ts requires. ETCH is the third of them, after GHOST and
     // MORPH; tpad is the fourth resting-black entry and is NOT one of these.
     quiet: DEMO_TOUCH_NOTE,
-    tags: ["drawing", "playable", "gestural", "still"],
+    tags: ["play", "playable", "still"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: true,
@@ -554,7 +562,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Conway’s Life on the pad: tap to seed it, and the pattern plays itself out in light and notes.",
     motion: "animated",
-    tags: ["game", "generative", "hypnotic", "grid"],
+    tags: ["play", "generative", "playable"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -575,7 +583,7 @@ export const LISTING: readonly ListingEntry[] = [
     // took its place, and the rule reads the same about either of them.)
     quiet:
       "The four targets and the dark cross between them never move; that is what makes them findable.",
-    tags: ["accessible", "readable", "still", "utility"],
+    tags: ["pointing", "precise", "readable"],
     featured: true,
     addedAt: "2026-09-07",
     restsBlack: false,
@@ -588,7 +596,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "A twenty-five minute ring draining around the edge, so the time left is a thing in the room.",
     motion: "animated",
-    tags: ["ambient", "calm", "still", "utility"],
+    tags: ["show", "readable", "generative"],
     featured: false,
     addedAt: "2026-09-07",
     restsBlack: false,

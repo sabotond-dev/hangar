@@ -138,8 +138,9 @@ export const GRIDLOCK: CatalogEntry = {
   name: "GRIDLOCK",
   description:
     "Eighty-one clips under one hand, and a ring rolls out from the one you fired so you know it took.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["clips", "launcher", "rippling", "playable"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["clips", "playable", "readable"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

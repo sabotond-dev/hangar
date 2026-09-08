@@ -151,10 +151,12 @@ export const ETCH: CatalogEntry = {
   name: "ETCH",
   description:
     "Draw on the pad with a finger and it stays; sweep across it fast and the whole thing wipes.",
-  // Feel-based, never a compiler kind (CONT-03). "drawing" is coined here.
-  // "still" is already carried by LATTICE, and a second carrier is what the
-  // RECORDED block in filter.spec.ts exists to make visible.
-  tags: ["drawing", "playable", "gestural", "still"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "drawing" was coined here and named exactly one card, so it retires.
+  // "still" survives as a FEELS term with a declared meaning - nothing moves
+  // until you move it - which is precisely what this pad does between strokes.
+  tags: ["play", "playable", "still"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

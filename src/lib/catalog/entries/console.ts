@@ -136,10 +136,12 @@ export const CONSOLE: CatalogEntry = {
   name: "CONSOLE",
   description:
     "Nine strips with rails: slide anywhere in a column to set its level, tap the top cell to mute it.",
-  // Feel-based, never a compiler kind (CONT-03). "latching" arrived with HOLD
-  // as a singleton and becomes a standing chip here - two carriers is the
-  // threshold (filter.ts:121-125).
-  tags: ["mixing", "rails", "readable", "latching"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "latching" arrived with HOLD and became a standing chip here, on its
+  // second carrier. The re-cut retires the word and the threshold together: a
+  // chip is a facet member now, and what this pad is FOR is mixing.
+  tags: ["mixing", "precise", "readable"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

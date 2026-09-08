@@ -137,9 +137,12 @@ export const LUMEN: CatalogEntry = {
   name: "LUMEN",
   description:
     "A colour picker for a lighting desk: hue across, depth down, and the pad is the colour it sends.",
-  // Feel-based, never a compiler kind (CONT-03). "lighting" is coined here and
-  // is a singleton until a later wave gives it a second carrier.
-  tags: ["colour", "lighting", "readable", "expressive"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "lighting" was coined here and no later wave ever gave it a second
+  // carrier. It retires rather than waiting: this pad is FOR a show, and a
+  // term that waits for a carrier is a term the vocabulary did not need.
+  tags: ["show", "expressive", "readable"],
   featured: true,
   addedAt: "2026-09-07",
   source: SOURCE,

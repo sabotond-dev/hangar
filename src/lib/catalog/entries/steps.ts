@@ -119,10 +119,12 @@ export const STEPS: CatalogEntry = {
   name: "STEPS",
   description:
     "Tap a cell to arm it and a bright column sweeps across, playing back the pattern you drew.",
-  // Feel-based, never a compiler kind (CONT-03). "drums" is already carried by
-  // ninepads and euclid; a third carrier moves the standing chip row, which is
-  // exactly what 09-02's RECORDED block exists to make visible.
-  tags: ["sequencer", "playable", "drums", "grid"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "drums" moves OFF this entry. The re-cut gives it to the two pads that are
+  // drum pads and calls this one what it is, a sequencer. Moving the chip row
+  // by adding a third carrier is exactly the derivation the re-cut retires.
+  tags: ["sequencing", "generative", "playable"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

@@ -150,10 +150,13 @@ export const STAGE: CatalogEntry = {
   name: "STAGE",
   description:
     "Nine scenes for your stream: the live one glows and the one you are lining up breathes.",
-  // Feel-based, never a compiler kind (CONT-03). "streaming" and "hotkeys" are
-  // both coined here; "hotkeys" arrives on two entries in one wave, because
-  // SHUTTLE lands beside this one, so it is a standing chip immediately.
-  tags: ["streaming", "hotkeys", "readable", "utility"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "streaming" and "hotkeys" were both coined here and both retire. Nine
+  // scenes you fire and watch is what "clips" and "playable" mean, and it puts
+  // this card on the same shelf as GRIDLOCK, which is where a visitor looking
+  // for either would look.
+  tags: ["clips", "playable", "readable"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

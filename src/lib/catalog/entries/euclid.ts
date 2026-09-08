@@ -40,8 +40,9 @@ export const EUCLID: CatalogEntry = {
   name: "EUCLID",
   description:
     "Three Euclidean rings turn at their own speeds and beat against each other; tap a step to change the pattern.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["polyrhythm", "generative", "drums", "playable"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["sequencing", "generative", "playable"],
   featured: true,
   addedAt: "2026-09-04",
   source: SOURCE,

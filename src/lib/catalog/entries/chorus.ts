@@ -51,8 +51,9 @@ export const CHORUS: CatalogEntry = {
   name: "CHORUS",
   description:
     "Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["chords", "harmonic", "blooming", "playable"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["keys", "playable", "expressive"],
   featured: true,
   addedAt: "2026-09-04",
   source: SOURCE,

@@ -165,10 +165,12 @@ export const POMODORO: CatalogEntry = {
   name: "POMODORO",
   description:
     "A twenty-five minute ring draining around the edge, so the time left is a thing in the room.",
-  // Feel-based, never a compiler kind (CONT-03). All four are already carried:
-  // "ambient" and "calm" by starfield, "still" by LATTICE, ETCH and QUADRANT,
-  // "utility" by tpad and half a dozen others.
-  tags: ["ambient", "calm", "still", "utility"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "ambient", "calm" and "utility" all retire. A ring you can read from
+  // across the room that keeps draining on its own is three terms rather than
+  // four, and it says more.
+  tags: ["show", "readable", "generative"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

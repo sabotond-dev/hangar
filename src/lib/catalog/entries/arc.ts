@@ -59,8 +59,9 @@ export const ARC: CatalogEntry = {
   name: "ARC",
   description:
     "Draw a modulation shape with your finger; it keeps sending after you let go, and the swirl shows the rate.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["modulation", "hands-free", "hypnotic", "gestural"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["modulation", "generative", "expressive"],
   featured: true,
   addedAt: "2026-09-04",
   source: SOURCE,

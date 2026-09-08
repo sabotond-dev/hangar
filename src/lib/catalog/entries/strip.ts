@@ -133,10 +133,12 @@ export const STRIP: CatalogEntry = {
   name: "STRIP",
   description:
     "The whole pad is one long fader, with a fine row along the bottom for the last few numbers.",
-  // Feel-based, never a compiler kind (CONT-03). Every one is already carried:
-  // "precise" by dial, "readable" by faders and MORPH, "modulation" by ARC,
-  // "hands-free" by ARC and HOLD.
-  tags: ["precise", "readable", "modulation", "hands-free"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "hands-free" retires: its three carriers scattered across the new
+  // vocabulary, so it maps to nothing. "modulation" survives as a FOR term but
+  // moves off this entry - one long fader is a mixing control.
+  tags: ["mixing", "precise", "still"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

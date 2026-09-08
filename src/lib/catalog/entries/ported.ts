@@ -23,6 +23,13 @@ const PORTED_ADDED_AT = "2026-09-02";
 // compiler kind produced it. A look.kind or sends.kind string must never appear
 // here.
 //
+// D-10 re-cut all nine. Each row is EXACTLY THREE terms - one FOR then two
+// FEELS - drawn from the closed sixteen in src/lib/browse/facets.ts. The nine
+// used to carry three terms each while the twenty-seven hand-authored entries
+// carried four; that split is gone, and three is now the rule for every entry
+// in the catalog. Nothing here may coin a word: a preset that cannot be
+// described with the sixteen is evidence the vocabulary is wrong.
+//
 // restsBlack is a recorded fact, not a preference: frames.spec.ts test 5
 // asserts it in both directions against frames.json. tpad is the only ported
 // entry that rests black - it writes no LEDs at all, which
@@ -30,55 +37,55 @@ const PORTED_ADDED_AT = "2026-09-02";
 const PORTED_META = [
   {
     id: "aurora",
-    tags: ["ambient", "flowing", "colour"],
+    tags: ["show", "generative", "expressive"],
     featured: true,
     restsBlack: false,
   },
   {
     id: "pinwheel",
-    tags: ["rotating", "multi-touch", "colour"],
+    tags: ["show", "generative", "expressive"],
     featured: true,
     restsBlack: false,
   },
   {
     id: "starfield",
-    tags: ["ambient", "generative", "calm"],
+    tags: ["show", "generative", "readable"],
     featured: false,
     restsBlack: false,
   },
   {
     id: "radar",
-    tags: ["rippling", "xy-control", "hypnotic"],
+    tags: ["modulation", "generative", "expressive"],
     featured: false,
     restsBlack: false,
   },
   {
     id: "joystick",
-    tags: ["expressive", "pitch-bend", "sprung"],
+    tags: ["modulation", "expressive", "still"],
     featured: false,
     restsBlack: false,
   },
   {
     id: "ninepads",
-    tags: ["drums", "playable", "grid"],
+    tags: ["drums", "playable", "readable"],
     featured: true,
     restsBlack: false,
   },
   {
     id: "faders",
-    tags: ["mixing", "readable", "rails"],
+    tags: ["mixing", "readable", "still"],
     featured: false,
     restsBlack: false,
   },
   {
     id: "dial",
-    tags: ["endless", "gestural", "precise"],
+    tags: ["modulation", "precise", "expressive"],
     featured: false,
     restsBlack: false,
   },
   {
     id: "tpad",
-    tags: ["desktop", "pointer", "utility"],
+    tags: ["pointing", "precise", "still"],
     featured: false,
     restsBlack: true,
   },

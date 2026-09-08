@@ -113,10 +113,12 @@ export const LEARN: CatalogEntry = {
   name: "LEARN",
   description:
     "Mapping helper: it sends one axis at a time and lights the row or column it is sending on.",
-  // Feel-based, never a compiler kind (CONT-03). Every one is already carried:
-  // "utility" by tpad, "readable" by faders and MORPH, "xy-control" by joystick
-  // and HOLD, "precise" by dial.
-  tags: ["utility", "readable", "xy-control", "precise"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "utility" and "xy-control" retire. Eight entries carried "utility", which
+  // made it a wide chip that told a visitor nothing; a mapping helper is FOR
+  // pointing, and both of its feels are unchanged in meaning.
+  tags: ["pointing", "precise", "readable"],
   featured: true,
   addedAt: "2026-09-07",
   source: SOURCE,

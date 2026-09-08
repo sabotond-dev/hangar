@@ -191,10 +191,12 @@ export const SHUTTLE: CatalogEntry = {
   name: "SHUTTLE",
   description:
     "Scrub video with your finger, and the arc grows and spins faster the harder you push it.",
-  // Feel-based, never a compiler kind (CONT-03). "video" is coined here;
-  // "hotkeys" is coined by STAGE in the same wave and therefore stands as a
-  // chip immediately.
-  tags: ["video", "hotkeys", "gestural", "hypnotic"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "video" and "hotkeys" retire. "hotkeys" only ever stood as a chip because
+  // STAGE landed in the same wave - the accident of counting that the closed
+  // vocabulary removes. Scrubbing by pushing further is modulation.
+  tags: ["modulation", "expressive", "generative"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

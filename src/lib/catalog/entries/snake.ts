@@ -169,10 +169,12 @@ export const SNAKE: CatalogEntry = {
   name: "SNAKE",
   description:
     "Snake on eighty-one lights: steer with a finger, eat, grow, and hear a note for every bite.",
-  // Feel-based, never a compiler kind (CONT-03). "game" is coined here and
-  // takes a second carrier later in this same wave, which is what turns it
-  // into a standing chip.
-  tags: ["game", "playable", "generative", "grid"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "game" was coined here and needed LIFE, later in the same wave, to become
+  // a chip at all. It is now the FOR term "play", which is a member of a
+  // declared facet and needs nobody's second carrier.
+  tags: ["play", "playable", "generative"],
   featured: true,
   addedAt: "2026-09-07",
   source: SOURCE,

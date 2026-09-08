@@ -54,8 +54,9 @@ export const GHOST: CatalogEntry = {
   name: "GHOST",
   description:
     "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger’s.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["looper", "automation", "gestural", "generative"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["modulation", "generative", "expressive"],
   featured: false,
   addedAt: "2026-09-04",
   source: SOURCE,

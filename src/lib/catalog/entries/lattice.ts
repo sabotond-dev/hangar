@@ -59,8 +59,9 @@ export const LATTICE: CatalogEntry = {
   name: "LATTICE",
   description:
     "The whole pad tuned in fourths, so every chord shape is the same shape in every key.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["isomorphic", "playable", "still", "instrument"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["keys", "playable", "readable"],
   featured: true,
   addedAt: "2026-09-04",
   source: SOURCE,

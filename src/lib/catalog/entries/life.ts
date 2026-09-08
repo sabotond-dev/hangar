@@ -145,10 +145,13 @@ export const LIFE: CatalogEntry = {
   name: "LIFE",
   description:
     "Conway’s Life on the pad: tap to seed it, and the pattern plays itself out in light and notes.",
-  // Feel-based, never a compiler kind (CONT-03). "game" arrives with SNAKE
-  // earlier in this same wave and reaches its second carrier here, which is
-  // what turns it into a standing chip.
-  tags: ["game", "generative", "hypnotic", "grid"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "game" arrived with SNAKE and reached its second carrier here, which is
+  // what turned it into a standing chip. The re-cut promotes it instead:
+  // "play" is a FOR term carried by three entries and it does not depend on a
+  // count.
+  tags: ["play", "generative", "playable"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

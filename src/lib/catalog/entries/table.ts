@@ -141,8 +141,9 @@ export const TABLE: CatalogEntry = {
   name: "TABLE",
   description:
     "Slide across to change the wave and down to filter it, and the grid draws the shape you land on.",
-  // Feel-based, never a compiler kind (CONT-03).
-  tags: ["wavetable", "sound-design", "xy-control", "gestural"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  tags: ["modulation", "expressive", "precise"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

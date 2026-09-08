@@ -203,8 +203,12 @@ export const FORGE: CatalogEntry = {
   name: "FORGE",
   description:
     "Editor and terminal macros in colour families, with a second bank under a held corner.",
-  // Feel-based, never a compiler kind (CONT-03). All four are already carried.
-  tags: ["macros", "hotkeys", "utility", "readable"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "macros" and "hotkeys" retire. What this pad is FOR is shortcuts, and
+  // twenty-seven targets that sit perfectly still until a finger arrives is
+  // the rest of it.
+  tags: ["shortcuts", "readable", "still"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

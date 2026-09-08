@@ -156,10 +156,14 @@ export const CULL: CatalogEntry = {
   name: "CULL",
   description:
     "Rate a photo without leaving the keyboard: each rating has its own colour and its own shape.",
-  // Feel-based, never a compiler kind (CONT-03). "photo" and "accessible" are
-  // both coined here. "accessible" is a singleton until QUADRANT takes it in
-  // wave 9, when it becomes a standing chip; that is deliberate.
-  tags: ["photo", "accessible", "utility", "precise"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "photo" and "accessible" were both coined here, and "accessible" was a
+  // singleton until QUADRANT took it in wave 9. Both retire. "photo" named one
+  // card, which is a thing the search field does better; the claim behind
+  // "accessible" survives as "readable", which is what five ratings you can
+  // tell apart without colour actually are.
+  tags: ["shortcuts", "precise", "readable"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

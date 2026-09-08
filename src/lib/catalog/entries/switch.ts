@@ -155,8 +155,11 @@ export const SWITCH: CatalogEntry = {
   name: "SWITCH",
   description:
     "Nine apps in nine blocks, each with its own mark, so you find one without reading anything.",
-  // Feel-based, never a compiler kind (CONT-03). All four are already carried.
-  tags: ["hotkeys", "grid", "readable", "utility"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "hotkeys", "grid" and "utility" all retire. Nine app blocks you find
+  // without reading anything is shortcuts, readable and perfectly still.
+  tags: ["shortcuts", "readable", "still"],
   featured: true,
   addedAt: "2026-09-07",
   source: SOURCE,

@@ -140,10 +140,13 @@ export const QUADRANT: CatalogEntry = {
   name: "QUADRANT",
   description:
     "Four targets big enough to hit without looking, each with its own colour and its own fill.",
-  // Feel-based, never a compiler kind (CONT-03). "accessible" arrived with CULL
-  // in wave 7 as a singleton and takes its second carrier here, which is what
-  // makes it a standing chip.
-  tags: ["accessible", "readable", "still", "utility"],
+  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
+  // "accessible" arrived with CULL in wave 7 and took its second carrier here,
+  // which is what made it a standing chip. The re-cut retires the word and
+  // keeps the claim: four targets big enough to hit without looking is
+  // "precise", and telling them apart across a room is "readable".
+  tags: ["pointing", "precise", "readable"],
   featured: true,
   addedAt: "2026-09-07",
   source: SOURCE,
