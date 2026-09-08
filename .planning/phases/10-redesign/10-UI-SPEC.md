@@ -163,7 +163,7 @@ later reader does not resolve it the other way.
 ## 3. The amendment register
 
 Every retirement in this document, in one table, so the planner can turn it into tasks and the
-checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts** — and, after approval, **seventeen
+checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts** — and, after approval, **eighteen
 amendments in §3.4** (A-37 to A-53, 2026-09-08, D-15 to D-21), which add no eleventh retirement,
 no tenth gate amendment and no fifth data re-cut. Nothing
 is deleted; everything is rewritten by name.
@@ -213,7 +213,7 @@ is deleted; everything is rewritten by name.
 | D-c | `restsBlack` | **Kept as a recorded fact** (it is what selects a demo path, and its two-directional assertion against `frames.json` is the site's proof that no card is accidentally black) and **retired as a rendering input** |
 | D-d | `static/og/` | Four OG images regenerate from the end of their demo path rather than from a black rest frame. ETCH's 4,192-byte black square is the marker that this landed |
 
-### 3.4 Post-approval amendments (seventeen, all dated 2026-09-08)
+### 3.4 Post-approval amendments (eighteen: seventeen dated 2026-09-08, one 2026-09-09)
 
 Added after approval, from D-15 through D-21. Each is stated in full in **§19.1** (A-37 to A-42) or
 **§19.2** (A-43 to A-53), and each carries an A-number in §19's register, so the two tables cannot
@@ -240,6 +240,7 @@ when D-18 and the `--font-mono` finding landed, which made that last sentence fa
 | A-51 | **No runbook row H.** The hardware check folds into **row C**; the section still says seven rows | §10.6's runbook row | 19.2, 10.6 |
 | A-52 | **`CLEAR_CAP` stays 86 and the cell stays 48px**, and the second line is declared **headroom rather than occupancy** | §12.2's CLEAR reservation derivation | 19.2, 12.2 |
 | A-53 | **Two corrections unrelated to the fold**: §10.7 said the class enumeration "gains CLEAR's class" where §3.2's G-06 says it is a no-op — **G-06 was right**; and `write-guard.ts` is in `src/lib/protocol/`, not `src/lib/device/` | §10.7's `install.spec.ts` row and its `write-guard.ts` path | 19.2, 10.7 |
+| A-54 | **The canonicity gate is `constants.spec.ts`, not `protocol-pin.spec.ts`** | §10.5's gate sentence | 19.2, 10.5 |
 
 **No copy retirement, no gate retirement and no data re-cut is added by these six.** §3.1 stays at ten
 retirements in a register of eleven rows, §3.2 stays at nine gate amendments, §3.3 stays at four data
@@ -1236,8 +1237,8 @@ walking `grid.get_element_events(type)` and taking each event's **`defaultConfig
 | **6, Timer** | **22** | **22** | inside | `--[[@cb]]print("tick")`. The default Setup starts no timer, so on a module that was not already running one it never fires |
 
 **Both are canonical — raw and compressed are equal — so nothing has to be fitted**, and that
-equality is a gate rather than a note: `protocol-pin.spec.ts` asserts it, because a firmware-tracking
-datestamp bump is precisely what would move it.
+equality is a gate rather than a note: **`constants.spec.ts` asserts it** (A-54), because a
+firmware-tracking datestamp bump is precisely what would move it.
 
 **Where the payload lives, and this is load-bearing.** `install-copy.ts` **imports nothing** and is on
 the first paint of `/`; the pinned package is a **131,101-byte chunk** that `config-shape.spec.ts`
@@ -2160,6 +2161,7 @@ how that promise starts holding again; their content is unchanged.
 | A-51 | **No runbook row H.** The hardware check folds into **row C** (`PUT BACK`, SAFE-03): clear, watch the pad take up the firmware default, then `PUT BACK` and watch it come back. The section still says **seven rows** | Row C's subject is already "the pad comes back to what it was, by eye". A clear before the `PUT BACK` makes the same row a stronger test of the same claim at no extra rows and no extra half hour — and D-19 named a dedicated row as one of the three things the ceremony was buying that the button does not need |
 | A-52 | **`CLEAR_CAP` stays 86 (2 × 43) and the `CLEAR` cell stays 48px, even though the longest string it holds is now 43** — and the second line is declared **headroom rather than occupancy**, which is a departure from §12's formula and is stated as one | §12's rule is `ceil(longest / CH_PER_LINE) × 24`, and after A-49 the longest candidate is the no-snapshot reason at exactly 43. One line would put a shipped string *exactly* on a 43-character cap — the zero-headroom defect 10-01 flagged against the old `CLEAR_LINE` at 86, reintroduced at a different number. Two lines is the smallest reservation that leaves the cap a promise about strings not yet written, which is the entire reason the caps exist. It also leaves `install-copy.ts`'s shipped header arithmetic (`CLEAR_CAP (2 x 43 = 86)`) correct rather than needing an edit |
 | A-53 | **Two corrections unrelated to the CLEAR fold, found while making it.** (a) §10.7's `install.spec.ts` row said the class enumeration "gains CLEAR's class"; §3.2's G-06 row said the opposite — "a no-op on the assertion, and that is the finding". **G-06 was right** and §10.7 is corrected to match. (b) The `write-guard.ts:24-58` reference carries no directory, and both plans read it as `src/lib/device/`; **the file is `src/lib/protocol/write-guard.ts`**, re-exported from that barrel, and its `canWriteBack` verdict reaches CLEAR as `capability.canWrite` rather than as a call CLEAR makes | Two sections of an approved contract disagreeing about whether a gate changes is the kind of defect that gets resolved at execution time by whichever one the executor read first. And a plan that names a path that does not exist fails on contact — 10-12 task 6 was written against `src/lib/device/write-guard.ts` |
+| A-54 | **The gate that asserts the two defaults are canonical lives in `constants.spec.ts`, not `protocol-pin.spec.ts`.** §10.5 named `protocol-pin.spec.ts` and 10-12's plan forbade touching that file, directing the two tests to `constants.spec.ts` instead; the executor followed the plan and reported the spec sentence as inaccurate rather than editing a file it was told to leave alone. The plan was right on the substance — `protocol-pin.spec.ts` pins the package's identity, and what is asserted here is a property of two strings inside it — so the spec moves to the tree rather than the tree to the spec. The assertion itself is unchanged: raw equals compressed for event 0 at 641 and event 6 at 22, and a datestamp bump that moves either turns it red | Found at execution on 2026-09-09, not at planning. §10.5's sentence was written before the plan chose the file, and nothing reconciled the two — the same class as A-53(a), where two sections of an approved contract disagreed and execution order would have decided it |
 
 ---
 
