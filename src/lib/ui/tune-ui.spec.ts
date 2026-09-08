@@ -915,9 +915,24 @@ describe("the tuning UI's structural rules", () => {
     // ---- SECONDARY TIER, PILL OUTLINE, AND A-41's LIMIT (§10.3, §19.1b).
     // Bordered, never filled: a filled pill is Primary's, and there is one
     // Primary control per panel and it is TRY ON DEVICE.
+    //
+    // THE FOUR SHAPE DECLARATIONS MOVED TO src/app.css IN 10-13.1 AND THIS
+    // ASSERTION MOVED WITH THEM, WHICH IS THE POINT RATHER THAN A CONCESSION.
+    // This file authored the pill first, in 10-11, and by wave 14 eleven
+    // controls across nine files wanted the same three declarations - eleven
+    // places for one shape to drift. So the shape is now one rule, `.pill`,
+    // read HERE out of src/app.css and asserted to be exactly what §19.1b
+    // specifies, and MIX TWO is asserted to WEAR it. A component that keeps the
+    // class and loses the rule, or keeps the rule and loses the class, is red
+    // on one of the two halves below.
     const rules = rulesOf(mix);
-    const pill = rules.find((rule) => rule.selector.trim() === ".mix-two");
-    expect(pill, "MixTwo.svelte no longer has a .mix-two rule").toBeDefined();
+    const shared = rulesOf(
+      "<style>" + stripComments(raw("src/app.css")) + "</style>",
+    ).find((rule) => rule.selector.trim() === ".pill");
+    expect(
+      shared,
+      "src/app.css no longer declares a .pill rule - §19.1b's shape is the one place the site says what a control looks like",
+    ).toBeDefined();
     for (const declaration of [
       "border-radius: 999px",
       "border: 1px solid var(--color-line)",
@@ -927,20 +942,45 @@ describe("the tuning UI's structural rules", () => {
       "min-block-size: 44px",
     ]) {
       expect(
-        pill?.body,
-        `MIX TWO does not declare "${declaration}" - §19.1b's pill is a fully-rounded 1px outline with a transparent fill and 24px of inline padding, and §10.3 puts MIX TWO in Secondary`,
+        shared?.body,
+        `src/app.css's .pill does not declare "${declaration}" - §19.1b's pill is a fully-rounded 1px outline with a transparent fill and 24px of inline padding, and §10.3 puts MIX TWO in Secondary`,
       ).toContain(declaration);
+    }
+    expect(
+      buttonClassesOf(mix).includes("pill"),
+      "MIX TWO does not carry the pill class, so §19.1b's Secondary shape reaches it through nothing - the rule in src/app.css is applied BY CLASS and a control that does not name it is unshaped",
+    ).toBe(true);
+    const mixTwoRule = rules.find(
+      (rule) => rule.selector.trim() === ".mix-two",
+    );
+    expect(
+      mixTwoRule,
+      "MixTwo.svelte no longer has a .mix-two rule",
+    ).toBeDefined();
+    // The floor stays THIS CONTROL'S, declared here rather than inherited from
+    // the shape: it is Phase 4's per-control touch contract, and it would still
+    // have to hold if the pill were taken away.
+    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+      expect(
+        mixTwoRule?.body,
+        `MIX TWO does not declare ${axis} on its own rule - the pill guarantees it too, but Phase 4's floor is per control and survives the shape`,
+      ).toContain(axis);
     }
     // A-41's LIMIT, ASSERTED BY ABSENCE. The pill reaches Primary and
     // Secondary and nothing else; pilling a Quiet control flattens it into
     // Secondary, which is the SAFE-02 regression the tier ladder exists to
-    // prevent. Nothing else in this file is rounded to 999px.
+    // prevent. Nothing in this file is rounded to 999px any more, and no second
+    // control in it wears the class.
     expect(
       rules
         .filter((rule) => rule.body.includes("border-radius: 999px"))
         .map((rule) => rule.selector.trim()),
-      "something other than the Secondary control is pilled in MixTwo.svelte - A-41 puts the pill on Primary and Secondary only",
-    ).toEqual([".mix-two"]);
+      "MixTwo.svelte re-declares the pill radius locally - §19.1b's shape is one rule in src/app.css and a second copy is the drift the move exists to stop",
+    ).toEqual([]);
+    expect(
+      buttonClassesOf(mix).filter((cls) => cls === "pill").length,
+      "more than one button in MixTwo.svelte wears the pill - A-41 puts it on Primary and Secondary only, and the four MIX TWO results are neither",
+    ).toBe(1);
 
     // Both 44px axes on a result, named separately: the file-level
     // includes("44px") walk in the test above passes on the pill alone.

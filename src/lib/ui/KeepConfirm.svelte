@@ -152,7 +152,7 @@
   {/if}
   <div class="actions">
     <button
-      class="secondary"
+      class="secondary pill"
       type="button"
       data-testid="keep-confirm-yes"
       onclick={keep}
@@ -239,7 +239,10 @@
   }
 
   /*
-    The affirmative: secondary tier, bordered, never filled. Auto width, the
+    The affirmative: secondary tier, bordered, never filled - and all three of
+    those are src/app.css's .pill since A-41, applied by the class on the button
+    rather than restated here. The 44px floor stays: it is this control's, not
+    the shape's. Auto width, the
     44px floor on both axes, Micro label at full ink. The hover colour is the
     one transition.
   */
@@ -250,10 +253,6 @@
     inline-size: fit-content;
     min-block-size: 44px;
     min-inline-size: 44px;
-    padding-inline: 16px;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    background: transparent;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;

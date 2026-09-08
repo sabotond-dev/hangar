@@ -97,7 +97,7 @@
       <p class="line">{over.line}</p>
       {#if over.backOff}
         <button
-          class="back-off"
+          class="back-off pill"
           type="button"
           data-testid="turn-it-down"
           onclick={over.apply}
@@ -157,16 +157,16 @@
     Phase 4's secondary treatment at 44px, and it is deliberately NOT red: the
     token is scoped to the meter and to the rule beside this block, and a red
     button would read as "dangerous" where the truth is "not yet".
+
+    THE SHAPE IS src/app.css's .pill (A-41), applied by the class on the button.
+    It brings the INLINE 44px floor this rule never declared - TURN IT DOWN is
+    eleven characters at 12px, so the block floor alone was the only one it had.
   */
   .back-off {
     appearance: none;
     inline-size: fit-content;
     min-block-size: 44px;
     margin-block-start: 8px;
-    padding-inline: 16px;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    background: transparent;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;

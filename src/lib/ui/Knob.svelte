@@ -377,6 +377,7 @@
       {#each view.values as value, at (at)}
         <label
           class="option"
+          class:pill={view.widget !== "swatch"}
           class:selected={at === view.index}
           onpointerenter={(event) => forecastEnter(event, at)}
           onpointerleave={forecastOff}
@@ -731,20 +732,33 @@
     min-block-size: 44px;
   }
 
+  /*
+    THE PILL IS ON THE WORD ROW AND NOT ON THE SWATCH ROW (10-UI-SPEC 19.1b,
+    D-15 reference C). src/app.css's .pill carries the border, the radius, the
+    fill and the 24px inline padding, applied by the class:pill directive in the
+    markup above, which is conditional for a reason: a swatch option is a colour
+    under glass rather than a word, it has carried zero inline padding since
+    Phase 5 so the swatch fills the box, and putting a 1px --color-line outline
+    around a colour sample would put a second edge on a thing whose whole job is
+    to show one. The word row's own 6px radius goes with the change; the swatch
+    row keeps it below.
+
+    The 44px floor stays on both axes here, for both widgets, because it is the
+    control's rather than the shape's.
+  */
   .option {
     position: relative;
     display: grid;
     place-items: center;
     min-inline-size: 44px;
     min-block-size: 44px;
-    padding-inline: 12px;
-    border-radius: 6px;
     cursor: pointer;
     transition: color 140ms ease-out;
   }
 
   .options.swatches .option {
     padding-inline: 0;
+    border-radius: 6px;
   }
 
   /*
@@ -755,7 +769,6 @@
   .option:has(:focus-visible) {
     outline: 2px solid var(--color-accent);
     outline-offset: 4px;
-    border-radius: 6px;
   }
 
   /* Micro (title). Selected in accent; everything else quiet. */

@@ -360,7 +360,7 @@
       aria-labelledby={SORT_CAPTION_ID}
     >
       {#each BROWSE_SORTS as option (option)}
-        <label class="option" class:selected={option === sort}>
+        <label class="option pill" class:selected={option === sort}>
           <input
             class="sr-only"
             type="radio"
@@ -401,7 +401,7 @@
   {#if filtering}
     <div class="band clear-band">
       <button
-        class="clear-filters"
+        class="clear-filters pill"
         type="button"
         data-testid="browse-clear-filters"
         onclick={clearFilters}
@@ -534,14 +534,18 @@
     min-block-size: 44px;
   }
 
+  /*
+    SORT's word row takes the pill (10-UI-SPEC 19.1b): src/app.css carries the
+    border, the radius, the fill and the 24px inline padding, and the class on
+    the label above applies them. The 44px floor stays here, on both axes,
+    because it is this control's own.
+  */
   .option {
     position: relative;
     display: grid;
     place-items: center;
     min-inline-size: 44px;
     min-block-size: 44px;
-    padding-inline: 12px;
-    border-radius: 6px;
     cursor: pointer;
   }
 
@@ -552,7 +556,6 @@
   .option:has(:focus-visible) {
     outline: 2px solid var(--color-accent);
     outline-offset: 4px;
-    border-radius: 6px;
   }
 
   /* Micro: the selected option is accent under reserved-list entry 8. */
@@ -588,15 +591,24 @@
     align-items: center;
   }
 
-  /* Phase 4's secondary button: a bordered box, Micro label, accent on hover. */
+  /*
+    Phase 4's secondary button: a bordered box, Micro label, accent on hover -
+    and a bordered box is what the Secondary tier IS, so A-41's pill applies
+    here as surely as it does to PUT BACK or MIX TWO. 10-UI-SPEC 10.3's
+    Secondary row is the DEVICE panel's five controls by name and does not
+    reach a browse control, so this one is named in instrument.spec.ts scan 2's
+    own Secondary list with that reason: the amendment binds the TIER, and this
+    file's own comment has called this control Secondary since Phase 5. Leaving
+    it a 6px box directly under two rows of pills would have been the drift the
+    shared rule exists to stop, on the one surface this wave repaints.
+
+    The 44px INLINE floor arrives with the pill; this rule only ever had the
+    block one.
+  */
   .clear-filters {
     display: grid;
     place-items: center;
     min-block-size: 44px;
-    padding-inline: 16px;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    background: transparent;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;

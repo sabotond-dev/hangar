@@ -60,7 +60,7 @@
   } = $props();
 </script>
 
-<label class="chip" class:active class:disabled data-testid="tag-{tag}">
+<label class="chip pill" class:active class:disabled data-testid="tag-{tag}">
   <input
     class="sr-only"
     type="checkbox"
@@ -73,9 +73,17 @@
 
 <style>
   /*
-    The 44px floor is the interactive box, Phase 4 exception 1, and the 12px is
-    Phase 5 exception 3 - the horizontal internal metric of one control. No
-    vertical measurement in this file is 12px.
+    The 44px floor is the interactive box, Phase 4 exception 1, and it stays
+    here on both axes because it is this control's rather than its shape's -
+    browse-ui.spec.ts's both-axes walk reads it off this rule by selector.
+
+    THE SHAPE IS src/app.css's .pill NOW (10-UI-SPEC 19.1b, D-15 reference C),
+    applied by the class on the label above: the border, the radius, the fill
+    and 24px of inline padding, which replaces Phase 5 exception 3's 12px. The
+    two states below are UNCHANGED and deliberately so - the active chip's tint
+    is reserved-list entry 8 and the disabled chip's softened border is its
+    second channel, and both outrank the shared rule on specificity without
+    restating any of it.
   */
   .chip {
     position: relative;
@@ -83,10 +91,6 @@
     place-items: center;
     min-inline-size: 44px;
     min-block-size: 44px;
-    padding-inline: 12px;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    background: transparent;
     cursor: pointer;
     transition:
       color 140ms ease-out,
@@ -102,7 +106,6 @@
   .chip:has(:focus-visible) {
     outline: 2px solid var(--color-accent);
     outline-offset: 4px;
-    border-radius: 6px;
   }
 
   /* Micro (title): 12px / 600 / 1.2 / 0.01em, sentence case, verbatim. */

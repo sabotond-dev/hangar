@@ -336,7 +336,7 @@
 
 <div class="try-on" data-entry={entry.id}>
   <button
-    class="primary"
+    class="primary pill"
     type="button"
     data-testid="try-on-device"
     {disabled}
@@ -449,7 +449,18 @@
 </div>
 
 <style>
-  /* Micro role on an accent fill: 12px / 600 / 0.18em / uppercase, on black. */
+  /*
+    Micro role on an accent fill: 12px / 600 / 0.18em / uppercase, on black.
+
+    PRIMARY TAKES THE PILL'S RADIUS AND NOT ITS PAINT (10-UI-SPEC 19.1b, A-41).
+    The class on the button applies the shape; the two declarations below
+    OVERRIDE the pill's outline and its transparent fill, because this is the
+    one control on a panel that owns a fill and A-41's ruling is that Primary
+    keeps it. A Svelte-scoped class outranks the global one, so the override is
+    a property of specificity rather than of source order - which is the failure
+    mode 10-10 hit when a rule placed beside the element it described lost to a
+    competing declaration further down its file.
+  */
   .primary {
     appearance: none;
     display: flex;
@@ -458,9 +469,7 @@
     gap: 8px;
     inline-size: 100%;
     min-block-size: 44px;
-    padding-inline: 16px;
     border: 1px solid transparent;
-    border-radius: 6px;
     background: var(--color-accent);
     font-family: inherit;
     font-size: 12px;

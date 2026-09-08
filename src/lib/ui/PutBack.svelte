@@ -102,7 +102,7 @@
 {#if state !== "absent"}
   <div class="put-back">
     <button
-      class="control"
+      class="control pill"
       type="button"
       data-testid="put-back"
       {disabled}
@@ -164,6 +164,14 @@
     Secondary tier (07-UI-SPEC, The control hierarchy): auto width, the 44px
     floor on both axes, a hairline border, Micro label at full ink. Never a
     fill - the accent is the primary's alone.
+
+    THE BORDER, THE RADIUS AND THE FILL ARE src/app.css's .pill NOW (10-UI-SPEC
+    19.1b, A-41), applied by the class on the button above rather than restated
+    here: eleven controls each authoring the same three declarations is eleven
+    places for one shape to drift. THE 44px FLOOR STAYS, on both axes, because
+    Phase 4's touch floor is a property of THIS CONTROL rather than of the shape
+    it wears - device-ui.spec.ts's install-leaf walk reads it off this rule, and
+    it would still have to be true if the pill were taken away tomorrow.
   */
   .control {
     appearance: none;
@@ -172,10 +180,6 @@
     inline-size: fit-content;
     min-block-size: 44px;
     min-inline-size: 44px;
-    padding-inline: 16px;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    background: transparent;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;

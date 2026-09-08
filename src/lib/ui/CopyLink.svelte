@@ -136,7 +136,7 @@
 
 <div class="share">
   <button
-    class="control"
+    class="control pill"
     class:confirmed
     type="button"
     data-testid="copy-link"
@@ -183,7 +183,10 @@
   }
 
   /*
-    Phase 4's secondary treatment: Micro label, hairline border, no fill. It is
+    Phase 4's secondary treatment: Micro label, hairline border, no fill - and
+    the last three of those are src/app.css's .pill since A-41, applied by the
+    class on the button. The 44px floor stays here, because it belongs to this
+    control rather than to the shape it wears. It is
     ENABLED, and its label is --color-ink rather than the dim rung KEEP ON
     DEVICE beside it wears - which is the whole of how a visitor tells the
     enabled control from the disabled one without reading either.
@@ -192,10 +195,6 @@
     appearance: none;
     inline-size: fit-content;
     min-block-size: 44px;
-    padding-inline: 16px;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    background: transparent;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;

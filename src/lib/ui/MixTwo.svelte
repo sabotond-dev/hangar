@@ -248,7 +248,7 @@
 <section class="mix" data-testid="mix-two">
   <div class="head">
     <button
-      class="mix-two"
+      class="mix-two pill"
       type="button"
       id={mixId}
       data-testid="mix-roll"
@@ -339,14 +339,17 @@
     at the 44px block floor the radius resolves to 22px per end, so 24px clears
     the curve by 2px. Bordered, NEVER filled: a filled pill here is Primary's,
     and there is one Primary control per panel and it is TRY ON DEVICE.
+
+    10-13.1 MOVED THOSE FOUR DECLARATIONS TO src/app.css's .pill AND LEFT THE
+    ARGUMENT HERE. This file authored the shape first, in 10-11, and by the time
+    ten more controls wanted it there were eleven copies of it across nine
+    files. The class on the button above is what applies it now; what stays in
+    this rule is the 44px floor, which is this control's own and is read off
+    this rule by tune-ui.spec.ts.
   */
   .mix-two {
     min-inline-size: 44px;
     min-block-size: 44px;
-    padding-inline: 24px;
-    border: 1px solid var(--color-line);
-    border-radius: 999px;
-    background: transparent;
     color: var(--color-ink);
     font-size: 12px;
     font-weight: 600;

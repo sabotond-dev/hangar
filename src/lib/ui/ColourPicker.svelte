@@ -273,7 +273,7 @@
         aria-label={COLOUR_WHICH}
       >
         {#each knobs as knob (knob.id)}
-          <label class="option" class:selected={knob.id === selected.id}>
+          <label class="option pill" class:selected={knob.id === selected.id}>
             <input
               class="sr-only"
               type="radio"
@@ -538,6 +538,14 @@
 
     BOTH 44px AXES. A three-character knob label at 12px is about 30px wide, so
     the inline floor is load-bearing here rather than free.
+
+    10-13.1 MOVED THE SHAPE TO src/app.css's .pill AND WIDENED THE PADDING FROM
+    12px TO 24px. This file authored the pill first, in 10-10, at Phase 5's 12px
+    word-row padding - and 12px is not enough: at the 44px block floor the 999px
+    radius resolves to a 22px cap at each end, so a label 12px from the edge sits
+    ON the curve. 19.1b's 24px is what clears it, and it is one value in one
+    file now rather than eleven copies in nine. The floor stays here because
+    tune-ui.spec.ts reads it off this rule, per control.
   */
   .option {
     position: relative;
@@ -545,10 +553,6 @@
     place-items: center;
     min-inline-size: 44px;
     min-block-size: 44px;
-    padding-inline: 12px;
-    border: 1px solid var(--color-line);
-    border-radius: 999px;
-    background: transparent;
     cursor: pointer;
     transition:
       background-color 140ms ease-out,

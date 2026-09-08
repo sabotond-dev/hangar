@@ -239,12 +239,23 @@ describe("the browse screen's structural rules", () => {
     for (const file of NARROW) {
       const source = code(file);
       const rules = rulesOf(source);
-      // `sr-only` is excluded, and it is the one exclusion: it is the
+      // `sr-only` is excluded, and it was the one exclusion: it is the
       // visually-hidden class, the deliberate OPPOSITE of a box. TagChip and
       // the sort row both hide the real control and draw the 44px box and
       // Phase 4's focus ring on the <label> around it - the relocation
       // Knob.svelte makes - so demanding a floor on the hidden element would
       // demand the one thing that would undo the relocation.
+      //
+      // `pill` JOINS IT IN 10-13.1 AND FOR A DIFFERENT REASON. It is
+      // 10-UI-SPEC 19.1b's shared control shape, declared once in src/app.css
+      // rather than in any component, so a walk over a component's own rules
+      // cannot find a floor for it and demanding one would demand something
+      // that cannot be true. The load-bearing half is untouched: the control's
+      // OWN class - `.chip`, `.link` - still has to declare both axes here, so
+      // deleting the pill tomorrow leaves every chip reachable by thumb.
+      // src/lib/ui/instrument.spec.ts scan 2 holds the pill's own floor, as an
+      // EFFECTIVE value over a directory-derived walk.
+      const NOT_A_BOX = ["sr-only", "pill"];
       const classes = new Set(
         [...source.matchAll(/<(a|button|input|label)[^>]*/g)]
           .flatMap((tag) =>
@@ -252,7 +263,7 @@ describe("the browse screen's structural rules", () => {
               attr[1].split(/[ ]+/).filter((word) => word.length > 0),
             ),
           )
-          .filter((cls) => cls !== "sr-only"),
+          .filter((cls) => !NOT_A_BOX.includes(cls)),
       );
       for (const cls of classes) {
         const body = rules

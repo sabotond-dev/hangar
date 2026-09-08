@@ -291,3 +291,55 @@ html[data-screen="flat"] body::before {
   outline-offset: 4px;
   border-radius: inherit;
 }
+
+/*
+  THE PILL - the instrument register's one control shape (10-UI-SPEC 19.1b,
+  A-41, D-15 reference C).
+
+  ONE RULE, APPLIED BY CLASS, AND THE REASON IS AN ARITHMETIC ONE. Eleven
+  controls across nine files were each authoring the same three declarations -
+  a border, a radius and a fill - which is eleven places for one shape to
+  drift, and the drift is invisible until two of them sit side by side. It is
+  the argument 10-UI-SPEC 8.7 scan 7 already makes about five literals in two
+  files, applied to a shape rather than to a geometry.
+
+  WHY THIS FILE AND NOT A COMPONENT. Every colour here is a var(), and
+  src/lib/ui/identity.spec.ts reads THIS FILE AND NOTHING ELSE - so a border
+  colour written into a component <style> would be invisible to every colour
+  gate the site has. That is 10-UI-SPEC 7.1's placement rule and it is the same
+  reason --crt-scanline lives above rather than in PadFrame.svelte.
+
+  THE 24px CLEARS THE CURVE, AND THE ARITHMETIC IS WRITTEN DOWN SO A LATER
+  READER DOES NOT SIMPLIFY IT. `border-radius: 999px` is degenerate: it
+  resolves to HALF THE BLOCK SIZE, so at the 44px block floor each end of the
+  pill is a 22px circular cap. A label sitting 16px from the edge - the value
+  every one of these controls carried before - would sit ON that curve rather
+  than beside it. 24px puts the first glyph 2px past the widest point of the
+  cap, which is the smallest inline padding that keeps a one-character label on
+  the flat. It is the `lg` spacing token, so no new spacing value is spent.
+
+  THE FLOOR IS DECLARED HERE AND STILL DECLARED PER CONTROL, AND THAT
+  DUPLICATION IS DELIBERATE. Phase 4's touch floor is a property of a control
+  rather than of a shape: four separate walks (device-ui.spec.ts twice,
+  browse-ui.spec.ts, tune-ui.spec.ts) read it off the control's OWN rule, and a
+  control that loses its floor is an accessibility defect rather than a shape
+  drift. So the pill guarantees it for anything wearing the shape, and each
+  control still declares it for itself - which is what makes
+  instrument.spec.ts's walk able to compute an EFFECTIVE floor rather than a
+  declared one.
+
+  WHICH TIERS TAKE IT (10-UI-SPEC 10.3, three tiers since A-46): Primary takes
+  the radius on its existing accent fill, Secondary and the word rows take the
+  outline, and QUIET TAKES NOTHING. Pilling Quiet would give KEEP ON DEVICE and
+  CLEAR a border and flatten two controls into Secondary, which is the exact
+  SAFE-02 regression the ladder exists to prevent. src/lib/ui/instrument.spec.ts
+  scan 2 holds both halves.
+*/
+.pill {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding-inline: 24px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: transparent;
+}

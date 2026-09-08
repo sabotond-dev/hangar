@@ -159,12 +159,29 @@ function rulesOf(source: string): { selector: string; body: string }[] {
   return out;
 }
 
-/** Every class named on an interactive element in a component's markup. */
+/**
+ * Every class named on an interactive element in a component's markup, minus
+ * the shared shapes src/app.css owns.
+ *
+ * THE EXCLUSION IS NOT A LOOPHOLE AND IT IS NAMED HERE ONCE. `pill` is
+ * 10-UI-SPEC 19.1b's control shape and it is declared in src/app.css, not in
+ * any component, so demanding that a component declare a 44px floor for it
+ * would demand something that cannot be true. It is the same exclusion
+ * browse-ui.spec.ts already carries for `sr-only`, for the same reason: the
+ * class is not a box this file's components own. What survives the exclusion is
+ * the load-bearing half - each control's OWN class still declares its own
+ * floor, so taking the pill away tomorrow leaves every control reachable by
+ * thumb. src/lib/ui/instrument.spec.ts scan 2 holds the other half, over a walk
+ * derived from the directory rather than from a list.
+ */
+const SHARED_SHAPES = ["pill"];
+
 function interactiveClassesOf(source: string): string[] {
   const out: string[] = [];
   for (const match of source.matchAll(/<(button|input|summary)[^>]*/g)) {
     for (const attr of match[0].matchAll(/class[ ]*=[ ]*"([^"]*)"/g)) {
-      for (const name of attr[1].split(/[ ]+/)) if (name) out.push(name);
+      for (const name of attr[1].split(/[ ]+/))
+        if (name && !SHARED_SHAPES.includes(name)) out.push(name);
     }
   }
   return out;
