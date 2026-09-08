@@ -81,6 +81,15 @@ export type RailSkin = "dots" | "track";
 export const WORD_ROW_MAX = 8;
 /** Above this many options a dot rail becomes a detent track. */
 export const DOT_RAIL_MAX = 8;
+/**
+ * Above this many options a swatch row is a WINDOW rather than the whole knob.
+ *
+ * Sixteen is above every swatch row this site has ever shipped - six on a
+ * preset before D-06, five at most on a Lua entry - and far below the 4,096 a
+ * lattice colour knob carries, so it separates "a row" from "a picker's job"
+ * without being a number tuned to today's data. See `KnobView.positions`.
+ */
+export const SWATCH_ROW_MAX = 16;
 
 // ---------------------------------------------------------------------------
 // The view types a component names.
@@ -104,6 +113,23 @@ export type KnobView = {
   values: readonly KnobValueView[];
   index: number;
   default: number;
+  /**
+   * The KNOB POSITION each member of `values` stands for, when the view is a
+   * WINDOW onto a larger knob rather than the whole of it. `undefined` means
+   * the identity, which is every knob but one.
+   *
+   * It exists for exactly one knob and one interval. D-06 widens the colour
+   * knob to 4,096 positions (plan 10-08) and the picker that renders them as
+   * three sixteen-detent rails arrives at 10-10; in between, a swatch row that
+   * enumerated the lattice would put 4,096 radio inputs in the rack, which is
+   * not slow so much as broken - measured, it overflows the panel and
+   * intercepts every other control's pointer events. So `model.ts` shows the
+   * two swatches a rack can honestly show without a picker - where the card
+   * ships and where the visitor is - and `positions` is what keeps a click on
+   * the second one writing lattice position 1,638 rather than window slot 1.
+   * When 10-10 lands the picker this field goes with it.
+   */
+  positions?: readonly number[];
   /** The right-aligned integer, when every value is a single integer. */
   readout?: string;
 };
@@ -322,20 +348,31 @@ const WORD_KINDS: readonly KnobKindName[] = [
  * The widget rule, and it is TOTAL: every kind and every value set resolves to
  * one of three widgets, so no knob can ever fail to render.
  *
- * A `colour` whose values are not RGB, a `scale` whose semitone set is not in
- * the table, a `note` with more than eight options and every kind with no table
- * of its own all fall through to a rail. That fall-through is the design, not a
- * safety net: a rail always works, because position is always meaningful.
+ * A `scale` whose semitone set is not in the table, a `note` with more than
+ * eight options and every kind with no table of its own all fall through to a
+ * rail. That fall-through is the design, not a safety net: a rail always works,
+ * because position is always meaningful.
+ *
+ * THE X-05 / X-06 AMENDMENT, BY NAME (10-UI-SPEC §11.2, plan 10-08). X-05 and
+ * X-06 say widget selection is "chosen by `kind` and by `n`, never per
+ * configuration". `colour` is now chosen by `kind` ALONE. The reason is not
+ * tidiness: under D-06 a colour knob carries `n = 4096`, and any rule that
+ * consults `n` sends it to a single detent track - one 4,096-position rail,
+ * which is precisely the picker that lies about what the pad can show. The
+ * colour widget renders three channel rails and a result pad at any `n`.
+ * Every other kind's mapping is untouched, and `view.spec.ts` asserts that
+ * rather than leaving it to be believed.
+ *
+ * The old `values.every(v => rgbOf(v) !== undefined)` guard is gone with it.
+ * It was a per-configuration test - exactly what X-05 forbids - and at 4,096
+ * options it would have walked the whole lattice on every render to conclude
+ * what the kind already says.
  */
 export function widgetFor(
   kind: KnobKindName,
   values: readonly string[],
 ): KnobWidget {
-  if (kind === "colour") {
-    return values.length > 0 && values.every((v) => rgbOf(v) !== undefined)
-      ? "swatch"
-      : "rail";
-  }
+  if (kind === "colour") return "swatch";
   if (WORD_KINDS.includes(kind)) {
     const fits = values.length > 0 && values.length <= WORD_ROW_MAX;
     return fits && values.every((v) => wordFor(kind, v) !== undefined)

@@ -374,17 +374,26 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     expect(costed, "the enumeration silently shrank").toBe(
       expectedA + expectedB,
     );
-    // THE FLOOR, RE-DERIVED. The old 16,000 was half of one 32,852-state
-    // cross-product. The passes are now two, and the number that cannot be met
-    // by a shrunken enumeration is 19,000: the three COLOURLESS presets
-    // contribute 16,832 of Pass A between them (faders 960, dial 15,360, tpad
-    // 512) and cannot reach 19,000 alone, so the floor can only be cleared if
-    // the six colour-bearing presets' 2,670 Pass A states are present too. It
-    // is a literal on purpose - `expectedA` and `expectedB` are derived from
+    // THE FLOOR, RE-DERIVED TWICE - once for the split, once for the lattice.
+    //
+    // The old 16,000 was half of one 32,852-state cross-product and it is now
+    // meaningless twice over: there is no single cross-product, and the total
+    // is 44,078 rather than 32,852. The new number is 40,000, and it is chosen
+    // to be a floor no plausible shrinkage clears rather than a round number
+    // near the answer:
+    //
+    //   Pass A is 19,502, of which the three COLOURLESS presets are 16,832
+    //   (faders 960, dial 15,360, tpad 512). Pass B is 24,576, which is 4,096
+    //   per colour knob and there are six. Losing ONE colour knob costs 4,096
+    //   and lands on 39,982, under the floor. Losing `dial` costs 15,360.
+    //   Losing the colour dimension entirely costs 24,576. Every single one of
+    //   those goes red here.
+    //
+    // It is a literal on purpose. `expectedA` and `expectedB` are derived from
     // the same knob tables the loops read, so a floor derived from them would
-    // shrink with them.
+    // shrink with them and green a suite that stopped checking anything.
     expect(costed, "the two passes are not trivial").toBeGreaterThanOrEqual(
-      19000,
+      40000,
     );
 
     // Every colourless preset's Pass A is BYTE-IDENTICAL to the enumeration

@@ -90,6 +90,7 @@ import {
   integerReadout,
   meterView,
   positionText,
+  SWATCH_ROW_MAX,
   railSkin,
   swatchName,
   swatchOf,
@@ -269,18 +270,49 @@ function knobViews(
   return knobs.map((knob) => {
     const widget = widgetFor(knob.kind, knob.options);
     const index = indices[knob.id];
-    return {
+    const head = {
       id: knob.id,
       label: knob.label,
       kind: knob.kind,
       widget,
       skin: widget === "rail" ? railSkin(knob.options.length) : undefined,
+      readout: integerReadout(knob.options, index),
+    };
+    // THE RACK WINDOW, and the interval it exists for (D-06, plan 10-08).
+    //
+    // A swatch row draws one element per option. That is right at six and
+    // right at the four or five a Lua entry declares; at the 4,096 positions
+    // D-06 gives a preset's colour knob it is not a slow row, it is a broken
+    // panel - measured on /dev/tune/, the row overflows and its labels
+    // intercept the pointer events of RESET ALL, SURPRISE ME and COPY LINK.
+    // The picker that renders the lattice properly - three sixteen-detent
+    // rails and a result pad - is 10-10's, and it is deliberately NOT
+    // improvised here.
+    //
+    // So the rack shows the two positions it can honestly show without one:
+    // where the card ships, and where the visitor is. `positions` carries the
+    // real knob index of each, so a click still writes a lattice position and
+    // the default marker still lands on the card as published. Nothing else in
+    // the rack changes, and no other kind takes this branch.
+    if (widget === "swatch" && knob.options.length > SWATCH_ROW_MAX) {
+      const window = [...new Set([knob.default, index])].sort((a, b) => a - b);
+      return {
+        ...head,
+        values: window.map((at) =>
+          valueView(knob.kind, widget, knob.options, at),
+        ),
+        positions: window,
+        index: window.indexOf(index),
+        default: window.indexOf(knob.default),
+      };
+    }
+    return {
+      ...head,
       values: knob.options.map((_, at) =>
         valueView(knob.kind, widget, knob.options, at),
       ),
       index,
       default: knob.default,
-      readout: integerReadout(knob.options, index),
     };
   });
 }

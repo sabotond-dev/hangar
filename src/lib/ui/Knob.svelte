@@ -144,8 +144,22 @@
     }
   }
 
-  function pick(index: number) {
-    if (index !== view.index) onchange(index);
+  /**
+   * A slot on the control becomes a KNOB POSITION.
+   *
+   * `view.positions` is undefined for every knob but one, and then this is the
+   * identity it has always been. It is defined only when the view is a WINDOW
+   * onto a larger knob - today only a lattice colour knob between plan 10-08,
+   * which widens it to 4,096 positions, and 10-10, which builds the picker
+   * that renders them. See `KnobView.positions`: without the translation a
+   * click on the second swatch would write position 1 instead of position
+   * 1,638, which is a wrong colour rather than a rendering detail.
+   */
+  function pick(slot: number) {
+    const index = view.positions?.[slot] ?? slot;
+    if (index !== (view.positions?.[view.index] ?? view.index)) {
+      onchange(index);
+    }
   }
 </script>
 

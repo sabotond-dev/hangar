@@ -34,8 +34,12 @@ import {
   type PadState,
 } from "../../vendor/botor/_pad";
 import { applyKnob, readKnob } from "./state";
+import { CATALOG } from "../catalog";
 import {
   BRIGHTNESS_KNOB_ID,
+  COLOUR_LATTICE_SIZE,
+  colourAt,
+  colourIndexOf,
   colourTargetFor,
   presetKnobs,
   type PresetKnob,
@@ -152,23 +156,86 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
           checked++;
         }
         if (knob.kind !== "colour") continue;
-        // The round trip above only holds for a colour because the option
-        // strings are PRE-QUANTISED: quantiseColour snaps every channel to a
-        // multiple of 17 on the way into the state, so a raw palette literal
-        // would write 0,200,255, read back 0,204,255 and match nothing in its
-        // own list. Each option must therefore be a fixed point.
-        for (const option of knob.options) {
+        // THE LATTICE, AND THE THREE THINGS THAT MAKE THE ROUND TRIP ABOVE
+        // HOLD FOR ALL 4,096 (D-06, plan 10-08). The loop above has already
+        // proved `read(apply(state, i)) === i` for every one of them on every
+        // colour-bearing preset - that is not a separate test, it is the same
+        // test over a wider knob, and it is what a shared link's correctness
+        // rests on. What is asserted here is WHY it holds: it holds by
+        // construction, because every position IS a quantiseColour fixed point
+        // rather than a literal that happens to survive the trip.
+        expect(
+          knob.options.length,
+          `${row.id}.${knob.id} is the whole reachable lattice`,
+        ).toBe(COLOUR_LATTICE_SIZE);
+        for (let i = 0; i < knob.options.length; i++) {
+          const option = knob.options[i];
+          const colour = rgbOf(option);
+          // 1. Quantise-stable: quantiseColour(colourAt(i)) === colourAt(i).
           expect(
-            literalOf(quantiseColour(rgbOf(option))),
-            `${row.id}.${knob.id} option ${option} is pre-quantised`,
+            literalOf(quantiseColour(colour)),
+            `${row.id}.${knob.id} position ${i} (${option}) is not quantise-stable`,
           ).toBe(option);
+          // 2. Every channel a multiple of 17, and in 0..255.
+          for (const [channel, value] of [
+            ["r", colour.r],
+            ["g", colour.g],
+            ["b", colour.b],
+          ] as const) {
+            expect(
+              value % 17,
+              `${row.id}.${knob.id} position ${i}: ${channel} = ${value} is not a multiple of 17`,
+            ).toBe(0);
+            expect(value).toBeGreaterThanOrEqual(0);
+            expect(value).toBeLessThanOrEqual(255);
+          }
+          // 3. Index <-> colour is the arithmetic, not a lookup: the position
+          // the knob is at is the position the arithmetic names.
+          expect(
+            colourIndexOf(colour),
+            `${row.id}.${knob.id} position ${i} does not name itself`,
+          ).toBe(i);
+          expect(literalOf(colourAt(i)), `${row.id}.${knob.id} at ${i}`).toBe(
+            option,
+          );
           colourOptions++;
         }
+        // THE DEFAULT MARKER STILL POINTS AT WHERE THE CARD SHIPS. The comment
+        // this replaces said "the default is always position 1"; on a lattice
+        // it is wherever the card's own colour sits, and RESET ALL landing on
+        // the card as published is the property that had to survive.
+        const target = colourTargetFor(row.base);
+        if (!target)
+          throw new Error(`${row.id} has a colour knob and no target`);
+        const own =
+          target === "look"
+            ? row.base.look.colour
+            : target === "touch"
+              ? row.base.touch.colour
+              : row.base.sends.gridColour;
+        expect(
+          knob.options[knob.default],
+          `${row.id}.${knob.id} default position ${knob.default} is not the card's own colour`,
+        ).toBe(literalOf(quantiseColour(own)));
       }
     }
     expect(checked).toBeGreaterThan(200);
-    expect(colourOptions).toBeGreaterThan(0);
-  });
+    // Six colour knobs, every position of every one of them.
+    expect(colourOptions, "the lattice, on every colour-bearing preset").toBe(
+      6 * COLOUR_LATTICE_SIZE,
+    );
+    // AN EXPLICIT TIMEOUT, and the reason rather than a bigger number.
+    // D-06 widens the colour knob from six options to 4,096, so this test's
+    // round trip goes from about 250 states to 24,576 and its sibling below
+    // from 250 compiles to 24,576. Alone the whole file is ~3 s; inside a
+    // 78-file `npm run test:quick` under memory pressure it crossed Vitest's
+    // 5,000 ms default and reported `Test timed out in 5000ms` - the same
+    // failure `lua-entries.sweep.spec.ts` documents at its own long test on
+    // 2026-09-07. NOTHING IS SAMPLED OR TRIMMED TO FIT: read(apply(state, i))
+    // === i is required for ALL 4,096 on every colour-bearing preset, so the
+    // number that moves is the timeout. 120,000 ms is a ceiling, not a budget
+    // - crossing it means something is genuinely wrong.
+  }, 120000);
 
   it("ships no decorative knob: every option changes the compiled Lua", () => {
     let compiles = 0;
@@ -213,7 +280,9 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
       );
       expect(detents.size, `${row.id} brightness would be a no-op`).toBe(1);
     }
-  });
+    // The same explicit timeout, for the same reason: this test now makes
+    // 24,576 compile() calls where it made about 250.
+  }, 120000);
 
   it("derives the colour binding from the state instead of tabulating it", () => {
     // The rule reproduces BOTOR's own per-card choice for all nine cards:
@@ -226,6 +295,50 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
     expect(colourTargetFor(stateOf("radar"))).toBe("look");
     expect(colourTargetFor(stateOf("joystick"))).toBe("touch");
     expect(colourTargetFor(stateOf("ninepads"))).toBe("sends");
+
+    // THE THREE THAT HAVE NO COLOUR AT ALL, ASSERTED RATHER THAN ASSUMED.
+    // A-11 used to say the colour picker is what keeps TUNE-05 unreachable.
+    // It is not, and the whole of the correction rests on this fact: the
+    // worst-cost card in the catalog is `tpad` at 907 of 908, and `tpad` has
+    // no colour knob, so no colour literal can push it over. `faders` and
+    // `dial` likewise. If a re-sync ever gives one of them a look, a touch
+    // colour or a sends picture, this goes red and the 907-of-908 argument has
+    // to be re-made rather than inherited.
+    //
+    // It is the KNOB TABLE that is asserted here and not `colourTargetFor`,
+    // and the difference is a real one worth recording: `faders` draws its
+    // sends picture, so `colourTargetFor` DOES resolve it to `sends`. What
+    // decides whether a card is offered a colour knob is BOTOR's own
+    // declaration, which gives `faders` two knobs and neither of them a
+    // colour. `colourTargetFor` answers "which field would a colour knob move
+    // on this card", never "does this card have one".
+    expect(colourTargetFor(stateOf("faders"))).toBe("sends");
+    expect(colourTargetFor(stateOf("tpad"))).toBe(undefined);
+    for (const id of ["faders", "dial", "tpad"]) {
+      expect(
+        presetKnobs(id).filter((knob) => knob.kind === "colour"),
+        `${id} declares a colour knob`,
+      ).toEqual([]);
+    }
+    // Six of the nine carry one, three do not - counted, so neither number can
+    // drift without this line saying so.
+    expect(
+      ROWS.filter((row) => row.knobs.some((knob) => knob.kind === "colour"))
+        .length,
+      "the colour-bearing presets",
+    ).toBe(6);
+
+    // And the other route's two, for the same reason: the Lua half of the
+    // budget claim is made per colour knob, so an entry with none is an entry
+    // the colour dimension costs nothing for.
+    for (const id of ["cull", "quadrant"]) {
+      const entry = CATALOG.find((each) => each.id === id);
+      expect(entry, `the catalog lost ${id}`).toBeDefined();
+      expect(
+        entry?.knobs.filter((knob) => knob.kind === "colour"),
+        `${id} declares a colour knob`,
+      ).toEqual([]);
+    }
 
     // And the descriptor moves the field the rule names, rather than a field
     // that happens to agree on the cards someone checked by hand.

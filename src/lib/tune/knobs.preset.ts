@@ -15,7 +15,8 @@
 // FOUR THINGS ARE READ AND NOT RESTATED, because restating them is how a
 // vendored bump goes unnoticed: the detent tables (`SPEED_TABLE`,
 // `BRIGHTNESS_TABLE`, `DIAL_SENSE_TABLE`, `TRACKPAD_*`) ARE the value sets;
-// `quantiseColour` builds the colour options rather than a hand-typed list;
+// the vendored `quantiseColour` IS the colour lattice, imported by
+// `colourIndexOf` rather than reimplemented as a local 17-step round;
 // every default index is DERIVED from the card's own shipped state and throws
 // at import time if that value is not in its own option list; and
 // `padLightsAnything` decides whether a card is offered brightness at all.
@@ -88,10 +89,6 @@ export const BRIGHTNESS_KNOB_ID = "brightness";
 // ---------------------------------------------------------------------------
 // Small shared arithmetic.
 
-const rgbOf = (literal: string): RGB => {
-  const [r, g, b] = literal.split(",").map((n) => Number.parseInt(n, 10));
-  return { r, g, b };
-};
 const literalOf = (c: RGB): string => `${c.r},${c.g},${c.b}`;
 
 /**
@@ -125,39 +122,73 @@ const indexOf = (options: readonly string[], value: string): number => {
 };
 
 // ---------------------------------------------------------------------------
-// The colour palette, and the binding rule.
+// The colour lattice, and the binding rule.
 
 /**
- * The five colours the Lua entries already ship. One palette across both
- * routes means the swatch row looks identical whichever engine is behind it,
- * and view.ts's hue-name table is already verified against exactly these.
+ * THE LATTICE (D-06, plan 10-08). Sixteen steps per channel, 4,096 colours,
+ * and no more.
  *
- * NEVER an `<input type="color">`: `quantiseColour` snaps every stored channel
- * to a multiple of 17, so a free picker would offer 4,096 steps the state
- * cannot hold - a picker that lies.
+ * `quantiseColour` snaps every stored channel to a multiple of 17
+ * (`_pad.ts:490-493`), so a `PadState` holds exactly RGB444 and it does so
+ * specifically so the URL stamp round-trips. That is not a limitation to work
+ * around - it is the whole reachable colour space, and the picker is built ON
+ * it rather than in spite of it.
+ *
+ * WHAT THIS REPLACES, and why the replacement is not a widening of the old
+ * shape. Until 10-08 the colour knob's options were the card's own colour plus
+ * a five-member palette, deduped, and its `read`/`apply` were array lookups
+ * into that list. An `<input type="color">` was refused, correctly, on the
+ * grounds that it would offer 4,096 steps the state cannot hold. The count was
+ * right and the conclusion was wrong by one step: the state holds 4,096 steps
+ * exactly, so the honest picker offers those and not a sixteen-million-colour
+ * field. The palette is gone; the Lua route declares its own literals and never
+ * read this one.
+ *
+ * `read`/`apply` are now INDEX <-> RGB444 ARITHMETIC rather than lookups, which
+ * is what makes `read(apply(state, i)) === i` true by construction for all
+ * 4,096 rather than true by an array happening to contain what was written.
  */
-const PALETTE_LITERALS: readonly string[] = [
-  "0,200,255",
-  "255,90,0",
-  "0,255,120",
-  "255,255,255",
-  "120,0,255",
-];
+export const COLOUR_LATTICE_STEPS = 16;
+export const COLOUR_LATTICE_SIZE =
+  COLOUR_LATTICE_STEPS * COLOUR_LATTICE_STEPS * COLOUR_LATTICE_STEPS;
 
 /**
- * The same five AS STORED. Built by mapping through the vendored
- * `quantiseColour` rather than hand-transcribed, so a change to the 17-step
- * rule moves the options with it. Four of the five move: 0,200,255 ->
- * 0,204,255; 255,90,0 -> 255,85,0; 0,255,120 -> 0,255,119; 120,0,255 ->
- * 119,0,255. Every one lands in the same 30-degree hue bucket as its original,
- * so view.ts's hue names are unchanged.
- *
- * Storing them pre-quantised is what makes `read(apply(state, i)) === i` hold:
- * a raw literal would be written as 0,200,255, read back as 0,204,255, match
- * nothing in its own list and clamp to position 1.
+ * Position -> colour. Clamped rather than throwing, for the same reason
+ * `indexOf` clamps: a rack must render, and a stamp arriving with a position
+ * past the end is `decodeFor`'s problem to refuse, not this function's problem
+ * to crash on.
  */
-const PALETTE: readonly string[] = PALETTE_LITERALS.map((literal) =>
-  literalOf(quantiseColour(rgbOf(literal))),
+export function colourAt(index: number): RGB {
+  const i = Math.min(
+    COLOUR_LATTICE_SIZE - 1,
+    Math.max(0, Math.trunc(Number.isFinite(index) ? index : 0)),
+  );
+  return {
+    r: ((i >> 8) & 15) * 17,
+    g: ((i >> 4) & 15) * 17,
+    b: (i & 15) * 17,
+  };
+}
+
+/**
+ * Colour -> position. Quantises FIRST, through the vendored rule rather than a
+ * local `Math.round(v / 17) * 17`: a reimplementation here would drift from the
+ * state model on the day `_pad.ts` changes the step, and `read(apply(i)) === i`
+ * would break silently on a shared link rather than loudly in this file.
+ */
+export function colourIndexOf(colour: RGB): number {
+  const q = quantiseColour(colour);
+  return ((q.r / 17) << 8) | ((q.g / 17) << 4) | (q.b / 17);
+}
+
+/**
+ * The 4,096 literals, built ONCE at module scope and shared by every colour
+ * knob. `presetKnobs()` is called per entry inside two sweeps and inside every
+ * stamp decode; building 4,096 strings per call would be a measurable cost for
+ * a list that is the same list every time.
+ */
+const COLOUR_OPTIONS: readonly string[] = Object.freeze(
+  Array.from({ length: COLOUR_LATTICE_SIZE }, (_, i) => literalOf(colourAt(i))),
 );
 
 /** Which colour field this card's `colour` knob moves. */
@@ -197,27 +228,30 @@ function colourOf(state: PadState, target: ColourTarget): RGB {
 function colourKnob(base: PadState): PresetKnob {
   const target = colourTargetFor(base);
   if (!target) throw new Error("a colour knob on a card with no colour");
-  const own = literalOf(quantiseColour(colourOf(base, target)));
-  // The card's own colour first, then the shared palette, with duplicates
-  // dropped - so the default is always position 1 and a card whose colour is
-  // already in the palette does not show it twice.
-  const options = [...new Set([own, ...PALETTE])];
   const sheet: PadSheet = target === "sends" ? "sends" : target;
+  // THE DEFAULT IS THE CARD'S OWN COLOUR, at whatever lattice position that
+  // colour occupies. The sentence this replaces said "the default is always
+  // position 1", which was true of a list built as own-colour-first and is
+  // false of a lattice: aurora ships at 0,85,255 and therefore at position 95,
+  // ninepads at 0,68,204 and therefore at position 76. What has NOT changed is
+  // the property the old sentence existed to guarantee - RESET ALL lands on the
+  // card as published - and it is still derived from the card's own state
+  // rather than tabulated.
   return {
     id: "colour",
     label: "Colour",
     kind: "colour",
-    options,
-    default: mustIndex(options, own, "colour"),
+    options: COLOUR_OPTIONS,
+    default: colourIndexOf(colourOf(base, target)),
     sheet,
     apply: (state, index) =>
       withChange(state, (draft) => {
-        const value = rgbOf(options[index]);
+        const value = colourAt(index);
         if (target === "look") draft.look.colour = value;
         else if (target === "touch") draft.touch.colour = value;
         else draft.sends.gridColour = value;
       }),
-    read: (state) => indexOf(options, literalOf(colourOf(state, target))),
+    read: (state) => colourIndexOf(colourOf(state, target)),
   };
 }
 

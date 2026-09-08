@@ -16,6 +16,9 @@ import {
   type ScaleKind,
 } from "../../vendor/botor/_pad";
 import { CATALOG, KNOB_KINDS, byId } from "../catalog";
+// The lattice size, read rather than restated: a spec that hard-codes 4,096
+// would keep passing on the day the step rule moves.
+import { COLOUR_LATTICE_SIZE } from "./knobs.preset";
 import {
   EVENT_BUDGET,
   KNOB_KIND_NAMES,
@@ -135,14 +138,39 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     expect(widgetFor("speed", ["240", "180", "110"])).toBe("rail");
     expect(widgetFor("amount", ["0", "1", "2"])).toBe("rail");
 
-    // And every fall-through named in the UI spec.
-    expect(widgetFor("colour", ["red"]), "a colour that is not RGB").toBe(
-      "rail",
-    );
+    // THE X-05 / X-06 AMENDMENT (10-UI-SPEC §11.2, plan 10-08): `colour` is
+    // chosen by KIND ALONE. The two assertions this replaces asserted the
+    // opposite - that a colour whose values are not RGB falls through to a rail
+    // - and they were right for a six-swatch palette and wrong for a 4,096
+    // position lattice, where any rule that consults `n` sends the colour knob
+    // to a single detent track: one 4,096-position rail, which is exactly the
+    // picker that lies about what the pad can show. Kept as assertions rather
+    // than deleted, with the verdict inverted, so the change is visible in the
+    // suite rather than only in a diff.
+    expect(
+      widgetFor("colour", ["red"]),
+      "a colour is chosen by kind alone, even when a value is not RGB",
+    ).toBe("swatch");
     expect(
       widgetFor("colour", ["0,200,255", "0,200,300"]),
-      "a channel outside 0..255",
-    ).toBe("rail");
+      "a colour is chosen by kind alone, even with a channel outside 0..255",
+    ).toBe("swatch");
+    expect(
+      widgetFor("colour", []),
+      "a colour is chosen by kind alone, even with no values at all",
+    ).toBe("swatch");
+    // The lattice itself, at the size D-06 gives it. `n = 4096` must not move
+    // the answer, which is the whole content of the amendment.
+    expect(
+      widgetFor(
+        "colour",
+        Array.from({ length: COLOUR_LATTICE_SIZE }, (_, i) => String(i)),
+      ),
+      "the 4,096-position lattice is still the colour widget",
+    ).toBe("swatch");
+
+    // And NO OTHER KIND'S MAPPING MOVED. Each of the other eleven is asserted
+    // to still consult its values, by handing it a value set it cannot name.
     expect(
       widgetFor("scale", ["0,1,2", "0,1,3"]),
       "a semitone set not in the table",

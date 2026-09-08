@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { PRESETS } from "../../vendor/botor/_pad";
 import { CATALOG } from "../catalog";
 import type { CatalogEntry } from "../catalog/types";
-import { presetKnobs } from "./knobs.preset";
+import { COLOUR_LATTICE_SIZE, presetKnobs } from "./knobs.preset";
 import { luaKnobs, STAMP_OPTION_CEILING } from "./knobs.lua";
 import { swatchOf, widgetFor, type KnobWidget } from "./view";
 
@@ -61,8 +61,28 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
     let examined = 0;
     const over: string[] = [];
 
+    // THE COLOUR EXEMPTION IS BY FORMAT, NOT BY A RAISED CEILING (10-08).
+    // A lattice colour knob carries 4,096 positions and does not ride the
+    // base-32 payload at all: a compiler entry's colour field is already RGB444
+    // inside BOTOR's own formats a/b/c, and a Lua entry's colour rides format
+    // w's 12 raw bits. Raising STAMP_OPTION_CEILING to admit it would silently
+    // remove the guard from EVERY OTHER KNOB, which is the one thing this
+    // tripwire exists to prevent. So the ceiling stays 32, the exemption is
+    // named here, and the exempted knobs are held to their own domain below so
+    // the carve-out is not a hole.
+    const exempt = (kind: string): boolean => kind === "colour";
+    let colourKnobs = 0;
+
     for (const preset of PRESETS) {
       for (const knob of presetKnobs(preset.id)) {
+        if (exempt(knob.kind)) {
+          colourKnobs += 1;
+          expect(
+            knob.options.length,
+            `${preset.id}.${knob.id} is exempt by format and must be the whole lattice`,
+          ).toBe(COLOUR_LATTICE_SIZE);
+          continue;
+        }
         widest = Math.max(widest, knob.options.length);
         examined++;
         if (knob.options.length > STAMP_OPTION_CEILING) {
@@ -81,6 +101,9 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
     }
 
     expect(STAMP_OPTION_CEILING).toBe(32);
+    // The exemption is real work rather than a blanket: six preset colour
+    // knobs, and every one of them the full lattice.
+    expect(colourKnobs, "the exempted colour knobs").toBe(6);
     expect(over, "a knob has more options than one stamp character").toEqual(
       [],
     );
