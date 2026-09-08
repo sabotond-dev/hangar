@@ -21,8 +21,19 @@
  * `licenses/@fontsource/quicksand@5.3.0-LICENSE.txt`, which is a `.txt` and is
  * inside `licenses/`. §17's phrasing - "`git ls-files` returns exactly one
  * font-shaped path" - reads as though that path were a binary; it is not, and
- * this note is the correction. The allowlist is therefore empty today and
- * 10-02-03 adds exactly one row.
+ * this note is the correction. The allowlist was therefore empty on arrival.
+ *
+ * THE CENSUS AS IT NOW STANDS, after plan 10-02-03 on 2026-09-08:
+ * `git ls-files | grep -Ei "\.(woff2?|ttf|otf)$"` prints exactly one path,
+ * `static/fonts/GRIFTER-Bold.woff2`, and the allowlist below carries exactly
+ * one row for it. Quicksand was uninstalled in the same commit, so its licence
+ * text is gone from `licenses/` and the `.txt` used below to prove FONT_SHAPED
+ * does NOT fire on a licence path is Inter's. Test 4's vacuous branch is now
+ * closed: it reads `.gitattributes` and asserts the path is `export-ignore`d.
+ *
+ * NO TEST HERE WAS EDITED TO ACCEPT THE ROW. All five were written in 10-01 to
+ * take it unchanged, and they did; the two edits in 10-02-03 are this census
+ * note and the one fixture string that named an uninstalled package.
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
@@ -78,10 +89,26 @@ interface FontRecord {
  * permits it. A row is added deliberately, in a commit, with a reason - the
  * same contract `gen-licenses.mjs:41`'s SPDX allowlist carries.
  *
- * Empty today. 10-02-03 adds `static/fonts/GRIFTER-Bold.woff2`, at which point
- * test 4's vacuous branch closes.
+ * One row, added by 10-02-03: `static/fonts/GRIFTER-Bold.woff2`, which closes
+ * test 4's vacuous branch.
  */
-const ALLOWED_FONTS: readonly FontRecord[] = [];
+const ALLOWED_FONTS: readonly FontRecord[] = [
+  {
+    path: "static/fonts/GRIFTER-Bold.woff2",
+    family: "Grifter Bold",
+    licensee: "Botond Sandor / Intech Studio",
+    licence: "Hanson Method commercial licence, held by the licensee",
+    // NOT an SPDX id, NOT a redistributable file. D-13: the binary is served
+    // from the site and export-ignored from `git archive HEAD`; the note at
+    // static/fonts/README.md stands in the archive in its place.
+    //
+    // There is deliberately no `exportIgnored: true` field. The plan's draft
+    // row carried one; it would be a second source of truth for a fact test 4
+    // already reads out of `.gitattributes`, and a record that can disagree
+    // with the file it describes is worse than no record. The exclusion is
+    // asserted, not declared.
+  },
+];
 
 /** SPDX short identifiers look like `OFL-1.1`, `GPL-3.0-or-later`, `BSD-2-Clause`. */
 const SPDX_SHAPED = /^[A-Z][A-Za-z0-9.+-]*-[0-9]/;
@@ -112,7 +139,7 @@ describe("FOUND-02 tracked font binaries (the gate npm run licenses cannot be)",
       expect(FONT_SHAPED.test(shape), `${shape} is font-shaped`).toBe(true);
     }
     for (const shape of [
-      "licenses/@fontsource/quicksand@5.3.0-LICENSE.txt",
+      "licenses/@fontsource-variable/inter@5.3.0-LICENSE.txt",
       "src/app.css",
       "docs/woff2.md",
     ]) {
@@ -211,8 +238,9 @@ describe("FOUND-02 tracked font binaries (the gate npm run licenses cannot be)",
           ).test(gitattributes),
         ),
       "every allowlisted font is export-ignored, so the record and the exclusion cannot drift apart. " +
-        "This branch is vacuously true while ALLOWED_FONTS is empty; 10-02-03 closes it with " +
-        "static/fonts/GRIFTER-Bold.woff2.",
+        "Missing an `<path> export-ignore` line in .gitattributes for one of: " +
+        ALLOWED_FONTS.map((row) => row.path).join(", ") +
+        ". (This branch was vacuously true while ALLOWED_FONTS was empty; 10-02-03 closed it.)",
     ).toBe(true);
   });
 

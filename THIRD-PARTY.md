@@ -14,16 +14,29 @@ declares no `license` field; the licence is stated in its shipped `LICENSE` file
 `@wasm-fmt/lua_fmt` embeds a WebAssembly build of StyLua (MPL-2.0 upstream,
 <https://github.com/JohnnyMorganz/StyLua>). The package's own declared licence is MIT.
 
-The Quicksand typeface (`@fontsource/quicksand`) is Copyright the Quicksand Project Authors,
-designed by Andrew Paglinawan, and is licensed under the SIL Open Font License 1.1. It is
+The Inter typeface (`@fontsource-variable/inter`) is Copyright the Inter Project Authors,
+designed by Rasmus Andersson, and is licensed under the SIL Open Font License 1.1. It is
 conveyed as separate static font files beside the program rather than linked into it.
+
+The display typeface is **Grifter Bold** (`static/fonts/GRIFTER-Bold.woff2`), designed by
+Hanson Method. It is licensed to Botond Sandor / Intech Studio under a Hanson Method
+commercial licence held by the licensee; it is not open-licensed and carries no SPDX
+identifier, so no licence text for it appears in `licenses/`.
+
+**The Grifter binary is deliberately absent from the source archive.** HANGAR's
+Corresponding Source is published as `git archive HEAD` at an unauthenticated URL, so a
+font file in the tracked tree would be redistributed rather than merely displayed - a
+different permission, and the one most foundry licences withhold. `.gitattributes` marks
+the path `export-ignore`, and `static/fonts/README.md` stands in the archive in its place,
+naming the family, the licensee, the licence and where to obtain the file. The site builds
+and runs without it: `--font-display` falls through to its named fallbacks, which is a
+weight change rather than a layout break.
 
 Full licence texts for every package below are in `licenses/`.
 
 ## Production dependencies
 
 - [@fontsource-variable/inter@5.3.0](https://github.com/fontsource/font-files) — OFL-1.1
-- [@fontsource/quicksand@5.3.0](https://github.com/fontsource/font-files) — OFL-1.1
 - [@intechstudio/grid-protocol@1.20260825.1135](https://github.com/intechstudio/grid-protocol) — GPL-3.0 (inferred from the shipped LICENSE file)
 - [@types/emscripten@1.39.10](https://github.com/DefinitelyTyped/DefinitelyTyped) — MIT
 - [@wasm-fmt/lua_fmt@0.2.0](https://github.com/wasm-fmt/lua_fmt) — MIT

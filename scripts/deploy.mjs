@@ -156,7 +156,27 @@ const hasLockfile = entries.some((entry) =>
   entry.endsWith("package-lock.json"),
 );
 const leaked = entries.filter((entry) => entry.includes(".planning/"));
-if (!hasLockfile || leaked.length > 0) {
+
+// D-13, and it is checked FROM BOTH SIDES on purpose. The Grifter binary is a
+// font HANGAR serves and does not redistribute, so `.gitattributes` marks it
+// `export-ignore` and `static/fonts/README.md` stands in the archive in its
+// place, naming the family, the licensee, the licence and where to obtain the
+// file. Asserting only the absence would go green on a build that dropped the
+// note as well as the binary, and an archive missing both is a WEAKER
+// Corresponding Source than one missing neither - which is the opposite of what
+// this step exists to enforce.
+//
+// NOTE ON THE MECHANISM, because it is easy to get wrong: the tarball is
+// written by scripts/postbuild.mjs with `git archive HEAD`, which reads
+// `.gitattributes` FROM HEAD, not from the working tree. Removing the
+// export-ignore line without committing it cannot make the binary appear here.
+const FONT_BINARY = /\.(woff2?|ttf|otf|eot)$/i;
+const fonts = entries.filter((entry) => FONT_BINARY.test(entry));
+const hasFontNote = entries.some((entry) =>
+  entry.endsWith("static/fonts/README.md"),
+);
+
+if (!hasLockfile || leaked.length > 0 || fonts.length > 0 || !hasFontNote) {
   console.error("");
   if (!hasLockfile) {
     console.error(
@@ -170,13 +190,33 @@ if (!hasLockfile || leaked.length > 0) {
       "deploy: " + archive + " carries internal material: " + entry,
     );
   }
+  for (const entry of fonts) {
+    console.error(
+      "deploy: " +
+        archive +
+        " carries a font binary we may not redistribute: " +
+        entry +
+        " — D-13 says it is served, not shipped. Check the export-ignore line " +
+        "in .gitattributes is committed.",
+    );
+  }
+  if (!hasFontNote) {
+    console.error(
+      "deploy: " +
+        archive +
+        " carries no static/fonts/README.md — the note that stands in the " +
+        "archive where the excluded font binary does not. Without it the " +
+        "archive is a weaker Corresponding Source, not a stronger one.",
+    );
+  }
   console.error("deploy: nothing was deployed.");
   process.exit(1);
 }
 console.log(
   "deploy: " +
     entries.length +
-    " entries, lockfile present, no .planning/ material",
+    " entries, lockfile present, no .planning/ material, no font binary, " +
+    "static/fonts/README.md present",
 );
 
 // 6. Ship it.

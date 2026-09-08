@@ -162,9 +162,29 @@ const header = [
   "`@wasm-fmt/lua_fmt` embeds a WebAssembly build of StyLua (MPL-2.0 upstream,",
   "<https://github.com/JohnnyMorganz/StyLua>). The package's own declared licence is MIT.",
   "",
-  "The Quicksand typeface (`@fontsource/quicksand`) is Copyright the Quicksand Project Authors,",
-  "designed by Andrew Paglinawan, and is licensed under the SIL Open Font License 1.1. It is",
+  "The Inter typeface (`@fontsource-variable/inter`) is Copyright the Inter Project Authors,",
+  "designed by Rasmus Andersson, and is licensed under the SIL Open Font License 1.1. It is",
   "conveyed as separate static font files beside the program rather than linked into it.",
+  "",
+  // The Grifter record. It is deliberately NOT an SPDX identifier and there is
+  // deliberately no file in `licenses/`: this is a font HANGAR SERVES and does
+  // not redistribute, so an SPDX id here would claim a permission we may not
+  // have. `npm run licenses` cannot see it at all - it is not an npm artefact -
+  // which is why the record is hand-written here and asserted by
+  // src/lib/ui/font-assets.spec.ts, whose allowlist names this family.
+  "The display typeface is **Grifter Bold** (`static/fonts/GRIFTER-Bold.woff2`), designed by",
+  "Hanson Method. It is licensed to Botond Sandor / Intech Studio under a Hanson Method",
+  "commercial licence held by the licensee; it is not open-licensed and carries no SPDX",
+  "identifier, so no licence text for it appears in `licenses/`.",
+  "",
+  "**The Grifter binary is deliberately absent from the source archive.** HANGAR's",
+  "Corresponding Source is published as `git archive HEAD` at an unauthenticated URL, so a",
+  "font file in the tracked tree would be redistributed rather than merely displayed - a",
+  "different permission, and the one most foundry licences withhold. `.gitattributes` marks",
+  "the path `export-ignore`, and `static/fonts/README.md` stands in the archive in its place,",
+  "naming the family, the licensee, the licence and where to obtain the file. The site builds",
+  "and runs without it: `--font-display` falls through to its named fallbacks, which is a",
+  "weight change rather than a layout break.",
   "",
   "Full licence texts for every package below are in `licenses/`.",
   "",
