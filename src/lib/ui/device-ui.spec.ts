@@ -194,7 +194,7 @@ function liveRegionTotal(): number {
 }
 
 describe("the device UI's structural rules", () => {
-  it("the seven are listed and on disk, and none reaches the compiler", () => {
+  it("the six are listed and on disk, and none reaches the compiler", () => {
     // The list is checked against the directory here, once, because every test
     // below reads through it.
     const present = new Set(
@@ -663,9 +663,10 @@ describe("the device UI's structural rules", () => {
     expect(putBack, "the inactive twins are visibility: hidden").toContain(
       "visibility: hidden",
     );
-    expect(putBack, "the cell reserves the 72px floor").toContain(
-      "min-block-size: 72px",
-    );
+    expect(
+      putBack,
+      "the PUT BACK cell no longer reserves 72px - ceil(101 / 43) x 24 = 72, where 101 is PUT_BACK_LINE_AFTER_KEEP and 43 is the CH_PER_LINE plan 10-01 measured in Inter. The line changes after a keep, so a cell that grows moves a destructive control under a hand already reaching for it (Z-18)",
+    ).toContain("min-block-size: 72px");
     expect(putBack, "the twins are aria-hidden").toContain("aria-hidden=");
 
     // A GROUP, NOT A DIALOG. The needles it must not carry are assembled from
@@ -752,7 +753,7 @@ describe("the device UI's structural rules", () => {
     ).toEqual([]);
   });
 
-  it("the honesty slot holds five twins and no never-writes literal, KEEP ON DEVICE is borderless, and the install row is a column", () => {
+  it("the reserved cells are the measured arithmetic, the honesty slot holds five twins and no never-writes literal, SAFE_NOTE is not a twin, KEEP ON DEVICE is borderless, and the install row is a column", () => {
     // Plan 07-10. Four components, four shapes, all on comment-stripped code -
     // TryOnDevice's header names the retired sentences in prose, and this
     // test would be red on correct code without the strip.
@@ -778,9 +779,52 @@ describe("the device UI's structural rules", () => {
       occurrences(raw(componentPath("TryOnDevice.svelte")), NEVER_WRITES),
       "TryOnDevice's header no longer names the retired sentence in prose - the strip has nothing to strip here and its reason should be re-examined",
     ).toBeGreaterThan(0);
-    expect(tryOn, "the slot still reserves the 72px floor").toContain(
-      "min-block-size: 72px",
+    expect(
+      tryOn,
+      "the honesty slot no longer reserves 48px - ceil(85 / 43) x 24 = 48, where 85 is the longest of its five candidates after R-05, R-06 and tryOnBudgetReason's shortening, and 43 is the CH_PER_LINE plan 10-01 measured in Inter. It was 72px for three lines at HONESTY_CAP 129; the cap is 2 x 43 = 86 now",
+    ).toContain("min-block-size: 48px");
+
+    // SAFE_NOTE IS NOT A SIZING TWIN, ASSERTED RATHER THAN INTENDED (R-03,
+    // 10-UI-SPEC 10.1). It is rendered exactly once, unconditionally, with no
+    // grid-area placing it in a reserved cell and no hidden sibling holding
+    // height for it. If it ever became a twin it would acquire an alternate
+    // form, and a safety statement with two forms is a safety statement that
+    // can be swapped out.
+    expect(
+      occurrences(tryOn, "{SAFE_NOTE}"),
+      "SAFE_NOTE is rendered other than exactly once beneath the primary - it is unconditional and never swapped",
+    ).toBe(1);
+    expect(
+      occurrences(tryOn, "SAFE_NOTE"),
+      "SAFE_NOTE is named more than twice in TryOnDevice's code - the import and the one render, and nothing else",
+    ).toBe(2);
+    const safeNoteRule = rulesOf(tryOn).filter((r) =>
+      r.selector.includes(".safe-note"),
     );
+    expect(
+      safeNoteRule.length,
+      "SAFE_NOTE's own rule was found, so the two assertions below are not vacuous",
+    ).toBe(1);
+    expect(
+      safeNoteRule[0].body.includes("grid-area"),
+      "SAFE_NOTE declares grid-area - it has been put into a reserved cell, which is what 10-UI-SPEC 10.1 forbids by name",
+    ).toBe(false);
+    // The element that renders it, read as its own opening tag: no class:twin,
+    // no aria-hidden, no {#if} between the primary and it.
+    const safeNoteTag = tryOn
+      .slice(0, tryOn.indexOf("{SAFE_NOTE}"))
+      .split("<")
+      .pop();
+    expect(
+      safeNoteTag,
+      "the element rendering SAFE_NOTE was found, so the assertions below are not vacuous",
+    ).toContain("safe-note");
+    for (const marker of ["class:twin", "aria-hidden", "{#if"]) {
+      expect(
+        safeNoteTag?.includes(marker),
+        `SAFE_NOTE's element carries ${marker} - it is unconditional, never swapped and never a twin (10-UI-SPEC 10.1)`,
+      ).toBe(false);
+    }
     expect(tryOn, "the click hands the pair to the install store").toContain(
       "install.tryOnDevice(",
     );
@@ -803,9 +847,31 @@ describe("the device UI's structural rules", () => {
       "KEEP ON DEVICE declares no border (the Quiet tier, Z-02)",
     ).toBe(true);
     expect(keepControl, "and no inline padding").toContain("padding-inline: 0");
-    expect(keep, "the KEEP cell reserves the 48px floor (Z-18)").toContain(
-      "min-block-size: 48px",
-    );
+    expect(
+      keep,
+      "the KEEP cell no longer reserves 48px - ceil(82 / 43) x 24 = 48, where 82 is KEEP_LINE_ENABLED, the longest of its seven, and 43 is the CH_PER_LINE plan 10-01 measured in Inter. This line changes when a knob moves (Z-18)",
+    ).toContain("min-block-size: 48px");
+
+    // THE HEADER NOTE, 152px TO 24px - the largest single reduction in the
+    // phase, and the one cell whose collapse is what R-02 and R-03 bought.
+    // Phase 6 reserved two cells, 3 + 3 line boxes plus 8px, for
+    // PICKER_EXPLAINER (130) over SAFE_PROMISE (88). Both are retired; the
+    // longest candidate left is RECONNECT_OFFER at 37, which is one line box.
+    const note = code(componentPath("DeviceNote.svelte"));
+    expect(
+      note,
+      "the header note's cell no longer reserves 24px - ceil(37 / 43) x 24 = 24, where 37 is RECONNECT_OFFER, the longest of its four candidates after R-02 and R-03, and 43 is the CH_PER_LINE plan 10-01 measured in Inter. It was 152px for two cells of three lines each",
+    ).toContain("min-block-size: 24px");
+    for (const gone of ["152px", "72px", "48px"]) {
+      expect(
+        note.includes(`min-block-size: ${gone}`),
+        `the header note still reserves ${gone} somewhere - the collapse to one 24px cell is the whole of what R-02 and R-03 bought`,
+      ).toBe(false);
+    }
+    expect(
+      occurrences(note, "{SAFE_NOTE}"),
+      "the header note renders SAFE_NOTE other than exactly once - it is unconditional wherever the note renders",
+    ).toBe(1);
     expect(
       /[{]#each[^}]*KEEP_REASONS|KEEP_REASONS[)][^;]*;[^]*[{]#each[ ]+REASONS/.test(
         keep,

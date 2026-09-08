@@ -539,27 +539,42 @@
     looking at - by roughly 24px, at the exact instant a knob crosses 908.
     That is the worst possible moment for the page to jump.
 
+    THE REASON IT EXISTS IS SAFETY, NOT TIDINESS (Z-18). Any of the panel's
+    reserved cells changing line count would shift the site's destructive
+    controls vertically under a hand already reaching for them.
+
     The reservation is two declarations and one piece of markup:
 
-      1. min-block-size: 72px - three Body lines at 16px/1.5, the floor.
+      1. min-block-size: 48px - TWO Body lines at 16px/1.5, the floor.
       2. a ONE-CELL GRID: all five sentences occupy grid-area 1 / 1, so the
          cell is sized on the TALLEST OF THE FIVE at whatever width the panel
-         currently is, not only at the 372px the 72px floor was derived at.
+         currently is, not only at the 372px the floor was derived at.
       3. the four inactive ones carry visibility: hidden, which already removes
          them from the accessibility tree; aria-hidden makes that explicit
          rather than incidental.
 
+    48px AND NOT 72px SINCE PLAN 10-03, and it is arithmetic rather than an
+    adjustment. A reservation is `ceil(longest / CH_PER_LINE) x 24`, and
+    CH_PER_LINE is a Body line box's capacity in this column: 43, measured in
+    Inter Variable over thirty-six full line boxes in two engines by plan 10-01.
+    R-05 and R-06 rewrite the two longest candidates and the fifth,
+    tryOnBudgetReason's worst form, is shortened to its cap, so the longest of
+    the five is now 85 - `ceil(85 / 43) x 24 = 48`. Three lines became two.
+
+    install-copy.spec.ts holds every string under HONESTY_CAP - 2 x 43 = 86,
+    down from 129 - so the floor cannot silently grow, and device-ui.spec.ts and
+    tune-ui.spec.ts hold this declaration to 48px with the arithmetic in their
+    failure messages.
+
     Five and not fewer. Every one of them is rendered even while its state is
     unreachable - the budget twin while the configuration fits, the capability
     twin on a browser that can write - or the reservation would arrive at the
-    same instant as the jump it prevents. install-copy.spec.ts holds every
-    string under the 129-character cap (three lines at 43) so the floor cannot
-    silently grow.
+    same instant as the jump it prevents.
   */
   .honesty {
     display: grid;
     margin-block-start: 8px;
-    min-block-size: 72px;
+    min-block-size: 48px;
   }
 
   /* Body role, 8px under the button (04-UI-SPEC, Spacing, sm). */

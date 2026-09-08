@@ -22,9 +22,9 @@
   go. What is left in the swapping cell is the reconnect offer at 37 and the
   three S3 status lines at 36, 17 and 25 - every one of them one line box at
   the measured CH_PER_LINE of 43 (10-01-SUMMARY.md, thirty-six full line
-  boxes in two engines). The cell is therefore
-  `ceil(37 / 43) x 24 = 24px`, one line, and that is the largest single
-  reduction in the phase: 152px to 24px. The candidates still all sit at
+  boxes in two engines). The cell is therefore `ceil(37 / 43) x 24 = 24px`,
+  one line, and that is the largest single reduction in the phase: 152px to
+  24px. The candidates still all sit at
   `grid-area: 1 / 1` with the non-current ones `visibility: hidden` and
   aria-hidden, so the height is still identical in every state and no session
   transition can move the headline or the coverflow beneath it. Phase 5's
@@ -40,10 +40,9 @@
   S7 the same; S2 the reconnect offer; S3 the current status line; S4, S5 and
   S6 empty with the height held, because that copy is in the disclosure. In
   every one of those seven, SAFE_NOTE is on the screen. S0a and S0b render
-  NOTHING,
-  with no reservation: capability is decided synchronously before the first
-  hydrated paint and cannot change during the visit, so those two states are
-  terminal, there is no picker to explain, and a visitor on a browser that
+  NOTHING, with no reservation: capability is decided synchronously before the
+  first hydrated paint and cannot change during the visit, so those two states
+  are terminal, there is no picker to explain, and a visitor on a browser that
   cannot connect pays nothing for this region. The prerendered document
   always carries the note, and hydration removes it exactly once, in the
   first hydrated frame, on those two browsers - a removal, not an absence,
@@ -78,7 +77,7 @@
   control.
 
   GEOMETRY AND MOTION. `inline-size: min(372px, 100%)` - Phase 4's panel
-  content column, reused so one sentence wraps to the same three lines in
+  content column, reused so one sentence wraps to the same number of lines in
   both surfaces - pushed to the right edge so it sits flush with the device
   slot's, with the text left-aligned inside it. Line changes are 160ms
   ease-out on opacity only; the height never animates because it never
@@ -231,9 +230,27 @@
     transition: none;
   }
 
-  /* The one-cell grid: every candidate of the first line in the same cell. */
+  /*
+    THE ONE-CELL GRID: every candidate of the note's line in the same cell.
+
+    THE REASON IT EXISTS IS SAFETY, NOT TIDINESS (Z-18). This cell changes with
+    the session, and the header sits above the headline and the whole coverflow;
+    a line count changing here moves everything a visitor is looking at, on the
+    one surface that exists on every route.
+
+    24px SINCE PLAN 10-03, DOWN FROM 152px, AND IT IS ARITHMETIC RATHER THAN AN
+    ADJUSTMENT. A reservation is `ceil(longest / CH_PER_LINE) x 24`, where
+    CH_PER_LINE is a Body line box's capacity in this 372px column: 43,
+    measured in Inter Variable over thirty-six full line boxes in two engines
+    by plan 10-01, not the provisional 46. With PICKER_EXPLAINER (130) and
+    SAFE_PROMISE (88) both retired, the longest candidate is RECONNECT_OFFER at
+    37, and `ceil(37 / 43) x 24 = 24`. One line box. The floor is declared as
+    well as measured so device-ui.spec.ts can hold it with the arithmetic in
+    its failure message.
+  */
   .cell {
     display: grid;
+    min-block-size: 24px;
   }
 
   .cell > .line {

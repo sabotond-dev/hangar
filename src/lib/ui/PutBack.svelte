@@ -213,6 +213,20 @@
     floor. The header says why; TryOnDevice.svelte's honesty slot is the
     original of this mechanism and the two are kept declaration for
     declaration.
+
+    THE REASON IT EXISTS IS SAFETY, NOT TIDINESS (Z-18). This line changes
+    after a keep, KEEP ON DEVICE's changes when a knob moves, and CLEAR's will
+    change with the session. Any of them changing line count would shift the
+    site's destructive controls vertically UNDER A HAND ALREADY REACHING FOR
+    THEM.
+
+    RE-DERIVED BY PLAN 10-03 AND UNCHANGED IN PIXELS. A reservation is
+    `ceil(longest / CH_PER_LINE) x 24`; CH_PER_LINE is 43, measured in Inter
+    Variable by plan 10-01 rather than assumed. The longest of the three is
+    PUT_BACK_LINE_AFTER_KEEP at 101, and `ceil(101 / 43) x 24 = 72`. The face
+    changed under this cell and the number did not move - which is a result,
+    not a coincidence, and it is stated rather than left to be re-derived by
+    the next reader. PUT_BACK_CAP is 3 x 43 = 129, also unchanged.
   */
   .cell {
     display: grid;

@@ -191,6 +191,17 @@
     THE RESERVED LINE CELL: one grid cell, seven strings at 1 / 1, a 48px
     floor. The header says why; TryOnDevice.svelte's honesty slot is the
     original of this mechanism and PutBack.svelte's cell its sibling.
+
+    THE REASON IT EXISTS IS SAFETY, NOT TIDINESS (Z-18). This line changes when
+    a knob moves, PUT BACK's changes after a keep, and CLEAR's will change with
+    the session. Any of them changing line count would shift the site's
+    destructive controls vertically UNDER A HAND ALREADY REACHING FOR THEM.
+
+    RE-DERIVED BY PLAN 10-03 AND UNCHANGED IN PIXELS. A reservation is
+    `ceil(longest / CH_PER_LINE) x 24`; CH_PER_LINE is 43, measured in Inter
+    Variable by plan 10-01 rather than assumed. The longest of the seven is the
+    enabled line at 82, and `ceil(82 / 43) x 24 = 48`. The six reasons are 69,
+    69, 62, 42, 36 and 25, all shorter. KEEP_CAP is 2 x 43 = 86, unchanged.
   */
   .cell {
     display: grid;

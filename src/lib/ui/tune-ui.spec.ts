@@ -345,7 +345,7 @@ describe("the tuning UI's structural rules", () => {
     ).toContain("block-size: 56px");
     expect(
       code(tryOn),
-      "the honesty slot no longer reserves 72px, so swapping its sentence changes its line count and shoves the whole region down at the instant a knob crosses 908",
-    ).toContain("min-block-size: 72px");
+      "the honesty slot no longer reserves 48px, so swapping its sentence changes its line count and shoves the whole region down at the instant a knob crosses 908. ceil(85 / 43) x 24 = 48, where 85 is the longest of its five candidates after plan 10-03 and 43 is the CH_PER_LINE plan 10-01 measured in Inter - it was 72px for three lines",
+    ).toContain("min-block-size: 48px");
   });
 });
