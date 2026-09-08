@@ -68,12 +68,20 @@
 // declares two tables and a touch handler, and every cell's stops are still the
 // zeroes grid_led_reset left. A blank canvas is black, and that is THE
 // CONFIGURATION rather than a broken picture - which is why the entry declares
-// it, why motion is "dark", why its quiet line is RESTS_DARK_NOTE verbatim, and
-// why gen-og.mjs is allowed to write a black OG image for it. The catalog needs
+// it and why motion is "dark". The catalog needs
 // its dark cards: listing.spec.ts requires all three motions to occur, and this
 // is one of them. frames.spec.ts test 5 turns the declaration into a checked
 // fact in both directions - measured at zero non-zero bytes at every one of the
 // five sampled ticks.
+//
+// AMENDED BY D-09 (plan 10-05), and the flag became more load-bearing rather
+// than less. ETCH still rests black with nothing touching it, and it still
+// declares restsBlack for that reason - but the card no longer SHOWS a black
+// square, and its quiet line is no longer the retired shared resting-dark note.
+// The flag now also selects a demonstration gesture in src/lib/sim/demo.ts: a
+// short stroke drawn, a fast sweep that wipes it, and a second stroke the card
+// rests on. gen-og.mjs is consequently NOT allowed to write a black OG image
+// for it any more - the restsBlack exemption on that gate was removed by name.
 //
 // THE TRAPS THIS ENTRY CONTAINS.
 //

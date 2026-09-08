@@ -26,12 +26,18 @@ import {
 } from "./front-door";
 import { byId, CATALOG } from "./index";
 import {
+  DEMO_TOUCH_NOTE,
   LISTING,
   listingById,
   listingIndex,
-  RESTS_DARK_NOTE,
   ROUTED,
 } from "./listing";
+import {
+  DARK_BY_CONSTRUCTION,
+  DEMO_PATHS,
+  demoPathFor,
+  isDarkByConstruction,
+} from "../sim/demo";
 
 const SOURCE_PATH = fileURLToPath(new URL("./listing.ts", import.meta.url));
 const FRAMES_URL = new URL("./frames.json", import.meta.url);
@@ -238,18 +244,74 @@ describe("the browse listing (src/lib/catalog/listing.ts)", () => {
       ).toBe(row.quiet);
     }
 
-    // One sentence, three entries. Three variants would be three chances to say
-    // the same thing differently.
+    // R-10: NO ENTRY CARRIES A RESTING-DARK NOTE. The retired export read "This
+    // pad rests dark. That is the configuration, not a broken picture.", and
+    // after D-09 three of the four entries that carried it are showing a
+    // demonstration touch rather than a black square - so the sentence would be
+    // describing something the visitor cannot see. It is asserted as a phrase
+    // rather than as a missing import, because a missing import is a compile
+    // error that a copy-paste of the sentence back into an entry would not be.
+    // "dark" alone is not the test: QUADRANT's line names a dark cross between
+    // its four targets and that is a picture, not a note.
+    const source = readFileSync(SOURCE_PATH, "utf8");
+    expect(
+      source.includes("RESTS_DARK_NOTE ="),
+      "listing.ts still exports the retired resting-dark note",
+    ).toBe(false);
+    for (const listed of LISTING) {
+      const folded = (listed.quiet ?? "").toLowerCase();
+      expect(
+        folded.includes("rests dark") || folded.includes("resting dark"),
+        `${listed.id}: carries a resting-dark note, which R-10 retired`,
+      ).toBe(false);
+    }
+
+    // AND EVERY restsBlack ENTRY IS ACCOUNTED FOR, IN BOTH DIRECTIONS. The flag
+    // did not die with the note; it gained a second job. It is what selects a
+    // demonstration gesture, and the one entry a gesture cannot help is named
+    // with its reason instead. Neither list may claim an entry the other does,
+    // and neither may claim an entry that does not rest black at all - so a path
+    // authored for a lit entry, or a flag cleared off an entry that has a path,
+    // is red here as well as in frames.spec.ts.
     const dark = LISTING.filter((listed) => listed.restsBlack);
     expect(dark.length, "some entry rests black").toBeGreaterThan(0);
+    expect(
+      Object.keys(DEMO_PATHS).length,
+      "some entry has a demonstration gesture",
+    ).toBeGreaterThan(0);
     for (const listed of dark) {
+      const path = demoPathFor(listed.id);
+      const excused = isDarkByConstruction(listed.id);
       expect(
-        listed.quiet,
-        `${listed.id}: a resting-black card carries the shared note verbatim`,
-      ).toBe(RESTS_DARK_NOTE);
+        [path !== undefined, excused].filter(Boolean).length,
+        `${listed.id} rests black and is neither given a demo path nor named in DARK_BY_CONSTRUCTION, or is both`,
+      ).toBe(1);
+      if (path !== undefined) {
+        expect(
+          listed.quiet,
+          `${listed.id}: a demonstration card carries the shared note verbatim`,
+        ).toBe(DEMO_TOUCH_NOTE);
+      } else {
+        expect(
+          listed.quiet,
+          `${listed.id}: an entry no gesture can light says why in its own words`,
+        ).not.toBe(DEMO_TOUCH_NOTE);
+      }
+    }
+    for (const id of Object.keys(DEMO_PATHS)) {
+      expect(
+        listingById(id)?.restsBlack,
+        `${id} declares a demonstration gesture but does not rest black; a lit pad needs no finger from us`,
+      ).toBe(true);
+    }
+    for (const excused of DARK_BY_CONSTRUCTION) {
+      expect(
+        listingById(excused.id)?.restsBlack,
+        `${excused.id} is excused from having a gesture but does not rest black`,
+      ).toBe(true);
     }
     expect(
-      RESTS_DARK_NOTE.trim().length,
+      DEMO_TOUCH_NOTE.trim().length,
       "the shared note is a real sentence",
     ).toBeGreaterThan(0);
   });

@@ -41,7 +41,7 @@ import { describe, expect, it } from "vitest";
 import { allTags, chipTags, fold } from "$lib/browse/filter";
 import { CATALOG } from "./index";
 import { FRONT_DOOR } from "./front-door";
-import { LISTING, RESTS_DARK_NOTE } from "./listing";
+import { LISTING } from "./listing";
 
 const NEWLINE = String.fromCharCode(10);
 const APOSTROPHE = String.fromCharCode(39);
@@ -136,9 +136,15 @@ const KNOWN_TAGS = [
  * Every string HANGAR authored, assembled BY SOURCE KIND.
  *
  * Names and descriptions come from hand-authored entries only; tags from the
- * same; every quiet line the browse listing and the front-door row carry; and
- * RESTS_DARK_NOTE itself, which is one sentence shared by every resting-black
- * card and is therefore the single most-read string in the catalog.
+ * same; and every quiet line the browse listing and the front-door row carry.
+ *
+ * R-10 RETIRED THE ONE STANDALONE PUSH THIS WALK USED TO MAKE. It added
+ * RESTS_DARK_NOTE, the sentence four resting-black cards shared, and that export
+ * is gone: D-09 gives three of those four a demonstration touch, so the sentence
+ * describes something the visitor cannot see. Its replacement, DEMO_TOUCH_NOTE,
+ * needs no push of its own - the three entries that carry it carry it in their
+ * own quiet fields, and the loop above already collects those. The old push was
+ * a fourth copy of a string the corpus already held three times.
  */
 function hangarCopy(): readonly Copy[] {
   const corpus: Copy[] = [];
@@ -168,11 +174,6 @@ function hangarCopy(): readonly Copy[] {
       });
     }
   }
-  corpus.push({
-    entry: "listing.ts",
-    field: "RESTS_DARK_NOTE",
-    text: RESTS_DARK_NOTE,
-  });
   return corpus;
 }
 

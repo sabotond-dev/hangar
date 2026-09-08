@@ -180,10 +180,16 @@
   </p>
 
   <!--
-    One string, one source: `quiet` is RESTS_DARK_NOTE for exactly the three
-    entries that declare restsBlack, and restsBlack is a recorded fact asserted
-    against frames.json in both directions. Typing the sentence in here would be
-    a second source for it.
+    One string, one source. `quiet` is DEMO_TOUCH_NOTE for the three restsBlack
+    entries that carry a demonstration gesture, and Trackpad's own sentence for
+    the fourth, which has no LED layer for a gesture to light. restsBlack is a
+    recorded fact asserted against frames.json in both directions. Typing any of
+    those sentences in here would be a second source for it.
+
+    THE LINE IS NOT DECORATION AFTER D-09, IT IS THE HONESTY. A card that
+    appears to animate on its own, when the pad in fact needs a finger, makes a
+    claim about somebody's hardware that is not true. The pad is showing what a
+    real finger would make it do, and this sentence is where it says so.
   -->
   {#if entry.restsBlack && entry.quiet !== undefined}
     <p class="quiet">{entry.quiet}</p>

@@ -54,16 +54,25 @@ export type ListingEntry = FrontDoorEntry & {
 export type { PreviewMotion };
 
 /**
- * The one sentence a resting-black card carries, beneath its description.
+ * The one sentence a card with a demonstration gesture carries, beneath its
+ * description.
  *
- * One string serves all three of them because it says only what is true of all
- * three: with nothing touching it, the pad is black. What each of them actually
- * DOES is already in its own description directly above the note, so three
- * variants would be three chances to say the same thing differently.
- * 05.1-UI-SPEC.md's "The resting-black note" is the source of these words.
+ * R-10 RETIRED THE SENTENCE THAT USED TO BE HERE. It read "This pad rests dark.
+ * That is the configuration, not a broken picture.", one string shared by the
+ * four entries that paint nothing with nobody touching them, and after D-09
+ * three of those four are not showing a black square any more: they are showing
+ * a scripted touch. The old sentence would have been describing something the
+ * visitor cannot see.
+ *
+ * This is its replacement, and it is doing a job the old one did not. A card
+ * that appears to animate on its own, when in truth the pad needs a finger, is
+ * a claim about somebody's hardware that is not true. HANGAR supplies the
+ * gesture and says so. One string serves all three, for the same reason one
+ * served them before: it says only what is true of all three, and what each of
+ * them actually DOES is in its own description directly above it.
  */
-export const RESTS_DARK_NOTE =
-  "This pad rests dark. That is the configuration, not a broken picture.";
+export const DEMO_TOUCH_NOTE =
+  "Nothing on this pad lights up until a finger arrives, so the card is playing one for you.";
 
 /**
  * What a pad does when nobody is touching it, DERIVED IN THIS ORDER:
@@ -76,12 +85,19 @@ export const RESTS_DARK_NOTE =
  * The first line is not a tidy-up of front-door.ts's rule, it is the fix for a
  * case that rule gets wrong. GHOST reports `animating` at EVERY sampled tick in
  * frames.json and lights ZERO bytes at every sampled tick - its layers really
- * are counting down, they just resolve to black until a finger arrives. Under
- * "any animating -> animated" GHOST classifies as animated, FidelityLine.svelte
- * suppresses the quiet line for animated entries, and the visitor gets an
- * unexplained black square. Reading restsBlack first (D-14) is what stops that,
- * and listing.spec.ts test 2 pins the trap by name so a later reader can see
- * both derivations and why this one is the shipped one.
+ * are counting down, they just resolve to black until a finger arrives.
+ *
+ * THAT IS NOW WHY GHOST HAS A DEMO PATH, rather than why it has a note. Under
+ * "any animating -> animated" GHOST classifies as animated, which would have
+ * suppressed its quiet line and left the visitor with an unexplained black
+ * square; reading restsBlack first (D-14) is what stops that, and listing.spec
+ * test 2 pins the trap by name. D-09 then takes the same fact one step further:
+ * a configuration whose layers count down to black until a finger arrives is
+ * exactly a configuration that should be shown a finger, so `restsBlack` now
+ * has a second job. It selects a demonstration gesture in src/lib/sim/demo.ts,
+ * and test 3 asserts that selection in both directions. The flag is therefore
+ * MORE load-bearing after this phase than before it, which is why R-10 retired
+ * the note and kept the fact.
  *
  * The values below are literals, gated in the spec against frames.json. They
  * are not computed here: this module has no access to that fixture and must not
@@ -201,7 +217,15 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "One finger moves the pointer, two fingers scroll, a tap clicks and two fingers tapping right-click.",
     motion: "dark",
-    quiet: RESTS_DARK_NOTE,
+    // THE ONE ENTRY A FINGER CANNOT HELP, and it gets its own sentence rather
+    // than the shared one because the shared one would be false: nothing is
+    // playing a finger for this card. src/vendor/botor/_pad.ts's tpad draft
+    // enables no LED layer at all, so no gesture lights a cell - measured at 0
+    // of 81 over a drag, a two-finger scroll, taps and 2,000 idle ticks. See
+    // DARK_BY_CONSTRUCTION in src/lib/sim/demo.ts, and front-door.ts's own
+    // exclusion reason, which has said the same thing since Phase 4.
+    quiet:
+      "Trackpad writes no lights at all: it is a pointer for your computer, and there is nothing here to light.",
     tags: ["desktop", "pointer", "utility"],
     featured: false,
     addedAt: "2026-09-02",
@@ -250,7 +274,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger’s.",
     motion: "dark",
-    quiet: RESTS_DARK_NOTE,
+    quiet: DEMO_TOUCH_NOTE,
     tags: ["looper", "automation", "gestural", "generative"],
     featured: false,
     addedAt: "2026-09-04",
@@ -275,7 +299,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Four macros in the corners; slide between them and each corner’s brightness is its own weight.",
     motion: "dark",
-    quiet: RESTS_DARK_NOTE,
+    quiet: DEMO_TOUCH_NOTE,
     tags: ["macros", "blend", "readable", "expressive"],
     featured: true,
     addedAt: "2026-09-04",
@@ -514,9 +538,10 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Draw on the pad with a finger and it stays; sweep across it fast and the whole thing wipes.",
     motion: "dark",
-    // Byte-equal to RESTS_DARK_NOTE, as listing.spec.ts requires of every
-    // resting-black card. ETCH is the third of them, after GHOST and MORPH.
-    quiet: RESTS_DARK_NOTE,
+    // The shared line every demonstration card carries, byte-equal, as
+    // listing.spec.ts requires. ETCH is the third of them, after GHOST and
+    // MORPH; tpad is the fourth resting-black entry and is NOT one of these.
+    quiet: DEMO_TOUCH_NOTE,
     tags: ["drawing", "playable", "gestural", "still"],
     featured: false,
     addedAt: "2026-09-07",
@@ -544,8 +569,10 @@ export const LISTING: readonly ListingEntry[] = [
     // Written WITH the entry, not after it: the mechanism ships timer: "" and
     // nothing on this pad moves, so the fixture classifies it static and
     // listing.spec.ts requires a quiet line of every entry whose motion is not
-    // animated. Never RESTS_DARK_NOTE - that sentence belongs to a
-    // restsBlack: true card and this one paints forty cells.
+    // animated. Never the shared note - that sentence belongs to a
+    // restsBlack: true card and this one paints forty cells. (It used to say
+    // "never RESTS_DARK_NOTE"; R-10 retired that export and DEMO_TOUCH_NOTE
+    // took its place, and the rule reads the same about either of them.)
     quiet:
       "The four targets and the dark cross between them never move; that is what makes them findable.",
     tags: ["accessible", "readable", "still", "utility"],
