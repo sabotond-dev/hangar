@@ -48,6 +48,18 @@
   be - 10-UI-SPEC 7.2's reserved list stays at eight, and tune-ui.spec.ts
   counts this file's --color-accent declarations to keep it there.
 
+  THE FORECAST (10-UI-SPEC 11.3, T2). Hovering or focusing an option asks the
+  region what that choice WOULD cost and shows the answer twice: a signed
+  --font-mono delta beside the option, and the same fact as a sentence for
+  anything that is not an eye. This component computes nothing - it reports a
+  knob POSITION out and renders the two strings back - so the compiler stays on
+  the far side of D-18 and the delta cannot be built in two places.
+
+  NEVER ON TOUCH, gated twice: `pointerType === "touch"` per event, and
+  `@media (hover: hover)` for the paint. A tap fires pointerenter immediately
+  before it activates, and a compile in front of that gesture is exactly the
+  latency this component's long press and double-click are careful about.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -60,9 +72,13 @@
     view,
     stacked = false,
     held = false,
+    forecastAt = undefined,
+    forecastLabel = undefined,
+    forecastSentence = undefined,
     onchange,
     onreset,
     onhold,
+    onforecast,
   }: {
     /** The knob, with its widget and skin already chosen by $lib/tune/view. */
     view: KnobView;
@@ -78,12 +94,28 @@
      * to the same knob's unheld one (SHARE-01 is untouched).
      */
     held?: boolean;
+    /**
+     * The KNOB POSITION the forecast on screen belongs to (TUNE-02, T2), or
+     * undefined when nothing is forecast. A position and never a slot, for the
+     * reason `knobPosition` exists.
+     */
+    forecastAt?: number;
+    /** The signed delta, already written by copy's forecastDelta. Never here. */
+    forecastLabel?: string;
+    /** Its accessible twin, already written by copy's forecastExpansion. */
+    forecastSentence?: string;
     /** A new index on this knob. Fired on every step of a drag. */
     onchange: (index: number) => void;
     /** Back to the default index. All three gestures call exactly this. */
     onreset: () => void;
     /** The lock, toggled. The region owns what held means; this only says so. */
     onhold: () => void;
+    /**
+     * An option was hovered or focused, by KNOB POSITION - or undefined when
+     * the pointer left and the focus went. Optional, so a rack that does not
+     * forecast is unchanged.
+     */
+    onforecast?: (position: number | undefined) => void;
   } = $props();
 
   /**
@@ -190,6 +222,49 @@
     const index = view.positions?.[slot] ?? slot;
     if (index !== knobPosition(view)) onchange(index);
   }
+
+  /** A slot's knob position, without the "did it move" test `pick` makes. */
+  const positionOf = (slot: number) => view.positions?.[slot] ?? slot;
+
+  /**
+   * THE FORECAST'S TWO TRIGGERS, AND THE ONE IT MUST NEVER HAVE (TUNE-02, T2).
+   *
+   * Hover and focus-visible. NEVER TOUCH: a tap on a touch screen fires
+   * pointerenter immediately before the activation, so an ungated hover would
+   * put a compile in front of the gesture this whole component is most careful
+   * about - the one that already carries a 500 ms long press and a
+   * double-click. Two gates rather than one, because they fail differently:
+   *
+   *   - `event.pointerType === "touch"` is the exact per-event answer and
+   *     catches a touch on a hybrid device that reports `hover: hover`
+   *   - the MediaQuery is the capability answer and catches a device that
+   *     synthesises a mouse pointer for a stylus or a screen reader cursor
+   *
+   * The style block carries the matching `@media (hover: hover)` gate for the
+   * delta's own appearance, so the two halves cannot be reasoned about
+   * separately: no capability, no handler AND no paint.
+   */
+  const hoverable = new MediaQuery("(hover: hover)");
+
+  function forecastEnter(event: PointerEvent, slot: number) {
+    if (event.pointerType === "touch") return;
+    if (!hoverable.current) return;
+    onforecast?.(positionOf(slot));
+  }
+
+  /**
+   * :focus-visible in JavaScript, asked of the element itself rather than
+   * guessed from the event: a mouse click on a radio focuses it without making
+   * the ring appear, and a forecast that fired there would flash a delta
+   * beside an option the visitor has just chosen anyway.
+   */
+  function forecastFocus(event: FocusEvent, slot: number) {
+    const target = event.currentTarget as Element | null;
+    if (!target?.matches(":focus-visible")) return;
+    onforecast?.(positionOf(slot));
+  }
+
+  const forecastOff = () => onforecast?.(undefined);
 </script>
 
 <!--
@@ -290,16 +365,39 @@
       aria-describedby={homeId}
     >
       {#each view.values as value, at (at)}
-        <label class="option" class:selected={at === view.index}>
+        <label
+          class="option"
+          class:selected={at === view.index}
+          onpointerenter={(event) => forecastEnter(event, at)}
+          onpointerleave={forecastOff}
+        >
           <input
             class="sr-only"
             type="radio"
             name="knob-{view.id}"
             value={at}
             checked={at === view.index}
+            aria-describedby="knob-{view.id}-forecast-{at}"
             onchange={() => pick(at)}
             onkeydown={resetKeys}
+            onfocus={(event) => forecastFocus(event, at)}
+            onblur={forecastOff}
           />
+          <!--
+            The forecast, in its two forms and never in only one: the signed
+            number for the eye, and the sentence for everything that is not an
+            eye. The span is always in the DOM so aria-describedby always has a
+            target to resolve, and it is empty until this option is the one
+            being forecast.
+          -->
+          <span class="sr-only" id="knob-{view.id}-forecast-{at}"
+            >{forecastAt === positionOf(at)
+              ? (forecastSentence ?? "")
+              : ""}</span
+          >
+          {#if forecastLabel !== undefined && forecastAt === positionOf(at)}
+            <span class="delta" aria-hidden="true">{forecastLabel}</span>
+          {/if}
           {#if view.widget === "swatch"}
             <span
               class="swatch"
@@ -667,6 +765,59 @@
 
   .option:active {
     background: rgb(214 255 78 / 0.08);
+  }
+
+  /*
+    THE FORECAST DELTA (TUNE-02, T2). What this option would cost, in
+    characters, before it is chosen.
+
+    THE FIFTH --font-mono USE ON THE SITE, and it qualifies for exactly the
+    reason W-03 introduced the stack in Phase 4: it is A NUMBER THAT CHANGES AS
+    A POINTER MOVES, and it must not jitter horizontally. Phase 5 confined the
+    stack to four - the two meter columns, the copied link, the device slot's
+    machine text - and every one of them is the same case. tabular-nums for the
+    same reason: +9 and +10 must not shift the option under the pointer.
+
+    --color-ink, not accent: the reserved list stays at eight, and a forecast
+    is information rather than a selection. There is no --color-over branch
+    either; an option that would cross 908 is disabled and cannot be hovered,
+    so X-01 stays at three.
+
+    ABSOLUTE, so it costs no layout. A delta that took part in the flex row
+    would widen the option it appears in and reflow the whole rack under the
+    pointer - and the meters block (56px) and the region (152px) both reserve
+    heights that a reflowing rack would falsify.
+  */
+  .delta {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+    pointer-events: none;
+  }
+
+  /*
+    THE GATE, IN CSS, AND IT IS THE SECOND HALF OF THE ONE IN THE SCRIPT.
+    The pointer half paints only where hovering is a real capability; the
+    keyboard half paints everywhere, because :focus-visible is how a visitor
+    with no pointer at all reaches an option. On a touch screen neither fires
+    for a tap, which is the whole point: never on touch.
+  */
+  .option:has(:focus-visible) .delta {
+    display: block;
+  }
+
+  @media (hover: hover) {
+    .delta {
+      display: block;
+    }
   }
 
   /*

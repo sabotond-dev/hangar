@@ -88,9 +88,11 @@
   let {
     knobs,
     held,
+    forecast,
     onchange,
     onreset,
     onhold,
+    onforecast,
   }: {
     /** Every knob of the chosen configuration, in the order the entry gives. */
     knobs: readonly KnobView[];
@@ -106,6 +108,20 @@
     held: ReadonlySet<string>;
     /** One lock, toggled. What "held" then means is the region's, not this. */
     onhold: (id: string) => void;
+    /**
+     * The one forecast on screen, or undefined (TUNE-02, T2). AT MOST ONE for
+     * the whole rack, because a visitor has one pointer and one focus - which
+     * is also what bounds the forecast to one memoised cost() at a time.
+     */
+    forecast?: {
+      knobId: string;
+      /** A knob POSITION, never a window slot. */
+      position: number;
+      label: string;
+      sentence: string;
+    };
+    /** An option was hovered or focused, by knob and KNOB POSITION. */
+    onforecast?: (id: string, position: number | undefined) => void;
   } = $props();
 </script>
 
@@ -118,9 +134,19 @@
         view={knob}
         stacked={knob.widget === "words"}
         held={held.has(knob.id)}
+        forecastAt={forecast?.knobId === knob.id
+          ? forecast.position
+          : undefined}
+        forecastLabel={forecast?.knobId === knob.id
+          ? forecast.label
+          : undefined}
+        forecastSentence={forecast?.knobId === knob.id
+          ? forecast.sentence
+          : undefined}
         onchange={(index) => onchange(knob.id, index)}
         onreset={() => onreset(knob.id)}
         onhold={() => onhold(knob.id)}
+        onforecast={(position) => onforecast?.(knob.id, position)}
       />
     {/each}
   {/if}

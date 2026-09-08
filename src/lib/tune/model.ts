@@ -141,10 +141,36 @@ export type OverBudgetView = {
   apply(): void;
 };
 
+/**
+ * What a choice WOULD cost, published before it is made (TUNE-02, T2).
+ *
+ * Both events, because the rack has two meters and each draws its own ghost,
+ * and both deltas, because a signed number is the only form in which "what
+ * would this cost" is answerable in one glance. The deltas are measured
+ * against the SAME function that measured the forecast - never against the
+ * published meter numbers - so a Lua entry's forecast is never a compiler
+ * measurement minus a minifier one.
+ */
+export type ForecastView = {
+  knobId: string;
+  /** The KNOB POSITION this forecast is for, never a window slot. */
+  position: number;
+  setup: number;
+  timer: number;
+  setupDelta: number;
+  timerDelta: number;
+};
+
 export type Tuner = {
   readonly knobs: readonly KnobDescriptor[];
   readonly indices: Readonly<Record<string, number>>;
   set(knobId: string, index: number): void;
+  /**
+   * Ask for the forecast of one candidate position, or withdraw it with
+   * `undefined`. Fire-and-forget: the answer arrives on `onforecast`, either
+   * on this tick from the memo or after the same debounce a recompile takes.
+   */
+  forecast(knobId: string, position: number | undefined): void;
   reset(knobId: string): void;
   resetAll(): void;
   /**
@@ -193,6 +219,11 @@ export type TunerOptions = {
    * caller and every existing test is unchanged.
    */
   onconfig?(config: ConfigStrings | undefined): void;
+  /**
+   * The forecast, or `undefined` the moment it is withdrawn or invalidated.
+   * Optional, so every existing caller and every existing test is unchanged.
+   */
+  onforecast?(forecast: ForecastView | undefined): void;
 };
 
 /**
@@ -417,6 +448,22 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
    * of "the copy silently did nothing on iOS" bug.
    */
   let payload: string | undefined;
+  /**
+   * THE FORECAST'S MEMO, keyed on the index vector.
+   *
+   * A vector's cost is a pure function of the vector, so a hit never goes
+   * stale and never needs invalidating - which is what lets a re-hover publish
+   * on the same tick rather than through the debounce. The cap exists because
+   * a visitor sweeping a word row for a minute is otherwise an unbounded map;
+   * at the cap the whole memo is dropped rather than evicted one entry at a
+   * time, because an LRU here would be more code than the thing it protects.
+   */
+  const forecasts = new Map<string, { setup: number; timer: number }>();
+  const FORECAST_MEMO_MAX = 512;
+  /** The debounce for a MISS. A hit does not use it. See `askForecast`. */
+  let forecastPending: ReturnType<typeof setTimeout> | undefined;
+  /** What was last asked for, so a late answer to an old hover is dropped. */
+  let forecastAsk: string | undefined;
 
   const stale = (mine: number) => destroyed || mine !== generation;
 
@@ -432,6 +479,97 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   }
 
   const stateNow = (): PadState => resolved ?? stateOf(indices);
+
+  /** One index vector, as a memo key. The knob order is the rack's. */
+  const vectorKey = (at: Readonly<Record<string, number>>): string =>
+    knobs.map((knob) => at[knob.id]).join(",");
+
+  /**
+   * THE FORECAST'S ONE MEASUREMENT, AND IT IS `cost()`, NEVER `fit()`.
+   *
+   * `fit()` compiles once per ladder step - N+1 minifier calls, roughly 4.4 ms
+   * on a state that already fits - so forecasting the n options of a knob
+   * through it would be n times that on a pointer path. `cost()` is one
+   * compile and one measurement, 1.1-4.0 ms once and then free from the memo,
+   * and it answers the only question the forecast asks: where would the two
+   * numbers land. `model.spec.ts` holds `fitState` to its single call site
+   * inside `needsLadder`'s branch, which is what stops this function quietly
+   * acquiring a ladder later.
+   *
+   * Both routes measure exactly what `land()` measures for the same vector -
+   * the compiler route through compileState + costOf, the Lua route through
+   * renderLua + measureLua - so a forecast and the landing that follows it
+   * cannot disagree.
+   */
+  async function costFor(
+    at: Readonly<Record<string, number>>,
+  ): Promise<{ setup: number; timer: number } | undefined> {
+    const key = vectorKey(at);
+    const hit = forecasts.get(key);
+    if (hit) return hit;
+    let measured: { setup: number; timer: number };
+    if (entry.preview === "lua") {
+      // Dynamic, never static. See the module comment.
+      const { renderLua } = await import("../sim/lua-pad-sim");
+      const lua = renderLua(entry, at);
+      measured = {
+        setup: lua.setup === "" ? 0 : await measureLua(lua.setup),
+        timer: lua.timer === "" ? 0 : await measureLua(lua.timer),
+      };
+    } else {
+      const cost = await costOf(
+        await compileState(stateOf(at)),
+        options.reserved,
+      );
+      measured = { setup: cost.setup.used, timer: cost.timer.used };
+    }
+    if (destroyed) return undefined;
+    if (forecasts.size >= FORECAST_MEMO_MAX) forecasts.clear();
+    forecasts.set(key, measured);
+    return measured;
+  }
+
+  function clearForecast(): void {
+    if (typeof forecastPending !== "undefined") clearTimeout(forecastPending);
+    forecastPending = undefined;
+    if (forecastAsk === undefined) return;
+    forecastAsk = undefined;
+    options.onforecast?.(undefined);
+  }
+
+  /** The candidate vector one choice would make, or undefined if it is not one. */
+  function candidateOf(
+    knobId: string,
+    position: number,
+  ): Readonly<Record<string, number>> | undefined {
+    const knob = knobs.find((each) => each.id === knobId);
+    if (!knob) return undefined;
+    if (!Number.isInteger(position)) return undefined;
+    if (position < 0 || position >= knob.options.length) return undefined;
+    return { ...indices, [knobId]: position };
+  }
+
+  async function publishForecast(
+    knobId: string,
+    position: number,
+    ask: string,
+    candidate: Readonly<Record<string, number>>,
+  ): Promise<void> {
+    const now = await costFor(indices);
+    const next = await costFor(candidate);
+    // The hover moved on, the knobs moved, or the tuner is gone. A forecast
+    // that lands after any of those is an answer to a question nobody is
+    // still asking.
+    if (destroyed || forecastAsk !== ask || !now || !next) return;
+    options.onforecast?.({
+      knobId,
+      position,
+      setup: next.setup,
+      timer: next.timer,
+      setupDelta: next.setup - now.setup,
+      timerDelta: next.timer - now.timer,
+    });
+  }
 
   function emit(): void {
     if (destroyed) return;
@@ -630,6 +768,12 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   function moveTo(next: Readonly<Record<string, number>>): void {
     for (const knob of knobs) indices[knob.id] = next[knob.id];
     resolved = undefined;
+    // The forecast was "what would this cost INSTEAD of where you are", and
+    // the visitor has just moved. Withdrawn on the same tick as the strings,
+    // for the same reason: a delta measured against the previous vector is a
+    // wrong number, not a stale one. The memo is kept - a vector's cost does
+    // not change - so hovering back costs nothing.
+    clearForecast();
     // Anything already in flight is now measuring a state nobody asked for.
     generation++;
     if (feed !== "measuring") feed = "stale";
@@ -678,6 +822,44 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       return { ...indices };
     },
     set,
+    /**
+     * THE HOVER PATH. A hit answers on a microtask; a miss waits out the same
+     * COMPILE_DEBOUNCE_MS a recompile waits, which is the debounce shape
+     * TUNE-02 already uses rather than a second one with its own number.
+     *
+     * The asymmetry is deliberate and it is what keeps the ghost off the
+     * pointer's heels: a visitor sweeping a word row schedules one compile per
+     * 120 ms, and a visitor coming back to an option they have already hovered
+     * gets the fill back with no delay at all.
+     */
+    forecast(knobId: string, position: number | undefined): void {
+      if (destroyed) return;
+      if (position === undefined) {
+        clearForecast();
+        return;
+      }
+      const candidate = candidateOf(knobId, position);
+      if (!candidate) {
+        clearForecast();
+        return;
+      }
+      const ask = `${knobId}:${position}:${vectorKey(indices)}`;
+      if (ask === forecastAsk) return;
+      if (typeof forecastPending !== "undefined") clearTimeout(forecastPending);
+      forecastPending = undefined;
+      forecastAsk = ask;
+      const known =
+        forecasts.has(vectorKey(candidate)) &&
+        forecasts.has(vectorKey(indices));
+      if (known) {
+        void publishForecast(knobId, position, ask, candidate);
+        return;
+      }
+      forecastPending = setTimeout(() => {
+        forecastPending = undefined;
+        void publishForecast(knobId, position, ask, candidate);
+      }, COMPILE_DEBOUNCE_MS);
+    },
     reset(knobId: string): void {
       const knob = knobs.find((each) => each.id === knobId);
       if (knob) set(knobId, knob.default);
@@ -752,6 +934,11 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       destroyed = true;
       if (typeof pending !== "undefined") clearTimeout(pending);
       pending = undefined;
+      // The forecast's timer is the second one this module owns, so it is the
+      // second one destroy() has to leave nothing behind of.
+      if (typeof forecastPending !== "undefined") clearTimeout(forecastPending);
+      forecastPending = undefined;
+      forecastAsk = undefined;
       // Only an engine the consumer has never seen. See `published`.
       if (engine !== published) closeEngine(engine);
       engine = undefined;

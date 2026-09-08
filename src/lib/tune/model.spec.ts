@@ -34,6 +34,7 @@ import {
   needsLadder,
   COMPILE_DEBOUNCE_MS,
   type ConfigStrings,
+  type ForecastView,
   type LadderView,
   type OverBudgetView,
 } from "./model";
@@ -56,17 +57,20 @@ function recorder() {
   const ladders: (LadderView | undefined)[] = [];
   const overs: (OverBudgetView | undefined)[] = [];
   const configs: (ConfigStrings | undefined)[] = [];
+  const forecasts: (ForecastView | undefined)[] = [];
   return {
     views,
     previews,
     ladders,
     overs,
     configs,
+    forecasts,
     onview: (view: TuneView) => void views.push(view),
     onpreview: (engine: SimEngine) => void previews.push(engine),
     onladder: (ladder: LadderView | undefined) => void ladders.push(ladder),
     onover: (over: OverBudgetView | undefined) => void overs.push(over),
     onconfig: (config: ConfigStrings | undefined) => void configs.push(config),
+    onforecast: (next: ForecastView | undefined) => void forecasts.push(next),
   };
 }
 
@@ -237,6 +241,62 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       "five turns inside one window were not one compile",
     ).toHaveLength(2);
 
+    // -----------------------------------------------------------------------
+    // THE FORECAST RIDES THIS SAME DEBOUNCE, AND THAT IS WHY IT IS ASSERTED
+    // HERE rather than in a test of its own (TUNE-02, T2). A second debounce
+    // with its own number is the thing this block exists to prevent.
+    const landed = settledViews(rec.views).at(-1);
+    expect(landed, "the second measurement never landed").toBeDefined();
+    const now = { setup: landed!.setup.used, timer: landed!.timer.used };
+    const standing = tuner.indices["speed"];
+    const candidate = (standing + 1) % speed!.options.length;
+    const ladderMark = rec.ladders.length;
+    const viewMark = rec.views.length;
+
+    tuner.forecast("speed", candidate);
+    await settle();
+    expect(
+      rec.forecasts,
+      "a forecast published before its debounce window closed - it is on a timer of its own",
+    ).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(COMPILE_DEBOUNCE_MS);
+    await settle();
+    expect(rec.forecasts, "the forecast never arrived").toHaveLength(1);
+    const forecast = rec.forecasts[0];
+    expect(forecast?.knobId).toBe("speed");
+    expect(
+      forecast?.position,
+      "the forecast is for a slot, not a position",
+    ).toBe(candidate);
+    // The deltas are the forecast MINUS the current, from the same function.
+    expect(forecast!.setupDelta).toBe(forecast!.setup - now.setup);
+    expect(forecast!.timerDelta).toBe(forecast!.timer - now.timer);
+
+    // A FORECAST MOVES NOTHING. No view is emitted, no ladder is asked for,
+    // and the knob is exactly where it was - it is a question, not a turn.
+    expect(rec.views.length, "a forecast emitted a view").toBe(viewMark);
+    expect(rec.ladders.length, "a forecast reached the ladder").toBe(
+      ladderMark,
+    );
+    expect(tuner.indices["speed"], "a forecast moved the knob").toBe(standing);
+
+    // MEMOISED ON THE INDEX VECTOR: the same question a second time answers
+    // WITHOUT the debounce, which is what keeps the ghost off the pointer's
+    // heels when a visitor comes back to an option they have already hovered.
+    tuner.forecast("speed", undefined);
+    await settle();
+    expect(
+      rec.forecasts.at(-1),
+      "the withdrawal never arrived",
+    ).toBeUndefined();
+    tuner.forecast("speed", candidate);
+    await settle();
+    expect(
+      rec.forecasts.at(-1),
+      "a memo hit waited out the debounce, so a re-hover lags the pointer",
+    ).toEqual(forecast);
+
     tuner.destroy();
   });
 
@@ -347,6 +407,35 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       "a block closes between the guard and the ladder",
     ).not.toContain("}");
     expect(between.length).toBeLessThan(120);
+
+    // -----------------------------------------------------------------------
+    // AND THE FORECAST NEVER GETS ONE (TUNE-02, T2). "Never fit()" is a
+    // PERFORMANCE contract on a pointer path - fit() is N+1 minifier calls at
+    // roughly 4.4 ms on a state that already fits, and forecasting n options
+    // per knob through it would be n times that - and a performance contract
+    // with no guard is a comment. The single-call-site assertion above is that
+    // guard: a fitState() call added to the forecast would make it two.
+    //
+    // This block says the same thing at the function rather than at the file,
+    // so a red run names the forecast rather than only the count.
+    const start = source.indexOf("async function costFor(");
+    expect(
+      start,
+      "costFor is gone - the forecast's one measurement no longer has a name",
+    ).toBeGreaterThan(-1);
+    const body = source.slice(start, source.indexOf("\n  }", start));
+    expect(
+      body,
+      "the forecast reaches the fitter, which is N+1 minifier calls on a hover",
+    ).not.toContain("fitState");
+    expect(
+      body,
+      "the forecast no longer measures with cost() at all",
+    ).toContain("costOf(");
+    expect(
+      body,
+      "the Lua route's forecast no longer measures the Lua it would render",
+    ).toContain("measureLua(");
   });
 
   it("a Lua entry waits for its fresh VM, and is never told a ladder it does not have", async () => {

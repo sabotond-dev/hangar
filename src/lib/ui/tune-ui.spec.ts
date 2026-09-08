@@ -27,7 +27,7 @@ import { describe, expect, it } from "vitest";
 // The copy module imports NOTHING (its own header says why), so naming it here
 // costs this file no chunk and lets the source scans below check a component
 // against the sentence it is supposed to be rendering rather than a copy of it.
-import { KNOB_HOLD } from "../tune/copy";
+import { KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -306,6 +306,163 @@ describe("the tuning UI's structural rules", () => {
       rulesOf(knob).find((rule) => rule.selector.trim() === ".home")?.body,
       "the FREE marker stopped being the soft dot, so the two states no longer differ by weight",
     ).toContain("var(--color-line-soft)");
+
+    // -----------------------------------------------------------------------
+    // T2's forecast delta, which rides here for the same reason the lock does:
+    // it is a thing this component paints on a control, and what it must not
+    // do is change the control's size or its colour vocabulary.
+    const deltaRule = rulesOf(knob).find(
+      (rule) => rule.selector.trim() === ".delta",
+    );
+    expect(deltaRule, "Knob.svelte no longer has a .delta rule").toBeDefined();
+
+    // THE FIFTH --font-mono USE ON THE SITE. Phase 5 confined the stack to
+    // four; W-03's reason for introducing it is a number that changes as a
+    // pointer moves and must not jitter horizontally, which is exactly this.
+    expect(
+      deltaRule?.body,
+      "the delta is not monospaced, so +9 and +10 shift the option under the pointer",
+    ).toContain("var(--font-mono)");
+    expect(
+      deltaRule?.body,
+      "the delta is not tabular, which is the other half of not jittering",
+    ).toContain("tabular-nums");
+    expect(
+      deltaRule?.body,
+      "the delta paints in accent - a forecast is information, not a selection, and the reserved list stays at eight",
+    ).not.toContain("--color-accent");
+    expect(
+      deltaRule?.body,
+      "the delta paints in the alarm red, which would be X-01's fourth use",
+    ).not.toContain("--color-over");
+    // ABSOLUTE, so it costs no layout: a delta that took part in the flex row
+    // would widen its option and reflow the rack under the pointer.
+    expect(
+      deltaRule?.body,
+      "the delta is in flow, so hovering an option reflows the rack",
+    ).toContain("position: absolute");
+
+    // NEVER ON TOUCH, gated twice and both gates asserted. The per-event one
+    // is what actually stops the work; the media query is what stops the paint
+    // on a device that has no hover at all.
+    expect(
+      knob,
+      "the forecast has no pointerType guard, so a tap puts a compile in front of the gesture",
+    ).toContain('pointerType === "touch"');
+    expect(
+      knob,
+      "the CSS half of the hover gate is gone: @media (hover: hover)",
+    ).toContain("@media (hover: hover)");
+    expect(
+      knob,
+      "the keyboard half is gone - :focus-visible is how a visitor with no pointer reaches an option",
+    ).toContain(":focus-visible");
+
+    // The delta's TEXT is the copy module's, arriving as a prop. This
+    // component builds no sentence and no sign, which is what keeps U+2212 in
+    // one place (copy.spec.ts asserts the other end of that).
+    expect(knob).toContain("forecastLabel");
+    expect(
+      knob,
+      "Knob.svelte builds the signed delta itself instead of rendering the one copy.ts wrote",
+    ).not.toContain("forecastDelta(");
+  });
+
+  it("SURPRISE ME is a real disabled button when every knob is held, and its reason is 53 characters", () => {
+    // THE BEHAVIOUR SHIPPED IN 10-09-01; THIS IS THE ASSERTION.
+    // `surpriseIndices` answers a fully-held roll by handing the previous
+    // indices back - its documented exhaustion signal - so a SURPRISE ME left
+    // enabled would be a button that appears to do nothing, which is worse
+    // than a disabled one. DEGR-02 then requires a reason, and this control
+    // needs one where RESET ALL does not: RESET ALL is disabled by a state the
+    // rack shows directly, and this one by a state spread across every row.
+    const region = code(componentPath("TuningRegion.svelte"));
+
+    expect(
+      region,
+      "SURPRISE ME is not disabled on full exhaustion, so it is a button that appears to do nothing",
+    ).toContain("disabled={rolling || allHeld}");
+    expect(
+      region,
+      "allHeld is not derived from the rack, so the disabled state is not the one the toggles produce",
+    ).toContain("knobViews.every((knob) => heldKnobs.has(knob.id))");
+
+    // The reason is imported, never transcribed, and it is wired to the
+    // control rather than merely printed near it.
+    expect(
+      region,
+      "the region transcribes the reason instead of importing it, which is how one sentence becomes two",
+    ).not.toContain(`"${SURPRISE_ALL_HELD}"`);
+    expect(region).toContain("SURPRISE_ALL_HELD");
+    expect(
+      region,
+      "the reason is not wired to the disabled control by aria-describedby, so it is visual-only",
+    ).toContain("aria-describedby={allHeld ? heldReasonId : undefined}");
+
+    // 53, counted rather than asserted by eye. copy.spec.ts holds the sentence
+    // character-for-character; this holds the number the UI spec gives it.
+    expect(
+      [...SURPRISE_ALL_HELD].length,
+      "the fully-held reason is no longer 53 characters",
+    ).toBe(53);
+    expect(
+      SURPRISE_ALL_HELD,
+      "the reason names the control instead of the state, repeating the label directly above it",
+    ).not.toContain("SURPRISE ME");
+  });
+
+  it("the accent census over the seven tuning components is unmoved at fourteen", () => {
+    // THE RESERVED LIST IS EIGHT AND THIS IS WHAT HOLDS IT THERE (10-UI-SPEC
+    // 7.2). Every entry is named in the failure message below, because a
+    // census that fails with a bare number tells the next author the count
+    // moved and nothing about which of the eight they were entitled to.
+    //
+    // A COUNT, NOT AN INSPECTION. Two waves of this phase add controls to
+    // these files - a lock, a forecast delta, a ghost fill - and each one is a
+    // chance to reach for the one colour that is already spoken for. Nothing
+    // in either wave took it, and this is the assertion that says so rather
+    // than the comment.
+    const RESERVED = [
+      "the splash wordmark and its punched rectangles",
+      "the name plate's triangles",
+      "TRY ON DEVICE's enabled fill",
+      "the focus ring",
+      "the header wordmark",
+      "the loading motif's one walking cell",
+      "the two budget meters' fill while in budget",
+      "the selected value of a knob",
+    ];
+    expect(RESERVED, "the reserved list is eight entries").toHaveLength(8);
+
+    const census: Record<string, number> = {};
+    for (const name of TUNING_COMPONENTS) {
+      census[name] = occurrences(code(componentPath(name)), "--color-accent");
+    }
+    const total = Object.values(census).reduce((sum, n) => sum + n, 0);
+
+    // Per file, so a move is named rather than merely counted.
+    expect(
+      census,
+      `the accent census moved. The reserved list is these eight and nothing else: ${RESERVED.join("; ")}. A held knob's marker is --color-line, the forecast delta is --color-ink and the ghost fill is --color-line-soft - none of them is entitled to the ninth`,
+    ).toEqual({
+      "BudgetMessage.svelte": 2,
+      "BudgetMeter.svelte": 1,
+      "CopyLink.svelte": 1,
+      "Knob.svelte": 9,
+      "KnobRack.svelte": 0,
+      "StampNotice.svelte": 0,
+      "TuningRegion.svelte": 1,
+    });
+    expect(
+      total,
+      "the accent declaration count across the seven tuning components is no longer fourteen",
+    ).toBe(14);
+
+    // Non-vacuity: the walk really read files with accent in them.
+    expect(
+      Object.values(census).filter((n) => n > 0).length,
+      "the census found accent in fewer files than the four that carry it",
+    ).toBe(5);
   });
 
   it("the alarm red lives in exactly two components and on no button", () => {
@@ -354,6 +511,47 @@ describe("the tuning UI's structural rules", () => {
       offenders,
       "the alarm red is applied to a button, which reads as 'dangerous' when the truth is 'not yet'",
     ).toEqual([]);
+
+    // -----------------------------------------------------------------------
+    // T2's ghost fill, asserted HERE because the thing it must not do is add a
+    // fourth --color-over use. The carrier list above already says the token
+    // did not spread; these say the new thing inside one of the carriers did
+    // not take it either, and that it does not animate.
+    const meter = code(componentPath("BudgetMeter.svelte"));
+    const ghost = rulesOf(meter).find(
+      (rule) => rule.selector.trim() === ".ghost",
+    );
+    expect(
+      ghost,
+      "BudgetMeter.svelte no longer has a .ghost rule",
+    ).toBeDefined();
+    expect(
+      ghost?.body,
+      "the ghost is not --color-line-soft, so it is either invisible or on a token it has no claim to",
+    ).toContain("var(--color-line-soft)");
+    expect(
+      ghost?.body,
+      "the ghost paints in the alarm red - that is X-01's fourth use, and an unaffordable option is disabled and cannot be hovered anyway",
+    ).not.toContain("--color-over");
+    expect(
+      ghost?.body,
+      "the ghost spends accent, which would be a ninth entry on the reserved list",
+    ).not.toContain("--color-accent");
+    // 10-UI-SPEC 14 lists the ghost at 0 ms DELIBERATELY: it tracks a pointer,
+    // and a fill that eased in would arrive after the pointer had moved on and
+    // would read as the real value rather than as a forecast.
+    expect(
+      ghost?.body,
+      "the ghost animates - a ghost that eases in lags the pointer and reads as the real value",
+    ).toContain("transition: none");
+    // And the accent fill drops its own 120 ms for exactly as long as a ghost
+    // is on screen, because then it is tracking a pointer too.
+    expect(
+      rulesOf(meter).find(
+        (rule) => rule.selector.trim() === ".fill.forecasting",
+      )?.body,
+      "the fill keeps its landing transition while a forecast is showing, so it eases under the pointer",
+    ).toContain("transition: none");
   });
 
   it("the region's arithmetic is present, and both constants are", () => {
@@ -421,5 +619,16 @@ describe("the tuning UI's structural rules", () => {
       code(tryOn),
       "the honesty slot no longer reserves 48px, so swapping its sentence changes its line count and shoves the whole region down at the instant a knob crosses 908. ceil(85 / 43) x 24 = 48, where 85 is the longest of its five candidates after plan 10-03 and 43 is the CH_PER_LINE plan 10-01 measured in Inter - it was 72px for three lines",
     ).toContain("min-block-size: 48px");
+
+    // AND THE TWO NUMBERS T2 IS FORBIDDEN TO MOVE. The ghost lives inside the
+    // existing 8px bar and the delta is absolutely positioned inside an option
+    // it does not resize, so neither the meters block nor Phase 4's region
+    // floor changes by a pixel. Both are asserted rather than assumed, because
+    // "it lives inside the existing box" is exactly the claim a later tidy-up
+    // breaks without noticing.
+    expect(
+      code(componentPath("ChosenPanel.svelte")),
+      "ChosenPanel's 152px region floor moved, so the forecast grew the region after all",
+    ).toContain("min-block-size: 152px");
   });
 });

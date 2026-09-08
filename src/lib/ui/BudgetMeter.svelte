@@ -56,6 +56,15 @@
   meter's bar fill with its 2px outline, and that meter's numerals and
   percentage. It is never a button, never a border elsewhere, never a knob.
 
+  THE GHOST IS THE THIRD THING IN THE BAR AND IT SPENDS NOTHING (TUNE-02, T2).
+  A hovered or focused knob option publishes what it WOULD cost, and the bar
+  draws the difference in --color-line-soft - the track's own token, at 0 ms,
+  behind nothing and in front of nothing. It adds no --color-over branch: an
+  option that would cross 908 is already disabled and cannot be hovered, so
+  this file's three var(--color-over) declarations are untouched and X-01 is
+  still at three uses. It adds no accent either: the reserved list stays at
+  eight.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -73,9 +82,19 @@
 
   let {
     view,
+    ghost,
   }: {
     /** One meter, already resolved by $lib/tune/view's meterView(). */
     view: MeterView;
+    /**
+     * The character count a hovered or focused knob option WOULD produce on
+     * this event (TUNE-02, T2), or undefined when nothing is being forecast.
+     *
+     * A number, never a percentage: the geometry is this file's, exactly as it
+     * is for `used`, so the ghost and the fill cannot be computed by two
+     * different roundings and disagree by a pixel.
+     */
+    ghost?: number;
   } = $props();
 
   /**
@@ -114,6 +133,44 @@
     view.state === "measuring"
       ? 0
       : Math.min(100, (view.used / view.limit) * 100),
+  );
+
+  /**
+   * THE GHOST, AS ONE SPAN AND NO DIRECTION BRANCH.
+   *
+   * The forecast is either above the current value or below it, and the
+   * segment between them is the same segment either way: min(current,
+   * forecast) to max(current, forecast). The bar is then three bands, and the
+   * accent fill always ends where the ghost begins:
+   *
+   *   [0, min)    the accent fill, exactly as it always was
+   *   [min, max)  the ghost, --color-line-soft OVER the track's own
+   *               --color-line-soft, which composites to 0.36 alpha against
+   *               the track's 0.2 - a real difference, drawn in the material
+   *               of the bar rather than in a colour of its own
+   *   [max, 100]  the empty track
+   *
+   * Forecast above: the ghost is the extra the choice would take, beyond the
+   * fill. Forecast below: the fill really does stop short and the ghost is the
+   * notch cut out of it, at the same alpha, which is what 10-UI-SPEC 14 asks
+   * for. ONE element and one token in both directions, so the two readings
+   * cannot drift apart.
+   *
+   * Nothing is drawn while measuring: there is no current value for a
+   * difference to be taken from.
+   */
+  const ghostPercent = $derived(
+    ghost === undefined || view.state === "measuring"
+      ? undefined
+      : Math.min(100, (ghost / view.limit) * 100),
+  );
+  const ghostFrom = $derived(
+    ghostPercent === undefined
+      ? fillPercent
+      : Math.min(fillPercent, ghostPercent),
+  );
+  const ghostSize = $derived(
+    ghostPercent === undefined ? 0 : Math.abs(ghostPercent - fillPercent),
   );
 
   /**
@@ -156,8 +213,19 @@
   </div>
 
   <div class="track" class:over={view.over} aria-hidden="true">
-    <span class="fill" class:over={view.over} style:inline-size="{fillPercent}%"
+    <span
+      class="fill"
+      class:over={view.over}
+      class:forecasting={ghostPercent !== undefined}
+      style:inline-size="{ghostFrom}%"
     ></span>
+    {#if ghostPercent !== undefined}
+      <span
+        class="ghost"
+        style:inset-inline-start="{ghostFrom}%"
+        style:inline-size="{ghostSize}%"
+      ></span>
+    {/if}
   </div>
 </div>
 
@@ -216,10 +284,38 @@
 
   /* 4px under the row, then an 8px bar at the full content width. */
   .track {
+    position: relative;
     margin-block-start: 4px;
     block-size: 8px;
     border-radius: 2px;
     background: var(--color-line-soft);
+  }
+
+  /*
+    THE GHOST (TUNE-02, T2). --color-line-soft, the same token the empty track
+    already is, so the forecast is drawn in the material of the bar rather than
+    in a colour of its own: NO ACCENT IS SPENT and X-01's alarm red is not
+    touched, which is what keeps the reserved list at eight and --color-over at
+    exactly three.
+
+    transition: none, AND IT IS NOT AN OVERSIGHT. 10-UI-SPEC 14 lists the ghost
+    at 0 ms deliberately: it tracks a pointer, and a fill that eased in over
+    120 ms would arrive after the pointer had moved on and would read as the
+    real value rather than as a forecast. The fill beside it keeps its 120 ms
+    for the opposite reason - it is a measurement landing, not a pointer.
+
+    NO --color-over BRANCH LIVES HERE, and a reader looking for the fourth use
+    of the alarm red will not find it. An option that would take the event over
+    908 is already `disabled`, so it cannot be hovered and an unaffordable
+    forecast cannot be drawn at all.
+  */
+  .ghost {
+    position: absolute;
+    inset-block: 0;
+    display: block;
+    border-radius: 2px;
+    background: var(--color-line-soft);
+    transition: none;
   }
 
   /*
@@ -238,6 +334,17 @@
     border-radius: 2px;
     background: var(--color-accent);
     transition: inline-size 120ms ease-out;
+  }
+
+  /*
+    The fill's 120 ms is for a MEASUREMENT LANDING. While a forecast is showing
+    the same declaration is tracking a pointer instead, and an eased fill would
+    arrive after the pointer had moved on - the same reason the ghost itself is
+    at 0 ms. So the transition is dropped for exactly as long as the ghost is
+    on screen and comes straight back when it is withdrawn.
+  */
+  .fill.forecasting {
+    transition: none;
   }
 
   /*

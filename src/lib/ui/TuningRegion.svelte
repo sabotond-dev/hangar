@@ -144,6 +144,8 @@
     liveReset,
     liveResetOver,
     liveResetOverBoth,
+    forecastDelta,
+    forecastExpansion,
     type EventWord,
   } from "$lib/tune/copy";
   import { onIdle } from "$lib/tune/idle";
@@ -173,12 +175,26 @@
     apply: () => void;
   };
 
+  /**
+   * $lib/tune/model's ForecastView, restated for the same reason every other
+   * type on this page is: that module reaches the vendored compiler.
+   */
+  type ForecastMessage = {
+    knobId: string;
+    position: number;
+    setup: number;
+    timer: number;
+    setupDelta: number;
+    timerDelta: number;
+  };
+
   /** $lib/tune/model's Tuner, narrowed to the calls this region makes. */
   type Tuner = {
     set(knobId: string, index: number): void;
     reset(knobId: string): void;
     resetAll(): void;
     surprise(held?: ReadonlySet<string>): Promise<void>;
+    forecast(knobId: string, position: number | undefined): void;
     stamp(): string | undefined;
     destroy(): void;
   };
@@ -273,6 +289,14 @@
    */
   const heldKnobs = new SvelteSet<string>();
   /**
+   * The one forecast on screen (TUNE-02, T2), or undefined.
+   *
+   * AT MOST ONE FOR THE WHOLE RACK: a visitor has one pointer and one focus,
+   * so a second forecast could only ever be a stale first one. The tuner
+   * withdraws it on every knob move, so nothing here has to remember to.
+   */
+  let forecast: ForecastMessage | undefined = $state(undefined);
+  /**
    * Slot A describes how the panel arrived, and stops being true once the
    * visitor takes over.
    *
@@ -341,6 +365,48 @@
   const rack = $derived(rackPx ?? 0);
   /** The disabled control's reason, wired to it by aria-describedby. */
   const heldReasonId = "tuning-surprise-held";
+
+  /**
+   * WHICH EVENT THE ONE NUMBER SPEAKS FOR.
+   *
+   * The forecast moves both budgets and both meters draw their own ghost, but
+   * the delta beside the option is ONE number and has to be about one of them.
+   * It is the event that moves further, ties to Setup - so the number answers
+   * "what is the most this would cost me" rather than averaging two budgets
+   * that are not interchangeable. The sentence beside it names the event, so
+   * the number is never ambiguous about which meter it belongs to.
+   */
+  const forecastEvent = $derived.by<EventWord>(() => {
+    const now = forecast;
+    if (now === undefined) return "Setup";
+    return Math.abs(now.timerDelta) > Math.abs(now.setupDelta)
+      ? "Timer"
+      : "Setup";
+  });
+
+  /**
+   * The forecast as the rack takes it: two already-written strings.
+   *
+   * `$derived.by` rather than `$derived`, and it is not a style choice: a rune
+   * initialiser is an expression in the module body, so TypeScript's flow
+   * analysis knows `forecast` was assigned `undefined` on the line above and
+   * narrows every later branch of it to `never`. A closure defers the read and
+   * the declared type survives.
+   */
+  const rackForecast = $derived.by(() => {
+    const now = forecast;
+    if (now === undefined) return undefined;
+    const event = forecastEvent;
+    return {
+      knobId: now.knobId,
+      position: now.position,
+      label: forecastDelta(event === "Setup" ? now.setupDelta : now.timerDelta),
+      sentence: forecastExpansion(
+        event,
+        event === "Setup" ? now.setup : now.timer,
+      ),
+    };
+  });
 
   function waiting(state: string): boolean {
     return state === "measuring" || state === "stale";
@@ -504,6 +570,9 @@
         },
         onover: receiveOver,
         onconfig,
+        onforecast: (next) => {
+          forecast = next;
+        },
       });
       if (!mounted) {
         built.destroy();
@@ -550,6 +619,15 @@
     if (!heldKnobs.delete(id)) heldKnobs.add(id);
   }
 
+  /**
+   * One hover or focus, forwarded. Nothing is computed here and nothing is
+   * cached here: the tuner owns the memo, because the memo's key is the index
+   * vector and the tuner is what owns that.
+   */
+  function forecastKnob(id: string, position: number | undefined): void {
+    tuner?.forecast(id, position);
+  }
+
   function resetAll(): void {
     if (tuner === undefined) return;
     landed = false;
@@ -587,9 +665,11 @@
     <KnobRack
       knobs={knobViews}
       held={heldKnobs}
+      forecast={rackForecast}
       onchange={changeKnob}
       onreset={resetKnob}
       onhold={holdKnob}
+      onforecast={forecastKnob}
     />
 
     {#if hasKnobs}
@@ -633,8 +713,8 @@
       </p>
     {:else if view}
       <div class="meters" data-testid="tuning-meters" aria-busy={busy}>
-        <BudgetMeter view={view.setup} />
-        <BudgetMeter view={view.timer} />
+        <BudgetMeter view={view.setup} ghost={forecast?.setup} />
+        <BudgetMeter view={view.timer} ghost={forecast?.timer} />
       </div>
     {/if}
 

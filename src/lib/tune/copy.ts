@@ -23,6 +23,13 @@
 // the word "Error", never the word "loading", and no string names a control
 // that is not on the screen.
 //
+// AND A FIFTH, ADDED BY PLAN 10-09 WITH A SCOPE ATTACHED: U+2212 MINUS SIGN,
+// permitted in `forecastDelta`'s signed numeral and NOWHERE ELSE. copy.spec.ts
+// asserts the scope as well as the character - it fails if the delta writes a
+// hyphen-minus, and it fails if U+2212 appears in the code of any other file
+// under src/. A permitted character with no scope is how a copy contract
+// loosens one glyph at a time.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 // ---------------------------------------------------------------------------
@@ -115,6 +122,51 @@ export function meterExpansion(
  */
 export function emptyTimerExpansion(): string {
   return "Timer uses 0 of 908 characters. This configuration has no timer.";
+}
+
+// ---------------------------------------------------------------------------
+// The forecast (TUNE-02, T2). What a choice would cost, before it is made.
+
+/**
+ * U+2212 MINUS SIGN, named rather than pasted, and THE FIFTH PERMITTED
+ * TYPOGRAPHIC CHARACTER on the site.
+ *
+ * This module already ships U+2019, U+2026, U+2014 and U+00B7. A hyphen-minus
+ * in a signed numeral beside them is precisely the inconsistency the copy
+ * contract exists to prevent - and it is also the wrong glyph: U+002D is a
+ * word-joining dash, drawn short and high, while U+2212 is drawn at the same
+ * width and height as the plus sign it alternates with, which is what stops a
+ * column of deltas jittering as the sign flips.
+ *
+ * PERMITTED IN THE FORECAST DELTA AND NOWHERE ELSE. `copy.spec.ts` asserts
+ * both halves: that `forecastDelta` writes it, and that the character appears
+ * in exactly one place in the whole of `src/`. A permitted character with no
+ * scope is how a copy contract loosens.
+ */
+const MINUS = "−";
+
+/**
+ * The signed cost of a choice, in characters: `+6`, a U+2212 and a 3, `0`.
+ *
+ * Zero is bare rather than a signed zero of either sign: a knob that costs
+ * nothing has no direction to point in.
+ */
+export function forecastDelta(delta: number): string {
+  if (delta === 0) return "0";
+  return delta > 0 ? `+${delta}` : `${MINUS}${Math.abs(delta)}`;
+}
+
+/**
+ * The forecast's accessible twin: 44 characters at the placeholder's own
+ * length, `Choosing this would put Setup at {n} of 908.`
+ *
+ * It exists because the signed delta is a NUMBER BESIDE A POINTER, and a
+ * number beside a pointer is pointer-only information. This sentence is real
+ * text in the DOM, wired to the option by aria-describedby, so the forecast
+ * reaches a visitor who arrives at the option with a keyboard.
+ */
+export function forecastExpansion(event: EventWord, used: number): string {
+  return `Choosing this would put ${event} at ${used} of 908.`;
 }
 
 /** The formatter never resolved, so there is nothing honest to show. */

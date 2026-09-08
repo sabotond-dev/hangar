@@ -7,7 +7,8 @@
 // sentence one copy.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as copy from "./copy";
 import {
@@ -33,6 +34,8 @@ import {
   backOffKnob,
   backOffLadder,
   emptyTimerExpansion,
+  forecastDelta,
+  forecastExpansion,
   ladderLine,
   liveBackInside,
   liveOverBudget,
@@ -56,6 +59,35 @@ import {
 
 const source = (file: string) =>
   readFileSync(new URL(file, import.meta.url), "utf8");
+
+/**
+ * U+2212 MINUS SIGN and U+002D HYPHEN-MINUS, both named by escape rather than
+ * pasted.
+ *
+ * The escapes are load-bearing: this file asserts that the U+2212 GLYPH occurs
+ * exactly once in the whole of src/, and a pasted one here would be the second
+ * occurrence and would make the assertion assert nothing.
+ */
+const MINUS = "\u2212";
+const HYPHEN = "-";
+
+/** Every file under src/, minus the vendored tree, in a stable order. */
+function everySourceFile(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+    a.name < b.name ? -1 : 1,
+  )) {
+    const path = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) {
+      // src/vendor/ is BOTOR's, may never be edited (D-04), and is not
+      // HANGAR's copy - so it is not this contract's to police.
+      if (entry.name === "vendor") continue;
+      everySourceFile(path, out);
+    } else {
+      out.push(path);
+    }
+  }
+  return out;
+}
 
 /** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
 const stripComments = (text: string) =>
@@ -84,6 +116,8 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   meterPercent: [77],
   meterExpansion: ["Setup", 702, 77],
   emptyTimerExpansion: [],
+  forecastDelta: [-3],
+  forecastExpansion: ["Setup", 714],
   lowerFirst: [LADDER_LABEL],
   ladderLine: [1, LADDER_LABEL],
   overBudgetKnob: ["Trail", "Setup", 33],
@@ -204,6 +238,17 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       expect(text, `${name} carries a three-dot ellipsis`).not.toContain("...");
       expect(text, `${name} says Error`).not.toMatch(/error/i);
       expect(text, `${name} says loading`).not.toMatch(/loading/i);
+      // THE FIFTH PERMITTED CHARACTER, WITH ITS SCOPE ASSERTED BESIDE IT.
+      // U+2212 is permitted in forecastDelta's signed numeral and in no other
+      // string this module can produce. A permitted character with no scope is
+      // how a copy contract loosens one glyph at a time, so the scope is a
+      // condition on the name rather than an exemption from the loop.
+      if (name !== "forecastDelta") {
+        expect(
+          text,
+          `${name} carries U+2212, which is permitted in the forecast delta and nowhere else`,
+        ).not.toContain(MINUS);
+      }
     }
   });
 
@@ -225,6 +270,74 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(METERS_UNAVAILABLE).toBe(
       "The character counter could not load, so the two budgets are not shown. Everything else on this page still works.",
     );
+
+    // -----------------------------------------------------------------------
+    // THE FORECAST, and it rides inside the meter test because it IS a meter
+    // string: the delta is what the bar would read and the expansion says so
+    // in words. This file stays at six tests (10-VALIDATION's per-file table).
+
+    expect(forecastDelta(6)).toBe("+6");
+    expect(forecastDelta(3)).toBe("+3");
+    expect(forecastDelta(0), "a zero delta is bare, never signed").toBe("0");
+
+    // THE FIFTH PERMITTED CHARACTER, ASSERTED IN BOTH DIRECTIONS AND ASSERTED
+    // FIRST. U+2212 is what a signed numeral takes on a site that already
+    // ships U+2019, U+2026, U+2014 and U+00B7; U+002D HYPHEN-MINUS is a
+    // word-joining dash and would be the inconsistency this whole contract
+    // exists to prevent. These come BEFORE the equalities below because a
+    // wrong sign fails both, and a failure that names the two codepoints is
+    // worth more than one that prints two glyphs a reader has to tell apart.
+    expect(
+      forecastDelta(-3),
+      "the delta writes U+002D HYPHEN-MINUS instead of U+2212 MINUS SIGN",
+    ).not.toContain(HYPHEN);
+    expect(
+      forecastDelta(-3),
+      "the delta does not carry U+2212 MINUS SIGN at all",
+    ).toContain(MINUS);
+    expect(
+      forecastDelta(6),
+      "a positive delta reaches for U+2212 as well, which is not a sign at all",
+    ).not.toContain(MINUS);
+
+    expect(forecastDelta(-3)).toBe(`${MINUS}3`);
+    expect(forecastDelta(-12)).toBe(`${MINUS}12`);
+
+    // AND THE SCOPE, WHICH IS THE OTHER HALF OF PERMITTING A CHARACTER.
+    // Exactly one occurrence of the glyph in the CODE of the whole of src/,
+    // comments stripped - so the permission cannot spread one paste at a time.
+    // Comments are excluded on purpose: nothing in a comment is shipped, and
+    // the paragraph beside MINUS has to be able to spell out what it is.
+    const root = fileURLToPath(new URL("../..", import.meta.url));
+    const carriers: string[] = [];
+    let scanned = 0;
+    for (const file of everySourceFile(root)) {
+      if (!/[.](ts|svelte|css|js|json|html)$/.test(file)) continue;
+      scanned++;
+      const count = stripComments(readFileSync(file, "utf8")).split(
+        MINUS,
+      ).length;
+      if (count > 1) carriers.push(`${file} x${count - 1}`);
+    }
+    expect(scanned, "src/ was actually walked").toBeGreaterThan(100);
+    expect(
+      carriers.map((each) => each.split(root).join("src")),
+      "U+2212 is permitted in the forecast delta and nowhere else, and it has appeared somewhere else",
+    ).toEqual(["src/lib/tune/copy.ts x1"]);
+
+    // The hidden expansion, at the placeholder's own length. 44 characters,
+    // counted rather than asserted by eye, and identical for either event
+    // word because Setup and Timer are both five.
+    expect(forecastExpansion("Setup", 714)).toBe(
+      "Choosing this would put Setup at 714 of 908.",
+    );
+    expect(forecastExpansion("Timer", 218)).toBe(
+      "Choosing this would put Timer at 218 of 908.",
+    );
+    expect(
+      [..."Choosing this would put Setup at {n} of 908."].length,
+      "the forecast expansion is no longer 44 characters at its placeholder",
+    ).toBe(44);
   });
 
   it("lower-cases only the first character of the compiler's own label", () => {
