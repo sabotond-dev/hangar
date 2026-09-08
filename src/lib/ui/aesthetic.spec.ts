@@ -73,6 +73,16 @@ const APP_CSS = "src/app.css";
 const PAD_FRAME = "src/lib/ui/PadFrame.svelte";
 const FRONT_DOOR = "src/lib/ui/FrontDoor.svelte";
 const SCREEN_TOGGLE = "src/lib/ui/ScreenToggle.svelte";
+/**
+ * NOT A CRT FILE, AND SCAN 1 SAYS SO BY NAME (plan 10-11).
+ *
+ * §8.4 retired the reroll firing on the tune panel BY NAME, and MIX TWO is the
+ * second control that would have carried it. The panel is a Product surface
+ * that renders its own words, so a `clip-path` or a `transform` on it would
+ * translate and clip them. The allowlist stays closed and this file is the
+ * proof that the closure was checked rather than assumed.
+ */
+const MIX_TWO = "src/lib/ui/MixTwo.svelte";
 
 /**
  * identity.spec.ts's stripper, verbatim in behaviour: comments go before
@@ -649,6 +659,26 @@ describe("IDENT-01 the CRT layers (10-UI-SPEC 8.7)", () => {
           "leaves this scan checking nothing, which is why the floor is here",
       ).not.toEqual([]);
     }
+
+    // ---- (a0) MIX TWO, NAMED, BECAUSE §8.4 RETIRED ITS FIRING BY NAME.
+    // The general rule below would catch this too, and it is asserted
+    // separately anyway and FIRST, for the reason 10-10's negative check 5
+    // taught: a red run has to name the rule, and "MixTwo.svelte names the CRT
+    // vocabulary" is a fact where "§8.4 retired the reroll firing on the tune
+    // panel" is the reason. The file is asserted PRESENT in the walk first, so
+    // this cannot pass because the component was renamed away.
+    expect(
+      files.includes(MIX_TWO),
+      `${MIX_TWO} was not reached by the walk over src/, so the two assertions below prove nothing about it`,
+    ).toBe(true);
+    expect(
+      CRT_FILES.includes(MIX_TWO),
+      `${MIX_TWO} is on the CRT allowlist. It is a tune-panel component, and 10-UI-SPEC §8.4 retires the reroll firing for SURPRISE ME and MIX TWO BY NAME: the tune panel is a Product surface, and a clip-path on it would translate and clip its own text. The children arrive on a 160 ms opacity fade and nothing else.`,
+    ).toBe(false);
+    expect(
+      named.get(MIX_TWO) ?? [],
+      `${MIX_TWO} declares CRT vocabulary. §8.4: the tune panel is a Product surface and the reroll firing is retired by name - a clip-path or a transform there would translate and clip the words the panel renders. The arrival is opacity, 160 ms, and nothing else.`,
+    ).toEqual([]);
 
     // ---- (a) The vocabulary lives inside the allowlist. ----
     for (const [file, hits] of named) {

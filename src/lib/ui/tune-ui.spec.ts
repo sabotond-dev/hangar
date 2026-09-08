@@ -1,4 +1,4 @@
-// The structural gate over the eight components the tuning UI is made of.
+// The structural gate over the nine components the tuning UI is made of.
 //
 // These are the rules that keep the tuning UI light, scroll-free, reachable by
 // thumb and correctly coloured. Every one of them is a property of the SOURCE
@@ -27,7 +27,18 @@ import { describe, expect, it } from "vitest";
 // The copy module imports NOTHING (its own header says why), so naming it here
 // costs this file no chunk and lets the source scans below check a component
 // against the sentence it is supposed to be rendering rather than a copy of it.
-import { KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
+import {
+  KNOB_HOLD,
+  MIX_LINE,
+  MIX_THAT,
+  MIX_THIS,
+  MIX_TWO,
+  SURPRISE_ALL_HELD,
+} from "../tune/copy";
+// mix.ts imports a type and surprise.ts, and surprise.ts imports a type. Naming
+// it here costs this file nothing and lets the canvas budget be counted against
+// the constant the component actually loops over rather than against a 4.
+import { MIX_CHILDREN } from "../tune/mix";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -35,16 +46,22 @@ const repo = (rel: string) =>
 const UI_DIR = "src/lib/ui";
 
 /**
- * The eight tuning components. A literal list is unavoidable - the directory
+ * The nine tuning components. A literal list is unavoidable - the directory
  * also holds Phase 4's components, which these rules do not all bind - so its
  * length is asserted and every name is checked against the directory listing.
- * A rename, a deletion or a NINTH component added without being listed is then
+ * A rename, a deletion or a TENTH component added without being listed is then
  * a visible omission rather than a silent gap.
  *
- * The eighth is plan 10-10's ColourPicker.svelte, and adding it here is not
- * bookkeeping: a component omitted from a hand-declared list passes every walk
- * in this file silently, which would have left the picker outside the compiler
- * guard, the scroll prohibition, the 44px floor and the accent census at once.
+ * The eighth is plan 10-10's ColourPicker.svelte and the ninth is 10-11's
+ * MixTwo.svelte, and adding each here is not bookkeeping: a component omitted
+ * from a hand-declared list passes every walk in this file silently, which
+ * would have left them outside the compiler guard, the scroll prohibition, the
+ * 44px floor and the accent census at once.
+ *
+ * THIS IS THE HAND-DECLARED WALK MixTwo.svelte BELONGS TO, AND IT BELONGS TO
+ * NO OTHER. device-ui.spec.ts's DEVICE_COMPONENTS is the six device components
+ * and browse-ui.spec.ts's browseFiles() is the six browse ones; MIX TWO is a
+ * tuning control and is neither.
  */
 const TUNING_COMPONENTS: readonly string[] = [
   "BudgetMessage.svelte",
@@ -53,6 +70,7 @@ const TUNING_COMPONENTS: readonly string[] = [
   "CopyLink.svelte",
   "Knob.svelte",
   "KnobRack.svelte",
+  "MixTwo.svelte",
   "StampNotice.svelte",
   "TuningRegion.svelte",
 ];
@@ -82,7 +100,7 @@ const occurrences = (text: string, needle: string) =>
 
 /**
  * A style block split into rules. Crude on purpose: a real CSS parser would be
- * a dependency, and every selector in these eight files is a plain class or
+ * a dependency, and every selector in these nine files is a plain class or
  * element selector on one line.
  */
 function rulesOf(source: string): { selector: string; body: string }[] {
@@ -117,7 +135,7 @@ describe("the tuning UI's structural rules", () => {
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(TUNING_COMPONENTS.length, "eight components were listed").toBe(8);
+    expect(TUNING_COMPONENTS.length, "nine components were listed").toBe(9);
     expect(
       TUNING_COMPONENTS.filter((name) => !present.has(name)),
       "a listed tuning component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -199,7 +217,7 @@ describe("the tuning UI's structural rules", () => {
 
     expect(
       declarations,
-      "the eight components' code was actually read",
+      "the nine components' code was actually read",
     ).toBeGreaterThan(100);
     expect(
       offenders,
@@ -524,12 +542,19 @@ describe("the tuning UI's structural rules", () => {
       "CopyLink.svelte": 1,
       "Knob.svelte": 9,
       "KnobRack.svelte": 0,
+      // A NINTH COMPONENT THAT MOVES THE CENSUS BY ZERO (plan 10-11). MIX TWO
+      // is Secondary tier, so its pill is an OUTLINE and never a fill; its
+      // results are bordered in --color-line-soft; and its focus ring is
+      // app.css's :focus-visible, which belongs to every control on the site
+      // and is declared in no component. There was nothing here to spend
+      // accent on that would not have been a ninth entry.
+      "MixTwo.svelte": 0,
       "StampNotice.svelte": 0,
       "TuningRegion.svelte": 1,
     });
     expect(
       total,
-      "the accent declaration count across the eight tuning components is no longer twenty-one",
+      "the accent declaration count across the nine tuning components is no longer twenty-one",
     ).toBe(21);
 
     // Non-vacuity: the walk really read files with accent in them.
@@ -751,5 +776,298 @@ describe("the tuning UI's structural rules", () => {
       code(componentPath("ChosenPanel.svelte")),
       "ChosenPanel's 152px region floor moved, so the forecast grew the region after all",
     ).toContain("min-block-size: 152px");
+  });
+
+  it("MIX TWO offers four real results, changes nothing until one is clicked, and arrives on opacity alone", () => {
+    const mix = code(componentPath("MixTwo.svelte"));
+    const rawMix = raw(componentPath("MixTwo.svelte"));
+    expect(rawMix.length, "MixTwo.svelte was read").toBeGreaterThan(1000);
+
+    // ---- FOUR REAL BUTTONS IN A GROUP, EACH NAMED FOR WHAT IT WOULD CHANGE
+    // (10-UI-SPEC §15). The results are pictures of 81 lights and carry no
+    // text of their own, so the accessible name IS what a screen reader gets:
+    // four buttons called "Option 1" would be four indistinguishable buttons.
+    expect(mix, "the block has no test id").toContain('data-testid="mix-two"');
+    expect(
+      mix,
+      "the results are not indexed test ids, so no test can reach the second one",
+    ).toContain('data-testid="mix-child-{at}"');
+    expect(
+      mix,
+      "a result is not a real <button> - a div with a click handler is not reachable by keyboard and is not a control",
+    ).toMatch(/<button[^>]*class="child"/);
+    expect(
+      mix,
+      "the results are not in a role=group, which §15 requires so the four are announced as one set",
+    ).toContain('role="group"');
+    // Labelled BY THE CONTROL THAT PRODUCED IT. §13.4 gives this component
+    // four strings; a group label would be a fifth saying what the button
+    // above it already says.
+    expect(
+      mix,
+      "the group is unlabelled, or labelled by a fifth string rather than by MIX TWO itself",
+    ).toContain("aria-labelledby={mixId}");
+    expect(
+      mix,
+      "a result's accessible name is not composed from what would change",
+    ).toContain("aria-label={nameOf(result)}");
+    expect(
+      mix,
+      "nameOf writes its own sentence instead of calling the one composer in copy.ts",
+    ).toContain("mixChildName(");
+
+    // ---- THE COPY IS IMPORTED, NEVER TRANSCRIBED. This is what closes A-15's
+    // loop: every word this component renders comes from copy.ts, and
+    // copy.spec.ts scans every string copy.ts can produce for the genetics
+    // vocabulary by stem. A transcribed literal here would escape that scan.
+    for (const [name, text] of [
+      ["MIX_TWO", MIX_TWO],
+      ["MIX_LINE", MIX_LINE],
+      ["MIX_THIS", MIX_THIS],
+      ["MIX_THAT", MIX_THAT],
+    ] as const) {
+      expect(mix, `MixTwo.svelte imports ${name}`).toContain(name);
+      expect(
+        mix,
+        `MixTwo.svelte transcribes ${name} instead of importing it, which puts a rendered string outside copy.spec.ts's metaphor scan`,
+      ).not.toContain(`"${text}"`);
+    }
+
+    // ---- AND THE SECOND HALF OF A-15, MEASURED ON THIS FILE'S OWN TEXT.
+    // Everything between tags, with expressions and the style block removed:
+    // whatever is left is literal text the component renders, and it must be
+    // empty of the metaphor. `child` is an identifier and `mix-child-0` is a
+    // test id - both are code, and neither is text.
+    const template = rawMix
+      .replace(/<script[^]*?<[/]script>/g, "")
+      .replace(/<style>[^]*?<[/]style>/g, "")
+      .replace(/<!--[^]*?-->/g, "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/[{][^}]*[}]/g, " ")
+      .toLowerCase();
+    for (const word of [
+      "breed",
+      "parent",
+      "mutat",
+      "dna",
+      "gene",
+      "offspring",
+      "child",
+    ]) {
+      expect(
+        template.split(/[^a-z]+/).filter((each) => each.startsWith(word)),
+        `MixTwo.svelte renders the word "${word}" as text. A-15: no genetics metaphor reaches the interface - two candidates, four results, one button`,
+      ).toEqual([]);
+    }
+
+    // ---- NON-DESTRUCTIVE, ASSERTED AS A COUNT RATHER THAN AS A CLAIM. The
+    // configuration on the screen survives until a result is clicked, so
+    // `ontake` has exactly ONE call site and it is inside `take`. Rolling
+    // again and clearing the results change nothing, which is why there is no
+    // undo here and nothing to restore.
+    expect(
+      occurrences(mix, "ontake("),
+      "ontake is called from more than one place, so something other than a click on a result changes the configuration",
+    ).toBe(1);
+    expect(
+      mix,
+      "the take does not move the previous state into THAT ONE, so the next mix has no second candidate",
+    ).toContain("previous = { ...mine }");
+    expect(
+      mix.slice(mix.indexOf("function roll"), mix.indexOf("function take")),
+      "roll() reaches ontake - MIX TWO would then change the configuration by being pressed, and the current state would not survive the mix",
+    ).not.toContain("ontake");
+
+    // ---- RANDOMNESS INJECTED. The whole of src/lib/ui/ is walked rather than
+    // this one file, because the rule is the directory's: a component that
+    // reached for Math.random would make its own behaviour untestable.
+    const random = uiFiles().filter((file) =>
+      code(file).includes("Math.random"),
+    );
+    expect(
+      random,
+      "a component under src/lib/ui/ calls Math.random - randomness is injected, exactly as surpriseIndices and mixIndices both require",
+    ).toEqual([]);
+    expect(
+      mix,
+      "the rng is not a prop, so the component owns its own randomness",
+    ).toContain("rng: () => number");
+
+    // ---- THE PASTED LINK IS DECODED BY THE MACHINERY THAT ALREADY EXISTS.
+    // One lazy import of $lib/share/stamp (test 1 holds the await form), the
+    // two functions Phase 5 wrote, and no second format table anywhere.
+    expect(
+      mix,
+      "the pasted link is not decoded by the existing stamp machinery",
+    ).toContain("decodeFor(source, payload)");
+    expect(mix, "parseHash is not what reads the fragment").toContain(
+      "parseHash(",
+    );
+    expect(
+      mix,
+      "MixTwo.svelte carries its own format letters, which is a second decoder by another name",
+    ).not.toContain("HANGAR_FORMAT");
+    expect(
+      mix,
+      "a stamp this entry's knobs cannot reproduce is refused with a NEW message instead of the landing vocabulary",
+    ).toContain("stampUnreadable(entry.name)");
+
+    // ---- SECONDARY TIER, PILL OUTLINE, AND A-41's LIMIT (§10.3, §19.1b).
+    // Bordered, never filled: a filled pill is Primary's, and there is one
+    // Primary control per panel and it is TRY ON DEVICE.
+    const rules = rulesOf(mix);
+    const pill = rules.find((rule) => rule.selector.trim() === ".mix-two");
+    expect(pill, "MixTwo.svelte no longer has a .mix-two rule").toBeDefined();
+    for (const declaration of [
+      "border-radius: 999px",
+      "border: 1px solid var(--color-line)",
+      "background: transparent",
+      "padding-inline: 24px",
+      "min-inline-size: 44px",
+      "min-block-size: 44px",
+    ]) {
+      expect(
+        pill?.body,
+        `MIX TWO does not declare "${declaration}" - §19.1b's pill is a fully-rounded 1px outline with a transparent fill and 24px of inline padding, and §10.3 puts MIX TWO in Secondary`,
+      ).toContain(declaration);
+    }
+    // A-41's LIMIT, ASSERTED BY ABSENCE. The pill reaches Primary and
+    // Secondary and nothing else; pilling a Quiet control flattens it into
+    // Secondary, which is the SAFE-02 regression the tier ladder exists to
+    // prevent. Nothing else in this file is rounded to 999px.
+    expect(
+      rules
+        .filter((rule) => rule.body.includes("border-radius: 999px"))
+        .map((rule) => rule.selector.trim()),
+      "something other than the Secondary control is pilled in MixTwo.svelte - A-41 puts the pill on Primary and Secondary only",
+    ).toEqual([".mix-two"]);
+
+    // Both 44px axes on a result, named separately: the file-level
+    // includes("44px") walk in the test above passes on the pill alone.
+    const child = rules.find((rule) => rule.selector.trim() === ".child");
+    expect(child, "MixTwo.svelte no longer has a .child rule").toBeDefined();
+    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+      expect(
+        child?.body,
+        `a result does not declare ${axis} - Phase 4's touch floor is both axes per control`,
+      ).toContain(axis);
+    }
+
+    // ---- THE ARRIVAL: 160 ms, ease-out, OPACITY ONLY (§14). A transform here
+    // would be the tear by another name, on a Product surface that renders its
+    // own words - which is exactly what §8.4 retired the reroll firing for.
+    expect(
+      child?.body,
+      "the results do not arrive on the 160 ms ease-out §14 gives them",
+    ).toContain("animation: mix-arrive 160ms ease-out");
+    const arrival = rawMix.slice(rawMix.indexOf("@keyframes mix-arrive"));
+    const frames = arrival.slice(0, arrival.indexOf("@media"));
+    expect(frames, "the arrival keyframes were found").toContain("opacity: 0");
+    for (const forbidden of ["transform", "translate", "scale", "clip-path"]) {
+      expect(
+        frames,
+        `the arrival declares "${forbidden}". §14 gives MIX TWO's results opacity and nothing else, and §8.4 retired the reroll firing by name: a clip-path or a translate on the tune panel would move and clip its own text`,
+      ).not.toContain(forbidden);
+      expect(
+        child?.body,
+        `the .child rule declares "${forbidden}", which puts the motion back beside the rule that forbids it`,
+      ).not.toContain(forbidden);
+    }
+    expect(
+      mix,
+      "the reduced-motion override is gone, so a visitor who asked for less motion still gets the fade",
+    ).toContain("@media (prefers-reduced-motion: reduce)");
+
+    // ---- AND THE TWO TOKENS THIS FILE MAY NOT SPEND. A-44 makes the
+    // --font-mono list SEVEN with six spent, and the seventh is reserved for
+    // §19.1c's metadata block; nothing here is a number that moves under a
+    // pointer. --color-over is X-01's three uses, all of them a meter or a
+    // message.
+    expect(
+      mix,
+      "MixTwo.svelte spends a --font-mono use. A-44 reserves the seventh for §19.1c's metadata block, and this component displays no number that changes as a pointer moves",
+    ).not.toContain("--font-mono");
+    expect(
+      mix,
+      "MixTwo.svelte reaches for the alarm red. X-01 scopes it to three uses and all three belong to a meter or a message",
+    ).not.toContain("--color-over");
+  });
+
+  it("MIX TWO's four results are the last four canvases in the budget: six on the worst entry, not eight", () => {
+    const mix = code(componentPath("MixTwo.svelte"));
+    const picker = code(componentPath("ColourPicker.svelte"));
+
+    // RECONCILED AGAINST 10-10's RECORDED NUMBER RATHER THAN RECOUNTED. That
+    // plan asserted the picker declares exactly ONE PadCanvas however many
+    // colour knobs an entry carries (colour-picker.spec.ts test 6, "the picker
+    // contributes exactly one canvas, so the worst entry shows six rather than
+    // eight"), and recorded the budget for this plan to build on. Re-reading
+    // the picker here is what makes the reconciliation real: if it grew a
+    // second pad, six would be seven and this test says so.
+    expect(
+      occurrences(picker, "<PadCanvas"),
+      "the picker declares more than one result pad, so 10-10's recorded budget no longer holds and six is not six",
+    ).toBe(1);
+
+    // The mix declares ONE PadCanvas inside a loop over the four results, so
+    // the instance count is MIX_CHILDREN and the constant is what is counted -
+    // a hard-coded 4 here would agree with a component that had stopped
+    // looping over four.
+    expect(
+      occurrences(mix, "<PadCanvas"),
+      "the results do not render one pad each from one declaration",
+    ).toBe(1);
+    expect(
+      mix,
+      "the results are not a loop over what mixIndices returned",
+    ).toContain("{#each results as result, at (at)}");
+    expect(MIX_CHILDREN, "MIX TWO no longer produces four results").toBe(4);
+
+    const HERO = 1;
+    const PICKER_RESULT = 1;
+    const worstColourKnobs = 3;
+    expect(
+      HERO + PICKER_RESULT + MIX_CHILDREN,
+      "the six-canvas budget moved. §11.6 costs MIX TWO at four beside the hero and the picker's ONE result - the parents are text on purpose, because two more canvases would be eight and THIS ONE is already running as the hero six centimetres up the same panel",
+    ).toBe(6);
+    expect(
+      HERO + worstColourKnobs + MIX_CHILDREN,
+      "one picker per KNOB would be eight on console, forge and strip, which is what §11.2's one-picker-per-panel rule bought",
+    ).toBe(8);
+
+    // EVERY ONE IS IntersectionObserver-GATED, and that is a property of the
+    // host rather than of this component: a canvas is painted only once
+    // `SimHost.register` has adopted it, and the host gates every registered
+    // canvas on one observer. So the assertion has two halves - the results
+    // hand their elements up, and the thing they are handed to is the gate.
+    expect(
+      mix,
+      "a result pad does not hand its element upward, so nothing can register it and nothing can gate it",
+    ).toContain("onready={onchild}");
+    expect(
+      code("src/lib/sim/host.ts"),
+      "the host no longer gates registered canvases on an IntersectionObserver, so 'every one is gated' is no longer true of anything",
+    ).toContain("new IntersectionObserver(");
+
+    // Rendered only when a consumer supplies the hop - the picker's own rule,
+    // for the picker's own reason. An unregistered canvas has no backing store
+    // and paints nothing, and four empty boxes claiming to show four
+    // configurations would be worse than none.
+    expect(
+      mix,
+      "the results render their pads unconditionally, so a page with no SimHost shows four empty boxes",
+    ).toMatch(/[{]#if onchild[}]/);
+    expect(
+      picker,
+      "the picker stopped gating its result pad on a supplied consumer, so the two components no longer answer the missing hop the same way",
+    ).toMatch(/[{]#if onresult[}]/);
+
+    // FOUR DISTINCT IDS, AND NONE OF THEM THE HERO'S. register() unregisters
+    // whatever holds the id first, so a result sharing the hero's id would
+    // blank the hero - the failure 10-10 avoided with `-colour-result`.
+    expect(
+      mix,
+      "the result pads do not carry their own registration ids, so they collide with each other or with the hero",
+    ).toContain("`${entry.id}-mix-${at}`");
   });
 });
