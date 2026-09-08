@@ -15,6 +15,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
+import { cellToCoord, type DemoPath } from "./demo";
 import { SimHost, type HostDeps } from "./host";
 import { GRID_SIDE } from "./paint";
 import {
@@ -24,6 +25,7 @@ import {
   SIDE_INTERVAL_MS,
   TICK_MS,
 } from "./schedule";
+import { MAX_CONTACTS } from "./touch";
 
 type FrameCb = (now: number) => void;
 
@@ -266,6 +268,45 @@ function harness(opts: { reduced?: boolean; lowPower?: boolean } = {}) {
     canvas: () => fakeCanvas(() => clock.now),
   };
 }
+
+/**
+ * A one-contact demonstration gesture, authored here rather than imported from
+ * src/lib/sim/demo.ts.
+ *
+ * The shipped paths are four hundred ticks long and are asserted for shape in
+ * demo.spec.ts; what this file is about is the host's plumbing, and a path short
+ * enough to replay inside one frame's catch-up clamp is what makes the tick
+ * arithmetic below exact rather than approximate. Both are DemoPath, so the
+ * type still has to agree with what ships.
+ */
+const STROKE: DemoPath = {
+  id: "stroke",
+  gesture: "one contact down, one move, one lift",
+  periodTicks: 40,
+  samples: [
+    { tick: 2, pointer: 1, event: "down", x: 2, y: 3 },
+    { tick: 4, pointer: 1, event: "move", x: 4, y: 5 },
+    { tick: 6, pointer: 1, event: "up", x: 4, y: 5 },
+  ],
+};
+
+/**
+ * A two-contact gesture that stays down. Trackpad's own path would have opened
+ * two, which is why four demo cards on one shared five-slot sampler was never
+ * survivable - and why the contention test needs a path that holds its
+ * contacts rather than releasing them a few ticks in.
+ */
+const TWO_FINGERS: DemoPath = {
+  id: "two-fingers",
+  gesture: "two contacts down, held, then lifted",
+  periodTicks: 100,
+  samples: [
+    { tick: 1, pointer: 1, event: "down", x: 3, y: 2 },
+    { tick: 2, pointer: 2, event: "down", x: 5, y: 2 },
+    { tick: 80, pointer: 1, event: "up", x: 3, y: 6 },
+    { tick: 81, pointer: 2, event: "up", x: 5, y: 6 },
+  ],
+};
 
 /** Gaps between successive paints, including the one register paints. */
 function gaps(paints: number[]): number[] {
@@ -844,5 +885,202 @@ describe("the simulator host (src/lib/sim/host.ts)", () => {
     ).toBe(paints);
     expect(engine.calls.tick, "a repaint after destroy ticked").toBe(ticks);
     expect(h.clock.pending, "a repaint after destroy queued a frame").toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // D-09's demonstration finger. Four things had to change in the host before a
+  // card that paints nothing until it is touched could be touched at all, and
+  // each of them is a test here.
+
+  it("delivers a demo card's own gesture to a pad that is not the hero, through its own sampler", () => {
+    const h = harness();
+    const canvas = h.canvas();
+    const engine = fakeEngine();
+    h.host.register("card", canvas, engine, { demo: STROKE });
+
+    h.clock.step(0);
+    // 100 ms is the catch-up clamp, so this is ten whole ticks - past the
+    // path's lift at tick 6 and short of its period.
+    h.clock.step(100);
+
+    // The DOWN and the MOVE carry the cells the path authored, converted to LED
+    // coordinates at the cell centre. The UP carries the contact's LAST
+    // position rather than the one written beside it, because TouchSampler.end
+    // reuses the contact's own coordinates - a demo finger is subject to that
+    // rule exactly as a real one is (touch.ts:126-137).
+    expect(
+      engine.calls.touch,
+      "a browse card is never the hero, so without the demo term it would receive nothing at all",
+    ).toEqual([
+      ["down", 0, cellToCoord(2, 127), cellToCoord(3, 127)],
+      ["move", 0, cellToCoord(4, 127), cellToCoord(5, 127)],
+      ["up", 0, cellToCoord(4, 127), cellToCoord(5, 127)],
+    ]);
+    expect(
+      engine.calls.tick,
+      "the gesture rode the host's own tick loop, one sample per tick",
+    ).toBe(10);
+
+    // The other half of the same rule: a pad with no demo path receives nothing.
+    const plain = fakeEngine();
+    h.host.register("plain", h.canvas(), plain);
+    h.clock.step(200);
+    expect(
+      plain.calls.touch,
+      "a pad with no demo path was handed a touch from somewhere",
+    ).toEqual([]);
+
+    h.host.destroy();
+  });
+
+  it("keeps a demo card running when its engine has settled, and freezes it under reduced motion", () => {
+    // Never animating on its own: without the demo terms in active() this pad
+    // would be judged frozen on the first frame and its rAF cancelled.
+    const h = harness();
+    const engine = fakeEngine(0);
+    h.host.register("card", h.canvas(), engine, { demo: STROKE });
+
+    h.clock.step(0);
+    h.clock.step(100);
+    expect(
+      engine.animating,
+      "the engine really does report itself settled - otherwise this test asserts nothing",
+    ).toBe(false);
+    expect(
+      engine.pendingTouches,
+      "the contact was opened and released inside the ten ticks",
+    ).toBe(0);
+    const ticked = engine.calls.tick;
+    expect(ticked, "the demo card ticked at all").toBeGreaterThan(0);
+
+    // The loop, past the end of the gesture and past the end of the period. The
+    // sampler is empty for most of this and the engine is settled for all of
+    // it; a demo card is active because it is a demo card.
+    h.clock.step(200);
+    h.clock.step(400);
+    expect(
+      engine.calls.tick,
+      "a demo card stopped between two gestures, and nothing but a tick could ever restart it",
+    ).toBeGreaterThan(ticked);
+    expect(h.clock.pending, "the loop is still asking for frames").toBe(1);
+
+    // The contrast, so the assertion above is about the demo path and not about
+    // some other reason the loop stays alive.
+    const still = fakeEngine(0);
+    h.host.register("still", h.canvas(), still, {});
+    const before = still.calls.tick;
+    h.clock.step(500);
+    h.clock.step(600);
+    expect(
+      still.calls.tick,
+      "a settled pad with no demo path kept ticking",
+    ).toBe(before);
+
+    h.host.destroy();
+
+    // Reduced motion: reset, replay the path to its end ONCE, and freeze. The
+    // demo is uninvited motion, so a visitor who asked for less of it gets the
+    // picture the gesture produced and no loop.
+    const r = harness({ reduced: true });
+    const frozen = fakeEngine(0);
+    r.host.register("card", r.canvas(), frozen, { demo: STROKE });
+    expect(frozen.calls.reset, "the still frame restarted the engine").toBe(1);
+    expect(
+      frozen.calls.run,
+      "a demo entry replays its path rather than running to tick 64",
+    ).toEqual([]);
+    expect(
+      frozen.calls.tick,
+      "the whole period was replayed, tick by tick, so the samples could be delivered",
+    ).toBe(STROKE.periodTicks);
+    const replayed = frozen.calls.touch.length;
+    expect(replayed, "the gesture reached the engine").toBe(3);
+
+    r.clock.step(0);
+    r.clock.step(300);
+    expect(
+      frozen.calls.tick,
+      "the demo looped under reduced motion instead of freezing",
+    ).toBe(STROKE.periodTicks);
+
+    // Idempotent, which is what makes it safe on all three of its call sites.
+    r.host.replaceEngine("card", frozen);
+    expect(frozen.calls.reset, "the second still frame reset again").toBe(2);
+    expect(
+      frozen.calls.tick,
+      "the second replay ran the same number of ticks",
+    ).toBe(STROKE.periodTicks * 2);
+    expect(
+      frozen.calls.touch.length,
+      "the second replay delivered the same gesture",
+    ).toBe(replayed * 2);
+
+    r.host.destroy();
+  });
+
+  it("cannot starve the visitor's finger, because a demo card holds its own five slots", () => {
+    // THE POINT OF THE ONE-SAMPLER-PER-ENTRY DECISION, and it was measured on
+    // exactly this arrangement with the demo entries handed the host's own
+    // sampler: the visitor's five fingers came back true, true, true, FALSE,
+    // FALSE, and the three that WERE accepted reached the hero's engine zero
+    // times - every one of them was delivered to the first demo card instead.
+    // See the demoSampler comment in host.ts for all three failure modes.
+    expect(
+      MAX_CONTACTS,
+      "the fix is one sampler per demo entry, NOT a bigger global cap - raising this would change what the hardware tracks",
+    ).toBe(5);
+
+    const h = harness();
+    const demos = ["one", "two", "three", "four"].map((id) => {
+      const engine = fakeEngine();
+      h.host.register(id, h.canvas(), engine, { demo: TWO_FINGERS });
+      return { id, engine };
+    });
+    const heroEngine = fakeEngine();
+    h.host.setHero("hero");
+    h.host.register("hero", h.canvas(), heroEngine);
+
+    h.clock.step(0);
+    h.clock.step(60);
+
+    for (const demo of demos) {
+      expect(
+        demo.engine.pendingTouches,
+        `${demo.id}: both of its own contacts are down on its own engine`,
+      ).toBe(2);
+      expect(
+        demo.engine.calls.touch.map((call) => call[1]),
+        `${demo.id}: its contacts are slots 0 and 1 of ITS OWN sampler, not slots 6 and 7 of a shared one`,
+      ).toEqual([0, 1]);
+    }
+
+    // Eight demo contacts are down. The visitor now puts five fingers on the
+    // hero and every one of them is taken.
+    const taken: boolean[] = [];
+    for (let finger = 0; finger < MAX_CONTACTS; finger++) {
+      taken.push(h.host.touchDown(100 + finger, finger, finger));
+    }
+    expect(
+      taken,
+      "the hero's five contacts were starved by the demo cards - the samplers are not separate",
+    ).toEqual([true, true, true, true, true]);
+    expect(
+      h.host.touchDown(200, 0, 0),
+      "a sixth pointer is refused, as on hardware",
+    ).toBe(false);
+
+    h.clock.step(70);
+    expect(
+      heroEngine.calls.touch.map((call) => call[1]),
+      "the hero's five fingers reached ITS engine on the host's own sampler",
+    ).toEqual([0, 1, 2, 3, 4]);
+    for (const demo of demos) {
+      expect(
+        demo.engine.calls.touch.some((call) => call[1] > 1),
+        `${demo.id}: a slot from another pad's finger arrived on this engine`,
+      ).toBe(false);
+    }
+
+    h.host.destroy();
   });
 });

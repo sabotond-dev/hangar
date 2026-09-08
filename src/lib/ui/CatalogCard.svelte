@@ -53,6 +53,7 @@
   import { resolve } from "$app/paths";
   import type { ListingEntry } from "$lib/catalog/listing";
   import { typographic } from "$lib/browse/typographic";
+  import { type DemoPath, demoPathFor } from "$lib/sim/demo";
   import PadCanvas from "./PadCanvas.svelte";
   import PadFrame from "./PadFrame.svelte";
   import PadSpinner from "./PadSpinner.svelte";
@@ -84,8 +85,21 @@
      * wall.
      */
     unavailable?: boolean;
-    /** Hands the canvas to the grid's SimHost. Same shape as PadCanvas's own. */
-    onready: (id: string, el: HTMLCanvasElement) => void;
+    /**
+     * Hands the canvas to the grid's SimHost, with this entry's demonstration
+     * gesture if it has one.
+     *
+     * THE THIRD ARGUMENT IS WHY THIS COMPONENT IS THE ONE THAT LOOKS IT UP.
+     * D-09 gives a configuration that paints nothing until it is touched a
+     * finger rather than a light, and the flag reaches the host as
+     * register()'s fourth argument (10-VALIDATION V-04). PadFrame.svelte does
+     * not carry it: that component holds no engine, issues no draw call and
+     * declares `entry: { id: string }` precisely so svelte/no-unused-props
+     * stays green, so a `demo` prop on it would be an unused prop and a lint
+     * failure. The card is the only surface that mounts a dark entry, so the
+     * lookup is here and the grid simply forwards what it is handed.
+     */
+    onready: (id: string, el: HTMLCanvasElement, demo?: DemoPath) => void;
     /** The card took focus; the grid moves its roving index here. */
     onfocus: () => void;
   } = $props();
@@ -97,6 +111,15 @@
 
   /** The link's describedby target. One id per card, from the catalog id. */
   const descriptionId = $derived(`card-description-${entry.id}`);
+
+  /**
+   * PadCanvas's onready shape is unchanged - (id, canvas) - and this closure is
+   * what adds the third argument on the way past. Keeping the child's signature
+   * as it was means the coverflow's use of the same component is untouched.
+   */
+  const handleReady = (id: string, el: HTMLCanvasElement): void => {
+    onready(id, el, demoPathFor(id));
+  };
 </script>
 
 <li class="card" data-testid="card-{entry.id}">
@@ -114,7 +137,7 @@
   <div class="pad-wrap" aria-hidden="true">
     <PadFrame {entry}>
       {#if !unavailable}
-        <PadCanvas {entry} {onready} />
+        <PadCanvas {entry} onready={handleReady} />
       {/if}
       {#if pending}
         <div class="pending"><PadSpinner /></div>

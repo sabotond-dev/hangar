@@ -47,6 +47,7 @@
 // nothing left to leak.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { type DemoPath, driveDemo } from "./demo";
 import { createScratch, GRID_SIDE, paintPad } from "./paint";
 import {
   intervalFor,
@@ -104,6 +105,36 @@ type Entry = {
   scratch: ImageData | undefined;
   engine: HostEngine;
   hero: boolean;
+  /**
+   * The demonstration gesture this pad replays, or undefined for every pad that
+   * has a picture of its own (D-09, src/lib/sim/demo.ts).
+   */
+  demo: DemoPath | undefined;
+  /**
+   * ONE SAMPLER PER DEMO ENTRY, and this is the reason it is here rather than
+   * on the host. touch.ts caps a sampler at MAX_CONTACTS = 5, which is what the
+   * hardware tracks, and it keys a contact by POINTER ID - so a shared sampler
+   * is not merely crowded, it is wrong in three ways at once.
+   *
+   * MEASURED, by handing every demo entry `this.sampler` and putting four demo
+   * cards and five fingers on one page:
+   *
+   *   - the visitor's five fingers came back true, true, true, FALSE, FALSE -
+   *     three of five, the other two refused outright;
+   *   - of the three that were accepted, the hero's engine received ZERO. Every
+   *     one of them was delivered to the first demo card's engine, because
+   *     deliver() empties the queue into whichever engine ticks first;
+   *   - and three of the four demo cards received nothing at all, because their
+   *     paths use the same pointer ids and down() refuses a pointer already
+   *     tracked.
+   *
+   * The interactive preview's guarantee is then not the one Phase 4 signed off,
+   * and it fails SILENTLY - the pointer is simply never captured. The hero
+   * keeps the host's own sampler, untouched.
+   */
+  demoSampler: TouchSampler | undefined;
+  /** The demo's own tick counter. driveDemo takes the period's modulo. */
+  demoTick: number;
   /** |slotOffset| <= radius. The half an IntersectionObserver cannot see. */
   inWindow: boolean;
   intersecting: boolean;
@@ -215,19 +246,36 @@ export class SimHost {
    * Registering an engine that was registered before does NOT reset it. That is
    * the whole point of one engine per entry for the session: a visitor stepping
    * away and back never sees a pad restart at tick 0.
+   *
+   * THE FOURTH ARGUMENT IS OPTIONAL AND EVERY EXISTING CALLER IS UNCHANGED.
+   * `options.demo` makes this pad a demo card: it replays an authored gesture
+   * through its own TouchSampler, at the same one-sample-per-contact-per-tick
+   * rate a real finger gets (D-09). It is passed from CatalogCard.svelte, which
+   * is the only surface that mounts a dark entry - 10-VALIDATION V-04, because
+   * PadFrame.svelte holds no engine and a `demo` prop on it would be an unused
+   * prop and a lint failure.
    */
-  register(id: string, canvas: HTMLCanvasElement, engine: HostEngine): void {
+  register(
+    id: string,
+    canvas: HTMLCanvasElement,
+    engine: HostEngine,
+    options?: { demo?: DemoPath },
+  ): void {
     if (this.destroyed) return;
     this.unregister(id);
     canvas.width = GRID_SIDE;
     canvas.height = GRID_SIDE;
     const ctx = canvas.getContext("2d") ?? undefined;
+    const demo = options?.demo;
     const entry: Entry = {
       canvas,
       ctx,
       scratch: typeof ctx === "undefined" ? undefined : createScratch(ctx),
       engine,
       hero: id === this.heroId,
+      demo,
+      demoSampler: typeof demo === "undefined" ? undefined : new TouchSampler(),
+      demoTick: 0,
       // A pad with no stated slot opinion is in the window; the coverflow
       // narrows it. A component that forgets setInWindow animates rather than
       // silently freezing the whole row.
@@ -412,7 +460,14 @@ export class SimHost {
           // Once per TICK, before the tick - never once per frame. Delivering
           // per frame silently restores the pointer-rate dependence the sampler
           // exists to remove (src/vendor/botor/pad-sim-host.ts:449-452).
+          //
+          // THE HERO WINS. A pad that is both the hero and a demo card belongs
+          // to the visitor: their finger is on it, and two fingers - one of
+          // them ours - would fight over the same pad. The demo simply pauses
+          // and picks its loop back up when the pad stops being the hero. On
+          // the browse grid, where every demo card lives, nothing is ever hero.
           if (entry.hero) this.sampler.deliver(entry.engine);
+          else this.driveDemoTick(entry);
           entry.engine.tick();
         }
         const still = this.active(entry);
@@ -439,13 +494,66 @@ export class SimHost {
   };
 
   /**
+   * Queue and deliver one tick of a demo entry's gesture, from ITS OWN sampler.
+   *
+   * driveDemo queues; the sampler delivers. Nothing here calls the engine's
+   * touch methods, which is the line that keeps a demo card firmware-faithful:
+   * it is subject to the same one-sample-per-contact-per-tick rate, the same
+   * MOVE coalescing and the same slot allocation as a visitor's finger. A
+   * non-demo entry is a no-op.
+   */
+  private driveDemoTick(entry: Entry): void {
+    if (
+      typeof entry.demo === "undefined" ||
+      typeof entry.demoSampler === "undefined"
+    ) {
+      return;
+    }
+    driveDemo(
+      entry.demo,
+      entry.demoTick,
+      entry.demoSampler,
+      entry.engine.coordMax,
+    );
+    entry.demoSampler.deliver(entry.engine);
+    entry.demoTick++;
+  }
+
+  /**
    * Is there anything for this pad to do? Reduced motion animates a pad only
    * while a pointer is actually down on it, and only the hero has one.
+   *
+   * Three terms, each with its own job:
+   *
+   *   1. the hero's finger, unchanged from Phase 4;
+   *   2. a demo card with a gesture in flight - this is the term that stops a
+   *      demo being judged frozen and having its rAF cancelled mid-stroke, on
+   *      exactly the same size / pendingTouches test the hero gets. It survives
+   *      under reduced motion on purpose: a contact that is already down has to
+   *      be released, and a preference change is not a reason to leave a finger
+   *      stuck on a pad;
+   *   3. a demo card at all, while motion is allowed. The gesture LOOPS, and
+   *      between two gestures its sampler is momentarily empty and its engine
+   *      may have settled - MORPH and ETCH both report animating: false with
+   *      their picture still on the pad. Term 2 alone would stop the loop
+   *      there, and nothing could ever restart it: the only thing that queues a
+   *      demo sample is a tick, so a demo that stops between gestures is a demo
+   *      that never resumes. Under reduced motion this term is false and the
+   *      card holds stillFrame()'s single replay instead.
    */
   private active(entry: Entry): boolean {
-    const touchActive =
+    const heroTouch =
       entry.hero && (this.sampler.size > 0 || entry.engine.pendingTouches > 0);
-    return touchActive || (!this.reduced && entry.engine.animating);
+    const demoTouch =
+      typeof entry.demoSampler !== "undefined" &&
+      (entry.demoSampler.size > 0 || entry.engine.pendingTouches > 0);
+    const demoLooping = typeof entry.demo !== "undefined" && !this.reduced;
+    return (
+      heroTouch ||
+      demoTouch ||
+      demoLooping ||
+      (!this.reduced && entry.engine.animating)
+    );
   }
 
   private paint(entry: Entry, now: number): void {
@@ -459,14 +567,43 @@ export class SimHost {
   }
 
   /**
-   * The representative frame. Restarting from tick 0 makes it deterministic
-   * instead of whatever tick the loop happened to reach, and the tick count is
-   * chosen so a sine look sits near its peak - the still frame shows colour and
-   * pattern rather than a black square.
+   * The representative frame, in two branches.
+   *
+   * A NORMAL ENTRY runs to tick 64. Restarting from tick 0 makes it
+   * deterministic instead of whatever tick the loop happened to reach, and the
+   * tick count is chosen so a sine look sits near its peak - the still frame
+   * shows colour and pattern rather than a black square.
+   *
+   * A DEMO ENTRY resets and replays its path to the end, ONCE, and freezes
+   * (10-UI-SPEC 14). Running it to tick 64 instead would show a pad two thirds
+   * of the way through its first stroke, or - for a path whose first contact
+   * lands later - a black square, which is the one thing D-09 forbids. And it
+   * replays only once because the demo is UNINVITED motion: a visitor who asked
+   * for less of it gets the picture the gesture produced and no loop.
+   *
+   * Both branches are idempotent: reset() puts the engine back to the state
+   * right after Setup, the demo's sampler is emptied with it, and the replay is
+   * a pure function of the path. Calling this twice paints the same frame,
+   * which is what makes it safe on every one of the three call sites.
    */
   private stillFrame(entry: Entry): void {
     entry.engine.reset();
-    entry.engine.run(REDUCED_MOTION_TICKS);
+    if (
+      typeof entry.demo === "undefined" ||
+      typeof entry.demoSampler === "undefined"
+    ) {
+      entry.engine.run(REDUCED_MOTION_TICKS);
+    } else {
+      entry.demoSampler.clear();
+      entry.demoTick = 0;
+      for (let i = 0; i < entry.demo.periodTicks; i++) {
+        this.driveDemoTick(entry);
+        entry.engine.tick();
+      }
+      // Back to the top, so leaving reduced motion restarts the gesture rather
+      // than resuming it one period in.
+      entry.demoTick = 0;
+    }
     entry.wasRunning = false;
   }
 

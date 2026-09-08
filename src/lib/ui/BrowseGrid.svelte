@@ -98,6 +98,7 @@
     nextIndex,
   } from "$lib/browse/grid";
   import type { ListingEntry } from "$lib/catalog/listing";
+  import type { DemoPath } from "$lib/sim/demo";
   import { SimHost, type HostEngine } from "$lib/sim/host";
   import CatalogCard from "./CatalogCard.svelte";
 
@@ -175,6 +176,13 @@
   const ids = new Map<Element, string>();
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
   const started = new Set<string>();
+  /**
+   * The demonstration gesture each card handed over, for the cards that have
+   * one (D-09). Held beside the canvas rather than looked up here, because
+   * CatalogCard is the component that owns the decision - see its onready doc.
+   */
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
+  const demos = new Map<string, DemoPath>();
 
   /**
    * PadCanvas hands its element over from its own onMount, which runs before
@@ -182,9 +190,14 @@
    * the build observer starts watching it here - the canvas is the card's own
    * geometry, and it is the element SimHost observes too.
    */
-  function collect(id: string, canvas: HTMLCanvasElement): void {
+  function collect(
+    id: string,
+    canvas: HTMLCanvasElement,
+    demo?: DemoPath,
+  ): void {
     elements.set(id, canvas);
     ids.set(canvas, id);
+    if (demo !== undefined) demos.set(id, demo);
     adopt(id);
     observer?.observe(canvas);
   }
@@ -201,7 +214,11 @@
     if (host === undefined || canvas === undefined || engine === undefined) {
       return;
     }
-    host.register(id, canvas, engine);
+    // The fourth argument is the one that makes a dark card show something: a
+    // demo entry replays its authored gesture through its own TouchSampler at
+    // the same rate a visitor's finger gets (D-09). Every other card passes
+    // undefined and behaves exactly as it did.
+    host.register(id, canvas, engine, { demo: demos.get(id) });
   }
 
   /**
