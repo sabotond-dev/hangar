@@ -152,6 +152,92 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+  IDENT-01 / D-07 — THE CRT'S ONE SWITCH (10-UI-SPEC §8.6).
+
+  `data-screen` on <html> is the switch and `--crt` is the property every layer
+  derives from. One attribute, not a hunt: the reference implementation spread
+  its motion across two components' pseudo-elements, which is exactly why its
+  own reduced-motion block missed its scanline sweep.
+
+  DEFAULT-ON WITH NO ATTRIBUTE, and that is deliberate. The prerendered HTML
+  carries no `data-screen` at all - ScreenToggle.svelte writes it during
+  hydration - so the styles key off `flat` only. A rule written the other way
+  round (`html[data-screen="textured"]`) would leave the first painted frame of
+  every cold arrival untextured and then snap.
+
+  WHY THE DISCRETE PROPERTIES SWITCH ON THE ATTRIBUTE AND NOT ON `--crt`
+  ARITHMETIC. `background-image`, `content` and `animation` cannot be multiplied
+  by a number, and 10-UI-SPEC §8.7's browser gate 2 reads exactly those three as
+  the literal keyword `none`. An alpha folded to zero paints nothing and still
+  computes as an image, so a `calc()` gate would leave that assertion green over
+  a layer that was still there. `--crt` carries the continuous half - the
+  layers' opacities - and the attribute carries the discrete half. Both are one
+  thing to flip.
+
+  A SECOND REASON `--crt` IS NEVER FOLDED INTO AN `rgb()` HERE: identity.spec.ts
+  parses every colour function in this file with `[^)]*`, so
+  `rgb(214 255 78 / calc(0.04 * var(--crt)))` would be read as an unterminated,
+  unapproved set of channels and the hex-and-channels gate would go red on
+  correct code. The alphas below are literals for that reason.
+*/
+html {
+  --crt: 1;
+}
+
+html[data-screen="flat"] {
+  --crt: 0;
+}
+
+/*
+  LAYER G — the page ground (10-UI-SPEC §8.2, z = -1).
+
+  Behind ALL content and an ancestor of nothing, which is the whole reason it is
+  a pseudo-element of <body> rather than a wrapper: a wrapper would be an
+  ancestor of `.stage`, and `overflow`, `mask-image` and friends on an ancestor
+  flatten the coverflow's 3D ladder.
+
+  Two techniques from the reference, both static, both rasterised once: the
+  halftone at a 3px pitch, and the inset vignette.
+
+  THE NOISE TILE IS NOT HERE, AND THE REASON WAS OBSERVED RATHER THAN ASSUMED.
+  The tile was declared as `--crt-noise` at :root above, exactly as plan 10-04
+  proposed, and identity.spec.ts was run: SEVEN PASSED. It was then run again
+  with `fill='%23ff0000'` - a pure red, a fourth hue - written into the same
+  data-URI: SEVEN PASSED AGAIN. The hex walk in that file matches a literal `#`,
+  and a percent-encoded one is not a literal `#`, so a colour smuggled inside a
+  data-URI in THIS file is invisible to every colour gate the site has. A green
+  reading there is uninformative rather than reassuring, which is precisely the
+  silent-green hole 10-UI-SPEC §7.1's placement rule exists to close. The tile
+  therefore lives in PadFrame.svelte, where aesthetic.spec.ts scan 6 reads it
+  and asserts it declares no `fill` at all, and Layer G keeps the halftone and
+  the vignette and has no noise.
+
+  0.04 is an alpha of the accent and 0.55 is the ground at an alpha; neither is
+  a tenth token and neither is a fourth hue. The vignette exists to pull the
+  eye to the middle of a very dark page, and it is the one place on the site
+  where black is painted ON TOP of black.
+*/
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    rgb(214 255 78 / 0.04) 0 40%,
+    transparent 45%
+  );
+  background-size: 3px 3px;
+  box-shadow: inset 0 0 26vmax 9vmax rgb(0 0 0 / 0.55);
+}
+
+html[data-screen="flat"] body::before {
+  background-image: none;
+  box-shadow: none;
+}
+
 /* The focus ring is never removed and never animated (UI-SPEC, Accessibility
    Contract). Lime on black is 18.3:1. */
 :focus-visible {
