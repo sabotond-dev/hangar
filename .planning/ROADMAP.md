@@ -309,7 +309,7 @@ Phases 6 and 7.
 | 7. Install Flow | 13/13 | Complete (hardware rows A-G awaiting the user) | 2026-09-05 |
 | 8. New Configurations | 8/8 | Complete    | 2026-09-04 |
 | 9. Twenty Configurations | 10/10 | Complete (audition rows awaiting the user) | 2026-09-07 |
-| 10. Redesign | 1/14 | In progress | - |
+| 10. Redesign | 2/14 | In progress | - |
 
 ## Requirement Coverage
 
