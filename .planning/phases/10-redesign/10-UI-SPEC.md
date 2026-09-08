@@ -227,6 +227,7 @@ an A-number in §19's register, so the two tables cannot disagree about how many
 | A-41 | The **pill** is Secondary's shape and the word row's selected option; **Quiet and Bare stay shapeless** | nothing. §10.3's four tiers stand verbatim; two rows change shape | 19.1b, 10.3 |
 | A-42 | The **index-and-em-dash headline** is sibling furniture on `/browse/` only, never in the device flow | nothing. **A-23's "no step numerals" is upheld against D-15** | 19.1f |
 | A-43 | **The front-door headline is `START EXPLORING` (15), not `PICK ONE · IT IS ALREADY RUNNING` (32)** (user, 2026-09-08). At two words it is inside §5.2's uppercase rule, so the exception declared for the old headline is retired and the middle dot goes with it. The shipped edit belongs to 10-13.1, which owns the headline | **R-01's replacement text**, §5.2's exception paragraph, §13.0's declaration and §13.1's row. A-42's index form becomes the only declared exception | 13.1 |
+| A-44 | **The `--font-mono` list is seven, not six.** 10-10 spent the sixth on the picker’s RGB triple (`ColourPicker.svelte:599-604`), which qualifies on W-03’s “a number that changes as a pointer moves”. §19.1c’s `+`-separated metadata block is therefore the **seventh**, and it qualifies on the other half of the rule — machine text that must hold its columns. The picker’s own comment demands the seventh’s argument be made out loud rather than inherited | §5.2’s “Six, and the list is asserted” | 5.2, 19.1c |
 
 **No copy retirement, no gate retirement and no data re-cut is added by these six.** §3.1 stays at ten
 retirements in a register of eleven rows, §3.2 stays at nine gate amendments, §3.3 stays at four data
@@ -369,8 +370,12 @@ carrying one weight each cannot make a poster and a paragraph out of the same la
   referenced. `10-RESEARCH.md` §2.5's five mitigations for all-italic body text are moot and the
   document should be read as superseded on that point.
 - `--font-mono` is unchanged and stays confined to numerals and machine text. Phase 5 confined it to
-  four uses; **§11.3 adds a fifth**, the forecast delta, and names it; **§19.1c adds a sixth**, the
-  `+`-separated metadata block, and names it. Six, and the list is asserted.
+  four uses; **§11.3 adds a fifth**, the forecast delta, and names it; **§11.2's picker adds a
+  sixth** (A-44), the RGB triple that changes as a rail is dragged; **§19.1c adds a seventh**, the
+  `+`-separated metadata block, and names it. **Seven**, and the list is asserted. The seventh
+  qualifies on the other half of W-03's rule — machine text that must hold its columns — rather than
+  on "a number that changes as a pointer moves", and `ColourPicker.svelte:599-604` requires that
+  argument to be made out loud rather than inherited.
 - Canvas-drawn texture stays exempt.
 
 ### 5.3 What the family change costs downstream, and it is not a cleanup
