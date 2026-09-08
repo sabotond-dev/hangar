@@ -43,7 +43,7 @@ feature table in `.planning/research/FEATURES.md`.
 
 - [x] **PREV-01**: Every card in the catalog animates live in the firmware-faithful simulator with no hardware attached [C1]
 - [x] **PREV-02**: The simulator consumes the exact compiler output that would be written to the module — no hand-authored animation anywhere [C2]
-- [ ] **PREV-03**: The site states in one line what the simulator matches exactly and what it cannot show (physical LED colour, diffusion, touch feel) [C3]
+- [x] **PREV-03**: The site states in one line what the simulator matches exactly and what it cannot show (physical LED colour, diffusion, touch feel) [C3]
 - [ ] **PREV-04**: The focused card accepts mouse-as-finger input so the user can play the instrument, not just watch it [C4]
 - [x] **PREV-05**: Offscreen cards pause (IntersectionObserver with a wake margin), `prefers-reduced-motion` falls back to a still frame or play-on-hover, and the render path stays within budget at a dozen visible cards at 30 fps [C5]
 - [x] **PREV-06**: Every ported preset's simulated output is pinned against an oracle derived independently of the compiler (firmware source or hardware capture), so a shared misreading cannot hide behind a green suite
@@ -177,7 +177,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-09 | Phase 7 | Complete: three attempts and no more (RETRY_ATTEMPTS, retryBackoffMs 120/240/360); a refusal and an abort are never retried; a lost link mid-write is a named state ("The ZONA was unplugged mid-write") with PUT BACK waiting for the module; the pacing escalation fires once and moves no attempt count; no infinite loop is possible by construction (install.spec.ts; install.e2e.ts tests 4 to 6; 07-12 test 10). No hardware half |
 | PREV-01 | Phase 4 | Complete (five presets animate; three quiet presets show their real static picture, declared and gated against the golden frames; tpad rests black and is out of the front-door row) |
 | PREV-02 | Phase 4 (Lua-sourced entries: Phase 8) | Complete |
-| PREV-03 | Phase 4 | Pending |
+| PREV-03 | Phase 4 → Phase 10 | **Complete at 44 characters, with the second clause amended by name and dated 2026-09-08** (plan 10-03, 10-UI-SPEC.md 4 and 13.2, R-04). The one line is `FIDELITY_LINE` in `src/lib/ui/fidelity-line.ts`, `Every pad here runs the firmware’s own code.`, rendered in both of its two places - the coverflow's `FidelityLine.svelte` and `/browse/`'s line beneath the grid - unconditionally and entry-independently, so it is never only beside the pads that flatter it. **What the simulator matches exactly is kept whole and is the whole of the shipped line.** What it cannot show - `What a screen cannot show: the real colour of the lights, the way they bleed into each other, and how the surface feels under a finger.` - is RETIRED, 187 characters of the original 231. It is retired under D-08 and the amendment register's audit rule: a string goes only when the control beside it, or the pixels beside it, already say the same thing, and a wall of thirty-six animating pads demonstrates the limits of a screen better than a sentence apologising for them. The clause named no risk, no consequence, no way back and no next step, which is the test R-11 protects the failure copy with |
 | PREV-04 | Phase 4 | Pending |
 | PREV-05 | Phase 4 | Complete (row mounts at most seven pads; offscreen pause and reduced motion asserted; paint count recorded 135–216 per 2 s, no fps floor asserted — accepted deviation 3) |
 | PREV-06 | Phase 3 | Complete |

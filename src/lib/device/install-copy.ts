@@ -48,11 +48,35 @@
 // the screen - which is why the lost block takes the label of the surface
 // rendering it (Y-13).
 //
-// THE THREE CAPS ARE THE CONTRACT'S, NOT THIS MODULE'S TO MOVE. The honesty
-// slot reserves 72px for three lines at 43 characters; the PUT BACK cell the
-// same; the KEEP ON DEVICE cell 48px for two lines. 129, 129 and 86 are exported
-// so the store and the components can quote them, and the spec asserts every
-// string against its cap by name (Z-18).
+// THE THREE CAPS - THREE BECOMING FOUR IN PLAN 10-12 - ARE THE CONTRACT'S, NOT
+// THIS MODULE'S TO MOVE.
+//
+// A cap is `lines x CH_PER_LINE`, where CH_PER_LINE is the capacity of one Body
+// line box in the panel's 372px content column. Phases 6 and 7 used 43,
+// measured in Quicksand. Plan 10-02 swapped the body face to Inter Variable, so
+// plan 10-01 re-measured it in two engines over thirty-six full line boxes and
+// got 43 again - the minimum occupancy of a full line box, which is what makes
+// a cap a promise about strings not yet written rather than a description of
+// the ones that exist (10-01-SUMMARY.md).
+//
+//   HONESTY_CAP   2 x 43 =  86   the honesty slot, 48px, two lines
+//   PUT_BACK_CAP  3 x 43 = 129   the PUT BACK cell, 72px, three lines
+//   KEEP_CAP      2 x 43 =  86   the KEEP ON DEVICE cell, 48px, two lines
+//
+// PUT_BACK_CAP and KEEP_CAP land byte-for-byte on the numbers this module
+// already shipped. HONESTY_CAP moves 129 to 86, which is 10-UI-SPEC 12.2's
+// three-lines-to-two collapse arriving as arithmetic rather than as an edit.
+//
+// WHEN A LITERAL EXCEEDS ITS OWN CAP, THE LITERAL IS SHORTENED - NEVER THE CAP
+// RAISED. A cap widened to admit its own string stops reserving anything, and
+// the reservation is the entire reason the caps exist. HONESTY_READY was 104
+// here and 90 in the approved contract, both over 86, and it is 85 below.
+//
+// CLEAR_CAP (2 x 43 = 86) is NOT here. It arrives in plan 10-12 with the
+// control it caps, and the count above becomes four then. CLEAR_LINE is exactly
+// 86 - it fits with zero headroom, and one added character breaks it.
+//
+// The spec asserts every string against its cap by name (Z-18).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -75,13 +99,14 @@ export interface InstallBlock {
 }
 
 // ---------------------------------------------------------------------------
-// The three caps (07-UI-SPEC, Copywriting Contract, last rule).
+// The three caps (07-UI-SPEC, Copywriting Contract, last rule; 10-UI-SPEC 12.2,
+// re-derived at the measured CH_PER_LINE). Three here, four after plan 10-12.
 
-/** Every honesty-slot string: three lines at 43 characters, 72px reserved. */
-export const HONESTY_CAP = 129;
-/** Every PUT BACK line: the same three lines, the same 72px. */
+/** Every honesty-slot string: TWO lines at 43 characters, 48px reserved. Was 129 at three lines. */
+export const HONESTY_CAP = 86;
+/** Every PUT BACK line: three lines at 43 characters, 72px reserved. */
 export const PUT_BACK_CAP = 129;
-/** The KEEP ON DEVICE enabled line and all six reasons: two lines, 48px. */
+/** The KEEP ON DEVICE enabled line and all six reasons: two lines at 43, 48px. */
 export const KEEP_CAP = 86;
 
 // ---------------------------------------------------------------------------
@@ -99,14 +124,32 @@ export const NOT_NOW_LABEL = "NOT NOW";
 
 // ---------------------------------------------------------------------------
 // The honesty slot. Four strings here; the fifth is Phase 5's
-// tryOnBudgetReason, which stays in $lib/tune/copy. "About a second" appears
-// in the first two and nowhere else on the site (Z-08).
+// tryOnBudgetReason, which stays in $lib/tune/copy. "about a second" appears
+// in the first two and nowhere else on the site (Z-08), and install-copy.spec
+// asserts that occurrence count rather than trusting this comment.
 
+/**
+ * RETIRED AT 106 AND REWRITTEN AT 70, plan 10-03 (10-UI-SPEC 13.3, R-05). The
+ * two facts a visitor needs before the first click are what it connects to and
+ * what it writes; "and only in memory" said the third thing twice, because the
+ * ready form beneath it already names the power cycle.
+ */
 export const HONESTY_NO_SESSION =
-  "Connects to your ZONA, then writes this configuration into its memory. About a second, and only in memory.";
+  "Connects to your ZONA and writes this into its memory. About a second.";
 
+/**
+ * RETIRED AT 104 AND REWRITTEN AT 85, plan 10-03 (10-UI-SPEC 13.3, R-06).
+ *
+ * The approved contract's form is 90: `Writes this into your ZONA’s memory in
+ * about a second. A power cycle brings your own back.` It does not ship,
+ * because 90 is over HONESTY_CAP - 2 x 43 = 86 at the CH_PER_LINE plan 10-01
+ * measured - and the rule is to shorten the literal rather than raise the cap.
+ * Two words move: "brings" becomes "puts" and "your own" becomes "yours". Both
+ * facts survive whole and so does the two-line reservation.
+ * install-copy.spec.ts records the amendment by name.
+ */
 export const HONESTY_READY =
-  "Writes this configuration into your ZONA’s memory in about a second. A power cycle brings your own back.";
+  "Writes this into your ZONA’s memory in about a second. A power cycle puts yours back.";
 
 /** Deliberately names no control: PUT BACK is not on the screen yet (I1). */
 export const HONESTY_SNAPSHOTTING =
@@ -162,9 +205,19 @@ export function keptBody(name: string): string {
   return `${name} is stored on your ZONA and will still be there after a power cycle.`;
 }
 
-/** The second sentence is not filler: the pad visibly blinks out as the module restarts its Lua VM. */
+/**
+ * The restart is not filler: the pad visibly blinks out as the module restarts
+ * its Lua VM, and a visitor who was not told would read that as a fault.
+ *
+ * RETIRED AT 124 AND REWRITTEN AT 53, plan 10-03 (10-UI-SPEC 13.3, R-09). The
+ * first sentence was `HANGAR read both scripts back and they match, character
+ * for character.` - a boast about a check the site would not have called KEPT
+ * without. The caption above it already says KEPT, and the failure form of
+ * exactly that check has its own block (keptMismatchBlock), so the read-back is
+ * described where it can still go wrong and nowhere else.
+ */
 export const KEPT_PROOF_LINE =
-  "HANGAR read both scripts back and they match, character for character. The pad restarts once as it loads the stored version.";
+  "The pad restarts once as it loads the stored version.";
 
 // ---------------------------------------------------------------------------
 // Region 3, the seven failure-shaped blocks. Titles end without punctuation;

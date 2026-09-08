@@ -22,7 +22,6 @@ import {
   SETUP_CAPTION,
   SHARE_FALLBACK_FIELD_NAME,
   SHARE_FALLBACK_LINE,
-  SHARE_QUIET_LINE,
   STAMP_RESTORED,
   SURPRISE_ME,
   TIMER_CAPTION,
@@ -248,15 +247,27 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "Stop drawing the ZONA control on the pad. Puts Setup at 702 of 908.",
     );
 
+    // SHORTENED BY NAME, plan 10-03. This is the honesty slot's fifth
+    // candidate, so it is capped by install-copy.ts's HONESTY_CAP, which the
+    // measured CH_PER_LINE moved from 129 to 86 (2 x 43). The worst form -
+    // `Setup and Timer` - was 90, four over. The literal shortens and the cap
+    // does not move: a cap widened to admit its own string reserves nothing.
     expect(tryOnBudgetReason("Setup")).toBe(
-      "Over the 908-character budget on Setup. Turn something down and this comes back.",
+      "Over the 908-character budget on Setup. Turn something down and it returns.",
     );
     expect(tryOnBudgetReason("Timer")).toBe(
-      "Over the 908-character budget on Timer. Turn something down and this comes back.",
+      "Over the 908-character budget on Timer. Turn something down and it returns.",
     );
     expect(tryOnBudgetReason("Setup and Timer")).toBe(
-      "Over the 908-character budget on Setup and Timer. Turn something down and this comes back.",
+      "Over the 908-character budget on Setup and Timer. Turn something down and it returns.",
     );
+    // The worst form, under the cap, measured here rather than assumed - this
+    // module cannot import install-copy.ts (both are import-free by contract),
+    // so the number is written out with its arithmetic.
+    expect(
+      [...tryOnBudgetReason("Setup and Timer")].length,
+      "the worst budget reason is over HONESTY_CAP - 2 x 43 = 86",
+    ).toBeLessThanOrEqual(86);
   });
 
   it("writes the stamp landings, the share lines and every live-region string, and imports nothing", () => {
@@ -273,9 +284,15 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(EMPTY_RACK).toBe(
       "This configuration has nothing to turn. Its two budgets are still live below.",
     );
-    expect(SHARE_QUIET_LINE).toBe(
-      "Copies this configuration, knobs and all, as a link anyone can open.",
-    );
+    // SHARE_QUIET_LINE was asserted here. R-07 retires it outright, with no
+    // replacement, because COPY LINK names itself. Its absence is asserted
+    // rather than merely uncommented: the export walk below is over the
+    // module's own keys, so a re-added constant would otherwise be invisible
+    // here and would ship a second sentence beneath a labelled button.
+    expect(
+      Object.keys(copy),
+      "SHARE_QUIET_LINE came back - it is retired by R-07 and COPY LINK names itself",
+    ).not.toContain("SHARE_QUIET_LINE");
     expect(SHARE_FALLBACK_LINE).toBe(
       "Your browser would not let the page copy for you. The link is selected below — press Ctrl+C, or Cmd+C on a Mac.",
     );

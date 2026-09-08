@@ -186,16 +186,35 @@ export function backOffLadder(
 /**
  * The reason beside a disabled TRY ON DEVICE. It names the budget and does not
  * repeat the knob sentence: they are two different jobs.
+ *
+ * SHORTENED BY NAME, plan 10-03. This is the fifth candidate in the honesty
+ * slot, so it is held to install-copy.ts's HONESTY_CAP even though it lives
+ * here, and its worst form - `Setup and Timer`, the longest of the three
+ * BudgetEvents - was 90 against a cap that the measured CH_PER_LINE moved to
+ * 86 (10-01-SUMMARY.md). The literal shortens, never the cap: a cap widened to
+ * admit its own string stops reserving anything. `and this comes back` becomes
+ * `and it returns`, which takes the worst form to 85. The shortening is in the
+ * sentence around ${events} rather than in the interpolation, so all three
+ * forms move together and the shortest is still the shortest.
  */
 export function tryOnBudgetReason(events: BudgetEvents): string {
-  return `Over the 908-character budget on ${events}. Turn something down and this comes back.`;
+  return `Over the 908-character budget on ${events}. Turn something down and it returns.`;
 }
 
 // ---------------------------------------------------------------------------
 // Sharing.
 
-export const SHARE_QUIET_LINE =
-  "Copies this configuration, knobs and all, as a link anyone can open.";
+// SHARE_QUIET_LINE WAS HERE, AND ITS ABSENCE IS AN AMENDMENT RATHER THAN A GAP.
+//
+// `Copies this configuration, knobs and all, as a link anyone can open.` is
+// RETIRED OUTRIGHT by plan 10-03 (10-UI-SPEC.md, R-07), with no replacement.
+// The audit rule the register closes D-08 with is that a string goes only when
+// the control beside it already says the same thing, and COPY LINK names
+// itself: a labelled button whose whole job is in its two words does not need a
+// sentence explaining that it copies a link. Nothing that names a risk, a
+// consequence, a way back or a next step was retired with it - SHARE_FALLBACK_
+// LINE below stays whole, because it is the one that tells a visitor what to do
+// when the copy did not happen.
 
 /** Names keys, never controls: the button beside it stays COPY LINK. */
 export const SHARE_FALLBACK_LINE =

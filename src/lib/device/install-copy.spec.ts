@@ -1,12 +1,16 @@
 // The install flow's copy contract, made executable: six gates.
 //
-// 07-UI-SPEC.md's Copywriting Contract IS the specification, and test 2 reads
-// it from disk rather than transcribing it a second time: every literal longer
-// than forty characters must appear in that document verbatim, with a builder's
-// sample arguments folded back into the contract's placeholders. Test 3 holds
-// the three caps the panel's reservations rest on, by name, so a reservation
-// cannot silently grow (Z-18). Tests 4 to 6 are the mechanical rules, the closed
-// sets and the formatters.
+// 07-UI-SPEC.md's Copywriting Contract IS the specification, and 10-UI-SPEC.md
+// amends three of its sentences (R-05, R-06, R-09), so test 2 reads BOTH from
+// disk rather than transcribing either a second time: every literal longer than
+// forty characters must appear in one of those two documents verbatim, with a
+// builder's sample arguments folded back into the contract's placeholders. The
+// one exception is a row in AMENDED_BY_MEASUREMENT, which is asserted from both
+// sides rather than excused. Test 3 holds the three caps the panel's
+// reservations rest on, by name and as arithmetic over the measured
+// CH_PER_LINE, so a reservation cannot silently grow (Z-18) - and it holds
+// Z-08, the site's one "about a second", to exactly two occurrences. Tests 4 to
+// 6 are the mechanical rules, the closed sets and the formatters.
 //
 // Two habits from the house, both load-bearing here:
 //
@@ -17,7 +21,7 @@
 //   (src/lib/protocol/forbidden-instructions.spec.ts).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as copy from "./install-copy";
@@ -58,9 +62,56 @@ const read = (relative: string) =>
 
 const installCopySource = () => read("./install-copy.ts");
 
-/** The approved contract, read from disk: src/lib/device/ is three levels below the root. */
-const uiSpec = () =>
-  read("../../../.planning/phases/07-install-flow/07-UI-SPEC.md");
+/**
+ * The approved contracts, read from disk: src/lib/device/ is three levels below
+ * the root. TWO documents since plan 10-03, because that plan rewrote three of
+ * this module's sentences and the rows holding their new forms are in the Phase
+ * 10 contract, not the Phase 7 one. Test 2 asks whether a literal appears in
+ * EITHER, and asserts that both were read and that both are approved - a
+ * containment check over a document that failed to load is a gate that passes
+ * everything.
+ */
+const UI_SPECS: readonly { path: string; heading: string }[] = [
+  {
+    path: "../../../.planning/phases/07-install-flow/07-UI-SPEC.md",
+    heading: "## Copywriting Contract",
+  },
+  {
+    path: "../../../.planning/phases/10-redesign/10-UI-SPEC.md",
+    heading: "## 13. Copywriting Contract",
+  },
+];
+
+const uiSpecs = () => UI_SPECS.map(({ path }) => read(path));
+
+/**
+ * THE ONE LITERAL THE CONTRACTS DO NOT CARRY, AND WHY, BY NAME.
+ *
+ * 10-UI-SPEC 13.3 authors HONESTY_READY at 90 characters. It cannot ship at 90:
+ * plan 10-01 measured CH_PER_LINE at 43 rather than the provisional 46 the
+ * contract's arithmetic assumed, which takes HONESTY_CAP to 2 x 43 = 86, and
+ * the standing rule is that the literal shortens and the cap never rises - a
+ * cap widened to admit its own string stops reserving anything.
+ *
+ * So this row is an amendment, not an exemption, and it is asserted as one:
+ * test 2 requires the CONTRACT's form to be present in a contract (so the row
+ * being amended is real and still says what it says), requires it to be OVER
+ * the cap (so the amendment is necessary rather than convenient), and requires
+ * the SHIPPED form to be under it. Deleting the row makes test 2 red on the
+ * shipped string; faking it makes test 2 red on the contract's.
+ */
+const AMENDED_BY_MEASUREMENT: readonly {
+  name: string;
+  contract: string;
+  cap: number;
+}[] = [
+  {
+    name: "HONESTY_READY",
+    contract:
+      "Writes this into your ZONA’s memory in about a second. A power cycle brings your own back.",
+    cap: 86,
+  },
+];
 
 /** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
 const strip = (text: string) =>
@@ -220,16 +271,21 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
   });
 
   it("holds every long sentence of the contract character for character", () => {
-    const spec = uiSpec();
-    expect(spec.length, "the contract was actually read").toBeGreaterThan(
-      50_000,
-    );
-    expect(spec, "the document read is the approved contract").toContain(
-      "## Copywriting Contract",
-    );
-    expect(spec, "the contract is the approved revision").toContain(
-      "status: approved",
-    );
+    const specs = uiSpecs();
+    specs.forEach((spec, i) => {
+      expect(
+        spec.length,
+        `${UI_SPECS[i].path} was actually read`,
+      ).toBeGreaterThan(50_000);
+      expect(
+        spec,
+        `${UI_SPECS[i].path} is not the document it claims to be`,
+      ).toContain(UI_SPECS[i].heading);
+      expect(spec, `${UI_SPECS[i].path} is not approved`).toContain(
+        "status: approved",
+      );
+    });
+    const inAContract = (text: string) => specs.some((s) => s.includes(text));
 
     const long = everyString().filter(({ text }) => chars(text) > 40);
     expect(
@@ -237,10 +293,27 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       "enough long literals were found to be checking anything",
     ).toBeGreaterThanOrEqual(40);
 
+    // The measured amendments, asserted from both sides before their names are
+    // excused below: the contract's form is really in a contract and is really
+    // over the cap, so the shortening is necessary rather than convenient.
+    for (const { name, contract, cap } of AMENDED_BY_MEASUREMENT) {
+      expect(
+        inAContract(contract),
+        `${name}'s CONTRACT form is in neither approved contract - the amendment names a row that does not exist`,
+      ).toBe(true);
+      expect(
+        chars(contract),
+        `${name}'s contract form is not over its cap, so there was nothing to amend - delete the row`,
+      ).toBeGreaterThan(cap);
+    }
+    const amended = new Set(AMENDED_BY_MEASUREMENT.map((a) => a.name));
+
     const misses = long
-      .filter(({ text }) => !spec.includes(templated(text)))
+      .filter(
+        ({ name, text }) => !amended.has(name) && !inAContract(templated(text)),
+      )
       .map(({ name, text }) => `${name}: ${templated(text)}`);
-    expect(misses, "literals the contract does not contain").toEqual([]);
+    expect(misses, "literals neither contract contains").toEqual([]);
 
     // The four two-form builders' other branches were walked too, so both
     // forms of each are held - not only the sampled one.
@@ -255,12 +328,34 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
   });
 
   it("the three caps hold, by name", () => {
-    // The caps are the contract's: 72px reserves three lines at 43 characters
-    // for the honesty slot and the PUT BACK cell, 48px reserves two for the
-    // KEEP ON DEVICE cell. They are literals here, not this module's to move.
-    expect(HONESTY_CAP, "the honesty slot's cap").toBe(129);
-    expect(PUT_BACK_CAP, "the PUT BACK cell's cap").toBe(129);
-    expect(KEEP_CAP, "the KEEP ON DEVICE cell's cap").toBe(86);
+    // The caps are the contract's, re-derived by plan 10-03 at the CH_PER_LINE
+    // plan 10-01 measured in Inter Variable over thirty-six full line boxes in
+    // two engines: 43, the minimum occupancy of a FULL line box, which is what
+    // makes a cap a promise about strings not yet written.
+    //
+    //   HONESTY_CAP  2 x 43 =  86   48px, two lines. WAS 129 at three.
+    //   PUT_BACK_CAP 3 x 43 = 129   72px, three lines. Unchanged.
+    //   KEEP_CAP     2 x 43 =  86   48px, two lines. Unchanged.
+    //
+    // Two of the three land byte-for-byte on the numbers Phase 7 shipped, which
+    // is 10-UI-SPEC 12.2's table surviving the measurement intact; what moved
+    // is copy, not layout. CLEAR_CAP (2 x 43) arrives in 10-12 with its
+    // control, and three becomes four then.
+    //
+    // They are literals here, not this module's to move.
+    const CH_PER_LINE = 43;
+    expect(HONESTY_CAP, "the honesty slot's cap - 2 x 43").toBe(
+      2 * CH_PER_LINE,
+    );
+    expect(PUT_BACK_CAP, "the PUT BACK cell's cap - 3 x 43").toBe(
+      3 * CH_PER_LINE,
+    );
+    expect(KEEP_CAP, "the KEEP ON DEVICE cell's cap - 2 x 43").toBe(
+      2 * CH_PER_LINE,
+    );
+    expect(HONESTY_CAP, "the honesty slot's cap, as a number").toBe(86);
+    expect(PUT_BACK_CAP, "the PUT BACK cell's cap, as a number").toBe(129);
+    expect(KEEP_CAP, "the KEEP ON DEVICE cell's cap, as a number").toBe(86);
 
     const honesty: readonly [string, string][] = [
       ["HONESTY_NO_SESSION", HONESTY_NO_SESSION],
@@ -274,10 +369,70 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
         `${name} is over the honesty cap`,
       ).toBeLessThanOrEqual(HONESTY_CAP);
     }
-    // The contract's own figures, measured rather than trusted.
-    expect(chars(HONESTY_NO_SESSION), "the longest new honesty string").toBe(
-      106,
-    );
+    // The contract's own figures, measured rather than trusted. R-05 and R-06
+    // rewrite the first two: 106 becomes 70, and 104 becomes 85 through the
+    // measured amendment AMENDED_BY_MEASUREMENT records.
+    expect(chars(HONESTY_NO_SESSION), "R-05, rewritten at 70").toBe(70);
+    expect(chars(HONESTY_READY), "R-06, shortened to fit its own cap").toBe(85);
+    expect(chars(HONESTY_SNAPSHOTTING), "68, per the contract").toBe(68);
+    expect(chars(HONESTY_INCAPABLE), "72, per the contract").toBe(72);
+
+    // Z-08, ASSERTED RATHER THAN COMMENTED. "about a second" is the site's one
+    // promise about how long a write takes, and it belongs to the two honesty
+    // strings a visitor reads BEFORE clicking. R-05 and R-06 both rewrite those
+    // strings, so the invariant is checked over the module's source after the
+    // rewrite rather than assumed to have survived it. Case-insensitive
+    // deliberately: the no-session form opens a sentence with it and the ready
+    // form carries it mid-sentence, and Z-08 is about the phrase, not the
+    // capital.
+    const source = strip(installCopySource());
+    const occurrences = source.toLowerCase().split("about a second").length - 1;
+    expect(
+      occurrences,
+      "Z-08: 'about a second' appears somewhere other than the first two honesty strings, or has been lost from one of them",
+    ).toBe(2);
+    expect(
+      HONESTY_NO_SESSION.toLowerCase().includes("about a second"),
+      "Z-08: the no-session honesty string lost 'about a second'",
+    ).toBe(true);
+    expect(
+      HONESTY_READY.toLowerCase().includes("about a second"),
+      "Z-08: the ready honesty string lost 'about a second'",
+    ).toBe(true);
+
+    // And the other half of Z-08 - "nowhere else on the site" - over the whole
+    // of src/ rather than over this module only, because a second promise about
+    // how long a write takes would most naturally be written somewhere else.
+    //
+    // .spec.ts files are excluded and that is not a loophole: a copy gate has
+    // to quote the sentence it pins, so a scan that included them would forbid
+    // its own mechanism. Everything a visitor can reach is in scope.
+    //
+    // src/routes/dev/type/+page.svelte is an EXPECTED row, not an offender. It
+    // is the unlinked type probe plan 10-01 measured CH_PER_LINE on, and its
+    // copy of the sentence is a measurement sample: the contract's 90-character
+    // form, which is what those line-box occupancies were taken against.
+    // Rewriting it would falsify the record of what was measured.
+    const SRC = fileURLToPath(new URL("../..", import.meta.url));
+    const counted: Record<string, number> = {};
+    for (const entry of readdirSync(SRC, { recursive: true })) {
+      const rel = String(entry).split("\\").join("/");
+      if (!/[.](ts|svelte)$/.test(rel) || rel.endsWith(".spec.ts")) continue;
+      const body = strip(readFileSync(`${SRC}${rel}`, "utf8")).toLowerCase();
+      const n = body.split("about a second").length - 1;
+      if (n > 0) counted[rel] = n;
+    }
+    expect(
+      Object.keys(counted).length,
+      "the walk read nothing - it is not finding the honesty strings it is meant to be counting",
+    ).toBeGreaterThan(0);
+    expect(
+      counted,
+      "Z-08: 'about a second' is somewhere it does not belong, or has left somewhere it does",
+    ).toEqual({
+      "lib/device/install-copy.ts": 2,
+      "routes/dev/type/+page.svelte": 1,
+    });
 
     const putBack: readonly [string, string][] = [
       ["PUT_BACK_LINE", PUT_BACK_LINE],

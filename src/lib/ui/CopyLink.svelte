@@ -42,9 +42,15 @@
 
   COPY LINK IS NOT AN INSTALL CONTROL and never claims to be. It sits beside
   KEEP ON DEVICE, which is disabled throughout this phase with a dim label and
-  its own reason, while this one is enabled with an --color-ink label and a line
-  saying it copies a link. Phase 4's rule that the two INSTALL controls are
-  never the same size, never the same fill and never adjacent is untouched.
+  its own reason, while this one is enabled with an --color-ink label. Phase 4's
+  rule that the two INSTALL controls are never the same size, never the same
+  fill and never adjacent is untouched.
+
+  IT HAS NO STANDING LINE SINCE PLAN 10-03 (R-07). SHARE_QUIET_LINE - `Copies
+  this configuration, knobs and all, as a link anyone can open.` - said what the
+  label says, so it is retired outright with no replacement. The fallback line
+  stays: it names two keys the visitor is about to press, which is a next step,
+  and R-11's audit rule never retires one of those.
 
   No --color-over appears in this file. The token is scoped to X-01's three
   uses, all of them in BudgetMeter.svelte and BudgetMessage.svelte.
@@ -58,7 +64,6 @@
     LINK_COPIED,
     SHARE_FALLBACK_FIELD_NAME,
     SHARE_FALLBACK_LINE,
-    SHARE_QUIET_LINE,
   } from "$lib/tune/copy";
 
   let {
@@ -135,15 +140,27 @@
     class:confirmed
     type="button"
     data-testid="copy-link"
-    aria-describedby="copy-link-line"
+    aria-describedby={fallback ? "copy-link-line" : undefined}
     onclick={copy}
   >
     {confirmed ? LINK_COPIED : COPY_LINK}
   </button>
 
-  <p class="line" id="copy-link-line">
-    {fallback ? SHARE_FALLBACK_LINE : SHARE_QUIET_LINE}
-  </p>
+  <!--
+    SHARE_QUIET_LINE was here, beneath the control, in every state. R-07 retires
+    it outright: COPY LINK names itself, and a sentence saying that a button
+    labelled COPY LINK copies a link is the definition of unnecessary text.
+
+    WHAT REMAINS IS THE FALLBACK LINE, AND IT NAMES A NEXT STEP, so R-11's audit
+    rule keeps it whole. It appears only when the copy did not happen, and
+    aria-describedby follows it - a description that pointed at an id which is
+    not in the document would be worse than no description at all. In the normal
+    state the button's accessible name is its visible label and there is nothing
+    left to describe.
+  -->
+  {#if fallback}
+    <p class="line" id="copy-link-line">{SHARE_FALLBACK_LINE}</p>
+  {/if}
 
   {#if fallback}
     <input
