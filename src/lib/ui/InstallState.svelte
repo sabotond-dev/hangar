@@ -1,9 +1,10 @@
 <!--
-  Region 3's install blocks: the twelve states and the one line of `writing`
-  (07-UI-SPEC, The install state machine I1-I13; SAFE-07, SAFE-08, DEGR-02).
+  Region 3's install blocks: the thirteen states and the one line of `writing`
+  (07-UI-SPEC, The install state machine I1-I13; I14 and A-50; SAFE-07,
+  SAFE-08, DEGR-02).
 
   One component renders whichever block the install store's phase names -
-  five success-shaped (a caption over a body) and seven failure-shaped,
+  six success-shaped (a caption over a body) and seven failure-shaped,
   the latter through Phase 6's FailureBlock so the panel and the header cannot
   word a failure differently or set it in two type scales. It reads the store
   and the session, authors no sentence (every string and every builder is
@@ -35,6 +36,29 @@
   waits for `restored` proper, and renders there only when the leg that
   landed was the store leg (D-12).
 
+  THE FACTORY DEFAULT BLOCK, AND WHY ITS BODY MAY NAME A CONTROL (I14, A-50).
+  `cleared` is a state of its own rather than a collapse into `settled` or
+  `restored`, because after a clear neither of those sentences is true and the
+  `restored` one is actively unsafe - a panel reading RESTORED tells a visitor
+  not to click the one control that would actually restore them. The caption
+  names the STATE, as PLAYING NOW does, not the button. The body names PUT
+  BACK, and the copy rule is that no string names a control that is not on the
+  screen: in `cleared` PUT BACK is present AND enabled, by construction, since
+  a snapshot in hand is a term of CLEAR's own enablement rule. install.spec.ts
+  asserts that pairing over the store rather than leaving it to a reading.
+
+  WHICH FAILURE FORM A CLEAR TAKES. A clear reuses three of the seven blocks
+  and authors none. `nothing-landed` takes Phase 7's PUT BACK form, whose
+  detail - nothing on the module changed, so what was playing is still playing
+  - is exactly true of a failed clear, and whose step names PUT BACK, which is
+  on the screen. The selector is therefore `action === "try"` rather than
+  `action === "put-back"`, which mirrors the store's own #classify (A-28) and
+  makes `keep` and `clear` take the same side as `put-back` instead of falling
+  through to the try form by omission. `lost` needs no selector: a clear has
+  no store leg, so `storeLeg` is false and the honest half of lostBlock is the
+  one that renders. `partial` has no forms at all - SAFE-07's sentence about
+  half a configuration is true of a half-landed clear word for word.
+
   Nothing here animates a height. A block swap fades 160ms of opacity, CSS
   only, by remounting the block under {#key}; instant under reduced motion.
   The 2000 ms line beneath any block is the store's `slow`, a setTimeout on
@@ -46,6 +70,8 @@
   import { install, type InstallPhase } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
   import {
+    CLEARED_BODY,
+    CLEARED_CAPTION,
     IDENTIFIED_CAPTION,
     KEPT_CAPTION,
     KEPT_PROOF_LINE,
@@ -138,6 +164,9 @@
           <p class="caption">{KEPT_CAPTION}</p>
           <p class="body">{keptBody(shownName)}</p>
           <p class="body quiet">{KEPT_PROOF_LINE}</p>
+        {:else if shown === "cleared"}
+          <p class="caption">{CLEARED_CAPTION}</p>
+          <p class="body">{CLEARED_BODY}</p>
         {:else if shown === "kept-mismatch"}
           <FailureBlock block={keptMismatchBlock()} />
         {:else if shown === "unconfirmed"}
@@ -147,7 +176,7 @@
         {:else if shown === "nothing-landed"}
           <FailureBlock
             block={nothingLandedBlock(
-              install.action === "put-back" ? "put-back" : "try",
+              install.action === "try" ? "try" : "put-back",
             )}
           />
         {:else if shown === "partial"}

@@ -1892,6 +1892,32 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     const { store } = await connected();
     expect(store.snapshot, "the table's rig has a snapshot").toEqual(ORIGINAL);
+
+    // THE FOUR CONTROLS IN `cleared`, because the FACTORY DEFAULT body names
+    // one of them (plan 10-13). The copy rule is that no string names a
+    // control that is not on the screen, and install-copy.spec.ts asserts that
+    // the body names PUT BACK; this is the half that makes the pairing true -
+    // in `cleared` PUT BACK is not merely present, it is ENABLED, and it is so
+    // by construction rather than by coincidence, because a snapshot in hand
+    // is the second term of CLEAR's own enablement rule.
+    store.phase = "cleared";
+    expect(
+      store.putBackState(),
+      "the FACTORY DEFAULT body names PUT BACK, so PUT BACK has to be live where that body renders",
+    ).toBe("enabled");
+    expect(
+      store.keepReason(true),
+      "KEEP ON DEVICE after a clear - the closed set of six answers this phase without a seventh member, because a clear leaves nothing of the visitor's on the module to keep",
+    ).toBe("never-tried");
+    expect(store.clearEnabled(true), "and a clear is idempotent (A-50)").toBe(
+      true,
+    );
+    // TRY ON DEVICE has no predicate here on purpose: its enablement is the
+    // component's, derived from `writing`, `snapshotting` and a missing
+    // config, so `cleared` enables it by not being either of the two phases.
+    // device-ui.spec.ts holds that from the other side, by asserting the
+    // primary names no phase this plan added.
+
     for (const phase of ENABLED) {
       store.phase = phase;
       expect(store.clearEnabled(true), `${phase} should enable CLEAR`).toBe(

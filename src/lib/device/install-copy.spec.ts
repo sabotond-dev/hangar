@@ -625,6 +625,18 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
     expect(WRITE_CLICKS.length, "four write clicks").toBe(4);
     expect(new Set(WRITE_CLICKS).size, "four distinct").toBe(4);
 
+    // NO STRING NAMES A CONTROL THAT IS NOT ON THE SCREEN, and `cleared` is
+    // the one state this phase could have broken that rule in. CLEARED_BODY
+    // names PUT BACK and nothing else among the four write clicks - the
+    // machine's half of the pairing, that PUT BACK is ENABLED in `cleared`,
+    // is asserted in install.spec.ts's phase table, where the store lives and
+    // where a copy literal has no business being (the boundary plan 10-12
+    // drew). Between the two files the claim is whole.
+    expect(
+      WRITE_CLICKS.filter((label) => CLEARED_BODY.includes(label)),
+      "the FACTORY DEFAULT body names a control other than PUT BACK, or names none at all - it is the one block whose body points at a control, and the control it points at has to be present and live in that phase",
+    ).toEqual([PUT_BACK_LABEL]);
+
     // Z-08: the speed claim is made once, before the click. The phrase lives in
     // the two standing honesty lines and nowhere else - not in settled, not in
     // kept, not in a live utterance.

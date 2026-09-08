@@ -928,6 +928,128 @@ describe("the device UI's structural rules", () => {
       "PUT BACK is the first cell of the column",
     ).toBe(true);
 
+    // PLAN 10-13, D-04: THE SEQUENCE IS A CAPTION, AN ORDER AND AN ENABLEMENT.
+    // The caption is one Micro word under the hairline the panel already had;
+    // CLEAR joins the column after KEEP ON DEVICE and before the share
+    // snippet; and NO SECOND HAIRLINE arrives with it - A-46 retired that with
+    // the Bare tier it was separating, so the file declares exactly one
+    // border-block-start, the .rule's.
+    const clearAt = panel.indexOf("<Clear ");
+    const shareAt = panel.indexOf("{@render share");
+    expect(clearAt, "the panel mounts Clear").toBeGreaterThan(-1);
+    expect(shareAt, "the panel renders the share snippet").toBeGreaterThan(-1);
+    expect(
+      keepAt < clearAt && confirmAt < clearAt && clearAt < shareAt,
+      "the column is PUT BACK, KEEP ON DEVICE (or its confirmation), CLEAR, COPY LINK - CLEAR sits after the control it is quietest beside and before the one that is not an install control at all",
+    ).toBe(true);
+    expect(panel, "the panel carries the NEXT caption").toContain(
+      'data-testid="next-caption"',
+    );
+    expect(
+      occurrences(panel, "border-block-start"),
+      "ChosenPanel declares a border-block-start other than the one hairline Phase 7 gave region 6 - A-46 retired the second hairline with the Bare tier, and D-04's sequence is carried by a caption, an order and an enablement rather than by a rule",
+    ).toBe(1);
+    expect(
+      panel,
+      "region 4's reservation moved - it is Phase 4's floor and this plan is not allowed to touch it",
+    ).toContain("min-block-size: 152px");
+
+    // SAFE-02 SURVIVES D-04: THE TWO WEIGHTS ARE NOT EQUALISED. This is the
+    // regression D-04 makes attractive - "one natural sequence" read as "three
+    // equal buttons in a row" - and with CLEAR now in Quiet beside KEEP ON
+    // DEVICE there is one more control that would be dragged up with it. So
+    // the accent fill is asserted site-wide over every interactive class in
+    // src/lib/ui: exactly one component wears it, and it is the primary.
+    const ACCENT_FILL = "background: var(--color-accent)";
+    const filled: string[] = [];
+    let interactiveRulesRead = 0;
+    for (const name of readdirSync(repo(UI_DIR))
+      .map(String)
+      .filter((file) => file.endsWith(".svelte"))) {
+      const source = code(componentPath(name));
+      const rules = rulesOf(source);
+      for (const cls of new Set(interactiveClassesOf(source))) {
+        // Matched by inclusion rather than by equality, as every other walk in
+        // this file does: the first rule of a style block carries the `<style>`
+        // tag in its selector capture, so an equality test silently reads no
+        // rule at all - which is how this assertion first went green while
+        // finding nothing.
+        const selfRules = rules.filter((r) => r.selector.includes(`.${cls}`));
+        interactiveRulesRead += selfRules.length;
+        if (selfRules.some((r) => r.body.includes(ACCENT_FILL)))
+          filled.push(`${name} -> .${cls}`);
+      }
+    }
+    expect(
+      interactiveRulesRead,
+      "interactive classes' own rules were read across src/lib/ui, so the accent count below is not vacuous",
+    ).toBeGreaterThan(10);
+    expect(
+      filled,
+      "a control other than TRY ON DEVICE wears the accent fill - SAFE-02's content is that the two install controls are never equal-weight, and D-04's sequence is not allowed to buy itself with the primary's weight",
+    ).toEqual(["TryOnDevice.svelte -> .primary"]);
+    const clearControl = rulesOf(code(componentPath("Clear.svelte")))
+      .filter((r) => r.selector.includes(".control"))
+      .map((r) => r.body)
+      .join(" ");
+    for (const [name, body] of [
+      ["KEEP ON DEVICE", keepControl],
+      ["CLEAR", clearControl],
+    ] as const) {
+      expect(
+        body,
+        `${name} is no longer fit-content - the primary is the full-width control and the Quiet tier is not`,
+      ).toContain("inline-size: fit-content");
+      expect(
+        body,
+        `${name} no longer declares a transparent background - only the primary is filled`,
+      ).toContain("background: transparent");
+    }
+    expect(
+      occurrences(tryOn, '"cleared"'),
+      "TRY ON DEVICE names the `cleared` phase - the primary's disabled set is `writing`, `snapshotting` and a missing config, and plan 10-13 adds no phase to it",
+    ).toBe(0);
+
+    // DEGR-02, AS ONE ASSERTION OVER BOTH BEHAVIOURS. PUT BACK renders NOTHING
+    // when its state is `absent` (Z-12): it offers to restore a specific
+    // module's own configuration and on a browser that never had one there is
+    // nothing for it to name. CLEAR is the opposite ruling and it is
+    // deliberate: it does something meaningful on any module, so there is a
+    // real capability to teach, and it renders present-and-disabled with its
+    // reason inline. The difference is visible here as one file gating its
+    // whole body on putBackState and the other gating nothing.
+    const clearSource = code(componentPath("Clear.svelte"));
+    expect(
+      code(componentPath("PutBack.svelte")),
+      "PUT BACK no longer gates its whole render on putBackState - Z-12 makes it ABSENT rather than disabled when there is no configuration for it to name",
+    ).toContain('{#if state !== "absent"}');
+    expect(
+      occurrences(clearSource, "{#if"),
+      "CLEAR has gained a conditional render - DEGR-02 makes it PRESENT AND DISABLED on a browser that cannot write, with its reason inline, which is the opposite of PUT BACK's ruling and is the difference this assertion exists to hold",
+    ).toBe(0);
+    expect(
+      clearSource,
+      "CLEAR carries a real disabled attribute rather than aria-disabled alone",
+    ).toContain("{disabled}");
+
+    // I14's BLOCK, AND THE CONTROL ITS BODY NAMES. The caption and the body are
+    // install-copy's, never retyped; the store-side half of the naming rule -
+    // that PUT BACK is enabled in `cleared` - is asserted in install.spec.ts,
+    // where the phase table lives.
+    const state = code(componentPath("InstallState.svelte"));
+    expect(state, "region 3 renders the FACTORY DEFAULT caption").toContain(
+      "{CLEARED_CAPTION}",
+    );
+    expect(state, "and its body").toContain("{CLEARED_BODY}");
+    expect(
+      state,
+      "the cleared branch was not added to the phase chain",
+    ).toContain('shown === "cleared"');
+    expect(
+      state,
+      "the nothing-landed form is still selected by action === \"put-back\" - a clear would then fall through to the TRY form by omission, whose detail says the visitor's own scripts are still running. The selector mirrors the store's own #classify (A-28): try is the exception, everything else takes the put-back form",
+    ).toContain('install.action === "try" ? "try" : "put-back"');
+
     // ESCAPE'S TWO RULES, IN ORDER, ON THE HANDLER ALONE. The handler is
     // sliced from its key test to the next un-choose, because the file's
     // first pushState is choose()'s and comes BEFORE the handler - a

@@ -14,9 +14,39 @@
     3. the connect-state region
     4. the reserved tuning region     the caller's `tuning` snippet (Phase 5)
     5. a 24px gap, a hairline, 24px
-    6. the install row, ONE COLUMN    PUT BACK, KEEP ON DEVICE (or the
-                                      confirmation in its place), then the
-                                      caller's `share` snippet (Phase 7)
+    6. the NEXT caption               one Micro word (plan 10-13)
+       the install row, ONE COLUMN    PUT BACK, KEEP ON DEVICE (or the
+                                      confirmation in its place), CLEAR, then
+                                      the caller's `share` snippet (Phases 7
+                                      and 10)
+
+  THE SEQUENCE IS A CAPTION, AN ORDER AND AN ENABLEMENT - NEVER THREE EQUAL
+  BUTTONS IN A ROW (D-04, 10-UI-SPEC 10.2). D-04 asked the install controls to
+  read as one natural sequence, and SAFE-02's whole content is that TRY ON
+  DEVICE and KEEP ON DEVICE are never equal-weight. Both are honoured because
+  the sequence is carried on three channels, none of which is weight:
+
+    A CAPTION. NEXT, one word, Micro, in the quiet rung, directly under the
+    hairline this panel has had since Phase 7. It converts "three controls
+    that happen to sit together" into "what happens after", and it reads right
+    before a try-on too: it is what comes next.
+
+    DOM AND VISUAL ORDER. PUT BACK, KEEP ON DEVICE, CLEAR, COPY LINK, at the
+    16px rhythm, one layout at every width. Unchanged from Z-03 except for
+    CLEAR joining it.
+
+    ENABLEMENT CHOREOGRAPHY, and it is the strongest of the three because it
+    already existed. Before a try-on everything under NEXT is disabled with
+    its own reason in its own cell; the instant `settled` lands, PUT BACK and
+    KEEP ON DEVICE go live together. That transition IS the sequence, and it
+    is behaviour rather than decoration.
+
+  So there are NO step numerals, no connecting rule or bracket, no progress
+  indicator, no shared background, no equalised widths and no accent on any
+  sequence marker. And there is NO SECOND HAIRLINE: an earlier revision put
+  CLEAR in a fifth "Bare" tier below a rule of its own, and A-46 retired the
+  tier and the rule together. CLEAR joins the existing column under the one
+  hairline Phase 7 gave region 6, at the same 16px rhythm as its neighbours.
 
   THE RESERVED REGION'S HEIGHT IS LOAD-BEARING, NOT DECORATIVE, AND 152px IS A
   FLOOR RATHER THAN A CEILING - which is what min-block-size already said in the
@@ -94,6 +124,7 @@
   import { tick, type Snippet } from "svelte";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
   import { install } from "$lib/device/install.svelte";
+  import Clear from "./Clear.svelte";
   import KeepConfirm from "./KeepConfirm.svelte";
   import KeepOnDevice from "./KeepOnDevice.svelte";
   import PutBack from "./PutBack.svelte";
@@ -170,6 +201,8 @@
 
   <hr class="rule" />
 
+  <p class="caption" data-testid="next-caption">NEXT</p>
+
   <div class="install-row">
     <PutBack />
     {#if install.confirmOpen}
@@ -177,6 +210,7 @@
     {:else}
       <KeepOnDevice bind:this={keep} />
     {/if}
+    <Clear />
     {@render share?.()}
   </div>
 </section>
@@ -217,7 +251,12 @@
     min-block-size: 152px;
   }
 
-  /* 24px, a hairline, 24px. The gap the two install controls never close. */
+  /*
+    24px, a hairline, 24px. The gap the two install controls never close - and
+    THE ONLY HAIRLINE IN THIS REGION. A-46 retired the second one along with
+    the Bare tier it was there to separate, so plan 10-13 adds no
+    border-block-start anywhere in this file.
+  */
   .rule {
     margin-block: 24px;
     border: 0;
@@ -225,17 +264,35 @@
   }
 
   /*
+    The NEXT caption (plan 10-13, D-04): Micro, uppercase, in the quiet rung,
+    directly under the hairline. It is a caption and not a control - no accent,
+    no rule, no bracket, no numeral - and it is the only thing this plan adds
+    above the column.
+  */
+  .caption {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink-quiet);
+  }
+
+  /*
     One column at a 16px rhythm: PUT BACK, KEEP ON DEVICE or the confirmation
-    in its place, COPY LINK (07-UI-SPEC Region 6). The header carries the
-    arithmetic that retired Phase 5's space-between row. align-items keeps
-    every cell at its own width, so a fit-content control never stretches to
-    the column.
+    in its place, CLEAR, COPY LINK (07-UI-SPEC Region 6; 10-UI-SPEC 10.2). The
+    header carries the arithmetic that retired Phase 5's space-between row.
+    align-items keeps every cell at its own width, so a fit-content control
+    never stretches to the column. The caption sits 16px above the first cell,
+    on the same rhythm as the gaps between them.
   */
   .install-row {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+    margin-block-start: 16px;
   }
 
   @media (prefers-reduced-motion: reduce) {
