@@ -186,3 +186,112 @@ gap and not a rounding error.
 the pointer-to-detent mapping a rail forecast needs, written once for a control that has to have it
 anyway. Until then the meters' ghost fill and the signed delta appear on word rows and swatch rows,
 and a rail behaves exactly as it did before this plan.
+
+**10-10's answer: it did NOT close, and the reason got stronger rather than weaker.** The picker's
+rails are the shipped detent-track shape, which means the sixteen detents are PAINT UNDER AN
+INVISIBLE `<input type="range">` that fills the whole 44px box. That is not an implementation
+detail to route around — it is what makes the rail one tab stop with the platform's own arrow,
+`Home` and `End` behaviour, which the plan requires by name ("no new keyboard model"). So the
+platform delivers no `pointerenter` on a detent, and the mapping would have to be
+`offsetX / width * 16` written by hand: the second unverified copy of hit-testing this item was
+already about.
+
+The deciding half is the keyboard, not the pointer. 10-UI-SPEC §11.3 makes the hidden expansion
+mandatory *because* "a number beside a pointer is pointer-only information". A rail still has no
+keyboard candidate — an arrow key moves the knob rather than proposing a move — so a rail forecast
+built on `offsetX` would be exactly the pointer-only forecast that rule forbids. Closing this
+properly needs a candidate a keyboard can reach, which is a control change and not a wiring change.
+
+Unchanged from 10-09: the picker's SWATCH ROW (every hand-authored Lua colour knob) forecasts
+exactly as it did, because ColourPicker.svelte forwards `onforecast` into the shipped
+`Knob.svelte`.
+
+---
+
+## From 10-10
+
+### 5. The picker's result pad is built, plumbed and not yet driven — one line in `Coverflow.svelte`
+
+`ColourPicker.svelte` renders one `PadCanvas` and hands its element upward through `onresult`;
+`KnobRack.svelte` and `TuningRegion.svelte` both forward it. The last hop is missing: the only
+thing on the page that owns a `SimHost` is `Coverflow.svelte`, which registers the hero canvas and
+calls `replaceEngine` when the tuner publishes a new engine — and `Coverflow.svelte` is a file this
+phase promises not to edit (10-10's own `<verification>` block asserts
+`git diff --stat HEAD -- src/lib/ui/Coverflow.svelte` is empty).
+
+So the picker renders its result pad **only when a consumer supplies `onresult`**, and today none
+does. That is deliberate rather than a stub left running: an unregistered canvas has no backing
+store and paints nothing, and an empty box inside the picker is worse than no box — the whole
+argument of the result is that a flat swatch is the lie and a running 9×9 is the truth, and a blank
+one shows nothing while claiming to.
+
+What closes it is three lines in `Coverflow.svelte`'s `<TuningRegion>` block:
+
+```
+onresult={(id, canvas) => {
+  host?.register(id, canvas, enginesById.get(centred.id));
+  host?.setInWindow(id, true);
+}}
+```
+
+plus an `unregister(id)` on teardown, using the same engine the region already publishes through
+`onpreview`. `colour-picker.spec.ts` test 6 asserts the picker's end of the chain — exactly one
+`PadCanvas`, handed up through `onready={onresult}`, under its own `-colour-result` id so it cannot
+unregister the hero — so the day the wiring lands there is nothing to re-derive.
+
+Also unresolved by the same promise: `/dev/tune/` mounts `TuningRegion` with no canvas and no
+`SimHost` at all, so it will never drive the result pad either. The probe's own comment already
+says so.
+
+### 6. A Lua colour knob still shows a swatch row inside the picker, not three rails
+
+10-10 chose the picker BY KIND ALONE, as X-05 / X-06 as amended require, so every colour knob on
+both routes renders the same block: the same `COLOUR` caption, the same knob selector, the same
+result pad, the same lock. What differs INSIDE it is the control, and the reason is item 3 above:
+a hand-authored Lua colour knob still offers the four or five literals its author wrote, and three
+sixteen-detent rails cannot travel between `0,204,255` and `255,85,0` without passing through 4,094
+colours that knob cannot name. Rails over a palette would be a control that mostly does nothing.
+
+So the rails ship on the **six preset entries** and the swatch row ships on the **twenty-five Lua
+entries**, both inside one picker. Widening `luaKnobs` onto the lattice is what makes the rails
+universal, and it is item 3's regeneration of `src/lib/catalog/frames.json` for 25 entries — plus a
+reachability sweep whose Lua half would grow by 25 × 4,096 states. `view.ts`'s `isColourLattice`
+is the one place that asks, and its own comment names this item.
+
+### 7. The picker's head cannot be one 44px line on a narrow phone when it carries a knob selector
+
+**Measured, on the shipped build, in chromium at a 320px viewport** (rack content box **172px**):
+
+| Entry | colour knobs | head | selector | picker | rack |
+| ----- | ------------ | ---- | -------- | ------ | ---- |
+| `aurora` | 1 | **44px** | none | **192px** | fits |
+| `console` | 3 | **140px** | 49px wide, three options stacked | **288px** | 420px |
+
+The head is `caption + (selector or knob name) + metadata + lock` on one flex line. Three selector
+options are 44px on both axes by contract, so with the 63px caption and the 44px lock the row's
+min-content is **263px** — it cannot fit 172px, and no amount of shrinking makes it, because the
+44px floor is Phase 4's accessibility contract rather than a style.
+
+**What 10-10 did about it, and what it deliberately did not.** The metadata is dropped below a
+262px container (see `ColourPicker.svelte`'s last rule, with the four measured widths that derive
+the number), which puts every **single**-colour-knob entry back on one 44px line at both phone
+widths — that is 14 of the 31 entries with a picker, and it is what fixed the red
+`e2e/tuning-webkit.e2e.ts:279` assertion. For the **17 entries with two or three**, the picker
+declares `min-block-size: 192px` rather than `block-size`, so its content grows the block instead of
+painting over the next rack row. `TuningRegion.svelte`'s `196p` term then under-reserves by 96px on
+`console` at 320px: a first-paint layout shift on a phone, on 17 of 36 entries, rather than an
+overlap.
+
+**Why it is not closed here.** Closing it means either a second picker height constant driven by a
+container query, or a two-row head with its own reservation term — and every number in either
+version is a function of the pill's inline padding. 10-UI-SPEC §19.1b puts that at **24px**;
+`.option` ships at **12px** today. **10-13.1 owns `ColourPicker.svelte` and owns the pill**, so it
+is the wave that can compute these thresholds once against the geometry that ships rather than
+twice against two.
+
+**What it would cost to measure rather than reason.** Nothing in the e2e suite opens a
+multi-colour-knob entry: `tuning.e2e.ts` and `tuning-webkit.e2e.ts` are aurora, and the two
+over-budget tests are `/dev/tune/`'s tpad, which has no colour knob at all. Both numbers above were
+taken by hand with a throwaway Playwright probe. A `console` case in `tuning-webkit.e2e.ts` would
+have caught this on the day the picker landed and would catch the next one; it is one test and it
+is the cheapest half of this item.
