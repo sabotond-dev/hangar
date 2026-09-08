@@ -352,3 +352,24 @@ mounts the control. Two ways out, both cheap:
    candidate until a roll or a link replaces them, which is a true candidate and needs no new copy.
    It also changes what the feature *is* slightly: "mix what you have with what it shipped as" is a
    different first gesture from "mix two things you made".
+
+### 10. Nothing gates `docs/INSTALL-RUNBOOK.md`, and eight suites are absent from `docs/TESTING.md`
+
+Two findings from plan 10-13, both recorded rather than fixed.
+
+**The runbook has no gate at all.** `docs/SKELETON-RESULTS.md`, `docs/SKELETON-RUNBOOK.md`,
+`docs/HARDWARE-AUDITION.md`, `docs/PIN-POLICY.md`, `docs/TESTING.md` and `docs/woff2.md` are each
+named by at least one spec; `docs/INSTALL-RUNBOOK.md` is named by two source comments and by no
+test. So its "Seven rows" sentence, its row letters and its block table are trusted by hand. A-51
+made that finding stronger rather than weaker: the clear folded into row C precisely so the row
+count would not move, and if it had moved, nothing would have caught the sentence going stale. A
+later phase that wants this held would want a `ROW_COUNT`-shaped gate of its own — the row letters
+parsed out of the table, the count asserted against the sentence, and every block caption in the
+diagnosis table checked against `install-copy.ts`'s exports.
+
+**Eight suites older than Phase 10 are still not written up in `docs/TESTING.md`:**
+`src/lib/browse/facets.spec.ts`, `src/lib/fidelity/vendored-diff.spec.ts`,
+`src/lib/format-parity.spec.ts`, `src/lib/licence-notices.spec.ts`, `src/lib/pad/ready.spec.ts`,
+`src/lib/sim/demo.spec.ts`, `src/lib/tune/mix.spec.ts` and `src/lib/ui/font-assets.spec.ts`. They
+are green and they are gates. None of them is 10-13's, so none was touched; plan 10-14 re-measures
+the tree at the phase gate and is the natural place for them.

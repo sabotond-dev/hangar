@@ -3,7 +3,7 @@
 // that does not exist - first through a probe that hides nothing, then on the
 // page a visitor actually opens.
 //
-// Eleven tests in three blocks. THE FIRST SIX run against the install probe
+// Thirteen tests in three blocks. THE FIRST SIX run against the install probe
 // route, which renders the store's fields as plain text plus one thing no
 // component ever will: a TRACE of every phase the store has been in since
 // load, in order. A round trip through the scripted module takes tens of
@@ -42,9 +42,20 @@
 // leg, which un-chooses where Escape refuses (Z-10 names Escape only). The
 // panel is re-chosen after the leg and reads its settled block.
 //
-// THE ELEVENTH is the degrade path, tagged for the phone project: no shim,
-// `Navigator.prototype.serial` deleted, and every install control present,
-// disabled and explained - PUT BACK absent, by decision (Z-12).
+// THE ELEVENTH (plan 10-13) is the fourth write click walked end to end: at
+// rest CLEAR is live beside KEEP ON DEVICE under the NEXT caption; one click
+// sends with NO confirmation and no element ever appears bearing the testid
+// one would have had; CLEARING… carries aria-busy through the one leg; region
+// 3 reads FACTORY DEFAULT over a body that names PUT BACK, which is on the
+// screen and enabled; and PUT BACK then brings the visitor's own back. The
+// wire is counted by class at the end and PAGESTORE/EXECUTE is zero, which is
+// A-26's RAM-only ruling as a number rather than an intention.
+//
+// THE TWELFTH AND THIRTEENTH are the degrade path, tagged for the phone
+// project: no shim, `Navigator.prototype.serial` deleted, and every install
+// control present, disabled and explained - PUT BACK absent, by decision
+// (Z-12), and CLEAR present-and-disabled beside it, by the opposite decision
+// (DEGR-02), which the thirteenth holds as one assertion.
 //
 // THE PUT-BACK AFTER A KEEP NEEDS A BOUNDED BEAT LOOP, NOT ONE TIMED BEAT.
 // After a keep, PUT BACK runs a store leg too (Z-04), and the store's D-12
@@ -87,11 +98,22 @@
 // the durable record one page writes is never the reason the next one reads
 // `ready`.
 //
-// TEN OF THE ELEVEN TITLES ARE UNTAGGED: every one of them drives Web Serial,
-// which the phone engine does not have. The eleventh carries the tag
-// playwright.config.ts greps the phone project by, so it runs on both
-// projects: eleven titles, twelve runs. 07-08 added six to the suite total on
-// the desktop project alone; 07-12 adds four there and one on both, six more.
+// TEN OF THE THIRTEEN TITLES ARE UNTAGGED: every one of them drives Web
+// Serial, which the phone engine does not have. Three carry the tag
+// playwright.config.ts greps the phone project by, so they run on both:
+// thirteen titles, sixteen runs. 07-08 added six to the suite total on the
+// desktop project alone; 07-12 adds four there and one on both, six more;
+// 10-13 adds two on both, four more.
+//
+// AND ONE OF THE THREE TAGGED TITLES DRIVES WEB SERIAL, WHICH IS A DEPARTURE
+// FROM THE PARAGRAPH ABOVE - said plainly rather than left to be noticed. The
+// clear walk runs on the phone project through the SHIM, so what it proves
+// there is that the panel's logic, copy and enablement behave the same in
+// WebKit at a phone viewport; it does not and cannot prove that an iPhone can
+// install, and nothing here claims it does. Plan 10-13 asked for the fourth
+// click in both projects and the reason is worth the departure: the fourth
+// click is the one whose whole design was cut down after approval, and a
+// second engine is the cheapest check that what shipped is the same in both.
 //
 // TESTS 6 AND 10 ARE SLOW BY DESIGN. Test 6's two legs of three pagestoreMs
 // (3000 ms) attempts with retryBackoffMs between them are roughly 19 s; test
@@ -108,6 +130,12 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 import {
+  CLEARED_BODY,
+  CLEARED_CAPTION,
+  CLEARING_LABEL,
+  CLEAR_LABEL,
+  CLEAR_LINE,
+  CLEAR_REASONS,
   CONFIRM_CAPTION,
   CONFIRM_REPLACES,
   CONFIRM_WAY_BACK,
@@ -119,6 +147,7 @@ import {
   KEEP_REASONS,
   KEPT_CAPTION,
   KEPT_PROOF_LINE,
+  LIVE_CLEARED,
   LIVE_RESTORED,
   LIVE_SNAPSHOT_SAVED,
   LIVE_STILL_WRITING,
@@ -945,6 +974,18 @@ const honesty = (page: Page) =>
 const primary = (page: Page) => page.getByTestId("try-on-device");
 const putBackControl = (page: Page) => page.getByTestId("put-back");
 const keepControl = (page: Page) => page.getByTestId("keep-on-device");
+const clearControl = (page: Page) => page.getByTestId("clear");
+
+/**
+ * True when nothing anywhere on the page is CLEAR's confirmation. There is no
+ * such component (A-45, D-19) and there is no such testid, so this is a proof
+ * of an absence rather than of a state: CLEAR writes RAM only, PUT BACK
+ * directly above it undoes it, and a power cycle undoes it, so KEEP ON
+ * DEVICE's block is the site's only confirmation. Asserted at rest, inside
+ * the write and after it lands.
+ */
+const noConfirmOnScreen = async (page: Page): Promise<boolean> =>
+  (await page.locator('[data-testid="clear-confirm"]').count()) === 0;
 const installState = (page: Page) => page.getByTestId("install-state");
 const sessionLive = (page: Page) => page.getByTestId("session-live");
 
@@ -1668,6 +1709,87 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     console.log(`test 10 wall time ${Date.now() - startedAt} ms`);
     expect(consoleErrors).toEqual([]);
   });
+
+  test("@webkit CLEAR sends on the click with no confirmation, the panel reads FACTORY DEFAULT, and PUT BACK brings the visitor's own back @webkit", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(17));
+    await connectOnPage(page, zona);
+    await recordLiveRegions(page);
+    await tryOnPage(page);
+
+    // AT REST, AFTER A TRY-ON, ON A BROWSER THAT CAN WRITE. CLEAR is live
+    // beside KEEP ON DEVICE, under the NEXT caption, with its own line - and
+    // the two look the same, which is A-47's ruling stated rather than hidden.
+    // What separates them is behaviour: the words, the enablement set, and the
+    // ceremony KEEP has and CLEAR does not.
+    await expect(page.getByTestId("next-caption")).toHaveText("NEXT");
+    await expect(clearControl(page)).toBeVisible();
+    await expect(clearControl(page)).toBeEnabled();
+    await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
+    await expect(visibleLine(page, "clear-line")).toHaveText(CLEAR_LINE);
+    await expect(keepControl(page)).toBeEnabled();
+    expect(await noConfirmOnScreen(page)).toBe(true);
+
+    // Hold each CONFIG acknowledgement 200 ms in Node - strictly under
+    // executeMs 250, as test 7 does - so CLEARING… is a window of about
+    // 400 ms rather than 40, and a locator can catch it.
+    zona.script({ delayAckMs: { class_name: "CONFIG", byMs: 200 } });
+    const configBefore = zona.seen("CONFIG", "EXECUTE");
+    await clearControl(page).click();
+
+    // THE CLICK SENT. No block appeared, nothing waited for a second click,
+    // and the busy label is on the control that was clicked. This is the
+    // cheapest possible proof that A-45 shipped rather than being planned.
+    await expect(clearControl(page)).toHaveText(CLEARING_LABEL);
+    await expect(clearControl(page)).toHaveAttribute("aria-busy", "true");
+    expect(await noConfirmOnScreen(page)).toBe(true);
+
+    // I14 lands: the caption names the STATE and the body names PUT BACK,
+    // which is on the screen and enabled - the copy rule holds where this
+    // phase could most easily have broken it.
+    await expect(installState(page)).toContainText(CLEARED_CAPTION);
+    await expect(installState(page)).toContainText(CLEARED_BODY);
+    await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
+    await expect(clearControl(page)).not.toHaveAttribute("aria-busy", "true");
+    await expect(clearControl(page)).toBeEnabled();
+    await expect(putBackControl(page)).toBeEnabled();
+    // A clear leaves nothing of the visitor's on the module to keep, so the
+    // closed set of six answers the new phase without a seventh member.
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_REASONS["never-tried"],
+    );
+    expect(await noConfirmOnScreen(page)).toBe(true);
+    expect(zona.seen("CONFIG", "EXECUTE") - configBefore).toBe(2);
+    // The region is WAITED ON rather than read: session.speech arrives on the
+    // store's trailing timer, so a log read the instant region 3 changes is
+    // read before the sentence exists.
+    await expect(sessionLive(page)).toHaveText(LIVE_CLEARED);
+
+    // AND THE WAY BACK IS ONE CLICK, which is the whole reason CLEAR needs no
+    // confirmation (D-19): the control directly above it undoes the write.
+    await putBackControl(page).click();
+    await expect(installState(page)).toContainText(RESTORED_CAPTION);
+    await expect(installState(page)).toContainText(RESTORED_BODY);
+    await expect(putBackControl(page)).toHaveText(PUT_BACK_LABEL);
+    await expect(sessionLive(page)).toHaveText(LIVE_RESTORED);
+
+    // The live region said the clear once and never called it an emptying.
+    const after = await liveTexts(page);
+    const spoken = utterances(after.log["session-live"]);
+    expect(spoken.filter((line) => line === LIVE_CLEARED).length).toBe(1);
+    expect(spoken[spoken.length - 1]).toBe(LIVE_RESTORED);
+    expect(utterances(after.log["tuning-live"])).toEqual([]);
+
+    // The wire, by class: the try-on, the clear and the put-back are two
+    // CONFIG/EXECUTE each, and A-26's RAM-only ruling is a counted zero
+    // rather than an intention - a clear stores nothing.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(6);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(consoleErrors).toEqual([]);
+  });
 });
 
 test.describe("the install controls on the engine that can never install", () => {
@@ -1775,6 +1897,60 @@ test.describe("the install controls on the engine that can never install", () =>
       ).toBeLessThanOrEqual(1);
     }
 
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("@webkit CLEAR is present and disabled where PUT BACK is absent, and the difference is one assertion @webkit", async ({
+    page,
+  }) => {
+    // DEGR-02 for the fourth click (plan 10-13). This is the branch a large
+    // share of visitors hit and the one no manual tester remembers to check.
+    const consoleErrors = collectErrors(page);
+    await page.goto(`/c/${ENTRY}/`);
+    expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
+
+    const slot = page.getByTestId("device-slot");
+    await expect(slot).toHaveAttribute("data-hydrated", "true");
+    await expect(slot).toHaveAttribute("data-slot", "S0a");
+    const band = page.getByTestId("coverflow");
+    await expect(band).toBeVisible();
+    await waitForPicture(page, ENTRY);
+    if ((await page.getByTestId("chosen-panel").count()) === 0) {
+      await expect(band).toHaveAttribute("data-ready", "true");
+      await band.press("Enter");
+    }
+    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+
+    // PRESENT AND DISABLED, WITH ITS REASON INLINE. Not hidden: a visitor who
+    // cannot install still learns what the control would have done, which is
+    // the whole of DEGR-02's "teach rather than hide". The caption above the
+    // column is on the screen too - the sequence reads the same on a browser
+    // that can never walk it.
+    await expect(page.getByTestId("next-caption")).toHaveText("NEXT");
+    await expect(clearControl(page)).toBeVisible();
+    await expect(clearControl(page)).toBeDisabled();
+    await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
+    await expect(visibleLine(page, "clear-line")).toHaveText(
+      CLEAR_REASONS.incapable,
+    );
+
+    // AND THE CONTRAST WITH PUT BACK, IN ONE ASSERTION, so the difference is
+    // deliberate and visible rather than two facts in two places. PUT BACK is
+    // ABSENT (Z-12): it offers to restore a SPECIFIC module's own
+    // configuration, and on a browser that never had one there is nothing for
+    // it to name. CLEAR does something meaningful on any module, so there is a
+    // real capability to teach.
+    expect(
+      {
+        clear: await clearControl(page).count(),
+        clearDisabled: await clearControl(page).isDisabled(),
+        putBack: await putBackControl(page).count(),
+      },
+      "CLEAR must be PRESENT and DISABLED exactly where PUT BACK is ABSENT",
+    ).toEqual({ clear: 1, clearDisabled: true, putBack: 0 });
+
+    // No confirmation exists to be hidden here either.
+    expect(await noConfirmOnScreen(page)).toBe(true);
     expect(consoleErrors).toEqual([]);
   });
 });
