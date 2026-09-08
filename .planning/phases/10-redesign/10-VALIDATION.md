@@ -30,11 +30,11 @@ created: 2026-09-08
 | **Sweep** | `npm run test:sweep` (= `vitest run --project sweep`) — **restructured in 10-08, never re-membered** |
 | **Wave run** | `npm run check && npm run lint && npm run test:quick`, plus `npm run test:sweep` for any wave that touches knobs, the stamp, the colour lattice or `src/vendor/` |
 | **Full suite** | the wave run plus `npm run build` and `npm run test:e2e -- --workers 3` |
-| **Count gate** | `… 2>&1 \| node scripts/check-counts.mjs <files> <tests>` — **baseline + delta only, never a literal total (D-17)** |
+| **Count gate** | `… 2>&1 \| node scripts/check-counts.mjs <files> <tests>` — **baseline + delta only, never a literal total (D-17)**, with **one stated exception: the sweep's `4 19`.** It is written as a literal in 10-01, 10-08, 10-10, 10-11 and 10-14 on purpose. D-17 exists because a literal total silently absorbs a plan's mistake into the phase's arithmetic; `4 19` is not a total that accumulates, it is the sweep project's **member list**, and the assertion every one of those plans makes is precisely that it **does not move**. Writing it as `BASE_SWEEP` would hide the one thing being claimed. If it ever moves, the plan that moved it says so by name |
 | **New dependencies** | **two, both in 10-01/10-02**: `@fontsource-variable/inter@5.3.0` (OFL-1.1, already allowlisted at `gen-licenses.mjs:41`) installed; `@fontsource/quicksand@5.3.0` **uninstalled**. No other package is added, and **`impeccable` is not installed by any plan** — see the D-01 note below |
 | **Hardware** | **none, to any agent.** Nothing opens a serial port and nothing deploys. `INSTALL-RUNBOOK.md` row H joins rows A–G, all awaiting the user |
 
-### D-01, resolved without an install task
+### D-01, resolved without an install task — and registered as **V-06**
 
 `impeccable` is **already present on this machine**, at `~/.claude/skills/impeccable/` (`SKILL.md`,
 `agents/`, `reference/`, `scripts/`). `10-UI-SPEC.md` §0 was authored through it and its six gates are
@@ -47,6 +47,9 @@ the skill is a **user-scoped tool**, not a project dependency, and `.claude/` is
 > approved spec was authored against, for no gain. 10-01 **records** the installed file list and
 > asserts that nothing under `src/` or `static/` came from it. `$impeccable teach` and
 > `$impeccable document` are **not** run (A-36, Open item 16).
+>
+> This paragraph is the reasoning; the **ruling** is **V-06** in *Where this document amends the
+> approved spec*, so a spec-versus-code discrepancy is settled in the register rather than in prose.
 
 ---
 
@@ -73,7 +76,7 @@ numbers in this phase are load-bearing arithmetic that a later plan must not re-
 | `BASE_TESTS` | the `test:quick` **passing test** count on that same clean tree | **never moves.** The todo count is reported and never asserted |
 | `PREV_FILES` | the `test:quick` **file** count **as that plan left the tree** | starts equal to `BASE_FILES`; re-measured by every plan that changes it; copied verbatim otherwise |
 | `PREV_TESTS` | the `test:quick` **passing test** count as that plan left the tree | moves the way `PREV_FILES` does |
-| `BASE_SWEEP` | the literal the sweep printed on the clean tree | **moves once, in 10-08.** If it moves twice, something was misfiled |
+| `BASE_SWEEP` | the sweep project's **member list** — files and tests — as printed on the clean tree, expected `4 19` | **never moves.** 10-08 restructures the three sweep files **from the inside**: two passes replace one inside `reachability` and `stamp-roundtrip`, the test count per file is unchanged, and what moves is the enumeration and `PREV_SWEEP_WALL`. Every plan from 10-08 onward asserts `4 19` **unchanged**, and this is the name for that. If the member list moves, a sweep file was added or a test split — say which |
 | `BASE_E2E` | the Playwright total on the clean tree Phase 9 closed, measured once in 10-01 | **never moves.** 10-14's phase gate asserts against it |
 | `PREV_E2E` | the **last measured** Playwright total, with the plan that measured it named beside it | starts equal to `BASE_E2E`; re-measured by 10-04, 10-05, 10-07, 10-13 and 10-14 |
 | **`CH_PER_LINE`** | characters per line of Body (16px Inter Variable at line-height 1.5) in the 372px panel content column, **measured in both engines** in 10-01-02 | **never moves after 10-01.** Every reservation and every cap in §12 of the spec is this number's arithmetic. Provisionally 46; the measurement rules |
@@ -169,9 +172,11 @@ Read from this repository on 2026-09-08 by the planner, from the sources, not es
 
 ## Where this document amends the approved spec
 
-The spec is approved and is the contract. Five places need a planner ruling because the spec's own
-words cannot be executed in the order it gives them. Each is an amendment by name, with its reason,
-and each is carried into the plan that owns it.
+The spec is approved and is the contract. **Six** places need a planner ruling because the spec's own
+words cannot be executed in the order it gives them, or because what it asks for is already true by
+another route. Each is an amendment by name, with its reason, and each is carried into the plan that
+owns it. V-01 to V-05 are ordering and mechanism; **V-06 is a spec-versus-code item like V-05, and it
+sits here rather than in prose for the same reason V-05 does.**
 
 | # | Spec text | Why it cannot execute as written | The amendment |
 |---|---|---|---|
@@ -180,6 +185,7 @@ and each is carried into the plan that owns it.
 | **V-03** | §17 / §11.4: restructure `reachability.sweep.spec.ts` into two passes "**before** the picker is built", with Pass B costing **all 4,096** colours | Pass B enumerates the colour knob's option list. Today that list is the card's own colour plus a five-member palette. Enumerating 4,096 colours **before** the lattice knob exists would be enumerating unreachable states | **The restructure splits in two, both before the picker.** 10-08 task 1 restructures into Pass A + Pass B **at today's option counts**, re-derives both non-vacuity floors as the two passes' own sum, and records the wall clock. 10-08 task 2 lands the lattice knob and Pass B becomes 4,096 per colour knob; the totals become 19,502 / 24,576 / **44,078** and the wall clock is re-recorded. The picker (10-10) is still downstream of both |
 | **V-04** | §16: `src/lib/ui/PadFrame.svelte` gains "the `demo` mode" | `PadFrame` holds no engine, issues no draw call and declares `entry: { id: string }` precisely so `svelte/no-unused-props` stays green. A `demo` prop on it would be an unused prop and a lint failure, and the component it would have to reach is `PadCanvas` → `SimHost.register` | **The `demo` flag is a fourth argument to `SimHost.register(id, canvas, engine, options?)`**, passed from `CatalogCard.svelte` (the only surface that mounts a dark entry — see the facts above). `PadFrame.svelte` gains **Layer S and its header amendment only**. §16's row is amended by name in 10-05's SUMMARY |
 | **V-05** | §9.4: an unmapped `?tag=` "becomes the search query" | `query.ts:104-110` drops an unknown tag **on purpose**, under 05.1's W-12, with a written argument. §3.2's nine gate amendments **do not list `query.spec.ts`**, so the register under-counts by one | **W-12 is a tenth gate amendment, G-10**, rewritten rather than deleted, in 10-07. The precedence the spec leaves open is ruled here: **an explicit `?q=` always wins.** An unmapped `?tag=` becomes `q` only when `q` is empty; two unmapped tags join with a single space in address order. A *mapped* value becomes its facet chip and never touches `q` |
+| **V-06** | §0 / `10-UI-SPEC.md:1755`: run the `impeccable` install "as a plan task" | No plan does, and until now this document overruled it **in prose** rather than as a numbered item — which is the same defect V-05 exists to correct: a spec-versus-code discrepancy that is settled somewhere other than the register is a discrepancy nobody can audit. **The substance is not in dispute:** D-01 is factually met, because the skill is already present at `~/.claude/skills/impeccable/` (`SKILL.md`, `agents/`, `reference/`, `scripts/`) and §0 was authored through it | **No plan runs `npx impeccable install`, and D-01 is satisfied by presence rather than by installation.** The skill is a **user-scoped tool**, not a project dependency: `npm ls impeccable` in this repository returns empty and must stay empty, and `.claude/` is `export-ignore`d (`.gitattributes:5`) so it never enters the source archive either way. The npm package was published 2026-09-06 and registry `latest` is a moving target; re-installing mid-phase would change the instrument the approved spec was authored against, for no gain. **10-01 records the installed file list** and asserts nothing under `src/` or `static/` came from it; `$impeccable teach` and `$impeccable document` are **not** run (A-36, Open item 16). 10-14-02 walks ROADMAP success criterion 1 and states this as its first of three parts |
 
 Three further discrepancies are **recorded, not amended**, because nothing depends on them:
 `git ls-files`'s "one font-shaped path" is a `.txt` (§17); the archive is written by
@@ -213,15 +219,15 @@ per-file count. The `test:quick` file column counts spec files added or removed.
 | 10-04 | 4 | +0 | **+6** | unchanged | **+8** | `aesthetic.spec.ts` 1 → 7; `aesthetic.e2e.ts` 4 titles × 2 projects |
 | 10-05 | 5 | **+1** | **+5** | unchanged | unchanged (measured) | `demo.spec.ts` (2), `host.spec.ts` +3 |
 | 10-06 | 6 | **+1** | **+4** | unchanged | unchanged | `facets.spec.ts` (4) |
-| 10-07 | 7 | +0 | **−1** | unchanged | **−2** | `sort.spec.ts` loses the NEWEST date-block test; the browse sort walk drops one option in both projects |
-| 10-08 | 8 | +0 | **+0** | **moves once** | unchanged | three sweep files restructured inside; counts held |
+| 10-07 | 7 | +0 | **−1** | unchanged | **0** | `sort.spec.ts` loses the NEWEST date-block test. **The e2e delta is 0, measured:** `browse.e2e.ts:268` is a single title whose body walks four sorts, so removing NEWEST (`:289-311`) deletes assertions inside it and no title disappears; `browse-webkit.e2e.ts` never names `newest`. `:332-404` is rewritten AND→OR inside its own title as well |
+| 10-08 | 8 | +0 | **+0** | `4 19` **unchanged** | unchanged | three sweep files restructured inside; counts held, enumeration and wall clock move |
 | 10-09 | 9 | +0 | **+3** | unchanged | unchanged | `tune-ui.spec.ts` +2, `surprise.spec.ts` +1 |
 | 10-10 | 10 | **+1** | **+6** | unchanged | unchanged | `colour-picker.spec.ts` (6) |
 | 10-11 | 11 | +0 | **+2** | unchanged | unchanged | `tune-ui.spec.ts` +2 |
 | 10-12 | 12 | +0 | **+4** | unchanged | unchanged | `install.spec.ts` +3, `session.spec.ts` +1 |
 | 10-13 | 13 | +0 | **+3** | unchanged | **+4** | `device-ui.spec.ts` +3; `install.e2e.ts` +2 × 2 projects |
 | 10-14 | 14 | +0 | +0 | unchanged | unchanged (measured) | the gate |
-| **Phase total** | | **+5** | **+39** | **+1 restructure** | **+10** | reconciled at 10-14, never asserted before it |
+| **Phase total** | | **+5** | **+39** | `4 19`, **+1 restructure** | **+12** | reconciled at 10-14, never asserted before it. The e2e total is `BASE_E2E + 12`: aesthetic 4×2 (10-04), install 2×2 (10-13), browse **0** (10-07) |
 
 **A wave asserts against `PREV_FILES` / `PREV_TESTS`**, the tree the previous plan left. **Only 10-14
 asserts against `BASE_FILES` / `BASE_TESTS`**, and its number is the phase total written out as a
@@ -271,7 +277,7 @@ Standing gates that must be green at the phase gate and are **not** edited:
 | `src/lib/share/stamp-roundtrip.sweep.spec.ts` | compiler half 32,852 → **44,078**; Lua half 276,160 → **234,784** (−15%, pure index arithmetic, no minifier) | the Lua half gets *cheaper*; if it does not, the two passes were cross-producted |
 | `src/lib/catalog/lua-entries.sweep.spec.ts` | 701 → **1,728** combinations, 1,402 → **3,456** minifier-backed measurements. **Not 184,833** — the colour dimension is a 27-literal, length-complete sample, justified at `:358-384` | if it approaches the enumeration figure, the sample was replaced by a cross-product |
 | `npm run build` | 12 s at sixteen entries, projected 16–20 s at thirty-six (09-VALIDATION). 10-05 adds a demo-path replay per dark entry to `gen-og.mjs` | record it in 10-05 and 10-14 |
-| `npm run test:e2e -- --workers 3` | 89 titles / 2.0 min at 1.56 GB free. **+10 titles** this phase | record the wall time and the free memory beside every e2e run |
+| `npm run test:e2e -- --workers 3` | 89 titles / 2.0 min at 1.56 GB free. **+12 titles** this phase — no title is removed anywhere in it | record the wall time and the free memory beside every e2e run |
 | `test:quick` memory | the 2026-09-05 timeouts happened at 0.8–1.7 GB free | record free memory beside every quick run |
 
 ---
@@ -343,12 +349,12 @@ is either extended, amended or closed by a named plan, and 10-14 writes each qua
 | 10-06-03 | 06 | 6 | CAT-03 | unit + docs | `KNOWN_TAGS` **16**; both `RECORDED` blocks re-cut; `05.1-UI-SPEC.md`'s census and its `MORE TAGS` rows amended by name; two negative checks red | exists | pending |
 | 10-07-01 | 07 | 7 | CAT-02 | unit | Newest removed: `BROWSE_SORTS` **2**, `newestOrder` and `orderFor`'s middle branch gone, `sort.spec.ts:82`'s literal and `:179`'s date-block test retired by name; `sort.spec.ts` **5**; `addedAt` out of `ListingEntry` | exists | pending |
 | 10-07-02 | 07 | 7 | CAT-03, CAT-04 | unit | `?for=` / `?feels=`; **G-10**: an unmapped `?tag=` becomes `q` only when `q` is empty, in address order, space-joined; a mapped one becomes its chip; `?sort=newest` falls back silently; `query.spec.ts` green | exists | pending |
-| 10-07-03 | 07 | 7 | CAT-03 | unit + e2e | two facet rows, three chips per card, the outsider-chip branch and the count-derived row retired, `disabledTags()` kept; the `FOR` link row on `/` with `front-door.ts` still import-free and the ring still **8**; e2e `PREV_E2E − 2` | exists | pending |
+| 10-07-03 | 07 | 7 | CAT-03 | unit + e2e | two facet rows, three chips per card, the outsider-chip branch and the count-derived row retired, `disabledTags()` kept; the `FOR` link row on `/` with `front-door.ts` still import-free and the ring still **8**; `browse.e2e.ts:332-404` rewritten AND→OR inside its title with `:363`'s W-04 citation amended to A-19; e2e `PREV_E2E` **unchanged** | exists | pending |
 | 10-08-01 | 08 | 8 | TUNE-05 | sweep | the two-pass restructure at today's option counts in all three sweep files; both non-vacuity floors re-derived as the passes' own sums; `PREV_SWEEP_WALL` recorded; negative check red on a shrunken enumeration | exists | pending |
 | 10-08-02 | 08 | 8 | TUNE-01, TUNE-05 | unit + sweep | the lattice colour knob: `read(apply(state, i)) === i` by construction over all 4,096; Pass A **19,502**, Pass B **24,576**, total **44,078**; `ninepads` **640 of 908**, 268 free; zero Pass B states over 908; the wall clock re-recorded | exists | pending |
 | 10-08-03 | 08 | 8 | SHARE-01, SHARE-03 | unit + sweep | format `w` emits and decodes; **a format `x` stamp made before this plan still lands `restored`**, asserted with a captured literal; the Lua half **234,784**, the compiler half **44,078**; `lua-entries.sweep` **1,728** combinations on the 27-literal sample | exists | pending |
-| 10-09-01 | 09 | 9 | TUNE-04 | unit | `HOLD` / `HELD` per knob, `aria-pressed`, 44px both axes, the held default marker as a 2px `--color-line` bar; `SURPRISE ME` disabled when every knob is held with its **53**-character reason; `surprise.spec.ts` +1 covering the newly reachable twelve-draw exhaustion | exists | pending |
-| 10-09-02 | 09 | 9 | TUNE-02 | unit | the forecast: `cost()` only, memoised on the index vector, `@media (hover: hover)` and focus-visible, never on touch; the ghost fill unanimated; the signed delta in `--font-mono` with U+2212; the hidden expansion at **44**; `--color-over` still exactly three uses | exists | pending |
+| 10-09-01 | 09 | 9 | TUNE-04 | unit | `HOLD` / `HELD` per knob, `aria-pressed`, 44px both axes, the held default marker as a 2px `--color-line` bar; `SURPRISE ME` disabled when every knob is held with its **53**-character reason; `surprise.spec.ts` **+1** covering the newly reachable twelve-draw exhaustion and `tune-ui.spec.ts` **+0** — the UI assertion and the accent census are 10-09-02's | exists | pending |
+| 10-09-02 | 09 | 9 | TUNE-02 | unit | the forecast: `cost()` only, memoised on the index vector, `@media (hover: hover)` and focus-visible, never on touch; the ghost fill unanimated; the signed delta in `--font-mono` with U+2212; the hidden expansion at **44**; `--color-over` still exactly three uses. **`tune-ui.spec.ts` +2 and both are this task's** — the disabled-`SURPRISE ME` exhaustion assertion and the accent census; **10-09-01 is `tune-ui.spec.ts` +0**, so the plan is +3 and the file lands at **7** | exists | pending |
 | 10-10-01 | 10 | 10 | TUNE-01 | unit | `ColourPicker.svelte`: three 16-detent rails on the existing detent-track widget, one result pad, the knob selector on the seventeen multi-colour entries and **not rendered** on the fourteen single ones; `colour-picker.spec.ts` **6** | created here | pending |
 | 10-10-02 | 10 | 10 | TUNE-01, IDENT-01 | unit + source | A-09's fence asserted by name: no HSV field, no hue ring, no SV square, no CSS gradient on a rail, no `<input type="color">`, no `filter` anywhere in the file; every filled pixel a flat stored RGB444; the cheap-step ticks; the unaffordable-detent guard proven on a synthetic over-budget knob and **measured as never firing** on the shelf | exists | pending |
 | 10-11-01 | 11 | 11 | TUNE-04 | unit | `MixTwo.svelte`: two parents, four children, `child[k] = coin() ? a[k] : b[k]` plus one `surpriseIndices` mutation, held knobs never crossed and never mutated, taking one makes the previous state `THAT ONE`; zero new reachable states | created here | pending |
@@ -359,7 +365,7 @@ is either extended, amended or closed by a named plan, and 10-14 writes each qua
 | 10-13-02 | 13 | 13 | SAFE-02, DEGR-02 | unit | the `NEXT` caption, the second hairline at 24 / 1px / 24, the `CLEARED` block, CLEAR's details on the three reused failure states; DEGR-02 present-but-disabled with the reason inline; SAFE-02's weights unchanged | exists | pending |
 | 10-13-03 | 13 | 13 | SAFE-03, DEGR-02 | e2e + docs | `install.e2e.ts` +2 titles across both projects walking clear → `cleared` → `PUT BACK` → `restored` against the fake; `INSTALL-RUNBOOK.md` **row H**; `docs/TESTING.md:840` "the three clicks" → four; e2e `PREV_E2E + 4` | exists | pending |
 | 10-14-01 | 14 | 14 | all | measured + docs | every projection in this document replaced by an observation; `docs/TESTING.md` re-measured; `deferred-items.md` written; ROADMAP's `Requirements: TBD` replaced by the owned list | exists | pending |
-| 10-14-02 | 14 | 14 | all | phase gate | quick `BASE_FILES + 5` / `BASE_TESTS + 39` written as a chain, sweep restructured, e2e `BASE_E2E + 10`, against a fresh production build; `git diff --stat HEAD -- src/vendor/` empty; the archive listed and the font absent from it | exists | pending |
+| 10-14-02 | 14 | 14 | all | phase gate | quick `BASE_FILES + 5` / `BASE_TESTS + 39` written as a chain, sweep `4 19` restructured, e2e `BASE_E2E + 12`, against a fresh production build; **ROADMAP's six Phase 10 success criteria walked one at a time**, criterion 1 recorded as discharged into `THIRD-PARTY.md` with the resolution handed to the user as Open item 2; `git diff --stat HEAD -- src/vendor/` empty; the archive listed and the font absent from it | exists | pending |
 | 10-14-03 | 14 | 14 | SAFE-03, SAFE-05 (hardware) | **checkpoint:human-verify** | not automatable — `INSTALL-RUNBOOK.md` row H on a real ZONA, plus the three Open-for-the-user reversals restated with their measured costs | n/a | pending |
 
 *Status: pending / green / red / flaky. Every row starts pending; an executing plan updates only its own rows.*
@@ -469,9 +475,11 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
 | 10-06 | re-cut `listing.ts` only, leaving `entries/arc.ts` alone | `listing.spec.ts`'s both-directions equality, naming `arc` and `tags` |
 | 10-07 | restore `"newest"` to `BROWSE_SORTS` | `sort.spec.ts:125`'s comparator sweep **self-adjusts and passes**, while the toolbar walk and `:82`'s list go red — **the asymmetry is the finding** |
 | 10-07 | make an unmapped `?tag=looper` drop instead of landing in `q` | `query.spec.ts`'s G-10 test, naming `looper` |
+| 10-07 | restore `browse.e2e.ts:365-390`'s intersection expectation on two `FEELS` chips | the rewritten union assertion, naming both terms and both counts — **05.1's W-04 semantics inverted by A-19** |
 | 10-08 | remove one preset from Pass A's enumeration | `reachability.sweep.spec.ts`'s `costed === expected`, naming the shortfall |
 | 10-08 | emit format `w` for a stamp the fixture captured as `x` | the wild-link test: the captured `x` literal must still land `restored` |
-| 10-09 | hold every knob and leave `SURPRISE ME` enabled | `tune-ui.spec.ts`'s exhaustion test |
+| 10-09 | make `surpriseIndices` draw afresh when every knob is held (task 1) | `surprise.spec.ts`'s exhaustion test, naming the held set |
+| 10-09 | hold every knob and leave `SURPRISE ME` enabled (task 2) | `tune-ui.spec.ts`'s exhaustion assertion — **authored in 10-09-02**, which is where that file's only two new tests live |
 | 10-10 | put a `linear-gradient` on a picker rail | `colour-picker.spec.ts`'s A-09 fence, naming the declaration |
 | 10-10 | give one detent a colour that is not a multiple of 17 | the lattice test, naming the index and the channel |
 | 10-11 | let a held knob be crossed | `MixTwo`'s crossover test, naming the knob |
@@ -485,8 +493,12 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
 
 ## Standing hazards carried into this phase
 
-- **`src/app.css` is the most-touched file in the phase** — 10-02, 10-04 and (through `--crt`) 10-09
-  — and `identity.spec.ts` reads it whole. Every edit runs that spec in the same turn.
+- **`src/app.css` is the most-touched file in the phase — and it is touched by exactly two plans,
+  10-02 and 10-04.** Those are the only two carrying it in `files_modified`. 10-09 is **not** one of
+  them: the forecast's ghost fill is `--color-line-soft` and its delta is `--color-ink`, both already
+  declared, and its `--font-mono` fifth use is a *use*, not a declaration — so it needs no token and
+  no `app.css` edit. `identity.spec.ts` reads the file whole, so 10-02 and 10-04 each run that spec in
+  the same turn; 10-09 runs it only as part of `test:quick`.
 - **`identity.spec.ts`'s hex loop covers the whole file.** A `%23`-encoded hex inside a data-URI in
   `app.css` reads as a fourth hue. The noise tile stays in `PadFrame.svelte`.
 - **Memory during `test:quick`.** Timeouts were observed at 0.8–1.7 GB free on an unchanged tree.
@@ -549,13 +561,17 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
       signed off (10-05)
 - [ ] Sixteen terms in two facets, exactly three per entry, re-cut in all twenty-eight source files
       (10-06)
-- [ ] Two sorts, two facet rows, and no shared link dropped on the floor (10-07)
+- [ ] Two sorts, two facet rows, and no shared link dropped on the floor; the AND→OR inversion at
+      `browse.e2e.ts:332-404` rewritten by name and the e2e total **unchanged at `PREV_E2E`**, because
+      `:268` is one title and no title is removed (10-07)
 - [ ] The sweep restructured into two passes before the picker, the honest total recorded as a rise,
       and format `x` still landing `restored` (10-08)
 - [ ] Locks and the live forecast ship; the accent list is still eight and `--color-over` still three
       (10-09, 10-10, 10-11)
 - [ ] CLEAR is a fourth click that extends the never-writes proof rather than denting it, with its
       own confirmation and its own runbook row (10-12, 10-13)
-- [ ] The phase gate green against a production build; every projection in this document replaced by
-      an observation (10-14)
+- [ ] The phase gate green against a production build at quick `BASE_FILES + 5` / `BASE_TESTS + 39`,
+      sweep `4 19` and e2e **`BASE_E2E + 12`**; every projection in this document replaced by an
+      observation; ROADMAP's six Phase 10 success criteria each walked with its answering plan and its
+      unanswered half named (10-14)
 - [ ] Row H handed to the user, unanswered, with no agent having touched a device (10-14-03)
