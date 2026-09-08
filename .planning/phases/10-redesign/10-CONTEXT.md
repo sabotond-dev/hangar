@@ -259,6 +259,21 @@ actually happens — the module's own default configuration returns to this elem
 "clears", "empties" or "removes". Getting that wrong would be the same class of lie as the
 never-writes sentence this phase already retired.
 
+### D-21 [user] CLEAR's copy, given verbatim
+
+Label **`CLEAR`** (5). Line **`Reset the current page to factory default`** (**41**).
+
+Measured and checked: 41 characters against the honesty cap of 86, so the zero-headroom problem
+10-01 flagged for `CLEAR_LINE` at 86 is gone. No apostrophe, no exclamation mark, no hyphen used as a
+dash, no emoji. It says *reset to factory default* rather than *clear*, *empty* or *remove*, which is
+the honesty D-20 requires of it.
+
+One precision note, recorded rather than raised: `get_module_element_list(ModuleType.ZONA)` returns
+exactly two elements, `touch` at 0 and `system` at 255. HANGAR only ever writes the touch element, so
+"the current page" is true of everything HANGAR can have changed. A system element configured
+elsewhere in Grid Editor would not be reset — an edge no HANGAR visitor can reach, and not worth a
+longer sentence.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
