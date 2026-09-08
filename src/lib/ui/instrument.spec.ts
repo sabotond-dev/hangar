@@ -262,11 +262,56 @@ function constantsOf(source: string): Map<string, string> {
  * are applied by. Each is asserted FOUND before it is asserted CONFINED, so a
  * renamed shape cannot make the confinement pass on an empty search.
  *
- * `lattice` joins in plan 10-13.1 task 2, with the rule it names.
+ * `lattice` joined in plan 10-13.1 task 2, in the same commit as the rule it
+ * names - never afterwards, because a gate that arrives after the thing it
+ * gates has already shipped is a comment (10-VALIDATION V-01).
  */
 const INSTRUMENT_VOCABULARY: ReadonlyArray<readonly [string, string]> = [
   ["pill", "10-UI-SPEC 19.1b's control shape, one rule in src/app.css"],
+  [
+    "lattice",
+    "10-UI-SPEC 19.1a's registration field, one rule in src/app.css, on exactly two surface roots",
+  ],
 ];
+
+/**
+ * The lattice's two roots, and there are two rather than six because the panel
+ * root covers the panels, the tuning region and the whole device flow at once.
+ */
+const LATTICE_ROOTS: ReadonlyArray<readonly [string, string]> = [
+  ["src/routes/browse/+page.svelte", "browse"],
+  ["src/lib/ui/ChosenPanel.svelte", "panel"],
+];
+
+/**
+ * HOW MANY HALFTONE PITCHES SHIP, AS A NAMED CONSTANT RATHER THAN A SILENCE.
+ *
+ * 19.1e proposed a SECOND density at 6px behind the header and footer bands and
+ * declared its own fallback in 8.5's shape: measure /browse/ in chromium and
+ * webkit-phone, and IF THE DELTA EXCEEDS 2 ms AT THE 95th PERCENTILE THE SECOND
+ * DENSITY DOES NOT SHIP.
+ *
+ * It was measured on 2026-09-09 against a fresh build, wrangler dev serving
+ * build/, the candidate layer injected at document-start via addInitScript (not
+ * page.addStyleTag, which lands after load and makes the first-paint half
+ * vacuous by construction), p95 of requestAnimationFrame deltas across a full
+ * scroll down and back on /browse/ at thirty-six entries, median of three runs
+ * per arm, with the arm PROVED per run by reading the computed
+ * background-size back out of the page:
+ *
+ *   chromium      two pitches 16.70 / 16.70 / 16.70 -> median 16.70 ms
+ *   chromium      one pitch   16.70 / 16.70 / 16.70 -> median 16.70 ms   delta 0.00
+ *   webkit-phone  two pitches 94.00 / 97.00 / 94.00 -> median 94.00 ms
+ *   webkit-phone  one pitch   81.00 / 83.00 / 82.00 -> median 82.00 ms   delta 12.00
+ *
+ * TWELVE MILLISECONDS AGAINST A DECLARED THRESHOLD OF TWO. The verdict is OVER
+ * and the second density does NOT ship. So this constant is ONE, the halftone
+ * stays at the single 3px pitch, and scan 4 asserts that - which makes the
+ * fallback a state the tree can be checked against rather than a paragraph
+ * nobody wrote. Chromium's 16.70 in every arm reproduces 10-04's own recorded
+ * 16.70-16.80 exactly, which is the reason to trust the WebKit half.
+ */
+const DENSITIES = 1;
 
 /**
  * Front-door-only components, and the two are not the same kind of thing, so
@@ -500,14 +545,19 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     ).toBeGreaterThan(30);
 
     for (const [word, what] of INSTRUMENT_VOCABULARY) {
+      // PRESENCE by substring rather than by exact selector, so a rule that has
+      // been SCOPED - `.front-door .lattice` - still counts as present here and
+      // fails on the scoping check below with the message that names the
+      // register line, rather than failing here on a floor that would report a
+      // missing rule that is not missing at all.
       const carriers = files.filter((file) =>
-        rulesOf(styleOf(file, code(file))).some(
-          (rule) => rule.selector === `.${word}`,
+        rulesOf(styleOf(file, code(file))).some((rule) =>
+          rule.selector.includes(`.${word}`),
         ),
       );
       expect(
         carriers,
-        `no file in src/ declares a .${word} rule. It is ${what}, and a vocabulary word that is not in the tree leaves the confinement below checking nothing`,
+        `no file in src/ declares a .${word} rule, or a file other than src/app.css does. It is ${what}: a vocabulary word that is not in the tree leaves the confinement below checking nothing, and one declared in a component <style> carries a colour identity.spec.ts cannot see`,
       ).toEqual([APP_CSS]);
     }
 
@@ -744,5 +794,222 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
         `${straddler}'s .${member} wears the pill, and it may not: ${whyStraddles}. This is the sharpest demonstration on the site that the register line is a CLASS rather than a file list - one component, two registers.`,
       ).toBe(false);
     }
+  });
+
+  it("scan 3: the lattice is monochrome, gradient-built, data-URI-free, on two roots, and nowhere near the 3D context", () => {
+    const appCss = code(APP_CSS);
+    const rules = rulesOf(appCss);
+    const lattice = rules.filter((rule) => rule.selector.includes(".lattice"));
+
+    // ---- Non-vacuity, before a single claim about what was found. ----
+    expect(
+      lattice.map((rule) => rule.selector),
+      "src/app.css declares no .lattice rule at all - 19.1a's registration field was renamed away and every assertion below it is checking nothing",
+    ).not.toEqual([]);
+    const painted = lattice.find((rule) =>
+      rule.selector.includes(".lattice::before"),
+    );
+    expect(
+      painted,
+      "the lattice is not a ::before on the surface root (19.1a). A background on the root itself would sit under the element's own border rather than behind its content, and a real element would be one more node in every panel",
+    ).toBeDefined();
+    const declared = new Map(declarationsOf(painted?.body ?? ""));
+    expect(
+      declared.size,
+      `the lattice rule carries ${declared.size} declarations`,
+    ).toBeGreaterThan(6);
+
+    // ---- NO DATA-URI AND NO SVG, AND THE MESSAGE CARRIES THE MEASUREMENT so
+    // the next reader learns WHY rather than only THAT.
+    const forbidden = "data:";
+    for (const [property, value] of declared) {
+      expect(
+        value.includes(forbidden) || value.includes("svg"),
+        `the lattice declares "${property}" as a data-URI or an SVG. IT MAY NOT, AND THE REASON WAS OBSERVED RATHER THAN ASSUMED: plan 10-04 declared the CRT noise tile in src/app.css and ran identity.spec.ts - SEVEN PASSED - then wrote a pure red into the same tile as a percent-encoded fill and ran it again - SEVEN PASSED AGAIN. That file's hex walk matches a literal number sign and a percent-encoded one is not one, so a colour smuggled into a data-URI in the one file the colour gate reads is invisible to every colour gate this site has. Gradients referencing a token are visible to all of them.`,
+      ).toBe(false);
+    }
+
+    // ---- MONOCHROME. Every colour is a var(), the accent is absent, and the
+    // one hex is the mask's - where a colour is opacity rather than paint.
+    expect(
+      declared.get("background-image")?.includes("var(--color-accent)"),
+      "the lattice paints in the accent. 10-UI-SPEC 7.2's reserved list is EIGHT entries and a decorative field is none of them - a ninth use is exactly what --color-line-soft was declared decorative-only to avoid",
+    ).toBe(false);
+    for (const token of ["var(--color-line-soft)", "var(--color-line)"]) {
+      expect(
+        declared.get("background-image"),
+        `the lattice no longer paints with ${token} - the field is the soft token at 0.2 and the one distinguished cross is --color-line at 0.4, which is A-40's first channel`,
+      ).toContain(token);
+    }
+    expect(
+      declared.get("background-image"),
+      "the lattice is not built from gradients - 19.1a's composition is two repeating-linear-gradients forming a 1px grid, and a tile would be the data-URI forbidden above",
+    ).toContain("repeating-linear-gradient(");
+    expect(
+      declared.get("mask-image"),
+      "the lattice has no mask, so its grid paints as full RULES rather than as a field of plus marks (19.1a). A union of the two band sets would do the same; the pair has to INTERSECT",
+    ).toContain("repeating-linear-gradient(");
+    expect(
+      declared.get("mask-composite"),
+      "the mask pair does not INTERSECT. Composited with add they are a union, and a union keeps every rule at full length - which is the picture the lattice is not",
+    ).toContain("intersect");
+
+    // A-40's SECOND, NON-COLOUR CHANNEL for the distinguished cross: it appears
+    // once. A field that differed only in alpha would be one channel.
+    expect(
+      declared.get("background-repeat"),
+      "the distinguished cross is not no-repeat, so it is a field rather than a mark - A-40 requires TWO channels and the second is that there is exactly one of it, at one declared position",
+    ).toContain("no-repeat");
+
+    // ---- NOTHING NEW MOVES. The reduced-motion contract has nothing to turn
+    // off here, which is why this wave adds no line to that block.
+    for (const property of ["animation", "transition", "transform"]) {
+      expect(
+        declared.has(property),
+        `the lattice declares "${property}". Phase 4 snaps every animation to a static representative frame under prefers-reduced-motion and Playwright asserts exactly two layers stop; a moving lattice would be a third, and this one is static so the existing assertions are re-run UNCHANGED`,
+      ).toBe(false);
+    }
+    expect(
+      declared.get("pointer-events"),
+      "the lattice does not declare pointer-events: none - it sits over the whole surface, and a decoration that eats a click on a card is a decoration that broke the page",
+    ).toBe("none");
+
+    // ---- THE ONE DECLARATION THAT MAKES IT VISIBLE, ASSERTED BY NAME BECAUSE
+    // ITS ABSENCE WAS A SILENT NO-OP. The rule shipped once as `position:
+    // relative` alone and painted NOTHING, with every source scan green: two
+    // screenshots of /browse/, one as authored and one with the pseudo-element
+    // display:none, came back BYTE-IDENTICAL. Without a stacking context on the
+    // root, a negative-z-index pseudo-element belongs to the ROOT context and
+    // paints at Appendix E step 2, while body's own opaque background is an
+    // in-flow block background at step 3 - black, straight over the top.
+    const root = lattice.find((rule) => rule.selector === ".lattice");
+    expect(
+      root,
+      "src/app.css no longer declares a bare .lattice rule - the surface root has to carry the stacking context, and the pseudo-element alone cannot make one for itself",
+    ).toBeDefined();
+    const rootDeclared = new Map(declarationsOf(root?.body ?? ""));
+    expect(
+      rootDeclared.get("position"),
+      "the lattice root does not declare position: relative, so its absolutely-positioned ::before resolves against some ancestor instead of against the surface",
+    ).toBe("relative");
+    expect(
+      rootDeclared.get("isolation"),
+      "the lattice root does not declare isolation: isolate, AND ITS ABSENCE IS INVISIBLE TO EVERY OTHER ASSERTION IN THIS FILE. Measured on 2026-09-09: with position:relative alone the lattice painted nothing at all and two screenshots of /browse/ - one as authored, one with the pseudo-element hidden - were byte-identical. The stacking context is what puts the -1 child immediately behind this element's own content instead of behind body's opaque background.",
+    ).toBe("isolate");
+
+    // ---- EXACTLY TWO ROOTS, and the vocabulary reaches no CRT file.
+    const wearing: string[] = [];
+    const walkAll = (dir: string, out: string[] = []): string[] => {
+      for (const entry of readdirSync(REPO_ROOT + dir, {
+        withFileTypes: true,
+      })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walkAll(path, out);
+        else if (entry.name.endsWith(".svelte")) out.push(path);
+      }
+      return out;
+    };
+    for (const file of walkAll("src")) {
+      for (const tag of openingTags(templateOf(code(file)))) {
+        if (classesOf(tag).includes("lattice")) wearing.push(file);
+      }
+    }
+    expect(
+      wearing.sort(),
+      "the lattice is on a surface other than its two declared roots, or has fallen off one of them. 19.1a: exactly two - /browse/'s page root and ChosenPanel.svelte's root, the second of which covers the panels, the tuning region and the device flow together",
+    ).toEqual(
+      LATTICE_ROOTS.map(([file]) => file)
+        .slice()
+        .sort(),
+    );
+
+    // ---- 8.2, PROVED BY READING Coverflow.svelte RATHER THAN BY DESCRIBING
+    // IT. The panel root is inside .panel, which that file renders as a
+    // TOP-LEVEL SIBLING of .band and outside the 3D context .stage
+    // establishes - so a mask on a descendant of it flattens nothing. The file
+    // is READ here and is never edited: this phase promises it byte-untouched.
+    const coverflow = code("src/lib/ui/Coverflow.svelte");
+    const panelAt = coverflow.indexOf('<div class="panel">');
+    const stageAt = coverflow.indexOf('class="stage');
+    expect(
+      panelAt,
+      "Coverflow.svelte no longer renders a .panel wrapper, so the position this scan depends on cannot be read at all",
+    ).toBeGreaterThan(-1);
+    expect(
+      stageAt,
+      "Coverflow.svelte no longer renders a .stage, so the 3D context this scan is measuring the panel against does not exist",
+    ).toBeGreaterThan(-1);
+    // The wrapper's subtree, counted by div depth: the panel is a sibling of
+    // the band if the stage closes before the panel opens.
+    const before = coverflow.slice(0, panelAt);
+    const opens = before.split("<div").length - 1;
+    const closes = before.split("</div>").length - 1;
+    expect(
+      opens - closes,
+      "Coverflow.svelte's .panel wrapper is NESTED inside an open <div> rather than sitting at the top level of the component. 8.2 forbids a grouping property ON .stage or BETWEEN .stage and a .slot, and a mask on a descendant of the 3D context would flatten the coverflow's ladder into a row of equal squares - the lattice's legality here rests entirely on this position",
+    ).toBe(0);
+    expect(
+      before.includes('class="stage'),
+      "the .stage does not appear before the .panel wrapper in Coverflow.svelte - the two may have been reordered, and the sibling claim above no longer says what it used to",
+    ).toBe(true);
+  });
+
+  it("scan 4: the halftone declares exactly the pitches the measurement licensed, in one file", () => {
+    const appCss = code(APP_CSS);
+    const layerG = rulesOf(appCss).find(
+      (rule) => rule.selector === "body::before",
+    );
+    expect(
+      layerG,
+      "src/app.css no longer declares body::before - Layer G is the halftone, and its pitch count is what this scan is about",
+    ).toBeDefined();
+    const declared = new Map(declarationsOf(layerG?.body ?? ""));
+
+    // The pitches are the SQUARE background-size entries: a halftone dot cell.
+    // The vignette's own `100% 100%` is not a pitch and is excluded by shape
+    // rather than by position, so re-ordering the list cannot change the count.
+    const sizes = (declared.get("background-size") ?? "")
+      .split(",")
+      .map((one) => one.trim());
+    const pitches = sizes.filter((one) => /^([0-9]+)px \1px$/.test(one));
+    expect(
+      sizes.length,
+      `Layer G declares ${sizes.length} background-size entries`,
+    ).toBeGreaterThan(1);
+    expect(
+      pitches,
+      `the halftone declares ${pitches.length} pitches and the measurement licensed ${DENSITIES}. 19.1e proposed a SECOND density at 6px and declared its own fallback in 8.5's shape - over 2 ms at p95 and it does not ship. It was measured on 2026-09-09: chromium 16.70 ms in BOTH arms, delta 0.00; webkit-phone 94.00 ms with two pitches against 82.00 ms with one, delta 12.00 ms - six times the threshold. The verdict was OVER, so the halftone stays at ONE pitch and this number is the state that says so rather than a silence where a decision should be.`,
+    ).toHaveLength(DENSITIES);
+
+    // AND IT IS DECLARED IN THIS FILE AND NOWHERE ELSE (7.1's placement rule).
+    // A pitch authored inside a component's <style> would carry a colour the
+    // colour gate cannot see, which is the hole scan 1 of the other file exists
+    // to close.
+    const elsewhere: string[] = [];
+    const walkAll = (dir: string, out: string[] = []): string[] => {
+      for (const entry of readdirSync(REPO_ROOT + dir, {
+        withFileTypes: true,
+      })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walkAll(path, out);
+        else if (
+          /[.](?:svelte|css)$/.test(entry.name) &&
+          !/[.](?:spec|test)[.]/.test(entry.name)
+        )
+          out.push(path);
+      }
+      return out;
+    };
+    for (const file of walkAll("src")) {
+      if (file === APP_CSS) continue;
+      for (const rule of rulesOf(styleOf(file, code(file)))) {
+        if (rule.selector.includes("body::before"))
+          elsewhere.push(`${file} -> ${rule.selector}`);
+      }
+    }
+    expect(
+      elsewhere,
+      "Layer G is declared outside src/app.css. 10-UI-SPEC 7.1's placement rule: identity.spec.ts reads THAT FILE AND NOTHING ELSE, so a halftone authored in a component carries an alpha no colour gate on this site can see",
+    ).toEqual([]);
   });
 });

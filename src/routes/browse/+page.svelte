@@ -472,7 +472,16 @@
   <meta name="twitter:card" content={TWITTER_CARD} />
 </svelte:head>
 
-<section class="browse" data-testid="browse">
+<!--
+  THE REGISTRATION LATTICE'S FIRST OF TWO ROOTS (10-UI-SPEC 19.1a, D-16).
+
+  The class is src/app.css's and nothing about the lattice is authored here: it
+  is a colour, and identity.spec.ts reads THAT FILE AND NOTHING ELSE. Applying
+  it here rather than to body::before is what keeps it off the front door,
+  which keeps its screen character - Layers G, S, R and T, the SCREEN toggle and
+  all three switches, exactly as wave 4 built them.
+-->
+<section class="browse lattice" data-testid="browse">
   <!--
     The wordmark is this page's only level-1 heading and on this route it is a
     REAL LINK to the front door. There is no BROWSE ALL slot here - the page

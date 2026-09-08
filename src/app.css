@@ -343,3 +343,134 @@ html[data-screen="flat"] body::before {
   border-radius: 999px;
   background: transparent;
 }
+
+/*
+  THE REGISTRATION LATTICE - the instrument register's ground (10-UI-SPEC
+  19.1a, A-39, A-40, D-15 reference A).
+
+  A field of thin registration crosses at a 48px pitch, with exactly ONE cross
+  set apart, which is reference A's own device: the lattice says "this is a
+  measuring surface" and the one distinguished cross says "and this is where
+  the measurement is taken". Two surfaces carry it and no others:
+  src/routes/browse/+page.svelte's page root and src/lib/ui/ChosenPanel.svelte's
+  panel root, which covers the panels, the tuning region and the whole device
+  flow in one element.
+
+  NO DATA-URI, EVER, AND THIS IS A GATE RATHER THAN A PREFERENCE. 10-04
+  declared the CRT noise tile in this file, ran identity.spec.ts - SEVEN PASSED
+  - then wrote a pure red into the same tile as a percent-encoded fill and ran
+  it again: SEVEN PASSED AGAIN. That file's hex walk matches a literal number
+  sign, and a percent-encoded one is not one. A lattice authored as an SVG
+  data-URI would be invisible to every colour gate this site has, so every
+  colour below is a var() and the whole thing is gradients. The single hex is
+  the mask's, and a colour in a mask is opacity rather than paint - it is the
+  approved ground literal, and it is the same spelling Coverflow.svelte's edge
+  fade already uses.
+
+  THE COMPOSITION, AND WHY IT IS A MASK RATHER THAN A TILE. Two
+  repeating-linear-gradients at the 48px pitch form a 1px grid of full RULES.
+  The mask is a PAIR of 7px bands at the same pitch, composited with
+  `intersect`, so what survives is a 7px window at each intersection - and the
+  grid inside a 7px window centred on a crossing is a plus mark with 3px arms
+  about a 1px stroke. A union would have kept every rule at full length, which
+  is the picture this is not. A CSS gradient cannot paint a two-dimensional
+  glyph on its own, and the alternative to the mask is an SVG tile, which is the
+  one thing forbidden above.
+
+  THE DISTINGUISHED CROSS IS 15px AND 19.1a SAYS 14px, AND THE 1px IS RECORDED
+  RATHER THAN ROUNDED AWAY. The soft plus is 3 + 1 + 3 = 7 about its own 1px
+  stroke. Doubling the ARMS gives 6 + 1 + 6 = 13; doubling the SPAN gives 14,
+  which cannot be centred on a 1px stroke at all. 7 + 1 + 7 = 15 is the soft
+  plus's own construction with each arm doubled, and it is the only symmetric
+  answer. Its window is added to the mask as a cross-shaped pair of bars rather
+  than as a square, so the soft grid underneath is not exposed beside it.
+
+  It is `var(--color-line)` at 0.4 against the field's `var(--color-line-soft)`
+  at 0.2 - twice the alpha - and it also has the second, non-colour channel
+  A-40 requires: it is twice the size and it appears once, `no-repeat`, at one
+  declared position. No accent. The reserved list stays at eight, and a
+  lattice in the accent would have been a ninth use.
+
+  NOTHING HERE MOVES. No animation, no transition, no transform: the
+  prefers-reduced-motion block has nothing to turn off, which is why this wave
+  adds no line to it and re-runs the existing compositor gates unchanged.
+
+  z-index: -1 rather than 0. A positioned pseudo-element at z-index 0 paints
+  AFTER in-flow content and would sit on top of the words; -1 puts it behind
+  them and behind the surface's own border.
+
+  `isolation: isolate` IS LOAD-BEARING AND IT WAS MEASURED, NOT REASONED. The
+  first version of this rule was `position: relative` alone, and it shipped a
+  SILENT NO-OP: the lattice painted nothing at all, and every source scan over
+  it was green. Two screenshots of /browse/ - one as authored, one with
+  `.lattice::before { display: none }` injected - came back BYTE-IDENTICAL,
+  which is the only reason it was caught.
+
+  The cause is CSS 2.1 Appendix E's painting order. Without a stacking context
+  on .lattice, a negative-z-index pseudo-element belongs to the nearest ancestor
+  stacking context - the root - and paints at step 2, while `body`'s own
+  `background: var(--color-ground)` is an in-flow block background and paints at
+  step 3. Opaque black, straight over the top. `isolation: isolate` makes
+  .lattice its own stacking context, so the -1 child paints immediately after
+  this element's background and before its content, which is exactly the
+  intended depth and no longer depends on what any ancestor declares.
+
+  IT IS A GROUPING PROPERTY AND THAT IS WHY SCAN 3 READS Coverflow.svelte.
+  `isolation: isolate` forces `transform-style: flat` on descendants, so on or
+  above the coverflow's `.stage` it would collapse the 3D ladder into a row of
+  equal squares - 8.2's whole subject. It is legal on the panel root for the
+  same structural reason the mask is: `.panel` is a top-level sibling of
+  `.band`, outside the 3D context, and is an ancestor of no `.slot`.
+  instrument.spec.ts scan 3 asserts that position by reading Coverflow.svelte,
+  and it asserts this declaration by name so a tidy-up cannot blank the lattice
+  again in silence.
+*/
+.lattice {
+  position: relative;
+  isolation: isolate;
+}
+
+.lattice::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--color-line), var(--color-line)),
+    repeating-linear-gradient(
+      to right,
+      var(--color-line-soft) 0 1px,
+      transparent 1px 48px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--color-line-soft) 0 1px,
+      transparent 1px 48px
+    );
+  background-size:
+    15px 15px,
+    auto,
+    auto;
+  background-position:
+    41px 41px,
+    0 0,
+    0 0;
+  background-repeat: no-repeat, repeat, repeat;
+  mask-image:
+    linear-gradient(#000000, #000000), linear-gradient(#000000, #000000),
+    repeating-linear-gradient(to right, #000000 0 7px, transparent 7px 48px),
+    repeating-linear-gradient(to bottom, #000000 0 7px, transparent 7px 48px);
+  mask-size:
+    15px 1px,
+    1px 15px,
+    auto,
+    auto;
+  mask-position:
+    41px 48px,
+    48px 41px,
+    -3px 0,
+    0 -3px;
+  mask-repeat: no-repeat, no-repeat, repeat, repeat;
+  mask-composite: add, add, intersect, add;
+}
