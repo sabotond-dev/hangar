@@ -537,7 +537,7 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
 | 10-12 | change `CLEAR_LINE` to say `Empties the current page` | the three-stem copy scan in `install-copy.spec.ts`, naming the stem — and **if it does not fire, the rule is a comment rather than a gate** and the SUMMARY says so |
 | 10-13 | give `Clear.svelte` an `auto` inline size | `device-ui.spec.ts:278-306`, naming `Clear.svelte -> .clear` |
 | 10-13 | give `Clear.svelte` a `border: 1px solid` | the shapelessness test in `device-ui.spec.ts`, naming the declaration and A-41 |
-| 10-13 | remove `Clear.svelte` from `DEVICE_COMPONENTS` | the length assertion at `device-ui.spec.ts:199` — the check that proves the hand list is guarded rather than merely long |
+| 10-13 | remove `Clear.svelte` from `DEVICE_COMPONENTS` | the length assertion at `device-ui.spec.ts:213` — the check that proves the hand list is guarded rather than merely long |
 | 10-13.1 | add `.pill` to `Clear.svelte` | `instrument.spec.ts` scan 2, naming `Clear.svelte`, the **Quiet** tier and A-47's three channels |
 | 10-13.1 | author an instrument rule inside `FrontDoor.svelte` | `instrument.spec.ts` scan 1, naming the file and the register line |
 | 10-13.1 | change the lattice colour to `var(--color-accent)` | `instrument.spec.ts` scan 3, naming the accent and the reserved list at **eight** |
@@ -578,10 +578,13 @@ confirmed byte-identical with `git diff --quiet -- <path>`.
   by a control, not by a preference. Every assertion about "the CRT is off" must say which switch it
   means.
 - **Three hand-declared lists let an omitted file through in silence, and two of them gate controls.**
-  `device-ui.spec.ts:63-71`'s `DEVICE_COMPONENTS` is **six today** and the 44px both-axes walk at
-  `:277-306` iterates it, so a component omitted from it passes without being read — **and 10-13's own
-  task text says to move the length assertion at `:199` "from 7 to 9" when the assertion currently
-  reads 6 and two additions make it 8. Reconcile against 10-13's SUMMARY, not against its plan.**
+  `device-ui.spec.ts:74-82`'s `DEVICE_COMPONENTS` is **seven, observed after 10-13**, and the 44px
+  both-axes walk at `:304-323` iterates it, so a component omitted from it passes without being read.
+  **The list was 6 before 10-13; the plan's task text said "from 7 to 9", wrong at both ends, and
+  A-45 retiring `ClearConfirm.svelte` is why. `Clear.svelte` is the only addition, so the length
+  assertion at `:213` reads 7.** 10-13's negative check is the one worth remembering: removing
+  `Clear.svelte` from the list turned **only** the length assertion red — the both-axes walk passed
+  having read nothing, which is the silence this bullet is about.
   `browse-ui.spec.ts:60`'s `browseFiles()` is a hand list of six component paths, so a new browse
   component omitted from it escapes every browse gate. `aesthetic.spec.ts:239`'s `CRT_FILES` is
   correct for its purpose. 10-13.1's `INSTRUMENT_FILES` is **derived from the directory** and is the
