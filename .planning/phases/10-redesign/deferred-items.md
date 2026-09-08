@@ -295,3 +295,60 @@ over-budget tests are `/dev/tune/`'s tpad, which has no colour knob at all. Both
 taken by hand with a throwaway Playwright probe. A `console` case in `tuning-webkit.e2e.ts` would
 have caught this on the day the picker landed and would catch the next one; it is one test and it
 is the cheapest half of this item.
+
+## From 10-11
+
+### 8. MIX TWO is built, testable and not mounted — the same last hop as item 5, plus a term nobody has costed
+
+`MixTwo.svelte` renders its four results only when a consumer supplies `onchild`, for the reason
+item 5 gives at length: the only thing on the page that owns a `SimHost` is `Coverflow.svelte`, and
+this phase promises not to edit it. **One wiring closes both**, because the picker's result pad and
+the mix's four results want the same three lines and the same engine the region already publishes
+through `onpreview`:
+
+```
+onchild={(id, canvas) => {
+  host?.register(id, canvas, enginesById.get(centred.id));
+  host?.setInWindow(id, true);
+}}
+```
+
+plus `unregister(id)` on teardown. The ids are `${entry.id}-mix-0` through `-mix-3`, distinct from
+each other and from the hero's, so nothing unregisters anything else.
+
+**But mounting it is more than the hop, and this is the part that is not costed anywhere.**
+`TuningRegion.svelte` reserves the tuning region's height before a knob has been turned —
+`194 + 48r + 66w + 196p - 4`, asserted twice in `tune-ui.spec.ts` test 7 — and 10-UI-SPEC gives MIX
+TWO **no term in that arithmetic**: not in §11.6, not in §12, not in the region's own derivation.
+A block whose height changes when four results appear is exactly the reflow the reservation exists
+to prevent, so the wave that mounts MIX TWO owes the region either a term (a `MIX_PX` beside
+`PICKER_PX`, reserved whether or not results are showing) or a placement outside the reserved box.
+Neither is a decision this plan was in a position to take, and taking it silently by putting the
+component in the panel would have moved a contract two tests hold.
+
+`10-11-PLAN.md`'s `files_modified` lists `src/lib/ui/ChosenPanel.svelte` for what looks like this
+reason. Nothing in either task's `<action>` asks for a change to it, and none was made:
+`git diff --stat e08f18c..HEAD -- src/lib/ui/ChosenPanel.svelte` is empty, and its 152px region
+floor is still asserted unmoved.
+
+### 9. MIX TWO can be disabled and §13.4 gives it no reason to show
+
+The control needs two candidates. `THAT ONE` is the last `SURPRISE ME` roll, a pasted link, or the
+state a taken result replaced — and before any of those has happened it is empty, so MIX TWO is a
+real `disabled` button.
+
+`SURPRISE ME` is in the same position when every knob is held and §13.4 gives it a sentence for it
+(`Every knob is held, so there is nothing left to roll.`, 53). **§13.4 gives MIX TWO four strings —
+the label, the line, and the two slot captions — and no fifth**, so this plan rendered no reason
+rather than inventing one: the copy contract is a specification, and a component that writes its own
+sentence is exactly the drift `copy.ts` exists to prevent.
+
+What is on the screen instead is the empty `THAT ONE` slot with its link field in it, which is
+adjacent and is the answer. Whether that is enough is a copy decision, and it belongs to whoever
+mounts the control. Two ways out, both cheap:
+
+1. **A fifth string in §13.4**, matching `SURPRISE ME`'s shape.
+2. **Make `THAT ONE` never empty** — the region hands the entry's own defaults as the second
+   candidate until a roll or a link replaces them, which is a true candidate and needs no new copy.
+   It also changes what the feature *is* slightly: "mix what you have with what it shipped as" is a
+   different first gesture from "mix two things you made".
