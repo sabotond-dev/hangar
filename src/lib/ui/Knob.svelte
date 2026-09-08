@@ -350,10 +350,19 @@
     touch-action: pan-y so a horizontal drag adjusts the knob and a vertical one
     scrolls the page - which, as a side effect, removes double-tap zoom from the
     row and makes the double-click reset safe on iOS.
+
+    EVERY FLEXIBLE TRACK IS minmax(0, 1fr) AND THAT IS NOT DECORATION. A grid
+    track's automatic minimum size is its content's min-content width, so a
+    swatch or word row would refuse to shrink below the widest line it can lay
+    out and push the whole rack wider than its container. Measured on the phone
+    project the moment the lock's column arrived: knob-rack scrollWidth 267
+    against clientWidth 245, red in tuning-webkit.e2e.ts's never-scrolls-
+    sideways assertion. minmax(0, 1fr) lets the options row wrap, which is what
+    it was always supposed to do.
   */
   .row {
     display: grid;
-    grid-template-columns: minmax(88px, 34%) 1fr auto;
+    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr) auto;
     grid-template-areas: "label control lock";
     column-gap: 12px;
     block-size: 44px;
@@ -372,7 +381,7 @@
     which is what keeps KnobRack.svelte's 66px word row true.
   */
   .row.stacked {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "label lock"
       "control lock";
@@ -388,7 +397,7 @@
   */
   @container (width < 220px) {
     .row {
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       grid-template-areas:
         "label lock"
         "control lock";
@@ -421,7 +430,7 @@
   /* A rail's control column: the painted rail, then the optional integer. */
   .control:not(.options) {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 12px;
     align-items: center;
   }
