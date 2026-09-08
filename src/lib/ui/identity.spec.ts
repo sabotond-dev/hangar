@@ -33,6 +33,25 @@
  * and the favicon's own two-hue regex is untouched, so no red enters the mark.
  * Both directions were observed red before this note was written.
  *
+ * G-01 — A DELIBERATE AMENDMENT TO A SIGNED-OFF PHASE'S GATE. This file shipped
+ * in Phase 4 with eight tokens and two hexes, was widened once in Phase 5 to
+ * nine and three, and is widened here in three named ways: `--font-sans`'s
+ * first family, a new assertion over `--font-display`, and the
+ * `rgb()`-arguments regex, which now admits `0 0 0` so `--crt-scanline` can
+ * live in this file where this gate can see it. What the amendment did NOT do:
+ * the ladder is still nine and a TENTH token still fails; the hex set is still
+ * three and a FOURTH hue still fails; `alphaOf()`'s AA loop keeps its four
+ * members, because `rgb(0 0 0 / 0.5)` is not an alpha of the accent; and the
+ * favicon's two-hue regex is untouched, so no black and no red enters the mark.
+ * All four non-changes were observed red before this note was written.
+ *
+ * The new assertion says EVERY display `@font-face`, not "the second one". That
+ * wording is the point: it survives the D-14 route the site ships today (one
+ * Grifter face), the A-02 reversal in `10-UI-SPEC.md` Open item 2 (one Archivo
+ * face), and any later two-face arrangement, without itself being rewritten. A
+ * token edited without its face, or a face edited without its token, is red
+ * rather than a silent fall-through to `ui-sans-serif`.
+ *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
 import { readFileSync } from "node:fs";
@@ -163,15 +182,15 @@ describe("IDENT-01 identity tokens (src/app.css)", () => {
     ).toBeGreaterThanOrEqual(3.0);
   });
 
-  it("the two font stacks are declared and Quicksand leads the sans stack", () => {
+  it("the font stacks are declared and Inter Variable leads the sans stack", () => {
     const sans = declared("--font-sans");
     const mono = declared("--font-mono");
     expect(sans, "--font-sans is declared").toBeDefined();
     expect(mono, "--font-mono is declared").toBeDefined();
 
     const sansFamilies = (sans as string).split(",").map((f) => f.trim());
-    expect(sansFamilies[0]).toBe('"Quicksand"');
-    // The named fallbacks after Quicksand, so a bare generic cannot be the plan.
+    expect(sansFamilies[0]).toBe('"Inter Variable"');
+    // The named fallbacks after Inter, so a bare generic cannot be the plan.
     expect(
       sansFamilies.length - 1,
       `--font-sans names its fallbacks: ${sansFamilies.slice(1).join(", ")}`,
@@ -215,10 +234,15 @@ describe("IDENT-01 identity tokens (src/app.css)", () => {
     }
     for (const [whole, fn, args] of functions) {
       expect(fn, `${whole} uses rgb(), not another colour space`).toBe("rgb");
+      // G-01: the accent at an alpha, or the GROUND at an alpha. `0 0 0` is
+      // `--crt-scanline` (10-UI-SPEC 7.1) — it darkens, it never tints, so it
+      // is not a fourth hue. Any third set of channels is still red, and the
+      // ladder above is still nine: this widening is about what may appear in
+      // the FILE, not about what may appear in `@theme`.
       expect(
         normalise(args),
-        `${whole} is an alpha of the accent over black`,
-      ).toMatch(/^214 255 78 \/ [0-9.]+$/);
+        `${whole} is an alpha of the accent over black, or the ground at an alpha`,
+      ).toMatch(/^(214 255 78|0 0 0) \/ [0-9.]+$/);
     }
   });
 
@@ -249,5 +273,35 @@ describe("IDENT-01 identity tokens (src/app.css)", () => {
         /^(#000000|#d6ff4e)$/,
       );
     }
+  });
+
+  // G-01's new assertion. EVERY display face, not "the second one" — see the
+  // header. This is what makes the D-14 licence answer a two-line edit instead
+  // of a hunt through components for a family name.
+  it("--font-display names the family of every display @font-face in the file", () => {
+    const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) =>
+      normalise(/font-family\s*:\s*([^;]+);/.exec(m[1])?.[1] ?? ""),
+    );
+    expect(faces.length, "the file declares @font-face blocks").toBeGreaterThan(
+      1,
+    );
+
+    const body = normalise((declared("--font-sans") as string).split(",")[0]);
+    const display = normalise(
+      (declared("--font-display") as string).split(",")[0],
+    );
+    const displayFaces = faces.filter((f) => f !== body);
+
+    expect(
+      displayFaces.length,
+      "at least one face is a display face",
+    ).toBeGreaterThan(0);
+    for (const face of displayFaces) {
+      expect(
+        face,
+        `every display @font-face is the family --font-display names, and ${face} is not ${display}`,
+      ).toBe(display);
+    }
+    expect(faces, "the body face is declared too").toContain(body);
   });
 });
