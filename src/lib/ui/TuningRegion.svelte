@@ -55,9 +55,21 @@
 
   `p` is 1 when the entry declares ANY colour knob and 0 otherwise, because
   plan 10-10 renders one ColourPicker per panel rather than one per knob
-  (10-UI-SPEC 11.2). Its 192px block is width-independent by construction, so
-  it needs no third constant. The colour knobs themselves are billed at zero:
-  they are inside the picker, not beside it.
+  (10-UI-SPEC 11.2). The colour knobs themselves are billed at zero: they are
+  inside the picker, not beside it.
+
+  ITS 192px BLOCK IS WIDTH-INDEPENDENT ON THE FOURTEEN ENTRIES WITH ONE COLOUR
+  KNOB, AND A FLOOR ON THE SEVENTEEN WITH MORE. A single-knob picker holds a
+  44px head at every width - ColourPicker.svelte's 262px container query drops
+  the metadata rather than let the head grow - so 196 is exact there and needs
+  no third constant. With a knob selector the head carries a word row whose
+  options are 44px on both axes, and three of them do not share a line with the
+  caption and the lock on a 172px rack: measured on `console` at a 320px
+  viewport the picker resolves to 288px. It declares `min-block-size` so it
+  grows instead of painting over the next row, and this reservation then
+  under-reserves by 96px there. Recorded rather than hidden,
+  and assigned to 10-13.1 in deferred-items.md item 7, because 10-UI-SPEC
+  19.1b's 24px pill padding lands in that wave and moves every number in it.
 
   246 = 194 + 44 + 8: the second 44px button row plus the 8px `sm` gap that
   05-UI-SPEC's Spacing table defines as the gap between SURPRISE ME and RESET

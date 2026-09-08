@@ -148,10 +148,21 @@ function canvasSize(
   }, canvasOf(id));
 }
 
-/** Knob id to index, read off the real controls rather than off any store. */
+/**
+ * Knob id to index, read off the real controls rather than off any store.
+ *
+ * THE COLOUR KNOB IS NOT A `knob-` ROW ANY MORE and it must not fall out of
+ * this walk. Plan 10-10 lifts every colour knob out of the rack's row list and
+ * into ONE ColourPicker block, so its testids are `colour-rail-r` / `-g` /
+ * `-b` rather than `knob-colour`. A walk that only reads `knob-` would still
+ * have found four rows on aurora and would have said nothing while RESET ALL
+ * quietly stopped being checked against the one knob with 4,096 positions.
+ * The three rails are appended under their own ids, which is also why they
+ * cannot collide with a row.
+ */
 function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
-  return page.evaluate(() =>
-    Array.from(document.querySelectorAll("[data-testid^='knob-']"))
+  return page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll("[data-testid^='knob-']"))
       .filter((el) => el.getAttribute("data-testid") !== "knob-rack")
       .map((el) => {
         const rail = el.querySelector(
@@ -166,8 +177,20 @@ function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
             ? Number(rail.value)
             : radios.findIndex((radio) => radio.checked),
         };
-      }),
-  );
+      });
+    const picker = Array.from(
+      document.querySelectorAll("[data-testid^='colour-rail-']"),
+    ).map((el) => {
+      const rail = el.querySelector(
+        "input[type='range']",
+      ) as HTMLInputElement | null;
+      return {
+        id: el.getAttribute("data-testid") ?? "",
+        index: rail ? Number(rail.value) : -1,
+      };
+    });
+    return [...rows, ...picker];
+  });
 }
 
 /** `"250 / 908"`, or `measuring…` before the first number has landed. */
@@ -238,13 +261,42 @@ async function openPanel(page: Page, path: string): Promise<void> {
   await settled(page);
 }
 
-/** The rails, in rack order. The first one is Aurora's Speed. */
+/**
+ * The KNOB ROWS' rails, in rack order. The first one is Aurora's Speed.
+ *
+ * SCOPED TO THE ROWS, and the scope is the whole point. Aurora's knob list is
+ * `[colour, speed, direction, band]` plus Brightness, so plan 10-10's picker
+ * takes the FIRST slot in the rack and its three colour rails come first in
+ * document order. An unscoped `input[type='range']` walk therefore made
+ * `turnRail(0)` and `turnRail(1)` turn red and green - which moved a knob and
+ * a pad, so half this file stayed green, while "RESET ALL puts every knob
+ * back" compared two identical racks and went red instead. Rows here, the
+ * picker through `turnColourRail`; SCROLL_RAIL keeps meaning tpad's third
+ * rail, and tpad has no colour knob at all.
+ */
 const rails = (page: Page) =>
-  page.locator("[data-testid='knob-rack'] input[type='range']");
+  page.locator(
+    "[data-testid='knob-rack'] [data-testid^='knob-'] input[type='range']",
+  );
 
 /** One keyboard step to the right on a rail, then let the debounce land. */
 async function turnRail(page: Page, at: number): Promise<void> {
   await rails(page).nth(at).focus();
+  await page.keyboard.press("ArrowRight");
+  await recomputed(page);
+}
+
+/**
+ * One keyboard step to the right on the picker's RED rail.
+ *
+ * Red rather than blue because aurora ships at 0,85,255: blue already stands
+ * at the top detent, where ArrowRight is a no-op and the assertion that
+ * something moved would be false through no fault of the picker.
+ */
+async function turnColourRail(page: Page): Promise<void> {
+  await page
+    .locator("[data-testid='colour-rail-r'] input[type='range']")
+    .focus();
   await page.keyboard.press("ArrowRight");
   await recomputed(page);
 }
@@ -382,8 +434,13 @@ test.describe("turning a knob", () => {
 
     await turnRail(page, 0);
     await turnRail(page, 1);
+    // AND THE COLOUR KNOB, which is the picker since 10-10. Without this the
+    // rack's one 4,096-position knob would be present in `home` and never
+    // moved, so RESET ALL would be proved to leave it alone rather than to put
+    // it back.
+    await turnColourRail(page);
     const turned = await knobIndices(page);
-    expect(turned, "two knobs really moved").not.toEqual(home);
+    expect(turned, "two knobs and the colour really moved").not.toEqual(home);
     await expect(resetAll, "a moved knob enables RESET ALL").toBeEnabled();
 
     await resetAll.click();

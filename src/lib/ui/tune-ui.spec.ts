@@ -205,6 +205,34 @@ describe("the tuning UI's structural rules", () => {
       offenders,
       "a tuning component can scroll horizontally, which D-11 forbids at every width and in every state",
     ).toEqual([]);
+
+    // -----------------------------------------------------------------------
+    // AND THE OTHER WAY A RACK LEARNS TO SCROLL SIDEWAYS: NOT A DECLARATION,
+    // BUT SIX PIXELS OF PAINT PAST AN EDGE. The scan above reads declarations
+    // and would have stayed green through a measured breach - `knob-rack`
+    // reporting scrollWidth 251 against clientWidth 245 at the 393px phone
+    // viewport, red in e2e/tuning-webkit.e2e.ts:279, which is what actually
+    // happened. The picker's 12px thumb is centred on its value, so at the top
+    // detent `calc(100% - 6px)` puts its right edge 6px past the rail, and
+    // aurora SHIPS at 0,85,255 - the blue rail stands at 15 on arrival.
+    // Knob.svelte has the identical rule and is safe because its `.row` grid
+    // keeps a lock column to the thumb's right; a rail in the picker is the
+    // last thing in the block, so the block reserves the radius itself.
+    //
+    // It rides inside this test because it IS this test's rule, measured
+    // rather than declared, and a unit gate says so in two seconds where the
+    // e2e suite needs a build and a server.
+    const railsRule = rulesOf(code(componentPath("ColourPicker.svelte"))).find(
+      (rule) => rule.selector.trim() === ".rails",
+    );
+    expect(
+      railsRule,
+      "ColourPicker.svelte no longer has a .rails rule",
+    ).toBeDefined();
+    expect(
+      railsRule?.body,
+      "the rails do not reserve the thumb's 6px radius, so at the top detent the thumb paints past the rack and knob-rack scrolls sideways - measured at scrollWidth 251 against clientWidth 245 on a 393px phone",
+    ).toContain("padding-inline: 6px");
   });
 
   it("every component that renders a control declares the 44px floor", () => {
@@ -282,6 +310,35 @@ describe("the tuning UI's structural rules", () => {
       knob,
       "the lock's label does not change with its state, so HELD is invisible to a screen reader that reads names rather than pressed states",
     ).toContain("held ? KNOB_HELD : KNOB_HOLD");
+
+    // -----------------------------------------------------------------------
+    // THE PICKER'S TWO SMALL CONTROLS, BOTH AXES NAMED SEPARATELY (plan 10-10's
+    // contract table, and 10-UI-SPEC 19.1b's pill floor). The walk above is
+    // `includes("44px")` per FILE, so ColourPicker.svelte passes it on the
+    // strength of its 44px head row alone while a selector option or its lock
+    // sits at 30px. Both are word-width controls at 12px - a three-character
+    // knob label is nowhere near 44px wide - so the inline floor is the
+    // load-bearing half here, exactly as it is on Knob.svelte's lock.
+    //
+    // Neither hand-declared walk in this repository covers this file:
+    // device-ui.spec.ts's DEVICE_COMPONENTS is the six device components and
+    // browse-ui.spec.ts's browseFiles() is the six browse ones. 10-UI-SPEC
+    // 19.1g's directory-derived walk arrives at 10-13.1; until it does, this
+    // is the assertion.
+    const picker = rulesOf(code(componentPath("ColourPicker.svelte")));
+    for (const selector of [".option", ".lock"]) {
+      const rule = picker.find((r) => r.selector.trim() === selector);
+      expect(
+        rule,
+        `ColourPicker.svelte no longer has a ${selector} rule`,
+      ).toBeDefined();
+      for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+        expect(
+          rule?.body,
+          `${selector} does not declare ${axis} - Phase 4's touch floor is both axes per control, and a file-level 44px walk cannot see this`,
+        ).toContain(axis);
+      }
+    }
 
     // THE SECOND CHANNEL, AND THE COLOUR IT IS NOT. The held marker is a
     // --color-line bar; the free one is the --color-line-soft dot it always
@@ -627,10 +684,20 @@ describe("the tuning UI's structural rules", () => {
       regionCode,
       "the rack height still bills every colour knob as a row, so a three-colour entry reserves three pickers",
     ).toContain("colours > 0 ? PICKER_PX : 0");
+    // A FLOOR, AND THE WORD `min` IS THE ASSERTION. 192 = 44 head + 8 gap +
+    // 140 rails, and it is exact on the fourteen entries with one colour knob.
+    // On the seventeen with two or three the head carries a word row whose
+    // options are 44px on both axes, and three of those plus the caption plus
+    // the lock do not fit a 172px rack at a 320px viewport - measured on
+    // `console`: head 92px, selector 140px, content 240px inside a box
+    // declared at 192. A fixed height paints that over the next rack row; a
+    // floor grows instead. `min-block-size: 192px` also CONTAINS the string
+    // "block-size: 192px", which is exactly why this asserts the prefix: an
+    // assertion that passes either way would not have noticed the change.
     expect(
       code(componentPath("ColourPicker.svelte")),
-      "the picker's block is not the 192px the region reserves 196 for - 44 head + 8 gap + 140 rails, plus the rack's own 4px",
-    ).toContain("block-size: 192px");
+      "the picker's block is not the 192px the region reserves 196 for - 44 head + 8 gap + 140 rails, plus the rack's own 4px - or it is fixed rather than a floor, which overlaps the next rack row when a selector wraps",
+    ).toContain("min-block-size: 192px");
     expect(
       raw(rack),
       "KnobRack.svelte no longer carries the picker's term in the derivation it owns",

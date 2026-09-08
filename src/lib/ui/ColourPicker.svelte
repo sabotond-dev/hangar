@@ -140,6 +140,13 @@
      * the picker would be worse than no box: the whole argument of the result
      * is that it shows the truth about a colour, and a blank one shows nothing
      * while claiming to.
+     *
+     * NOBODY SUPPLIES IT YET, and the reason is named rather than hidden: the
+     * one thing on the page that owns a SimHost is Coverflow.svelte, which
+     * this phase promises not to edit and whose own plan asserts that promise.
+     * deferred-items.md item 5 carries the three lines that close it, and
+     * colour-picker.spec.ts asserts this end of the chain so there is nothing
+     * to re-derive when they land.
      */
     onresult?: (id: string, canvas: HTMLCanvasElement) => void;
   } = $props();
@@ -461,12 +468,28 @@
     Nothing here wraps and nothing here scrolls: the rails shrink, and a rail
     is one control whose sixteen detents are paint, so there is no minimum
     width below which it stops working.
+
+    192 IS A FLOOR RATHER THAN A FIXED HEIGHT, and the difference is one entry
+    class. On the fourteen entries with ONE colour knob the head really is a
+    44px line at every width - see the 262px container query below, which is
+    what keeps it one - and 192 is exact. On the SEVENTEEN with two or three,
+    the head carries a word row whose options are 44px on both axes by
+    contract, and three of those plus the 63px caption plus the 44px lock is
+    263px of min-content against a rack that is 172px wide at a 320px
+    viewport. MEASURED on `console` at 320px: the selector stacks its three
+    options, the head becomes 140px and the picker 288px. With a fixed height
+    that content paints over the next rack row; with a floor the block grows to
+    hold it and the region's 196px reservation merely under-reserves by 96px,
+    which is a first-paint shift rather than an overlap.
+    Recorded as deferred-items.md item 7 for 10-13.1, which owns the pill's
+    final inline padding (10-UI-SPEC 19.1b puts it at 24px) and therefore owns
+    every number in that arithmetic.
   */
   .picker {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    block-size: 192px;
+    min-block-size: 192px;
   }
 
   .head {
@@ -659,10 +682,33 @@
     min-inline-size: 0;
   }
 
+  /*
+    THE 6px IS THE THUMB'S RADIUS AND IT IS LOAD-BEARING. MEASURED, not
+    reasoned: without it `knob-rack` reported scrollWidth 251 against
+    clientWidth 245 at the 393px phone viewport and 342 against 336 on
+    chromium, red in e2e/tuning-webkit.e2e.ts:279's never-scrolls-sideways
+    assertion - and D-11 forbids a horizontal overflow of either kind anywhere
+    in the tuning region, so that is a prohibition breach rather than a
+    cosmetic one. (The declarations are described rather than spelled here, the
+    way KnobRack.svelte's header does it: tune-ui.spec.ts greps this file for
+    them, and a paragraph naming them would defeat the grep.)
+
+    The 12px thumb is centred on its value: `calc(100% - 6px)` puts its right
+    edge 6px past the rail at level 15, and aurora SHIPS at 0,85,255, so the
+    blue rail stands at 15 on arrival and the overflow is there before a
+    visitor touches anything. Knob.svelte has the identical thumb rule and does
+    not overflow because its `.row` grid puts a lock column to its right that
+    absorbs the 6px; a rail here is the last thing in the block, so the block
+    reserves the radius itself. Padding on `.rails` rather than on `.rail`
+    because an absolutely positioned child resolves `inset-inline: 0` against
+    its containing block's PADDING box - padding on the rail itself would move
+    nothing at all.
+  */
   .rails {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    padding-inline: 6px;
     touch-action: pan-y;
     -webkit-touch-callout: none;
     user-select: none;
@@ -829,6 +875,56 @@
     .track-fill,
     .thumb {
       transition: none;
+    }
+  }
+
+  /*
+    THE METADATA IS THE FIRST THING TO GO, AND 262 IS ARITHMETIC OVER FOUR
+    MEASURED WIDTHS RATHER THAN A ROUND NUMBER.
+
+      caption COLOUR                    63
+      the metadata at its widest        89   (three 3ch columns and two joins)
+      the lock                          44
+      three 8px gaps                    24
+      --------------------------------------
+      furniture, before the knob's own name gets a pixel     220
+      the name at Micro, on one line                        + 39
+      --------------------------------------                 259
+      three pixels so the boundary is not the exact fit      + 3
+      --------------------------------------                 262
+
+    Every one of those is a measured width, `Colour` at 39px included, and the
+    3px is slack rather than arithmetic: a threshold sitting exactly on the fit
+    would flip on a sub-pixel difference between two engines.
+
+    Below it the name is what the flex line takes the metadata out of, and both
+    phone widths were already past the point: at a 245px rack (a 393px
+    viewport) `Colour` measured 25px wide and 36px TALL - broken across three
+    lines inside a 44px row - and at a 172px rack (320px) it was 9px wide and
+    108px tall, with the head's min-content at 229px against 172px of rack.
+    That last one is a horizontal overflow of the rack itself, which the tuning
+    region forbids outright, and it was red in
+    e2e/tuning-webkit.e2e.ts:279's 320px pass. After this rule: 172 against
+    172 and 245 against 245, the head back to 44px, the name back to 39px on
+    one 18px line.
+
+    IT IS THE LAST RULE IN THIS FILE ON PURPOSE. `.value` declares
+    `display: flex` and this declares `display: none` at the same specificity,
+    so the one that wins is the one that comes second. Written up beside
+    `.head`, where it reads better, it was in the stylesheet and had no effect
+    at all - observed, not feared.
+
+    The metadata is the right thing to drop because it is the only member of
+    the row that carries NO information of its own: it is aria-hidden, and the
+    three integers it shows are the same three the rails already announce
+    through aria-valuetext. The caption names the block, the knob's name says
+    what the rails are editing, the lock is a control. 10-UI-SPEC 19.1c asks
+    for monospace metadata in +-separated columns; it does not ask for it at a
+    width where it costs the block its name.
+  */
+  @container (width < 262px) {
+    .value {
+      display: none;
     }
   }
 </style>
