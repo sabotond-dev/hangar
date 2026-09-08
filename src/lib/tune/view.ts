@@ -382,6 +382,25 @@ export function widgetFor(
   return "rail";
 }
 
+/**
+ * The KNOB POSITION a view is currently at, whether or not it is a window.
+ *
+ * `KnobView.index` and `KnobView.default` are indices into `values`, and for
+ * every knob but the lattice colour one that IS the knob position. When
+ * `positions` is present the two coordinate systems part company, and anything
+ * outside the widget that reads a view's index has to come back through here.
+ *
+ * There is exactly one such reader - `TuningRegion.svelte` reports the rack's
+ * indices to the panel, and the install store compares them against what it
+ * wrote. Getting this wrong is not a rendering bug: it was MEASURED as
+ * `install.e2e.ts` reporting `knobs-moved` and disabling KEEP ON DEVICE after
+ * a write nobody had touched, because aurora's colour read back as window slot
+ * 0 instead of lattice position 95.
+ */
+export function knobPosition(view: KnobView): number {
+  return view.positions?.[view.index] ?? view.index;
+}
+
 /** A dot per option up to eight; a detent track from nine. */
 export function railSkin(n: number): RailSkin {
   return n <= DOT_RAIL_MAX ? "dots" : "track";

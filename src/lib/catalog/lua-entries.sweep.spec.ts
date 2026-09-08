@@ -30,6 +30,21 @@
 //
 //   npx vitest run --project sweep src/lib/catalog/lua-entries.sweep.spec.ts
 //
+// AMENDMENT, plan 10-08: THE COLOUR DIMENSION IS SAMPLED AT 27 LATTICE
+// LITERALS, AND TEST 6 GOES 701 -> 1,728 COMBINATIONS (1,402 -> 3,456
+// MEASUREMENTS).
+//
+// D-06 lets a picker write any of the 4,096 RGB444 colours into a colour
+// knob's token, so test 6's question changed from "does every declared palette
+// literal fit" to "does every colour a picker could write fit". `luaKnobs`
+// declares 45 colour knobs across 25 of the 27 hand-authored entries;
+// enumerating the lattice on each would make this 184,833 combinations of
+// compressScript + measureLua and is simply not an option. The sample is 27
+// literals per colour knob and it is LENGTH-COMPLETE - the licence, and the
+// separability identity it rests on, are quoted at test 6 from `:358-384`
+// rather than restated. NOTHING IS TRIMMED: the non-colour half is still every
+// value of every knob plus both corners.
+//
 // WHY THE FORMATTER GATE IS THE FIRST THING THAT HAPPENS. compressScript throws
 // before the WASM Lua formatter resolves, and checkSyntax silently returns false
 // - so a gate that skipped padReady() would report every correct configuration
@@ -90,6 +105,54 @@ function extremeIndex(knob: LuaKnob, longest: boolean): number {
     if (better) best = i;
   }
   return best;
+}
+
+/**
+ * The colour dimension's sample: one, two and three digits per channel, in
+ * every position (D-06, plan 10-08).
+ *
+ * Each value is a multiple of 17 and therefore a colour a picker can really
+ * write - 0 is the only one-digit step, 17 the smallest two-digit one, 255 the
+ * largest three-digit one. Test 6 asserts the sample's length-completeness
+ * rather than taking this comment's word for it.
+ */
+const COLOUR_SAMPLE_CHANNELS: readonly number[] = [0, 17, 255];
+const COLOUR_SAMPLE: readonly string[] = COLOUR_SAMPLE_CHANNELS.flatMap((r) =>
+  COLOUR_SAMPLE_CHANNELS.flatMap((g) =>
+    COLOUR_SAMPLE_CHANNELS.map((b) => `${r},${g},${b}`),
+  ),
+);
+/** The corners the budget claim rests on. */
+const COLOUR_LONGEST = "255,255,255";
+const COLOUR_SHORTEST = "0,0,0";
+
+/**
+ * `renderLua` with a colour override, and the four lines are RESTATED rather
+ * than imported for a reason that is stated and gated.
+ *
+ * `renderLua` substitutes `knob.values[index]`, and a sampled lattice literal
+ * has no index in that list - the knob still declares the four or five
+ * literals its entry ships, and widening it is 10-10's job, not this file's.
+ * So this renders from the same templates with the same `replaceAll`, and test
+ * 6 asserts the two agree on every entry whenever no colour is overridden.
+ * That is the shape `filter.ts` and `sort.ts` already use for a restatement
+ * that cannot be avoided.
+ */
+function renderWith(
+  entry: CatalogEntry,
+  indices: Record<string, number>,
+  colours: Record<string, string>,
+): { setup: string; timer: string } {
+  let setup = templateOf(entry, "setup");
+  let timer = templateOf(entry, "timer");
+  for (const knob of entry.knobs) {
+    const value =
+      colours[knob.id] ??
+      knob.values[indices[knob.id] ?? defaultIndex(entry, knob)];
+    setup = setup.replaceAll(knob.token, value);
+    timer = timer.replaceAll(knob.token, value);
+  }
+  return { setup, timer };
 }
 
 // THE @ TRAP. The event marker every stored configuration opens with contains
@@ -400,42 +463,154 @@ describe("hand-authored Lua entries (CONT-02)", () => {
     expect(entries.length, "there are hand-authored entries").toBeGreaterThan(
       0,
     );
+    // THE COLOUR DIMENSION, SAMPLED AT 27 LATTICE LITERALS (D-06, plan 10-08).
+    //
+    // D-06 lets a picker write any of the 4,096 RGB444 colours into a colour
+    // knob's token, so this test's question is no longer "does every declared
+    // palette literal fit" but "does every colour a picker could write fit".
+    // Enumerating the lattice here would make this 184,833 combinations of
+    // `compressScript` + `measureLua` and is simply not an option, so the
+    // colour dimension is SAMPLED at 27 literals per colour knob and the
+    // sample is LENGTH-COMPLETE.
+    //
+    // The licence to sample rather than enumerate is the previous test's, in
+    // its own words at `:358-384`, quoted rather than restated:
+    //
+    //   "THE SEPARABILITY IDENTITY, PER EVENT. Moving one knob changes one
+    //    event's length by exactly (occurrences in THAT event) times the
+    //    difference in value length. [...] This is what licences the
+    //    corner-only bound in the next test: it proves the substitution is
+    //    pure literal arithmetic with no interaction between knobs, so the
+    //    maximum over the whole cross-product is the all-longest corner."
+    //
+    // A colour therefore costs an event exactly `occurrences x literal
+    // length`, so the only property of a colour that this test can see is how
+    // many DIGITS it has. Every channel is a multiple of 17 and is therefore
+    // one, two or three digits; the 3 x 3 x 3 sample below carries every
+    // per-channel digit count in every position, and so every reachable
+    // literal length from 3 to 9 - including the all-longest corner the whole
+    // budget claim rests on. Asserted below rather than argued.
+    expect(COLOUR_SAMPLE.length, "the colour sample").toBe(27);
+    const sampleLengths = new Set(
+      COLOUR_SAMPLE.map((literal) => literal.replaceAll(",", "").length),
+    );
+    expect(
+      [...sampleLengths].sort((a, b) => a - b),
+      "every reachable literal length, 3 digits to 9",
+    ).toEqual([3, 4, 5, 6, 7, 8, 9]);
+    for (const position of [0, 1, 2]) {
+      expect(
+        [
+          ...new Set(
+            COLOUR_SAMPLE.map((literal) => literal.split(",")[position].length),
+          ),
+        ].sort((a, b) => a - b),
+        `channel ${position} carries a one-, two- and three-digit value`,
+      ).toEqual([1, 2, 3]);
+    }
+    expect(COLOUR_SAMPLE, "the all-longest corner is in the sample").toContain(
+      COLOUR_LONGEST,
+    );
+    expect(COLOUR_SAMPLE, "the all-shortest corner is in the sample").toContain(
+      COLOUR_SHORTEST,
+    );
+    for (const literal of COLOUR_SAMPLE) {
+      for (const channel of literal.split(",")) {
+        expect(
+          Number.parseInt(channel, 10) % 17,
+          `${literal}: ${channel} is not on the RGB444 lattice, so no picker can write it`,
+        ).toBe(0);
+      }
+    }
+
+    // THE EQUIVALENCE GATE for the local renderer. `renderWith` restates
+    // `renderLua`'s four lines because `renderLua` substitutes `values[index]`
+    // and a sampled colour has no index in that list. A restatement with no
+    // gate is a divergence waiting to happen, so with no colour override the
+    // two must agree, on every entry, before anything below is trusted.
+    for (const entry of entries) {
+      expect(
+        renderWith(entry, defaultIndices(entry), {}),
+        `${entry.id}: renderWith diverged from renderLua at the defaults`,
+      ).toEqual(renderLua(entry));
+    }
+
     let measured = 0;
+    let combined = 0;
     for (const entry of entries) {
       const indices = defaultIndices(entry);
-      const combinations: { label: string; knobs: Record<string, number> }[] =
-        [];
+      const combinations: {
+        label: string;
+        knobs: Record<string, number>;
+        colours: Record<string, string>;
+      }[] = [];
 
       for (const knob of entry.knobs) {
+        if (knob.kind === "colour") {
+          for (const literal of COLOUR_SAMPLE) {
+            combinations.push({
+              label: `${knob.id}="${literal}"`,
+              knobs: indices,
+              colours: { [knob.id]: literal },
+            });
+          }
+          continue;
+        }
         for (let i = 0; i < knob.values.length; i += 1) {
           combinations.push({
             label: `${knob.id}="${knob.values[i]}"`,
             knobs: { ...indices, [knob.id]: i },
+            colours: {},
           });
         }
       }
 
       const longest: Record<string, number> = {};
       const shortest: Record<string, number> = {};
+      const longestColours: Record<string, string> = {};
+      const shortestColours: Record<string, string> = {};
       for (const knob of entry.knobs) {
         longest[knob.id] = extremeIndex(knob, true);
         shortest[knob.id] = extremeIndex(knob, false);
+        if (knob.kind === "colour") {
+          longestColours[knob.id] = COLOUR_LONGEST;
+          shortestColours[knob.id] = COLOUR_SHORTEST;
+        }
       }
-      combinations.push({ label: "every knob at its longest", knobs: longest });
+      combinations.push({
+        label: "every knob at its longest",
+        knobs: longest,
+        colours: longestColours,
+      });
       combinations.push({
         label: "every knob at its shortest",
         knobs: shortest,
+        colours: shortestColours,
       });
 
+      // 701 -> 1,728 combinations across the catalog: every NON-colour value,
+      // 27 sampled literals per colour knob, plus both corners per entry.
       const expected =
-        entry.knobs.reduce((n, knob) => n + knob.values.length, 0) + 2;
+        entry.knobs.reduce(
+          (n, knob) =>
+            n +
+            (knob.kind === "colour"
+              ? COLOUR_SAMPLE.length
+              : knob.values.length),
+          0,
+        ) + 2;
       expect(
         combinations.length,
-        `${entry.id}: the sweep covers every value plus both corners`,
+        `${entry.id}: the sweep covers every value, the colour sample and both corners`,
       ).toBe(expected);
+      combined += combinations.length;
 
       for (const combination of combinations) {
-        const rendered = renderLua(entry, combination.knobs);
+        const rendered = renderWith(
+          entry,
+          combination.knobs,
+          combination.colours,
+        );
         for (const event of EVENTS) {
           const text = rendered[event];
           // Carried through the WHOLE sweep, not only the defaults: a knob
@@ -461,7 +636,19 @@ describe("hand-authored Lua entries (CONT-02)", () => {
         }
       }
     }
+    // Report first, assert second - the sibling sweeps' idiom. The numbers a
+    // plan is judged on are printed rather than inferred from a green run.
+    process.stdout.write(
+      `\nlua-entries sweep - ${combined} combinations, ${measured} ` +
+        `measurements; the colour dimension is sampled at ` +
+        `${COLOUR_SAMPLE.length} literals per colour knob\n`,
+    );
     expect(measured, "the sweep measured something").toBeGreaterThan(0);
+    // Both events on every combination, derived rather than restated, so a
+    // wave that adds a configuration moves no number in this file.
+    expect(measured, "two events per combination").toBe(
+      combined * EVENTS.length,
+    );
     // AN EXPLICIT TIMEOUT, THE SAME IDIOM src/lib/tune/reachability.sweep.spec.ts
     // USES AT ITS OWN LONG TEST. Vitest's default is 5,000 ms, which is a
     // sensible number for a unit test and the wrong number for an exhaustive

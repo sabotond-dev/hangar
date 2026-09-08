@@ -44,7 +44,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
-  import type { KnobView } from "$lib/tune/view";
+  import { knobPosition, type KnobView } from "$lib/tune/view";
 
   let {
     view,
@@ -157,9 +157,7 @@
    */
   function pick(slot: number) {
     const index = view.positions?.[slot] ?? slot;
-    if (index !== (view.positions?.[view.index] ?? view.index)) {
-      onchange(index);
-    }
+    if (index !== knobPosition(view)) onchange(index);
   }
 </script>
 

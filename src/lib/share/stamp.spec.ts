@@ -20,9 +20,12 @@ import {
 } from "../../vendor/botor/_pad";
 import { CATALOG, byId, type CatalogEntry, type LuaKnob } from "../catalog";
 import { baseStateFor } from "../tune/state";
+import WILD_STAMPS from "./fixtures/wild-stamps.json" with { type: "json" };
 import {
+  COLOUR_FIELD_CHARS,
   HANGAR_FORMAT_LETTERS,
   HANGAR_FORMAT_LUA,
+  HANGAR_FORMAT_LUA_COLOUR,
   compilerKnobs,
   decodeFor,
   encodeFor,
@@ -31,6 +34,24 @@ import {
 } from "./stamp";
 
 type Indices = Record<string, number>;
+
+/**
+ * The captured fixture, typed ONCE at the boundary.
+ *
+ * A JSON import gives every record its own literal object type, so the union
+ * over twenty-seven racks has an optional member for each knob id in the
+ * catalog and no structural conversion to a Record reaches it. One assertion
+ * here beats twenty-seven at the use sites, and it is checked at runtime by
+ * the two counts the test asserts.
+ */
+type WildStamp = {
+  entry: string;
+  vector: string;
+  indices: Indices;
+  payload: string | null;
+};
+const WILD: readonly WildStamp[] =
+  WILD_STAMPS.stamps as unknown as readonly WildStamp[];
 
 const entry = (id: string): CatalogEntry => {
   const found = byId(id);
@@ -136,13 +157,23 @@ describe("the stamp: format x", () => {
           checked += 1;
           continue;
         }
-        expect(payload, `${each.id} at ${vector.label}: no payload`).toMatch(
-          /^x/,
-        );
+        // THE SPLIT (plan 10-08). An entry that carries a colour knob emits
+        // format `w` - three characters for a colour, one for everything else
+        // - and an entry that carries none still emits `x`, unchanged. The
+        // expectation is DERIVED from the rack rather than restated, so the
+        // day an entry gains or loses a colour knob this test follows it
+        // instead of going red for a reason that is not a fault.
+        const colours = knobs.filter((knob) => knob.kind === "colour").length;
+        const format =
+          colours > 0 ? HANGAR_FORMAT_LUA_COLOUR : HANGAR_FORMAT_LUA;
+        expect(
+          payload?.[0],
+          `${each.id} at ${vector.label}: ${colours} colour knob(s) must emit format ${format}`,
+        ).toBe(format);
         expect(
           payload?.length,
-          `${each.id} at ${vector.label}: one character per knob, plus the format and the shape`,
-        ).toBe(2 + knobs.length);
+          `${each.id} at ${vector.label}: one character per knob and three per colour, plus the format and the shape`,
+        ).toBe(2 + knobs.length + colours * (COLOUR_FIELD_CHARS - 1));
         expect(
           decodeFor(each, payload),
           `${each.id} at ${vector.label}: did not round-trip`,
@@ -283,11 +314,25 @@ describe("the stamp: the entry-consistency check", () => {
 
     const lua = encodeFor(euclid, tunedOf(euclid));
     if (typeof lua !== "string") throw new Error("euclid did not encode");
-    expect(lua[0], "the Lua route uses the HANGAR format letter").toBe(
-      HANGAR_FORMAT_LUA,
+    // `euclid` carries a ringColour knob, so it emits `w`. Both HANGAR letters
+    // are refused under a compiler entry, and both are asserted here rather
+    // than only the one this subject happens to produce.
+    expect(lua[0], "the Lua route uses a HANGAR format letter").toBe(
+      HANGAR_FORMAT_LUA_COLOUR,
     );
     expect(
       decodeFor(aurora, lua),
+      "format w under a compiler entry must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+    const cull = entry("cull");
+    const noColour = encodeFor(cull, tunedOf(cull));
+    if (typeof noColour !== "string") throw new Error("cull did not encode");
+    expect(
+      noColour[0],
+      "a Lua entry with no colour knob still emits format x",
+    ).toBe(HANGAR_FORMAT_LUA);
+    expect(
+      decodeFor(aurora, noColour),
       "format x under a compiler entry must be unreadable",
     ).toEqual({ kind: "unreadable" });
 
@@ -326,6 +371,66 @@ describe("the stamp: the envelope", () => {
       ).toBe(false);
     }
     expect(HANGAR_FORMAT_LETTERS).toContain(HANGAR_FORMAT_LUA);
+    expect(HANGAR_FORMAT_LETTERS).toContain(HANGAR_FORMAT_LUA_COLOUR);
+
+    // ------------------------------------------------------------------
+    // DECODING OF FORMAT `x` IS NEVER REMOVED, ONLY STOPPED BEING EMITTED.
+    //
+    // Those are the words, and this is the evidence. Every literal below was
+    // written by the encoder as it stood the moment BEFORE format `w` existed
+    // and committed on its own, so this is a test against captured history
+    // rather than a round trip of the new encoder against itself - which would
+    // assert only that the encoder agrees with itself and would pass just as
+    // happily on the day `x` stopped decoding.
+    //
+    // Fifty-four records: every one of the twenty-seven hand-authored entries
+    // at its defaults, where the payload is null because a URL with no
+    // fragment IS the base configuration, and at a wild vector with every knob
+    // at its last position. Twenty-five of those entries now EMIT `w`. All
+    // fifty-four must still land, and a `w`-emitting entry landing its old `x`
+    // link is the whole point.
+    //
+    // It rides inside this test rather than becoming a ninth, because this
+    // file's header says the count never moves and 10-08's own budget is
+    // +0 tests.
+    let wild = 0;
+    let nulls = 0;
+    for (const record of WILD) {
+      const indices = record.indices;
+      const each = byId(record.entry);
+      expect(each, `wild-stamps.json names ${record.entry}`).toBeDefined();
+      if (!each) continue;
+      if (record.payload === null) {
+        expect(
+          encodeFor(each, indices),
+          `${record.entry}: the defaults must still carry no stamp`,
+        ).toBeUndefined();
+        nulls += 1;
+        continue;
+      }
+      expect(
+        record.payload[0],
+        `${record.entry}: the captured literal must be format x`,
+      ).toBe(HANGAR_FORMAT_LUA);
+      expect(
+        decodeFor(each, record.payload),
+        `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
+      ).toEqual({ kind: "restored", indices });
+      wild += 1;
+    }
+    expect(wild, "captured format x stamps re-decoded").toBe(27);
+    expect(nulls, "captured default vectors").toBe(27);
+    // The fixture is only evidence if the tree has moved past it: at least one
+    // captured entry must now emit a DIFFERENT format from the one recorded.
+    const moved = WILD.filter((record) => {
+      const each = byId(record.entry);
+      if (!each || record.payload === null) return false;
+      return encodeFor(each, record.indices)?.[0] !== record.payload[0];
+    });
+    expect(
+      moved.length,
+      "no entry changed format, so the fixture is proving nothing",
+    ).toBe(25);
   });
 
   it("is idempotent, on both routes and through a restore", () => {

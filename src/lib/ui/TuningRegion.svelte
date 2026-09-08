@@ -145,7 +145,7 @@
     type EventWord,
   } from "$lib/tune/copy";
   import { onIdle } from "$lib/tune/idle";
-  import type { KnobView, TuneView } from "$lib/tune/view";
+  import { knobPosition, type KnobView, type TuneView } from "$lib/tune/view";
   import BudgetMessage from "./BudgetMessage.svelte";
   import BudgetMeter from "./BudgetMeter.svelte";
   import KnobRack from "./KnobRack.svelte";
@@ -422,7 +422,10 @@
     // Settled once, on the first view, and never recomputed: see rule 2.
     rackPx ??= rackHeight(next);
     const indices: Record<string, number> = {};
-    for (const knob of next.knobs) indices[knob.id] = knob.index;
+    // THROUGH knobPosition, never knob.index: a windowed view - today only a
+    // lattice colour knob, until 10-10 - indexes its own values rather than
+    // the knob. See view.ts.
+    for (const knob of next.knobs) indices[knob.id] = knobPosition(knob);
     onknobs?.(indices);
     onstamp?.(tuner?.stamp());
     if (pendingCommand !== undefined) scheduleVoice();

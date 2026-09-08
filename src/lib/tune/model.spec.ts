@@ -38,7 +38,7 @@ import {
   type OverBudgetView,
 } from "./model";
 import { resetAll } from "./state";
-import type { TuneView } from "./view";
+import { knobPosition, type TuneView } from "./view";
 
 /** The card whose ladder is genuinely reachable with a reserve - see ladder.spec.ts. */
 const OVER_RESERVE = { setup: 300, timer: 0 };
@@ -158,6 +158,36 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       same(before, after),
       "the new engine paints the same picture as the old one",
     ).toBe(false);
+
+    // THE WINDOW'S INVARIANT, asserted where a colour knob is already being
+    // turned (plan 10-08). `KnobView.index` indexes `values`, and for a
+    // lattice colour knob `values` is a WINDOW - two swatches, not 4,096 - so
+    // the view's index is a window slot and `knobPosition` is the only honest
+    // way back to the knob's own position. Anything outside the widget that
+    // reads `.index` directly reports the wrong number, which was MEASURED as
+    // `install.e2e.ts` disabling KEEP ON DEVICE with `knobs-moved` after a
+    // write nobody had touched. Held for EVERY knob, so the identity case is
+    // covered beside the windowed one.
+    const views = rec.views.at(-1)?.knobs ?? [];
+    expect(views.length, "the last view carried the rack").toBe(
+      tuner.knobs.length,
+    );
+    for (const each of views) {
+      expect(
+        knobPosition(each),
+        `${each.id}: the view's position disagrees with the tuner's index`,
+      ).toBe(tuner.indices[each.id]);
+      expect(
+        each.index,
+        `${each.id}: the view's index is not a position in its own values`,
+      ).toBeLessThan(each.values.length);
+    }
+    const colourView = views.find((each) => each.id === "colour");
+    expect(colourView?.positions, "the colour view is a window").toBeDefined();
+    expect(
+      colourView?.values.length,
+      "the rack shows where the card ships and where the visitor is",
+    ).toBe(2);
 
     tuner.destroy();
   });

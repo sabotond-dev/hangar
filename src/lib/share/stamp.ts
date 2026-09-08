@@ -32,12 +32,33 @@
 //   | format x, right length, every index in range, shape agrees        | restored     |
 //   | format x with a wrong length, an out-of-alphabet character, or an |              |
 //   |   index past the end of its options                               | unreadable   |
+//   | format w, right length, every index in range, every colour naming |              |
+//   |   a position of its knob, shape DISAGREES                         | older        |
+//   | format w, the same, shape agrees                                  | restored     |
+//   | format w with a wrong length, a channel step outside 0..15, an    |              |
+//   |   index past the end of its options, or a colour the knob's own   |              |
+//   |   list cannot name                                                | unreadable   |
 //   | format p whose preset id equals this entry's source.presetId      | restored, at |
 //   |                                                                   | every default|
 //   | a BOTOR format that decodeStamp refuses                           | unreadable   |
 //   | a BOTOR format that decodes but fails the consistency check       | unreadable   |
-//   | format x on a compiler entry, or a BOTOR format on a Lua entry    | unreadable   |
+//   | format x or w on a compiler entry, or a BOTOR format on a Lua     |              |
+//   |   entry                                                           | unreadable   |
 //   | a format letter in neither set                                    | unreadable   |
+//
+// FORMAT `x` IS NEVER REMOVED, ONLY STOPPED BEING EMITTED (plan 10-08, D-06).
+// This is the one change in the phase with an irreversible user-visible
+// failure mode. A colour knob carries 4,096 positions and format `x` encodes
+// one base-32 character per knob, so a 33rd option would not overflow loudly -
+// it would truncate silently and land a shared link on the wrong colour. So
+// `w` is implemented and emitted for the 25 hand-authored entries that carry a
+// colour knob; `cull` and `quadrant` carry none and keep emitting `x`; and
+// EVERY format `x` stamp ever produced keeps decoding to `restored`, forever.
+// `src/lib/share/fixtures/wild-stamps.json` is fifty-four such stamps captured
+// with the encoder as it stood the moment before `w` existed, and
+// `stamp.spec.ts` asserts every one of them still lands. That fixture is the
+// evidence; a round trip of the new encoder against itself would be a
+// tautology.
 //
 // THE `p` ROW IS NOT AN EXCEPTION BOLTED ON; it is the one link the consistency
 // check would otherwise refuse. `p<presetId>` is what `encodeStamp` emits for
@@ -77,7 +98,9 @@ import {
   STAMP_PREFIX,
   decodeStamp,
   encodeStamp,
+  quantiseColour,
   type PadState,
+  type RGB,
 } from "../../vendor/botor/_pad";
 import type { CatalogEntry } from "../catalog/types";
 import { luaKnobs } from "../tune/knobs.lua";
@@ -93,6 +116,166 @@ export const HANGAR_FORMAT_LETTERS: readonly string[] = ["w", "x", "y", "z"];
 
 /** The Lua knob-index format. One base-32 character per knob. */
 export const HANGAR_FORMAT_LUA = "x";
+
+/**
+ * The Lua knob-index-plus-colour format (D-06, plan 10-08). One base-32
+ * character per non-colour knob, THREE per colour knob.
+ *
+ * NO LETTER IS ALLOCATED HERE. `HANGAR_FORMAT_LETTERS` reserved `w`, `x`, `y`
+ * and `z` from the start and `w` was always the next one; this is an
+ * implementation, not a claim.
+ */
+export const HANGAR_FORMAT_LUA_COLOUR = "w";
+
+/** Every format letter HANGAR emits or decodes. Neither route may see these. */
+const HANGAR_FORMATS: readonly string[] = [
+  HANGAR_FORMAT_LUA,
+  HANGAR_FORMAT_LUA_COLOUR,
+];
+
+/** A colour knob, on either route. Found by KIND, never by id. */
+const isColour = (knob: KnobDescriptor): boolean => knob.kind === "colour";
+
+/**
+ * How many characters format `w` gives one colour knob, and why it is three
+ * rather than one.
+ *
+ * A colour is twelve bits - RGB444, sixteen steps per channel, and
+ * `quantiseColour` is what makes that exact rather than approximate. Base 32 is
+ * five bits per character, so twelve bits is three characters at four bits
+ * each, one per channel, with the top bit of each character unused. Packing
+ * twelve bits into three five-bit characters would save nothing (the payload
+ * would still be three characters) and would cost the property that makes this
+ * format readable by hand: character 1 IS red's step, 2 IS green's, 3 IS
+ * blue's.
+ */
+export const COLOUR_FIELD_CHARS = 3;
+
+const rgbOfLiteral = (literal: string): RGB | undefined => {
+  const parts = literal.split(",");
+  if (parts.length !== 3) return undefined;
+  const [r, g, b] = parts.map((n) => Number.parseInt(n, 10));
+  if (![r, g, b].every((v) => Number.isInteger(v) && v >= 0 && v <= 255)) {
+    return undefined;
+  }
+  return { r, g, b };
+};
+
+const literalOfRgb = (c: RGB): string => `${c.r},${c.g},${c.b}`;
+
+/** A colour as three base-32 characters, one 4-bit channel each. */
+function writeColourField(colour: RGB): string {
+  const q = quantiseColour(colour);
+  return (
+    STAMP_ALPHABET[q.r / 17] +
+    STAMP_ALPHABET[q.g / 17] +
+    STAMP_ALPHABET[q.b / 17]
+  );
+}
+
+/** The inverse. `undefined` for a character outside the sixteen steps. */
+function readColourField(chars: string): RGB | undefined {
+  if (chars.length !== COLOUR_FIELD_CHARS) return undefined;
+  const steps = [...chars].map((each) => STAMP_ALPHABET.indexOf(each));
+  if (steps.some((step) => step < 0 || step > 15)) return undefined;
+  return { r: steps[0] * 17, g: steps[1] * 17, b: steps[2] * 17 };
+}
+
+/** Format `w`'s payload length for a rack. Two, plus one or three per knob. */
+export function luaColourPayloadLength(
+  knobs: readonly KnobDescriptor[],
+): number {
+  return (
+    2 +
+    knobs.reduce((n, knob) => n + (isColour(knob) ? COLOUR_FIELD_CHARS : 1), 0)
+  );
+}
+
+/**
+ * Whether an entry's rack is emitted as `w` rather than as `x`.
+ *
+ * Two conditions, both necessary. It must carry at least one colour knob - an
+ * entry with none has nothing `w` can say that `x` cannot, so it keeps
+ * emitting `x` and its links never change shape at all. And every colour
+ * knob's options must be real RGB literals, because `w` stores a colour and
+ * not an index: a colour knob whose values are not colours has nothing to
+ * store. Today that is 25 of the 27 hand-authored entries; `cull` and
+ * `quadrant` declare no colour knob and stay on `x`.
+ */
+export function emitsLuaColourFormat(
+  knobs: readonly KnobDescriptor[],
+): boolean {
+  const colours = knobs.filter(isColour);
+  return (
+    colours.length > 0 &&
+    colours.every((knob) =>
+      knob.options.every((option) => rgbOfLiteral(option) !== undefined),
+    )
+  );
+}
+
+/** What format `w` carries, before any of it is turned into knob positions. */
+export type LuaColourPayload = {
+  /** Every NON-colour knob's index. */
+  indices: Record<string, number>;
+  /** Every colour knob's stored colour, as twelve bits made whole again. */
+  colours: Record<string, RGB>;
+};
+
+/**
+ * Format `w`'s payload, parsed and nothing more - no shape check, no mapping
+ * of a colour onto a knob position.
+ *
+ * Exported because it is the only way to prove the claim the format exists
+ * for: that all 4,096 lattice colours ride it and come back unchanged.
+ * `stamp-roundtrip.sweep.spec.ts`'s Pass B enumerates exactly that, per colour
+ * knob, and a proof that stopped at the knob's own option list would be
+ * proving the palette rather than the format.
+ */
+export function readLuaColourPayload(
+  knobs: readonly KnobDescriptor[],
+  payload: string,
+): LuaColourPayload | undefined {
+  if (payload[0] !== HANGAR_FORMAT_LUA_COLOUR) return undefined;
+  if (payload.length !== luaColourPayloadLength(knobs)) return undefined;
+  const indices: Record<string, number> = {};
+  const colours: Record<string, RGB> = {};
+  let at = 2;
+  for (const knob of knobs) {
+    if (isColour(knob)) {
+      const colour = readColourField(
+        payload.slice(at, at + COLOUR_FIELD_CHARS),
+      );
+      if (!colour) return undefined;
+      colours[knob.id] = colour;
+      at += COLOUR_FIELD_CHARS;
+      continue;
+    }
+    const position = STAMP_ALPHABET.indexOf(payload[at]);
+    if (position < 0 || position >= knob.options.length) return undefined;
+    indices[knob.id] = position;
+    at += 1;
+  }
+  return { indices, colours };
+}
+
+/** A rack's colour knob written as format `w`'s three characters. */
+export function writeLuaColourPayload(
+  knobs: readonly KnobDescriptor[],
+  positions: (knob: KnobDescriptor) => number,
+): string {
+  let body = "";
+  for (const knob of knobs) {
+    const at = positions(knob);
+    if (isColour(knob)) {
+      const colour = rgbOfLiteral(knob.options[at]) ?? { r: 0, g: 0, b: 0 };
+      body += writeColourField(colour);
+      continue;
+    }
+    body += STAMP_ALPHABET[at];
+  }
+  return `${HANGAR_FORMAT_LUA_COLOUR}${shapeOf(knobs)}${body}`;
+}
 
 /** Where a stamped URL lands, and therefore which sentence the panel says. */
 export type Landing =
@@ -212,6 +395,13 @@ export function encodeFor(
   if (knobs.length === 0) return undefined;
   if (atDefaults(knobs, indices)) return undefined;
   if (entry.preview === "lua") {
+    // Format `w` ONLY for a rack that carries a colour; everything else keeps
+    // emitting `x`, unchanged, forever.
+    if (emitsLuaColourFormat(knobs)) {
+      return writeLuaColourPayload(knobs, (knob) =>
+        positionOf(indices[knob.id], knob),
+      );
+    }
     const positions = knobs
       .map((knob) => STAMP_ALPHABET[positionOf(indices[knob.id], knob)])
       .join("");
@@ -220,8 +410,54 @@ export function encodeFor(
   return encodeStamp(stateFor(entry, compilerKnobs(entry), indices));
 }
 
+/**
+ * Format `w`, under a Lua entry. Length and range first, shape last, exactly
+ * as format `x` does it.
+ *
+ * The one step `x` does not have: a stored COLOUR has to become a knob
+ * POSITION, and the comparison is made on the QUANTISED literal on both sides.
+ * That is not a convenience. A Lua entry's palette is authored freely -
+ * `0,200,255`, `255,90,0` - and `w` stores RGB444, so `0,200,255` goes out as
+ * `0,204,255` and would match nothing on a raw string comparison. Quantising
+ * both sides makes the round trip exact for every position of every colour
+ * knob shipped today, which `stamp-roundtrip.sweep.spec.ts`'s Pass A proves
+ * over the whole cross-product.
+ *
+ * A colour the knob's own list cannot name FAILS CLOSED, and that is the
+ * seam 10-10 widens rather than a defect here. Nothing today can produce one:
+ * the rack writes indices and `encodeFor` reads the literal at the index. When
+ * the picker lands, a Lua colour knob's positions become the lattice and this
+ * lookup becomes the same arithmetic `knobs.preset.ts` already uses. Until
+ * then, an inbound colour off the palette is an unreadable stamp rather than a
+ * silently wrong one - which is the rule the whole classifier is built on.
+ */
+function decodeLuaColour(
+  knobs: readonly KnobDescriptor[],
+  payload: string,
+): Landing {
+  const read = readLuaColourPayload(knobs, payload);
+  if (!read) return UNREADABLE;
+  const indices: Record<string, number> = { ...read.indices };
+  for (const knob of knobs) {
+    if (!isColour(knob)) continue;
+    const wanted = literalOfRgb(read.colours[knob.id]);
+    const at = knob.options.findIndex((option) => {
+      const rgb = rgbOfLiteral(option);
+      return rgb ? literalOfRgb(quantiseColour(rgb)) === wanted : false;
+    });
+    if (at < 0) return UNREADABLE;
+    indices[knob.id] = at;
+  }
+  // Last, and only once the payload is known to be well formed.
+  if (payload[1] !== shapeOf(knobs)) return OLDER;
+  return { kind: "restored", indices };
+}
+
 /** Format `x`, under a Lua entry. Length and range first, shape last. */
 function decodeLua(knobs: readonly KnobDescriptor[], payload: string): Landing {
+  if (payload[0] === HANGAR_FORMAT_LUA_COLOUR) {
+    return decodeLuaColour(knobs, payload);
+  }
   if (payload[0] !== HANGAR_FORMAT_LUA) return UNREADABLE;
   if (payload.length !== 2 + knobs.length) return UNREADABLE;
   const indices: Record<string, number> = {};
@@ -272,8 +508,9 @@ export function decodeFor(
 ): Landing {
   if (typeof payload !== "string" || payload.length === 0) return NONE;
   if (entry.preview === "lua") return decodeLua(stampKnobs(entry), payload);
-  // Format x under a compiler entry is the wrong route, and saying so here
-  // rather than letting decodeStamp decline it keeps the two routes symmetric.
-  if (payload[0] === HANGAR_FORMAT_LUA) return UNREADABLE;
+  // A HANGAR format under a compiler entry is the wrong route, and saying so
+  // here rather than letting decodeStamp decline it keeps the two routes
+  // symmetric. `w` joins `x` in this check for the same reason `x` is in it.
+  if (HANGAR_FORMATS.includes(payload[0])) return UNREADABLE;
   return decodeCompiler(entry, payload);
 }
