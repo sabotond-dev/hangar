@@ -43,6 +43,10 @@ import { filterListing } from "../src/lib/browse/filter";
 import { columnsFromTemplate } from "../src/lib/browse/grid";
 import { sortListing } from "../src/lib/browse/sort";
 import { LISTING } from "../src/lib/catalog/listing";
+import {
+  DARK_BY_CONSTRUCTION,
+  isDarkByConstruction,
+} from "../src/lib/sim/demo";
 
 /** trailingSlash: "always" (src/routes/+layout.ts). Never without the slash. */
 const BROWSE = "/browse/";
@@ -153,7 +157,11 @@ function samplePad(page: Page, id: string): Promise<string | null> {
  * the canvases genuinely are empty for a moment, because the simulator arrives
  * through a dynamic import after the prerendered frames have already painted.
  */
-async function waitForPicture(page: Page, id: string): Promise<void> {
+async function waitForPicture(
+  page: Page,
+  id: string,
+  timeout = 30_000,
+): Promise<void> {
   await page.waitForFunction(
     (sel) => {
       const c = document.querySelector(sel) as HTMLCanvasElement | null;
@@ -163,7 +171,7 @@ async function waitForPicture(page: Page, id: string): Promise<void> {
       return ctx.getImageData(0, 0, 9, 9).data.some((b) => b !== 0);
     },
     canvasOf(id),
-    { timeout: 30_000 },
+    { timeout },
   );
 }
 
@@ -510,14 +518,44 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
       "the page sees the reduced-motion preference",
     ).toBe(true);
 
-    // THE TRAP THIS TEST WOULD OTHERWISE FALL INTO. Three of the sixteen
-    // configurations are declared restsBlack and their still frames are
-    // legitimately black, so "the two samples are identical" would pass on them
-    // even if reduced motion did nothing at all. The exemption is read from the
-    // listing - restsBlack is a recorded fact asserted against frames.json in
-    // both directions - and never by naming the three ids.
-    const dark = LISTING.filter((entry) => entry.restsBlack).map((e) => e.id);
-    expect(dark.length, "the exemption is not empty").toBeGreaterThan(0);
+    // THE EXEMPTION THIS TEST USED TO CARRY, AND WHY IT IS GONE.
+    //
+    // It read: "three of the sixteen configurations are declared restsBlack and
+    // their still frames are legitimately black, so the two samples would be
+    // identical even if reduced motion did nothing". That was true, and it made
+    // this walk blind on the four cards it should have been proudest of. After
+    // D-09 those cards are not black: three of them replay a demonstration
+    // gesture and freeze on its last frame, so the assertion below is now a
+    // UNIVERSAL - every card, including those three, shows a still frame with a
+    // non-zero byte in it.
+    //
+    // ONE ENTRY IS STILL EXEMPT, and it is exempt for a reason rather than for a
+    // flag. src/lib/sim/demo.ts's DARK_BY_CONSTRUCTION names Trackpad: its
+    // configuration enables no LED layer at all, so no gesture can light a cell
+    // and no still frame can be anything but black. The list carries the reason
+    // in source, and listing.spec.ts asserts in both directions that every
+    // restsBlack entry is either given a gesture or named there.
+    const dark = LISTING.filter((entry) => isDarkByConstruction(entry.id)).map(
+      (e) => e.id,
+    );
+    expect(
+      dark.length,
+      "the one exemption is still named, so this walk is measuring the right thing",
+    ).toBe(DARK_BY_CONSTRUCTION.length);
+
+    // NON-VACUITY, and it is the point of the change: the entries that used to
+    // be exempt are in the walk now, and they are the most interesting members
+    // of it rather than the skipped ones.
+    const demonstrated = LISTING.filter(
+      (entry) => entry.restsBlack && !isDarkByConstruction(entry.id),
+    ).map((e) => e.id);
+    expect(
+      demonstrated.length,
+      "the cards that were exempt before this phase are now in the walk",
+    ).toBeGreaterThan(0);
+    for (const id of demonstrated) {
+      expect(dark, `${id} is still being exempted`).not.toContain(id);
+    }
 
     /** Every registered canvas as its 324 backing-store bytes. */
     const sampleAll = () =>
@@ -540,7 +578,18 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
         return out;
       });
 
-    /** Built, and every built pad that is not declared dark has a picture. */
+    /**
+     * Built, and every built pad that is not dark by construction has a
+     * picture.
+     *
+     * THE `darkIds` ARGUMENT SURVIVES D-09, AND IT WAS CHECKED RATHER THAN
+     * ASSUMED. The plan asked whether this loop still needs it. It does: the
+     * list is not empty, it is one entry long instead of four, and passing an
+     * empty array would make the walk assert something false about Trackpad.
+     * What changed is what the list MEANS - it was "these are allowed to be
+     * black because they declare restsBlack", and it is now "this one has no
+     * LED layer to light".
+     */
     const settled = () =>
       page.waitForFunction(
         (darkIds: string[]) => {
@@ -567,6 +616,35 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
         { timeout: 30_000 },
       );
 
+    // THE DEMONSTRATION CARDS ARE SCROLLED TO, AND THAT IS THE WHOLE POINT OF
+    // THE WIDENING. A card's engine is built on its first intersection, and at
+    // 1280 by 720 only four of thirty-six cards are on screen - so widening the
+    // universal without this loop made it VACUOUS for exactly the three entries
+    // it was widened for. Observed, not assumed: the first run of this test
+    // after the change went red on the non-vacuity assertion below with zero of
+    // ghost, morph and etch readable. Once registered, a card stays registered,
+    // so a pad scrolled past is still in the sample taken at the top.
+    for (const id of demonstrated) {
+      await page
+        .getByTestId(`card-${id}`)
+        .scrollIntoViewIfNeeded({ timeout: 30_000 });
+      // The wait is caught rather than left to throw, purely so the failure
+      // NAMES THE CARD. A bare waitForFunction times out against a line number,
+      // and the one thing this walk needs to say when it goes red is which
+      // configuration is showing a black square. Eight seconds against a
+      // healthy run that painted all three in under two.
+      let painted = true;
+      try {
+        await waitForPicture(page, id, 8_000);
+      } catch {
+        painted = false;
+      }
+      expect(
+        painted,
+        `${id} rests black and shows nothing: it declares no demonstration gesture, or its gesture ends on a wiped pad`,
+      ).toBe(true);
+    }
+
     await settled();
     // Let anything still arriving finish registering, then require the same
     // condition again: a card whose engine landed between the wait and the
@@ -592,10 +670,21 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
       ).toBe(first[id]);
     }
 
+    // THE UNIVERSAL. Every card that was readable on both samples, minus the
+    // one that has no LED layer at all, shows a still frame with light in it -
+    // and that now INCLUDES the entries whose configurations paint nothing
+    // until a finger arrives, because under reduced motion a demo card resets,
+    // replays its gesture to the end once, and freezes on the picture the
+    // gesture produced. Before D-09 those cards were exempt from this loop.
     const lit = shared.filter((id) => !dark.includes(id));
     expect(lit.length, "the lit half of the wall is not empty").toBeGreaterThan(
       0,
     );
+    const shown = demonstrated.filter((id) => shared.includes(id));
+    expect(
+      shown.length,
+      `none of the demonstration cards (${demonstrated.join(", ")}) was readable, so the universal below is vacuous for exactly the entries it was widened for`,
+    ).toBeGreaterThan(0);
     for (const id of lit) {
       expect(
         first[id].split(",").some((b) => b !== "0"),

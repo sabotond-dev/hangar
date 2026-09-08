@@ -97,6 +97,14 @@ try {
   const { renderOgPixels, OG_WIDTH, OG_HEIGHT, OG_TICK } =
     await server.ssrLoadModule("/src/lib/og/render.ts");
   const { encodePng } = await server.ssrLoadModule("/src/lib/og/png.ts");
+  // D-09's demonstration finger, and the same driver and sampler the browser
+  // uses. An entry with a demo path is captured from the END of its gesture
+  // rather than from tick 64, which makes this image byte-identical in spirit
+  // to what SimHost.stillFrame() paints under reduced motion - the same reset,
+  // the same period, the same one-sample-per-contact-per-tick delivery.
+  const { demoPathFor, driveDemo, isDarkByConstruction } =
+    await server.ssrLoadModule("/src/lib/sim/demo.ts");
+  const { TouchSampler } = await server.ssrLoadModule("/src/lib/sim/touch.ts");
 
   // Rebuilt from empty, so an id that leaves the routed set cannot leave a
   // stale picture behind for a later `og:image` to keep resolving against.
@@ -125,7 +133,20 @@ try {
       );
     }
 
-    engine.run(OG_TICK);
+    const demo = demoPathFor(listed.id);
+    if (demo === undefined) {
+      engine.run(OG_TICK);
+    } else {
+      // Replayed to the END of the path, tick by tick, because the samples are
+      // delivered by the sampler one per tick and engine.run() would skip past
+      // all of them. The picture is therefore the picture the card rests on.
+      const sampler = new TouchSampler();
+      for (let t = 0; t < demo.periodTicks; t++) {
+        driveDemo(demo, t, sampler, engine.coordMax);
+        sampler.deliver(engine);
+        engine.tick();
+      }
+    }
     const frame = engine.frame;
     let litCells = 0;
     for (let n = 0; n < frame.length / 3; n++) {
@@ -138,21 +159,34 @@ try {
       }
     }
 
-    // GATE 2: a frame that is entirely zero. Read against the entry's OWN
-    // declaration rather than against a constant: `restsBlack` (D-19) exists so
-    // that "the picture went black" and "this one is meant to be black" are
-    // distinguishable. THREE of the sixteen now declare it true - tpad, ghost
-    // and morph - and each of them renders 0 of 81 lit cells here, exempted by
-    // its own declared fact rather than by a list this file would have to keep.
-    // For the other thirteen a dark frame still means the simulator broke.
-    if (litCells === 0 && entry.restsBlack !== true) {
+    // GATE 2: a frame that is entirely zero.
+    //
+    // THE restsBlack EXEMPTION WAS REMOVED HERE BY NAME, AND D-09 IS WHY. This
+    // gate used to read "non-dark unless the entry declares restsBlack", which
+    // was right while a resting-black card really did ship a black square. It
+    // is now wrong in exactly one direction, and it is the direction that
+    // matters: a black image for a restsBlack entry would still PASS, which is
+    // precisely the regression the demonstration touch exists to eliminate. A
+    // gate that stays green on the thing a phase was built to prevent is worse
+    // than no gate, because it reads like coverage.
+    //
+    // So: every entry's OG image is non-dark, full stop - with one exemption,
+    // and it is not a flag on the entry but a named row in
+    // src/lib/sim/demo.ts's DARK_BY_CONSTRUCTION, which carries the reason. The
+    // difference is not cosmetic: removing a demo path from ghost, morph or
+    // etch turns this gate RED naming the entry, where under the old rule it
+    // would have quietly re-exempted it.
+    if (litCells === 0 && !isDarkByConstruction(listed.id)) {
       fail(
         '"' +
           listed.id +
-          '" rendered an entirely dark pad at tick ' +
-          OG_TICK +
-          ", and the entry does not declare restsBlack. " +
-          "The simulator produced nothing rather than the card being dark.",
+          '" rendered an entirely dark pad' +
+          (demo === undefined
+            ? " at tick " + OG_TICK
+            : " at the end of its demo path") +
+          ", and it is not named in DARK_BY_CONSTRUCTION. " +
+          "Every card paints (D-09): either the simulator produced nothing, or " +
+          "this entry needs a demonstration gesture and has none.",
       );
     }
 
@@ -182,7 +216,8 @@ try {
         " bytes   " +
         String(litCells).padStart(2) +
         " of 81 cells lit" +
-        (entry.restsBlack ? "   (restsBlack)" : ""),
+        (demo === undefined ? "" : "   (demo: " + demo.gesture + ")") +
+        (isDarkByConstruction(listed.id) ? "   (no LED layer at all)" : ""),
     );
   }
 
