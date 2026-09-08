@@ -11,23 +11,36 @@
   and it buys CONN-03's explanation and SAFE-01's promise read without a click.
   That trade is 06-UI-SPEC's open question 7, made rather than assumed.
 
-  THE RESERVATION IS MEASURED, NEVER ASSERTED IN PIXELS. Two Body paragraphs,
-  8px apart. The first is a one-cell grid holding EVERY string the line can
-  ever show - the pre-click explainer, the reconnect offer, the three S3
-  status lines - with the non-current ones `visibility: hidden` and
-  aria-hidden; the second is the SAFE-01 sentence, also kept as a twin in the
-  states that do not show it. The region's height is therefore whatever the
-  browser measures at the current width, identical in every state, so no
-  session transition can move the headline or the coverflow beneath it.
-  Phase 5's honesty slot (TryOnDevice.svelte) is the pattern, unchanged. At
-  the 372px column the spec's arithmetic gives 3 + 3 line boxes + 8px =
-  152px; 06-09-SUMMARY.md records what the browser measured.
+  THE RESERVATION IS MEASURED, AND SINCE PLAN 10-03 IT IS ONE CELL. Phase 6
+  and 7 shipped two Body paragraphs 8px apart: a one-cell grid over every
+  string the first line could show, and beneath it the SAFE-01 sentence, also
+  kept as a twin in the states that did not show it. 06-UI-SPEC's arithmetic
+  at the 372px column was 3 + 3 line boxes + 8px = 152px.
+
+  R-02 retires PICKER_EXPLAINER (130) and R-03 moves SAFE-01's guarantee out
+  of a paragraph and onto the control as SAFE_NOTE, so BOTH of those cells
+  go. What is left in the swapping cell is the reconnect offer at 37 and the
+  three S3 status lines at 36, 17 and 25 - every one of them one line box at
+  the measured CH_PER_LINE of 43 (10-01-SUMMARY.md, thirty-six full line
+  boxes in two engines). The cell is therefore
+  `ceil(37 / 43) x 24 = 24px`, one line, and that is the largest single
+  reduction in the phase: 152px to 24px. The candidates still all sit at
+  `grid-area: 1 / 1` with the non-current ones `visibility: hidden` and
+  aria-hidden, so the height is still identical in every state and no session
+  transition can move the headline or the coverflow beneath it. Phase 5's
+  honesty slot (TryOnDevice.svelte) is the pattern, unchanged.
+
+  SAFE_NOTE IS NOT PART OF THAT RESERVATION. It is a fixed 14px Micro line
+  beneath the cell, 8px away: unconditional, never swapped, and with nothing
+  ever rendered in its place. It costs one line box permanently and nothing
+  variable - see session-copy.ts's contract block on the constant.
 
   STATE BY STATE. `starting` is S1 (session-copy's slotStateOf), so this is
-  the row the PRERENDERED page ships: explainer over promise. S1 / S7 the
-  same; S2 the reconnect offer over the promise; S3 the current status line
-  over an empty, height-held second cell; S4, S5 and S6 empty with the height
-  held, because that copy is in the disclosure. S0a and S0b render NOTHING,
+  the row the PRERENDERED page ships: an empty held cell over SAFE_NOTE. S1 /
+  S7 the same; S2 the reconnect offer; S3 the current status line; S4, S5 and
+  S6 empty with the height held, because that copy is in the disclosure. In
+  every one of those seven, SAFE_NOTE is on the screen. S0a and S0b render
+  NOTHING,
   with no reservation: capability is decided synchronously before the first
   hydrated paint and cannot change during the visit, so those two states are
   terminal, there is no picker to explain, and a visitor on a browser that
@@ -40,12 +53,23 @@
   THE NEVER-BOTH RULE IS ABOUT SURFACES (Y-11). When the chosen panel is
   open it owns the session's prose and this note holds the space without
   speaking. `panelOwnsProse` covers every line the two surfaces can both
-  show, which in this phase is TWO - the S1 / S7 pre-click explainer and the
-  S3 status line, both rendered by the panel's connect-state region (plan
-  06-12) - and the list is expected to stay at two. In both cases the note
-  keeps rendering its sizing twin, so its height is unchanged and nothing
-  below the header moves when a panel opens or closes; only the visible text
-  goes. One input, not two special cases.
+  show. Through Phases 6 and 7 that was TWO - the S1 / S7 pre-click explainer
+  and the S3 status line, both rendered by the panel's connect-state region
+  (plan 06-12). Plan 10-03 retires the explainer and adds SAFE_NOTE, which
+  the panel also renders, so it is two again: the S3 status line and
+  SAFE_NOTE. In both cases the note keeps rendering the hidden line, so its
+  height is unchanged and nothing below the header moves when a panel opens
+  or closes; only the visible text goes. One input, not two special cases.
+
+  SAFE_NOTE'S HIDDEN FORM IS THE NEVER-BOTH RULE, NOT A SIZING TWIN, and the
+  difference is worth writing down. A sizing twin exists because SOMETHING
+  ELSE will be swapped into its cell and the taller candidate has to have
+  reserved the room. Nothing is ever swapped into SAFE_NOTE's line: it is
+  hidden here for exactly one reason, that the panel is saying the same
+  sentence eight pixels lower down, and it holds its own height while it is
+  hidden so the header does not jump when a panel opens. The panel's copy,
+  the one beneath the primary control, is unconditional and has no hidden
+  sibling at all - device-ui.spec.ts asserts that over TryOnDevice.svelte.
 
   NOT A LIVE REGION, AND IT NEVER ANNOUNCES. It changes with the session, and
   the session already speaks once through SessionAnnouncer.svelte; marking
@@ -74,13 +98,12 @@
   import { session } from "$lib/device/session.svelte";
   import {
     RECONNECT_OFFER,
-    SAFE_PROMISE,
+    SAFE_NOTE,
     STATUS_CHOOSING,
     STATUS_IDENTIFYING,
     STATUS_OPENING,
     slotStateOf,
   } from "$lib/device/session-copy";
-  import PickerExplainer from "./PickerExplainer.svelte";
 
   let {
     covered = false,
@@ -90,22 +113,16 @@
     covered?: boolean;
     /**
      * True while the chosen panel is open and rendering the session's prose
-     * (Y-11). The note keeps its sizing twins and its height; only the
+     * (Y-11). The note keeps its hidden lines and its height; only the
      * visible text goes, so nothing below the header moves when a panel
-     * opens or closes. Two lines are affected: the S1/S7 pre-click
-     * explanation and the S3 status line.
+     * opens or closes. Two lines are affected: the S3 status line and
+     * SAFE_NOTE.
      */
     panelOwnsProse?: boolean;
   } = $props();
 
   /** The first paragraph's candidates, by name, so a test reads which one is current without inferring it from visibility. */
-  type Line =
-    | "explainer"
-    | "offer"
-    | "choosing"
-    | "opening"
-    | "identifying"
-    | "none";
+  type Line = "offer" | "choosing" | "opening" | "identifying" | "none";
 
   const slot = $derived(slotStateOf(session.phase));
 
@@ -115,9 +132,6 @@
   /** Which candidate of the first cell is visible; every other one is a twin. */
   const line: Line = $derived.by(() => {
     switch (slot) {
-      case "S1":
-      case "S7":
-        return panelOwnsProse ? "none" : "explainer";
       case "S2":
         return "offer";
       case "S3":
@@ -129,9 +143,6 @@
         return "none";
     }
   });
-
-  /** The SAFE-01 sentence shows in the three not-connected resting states and holds its height in the rest. */
-  const safeShown = $derived(slot === "S1" || slot === "S2" || slot === "S7");
 
   /** aria-hidden as an attribute that is present or absent, never "false". */
   const hidden = (twin: boolean): true | undefined => (twin ? true : undefined);
@@ -146,13 +157,6 @@
     data-line={line}
   >
     <div class="cell" data-testid="device-note-line">
-      <div
-        class="line"
-        class:twin={line !== "explainer"}
-        aria-hidden={hidden(line !== "explainer")}
-      >
-        <PickerExplainer />
-      </div>
       <p
         class="line"
         class:twin={line !== "offer"}
@@ -182,13 +186,19 @@
         {STATUS_IDENTIFYING}
       </p>
     </div>
+    <!--
+      SAFE-01, on the screen in every state this note renders in. It is hidden
+      only while the chosen panel is saying the same sentence beneath its own
+      primary (the never-both rule), and it holds its height while hidden so
+      opening a panel does not move the coverflow.
+    -->
     <p
-      class="line safe"
+      class="safe-note"
       data-testid="device-note-safe"
-      class:twin={!safeShown}
-      aria-hidden={hidden(!safeShown)}
+      class:twin={panelOwnsProse}
+      aria-hidden={hidden(panelOwnsProse)}
     >
-      {SAFE_PROMISE}
+      {SAFE_NOTE}
     </p>
   </div>
 {/if}
@@ -243,6 +253,26 @@
   }
 
   /*
+    SAFE_NOTE, and it is NOT one of the lines above. Micro (title): 12px, 600,
+    a 14px line box, 0.01em, sentence case, in --color-ink at 9.26:1 rather
+    than --color-ink-quiet, because a safety statement is not quiet and the
+    honesty prose beneath it already is. No grid-area: it is the note's second
+    row, 8px below the cell, with nothing ever rendered in its place - so it
+    reserves nothing and costs exactly one 14px line box, permanently.
+  */
+  .safe-note {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 14px;
+    letter-spacing: 0.01em;
+    color: var(--color-ink);
+    transition:
+      opacity 160ms ease-out,
+      visibility 0s linear 0s;
+  }
+
+  /*
     A twin holds the height and nothing else: out of the accessibility tree
     by visibility (aria-hidden makes that explicit), out of sight by opacity,
     and its visibility flips only after its fade so a line change is a fade
@@ -262,6 +292,7 @@
     }
 
     .line,
+    .safe-note,
     .twin {
       transition: none;
     }

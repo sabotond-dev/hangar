@@ -53,12 +53,17 @@ const repo = (rel: string) =>
 const UI_DIR = "src/lib/ui";
 
 /**
- * The seven components this phase adds. A literal list is unavoidable - the
- * directory also holds Phases 4 and 5's components, which these rules do not all
- * bind - so its length is asserted and every name is checked against the
- * directory listing in test 1. A rename, a deletion or an eighth device
+ * The device components, SIX since plan 10-03. A literal list is unavoidable -
+ * the directory also holds Phases 4 and 5's components, which these rules do
+ * not all bind - so its length is asserted and every name is checked against
+ * the directory listing in test 1. A rename, a deletion or a seventh device
  * component added without being listed is then a visible omission rather than a
- * silent gap that lets six tests pass while covering six files.
+ * silent gap that lets the tests pass while covering fewer files.
+ *
+ * Phase 6 added seven. `PickerExplainer.svelte` is the one that went: R-02
+ * retires PICKER_EXPLAINER outright, and a component whose whole content was
+ * that one sentence has no reason left to exist. The count moving is the
+ * amendment being visible rather than silent.
  */
 const DEVICE_COMPONENTS: readonly string[] = [
   "DeviceDetails.svelte",
@@ -66,15 +71,16 @@ const DEVICE_COMPONENTS: readonly string[] = [
   "DeviceNote.svelte",
   "DeviceSlot.svelte",
   "FailureBlock.svelte",
-  "PickerExplainer.svelte",
   "SessionAnnouncer.svelte",
 ];
 
-/** The three components whose whole content is Body sentences (prose under a control). */
+/**
+ * The components whose whole content is Body sentences (prose under a
+ * control). THREE since R-02 took PickerExplainer.svelte with its sentence.
+ */
 const SENTENCE_COMPONENTS: readonly string[] = [
   "DeviceNote.svelte",
   "FailureBlock.svelte",
-  "PickerExplainer.svelte",
   "SessionAnnouncer.svelte",
 ];
 
@@ -196,7 +202,10 @@ describe("the device UI's structural rules", () => {
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(DEVICE_COMPONENTS.length, "seven components were listed").toBe(7);
+    expect(
+      DEVICE_COMPONENTS.length,
+      "six components were listed - seven until R-02 retired PickerExplainer.svelte with its one sentence",
+    ).toBe(6);
     expect(
       DEVICE_COMPONENTS.filter((name) => !present.has(name)),
       "a listed device component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",

@@ -62,9 +62,12 @@
   the port chooser's, which takes as long as a human takes.
 
   THE CONNECT-STATE REGION, by session phase. Resting (idle, detected,
-  forgotten): the pre-click explanation, PickerExplainer, in its second mount
-  - the header note hides its own copy while this panel is open, so the line
-  is never on screen twice (06-UI-SPEC Y-11). In flight (choosing, opening,
+  forgotten): EMPTY since plan 10-03. It carried CONN-03's pre-click
+  explanation in a second mount of PickerExplainer; R-02 retires the string
+  and the component, because the browser's own chooser explains itself the
+  instant it appears. What the visitor needed from it - that nothing goes to
+  the module until they click - is SAFE_NOTE beneath the primary, in every
+  state rather than in three. In flight (choosing, opening,
   identifying): the status line from session-copy, which the note likewise
   yields. Connected: InstallState, which renders whichever of the install
   store's twelve blocks the phase names - ZONA IDENTIFIED with the body that
@@ -114,6 +117,7 @@
   import {
     CONNECTING_LABEL,
     DISCONNECT_LABEL,
+    SAFE_NOTE,
     STATUS_CHOOSING,
     STATUS_IDENTIFYING,
     STATUS_OPENING,
@@ -122,7 +126,6 @@
   import FailureBlock from "./FailureBlock.svelte";
   import InstallState from "./InstallState.svelte";
   import PadSpinner from "./PadSpinner.svelte";
-  import PickerExplainer from "./PickerExplainer.svelte";
 
   let {
     entry,
@@ -204,18 +207,17 @@
   );
   /** The one block for this surface, with this surface's label (Y-13). */
   const block = $derived(session.failureFor(PRIMARY));
-  /**
-   * The three resting states in which the connect-state region carries the
-   * pre-click explanation (CONN-03): a picker is ahead of the visitor and
-   * nothing has been asked yet. `starting` is deliberately not one of them -
-   * a browser that turns out to be `unsupported` would otherwise show the
-   * explanation for a frame and replace it with the capability block.
-   */
-  const explaining = $derived(
-    session.phase === "idle" ||
-      session.phase === "detected" ||
-      session.phase === "forgotten",
-  );
+  //
+  // `explaining` WAS HERE, and its absence is R-02 rather than a gap. It named
+  // the three resting states - idle, detected, forgotten - in which this
+  // region carried CONN-03's pre-click explanation. Plan 10-03 retires
+  // PICKER_EXPLAINER and PickerExplainer.svelte with it: the browser's own
+  // chooser explains itself the instant it appears, and SAFE_NOTE beneath the
+  // primary now says the part that mattered - that nothing is written without
+  // a click - in every state rather than in three. The region is simply empty
+  // in those three states now, and `.status:not(:empty)` already means an
+  // empty region costs no space.
+  //
 
   const writing = $derived(install.phase === "writing");
   /** WRITING… belongs to a RAM leg started here; KEEPING… to the confirmation's store leg (I3). */
@@ -346,6 +348,16 @@
     <span class="label">{label}</span>
   </button>
 
+  <!--
+    SAFE-01's guarantee, on the control that would do the writing (R-03,
+    10-UI-SPEC 10.1). UNCONDITIONAL: no {#if}, no state test, no alternate
+    form. It is on the screen while the panel is idle, while it is writing,
+    under every failure and on a browser that cannot write at all - which is
+    more states than the 88-character paragraph it replaces ever reached, and
+    it is beneath the button rather than in a header note or a disclosure.
+  -->
+  <p class="safe-note" data-testid="safe-note">{SAFE_NOTE}</p>
+
   <div class="honesty" id="try-on-reason">
     <p
       class="line"
@@ -391,10 +403,9 @@
     twice. Phase 4's aria-live="polite" on this element is the one Phase 6
     removed (06-UI-SPEC Y-16); device-ui.spec.ts test 7 holds it absent.
 
-    The panel's PickerExplainer names its OWN testid because the header note
-    keeps the default one on a hidden sizing twin while this panel is open
-    (DeviceNote.svelte, panelOwnsProse) - so a test can tell which of the
-    two mounts is the visible one.
+    Its first branch is now `choosing`: the resting branch went with R-02 and
+    the region is empty in idle, detected and forgotten. `:not(:empty)` is
+    what makes an empty region cost nothing, so nothing moved when it went.
 
     tabindex="-1" makes it the focus target the confirmation's commit lands
     on; aria-busy while writing says the block inside is about to change.
@@ -405,9 +416,7 @@
     tabindex="-1"
     aria-busy={writing ? "true" : undefined}
   >
-    {#if explaining}
-      <PickerExplainer testid="try-on-explainer" />
-    {:else if session.phase === "choosing"}
+    {#if session.phase === "choosing"}
       <p class="detail">{STATUS_CHOOSING}</p>
     {:else if session.phase === "opening"}
       <p class="detail">{STATUS_OPENING}</p>
@@ -493,6 +502,28 @@
     border-color: var(--color-line);
     color: var(--color-ink-dim);
     cursor: not-allowed;
+  }
+
+  /*
+    SAFE_NOTE. Micro (title): 12px, 600, a 14px line box, 0.01em, sentence
+    case, --color-ink at 9.26:1 - a safety statement is not quiet, and the
+    honesty slot 8px below it is. 8px beneath the primary (04-UI-SPEC,
+    Spacing, sm).
+
+    IT IS EXPLICITLY NOT A SIZING TWIN, and that is the whole difference
+    between this line and every other line in this file. No grid-area, no
+    hidden sibling, no candidate list: nothing is ever swapped into its place,
+    so there is nothing to reserve for. It costs one 14px line box,
+    permanently, and it never changes height. device-ui.spec.ts asserts that
+    shape here rather than trusting it.
+  */
+  .safe-note {
+    margin: 8px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 14px;
+    letter-spacing: 0.01em;
+    color: var(--color-ink);
   }
 
   /*

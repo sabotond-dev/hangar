@@ -24,13 +24,13 @@ import {
   CHOOSER_NEVER_APPEARED_BODY,
   CONNECT_LABEL,
   FAILURE_COPY_STATES,
+  LIVE_DETECTED,
   NAMED_STATES,
   NOTHING_LISTED_STEPS,
-  PICKER_EXPLAINER,
   RECONNECT_OFFER,
   REPLUG_OFFER,
   REVOKE_EXPLANATION,
-  SAFE_PROMISE,
+  SAFE_NOTE,
   SNAPSHOT_DURABLE_LINE,
   SNAPSHOT_SESSION_LINE,
   type SessionPhase,
@@ -287,31 +287,50 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
   });
 
   it("holds the long sentences character for character", () => {
-    // The two counted in 06-UI-SPEC's reservation arithmetic, and the one the
-    // plan asked to be measured rather than assumed. SAFE_PROMISE is the
-    // AMENDED sentence (plan 07-04, 07-UI-SPEC's header changes table): 88,
-    // shorter than the 126 Phase 6 measured the 152px header note on, so the
-    // reservation holds unchanged.
-    expect(PICKER_EXPLAINER.length, "the 130-character pre-click line").toBe(
-      130,
-    );
-    expect(SAFE_PROMISE.length, "SAFE-01, amended and measured").toBe(88);
-    expect(RECONNECT_OFFER.length, "the reconnect offer, measured").toBe(88);
+    // AMENDED BY NAME, TWICE, AND THE SECOND TIME IS PLAN 10-03.
+    //
+    // Phase 6 held two strings here because 06-UI-SPEC's 152px header note was
+    // arithmetic over them: PICKER_EXPLAINER at 130 and SAFE_PROMISE at 126,
+    // which plan 07-04 rewrote to 88 in the present tense. 10-UI-SPEC.md's
+    // amendment register retires both (R-02, R-03) and rewrites the reconnect
+    // offer from 88 to 37 (R-08), and the note collapses from 152px to one
+    // 24px cell as a consequence.
+    //
+    // What replaces SAFE_PROMISE is SAFE_NOTE: SAFE-01's guarantee in 35
+    // characters, on the control that would do the writing, unconditional, in
+    // every state, on both surfaces that carry the primary. REQUIREMENTS.md's
+    // SAFE-01 closure record is amended by name and dated for it.
+    expect(SAFE_NOTE.length, "SAFE-01, on the control, measured").toBe(35);
+    expect(RECONNECT_OFFER.length, "the reconnect offer, measured").toBe(37);
 
-    expect(PICKER_EXPLAINER).toBe(
-      "The browser opens its own list of ports — that prompt is the browser, not HANGAR, and nothing here sees a port until you pick one.",
-    );
     expect(TWO_STEP).toBe(
       "Some browsers ask for permission before they show the list. If you were asked twice, the list appears after the second prompt.",
     );
     // Present tense, and nothing about what a release can or cannot do: the
-    // sentence has to stay true on the day TRY ON DEVICE writes.
-    expect(SAFE_PROMISE).toBe(
-      "HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click.",
+    // sentence has to stay true on the day TRY ON DEVICE writes - which is
+    // every day since Phase 7, so it is written as a standing fact about a
+    // click rather than as a fact about a release.
+    expect(SAFE_NOTE).toBe("Nothing is written without a click.");
+    expect(RECONNECT_OFFER).toBe("ZONA detected. One click connects it.");
+    // The offer and the announcer's detected sentence are ONE literal since
+    // R-08 shortened the first onto the second (session-copy.ts says why).
+    expect(LIVE_DETECTED, "the shown line and the spoken line are one").toBe(
+      RECONNECT_OFFER,
     );
-    expect(RECONNECT_OFFER).toBe(
-      "ZONA detected on this computer. One click connects it, and nothing is sent until you do.",
-    );
+
+    // A NAMED AMENDMENT ASSERTS THE ABSENCE AS WELL AS THE PRESENCE. Without
+    // these two, a later reader who found either sentence in a Phase 6 or
+    // Phase 7 document could re-add the export and every test here would stay
+    // green while the site said the same thing twice, in two registers, in two
+    // places - which is exactly what R-02 and R-03 were retired for.
+    expect(
+      Object.keys(copy),
+      "PICKER_EXPLAINER came back - it is retired by R-02, and CONN-03 is carried by SAFE_NOTE and by the browser's own chooser",
+    ).not.toContain("PICKER_EXPLAINER");
+    expect(
+      Object.keys(copy),
+      "SAFE_PROMISE came back - it is retired by R-03 and replaced by SAFE_NOTE, which is 35 characters on the control rather than 88 in a paragraph",
+    ).not.toContain("SAFE_PROMISE");
     expect(REPLUG_OFFER).toBe(
       "Plug it back in and this offers to connect again — the permission you already gave is still there.",
     );

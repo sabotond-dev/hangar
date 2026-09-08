@@ -177,7 +177,22 @@
     </div>
     <DeviceNote {covered} {panelOwnsProse} />
   </div>
-  <p class="headline">You’ve got to start somewhere…</p>
+  <!--
+    R-01. Phase 4's `You’ve got to start somewhere…` is retired: it was an
+    apology for a shelf that needs none, and the pixels beside it - thirty-six
+    pads, every one of them already animating - say the same thing better.
+
+    THE CASE EXCEPTION, DECLARED HERE RATHER THAN DISCOVERED (10-UI-SPEC 13.0,
+    5.2). Uppercase on this site is reserved for the wordmark, button labels
+    and structural captions of at most two words. This is a HEADLINE SET IN THE
+    MICRO ROLE, not a caption, and it is the only uppercase string on the site
+    longer than two words. It earns the case because it is the only line on the
+    front door that is not a sentence. Nothing else may cite it as a precedent.
+
+    The separator is U+00B7 MIDDLE DOT, the contract's, never a hyphen. 32
+    characters, counted by script.
+  -->
+  <p class="headline">PICK ONE · IT IS ALREADY RUNNING</p>
   <div class="row"><Coverflow {row} {initialId} {notice} /></div>
 </section>
 
@@ -265,12 +280,24 @@
     }
   }
 
-  /* Body role, quiet by colour rather than by size. */
+  /*
+    MICRO ROLE (10-UI-SPEC 5.2): --font-display, 12px, 700, 1.2, 0.18em,
+    uppercase - the same ladder rung as every button label and region caption,
+    and separated from Display and Heading by size and tracking rather than by
+    weight. It was Body at 16px / 400 through Phases 4 to 9.
+
+    The 48px top margin and the centring are Phase 4's and are deliberately
+    unchanged: the headline's position on the page is not what R-01 moved.
+    Quiet is still colour, never size.
+  */
   .headline {
     margin: 48px 0 0;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.5;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
     text-align: center;
     color: var(--color-ink-quiet);
   }

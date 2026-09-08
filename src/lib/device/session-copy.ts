@@ -23,8 +23,10 @@
 // sentence is wrong, the contract is what changes first.
 //
 // WHY capabilityOf LIVES HERE RATHER THAN IN try-on.ts. The header note is a
-// 152px reserved region that is absent entirely in `unsupported` and `insecure`
-// (06-UI-SPEC, Y-23). If the capability could only be read after try-on.ts had
+// reserved region - 152px through Phases 6 and 7, one 24px cell plus the fixed
+// SAFE_NOTE line since plan 10-03 collapsed it - that is absent entirely in
+// `unsupported` and `insecure` (06-UI-SPEC, Y-23). If the capability could only
+// be read after try-on.ts had
 // been dynamically fetched, every visitor would paint the note and a visitor on
 // a browser that cannot connect would lose it a tick later, moving the headline
 // and the coverflow on the one browser that can least afford a surprise. In an
@@ -189,9 +191,23 @@ export const HIDDEN_NAME_IDLE = "No ZONA is connected.";
 // ---------------------------------------------------------------------------
 // The sentences. One literal each, however long the line.
 
-/** CONN-03's pre-click line. 130 characters, asserted. */
-export const PICKER_EXPLAINER =
-  "The browser opens its own list of ports — that prompt is the browser, not HANGAR, and nothing here sees a port until you pick one.";
+// PICKER_EXPLAINER WAS HERE, AND ITS ABSENCE IS AN AMENDMENT RATHER THAN A GAP.
+//
+// CONN-03's pre-click line - 130 characters, asserted at session-copy.spec.ts
+// test 5 and rendered by PickerExplainer.svelte in two mounts - is RETIRED by
+// plan 10-03 (10-UI-SPEC.md, the amendment register, R-02). The audit rule the
+// register closes D-08 with:
+//
+//   A string is retired only when the control beside it, or the pixels beside
+//   it, already say the same thing. A string that names a risk, a consequence,
+//   a way back or a next step is never retired, however long it is.
+//
+// The browser's own port chooser explains itself the instant it appears, and a
+// paragraph predicting it is the definition of unnecessary text. CONN-03 is not
+// dropped: its intent - that the visitor knows nothing is seen or sent until
+// they choose - is carried by SAFE_NOTE below, which is on the screen in EVERY
+// state rather than only in the three resting ones, plus the chooser itself.
+// PickerExplainer.svelte went with the string; nothing under src/ names either.
 
 /**
  * Unconditional, and it says "some browsers" because there is no behavioural
@@ -207,22 +223,48 @@ export const PERMISSION_DECLINED =
   "The permission prompt was declined, so the list never opened.";
 
 /**
- * SAFE-01, said out loud on the connect surface. 88 characters, asserted.
+ * SAFE-01's guarantee, in 35 characters ON THE CONTROL that would do the
+ * writing (10-UI-SPEC.md §10.1, R-03; plan 10-03, form 1).
  *
- * AMENDED BY NAME in plan 07-04 (07-UI-SPEC, the header changes table, the
- * amendment row). Phase 6's sentence ended "and this release cannot write at
- * all", which is false the moment TRY ON DEVICE writes - so it is retired to
- * the present tense here, and session-copy.spec.ts test 5 holds the new
- * sentence and its length in place of the old ones. Shorter than the 126 it
- * replaces, so the header note's 152px reservation, measured on the longer
- * string, holds with no re-measure.
+ * IT REPLACES SAFE_PROMISE, WHICH WAS 88 CHARACTERS OF PROSE. Phase 6 put the
+ * promise in the header note and Phase 7 amended it there; both times it sat
+ * in a paragraph, in three of the nine slot states, and it was absent from the
+ * panel where the click actually happens. This is the same guarantee said in a
+ * quarter of the characters and in more places: beneath the primary on the
+ * chosen panel and beneath the header's device slot, in EVERY state - writing,
+ * every failure, and cannot-write included. REQUIREMENTS.md's SAFE-01 closure
+ * record is amended by name and dated for exactly this change.
+ *
+ * ITS CONTRACT, and every clause of it is asserted somewhere:
+ *
+ *  - UNCONDITIONAL. It renders whenever its surface renders. There is no state
+ *    in which the site is silent about this.
+ *  - NEVER SWAPPED. Nothing else is ever shown in its place, so it has no
+ *    alternate form to drift from.
+ *  - NEVER A SIZING TWIN. It is not a candidate in a reserved cell: no
+ *    `grid-area: 1 / 1`, no hidden sibling holding height for it. Its line is
+ *    fixed, so it costs one 14px line box permanently and nothing variable.
+ *    device-ui.spec.ts holds that shape over TryOnDevice.svelte.
+ *  - --color-ink, at 9.26:1. A safety statement is not quiet; the honesty
+ *    slot beneath it is.
+ *  - 12px Micro (title), so it reads as the button's second line rather than
+ *    as prose, and 8px beneath the primary, above the honesty slot.
+ *
+ * 35 characters, counted by script.
  */
-export const SAFE_PROMISE =
-  "HANGAR never writes to your ZONA on its own. Nothing reaches the module without a click.";
+export const SAFE_NOTE = "Nothing is written without a click.";
 
-/** The header note in S2: an offer, never an automatic open (D-06). */
-export const RECONNECT_OFFER =
-  "ZONA detected on this computer. One click connects it, and nothing is sent until you do.";
+/**
+ * The header note in S2: an offer, never an automatic open (D-06).
+ *
+ * AMENDED BY NAME in plan 10-03 (10-UI-SPEC.md, R-08): 88 characters become
+ * 37. The clause that went is "and nothing is sent until you do", and it is a
+ * promise MOVED rather than a promise dropped - SAFE_NOTE now carries it in
+ * every state instead of this one sentence carrying it in S2 alone. Saying
+ * that here, because a reader diffing the two forms would otherwise read the
+ * shorter one as the site having quietly stopped promising something.
+ */
+export const RECONNECT_OFFER = "ZONA detected. One click connects it.";
 
 /** The second half of S5: replugging returns the session to S2, and never opens the port itself. */
 export const REPLUG_OFFER =
@@ -460,7 +502,16 @@ export function multiModuleLine(others: string[]): string | undefined {
 // Five sentences, because a failure announces its own title and nothing else -
 // so there is no sixth string here.
 
-export const LIVE_DETECTED = "ZONA detected. One click connects it.";
+/**
+ * Since plan 10-03 this is RECONNECT_OFFER itself rather than a second copy of
+ * it: R-08 shortened the note's offer to exactly the sentence the announcer
+ * was already speaking, and two identical literals in one module is one copy
+ * too many (src/lib/ui/fidelity-line.ts's rule). The value is unchanged and
+ * the export keeps its own name, so every caller reads the same as before -
+ * what is gone is the possibility of the shown line and the spoken line
+ * drifting apart.
+ */
+export const LIVE_DETECTED = RECONNECT_OFFER;
 
 export function liveConnected(
   fw: { major: number; minor: number; patch: number },

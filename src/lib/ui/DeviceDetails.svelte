@@ -100,7 +100,6 @@
     PERMISSION_DECLINED,
     REPLUG_OFFER,
     REVOKE_EXPLANATION,
-    SAFE_PROMISE,
     SNAPSHOT_DURABLE_LINE,
     SNAPSHOT_SESSION_LINE,
     TWO_STEP,
@@ -302,7 +301,14 @@
       {#if install.snapshot !== undefined}
         <p class="body quiet" data-testid="snapshot-line">{snapshotLine}</p>
       {/if}
-      <p class="body">{SAFE_PROMISE}</p>
+      <!--
+        SAFE_PROMISE was here, and its absence is R-03 rather than a gap. The
+        88-character paragraph is retired site-wide by plan 10-03; SAFE-01's
+        guarantee is now SAFE_NOTE, 35 characters on the control that would do
+        the writing, which reaches the panel and the header slot in every state
+        instead of this disclosure only when it is opened. A <details> a
+        visitor never opens is not the connect screen.
+      -->
       <!--
         The lock (Z-15): a real `disabled` on both controls while the session's
         writeLock is on - every leg, the store leg explicitly - with the reason
