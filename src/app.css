@@ -134,9 +134,20 @@
    invisible to every colour gate the site has. It is deliberately NOT a
    --color-* token and deliberately NOT inside @theme: it is the ground at an
    alpha rather than a rung of the nine-token ladder, and a tenth --color-* is
-   still red. */
+   still red.
+
+   --crt-roll joins it in plan 10-04 for the same reason and under the same
+   rule: it is the colour of the roll bar (Layer R) and of the tear (Layer T),
+   both of which are painted by FrontDoor.svelte. Written there it would be a
+   hue no gate on this site can see; written here it is an alpha of the accent
+   and identity.spec.ts reads it with everything else. The reference
+   implementation's own cold blue would have been a FOURTH COLOUR, so the
+   borrowed value is the accent at the reference's alpha rather than the
+   reference's colour. aesthetic.spec.ts scan 1 is what holds both of them in
+   this file. */
 :root {
   --crt-scanline: rgb(0 0 0 / 0.5);
+  --crt-roll: rgb(214 255 78 / 0.05);
 }
 
 html {

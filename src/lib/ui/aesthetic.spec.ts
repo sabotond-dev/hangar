@@ -71,6 +71,8 @@ const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
 const COVERFLOW = "src/lib/ui/Coverflow.svelte";
 const APP_CSS = "src/app.css";
 const PAD_FRAME = "src/lib/ui/PadFrame.svelte";
+const FRONT_DOOR = "src/lib/ui/FrontDoor.svelte";
+const SCREEN_TOGGLE = "src/lib/ui/ScreenToggle.svelte";
 
 /**
  * identity.spec.ts's stripper, verbatim in behaviour: comments go before
@@ -234,7 +236,12 @@ const FORBIDDEN_ON_STAGE = [
 // may not name a single word of the CRT vocabulary below, which is what makes
 // "the off switch is one attribute, not a hunt" a property of the source
 // instead of a promise.
-const CRT_FILES: readonly string[] = [APP_CSS, PAD_FRAME];
+const CRT_FILES: readonly string[] = [
+  APP_CSS,
+  PAD_FRAME,
+  FRONT_DOOR,
+  SCREEN_TOGGLE,
+];
 
 /**
  * The vocabulary. Every string here belongs to the CRT and to nothing else on
@@ -249,6 +256,9 @@ const CRT_VOCABULARY: ReadonlyArray<readonly [string, string]> = [
   ["data-screen", "the one attribute on <html> that is the whole off switch"],
   ["body::before", "Layer G, the page ground"],
   [".pad::after", "Layer S, scanlines and noise on pad frames"],
+  ["crt-band", "the shell that binds Layers R and T to the band's own box"],
+  ["crt-roll", "Layer R, the one roll bar for the whole page"],
+  ["crt-tear", "Layer T's keyframes - the 180 ms tear on the connect event"],
 ];
 
 /**
@@ -336,7 +346,131 @@ const LAYERS: Layer[] = [
     file: PAD_FRAME,
     compound: ".pad::after",
   },
+  {
+    id: "R",
+    what: "the roll bar - one for the whole page, inside the CRT shell",
+    file: FRONT_DOOR,
+    compound: ".crt-roll",
+    ariaHiddenOn: "crt-roll",
+  },
+  {
+    id: "T",
+    what: "the tear, a pseudo-element overlay on the connect event and no other",
+    file: FRONT_DOOR,
+    // A pseudo-element has no accessibility node of its own, so the element it
+    // decorates is what has to be hidden - and that element is the shell.
+    compound: ".crt-band::after",
+    ariaHiddenOn: "crt-band",
+  },
 ];
+
+/**
+ * SCAN 3's ALLOWLIST, AND EVERY ROW CARRIES ITS CONDITION IN THE ASSERTION
+ * MESSAGE rather than in a comment somebody may not read. A row is not a
+ * permission slip: each condition below is separately ASSERTED in scan 3, so a
+ * file whose condition stops being true goes red even though its row is still
+ * here.
+ */
+const TEXT_CONDITIONS: ReadonlyArray<readonly [string, string]> = [
+  [
+    FRONT_DOOR,
+    '.crt-band is aria-hidden="true", pointer-events: none, and geometrically ' +
+      "bounded to .band's own box - which holds pads and nothing else. The " +
+      "wordmark, the headline, the name plate, the fidelity line and the chosen " +
+      "panel are all SIBLINGS of that box, never descendants of it.",
+  ],
+  [
+    PAD_FRAME,
+    "Layer S is a pseudo-element on .pad, and .pad renders no text at all: its " +
+      "three children are the dot field, the canvas face and the gutter grid.",
+  ],
+  [
+    SCREEN_TOGGLE,
+    "it declares no CRT layer at all. It names data-screen because it WRITES " +
+      "data-screen - it is the control that flips the switch, and a control has " +
+      "to have a label.",
+  ],
+];
+
+/**
+ * SCAN 7's FIVE LITERALS. Each is read out of Coverflow.svelte's `.band` rules
+ * and out of FrontDoor.svelte's `.crt-band` rules and compared after
+ * identity.spec.ts's normalisation, so a change to one file that is not made to
+ * the other goes red and names both.
+ *
+ * A capture group is used where the literal cannot be recognised on its own -
+ * `6px` and a `linear-gradient(` are both far too common to match bare - and
+ * the whole match otherwise. Where there is a group, group 1 is the literal.
+ */
+const GEOMETRY: ReadonlyArray<readonly [string, RegExp]> = [
+  ["the hero pad size", /clamp\([^)]*\)/],
+  ["the band's inline size", /min\([^)]*\)/],
+  ["the clip margin", /overflow-clip-margin:\s*([^;]+)/],
+  [
+    "the four-stop edge fade",
+    /mask-image:\s*(linear-gradient\((?:[^()]|\([^()]*\))*\))/,
+  ],
+  ["the chosen lift", /translateY\([^)]*\)/],
+];
+
+/** Text a visitor reads, as opposed to a class name or an attribute. */
+const TEXT_BEARING =
+  /<(?:p|h[1-6]|label|button|li|dt|dd|figcaption|legend)[\s>]/;
+
+/**
+ * The whole opening tag of the element whose `class` attribute carries this
+ * name as a WHOLE TOKEN, or undefined.
+ *
+ * A SCAN RATHER THAN ONE REGULAR EXPRESSION, and the reason is a mistake this
+ * plan actually made: `crt-roll` has a hyphen in it, so a substring match would
+ * also accept `not-crt-roll`, and the word boundary that fixes that is written
+ * `\b` - which inside a TEMPLATE LITERAL is the backspace character and not an
+ * assertion at all. The version of this check that carried that bug matched
+ * nothing and said the element was missing. This file is deliberately
+ * backslash-free above for the same class of reason; the discipline now
+ * extends to the checks written into it.
+ */
+function openingTagWithClass(
+  template: string,
+  className: string,
+): string | undefined {
+  for (const tag of template.matchAll(/<[a-z][^<>]*>/g)) {
+    const value = /class="([^"]*)"/.exec(tag[0])?.[1];
+    if (value === undefined) continue;
+    if (value.split(" ").includes(className)) return tag[0];
+  }
+  return undefined;
+}
+
+/**
+ * The markup between an element's opening tag and its matching close, counting
+ * <div> nesting. Every element inside the CRT shell is a div, which is what
+ * makes this tractable without a parser - and if that ever stops being true,
+ * the depth count is wrong in the SAFE direction: it returns too little, and
+ * too little cannot hide a word that scan 3 is looking for further down.
+ */
+function subtreeAfter(template: string, openTag: string): string | undefined {
+  const at = template.indexOf(openTag);
+  if (at < 0) return undefined;
+  const start = at + openTag.length;
+  let depth = 1;
+  let i = start;
+  while (i < template.length && depth > 0) {
+    if (template.startsWith("</div>", i)) {
+      depth -= 1;
+      if (depth === 0) break;
+      i += 6;
+      continue;
+    }
+    if (/^<div[\s>]/.test(template.slice(i, i + 5))) {
+      depth += 1;
+      i += 4;
+      continue;
+    }
+    i += 1;
+  }
+  return template.slice(start, i);
+}
 
 /** Every rule in a file whose rightmost compound is exactly this string. */
 function rulesFor(parsed: Parsed, compound: string): Rule[] {
@@ -646,9 +780,10 @@ describe("IDENT-01 the CRT layers (10-UI-SPEC 8.7)", () => {
       ).toBe("none");
 
       if (layer.ariaHiddenOn !== undefined) {
-        const element = new RegExp(
-          `<[a-z]+[^>]*class="[^"]*\b${layer.ariaHiddenOn}\b[^"]*"[^>]*>`,
-        ).exec(parsed.template)?.[0];
+        const element = openingTagWithClass(
+          parsed.template,
+          layer.ariaHiddenOn,
+        );
         expect(
           element,
           `Layer ${layer.id} renders an element carrying class "${layer.ariaHiddenOn}" in ${layer.file}`,
@@ -733,6 +868,143 @@ describe("IDENT-01 the CRT layers (10-UI-SPEC 8.7)", () => {
           "this site a fourth hue could enter unseen. The filter's own output is the " +
           "only thing that may colour a pixel of it.",
       ).toBe(false);
+    }
+  });
+});
+
+describe("IDENT-01 the CRT reaches no word and duplicates no geometry silently", () => {
+  it("scan 3: no text-bearing element is a descendant of a CRT container", () => {
+    const components = CRT_FILES.filter((file) => file !== APP_CSS);
+
+    // ---- Non-vacuity, and it is asserted in BOTH directions. Every CRT
+    // component has a row, and no row names a file that is not a CRT
+    // component - so the list cannot be quietly widened, and a new CRT
+    // component cannot quietly arrive without stating its condition.
+    expect(
+      TEXT_CONDITIONS.map(([file]) => file).sort(),
+      "every CRT component carries a condition, and every condition names a CRT component",
+    ).toEqual([...components].sort());
+
+    for (const [, condition] of TEXT_CONDITIONS) {
+      expect(
+        condition.length,
+        "a row's condition is a sentence, not an empty string",
+      ).toBeGreaterThan(40);
+    }
+
+    const frontDoor = crtSources.get(FRONT_DOOR) as Parsed;
+    const padFrame = crtSources.get(PAD_FRAME) as Parsed;
+    const screenToggle = crtSources.get(SCREEN_TOGGLE) as Parsed;
+    const condition = (file: string) =>
+      TEXT_CONDITIONS.find(([name]) => name === file)?.[1] ?? "";
+
+    // ---- FrontDoor.svelte: the shell's own subtree, walked. ----
+    const shellTag = openingTagWithClass(frontDoor.template, "crt-band");
+    expect(
+      shellTag,
+      `${FRONT_DOOR} renders an element carrying class="crt-band", so there is a ` +
+        "subtree to walk. Without this the walk below would be over an empty string, " +
+        "and an empty string contains no words for the happiest of reasons.",
+    ).toBeDefined();
+    const shell = subtreeAfter(frontDoor.template, shellTag as string);
+    expect(
+      shell,
+      `${FRONT_DOOR}'s .crt-band element has a body to walk`,
+    ).toBeDefined();
+
+    const inside = shell as string;
+    expect(
+      TEXT_BEARING.test(inside),
+      `${FRONT_DOOR}: a text-bearing element is a descendant of .crt-band. ` +
+        `The condition this file is allowlisted under is: ${condition(FRONT_DOOR)} ` +
+        "A clip-path and a transform apply to an element AND EVERY DESCENDANT, and a " +
+        "0.186-alpha overlay over --color-ink-quiet takes it from 5.57:1 to about " +
+        "3.9:1 while identity.spec.ts stays green - that gate computes contrast from " +
+        "the DECLARED alpha (10-RESEARCH 3.5). The resolution is that the overlay " +
+        "CANNOT REACH the words, and this is where that is held.",
+    ).toBe(false);
+    expect(
+      inside
+        .replace(/<[^>]*>/g, "")
+        .replace(/\{[^}]*\}/g, "")
+        .trim(),
+      `${FRONT_DOOR}: .crt-band's subtree carries a text node. It holds Layer R and ` +
+        `nothing else, ever. Condition: ${condition(FRONT_DOOR)}`,
+    ).toBe("");
+
+    // ---- PadFrame.svelte: the whole template, since Layer S sits on .pad. ----
+    expect(
+      TEXT_BEARING.test(padFrame.template),
+      `${PAD_FRAME} renders a text-bearing element. Condition: ${condition(PAD_FRAME)}`,
+    ).toBe(false);
+
+    // ---- ScreenToggle.svelte: it renders labels, so it declares no layer. ----
+    for (const layer of LAYERS) {
+      expect(
+        rulesFor(screenToggle, layer.compound).map((rule) => rule.selector),
+        `${SCREEN_TOGGLE} declares Layer ${layer.id} ("${layer.compound}"). ` +
+          `Condition: ${condition(SCREEN_TOGGLE)} A control that flips the switch is ` +
+          "not a surface the switch acts on.",
+      ).toEqual([]);
+    }
+  });
+
+  it("scan 7: .crt-band's geometry is string-equal to .band's, across the two files", () => {
+    const coverflow = parseFile(COVERFLOW);
+    const frontDoor = crtSources.get(FRONT_DOOR) as Parsed;
+
+    const blob = (parsed: Parsed, className: string) =>
+      parsed.rules
+        .filter((rule) => targets(rule, className))
+        .map((rule) => rule.body)
+        .join(" ; ");
+
+    const bandText = blob(coverflow, "band");
+    const crtBandText = blob(frontDoor, "crt-band");
+
+    // ---- Non-vacuity: both sides parsed into something. ----
+    expect(
+      bandText.length,
+      `${COVERFLOW}'s .band rules parsed into ${bandText.length} characters`,
+    ).toBeGreaterThan(200);
+    expect(
+      crtBandText.length,
+      `${FRONT_DOOR}'s .crt-band rules parsed into ${crtBandText.length} characters`,
+    ).toBeGreaterThan(200);
+
+    for (const [what, pattern] of GEOMETRY) {
+      const fromBand = pattern.exec(bandText);
+      const fromShell = pattern.exec(crtBandText);
+
+      // Each literal is asserted FOUND on both sides before it is compared, so
+      // a rule deleted from either file is red rather than a comparison of two
+      // absences that happen to agree.
+      expect(
+        fromBand,
+        `${what} was not found in ${COVERFLOW}'s .band rules. It is one of the five ` +
+          "literals the CRT shell duplicates; if it left that file, the shell is now " +
+          "bound to a box that no longer exists.",
+      ).not.toBeNull();
+      expect(
+        fromShell,
+        `${what} was not found in ${FRONT_DOOR}'s .crt-band rules. The shell is sized ` +
+          `to ${COVERFLOW}'s .band and must carry all five of its literals.`,
+      ).not.toBeNull();
+
+      const band = normalise(
+        (fromBand as RegExpExecArray)[1] ?? (fromBand as RegExpExecArray)[0],
+      );
+      const shell = normalise(
+        (fromShell as RegExpExecArray)[1] ?? (fromShell as RegExpExecArray)[0],
+      );
+      expect(
+        shell,
+        `${what} DIFFERS between the two files. ${COVERFLOW}'s .band says "${band}" and ` +
+          `${FRONT_DOOR}'s .crt-band says "${shell}". The duplication is deliberate ` +
+          "(10-UI-SPEC 8.3): Coverflow.svelte is not edited in this phase, so the shell " +
+          "copies its box rather than sharing it. Change one and you must change the " +
+          "other, or the roll bar and the tear slip out of register with the pads.",
+      ).toBe(band);
     }
   });
 });

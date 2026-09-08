@@ -341,6 +341,25 @@ export class DeviceSession {
    * tenth named state and not an eighteenth phase.
    */
   unpluggedWhileWriting = $state(false);
+  /**
+   * HOW MANY TIMES A PERMITTED ZONA HAS ARRIVED ON THE CABLE in this page's
+   * life. A monotonic counter and not a boolean, because the one thing reading
+   * it - FrontDoor.svelte's 180 ms tear on `.crt-band::after` (10-UI-SPEC 8.4)
+   * - has to be able to tell a second arrival from the first, and a flag that
+   * went true twice would fire once.
+   *
+   * INCREMENTED FROM #onSerialConnect AND FROM NOWHERE ELSE, past its two
+   * guards, so it counts exactly the event the tear is about: real hardware
+   * physically plugged in, the one thing that happens on this site that the
+   * visitor did not start with a click. NOT the granted port found at start()
+   * - that is a page load, not an arrival - NOT `disconnect`, NOT a click-
+   * driven connect, and NOT any failure. One surface, one event.
+   *
+   * There is no second navigator.serial listener anywhere for this: the pair
+   * attached in #attachListeners is the only one, and this is a field on the
+   * handler it already has.
+   */
+  plugged = $state(0);
 
   // --- NOT reactive: host objects, guards, and the injected environment ----
 
@@ -523,6 +542,11 @@ export class DeviceSession {
     const port = ev.target as SerialPort | null;
     if (!port || !isZonaPort(port)) return;
     if (this.#transport || this.#busy) return;
+    // Past both guards, so this counts an arrival that was actually adopted.
+    // The only reader is the tear (10-UI-SPEC 8.4); nothing about the session's
+    // own behaviour changes with it, which is why it is set beside #offer
+    // rather than inside it - #offer is also the granted-port road at start().
+    this.plugged += 1;
     this.#offer(port);
   };
 

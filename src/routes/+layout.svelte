@@ -4,6 +4,7 @@
   import favicon from "$lib/assets/favicon.svg";
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
+  import ScreenToggle from "$lib/ui/ScreenToggle.svelte";
   import SessionAnnouncer from "$lib/ui/SessionAnnouncer.svelte";
 
   let { children } = $props();
@@ -61,4 +62,15 @@
   <a href="/source-{__COMMIT_SHA__}.tar.gz" rel="external" download>Source</a>
   <code data-testid="commit-sha">{__COMMIT_SHA__}</code>
   {#if __BUILD_DIRTY__}<span>(built from uncommitted changes)</span>{/if}
+  <!--
+    SCREEN, the CRT's visible off switch (10-UI-SPEC 8.6). It is HERE, in the
+    persistent layout, for the same reason the GPLv3 links are: it has to be on
+    every route, and the front door pays one 44px row for it. It is last in the
+    footer so it is last in the tab order, after the three links and the SHA -
+    a preference control is not the thing a keyboard visitor is reaching for.
+    It imports nothing heavy: its module scope settles data-screen on <html>
+    before hydration paints, so a visitor who chose FLAT never watches the
+    texture arrive and leave again.
+  -->
+  <ScreenToggle />
 </footer>
