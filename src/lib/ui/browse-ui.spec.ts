@@ -38,6 +38,8 @@ const CARD = "src/lib/ui/CatalogCard.svelte";
 const GRID = "src/lib/ui/BrowseGrid.svelte";
 const TOOLBAR = "src/lib/ui/BrowseToolbar.svelte";
 const CHIP = "src/lib/ui/TagChip.svelte";
+/** One captioned facet row, in either of its two modes. It arrives in 10-07. */
+const FACET = "src/lib/ui/FacetRow.svelte";
 /** The header's one right-hand slot. It arrives in plan 05.1-09. */
 const LINK = "src/lib/ui/BrowseLink.svelte";
 const PAGE = "src/routes/browse/+page.svelte";
@@ -46,16 +48,19 @@ const BROWSE_DIR = "src/lib/browse";
 /**
  * Everything the browse screen is made of.
  *
- * BrowseLink.svelte does not exist yet and is SKIPPED rather than asserted, so
- * this file lands in wave 8 and covers wave 9's component the day it appears
- * with no edit. The floor below is what stops that skip from hollowing the
+ * BrowseLink.svelte did not exist when this file was written and is SKIPPED
+ * rather than asserted, so this file landed in wave 8 and covered wave 9's
+ * component the day it appeared with no edit. FacetRow.svelte joined the same
+ * way in 10-07. The floor below is what stops that skip from hollowing the
  * whole file out: every test asserts the walk found at least four files before
  * it asserts anything about them.
  */
 const FLOOR = 4;
 
 const browseFiles = (): string[] => [
-  ...[CARD, GRID, TOOLBAR, CHIP, LINK].filter((rel) => existsSync(repo(rel))),
+  ...[CARD, GRID, TOOLBAR, CHIP, FACET, LINK].filter((rel) =>
+    existsSync(repo(rel)),
+  ),
   PAGE,
   ...readdirSync(repo(BROWSE_DIR))
     .map(String)
@@ -217,6 +222,57 @@ describe("the browse screen's structural rules", () => {
       missingFloor,
       "a browse file renders an interactive control and never declares min-block-size: 44px - Phase 4's touch floor is per control, not per page",
     ).toEqual([]);
+
+    // AND THE SAME FLOOR ON THE INLINE AXIS, BY SELECTOR, for the two files
+    // whose members are one short word wide. A file-level substring check is
+    // enough to catch a component that forgot the floor entirely; it is not
+    // enough to catch one control among several losing it, and a facet row's
+    // members read `keys`, `play` and `still`. This is the derivation
+    // device-ui.spec.ts:278-306 uses, and it names the class it found short.
+    const NARROW = [FACET, CHIP].filter((rel) => existsSync(repo(rel)));
+    expect(
+      NARROW.length,
+      "the both-axes walk found the components whose members are one word wide",
+    ).toBeGreaterThan(0);
+    const flat: string[] = [];
+    let examined = 0;
+    for (const file of NARROW) {
+      const source = code(file);
+      const rules = rulesOf(source);
+      // `sr-only` is excluded, and it is the one exclusion: it is the
+      // visually-hidden class, the deliberate OPPOSITE of a box. TagChip and
+      // the sort row both hide the real control and draw the 44px box and
+      // Phase 4's focus ring on the <label> around it - the relocation
+      // Knob.svelte makes - so demanding a floor on the hidden element would
+      // demand the one thing that would undo the relocation.
+      const classes = new Set(
+        [...source.matchAll(/<(a|button|input|label)[^>]*/g)]
+          .flatMap((tag) =>
+            [...tag[0].matchAll(/class[ ]*=[ ]*"([^"]*)"/g)].flatMap((attr) =>
+              attr[1].split(/[ ]+/).filter((word) => word.length > 0),
+            ),
+          )
+          .filter((cls) => cls !== "sr-only"),
+      );
+      for (const cls of classes) {
+        const body = rules
+          .filter((rule) => rule.selector.includes(`.${cls}`))
+          .map((rule) => rule.body)
+          .join(" ");
+        examined += 1;
+        const block = body.includes("min-block-size: 44px");
+        const inline = body.includes("min-inline-size: 44px");
+        if (!block || !inline) flat.push(`${file} -> .${cls}`);
+      }
+    }
+    expect(
+      examined,
+      "the both-axes walk found no interactive class at all - it has stopped looking",
+    ).toBeGreaterThan(0);
+    expect(
+      flat,
+      "a facet member declares the 44px floor on one axis only - a chip reading four characters is under the finger on both, and Phase 4's contract is about the box rather than about the line",
+    ).toEqual([]);
   });
 
   it("the browse screen uses the lime ladder and nothing else", () => {
@@ -321,6 +377,34 @@ describe("the browse screen's structural rules", () => {
       offenders,
       "a browse file declares a role that replaces the link role - the shareability of a card rests on it being a real anchor",
     ).toEqual([]);
+
+    // AND EVERY GROUP THIS SCREEN DECLARES CARRIES A NAME. A role="group" with
+    // no accessible name is a container a screen reader announces as "group"
+    // and nothing else, which is worse than no role at all: it adds a boundary
+    // and withholds the word that would make the boundary mean something. The
+    // toolbar renders two facet rows on one page, so the ids must also DIFFER -
+    // an aria-labelledby pointing at the other facet's caption would announce
+    // FEELS's members as FOR's.
+    if (existsSync(repo(FACET))) {
+      const facet = code(FACET);
+      const group = openTagOf(facet, 'role="group"');
+      expect(
+        group,
+        'a facet row declares role="group" without an aria-labelledby, so a screen reader announces a boundary and never says which facet it is',
+      ).toContain("aria-labelledby");
+      expect(
+        group,
+        "the facet row's group is not labelled by an id derived from the facet's own name, so the two rows on /browse/ would share one caption",
+      ).toContain("aria-labelledby={captionId}");
+      expect(
+        facet,
+        "the facet row's caption element no longer carries the id its group points at",
+      ).toContain("id={captionId}");
+      expect(
+        facet.includes("facet-${name}-caption"),
+        "the caption id is no longer derived from the facet's name - one page renders both rows and two elements may not share an id",
+      ).toBe(true);
+    }
 
     // Exactly one anchor per card, and the pad is not part of its name.
     const card = code(CARD);

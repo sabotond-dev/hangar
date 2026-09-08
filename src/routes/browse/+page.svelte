@@ -43,7 +43,7 @@
   says "inside onMount"; the two reasons D-16 gives are prerender safety and the
   staleness of shallow routing, and an init-scope read behind a `browser` guard
   satisfies both. An onMount seed does not: the first client render of
-  /browse/?tag=drums would paint all sixteen cards and collapse to three a frame
+  /browse/?for=drums would paint all sixteen cards and collapse to three a frame
   later, so the grid is tall at the exact moment Kit restores scroll and short
   immediately afterwards, and the visitor lands in the wrong place
   (05.1-RESEARCH.md Pitfall 7a). The deviation is one word of mechanism rather
@@ -78,11 +78,22 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { onDestroy, onMount, untrack } from "svelte";
-  import { allTags, filterListing } from "$lib/browse/filter";
+  import {
+    FEELS_TERMS,
+    FOR_TERMS,
+    LEGACY_TAG_MAP,
+    type FacetName,
+  } from "$lib/browse/facets";
+  import {
+    filterListing,
+    NO_FACETS,
+    type ActiveFacets,
+  } from "$lib/browse/filter";
   import {
     DEFAULT_QUERY,
     parseBrowseQuery,
     serialiseBrowseQuery,
+    type BrowseVocabulary,
   } from "$lib/browse/query";
   import {
     clearBrowseReturn,
@@ -141,8 +152,16 @@
   /** The address settles this long after the last keystroke or chip press. */
   const ADDRESS_DELAY_MS = 500;
 
-  /** The tag vocabulary, so query.ts never has to import the listing. */
-  const TAGS = allTags(LISTING);
+  /**
+   * The closed vocabulary and the legacy table, so query.ts never has to import
+   * either. facets.ts declares no import at all, so naming it here costs this
+   * page nothing: its only catalog specifier is still $lib/catalog/listing.
+   */
+  const VOCABULARY: BrowseVocabulary = {
+    for: FOR_TERMS,
+    feels: FEELS_TERMS,
+    legacy: LEGACY_TAG_MAP,
+  };
 
   /*
     ONCE, at component init, and only in the browser. untrack is the same idiom
@@ -152,15 +171,20 @@
     searchParams during prerender throws.
   */
   const seed = () =>
-    browser ? parseBrowseQuery(page.url.searchParams, TAGS) : DEFAULT_QUERY;
+    browser
+      ? parseBrowseQuery(page.url.searchParams, VOCABULARY)
+      : DEFAULT_QUERY;
   const initial = untrack(seed);
 
   let sort: BrowseSort = $state(initial.sort);
   let q = $state(initial.q);
-  let tags: string[] = $state([...initial.tags]);
+  let active: ActiveFacets = $state({
+    for: [...initial.for],
+    feels: [...initial.feels],
+  });
 
   /* Filter first, then sort: filterListing is O(n) and sortListing allocates. */
-  const shown = $derived(sortListing(filterListing(LISTING, q, tags), sort));
+  const shown = $derived(sortListing(filterListing(LISTING, q, active), sort));
 
   /*
     The by-condition sentence for an empty result. The PAGE chooses it because
@@ -171,11 +195,18 @@
   */
   const emptyReason = $derived.by(() => {
     const quoted = `${OPEN_QUOTE}${q}${CLOSE_QUOTE}`;
-    if (q !== "" && tags.length > 0) {
-      return `No configuration matches ${quoted} with those tags.`;
+    const chips = active.for.length + active.feels.length;
+    if (q !== "" && chips > 0) {
+      return `No configuration matches ${quoted} with those chips.`;
     }
     if (q !== "") return `No configuration matches ${quoted}.`;
-    if (tags.length > 0) return "No configuration carries all of those tags.";
+    /*
+      "in both rows" rather than "all of those tags": under A-19 the chips are
+      an OR inside a row and an AND across the two, so the only way two chips
+      empty the grid is that no configuration satisfies BOTH rows. The old
+      sentence described an intersection the toolbar no longer performs.
+    */
+    if (chips > 0) return "No configuration answers both of those rows.";
     return undefined;
   });
 
@@ -208,7 +239,7 @@
 
   /** The address this view WOULD have, composed from the state. */
   function currentHref(): string {
-    const search = serialiseBrowseQuery({ sort, q, tags });
+    const search = serialiseBrowseQuery({ sort, q, ...active });
     return search === "" ? "/browse/" : `/browse/?${search}`;
   }
 
@@ -224,7 +255,7 @@
    */
   function writeAddress(): void {
     if (!mounted) return;
-    const search = serialiseBrowseQuery({ sort, q, tags });
+    const search = serialiseBrowseQuery({ sort, q, ...active });
     if (search === "") replaceState(resolve("/browse/"), page.state);
     else replaceState(resolve(`/browse/?${search}`), page.state);
   }
@@ -260,17 +291,24 @@
     scheduleAddress();
   }
 
-  function ontag(tag: string): void {
-    tags = tags.includes(tag)
-      ? tags.filter((active) => active !== tag)
-      : [...tags, tag];
+  /**
+   * One chip, in the row that owns it. Pressing an active one removes it, which
+   * is what a checkbox already is, so there is no second control per chip.
+   */
+  function onfacet(facet: FacetName, term: string): void {
+    const row = active[facet];
+    const next = row.includes(term)
+      ? row.filter((on) => on !== term)
+      : [...row, term];
+    active =
+      facet === "for" ? { ...active, for: next } : { ...active, feels: next };
     scheduleAddress();
   }
 
-  /** The query and every tag, and never the sort: a sort is a view preference. */
+  /** The query and every chip, and never the sort: a sort is a view preference. */
   function onclear(): void {
     q = "";
-    tags = [];
+    active = NO_FACETS;
     scheduleAddress();
   }
 
@@ -354,7 +392,7 @@
     if (!browser || navigation.type !== "popstate") return;
     const restored = parseBrowseQuery(
       new URLSearchParams(window.location.search),
-      TAGS,
+      VOCABULARY,
     );
     // Any pending projection belongs to the view being left, not to this one.
     if (addressTimer !== undefined) {
@@ -363,7 +401,7 @@
     }
     sort = restored.sort;
     q = restored.q;
-    tags = [...restored.tags];
+    active = { for: [...restored.for], feels: [...restored.feels] };
   });
 
   /*
@@ -371,12 +409,38 @@
     restoration already targets the offset this record holds, so the two cannot
     disagree; what gets no restoration at all is a `goto` back from a detail page,
     which is what wave 9's control performs. The href is compared because a
-    record written against ?tag=drums must not scroll a plain /browse/ to an
+    record written against ?for=drums must not scroll a plain /browse/ to an
     offset that means nothing there. Cleared either way: there is one way back at
     a time and it has now been used.
   */
   onMount(() => {
     mounted = true;
+
+    /*
+      G-10'S SECOND HALF: A LEGACY ADDRESS IS RE-WRITTEN, NOT JUST READ.
+
+      The read path turns /browse/?tag=playable into a FEELS chip and paints the
+      right shelf on the first frame - and then, without this, the address bar
+      would go on saying ?tag=playable for the whole visit, on a link the
+      visitor can copy and send onwards. That is the same defect 05.1-09 logged
+      in the other direction: the screen and the address bar disagreeing.
+
+      So the address is projected ONCE on arrival, and only when the address the
+      document was entered with is not the one this state composes. A canonical
+      arrival writes nothing at all, which is why /browse/ and /browse/?q=aurora
+      are untouched and the live region stays silent on them.
+
+      It goes through the ordinary 500 ms trailing timer rather than writing
+      here: replaceState throws before Kit's router has started, and the router
+      starts around the same hydration flush this callback runs in. The timer
+      also coalesces with a first chip press, so an early presser gets one write
+      rather than two.
+
+      A retired ?sort=newest is canonicalised by the same line, for free.
+    */
+    const entered = `${window.location.pathname}${window.location.search}`;
+    if (entered !== currentHref()) scheduleAddress();
+
     const record = readBrowseReturn(store());
     clearBrowseReturn(store());
     if (record === undefined || record.href !== currentHref()) return;
@@ -439,12 +503,12 @@
       entries={LISTING}
       {sort}
       {q}
-      {tags}
+      {active}
       showing={shown.length}
       total={LISTING.length}
       {onsort}
       {onquery}
-      {ontag}
+      {onfacet}
       {onclear}
     />
   </div>

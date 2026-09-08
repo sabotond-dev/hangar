@@ -480,7 +480,9 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       singletons,
       "a term matching exactly one card is a thing search does better",
     ).toHaveLength(RECORDED.singletons);
-    const strangers = known.filter((tag) => !row.includes(tag));
+    const strangers = known.filter(
+      (tag) => !(row as readonly string[]).includes(tag),
+    );
     expect(
       strangers,
       "no tag is left out of the row: the vocabulary is closed and every member is a chip",

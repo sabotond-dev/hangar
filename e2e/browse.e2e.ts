@@ -41,7 +41,7 @@ import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import { filterListing } from "../src/lib/browse/filter";
 import { columnsFromTemplate } from "../src/lib/browse/grid";
-import { sortListing } from "../src/lib/browse/sort";
+import { sortListing, type BrowseSort } from "../src/lib/browse/sort";
 import { LISTING } from "../src/lib/catalog/listing";
 import {
   DARK_BY_CONSTRUCTION,
@@ -121,8 +121,15 @@ async function expectCount(
   );
 }
 
-/** The id sequence a sort should produce, computed by the shipped comparator. */
-const orderOf = (sort: "featured" | "newest" | "name"): string[] =>
+/**
+ * The id sequence a sort should produce, computed by the shipped comparator.
+ *
+ * The parameter is BrowseSort rather than a literal union restating it. It used
+ * to read `"featured" | "newest" | "name"`, and D-11 removed one of the three;
+ * letting the type flow from sortListing's own signature is what makes a
+ * retired sort impossible to name here rather than merely wrong.
+ */
+const orderOf = (sort: BrowseSort): string[] =>
   sortListing(LISTING, sort).map((entry) => entry.id);
 
 /** Wait until the first card is the one the order expects, then read them all. */
@@ -294,31 +301,22 @@ test.describe("the browse screen, with nothing plugged in", () => {
     await expectOrder(page, orderOf("name"));
     await expect(page).toHaveURL(/\/browse\/\?sort=name$/);
 
-    // NEWEST, AND THE ASSERTION IS THE BLOCK BOUNDARY RATHER THAN A SEQUENCE.
-    // There are exactly two distinct addedAt values today - 2026-09-02 for the
-    // nine ported entries and 2026-09-04 for the seven Lua ones - so "newest"
-    // is two blocks and not a ranking. A strict sixteen-element sequence would
-    // be brittle the day one date changes; the property that is actually true
-    // is that no card is older than the card above it.
-    await option("NEWEST").click();
-    await expect(radio("newest")).toBeChecked();
-    await expect(page).toHaveURL(/\/browse\/\?sort=newest$/);
-    await expect(page.locator(CARDS)).toHaveCount(LISTING.length);
-
-    const addedAt = new Map(LISTING.map((entry) => [entry.id, entry.addedAt]));
-    const newest = await renderedIds(page);
-    expect([...newest].sort()).toEqual([...addedAt.keys()].sort());
-    const dates = newest.map((id) => addedAt.get(id) as string);
-    expect(
-      new Set(dates).size,
-      "the block boundary is vacuous unless two dates exist",
-    ).toBeGreaterThan(1);
-    for (let i = 1; i < dates.length; i += 1) {
-      expect(
-        dates[i] <= dates[i - 1],
-        `${newest[i]} (${dates[i]}) must not sit above ${newest[i - 1]} (${dates[i - 1]})`,
-      ).toBe(true);
-    }
+    // A THIRD ARM STOOD HERE - NEWEST - AND D-11 RETIRED IT.
+    //
+    // 09-02 wrote it as a BLOCK BOUNDARY rather than as a sequence, and that
+    // was the right shape: "no card is older than the card above it" survives a
+    // phase adding a date, where a strict thirty-six-element sequence would go
+    // red for something that is not a fault. What retired it is the ORDER, not
+    // the assertion. addedAt holds three distinct values across thirty-six
+    // entries and one of them covers twenty, so NEWEST's first block was twenty
+    // deep and in name order inside itself - the NAME sort wearing a date's
+    // name. The block-boundary loop also stopped type-checking the moment
+    // addedAt left ListingEntry, which is the second, mechanical reason it
+    // could not simply be left standing.
+    //
+    // The title keeps its other three arms: FEATURED on arrival, NAME, and
+    // FEATURED again to prove the default drops its key from the address.
+    // sort.spec.ts holds what is left of the retirement in node.
 
     // Back to FEATURED, which is the DEFAULT: a plain /browse/ is canonical, so
     // the address must lose its sort key rather than gain ?sort=featured.
@@ -367,9 +365,28 @@ test.describe("the browse screen, with nothing plugged in", () => {
     await expect(page.locator(CARDS)).toHaveCount(total);
     await expect(field).toBeFocused();
 
-    // TWO CHIPS, COMBINING WITH AND. playable is carried by four entries and
-    // generative by three; their intersection is one, which is the whole reason
-    // the chips intersect rather than union (05.1-UI-SPEC W-04).
+    // TWO CHIPS IN ONE ROW, COMBINING WITH OR (A-19).
+    //
+    // THIS PARAGRAPH IS AN AMENDMENT, NOT A REWRITE OF HISTORY. It used to
+    // read: "playable is carried by four entries and generative by three; their
+    // intersection is one, which is the whole reason the chips intersect rather
+    // than union (05.1-UI-SPEC W-04)." Both halves of that are now false. The
+    // counts were right about the fifty-five-term vocabulary and D-10 re-cut
+    // it - playable is carried by 13 of 36 today and generative by 13 - and
+    // W-04's AND is superseded by A-19: OR within a facet, AND across the two.
+    //
+    // W-04 was RIGHT about the data it was written against. With 32 of the 41
+    // tags then shipped sitting on exactly one configuration, a union would
+    // have made a second chip ADD one card, which reads as a bug. Under the
+    // closed sixteen the argument inverts: FOR gives every configuration
+    // exactly one term, so a second FOR chip under a pure AND would return zero
+    // and disable itself for ever, and a row whose second click is always dead
+    // is not a row.
+    //
+    // playable and generative are BOTH FEELS terms, so pressing both is a
+    // UNION - 21 of 36, against playable's 13 - and the guard below is the old
+    // one pointing the other way: non-vacuous in the same manner, opposite in
+    // direction.
     const withTag = (tag: string) =>
       LISTING.filter((entry) => entry.tags.includes(tag)).map((e) => e.id);
     const playable = sortListing(
@@ -384,26 +401,74 @@ test.describe("the browse screen, with nothing plugged in", () => {
     expect(await renderedIds(page)).toEqual(playable);
     await expectCount(page, playable.length, total);
 
-    const both = playable.filter((id) => withTag("generative").includes(id));
+    const union = sortListing(
+      LISTING.filter(
+        (entry) =>
+          entry.tags.includes("playable") || entry.tags.includes("generative"),
+      ),
+      "featured",
+    ).map((entry) => entry.id);
     expect(
-      both.length,
-      "the intersection is smaller than either chip alone",
-    ).toBeLessThan(playable.length);
+      union.length,
+      "the union is larger than either chip alone",
+    ).toBeGreaterThan(playable.length);
+    expect(
+      union.length,
+      "and the union is not simply the whole shelf, or the assertion above says nothing",
+    ).toBeLessThan(LISTING.length);
     await chip("generative").click();
     await expect(chipBox("generative")).toBeChecked();
-    await expect(page.locator(CARDS)).toHaveCount(both.length);
-    expect(await renderedIds(page)).toEqual(both);
-    await expectCount(page, both.length, total);
+    await expect(page.locator(CARDS)).toHaveCount(union.length);
+    expect(await renderedIds(page)).toEqual(union);
+    await expectCount(page, union.length, total);
+
+    // AND A THIRD CHIP IN THE OTHER ROW, COMBINING WITH AND. Without this the
+    // walk proves OR and never proves the AND half, which is the whole of
+    // CAT-03's amendment. modulation is chosen because it is one of the FOR
+    // terms those two FEELS chips do NOT empty: mixing, shortcuts and pointing
+    // all render disabled here, so pressing one of them would do nothing and
+    // the assertion would pass on the union's own count.
+    const across = union.filter((id) => withTag("modulation").includes(id));
+    expect(
+      across.length,
+      "the cross-facet press narrows the union rather than widening it",
+    ).toBeLessThan(union.length);
+    expect(
+      across.length,
+      "and it does not empty the grid, or the AND half would be vacuous",
+    ).toBeGreaterThan(0);
+    await chip("modulation").click();
+    await expect(chipBox("modulation")).toBeChecked();
+    await expect(page.locator(CARDS)).toHaveCount(across.length);
+    expect(await renderedIds(page)).toEqual(across);
+    await expectCount(page, across.length, total);
+    await chip("modulation").click();
+    await expect(chipBox("modulation")).not.toBeChecked();
+    await expect(page.locator(CARDS)).toHaveCount(union.length);
 
     // A CHIP THAT WOULD RETURN NOTHING IS A REAL disabled ATTRIBUTE, never
-    // aria-disabled alone and never a bare number beside the word. 32 of the 41
-    // shipped tags sit on exactly one configuration, so without this an
-    // intersection would empty the grid on the second press most of the time.
-    const disabled = page.locator('[data-testid="browse-tags"] input:disabled');
+    // aria-disabled alone and never a bare number beside the word.
+    //
+    // THE RULE SURVIVED THE INVERSION AND ITS SELECTOR MOVED. disabledTags()'s
+    // question narrowed with the semantics - a chip is dead only when it would
+    // return zero given the OTHER row's active set - which makes it RARE rather
+    // than common, and this is one of the cases where it still fires: with
+    // playable and generative active, three of the ten FOR terms land on zero
+    // entries. The selector is the two facet rows because the single
+    // browse-tags group retired with the count-derived row it wrapped.
+    const disabled = page.locator(
+      '[data-testid="facet-for"] input:disabled, [data-testid="facet-feels"] input:disabled',
+    );
     expect(
       await disabled.count(),
       "at least one chip cannot change the grid and says so",
     ).toBeGreaterThan(0);
+    // And it is the OTHER row that is dead, not this one: a chip beside an
+    // active sibling can only widen the result, so nothing in FEELS is off.
+    expect(
+      await page.locator('[data-testid="facet-feels"] input:disabled').count(),
+      "a chip in the same row as an active one was disabled, which the OR rule makes impossible",
+    ).toBe(0);
 
     // CLEAR FILTERS. The query and every tag, and the address back to the bare
     // canonical form.
@@ -442,6 +507,14 @@ test.describe("arriving on a browse screen somebody else composed", () => {
     // A COLD ARRIVAL, THROUGH about:blank. This test exists to catch a
     // client-side correction applied AFTER paint, so it must not be reachable
     // from a warm router that already holds browse state.
+    // THIS ADDRESS IS LEFT ON ?tag= DELIBERATELY (G-10, and see the Back test
+    // for the other half of the proof). ?sort=name is a surviving sort and
+    // playable is a MAPPED legacy term, so the read path turns it into a FEELS
+    // chip and the rendered set is identical to the one computed below. Nothing
+    // in this test asserts a URL after the arrival, so the read/write asymmetry
+    // cannot reach it - which is exactly why it is the right place to prove
+    // that a shared ?tag= link still lands on the right shelf on the FIRST
+    // PAINT, before any correction could have been applied.
     await coldGoto(page, "/browse/?sort=name&tag=playable");
 
     const playable = sortListing(
@@ -941,8 +1014,10 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
     await page.getByTestId("tag-playable").click();
     await expect(page.locator(CARDS)).toHaveCount(playable.length);
     // Let the 500 ms projection land, so the address really is the composed one
-    // rather than one beforeNavigate is about to flush.
-    await expect(page).toHaveURL(/\/browse\/\?tag=playable$/);
+    // rather than one beforeNavigate is about to flush. It is ?feels= since
+    // A-20: playable is a FEELS term, and serialiseBrowseQuery never writes the
+    // legacy ?tag= parameter again.
+    await expect(page).toHaveURL(/\/browse\/\?feels=playable$/);
 
     await page.getByTestId(`card-name-${playable[0]}`).click();
     await expect(page).toHaveURL(new RegExp(`/c/${playable[0]}/$`));
@@ -950,10 +1025,10 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
 
     // THE ADDRESS BAR AND THE SCREEN MUST AGREE. Before the fix this read
     // sixteen cards and no active chip while the address still said
-    // ?tag=playable - the screen and the address bar contradicting each other,
-    // on a link the visitor could then copy and send to somebody.
+    // ?feels=playable - the screen and the address bar contradicting each
+    // other, on a link the visitor could then copy and send to somebody.
     await page.goBack();
-    await expect(page).toHaveURL(/\/browse\/\?tag=playable$/);
+    await expect(page).toHaveURL(/\/browse\/\?feels=playable$/);
     await expect(page.getByTestId("browse-grid")).toBeVisible();
     await expect(page.locator(CARDS)).toHaveCount(playable.length);
     expect(await renderedIds(page)).toEqual(playable);
@@ -966,12 +1041,21 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
     // into an address the document was loaded with. It is asserted because a
     // repair that fixed the composed case by breaking this one would otherwise
     // ship green.
+    //
+    // THE goto BELOW KEEPS ?tag= AND THAT IS DELIBERATE - DO NOT "FIX" IT.
+    // It is the one legacy address left in the suite, and leaving it is what
+    // turns this leg into G-10's migration proof: the visit is ENTERED on
+    // ?tag=playable, the read path maps the retired word to its FEELS chip, the
+    // page canonicalises the address once on arrival, and the assertion after
+    // the Back is ?feels=playable. Entered as one thing, re-written as another,
+    // with the same shelf on the screen throughout. Change the goto and the
+    // migration stops being tested at all.
     await coldGoto(page, "/browse/?tag=playable");
     await expect(page.locator(CARDS)).toHaveCount(playable.length);
     await page.getByTestId(`card-name-${playable[0]}`).click();
     await expect(page.getByTestId("coverflow")).toBeVisible();
     await page.goBack();
-    await expect(page).toHaveURL(/\/browse\/\?tag=playable$/);
+    await expect(page).toHaveURL(/\/browse\/\?feels=playable$/);
     await expect(page.locator(CARDS)).toHaveCount(playable.length);
     await expect(
       page.getByTestId("tag-playable").locator("input"),
@@ -1126,6 +1210,12 @@ test.describe("browse, open a configuration, and come back", () => {
     const SCROLL_TOLERANCE_PX = 2;
 
     const QUERY = "pad";
+    /*
+      A FEELS TERM SINCE D-10, AND THE PARAMETER IT WRITES CHANGED WITH IT.
+      `playable` survived the re-cut as itself, so this constant did not have to
+      move; what moved is that it is now a member of a declared facet, it is
+      pressed in the FEELS row, and the address it composes is ?feels=playable.
+    */
     const TAG = "playable";
 
     await coldGoto(page, BROWSE);
@@ -1134,9 +1224,19 @@ test.describe("browse, open a configuration, and come back", () => {
     // The expected set is COMPUTED by the shipped filter and the shipped
     // comparator, never transcribed. Both modules import one erased type and
     // nothing else, which is why naming them from here costs nothing.
+    /*
+      THREE THINGS IN THIS BLOCK MOVED IN 10-07 AND ALL THREE ARE MECHANICAL.
+      filterListing takes the two facet lists rather than one tag array (A-19);
+      the sort is NAME rather than the retired NEWEST (D-11), and NAME rather
+      than FEATURED because FEATURED is the shelf's own order, which would leave
+      the ordering assertion below weaker than the one it replaces; and the
+      address assertion further down reads feels= rather than tag= (A-20).
+      This is the only filterListing call site in e2e/, so it is also the only
+      place the new arity is exercised end to end from a browser.
+    */
     const expectedIds = sortListing(
-      filterListing(LISTING, QUERY, [TAG]),
-      "newest",
+      filterListing(LISTING, QUERY, { for: [], feels: [TAG] }),
+      "name",
     ).map((entry) => entry.id);
     expect(
       expectedIds.length,
@@ -1145,8 +1245,8 @@ test.describe("browse, open a configuration, and come back", () => {
     expect(expectedIds.length).toBeLessThan(LISTING.length);
 
     const sortGroup = page.getByTestId("browse-sort");
-    await sortGroup.getByText("NEWEST", { exact: true }).click();
-    await expect(sortGroup.locator('input[value="newest"]')).toBeChecked();
+    await sortGroup.getByText("NAME", { exact: true }).click();
+    await expect(sortGroup.locator('input[value="name"]')).toBeChecked();
 
     await page.getByTestId("browse-search").fill(QUERY);
     await page.getByTestId(`tag-${TAG}`).click();
@@ -1156,9 +1256,9 @@ test.describe("browse, open a configuration, and come back", () => {
     // The address is projected on a 500 ms trailing timer, so it is waited for
     // rather than read - what is recorded below has to be the composed address
     // and not one that is about to change under it.
-    await expect(page).toHaveURL(/sort=newest/);
+    await expect(page).toHaveURL(/sort=name/);
     await expect(page).toHaveURL(new RegExp(`q=${QUERY}`));
-    await expect(page).toHaveURL(new RegExp(`tag=${TAG}`));
+    await expect(page).toHaveURL(new RegExp(`feels=${TAG}`));
     const address = page.url();
 
     // THE OFFSET IS A NUMBER, RECORDED AND THEN ASSERTED AGAINST. "The page
@@ -1191,7 +1291,7 @@ test.describe("browse, open a configuration, and come back", () => {
     await expect(page.locator(CARDS)).toHaveCount(expectedIds.length);
     expect(await renderedIds(page)).toEqual(expectedIds);
     await expect(
-      page.getByTestId("browse-sort").locator('input[value="newest"]'),
+      page.getByTestId("browse-sort").locator('input[value="name"]'),
     ).toBeChecked();
     await expect(page.getByTestId("browse-search")).toHaveValue(QUERY);
     await expect(page.getByTestId(`tag-${TAG}`).locator("input")).toBeChecked();

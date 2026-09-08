@@ -83,3 +83,40 @@ this page has hydrated". Closing the window means a blocking inline script in `s
 carrying a SECOND copy of the default rule (recorded choice, else reduced motion, else textured) in
 a file no test reads. That is the drift hazard this phase has refused three times elsewhere, so it
 is recorded here instead. It is also written into `ScreenToggle.svelte`'s own header.
+
+## From 10-07
+
+**The front door's ring cannot grow, and the blocker is a data fact rather than a layout one.**
+A-22 answers Open item 3 by adding a `FOR` link row and leaving `FRONT_DOOR.length` at **8**. The
+reversal — growing the ring so more of the thirty-six are reachable from `/` without a click — is
+blocked by `src/lib/catalog/front-door.spec.ts:110-112`, which requires every row member to declare
+`preview === "padsim"`. **Twenty-seven of the thirty-six entries fail that**, because they are Lua
+configurations and a ring member that loaded `wasmoon` would put a 271,581-byte WASM asset on the
+front door's first paint — the one thing `e2e/catalog.e2e.ts` proves a cold load never fetches.
+Growing the ring therefore means either a second engine on the opening screen or a relaxation of
+that requirement, and both are phase-sized decisions. Recorded rather than pre-empted.
+
+**The `FOR` row sits BELOW the fidelity line, and 10-UI-SPEC 9.1 puts it above.** The spec's order
+for `/` is name plate, `FOR` row, fidelity line. Both the name plate and the fidelity line are
+rendered by `Coverflow.svelte` — `.plate` and `.fidelity` are its own top-level fragments, which
+become children of `FrontDoor.svelte`'s `.row` — and `Coverflow.svelte` is a file this phase
+promises not to edit. There is no seam between them to insert into from outside it. The row
+therefore follows the coverflow block at the same 32px rhythm. Closing this means either editing
+`Coverflow.svelte` (which costs the promise and the file's own header forbids it) or giving it a
+snippet prop, which is the same edit wearing a different name. Everything else about the row is the
+spec's: ten links, `FOR` caption, 44px on both axes, static markup in `build/index.html`.
+
+**`e2e/` is outside every type gate this repository runs, and 10-07 found it by measurement.**
+`npm run check` stayed green — `COMPLETED 576 FILES 0 ERRORS` — with `e2e/browse-webkit.e2e.ts`'s
+`orderOf` reverted to the retired three-member literal union `"featured" | "newest" | "name"`.
+`.svelte-kit/tsconfig.json`'s `include` globs are `src/**`, `test/**`, `tests/**` and
+`vite.config.*`; `e2e/**` is in none of them, and ESLint's type-aware config is scoped to
+`**/*.svelte`. A direct `npx tsc --ignoreConfig --noEmit --strict e2e/browse-webkit.e2e.ts` DOES
+report it —
+`error TS2345: Argument of type '"featured" | "name" | "newest"' is not assignable to parameter of
+type 'BrowseSort'` — and is clean once narrowed, so the gate exists and is simply not wired.
+Playwright transpiles with esbuild and never type-checks, so a stale annotation in `e2e/` fails
+silently: `orderOf("newest")` would have fallen through `orderFor()` to the NAME comparator and the
+assertion would have passed against the wrong order. Wiring it means adding `../e2e/**/*.ts` to the
+include set (which pulls `@playwright/test` into `svelte-check`'s program) or a second `tsconfig`
+and a `check:e2e` script. Neither is a 10-07 change; both are cheap.

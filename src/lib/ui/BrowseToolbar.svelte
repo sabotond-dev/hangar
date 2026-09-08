@@ -1,20 +1,27 @@
 <!--
-  The browse toolbar: one search landmark holding the field, the sort, the chips,
-  the clear control, the count and the page's only live region.
+  The browse toolbar: one search landmark holding the field, the sort, the two
+  facet rows, the clear control, the count and the page's only live region.
 
   EVERY WIDGET IN HERE IS ONE THE SITE ALREADY SHIPS. The sort control is Phase
   5's word row verbatim: a role="radiogroup" over real <input type="radio"> in
   <label>s, one tab stop, arrows that move AND select, 4px gaps, a 44px box with
   12px inline padding. The site has one way of saying "this is the live value"
   and reusing it costs no new pattern, no new accent use and no new keyboard
-  model. The only difference from a knob's row is the case: FEATURED, NEWEST and
-  NAME are uppercase because they are one-word page-control labels, and that is
-  what tells a visitor that NAME reorders the page while Major names a scale.
+  model. The only difference from a knob's row is the case: FEATURED and NAME
+  are uppercase because they are one-word page-control labels, and that is what
+  tells a visitor that NAME reorders the page while Major names a scale.
 
-  THE OPTIONS ARE DRIVEN BY BROWSE_SORTS, never by three literals in the markup,
+  THE ROW IS TWO WORDS SINCE D-11, AND TWO IS HONEST. NEWEST went because
+  addedAt held three distinct values across thirty-six entries with twenty
+  sharing one, so the order produced a twenty-deep block in name order and
+  called it a ranking. A third order was considered (MOTION, animated first)
+  and refused as redundant: the FEELS row's `generative` and `still` answer
+  that question as a filter, which is the better shape.
+
+  THE OPTIONS ARE DRIVEN BY BROWSE_SORTS, never by literals in the markup,
   so the control cannot offer an order the comparators do not implement. The
   words come from a table keyed by BrowseSort, which is exhaustive over the type:
-  a fourth sort added to $lib/browse/sort makes this file a type error rather
+  a third sort added to $lib/browse/sort makes this file a type error rather
   than a control silently missing an option.
 
   THE FIELD HAS A REAL <label for> AND NO PLACEHOLDER. A placeholder would say
@@ -34,26 +41,43 @@
   is what keeps the two from ever colliding. Pressed anywhere else on the browse
   page it does nothing at all.
 
-  THE CHIPS COMBINE WITH AND, AND A CHIP THAT WOULD RETURN NOTHING IS A REAL
-  disabled CHECKBOX. Both rules come from the data: 32 of the 41 shipped tags sit
-  on exactly one configuration, so an intersection would empty the grid on the
-  second press most of the time. disabledTags() is what closes that without
-  printing a number on a chip, and TagChip.svelte carries the reason beside the
-  attribute.
+  THE CHIPS COMBINE OR WITHIN A ROW AND AND ACROSS THE TWO (A-19), AND A CHIP
+  THAT WOULD RETURN NOTHING IS STILL A REAL disabled CHECKBOX. The first rule is
+  REQUIRED rather than conventional: FOR gives every configuration exactly one
+  term, so under a pure AND the second FOR chip would return zero and disable
+  itself for ever, and a row whose second click is always dead is not a row.
+  05.1-UI-SPEC W-04 said AND and was right about the data it was written
+  against - 32 of the 41 tags then shipped sat on exactly one configuration, so
+  a union would have made a second chip ADD one card. D-10 re-cut the vocabulary
+  and the argument inverted with it. disabledTags() closes the remaining gap
+  without printing a number on a chip, and TagChip.svelte carries the reason
+  beside the attribute.
 
-  THE STANDING ROW IS THE NINE TAGS CARRIED BY TWO OR MORE CONFIGURATIONS, AND
-  THERE IS NO "MORE TAGS" DISCLOSURE. 05.1-CONTEXT D-15 is binding - the nine are
-  chips and the 32 single-entry tags stay searchable text on the card - and it
-  wins over 05.1-UI-SPEC W-19, which proposed putting the other 32 behind a
-  toggle. The toggle is deliberately not built; a tag that filters sixteen down
-  to one is a thing the search field does better. What IS built is the outsider:
-  an active tag that is not one of the nine renders its own chip after them, or a
-  shared /browse/?tag=looper link would show a filter with no way to remove it.
+  THE STANDING ROWS ARE THE FACET MEMBERS, DECLARED, NEVER DERIVED (G-09).
+  FOR_TERMS then FEELS_TERMS, carried here as FACETS so the caption, the order
+  and the membership come from ONE declaration in $lib/browse/facets. The row
+  used to be "every tag two or more configurations carry", computed from
+  `entries` through chipTags(); that function is deleted and so is the branch
+  that needed it.
 
-  THE ROW AND THE DISABLED SET ARE DERIVED HERE, from `entries`, through
-  chipTags() and disabledTags(). Two sources for "which chips stand in the row"
-  is how a page and its toolbar come to disagree, and both functions are pure and
-  pinned in node by filter.spec.ts, so nothing untestable moved into a component.
+  AND THE OUTSIDER CHIP RETIRED WITH THE DERIVATION. It rendered an active tag
+  that was not one of the standing chips after them, which is what made a shared
+  /browse/?tag=looper link removable rather than a filter with no visible
+  control. Nothing can produce an outsider now: the vocabulary is closed at
+  sixteen, so every active member is already in a standing row, and an unmapped
+  legacy value lands in the SEARCH FIELD instead of as a chip (G-10). The
+  outsider's job passed to the field's own CLEAR.
+
+  "MORE TAGS" WAS NEVER BUILT AND STILL IS NOT, and A-20 rules on it rather than
+  leaving it as an absence: sixteen chips in two labelled rows fit above the
+  grid at every width, so there is no disclosure and there never was one.
+  05.1-UI-SPEC W-19 proposed one; 05.1-CONTEXT D-15 beat it, and the closed
+  vocabulary removed the problem it was proposed for.
+
+  THE DISABLED SET IS DERIVED HERE, per row, through disabledTags() - which is
+  pure and pinned in node by filter.spec.ts, so nothing untestable moved into a
+  component. Its question narrowed with the semantics: a chip is dead only when
+  it would return zero given the OTHER row's active set, which makes it rare.
 
   THE COUNT IS THREE ELEMENTS DOING THREE JOBS, which is Phase 5's meter pattern
   applied to a number. The visible line updates instantly and is aria-hidden. An
@@ -102,59 +126,60 @@
 -->
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { chipTags, disabledTags } from "$lib/browse/filter";
+  import { FACETS, type FacetName } from "$lib/browse/facets";
+  import { disabledTags, type ActiveFacets } from "$lib/browse/filter";
   import { BROWSE_SORTS, type BrowseSort } from "$lib/browse/sort";
   import type { ListingEntry } from "$lib/catalog/listing";
-  import TagChip from "./TagChip.svelte";
+  import FacetRow from "./FacetRow.svelte";
 
   let {
     entries,
     sort,
     q,
-    tags,
+    active,
     showing,
     total,
     onsort,
     onquery,
-    ontag,
+    onfacet,
     onclear,
   }: {
-    /** The full listing, for the chip vocabulary. Never the filtered set. */
+    /** The full listing, for the disabled derivation. Never the filtered set. */
     entries: readonly ListingEntry[];
     sort: BrowseSort;
     q: string;
-    /** The active tags, in activation order. */
-    tags: readonly string[];
+    /** The active chips, one list per facet, each in activation order. */
+    active: ActiveFacets;
     /** How many configurations are showing, after filtering. */
     showing: number;
     /** The size of the unfiltered catalog. */
     total: number;
     onsort: (next: BrowseSort) => void;
     onquery: (next: string) => void;
-    ontag: (tag: string) => void;
+    onfacet: (facet: FacetName, term: string) => void;
     onclear: () => void;
   } = $props();
 
   /**
-   * The three page-control labels, verbatim from the copy contract.
+   * The two page-control labels, verbatim from the copy contract.
    *
    * A Record keyed by BrowseSort rather than an array beside BROWSE_SORTS: the
    * order comes from the module and the words come from a table the type system
    * keeps exhaustive, so neither can silently fall out of step with the other.
+   * NEWEST left both tables in 10-07 (D-11) and left them as a TYPE ERROR
+   * first - which is the whole reason they are keyed by BrowseSort.
    */
   const SORT_LABELS: Readonly<Record<BrowseSort, string>> = {
     featured: "FEATURED",
-    newest: "NEWEST",
     name: "NAME",
   };
 
   /**
-   * The same three words in the case the live region says them in. A sentence
+   * The same two words in the case the live region says them in. A sentence
    * is not a button label, so `Sorted by Featured.` never shouts.
    */
   const SORT_WORDS: Readonly<Record<BrowseSort, string>> = {
     featured: "Featured",
-    newest: "Newest",
     name: "Name",
   };
 
@@ -164,29 +189,25 @@
   /* One toolbar per page, so the wiring ids are constants rather than derived. */
   const FIELD_ID = "browse-search-field";
   const SORT_CAPTION_ID = "browse-sort-caption";
-  const TAGS_CAPTION_ID = "browse-tags-caption";
-
-  /** D-15's nine: every tag two or more listed configurations carry. */
-  const standing = $derived(chipTags(entries));
 
   /**
-   * The nine, then any active tag that is not one of them. That tail is what
-   * makes a shared /browse/?tag=looper link removable.
+   * The two rows and, per row, the members that would return nothing given the
+   * query and the OTHER row's active set. With nothing active and nothing typed
+   * both are empty by construction, so there is no special case for the opening
+   * state - and under the narrowed predicate a member is never dead merely
+   * because a sibling in its own row is on.
    */
-  const row = $derived([
-    ...standing,
-    ...tags.filter((tag) => !standing.includes(tag)),
-  ]);
-
-  /**
-   * The chips that would return nothing given the query and the active set.
-   * With nothing active and nothing typed this is empty by construction, so
-   * there is no special case for the opening state.
-   */
-  const blocked = $derived(disabledTags(entries, q, tags, row));
+  const rows = $derived(
+    FACETS.map((facet) => ({
+      facet,
+      blocked: disabledTags(entries, q, active, facet.name, facet.terms),
+    })),
+  );
 
   /** CLEAR FILTERS exists only while there is a filter for it to clear. */
-  const filtering = $derived(q.length > 0 || tags.length > 0);
+  const filtering = $derived(
+    q.length > 0 || active.for.length > 0 || active.feels.length > 0,
+  );
 
   /** The one thing this component speaks. Everything else is said in the DOM. */
   let announcement = $state("");
@@ -265,7 +286,7 @@
     and the hidden expansion has already told them where they are.
   */
   $effect(() => {
-    const signature = `${sort}|${q}|${tags.join(" ")}`;
+    const signature = `${sort}|${q}|${active.for.join(" ")}|${active.feels.join(" ")}`;
     if (spokenFor === undefined) {
       spokenFor = signature;
       spokenSort = sort;
@@ -354,43 +375,41 @@
     </div>
   </div>
 
-  <div class="band">
-    <span class="caption" id={TAGS_CAPTION_ID}>TAGS</span>
+  <!--
+    TWO ROWS, FOR THEN FEELS, EACH ITS OWN LABELLED GROUP. The rows come from
+    FACETS, so their order, their captions and their membership are one
+    declaration in $lib/browse/facets rather than three things in this file that
+    can drift apart. There is no third row and no disclosure beneath them.
 
-    <div class="tag-row">
-      <!--
-        CLEAR FILTERS sits beside the group rather than inside it: it is not a
-        tag, and a button announced as part of a group labelled TAGS would be
-        one more thing for a screen reader to sort out at the end of nine.
-      -->
-      <div
-        class="chips"
-        data-testid="browse-tags"
-        role="group"
-        aria-labelledby={TAGS_CAPTION_ID}
-      >
-        {#each row as tag (tag)}
-          <TagChip
-            {tag}
-            active={tags.includes(tag)}
-            disabled={blocked.includes(tag)}
-            ontoggle={ontag}
-          />
-        {/each}
-      </div>
-
-      {#if filtering}
-        <button
-          class="clear-filters"
-          type="button"
-          data-testid="browse-clear-filters"
-          onclick={clearFilters}
-        >
-          CLEAR FILTERS
-        </button>
-      {/if}
+    CLEAR FILTERS sits beside the rows rather than inside either: it is not a
+    term, and a button announced as part of a group labelled FOR would be one
+    more thing for a screen reader to sort out at the end of ten.
+  -->
+  {#each rows as row (row.facet.name)}
+    <div class="band">
+      <FacetRow
+        name={row.facet.name}
+        caption={row.facet.caption}
+        terms={row.facet.terms}
+        active={active[row.facet.name]}
+        blocked={row.blocked}
+        ontoggle={(term) => onfacet(row.facet.name, term)}
+      />
     </div>
-  </div>
+  {/each}
+
+  {#if filtering}
+    <div class="band clear-band">
+      <button
+        class="clear-filters"
+        type="button"
+        data-testid="browse-clear-filters"
+        onclick={clearFilters}
+      >
+        CLEAR FILTERS
+      </button>
+    </div>
+  {/if}
 
   <!--
     Two of the count's three elements. The visible line is seen and hidden from
@@ -422,9 +441,12 @@
 
 <style>
   /*
-    Three stacked bands, 16px apart. Every band is label-over-control at every
-    width - Phase 5's rule that a word row always stacks, so its options get the
-    full content width to wrap into.
+    Stacked bands, 16px apart - SEARCH, SORT, FOR, FEELS, and CLEAR FILTERS when
+    there is a filter to clear. Every band is label-over-control at every width:
+    Phase 5's rule that a word row always stacks, so its options get the full
+    content width to wrap into. Sixteen chips in two labelled rows fit above the
+    grid at every width, which is what makes A-20's "no disclosure" a fact about
+    layout rather than a preference.
   */
   .toolbar {
     display: block;
@@ -554,22 +576,15 @@
   }
 
   /*
-    The chips take the whole line and CLEAR FILTERS wraps beneath them, which is
-    the approved sketch's shape. Nothing here scrolls sideways at any width: the
-    row wraps, and overflow is never set on either axis.
+    CLEAR FILTERS is its own band beneath the two facet rows rather than a
+    trailing item inside one, which is the approved sketch's shape now that
+    there are two rows to trail: appended to FEELS it would read as a seventh
+    FEELS chip. Nothing here scrolls sideways at any width - every row wraps,
+    and overflow is never set on either axis.
   */
-  .tag-row {
+  .clear-band {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-  }
-
-  .chips {
-    flex: 1 1 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
     align-items: center;
   }
 

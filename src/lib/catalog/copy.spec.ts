@@ -39,7 +39,7 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
 import { FEELS_TERMS, FOR_TERMS } from "$lib/browse/facets";
-import { allTags, chipTags, fold } from "$lib/browse/filter";
+import { allTags, fold } from "$lib/browse/filter";
 import { CATALOG } from "./index";
 import { FRONT_DOOR } from "./front-door";
 import { LISTING } from "./listing";
@@ -350,7 +350,16 @@ describe("catalog copy, counted rather than read (CONT-03)", () => {
     );
     const dashes = corpus.reduce((n, c) => n + occurrences(c.text, EM_DASH), 0);
     const known = allTags(LISTING);
-    const chips = chipTags(LISTING);
+    /*
+      THE ROW IS DECLARED, NOT DERIVED (G-09). This line used to read
+      chipTags(LISTING) - "every tag two or more entries carry" - and 10-07
+      deleted that function with the derivation it implemented. The census is
+      unchanged in meaning: the standing chips ARE the sixteen facet members,
+      and the singleton line below still subtracts them from what the catalog
+      carries, which is 0 by construction and is exactly the number worth
+      printing.
+    */
+    const chips = [...FOR_TERMS, ...FEELS_TERMS];
 
     const table = [
       `entries                    ${CATALOG.length}`,

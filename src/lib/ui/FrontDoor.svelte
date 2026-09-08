@@ -88,6 +88,24 @@
   contains one empty div and nothing else, ever, and aesthetic.spec.ts scan 3
   proves that structurally rather than trusting this paragraph.
 
+  AMENDMENT (Phase 10, plan 10-07, A-22 and 10-UI-SPEC 9.1). THE `FOR` LINK
+  ROW. The ten workflow terms render here as LINKS, one `/browse/?for={term}`
+  each, so the front door becomes the entry to browse instead of its rival. A
+  link rather than a checkbox is what keeps this page PRERENDERED, keeps its
+  `<head>` intact and keeps it import-free: FacetRow.svelte in link mode needs
+  no state, no handler and no navigation, and `$lib/browse/facets` declares no
+  import at all, so naming it costs this page nothing at first paint.
+
+  AND IT SITS BELOW THE COVERFLOW BLOCK RATHER THAN INSIDE IT, WHICH IS A
+  DEPARTURE FROM THE SPEC'S ORDER AND IS FORCED. 10-UI-SPEC 9.1 puts the row
+  between the name plate and the fidelity line. Both of those are rendered by
+  Coverflow.svelte - `.plate` and `.fidelity` are ITS top-level fragments, not
+  this file's - and Coverflow.svelte may not be edited in this phase, so there
+  is no seam between them to insert into without breaking a promise that is
+  worth more than the ordering. The row therefore follows the fidelity line, at
+  the same 32px rhythm, and the departure is recorded in 10-07-SUMMARY.md rather
+  than smoothed over. The ring stays at EIGHT and front-door.ts is untouched.
+
   THE DUPLICATION BELOW IS REAL AND IS GATED RATHER THAN TRUSTED. Five literals
   now live in two files. Scan 7 reads all five out of Coverflow.svelte's `.band`
   rules and out of this file's `.crt-band` rules and compares them after the
@@ -97,13 +115,16 @@
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { onDestroy, onMount, untrack } from "svelte";
+  import { FOR_TERMS } from "$lib/browse/facets";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
   import { session } from "$lib/device/session.svelte";
   import { isLowPower } from "$lib/sim/schedule";
   import BrowseLink from "./BrowseLink.svelte";
   import Coverflow from "./Coverflow.svelte";
+  import FacetRow from "./FacetRow.svelte";
   import DeviceNote from "./DeviceNote.svelte";
   import DeviceSlot from "./DeviceSlot.svelte";
   import { screen } from "./ScreenToggle.svelte";
@@ -305,6 +326,21 @@
       </div>
     {/key}
   </div>
+
+  <!--
+    THE `FOR` ROW (A-22). Ten destinations, not ten controls: pressing one takes
+    you to /browse/ already filtered, which is what makes this page the entry to
+    the catalog rather than a rival to it. The caption is FACETS' own, so the
+    ten words and their order are one declaration shared with the toolbar.
+  -->
+  <div class="for-row">
+    <FacetRow
+      name="for"
+      caption="FOR"
+      terms={FOR_TERMS}
+      href={(term) => resolve(`/browse/?for=${term}`)}
+    />
+  </div>
 </section>
 
 {#if opening}
@@ -420,6 +456,16 @@
   .row {
     margin-block-start: 32px;
     position: relative;
+  }
+
+  /*
+    The FOR row, at the 32px rhythm 10-UI-SPEC 6 gives it, inside the same
+    gutter the headline and the header block carry - the row itself is the only
+    full-bleed thing on this page.
+  */
+  .for-row {
+    margin-block-start: 32px;
+    padding-inline: 32px;
   }
 
   /*

@@ -71,7 +71,13 @@ const HOSTILE_STORE: ReturnStore = {
 describe("the browse return record (src/lib/browse/return.ts)", () => {
   it("writes a record that reads back identical", () => {
     const { map, store } = fakeStore();
-    const record = { href: "/browse/?sort=newest&tag=drums", scrollY: 1847 };
+    // The sample address moved in 10-07 and NOTHING ELSE IN THIS FILE DID.
+    // return.ts never parses the href - it stores a string and hands it back -
+    // so the old value was harmless and it was also unproducible: D-11 retired
+    // ?sort=newest and A-20 retired the written ?tag=. A round trip proved
+    // against an address the serialiser can no longer emit is weaker evidence
+    // than one proved against an address it does.
+    const record = { href: "/browse/?sort=name&for=drums", scrollY: 1847 };
 
     expect(readBrowseReturn(store), "nothing was recorded yet").toBeUndefined();
 
@@ -99,9 +105,12 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
     expect(map.size, "the second write replaced the first").toBe(1);
 
     // The href carries its whole query string, encoding included: this is what
-    // makes sort, query and every active tag come back (D-08).
+    // makes sort, query and every active chip come back (D-08). The sample
+    // names two facet terms under the two parameters the toolbar writes since
+    // A-20; it used to name `gestural` and `generative` under one `tag`, and
+    // D-10 retired the first of those words entirely.
     const encoded = {
-      href: "/browse/?q=caf%C3%A9+noir&tag=gestural&tag=generative",
+      href: "/browse/?q=caf%C3%A9+noir&for=drums&feels=generative",
       scrollY: 12.5,
     };
     writeBrowseReturn(store, encoded);

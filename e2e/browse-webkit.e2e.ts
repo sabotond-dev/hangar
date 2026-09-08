@@ -36,7 +36,7 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 import { columnsForWidth, columnsFromTemplate } from "../src/lib/browse/grid";
-import { sortListing } from "../src/lib/browse/sort";
+import { sortListing, type BrowseSort } from "../src/lib/browse/sort";
 import { LISTING } from "../src/lib/catalog/listing";
 
 /** trailingSlash: "always" (src/routes/+layout.ts). Never without the slash. */
@@ -75,8 +75,16 @@ function renderedIds(page: Page): Promise<string[]> {
   }, CARDS);
 }
 
-/** The id sequence a sort should produce, computed by the shipped comparator. */
-const orderOf = (sort: "featured" | "newest" | "name"): string[] =>
+/**
+ * The id sequence a sort should produce, computed by the shipped comparator.
+ *
+ * The parameter is BrowseSort rather than a literal union restating it. It used
+ * to read `"featured" | "newest" | "name"` - the same three-member restatement
+ * browse.e2e.ts carried - and D-11 removed one of the three. A restatement is
+ * how a file goes on naming a sort the comparators no longer implement; taking
+ * the type from sortListing's own signature is how it cannot.
+ */
+const orderOf = (sort: BrowseSort): string[] =>
   sortListing(LISTING, sort).map((entry) => entry.id);
 
 /**
