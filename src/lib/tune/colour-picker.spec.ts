@@ -699,19 +699,36 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     // NEVER A HEX. A hex is a number the state does not hold, written in a
     // base the firmware never sees, and it implies 24 bits of resolution the
     // pad cannot reach.
-    expect(colourValueText(colourPosition([6, 6, 6]))).toBe("102, 102, 102");
-    expect(colourValueText(0)).toBe("0, 0, 0");
-    expect(colourValueText(COLOUR_LATTICE_SIZE - 1)).toBe("255, 255, 255");
+    // THE SHAPE IS ASSERTED BEFORE THE VALUES, and the ordering was chosen by
+    // running the negative check rather than by taste. With the announcement
+    // rewritten as a hex, the equalities below fire first and report
+    // `expected '#666666' to be '102, 102, 102'` - two strings a reader has to
+    // diff by eye, with no sentence saying which rule broke. The scan runs
+    // first so a red run NAMES the rule, and the equalities then pin the
+    // arithmetic. (10-09's check 4 taught this on U+2212 and it is the same
+    // lesson: a message that does not say what broke is worse than the value.)
     for (const at of [0, 95, 1638, 4095]) {
+      expect(
+        colourValueText(at),
+        `position ${at} is announced as a hex, which is a base the firmware never sees and a resolution the state does not have - the announcement is the three STORED INTEGERS`,
+      ).not.toContain("#");
       expect(
         colourValueText(at),
         `position ${at} is not announced as three integers`,
       ).toMatch(/^[0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3}$/);
-      expect(
-        colourValueText(at),
-        `position ${at} is announced as a hex, which is a resolution the state does not have`,
-      ).not.toContain("#");
     }
+    expect(
+      colourValueText(colourPosition([6, 6, 6])),
+      "the announcement is no longer the three stored integers of the colour at that position",
+    ).toBe("102, 102, 102");
+    expect(
+      colourValueText(0),
+      "the announcement is no longer the three stored integers of the colour at that position",
+    ).toBe("0, 0, 0");
+    expect(
+      colourValueText(COLOUR_LATTICE_SIZE - 1),
+      "the announcement is no longer the three stored integers of the colour at that position",
+    ).toBe("255, 255, 255");
     expect(
       picker,
       "a rail does not announce the composed value, so moving one says nothing about the colour",
