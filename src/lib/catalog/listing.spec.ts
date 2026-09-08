@@ -112,6 +112,11 @@ describe("the browse listing (src/lib/catalog/listing.ts)", () => {
       "listed ids are unique",
     ).toBe(LISTING.length);
 
+    // SIX FIELDS, NOT SEVEN. `addedAt` left this loop in 10-07 with the Newest
+    // sort that read it (D-11, D-b). It is still on the CATALOG entry and
+    // catalog.spec.ts still holds it there; it is simply not projected, so
+    // there is nothing here to hold it against. No entry file was touched to
+    // make that true.
     for (const listed of LISTING) {
       const entry = byId(listed.id);
       expect(entry, `${listed.id} resolves in CATALOG`).toBeDefined();
@@ -130,10 +135,6 @@ describe("the browse listing (src/lib/catalog/listing.ts)", () => {
         entry?.featured,
         `${listed.id}: the Featured flag disagrees with the catalog`,
       ).toBe(listed.featured);
-      expect(
-        entry?.addedAt,
-        `${listed.id}: addedAt disagrees with the catalog`,
-      ).toBe(listed.addedAt);
       expect(
         entry?.restsBlack,
         `${listed.id}: restsBlack disagrees with the catalog`,

@@ -1,4 +1,4 @@
-// The three browse orders, gated against the catalog's own three.
+// The two browse orders, gated against the catalog's own comparators.
 //
 // src/lib/browse/sort.ts RESTATES src/lib/catalog/index.ts's nameAsc, because
 // nameAsc is module-private there and the browse page may not import
@@ -6,12 +6,12 @@
 // compiler, a 131,101-byte chunk, and a page whose job is to list the catalog's
 // names must not drag it onto first paint).
 //
-// A restatement with no gate is a divergence waiting to happen, so tests 2, 3
-// and 4 run the shipped byFeatured(), byNewest() and byName() and compare id
-// sequences element for element. If somebody changes either side, one of them
-// goes red naming the sort.
+// A restatement with no gate is a divergence waiting to happen, so tests 2 and
+// 3 run the shipped byFeatured() and byName() and compare id sequences element
+// for element. If somebody changes either side, one of them goes red naming the
+// sort.
 //
-// Test 5 is D-10 as amended in mechanical form: no localeCompare, no Intl,
+// Test 4 is D-10 as amended in mechanical form: no localeCompare, no Intl,
 // anywhere in the module. 05.1-RESEARCH.md's Standard Stack row and its
 // Don't Hand-Roll row both recommend Intl.Collator and are both superseded;
 // 05.1-UI-SPEC.md W-08 agrees with this file and is not.
@@ -25,22 +25,22 @@
 //   silenced.
 //
 // So every length is LISTING.length, the featured/plain boundary is counted off
-// the data, the NEWEST order is asserted as date blocks rather than as two
-// fixed sizes, and the NAME order is a property against a comparator written
-// out below plus two reviewable witness pairs.
+// the data, and the NAME order is a property against a comparator written out
+// below plus two reviewable witness pairs. The NEWEST block-boundary assertion
+// that used to sit between them is retired by name in this file, where it was,
+// rather than deleted quietly.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { byFeatured, byName, byNewest } from "$lib/catalog";
+import { byFeatured, byName } from "$lib/catalog";
 import { LISTING, type ListingEntry } from "$lib/catalog/listing";
 import {
   BROWSE_SORTS,
   DEFAULT_SORT,
   featuredOrder,
   nameOrder,
-  newestOrder,
   orderFor,
   sortListing,
 } from "./sort";
@@ -64,7 +64,9 @@ const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
  * one place that holds them. This file's `tags: []` fixture below is a stub for
  * a synthetic entry and names no term, so it survived the re-cut untouched.
  *
- * The NEWEST retirement (D-11) is 10-07's and moves this file's test count.
+ * 10-07 (D-11) RETIRED NEWEST and moved this file from six tests to five. It
+ * moved no number in this block either: the count is still 36 and the Featured
+ * boundary is still 15, because removing an order removes no entry.
  */
 const RECORDED = { entries: 36, featured: 15 } as const;
 
@@ -83,7 +85,7 @@ const INTERLEAVED: readonly ListingEntry[] = [
 const CATALOG_ORDER = ids(LISTING);
 
 describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
-  it("the three orders are stable and total over the catalog", () => {
+  it("the two orders are stable and total over the catalog", () => {
     // The one floor in this file, and it is the non-vacuity guard: everything
     // below counts off LISTING, so a listing that had quietly emptied would
     // make the rest pass on nothing.
@@ -91,9 +93,8 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
       LISTING.length,
       "the listing was actually read",
     ).toBeGreaterThanOrEqual(RECORDED.entries);
-    expect(BROWSE_SORTS, "the three sorts, in the toolbar's order").toEqual([
+    expect(BROWSE_SORTS, "the two sorts, in the toolbar's order").toEqual([
       "featured",
-      "newest",
       "name",
     ]);
     expect(DEFAULT_SORT, "UI-SPEC: the default sort is FEATURED").toBe(
@@ -188,46 +189,28 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
     );
   });
 
-  it("NEWEST orders the dates newest first, name ascending inside each block, and agrees with the catalog", () => {
-    const shipped = ids(byNewest());
-    const sorted = sortListing(LISTING, "newest");
+  /*
+    THE NEWEST TEST STOOD HERE, AND D-11 RETIRED IT BY NAME.
 
-    expect(shipped, "the shipped comparator returned every entry").toHaveLength(
-      LISTING.length,
-    );
-    expect(
-      ids(sorted),
-      "NEWEST disagrees with the catalog's byNewest()",
-    ).toEqual(shipped);
+    09-02 restructured it from "the seven newest come first" into a BLOCK
+    BOUNDARY - the dates run newest first, each date's entries are contiguous,
+    and inside a date the name tie-break decides - precisely so that a wave
+    adding a third date would not redden it for a reason that was not a fault.
+    That restructuring was right and it is not what removed the test.
 
-    // STRUCTURE, not sizes. This used to read "the seven newest come first" and
-    // "the nine older follow", which is a claim about two block sizes rather
-    // than about the order: a phase that adds configurations adds a third date,
-    // and an assertion shaped that way goes red for a reason that is not a
-    // fault. What NEWEST actually promises is that the dates run newest first,
-    // that each date's entries are contiguous, and that inside a date the
-    // catalog's name tie-break decides.
-    const dates = sorted.map((e) => e.addedAt);
-    const distinct = [...new Set(dates)];
-    expect(
-      distinct.length,
-      "there is more than one date to order",
-    ).toBeGreaterThan(1);
-    expect(distinct, "the blocks run newest first").toEqual(
-      [...distinct].sort().reverse(),
-    );
-    expect(dates, "the sequence is exactly its blocks, concatenated").toEqual(
-      distinct.flatMap((d) =>
-        LISTING.filter((e) => e.addedAt === d).map(() => d),
-      ),
-    );
-    for (const d of distinct) {
-      const block = sorted.filter((e) => e.addedAt === d).map((e) => e.name);
-      expect(block, `${d}: the block is in name order`).toEqual(
-        [...block].sort(nameOrderOnNames),
-      );
-    }
-  });
+    What removed it is that the ORDER it tested is gone. `addedAt` holds three
+    distinct values across thirty-six entries and one of them covers twenty, so
+    the block boundary was true and the ranking it implied was not: NEWEST's
+    first block was twenty entries deep and in name order inside itself, which
+    is the FEATURED-less half of the NAME sort wearing a date's name.
+
+    The question this test answered - "does the catalog have a meaningful
+    arrival order?" - is now answered by NOTHING, deliberately. `addedAt` stays
+    on the catalog entry as provenance and catalog.spec.ts still holds its
+    format and its parse; byNewest() still ships in src/lib/catalog/index.ts and
+    is still gated there. What no longer exists is a browse order over it, and
+    with it this file's sixth test.
+  */
 
   it("NAME agrees with the catalog's own name order", () => {
     const shipped = ids(byName());
@@ -332,9 +315,8 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
       CATALOG_ORDER,
     );
 
-    // The bare comparators are the same three the sorter applies.
+    // The bare comparators are the same two the sorter applies.
     expect(orderFor("featured")).toBe(featuredOrder);
-    expect(orderFor("newest")).toBe(newestOrder);
     expect(orderFor("name")).toBe(nameOrder);
   });
 });
@@ -346,7 +328,15 @@ function nameOrderOnNames(a: string, b: string): number {
   return 0;
 }
 
-/** A minimal ListingEntry; only id and name matter to the name order. */
+/**
+ * A minimal ListingEntry; only id and name matter to the name order.
+ *
+ * It lost its `addedAt` in 10-07, not because the fixture was wrong but because
+ * ListingEntry no longer HAS the field (D-11, D-b): the date stayed on the
+ * catalog entry as provenance and left the browse projection. An excess
+ * property here would be a type error, which is one of the two gates that
+ * proved the field really had gone.
+ */
 function makeEntry(id: string, name: string): ListingEntry {
   return {
     id,
@@ -355,7 +345,6 @@ function makeEntry(id: string, name: string): ListingEntry {
     motion: "dark",
     tags: [],
     featured: false,
-    addedAt: "2026-01-01",
     restsBlack: true,
     preview: "padsim",
   };

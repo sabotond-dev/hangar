@@ -1,6 +1,12 @@
 // The browse listing: all sixteen configurations' browse data - name, one-line
-// description, feel tags, the Featured flag, the date they arrived, and what
-// each pad does with nobody touching it.
+// description, feel tags, the Featured flag, and what each pad does with nobody
+// touching it.
+//
+// THE DATE THEY ARRIVED IS NOT ONE OF THEM ANY MORE (D-11, D-b). `addedAt` is
+// real provenance and it stays on the CATALOG entry, where catalog.spec.ts
+// still holds its format and its parse; what left is the browse PROJECTION of
+// it, because the Newest sort was the only thing that ever read it here and a
+// field nobody reads is a field that drifts.
 //
 // WHY THIS FILE RESTATES THE CATALOG INSTEAD OF READING IT.
 // This is the fourth use of the pattern src/lib/protocol-pin.ts introduced and
@@ -20,9 +26,9 @@
 // listing.spec.ts's last test scans this source and fails on anything else.
 //
 // The duplication is deliberate and it is GATED: listing.spec.ts looks every id
-// up in the catalog and asserts name, description, tags, featured, addedAt,
-// restsBlack and preview are strictly equal, in both directions, so a renamed
-// entry, an edited description, a new tag or a dropped entry is red.
+// up in the catalog and asserts name, description, tags, featured, restsBlack
+// and preview are strictly equal, in both directions, so a renamed entry, an
+// edited description, a new tag or a dropped entry is red.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { FrontDoorEntry, PreviewMotion } from "./front-door";
@@ -47,8 +53,6 @@ export type ListingEntry = FrontDoorEntry & {
    */
   readonly tags: readonly string[];
   readonly featured: boolean;
-  /** "YYYY-MM-DD". Drives the Newest sort. */
-  readonly addedAt: string;
   /** A recorded fact, asserted against frames.json in both directions. */
   readonly restsBlack: boolean;
   /** DERIVED from the entry's source kind in the catalog; restated, not guessed. */
@@ -124,7 +128,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["show", "generative", "expressive"],
     featured: true,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -136,7 +139,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["show", "generative", "expressive"],
     featured: true,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -148,7 +150,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["show", "generative", "readable"],
     featured: false,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -160,7 +161,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["modulation", "generative", "expressive"],
     featured: false,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -174,7 +174,6 @@ export const LISTING: readonly ListingEntry[] = [
       "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
     tags: ["modulation", "expressive", "still"],
     featured: false,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -188,7 +187,6 @@ export const LISTING: readonly ListingEntry[] = [
       "This one is an instrument rather than a light show. The nine zones stay lit and wait for a finger.",
     tags: ["drums", "playable", "readable"],
     featured: true,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -201,7 +199,6 @@ export const LISTING: readonly ListingEntry[] = [
     quiet: "Four rails, lit and still. They move when you move them.",
     tags: ["mixing", "readable", "still"],
     featured: false,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -215,7 +212,6 @@ export const LISTING: readonly ListingEntry[] = [
       "Clockwise raises, counter-clockwise lowers. The middle of the pad stays quiet.",
     tags: ["modulation", "precise", "expressive"],
     featured: false,
-    addedAt: "2026-09-02",
     restsBlack: false,
     preview: "padsim",
   },
@@ -236,7 +232,6 @@ export const LISTING: readonly ListingEntry[] = [
       "Trackpad writes no lights at all: it is a pointer for your computer, and there is nothing here to light.",
     tags: ["pointing", "precise", "still"],
     featured: false,
-    addedAt: "2026-09-02",
     restsBlack: true,
     preview: "padsim",
   },
@@ -248,7 +243,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["sequencing", "generative", "playable"],
     featured: true,
-    addedAt: "2026-09-04",
     restsBlack: false,
     preview: "lua",
   },
@@ -260,7 +254,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["keys", "playable", "expressive"],
     featured: true,
-    addedAt: "2026-09-04",
     restsBlack: false,
     preview: "lua",
   },
@@ -272,7 +265,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["modulation", "generative", "expressive"],
     featured: true,
-    addedAt: "2026-09-04",
     restsBlack: false,
     preview: "lua",
   },
@@ -285,7 +277,6 @@ export const LISTING: readonly ListingEntry[] = [
     quiet: DEMO_TOUCH_NOTE,
     tags: ["modulation", "generative", "expressive"],
     featured: false,
-    addedAt: "2026-09-04",
     restsBlack: true,
     preview: "lua",
   },
@@ -297,7 +288,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["keys", "playable", "readable"],
     featured: true,
-    addedAt: "2026-09-04",
     restsBlack: false,
     preview: "lua",
   },
@@ -310,7 +300,6 @@ export const LISTING: readonly ListingEntry[] = [
     quiet: DEMO_TOUCH_NOTE,
     tags: ["modulation", "expressive", "still"],
     featured: true,
-    addedAt: "2026-09-04",
     restsBlack: true,
     preview: "lua",
   },
@@ -322,7 +311,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["sequencing", "generative", "playable"],
     featured: false,
-    addedAt: "2026-09-04",
     restsBlack: false,
     preview: "lua",
   },
@@ -334,7 +322,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["modulation", "expressive", "readable"],
     featured: true,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -346,7 +333,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["sequencing", "generative", "playable"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -360,7 +346,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The nine zone outlines sit still until you hit one; every bloom is a hit you made.",
     tags: ["drums", "playable", "expressive"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -374,7 +359,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The key sits on the pad whether or not anyone is playing it; the light is the map, not the motion.",
     tags: ["keys", "playable", "readable"],
     featured: true,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -388,7 +372,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The nine track blocks stay put until you fire a cell; every ring on this pad is one you started.",
     tags: ["clips", "playable", "readable"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -402,7 +385,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The plot holds the shape you last landed on; move across the pad and it redraws.",
     tags: ["modulation", "expressive", "precise"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -416,7 +398,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The nine levels hold where you left them; this pad only moves when your hand does.",
     tags: ["mixing", "precise", "readable"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -430,7 +411,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The bar rests at the number you last sent; nothing here moves on its own.",
     tags: ["mixing", "precise", "still"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -444,7 +424,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The lit row or column is the legend, and it stays lit until you change the mode.",
     tags: ["pointing", "precise", "readable"],
     featured: true,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -458,7 +437,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The whole field stays lit and still, so you read the colour instead of watching it.",
     tags: ["show", "expressive", "readable"],
     featured: true,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -470,7 +448,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["clips", "playable", "readable"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -482,7 +459,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["modulation", "expressive", "generative"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -496,7 +472,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The five bands are a legend, not an animation; only the band you press flashes.",
     tags: ["shortcuts", "precise", "readable"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -510,7 +485,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The three colour bands sit still; the pad only changes when you hold the corner.",
     tags: ["shortcuts", "readable", "still"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -524,7 +498,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The nine marks are painted once and stay; the block you press is the only thing that moves.",
     tags: ["shortcuts", "readable", "still"],
     featured: true,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -536,7 +509,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["play", "playable", "generative"],
     featured: true,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -552,7 +524,6 @@ export const LISTING: readonly ListingEntry[] = [
     quiet: DEMO_TOUCH_NOTE,
     tags: ["play", "playable", "still"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: true,
     preview: "lua",
   },
@@ -564,7 +535,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["play", "generative", "playable"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -585,7 +555,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The four targets and the dark cross between them never move; that is what makes them findable.",
     tags: ["pointing", "precise", "readable"],
     featured: true,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },
@@ -598,7 +567,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["show", "readable", "generative"],
     featured: false,
-    addedAt: "2026-09-07",
     restsBlack: false,
     preview: "lua",
   },

@@ -1,4 +1,13 @@
-// The three orders a visitor can put the catalog in: Featured, Newest, Name.
+// The two orders a visitor can put the catalog in: Featured and Name.
+//
+// NEWEST WAS THE THIRD, AND D-11 REMOVED IT. `addedAt` holds three distinct
+// values across thirty-six entries and one of them covers twenty, so ordering
+// by date said almost nothing: it produced one block of twenty in name order
+// and called it a ranking. A third order was considered in its place (MOTION,
+// animated first) and rejected as redundant - the FEELS facet's `generative`
+// and `still` answer that question as a filter, which is the better shape.
+// `addedAt` survives on the catalog entry as provenance and has left the browse
+// projection entirely (10-UI-SPEC 9.5, D-b).
 //
 // Pure arithmetic over data handed in as an argument. It lives here rather than
 // inside BrowseToolbar.svelte for the reason src/lib/coverflow/slots.ts gives:
@@ -15,12 +24,11 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { ListingEntry } from "$lib/catalog/listing";
 
-/** The three, in the toolbar's order: FEATURED, NEWEST, NAME. */
-export type BrowseSort = "featured" | "newest" | "name";
+/** The two, in the toolbar's order: FEATURED, NAME. */
+export type BrowseSort = "featured" | "name";
 
 export const BROWSE_SORTS: readonly BrowseSort[] = Object.freeze([
   "featured",
-  "newest",
   "name",
 ]);
 
@@ -46,11 +54,13 @@ export const DEFAULT_SORT: BrowseSort = "featured";
  * for one should stop here.
  *
  * index.ts's own comparator is module-private, so this is a RESTATEMENT rather
- * than an import, gated in sort.spec.ts against the byFeatured(), byNewest()
- * and byName() id sequences element for element. Do not reconcile the two by
- * exporting from - or editing - index.ts.
+ * than an import, gated in sort.spec.ts against the byFeatured() and byName()
+ * id sequences element for element. Do not reconcile the two by exporting from
+ * - or editing - index.ts. byNewest() still ships in index.ts and is still
+ * gated by catalog.spec.ts: what D-11 retired is the browse ORDER, not the
+ * catalog's own date helper.
  *
- * THE ID TIE-BREAK IS WHAT MAKES ALL THREE ORDERS TOTAL. Two entries sharing a
+ * THE ID TIE-BREAK IS WHAT MAKES BOTH ORDERS TOTAL. Two entries sharing a
  * name would otherwise compare 0 and Array.prototype.sort's stability, not this
  * function, would be deciding the page. Ids are unique by construction, so the
  * last three lines cannot themselves tie.
@@ -66,19 +76,13 @@ const byNameThenId = (a: ListingEntry, b: ListingEntry): number => {
 /**
  * D-10 as amended: featured first, then name. Agrees with catalog byFeatured().
  *
- * `addedAt` is deliberately NOT a tie-break inside the featured group. Only two
- * distinct dates exist across the sixteen, so a date tie-break there would be a
- * coin toss dressed as an order.
+ * `addedAt` is deliberately NOT a tie-break inside the featured group, and
+ * since D-11 it is not on a ListingEntry at all: three distinct dates over
+ * thirty-six entries with twenty of them sharing one, so a date tie-break here
+ * would have been a coin toss dressed as an order.
  */
 export const featuredOrder = (a: ListingEntry, b: ListingEntry): number =>
   Number(b.featured) - Number(a.featured) || byNameThenId(a, b);
-
-/** D-10 as amended: addedAt descending, then name. Agrees with byNewest(). */
-export const newestOrder = (a: ListingEntry, b: ListingEntry): number => {
-  if (a.addedAt < b.addedAt) return 1;
-  if (a.addedAt > b.addedAt) return -1;
-  return byNameThenId(a, b);
-};
 
 /** Name ascending. Agrees with byName(). */
 export const nameOrder = byNameThenId;
@@ -88,7 +92,6 @@ export function orderFor(
   sort: BrowseSort,
 ): (a: ListingEntry, b: ListingEntry) => number {
   if (sort === "featured") return featuredOrder;
-  if (sort === "newest") return newestOrder;
   return nameOrder;
 }
 
