@@ -1,4 +1,4 @@
-// The browse address: `/browse/?sort=newest&q=ghost&tag=gestural&tag=generative`.
+// The browse address: `/browse/?sort=name&q=ghost&for=drums&feels=generative`.
 //
 // Two pure functions and a default. The page that uses them arrives in wave 8;
 // this is the half that can be tested in node, and D-16 is mostly a statement
@@ -36,11 +36,17 @@
 //     pathname carrying a search string, so the call is lint-clean under
 //     `svelte/no-navigation-without-resolve` with no suppression and no cast.
 //
+// FOUR, SINCE G-10: the legacy `?tag=` parameter is read for one release and
+// an unmapped value lands in `q` rather than on the floor. The paragraph at
+// parseBrowseQuery says which way each case goes and why it is not the same
+// ruling W-12 makes for the two new parameters.
+//
 // IT IMPORTS ONE THING. No catalog, no `$app`, nothing under the vendor tree,
 // nothing that reaches the compile surface: `/browse/` is a prerendered page
 // whose whole job is to list sixteen names, and a runtime edge from here to
 // `$lib/catalog/index` would drag the 131,101-byte protocol chunk onto its first
-// paint (D-12). The tag vocabulary therefore arrives as an ARGUMENT.
+// paint (D-12). The facet vocabulary AND the legacy table therefore arrive as
+// an ARGUMENT - one object, so adding the legacy half cost no specifier.
 // `query.spec.ts` scans this file with its comments removed and fails on a
 // second specifier or on any of those names appearing in code. The names in
 // this header are prose, deliberately, so that scan cannot pass vacuously.
@@ -52,8 +58,25 @@ import { BROWSE_SORTS, DEFAULT_SORT, type BrowseSort } from "./sort";
 export type BrowseQuery = {
   readonly sort: BrowseSort;
   readonly q: string;
-  /** In activation order. Repeated once per tag in the address. */
-  readonly tags: readonly string[];
+  /** Active `FOR` chips, in activation order. One `for` each in the address. */
+  readonly for: readonly string[];
+  /** Active `FEELS` chips, in activation order. One `feels` each. */
+  readonly feels: readonly string[];
+};
+
+/**
+ * The closed vocabulary and the legacy table, handed in rather than imported.
+ *
+ * `legacy` is a table over every tag the site ever shipped: a value is the facet
+ * term the old word became, or `undefined` for a word that shipped and has no
+ * honest home now. A key that is ABSENT is a word that was never a tag at all,
+ * which is a different thing and is treated differently below. The declaration
+ * lives beside the facets; this module only reads it.
+ */
+export type BrowseVocabulary = {
+  readonly for: readonly string[];
+  readonly feels: readonly string[];
+  readonly legacy: Readonly<Record<string, string | undefined>>;
 };
 
 /**
@@ -64,28 +87,67 @@ export type BrowseQuery = {
 export const DEFAULT_QUERY: BrowseQuery = Object.freeze({
   sort: DEFAULT_SORT,
   q: "",
-  tags: Object.freeze([]) as readonly string[],
+  for: Object.freeze([]) as readonly string[],
+  feels: Object.freeze([]) as readonly string[],
 });
 
 /**
  * Read a browse view out of an address.
  *
- * `known` is the catalog's tag vocabulary, passed in so this module never
- * imports the listing. An unknown tag is DROPPED SILENTLY and renders no chip
- * (W-12): unlike a tuning stamp the visitor did not author it, there is nothing
- * for them to do about it, and the count line already tells the truth.
+ * `vocabulary` is the closed sixteen and the legacy table, passed in so this
+ * module never imports the facets.
  *
- * Dropping is not cosmetic. `filterListing` deliberately does NOT drop an
- * unknown tag - it intersects to nothing - so a tag that survived parsing would
- * open the page on an empty grid. This function is the one place that rule
- * lives, which is why `filter.ts` needs no notion of a vocabulary at all.
+ * W-12, AND ITS G-10 AMENDMENT. The original paragraph stands for the two new
+ * parameters and is quoted here rather than rewritten from memory:
+ *
+ *   "An unknown tag is DROPPED SILENTLY and renders no chip. Unlike a tuning
+ *   stamp the visitor did not author it, there is nothing for them to do about
+ *   it, and the count line already tells the truth. Dropping is not cosmetic:
+ *   filterListing deliberately does NOT drop an unknown term - it intersects to
+ *   nothing - so a term that survived parsing would open the page on an empty
+ *   grid."
+ *
+ * That is still exactly right for an unknown `?for=` or `?feels=`: those are
+ * words nobody ever shipped, so no link can honestly carry one. It is WRONG for
+ * the legacy `?tag=`, and that is what G-10 amends. The site really did ship
+ * fifty-five tags, twenty-seven of them on exactly one entry, and a singleton
+ * tag is what somebody sends when they mean THIS ONE CARD. Dropping those would
+ * break precisely the links most likely to exist.
+ *
+ * So `?tag=` is read for one release, and the value decides its own fate:
+ *
+ *   MAPPED    - the old word has a facet term. It becomes that chip.
+ *   SHIPPED,
+ *   UNMAPPED  - the word is a key of the legacy table with no term. It becomes
+ *               the SEARCH QUERY, which is where the singletons always lived
+ *               anyway: they are searchable text on the card, and 05.1 already
+ *               argued that a tag filtering the shelf down to one card is a
+ *               thing the search field does better. `?tag=looper` lands as
+ *               `?q=looper`, and the visitor gets a control they can see and
+ *               clear - the job the outsider chip used to do.
+ *   NEVER A
+ *   TAG       - the word is not a key at all. Dropped, under W-12 unamended:
+ *               no link this site ever produced can name it, so it is somebody
+ *               else's parameter value rather than a stale address of ours.
+ *
+ * THE PRECEDENCE, WHICH THE SPEC LEFT OPEN. An explicit `?q=` always wins: a
+ * value the visitor typed outranks one inferred from a retired word. An unmapped
+ * tag becomes `q` only when `q` is empty. Two unmapped tags join with a single
+ * space, in ADDRESS order, because the address is the only order that exists on
+ * the reading side. It is never an error, never a 404 and never a message: a
+ * stale shared link should land on a working catalog, not on an apology.
  *
  * An unknown `sort` falls back to the default for the same reason: a link
- * carrying a sort nobody ships opens on the catalog rather than on an error.
+ * carrying a sort nobody ships - `?sort=newest`, for one release the commonest
+ * of them - opens on the catalog rather than on an error.
  *
- * A repeated tag is one tag. The address is a projection of a SET of active
+ * A repeated term is one term. The address is a projection of a SET of active
  * chips whose order happens to be meaningful; the same chip twice is still one
  * chip, and reproducing it would render a duplicate control.
+ *
+ * THE WALK IS OVER THE ADDRESS IN ORDER, not three getAll() passes, so a mapped
+ * legacy value and an explicit `?feels=` interleave in the sequence the address
+ * actually carries rather than in the order this function happens to look.
  *
  * `q` is trimmed here and only here. The serialiser writes what it is given, so
  * the address a visitor is mid-keystroke in is written verbatim; the trim
@@ -95,21 +157,40 @@ export const DEFAULT_QUERY: BrowseQuery = Object.freeze({
  */
 export function parseBrowseQuery(
   params: URLSearchParams,
-  known: readonly string[],
+  vocabulary: BrowseVocabulary,
 ): BrowseQuery {
   const raw = params.get("sort");
   const sort =
     BROWSE_SORTS.find((candidate) => candidate === raw) ?? DEFAULT_SORT;
-  const q = (params.get("q") ?? "").trim();
+  const typed = (params.get("q") ?? "").trim();
 
-  const vocabulary = new Set(known);
-  const tags: string[] = [];
-  for (const tag of params.getAll("tag")) {
-    if (!vocabulary.has(tag) || tags.includes(tag)) continue;
-    tags.push(tag);
+  const forTerms: string[] = [];
+  const feelsTerms: string[] = [];
+  const strays: string[] = [];
+
+  const activate = (term: string): void => {
+    if (vocabulary.for.includes(term)) {
+      if (!forTerms.includes(term)) forTerms.push(term);
+      return;
+    }
+    if (vocabulary.feels.includes(term) && !feelsTerms.includes(term)) {
+      feelsTerms.push(term);
+    }
+  };
+
+  for (const [key, value] of params) {
+    if (key === "for" && vocabulary.for.includes(value)) activate(value);
+    else if (key === "feels" && vocabulary.feels.includes(value)) {
+      activate(value);
+    } else if (key === "tag" && value in vocabulary.legacy) {
+      const mapped = vocabulary.legacy[value];
+      if (mapped === undefined) strays.push(value);
+      else activate(mapped);
+    }
   }
 
-  return { sort, q, tags };
+  const q = typed !== "" ? typed : strays.join(" ");
+  return { sort, q, for: forTerms, feels: feelsTerms };
 }
 
 /**
@@ -119,10 +200,17 @@ export function parseBrowseQuery(
  * canonical entry and clearing every filter returns to it rather than leaving
  * `?sort=featured&q=` behind. The caller writes `?` only when this is non-empty.
  *
- * The order is the one 05.1-UI-SPEC.md prints: `sort`, then `q`, then one `tag`
- * per active tag IN ACTIVATION ORDER. Activation order rather than a canonical
- * one because chips are individually removable - the address has to reproduce
- * the sequence the visitor built, or a shared link comes back rearranged.
+ * The order is 05.1-UI-SPEC.md's, with G-10's two parameters in place of its
+ * one: `sort`, then `q`, then one `for` per active `FOR` chip and one `feels`
+ * per active `FEELS` chip, each IN ACTIVATION ORDER. Activation order rather
+ * than a canonical one because chips are individually removable - the address
+ * has to reproduce the sequence the visitor built, or a shared link comes back
+ * rearranged.
+ *
+ * IT NEVER WRITES `tag` AGAIN. The legacy parameter is READ-ONLY for its one
+ * release: an address a visitor builds is always the new shape, so the old one
+ * can only ever arrive from outside and can be retired by deleting a branch
+ * rather than by waiting for the last chip press to stop producing it.
  *
  * `URLSearchParams.toString()` does the encoding, which is the entire reason
  * this function does not build the string by hand: a query of `a&b=c#d` has to
@@ -132,6 +220,7 @@ export function serialiseBrowseQuery(query: BrowseQuery): string {
   const params = new URLSearchParams();
   if (query.sort !== DEFAULT_SORT) params.set("sort", query.sort);
   if (query.q !== "") params.set("q", query.q);
-  for (const tag of query.tags) params.append("tag", tag);
+  for (const term of query.for) params.append("for", term);
+  for (const term of query.feels) params.append("feels", term);
   return params.toString();
 }

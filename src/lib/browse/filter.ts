@@ -1,5 +1,13 @@
-// The browse search and the tag chips: folding, matching, intersection, and the
-// standing chip row derived from the catalog rather than declared beside it.
+// The browse search and the two facets: folding, matching, and the OR-within /
+// AND-across predicate the chips combine by.
+//
+// THE DERIVED CHIP ROW LEFT THIS FILE IN 10-07 (G-09). chipTags() computed
+// "every tag two or more entries carry, count descending"; the row is now the
+// facet members declared in ./facets.ts, so there is nothing to derive and
+// nothing that can drift as the catalog grows. filter.spec.ts asserted the two
+// were the same sixteen words on the shipped data before the deletion, which is
+// what made it a replacement rather than a change. disabledTags() below did NOT
+// go with it; its predicate narrowed instead.
 //
 // Pure functions over data handed in as an argument, for the same reason
 // sort.ts and src/lib/coverflow/slots.ts are: this repository collects no
@@ -68,38 +76,58 @@ export function matches(entry: ListingEntry, query: string): boolean {
   return terms.every((term) => hay.includes(term));
 }
 
+/** The active chips, one list per facet. Either may be empty. */
+export type ActiveFacets = {
+  readonly for: readonly string[];
+  readonly feels: readonly string[];
+};
+
+/** Nothing pressed. Frozen, because it is handed out as a shared default. */
+export const NO_FACETS: ActiveFacets = Object.freeze({
+  for: Object.freeze([]) as readonly string[],
+  feels: Object.freeze([]) as readonly string[],
+});
+
 /**
- * The search and the tag intersection in one pass. Always a new array.
+ * The search and the facet predicate in one pass. Always a new array.
  *
- * ACTIVE TAGS COMBINE WITH AND (05.1-UI-SPEC.md W-04). Union was considered and
- * rejected in the approved spec: at the time, 32 of the 41 tags sat on exactly
- * one entry, so a union would make a second chip ADD one card to the grid,
- * which reads as a bug rather than as a filter. An unknown tag is not dropped
- * here - it simply intersects to nothing, and the query parser is what drops
- * one it does not know (see allTags).
+ * OR WITHIN A FACET, AND ACROSS FACETS. This is 05.1-UI-SPEC.md W-04's
+ * "active tags combine with AND" as amended by A-19, and the paragraph W-04
+ * gave for AND is kept here rather than deleted, because it was RIGHT about the
+ * data it was written against: at the time 32 of the 41 tags sat on exactly one
+ * entry, so a union would have made a second chip ADD one card to the grid,
+ * which reads as a bug rather than as a filter. D-10 re-cut the vocabulary and
+ * the argument inverted with it. Under the closed sixteen `FOR` gives every
+ * entry EXACTLY ONE term, so under a pure AND any second `FOR` chip would
+ * return zero and immediately disable itself - and a facet whose second click
+ * is always dead is not a facet.
  *
- * AMENDED BY 10-06 (D-10), AND THE AMENDMENT IS 10-07'S TO WIRE. The vocabulary
- * is now sixteen closed terms in two facets, and the rule becomes: OR within a
- * facet, AND across facets. That is required rather than conventional - `FOR`
- * gives every entry exactly one term, so under a pure AND the second `FOR` chip
- * would always return zero and disable itself. The replacement predicate is
- * matchesFacets() in ./facets.ts and it is already written and tested; this
- * function is unchanged and still the one the toolbar calls, until 10-07.
+ * A TERM NOBODY CARRIES IS NOT DROPPED HERE - it simply contributes nothing to
+ * its facet's OR, and if it is the only term in that facet the facet returns
+ * nothing. The query parser is what drops one it does not know.
+ *
+ * THE PREDICATE IS A RESTATEMENT OF matchesFacets() IN ./facets.ts, NOT AN
+ * IMPORT, and the reason is the same one sort.ts gives for restating nameAsc:
+ * this file is scanned by filter.spec.ts and may carry exactly one specifier,
+ * an `import type`. Restating three lines is cheaper than widening a scan that
+ * exists to keep the browse page's first paint free of the 131,101-byte
+ * compiler chunk. A restatement with no gate is a divergence waiting to happen,
+ * so filter.spec.ts runs this function and matchesFacets() over every entry and
+ * every selection it tests and asserts they agree entry by entry.
  */
 export function filterListing(
   entries: readonly ListingEntry[],
   query: string,
-  tags: readonly string[],
+  active: ActiveFacets,
 ): readonly ListingEntry[] {
+  const anyOf = (entry: ListingEntry, terms: readonly string[]) =>
+    terms.length === 0 || terms.some((term) => entry.tags.includes(term));
   return entries.filter(
     (entry) =>
-      tags.every((tag) => entry.tags.includes(tag)) && matches(entry, query),
+      anyOf(entry, active.for) &&
+      anyOf(entry, active.feels) &&
+      matches(entry, query),
   );
-}
-
-/** How many listed entries carry a tag. */
-function countOf(entries: readonly ListingEntry[], tag: string): number {
-  return entries.filter((entry) => entry.tags.includes(tag)).length;
 }
 
 /** Name ascending, by code point - the same comparison the NAME sort uses. */
@@ -117,69 +145,46 @@ export function allTags(entries: readonly ListingEntry[]): readonly string[] {
 }
 
 /**
- * DEPRECATED BY 10-06 (D-10, G-09), AND DELETED BY 10-07 WITH THE TOOLBAR THAT
- * CALLS IT. Do not add a caller.
+ * The candidates in one facet's row that would return zero, so the toolbar can
+ * render them as real disabled checkboxes (05.1-UI-SPEC W-04) with no adjacent
+ * reason line - the cause is the active chips two centimetres away.
  *
- * The rule it implements is retired and replaced by name: "chips are the tags
- * carried by two or more entries" becomes "CHIPS ARE THE FACET MEMBERS". The
- * vocabulary is closed at sixteen in ./facets.ts and is not derived from
- * counts, so the row cannot drift as the catalog grows and no entry can move it
- * by arriving. On today's data the two agree exactly - filter.spec.ts test 5
- * asserts the derived row and the declared facets are the same sixteen words,
- * which is the evidence that 10-07's deletion is a replacement rather than a
- * change. The OUTSIDER CHIP in BrowseToolbar.svelte goes at the same time and
- * for the same reason: no active facet member can fall outside a standing row
- * that IS the facet. disabledTags() below is NOT deprecated and stays.
+ * THE PREDICATE NARROWED IN 10-07 AND THE FUNCTION SURVIVED. It used to ask
+ * "would adding this tag to the active set empty the grid". Under OR-within /
+ * AND-across that question is wrong twice over: adding a term to its OWN facet
+ * can only ever WIDEN the result, so a chip beside an active sibling would
+ * never disable, and a chip in the other facet has to be judged against that
+ * other facet alone. The question is now "would this term, ALONE in its own
+ * facet, return zero given the OTHER facet's active set and the query" - which
+ * is why the caller says which row it is asking about instead of the function
+ * guessing from the term.
  *
- * D-15: the standing chip row is every tag carried by TWO OR MORE entries,
- * count descending then name ascending.
+ * That makes it RARE rather than common, which is the honest consequence of a
+ * closed vocabulary: with nothing active every chip is live by construction,
+ * and it takes a real cross-facet emptiness - `FEELS: playable, generative`
+ * leaves `FOR: mixing`, `shortcuts` and `pointing` on zero entries - to fire.
+ * Rare is not never, and a rule that fires rarely is exactly the one a visitor
+ * has no other way of learning.
  *
- * DERIVED, never declared. Most of the vocabulary sits on exactly one entry and
- * stays reachable through the search field, which does that job better than a
- * chip that filters the whole catalog down to one card. Deriving the row means
- * it stays right as the catalog grows, and filter.spec.ts's RECORDED block
- * asserts today's row by name so a data change is visible rather than silent.
- * The census itself lives THERE and is deliberately not restated here: a count
- * in a comment is the thing that teaches the next reader the wrong number.
- */
-export function chipTags(entries: readonly ListingEntry[]): readonly string[] {
-  return allTags(entries)
-    .filter((tag) => countOf(entries, tag) >= 2)
-    .sort((a, b) => countOf(entries, b) - countOf(entries, a) || nameAsc(a, b));
-}
-
-/**
- * The candidates that would return zero given the active set and the query, so
- * the toolbar can render them as real disabled checkboxes (UI-SPEC W-04) with
- * no adjacent reason line - the cause is the active chips two centimetres away.
+ * An already-active candidate is judged by the same question as any other, so
+ * an active chip is reported disabled only if it genuinely returns nothing -
+ * never merely because it is already on.
  *
- * An already-active candidate is tested against the CURRENT set rather than
- * against itself twice, so an active chip is never reported as its own
- * disabled chip.
- *
- * There is no special case for "nothing active": with an empty active set and
- * an empty query every chip has at least two entries by construction, so the
- * empty result falls out of the derivation instead of being asserted on top of
- * it. When a query alone empties a chip the chip is still reported, and that is
+ * When a QUERY alone empties a chip the chip is still reported, and that is
  * deliberate - a click that cannot change the grid should not look live.
- *
- * 10-06 (D-10) LEAVES THIS FUNCTION ALONE, on purpose and by name. It is pure,
- * it is pinned in node, and it is what turns a chip that would empty the grid
- * into a real `disabled` checkbox without printing a number beside the word -
- * so it survives the closed vocabulary intact. What changes is only how OFTEN
- * it fires: under OR-within / AND-across a chip is disabled only when it would
- * return zero given the OTHER facet's active set, which makes it rare rather
- * than common. That narrowing arrives with the predicate in 10-07; here the
- * behaviour is unchanged and asserted unchanged against the new sixteen.
  */
 export function disabledTags(
   entries: readonly ListingEntry[],
   query: string,
-  active: readonly string[],
+  active: ActiveFacets,
+  facet: "for" | "feels",
   candidates: readonly string[],
 ): readonly string[] {
-  return candidates.filter((tag) => {
-    const wanted = active.includes(tag) ? active : [...active, tag];
+  return candidates.filter((term) => {
+    const wanted: ActiveFacets =
+      facet === "for"
+        ? { for: [term], feels: active.feels }
+        : { for: active.for, feels: [term] };
     return filterListing(entries, query, wanted).length === 0;
   });
 }

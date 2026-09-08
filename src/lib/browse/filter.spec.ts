@@ -1,4 +1,4 @@
-// The browse search and the tag intersection, pinned against the shipped data.
+// The browse search and the two facets, pinned against the shipped data.
 //
 // Three things here are contracts rather than implementation details, and each
 // has its own test:
@@ -8,19 +8,17 @@
 //         query language (test 3).
 //   W-04  active chips INTERSECT. Union was considered and rejected in the
 //         approved spec: most tags sat on exactly one entry, so a union would
-//         make a second chip ADD one card, which reads as a bug (test 4).
-//         AMENDED BY 10-06 (D-10), and the amendment is 10-07's to wire: within
-//         a facet chips are OR, across facets they are AND - see
-//         matchesFacets() in ./facets.ts and the reason written above it. What
-//         filterListing() does is unchanged in this plan and asserted here
-//         unchanged; the two predicates coexist until 10-07 retires one.
+//         make a second chip ADD one card, which reads as a bug. RETIRED AND
+//         REPLACED BY NAME IN 10-07 (A-19): within a facet chips are OR, across
+//         facets they are AND (test 4). The old rule was right about the data it
+//         was written against and wrong about the closed sixteen, where `FOR`
+//         gives every entry exactly one term - so a second `FOR` chip under a
+//         pure AND would return zero and disable itself for ever.
 //   D-15  the standing chip row is every tag carried by two or more entries -
-//         DERIVED from the data (test 5). RETIRED BY 10-06 (G-09), and
-//         replaced by name: CHIPS ARE THE FACET MEMBERS. The vocabulary is
-//         closed at sixteen in ./facets.ts and is not derived from counts, so
-//         the row cannot drift as the catalog grows and no entry can move it by
-//         arriving. chipTags() still computes the old row and this test still
-//         pins it, because the toolbar still calls it; both go in 10-07.
+//         DERIVED from the data. RETIRED BY 10-06 (G-09) and DELETED IN 10-07
+//         with chipTags() itself: CHIPS ARE THE FACET MEMBERS. Test 5 now holds
+//         the declared row against the data instead of a derivation against a
+//         declaration, which is the shape a closed vocabulary wants.
 //
 // DERIVED, OR RECORDED. The rule that decides every number in this file:
 //
@@ -29,24 +27,25 @@
 //   that changing it is a decision somebody made rather than a test somebody
 //   silenced.
 //
-// So the id lists, the per-tag expectations and the disabled row are computed
+// So the id lists, the per-term expectations and the disabled row are computed
 // from LISTING with the same predicate the module is being asked about, and the
-// census - how many entries, how many tags, how many singletons, and which
-// chips stand - lives in RECORDED and nowhere else.
+// census - how many entries, how many terms, how many singletons and how many
+// entries carry each - lives in RECORDED and nowhere else.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { LISTING } from "$lib/catalog/listing";
-import { FEELS_TERMS, FOR_TERMS } from "./facets";
+import { FEELS_TERMS, FOR_TERMS, matchesFacets } from "./facets";
 import {
   allTags,
-  chipTags,
   disabledTags,
   filterListing,
   fold,
   matches,
+  NO_FACETS,
+  type ActiveFacets,
 } from "./filter";
 
 const SOURCE_PATH = fileURLToPath(new URL("./filter.ts", import.meta.url));
@@ -62,9 +61,34 @@ const byId = (id: string) => {
   return entry;
 };
 
-/** The ids carrying a tag, in listing order - the tag predicate, restated. */
+/** The ids carrying a term, in listing order - the predicate, restated. */
 const carrying = (tag: string) =>
   LISTING.filter((e) => e.tags.includes(tag)).map((e) => e.id);
+
+/** A selection, spelled out, so a test never has to name an empty facet. */
+const active = (
+  forTerms: readonly string[] = [],
+  feelsTerms: readonly string[] = [],
+): ActiveFacets => ({ for: forTerms, feels: feelsTerms });
+
+/**
+ * THE GATE OVER THE RESTATEMENT. filterListing() restates matchesFacets()
+ * rather than importing it, because filter.ts may carry exactly one specifier
+ * and it is an `import type` (test 1). A restatement with no gate is a
+ * divergence waiting to happen, so every selection this file tests is run
+ * through BOTH and asserted to agree entry by entry.
+ */
+const agreesWithFacets = (selection: ActiveFacets, query = "") => {
+  const fromFilter = ids(filterListing(LISTING, query, selection));
+  const fromFacets = LISTING.filter(
+    (e) => matchesFacets(e, selection) && matches(e, query),
+  ).map((e) => e.id);
+  expect(
+    fromFilter,
+    `filterListing and matchesFacets disagree on for=[${selection.for}] feels=[${selection.feels}] q="${query}"`,
+  ).toEqual(fromFacets);
+  return fromFilter;
+};
 
 /**
  * The search predicate written out HERE rather than imported, so that agreeing
@@ -81,69 +105,65 @@ const search = (query: string) =>
   }).map((e) => e.id);
 
 /**
- * TODAY'S TAG CENSUS, RECORDED ON PURPOSE.
+ * TODAY'S VOCABULARY CENSUS, RECORDED ON PURPOSE.
  *
- * Derived facts - a chip is a tag two or more entries carry, count descending
- * then name ascending (filter.ts) - are asserted as rules below and need no
- * maintenance. These four are a REVIEW: they say what the vocabulary currently
- * looks like, so a wave that changes it sees the row it moved and decides
- * whether it likes it. A wave updates this block; it never deletes an assertion
- * against it.
+ * Derived facts - what a term selects, what two of them select together - are
+ * asserted as rules below and need no maintenance. These are a REVIEW: they say
+ * what the vocabulary currently looks like, so a wave that changes it sees what
+ * it moved and decides whether it likes it. A wave updates this block; it never
+ * deletes an assertion against it.
  *
- * 10-06 (D-10), 2026-09-08: THE DERIVATION IS RETIRED AND REPLACED BY NAME.
+ * 10-06 (D-10) RETIRED THE DERIVATION AND 10-07 (G-09) DELETED IT.
  *
  *   was  "chips are the tags carried by two or more entries"
- *   is   "chips are the facet members"                              (G-09)
+ *   is   "chips are the facet members"
  *
- * The vocabulary is CLOSED at sixteen and DECLARED in ./facets.ts - ten `FOR`
- * terms and six `FEELS`, exactly three on every entry - so it is no longer
- * derived from counts, does not drift as the catalog grows, and no entry can
- * move the row by arriving. The `chips` and `chipCounts` arrays below therefore
- * stop being a census of what happened and become a restatement of a declared
- * list, which is why they retire in 10-07 with the toolbar that calls
- * chipTags(). They are re-recorded here rather than deleted so that this
- * commit's data change is visible in one diff.
+ * So `chips` and `chipCounts` are gone from this block with chipTags() itself.
+ * They were a census of a derivation's output; there is no derivation left, and
+ * restating FOR_TERMS and FEELS_TERMS here would be a second declaration of the
+ * row rather than a review of the data. What replaces them is `counts` - how
+ * many entries carry each of the sixteen - which is a fact ABOUT THE DATA and
+ * is exactly what a wave that lands an entry needs to look at.
  *
  * `singletons` IS ZERO, AND IT IS ASSERTED RATHER THAN OMITTED. It was 27 of
  * 55 - three quarters of the vocabulary matching a single card each, which is
  * what D-10 was raised about. Zero is the whole point of a closed vocabulary,
- * and an omitted zero is how a closed vocabulary quietly reopens: a wave that
- * coined one word would move `tags` and nothing would say the row had grown a
- * term that matches one card.
+ * and an omitted zero is how a closed vocabulary quietly reopens.
  *
  * Re-recorded by: 08-06 (sixteen entries), then 09-03 (nineteen), then 09-04
  * (twenty-two), then 09-05 (twenty-five), then 09-06 (twenty-eight), then 09-07
  * (thirty-one), then 09-08 (thirty-four), then 09-09 (thirty-six) - which was
  * the last entry wave of phase 09 and the finished OPEN vocabulary - then
- * 10-06, which re-cut all thirty-six entries from 55 terms to 16.
+ * 10-06, which re-cut all thirty-six entries from 55 terms to 16, then 10-07,
+ * which deleted the derivation the old shape of this block described.
  *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
- * "The tag chips", quoted the row and its counts verbatim. 10-06 amends that
+ * "The tag chips", quoted the row and its counts verbatim. 10-06 amended that
  * document by name rather than restating the new row there.
  */
 const RECORDED = {
   entries: 36,
   tags: 16,
   singletons: 0,
-  chips: [
-    "readable",
-    "expressive",
-    "generative",
-    "playable",
-    "modulation",
-    "precise",
-    "still",
-    "show",
-    "keys",
-    "mixing",
-    "play",
-    "pointing",
-    "sequencing",
-    "shortcuts",
-    "clips",
-    "drums",
-  ] as const,
-  chipCounts: [16, 14, 13, 13, 9, 8, 8, 5, 3, 3, 3, 3, 3, 3, 2, 2] as const,
+  /** Keyed by term, in FOR order then FEELS order - the toolbar's own order. */
+  counts: {
+    modulation: 9,
+    show: 5,
+    keys: 3,
+    mixing: 3,
+    sequencing: 3,
+    shortcuts: 3,
+    pointing: 3,
+    play: 3,
+    drums: 2,
+    clips: 2,
+    readable: 16,
+    expressive: 14,
+    playable: 13,
+    generative: 13,
+    precise: 8,
+    still: 8,
+  } as Readonly<Record<string, number>>,
 } as const;
 
 describe("the browse filter (src/lib/browse/filter.ts)", () => {
@@ -284,7 +304,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       "$tag:drums is a literal and matches nothing",
     ).toEqual([]);
     expect(
-      ids(filterListing(LISTING, "$tag:drums", [])),
+      ids(filterListing(LISTING, "$tag:drums", NO_FACETS)),
       "filterListing agrees",
     ).toEqual([]);
 
@@ -294,17 +314,21 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     expect(search("drums").length, "drums alone finds entries").toBeGreaterThan(
       1,
     );
-    expect(ids(filterListing(LISTING, "drums", [])), "drums alone").toEqual(
-      search("drums"),
-    );
+    expect(
+      ids(filterListing(LISTING, "drums", NO_FACETS)),
+      "drums alone",
+    ).toEqual(search("drums"));
   });
 
-  it("combines active tags with AND, and an unknown tag returns nothing", () => {
-    // "playable" replaces "gestural", which D-10 retired: its six carriers
-    // scattered across the new vocabulary, so LEGACY_TAG_MAP sends it nowhere.
-    const generative = ids(filterListing(LISTING, "", ["generative"]));
-    const playable = ids(filterListing(LISTING, "", ["playable"]));
-    const both = ids(filterListing(LISTING, "", ["generative", "playable"]));
+  it("ORs within a facet and ANDs across them, and an unknown term returns nothing", () => {
+    // A-19, AND IT IS AN INVERSION RATHER THAN AN EXTENSION. W-04 said two
+    // chips INTERSECT and this test asserted `both.length <= min(either)`.
+    // Under the closed sixteen the two chips it used - `playable` and
+    // `generative` - are both FEELS terms, so pressing both is a UNION and
+    // every one of those assertions inverts. The old direction is kept as the
+    // cross-facet half below, where it is still true.
+    const generative = agreesWithFacets(active([], ["generative"]));
+    const playable = agreesWithFacets(active([], ["playable"]));
 
     // Each chip returns exactly the entries carrying it - derived, with a floor
     // beside it so a predicate that returned everything could not pass.
@@ -319,160 +343,231 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     ).toBeGreaterThan(1);
     expect(playable, "the playable chip").toEqual(carrying("playable"));
 
-    // The intersection is never LARGER than either. A union would be their sum
-    // less the overlap - larger than either - which is the mutation this
-    // assertion exists to catch. It is <=, not <, because a growing catalog may
-    // legitimately empty one particular pair; the property that keeps the rule
-    // observed on real data is the one below it.
-    expect(both, "two chips intersect").toEqual(
-      carrying("generative").filter((id) => carrying("playable").includes(id)),
-    );
-    expect(both.length).toBeLessThanOrEqual(
-      Math.min(generative.length, playable.length),
-    );
-
-    const chips = chipTags(LISTING);
-    const intersecting = chips.flatMap((a, i) =>
-      chips
-        .slice(i + 1)
-        .filter((b) => filterListing(LISTING, "", [a, b]).length > 0)
-        .map((b) => `${a}+${b}`),
+    // OR WITHIN A FACET. The union is LARGER than either chip alone, which is
+    // the mutation this assertion exists to catch in the opposite direction
+    // from the one it used to catch: an intersection would be smaller than
+    // either. It is > rather than >=, and it is non-vacuous on the shipped
+    // data because the two chips do not have the same carriers.
+    const union = agreesWithFacets(active([], ["playable", "generative"]));
+    expect(union, "two chips in one facet are a union").toEqual(
+      ids(
+        LISTING.filter(
+          (e) =>
+            carrying("playable").includes(e.id) ||
+            carrying("generative").includes(e.id),
+        ),
+      ),
     );
     expect(
-      intersecting.length,
-      "some pair of standing chips still intersects on the shipped data",
+      union.length,
+      "the union is larger than either chip alone",
+    ).toBeGreaterThan(playable.length);
+    expect(union.length, "and it is not simply the whole shelf").toBeLessThan(
+      LISTING.length,
+    );
+
+    // AND ACROSS FACETS. A FOR chip on top of the two FEELS chips is an
+    // INTERSECTION of the two facets' answers, which is the half of the rule a
+    // union-only test would never see. `modulation` is chosen because it is
+    // one of the FOR terms that is NOT emptied by those two FEELS chips - three
+    // of them are, which is what the disabled row below is about.
+    const across = agreesWithFacets(
+      active(["modulation"], ["playable", "generative"]),
+    );
+    expect(across, "FOR x FEELS is an intersection").toEqual(
+      union.filter((id) => carrying("modulation").includes(id)),
+    );
+    expect(
+      across.length,
+      "the cross-facet press narrows the union rather than widening it",
+    ).toBeLessThan(union.length);
+    expect(
+      across.length,
+      "and it does not empty the grid, or the AND half would be vacuous",
     ).toBeGreaterThan(0);
 
+    // TWO FOR CHIPS ARE A UNION TOO, which is the case that makes the OR rule
+    // REQUIRED rather than conventional: every entry carries exactly one FOR
+    // term, so under a pure AND this would be empty for every pair on the
+    // shelf and the second click in that row would be dead for ever.
+    const twoFor = agreesWithFacets(active(["drums", "keys"]));
+    expect(twoFor.length, "two FOR chips under AND would be zero").toBe(
+      carrying("drums").length + carrying("keys").length,
+    );
     expect(
-      ids(filterListing(LISTING, "", ["nosuchtag"])),
-      "a tag nobody carries shows nothing, never everything",
-    ).toEqual([]);
-    expect(
-      ids(filterListing(LISTING, "", ["drums", "nosuchtag"])),
-      "and it empties an otherwise non-empty set",
+      LISTING.filter(
+        (e) => e.tags.includes("drums") && e.tags.includes("keys"),
+      ),
+      "no entry carries two FOR terms, which is why AND-within is impossible",
     ).toEqual([]);
 
     expect(
-      ids(filterListing(LISTING, "", [])),
-      "no tags and no query is the whole catalog, in listing order",
+      ids(filterListing(LISTING, "", active(["nosuchterm"]))),
+      "a term nobody carries shows nothing, never everything",
+    ).toEqual([]);
+    expect(
+      ids(filterListing(LISTING, "", active(["drums", "nosuchterm"]))),
+      "but inside a facet it is an OR, so it cannot empty a live set",
+    ).toEqual(carrying("drums"));
+
+    expect(
+      ids(filterListing(LISTING, "", NO_FACETS)),
+      "no chips and no query is the whole catalog, in listing order",
     ).toEqual(ids(LISTING));
     expect(
-      ids(filterListing(LISTING, "ghost", [])),
-      "no tags is everything the query allows",
+      ids(filterListing(LISTING, "ghost", NO_FACETS)),
+      "no chips is everything the query allows",
     ).toEqual(["ghost"]);
     expect(
-      ids(filterListing(LISTING, "ghost", ["generative"])),
-      "query and tags are ANDed too",
+      agreesWithFacets(active([], ["generative"]), "ghost"),
+      "query and chips are ANDed too",
     ).toEqual(["ghost"]);
     expect(
-      ids(filterListing(LISTING, "ghost", ["drums"])),
+      agreesWithFacets(active(["drums"]), "ghost"),
       "and they can disagree",
     ).toEqual([]);
 
     // filterListing never hands back the caller's array.
     const input = [...LISTING];
-    expect(filterListing(input, "", [])).not.toBe(input);
+    expect(filterListing(input, "", NO_FACETS)).not.toBe(input);
   });
 
-  it("stands sixteen chips, and every one of them is a facet member", () => {
-    const chips = chipTags(LISTING);
+  it("stands sixteen chips, and every one of them is carried by two or more entries", () => {
+    const row = [...FOR_TERMS, ...FEELS_TERMS];
     const known = allTags(LISTING);
     const count = (tag: string) =>
       LISTING.filter((e) => e.tags.includes(tag)).length;
 
-    expect(known, "the recorded distinct-tag census").toHaveLength(
+    expect(known, "the recorded distinct-term census").toHaveLength(
       RECORDED.tags,
     );
-    expect(chips, "today's standing row, count descending then name").toEqual([
-      ...RECORDED.chips,
-    ]);
-    expect(chips.map(count), "and their counts").toEqual([
-      ...RECORDED.chipCounts,
-    ]);
+    expect(
+      row,
+      "the standing row IS the two facets, in their order",
+    ).toHaveLength(RECORDED.tags);
 
-    // The RULE, not the list: every chip is carried twice or more, and every
-    // excluded tag exactly once. Under the closed vocabulary both halves are
-    // still true and the second is now EMPTY, which is the point rather than a
-    // gap: chipTags()'s two-or-more filter excludes nothing, because no term
-    // matches one entry any more. The loop below runs zero times and the
-    // LENGTH assertion above it is what carries the claim - RECORDED.singletons
-    // is 0 and is asserted rather than omitted.
-    for (const tag of chips) {
-      expect(count(tag), `${tag} is a chip`).toBeGreaterThanOrEqual(2);
-    }
-    const excluded = known.filter((tag) => !chips.includes(tag));
+    // THE ROW AND THE DATA ARE THE SAME SIXTEEN WORDS, in both directions. This
+    // is what chipTags() used to compute and what its deletion replaced: on the
+    // shipped data the retired derivation and the declared vocabulary agreed
+    // exactly, which is why the swap was a replacement rather than a change.
     expect(
-      excluded,
-      "no tag is left out of the row: the vocabulary is closed and every member is a chip",
+      [...row].sort(),
+      "the declared row and the words the catalog carries are the same set",
+    ).toEqual([...known].sort());
+
+    // The counts, recorded. A wave that lands an entry moves one of these and
+    // has to say so.
+    expect(
+      Object.keys(RECORDED.counts),
+      "the recorded counts cover the row, in the row's own order",
+    ).toEqual(row);
+    for (const term of row) {
+      expect(count(term), `${term}: the recorded carrier count`).toBe(
+        RECORDED.counts[term],
+      );
+    }
+
+    // THE RULE, not the list. Every member is carried by two or more entries -
+    // health rule 1 seen from the filter's side - and NO term matches exactly
+    // one card, which is the thing D-10 was raised about and the thing a closed
+    // vocabulary is for. RECORDED.singletons is 0 and is asserted rather than
+    // omitted: an omitted zero is how a closed vocabulary quietly reopens.
+    for (const term of row) {
+      expect(count(term), `${term} is a chip`).toBeGreaterThanOrEqual(2);
+    }
+    const singletons = known.filter((tag) => count(tag) === 1);
+    expect(
+      singletons,
+      "a term matching exactly one card is a thing search does better",
     ).toHaveLength(RECORDED.singletons);
-    for (const tag of excluded) {
-      expect(count(tag), `${tag} is not a chip`).toBe(1);
-    }
-    // The other half of "every facet member is always a chip", said as a set
-    // rather than as a count: the derived row and the declared vocabulary are
-    // the same sixteen words. When 10-07 deletes chipTags() this is the
-    // assertion that will have proved the replacement was equivalent on the
-    // shipped data before it was made.
+    const strangers = known.filter((tag) => !row.includes(tag));
     expect(
-      [...chips].sort(),
-      "the derived row and the declared facets are the same set",
-    ).toEqual([...FOR_TERMS, ...FEELS_TERMS].sort());
-    // And the two recorded counts are a PARTITION of the vocabulary rather than
-    // two numbers that happen to sit near each other: a tag is a chip or a
-    // singleton, never both and never neither.
-    expect(
-      chips.length + excluded.length,
-      "the chips and the singletons account for every known tag",
-    ).toBe(known.length);
+      strangers,
+      "no tag is left out of the row: the vocabulary is closed and every member is a chip",
+    ).toEqual([]);
   });
 
-  it("disables a chip that would return nothing, and disables none when nothing is active", () => {
-    const chips = chipTags(LISTING);
-
+  it("disables a chip that would return nothing given the OTHER facet, and disables none when nothing is active", () => {
     expect(
-      disabledTags(LISTING, "", [], chips),
-      "with nothing active and nothing typed, every chip is live",
+      disabledTags(LISTING, "", NO_FACETS, "for", FOR_TERMS),
+      "with nothing active and nothing typed, every FOR chip is live",
+    ).toEqual([]);
+    expect(
+      disabledTags(LISTING, "", NO_FACETS, "feels", FEELS_TERMS),
+      "with nothing active and nothing typed, every FEELS chip is live",
     ).toEqual([]);
 
-    // The chips that would empty the grid beside drums, DERIVED with the same
-    // question the module answers, in the order the module returns them.
-    const withDrums = disabledTags(LISTING, "", ["drums"], chips);
-    const shouldDisable = chips.filter(
-      (tag) =>
-        filterListing(LISTING, "", tag === "drums" ? ["drums"] : ["drums", tag])
-          .length === 0,
-    );
-    expect(withDrums, "the chips that would return zero beside drums").toEqual(
-      shouldDisable,
-    );
-    // Neither empty nor everything, so the test still says something.
+    // THE NARROWED PREDICATE, AND THE HALF THAT NOW NEVER FIRES. Adding a term
+    // to its OWN facet can only widen the result, so a chip beside an active
+    // sibling is never disabled by it - asserted, because the old predicate
+    // would have disabled most of the row here.
+    const feelsActive = active([], ["playable", "generative"]);
     expect(
-      shouldDisable.length,
-      "some chip is disabled beside drums",
+      disabledTags(LISTING, "", feelsActive, "feels", FEELS_TERMS),
+      "a chip in the SAME facet as an active one can only widen, so none is dead",
+    ).toEqual([]);
+
+    // AND THE HALF THAT DOES. Judged against the other facet's active set, the
+    // FOR terms no `playable` or `generative` entry carries are real disabled
+    // checkboxes. DERIVED with the same question the module answers, in the
+    // order the module returns them.
+    const blocked = disabledTags(LISTING, "", feelsActive, "for", FOR_TERMS);
+    const shouldBlock = FOR_TERMS.filter(
+      (term) =>
+        filterListing(LISTING, "", {
+          for: [term],
+          feels: feelsActive.feels,
+        }).length === 0,
+    );
+    expect(
+      blocked,
+      "the FOR chips that would return zero beside playable and generative",
+    ).toEqual(shouldBlock);
+    // Neither empty nor everything, so the test still says something. This is
+    // what "rare rather than common" looks like on the shipped data.
+    expect(
+      blocked.length,
+      "some FOR chip is dead beside those two FEELS chips - if none is, the narrowing has made this rule vacuous rather than rare",
     ).toBeGreaterThan(0);
-    expect(
-      shouldDisable.length,
-      "and not every chip is disabled beside drums",
-    ).toBeLessThan(chips.length);
-    expect(
-      withDrums,
-      "an active chip is never its own disabled chip",
-    ).not.toContain("drums");
-    expect(
-      withDrums,
-      "playable survives - the drum entries carry it too",
-    ).not.toContain("playable");
+    expect(blocked.length, "and not every FOR chip is dead").toBeLessThan(
+      FOR_TERMS.length,
+    );
 
     // Every reported chip really is empty, and every unreported one really is
     // not: the guard against a list that is right by luck.
-    for (const tag of chips) {
-      const wanted = tag === "drums" ? ["drums"] : ["drums", tag];
-      const size = filterListing(LISTING, "", wanted).length;
-      if (withDrums.includes(tag)) {
-        expect(size, `${tag} was reported disabled`).toBe(0);
+    for (const term of FOR_TERMS) {
+      const size = filterListing(LISTING, "", {
+        for: [term],
+        feels: feelsActive.feels,
+      }).length;
+      if (blocked.includes(term)) {
+        expect(size, `${term} was reported disabled`).toBe(0);
       } else {
-        expect(size, `${tag} was reported live`).toBeGreaterThan(0);
+        expect(size, `${term} was reported live`).toBeGreaterThan(0);
       }
     }
+
+    // AN ACTIVE CHIP IS JUDGED BY THE SAME QUESTION AS ANY OTHER, so it is
+    // never reported disabled merely for being on.
+    const forActive = active(["drums"], []);
+    expect(
+      disabledTags(LISTING, "", forActive, "for", FOR_TERMS),
+      "an active chip is never its own disabled chip",
+    ).not.toContain("drums");
+    expect(
+      disabledTags(LISTING, "", forActive, "feels", FEELS_TERMS),
+      "playable survives - the drum entries carry it too",
+    ).not.toContain("playable");
+
+    // A QUERY ALONE CAN EMPTY A CHIP, and the chip is still reported: a click
+    // that cannot change the grid should not look live.
+    const byQuery = disabledTags(LISTING, "ghost", NO_FACETS, "for", FOR_TERMS);
+    expect(
+      byQuery.length,
+      "a query narrow enough to leave one card kills most of the row",
+    ).toBeGreaterThan(0);
+    expect(byQuery, "and never the one it leaves standing").not.toContain(
+      "modulation",
+    );
   });
 });
