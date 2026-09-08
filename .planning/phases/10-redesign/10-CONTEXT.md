@@ -187,6 +187,39 @@ Nothing in `src/` or `e2e/` pins the old literal or its length — the only ship
 the wave that owns the headline, so it lands with that wave's gates rather than as a loose change.
 Recorded as **A-43** in the UI spec.
 
+### D-19 [user] CLEAR is a button, not a ceremony
+
+Given 2026-09-08: *"let go of this CLEAR story, you can put in a CLEAR button, it's totally okay."*
+The design built around D-05 was disproportionate, and the reason it was disproportionate is on the
+record: **CLEAR is already recoverable twice over.** It writes RAM only (A-26), so `PUT BACK` — the
+control immediately above it — restores the snapshot, and a power cycle brings back whatever is in
+flash. An action undone by its neighbour and by unplugging the cable does not need a confirmation.
+
+**Dropped:**
+- The inline confirmation block, its `REMOVES` caption, its affirmative, its `NOT NOW`, and all of
+  its copy. `KEEP ON DEVICE` keeps its confirmation — that one is genuinely irreversible.
+- The **Bare tier** as a distinct fifth tier, with its `letter-spacing: 0.28em` and its second
+  hairline. CLEAR sits in the existing **Quiet** tier beside `KEEP ON DEVICE`. A-41 already forbids
+  pilling Quiet, so nothing about the tier ladder moves.
+- A dedicated bench row. Whatever hardware check CLEAR needs folds into an existing install-runbook
+  row rather than adding row H.
+
+**Kept, because each is free — it is how every other control on the panel already behaves:**
+- Nothing writes without an explicit click; CLEAR extends the zero-writes-without-a-click proof
+  rather than weakening it, and `WRITE_CLICKS` still moves from three to four.
+- ACK before the panel says it is done.
+- Disabled with an inline reason when it cannot run, and the snapshot condition of SAFE-03 still
+  gates it.
+- One line saying what it does. One, not a block.
+
+**The state question is the planner's**, and it is the only open one: `cleared` may still deserve to
+be its own install phase, because the panel has to say what happened and "settled" would be a lie.
+Fifteen states was never the extravagance — the confirmation was.
+
+**No renumbering.** 10-12 and 10-13 both stay; the work simply shrinks and redistributes across them,
+so `10-13.1` and `10-14` keep their numbers and their `depends_on`. This phase has been bitten four
+times by moving numbers.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
