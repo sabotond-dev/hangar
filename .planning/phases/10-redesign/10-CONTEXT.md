@@ -220,6 +220,45 @@ Fifteen states was never the extravagance — the confirmation was.
 so `10-13.1` and `10-14` keep their numbers and their `depends_on`. This phase has been bitten four
 times by moving numbers.
 
+### D-20 [user] CLEAR does what the Editor's clear does — restore the factory default
+
+*"of course Clearing should work just like in the real Editor."* Read from the source rather than
+assumed. `grid-editor/src/renderer/runtime/operations.ts:167` `clearElement()` calls
+`target.resetDefault()` and then `target.sendToGrid()`; `runtime.ts:1352` shows `resetDefault()`
+walking `grid.get_element_events(type)`, taking each event's **`defaultConfig`**, parsing it into
+actions and replacing the event's contents.
+
+**So clear does not write emptiness. It writes the firmware's own default configuration back.** That
+is a materially different action from the one this phase had designed, and it is better in every
+direction.
+
+**Measured from the pinned package, `ElementType.TOUCH`:**
+
+| Event | Raw | Compressed | Of 908 |
+|---|---|---|---|
+| 0, Setup | **641** | 641 | inside |
+| 6, Timer | **22** | 22 | inside |
+
+Both are already canonical — raw and compressed are equal — so nothing has to be fitted. The default
+Setup is a proximity-weighted touch highlight: it lights the cell under the finger and its neighbours
+by true distance. The pad is *not* dead after a clear; it does something sensible.
+
+**What this settles:**
+- The payload comes from `@intechstudio/grid-protocol`, which HANGAR already pins, so CLEAR's bytes
+  track firmware exactly as every other wire fact in this project does. No new dependency, no
+  hand-authored "empty" string, no second source of truth.
+- **RAM only stands (A-26).** The Editor calls `sendToGrid()`, not `store()`.
+- **No confirmation stands (D-19).** `Toolbar.svelte:47` calls `clearElement(element)` directly; the
+  Editor asks nothing.
+- The Editor also calls `resetName()`. HANGAR has no element-name surface, so that half does not
+  apply — stated so the omission is deliberate rather than missed.
+
+**The copy consequence is the sharp one.** A control labelled CLEAR that restores a factory default
+must not imply emptiness. The label matches the Editor and stays; the one line beside it says what
+actually happens — the module's own default configuration returns to this element — and never
+"clears", "empties" or "removes". Getting that wrong would be the same class of lie as the
+never-writes sentence this phase already retired.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
