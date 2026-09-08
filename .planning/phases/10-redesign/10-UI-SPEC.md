@@ -163,8 +163,8 @@ later reader does not resolve it the other way.
 ## 3. The amendment register
 
 Every retirement in this document, in one table, so the planner can turn it into tasks and the
-checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts** — and, after approval, **six
-amendments in §3.4** (A-37 to A-42, 2026-09-08, D-15/D-16/D-17), which add no eleventh retirement,
+checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts** — and, after approval, **seventeen
+amendments in §3.4** (A-37 to A-53, 2026-09-08, D-15 to D-21), which add no eleventh retirement,
 no tenth gate amendment and no fifth data re-cut. Nothing
 is deleted; everything is rewritten by name.
 
@@ -196,7 +196,7 @@ is deleted; everything is rewritten by name.
 |---|------|-----------|----|
 | G-01 | `src/lib/ui/identity.spec.ts` | `--font-sans`'s first family becomes `"Inter Variable"`; a new assertion pins `--font-display`'s first family to the family named by **every** display `@font-face` block in the file; the `rgb()`-arguments regex widens from `^214 255 78 / [0-9.]+$` to `^(214 255 78\|0 0 0) / [0-9.]+$`. **That widening is only meaningful if Layer S's black is declared in `src/app.css`** — this spec reads that one file and nothing else, so a `rgb(0 0 0 / …)` living in a component `<style>` would be invisible to it (§8.3). **The hex set stays at three. The token count stays at nine. The favicon's two-hue regex is untouched.** X-27's shape, and its own paragraph | 5, 7.1, 8.2 |
 | G-02 | `src/lib/ui/tune-ui.spec.ts` | The 56px meters block and the 152px region are re-derived and hold. `HONESTY_CAP`'s value changes | 12 |
-| G-03 | `src/lib/ui/device-ui.spec.ts` | `min-block-size: 72px` on the honesty slot becomes `48px`; `PUT_BACK_CAP`, `KEEP_CAP` and a new `CLEAR_CAP` are re-derived; the control walk gains `Clear.svelte` and `ClearConfirm.svelte`. **Both must declare the 44px floor on BOTH axes**: the walk at `:278-306` derives its list from the presence of a control and requires `min-block-size: 44px` **and** `min-inline-size: 44px` on every interactive class it finds, so the Bare tier's `auto` width is not enough (§10.3) | 12 |
+| G-03 | `src/lib/ui/device-ui.spec.ts` | `min-block-size: 72px` on the honesty slot becomes `48px`; `PUT_BACK_CAP`, `KEEP_CAP` and a new `CLEAR_CAP` are re-derived; the control walk gains **`Clear.svelte`** — **one component, not two** (A-45 retired `ClearConfirm.svelte` before it shipped). It must declare the 44px floor on **BOTH axes**: the walk at `:278-306` derives its list from the presence of a control and requires `min-block-size: 44px` **and** `min-inline-size: 44px` on every interactive class it finds, so an `auto` width is not enough. **The tracking-uniqueness test is retired with the Bare tier (A-46)** and is replaced by a shapelessness test reading `KeepOnDevice.svelte` and `Clear.svelte` together: no border, no background, no radius, no tracking other than Micro's 0.18em. The file goes 11 → **13**, not 14 (§10.3) | 12 |
 | G-04 | `src/lib/device/install-copy.spec.ts` | Seven control labels become **nine**; twelve utterances become **thirteen**; seven failure builders stay **seven**; the three caps become four and all four change value | 10.6 |
 | G-05 | `src/lib/device/session.spec.ts` test 15 | The source scan's **nine needles become ten** — a `clear.bind`-shaped export must not slip past. The list at `:1141-1151` is nine today (`.write(`, `RequestQueue`, `hostHeartbeat`, `sendConfig`, `storePage`, `fetchConfig`, `storeToFlash`, `writeBack`, `setInterval`); `REQUIREMENTS.md:169` still says **eight**, which was stale before this phase and is corrected in the same named amendment | 10.7 |
 | G-06 | `src/lib/device/install.spec.ts` test 4 | **A no-op on the assertion, and that is the finding.** The test counts writes **by class**, and CLEAR writes `CONFIG/EXECUTE` — the class already counted — so the enumeration needs no widening and its reach is already total. What actually widens is `InstallAction`, and the compiler enforces that for free. The amendment is therefore documentary: the test's comment and `docs/TESTING.md:840`'s "the three clicks" become four, so a later reader does not think the fourth click was missed | 10.7 |
@@ -213,10 +213,13 @@ is deleted; everything is rewritten by name.
 | D-c | `restsBlack` | **Kept as a recorded fact** (it is what selects a demo path, and its two-directional assertion against `frames.json` is the site's proof that no card is accidentally black) and **retired as a rendering input** |
 | D-d | `static/og/` | Four OG images regenerate from the end of their demo path rather than from a black rest frame. ETCH's 4,192-byte black square is the marker that this landed |
 
-### 3.4 Post-approval amendments (six, all dated 2026-09-08)
+### 3.4 Post-approval amendments (seventeen, all dated 2026-09-08)
 
-Added after approval, from D-15, D-16 and D-17. Each is stated in full in **§19.1** and each carries
-an A-number in §19's register, so the two tables cannot disagree about how many there are.
+Added after approval, from D-15 through D-21. Each is stated in full in **§19.1** (A-37 to A-42) or
+**§19.2** (A-43 to A-53), and each carries an A-number in §19's register, so the two tables cannot
+disagree about how many there are. **A-43 and A-44 were added to this table without a register entry**
+when D-18 and the `--font-mono` finding landed, which made that last sentence false for a while;
+§19.2 restates them, and it is true again.
 
 | # | Amendment | Supersedes | § |
 |---|-----------|------------|---|
@@ -228,6 +231,15 @@ an A-number in §19's register, so the two tables cannot disagree about how many
 | A-42 | The **index-and-em-dash headline** is sibling furniture on `/browse/` only, never in the device flow | nothing. **A-23's "no step numerals" is upheld against D-15** | 19.1f |
 | A-43 | **The front-door headline is `START EXPLORING` (15), not `PICK ONE · IT IS ALREADY RUNNING` (32)** (user, 2026-09-08). At two words it is inside §5.2's uppercase rule, so the exception declared for the old headline is retired and the middle dot goes with it. The shipped edit belongs to 10-13.1, which owns the headline | **R-01's replacement text**, §5.2's exception paragraph, §13.0's declaration and §13.1's row. A-42's index form becomes the only declared exception | 13.1 |
 | A-44 | **The `--font-mono` list is seven, not six.** 10-10 spent the sixth on the picker’s RGB triple (`ColourPicker.svelte:599-604`), which qualifies on W-03’s “a number that changes as a pointer moves”. §19.1c’s `+`-separated metadata block is therefore the **seventh**, and it qualifies on the other half of the rule — machine text that must hold its columns. The picker’s own comment demands the seventh’s argument be made out loud rather than inherited | §5.2’s “Six, and the list is asserted” | 5.2, 19.1c |
+| A-45 | **CLEAR gets no confirmation** and `ClearConfirm.svelte` is not built (D-19) | **A-27** in full; §10.5's confirmation half; §13.3's three confirmation rows and its two-destructive-confirmations row; §4's SAFE-05 ruling | 19.2, 10.5 |
+| A-46 | **The Bare tier is retired before it ships; `CLEAR` is Quiet. The ladder is three tiers** (D-19) | **A-24** in full; §10.3's fifth row; §10.4's tracking argument; §6's `lg` second-hairline clause; A-41's Bare clause | 19.2, 10.3 |
+| A-47 | **`CLEAR` is weakly distinguished from `KEEP ON DEVICE` — three channels, two of them behaviour — and this document says so** | **A-25's "five channels" clause**. A-25's ruling (no red) stands | 19.2, 10.4 |
+| A-48 | **CLEAR writes the firmware's own `defaultConfig`, not emptiness**: Setup **641**, Timer **22**, canonical, read from `$lib/protocol`'s `TOUCH_EVENTS` by event number (D-20) | §10.5's payload paragraph; §10.6's `cleared` row; **A-26's "copy says so twice"** clause. A-26's RAM-only ruling stands | 19.2, 10.5 |
+| A-49 | **CLEAR's copy, verbatim**: `CLEAR` (5) over `Reset the current page to factory default` (**41**) (D-21) | §13.3's `CLEAR` line row; §12.2's reservation input. Closes 10-01's zero-headroom flag | 19.2, 13.3 |
+| A-50 | **`cleared` stays a phase — fourteen become fifteen** — and its block is `FACTORY DEFAULT` (15) over 115 characters | §10.6's `CLEARED` caption/body row; §13.3's `cleared` row. Answers D-19's one open question | 19.2, 10.6 |
+| A-51 | **No runbook row H.** The hardware check folds into **row C**; the section still says seven rows | §10.6's runbook row | 19.2, 10.6 |
+| A-52 | **`CLEAR_CAP` stays 86 and the cell stays 48px**, and the second line is declared **headroom rather than occupancy** | §12.2's CLEAR reservation derivation | 19.2, 12.2 |
+| A-53 | **Two corrections unrelated to the fold**: §10.7 said the class enumeration "gains CLEAR's class" where §3.2's G-06 says it is a no-op — **G-06 was right**; and `write-guard.ts` is in `src/lib/protocol/`, not `src/lib/device/` | §10.7's `install.spec.ts` row and its `write-guard.ts` path | 19.2, 10.7 |
 
 **No copy retirement, no gate retirement and no data re-cut is added by these six.** §3.1 stays at ten
 retirements in a register of eleven rows, §3.2 stays at nine gate amendments, §3.3 stays at four data
@@ -241,9 +253,9 @@ A-30 closed at ten stays closed.
 | ID | Ruling |
 |----|--------|
 | SAFE-01 | **Kept whole, mechanism changed.** The connect screen still says so out loud, in 35 characters on the control instead of 88 in a paragraph. `REQUIREMENTS.md:169` is amended by name |
-| SAFE-02 | **Kept verbatim.** D-04's sequence is caption, order and enablement. CLEAR takes a fourth tier that is neither Primary nor Quiet |
+| SAFE-02 | **Kept verbatim.** D-04's sequence is caption, order and enablement. **CLEAR takes no tier of its own** (A-46): it sits in **Quiet**, beside `KEEP ON DEVICE`, and the ladder is three tiers rather than four. SAFE-02's content is that `TRY ON DEVICE` and `KEEP ON DEVICE` are never equal-weight; a fourth control joining the Quiet tier does not touch that |
 | SAFE-03 / SAFE-04 | **Kept, and extended to a fourth click.** CLEAR refuses to run without a snapshot and `PUT BACK` is offered after it |
-| SAFE-05 | **Extended.** CLEAR's confirmation names what is removed and what a power cycle brings back |
+| SAFE-05 | **Not extended after all — unchanged, and satisfied by `KEEP ON DEVICE`'s block exactly as Phase 7 closed it** (A-45). The approved ruling read *"Extended. CLEAR's confirmation names what is removed and what a power cycle brings back"*, and **there is no CLEAR confirmation.** Nor should the requirement reach it: SAFE-05's subject is the control that **stores to flash**, and CLEAR writes RAM only (A-26). CLEAR is covered by SAFE-01 (a click), SAFE-03 (a snapshot first) and SAFE-07 (an ACK before done), plus the one line beside it. **`REQUIREMENTS.md`'s SAFE-05 record is left exactly as Phase 7 wrote it** — nothing was extended, so nothing is claimed |
 | SAFE-07 | **Kept verbatim.** `cleared` means an ACKNOWLEDGE frame arrived, never a resolved writer promise |
 | PREV-03 | **Kept, at 44 characters instead of 231** |
 | CONN-03 | **Amended.** The pre-click explanation is retired; the standing safety line satisfies the requirement's intent, and the browser's own prompt satisfies the rest |
@@ -396,7 +408,7 @@ Phase 4's tokens, unchanged, and this phase adds no spacing value.
 | xs | 4px | Detent gaps inside a picker rail; gap between a facet chip and its neighbour |
 | sm | 8px | Gap between a control and its line; gap between the two facet rows |
 | md | 16px | Gap between the three cells of the `NEXT` group; picker rail to picker rail; the picker's result pad to the rails |
-| lg | 24px | Panel padding and the hairline gaps, unchanged. **The hairline above CLEAR is a second one, at the same 24 / 1px / 24 rhythm** |
+| lg | 24px | Panel padding and the hairline gaps, unchanged. **There is no second hairline** — A-46 retired it with the Bare tier it was separating, so this phase adds no hairline and region 6 keeps the one Phase 7 gave it. `CLEAR` joins the existing column at the `md` rhythm |
 | xl | 32px | Front door: headline to coverflow band; band to facet row |
 | 2xl | 48px | Fidelity line to the last grid row (05.1's, unchanged) |
 | 3xl | 64px | Page to footer, unchanged |
@@ -475,7 +487,7 @@ were candidates and each was solved without accent — the fifth added 2026-09-0
 | The picker's selected detent | **Already item 8.** A detent is the selected value of a knob |
 | A knob's held state (§11.5) | The word changes `HOLD` → `HELD`, and the default marker changes from a 2px dot to a 2px `--color-line` bar. Two non-colour channels |
 | The `NEXT` sequence marks | There are none. The sequence is a caption, DOM order and enablement (§10.2) |
-| CLEAR's destructive weight | Tracking, position, a second hairline and a confirmation (§10.4) |
+| CLEAR's destructive weight | **Nothing visual at all, and that is the ruling** (A-47). Its three channels are the words, the enablement set, and the confirmation `KEEP ON DEVICE` has and it does not — two of the three are behaviour. Tracking, the second hairline and the confirmation were the approved answer; A-45 and A-46 removed all three, and `--color-over` was refused before them and stays refused (§10.4) |
 | **The registration lattice's one distinguished cross** (D-15 reference A; added by **A-40**) | **Scale and opacity.** A 14px arm against 7px, `--color-line` (0.4) against `--color-line-soft` (0.2). Reference A's accent cross does **not** ship, and the ruling is held by a shipped gate rather than by taste: `tune-ui.spec.ts`'s accent census over the seven tuning components is asserted **unmoved at fourteen** (10-09-02), so a ninth accent use inside the tuning region is red on sight (§19.1a) |
 
 ### 7.3 The picker's arbitrary colour, and the fence around it
@@ -1146,65 +1158,133 @@ control between them. "One natural sequence" must not become "three equal button
 
 **What is explicitly not done:** no step numerals, no connecting rule or bracket, no progress
 indicator, no shared background, no equalised widths, and **no accent on any sequence marker**. The
-tier table below is Phase 7's, with one row added.
+tier table below is Phase 7's, **unchanged** — A-46 retired the row this section's approved text
+added, so the ladder is back to three tiers (§10.3).
 
-### 10.3 The control hierarchy, restated in full with one addition
+### 10.3 The control hierarchy, restated in full — and the ladder is three tiers, not four
 
-**AMENDED 2026-09-08 by A-41 (§19.1b).** The four tiers below stand **verbatim** — what changes is the
-shape of two of them. **Secondary** becomes a fully-rounded 1px outline with a transparent fill and
-24px inline padding; **Primary** takes the same radius on its existing accent fill; **Quiet and Bare
-are untouched — borderless, shapeless, no radius, no background**. Pilling Quiet would give
-`KEEP ON DEVICE` a border and flatten it into Secondary, which is the exact regression §10.2 exists to
-prevent; pilling Bare would give `CLEAR` a box, and A-24's whole argument is that it has none.
-**Where D-15's “universal pill” and this ladder collide, the ladder wins, because SAFE-02 is a
-requirement and a control shape is a style.**
+**AMENDED 2026-09-08 by A-41 (§19.1b), and again by A-46 (§19.2).** A-41 changed the *shape* of two
+tiers and left all four standing. **A-46 removes one of them.** The **Bare** tier — declared in this
+section for `CLEAR` alone and never built — is retired before it ships (D-19), and `CLEAR` sits in
+**Quiet**, beside `KEEP ON DEVICE`. The ladder is therefore **three tiers**, and every sentence in
+this document that counts four is superseded on that number and on nothing else.
+
+**A-41's rulings stand unchanged.** Secondary is a fully-rounded 1px outline with a transparent fill
+and 24px inline padding; Primary takes the same radius on its existing accent fill; **Quiet is
+borderless, shapeless, no radius, no background** — which is now the tier `CLEAR` is in, so pilling
+Quiet would give `KEEP ON DEVICE` *and* `CLEAR` a border and flatten two controls into Secondary
+rather than one. **Where D-15's "universal pill" and this ladder collide, the ladder wins, because
+SAFE-02 is a requirement and a control shape is a style.**
 
 | Tier | Controls | Treatment |
 |------|----------|-----------|
-| **Primary** — one per panel | `TRY ON DEVICE` | Phase 7's, verbatim |
-| **Secondary** — bordered | `PUT BACK`, the two confirmations' affirmatives, `COPY LINK`, `TURN IT DOWN`, `MIX TWO` | Phase 7's, verbatim |
-| **Quiet** — borderless | `KEEP ON DEVICE` in the install row, `NOT NOW`, `DISCONNECT ZONA`, `BROWSE ALL`, `HOLD` / `HELD` | Phase 7's, verbatim |
-| **Bare** — one per panel, last | **`CLEAR`** | `min-block-size: 44px` **and `min-inline-size: 44px`** — both axes, because `device-ui.spec.ts:278-306` derives its control list from the presence of a control and requires both on every interactive class it finds, so an `auto` width fails G-03. `padding-inline: 0`, no border, no background, no fill, label Micro in `--color-ink-quiet` at **`letter-spacing: 0.28em`** — wider than every other label on the site. `CLEAR` at 12px, 0.28em, is about 60px wide, so the inline floor costs nothing and only has to be declared. Hover: label to `--color-ink`, 140 ms. Disabled: `--color-ink-dim`, a real `disabled` attribute |
+| **Primary** — one per panel | `TRY ON DEVICE` | Phase 7's, verbatim, plus A-41's radius |
+| **Secondary** — bordered | `PUT BACK`, `KEEP ON DEVICE`'s confirmation affirmative, `COPY LINK`, `TURN IT DOWN`, `MIX TWO` | Phase 7's, verbatim, plus A-41's pill outline |
+| **Quiet** — borderless | `KEEP ON DEVICE` in the install row, **`CLEAR`**, `NOT NOW`, `DISCONNECT ZONA`, `BROWSE ALL`, `HOLD` / `HELD` | Phase 7's, verbatim. `CLEAR` joins it with **no exception of any kind**: `min-block-size: 44px` **and `min-inline-size: 44px`** — both axes, because `device-ui.spec.ts:278-306` derives its list from the presence of a control and requires both on every interactive class it finds — the site's Micro label at its ordinary `letter-spacing: 0.18em`, `--color-ink-quiet`, no border, no background, no fill, no radius. Hover: label to `--color-ink`, 140 ms. Disabled: `--color-ink-dim`, a real `disabled` attribute |
 
-### 10.4 D-05 — CLEAR's tier, and why it is not red
+**One name left the Secondary row and it is worth saying out loud.** It read "the two confirmations'
+affirmatives". There is one confirmation now (A-45), so it reads `KEEP ON DEVICE`'s.
 
-**Tracking is the distinguishing channel.** Every other label on the site is Micro at 0.18em; CLEAR
-is at 0.28em. It is the one channel that says *this one is not like the others* without a colour,
-without a box, and without an icon this phase has promised not to ship. It is also the ZONA landing's
-own idiom, where the whole page's character comes from tracking (`--track-xl: .62em`), and it is
-grep-checkable: `letter-spacing: 0.28em` appears on exactly one control.
+### 10.4 D-05 — CLEAR's tier, and why it is neither red nor set apart
 
-**Position does the rest.** CLEAR sits **below a second hairline** at the same 24 / 1px / 24 rhythm as
-the first, so it is visually outside the `NEXT` group. It is last. It has its own 48px line cell.
+**SUPERSEDES the approved §10.4 in full** (A-46, A-47). The approved text argued that `CLEAR` was
+distinguished from `KEEP ON DEVICE` on **five channels**: tracking at 0.28em, position below a second
+hairline, its own line, its confirmation caption, and a different set of disabled states. **Three of
+those five are gone** — the tracking with the Bare tier, the second hairline with it, the confirmation
+with A-45 — and **a fourth was never a channel at all**: `KEEP ON DEVICE` and `PUT BACK` each have
+their own line cell too, so having one distinguishes `CLEAR` from nothing.
 
-**No `--color-over`, and the reasoning is Phase 7's Z-01 applied to a fourth control.** With every
-colour deleted, CLEAR is distinguishable from `KEEP ON DEVICE` on five channels: tracking, position
-below a second hairline, its own line, its confirmation caption, and the fact that it is disabled in
-a different set of states. Red would say *dangerous* where the truth is *deliberate*, and
-`--color-over` reused 200px from a meter where it means "over 908" would make both meanings weaker.
-**The reversal is one line** and is Open for the user, item 6.
+**The honest count is three, and two of them are behaviour rather than appearance.**
 
-### 10.5 CLEAR — what it writes, its enablement, and its confirmation
+| # | Channel | What carries it |
+|---|---------|-----------------|
+| 1 | **The words** | `CLEAR` over `Reset the current page to factory default` (41), against `KEEP ON DEVICE` over `Stores this configuration in your ZONA’s own memory, so it survives a power cycle.` (82). Different label, different sentence, different verb |
+| 2 | **The enablement set** | `CLEAR` is live in `ready`, `restored`, `kept`, `partial`, `nothing-landed`, `unconfirmed`, `kept-mismatch`, `restored-unconfirmed`, `settled` and `cleared`; `KEEP ON DEVICE` is disabled in most of those with `Available after a try-on.` The two are rarely both live, and the difference is asserted over a fifteen-row table (§10.6) |
+| 3 | **The ceremony, inverted** | `KEEP ON DEVICE` opens a confirmation that replaces it; `CLEAR` sends on the click. The control with the block is now the *other* one |
 
-**CLEAR writes RAM and never flash.** D-05 asks for the current page's configuration to be cleared;
-it does not ask for a permanent wipe, and a permanent wipe of somebody's flash is the single most
-destructive thing this site could do. So: two `CONFIG/EXECUTE` frames carrying empty Setup and Timer,
-no `PAGESTORE/EXECUTE`, and a power cycle brings back whatever is stored. The copy says exactly that
-in both the line and the confirmation.
+**So at rest, in a browser that can write, after a try-on, `CLEAR` and `KEEP ON DEVICE` look the
+same** — same tier, same weight, same colour, same tracking. This document says so rather than
+inventing a fourth channel to reach a number. The reason it is acceptable is not aesthetic, it is
+factual, and it is D-19 and D-20 in one sentence:
 
-**A confirmation is still required, and the reason is comprehension rather than permanence.** After a
-try-on the pad still does something; after a clear it does nothing, and a visitor who does not
-understand that will believe they broke their module.
+> **`CLEAR` is the least consequential of the four writes.** It writes RAM and never flash (A-26),
+> the control directly above it undoes it, a power cycle undoes it, and what it writes is a working
+> configuration the firmware itself ships (A-48). The write that needed to be set apart was the
+> irreversible one, and that one still has its confirmation.
 
-**Enablement — one rule.**
+**No `--color-over`, and A-25's ruling stands** — only its "five channels" clause is superseded. Red
+would say *dangerous* where the truth is *deliberate*, and `--color-over` reused from a meter where it
+means "over 908" would make both meanings weaker. **A-45 also removes the reversal Open item 6
+described**: there is no confirmation block to put a 1px border on. If the user still wants the
+reversal, it would have to be a border on the control itself — which moves `CLEAR` out of Quiet and
+into a tier of its own again, the thing D-19 refused.
+
+### 10.5 CLEAR — what it writes, its enablement, and the one line beside it
+
+**SUPERSEDES the approved §10.5 in full** (A-45, A-48, A-49).
+
+**CLEAR writes the firmware's own default configuration, not emptiness** (D-20, A-48). Read from the
+source rather than assumed: `grid-editor/src/renderer/runtime/operations.ts:167` `clearElement()`
+calls `target.resetDefault()` and then `target.sendToGrid()`; `runtime.ts:1352` shows `resetDefault()`
+walking `grid.get_element_events(type)` and taking each event's **`defaultConfig`**.
+
+**Measured from the pinned package** (`1.20260825.1135`), `ElementType.TOUCH`:
+
+| Event | Raw | Compressed | Of 908 | What it is |
+|-------|-----|-----------|--------|------------|
+| **0, Setup** | **641** | **641** | inside | A proximity-weighted touch highlight. It zeroes all 81 cells on layer 1, sets a dim white base, and installs a `touch_cb` that lights the cells around a finger by true Euclidean distance |
+| **6, Timer** | **22** | **22** | inside | `--[[@cb]]print("tick")`. The default Setup starts no timer, so on a module that was not already running one it never fires |
+
+**Both are canonical — raw and compressed are equal — so nothing has to be fitted**, and that
+equality is a gate rather than a note: `protocol-pin.spec.ts` asserts it, because a firmware-tracking
+datestamp bump is precisely what would move it.
+
+**Where the payload lives, and this is load-bearing.** `install-copy.ts` **imports nothing** and is on
+the first paint of `/`; the pinned package is a **131,101-byte chunk** that `config-shape.spec.ts`
+test 13 keeps out of the front door's static graph. So the two strings are **not copy** and do not go
+in `install-copy.ts`. They are read from `$lib/protocol`'s existing **`TOUCH_EVENTS`** — already
+exported from `constants.ts`, already lazily resolved as `HeavyModules.P` — selected **by event
+number** (`EVENT_SETUP`, `EVENT_TIMER`) and never by array position, throwing at import if an event is
+absent so a pin bump that drops one fails loudly instead of writing `undefined`.
+
+**RAM only, and A-26 stands** — the Editor calls `sendToGrid()`, not `store()`. Two `CONFIG/EXECUTE`
+frames, **no `PAGESTORE/EXECUTE`**, asserted by class.
+
+**What the copy may not say.** A control labelled CLEAR that restores a factory default must not imply
+emptiness. **The label matches the Editor and stays; nothing beside it says "clears", "empties" or
+"removes".** Getting that wrong would be the same class of lie as the never-writes sentence this
+phase already retired.
+
+**No confirmation** (D-19, A-45). The Editor's `Toolbar.svelte:47` calls `clearElement(element)`
+directly and asks nothing. The approved text argued a confirmation was needed "for comprehension
+rather than permanence — after a clear the pad does nothing". **D-20 falsifies the premise**: after a
+clear the pad does something, and it is describable, recoverable and firmware-supplied.
+`KEEP ON DEVICE` keeps its confirmation, because that one is genuinely irreversible.
+
+**One line, and it is the user's, verbatim** (D-21, A-49):
+
+| Element | Copy | n |
+|---------|------|---|
+| Label | `CLEAR` | **5** |
+| Busy label | `CLEARING…` | **9** (U+2026) |
+| The line | `Reset the current page to factory default` | **41**, against `CLEAR_CAP` **86** |
+
+**On the "way back" clause, which the old line carried and this one does not.** §3.1's rule is that a
+string naming a risk, a consequence or a way back is never retired. It is satisfied here by the action
+no longer having a consequence that needs one, not by deleting a warning: `PUT BACK` sits directly
+above `CLEAR`, enabled, with its own line naming what it restores. **The cost is recorded rather than
+hidden:** a visitor is not told that a power cycle brings their *stored* configuration back rather
+than the factory default. That fact is now held by `install.spec.ts`'s by-class assertion and by
+runbook row C, not by copy, and the user fixed the sentence at 41 characters.
+
+**Enablement — one rule, unchanged from the approved text.**
 
 > **CLEAR is enabled exactly when a write may start and a snapshot exists.** Formally:
 > `phase ∈ WRITABLE_PHASES && snapshot != null && capability.canWrite`.
 
-So it is enabled in `ready`, `settled`, `restored`, `kept`, `partial`, `nothing-landed`,
-`unconfirmed`, `kept-mismatch`, `restored-unconfirmed` and the new `cleared`; and disabled in `idle`,
-`snapshotting`, `writing`, `lost` and `snapshot-failed`. SAFE-03 is satisfied by construction: no
-snapshot, no clear.
+Enabled in `ready`, `settled`, `restored`, `kept`, `partial`, `nothing-landed`, `unconfirmed`,
+`kept-mismatch`, `restored-unconfirmed` and the new `cleared`; disabled in `idle`, `snapshotting`,
+`writing`, `lost` and `snapshot-failed`. SAFE-03 is satisfied by construction: no snapshot, no clear.
 
 **Three disabled reasons, and only one of them is new** — the closed set stays tight because two are
 Phase 7 strings reused verbatim:
@@ -1212,39 +1292,37 @@ Phase 7 strings reused verbatim:
 | Cause | Reason | n |
 |-------|--------|---|
 | No snapshot yet | `Needs a copy of what is on your ZONA first.` | **43** — new |
-| No session | `Needs your ZONA connected.` | 26 — Phase 7's `PUT BACK` string |
-| Cannot write here (DEGR-02) | `This browser cannot write to a ZONA.` | 36 — Phase 7's `KEEP ON DEVICE` reason |
+| No session | `Needs your ZONA connected.` | 26 — Phase 7's `PUT BACK` string, imported not retyped |
+| Cannot write here (DEGR-02) | `This browser cannot write to a ZONA.` | 36 — Phase 7's `KEEP ON DEVICE` reason, imported not retyped |
 
-**The confirmation** is the site's **second** confirmation block, built as `KeepConfirm.svelte` is,
-byte for byte in geometry, focus handling and exits: a bordered block that **replaces the control that
-opened it**, so the row's `CLEAR` and the confirmation's `CLEAR` are never on screen together and a
-speech-input user is never ambiguous.
-
-| Element | Copy | n |
-|---------|------|---|
-| Caption | `REMOVES` | 7 |
-| What is removed | `This empties the Setup and Timer in your ZONA’s memory. A power cycle brings back whatever is stored.` | **101** |
-| The way back | `PUT BACK still restores what was there when you connected.` | 58 — Phase 7's, unchanged |
-| Affirmative | `CLEAR` | 5 |
-| Dismiss | `NOT NOW` | 7 — Phase 7's, unchanged |
-
-**There is no rig sentence.** SAFE-06's "the store reaches every module at once" is a property of
-`PAGESTORE`, and CLEAR does not store. Saying it would be false.
+**There is no rig sentence, and now there is nowhere it could go.** SAFE-06's "the store reaches every
+module at once" is a property of `PAGESTORE`, and CLEAR does not store. Its absence is still asserted.
 
 ### 10.6 CLEAR's place in the install machine — fourteen states become fifteen
+
+**`cleared` stays a phase of its own** (A-50). D-19 left this as the planner's one open question and
+it is settled **yes** — and D-20 is what settles it. After a clear the module runs the firmware's own
+default configuration: a real, nameable state that no existing phase describes truthfully. `settled`
+would claim this configuration is on the pad. `restored` would claim the visitor's own is back — and
+that one is not merely inaccurate, it is **unsafe**, because a panel reading `RESTORED` tells a
+visitor not to click `PUT BACK`, which is the one control that actually would restore them. **A state
+that has a true sentence is exactly what a phase is for.** The cost is one union member, one
+`WRITABLE_PHASES` entry, one row in the enablement table and one block. **Fifteen states was never the
+extravagance; the confirmation was.**
 
 | Change | Detail |
 |--------|--------|
 | `InstallAction` | `"try" \| "put-back" \| "keep" \| "clear"` — **four**. Every `switch` over it is re-checked for exhaustiveness, which the compiler does for free once the union widens |
-| New phase **I14 `cleared`** | Entered when **both** `CONFIG/ACKNOWLEDGE` frames for the two empty scripts arrived. SAFE-07 holds verbatim: `cleared` means an ACK, never a resolved writer promise |
+| New phase **I14 `cleared`** | Entered when **both** `CONFIG/ACKNOWLEDGE` frames for the two default scripts arrived. SAFE-07 holds verbatim: `cleared` means an ACK, never a resolved writer promise |
 | `WRITABLE_PHASES` | Gains `"cleared"`, so CLEAR after CLEAR is possible (idempotent and harmless) and `TRY ON DEVICE` works from it |
-| **Failure states** | **Reused, not invented.** A clear that half-lands is `partial`; a clear whose connection drops is `lost`; a clear where neither script got through is `nothing-landed`. Each renders CLEAR's own detail, selected by `lastAction`, which the store already tracks. **The machine goes to fifteen states, not eighteen** |
-| Control states in `cleared` | `TRY ON DEVICE` **enabled** · `PUT BACK` **enabled** (a snapshot exists by construction, and D-05 requires it) · `KEEP ON DEVICE` **disabled**, reason `Available after a try-on.` — the closed set of six is unchanged · `CLEAR` **enabled** |
-| Region 3 | Gains a `CLEARED` block: caption `CLEARED` (7), body `Your ZONA’s touch element is empty. PUT BACK restores what was there when you connected.` (**88**) |
+| **Failure states** | **Reused, not invented** (A-28). A clear that half-lands is `partial`; one whose connection drops is `lost`; one where neither script got through is `nothing-landed`. Each renders CLEAR's own detail, selected by `lastAction`, which the store already tracks. **The machine goes to fifteen states, not eighteen** |
+| Control states in `cleared` | `TRY ON DEVICE` **enabled** · `PUT BACK` **enabled** (a snapshot exists by construction) · `KEEP ON DEVICE` **disabled**, reason `Available after a try-on.` — the closed set of six is unchanged · `CLEAR` **enabled** |
+| Region 3 | Gains a block whose caption names the **state**, not the button, exactly as `PLAYING NOW` names the state `TRY ON DEVICE` leaves behind: caption `FACTORY DEFAULT` (**15**, two words, inside §5.2's uppercase rule), body `Your ZONA is running the firmware’s own default configuration. PUT BACK restores what was there when you connected.` (**115**). The body names `PUT BACK`, which is enabled in this phase, so the no-string-names-an-absent-control rule holds — and it is asserted, because this is the one place this phase's copy could break it |
 | Busy label | `CLEARING…` (9) on the CLEAR control through its one leg, with `aria-busy`. Nothing animates, exactly as Z-09 rules for every other write; the 2000 ms `Still writing.` line and its single utterance apply unchanged |
+| Live region | `The page is reset to factory default.` (**37**) — the thirteenth utterance |
 | Header write lock | Engaged during a clear exactly as it is during every other write (Z-15) |
 | DEGR-02 | CLEAR is present-but-disabled on browsers that cannot write, with the reason inline. It is **not** absent: unlike `PUT BACK` (Z-12), CLEAR does something meaningful on any module, so there is a real capability to teach |
-| `docs/INSTALL-RUNBOOK.md` | Gains **row H** — clear, verify dark, `PUT BACK`, verify restored — joining Phase 6's A–F and Phase 7's A–G, all still awaiting the user |
+| `docs/INSTALL-RUNBOOK.md` | **No row H** (A-51). The hardware check folds into **row C**, whose subject is already "click `PUT BACK`, the pad comes back to what it was": clear first, watch the pad take up the firmware default, then `PUT BACK` and watch it come back. Same row, same half hour, one more observation. The section still says **seven rows** |
 
 **The counts that change, and each is a named assertion in `install-copy.spec.ts` (G-04):**
 
@@ -1253,8 +1331,8 @@ speech-input user is never ambiguous.
 | control labels (`:358`) | 7 | **9** (`CLEAR`, `CLEARING…`) |
 | failure builders (`:403`) | 7 | **7** — unchanged, and that is the point of reusing the three |
 | distinct failure titles (`:416`) | 7 | **7** |
-| utterances (`:428`) | 12 | **13** (`The touch element is cleared.`, 29) |
-| character caps | 3 | **4** (`HONESTY_CAP`, `PUT_BACK_CAP`, `KEEP_CAP`, `CLEAR_CAP`), and all four change value — §12 |
+| utterances (`:428`) | 12 | **13** (`The page is reset to factory default.`, 37) |
+| character caps | 3 | **4** (`HONESTY_CAP`, `PUT_BACK_CAP`, `KEEP_CAP`, and `CLEAR_CAP` = 2 × 43 = **86** — §12.2 and A-52) |
 
 ### 10.7 The never-writes proof, extended and never weakened
 
@@ -1263,11 +1341,11 @@ write is attributable to one of three named clicks. A fourth click must extend t
 
 | Assertion | Extension |
 |-----------|-----------|
-| `install.spec.ts` test 4 — zero config writes across connect, snapshot and every knob move, counted by class | The class enumeration **gains CLEAR's class**. The assertion's wording is unchanged and its reach is wider (G-06) |
-| `e2e/install.e2e.ts` test 1, `e2e/session.e2e.ts`'s seven cable tests (`:810`, `:860`, `:1380`) | Unchanged in wording, stronger in fact: "zero writes of any class" now covers four classes |
-| `session.spec.ts` test 15 — the source scan's **eight needles** | **Nine.** A `clear.bind`-shaped export must not slip past the scan that exists to catch exactly that shape (G-05) |
+| `install.spec.ts` test 4 — zero config writes across connect, snapshot and every knob move, counted by class | **A no-op on the assertion, and that is the finding** (G-06; the approved wording corrected here by **A-53**). CLEAR writes `CONFIG/EXECUTE`, the class already counted, so the enumeration needs **no** widening and its reach is already total. The approved text read "the class enumeration **gains CLEAR's class**", which contradicted §3.2's own G-06 row; **§3.2 was right.** What actually widens is `InstallAction`, and the compiler enforces that for free. The amendment is documentary: the test's comment and `docs/TESTING.md:840` become four |
+| `e2e/install.e2e.ts` test 1, `e2e/session.e2e.ts`'s seven cable tests (`:810`, `:860`, `:1380`) | Unchanged in wording, stronger in fact: "zero writes of any class" now covers four clicks |
+| `session.spec.ts` test 15 — the source scan's **nine needles** | **Ten.** A `clear.bind`-shaped export must not slip past the scan that exists to catch exactly that shape (G-05). `REQUIREMENTS.md:169` still says **eight**, which was stale before this phase and is corrected in the same named amendment |
 | `REQUIREMENTS.md:169` — "every write attributable to one of three clicks" | **Four**, amended by name and dated. And the number stops being a word in prose: `install-copy.ts` exports `WRITE_CLICKS = ["TRY ON DEVICE", "PUT BACK", "KEEP ON DEVICE", "CLEAR"] as const`, asserted to have length 4 and asserted equal to the four control labels, so the next change moves a constant rather than a sentence |
-| `write-guard.ts:24-58` — a write is permitted only when the fetched strings are trustworthy | **Unchanged.** CLEAR goes through the same guard, and its first-failure return is what names the one reason |
+| `src/lib/protocol/write-guard.ts:24-58` — a write is permitted only when the fetched strings are trustworthy | **Unchanged.** `canWriteBack` gates the snapshot fetch and its verdict *is* `capability.canWrite`, which is a term of CLEAR's own enablement rule — so CLEAR is behind the same guard by construction. Assert that routing rather than trusting it. **The path is corrected here (A-53)**: the approved text wrote `write-guard.ts:24-58` with no directory and the plans read it as `src/lib/device/`; the file is in `src/lib/protocol/` and is re-exported from that barrel |
 
 ---
 
@@ -1528,7 +1606,7 @@ The Body line box is `16 × 1.5 = 24px` in both faces, so a reservation is
 | **The honesty slot** | `TryOnDevice.svelte:531`, asserted `device-ui.spec.ts:772-773` and `tune-ui.spec.ts:348-349` | **72px**, `HONESTY_CAP = 129` | `HONESTY_READY` and the worst `tryOnBudgetReason` at **90** | 2 | **48px**, `HONESTY_CAP = 92` (2 × 46) |
 | **The `PUT BACK` cell** | `PutBack.svelte:220`, asserted `device-ui.spec.ts:642,657-658` | **72px**, `PUT_BACK_CAP = 129` | `PUT_BACK_LINE_AFTER_KEEP` at **101** | 3 | **72px — unchanged**, `PUT_BACK_CAP = 138` (3 × 46) |
 | **The `KEEP ON DEVICE` cell** | `KeepOnDevice.svelte:198`, asserted `device-ui.spec.ts:782,797-798` | **48px**, `KEEP_CAP = 86` | the enabled line at **82** | 2 | **48px — unchanged**, `KEEP_CAP = 92` (2 × 46) |
-| **The `CLEAR` cell** | new, `Clear.svelte` | — | `CLEAR_LINE` at **86** | 2 | **48px**, `CLEAR_CAP = 92`. Same mechanism as its two neighbours: one grid cell, every candidate at `grid-area: 1 / 1`, the inactive ones `visibility: hidden` and `aria-hidden="true"` |
+| **The `CLEAR` cell** | new, `Clear.svelte` | — | the **no-snapshot reason** at **43** (`CLEAR_LINE` is **41** after A-49) | 1 occupied, **2 reserved** | **48px**, `CLEAR_CAP = 86` (2 × 43). **A-52: the second line is declared headroom, not occupancy.** The formula's output for a 43-character longest string is one line and 24px; taking it would put a shipped string exactly on a 43-character cap — the zero-headroom defect 10-01 flagged against the old `CLEAR_LINE` at 86, reintroduced at a different number. Two lines is the smallest reservation that leaves the cap a promise about strings not yet written. Same mechanism as its two neighbours: one grid cell, every candidate at `grid-area: 1 / 1`, the inactive ones `visibility: hidden` and `aria-hidden="true"` |
 
 **The reason all five exist is safety, not tidiness** (Z-18, restated because a fourth control now
 depends on it): `KEEP ON DEVICE`'s line changes when a knob moves, `PUT BACK`'s changes after a keep,
@@ -1612,17 +1690,15 @@ rewritten in the same commit as the string it pins.
 | `KEPT` body 2 *(replaces R-09)* | `The pad restarts once as it loads the stored version.` | **53** |
 | **`CLEAR` label** | `CLEAR` | **5** |
 | **`CLEAR` busy label** | `CLEARING…` | **9** |
-| **`CLEAR` line** | `Empties this page in your ZONA’s memory. A power cycle brings back whatever is stored.` | **86** |
+| **`CLEAR` line** | `Reset the current page to factory default` | **41** — D-21, verbatim, against `CLEAR_CAP` 86 |
 | **`CLEAR` reason — no snapshot** | `Needs a copy of what is on your ZONA first.` | **43** |
 | **`CLEAR` reason — no session** | `Needs your ZONA connected.` | 26 — Phase 7's, reused |
 | **`CLEAR` reason — cannot write** | `This browser cannot write to a ZONA.` | 36 — Phase 7's, reused |
-| **Confirmation caption** | `REMOVES` | **7** |
-| **Confirmation, what is removed** | `This empties the Setup and Timer in your ZONA’s memory. A power cycle brings back whatever is stored.` | **101** |
-| **Confirmation, the way back** | `PUT BACK still restores what was there when you connected.` | 58 — Phase 7's, unchanged |
-| **`cleared` caption / body** | `CLEARED` / `Your ZONA’s touch element is empty. PUT BACK restores what was there when you connected.` | **7 / 88** |
+| **CLEAR's confirmation** | **None** (A-45). The caption `REMOVES`, its 101-character sentence, its affirmative and its `NOT NOW` are all retired before shipping. `PUT BACK still restores what was there when you connected.` (58) stays where Phase 7 put it, in `KEEP ON DEVICE`'s block | — |
+| **`cleared` caption / body** | `FACTORY DEFAULT` / `Your ZONA is running the firmware’s own default configuration. PUT BACK restores what was there when you connected.` | **15 / 115** — A-50. The caption names the **state**, as `PLAYING NOW` does, not the button |
 | **`nothing-landed` detail after a clear** | `Neither script got through. Nothing on the module changed, so what was playing is still playing.` | 96 — Phase 7's `PUT BACK` form, reused verbatim because it is exactly true of a clear |
-| **Live region — cleared** | `The touch element is cleared.` | **29** |
-| **Destructive confirmations** | **Two, and now that is the number.** `KEEP ON DEVICE` (caption `PERMANENT`, Phase 7's block, unchanged) and `CLEAR` (caption `REMOVES`, above). `PUT BACK` still gets none (Z-04) and neither does `FORGET THIS ZONA` (Phase 6's ruling, unchanged) | — |
+| **Live region — cleared** | `The page is reset to factory default.` | **37** |
+| **Destructive confirmations** | **One, and it stays one** (A-45). `KEEP ON DEVICE` (caption `PERMANENT`, Phase 7's block, unchanged). `CLEAR` gets none — it writes RAM, the control above it undoes it and a power cycle undoes it. `PUT BACK` still gets none (Z-04) and neither does `FORGET THIS ZONA` (Phase 6's ruling, unchanged) | — |
 
 ### 13.4 Tuning
 
@@ -1714,8 +1790,7 @@ existing live `matchMedia` subscription. No component adds a second one.
 | Component | Responsibility | `data-testid` |
 |-----------|----------------|---------------|
 | `ColourPicker.svelte` | **One per panel.** Three 16-detent rails, the per-detent RGB444 fills, the cheap-step ticks, the disabled unaffordable detents, the one 9×9 result pad, and the knob selector on the seventeen entries that declare more than one colour knob | `colour-picker`, `colour-knob-select`, `colour-rail-{r\|g\|b}`, `colour-result` |
-| `Clear.svelte` | The Bare-tier control, **declaring the 44px floor on both axes** (G-03), its 48px sizing-twin line cell, its three reasons, `CLEARING…` and `aria-busy` | `clear`, `clear-line` |
-| `ClearConfirm.svelte` | The second confirmation block: caption, two sentences, two actions, focus in and out | `clear-confirm`, `clear-confirm-yes`, `clear-confirm-no` |
+| `Clear.svelte` | The **Quiet-tier** control (A-46) — no border, no background, no radius, Micro at the site's ordinary 0.18em — **declaring the 44px floor on both axes** (G-03), its 48px sizing-twin line cell whose second line is declared headroom (A-52), its three reasons, `CLEARING…` and `aria-busy` | `clear`, `clear-line` |
 | `MixTwo.svelte` | The two parents, the four children, the take | `mix-two`, `mix-child-{0..3}` |
 | `FacetRow.svelte` | One captioned facet row; a checkbox group on `/browse/`, a link row on `/` | `facet-for`, `facet-feels` |
 | `ScreenToggle.svelte` | The footer's `SCREEN` word row, its persistence, its reduced-motion default | `screen-toggle` |
@@ -1741,15 +1816,16 @@ existing live `matchMedia` subscription. No component adds a second one.
 | `src/lib/ui/Coverflow.svelte` | **Nothing at all.** Not one line. Its three header rules are quoted, obeyed and now asserted in both directions by `aesthetic.spec.ts` — `.band`'s `overflow: clip` and `mask-image` and each slot's inline `opacity` and `filter: brightness()` are asserted **present**, not merely permitted (§8.2) |
 | `src/lib/ui/DeviceNote.svelte` | The second cell retires; the reservation arithmetic goes 152 → 24 |
 | `src/lib/ui/TryOnDevice.svelte` | `SAFE_NOTE` beneath the primary; the honesty slot 72 → 48px; two rewritten strings |
-| `src/lib/ui/ChosenPanel.svelte` | The `NEXT` caption; a second hairline; `Clear` in the column; **region 4's `min-block-size: 152px` untouched** |
+| `src/lib/ui/ChosenPanel.svelte` | The `NEXT` caption; `Clear` in the column at the `md` rhythm; **no second hairline** (A-46); **region 4's `min-block-size: 152px` untouched** |
 | `src/lib/ui/KeepOnDevice.svelte`, `PutBack.svelte` | Caps only; geometry unchanged |
-| `src/lib/ui/InstallState.svelte` | The `CLEARED` block; CLEAR's details on the three reused failure states |
+| `src/lib/ui/InstallState.svelte` | The `FACTORY DEFAULT` block (A-50); CLEAR's details on the three reused failure states |
 | `src/lib/ui/Knob.svelte`, `KnobRack.svelte` | The lock toggle; the held default marker; the forecast hooks; the `colour` kind's new selection |
 | `src/lib/ui/BudgetMeter.svelte` | The ghost fill and the delta |
 | `src/lib/ui/BrowseToolbar.svelte`, `TagChip.svelte`, `CatalogCard.svelte` | Two facet rows; two sorts; the count-derived chip row and the outsider-chip branch retired (there is no `MORE TAGS` to retire — `BrowseToolbar.svelte:44-52`); `disabledTags()` kept; the resting-black note retired |
 | `src/lib/catalog/listing.ts` | 36 tag arrays re-cut; `addedAt` out of the projection; `RESTS_DARK_NOTE` retired |
 | `src/lib/browse/sort.ts`, `filter.ts`, `query.ts` | G-08, G-09; `?for=` and `?feels=`; the legacy `?tag=` map, and the ruling that an **unmapped** legacy value becomes `?q=` rather than being dropped (§9.4); the outsider-chip branch retires with the count-derived row, `disabledTags()` stays |
-| `src/lib/device/install.svelte.ts` | `InstallAction` widens to four; `cleared` joins the phases and `WRITABLE_PHASES`; the clear sequencer |
+| `src/lib/device/install.svelte.ts` | `InstallAction` widens to four; `cleared` joins the phases and `WRITABLE_PHASES`; the clear sequencer, whose payload is the pinned package's own `defaultConfig` (A-48) |
+| `src/lib/protocol/constants.ts` | `TOUCH_DEFAULT_SETUP` (641) and `TOUCH_DEFAULT_TIMER` (22), derived from the existing `TOUCH_EVENTS` **by event number**, throwing at load if an event is absent. **Here rather than in `install-copy.ts`**, whose zero-import rule keeps the 131,101-byte protocol chunk off the first paint of `/` (A-48) |
 | `src/lib/device/install-copy.ts` | Nine labels, thirteen utterances, four caps, `WRITE_CLICKS` |
 | `src/lib/device/session-copy.ts` | R-02, R-03, R-08 |
 | `src/lib/tune/knobs.preset.ts`, `model.ts`, `view.ts`, `surprise.ts` | The lattice colour knob; locks; the forecast; `MIX TWO`'s crossover |
@@ -1898,7 +1974,8 @@ approved phase's ruling, and says so where it does.
 
 **Status stays `approved`.** Nothing below re-opens a ruling the checker passed. Six new decisions
 join §19's register in §19's own shape, and §3 gains a fourth sub-table (§3.4) listing them, because
-a post-approval edit that is not in the amendment register is an edit nobody can audit.
+a post-approval edit that is not in the amendment register is an edit nobody can audit. **A second
+set — A-43 to A-53, from D-18 to D-21 — follows in §19.2.**
 
 The trigger is three user decisions taken mid-execution, after wave 9 closed: **D-15** (three
 aesthetic references, extracted as rules), **D-16** (the register line moves to front door versus
@@ -1948,7 +2025,7 @@ asserts that mask **present** rather than merely tolerating it.
 | Fill | **transparent**, except where the control already owns a fill (Primary's accent, the selected word) |
 | Inline padding | **24px**, the `lg` token. At the 44px block floor the radius resolves to **22px per end**, so 24px clears the curve by 2px and a one-character label still sits on the flat |
 | Floor | `min-block-size: 44px` **and** `min-inline-size: 44px`. Both axes, on every pill, **asserted by a directory-derived walk** (§19.1g) rather than by a hand-declared list |
-| Tiers | **Secondary → pill outline. Primary → pill radius on its existing accent fill. Quiet → unchanged, borderless and shapeless. Bare (`CLEAR`) → unchanged, no border, no radius, no background** (A-41) |
+| Tiers | **Secondary → pill outline. Primary → pill radius on its existing accent fill. Quiet → unchanged, borderless and shapeless** (A-41). **There is no Bare tier** — A-46 retired it and `CLEAR` is in Quiet, so the no-pill rule now protects two controls rather than one |
 
 §10.3's four-tier table stands verbatim; this amendment changes the **shape** of two rows and
 explicitly does not touch the other two.
@@ -2058,6 +2135,34 @@ five more scans in the first.
 
 ---
 
+## 19.2 Post-approval amendments, second set — 2026-09-08 (D-18 to D-21)
+
+**Status stays `approved`.** Nothing below re-opens a ruling the checker passed. The trigger is four
+further user decisions taken mid-execution, after wave 11 closed: **D-18** (the front-door headline),
+**D-19** (CLEAR is a button, not a ceremony), **D-20** (CLEAR writes the firmware's default
+configuration) and **D-21** (CLEAR's copy, given verbatim).
+
+**A-43 and A-44 are restated here rather than left where they were.** Both were added to §3.4's table
+when D-18 and the `--font-mono` finding landed, and neither got a §19 register entry — which breaks
+§3.4's own promise that "the two tables cannot disagree about how many there are". Restating them is
+how that promise starts holding again; their content is unchanged.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| A-43 | **The front-door headline is `START EXPLORING` (15), not `PICK ONE · IT IS ALREADY RUNNING` (32)** (D-18). At two words it is inside §5.2's uppercase rule, so the case exception declared for the old headline is retired and the middle dot goes with it. The shipped edit belongs to 10-13.1, which owns the headline | Nothing in `src/` or `e2e/` pins the old literal or its length — the only shipped occurrence is `FrontDoor.svelte:307` plus the comment arguing for the exception. A-42's index-and-em-dash form becomes the only declared exception in the phase rather than the second |
+| A-44 | **The `--font-mono` list is seven, not six.** 10-10 spent the sixth on the picker's RGB triple (`ColourPicker.svelte:599-604`), which qualifies on W-03's "a number that changes as a pointer moves". §19.1c's `+`-separated metadata block is the **seventh**, qualifying on the other half of the rule — machine text that must hold its columns | §5.2's "Six, and the list is asserted" was written before 10-10 shipped. The picker's own comment demands the seventh's argument be made out loud rather than inherited |
+| A-45 | **CLEAR gets no confirmation, and `ClearConfirm.svelte` is not built** (D-19). The inline block, its `REMOVES` caption, its 101-character sentence, its affirmative and its `NOT NOW` are all dropped before they ship. `KEEP ON DEVICE` keeps its confirmation. **Kept, because each is free: no write without an explicit click, an ACK before done, disabled-with-inline-reason, SAFE-03's snapshot gate, and one line saying what it does** | The design built around D-05 was disproportionate, and the reason is on the record: **CLEAR is already recoverable twice over.** It writes RAM only (A-26), so `PUT BACK` — the control immediately above it — restores the snapshot, and a power cycle brings back whatever is in flash. An action undone by its neighbour *and* by unplugging the cable does not need a confirmation. A-27's premise ("after a clear the pad does nothing") is separately falsified by A-48 |
+| A-46 | **The Bare tier is retired before it ships, and `CLEAR` sits in Quiet** (D-19), superseding **A-24** in full. `letter-spacing: 0.28em` and the second hairline above `CLEAR` both go with it. **The ladder is three tiers, not four**, and §10.3's table has three rows | A-24 bought one channel — grep-checkable tracking — at the price of a fifth tier that existed for a single control, and A-41 had already had to carve out an exception for it twice. A tier with one member is not a hierarchy, it is a special case with a name. And A-41's own argument survives intact in the smaller ladder: pilling Quiet is still forbidden, and now it protects two controls instead of one |
+| A-47 | **`CLEAR` is weakly distinguished from `KEEP ON DEVICE`, and this document says so rather than padding the count.** A-25's "five channels" clause is superseded; the honest number is **three** — the words, the enablement set, and the ceremony inverted (`KEEP` has the block, `CLEAR` does not). A-25's *ruling* — no `--color-over` on CLEAR — stands | Two of the five were removed by A-45 and A-46, and a third ("its own line") was never a channel: `KEEP ON DEVICE` and `PUT BACK` each have a line cell too. Claiming five after removing three is the exact failure this phase has already made four times with counts. The weakness is acceptable on the facts rather than on taste: **`CLEAR` is the least consequential of the four writes**, and the write that needed setting apart is the irreversible one, which still has its confirmation |
+| A-48 | **CLEAR writes the firmware's own `defaultConfig`, not emptiness** (D-20). Setup **641**, Timer **22**, both canonical (raw equals compressed) and both inside 908, measured from the pinned `@intechstudio/grid-protocol@1.20260825.1135`. The payload is read from `$lib/protocol`'s existing `TOUCH_EVENTS`, **selected by event number and never by array position**, and never from `install-copy.ts` | Read from the source rather than assumed: `operations.ts:167` `clearElement()` is `resetDefault()` + `sendToGrid()`, and `runtime.ts:1352` shows `resetDefault()` taking each event's `defaultConfig`. The consequences are all improvements: CLEAR's bytes track firmware exactly as every other wire fact in this project does, with no new dependency, no hand-authored "empty" string and no second source of truth; **RAM only stands** because the Editor calls `sendToGrid()`, not `store()`; and the pad is **not dead** after a clear — the default Setup is a proximity-weighted touch highlight. The placement rule is load-bearing rather than tidy: `install-copy.ts` imports nothing and paints on the first frame of `/`, and the pinned package is the 131,101-byte chunk `config-shape.spec.ts` test 13 keeps out of that graph |
+| A-49 | **CLEAR's copy is the user's, verbatim** (D-21): label **`CLEAR`** (**5**), line **`Reset the current page to factory default`** (**41**). It says *reset to factory default* and never *clear*, *empty* or *remove* | A control labelled CLEAR that restores a factory default must not imply emptiness; that would be the same class of lie as the never-writes sentence this phase already retired. At 41 against a cap of 86 it also **closes 10-01's zero-headroom flag** on the old `CLEAR_LINE`, which was authored at exactly 86. `get_module_element_list(ModuleType.ZONA)` returns `touch` at 0 and `system` at 255, and HANGAR only ever writes touch, so "the current page" is true of everything HANGAR can have changed |
+| A-50 | **`cleared` stays a phase of its own — fourteen states become fifteen**, which is what §10.6 already said and is now settled rather than assumed. Its block's caption is **`FACTORY DEFAULT`** (15) and its body is 115 characters; `CLEARED` over "your touch element is empty" is retired with the design that produced it | D-19 left this as the planner's one open question, and D-20 changed the input to it: after a clear the pad is running a real, describable configuration. `settled` would claim *this* configuration is on the pad; `restored` would claim the visitor's own is back, and that one is **unsafe** — a panel reading `RESTORED` tells a visitor not to click the one control that would actually restore them. A state with a true sentence is what a phase is for, and this one costs a union member, a `WRITABLE_PHASES` entry, a table row and a block. **Fifteen was never the extravagance; the confirmation was** |
+| A-51 | **No runbook row H.** The hardware check folds into **row C** (`PUT BACK`, SAFE-03): clear, watch the pad take up the firmware default, then `PUT BACK` and watch it come back. The section still says **seven rows** | Row C's subject is already "the pad comes back to what it was, by eye". A clear before the `PUT BACK` makes the same row a stronger test of the same claim at no extra rows and no extra half hour — and D-19 named a dedicated row as one of the three things the ceremony was buying that the button does not need |
+| A-52 | **`CLEAR_CAP` stays 86 (2 × 43) and the `CLEAR` cell stays 48px, even though the longest string it holds is now 43** — and the second line is declared **headroom rather than occupancy**, which is a departure from §12's formula and is stated as one | §12's rule is `ceil(longest / CH_PER_LINE) × 24`, and after A-49 the longest candidate is the no-snapshot reason at exactly 43. One line would put a shipped string *exactly* on a 43-character cap — the zero-headroom defect 10-01 flagged against the old `CLEAR_LINE` at 86, reintroduced at a different number. Two lines is the smallest reservation that leaves the cap a promise about strings not yet written, which is the entire reason the caps exist. It also leaves `install-copy.ts`'s shipped header arithmetic (`CLEAR_CAP (2 x 43 = 86)`) correct rather than needing an edit |
+| A-53 | **Two corrections unrelated to the CLEAR fold, found while making it.** (a) §10.7's `install.spec.ts` row said the class enumeration "gains CLEAR's class"; §3.2's G-06 row said the opposite — "a no-op on the assertion, and that is the finding". **G-06 was right** and §10.7 is corrected to match. (b) The `write-guard.ts:24-58` reference carries no directory, and both plans read it as `src/lib/device/`; **the file is `src/lib/protocol/write-guard.ts`**, re-exported from that barrel, and its `canWriteBack` verdict reaches CLEAR as `capability.canWrite` rather than as a call CLEAR makes | Two sections of an approved contract disagreeing about whether a gate changes is the kind of defect that gets resolved at execution time by whichever one the executor read first. And a plan that names a path that does not exist fails on contact — 10-12 task 6 was written against `src/lib/device/write-guard.ts` |
+
+---
+
 ## Open for the user
 
 Nothing below is assumed. Each is a real fork with the cost of each side stated.
@@ -2085,11 +2190,18 @@ Nothing below is assumed. Each is a real fork with the cost of each side stated.
 4. **`--color-ground` stays `#000000`.** The ZONA landing uses `#0a0a0b`, and a black scanline over
    true black is invisible — which is exactly why Layer S is scoped to pad frames rather than to the
    page ground. If the ground must move, it is a token change and G-01 grows a clause.
-5. **CLEAR writes RAM only** (A-26). If a flash clear is wanted, it is a different control with a
-   different confirmation, and it should be a separate decision rather than a widened one.
-6. **CLEAR gets no red** (A-25). The reversal is one line: `--color-over` as the confirmation block's
-   1px border only, never a fill, never a label, never the affirmative, and `src/app.css`'s header
-   comment goes from three uses to four. `identity.spec.ts` needs no change; the token already exists.
+5. **CLEAR writes RAM only** (A-26), and what it writes is the firmware's own `defaultConfig` — 641
+   and 22 characters, canonical, read from the pinned package (A-48, D-20). If a flash clear is
+   wanted, it is a different control with a confirmation of its own, and it should be a separate
+   decision rather than a widened one.
+6. **CLEAR gets no red** (A-25) and **no confirmation** (A-45), so the reversal this item used to
+   describe — `--color-over` as the confirmation block's 1px border — has nothing left to attach to.
+   If red is still wanted it has to be a border on the control itself, which moves `CLEAR` out of
+   Quiet into a tier of its own and reverses A-46 as well. **The honest position is that `CLEAR` and
+   `KEEP ON DEVICE` now look the same at rest** (A-47): three channels separate them and two are
+   behaviour. The argument for allowing that is that `CLEAR` is the least consequential of the four
+   writes — RAM only, undone by the control above it and by a power cycle, and what it writes is a
+   configuration the firmware itself ships.
 7. **The `SCREEN` toggle exists, is visible, and persists** in a second `localStorage` key (A-06). If
    a second key is unwanted, the fallback is a session-only preference that resets on reload, which
    is worse for the visitor it exists for.
