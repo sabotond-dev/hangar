@@ -155,7 +155,9 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
+  type ClearReason,
   type KeepReason,
+  LIVE_CLEARED,
   LIVE_RESTORED,
   LIVE_SNAPSHOT_SAVED,
   LIVE_STILL_WRITING,
@@ -191,10 +193,19 @@ type CaptureStep = import("$lib/transport").CaptureStep;
 type DecodedClass = import("$lib/protocol").DecodedClass;
 
 /**
- * The fourteen states of 07-UI-SPEC's machine. `snapshot-failed` is I9's
- * cause 4; the other I9 causes are not phases here - they are read off the
- * session's capability, the tuner's budget and this store's `snapshotting` and
- * `writing` by the component.
+ * The FIFTEEN states of 07-UI-SPEC's machine, fourteen until plan 10-12.
+ * `snapshot-failed` is I9's cause 4; the other I9 causes are not phases here -
+ * they are read off the session's capability, the tuner's budget and this
+ * store's `snapshotting` and `writing` by the component.
+ *
+ * WHY `cleared` IS ITS OWN STATE AND MUST NOT BE COLLAPSED INTO ONE OF THE
+ * OTHERS (A-50, D-19's one open question, settled by D-20). After a clear the
+ * module runs the firmware's own default configuration - a real state no
+ * existing phase describes truthfully. `settled` would claim THIS
+ * configuration is on the pad; `restored` would claim the visitor's own is
+ * back, and that one is not merely inaccurate but unsafe, because a panel
+ * reading RESTORED tells a visitor not to click PUT BACK - the one control
+ * that actually would restore them.
  */
 export type InstallPhase =
   | "idle"
@@ -204,6 +215,7 @@ export type InstallPhase =
   | "settled"
   | "restored"
   | "kept"
+  | "cleared"
   | "partial"
   | "lost"
   | "snapshot-failed"
@@ -211,7 +223,7 @@ export type InstallPhase =
   | "unconfirmed"
   | "restored-unconfirmed"
   | "nothing-landed";
-export type InstallAction = "try" | "put-back" | "keep";
+export type InstallAction = "try" | "put-back" | "keep" | "clear";
 export type InstallLeg = "ram" | "store";
 /** Why an action ended where it did. Rendered by no block in v1; asserted by the spec and recorded in the capture. */
 export type InstallCause = "timeout" | "nack" | "aborted" | "mismatch";
@@ -247,6 +259,9 @@ const WRITABLE_PHASES: readonly InstallPhase[] = [
   "settled",
   "restored",
   "kept",
+  // A clear is idempotent and harmless, so CLEAR after CLEAR is allowed and
+  // TRY ON DEVICE works from here (A-50).
+  "cleared",
   "partial",
   "nothing-landed",
   "unconfirmed",
@@ -737,6 +752,45 @@ export class InstallStore {
     return phase !== "unsupported" && phase !== "insecure";
   }
 
+  /**
+   * CLEAR'S ONE ENABLEMENT RULE, IN ONE PLACE (10-UI-SPEC 10.5):
+   *
+   *   phase in WRITABLE_PHASES && snapshot != null && capability.canWrite
+   *
+   * SAFE-03 IS SATISFIED BY CONSTRUCTION rather than by a check somebody
+   * remembered to write: no snapshot, no clear. The write guard is in the
+   * third term and not in a call of its own - canWriteBack gates the snapshot
+   * FETCH (src/lib/protocol/write-guard.ts), so a fetch it refused leaves
+   * `snapshot` undefined and lands `snapshot-failed`, and `capable` is the
+   * browser half of the same verdict (DEGR-02).
+   *
+   * `connected` is not a fourth term: every phase reachable without a session
+   * (`idle`, `lost`) is already outside WRITABLE_PHASES, and clearToDefault()
+   * checks the queue and the session anyway before it touches the wire.
+   */
+  clearEnabled(capable: boolean): boolean {
+    return (
+      WRITABLE_PHASES.includes(this.phase) &&
+      this.snapshot !== undefined &&
+      capable
+    );
+  }
+
+  /**
+   * Why CLEAR is disabled, or undefined when it is live - the three reasons of
+   * 10-UI-SPEC 10.5's closed table, in precedence order. `writing` is the one
+   * phase that reaches the last line with a session and a snapshot in hand,
+   * and the component renders CLEARING… (or a control disabled under another
+   * action's write) rather than a reason there - the same division of labour
+   * PUT BACK uses.
+   */
+  clearReason(capable: boolean): ClearReason | undefined {
+    if (this.clearEnabled(capable)) return undefined;
+    if (!capable) return "incapable";
+    if (this.snapshot === undefined) return "no-snapshot";
+    return "no-session";
+  }
+
   // --- the inline confirmation: the only confirmation on the site (SAFE-05) -
 
   /** Opens the inline confirmation. Refused unless keepReason() is undefined. */
@@ -841,6 +895,63 @@ export class InstallStore {
     this.phase = "restored";
     this.#recomputeArmed();
     this.#session.announce(LIVE_RESTORED);
+  }
+
+  // --- the fourth click: CLEAR ---------------------------------------------
+
+  /**
+   * CLEAR. Writes the FIRMWARE'S OWN default configuration for the touch
+   * element back into the module's RAM - not emptiness (A-48, D-20). The
+   * Editor's `clearElement()` is `resetDefault()` followed by `sendToGrid()`,
+   * and `resetDefault()` takes each event's own `defaultConfig`; this is the
+   * same two strings, through the same one writer, in the same order.
+   *
+   * RAM ONLY, AND THAT IS ASSERTED BY CLASS RATHER THAN SAID IN COPY (A-26).
+   * Two CONFIG/EXECUTE and no PAGESTORE/EXECUTE: the Editor calls
+   * sendToGrid(), never store(), so a power cycle brings back whatever is in
+   * flash. D-21 fixed the line beside the control at 41 characters and it does
+   * not mention the power cycle, so install.spec.ts's by-class count is where
+   * that fact now lives.
+   *
+   * NO COMPILER ON THIS PATH, AND THAT IS DELIBERATE. The try-on writes a
+   * configuration the tuner compiled; a clear writes two strings that are
+   * already canonical under the pinned minifier (constants.spec.ts pins that),
+   * sendConfig takes a plain string, and nothing here needs the Lua formatter.
+   * An `await padCompilerReady()` added here would hang 628 KB of WASM off the
+   * cheapest write on the site.
+   *
+   * THE CURRENT PAGE, NOT THE SNAPSHOT'S. Unlike PUT BACK - which carries one
+   * page's original back to the page it came from and refuses a cross-page
+   * write - a clear resets whatever page the module is on, which is exactly
+   * what its line says. The page-change re-snapshot keeps the two equal in
+   * practice; nothing here depends on that.
+   */
+  async clearToDefault(): Promise<void> {
+    // The whole of SAFE-03, and the whole of the enablement rule: one call.
+    if (!this.clearEnabled(this.#capable())) return;
+    if (!this.#queue || this.#session.phase !== "connected") return;
+    const { P } = await heavyModules();
+    // Read through the lazily resolved protocol module, NEVER from
+    // install-copy.ts: these are wire facts and not copy, and install-copy is
+    // on the first paint of `/` with zero imports for that reason.
+    const defaults: ConfigStrings = {
+      setup: P.TOUCH_DEFAULT_SETUP,
+      timer: P.TOUCH_DEFAULT_TIMER,
+    };
+    const ok = await this.#ramLeg("clear", defaults);
+    if (!ok) return;
+    // Nothing of the visitor's and nothing of HANGAR's is on the module now,
+    // so there is nothing to arm and nothing to keep: keepReason() reads
+    // `never-tried` from here, which is the closed set's own answer.
+    this.lastWritten = undefined;
+    this.name = undefined;
+    this.cause = undefined;
+    // SAFE-07 verbatim: `cleared` is reached only through #ramLeg returning
+    // true, which is both CONFIG/ACKNOWLEDGE frames and never a resolved
+    // writer promise.
+    this.phase = "cleared";
+    this.#recomputeArmed();
+    this.#session.announce(LIVE_CLEARED);
   }
 
   // --- the flash store: KEEP ON DEVICE, and the proof ----------------------
@@ -1020,7 +1131,12 @@ export class InstallStore {
    */
   #classify(err: unknown, modules: HeavyModules, action: InstallAction): void {
     const { T } = modules;
-    const after = action === "put-back" ? "put-back" : "try";
+    // A-28: the three failure states are REUSED, not invented, and so is the
+    // copy. A clear that got neither script through takes PUT BACK's form -
+    // "what was playing is still playing" - because that is exactly true of a
+    // clear, where the try-on's "your own Setup and Timer are still running"
+    // would not be.
+    const after = action === "try" ? "try" : "put-back";
     if (err instanceof T.AbortedError) {
       this.#fail("lost", "aborted", lostBlock(false, TRY_ON_LABEL).title);
       return;

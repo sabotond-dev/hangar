@@ -72,6 +72,8 @@ import {
   RETRY_ATTEMPTS,
   TERMINATOR,
   TIMEOUTS,
+  TOUCH_DEFAULT_SETUP,
+  TOUCH_DEFAULT_TIMER,
   ZONA_HWCFG,
   type DecodedClass,
   decodeFrame,
@@ -95,6 +97,7 @@ import {
   type ZonaState,
 } from "../transport/fixtures/synthetic";
 import {
+  LIVE_CLEARED,
   LIVE_RESTORED,
   LIVE_SNAPSHOT_SAVED,
   LIVE_STILL_WRITING,
@@ -793,6 +796,13 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
   });
 
   it("nothing is written without a click, and TRY ON DEVICE writes exactly two, Timer first, verbatim", async () => {
+    // FOUR CLICKS SINCE PLAN 10-12, and this assertion did not change - which
+    // is the finding rather than an omission (G-06, and A-53 correcting the
+    // spec text that said otherwise). The count is BY CLASS, and CLEAR writes
+    // CONFIG/EXECUTE - the class already counted - so its reach was already
+    // total and widening the enumeration would have been work that proved
+    // nothing. What actually widened is InstallAction, and the compiler
+    // enforces that for free.
     const { store, fake, state, session, writesOf } = await connected();
     const locks = record(session, "writeLock");
 
@@ -1677,5 +1687,233 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(source).toContain("SLOW_LINE_MS = 2000");
     expect(source).toContain(["set", "Timeout("].join(""));
     expect(source.includes(["set", "Interval"].join(""))).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // The fourth click: CLEAR (10-12; A-48, A-50, SAFE-03, SAFE-07).
+
+  it("CLEAR writes the firmware's own default configuration into RAM, and nothing into flash", async () => {
+    const rig = await connected();
+    const { store, fake, state, session, writesOf } = rig;
+    // The pad is holding HANGAR's work when the clear happens, which is the
+    // only interesting starting point: a clear from `ready` would leave the
+    // module's RAM looking the same either way.
+    await triedOn(rig);
+    const framesBefore = fake.writes.length;
+    const configsBefore = writesOf("CONFIG", "EXECUTE");
+    const locks = record(session, "writeLock");
+
+    expect(store.clearEnabled(true), "a settled phase with a snapshot").toBe(
+      true,
+    );
+    expect(store.clearReason(true)).toBeUndefined();
+    await drive(store.clearToDefault());
+
+    // A-26, ASSERTED BY CLASS RATHER THAN SAID IN COPY, and asserted FIRST so
+    // that a store added to this path names the class it added rather than
+    // failing on an arithmetic. The line beside the control is 41 characters
+    // and does not mention the power cycle (D-21), so this enumeration is
+    // where "RAM only" is held: every class the click put on the wire, and
+    // PAGESTORE is not among them.
+    const frames = written(fake);
+    expect(
+      [
+        ...new Set(
+          frames
+            .slice(framesBefore)
+            .flat()
+            .map((c) => `${c.class_name}/${c.class_instr}`),
+        ),
+      ].sort(),
+      "a clear reached a class it has no business reaching",
+    ).toEqual(["CONFIG/EXECUTE", "HEARTBEAT/EXECUTE"]);
+    expect(writesOf("PAGESTORE", "EXECUTE"), "a clear stored to flash").toBe(0);
+
+    // Two CONFIG/EXECUTE carrying the two defaults VERBATIM, Timer first,
+    // then the one restore heartbeat - the same three frames every RAM leg
+    // produces, through the same one writer.
+    expect(frames.length - framesBefore, "frames the click produced").toBe(3);
+    expect(frames.slice(-3).map(shape)).toEqual(
+      ramLegFrames({ setup: TOUCH_DEFAULT_SETUP, timer: TOUCH_DEFAULT_TIMER }),
+    );
+    expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(2);
+
+    // SAFE-07: `cleared` is both acknowledgements and the restore, never a
+    // resolved writer promise.
+    expect(outcomes(store.steps)).toEqual([
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(store.phase).toBe("cleared");
+    expect(store.action).toBe("clear");
+    expect(store.leg).toBe("ram");
+    expect(store.cause).toBeUndefined();
+    expect(state.configs[EVENT_SETUP], "the fake's RAM").toBe(
+      TOUCH_DEFAULT_SETUP,
+    );
+    expect(state.configs[EVENT_TIMER]).toBe(TOUCH_DEFAULT_TIMER);
+
+    // Nothing of the visitor's and nothing of HANGAR's is playing, so there is
+    // nothing to arm and nothing to keep; the way back is untouched.
+    expect(store.lastWritten).toBeUndefined();
+    expect(store.name).toBeUndefined();
+    expect(store.armed).toBe(false);
+    expect(store.keepReason(true), "the closed set's own answer").toBe(
+      "never-tried",
+    );
+    expect(store.putBackState(), "a snapshot exists by construction").toBe(
+      "enabled",
+    );
+    expect(store.snapshot).toEqual(ORIGINAL);
+    expect(locks, "the header lock closed over the leg").toEqual([true, false]);
+    expect(session.writeLock).toBe(false);
+    await after(500);
+    expect(session.speech).toBe(LIVE_CLEARED);
+
+    // `cleared` is in WRITABLE_PHASES: a clear after a clear is idempotent and
+    // harmless, and TRY ON DEVICE works from here.
+    expect(store.clearEnabled(true)).toBe(true);
+    await drive(store.clearToDefault());
+    expect(store.phase).toBe("cleared");
+    expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(4);
+    store.observeConfig(PAIR);
+    await drive(store.tryOnDevice(PAIR, "Aurora"));
+    expect(store.phase).toBe("settled");
+    expect(state.configs[EVENT_SETUP]).toBe(PAIR.setup);
+  });
+
+  it("a clear whose second acknowledgement never comes is partial, never cleared", async () => {
+    // Acknowledgement 1 (Timer) lands; 2, 3 and 4 (Setup's three attempts) are
+    // dropped. SAFE-07's distinction, on the fourth click: the promise the
+    // click returned RESOLVES, and the phase is still not `cleared`.
+    const rig = await connected({ faults: dropAcks234("CONFIG") });
+    const { store, state, session } = rig;
+
+    await drive(store.clearToDefault());
+
+    expect(outcomes(store.steps)).toEqual([
+      ["write-timer", "ok"],
+      ["write-setup", "timeout"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(store.phase, "one acknowledgement is not two").toBe("partial");
+    expect(store.action).toBe("clear");
+    expect(store.landed).toBe("Timer");
+    expect(store.failed).toBe("Setup");
+    expect(store.cause).toBe("timeout");
+    // A-28: the three failure states are reused rather than invented, so the
+    // half-landed clear says exactly what the half-landed try-on says.
+    await after(500);
+    expect(session.speech).toBe(
+      announceTitle(partialBlock("Timer", "Setup").title),
+    );
+    expect(state.configs[EVENT_TIMER], "the half that landed").toBe(
+      TOUCH_DEFAULT_TIMER,
+    );
+    // The fault drops the ACKNOWLEDGE, not the write, so the scripted module's
+    // own RAM took the Setup too - and HANGAR cannot know that. Saying
+    // `partial` on what it heard rather than on what happened is the whole of
+    // SAFE-07, and it is why the panel offers a retry and PUT BACK here.
+    // And `partial` is writable, so the clear is one click from repeating.
+    expect(store.clearEnabled(true)).toBe(true);
+  });
+
+  it("no snapshot, no clear - and the fifteen-row enablement table", async () => {
+    // SAFE-03 BY CONSTRUCTION, over the one state that produces it honestly:
+    // the module answers a fetch of a non-active page with an empty string,
+    // canWriteBack (src/lib/protocol/write-guard.ts) refuses it, and the phase
+    // is `snapshot-failed` with no snapshot in hand. CLEAR is behind that
+    // guard by construction rather than by calling it - the guard's verdict is
+    // the second term of clearEnabled and `capable` is the third.
+    const refused = await connected({ state: { activePage: ACTIVE_PAGE + 1 } });
+    expect(refused.store.phase).toBe("snapshot-failed");
+    expect(refused.store.snapshot).toBeUndefined();
+    const framesBefore = refused.fake.writes.length;
+    const stepsBefore = refused.store.steps.length;
+
+    expect(refused.store.clearEnabled(true)).toBe(false);
+    expect(refused.store.clearReason(true)).toBe("no-snapshot");
+    await drive(refused.store.clearToDefault());
+
+    // ZERO WRITES OF ANY CLASS, not zero of the class a clear would have used.
+    expect(
+      refused.fake.writes.length - framesBefore,
+      "a clear over an uncopied module",
+    ).toBe(0);
+    expect(refused.store.phase, "and it changed no phase").toBe(
+      "snapshot-failed",
+    );
+    expect(
+      refused.store.steps.length - stepsBefore,
+      "it did not even read the module - unlike TRY ON DEVICE, a clear from snapshot-failed retries nothing",
+    ).toBe(0);
+    // DEGR-02, the browser half of the same verdict: present, disabled, with
+    // its own reason.
+    expect(refused.store.clearReason(false)).toBe("incapable");
+
+    // The whole partition, over every phase the machine has. A sixteenth phase
+    // added without a row here fails on the source scan below rather than
+    // quietly defaulting to disabled.
+    const ENABLED: InstallPhase[] = [
+      "ready",
+      "settled",
+      "restored",
+      "kept",
+      "cleared",
+      "partial",
+      "nothing-landed",
+      "unconfirmed",
+      "kept-mismatch",
+      "restored-unconfirmed",
+    ];
+    const DISABLED: InstallPhase[] = [
+      "idle",
+      "snapshotting",
+      "writing",
+      "lost",
+      "snapshot-failed",
+    ];
+    expect(ENABLED.length + DISABLED.length, "fifteen states").toBe(15);
+
+    const declaration = strip(sourceOf("./install.svelte.ts"));
+    const union = declaration.slice(
+      declaration.indexOf("export type InstallPhase"),
+      declaration.indexOf("export type InstallAction"),
+    );
+    expect(union.length, "the union was actually read").toBeGreaterThan(100);
+    expect(
+      [...union.matchAll(/"([a-z-]+)"/g)].map((m) => m[1]).sort(),
+      "a phase exists that this table does not have a row for",
+    ).toEqual([...ENABLED, ...DISABLED].sort());
+
+    const { store } = await connected();
+    expect(store.snapshot, "the table's rig has a snapshot").toEqual(ORIGINAL);
+    for (const phase of ENABLED) {
+      store.phase = phase;
+      expect(store.clearEnabled(true), `${phase} should enable CLEAR`).toBe(
+        true,
+      );
+      expect(
+        store.clearReason(true),
+        `${phase} named a reason`,
+      ).toBeUndefined();
+    }
+    for (const phase of DISABLED) {
+      store.phase = phase;
+      expect(store.clearEnabled(true), `${phase} should disable CLEAR`).toBe(
+        false,
+      );
+    }
+    // And the snapshot term dominates the phase term: with no copy of the
+    // module, not one of the fifteen enables the control.
+    store.snapshot = undefined;
+    for (const phase of [...ENABLED, ...DISABLED]) {
+      store.phase = phase;
+      expect(store.clearEnabled(true), `${phase} enabled without a copy`).toBe(
+        false,
+      );
+      expect(store.clearReason(true)).toBe("no-snapshot");
+    }
   });
 });

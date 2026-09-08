@@ -37,6 +37,41 @@ export const TOUCH_EVENTS: ElementEvent[] = grid.get_element_events(
   ElementType.TOUCH,
 );
 
+/**
+ * One event's own default configuration, SELECTED BY EVENT NUMBER.
+ *
+ * Exported for constants.spec.ts, which asserts the throw: the two constants
+ * below are the whole of its production use. The touch element declares its
+ * events in whatever order the package builds them, and today that order
+ * happens to be Setup then Timer - a coincidence, not a contract. So the
+ * lookup is by `value` and a missing event THROWS AT MODULE LOAD with the
+ * number in the message, rather than handing `undefined` to a write that would
+ * then land on somebody's module.
+ */
+export function defaultFor(event: number): string {
+  const declared = TOUCH_EVENTS.find((e) => e.value === event);
+  if (!declared) {
+    throw new Error(
+      `the touch element declares no event ${event}, so it has no default configuration to read`,
+    );
+  }
+  return declared.defaultConfig;
+}
+
+/**
+ * The firmware's own Setup for the touch element - what the Editor's clear
+ * writes back (A-48, D-20). It zeroes all 81 cells on layer 1, sets a dim
+ * white base, and installs a `touch_cb` that lights the cells around a finger
+ * by true Euclidean distance. The pad is NOT dead after a clear.
+ */
+export const TOUCH_DEFAULT_SETUP = defaultFor(EVENT_SETUP);
+/**
+ * The firmware's own Timer for the touch element (A-48, D-20): a debug print.
+ * The default Setup above starts no timer, so on a module that was not already
+ * running one it never fires - and on one that was, it prints up the link.
+ */
+export const TOUCH_DEFAULT_TIMER = defaultFor(EVENT_TIMER);
+
 export const PROTOCOL_VERSION = grid.getProperty("VERSION") as {
   MAJOR: number;
   MINOR: number;

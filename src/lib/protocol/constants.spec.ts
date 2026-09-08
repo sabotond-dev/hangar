@@ -1,21 +1,37 @@
 import { readFileSync } from "node:fs";
-import { ModuleType, grid } from "@intechstudio/grid-protocol";
-import { describe, expect, it } from "vitest";
+import {
+  GridScript,
+  ModuleType,
+  grid,
+  initLuaFormatter,
+} from "@intechstudio/grid-protocol";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   CONFIG_MAX,
   EVENT_SETUP,
   EVENT_TIMER,
   MODULE_HEARTBEAT_MS,
+  PRINTABLE_ASCII,
   PROTOCOL_VERSION,
+  TOUCH_DEFAULT_SETUP,
+  TOUCH_DEFAULT_TIMER,
   TOUCH_EVENTS,
   ZONA_HWCFG,
   ZONA_USB,
+  defaultFor,
 } from "./constants";
 
 const source = (file: string) =>
   readFileSync(new URL(file, import.meta.url), "utf8");
 
 describe("protocol constants", () => {
+  // The Lua formatter is WASM and is resolved once for the file: compressScript
+  // THROWS until it has, and checkSyntax silently returns false, so a
+  // canonicity gate that ran before it would report a correct string as broken.
+  beforeAll(async () => {
+    await initLuaFormatter();
+  });
+
   it("reads the 909 config limit and the 250 ms heartbeat interval from the pinned package", () => {
     expect(CONFIG_MAX).toBe(909);
     expect(MODULE_HEARTBEAT_MS).toBe(250);
@@ -34,6 +50,50 @@ describe("protocol constants", () => {
     );
     expect(TOUCH_EVENTS).toContainEqual(
       expect.objectContaining({ desc: "timer", value: EVENT_TIMER }),
+    );
+  });
+
+  it("carries the touch element's own two defaults, selected by event number", () => {
+    // A-48 / D-20: CLEAR writes the firmware's own default configuration, not
+    // emptiness, so these two strings are a wire fact and are pinned like one.
+    expect(TOUCH_DEFAULT_SETUP).toBeDefined();
+    expect(TOUCH_DEFAULT_TIMER).toBeDefined();
+    expect([...TOUCH_DEFAULT_SETUP].length, "the Setup default").toBe(641);
+    expect([...TOUCH_DEFAULT_TIMER].length, "the Timer default").toBe(22);
+
+    // Printable ASCII, because the encoder writes each character as one byte,
+    // and inside the module's own limit with room to spare.
+    expect(PRINTABLE_ASCII.test(TOUCH_DEFAULT_SETUP)).toBe(true);
+    expect(PRINTABLE_ASCII.test(TOUCH_DEFAULT_TIMER)).toBe(true);
+    expect(TOUCH_DEFAULT_SETUP.length).toBeLessThan(CONFIG_MAX);
+    expect(TOUCH_DEFAULT_TIMER.length).toBeLessThan(CONFIG_MAX);
+
+    // BY EVENT NUMBER, never by array position. The package happens to declare
+    // setup first and timer second today, so a positional read would pass -
+    // which is exactly why the contract is the number and the position is a
+    // coincidence. defaultFor throws for an event the element does not
+    // declare, so a pin bump that renumbers or drops one fails at module load
+    // instead of writing undefined to somebody's module.
+    const byNumber = (event: number) =>
+      TOUCH_EVENTS.find((e) => e.value === event)?.defaultConfig;
+    expect(TOUCH_DEFAULT_SETUP).toBe(byNumber(EVENT_SETUP));
+    expect(TOUCH_DEFAULT_TIMER).toBe(byNumber(EVENT_TIMER));
+    expect(() => defaultFor(255)).toThrow(/no event 255/);
+  });
+
+  it("holds both defaults canonical under the pinned minifier", () => {
+    // THE GATE THAT GOES RED ON A PIN BUMP, and the reason it is a test rather
+    // than a comment. @intechstudio/grid-protocol is versioned by firmware
+    // datestamp (1.YYYYMMDD.HHMM), not by semver, so a bump can move both the
+    // defaultConfig strings and what compressScript makes of them. Raw equals
+    // compressed today, which is what lets CLEAR send these two verbatim with
+    // no compiler on the path; the day that stops being true, this test says
+    // so before a visitor's module does.
+    expect(GridScript.compressScript(TOUCH_DEFAULT_SETUP)).toBe(
+      TOUCH_DEFAULT_SETUP,
+    );
+    expect(GridScript.compressScript(TOUCH_DEFAULT_TIMER)).toBe(
+      TOUCH_DEFAULT_TIMER,
     );
   });
 

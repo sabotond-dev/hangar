@@ -419,7 +419,31 @@ export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
 };
 
 // ---------------------------------------------------------------------------
-// The live region. Four success sentences, the 2000 ms line, and the rule for
+// The CLEAR cell: the three reasons it can be disabled for, and no fourth.
+// The line, the labels and the cap are plan 10-12 task 02's; these three
+// arrive with the machine that decides between them (10-UI-SPEC 10.5).
+
+/**
+ * The three reasons CLEAR can be disabled for, and no fourth. Closed over the
+ * union exactly as KEEP_REASONS is: a fourth key is a type error.
+ */
+export type ClearReason = "no-snapshot" | "no-session" | "incapable";
+
+/**
+ * TWO OF THE THREE ARE PHASE 7 STRINGS REFERENCED RATHER THAN RETYPED, which
+ * is the point of a closed record here: `no-session` is PUT BACK's own
+ * sentence and `incapable` is KEEP ON DEVICE's own reason, so a rewrite of
+ * either moves this table with it and no second copy of a shipped sentence can
+ * drift. Only `no-snapshot` is new, and it is SAFE-03 said out loud.
+ */
+export const CLEAR_REASONS: Readonly<Record<ClearReason, string>> = {
+  "no-snapshot": "Needs a copy of what is on your ZONA first.",
+  "no-session": PUT_BACK_NEEDS_ZONA,
+  incapable: KEEP_REASONS.incapable,
+};
+
+// ---------------------------------------------------------------------------
+// The live region. Five success sentences, the 2000 ms line, and the rule for
 // failures: the title, verbatim, plus a full stop because it is spoken.
 
 /** I1 to I2. Ends with the sentence the whole phase rests on. */
@@ -436,6 +460,12 @@ export const LIVE_RESTORED = "Your own configuration is back on your ZONA.";
 export function liveKept(name: string): string {
   return `${name} is stored on your ZONA and survives a power cycle.`;
 }
+
+/**
+ * The thirteenth utterance (A-50). It says what the module is now doing, not
+ * what the click was called, and it never says the page was emptied.
+ */
+export const LIVE_CLEARED = "The page is reset to factory default.";
 
 /** The only utterance that is not a transition: once, polite, at 2000 ms. */
 export const LIVE_STILL_WRITING = "Still writing.";
