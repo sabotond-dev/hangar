@@ -53,10 +53,10 @@ const repo = (rel: string) =>
 const UI_DIR = "src/lib/ui";
 
 /**
- * The device components, SIX since plan 10-03. A literal list is unavoidable -
+ * The device components, SEVEN since plan 10-13. A literal list is unavoidable -
  * the directory also holds Phases 4 and 5's components, which these rules do
  * not all bind - so its length is asserted and every name is checked against
- * the directory listing in test 1. A rename, a deletion or a seventh device
+ * the directory listing in test 1. A rename, a deletion or an eighth device
  * component added without being listed is then a visible omission rather than a
  * silent gap that lets the tests pass while covering fewer files.
  *
@@ -64,8 +64,15 @@ const UI_DIR = "src/lib/ui";
  * retires PICKER_EXPLAINER outright, and a component whose whole content was
  * that one sentence has no reason left to exist. The count moving is the
  * amendment being visible rather than silent.
+ *
+ * `Clear.svelte` is plan 10-13's one new file and takes the count back to
+ * seven. Listing it is not bookkeeping: test 3's 44px walk DERIVES its list
+ * from the presence of a control inside these files, so an unlisted control
+ * component is one the walk never reads, and the walk would go green having
+ * proved nothing about it.
  */
 const DEVICE_COMPONENTS: readonly string[] = [
+  "Clear.svelte",
   "DeviceDetails.svelte",
   "DeviceMark.svelte",
   "DeviceNote.svelte",
@@ -194,7 +201,7 @@ function liveRegionTotal(): number {
 }
 
 describe("the device UI's structural rules", () => {
-  it("the six are listed and on disk, and none reaches the compiler", () => {
+  it("the seven are listed and on disk, and none reaches the compiler", () => {
     // The list is checked against the directory here, once, because every test
     // below reads through it.
     const present = new Set(
@@ -204,8 +211,8 @@ describe("the device UI's structural rules", () => {
     );
     expect(
       DEVICE_COMPONENTS.length,
-      "six components were listed - seven until R-02 retired PickerExplainer.svelte with its one sentence",
-    ).toBe(6);
+      "seven components were listed - six between R-02 retiring PickerExplainer.svelte and plan 10-13 adding Clear.svelte",
+    ).toBe(7);
     expect(
       DEVICE_COMPONENTS.filter((name) => !present.has(name)),
       "a listed device component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -1069,5 +1076,213 @@ describe("the device UI's structural rules", () => {
       liveRegionTotal(),
       "three live regions on the whole site after the header's edit",
     ).toBe(3);
+  });
+
+  it("the CLEAR cell is the measured arithmetic with its second line declared headroom, its four twins come from the closed record, and nothing about a clear animates", () => {
+    // Plan 10-13. The same shape as the PUT BACK cell at test 8 and the KEEP
+    // cell at test 10: the reservation is asserted on the source with its
+    // arithmetic in the message, so a later reader who changes the number has
+    // to read why it is the number it is.
+    const clear = code(componentPath("Clear.svelte"));
+
+    // 48px, AND THE FORMULA'S OWN ANSWER IS SMALLER (A-52). CH_PER_LINE is 43,
+    // measured in Inter Variable by plan 10-01; the four candidates are
+    // CLEAR_LINE at 41 and the three reasons at 43, 26 and 36, so
+    // ceil(43 / 43) x 24 = 24. It is refused: one line would put a shipped
+    // string exactly on a 43-character cap, which is the zero-headroom defect
+    // plan 10-01 flagged against the old 86-character CLEAR_LINE reintroduced
+    // at a different number. install-copy.spec.ts asserts the departure on the
+    // constants; this asserts it in pixels.
+    expect(
+      clear,
+      "the CLEAR cell no longer reserves 48px - the longest of its four candidates is 43 and the formula gives 24px, but the second line is HEADROOM rather than occupancy (A-52), so CLEAR_CAP stays 86 and this cell stays two Body lines",
+    ).toContain("min-block-size: 48px");
+    expect(
+      clear.includes("min-block-size: 24px"),
+      "the CLEAR cell has been 'corrected' to the formula's 24px - that is the zero-headroom defect A-52 exists to refuse",
+    ).toBe(false);
+
+    // FOUR CANDIDATES, TWO MARKERS, FROM THE CLOSED RECORD. The enabled line
+    // plus the three reasons, every one rendered at grid-area 1 / 1 with the
+    // inactive ones hidden. The marker count is TWO rather than four and that
+    // is not a shortfall: the three reasons come from an {#each} over
+    // install-copy's closed record rather than being listed, exactly as
+    // KeepOnDevice renders its six, so a fourth reason is a type error there
+    // and never a silent omission here. TryOnDevice's five are literal and its
+    // count is five; this one cannot be counted that way and says so.
+    expect(
+      occurrences(clear, "class:twin="),
+      "the CLEAR cell renders its enabled line and its iterated reasons as sizing twins - two markers, one literal and one inside the {#each} (Z-18)",
+    ).toBe(2);
+    expect(clear, "the inactive twins are visibility: hidden").toContain(
+      "visibility: hidden",
+    );
+    expect(clear, "the twins are aria-hidden").toContain("aria-hidden=");
+    expect(clear, "the enabled line is rendered once").toContain(
+      "{CLEAR_LINE}",
+    );
+    expect(
+      /CLEAR_REASONS[)][^;]*;[^]*[{]#each[ ]+REASONS/.test(clear),
+      "the three reasons are iterated from CLEAR_REASONS rather than listed",
+    ).toBe(true);
+    for (const opening of [
+      "Needs a copy of",
+      "Needs your ZONA",
+      "This browser cannot",
+    ]) {
+      expect(
+        occurrences(clear, opening),
+        `Clear retypes a reason ("${opening}...") instead of iterating the record`,
+      ).toBe(0);
+    }
+    expect(clear, "the control carries its testid").toContain(
+      'data-testid="clear"',
+    );
+    expect(clear, "the cell carries its testid").toContain(
+      'data-testid="clear-line"',
+    );
+
+    // THE CLICK SENDS, AND IT OPENS NOTHING (A-45). One call, straight to the
+    // store's sequencer; no confirmation is opened and none exists to open.
+    expect(clear, "the click hands the clear to the install store").toContain(
+      "install.clearToDefault(",
+    );
+    expect(
+      occurrences(clear, "openConfirm"),
+      "Clear opens a confirmation - CLEAR sends on the click (D-19, A-45), and KEEP ON DEVICE's is the site's only confirmation",
+    ).toBe(0);
+
+    // BUSY IS INSTANT (Z-09). The busy label arrives with aria-busy and
+    // NOTHING in this file animates: no animation at all, and the one
+    // transition is the hover colour on the enabled control, so the drop to
+    // the dim rung under a write is instant.
+    expect(clear, "the busy label is install-copy's CLEARING_LABEL").toContain(
+      "CLEARING_LABEL",
+    );
+    expect(clear, "the busy state carries aria-busy").toContain("aria-busy=");
+    expect(
+      occurrences(clear, "animation"),
+      "Clear.svelte animates something - a 40 ms state under a 160 ms animation renders as a smear (Z-09)",
+    ).toBe(0);
+    const transitions = rulesOf(clear).filter((r) =>
+      r.body.includes("transition:"),
+    );
+    expect(
+      transitions.length,
+      "Clear.svelte declares a transition somewhere, so the selector assertion below is not vacuous",
+    ).toBeGreaterThan(0);
+    expect(
+      transitions
+        .map((r) => r.selector)
+        .filter((selector) => !selector.includes(":not(:disabled)")),
+      "a transition is declared on a selector that is not the enabled control - disabling for a write must be instant",
+    ).toEqual([]);
+  });
+
+  it("CLEAR and KEEP ON DEVICE are shapeless alike, the retired Bare tier left no trace, and the confirmation that was cut is absent", () => {
+    // Plan 10-13, replacing the tracking-uniqueness test the earlier revision
+    // of this plan carried. A-46 retired the Bare tier before it shipped, so
+    // there is no longer anything that makes CLEAR unlike everything else;
+    // what is worth holding is the opposite claim, and it is the stronger one.
+    // A-41 forbids pilling the Quiet tier, and that prohibition now protects
+    // TWO controls rather than one.
+    const QUIET = ["KeepOnDevice.svelte", "Clear.svelte"];
+    const offenders: string[] = [];
+    let bodiesRead = 0;
+    let trackingFound = 0;
+
+    for (const name of QUIET) {
+      const source = code(componentPath(name));
+      const body = rulesOf(source)
+        .filter((r) => r.selector.includes(".control"))
+        .map((r) => r.body)
+        .join(" ");
+      bodiesRead += body.length;
+
+      if (!/border:[ ]*(0|none)[;]/.test(body))
+        offenders.push(`${name} -> the control declares a border`);
+      if (!body.includes("padding-inline: 0"))
+        offenders.push(`${name} -> the control declares inline padding`);
+      if (body.includes("border-radius"))
+        offenders.push(`${name} -> border-radius`);
+
+      // Every declaration in the control's own rules, read one at a time so a
+      // background or a tracking value is judged rather than merely found.
+      for (const declaration of body.split(";")) {
+        const at = declaration.indexOf(":");
+        if (at < 0) continue;
+        const property = declaration.slice(0, at).trim();
+        const value = declaration.slice(at + 1).trim();
+        if (property === "background" || property === "background-color") {
+          if (value !== "transparent" && value !== "none")
+            offenders.push(`${name} -> ${property}: ${value}`);
+        }
+        if (property === "letter-spacing") {
+          trackingFound += 1;
+          if (value !== "0.18em")
+            offenders.push(`${name} -> letter-spacing: ${value}`);
+        }
+      }
+    }
+
+    // Non-vacuity in both directions: the rules were found, and a tracking
+    // declaration was actually judged rather than absent.
+    expect(
+      bodiesRead,
+      "both Quiet controls' own rules were found",
+    ).toBeGreaterThan(400);
+    expect(
+      trackingFound,
+      "neither Quiet control declares letter-spacing - the tracking rule above is vacuous",
+    ).toBe(2);
+    expect(
+      offenders,
+      "a Quiet-tier control has gained a border, a background, a radius, inline padding or a tracking other than Micro's 0.18em - A-41 forbids pilling Quiet and A-46 put CLEAR in it beside KEEP ON DEVICE",
+    ).toEqual([]);
+
+    // THE BARE TIER LEFT NO TRACE. A-24 gave CLEAR a fifth tier distinguished
+    // by a wider tracking; A-46 retired it before it shipped. The needle is
+    // assembled from fragments so this file's own text is not a hit, and the
+    // scan is the whole of src/lib/ui rather than the two controls, because
+    // the way it would arrive now is a copy-paste from the old plan.
+    const BARE_TRACKING = ["0.2", "8em"].join("");
+    const CONFIRM_TESTID = ["clear", "-confirm"].join("");
+    const REMOVES_CAPTION = ["REMO", "VES"].join("");
+    const EMPTIES = ["This empties the ", "Setup and Timer"].join("");
+    const components = readdirSync(repo(UI_DIR))
+      .map(String)
+      .filter((name) => name.endsWith(".svelte"));
+    expect(
+      components.length,
+      "the src/lib/ui walk found the site's components",
+    ).toBeGreaterThan(20);
+    expect(
+      components.includes("ClearConfirm.svelte"),
+      "ClearConfirm.svelte is on disk - A-45 retired the confirmation before it shipped, because CLEAR writes RAM only, PUT BACK directly above it undoes it and a power cycle undoes it, so KEEP ON DEVICE's is the site's only confirmation",
+    ).toBe(false);
+
+    const traces: string[] = [];
+    for (const name of components) {
+      const source = code(componentPath(name));
+      for (const needle of [
+        BARE_TRACKING,
+        CONFIRM_TESTID,
+        REMOVES_CAPTION,
+        EMPTIES,
+      ]) {
+        if (source.includes(needle)) traces.push(`${name} -> ${needle}`);
+      }
+    }
+    const copyModule = stripComments(
+      readFileSync(repo("src/lib/device/install-copy.ts"), "utf8"),
+    );
+    for (const needle of [REMOVES_CAPTION, EMPTIES]) {
+      if (copyModule.includes(needle))
+        traces.push(`install-copy.ts -> ${needle}`);
+    }
+    expect(
+      traces,
+      "a trace of the retired Bare tier or of the retired CLEAR confirmation is in the tree - A-45 and A-46 removed both before they shipped, and this is how they would arrive by copy-paste from the plan that designed them",
+    ).toEqual([]);
   });
 });
