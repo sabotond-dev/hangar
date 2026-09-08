@@ -146,6 +146,32 @@ interface elements rather than decoration. Progress shown as outlined bars with 
 device; pill outlines with a filled active state; ASCII glyphs as legitimate interface furniture; and
 tabular rows that align without rules.
 
+### D-16 [user] The register line moves: CRT is the front door's alone
+
+The approved spec splits registers by surface — brand surfaces carry the CRT, product surfaces never
+do. The user's ruling **moves that line**: the **front door keeps its screen character** (Layers G, S,
+R and T as built, the `SCREEN` toggle, the off switch), and **browse, the panels, tuning and the whole
+device flow become instrument** in the language of D-15's references — registration lattice, one accent
+cross, halftone density, pill outlines, monospace metadata, tabular rows without rules.
+
+This is not a retirement of wave 4. Everything it built stays and stays gated; what changes is where
+it is allowed to appear. Layer S is scoped to pad frames and must now be scoped to pad frames **on the
+front door**; the ground and the roll bar are already the hero shell's. The consequence to watch is
+that `/browse/` mounts up to thirty-six pad frames, so Layer S's scoping is the load-bearing edit and
+it has a measured cost on the phone profile (61 ms p95) that the browse grid must not inherit.
+
+### D-17 [user] Fold into the remaining waves, plus one aesthetic pass
+
+Pill outlines, the filled active state and monospace metadata land **inside** the waves still ahead —
+the colour picker, MIX TWO and both CLEAR waves — rather than being retrofitted afterwards. Then
+**one new wave applies the lattice, the halftone and the headline treatment across what is already
+built**, before the gate.
+
+It is inserted as **10-13.1**, taking wave 14, so nothing renumbers: `10-14` moves from wave 14 to
+wave 15 and its `depends_on` from `10-13` to `10-13.1`, and that is the whole ripple. Renumbering
+seven downstream plans is what this phase's checker warned against three times, and the 5.1 precedent
+says a decimal insert is the house answer.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the
