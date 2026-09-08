@@ -294,17 +294,27 @@
     apology for a shelf that needs none, and the pixels beside it - thirty-six
     pads, every one of them already animating - say the same thing better.
 
-    THE CASE EXCEPTION, DECLARED HERE RATHER THAN DISCOVERED (10-UI-SPEC 13.0,
-    5.2). Uppercase on this site is reserved for the wordmark, button labels
-    and structural captions of at most two words. This is a HEADLINE SET IN THE
-    MICRO ROLE, not a caption, and it is the only uppercase string on the site
-    longer than two words. It earns the case because it is the only line on the
-    front door that is not a sentence. Nothing else may cite it as a precedent.
+    THERE IS NO CASE EXCEPTION HERE ANY MORE, AND THIS PARAGRAPH REPLACES THE
+    ONE THAT ARGUED FOR IT (A-43, D-18). The headline was
+    `PICK ONE · IT IS ALREADY RUNNING`, 32 characters and six words, and the
+    comment in this place defended the uppercase on the grounds that it was the
+    only uppercase string on the site longer than two words, that it earned the
+    case by not being a sentence, and that nothing else might cite it as a
+    precedent. `START EXPLORING` is FIFTEEN characters and TWO WORDS, counted by
+    script, so it is inside 5.2's rule rather than outside it: uppercase is
+    reserved for the wordmark, button labels and captions of at most two words,
+    and this is a headline set in the Micro role that now satisfies the same
+    count. The exception is retired in 5.2, 13.0 and 13.1 as well, and this is
+    the only place the old argument could have survived as a comment defending
+    something the contract no longer has.
 
-    The separator is U+00B7 MIDDLE DOT, the contract's, never a hyphen. 32
-    characters, counted by script.
+    THE MIDDLE DOT GOES WITH IT, AND IT DOES NOT LEAVE THE SITE. 13's separator
+    inventory loses this use, and U+00B7 is still rendered in two components -
+    DeviceSlot.svelte's three, between the module name, the firmware and the
+    page, and MixTwo.svelte's one, joining a result's settings. Four rendered
+    uses where there were five; it is not a retirement of the character.
   -->
-  <p class="headline">PICK ONE · IT IS ALREADY RUNNING</p>
+  <p class="headline">START EXPLORING</p>
   <div class="row">
     <Coverflow {row} {initialId} {notice} />
     <!--

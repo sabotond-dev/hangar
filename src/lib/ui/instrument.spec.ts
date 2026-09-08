@@ -379,6 +379,37 @@ const instrumentFiles = (): string[] =>
  * the correction 10-13 earned: a hand list that a walk iterates is the walk's
  * real scope, and the walk then passes having read nothing.
  */
+/**
+ * EVERY --font-mono USE ON THE SITE, BY FILE AND BY THE RULE THAT DECLARES IT.
+ *
+ * SEVEN, NOT SIX, AND THE NUMBER IS THE RULE (A-44). 5.2 said "six, and the
+ * list is asserted" and was written before 10-10 shipped; 19.1c then called the
+ * metadata block the sixth, which double-counted the picker's RGB triple. A-44
+ * settles it at seven and requires the seventh's argument to be made OUT LOUD
+ * rather than inherited, which CatalogCard.svelte's own comment does: the fifth
+ * and the sixth qualify on W-03's "a number that changes as a pointer moves",
+ * and the seventh qualifies on the other half - machine text whose columns must
+ * hold - because it is static and never jitters at all.
+ *
+ * The list is what is asserted, not the count alone: a seventh use somewhere
+ * else would keep the count right and still be a defect.
+ */
+const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
+  ["BudgetMeter.svelte", "Phase 5", "the two numeric columns"],
+  ["CopyLink.svelte", "Phase 5", "the link field"],
+  ["DeviceSlot.svelte", "Phase 5", "the firmware numerals"],
+  [
+    "Knob.svelte",
+    "Phase 5 and 11.3",
+    "the integer readout, and the forecast delta",
+  ],
+  ["ColourPicker.svelte", "10-10", "the RGB triple - the sixth"],
+  ["CatalogCard.svelte", "10-13.1, 19.1c", "the metadata block - the seventh"],
+];
+
+/** Seven uses across six files: Knob.svelte carries two of them. */
+const MONO_COUNT = 7;
+
 const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   [
     "TryOnDevice.svelte",
@@ -1012,4 +1043,224 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       "Layer G is declared outside src/app.css. 10-UI-SPEC 7.1's placement rule: identity.spec.ts reads THAT FILE AND NOTHING ELSE, so a halftone authored in a component carries an alpha no colour gate on this site can see",
     ).toEqual([]);
   });
+
+  it("scan 5: the index form is furniture beside untouched strings, mono is a list of seven, and no row gained a rule", () => {
+    const facet = code("src/lib/ui/FacetRow.svelte");
+    const facetTemplate = templateOf(facet);
+    const facetRules = rulesOf(styleOf("src/lib/ui/FacetRow.svelte", facet));
+
+    // ---- Non-vacuity, before a single claim about what was found. ----
+    expect(
+      facetRules.length,
+      `FacetRow.svelte parsed into ${facetRules.length} rules`,
+    ).toBeGreaterThan(4);
+    for (const cls of ["index", "dash", "caption"]) {
+      expect(
+        facetRules.some((rule) => rule.selector === `.${cls}`),
+        `FacetRow.svelte has no .${cls} rule - the index form was renamed away and this scan is checking nothing`,
+      ).toBe(true);
+    }
+
+    // ---- THE INDEX AND THE DASH ARE SIBLINGS, NEVER INSIDE THE STRING.
+    // `01 - FOR` written as one literal is a copy RETIREMENT, and 3.1's audit
+    // is closed at ten by A-30's rule: furniture beside a pinned string costs
+    // no amendment, a rewritten literal costs a named one with its spec
+    // rewritten. That is the whole reason A-42 exists.
+    const EM_DASH = String.fromCharCode(8212);
+
+    // THE CAPTION LITERALS ARE READ AT THEIR SOURCE, WHICH IS NOT THIS
+    // COMPONENT. FacetRow.svelte renders {caption}; the strings themselves are
+    // src/lib/browse/facets.ts's, one declaration shared with the front door's
+    // row, and that is where `01 - FOR` as one literal would be written. A scan
+    // that only read the markup would find an expression and report nothing.
+    const captions = [
+      ...code("src/lib/browse/facets.ts").matchAll(/caption:\s*"([^"]*)"/g),
+    ].map((match) => match[1]);
+    expect(
+      captions,
+      "no facet caption literal could be read out of src/lib/browse/facets.ts - the declaration moved, and the assertions below would pass on an empty list",
+    ).toHaveLength(2);
+    for (const caption of captions) {
+      for (const [what, needle] of [
+        ["a digit", /[0-9]/],
+        ["a U+2014 EM DASH", /—/],
+        ["a U+002D HYPHEN-MINUS", /-/],
+      ] as const) {
+        expect(
+          needle.test(caption),
+          `the facet caption ${JSON.stringify(caption)} carries ${what}. 19.1f's form is THREE ELEMENTS - a two-digit index, a real em dash in its own element, and THE CAPTION BYTE FOR BYTE UNCHANGED. Folding the index into the string is a copy RETIREMENT: 3.1's audit is closed at ten by A-30's rule, so a rewritten literal costs a named amendment with its spec rewritten, where furniture beside a pinned string costs nothing. That is the whole reason A-42 exists. It would also put the furniture inside the group's accessible name, so a screen reader would read the register mark before the facet.`,
+        ).toBe(false);
+      }
+    }
+
+    const captionText = textBetween(facetTemplate, '<span class="caption"');
+    expect(
+      captionText,
+      "FacetRow.svelte's caption element could not be read - the markup moved and the assertions below prove nothing",
+    ).not.toBe("");
+    for (const [what, needle] of [
+      ["a digit", /[0-9]/],
+      ["a U+2014 EM DASH", /—/],
+      ["a U+002D HYPHEN-MINUS", /-/],
+    ] as const) {
+      expect(
+        needle.test(captionText),
+        `the caption element carries ${what}. 19.1f's form is THREE ELEMENTS - a two-digit index, a real em dash in its own element, and the caption byte-unchanged. Folding any of them into the string retires a pinned literal, and it also puts them inside the group's accessible name, so a screen reader would say the furniture before the facet.`,
+      ).toBe(false);
+    }
+    expect(
+      facetTemplate.includes(`>${EM_DASH}<`),
+      "the em dash is not a real U+2014 alone in its own element - a hyphen standing in for a dash is 13.0's own prohibition, and a dash inside another element is not a sibling",
+    ).toBe(true);
+
+    // The index is TWO DIGITS and it is formatted where it is known, not here.
+    expect(
+      facet.includes("index?: string"),
+      "FacetRow.svelte's index is not an already-formatted string - a number prop would put the padding in this component, where the ordinal is not known",
+    ).toBe(true);
+    const toolbar = code("src/lib/ui/BrowseToolbar.svelte");
+    const indexed = /index=[{]String\(at [+] 1\)[.]padStart\(2, "0"\)[}]/.test(
+      toolbar,
+    );
+    expect(
+      indexed,
+      "BrowseToolbar.svelte no longer hands its facet rows a two-digit index derived from their position",
+    ).toBe(true);
+    for (const value of ["01", "02"]) {
+      expect(
+        value,
+        `the index ${value} is not two digits - 19.1f's form is a TWO-DIGIT index`,
+      ).toMatch(/^[0-9]{2}$/);
+    }
+
+    // ---- ON /browse/'s TWO FACET ROWS AND ON NOTHING ELSE (A-42).
+    // The front door mounts the same component in link mode with NO index, and
+    // no device component renders the form at all: 10.2 and A-23 forbid step
+    // numerals in the device flow, and on the chosen panel the regions ARE the
+    // sequence, so an index there would read as the instruction A-23 rules out.
+    const frontDoor = code(FRONT_DOOR);
+    expect(
+      frontDoor.includes("<FacetRow"),
+      "FrontDoor.svelte no longer mounts a FacetRow, so the half of A-42 that says the form is on /browse/ and nowhere else has nothing to discriminate against",
+    ).toBe(true);
+    expect(
+      /index=/.test(frontDoor),
+      "FrontDoor.svelte hands its FOR row an index. A-42 puts the form on /browse/'s two facet rows and on nothing else, and the front door's row is a set of destinations on a ceremonial page rather than a filter on a working one.",
+    ).toBe(false);
+    const numbered: string[] = [];
+    for (const name of [
+      "Clear.svelte",
+      "KeepOnDevice.svelte",
+      "PutBack.svelte",
+      "KeepConfirm.svelte",
+      "TryOnDevice.svelte",
+      "ChosenPanel.svelte",
+      "DeviceSlot.svelte",
+      "DeviceNote.svelte",
+    ]) {
+      const source = code(`${UI_DIR}/${name}`);
+      if (/<span class="index"/.test(source) || /class="dash"/.test(source))
+        numbered.push(name);
+    }
+    expect(
+      numbered,
+      "a device component renders the index form. 10.2 and A-23 forbid step numerals in the device flow: on the chosen panel the regions ARE the device sequence, so numbering them would read as an instruction rather than as a register mark.",
+    ).toEqual([]);
+
+    // ---- --font-mono IS A LIST OF SEVEN, AND THE LIST IS THE ASSERTION.
+    const carriers: string[] = [];
+    let declarations = 0;
+    for (const name of uiComponents()) {
+      const source = code(`${UI_DIR}/${name}`);
+      const uses = rulesOf(styleOf(`${UI_DIR}/${name}`, source)).filter(
+        (rule) => rule.body.includes("var(--font-mono)"),
+      );
+      declarations += uses.length;
+      if (uses.length > 0) carriers.push(name);
+    }
+    expect(
+      declarations,
+      `${declarations} rules across src/lib/ui/ declare var(--font-mono) and A-44 settles the count at ${MONO_COUNT}. 5.2's "six, and the list is asserted" was written before 10-10 spent the sixth on the picker's RGB triple; 19.1c then called the metadata block the sixth as well, which double-counted it. Seven is the number and the LIST below is what holds it - a seventh use somewhere else keeps the count right and is still a defect.`,
+    ).toBe(MONO_COUNT);
+    expect(
+      carriers.sort(),
+      "a component declares --font-mono and is not on 19.1c's list, or has fallen off it. Y-18: only the firmware and the page numerals are monospaced, and prose never is.",
+    ).toEqual(
+      MONO_USES.map(([file]) => file)
+        .slice()
+        .sort(),
+    );
+
+    // The seventh's own rule, by the properties 19.1c specifies.
+    const card = code("src/lib/ui/CatalogCard.svelte");
+    const meta = rulesOf(styleOf("src/lib/ui/CatalogCard.svelte", card)).find(
+      (rule) => rule.selector === ".meta",
+    );
+    expect(
+      meta,
+      "CatalogCard.svelte no longer has a .meta rule - 19.1c's metadata block was renamed and the seventh mono use is somewhere this scan is not looking",
+    ).toBeDefined();
+    const metaDeclared = new Map(declarationsOf(meta?.body ?? ""));
+    for (const [property, value] of [
+      ["font-family", "var(--font-mono)"],
+      ["font-variant-numeric", "tabular-nums"],
+      ["color", "var(--color-ink-quiet)"],
+    ] as const) {
+      expect(
+        metaDeclared.get(property),
+        `the metadata block declares ${property} as ${JSON.stringify(metaDeclared.get(property))} rather than ${value} (19.1c)`,
+      ).toBe(value);
+    }
+    // U+002B WITH ONE SPACE EITHER SIDE, and the spaces are the gap rather than
+    // characters in a string - a separator element with a flex gap either side.
+    expect(
+      /<span class="plus">[+]<\/span>/.test(templateOf(card)),
+      "the metadata separator is not a bare U+002B in its own element (19.1c). Inside a field it would be part of the text; as a sibling with a gap either side it is the one space the amendment asks for, on both sides, at every wrap.",
+    ).toBe(true);
+    expect(
+      metaDeclared.get("gap"),
+      "the metadata block's gap is not 0 8px, so the plus does not carry one space either side (19.1c)",
+    ).toBe("0 8px");
+
+    // ---- 19.1d: NO DIVIDER, NO BORDER, NO ZEBRA, NO NEW --color-line USE was
+    // added to make a row read. Column alignment carries it.
+    for (const rule of [
+      meta,
+      ...rulesOf(styleOf("src/lib/ui/CatalogCard.svelte", card)).filter(
+        (r) => r.selector === ".plus" || r.selector === ".field",
+      ),
+    ]) {
+      for (const [property] of declarationsOf(rule?.body ?? "")) {
+        expect(
+          property.startsWith("border"),
+          `the metadata block declares "${property}". 19.1d: column alignment carries the row, and no divider, border, zebra or new --color-line use is added to make one read. The two hairlines in region 6 stay because they were already structural and A-23 depends on the second one; this block adds none.`,
+        ).toBe(false);
+      }
+    }
+
+    // ---- THE CARD GRID IS NOT REPLACED, AND THE REFUSAL IS ASSERTED.
+    // Reference C's dense tabular listing is a layout this plan explicitly does
+    // not adopt: the grid is what carries thirty-six live pad canvases, and the
+    // pads are the product.
+    const gridRules = rulesOf(
+      styleOf(
+        "src/lib/ui/BrowseGrid.svelte",
+        code("src/lib/ui/BrowseGrid.svelte"),
+      ),
+    );
+    expect(
+      gridRules.some((rule) => rule.body.includes("grid-template-columns")),
+      "BrowseGrid.svelte no longer lays its cards out on a grid. 19.1d: where reference C's dense tabular listing collides with the shipped grid, THE GRID WINS - it is what carries thirty-six live pad canvases, and the pads are the product. Tabular alignment applies INSIDE a card's metadata block, never as a replacement for the wall.",
+    ).toBe(true);
+  });
 });
+
+/** The text of the element whose opening tag starts with this needle. */
+function textBetween(template: string, needle: string): string {
+  const at = template.indexOf(needle);
+  if (at < 0) return "";
+  const open = template.indexOf(">", at);
+  const close = template.indexOf("</", open);
+  if (open < 0 || close < 0) return "";
+  return template.slice(open + 1, close);
+}

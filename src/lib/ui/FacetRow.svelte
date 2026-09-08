@@ -49,6 +49,7 @@
     terms,
     active = [],
     blocked = [],
+    index,
     ontoggle,
     href,
   }: {
@@ -64,6 +65,25 @@
     blocked?: readonly string[];
     /** Checkbox mode. Given exactly when this row is a filter. */
     ontoggle?: (term: string) => void;
+    /**
+     * The row's ordinal on the surface that renders it, ALREADY FORMATTED as
+     * two digits, or undefined.
+     *
+     * IT IS FURNITURE AND IT IS NOT IN THE CAPTION (A-42, 19.1f). `01 — FOR`
+     * written as one string would be a copy retirement: 3.1's audit is CLOSED
+     * AT TEN by A-30's rule, and a rewritten literal costs a named amendment
+     * with its spec rewritten, where furniture beside a byte-unchanged string
+     * costs nothing. That is the whole reason A-42 exists.
+     *
+     * IT IS GIVEN ON /browse/ AND NOWHERE ELSE. The front door mounts this
+     * component in link mode with no index at all: 10.2 and A-23 forbid step
+     * numerals in the device flow, and on the chosen panel the regions ARE the
+     * device sequence, so an index there would read as exactly the instruction
+     * A-23 rules out. /browse/'s facet rows are an unordered set of filters on
+     * a surface with no sequence, which is the one place on the site where an
+     * index is a register mark rather than a step.
+     */
+    index?: string;
     /**
      * Link mode. Given exactly when this row is a set of destinations.
      *
@@ -86,7 +106,22 @@
 </script>
 
 <div class="facet">
-  <span class="caption" id={captionId}>{caption}</span>
+  <!--
+    THE INDEX AND THE EM DASH ARE SIBLINGS OF THE CAPTION, NEVER INSIDE IT
+    (19.1f, A-42). Two reasons, and both are load-bearing. The caption is a
+    PINNED string and it stays byte-identical - it is the facet's own, shared
+    with the front door's row - and it is the accessible name of a real group,
+    so a screen reader has to keep saying "FOR, group" rather than "01 em dash
+    FOR, group". The dash is a real U+2014 in its own element and never a hyphen
+    standing in for one.
+  -->
+  <div class="head">
+    {#if index !== undefined}
+      <span class="index" aria-hidden="true">{index}</span>
+      <span class="dash" aria-hidden="true">—</span>
+    {/if}
+    <span class="caption" id={captionId}>{caption}</span>
+  </div>
 
   <div
     class="chips"
@@ -114,10 +149,46 @@
 </div>
 
 <style>
-  /* Micro: 12px / 600 / 1.2 / 0.18em, uppercase, quiet. 4px above its row. */
+  /*
+    The caption's row: the two furniture elements then the caption, on one
+    baseline. A FLEX row and deliberately not a grid - 10-09 turned a row into a
+    grid and stopped it wrapping, because a grid track's automatic minimum is
+    its content's min-content width, and the overflow-x prohibition went with
+    it. The 4px that used to be the caption's own bottom margin is here now, so
+    nothing moved: the caption still sits 4px above its members.
+  */
+  .head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-block-end: 4px;
+  }
+
+  /*
+    The index: Micro, in the DIM rung, which is a rung below the caption's
+    quiet. It is furniture rather than information - the caption is what names
+    the facet - and the ladder is how it says so without a second colour.
+  */
+  .index {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.18em;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-dim);
+  }
+
+  /* A real U+2014 in its own element, at the same rung as the index. */
+  .dash {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--color-ink-dim);
+  }
+
+  /* Micro: 12px / 600 / 1.2 / 0.18em, uppercase, quiet. */
   .caption {
     display: block;
-    margin-block-end: 4px;
     font-size: 12px;
     font-weight: 600;
     line-height: 1.2;

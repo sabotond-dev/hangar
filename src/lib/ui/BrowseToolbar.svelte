@@ -385,11 +385,12 @@
     term, and a button announced as part of a group labelled FOR would be one
     more thing for a screen reader to sort out at the end of ten.
   -->
-  {#each rows as row (row.facet.name)}
+  {#each rows as row, at (row.facet.name)}
     <div class="band">
       <FacetRow
         name={row.facet.name}
         caption={row.facet.caption}
+        index={String(at + 1).padStart(2, "0")}
         terms={row.facet.terms}
         active={active[row.facet.name]}
         blocked={row.blocked}

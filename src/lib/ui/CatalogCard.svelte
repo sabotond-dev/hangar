@@ -195,6 +195,35 @@
     <p class="quiet">{entry.quiet}</p>
   {/if}
 
+  <!--
+    THE METADATA BLOCK (19.1c, D-15 reference A). Three machine facts about this
+    configuration, + separated with one space either side, column-aligned, in
+    the mono stack at --color-ink-quiet: the catalog id, which is also this
+    card's address; the engine that renders its preview; and what the pad does
+    with nobody touching it. All three are read off the entry - no derivation,
+    no second source, and no specifier that reaches the compiler.
+
+    IT IS aria-hidden, AND THAT IS NOT A SHORTCUT. The anchor above already
+    carries the entry's name as its accessible name and its description as its
+    describedby target, and this block restates the id - which is the name in
+    lower case - the engine and the motion. Announced, it would be the same card
+    read a second time in machine words, on every one of thirty-six cards. It is
+    a register mark for the eye.
+
+    THE + IS U+002B WITH ONE SPACE EITHER SIDE and it is 13.0's second added
+    character, beside U+2212. It is markup furniture rather than copy: no string
+    in any copy module carries it, so the enumerations in
+    src/lib/catalog/copy.spec.ts and src/lib/tune/copy.spec.ts are unchanged -
+    which is stated here rather than left as a silence.
+  -->
+  <p class="meta" aria-hidden="true">
+    <span class="field">{entry.id}</span>
+    <span class="plus">+</span>
+    <span class="field">{entry.preview}</span>
+    <span class="plus">+</span>
+    <span class="field">{entry.motion}</span>
+  </p>
+
   <ul class="tags" role="list">
     {#each entry.tags as tag (tag)}
       <li><span class="tag">{tag}</span></li>
@@ -332,6 +361,59 @@
     margin: auto 0 0;
     padding: 16px 0 0;
     list-style: none;
+  }
+
+  /*
+    THE SEVENTH --font-mono USE ON THE SITE, AND A-44 REQUIRES THE ARGUMENT TO
+    BE MADE OUT LOUD RATHER THAN INHERITED. ColourPicker.svelte's own comment
+    spent the sixth and said in as many words that a seventh needs its case
+    made again, so here it is.
+
+    THE SIX BEFORE IT: BudgetMeter.svelte's two numeric columns, CopyLink.svelte's
+    link field, DeviceSlot.svelte's firmware numerals and Knob.svelte's integer
+    readout are Phase 5's four; Knob.svelte's forecast delta is 11.3's fifth;
+    ColourPicker.svelte's RGB triple is 10-10's sixth.
+
+    THE FIFTH AND THE SIXTH QUALIFY ON ONE HALF OF W-03's RULE AND THIS ONE
+    QUALIFIES ON THE OTHER. Theirs is "a number that changes as a pointer moves
+    and must not jitter horizontally" - and that argument does NOT describe this
+    block, which is static from the moment the card mounts and never changes at
+    all. Ours is the other half: MACHINE TEXT WHOSE COLUMNS MUST HOLD. Thirty-six
+    of these blocks stack in a grid, three fields each, separated by a character
+    that is only legible AS a separator when it lands in the same place on every
+    card. In a proportional face the pair
+    arc + padsim + animated and starfield + padsim + animated put their plus signs at two unrelated
+    offsets and the block reads as three cards' worth of noise; in a fixed
+    advance the fields are columns and the wall reads as a table. That is
+    reference A's device exactly, and it is a property of the STACK rather than
+    of any one card - which is why no single-card argument would have reached it.
+
+    tabular-nums is declared with no digit in the block today, and that is
+    deliberate rather than cargo: the fields are catalog tokens now, and the day
+    one of them carries a number the columns must not move on the day it
+    arrives rather than on the day somebody notices.
+
+    NO DIVIDER, NO BORDER, NO ZEBRA AND NO NEW --color-line USE (19.1d). The
+    column alignment carries the row. The block sits above the tag row on the
+    ink ladder's quiet rung and is separated from it by space alone.
+  */
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 8px;
+    margin: 8px 0 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-quiet);
+  }
+
+  /* The separator, at the soft rung so the fields read before it does. */
+  .plus {
+    color: var(--color-line-soft);
   }
 
   /* Micro (title): 12px / 600 / 1.2 / 0.01em, sentence case, verbatim. */

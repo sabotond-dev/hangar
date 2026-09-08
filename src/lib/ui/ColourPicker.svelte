@@ -606,6 +606,14 @@
     delta and made exactly this case; a seventh needs the argument made out
     loud again.
 
+    THE SEVENTH ARRIVED IN 10-13.1 AND ITS ARGUMENT IS NOT THIS ONE (A-44).
+    CatalogCard.svelte's + separated metadata block qualifies on the OTHER half
+    of W-03's rule - machine text whose columns must hold across thirty-six
+    stacked cards - because it is static and never jitters, so this comment's
+    case would not have carried it. The count is SEVEN and 5.2's "six, and the
+    list is asserted" was written before 10-10 shipped; instrument.spec.ts
+    scan 5 is what holds the list now.
+
     +-separated columns rather than prose (D-15 reference A). It is
     aria-hidden because the rails already announce the identical three integers
     through aria-valuetext, and a second reading would be the same fact twice.
