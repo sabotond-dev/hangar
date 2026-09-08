@@ -39,18 +39,30 @@
   uses and all three of them are a meter's or a message's (05-UI-SPEC X-01); a
   knob is never red.
 
+  THE LOCK, AND ITS SECOND CHANNEL (10-UI-SPEC 11.5, T1). Every row ends in a
+  real <button aria-pressed> whose LABEL changes HOLD -> HELD, so the state is
+  in the accessible name and not only in the pressed state. The second,
+  non-colour channel is the default marker: a 2px --color-line-soft dot at the
+  default position when the knob is free, a 2px --color-line bar spanning the
+  SELECTED option when it is held. NO ACCENT IS SPENT ON EITHER, and none may
+  be - 10-UI-SPEC 7.2's reserved list stays at eight, and tune-ui.spec.ts
+  counts this file's --color-accent declarations to keep it there.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
+  import { KNOB_HELD, KNOB_HOLD } from "$lib/tune/copy";
   import { knobPosition, type KnobView } from "$lib/tune/view";
 
   let {
     view,
     stacked = false,
+    held = false,
     onchange,
     onreset,
+    onhold,
   }: {
     /** The knob, with its widget and skin already chosen by $lib/tune/view. */
     view: KnobView;
@@ -60,10 +72,18 @@
      * under 220px whatever this says.
      */
     stacked?: boolean;
+    /**
+     * Locked out of SURPRISE ME's roll. EPHEMERAL: the region owns the set, it
+     * is never encoded into a stamp, and a held knob's link is byte-identical
+     * to the same knob's unheld one (SHARE-01 is untouched).
+     */
+    held?: boolean;
     /** A new index on this knob. Fired on every step of a drag. */
     onchange: (index: number) => void;
     /** Back to the default index. All three gestures call exactly this. */
     onreset: () => void;
+    /** The lock, toggled. The region owns what held means; this only says so. */
+    onhold: () => void;
   } = $props();
 
   /**
@@ -97,6 +117,17 @@
   const homePercent = $derived(
     count > 1 ? (view.default / (count - 1)) * 100 : 0,
   );
+
+  /**
+   * WHERE THE DEFAULT MARKER SITS, and it is the lock's second channel.
+   *
+   * Free: the default position, as a dot. Held: the SELECTED position, as a
+   * bar spanning it. Two channels change together - the word on the toggle and
+   * the shape and place of this marker - so a held knob is legible without
+   * reading its button, and no accent is spent (10-UI-SPEC 7.2, 11.5).
+   */
+  const markerAt = $derived(held ? view.index : view.default);
+  const markerPercent = $derived(held ? fillPercent : homePercent);
 
   /** Stable, unique-per-knob ids for label, group and description wiring. */
   const controlId = $derived(`knob-${view.id}-control`);
@@ -216,15 +247,16 @@
           ></span>
           <span
             class="home home-track"
-            style:inset-inline-start="calc({homePercent}% - 1px)"
+            class:bar={held}
+            style:inset-inline-start="calc({markerPercent}% - {held ? 6 : 1}px)"
             aria-hidden="true"
           ></span>
         {:else}
           {#each slots as at (at)}
             <span class="slot" aria-hidden="true">
               <span class="dot" class:selected={at === view.index}></span>
-              {#if at === view.default}
-                <span class="home home-dot"></span>
+              {#if at === markerAt}
+                <span class="home home-dot" class:bar={held}></span>
               {/if}
             </span>
           {/each}
@@ -278,14 +310,35 @@
           {:else}
             <span class="word">{value.label}</span>
           {/if}
-          {#if at === view.default}
-            <span class="home" class:home-swatch={view.widget === "swatch"}
+          {#if at === markerAt}
+            <span
+              class="home"
+              class:home-swatch={view.widget === "swatch"}
+              class:bar={held}
             ></span>
           {/if}
         </label>
       {/each}
     </div>
   {/if}
+
+  <!--
+    The lock. It stops the row's pointer and double-click gestures rather than
+    riding them: the row treats a double-click anywhere on it as RESET, and a
+    long press on a coarse pointer the same way, so a visitor holding a knob
+    with two quick taps would otherwise also send it home.
+  -->
+  <button
+    class="lock"
+    type="button"
+    data-testid="knob-{view.id}-hold"
+    aria-pressed={held}
+    onclick={onhold}
+    ondblclick={(event) => event.stopPropagation()}
+    onpointerdown={(event) => event.stopPropagation()}
+  >
+    {held ? KNOB_HELD : KNOB_HOLD}
+  </button>
 </div>
 
 <style>
@@ -300,7 +353,8 @@
   */
   .row {
     display: grid;
-    grid-template-columns: minmax(88px, 34%) 1fr;
+    grid-template-columns: minmax(88px, 34%) 1fr auto;
+    grid-template-areas: "label control lock";
     column-gap: 12px;
     block-size: 44px;
     align-items: center;
@@ -310,9 +364,18 @@
   /*
     Stacked: a 14px line box for the label (spacing exception 4), a 4px gap and
     the control full width in its 44px box. 14 + 4 + 44 = 62.
+
+    THE LOCK IS WHY THIS IS STILL A GRID rather than the `display: block` it
+    was. The stacked row is two rows tall and the toggle spans both of them at
+    the inline end, so the label and the control keep the full width they had
+    less the lock's own column - and the 14 + 4 + 44 arithmetic is untouched,
+    which is what keeps KnobRack.svelte's 66px word row true.
   */
   .row.stacked {
-    display: block;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "label lock"
+      "control lock";
     block-size: 62px;
   }
 
@@ -325,13 +388,17 @@
   */
   @container (width < 220px) {
     .row {
-      display: block;
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "label lock"
+        "control lock";
       block-size: 62px;
     }
   }
 
   /* Micro (title): 12px / 600 / 0.01em, sentence case. */
   .label {
+    grid-area: label;
     display: block;
     font-size: 12px;
     font-weight: 600;
@@ -346,6 +413,7 @@
   }
 
   .control {
+    grid-area: control;
     -webkit-touch-callout: none;
     user-select: none;
   }
@@ -496,6 +564,45 @@
     inset-block-start: 32px;
   }
 
+  /*
+    HELD: the same 2px marker, moved to the SELECTED option and widened into a
+    bar spanning it, in --color-line rather than --color-line-soft.
+
+    This is the lock's second channel and it is deliberately not a colour from
+    the reserved list: --color-line is the structural rung at 3.31:1, one step
+    up from the soft one the free marker uses, so the change reads as shape
+    plus weight rather than as "selected" (10-UI-SPEC 7.2 keeps the accent list
+    at eight, and the accent census in tune-ui.spec.ts is what holds it there).
+
+    The three widths are the three things a marker can span: the 8px dot slot,
+    the 12px detent thumb, and the whole of a word or swatch option.
+  */
+  .home.bar {
+    border-radius: 1px;
+    background: var(--color-line);
+  }
+
+  .rail .home.bar {
+    inline-size: 8px;
+    inset-inline-start: 0;
+  }
+
+  .rail.track .home.bar {
+    inline-size: 12px;
+  }
+
+  /*
+    `.control.options` rather than `.options`, and the extra class is
+    load-bearing: `.options:not(.swatches) .home` further down sets an
+    inset-inline-start of calc(50% - 1px) at the same specificity and later in
+    the file, so a bar written with one class would be centred on the option
+    instead of spanning it.
+  */
+  .control.options .home.bar {
+    inline-size: 100%;
+    inset-inline-start: 0;
+  }
+
   /* Word rows and swatch rows wrap; the row height is auto with a 44px floor. */
   .options {
     display: flex;
@@ -602,6 +709,41 @@
   }
 
   /*
+    The lock (10-UI-SPEC 11.5). Micro, quiet when free and full ink when held -
+    the colour is the THIRD channel, after the word and the marker, and it is
+    two rungs of the ink ladder rather than any part of the accent list.
+
+    44px on BOTH axes, which is the touch floor stated per control rather than
+    per page: a 4-character label at 12px is nowhere near 44px wide on its own.
+  */
+  .lock {
+    grid-area: lock;
+    appearance: none;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink-quiet);
+    cursor: pointer;
+    transition: color 140ms ease-out;
+  }
+
+  .lock[aria-pressed="true"] {
+    color: var(--color-ink);
+  }
+
+  .lock:hover {
+    color: var(--color-ink);
+  }
+
+  /*
     Reduced motion: no scale on drag, no transition on hover - colour change
     only, which is Phase 4's "hover lifts -> colour change only".
   */
@@ -612,7 +754,8 @@
     .track-fill,
     .word,
     .swatch,
-    .option {
+    .option,
+    .lock {
       transition: none;
     }
 

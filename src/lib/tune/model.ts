@@ -147,7 +147,12 @@ export type Tuner = {
   set(knobId: string, index: number): void;
   reset(knobId: string): void;
   resetAll(): void;
-  surprise(): Promise<void>;
+  /**
+   * The roll. `held` names the knobs the visitor has locked (T1) and is the
+   * caller's ephemeral state - the tuner never stores it, so it can never
+   * reach `encodeFor` and the stamp is a function of the indices alone.
+   */
+  surprise(held?: ReadonlySet<string>): Promise<void>;
   /** Undefined at the defaults: a URL with no fragment IS the base configuration. */
   stamp(): string | undefined;
   destroy(): void;
@@ -684,19 +689,28 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       moved = undefined;
       moveTo(next);
     },
-    async surprise(): Promise<void> {
+    async surprise(held?: ReadonlySet<string>): Promise<void> {
       if (destroyed) return;
       // The gate FIRST, through HANGAR's own surface, so the synchronous
       // predicate below cannot observe an uninitialised formatter.
       await padReady();
       if (destroyed) return;
       const reserved = options.reserved;
-      const drawn = surpriseIndices(knobs, indices, (candidate) =>
-        // A Lua entry fits by construction (Phase 8 proved its whole knob
-        // cross-product in budget), so its roll is one pass.
-        entry.preview === "lua"
-          ? true
-          : fitsAfterGate(stateOf(candidate), reserved),
+      // `held` is READ AND DROPPED. It is never assigned to anything this
+      // module keeps, which is what makes T1's ephemerality structural rather
+      // than a promise: `payload` is computed by encodeFor(entry, indices) and
+      // there is no third argument for a lock to travel in.
+      const drawn = surpriseIndices(
+        knobs,
+        indices,
+        (candidate) =>
+          // A Lua entry fits by construction (Phase 8 proved its whole knob
+          // cross-product in budget), so its roll is one pass.
+          entry.preview === "lua"
+            ? true
+            : fitsAfterGate(stateOf(candidate), reserved),
+        Math.random,
+        held,
       );
       // surpriseIndices signals exhaustion by returning the previous indices
       // unchanged; the ladder fallback is this caller's job, because this is
@@ -704,9 +718,19 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       const exhausted = knobs.every(
         (knob) => drawn[knob.id] === indices[knob.id],
       );
+      // AND THE ONE EXHAUSTION THAT IS NOT A COMPILER FAILURE. With every knob
+      // held the roll cannot move anything, so it returns the previous indices
+      // for a reason that has nothing to do with 908 and the ladder has
+      // nothing to resolve. The region disables SURPRISE ME in exactly this
+      // state, so this guard is unreachable from the interface; it is here so
+      // that a caller which does not disable the control cannot make a lock
+      // silently turn a knob down.
+      const allHeld =
+        held !== undefined && knobs.every((knob) => held.has(knob.id));
       moved = undefined;
       moveTo(drawn);
-      if (!exhausted || entry.preview === "lua" || knobs.length === 0) return;
+      if (!exhausted || allHeld || entry.preview === "lua") return;
+      if (knobs.length === 0) return;
       // The UI spec's rule: SURPRISE ME has no failure state, so an exhausted
       // roll applies the ladder-resolved state rather than landing over budget.
       const state = stateNow();

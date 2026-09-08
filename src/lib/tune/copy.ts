@@ -57,6 +57,29 @@ export const TURN_IT_DOWN = "TURN IT DOWN";
 export const COPY_LINK = "COPY LINK";
 export const LINK_COPIED = "LINK COPIED";
 
+/**
+ * The lock toggle on a knob row, off and on (10-UI-SPEC 11.5, T1).
+ *
+ * A WORD RATHER THAN AN ICON, because X-22 ships no new SVG this phase, and
+ * the word CHANGES rather than only the `aria-pressed` state so the lock's
+ * state is in its accessible name. Four characters each, on purpose: the two
+ * labels are the same width, so toggling one cannot reflow the row it ends.
+ */
+export const KNOB_HOLD = "HOLD";
+export const KNOB_HELD = "HELD";
+
+/**
+ * The reason beside a disabled SURPRISE ME when every knob is held. 53
+ * characters, and copy.spec.ts counts them.
+ *
+ * `surpriseIndices` already answers a fully-held roll by handing the previous
+ * indices back - its documented exhaustion signal - so the control would
+ * otherwise be a button that appears to do nothing, which is worse than a
+ * disabled one.
+ */
+export const SURPRISE_ALL_HELD =
+  "Every knob is held, so there is nothing left to roll.";
+
 // ---------------------------------------------------------------------------
 // The two meters.
 

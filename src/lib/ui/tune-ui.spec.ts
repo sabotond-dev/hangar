@@ -24,6 +24,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+// The copy module imports NOTHING (its own header says why), so naming it here
+// costs this file no chunk and lets the source scans below check a component
+// against the sentence it is supposed to be rendering rather than a copy of it.
+import { KNOB_HOLD } from "../tune/copy";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -232,6 +236,76 @@ describe("the tuning UI's structural rules", () => {
       missingFloor,
       "a component renders an interactive control and never declares 44px - Phase 4's touch floor is per-control, not per-page",
     ).toEqual([]);
+
+    // -----------------------------------------------------------------------
+    // T1's lock, which is the newest control in this file's scope (10-UI-SPEC
+    // 11.5). It rides inside this test rather than becoming a sixth, because
+    // what it asserts IS this test's rule - a control and its 44px floor -
+    // applied to the one control the floor is easiest to miss on: a four-
+    // character word at 12px is nowhere near 44px wide by itself.
+    const knob = code(componentPath("Knob.svelte"));
+
+    expect(
+      knob,
+      "the lock is not a real <button aria-pressed> - a div with a role, or a checkbox, would put the state somewhere the accessible NAME is not",
+    ).toContain("aria-pressed={held}");
+
+    // BOTH axes, named separately, because `min-block-size` alone passes the
+    // `includes("44px")` walk above while leaving a 30px-wide target.
+    const lockRule = rulesOf(knob).find(
+      (rule) => rule.selector.trim() === ".lock",
+    );
+    expect(lockRule, "Knob.svelte no longer has a .lock rule").toBeDefined();
+    expect(
+      lockRule?.body,
+      "the lock does not declare its 44px INLINE floor",
+    ).toContain("min-inline-size: 44px");
+    expect(
+      lockRule?.body,
+      "the lock does not declare its 44px BLOCK floor",
+    ).toContain("min-block-size: 44px");
+
+    // The label is the copy module's, never transcribed - and it CHANGES, so
+    // the state is in the accessible name and not only in aria-pressed.
+    expect(knob, "the lock transcribes its labels").not.toContain(
+      `"${KNOB_HOLD}"`,
+    );
+    expect(knob).toContain("KNOB_HOLD");
+    expect(knob).toContain("KNOB_HELD");
+    expect(
+      knob,
+      "the lock's label does not change with its state, so HELD is invisible to a screen reader that reads names rather than pressed states",
+    ).toContain("held ? KNOB_HELD : KNOB_HOLD");
+
+    // THE SECOND CHANNEL, AND THE COLOUR IT IS NOT. The held marker is a
+    // --color-line bar; the free one is the --color-line-soft dot it always
+    // was. Neither is accent - 10-UI-SPEC 7.2's reserved list stays at eight,
+    // and the census that holds the whole rack to it is the test below.
+    const barRules = rulesOf(knob).filter((rule) =>
+      rule.selector.includes(".home.bar"),
+    );
+    expect(
+      barRules.length,
+      "the held marker has no rules of its own, so HOLD and HELD look identical",
+    ).toBeGreaterThan(0);
+    expect(
+      barRules.map((rule) => rule.selector).join(" | "),
+      "the held marker paints in accent - that is a ninth entry on the reserved list, and the whole point of the two-channel design is that it is not taken",
+    ).not.toContain("--color-accent");
+    for (const rule of barRules) {
+      expect(
+        rule.body,
+        `${rule.selector} paints the held marker in accent`,
+      ).not.toContain("--color-accent");
+    }
+    expect(
+      barRules.map((rule) => rule.body).join(""),
+      "the held marker is not --color-line, so it is either invisible or on a token it has no claim to",
+    ).toContain("var(--color-line)");
+    expect(
+      rulesOf(knob).find((rule) => rule.selector.trim() === ".home")?.body,
+      "the FREE marker stopped being the soft dot, so the two states no longer differ by weight",
+    ).toContain("var(--color-line-soft)");
   });
 
   it("the alarm red lives in exactly two components and on no button", () => {

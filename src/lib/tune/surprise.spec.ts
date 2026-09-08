@@ -27,6 +27,7 @@ import {
 } from "../../vendor/botor/_pad";
 import { CATALOG, byId, type CatalogEntry } from "../catalog";
 import { padReady } from "../pad";
+import { encodeFor } from "../share/stamp";
 import { luaKnobs } from "./knobs.lua";
 import { presetKnobs, type KnobDescriptor } from "./knobs.preset";
 import { applyKnob, baseStateFor, resetAll } from "./state";
@@ -235,5 +236,117 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       vendorCost(vendorCompile(plan.resolved!), OVER_RESERVE).fits,
       "the ladder-resolved state is still over budget",
     ).toBe(true);
+  });
+
+  it("held knobs shrink the roll: a two-option knob alone burns all twelve draws, and the lock never reaches the stamp", () => {
+    // THIS PATH WAS UNREACHABLE BEFORE LOCKS EXISTED, which is what makes it
+    // worth a test of its own. Until T1 every roll drew every knob, so the
+    // no-op rejection at surprise.ts's `if (!moved) continue` could only fire
+    // when EVERY knob independently redrew its own position - on starfield's
+    // 4,096 x 2 x 5 domain, once in about forty thousand draws, and never
+    // twelve times running in any run this repository will ever make. Hold all
+    // but one knob and the domain collapses to that knob's own options: on a
+    // TWO-option knob standing at one of them, half of all draws are the state
+    // it replaced, and twelve in a row is an ordinary event rather than an
+    // astronomical one. The rng below makes it certain rather than likely.
+    const entry = mustEntry("starfield");
+    const knobs = knobsOf(entry);
+    const free = knobs.find((knob) => knob.id === "edge");
+    expect(
+      free?.options.length,
+      "starfield's edge knob is the two-option knob this test is about - if it is not two options, this test is no longer driving the path it names",
+    ).toBe(2);
+    expect(knobs.length, "starfield has other knobs to hold").toBe(3);
+
+    const held = new Set(
+      knobs.filter((knob) => knob.id !== "edge").map((knob) => knob.id),
+    );
+    expect(held.size, "all but one knob is held").toBe(knobs.length - 1);
+
+    const previous = defaultsOf(knobs);
+    const standing = previous.edge;
+    // Draws the position the knob already stands at, every time. floor() of
+    // this times two is exactly `standing`, whichever of the two it is.
+    let draws = 0;
+    const rng = () => {
+      draws++;
+      return (standing + 0.5) / 2;
+    };
+    let asked = 0;
+    const drawn = surpriseIndices(
+      knobs,
+      previous,
+      () => {
+        asked++;
+        return true;
+      },
+      rng,
+      held,
+    );
+
+    // Twelve draws attempted, one per roll, because a held knob never reaches
+    // the rng at all - which is what makes this number exact rather than a
+    // multiple of the rack size.
+    expect(
+      draws,
+      "the roll did not attempt exactly one draw per roll on the one free knob",
+    ).toBe(SURPRISE_ROLL_LIMIT);
+    // And not one of them was offered to the compiler: the no-op rejection
+    // happens before `fits`, so a fully-narrowed roll costs no minifier call.
+    expect(
+      asked,
+      "a draw that reproduces the state it replaced was offered to fits",
+    ).toBe(0);
+    expect(
+      keyOf(knobs, drawn),
+      "exhaustion did not hand the state back unchanged",
+    ).toBe(keyOf(knobs, previous));
+
+    // Every knob held is the same signal reached without an rng at all: no
+    // knob is drawn, so no draw can move and all twelve rolls are no-ops.
+    let noDraws = 0;
+    const everyKnob = new Set(knobs.map((knob) => knob.id));
+    const stuck = surpriseIndices(
+      knobs,
+      previous,
+      () => {
+        asked++;
+        return true;
+      },
+      () => {
+        noDraws++;
+        return 0.5;
+      },
+      everyKnob,
+    );
+    expect(noDraws, "a held knob was drawn").toBe(0);
+    expect(asked, "a fully-held roll reached the compiler").toBe(0);
+    expect(keyOf(knobs, stuck)).toBe(keyOf(knobs, previous));
+
+    // EPHEMERAL, AND THIS IS HOW SHARE-01 IS SAID. A lock is component state
+    // that never reaches `encodeFor`, so the link a held rack produces is
+    // byte-identical to the link the same indices produce unheld. Measured off
+    // a NON-default vector, because a rack at its defaults encodes to
+    // undefined and two undefineds would prove nothing.
+    const moved = { ...previous, edge: 1 - standing };
+    const unheldStamp = encodeFor(entry, moved);
+    expect(
+      unheldStamp,
+      "the moved vector really does produce a stamp",
+    ).toBeDefined();
+    const heldStamp = encodeFor(
+      entry,
+      surpriseIndices(
+        knobs,
+        moved,
+        () => true,
+        () => 0.5,
+        everyKnob,
+      ),
+    );
+    expect(
+      heldStamp,
+      "a held knob changed the stamp, so a lock is travelling in a link",
+    ).toBe(unheldStamp);
   });
 });

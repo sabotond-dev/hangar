@@ -87,8 +87,10 @@
 
   let {
     knobs,
+    held,
     onchange,
     onreset,
+    onhold,
   }: {
     /** Every knob of the chosen configuration, in the order the entry gives. */
     knobs: readonly KnobView[];
@@ -96,6 +98,14 @@
     onchange: (id: string, index: number) => void;
     /** One knob back to its default. RESET ALL is the region's, not this. */
     onreset: (id: string) => void;
+    /**
+     * The ids SURPRISE ME must not roll. EPHEMERAL and the region's: it is
+     * never encoded into a stamp, so a held knob's link is byte-identical to
+     * the same knob's unheld one.
+     */
+    held: ReadonlySet<string>;
+    /** One lock, toggled. What "held" then means is the region's, not this. */
+    onhold: (id: string) => void;
   } = $props();
 </script>
 
@@ -107,8 +117,10 @@
       <Knob
         view={knob}
         stacked={knob.widget === "words"}
+        held={held.has(knob.id)}
         onchange={(index) => onchange(knob.id, index)}
         onreset={() => onreset(knob.id)}
+        onhold={() => onhold(knob.id)}
       />
     {/each}
   {/if}

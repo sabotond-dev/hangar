@@ -14,12 +14,15 @@ import {
   COPY_LINK,
   DESTRUCTIVE_CONFIRMATIONS,
   EMPTY_RACK,
+  KNOB_HELD,
+  KNOB_HOLD,
   LINK_COPIED,
   LINK_COPIED_ANNOUNCEMENT,
   MEASURING,
   METERS_UNAVAILABLE,
   RESET_ALL,
   SETUP_CAPTION,
+  SURPRISE_ALL_HELD,
   SHARE_FALLBACK_FIELD_NAME,
   SHARE_FALLBACK_LINE,
   STAMP_RESTORED,
@@ -129,6 +132,8 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       TURN_IT_DOWN,
       COPY_LINK,
       LINK_COPIED,
+      KNOB_HOLD,
+      KNOB_HELD,
     ];
     const captions = [TUNING_CAPTION, SETUP_CAPTION, TIMER_CAPTION];
 
@@ -137,6 +142,19 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(TURN_IT_DOWN).toBe("TURN IT DOWN");
     expect(COPY_LINK).toBe("COPY LINK");
     expect(LINK_COPIED).toBe("LINK COPIED");
+
+    // T1's toggle. The two labels are the SAME LENGTH on purpose - toggling a
+    // lock must not reflow the row it sits at the end of - and the state is in
+    // the word rather than only in aria-pressed, which is what makes it part
+    // of the accessible name (10-UI-SPEC 15).
+    expect(KNOB_HOLD).toBe("HOLD");
+    expect(KNOB_HELD).toBe("HELD");
+    expect([...KNOB_HOLD].length, "the lock's off label is 4").toBe(4);
+    expect([...KNOB_HELD].length, "the lock's on label is 4").toBe(4);
+    expect(
+      KNOB_HOLD,
+      "the two labels are the same word, so the state of the lock is not in its accessible name",
+    ).not.toBe(KNOB_HELD);
     expect(TUNING_CAPTION).toBe("TUNING");
     expect(SETUP_CAPTION).toBe("SETUP");
     expect(TIMER_CAPTION).toBe("TIMER");
@@ -268,6 +286,20 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       [...tryOnBudgetReason("Setup and Timer")].length,
       "the worst budget reason is over HONESTY_CAP - 2 x 43 = 86",
     ).toBeLessThanOrEqual(86);
+
+    // The other disabled control's reason, and the only one this region
+    // renders. 53 characters, counted rather than asserted by eye, because
+    // 10-UI-SPEC 13.4 gives the number and this is the file that holds it.
+    expect(SURPRISE_ALL_HELD).toBe(
+      "Every knob is held, so there is nothing left to roll.",
+    );
+    expect(
+      [...SURPRISE_ALL_HELD].length,
+      "the fully-held reason is no longer 53 characters",
+    ).toBe(53);
+    // It names the state, never the control: a reason that said "SURPRISE ME"
+    // would repeat the label directly above it.
+    expect(SURPRISE_ALL_HELD).not.toContain(SURPRISE_ME);
   });
 
   it("writes the stamp landings, the share lines and every live-region string, and imports nothing", () => {

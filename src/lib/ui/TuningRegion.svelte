@@ -130,11 +130,13 @@
 -->
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
+  import { SvelteSet } from "svelte/reactivity";
   import type { SimEngine } from "$lib/sim/engine";
   import {
     LINK_COPIED_ANNOUNCEMENT,
     METERS_UNAVAILABLE,
     RESET_ALL,
+    SURPRISE_ALL_HELD,
     SURPRISE_ME,
     TUNING_CAPTION,
     liveBackInside,
@@ -176,7 +178,7 @@
     set(knobId: string, index: number): void;
     reset(knobId: string): void;
     resetAll(): void;
-    surprise(): Promise<void>;
+    surprise(held?: ReadonlySet<string>): Promise<void>;
     stamp(): string | undefined;
     destroy(): void;
   };
@@ -254,6 +256,23 @@
   let over: OverBudgetMessage | undefined = $state(undefined);
   let rolling = $state(false);
   /**
+   * The knobs the visitor has locked (T1, 10-UI-SPEC 11.5).
+   *
+   * EPHEMERAL, AND THIS IS THE ONLY PLACE IT LIVES. It is component state, not
+   * tuner state: it is handed to `surprise()` per roll and dropped, so there
+   * is no path from a lock to `encodeFor` and a held knob's link is
+   * byte-identical to the same knob's unheld one. SHARE-01 is untouched, and
+   * `surprise.spec.ts` asserts the stamp rather than trusting this paragraph.
+   *
+   * A SvelteSet rather than a plain Set in a rune, and the linter is right to
+   * insist: a plain Set is not deeply reactive, so `allHeld` would have to be
+   * recomputed by reassigning the whole collection on every toggle. This one
+   * invalidates the readers of the key that changed and nothing else, which is
+   * the same reason Knob.svelte reaches for MediaQuery rather than a one-shot
+   * matchMedia read.
+   */
+  const heldKnobs = new SvelteSet<string>();
+  /**
    * Slot A describes how the panel arrived, and stops being true once the
    * visitor takes over.
    *
@@ -305,11 +324,23 @@
     knobViews.every((knob) => knob.index === knob.default),
   );
   /**
+   * Every knob held, which is the one state SURPRISE ME cannot act in.
+   *
+   * `surpriseIndices` already answers this by handing the previous indices
+   * back - its documented exhaustion signal - so the alternative to disabling
+   * the control is a button that appears to do nothing, which is worse.
+   */
+  const allHeld = $derived(
+    hasKnobs && knobViews.every((knob) => heldKnobs.has(knob.id)),
+  );
+  /**
    * aria-busy on the block while either meter is measuring or catching up, so
    * an assistive technology does not read numbers that are about to change.
    */
   const busy = $derived(busyOf(view));
   const rack = $derived(rackPx ?? 0);
+  /** The disabled control's reason, wired to it by aria-describedby. */
+  const heldReasonId = "tuning-surprise-held";
 
   function waiting(state: string): boolean {
     return state === "measuring" || state === "stale";
@@ -510,6 +541,15 @@
     tuner?.reset(id);
   }
 
+  /**
+   * One lock, toggled. It moves no knob, so it does NOT clear slot A and it
+   * does not touch the tuner: "these knobs came with the link" is still true
+   * of a link whose knobs the visitor has only locked.
+   */
+  function holdKnob(id: string): void {
+    if (!heldKnobs.delete(id)) heldKnobs.add(id);
+  }
+
   function resetAll(): void {
     if (tuner === undefined) return;
     landed = false;
@@ -520,7 +560,7 @@
 
   async function surprise(): Promise<void> {
     const current = tuner;
-    if (current === undefined || rolling) return;
+    if (current === undefined || rolling || allHeld) return;
     rolling = true;
     // Slot A goes for the same reason it goes on a knob turn and on RESET ALL:
     // a roll moves every knob, so "these knobs came with the link" stops being
@@ -528,7 +568,7 @@
     landed = false;
     pendingCommand = "surprise";
     try {
-      await current.surprise();
+      await current.surprise(heldKnobs);
     } finally {
       if (mounted) rolling = false;
     }
@@ -544,7 +584,13 @@
       <StampNotice kind={landing.kind} {name} />
     {/if}
 
-    <KnobRack knobs={knobViews} onchange={changeKnob} onreset={resetKnob} />
+    <KnobRack
+      knobs={knobViews}
+      held={heldKnobs}
+      onchange={changeKnob}
+      onreset={resetKnob}
+      onhold={holdKnob}
+    />
 
     {#if hasKnobs}
       <div class="actions">
@@ -552,8 +598,9 @@
           class="action"
           type="button"
           data-testid="surprise-me"
-          disabled={rolling}
+          disabled={rolling || allHeld}
           aria-busy={rolling}
+          aria-describedby={allHeld ? heldReasonId : undefined}
           onclick={surprise}
         >
           {SURPRISE_ME}
@@ -568,6 +615,16 @@
           {RESET_ALL}
         </button>
       </div>
+      <!--
+        DEGR-02's reason rule, and this control needs one where RESET ALL does
+        not: RESET ALL is disabled by a state the rack shows directly, and this
+        one is disabled by a state spread across every row's toggle.
+      -->
+      {#if allHeld}
+        <p class="reason" id={heldReasonId} data-testid="surprise-held-reason">
+          {SURPRISE_ALL_HELD}
+        </p>
+      {/if}
     {/if}
 
     {#if metersUnavailable}
@@ -692,6 +749,19 @@
   .action:disabled {
     color: var(--color-ink-dim);
     cursor: not-allowed;
+  }
+
+  /*
+    The one reason line this region renders, and it appears only in the state
+    that produces it. Body role, quiet, 8px under the actions row - the same
+    `sm` step that separates the two buttons when they wrap.
+  */
+  .reason {
+    margin: 8px 0 0;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-ink-quiet);
   }
 
   /* Exactly 56px: two 26px meters and the 4px between them. */
