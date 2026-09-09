@@ -256,6 +256,11 @@ Ad-hoc work outside the phase plan. Each row is a `.planning/quick/<id>-<slug>/`
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 11 added 2026-09-09: **Bench Corrections** - the user tested all thirty-six configurations on a real ZONA and the notes are kept verbatim at `.planning/phases/11-bench-corrections/BENCH-2026-09-09.txt`. Nine removals take the catalog to twenty-seven; the nine preset definitions move out of `src/vendor/botor/_pad.ts` into HANGAR so the catalog stops depending on another project to change its own contents, while the vendored compiler and simulator stay untouched.
+- Roadmap defect fixed in the same commit: the `## Phases` checklist stopped at Phase 9, so **Phase 10 had no line there for the whole redesign**, and `gsd-tools phase add` filed Phase 11 detail block after `## Verification Note` rather than inside `## Phase Details`. Both corrected.
+
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.

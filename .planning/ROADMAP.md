@@ -31,6 +31,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Install Flow** - Snapshot, RAM audition, PUT BACK and a separate deliberate flash store, all gated on real ACK frames (completed 2026-09-05; the full suite green against the production build at 776 unit + 13 sweep + 89 e2e; the seven-row hardware checklist in docs/INSTALL-RUNBOOK.md is presented to the user and unanswered, so the five *(hardware)* halves of its success criteria are verified-by-user-pending and no agent has written a byte to a real ZONA)
 - [x] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter (completed 2026-09-04; the hardware audition is presented to the user and unanswered)
 - [x] **Phase 9: Twenty Configurations** - The catalog goes from sixteen entries to thirty-six, each one useful to a named person in a named application (**all 10 of 10 plans complete as of 2026-09-07; awaiting phase verification** — the baselines and the host-surface gate, the browse literals and the copy gate, and all seven entry waves: HOLD, STEPS and SLAM, then KEYS, GRIDLOCK and TABLE, then CONSOLE, STRIP and LEARN, then LUMEN, STAGE and SHUTTLE, then CULL, FORGE and SWITCH, then SNAKE, ETCH and LIFE, then QUADRANT and POMODORO. **The slate is complete at thirty-six entries, twenty-seven of them hand-authored Lua, twenty authored in this phase and zero of source.kind "state".** The phase gate is green against a fresh production build — check 567/0/0, lint 0, build 36 images and 36 pages, quick 74 / 780 + 1 todo, sweep 4 / 19, e2e 89 at --workers 3, `git diff --stat HEAD -- src/vendor/` empty — and CONT-02, CONT-03 and TUNE-01 close. **The thirty-two-row hardware audition is presented to the user and unanswered; nothing about the twenty configurations is claimed as hardware-verified.**) (completed 2026-09-07)
+- [ ] **Phase 10: Redesign** - The whole interface rebuilt around browsing by niche, a natural try/put-back/keep flow, a stylized colour picker and intelligent tuning, in the ZONA landing's CRT register (**sixteen plans in fifteen waves, all executed; the phase gate is green and its third task is a blocking human-verify checkpoint, unanswered** - quick 81 / 828, sweep 4 / 19, e2e 103, check 584 / 0 / 0, all measured against a fresh production build. `docs/INSTALL-RUNBOOK.md` row C's clear half needs a real ZONA and is the user's. Deployed to the gated preview at a17e926)
+- [ ] **Phase 11: Bench Corrections** - Every configuration the user tested on hardware behaves as asked, is removed, or is deferred on the record; the catalog goes from thirty-six entries to twenty-seven and stops depending on another project to change its own contents (not yet planned)
 
 ## Phase Details
 
@@ -298,6 +300,56 @@ Plans:
 - [x] 10-13.1-PLAN.md — Wave 14 (INSERTED by D-17): the aesthetic pass, the instrument register made visible (wave 14) — completed 2026-09-09; **one `.pill` replacing eleven copies of a shape across nine files, a gradient-and-mask registration lattice on exactly two surface roots, `START EXPLORING` in place of a headline whose comment still defended a retired exception, and the seventh `--font-mono` use argued out loud rather than assumed.** Inserted as a decimal in 05.1's precedent so nothing renumbers; 10-14 moved to wave 15 and no other line of it moved. **The second halftone density was measured and REFUSED**: 12.00 ms at p95 on webkit-phone against a declared 2 ms threshold, six times over, with chromium at 0.00 ms in both arms — `DENSITIES` is 1 and scan 4 asserts it against the named constant, so the fallback is a state the tree is checked against rather than a silence. **And the lattice shipped once painting nothing at all with every source scan green**: two screenshots of `/browse/` came back byte-identical at 8,492 bytes, because without a stacking context a negative-`z-index` pseudo-element paints under `body`'s own background. `isolation: isolate` is the fix and is now asserted by name. Three places D-15/D-16/D-17 disagree with something already shipped are recorded rather than reconciled — chiefly that the register line is a line of **authorship**, not of DOM containment, which the plan's own task 2 would have been illegal under. 81 files / 826 tests (+1 / +5), 101 e2e (+0, proved by `grep -c "test("` before and after), check 584 (+1). Commits 03aa156, da34308, e1260c7, 60b01c6
 - [x] 10-13.2-PLAN.md — Wave 14 (INSERTED by D-22): the aesthetic pass, corrected (wave 14) — completed 2026-09-09; **the lattice became a GROUND so its marks keep to the surround, and an unlit pad cell became legible** — two defects against the brief's own words, fixed by moving where an existing field paints and how an existing layer draws, and **both proved in a browser because a source scan is structurally blind to paint order**. Measured before anything changed: **418** text-bearing elements on `/browse/` sat under the field with no opaque ancestor between them and it, and crosses landed on the wordmark, on every knob readout and on every card description. The fix is `.lattice > :where(*) { background-color: var(--color-ground) }` — four declarations across four files, no new node — where `:where()` is load-bearing at 0,1,0 so any component's own scoped rule outranks it for free, and the rule is declared **above** `.pill` because at equal specificity source order decides. `PadFrame.svelte`'s header had carried half a diagnosis since Phase 4: the dots were there and Trackpad was still a black square, because cell **structure** is drawn by Layer 3 in `--color-ground` and a black grid divides nothing when the cells behind it are also black. **`color-mix()` earned its `@webkit` tag during execution**: it serialises as `color(srgb …)` in both engines and never as `rgba()`, and the first version of the test read a 0.05 wash as fully opaque because of it. Nothing renumbered and **10-14 kept its number, its wave and its `depends_on`**. 81 files / 828 tests (+0 / +2), 101 → **103** e2e (+2, the first non-zero e2e term since 10-13), check 584 (+0). Commits d0a6948, 9771a48, 2da294e
 - [x] 10-14-PLAN.md — Wave 15: the phase gate — every number re-measured, every requirement given a qualifier, and the one hardware row handed to the user (wave 15) — **executed 2026-09-09 to its checkpoint**; every projection `10-VALIDATION.md` carried is replaced by an observation taken on a clean tree against a fresh production build, with **eight wrong estimates named as wrong** rather than quietly corrected — including this plan's own negative-check instruction, which asked for a non-vacuity floor raised by one and expected red, when `facets.spec.ts:99`'s floor is 30 against an observed 36 and red arrives only at 36. The phase total is written as a **sixteen-term chain from 10-01's `BASE_TESTS`** and the e2e total as a **six-term chain from `BASE_E2E`**, so both ends are visibly the same arithmetic: quick **81 / 828** = `BASE_FILES + 7` / `BASE_TESTS + 48`, sweep **`4 19`** with all four 10-08 totals exact, e2e **103** = `BASE_E2E + 14`, check **584 / 0 / 0**. `docs/TESTING.md` carries the observed per-file table and the cost table; `deferred-items.md` goes from ten items to twenty-four, each with what would close it; twenty requirement qualifiers say what was proved **and** what was not, four of them with an explicit unresolved half. All six Phase 10 success criteria are walked one at a time with the plan that answers each and the half it leaves open. **Task 03 is a blocking checkpoint and is UNANSWERED**: `docs/INSTALL-RUNBOOK.md` row C's clear half needs a real ZONA, and the correct observation is dark at rest with a soft bloom under a finger — a pad that stays dark under a finger is a failure, not a pass. **No agent in this phase connected to a device, performed a write, or deployed.** Commits f3fa398, and the gate commit below
+
+### Phase 11: Bench Corrections
+
+**Goal:** Every configuration the user tested on a real ZONA on 2026-09-09 either behaves as they
+asked, is removed, or is recorded as deliberately deferred - and the catalog stops depending on
+another project to change its own contents.
+
+The input is `BENCH-2026-09-09.txt` in this phase's directory: the user's own notes from testing all
+thirty-six entries. Thirty-five were tested; **Four faders was not**. Two pass as written (QUADRANT,
+CULL) and SNAKE is deferred by the user in their own words, with its design notes kept.
+
+**Nine removals take the catalog from thirty-six to twenty-seven**: HOLD, KEYS, LEARN, SWITCH, ETCH,
+GRIDLOCK, LIFE, SLAM, TABLE. Every one is hand-authored, so nothing vendored moves - but the front
+door ring, the facet vocabulary, `frames.json`, the browse count literals and a long tail of
+assertions all name a catalog of thirty-six, and each is a real edit rather than a deletion.
+
+**HANGAR takes ownership of the nine preset definitions.** They are read today from `PRESETS` in
+`src/vendor/botor/_pad.ts:4214`, which made eight of the user's notes unfixable here. They are not
+vendored behaviour: each is a short mutator over a descriptor - Aurora's is empty, Pinwheel's is
+three lines. **The vendored compiler and simulator stay untouched**, because they are what makes the
+preview firmware-faithful and they are the GPLv3 derivation this project's licensing rests on.
+Three of the eight are then reachable with no new behaviour at all: `sends.grid` already accepts
+`"4x4"` (NINE PADS), and `sends.kind` already accepts `"xy"` (AURORA and PINWHEEL send nothing today).
+
+**One class bug leads, because it explains several reports at once.** `glpfs(a, l, 255, 250, 0)`
+steps by `256 - 250 = 6` from a start of 255, and 255 is not divisible by 6: the phase walks down to
+**3 and stops**, which is the residual glow and the stuck colour the user reported. Five literal
+sites carry it - EUCLID, GHOST, LIFE, MORPH, SONAR - and CHORUS carries the same defect in computed
+form. The correct idiom is already written down in this repository, in `life.ts` of all files: **the
+decay length divides 252**, giving `256 - 252//28 = 247`, which lands exactly on zero.
+
+**What is NOT the cause, checked before assuming it:** the quantisation bug fixed in the user's
+hand-pasted crosshair config is absent here. Every entry already uses `x*9//128`, so the precision
+complaints (LATTICE, FORGE, CONSOLE's top row, SONAR, EUCLID) are per-config, and at least two read
+as event filtering rather than arithmetic - EUCLID and CONSOLE act on taps, which is exactly why a
+swipe does not register.
+
+The remaining work groups as: missing MIDI (AURORA, PINWHEEL, STARFIELD, LUMEN as hex over sysex,
+MORPH suppressing unchanged and zero values); clock sync (EUCLID, SONAR, STEPS, RADAR); redesigns
+(GHOST from scratch, SHUTTLE, STRIP as two independent faders plus a crossfader, RADAR as note-on
+and note-off when the sweep crosses user-placed points); and feature work (POMODORO at one and five
+minutes, JOYSTICK centred at rest with a trail, TRACKPAD given an animation, ARC given visible
+amplitude, DIAL's counter-clockwise rate limited, STAGE's lining-up breath).
+
+**Requirements**: TBD
+**Depends on:** Phase 10
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 11 to break down)
 
 ## Progress
 

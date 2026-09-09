@@ -1,0 +1,39 @@
+ARC: cannot see amplitude need visual feedback for that. if you press the center it stops, pressing it again resumes, not intuitive enough
+AURORA: leaves a redish glow behind even when it disappeared. send MIDI
+CHORUS: color stucks after touching it, should go back to default
+EUCLID: doesn't sense the finger its really difficult to add or remove, and its not precise at all, and you should be able to add by swiping your finger, MIDI sync the circles
+HOLD: remove
+KEYS: remove
+LATTICE: not precise enough, make it more precise, clamp it better 
+LEARN: REMOVE
+LUMEN: should send HEX in sysex, and the color depth / opacity doesn't work
+MORPH: mapping mode needed in, if something doesn't change don't send it don't send 0 value, also the LED's colors stuck again
+NINE PADS: make it selectable to 4x4
+PINWHEEL: make this send MIDI
+QUADRANT: its okay
+SNAKE: not right now: pathfinding: the user puts down the food and the snake follows it. follow: when it follows the finger of the user. it should send one note for each movement and a higher pitched note when the snake eats
+SWITCH: remove
+CONSOLE: should react to touch or swiping as well not just pushing, also clamp issue in the top row because its not precise. you should not be able to interact with the "muted" faders.
+CULL: good
+DIAL: spinning it counter clockwise sends messages too aggressively
+ETCH: remove
+FORGE: waay not precise enough, make it much more precise
+GHOST: doesn't work reliably, the LED colors the pad and resetting is not reliable, need to redesign this from scratch
+GRIDLOCK: remove
+JOYSTICK: should start from the middle by default and should improve the visual aspect on ZONA, maybe more led animation, trail or something
+LIFE: remove
+RADAR: should act like a radar, should send note on note off when the sonar wave hits a LED point which a user can add or remove, multiple active points
+POMODORO: make a 1 minute and a 5 minute one. 
+SHUTTLE: don't understand how it works, rework
+SLAM: remove
+SONAR: not precise enough, notes should disappear after a while. include synchronization, clock sync, the center should be always lit up
+STAGE: Lining up breathing is missing. 
+STEPS: same as SONAR or EUCLID
+STRIP: this is just an XY pad, it should be two faders, one crossfader at the bottom and the big one, sending midi independently
+STARFIELD: color stucks again, should send midi
+TABLE: remove
+TRACKPAD: needs an animation on ZONA
+
+
+
+
