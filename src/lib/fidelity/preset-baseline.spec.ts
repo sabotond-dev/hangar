@@ -140,12 +140,21 @@ type PresetDivergence = LuaDivergence | LengthDivergence;
  * fixture's own glpfs calls) and observed a third time as exactly five red
  * tests on the first run after the codegen moved.
  *
- * THERE ARE NO `length` ROWS AND THAT IS A MEASURED RESULT, NOT AN OMISSION.
- * The fix emits `(256 - rate) * ticks` where the literal 255 stood, and every
- * one of DECAY_TABLE's twelve products is in 248..254 - three digits, exactly
- * as 255 is - so the change is +0 characters at every reachable trailMs. If a
- * length row ever becomes necessary here, a start fell to two digits and the
- * declared cost of a preset moved with it.
+ * THE DECAY ROWS CARRY NO `length` COUNTERPART AND THAT IS A MEASURED RESULT,
+ * NOT AN OMISSION. The fix emits `(256 - rate) * ticks` where the literal 255
+ * stood, and every one of DECAY_TABLE's twelve products is in 248..254 - three
+ * digits, exactly as 255 is - so the decay change is +0 characters at every
+ * reachable trailMs and no preset's declared cost moved for it.
+ *
+ * THE CLASS-B ROWS ARE A SECOND, DISJOINT SET AND THEY DO COST CHARACTERS.
+ * Plan 11-04 also admitted the coalesced fast tap (firmware event code 9) at
+ * two guards in the same compiler: LIVE, which PINWHEEL reaches, and
+ * phaseCond's held arm, which RADAR, JOYSTICK and FADERS reach. Each is +7,
+ * declared as three length rows per preset - raw, compressed and cost - and
+ * the preset's own published `cost` figure moved with it inside _pad.ts.
+ * AURORA, STARFIELD and DIAL are decay-only; NINEPADS and TPAD are in neither
+ * set. So five presets diverge for the decay and four for the fast tap, with
+ * PINWHEEL the one preset in both.
  *
  * Every row here must also have a counterpart in upstream-manifest.json's
  * intendedDivergence: this table records the CONSEQUENCE in the emitted Lua, and
@@ -160,6 +169,38 @@ const DECAY_REASON =
   "on every cell a finger crossed. The compiler now emits 252 and pad-sim.ts " +
   "was moved with it in the same plan, so the preview and the device still " +
   "agree. +0 characters: 252 and 255 are both three digits.";
+
+const LIVE_REASON =
+  "Plan 11-04, D-02, class B. Firmware coalesces a sub-cycle press-and-lift " +
+  "into ONE message with event code 9, and the compiler's LIVE guard read " +
+  "`e~=3 and e<5`, which is false for 9 - so a fast tap ran no live path at " +
+  "all. Measured through a real Lua VM before the fix: PINWHEEL's perFinger " +
+  "layer record after a fast tap was pha 0 / fre 0 / timeout 0, where a slow " +
+  "press wrote 207 / 250 / 34. The trail did not exist. `or e>8` admits the " +
+  "tap and Lua binds `and` tighter than `or`, so this parses as " +
+  "(e~=3 and e<5) or (e>8). +7 characters. ENDED is byte-unchanged: all ten " +
+  "of its sites are release paths where code 9 genuinely IS an end.";
+
+const HELD_REASON =
+  "Plan 11-04, D-02, class B. phaseCond's HELD arm is the guard every " +
+  "sends emitter that respects sends.phase is wrapped in, and all nine " +
+  'presets are "held". `e==1 or e==4` is false for the coalesced fast tap, ' +
+  "so the whole gesture was thrown away. Measured before the fix: a fast " +
+  "tap sent 0 controller messages on RADAR against 2 on a slow press, 2 on " +
+  "JOYSTICK against 4, and 0 on FADERS against 1 with the fader column left " +
+  "unlit. +7 characters. The PRESS arm carries the same defect and is " +
+  "deliberately NOT changed: sends.phase is not a HANGAR knob, so no state " +
+  "a visitor can reach compiles it.";
+
+const CLASS_B_LENGTH_REASON =
+  "The seven characters the class-B guard fix above spends, stated rather " +
+  "than recomputed. Setup only: no preset's Timer carries either guard. " +
+  "The compressed length moves by the same seven because the pinned " +
+  "minifier does not rewrite a comparison chain, and cost().used is " +
+  "max(raw, compressed) + reserved with raw winning for all nine, so it " +
+  "moves by seven too. The declared cost on the preset itself moved with " +
+  "it - see upstream-manifest.json - because pad.test.js asserts those " +
+  "byte-exact rather than as an upper bound.";
 
 const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
   {
@@ -207,6 +248,39 @@ const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
     reason: DECAY_REASON,
     plan: "11-04",
   },
+  {
+    kind: "lua",
+    preset: "pinwheel",
+    field: "setupLua",
+    hangar: "e~=3 and e<5 or e>8",
+    baseline: "e~=3 and e<5",
+    reason: LIVE_REASON,
+    plan: "11-04",
+  },
+  ...(["radar", "joystick", "faders"] as const).map(
+    (preset): PresetDivergence => ({
+      kind: "lua",
+      preset,
+      field: "setupLua",
+      hangar: "e==1 or e==4 or e>8",
+      baseline: "e==1 or e==4",
+      reason: HELD_REASON,
+      plan: "11-04",
+    }),
+  ),
+  ...(["pinwheel", "radar", "joystick", "faders"] as const).flatMap(
+    (preset): PresetDivergence[] =>
+      (
+        ["setupRawLength", "setupCompressedLength", "costSetupUsed"] as const
+      ).map((field) => ({
+        kind: "length",
+        preset,
+        field,
+        delta: 7,
+        reason: CLASS_B_LENGTH_REASON,
+        plan: "11-04",
+      })),
+  ),
 ];
 
 const luaRowsFor = (id: string, field: "setupLua" | "timerLua") =>

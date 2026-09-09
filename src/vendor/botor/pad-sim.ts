@@ -230,7 +230,9 @@ type Sample = { i: number; e: number; x: number; y: number };
 
 // Firmware event codes as the sim emits them: 1 MOVE, 4 DOWN, 5 UP. The
 // compiled guards treat "contact ended" as e == 3 or e >= 5 and "live"
-// as e ~= 3 and e < 5; the sim never synthesizes 9 (DOWNUP).
+// as e ~= 3 and e < 5 or e > 8; touchTap below synthesizes 9 (DOWNUP).
+// The `or e > 8` half is a HANGAR divergence, plan 11-04, mirroring
+// _pad.ts's LIVE - see src/lib/fidelity/upstream-manifest.json.
 const EVT_MOVE = 1;
 const EVT_DOWN = 4;
 const EVT_UP = 5;
@@ -243,7 +245,7 @@ function ended(e: number): boolean {
 }
 
 function live(e: number): boolean {
-  return e !== 3 && e < 5;
+  return (e !== 3 && e < 5) || e >= EVT_TAP;
 }
 
 const FIFO_DEPTH = 10;
@@ -1143,7 +1145,11 @@ export class PadSim {
   private phasePass(e: number): boolean {
     const phase = this._state.sends.phase;
     if (phase === "press") return e === EVT_DOWN;
-    if (phase === "held") return e === EVT_MOVE || e === EVT_DOWN;
+    // `|| e > 8` mirrors _pad.ts's phaseCond held arm: a HANGAR divergence,
+    // plan 11-04. The press arm is left alone there and is left alone here,
+    // for the same reason - no reachable HANGAR state compiles it.
+    if (phase === "held")
+      return e === EVT_MOVE || e === EVT_DOWN || e >= EVT_TAP;
     return ended(e);
   }
 

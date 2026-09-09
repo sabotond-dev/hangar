@@ -46,6 +46,48 @@
           "reason": "The spring re-park comet inside sendsPaint's joystick path: when a sprung xy pad's contact ends, the home cell is repainted with the same decaying pair, so it carries the same permanent residue and takes the same fix. It is real codegen and not a cost estimate - src/vendor/botor/tests/pad.test.js pins the exact string it emits - so leaving it behind would have made a sprung joystick the one configuration whose parked dot still stuck. nearestDecay is called three times in one template rather than hoisted, because hoisting would move bytes this record would then have to justify for no behavioural gain. +0 characters.",
           "plan": "11-04",
           "dated": "2026-09-09"
+        },
+        {
+          "vendored": "//\n// ENDED IS CORRECT AS WRITTEN AND IS NOT CHANGED BY HANGAR, at any of its\n// ten interpolation sites. Code 9 IS an end - it is a press and a lift in\n// one message - and every ENDED site is a release path: clearing a claimed\n// finger slot, dropping a dial baseline, re-parking a spring, ending a\n// trackpad contact. Making ENDED false for 9 would leave every one of them\n// armed forever. What a fast tap loses is the PRESS half, and that lives in\n// LIVE and in phaseCond, which is where HANGAR fixed it.\n//\n// LIVE, though, excluded code 9 outright: `e<5` is false for 9, so a fast\n// tap painted nothing at all. Measured before the fix: PINWHEEL's perFinger\n// trail wrote no layer record whatsoever on a tap, where a slow press wrote\n// one. `or e>8` admits the tap; Lua binds `and` tighter than `or`, so this\n// parses as `(e~=3 and e<5) or (e>8)`, which is what is wanted, and it is\n// 7 characters where the bracketed form is 9. HANGAR divergence, plan\n// 11-04; see src/lib/fidelity/upstream-manifest.json.\nconst ENDED = \"e==3 or e>=5\";\nconst LIVE = \"e~=3 and e<5 or e>8\";",
+          "upstream": "const ENDED = \"e==3 or e>=5\";\nconst LIVE = \"e~=3 and e<5\";",
+          "reason": "Class B, the fast tap, at the one LIVE interpolation site. Firmware coalesces a sub-cycle press-and-lift into a single message with event code 9, and `e<5` is false for 9, so a tap ran no live path at all. Measured before the change, through the real Lua VM: PINWHEEL's perFinger layer record after a fast tap was pha 0 / fre 0 / timeout 0 where a slow press wrote 207 / 250 / 34 - the trail simply did not exist. +7 characters, and pinwheel has 596 free of 908 at its worst knob position. ENDED IS DELIBERATELY BYTE-UNCHANGED and the comment says why at length: all ten of its sites are release paths where code 9 genuinely IS an end, and the naive fix - making ENDED false for 9 - would leave a claimed finger slot, a dial baseline, a spring and a trackpad contact armed forever. LIVE is edited in place rather than shadowed by a second constant because it has exactly one interpolation site, so a new constant would have one user and leave a dead original beside it.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "  // e == 5 is inexpressible here by construction.\n  //\n  // `or e>8` on the HELD arm is a HANGAR divergence (plan 11-04; see\n  // src/lib/fidelity/upstream-manifest.json). A fast tap arrives as one\n  // message with code 9 and no separate DOWN, so `e==1 or e==4` threw the\n  // whole gesture away: measured, RADAR sent 0 controller messages on a tap\n  // against 2 on a slow press, JOYSTICK 2 against 4 and FADERS 0 against 1,\n  // and FADERS left its column unlit as well. +7 characters.\n  //\n  // The PRESS arm carries the same defect and is deliberately NOT changed.\n  // `sends.phase` is not a HANGAR knob and all nine presets are \"held\", so\n  // no state a visitor can reach compiles it; changing it would be an\n  // unreachable divergence in a GPLv3 tree, which the record should not\n  // have to carry. It is a real BOTOR bug and belongs upstream (D-08).\n  return phase === \"press\"\n    ? \"e==4\"\n    : phase === \"held\"\n      ? \"e==1 or e==4 or e>8\"\n      : ENDED;",
+          "upstream": "  // e == 5 is inexpressible here by construction.\n  return phase === \"press\" ? \"e==4\" : phase === \"held\" ? \"e==1 or e==4\" : ENDED;",
+          "reason": "Class B, the fast tap, at phaseCond's HELD arm - the guard every sends emitter that respects sends.phase is wrapped in. All nine HANGAR presets are \"held\", so this is the one arm any reachable state compiles. Measured before the change: a fast tap sent 0 messages on RADAR against 2 on a slow press, 2 on JOYSTICK against 4, and 0 on FADERS against 1 with the fader column left unlit. +7 characters at three presets, whose worst knob positions leave 463, 366 and 388 free of 908. The PRESS arm is left alone on purpose and the comment says why: it is unreachable from any HANGAR state, so fixing it would put a divergence in this record that nothing exercises.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    { setup: 312, timer: 55 },",
+          "upstream": "    { setup: 305, timer: 55 },",
+          "reason": "PINWHEEL's published capacity figure, +7, following the LIVE fix above. src/vendor/botor/tests/pad.test.js's \"holds every preset to its declared cost\" asserts these byte-exact rather than as an upper bound, so a codegen change that did not move them would go red - which is exactly what it is for.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    { setup: 445, timer: 55 },",
+          "upstream": "    { setup: 438, timer: 55 },",
+          "reason": "RADAR's published capacity figure, +7, following the phaseCond held-arm fix above. Byte-exact for the same reason as the row above; 463 characters remain free at RADAR's worst knob position.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    { setup: 542, timer: 24 },",
+          "upstream": "    { setup: 535, timer: 24 },",
+          "reason": "JOYSTICK's published capacity figure, +7, following the phaseCond held-arm fix above. 366 characters remain free at its worst knob position.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    { setup: 520, timer: 24 },",
+          "upstream": "    { setup: 513, timer: 24 },",
+          "reason": "FADERS's published capacity figure, +7, following the phaseCond held-arm fix above. 388 characters remain free at its worst knob position. TPAD's figure is NOT in this list and that is the measured result rather than an omission: it is 902 of 908, six free, and it reaches neither changed site.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
         }
       ]
     },
@@ -74,6 +116,27 @@
           "vendored": "      this.glpfs(\n        this.hwOf(cell),\n        1,\n        (256 - decay.rate) * decay.ticks,\n        decay.rate,\n        0,\n      );",
           "upstream": "      this.glpfs(this.hwOf(cell), 1, 255, decay.rate, 0);",
           "reason": "springLedOnEnd: the simulator's mirror of the compiler's spring re-park comet. Same arithmetic, same plan. The call is broken across six lines rather than kept on one because the expression pushes it past the width the rest of this file is written to; src/vendor/ is listed in .prettierignore, so no formatter chose this and none will change it back.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "// as e ~= 3 and e < 5 or e > 8; touchTap below synthesizes 9 (DOWNUP).\n// The `or e > 8` half is a HANGAR divergence, plan 11-04, mirroring\n// _pad.ts's LIVE - see src/lib/fidelity/upstream-manifest.json.",
+          "upstream": "// as e ~= 3 and e < 5; the sim never synthesizes 9 (DOWNUP).",
+          "reason": "The event-table comment restated the compiled guards, so it moves with LIVE. The second clause also moved: \"the sim never synthesizes 9\" was already contradicted eight lines below by EVT_TAP and by touchTap, which enqueues exactly that code, and leaving a false clause inside the comment that documents this plan's own divergence would mislead the next reader of it.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "  return (e !== 3 && e < 5) || e >= EVT_TAP;",
+          "upstream": "  return e !== 3 && e < 5;",
+          "reason": "The simulator's mirror of _pad.ts's LIVE, moved in the same plan for the same reason: the preview and the device are two implementations of one behaviour, and fixing only the compiler would have left the preview showing nothing where the device now paints a trail. Written with explicit brackets rather than relying on JavaScript's && over || precedence, because the emitted Lua relies on precedence and a reader comparing the two should not have to check both languages' tables to see they agree - the equivalence of the two forms was measured through the Lua host, not assumed.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    // `|| e > 8` mirrors _pad.ts's phaseCond held arm: a HANGAR divergence,\n    // plan 11-04. The press arm is left alone there and is left alone here,\n    // for the same reason - no reachable HANGAR state compiles it.\n    if (phase === \"held\")\n      return e === EVT_MOVE || e === EVT_DOWN || e >= EVT_TAP;",
+          "upstream": "    if (phase === \"held\") return e === EVT_MOVE || e === EVT_DOWN;",
+          "reason": "The simulator's mirror of _pad.ts's phaseCond held arm, moved in the same plan. Without it the preview would show RADAR, JOYSTICK and FADERS ignoring a fast tap that the device now answers - the same fidelity loss D-02 forbids, arrived at from the other side. The press arm is left alone here exactly as it is left alone in the compiler, so the two files still say the same thing about the arm nobody can reach.",
           "plan": "11-04",
           "dated": "2026-09-09"
         }

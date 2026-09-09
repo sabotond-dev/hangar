@@ -23,7 +23,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
-import { CELLS } from "../../vendor/botor/_pad";
+import { CELLS, PRESETS, compile } from "../../vendor/botor/_pad";
 import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
@@ -533,6 +533,136 @@ const PARITY_ALLOWANCES: readonly { entry: string; reason: string }[] = [
   },
 ];
 
+/**
+ * One compiled PRESET's Lua in a real VM, driven through the same gesture the
+ * hand-authored parity probe uses.
+ *
+ * The construction is `luaRoute` from src/lib/fidelity/lua-parity.spec.ts:
+ * compile() the preset's own PadState, feed the emitted Setup and Timer to a
+ * LuaHost over a blank, fully "user"-owned PadSim. That is the DEVICE's
+ * behaviour - the actual Lua a ZONA would run - and not pad-sim.ts's
+ * transcription of the same descriptor.
+ */
+async function presetParity(id: string, fast: boolean): Promise<Sent> {
+  const preset = [...PRESETS].find((p) => p.id === id);
+  if (!preset) throw new Error(`no preset ${id}`);
+  const built = compile(preset.state);
+  const sim = new PadSim(blankPadState());
+  const host = await createLuaHost({
+    sim,
+    setup: built.setupLua,
+    timer: built.timerLua.trim() === "" ? undefined : built.timerLua,
+  });
+  try {
+    const at = (f: number): number => Math.round(f * host.coordMax);
+    const x = at(PARITY_TAP[0]);
+    const y = at(PARITY_TAP[1]);
+    const advance = (n: number): void => {
+      for (let i = 0; i < n; i += 1) host.tick();
+    };
+    advance(RESIDUE_WARMUP);
+    if (fast) {
+      host.touchTap(0, x, y);
+      advance(PARITY_HOLD);
+    } else {
+      host.touchDown(0, x, y);
+      advance(PARITY_HOLD);
+      host.touchUp(0, x, y);
+    }
+    advance(PARITY_SETTLE);
+    return [
+      ...host.midi.map(
+        (m) => `midi(${m.ch},${m.cmd},${m.p1},${m.p2},${m.mode})`,
+      ),
+      ...host.hid.map((h) => `hid(${JSON.stringify(h)})`),
+    ];
+  } finally {
+    host.close();
+  }
+}
+
+/**
+ * A preset whose two runs are NOT required to agree, with the reason.
+ *
+ * Same rule as PARITY_ALLOWANCES: a reason, never a skip, and the shape is
+ * asserted so a row cannot outlive what earned it. Two shapes, because the two
+ * situations are not the same thing and collapsing them would let a preset that
+ * went silent hide inside a row written for a preset that legitimately differs.
+ *
+ * `silent`  - the preset sends NOTHING on either run, so the comparison is
+ *             vacuous. Asserted as literally empty.
+ * `differs` - the preset really does send different things, and that is
+ *             correct. Asserted as still differing.
+ *
+ * TPAD IS NOT HERE, and it was expected to be. See the assertion at the end of
+ * the test.
+ */
+const PRESET_PARITY_ALLOWANCES: readonly {
+  preset: string;
+  shape: "silent" | "differs";
+  reason: string;
+}[] = [
+  {
+    preset: "aurora",
+    shape: "silent",
+    reason:
+      "AURORA's sends.kind is `none`: it is a pure light show and its " +
+      "compiled Setup contains no gms at all. No gesture at any point makes " +
+      "it send anything, so this row is not excusing a defect, it is saying " +
+      "the wire is not where this card lives. Its fast tap IS checked, in " +
+      "the picture: the comet paints on every sample including a tap, " +
+      "because touchPaint's comet case carries no event guard whatsoever.",
+  },
+  {
+    preset: "starfield",
+    shape: "silent",
+    reason:
+      "STARFIELD's sends.kind is `none`, exactly as AURORA's is, and for the " +
+      "same reason: it is a look, not an instrument. Nothing it compiles can " +
+      "emit MIDI or HID at any knob position.",
+  },
+  {
+    preset: "pinwheel",
+    shape: "silent",
+    reason:
+      "PINWHEEL's sends.kind is `none`, so the wire half is vacuous - but " +
+      "PINWHEEL IS THE PRESET THIS PLAN FIXED. Its defect was in the " +
+      "picture: the perFinger trail is wrapped in the compiler's LIVE guard, " +
+      "which read `e~=3 and e<5` and is false for the coalesced tap, so a " +
+      "fast tap painted no layer record at all where a slow press wrote " +
+      "pha 207 / fre 250 / timeout 34. Fixed in plan 11-04 and pinned by " +
+      "src/lib/fidelity/preset-baseline.spec.ts, which declares the exact " +
+      "emitted substring both before and after.",
+  },
+  {
+    preset: "dial",
+    shape: "silent",
+    reason:
+      "DIAL is a rotary and its output is a function of ANGULAR MOTION, not " +
+      "of contact. The emitted handler needs a baseline angle in s.a before " +
+      "it can emit a delta, and one sample - fast or slow - cannot produce " +
+      "one, so both runs are correctly empty. Same family as SHUTTLE's " +
+      "allowance in the hand-authored table above: a gesture with no " +
+      "duration and no travel is genuinely nothing to a jog wheel.",
+  },
+  {
+    preset: "ninepads",
+    shape: "differs",
+    reason:
+      "NINEPADS IS A FINDING, NOT A FIX. Measured: a fast tap sends nothing " +
+      "where a slow one sends note-on then note-off. The zones emitter " +
+      "computes the zone, then `if ENDED then z=nil end` - and code 9 IS an " +
+      "end - so the tap resolves to no zone, `o~=z` is false, and neither " +
+      "message is sent. Making ENDED false for 9 would send the note-on and " +
+      "never the note-off, which is a stuck note: strictly worse. The " +
+      "correct behaviour is note-on AND note-off in the SAME callback, which " +
+      "needs a change to the emitted SHAPE rather than to an emitted " +
+      "constant - and D-02 permits HANGAR to change the vendored compiler's " +
+      "constants, not its shape. Left as a BOTOR bug (D-08) and recorded in " +
+      "11-04-SUMMARY.md for 11-16.",
+  },
+];
+
 describe("hand-authored Lua entries execute (CONT-02)", () => {
   it("builds, and lights the pad under a finger", async () => {
     // NOT "non-black immediately after Setup". A blank layer's stops are all
@@ -885,5 +1015,122 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length, "the probe ran every entry").toBe(entries.length);
+  }, 120000);
+
+  it("sends the same on a fast tap as on a slow one, on the nine COMPILED presets", async () => {
+    // THE CLASS-B PROBE, POINTED AT THE OTHER HALF OF THE CATALOG (plan
+    // 11-04). The test above asks this of the eighteen hand-authored Lua
+    // entries, whose guards a human wrote. This one asks it of the nine
+    // presets, whose guards the VENDORED COMPILER writes - and nobody had
+    // ever looked. The research counted fast-tap MIDI for all twenty-seven
+    // Lua entries and for none of these.
+    //
+    // The Lua under test is compile(preset.state).setupLua, run in the same
+    // real VM over the same blank PadSim the parity gate in
+    // src/lib/fidelity/lua-parity.spec.ts uses. So this measures what the
+    // DEVICE would do, not what pad-sim.ts's transcription would do - which
+    // is the point: a fast tap that the compiler throws away is thrown away
+    // on hardware.
+    //
+    // What it found, before plan 11-04 changed anything: RADAR sent 0
+    // messages on a fast tap against 2 on a slow one, JOYSTICK 2 against 4,
+    // FADERS 0 against 1 and NINEPADS 0 against 2. Two guards were
+    // responsible - phaseCond's held arm and LIVE - and both are now fixed
+    // in the vendored compiler under upstream-manifest.json.
+    const presets = [...PRESETS];
+    expect(presets.length, "the nine compiler-driven presets").toBe(9);
+    const report: string[] = [];
+    const consumed = new Set<string>();
+
+    for (const preset of presets) {
+      const [fast, slow] = await Promise.all([
+        presetParity(preset.id, true),
+        presetParity(preset.id, false),
+      ]);
+      report.push(
+        `${preset.id}: fast tap ${fast.length}, slow tap ${slow.length}`,
+      );
+      const allowance = PRESET_PARITY_ALLOWANCES.find(
+        (row) => row.preset === preset.id,
+      );
+      if (typeof allowance !== "undefined") {
+        consumed.add(preset.id);
+        // An allowance has to keep EARNING itself. A silent one is a preset
+        // nobody is checking; each shape below is asserted, so the day the
+        // reason stops being true the row goes red instead of going quiet.
+        if (allowance.shape === "silent") {
+          expect(
+            [...fast, ...slow],
+            `PRESET_PARITY_ALLOWANCES excuses ${preset.id} as sending nothing ` +
+              "on either run, and it now sends something. Delete the row and " +
+              "let the comparison below do its job",
+          ).toEqual([]);
+        } else {
+          expect(
+            fast.join("\n") === slow.join("\n"),
+            `PRESET_PARITY_ALLOWANCES excuses ${preset.id} as differing, and ` +
+              "its two runs now agree. Delete the row",
+          ).toBe(false);
+        }
+        continue;
+      }
+      // NON-VACUITY, PER PRESET, exactly as the test above does it: two
+      // empty lists are equal, so a preset the tap never reaches would pass
+      // having proved nothing. Four of the nine genuinely send nothing and
+      // they are DECLARED above rather than counted here.
+      expect(
+        slow.length,
+        `${preset.id}: the slow tap at (${PARITY_TAP[0]}, ${PARITY_TAP[1]}) ` +
+          "produced no MIDI and no HID, so comparing the two runs proves " +
+          "nothing. Declare it in PRESET_PARITY_ALLOWANCES with a reason, or " +
+          "move PARITY_TAP - do not weaken this",
+      ).toBeGreaterThan(0);
+      expect(
+        fast,
+        `${preset.id}: A FAST TAP MUST SEND WHAT A SLOW TAP SENDS, and this ` +
+          "is the COMPILER's guard, not a hand-written one. Event code 9 is " +
+          "a down AND an up in one message; phaseCond's held arm and LIVE " +
+          "both have to admit it. fast tap sent " +
+          `${fast.length} message(s):\n  ` +
+          (fast.join("\n  ") || "(nothing)") +
+          `\nslow tap sent ${slow.length}:\n  ` +
+          (slow.join("\n  ") || "(nothing)") +
+          "\nIf the difference is legitimate, add it to " +
+          "PRESET_PARITY_ALLOWANCES with the reason - and if the fix belongs " +
+          "in the vendored compiler, it also needs a row in " +
+          "src/lib/fidelity/upstream-manifest.json (D-02)",
+      ).toEqual(slow);
+    }
+
+    for (const row of PRESET_PARITY_ALLOWANCES) {
+      expect(
+        consumed.has(row.preset),
+        `PRESET_PARITY_ALLOWANCES names ${row.preset}, which is not a preset`,
+      ).toBe(true);
+      expect(
+        row.reason.trim().length,
+        `PRESET_PARITY_ALLOWANCES row ${row.preset} carries no usable reason`,
+      ).toBeGreaterThan(40);
+    }
+
+    // TPAD IS NOT IN THE ALLOWANCE TABLE AND THAT IS THE STRONGEST LINE HERE.
+    // Plan 11-04 was written expecting to excuse it. Measured, it AGREES on
+    // both runs with no row at all, because it routes code 9 through its own
+    // onset branch. The negative check that proved the point is in
+    // 11-04-SUMMARY.md: forcing the naive `e>=5 and e<9` fix onto its guard
+    // took it from 6/6 agreeing to 2/6 differing - a contact that starts and
+    // never ends - and put its Setup at 910 of 908 at the same time.
+    expect(
+      PRESET_PARITY_ALLOWANCES.some((row) => row.preset === "tpad"),
+      "tpad must NOT be excused here: it agrees on both runs, and an " +
+        "allowance for a preset that needs none is a standing amnesty",
+    ).toBe(false);
+
+    process.stdout.write(
+      "\nfast tap against slow tap, per COMPILED preset:\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+    expect(report.length, "the probe ran every preset").toBe(presets.length);
   }, 120000);
 });

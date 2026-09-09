@@ -782,8 +782,24 @@ function wrapIf(cond: string | undefined, body: string): string {
 // The only expression the compiler ever uses for "this contact ended".
 // `e == 5` alone leaks a stuck contact because code 9 (DOWNUP) is a fast
 // tap that arrives as a single message with no separate UP.
+//
+// ENDED IS CORRECT AS WRITTEN AND IS NOT CHANGED BY HANGAR, at any of its
+// ten interpolation sites. Code 9 IS an end - it is a press and a lift in
+// one message - and every ENDED site is a release path: clearing a claimed
+// finger slot, dropping a dial baseline, re-parking a spring, ending a
+// trackpad contact. Making ENDED false for 9 would leave every one of them
+// armed forever. What a fast tap loses is the PRESS half, and that lives in
+// LIVE and in phaseCond, which is where HANGAR fixed it.
+//
+// LIVE, though, excluded code 9 outright: `e<5` is false for 9, so a fast
+// tap painted nothing at all. Measured before the fix: PINWHEEL's perFinger
+// trail wrote no layer record whatsoever on a tap, where a slow press wrote
+// one. `or e>8` admits the tap; Lua binds `and` tighter than `or`, so this
+// parses as `(e~=3 and e<5) or (e>8)`, which is what is wanted, and it is
+// 7 characters where the bracketed form is 9. HANGAR divergence, plan
+// 11-04; see src/lib/fidelity/upstream-manifest.json.
 const ENDED = "e==3 or e>=5";
-const LIVE = "e~=3 and e<5";
+const LIVE = "e~=3 and e<5 or e>8";
 
 export const SEAM_TOUCH = "if s.uh then s.uh(s,i,e,x,y)end";
 export const SEAM_TIMER = "if s.ut then s.ut(s)end";
@@ -1673,7 +1689,24 @@ function axisTerm(s: PadState, axis: "x" | "y"): string {
 
 function phaseCond(phase: TouchPhase): string {
   // e == 5 is inexpressible here by construction.
-  return phase === "press" ? "e==4" : phase === "held" ? "e==1 or e==4" : ENDED;
+  //
+  // `or e>8` on the HELD arm is a HANGAR divergence (plan 11-04; see
+  // src/lib/fidelity/upstream-manifest.json). A fast tap arrives as one
+  // message with code 9 and no separate DOWN, so `e==1 or e==4` threw the
+  // whole gesture away: measured, RADAR sent 0 controller messages on a tap
+  // against 2 on a slow press, JOYSTICK 2 against 4 and FADERS 0 against 1,
+  // and FADERS left its column unlit as well. +7 characters.
+  //
+  // The PRESS arm carries the same defect and is deliberately NOT changed.
+  // `sends.phase` is not a HANGAR knob and all nine presets are "held", so
+  // no state a visitor can reach compiles it; changing it would be an
+  // unreachable divergence in a GPLv3 tree, which the record should not
+  // have to carry. It is a real BOTOR bug and belongs upstream (D-08).
+  return phase === "press"
+    ? "e==4"
+    : phase === "held"
+      ? "e==1 or e==4 or e>8"
+      : ENDED;
 }
 
 // "First finger" costs 78 characters more than the gate that freezes the
@@ -4239,7 +4272,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.look.colour = { r: 0, g: 110, b: 255 };
       d.touch.kind = "perFinger";
     },
-    { setup: 305, timer: 55 },
+    { setup: 312, timer: 55 },
   ),
   preset(
     "starfield",
@@ -4267,7 +4300,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.kind = "xy";
       d.sends.fingers = "first";
     },
-    { setup: 438, timer: 55 },
+    { setup: 445, timer: 55 },
   ),
   preset(
     "joystick",
@@ -4295,7 +4328,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.springTo = "zero";
       d.sends.invertY = true;
     },
-    { setup: 535, timer: 24 },
+    { setup: 542, timer: 24 },
     {
       quiet:
         "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
@@ -4336,7 +4369,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.showGrid = true;
       d.sends.phase = "held";
     },
-    { setup: 513, timer: 24 },
+    { setup: 520, timer: 24 },
   ),
   preset(
     "dial",
