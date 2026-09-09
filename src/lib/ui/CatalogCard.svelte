@@ -237,12 +237,29 @@
     row of cards line up: every card ends at the same line, so every pad in the
     row starts at the same line whatever the descriptions do.
   */
+  /*
+    THE CARD CARRIES THE GROUND ITSELF (A-56).
+
+    src/app.css's `.lattice > :where(*)` reaches a lattice root's DIRECT
+    children, and a card is four levels down - so the rule that keeps the
+    registration field off the site's prose cannot reach a description, a name
+    plate or a metadata row on its own. /browse/'s `.grid` is deliberately left
+    transparent so the field paints in the gutters between the cards; this
+    declaration is the other half of that trade, and without it the exception
+    above would mean "the lattice paints over thirty-six descriptions" instead
+    of "the lattice paints between thirty-six cards".
+
+    Measured before it was written: a DOM walk over the built site found 418
+    text-bearing elements under a lattice root with no opaque ancestor, and the
+    cards were most of them.
+  */
   .card {
     position: relative;
     display: flex;
     flex-direction: column;
     list-style: none;
     cursor: pointer;
+    background-color: var(--color-ground);
   }
 
   /* Micro: 12px / 600 / 1.2 / 0.18em, uppercase. 14.4px inside a 16px band. */

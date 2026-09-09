@@ -490,11 +490,24 @@
     list-style: none;
   }
 
+  /*
+    THE EMPTY STATE CARRIES THE GROUND, AND IT WAS FOUND BY A WALK RATHER THAN
+    BY READING A TEMPLATE (A-56).
+
+    It renders INSTEAD OF the card wall, inside the same `.grid` that /browse/
+    deliberately leaves transparent so the registration lattice keeps painting
+    between the cards - so the one screen where the page has nothing to show is
+    the one screen where the field would land on three lines of prose with
+    nothing in front of it. Nobody would have thought of it: it turned up in a
+    DOM walk over the built site with a query that matches no entry, and it is
+    named in 10-UI-SPEC A-56 for that reason rather than for its own sake.
+  */
   .empty {
     display: flex;
     flex-direction: column;
     gap: 8px;
     text-align: start;
+    background-color: var(--color-ground);
   }
 
   /* Micro (title): 12px / 600 / 1.2 / 0.01em, sentence case. */

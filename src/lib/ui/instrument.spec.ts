@@ -284,6 +284,41 @@ const LATTICE_ROOTS: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /**
+ * THE GROUND RULE'S THREE DECLARED EXCEPTIONS, AND THERE IS NO FOURTH.
+ *
+ * A-55 makes the lattice a ground: `.lattice > :where(*)` in src/app.css gives
+ * every direct child of a root the ground colour, so the field paints in the
+ * margins, the gaps and the gutters rather than under the words. A-56 names the
+ * surfaces that opt out of it and the surfaces the rule cannot reach, with the
+ * reason each one is here rather than as a list somebody maintains by memory.
+ *
+ * The third was found by a DOM WALK over the built site with a query matching
+ * no entry - not by reading a template - and that is why it is written down.
+ */
+const GROUND_EXCEPTIONS: ReadonlyArray<
+  readonly [string, string, string, string]
+> = [
+  [
+    "src/routes/browse/+page.svelte",
+    ".grid",
+    "transparent",
+    "the card wall is where the field earns its keep - it paints in the GUTTERS BETWEEN the cards, which is the 'around the pads' half of A-55. Grounding it would delete the lattice from most of the page, which is 10-13.1's silent no-op at a different address",
+  ],
+  [
+    "src/lib/ui/CatalogCard.svelte",
+    ".card",
+    "var(--color-ground)",
+    "a card is four levels below a lattice root, so the ground rule cannot reach its description, its name plate or its metadata row. This declaration is the other half of the grid's exception: without it, leaving the grid transparent means the lattice paints over thirty-six descriptions instead of between thirty-six cards",
+  ],
+  [
+    "src/lib/ui/BrowseGrid.svelte",
+    ".empty",
+    "var(--color-ground)",
+    "the empty state renders INSTEAD OF the card wall inside that same transparent grid, so the one screen where the page has nothing to show would be the one screen where the field lands on three lines of prose with nothing in front of it",
+  ],
+];
+
+/**
  * HOW MANY HALFTONE PITCHES SHIP, AS A NAMED CONSTANT RATHER THAN A SILENCE.
  *
  * 19.1e proposed a SECOND density at 6px behind the header and footer bands and
@@ -1252,6 +1287,103 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       gridRules.some((rule) => rule.body.includes("grid-template-columns")),
       "BrowseGrid.svelte no longer lays its cards out on a grid. 19.1d: where reference C's dense tabular listing collides with the shipped grid, THE GRID WINS - it is what carries thirty-six live pad canvases, and the pads are the product. Tabular alignment applies INSIDE a card's metadata block, never as a replacement for the wall.",
     ).toBe(true);
+  });
+
+  it("scan 6: the lattice is a ground - one rule at :where() specificity, declared above .pill, with three named exceptions", () => {
+    const appCss = code(APP_CSS);
+    const rules = rulesOf(appCss);
+
+    // ---- NON-VACUITY, BEFORE ANY CLAIM. The roots and the field have to exist
+    // for a rule about what covers them to mean anything at all.
+    expect(
+      rules.some((rule) => rule.selector === ".lattice::before"),
+      "src/app.css declares no .lattice::before - the field this scan is about is gone, and everything below it would be checking nothing",
+    ).toBe(true);
+
+    const ground = rules.filter(
+      (rule) =>
+        rule.selector.startsWith(".lattice >") ||
+        rule.selector.startsWith(".lattice>"),
+    );
+    expect(
+      ground.map((rule) => rule.selector),
+      "src/app.css declares no rule on a lattice root's CHILDREN. A-55: the lattice is a ground, and a ground is visible where nothing is standing on it. Without this rule the field paints under every glyph on both roots - measured on the built site at 1280x900 before it existed: 418 text-bearing elements under a lattice root with no opaque ancestor, TWO crossings inside the HANGAR wordmark's box and THIRTEEN inside the browse headline's",
+    ).toHaveLength(1);
+
+    const rule = ground[0];
+    const declared = new Map(declarationsOf(rule.body));
+
+    // ---- ONE DECLARATION, AND IT IS A TOKEN. A ground rule that also set a
+    // border, a radius or a filter would be a second design decision wearing
+    // this one's justification.
+    expect(
+      [...declared.keys()],
+      `the ground rule declares ${[...declared.keys()].join(", ")}. It is one declaration - the ground colour - and nothing else: anything further is a second design decision riding on A-55's argument`,
+    ).toEqual(["background-color"]);
+    expect(
+      declared.get("background-color"),
+      "the ground rule paints something other than var(--color-ground). It must be the ground token and not a literal: identity.spec.ts reads THIS FILE for colours, and 10-04 proved twice that a colour it cannot parse is a colour no gate on this site has",
+    ).toBe("var(--color-ground)");
+
+    // ---- `:where()` IS LOAD-BEARING AND ITS ABSENCE IS INVISIBLE TO EVERY
+    // OTHER ASSERTION HERE. It zeroes the compound, so the selector weighs
+    // 0,1,0 - the same as a bare class - which is what lets a Svelte-scoped
+    // rule (.foo.svelte-<hash>, 0,2,0) keep a component's own background
+    // without being listed anywhere. This is a DEFAULT, not an override.
+    expect(
+      rule.selector.includes(":where("),
+      `the ground rule is declared as "${rule.selector}" rather than with :where(). AT 0,2,0 IT STOPS BEING A DEFAULT AND BECOMES AN OVERRIDE: it beats .pill's transparent fill and every unscoped component default, so a control that happens to be a direct child of a lattice root silently gains an opaque box. A-55's whole shape is that a component with an opinion about its own background wins WITHOUT being enumerated, which is what makes the fix cost no node and no list`,
+    ).toBe(true);
+
+    // ---- SOURCE ORDER, ASSERTED BECAUSE SPECIFICITY CANNOT SEPARATE THEM.
+    // .pill is also 0,1,0. At equal specificity the LATER rule wins, so the
+    // ground has to be declared FIRST or it takes the fill off a pill. This is
+    // the failure mode a rule sitting beside the thing it describes walks into,
+    // and it is the reason the block is not next to the lattice's own comment.
+    const groundAt = appCss.indexOf(rule.selector);
+    const pillAt = appCss.indexOf(".pill {");
+    expect(pillAt, "src/app.css no longer declares .pill").toBeGreaterThan(-1);
+    expect(
+      groundAt,
+      "the ground rule is declared AFTER .pill in src/app.css. Both weigh 0,1,0, so specificity cannot separate them and source order decides: declared second, the ground wins the tie and puts an opaque box behind a control that had declared a transparent one. Move it back above .pill - the comment there says why it is not beside the lattice it belongs to",
+    ).toBeLessThan(pillAt);
+
+    // ---- THE GROUND RULE LIVES IN src/app.css AND NOWHERE ELSE, so the colour
+    // gate that reads one file reads this one too (7.1's placement rule).
+    for (const [file] of LATTICE_ROOTS) {
+      expect(
+        styleOf(file, code(file)).includes(".lattice >"),
+        `${file} authors a ground rule of its own. It belongs in src/app.css: identity.spec.ts reads that file and nothing else, so a colour written into a component <style> is invisible to every colour gate this site has`,
+      ).toBe(false);
+    }
+
+    // ---- THE THREE EXCEPTIONS, EACH READ OUT OF THE FILE THAT CARRIES IT.
+    for (const [file, selector, value, why] of GROUND_EXCEPTIONS) {
+      const source = code(file);
+      const owned = rulesOf(styleOf(file, source)).filter(
+        (candidate) => candidate.selector === selector,
+      );
+      expect(
+        owned,
+        `${file} no longer declares a ${selector} rule at all, so A-56's exception cannot be read: ${why}`,
+      ).not.toEqual([]);
+      const values = owned.flatMap((candidate) =>
+        declarationsOf(candidate.body).filter(
+          ([property]) => property === "background-color",
+        ),
+      );
+      expect(
+        values.map(([, found]) => found),
+        `${file}'s ${selector} does not declare background-color: ${value}. It is one of A-56's THREE exceptions and it is written out rather than left to an initial value, because an omitted declaration is not a rule and the ground would reach it. The reason it is an exception: ${why}`,
+      ).toContain(value);
+    }
+
+    // ---- AND THERE IS NO FOURTH, asserted as a length so an exception added
+    // in a hurry has to be argued for here before it can ship.
+    expect(
+      GROUND_EXCEPTIONS.length,
+      "A-56 declares THREE exceptions to the ground rule. A fourth that is not in this list is a surface nobody reasoned about, and the third only exists because a DOM walk over the built site found it - reading templates would not have",
+    ).toBe(3);
   });
 });
 

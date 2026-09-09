@@ -293,6 +293,84 @@ html[data-screen="flat"] body::before {
 }
 
 /*
+  THE LATTICE IS A GROUND, AND A GROUND IS VISIBLE WHERE NOTHING IS STANDING ON
+  IT (10-UI-SPEC 19.1a as amended, A-55, A-56, A-57, D-22).
+
+  WHAT WAS WRONG. 19.1a specified the marks' geometry - pitch, arm, stroke, one
+  distinguished cross - and never specified where they may LAND. Both roots are
+  ancestors of the reading column rather than neighbours of it, so on the built
+  site the crosses landed inside the text: measured at 1280x900, TWO crossings
+  inside the HANGAR wordmark's box and THIRTEEN inside the browse headline's,
+  and on the chosen panel they sat on "Available after a try-on.", on "Needs a
+  copy of what is on your ZONA first.", on CLEAR, on MIDI channel and on every
+  knob readout. A DOM walk over the built site counted 418 text-bearing
+  elements under a lattice root with no opaque ancestor between them and the
+  field. At a glance that is texture. At reading distance it is dirt on the
+  glyphs, and the brief this register came from asks for the CRT feel "without
+  being overwhelming and destructive to the UX". The reference puts its marks in
+  the SURROUND, not across the subject, and that is a statement about POSITION -
+  which is why knocking the field back with an opacity was rejected: a fainter
+  cross on the H of HANGAR is still a cross on the H of HANGAR.
+
+  THE MECHANISM IS PAINT ORDER, THE SAME MECHANISM `isolation` FURTHER DOWN HAD
+  TO LEARN. The lattice is a z-index -1 child of the root's own stacking
+  context, so it paints after the root's background and before the root's
+  content. ANYTHING IN THE CONTENT THAT DECLARES AN OPAQUE BACKGROUND OCCLUDES
+  IT. One declaration on the root's children is therefore the whole fix, and it
+  needs no wrapper, no pseudo-element and no class attribute on a single
+  component - the condition the ruling set for preferring this shape.
+
+  `:where()` IS LOAD-BEARING AND IS NOT A TIDINESS CHOICE. It zeroes the
+  compound, so the whole selector weighs 0,1,0 - the same as a bare class - and
+  that buys two things which are the entire reason:
+
+    1. A Svelte-scoped component rule compiles to `.foo.svelte-<hash>` at 0,2,0
+       and therefore WINS. Any component with an opinion about its own root
+       background keeps it, automatically, without being listed anywhere. This
+       is a DEFAULT, not an override.
+    2. `.pill`'s `background: transparent` is ALSO 0,1,0, so specificity cannot
+       separate them and SOURCE ORDER decides - which is why this rule is
+       declared ABOVE .pill rather than beside the lattice it belongs to. Put it
+       at the bottom of the file, next to its own comment, and it would win the
+       tie and quietly put an opaque box behind a control that had declared a
+       transparent one. That is the failure mode a rule sitting beside the thing
+       it describes walks straight into, and it is why the position is written
+       down here instead of being left to look arbitrary. instrument.spec.ts
+       scan 6 asserts BOTH halves by name - the `:where(` and the order - so a
+       later tidy-up that moves this block down to join the lattice cannot take
+       the fill off a pill in silence.
+
+  THREE DECLARED EXCEPTIONS AND NO FOURTH, each commented where it lives:
+  /browse/'s `.grid` stays transparent, because the card wall is where the field
+  earns its keep - it paints in the gutters BETWEEN the cards, which is the
+  "around the pads" half of the ruling, and occluding the grid would delete the
+  lattice from most of the page. CatalogCard.svelte's `.card` and
+  BrowseGrid.svelte's `.empty` take the ground themselves, because neither is a
+  direct child of a root and both are prose. The empty state was found by that
+  same DOM walk with a query that matches no entry, not by reading a template,
+  and it is named because it is the surface a reader would miss.
+
+  WHAT THIS COSTS LAYER G, STATED RATHER THAN DISCOVERED (A-57). An opaque
+  background occludes everything behind it, and Layer G is body::before at
+  z-index -1, behind everything - so the halftone no longer shows through where
+  these blocks paint. Layer G's declaration, its route scope and
+  e2e/aesthetic.e2e.ts test 3 are UNCHANGED; what changes is how much bare
+  ground the page has. The cost is computed rather than estimated: the dot is
+  rgb(214 255 78 / 0.04) in a 3px cell with a solid core out to 40% of it, so
+  its area-averaged lift over black is 0.04 x pi x 0.4^2 = 0.008 of the token -
+  about ONE PART IN 255 on the green channel, dithered at 3px, which reads as
+  grain rather than as a cast. The vignette half is rgb(0 0 0 / 0.55) over
+  --color-ground, which is black over black and costs nothing at all.
+
+  NOTHING HERE MOVES AND NOTHING HERE IS A COLOUR THE SITE DID NOT ALREADY HAVE.
+  One declaration, one token, no new hex, no fourth hue, and the accent reserved
+  list stays at eight.
+*/
+.lattice > :where(*) {
+  background-color: var(--color-ground);
+}
+
+/*
   THE PILL - the instrument register's one control shape (10-UI-SPEC 19.1b,
   A-41, D-15 reference C).
 
@@ -397,7 +475,11 @@ html[data-screen="flat"] body::before {
 
   z-index: -1 rather than 0. A positioned pseudo-element at z-index 0 paints
   AFTER in-flow content and would sit on top of the words; -1 puts it behind
-  them and behind the surface's own border.
+  them and behind the surface's own border. BEHIND ALL CONTENT AND, SINCE A-55,
+  UNDER NONE OF IT - the `.lattice > :where(*)` ground rule is where the
+  difference between those two sentences lives, and it is declared ABOVE .pill
+  rather than here beside its own comment because at equal specificity source
+  order decides and .pill's transparent fill has to win.
 
   `isolation: isolate` IS LOAD-BEARING AND IT WAS MEASURED, NOT REASONED. The
   first version of this rule was `position: relative` alone, and it shipped a

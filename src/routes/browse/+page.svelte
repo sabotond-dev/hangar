@@ -614,8 +614,24 @@
     margin-block-start: 32px;
   }
 
+  /*
+    THE ONE BLOCK ON THIS PAGE THAT MAY NOT OCCLUDE THE LATTICE (A-56).
+
+    src/app.css's `.lattice > :where(*)` gives every direct child of a lattice
+    root the ground, so the registration field survives in the margins and the
+    gaps rather than under the words. This block is the declared exception, and
+    the reason is that the card wall is where the field earns its keep: it
+    paints in the GUTTERS BETWEEN the cards, which is the "around the pads" half
+    of the ruling. Grounding it would delete the lattice from most of the page
+    and repeat 10-13.1's silent no-op at a different address.
+
+    Transparent is what the ground rule would otherwise supply, so it is written
+    out rather than left to the initial value: a scoped rule at 0,2,0 is what
+    beats it, and an omitted declaration is not a rule.
+  */
   .grid {
     margin-block-start: 32px;
+    background-color: transparent;
   }
 
   /* 48px below the last grid row, Body, quiet, 62ch. */
