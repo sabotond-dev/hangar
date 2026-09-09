@@ -2,7 +2,10 @@
 //   path:   src/renderer/main/zona/pad-sim.ts
 //   commit: a0fb69d5d0e78ce0f6423fc1d1a9783937c5380c
 //   synced: 2026-09-02
-// Modified for HANGAR: nothing - the flat vendor layout keeps ./_pad valid.
+// Modified for HANGAR: no mechanical delta - the flat vendor layout keeps
+//   ./_pad valid - plus the deliberate divergences enumerated, with a reason
+//   and a date, in src/lib/fidelity/upstream-manifest.json. That file is the
+//   authority; this line is not a second copy of it.
 // Original copyright and licence (GNU GPL v3 or later) retained below.
 
 // The ZONA simulator. A firmware-faithful model of the pad's 81 LEDs
@@ -984,7 +987,7 @@ export class PadSim {
         // compiled. Firmware fades each cell independently so
         // multi-touch is correct for free.
         this.paintCells(sm, (h) => {
-          this.glpfs(h, 1, 255, decay.rate, 0);
+          this.glpfs(h, 1, (256 - decay.rate) * decay.ticks, decay.rate, 0);
           this.glt(h, 1, decay.ticks);
         });
         return;
@@ -999,7 +1002,7 @@ export class PadSim {
         const C = this.sc(128);
         this.paintCells(sm, (h) => {
           this.glc(h, 1, A - sm.i * B, sm.i * B, C, true);
-          this.glpfs(h, 1, 255, decay.rate, 0);
+          this.glpfs(h, 1, (256 - decay.rate) * decay.ticks, decay.rate, 0);
           this.glt(h, 1, decay.ticks);
         });
         return;
@@ -1224,7 +1227,13 @@ export class PadSim {
       this.glp(this.hwOf(cell), 1, 255);
     } else {
       const decay = nearestDecay(this._state.touch.trailMs);
-      this.glpfs(this.hwOf(cell), 1, 255, decay.rate, 0);
+      this.glpfs(
+        this.hwOf(cell),
+        1,
+        (256 - decay.rate) * decay.ticks,
+        decay.rate,
+        0,
+      );
       this.glt(this.hwOf(cell), 1, decay.ticks);
     }
   }

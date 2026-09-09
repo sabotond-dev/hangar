@@ -132,18 +132,82 @@ interface LengthDivergence {
 type PresetDivergence = LuaDivergence | LengthDivergence;
 
 /**
- * EMPTY AT PLAN 11-03, WHICH BUILT THIS TABLE AND SPENT NONE OF IT. 11-04 is
- * what puts rows in it, when it fixes the decay codegen inside the vendored
- * compiler. Five of the nine presets will land here - aurora, pinwheel,
- * starfield, radar and dial, every one whose touch.kind is comet or perFinger -
- * and joystick, ninepads, faders and tpad will not, because they emit no
- * decaying glpfs at all.
+ * SPENT BY PLAN 11-04, WHICH 11-03 BUILT THIS TABLE FOR. Five of the nine
+ * presets are here - aurora, pinwheel, starfield, radar and dial, every one
+ * whose touch.kind is comet or perFinger - and joystick, ninepads, faders and
+ * tpad are not, because they emit no decaying glpfs at all. That split was
+ * predicted twice before it was spent (by touch.kind and by scanning the
+ * fixture's own glpfs calls) and observed a third time as exactly five red
+ * tests on the first run after the codegen moved.
+ *
+ * THERE ARE NO `length` ROWS AND THAT IS A MEASURED RESULT, NOT AN OMISSION.
+ * The fix emits `(256 - rate) * ticks` where the literal 255 stood, and every
+ * one of DECAY_TABLE's twelve products is in 248..254 - three digits, exactly
+ * as 255 is - so the change is +0 characters at every reachable trailMs. If a
+ * length row ever becomes necessary here, a start fell to two digits and the
+ * declared cost of a preset moved with it.
  *
  * Every row here must also have a counterpart in upstream-manifest.json's
  * intendedDivergence: this table records the CONSEQUENCE in the emitted Lua, and
  * that one records the CAUSE in the vendored source.
  */
-const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [];
+const DECAY_REASON =
+  "Plan 11-04, D-02. The vendored compiler emitted a decaying touch trail " +
+  "starting at phase 255. Firmware walks pha += fre on a uint8_t and freezes " +
+  "the cell where its timeout catches it, so the cell lands on 0 only when " +
+  "the start equals (256 - rate) * ticks - 252 at the 420 ms default. " +
+  "Measured before the fix: one cell frozen at phase 3 of 255, permanently, " +
+  "on every cell a finger crossed. The compiler now emits 252 and pad-sim.ts " +
+  "was moved with it in the same plan, so the preview and the device still " +
+  "agree. +0 characters: 252 and 255 are both three digits.";
+
+const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
+  {
+    kind: "lua",
+    preset: "aurora",
+    field: "setupLua",
+    hangar: "glpfs(a,1,252,250,0)",
+    baseline: "glpfs(a,1,255,250,0)",
+    reason: DECAY_REASON,
+    plan: "11-04",
+  },
+  {
+    kind: "lua",
+    preset: "pinwheel",
+    field: "setupLua",
+    hangar: "glpfs(a,1,252,250,0)",
+    baseline: "glpfs(a,1,255,250,0)",
+    reason: DECAY_REASON,
+    plan: "11-04",
+  },
+  {
+    kind: "lua",
+    preset: "starfield",
+    field: "setupLua",
+    hangar: "glpfs(a,1,252,250,0)",
+    baseline: "glpfs(a,1,255,250,0)",
+    reason: DECAY_REASON,
+    plan: "11-04",
+  },
+  {
+    kind: "lua",
+    preset: "radar",
+    field: "setupLua",
+    hangar: "glpfs(a,1,252,250,0)",
+    baseline: "glpfs(a,1,255,250,0)",
+    reason: DECAY_REASON,
+    plan: "11-04",
+  },
+  {
+    kind: "lua",
+    preset: "dial",
+    field: "setupLua",
+    hangar: "glpfs(a,1,252,250,0)",
+    baseline: "glpfs(a,1,255,250,0)",
+    reason: DECAY_REASON,
+    plan: "11-04",
+  },
+];
 
 const luaRowsFor = (id: string, field: "setupLua" | "timerLua") =>
   INTENDED_DIVERGENCE.filter(

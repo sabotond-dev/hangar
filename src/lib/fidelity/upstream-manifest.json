@@ -18,7 +18,36 @@
           "upstream": "import type { RGB } from \"../../config-blocks/_screen\";"
         }
       ],
-      "intendedDivergence": []
+      "intendedDivergence": [
+        {
+          "vendored": "// (rate, ticks) pairs for a decaying one-shot on layer 1. Firmware applies\n// `ticks` decrements of `step = 256 - rate` and then zeroes the rate, so a\n// cell lands on `start - step*ticks` (mod 256) and FREEZES there for good.\n// The start is therefore emitted as `step*ticks`, NOT as 255: every product\n// here is in 248..254, so a start of 255 leaves a permanent residue of 1..7\n// of 255 on every cell a finger crossed. HANGAR divergence, plan 11-04; see\n// src/lib/fidelity/upstream-manifest.json.",
+          "upstream": "// (rate, ticks) pairs for a decaying one-shot on layer 1. Phase starts at\n// 255, firmware applies `ticks` decrements of `256 - rate` and then zeroes\n// the rate, so the cell lands on 255 - step*ticks. Every product here is\n// in 248..254, so the fade always ends dark and the one-frame\n// end-of-fade flash is unreachable.",
+          "reason": "The comment claimed a start of 255 makes the fade \"always end dark\". It does not, and the claim is what hid the defect: firmware freezes a cell at start - step*ticks, every step*ticks in this table is 248..254, so a start of 255 freezes 1..7 of 255 lit and nothing ever clears it. Corrected in the same plan that corrects the three codegen sites below, because a comment that contradicts the code it sits on is worse than no comment. NOTE FOR A RE-SYNCER, recorded here because it is the decision this row's arithmetic implies and does not make: the sibling touch kinds `bloom` and `disturb` carry a worse form of the same defect (residue up to 125, against comet's 1..7) and are DELIBERATELY LEFT ALONE. Their repair needs a per-cell timeout derived from a per-cell start - a change to the emitted SHAPE, not to an emitted constant - and HANGAR's D-02 permission covers constants. Measured: no HANGAR preset selects either kind and touch.kind is not exposed as a knob, so neither is reachable from any catalog entry at any knob position. HANGAR's standing rule from plan 11-04 onward is that a HANGAR-owned preset must never select `bloom` or `disturb`.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "      return paintCells(s, (a) => [\n        `glpfs(${a},1,${(256 - decay.rate) * decay.ticks},${decay.rate},0)`,",
+          "upstream": "      return paintCells(s, (a) => [\n        `glpfs(${a},1,255,${decay.rate},0)`,",
+          "reason": "case \"comet\": the emitted decay start. A decaying layer walks pha += fre on a uint8_t and freezes where the timeout catches it, so it lands on 0 only when the start equals step*ticks. 255 is odd and every emitted step is even for most rows, so 255 can never be reached: measured, every cell a finger crossed on AURORA, STARFIELD, RADAR and DIAL froze at phase 3 of 255 permanently - the bench report's \"leaves a redish glow behind even when it disappeared\". Emitting (256 - rate) * ticks lands the walk on exactly 0. Every value in DECAY_TABLE gives a three-digit start (248..254), so this is +0 characters at every reachable trailMs and no preset's declared cost moves. The `return paintCells` line is carried in this row because the glpfs line alone occurs twice in this file.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "          `glc(${a},1,${A}-i*${B},i*${B},${C},1)`,\n          `glpfs(${a},1,${(256 - decay.rate) * decay.ticks},${decay.rate},0)`,",
+          "upstream": "          `glc(${a},1,${A}-i*${B},i*${B},${C},1)`,\n          `glpfs(${a},1,255,${decay.rate},0)`,",
+          "reason": "case \"perFinger\": the same emitted decay start as the comet row above, and the same arithmetic - measured, PINWHEEL froze one cell at phase 3 of 255 after a single slow tap. +0 characters. The preceding glc line is carried in this row because the glpfs line differs from the comet site only in indentation, and a row quoting it alone would match twice and correctly turn vendored-diff.spec.ts red.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "              `glpfs(a,1,${(256 - nearestDecay(s.touch.trailMs).rate) * nearestDecay(s.touch.trailMs).ticks},${nearestDecay(s.touch.trailMs).rate},0)`,",
+          "upstream": "              `glpfs(a,1,255,${nearestDecay(s.touch.trailMs).rate},0)`,",
+          "reason": "The spring re-park comet inside sendsPaint's joystick path: when a sprung xy pad's contact ends, the home cell is repainted with the same decaying pair, so it carries the same permanent residue and takes the same fix. It is real codegen and not a cost estimate - src/vendor/botor/tests/pad.test.js pins the exact string it emits - so leaving it behind would have made a sprung joystick the one configuration whose parked dot still stuck. nearestDecay is called three times in one template rather than hoisted, because hoisting would move bytes this record would then have to justify for no behavioural gain. +0 characters.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        }
+      ]
     },
     {
       "vendored": "src/vendor/botor/pad-sim.ts",
@@ -26,7 +55,29 @@
       "bytes": 56314,
       "sha256": "23464381580b0408b5ee17f9f4d03b78a703878709b1895b9c512fa122ce1602",
       "deltas": [],
-      "intendedDivergence": []
+      "intendedDivergence": [
+        {
+          "vendored": "        this.paintCells(sm, (h) => {\n          this.glpfs(h, 1, (256 - decay.rate) * decay.ticks, decay.rate, 0);",
+          "upstream": "        this.paintCells(sm, (h) => {\n          this.glpfs(h, 1, 255, decay.rate, 0);",
+          "reason": "case \"comet\": the simulator's mirror of the compiler's decay start, moved in the SAME plan and for the same arithmetic. THE PHASE WALK IS NOT TOUCHED: ledTick's `L.pha = (L.pha + L.fre) & 255` reproduces grid_led.c:191-211 and the uint8_t wrap is real firmware behaviour, so clamping it would make the preview LESS faithful while appearing to fix the symptom. Only the start constant this file writes into the layer moves. Fixing the compiler alone would have left the preview showing a stuck cell where the device now goes dark, which is the same fidelity loss from the other side. The paintCells line is carried in this row because the glpfs line alone occurs twice in this file.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "          this.glc(h, 1, A - sm.i * B, sm.i * B, C, true);\n          this.glpfs(h, 1, (256 - decay.rate) * decay.ticks, decay.rate, 0);",
+          "upstream": "          this.glc(h, 1, A - sm.i * B, sm.i * B, C, true);\n          this.glpfs(h, 1, 255, decay.rate, 0);",
+          "reason": "case \"perFinger\": the simulator's mirror of the compiler's perFinger decay start, moved for the same arithmetic and in the same plan. The preceding glc line is carried in this row because the two glpfs lines in this file are byte-identical to one another and a row quoting one alone would match twice.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "      this.glpfs(\n        this.hwOf(cell),\n        1,\n        (256 - decay.rate) * decay.ticks,\n        decay.rate,\n        0,\n      );",
+          "upstream": "      this.glpfs(this.hwOf(cell), 1, 255, decay.rate, 0);",
+          "reason": "springLedOnEnd: the simulator's mirror of the compiler's spring re-park comet. Same arithmetic, same plan. The call is broken across six lines rather than kept on one because the expression pushes it past the width the rest of this file is written to; src/vendor/ is listed in .prettierignore, so no formatter chose this and none will change it back.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        }
+      ]
     },
     {
       "vendored": "src/vendor/botor/pad-sim-host.ts",
@@ -47,7 +98,15 @@
           "upstream": "} from \"../main/zona/_pad\";"
         }
       ],
-      "intendedDivergence": []
+      "intendedDivergence": [
+        {
+          "vendored": "    expect(lua).toContain(\"local a=glag(0,40)glpfs(a,1,252,250,0)glt(a,1,42)\");",
+          "upstream": "    expect(lua).toContain(\"local a=glag(0,40)glpfs(a,1,255,250,0)glt(a,1,42)\");",
+          "reason": "The expectation follows the codegen it pins. This line asserts the exact Lua the joystick spring re-park emits, and _pad.ts's spring row now emits a start of 252 rather than 255 at the default 420 ms trail. It is a vendored file under this manifest, so repairing its expectation is a divergence of its own rather than a free consequence, and it is recorded as one. No test is added or removed: this suite's count stays at 176.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        }
+      ]
     },
     {
       "vendored": "src/vendor/botor/tests/pad-sim.test.js",
@@ -64,7 +123,43 @@
           "upstream": "} from \"../main/zona/_pad\";"
         }
       ],
-      "intendedDivergence": []
+      "intendedDivergence": [
+        {
+          "vendored": "    // Cell under (63, 63) is logical 40, hardware 40. The handler wrote\n    // pha 252, rate 250, timeout 42, and the SAME tick's led pass then\n    // applied one increment: (252 + 250) mod 256 = 246, timeout 41.\n    const L = sim.layer(screenToHw(4, 4), 1);\n    expect(L.pha).toBe(246);",
+          "upstream": "    // Cell under (63, 63) is logical 40, hardware 40. The handler wrote\n    // pha 255, rate 250, timeout 42, and the SAME tick's led pass then\n    // applied one increment: (255 + 250) mod 256 = 249, timeout 41.\n    const L = sim.layer(screenToHw(4, 4), 1);\n    expect(L.pha).toBe(249);",
+          "reason": "The expectation follows the simulator it pins. The comet layer now starts at 252 rather than 255, so the frame after one tick reads 246 rather than 249. The comment moves with the numbers because it states the arithmetic in full and would otherwise contradict the assertion two lines below it. The tick ORDER this test exists to pin - the touch popped before the LED pass, so one increment has already been applied - is unchanged, and that is the whole point of the row: only the start moved.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    const after = sim.layer(screenToHw(4, 4), 1);\n    expect(after.pha).toBe(0);",
+          "upstream": "    const after = sim.layer(screenToHw(4, 4), 1);\n    expect(after.pha).toBe(3);",
+          "reason": "THE VENDORED SUITE PINNED THE BUG. This line asserted that a comet cell freezes at phase 3 of 255 after its timeout expires - which is exactly the permanent residue the bench reported as AURORA's \"redish glow\" - and it asserted it as correct behaviour. With the start emitted as step*ticks the walk lands on 0 in exactly `ticks` steps, so the expectation becomes 0. Nothing about the freeze-on-expiry semantics changed; the cell still freezes, it now freezes dark.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    const pfs = result.setupLua.match(/glpfs\\([a-z],1,252,(\\d+),0\\)/);",
+          "upstream": "    const pfs = result.setupLua.match(/glpfs\\([a-z],1,255,(\\d+),0\\)/);",
+          "reason": "The regular expression that reads AURORA's decay pair out of the compiled Lua carries the start as a literal, so it stops matching when the codegen emits 252. Deliberately still a literal rather than (\\d+): this test's whole design is anti-drift - it takes the rate and ticks from the emitted Lua rather than from DECAY_TABLE so both sides cannot misread the table the same way - and widening the start to a capture group would remove the one number that pins the fix.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "      /local a=glag\\(0,40\\)glpfs\\(a,1,252,(\\d+),0\\)glt\\(a,1,(\\d+)\\)/,",
+          "upstream": "      /local a=glag\\(0,40\\)glpfs\\(a,1,255,(\\d+),0\\)glt\\(a,1,(\\d+)\\)/,",
+          "reason": "The same literal start, in the regular expression that reads the joystick spring re-park out of RADAR's compiled Lua. Kept a literal for the same anti-drift reason as the row above.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        },
+        {
+          "vendored": "    expect(L.pha).toBe((252 + Number(m[1])) & 255);",
+          "upstream": "    expect(L.pha).toBe((255 + Number(m[1])) & 255);",
+          "reason": "The spring re-park's phase after one tick, derived in the test from the start plus the rate read out of the compiled Lua. The start is the one term the test states itself, so it moves with the codegen. The `& 255` is the uint8_t wrap the simulator reproduces from grid_led.c and it is NOT touched here or anywhere else in this plan.",
+          "plan": "11-04",
+          "dated": "2026-09-09"
+        }
+      ]
     },
     {
       "vendored": "src/vendor/botor/tests/pad-invariants.test.js",

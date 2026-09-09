@@ -2,8 +2,11 @@
 //   path:   src/renderer/main/zona/_pad.ts
 //   commit: a0fb69d5d0e78ce0f6423fc1d1a9783937c5380c
 //   synced: 2026-09-02
-// Modified for HANGAR: the RGB type is inlined (upstream line 37 was a
-//   type-only import from ../../config-blocks/_screen); nothing else.
+// Modified for HANGAR: one mechanical delta (the RGB type is inlined; upstream
+//   line 37 was a type-only import from ../../config-blocks/_screen) plus the
+//   deliberate divergences enumerated, with a reason and a date, in
+//   src/lib/fidelity/upstream-manifest.json. That file is the authority; this
+//   line is not a second copy of it.
 // Original copyright and licence (GNU GPL v3 or later) retained below.
 
 // The ZONA pad compiler. One typed state object per module per page
@@ -387,11 +390,13 @@ export const SPEED_TABLE: readonly {
   seconds: Math.round(2560 / rate) / 1000,
 }));
 
-// (rate, ticks) pairs for a decaying one-shot on layer 1. Phase starts at
-// 255, firmware applies `ticks` decrements of `256 - rate` and then zeroes
-// the rate, so the cell lands on 255 - step*ticks. Every product here is
-// in 248..254, so the fade always ends dark and the one-frame
-// end-of-fade flash is unreachable.
+// (rate, ticks) pairs for a decaying one-shot on layer 1. Firmware applies
+// `ticks` decrements of `step = 256 - rate` and then zeroes the rate, so a
+// cell lands on `start - step*ticks` (mod 256) and FREEZES there for good.
+// The start is therefore emitted as `step*ticks`, NOT as 255: every product
+// here is in 248..254, so a start of 255 leaves a permanent residue of 1..7
+// of 255 on every cell a finger crossed. HANGAR divergence, plan 11-04; see
+// src/lib/fidelity/upstream-manifest.json.
 export const DECAY_TABLE: readonly {
   ms: number;
   rate: number;
@@ -1201,7 +1206,7 @@ function touchPaint(s: PadState): string {
       // because each contact writes its own cells and firmware fades all
       // of them independently.
       return paintCells(s, (a) => [
-        `glpfs(${a},1,255,${decay.rate},0)`,
+        `glpfs(${a},1,${(256 - decay.rate) * decay.ticks},${decay.rate},0)`,
         `glt(${a},1,${decay.ticks})`,
       ]);
 
@@ -1220,7 +1225,7 @@ function touchPaint(s: PadState): string {
         LIVE,
         paintCells(s, (a) => [
           `glc(${a},1,${A}-i*${B},i*${B},${C},1)`,
-          `glpfs(${a},1,255,${decay.rate},0)`,
+          `glpfs(${a},1,${(256 - decay.rate) * decay.ticks},${decay.rate},0)`,
           `glt(${a},1,${decay.ticks})`,
         ]),
       );
@@ -2061,7 +2066,7 @@ function sendsPaint(s: PadState, plan: LayerPlan): string {
         : led === "comet"
           ? J(
               `local a=glag(0,${cell})`,
-              `glpfs(a,1,255,${nearestDecay(s.touch.trailMs).rate},0)`,
+              `glpfs(a,1,${(256 - nearestDecay(s.touch.trailMs).rate) * nearestDecay(s.touch.trailMs).ticks},${nearestDecay(s.touch.trailMs).rate},0)`,
               `glt(a,1,${nearestDecay(s.touch.trailMs).ticks})`,
             )
           : "";

@@ -2,7 +2,10 @@
 //   path:   src/renderer/tests/pad.test.js
 //   commit: a0fb69d5d0e78ce0f6423fc1d1a9783937c5380c
 //   synced: 2026-09-02
-// Modified for HANGAR: import paths only (1 specifier).
+// Modified for HANGAR: one mechanical delta (1 import specifier) plus the
+//   deliberate divergences enumerated, with a reason and a date, in
+//   src/lib/fidelity/upstream-manifest.json. That file is the authority; this
+//   line is not a second copy of it.
 // Original copyright and licence (GNU GPL v3 or later) retained below.
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -3215,7 +3218,7 @@ describe("the joystick", () => {
   it("fires one decaying comet pulse at home instead, on the comet", () => {
     // The default touch is the comet; the pulse borrows its decay pair.
     const lua = compile(sprung()).setupLua;
-    expect(lua).toContain("local a=glag(0,40)glpfs(a,1,255,250,0)glt(a,1,42)");
+    expect(lua).toContain("local a=glag(0,40)glpfs(a,1,252,250,0)glt(a,1,42)");
   });
 
   it("moves the home cell where the rests really are", () => {

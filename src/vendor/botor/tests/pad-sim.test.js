@@ -2,7 +2,10 @@
 //   path:   src/renderer/tests/pad-sim.test.js
 //   commit: a0fb69d5d0e78ce0f6423fc1d1a9783937c5380c
 //   synced: 2026-09-02
-// Modified for HANGAR: import paths only (2 specifiers).
+// Modified for HANGAR: two mechanical deltas (2 import specifiers) plus the
+//   deliberate divergences enumerated, with a reason and a date, in
+//   src/lib/fidelity/upstream-manifest.json. That file is the authority; this
+//   line is not a second copy of it.
 // Original copyright and licence (GNU GPL v3 or later) retained below.
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -322,16 +325,16 @@ describe("aurora, the default state", () => {
     sim.touchDown(0, 63, 63);
     sim.run(1);
     // Cell under (63, 63) is logical 40, hardware 40. The handler wrote
-    // pha 255, rate 250, timeout 42, and the SAME tick's led pass then
-    // applied one increment: (255 + 250) mod 256 = 249, timeout 41.
+    // pha 252, rate 250, timeout 42, and the SAME tick's led pass then
+    // applied one increment: (252 + 250) mod 256 = 246, timeout 41.
     const L = sim.layer(screenToHw(4, 4), 1);
-    expect(L.pha).toBe(249);
+    expect(L.pha).toBe(246);
     expect(L.fre).toBe(250);
     expect(L.sha).toBe(0);
     expect(L.timeout).toBe(41);
     sim.run(41);
     const after = sim.layer(screenToHw(4, 4), 1);
-    expect(after.pha).toBe(3);
+    expect(after.pha).toBe(0);
     expect(after.fre).toBe(0);
     expect(after.timeout).toBe(0);
   });
@@ -1151,7 +1154,7 @@ describe("compiler-to-sim pinning", () => {
 
   it("aurora: the decay pair in the Lua matches the table and the sim", () => {
     const result = compile(defaultState());
-    const pfs = result.setupLua.match(/glpfs\([a-z],1,255,(\d+),0\)/);
+    const pfs = result.setupLua.match(/glpfs\([a-z],1,252,(\d+),0\)/);
     const glt = result.setupLua.match(/glt\([a-z],1,(\d+)\)/);
     expect(pfs).not.toBeNull();
     expect(glt).not.toBeNull();
@@ -1659,7 +1662,7 @@ describe("the joystick and the latch, at the wire", () => {
     // Anti-drift: the rate and tick pair come out of the compiled Lua,
     // not out of a table both sides could misread the same way.
     const m = compile(norm).setupLua.match(
-      /local a=glag\(0,40\)glpfs\(a,1,255,(\d+),0\)glt\(a,1,(\d+)\)/,
+      /local a=glag\(0,40\)glpfs\(a,1,252,(\d+),0\)glt\(a,1,(\d+)\)/,
     );
     expect(m).not.toBeNull();
     const sim = new PadSim(norm);
@@ -1671,7 +1674,7 @@ describe("the joystick and the latch, at the wire", () => {
     // One tick has already run: the phase advanced once by the rate and
     // the timeout burned one tick.
     expect(L.fre).toBe(Number(m[1]));
-    expect(L.pha).toBe((255 + Number(m[1])) & 255);
+    expect(L.pha).toBe((252 + Number(m[1])) & 255);
     expect(L.timeout).toBe(Number(m[2]) - 1);
   });
 
