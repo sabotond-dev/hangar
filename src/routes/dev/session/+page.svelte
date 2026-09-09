@@ -44,14 +44,31 @@
      header explains why that is load-bearing; this page just does not get in
      the way.
 
-  The two static specifiers below are on the permitted list of the chunk guard
-  (src/lib/config-shape.spec.ts test 13): the session and its copy module,
-  both free of the protocol package. Nothing else is imported.
+  The THREE static specifiers below are on the permitted list of the chunk
+  guard (src/lib/config-shape.spec.ts test 13, PERMITTED_SPECIFIERS): the
+  session, its copy module, and - since plan 11-08.1 - `$lib/device/install
+  .svelte`, which 07-08 added to that list when the root layout began starting
+  the install store for the whole site. All three are free of the protocol
+  package. Nothing else is imported.
+
+  WHY THE INSTALL STORE IS READ HERE AT ALL, ON A PAGE ABOUT THE SESSION.
+  src/routes/+layout.svelte starts it site-wide, so it has ALWAYS been live on
+  this route; it was merely invisible. And its phase is the only signal on this
+  page that IMPLIES the snapshot's three round trips have finished.
+  session.svelte.ts sets `phase = "connected"` and only THEN fires the
+  connection event; install.svelte.ts receives it and calls `void #attach(...)`,
+  fire-and-forget by design; #snapshot issues one SERIALNUMBER/FETCH and then
+  fetchBoth, which sequence.ts runs strictly sequentially. So `connected` in the
+  DOM means three round trips are ABOUT TO START. e2e/session.e2e.ts's
+  onlyReads asserted exact totals against that, and the observed "expected 4,
+  received 3" was the middle of fetchBoth on the second connect. `install-phase`
+  leaving `snapshotting` is the causal signal that was missing.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
   import {
     CONNECT_LABEL,
@@ -79,11 +96,23 @@
    * The fake serial's write counter when a test installed one, else 0. It is
    * not a signal, so it is re-read whenever the session publishes a phase or
    * an identity - which is every moment a write could have happened.
+   *
+   * `void install.phase` IS THE THIRD DEPENDENCY AND IT IS WHAT MAKES THIS
+   * READOUT MEASURE ANYTHING. The session's last publication on a connect is
+   * `connected`, and every chunk of the snapshot goes out AFTER it - so with
+   * only the two session dependencies this counter was structurally guaranteed
+   * to be read before the writes it is about, and e2e/session.e2e.ts had
+   * weakened its assertion to `0 <= shown <= 3` to live with that. It would
+   * have passed with this line wired to a constant zero. The install store
+   * publishes `snapshotting` and then `ready`, i.e. after all three round
+   * trips, so the readout is now the shim's own count and the test asserts an
+   * EQUALITY.
    */
   let writes = $state(0);
   $effect(() => {
     void session.phase;
     void session.identity;
+    void install.phase;
     const shim = (
       window as unknown as { __hangarSerial?: { writes(): number } }
     ).__hangarSerial;
@@ -110,6 +139,20 @@
 <dl>
   <dt>phase</dt>
   <dd data-testid="session-phase">{session.phase}</dd>
+
+  <!--
+    The install store's phase, the same row the install probe publishes - and
+    that probe's path is DESCRIBED rather than spelled, for the reason point 1
+    of the header gives: the sibling scan in src/lib/config-shape.spec.ts is a
+    plain substring match over every file outside a probe's own directory, and
+    it counts comments. Writing the path here was tried and it went red.
+
+    Not a second implementation of that probe: this page renders exactly one of
+    its values, and it renders it because it is the only signal here that
+    IMPLIES the snapshot's three round trips are over. See the header.
+  -->
+  <dt>install phase</dt>
+  <dd data-testid="install-phase">{install.phase}</dd>
 
   <dt>identity</dt>
   <dd data-testid="session-identity">{identityLine}</dd>

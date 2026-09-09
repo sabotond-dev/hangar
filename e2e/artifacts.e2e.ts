@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { ROUTED } from "../src/lib/catalog/listing";
 
@@ -15,10 +15,46 @@ import { ROUTED } from "../src/lib/catalog/listing";
 // over HTTP. The non-vacuity floor rises from >= 8 to >= 16 with it, so a
 // quietly shortened set is red rather than merely cheaper.
 
-const sha = execFileSync("git", ["rev-parse", "HEAD"], {
+// THIS FILE READS THE BUILD AND THEN COMPARES IT TO git, RATHER THAN NAMING A
+// FILE OUT OF git AND ASKING WHETHER IT EXISTS (plan 11-08.1).
+//
+// The old shape ran `git rev-parse HEAD` at MODULE LOAD - in every worker - and
+// asserted `build/source-<that sha>.tar.gz` existed. COMMITTING WHILE THE SUITE
+// RUNS THEREFORE TURNED IT RED for a reason that had nothing to do with the
+// code, and it reported that as "file missing", which is the one diagnosis that
+// sends a reader looking in the wrong place. Moving the git read later makes it
+// WORSE, not better: the archive is named for the sha the BUILD saw, so a later
+// read is a fresher wrong answer.
+//
+// scripts/postbuild.mjs writes exactly one `source-<SHA>.tar.gz` into build/ and
+// deletes every other one on its way, so the build itself is the authority.
+// Glob it, assert there is exactly one, and hold ITS sha against HEAD with a
+// message that names the two real causes. The assertion still bites in both
+// directions - a missing archive is still red, a mismatched one is still red -
+// and only its diagnosis improves.
+//
+// THE OTHER HALF OF THIS HAZARD IS NOT FIXABLE HERE AND IS RECORDED INSTEAD.
+// playwright.config.ts carries `reuseExistingServer: !process.env.CI`, so a
+// wrangler dev left over from an earlier run is reused and `npm run preview` -
+// and with it `npm run build` - never re-runs. The whole suite can then silently
+// test a stale build/. That config file is not edited in this phase, so the
+// countermeasure is a RUN PROCEDURE: stop wrangler parents-first including both
+// workerd children, run `npm run build` by hand, and only then start the suite.
+// This test is what catches you when you forget.
+const headSha = execFileSync("git", ["rev-parse", "HEAD"], {
   encoding: "utf8",
 }).trim();
-const archive = `build/source-${sha}.tar.gz`;
+
+/** Every source archive the build left behind. postbuild.mjs writes one. */
+function archives(): string[] {
+  if (!existsSync("build")) return [];
+  return readdirSync("build").filter(
+    (name) => name.startsWith("source-") && name.endsWith(".tar.gz"),
+  );
+}
+
+const found = archives();
+const archive = `build/${found[0] ?? `source-${headSha}.tar.gz`}`;
 const entries = () =>
   execFileSync("tar", ["-tzf", archive], { encoding: "utf8" })
     .split(/\r?\n/)
@@ -31,10 +67,20 @@ test("the static build is complete", () => {
     "build/LICENSE",
     "build/THIRD-PARTY.md",
     "build/licenses",
-    archive,
   ]) {
     expect(existsSync(file), file).toBe(true);
   }
+
+  // The archive, read off the build rather than named out of git.
+  expect(
+    found,
+    "build/ holds exactly one source archive - postbuild.mjs writes one and deletes every other",
+  ).toHaveLength(1);
+  const built = found[0].slice("source-".length, -".tar.gz".length);
+  expect(
+    built,
+    `the source archive is build/source-${built}.tar.gz and HEAD is ${headSha}: the build is stale, or HEAD moved during the run`,
+  ).toBe(headSha);
 });
 
 test("the source archive is the Corresponding Source and nothing else", () => {

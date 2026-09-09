@@ -669,10 +669,48 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
      * black because they declare restsBlack", and it is now "this one has no
      * LED layer to light".
      */
+    /**
+     * THE FLOOR IS DERIVED FROM WHAT THIS TEST ACTUALLY REACHED, NOT TYPED.
+     *
+     * It read `built >= 4` against a catalog of 27, so the sampling below could
+     * run against a grid that was 15% built and the universal would be true of
+     * four cards while twenty-three said nothing. LISTING.length is the wrong
+     * bound in the other direction: a card's engine is built on its first
+     * INTERSECTION, so the catalog size is a number this test can never reach
+     * and would be a permanent red.
+     *
+     * What it CAN name is the set it caused to exist: every id the loop above
+     * scrolled to and waited for a picture on, plus every card whose box is on
+     * screen at the moment of the check. The union is computed in the page from
+     * the live layout, so it tracks the viewport and the catalog without anyone
+     * editing a literal. The observed `built` is printed afterwards.
+     */
     const settled = () =>
       page.waitForFunction(
-        (darkIds: string[]) => {
+        ([darkIds, reached]: [string[], string[]]) => {
+          const required = new Set(reached);
+          // THE GRID'S OWN CHILDREN, NEVER [data-testid^="card-"]. A card also
+          // carries a `card-name-<id>` element inside it, so a prefix match
+          // returns four ids per card that no canvas will ever answer to -
+          // measured: it demanded name-lattice, name-lumen, name-morph and
+          // name-ninepads and timed out on a page that was perfectly healthy.
+          for (const el of Array.from(
+            document.querySelectorAll('[data-testid="browse-grid"] > li'),
+          )) {
+            const box = el.getBoundingClientRect();
+            const onScreen =
+              box.bottom > 0 &&
+              box.top < window.innerHeight &&
+              box.right > 0 &&
+              box.left < window.innerWidth;
+            if (!onScreen) continue;
+            required.add(
+              (el.getAttribute("data-testid") ?? "").slice("card-".length),
+            );
+          }
+
           let built = 0;
+          const seen = new Set<string>();
           for (const el of Array.from(
             document.querySelectorAll('[data-testid^="pad-canvas-"]'),
           )) {
@@ -682,6 +720,7 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
             const id = (canvas.getAttribute("data-testid") ?? "").slice(
               "pad-canvas-".length,
             );
+            seen.add(id);
             if (darkIds.includes(id)) continue;
             const ctx = canvas.getContext("2d");
             if (!ctx) return false;
@@ -689,9 +728,13 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
               return false;
             }
           }
-          return built >= 4;
+          // Every card this test reached has an engine, and the count is at
+          // least the size of that set rather than a literal four.
+          for (const id of required) if (!seen.has(id)) return false;
+          if (built < required.size) return false;
+          return { built, floor: required.size };
         },
-        dark,
+        [dark, demonstrated] as [string[], string[]],
         { timeout: 30_000 },
       );
 
@@ -730,7 +773,21 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
     // first sample would otherwise be read blank and stay blank, and the
     // stillness assertion below would pass on it for the wrong reason.
     await page.waitForTimeout(500);
-    await settled();
+    const reached = (await (await settled()).jsonValue()) as {
+      built: number;
+      floor: number;
+    };
+    const observedBuilt = reached.built;
+    const observedFloor = reached.floor;
+    console.log(
+      `browse settled: ${observedBuilt} engines built of ${LISTING.length} in the catalog, ` +
+        `against a derived floor of ${observedFloor} (the ${demonstrated.length} cards this test ` +
+        `scrolled to, unioned with what is on screen) - the literal it replaced was 4`,
+    );
+    expect(
+      observedBuilt,
+      "the grid reached the floor this test derived rather than a number somebody typed",
+    ).toBeGreaterThanOrEqual(observedFloor);
 
     const first = await sampleAll();
     await page.waitForTimeout(400);

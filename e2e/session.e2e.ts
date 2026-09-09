@@ -258,12 +258,78 @@ const answering = (page: Page): Promise<ExposedZona> =>
  * EXECUTE of any class left the page, and every chunk the shim counted was
  * one of the snapshot's reads - one serial fetch and two config fetches per
  * connect.
+ *
+ * THE WAIT COMES FIRST, AND IT IS ON A SIGNAL THAT IMPLIES COMPLETION.
+ *
+ * This function used to assert exact totals with no wait at all, on the
+ * strength of `session-phase` reading `connected` at its call sites. That
+ * signal does not imply what the assertion needs. session.svelte.ts sets
+ * `phase = "connected"` and only THEN fires the connection event;
+ * install.svelte.ts's #onConnection receives it and calls `void #attach(...)`,
+ * fire-and-forget by design; #attach's #snapshot issues one SERIALNUMBER/FETCH
+ * and then fetchBoth, which sequence.ts runs as two awaits IN SERIES rather
+ * than a Promise.all. So `connected` in the DOM means three protocol round
+ * trips are ABOUT TO START, each a full page-to-Node CDP hop. The observed
+ * failure - expected 4, received 3, at a `connects: 2` call site - is exactly
+ * the middle of fetchBoth on the second connect. IT REPRODUCES AT --workers=1
+ * TOO, just rarely enough that nobody has seen it; more workers only move the
+ * odds.
+ *
+ * The wait is therefore CAUSAL rather than timing-based: install.svelte.ts
+ * publishes `snapshotting` on entering #snapshot and `ready` after the pair has
+ * been fetched, guarded and held - so `install-phase` leaving `snapshotting` IS
+ * "the snapshot is done". `snapshot-failed` is accepted as an exit too, because
+ * the point of the wait is that nothing is still in flight; the counter
+ * assertions below then say whether what happened was reads.
+ *
+ * TWO WAITS, BECAUSE THREE OF THE SEVEN CALL SITES ARE NOT ON THE PROBE.
+ * `install-phase` is published by /dev/install/ and - since plan 11-08.1 - by
+ * /dev/session/. Four call sites load PROBE; the other three load "/" and
+ * "/c/{id}/", where the shipped chrome renders no such row, and a bare
+ * `expect(getByTestId("install-phase")).not.toHaveText(...)` PASSES IMMEDIATELY
+ * against an element that does not exist. That would have been a vacuous wait
+ * on exactly the sites nobody was watching, so:
+ *
+ *   1. The fetch counters are polled to their totals FIRST, at every call site.
+ *      The timer fetch is the last chunk #snapshot issues, so CONFIG/FETCH
+ *      reaching 2 * connects IS "the reads are answered". This is the
+ *      diagnosis's own cheap form and it needs nothing from the page.
+ *   2. WHERE the row is published, the store is then required to have LEFT
+ *      `snapshotting`. Step 1 makes that sound rather than racy: by then both
+ *      awaits inside #snapshot have returned, so the phase is a settled one and
+ *      not a pre-snapshot `idle` that would satisfy the negation for free.
+ *
+ * AND THE ORDER IS THE WHOLE POINT. Wait first, read the safety counters
+ * second. A read taken before the wait, with the wait after it, would let a
+ * late write slip through unseen - which is the opposite of what this function
+ * exists for.
  */
 async function onlyReads(
   page: Page,
   zona: ExposedZona,
   connects: number,
 ): Promise<void> {
+  await expect
+    .poll(() => zona.seen("CONFIG", "FETCH"), {
+      message: `both config reads of all ${connects} snapshot(s) have been answered - the timer fetch is the last chunk #snapshot issues`,
+      timeout: 30_000,
+    })
+    .toBe(2 * connects);
+  await expect
+    .poll(() => zona.seen("SERIALNUMBER", "FETCH"), {
+      message: `the module named itself once per connect`,
+      timeout: 30_000,
+    })
+    .toBe(connects);
+
+  const published = page.getByTestId("install-phase");
+  if ((await published.count()) > 0) {
+    await expect(
+      published,
+      "the install store is not still inside #snapshot, so nothing is in flight behind these counters",
+    ).not.toHaveText("snapshotting", { timeout: 30_000 });
+  }
+
   expect(zona.seen("CONFIG", "EXECUTE"), "config writes").toBe(0);
   expect(zona.seen("PAGESTORE", "EXECUTE"), "flash stores").toBe(0);
   expect(zona.seen("HEARTBEAT", "EXECUTE"), "host heartbeats").toBe(0);
@@ -676,14 +742,25 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await requests(page)).toBe(0);
     expect(await openCount(page, 0)).toBe(1);
 
-    // The snapshot's three reads and nothing else (Phase 7). The probe's
-    // counter readout re-reads the shim only when the session publishes, so
-    // it may lag the fetches that followed `connected`; it is a number no
-    // larger than the shim's own.
+    // The snapshot's three reads and nothing else (Phase 7).
     await onlyReads(page, zona, 1);
+
+    // THE READOUT IS THE SHIM'S OWN COUNT, AS AN EQUALITY. It used to be two
+    // lines - `>= 0` and `<= await writes(page)` - and they measured nothing.
+    // The first is vacuous over a count. The second asserted 0 <= shown <= 3
+    // and would have passed with the readout wired to a constant zero, which
+    // was not a hypothetical: the probe's $effect re-read the shim only on
+    // `session.phase` and `session.identity`, and every write it is about
+    // happens after the last such change, so it was STRUCTURALLY guaranteed to
+    // be read too early. Somebody hit the race that fails inside onlyReads,
+    // understood it, and weakened this assertion instead of waiting for the
+    // event. The $effect now also depends on `install.phase`, which publishes
+    // `ready` after all three round trips, so the pair collapses into the one
+    // thing it was always trying to say.
     const shown = Number(await page.getByTestId("session-writes").innerText());
-    expect(shown).toBeGreaterThanOrEqual(0);
-    expect(shown).toBeLessThanOrEqual(await writes(page));
+    expect(shown, "the readout is the shim's own count").toBe(
+      await writes(page),
+    );
     expect(consoleErrors).toEqual([]);
   });
 
