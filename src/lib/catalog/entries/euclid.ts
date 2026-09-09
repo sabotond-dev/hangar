@@ -64,7 +64,8 @@
 // than redirecting it. SECOND, even a yes leaves the card UNPREVIEWABLE:
 // HANGAR's Lua host has no inbound MIDI path of any kind - grxm is a recorded
 // no-op that discards its slot argument, and neither midirx_cb nor rtmrx_cb
-// appears under src/ outside one sentence of prose in audition.spec.ts - so a
+// is ASSIGNED or BOUND anywhere under src/, in a host binding or in a catalog
+// entry's Lua, which is the grep that proves nothing here was stubbed - so a
 // clock-locked EUCLID would run on a real ZONA and sit motionless in its own
 // catalog card. The prerequisite is a synthetic MIDI source and a synthetic
 // clock in src/lib/sim/, which is a phase and not a task. Nothing here is
