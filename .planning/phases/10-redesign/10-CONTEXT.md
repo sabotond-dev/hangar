@@ -274,6 +274,34 @@ exactly two elements, `touch` at 0 and `system` at 255. HANGAR only ever writes 
 elsewhere in Grid Editor would not be reset — an edge no HANGAR visitor can reach, and not worth a
 longer sentence.
 
+### D-22 [user] The aesthetic pass must not be destructive to the UX (2026-09-09)
+
+The brief that produced the instrument register asked for the ZONA landing's CRT feel **"without
+being overwhelming and destructive to the UX"**. 10-13.1 shipped and the built site was
+screenshotted. Two things are wrong against that sentence, and both are corrected by **10-13.2**,
+inserted at wave 14 exactly as D-17 inserted 10-13.1 — **nothing renumbers, `10-14` keeps its number,
+its wave and its `depends_on`.**
+
+1. **The lattice paints across body text.** §19.1a specified the marks' geometry and never specified
+   where they may land, and both roots are ancestors of the reading column. On the built site the
+   crosses sit on `HANGAR`, on the browse headline, on every catalog-card description and, in the
+   chosen panel, on `Available after a try-on.` and `Needs a copy of what is on your ZONA first.` The
+   reference puts its marks **in the surround, not across the subject**, and that is the rule to
+   restore. **The ruling is that the lattice is a ground and a ground is visible where nothing is
+   standing on it** — a relocation, not a knock-back, because a fainter cross on the `H` of `HANGAR`
+   is still a cross on the `H` of `HANGAR`.
+
+2. **The Trackpad thumbnail reads as a broken card.** The standing note is *do not keep any pad
+   thumbnail dark*, and `tpad` is the one entry that cannot be lit: it enables no LED layer and is
+   measured at 0 of 81 over a drag, a two-finger scroll, taps and 2,000 idle ticks. **That is honest
+   and it is not touched** — no invented lit cells, no animation, no change to what the configuration
+   does. What is wrong is that an all-unlit face has no visible cell structure at all, because the
+   structure is drawn by a black gutter grid over black cells. **The ruling is that an unlit cell is
+   drawn as a cell, at the strength every other card's unlit cells already have**, so the card reads
+   as *a pad with nothing lit* rather than as *a card that failed to load*.
+
+Recorded as **A-55 to A-60** in `10-UI-SPEC.md` §19.3 and §3.4.
+
 ## Tensions with shipped decisions **[orchestrator]**
 
 These are not objections. They are the places where the brief meets a locked decision, and the

@@ -163,10 +163,15 @@ later reader does not resolve it the other way.
 ## 3. The amendment register
 
 Every retirement in this document, in one table, so the planner can turn it into tasks and the
-checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts** — and, after approval, **eighteen
-amendments in §3.4** (A-37 to A-53, 2026-09-08, D-15 to D-21), which add no eleventh retirement,
+checker can count it. **Ten copy retirements, nine gate amendments, four data re-cuts** — and, after approval, **twenty-four
+amendments in §3.4** (A-37 to A-60, 2026-09-08 and 2026-09-09, D-15 to D-22), which add no eleventh retirement,
 no tenth gate amendment and no fifth data re-cut. Nothing
 is deleted; everything is rewritten by name.
+
+**A slip in this sentence, corrected 2026-09-09 rather than absorbed.** It read *"eighteen amendments
+in §3.4 (A-37 to **A-53**, 2026-09-08, D-15 to D-21)"*, and eighteen rows end at **A-54**, not A-53 —
+A-54 was added on 2026-09-09 and this line was never moved with it. The count and the range disagreed
+by one for a day. Both are now stated from the table below rather than from memory.
 
 ### 3.1 Copy retirements (ten, in a register of eleven rows)
 
@@ -213,13 +218,13 @@ is deleted; everything is rewritten by name.
 | D-c | `restsBlack` | **Kept as a recorded fact** (it is what selects a demo path, and its two-directional assertion against `frames.json` is the site's proof that no card is accidentally black) and **retired as a rendering input** |
 | D-d | `static/og/` | Four OG images regenerate from the end of their demo path rather than from a black rest frame. ETCH's 4,192-byte black square is the marker that this landed |
 
-### 3.4 Post-approval amendments (eighteen: seventeen dated 2026-09-08, one 2026-09-09)
+### 3.4 Post-approval amendments (twenty-four: seventeen dated 2026-09-08, seven dated 2026-09-09)
 
-Added after approval, from D-15 through D-21. Each is stated in full in **§19.1** (A-37 to A-42) or
-**§19.2** (A-43 to A-53), and each carries an A-number in §19's register, so the two tables cannot
-disagree about how many there are. **A-43 and A-44 were added to this table without a register entry**
-when D-18 and the `--font-mono` finding landed, which made that last sentence false for a while;
-§19.2 restates them, and it is true again.
+Added after approval, from D-15 through D-22. Each is stated in full in **§19.1** (A-37 to A-42),
+**§19.2** (A-43 to A-54) or **§19.3** (A-55 to A-60), and each carries an A-number in §19's register,
+so the two tables cannot disagree about how many there are. **A-43 and A-44 were added to this table
+without a register entry** when D-18 and the `--font-mono` finding landed, which made that last
+sentence false for a while; §19.2 restates them, and it is true again.
 
 | # | Amendment | Supersedes | § |
 |---|-----------|------------|---|
@@ -241,11 +246,19 @@ when D-18 and the `--font-mono` finding landed, which made that last sentence fa
 | A-52 | **`CLEAR_CAP` stays 86 and the cell stays 48px**, and the second line is declared **headroom rather than occupancy** | §12.2's CLEAR reservation derivation | 19.2, 12.2 |
 | A-53 | **Two corrections unrelated to the fold**: §10.7 said the class enumeration "gains CLEAR's class" where §3.2's G-06 says it is a no-op — **G-06 was right**; and `write-guard.ts` is in `src/lib/protocol/`, not `src/lib/device/` | §10.7's `install.spec.ts` row and its `write-guard.ts` path | 19.2, 10.7 |
 | A-54 | **The canonicity gate is `constants.spec.ts`, not `protocol-pin.spec.ts`** | §10.5's gate sentence | 19.2, 10.5 |
+| A-55 | **The lattice is a GROUND.** §19.1a fixed the marks' geometry and never fixed where they may land; both roots are ancestors of the reading column, so the field painted across the prose. It now paints where nothing is standing on it — one rule in `src/app.css` at `:where()` specificity, adding **no node to any panel** | §19.1a's **Element** row and its "behind all content" clause | 19.3, 19.1a |
+| A-56 | **Three declared exceptions and no fourth**: `/browse/`'s `.grid` stays transparent so the field survives between the cards; `CatalogCard.svelte`'s `.card` and `BrowseGrid.svelte`'s `.empty` take the ground themselves | nothing. New | 19.3, 19.1a |
+| A-57 | **Layer G's reach under those occluders, stated rather than discovered.** Its declaration, its route scope and `aesthetic.e2e.ts` test 3 are unchanged; what changes is how much bare ground the page has. Cost computed at ~**1 part in 255** | nothing. §19.1g's Layer G ruling stands | 19.3, 19.1g |
+| A-58 | **The unlit cell is drawn as a cell.** `.dots` carries a wash at `color-mix(in srgb, var(--color-line-soft) 25%, transparent)` = **0.05**, so the gutter grid cuts an unlit face into 81 dark lamps. **Global**, so parity is by construction. No new token, no new hex, no fourth hue | `PadFrame.svelte`'s "without the dots an unlit pad is a black square", which was half a diagnosis | 19.3, 8.3 |
+| A-59 | **Trackpad stays dark and every gate that says so stays true.** The engine still lights 0 of 81; **what changed is how an unlit cell is painted, not whether it is unlit** | nothing. **§9.3's rejection of option (a) is upheld** | 19.3, 9.3 |
+| A-60 | **Documentary: `instrument.spec.ts`'s lattice declaration count is a FLOOR, not an equality** (`toBeGreaterThan(6)`) | a plan's assumption, not a spec sentence | 19.3 |
 
-**No copy retirement, no gate retirement and no data re-cut is added by these six.** §3.1 stays at ten
+**No copy retirement, no gate retirement and no data re-cut is added by any of the twenty-four.** §3.1 stays at ten
 retirements in a register of eleven rows, §3.2 stays at nine gate amendments, §3.3 stays at four data
 re-cuts. That is the point of A-42: furniture beside a pinned string costs no amendment, and the audit
-A-30 closed at ten stays closed.
+A-30 closed at ten stays closed. **A-55 to A-60 add none of the three either**: they move where an
+existing field paints and how an existing layer draws an unlit cell, and every string, every gate and
+every data cut they touch is asserted unchanged rather than rewritten.
 
 ---
 
@@ -1976,7 +1989,8 @@ approved phase's ruling, and says so where it does.
 **Status stays `approved`.** Nothing below re-opens a ruling the checker passed. Six new decisions
 join §19's register in §19's own shape, and §3 gains a fourth sub-table (§3.4) listing them, because
 a post-approval edit that is not in the amendment register is an edit nobody can audit. **A second
-set — A-43 to A-53, from D-18 to D-21 — follows in §19.2.**
+set — A-43 to A-54, from D-18 to D-21 — follows in §19.2, and a third — A-55 to A-60, from D-22 —
+in §19.3.**
 
 The trigger is three user decisions taken mid-execution, after wave 9 closed: **D-15** (three
 aesthetic references, extracted as rules), **D-16** (the register line moves to front door versus
@@ -2000,7 +2014,8 @@ inserted as **10-13.1** at wave 14).
 | Arm | **7px**, stroke **1px**. A texture metric in the 5px-scanline-period class, declared as §6 exception 6 |
 | Colour | `var(--color-line-soft)` — a token, referenced, never a literal. **No new token, no new hex, no fourth hue** |
 | The distinguished cross | **One per surface.** Arm **14px** (2×), `var(--color-line)` (2× the alpha), `background-repeat: no-repeat`, at one declared position. Two non-colour channels (A-40) |
-| Element | A `::before` on the **instrument surface's own root** — `aria-hidden` by construction, `pointer-events: none`, `z-index` behind all content |
+| Element | A `::before` on the **instrument surface's own root** — `aria-hidden` by construction, `pointer-events: none`, `z-index` behind all content **and, since A-55, under none of it**. The root also carries `isolation: isolate`: without a stacking context the negative-`z-index` child belongs to the root context and paints beneath `body`'s opaque background, which is how this field shipped once painting nothing |
+| Where it may paint | **In the surround.** The field is a **ground**, and a ground is visible where nothing is standing on it — the page margins, the gaps between blocks, the gutters between cards. Held by `.lattice > :where(*) { background-color: var(--color-ground) }` in `src/app.css`, declared **above `.pill`**, with the three exceptions in A-56 and no fourth |
 | Composition | Two `repeating-linear-gradient`s forming a 1px grid, **intersected by a `mask-image` pair of 7px bands at the same pitch**, so what paints is a field of plus marks rather than a field of rules. Realised in CSS with **no data-URI**, ever |
 | Where it may not go | **Never on `.stage`, and never on an element between `.stage` and a `.slot`** (§8.2, unchanged and unweakened). `ChosenPanel.svelte`'s root is inside `.panel`, which `Coverflow.svelte:930` renders as a **sibling** of `.band` and outside the 3D context, so a lattice there is legal — and it is asserted rather than assumed. **`Coverflow.svelte` is not edited** |
 
@@ -2016,6 +2031,57 @@ about *grouping properties on or above the 3D rendering context `.stage` establi
 element is a leaf pseudo-element of a surface root that is not an ancestor of any `.slot`; `.band`
 itself carries a `mask-image` at `Coverflow.svelte:962-970` for the same structural reason, and §8.2
 asserts that mask **present** rather than merely tolerating it.
+
+**WHERE THE MARKS MAY LAND, WHICH THIS SECTION ORIGINALLY DID NOT SAY (A-55, D-22).** The table above
+fixes pitch, arm, stroke, colour and composition, and says nothing at all about position — so the
+field shipped painting across the reading column, because both roots are **ancestors of** the prose
+rather than neighbours of it. Measured on the built site at 1280×900: **two lattice crossings inside
+the `HANGAR` wordmark's box and thirteen inside the browse headline's**, and a DOM walk found **418
+text-bearing elements under a lattice root with no opaque ancestor between them and the field**. On
+the chosen panel they sat on `Available after a try-on.`, on `Needs a copy of what is on your ZONA
+first.`, on `CLEAR` and on every knob readout.
+
+**The rule is now a position, because the defect was a position.** Knocking the field back with an
+opacity was considered and rejected: it changes the symptom's amplitude and not its cause, and a
+fainter cross on the `H` of `HANGAR` is still a cross on the `H` of `HANGAR`. D-15 reference A puts
+its marks in the **surround**, not across the subject.
+
+**The mechanism is paint order — the same mechanism `isolation: isolate` had to learn.** The field is
+a `z-index: -1` child of the root's own stacking context, so it paints after the root's background
+and before the root's content; **anything in that content with an opaque background occludes it.** One
+declaration on the root's children is therefore the whole fix, and it adds no wrapper, no
+pseudo-element and no class attribute to any component.
+
+**`:where()` is load-bearing.** It zeroes the compound, so the selector weighs 0,1,0 — the same as a
+bare class. A Svelte-scoped rule compiles to `.foo.svelte-<hash>` at 0,2,0 and therefore **wins**, so
+any component with an opinion about its own root background keeps it without being enumerated
+anywhere: the rule is a **default**, not an override. And because `.pill`'s transparent fill is also
+0,1,0, **specificity cannot separate them and source order decides** — which is why the block is
+declared above `.pill` rather than beside this section's own field, and why `instrument.spec.ts`
+scan 6 asserts the order as well as the `:where(`.
+
+**A-56 — the three exceptions, and there is no fourth:**
+
+| File | Selector | Declaration | Why |
+|---|---|---|---|
+| `src/routes/browse/+page.svelte` | `.grid` | `transparent` | The card wall is where the field earns its keep: it paints in the **gutters between** the cards, which is the "around the pads" half of the ruling. Grounding it would delete the lattice from most of the page — 10-13.1's silent no-op at a different address |
+| `src/lib/ui/CatalogCard.svelte` | `.card` | `var(--color-ground)` | A card is four levels below a root, so the ground rule cannot reach its description, name plate or metadata row. Without this, the grid's exception means "the lattice paints over thirty-six descriptions" instead of "between thirty-six cards" |
+| `src/lib/ui/BrowseGrid.svelte` | `.empty` | `var(--color-ground)` | The empty state renders **instead of** the card wall inside that same transparent grid. **Found by the DOM walk with a query matching no entry, not by reading a template**, and named here for that reason |
+
+**A-57 — what it costs Layer G, stated rather than discovered.** An opaque background occludes
+everything behind it, and Layer G is `body::before` at `z-index: -1`, so its halftone no longer shows
+through where those blocks paint. **Layer G's declaration, its route scope and `e2e/aesthetic.e2e.ts`
+test 3 are unchanged**; what changes is how much bare ground the page has. Computed rather than
+estimated: the dot is `rgb(214 255 78 / 0.04)` in a 3px cell with a solid core out to 40% of it, so
+its area-averaged lift over black is `0.04 × π × 0.4² ≈ 0.008` of the token — **about one part in 255
+on the green channel**, dithered at 3px, which reads as grain rather than as a cast. The vignette half
+is `rgb(0 0 0 / 0.55)` over `--color-ground`, which is black over black and costs nothing.
+
+**And it is proved in a browser, because a source scan structurally cannot prove it.** A scan can read
+`.lattice > :where(*)` and it cannot read paint order — which is precisely how this field shipped once
+painting nothing with every scan green. `e2e/aesthetic.e2e.ts` test 5 runs the occlusion walk against
+a control arm with the ground disabled, and asserts the card gutters are **still bare lattice**, so a
+fix that deleted the field instead of relocating it is red rather than green.
 
 ### §19.1b — The pill
 
@@ -2162,6 +2228,36 @@ how that promise starts holding again; their content is unchanged.
 | A-52 | **`CLEAR_CAP` stays 86 (2 × 43) and the `CLEAR` cell stays 48px, even though the longest string it holds is now 43** — and the second line is declared **headroom rather than occupancy**, which is a departure from §12's formula and is stated as one | §12's rule is `ceil(longest / CH_PER_LINE) × 24`, and after A-49 the longest candidate is the no-snapshot reason at exactly 43. One line would put a shipped string *exactly* on a 43-character cap — the zero-headroom defect 10-01 flagged against the old `CLEAR_LINE` at 86, reintroduced at a different number. Two lines is the smallest reservation that leaves the cap a promise about strings not yet written, which is the entire reason the caps exist. It also leaves `install-copy.ts`'s shipped header arithmetic (`CLEAR_CAP (2 x 43 = 86)`) correct rather than needing an edit |
 | A-53 | **Two corrections unrelated to the CLEAR fold, found while making it.** (a) §10.7's `install.spec.ts` row said the class enumeration "gains CLEAR's class"; §3.2's G-06 row said the opposite — "a no-op on the assertion, and that is the finding". **G-06 was right** and §10.7 is corrected to match. (b) The `write-guard.ts:24-58` reference carries no directory, and both plans read it as `src/lib/device/`; **the file is `src/lib/protocol/write-guard.ts`**, re-exported from that barrel, and its `canWriteBack` verdict reaches CLEAR as `capability.canWrite` rather than as a call CLEAR makes | Two sections of an approved contract disagreeing about whether a gate changes is the kind of defect that gets resolved at execution time by whichever one the executor read first. And a plan that names a path that does not exist fails on contact — 10-12 task 6 was written against `src/lib/device/write-guard.ts` |
 | A-54 | **The gate that asserts the two defaults are canonical lives in `constants.spec.ts`, not `protocol-pin.spec.ts`.** §10.5 named `protocol-pin.spec.ts` and 10-12's plan forbade touching that file, directing the two tests to `constants.spec.ts` instead; the executor followed the plan and reported the spec sentence as inaccurate rather than editing a file it was told to leave alone. The plan was right on the substance — `protocol-pin.spec.ts` pins the package's identity, and what is asserted here is a property of two strings inside it — so the spec moves to the tree rather than the tree to the spec. The assertion itself is unchanged: raw equals compressed for event 0 at 641 and event 6 at 22, and a datestamp bump that moves either turns it red | Found at execution on 2026-09-09, not at planning. §10.5's sentence was written before the plan chose the file, and nothing reconciled the two — the same class as A-53(a), where two sections of an approved contract disagreed and execution order would have decided it |
+
+---
+
+## 19.3 Post-approval amendments, third set — 2026-09-09 (D-22)
+
+**Status stays `approved`.** Nothing below re-opens a ruling the checker passed. The trigger is one
+user decision taken after 10-13.1 shipped: the aesthetic pass was screenshotted on the built site, and
+against the brief's own words — the CRT feel **"without being overwhelming and destructive to the
+UX"** — two things are wrong. Both are corrected by **10-13.2**, inserted at wave 14 exactly as D-17
+inserted 10-13.1. **Nothing renumbers.** `10-14` keeps its number, its wave and its `depends_on`.
+
+**These six are the first amendments in this phase written against a SCREENSHOT rather than against a
+document.** §19.1a and §19.1e were both specified in numbers and both were right in numbers; what
+neither of them said is where the numbers may land, and that is a thing a person sees and a scan does
+not.
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| A-55 | **The registration lattice is a GROUND, and a ground is visible exactly where nothing is standing on it.** §19.1a fixed pitch, arm, stroke, colour and composition and said nothing about position — and both roots are ANCESTORS of the reading column rather than neighbours of it, so the field painted across the prose. Held by one rule in `src/app.css`, `.lattice > :where(*) { background-color: var(--color-ground) }`, declared **above `.pill`**. It adds **no node to any panel** | Measured on the built site at 1280×900 before it existed: **418** text-bearing elements under a lattice root with no opaque ancestor between them and the field; **two** crossings inside the `HANGAR` wordmark's box, **thirteen** inside the browse headline's, and on the chosen panel they sat on `Available after a try-on.`, `Needs a copy of what is on your ZONA first.`, `CLEAR` and every knob readout. At a glance that is texture; at reading distance it is dirt on the glyphs. **Knocking the field back with an opacity was considered and rejected**: it changes the symptom's amplitude and not its cause, and a fainter cross on the `H` of `HANGAR` is still a cross on the `H` of `HANGAR`. D-15 reference A puts its marks in the surround, which is a statement about POSITION, and an opacity is not a position |
+| A-56 | **Three declared exceptions and no fourth.** `/browse/`'s `.grid` stays transparent; `CatalogCard.svelte`'s `.card` and `BrowseGrid.svelte`'s `.empty` take the ground themselves. Each is commented where it lives and each is asserted by `instrument.spec.ts` scan 6, including the count | The grid is the one block that must NOT occlude: the card wall is where the field earns its keep, painting in the **gutters between** the cards, which is the "around the pads" half of the ruling. The card and the empty state are the two surfaces the rule cannot reach — both are prose, and neither is a direct child of a root. **The empty state was found by a DOM walk over the built site with a query matching no entry, not by reading a template**, which is why the list is a list rather than an intuition: it is the one screen where the page has nothing to show, and it would have been the one screen where the field was worst |
+| A-57 | **Layer G's reach under those occluders, stated rather than discovered.** Its declaration, its route scope and `e2e/aesthetic.e2e.ts` test 3 are **unchanged**; what changes is how much bare ground the page has for it to show through. Cost computed: **about one part in 255** on the green channel | An amendment that quietly narrows another layer's reach and does not say so is how §19.1g's own contradiction with D-16 got shipped. The arithmetic: the halftone dot is `rgb(214 255 78 / 0.04)` in a 3px cell with a solid core out to 40% of it, so its area-averaged lift over black is `0.04 × π × 0.4² ≈ 0.008` of the token, dithered at 3px — grain, not a cast. The vignette half is `rgb(0 0 0 / 0.55)` over `--color-ground`: black over black, and free |
+| A-58 | **The unlit cell is drawn as a cell.** `.dots` carries a wash at `color-mix(in srgb, var(--color-line-soft) 25%, transparent)` = **0.05**, behind the canvas, so Layer 3's black gutters cut an unlit face into 81 dark lamps. **Global**, so parity is by construction and there is no entry-specific branch. **No new token, no new hex, no fourth hue** | `PadFrame.svelte`'s header said *"without the dots an unlit pad is a black square"*, and that is half a diagnosis. The dots were there and Trackpad was still a black square, because the cell STRUCTURE on a pad face is drawn by the gutter grid and the gutter grid is painted in `--color-ground`: a black grid divides nothing when the cells behind it are also black. Every other card gets its structure for free from its LIT cells. **Global rather than scoped is the ruling's own constraint** — "the cell structure at the same strength the other cards' unlit cells have" — because a wash on Trackpad alone would make the one card that can never light the brightest unlit face on the site. The value is a quarter of the dot's own 0.2, so the dot stays the brightest mark in an unlit cell. `color-mix` rather than a literal (a colour no gate here can see), a tenth `--color-*` (red by construction) or a fifth layer with an `opacity` (a paint-time group on thirty-six cards) |
+| A-59 | **Trackpad stays dark and every gate that says so stays true.** `restsBlack: true`, `DARK_BY_CONSTRUCTION` with its measurement, `demoPathFor("tpad") === undefined`, `front-door.ts`'s `EXCLUDED_FROM_ROW` entry, `frames.spec.ts`'s both-directions walk and `browse.e2e.ts`'s one exemption are **byte-untouched**. The engine still lights **0 of 81**, and the OG image — rendered in Node from the engine with no CSS — is still black | §9.3 rejects option (a) by name because it changes what the pad does on somebody's hardware, and that ruling is upheld rather than worked around: **what changed is how an unlit cell is PAINTED, not whether it is unlit.** The wash sits BEHIND the canvas, so it is the absence of a light drawn so it can be seen. `aesthetic.spec.ts` scan 8 reads `DARK_BY_CONSTRUCTION` from the module rather than quoting it, and `aesthetic.e2e.ts` test 5 reads the same 324 canvas bytes `browse.e2e.ts` reads — with a lit card beside it, so an engine that never started cannot make the zero pass |
+| A-60 | **Documentary: `instrument.spec.ts:849-851`'s lattice declaration count is a FLOOR, not an equality.** It reads `expect(declared.size).toBeGreaterThan(6)` and interpolates the observed count into its message for a reader. The rule carries fourteen declarations, and 10-13.2 adds none to it | Recorded because 10-13.2's brief expected an equality there and required its number to be "re-derived rather than bumped" — and there is no number to re-derive. A constraint a plan believes in and the tree does not have is the same class of defect as A-53(a) and A-54: two statements of one fact, and execution order deciding which one wins |
+
+**None of the six adds a copy retirement, a gate amendment or a data re-cut.** They move where an
+existing field paints and how an existing layer draws an unlit cell. Every string, every gate and
+every data cut they touch is asserted **unchanged** rather than rewritten, and the two counts they do
+move — `instrument.spec.ts` 5 → 6 and `aesthetic.spec.ts` 7 → 8 — are written into
+`10-VALIDATION.md`'s per-file table and into 10-14's chain as a sixteenth term.
 
 ---
 
