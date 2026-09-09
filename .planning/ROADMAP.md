@@ -344,6 +344,13 @@ and note-off when the sweep crosses user-placed points); and feature work (POMOD
 minutes, JOYSTICK centred at rest with a trail, TRACKPAD given an animation, ARC given visible
 amplitude, DIAL's counter-clockwise rate limited, STAGE's lining-up breath).
 
+**One addition, requested after the bench notes** (`WHEELS-REQUEST.md`): a pitch wheel on
+the left of the pad and a mod wheel on the right, visualised on the module. The two are not one
+control twice - **a pitch wheel springs back to centre on release and a mod wheel holds where it was
+left** - and that asymmetry is the entry. Pitch bend is reachable as status 224 through `self:gms`;
+`gmbs` is a mouse-button out-call and reading it as bend would emit clicks. The catalog therefore
+lands at **twenty-eight**, not twenty-seven.
+
 **Requirements**: TBD
 **Depends on:** Phase 10
 **Plans:** 0 plans
