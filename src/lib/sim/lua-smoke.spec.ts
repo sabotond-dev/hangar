@@ -746,6 +746,68 @@ function sweepConsoleBody(
   return rows;
 }
 
+/** Every raw coordinate that lands in cell k under a nine-wide t*9//128 map. */
+function coordinatesIn(k: number): number[] {
+  const out: number[] = [];
+  for (let t = 0; t <= 127; t += 1)
+    if (Math.floor((t * 9) / 128) === k) out.push(t);
+  return out;
+}
+
+/**
+ * Drag one contact across the whole mute row, left to right, one raw
+ * coordinate per tick. Returns the number of samples delivered.
+ */
+function swipeConsoleMuteRow(host: {
+  touchDown: TouchFn;
+  touchMove: TouchFn;
+  touchUp: TouchFn;
+  tick: () => void;
+}): number {
+  const y = cellCentre(0);
+  host.touchDown(0, 0, y);
+  host.tick();
+  let delivered = 1;
+  for (let x = 1; x <= 127; x += 1) {
+    host.touchMove(0, x, y);
+    host.tick();
+    delivered += 1;
+  }
+  host.touchUp(0, 127, y);
+  host.tick();
+  return delivered;
+}
+
+/**
+ * Hold one contact inside a single mute cell, wobbling over every raw
+ * coordinate the cell contains. Returns the number of samples delivered.
+ */
+function restConsoleMuteCell(
+  host: {
+    touchDown: TouchFn;
+    touchMove: TouchFn;
+    touchUp: TouchFn;
+    tick: () => void;
+  },
+  column: number,
+): number {
+  const xs = coordinatesIn(column);
+  const ys = coordinatesIn(0);
+  host.touchDown(0, xs[0], ys[0]);
+  host.tick();
+  let delivered = 1;
+  for (const y of ys)
+    for (const x of xs) {
+      if (x === xs[0] && y === ys[0]) continue;
+      host.touchMove(0, x, y);
+      host.tick();
+      delivered += 1;
+    }
+  host.touchUp(0, xs[xs.length - 1], ys[ys.length - 1]);
+  host.tick();
+  return delivered;
+}
+
 /** The controller values one column emits over its whole travel. */
 async function sweepConsoleColumn(
   entry: CatalogEntry,
@@ -1367,12 +1429,76 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         after,
         "console: after unmuting from the cap the fader must respond again",
       ).toContain(127);
+
+      // 5. THE SWIPE (plan 11-07). A finger dragged across the mute row must
+      //    change every column it crosses, and change each of them EXACTLY
+      //    once. Both halves matter: nine is the bench's ask, and "exactly
+      //    once" is the guard.
+      mark = host.midi.length;
+      const delivered = swipeConsoleMuteRow(host);
+      const perColumn = new Map<number, number>();
+      for (const message of host.midi.slice(mark)) {
+        if (message.cmd !== 176) continue;
+        const c = message.p1 - cc;
+        perColumn.set(c, (perColumn.get(c) ?? 0) + 1);
+      }
+      const counts = [...perColumn.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([c, n]) => `${c}:${n}`);
+      report.push(
+        `swiped across the mute row: ${delivered} sample(s) delivered, ` +
+          `changes per column ${counts.join(" ")}`,
+      );
+      expect(
+        delivered,
+        "console: the mute-row swipe delivered no samples, so its counts " +
+          "prove nothing",
+      ).toBeGreaterThan(9);
+      expect(
+        counts,
+        "console: A SWIPE ACROSS THE MUTE ROW MUST CHANGE EACH CROSSED COLUMN " +
+          "EXACTLY ONCE. All nine, because the row spans the pad; once each, " +
+          "because self.q[i] remembers the last mute cell this contact " +
+          "toggled and the branch reads `e==4 or e>8 or s.q[i]~=c`",
+      ).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8].map((c) => `${c}:1`));
+
+      // 6. THE RESTING FINGER, and this is the whole reason the guard exists.
+      //    A contact that never leaves one mute cell must change it once, not
+      //    once per sample. Every sample below is a DIFFERENT coordinate
+      //    inside the same cell, because the host's enqueue is change-gated on
+      //    (event, x, y) per contact - a probe that re-sent one point would be
+      //    measuring the host's dedup and calling it the entry's.
+      mark = host.midi.length;
+      const resting = restConsoleMuteCell(host, 6);
+      const restChanges = host.midi
+        .slice(mark)
+        .filter((m) => m.cmd === 176 && m.p1 === cc + 6).length;
+      report.push(
+        `rested inside mute cell 6: ${resting} sample(s) delivered, ` +
+          `${restChanges} change(s)`,
+      );
+      expect(
+        resting,
+        "console: the resting probe delivered too few samples to tell a " +
+          "guarded branch from an unguarded one",
+      ).toBeGreaterThan(100);
+      expect(
+        restChanges,
+        `console: A FINGER RESTING IN ONE MUTE CELL MUST CHANGE IT ONCE. ` +
+          `${resting} samples arrived; without the self.q[i] guard the mute ` +
+          "toggles on every one of them, which at the firmware's rate is a " +
+          "strip flickering at 100 Hz under a still finger. That is why the " +
+          "mute row was onset-gated before this plan, and the guard is what " +
+          "buys the swipe without buying the flicker",
+      ).toBe(1);
     } finally {
       host.close();
     }
     process.stdout.write(
-      "\nCONSOLE mute behaviour, column 3:\n  " + report.join("\n  ") + "\n",
+      "\nCONSOLE mute behaviour, column 3 then the row:\n  " +
+        report.join("\n  ") +
+        "\n",
     );
-    expect(report.length, "every stage of the mute probe ran").toBe(4);
+    expect(report.length, "every stage of the mute probe ran").toBe(6);
   }, 120000);
 });

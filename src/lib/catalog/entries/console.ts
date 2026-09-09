@@ -71,6 +71,37 @@
 //     is the one cell in that column that says what to press. Folding the test
 //     into the existing condition rather than adding an early return cost
 //     -6 characters, because it drops the s.m[c]=nil the reversal removed.
+//   - THE MUTE ROW ANSWERS A SWIPE, AND self.q[i] IS WHY IT CAN. The bench
+//     asked that the card "react to touch or swiping as well not just pushing".
+//     The fader body already did - the outer gate is
+//     `if e~=1 and e~=4 and e<9 then return end`, which admits MOVE - and only
+//     the mute row was onset-gated, because it TOGGLES: accepting MOVE bare
+//     would flip a mute at 100 Hz under a resting finger. MEASURED, with the
+//     branch accepting MOVE and no guard at all: a contact wobbling inside one
+//     mute cell delivered 210 samples and got 210 CHANGES - one per sample -
+//     and a swipe across the row toggled each column fourteen or fifteen times
+//     rather than once. With the guard: 1 and 1. self.q[i] is the last mute
+//     cell each CONTACT toggled, and the branch reads
+//     `if e==4 or e>8 or s.q[i]~=c then s.q[i]=c`.
+//
+//     THE ONSET PASSES UNCONDITIONALLY AND THAT IS THE WHOLE DIFFERENCE FROM
+//     11-08'S IDIOM. EUCLID, SONAR and STEPS write `if s.q[i]==m then return
+//     end`, which filters every event including the onset, and pay for a
+//     contact-end clear (`s.q[i]=nil`) so that a fresh press is not swallowed.
+//     That shape is WRONG HERE, and not for a budget reason: this card's outer
+//     gate never sees a contact end, because code 9 - the fast tap that is the
+//     mute row's primary gesture - fails `e<9` and is a whole contact in one
+//     message. The clear would never run, so the SECOND fast tap on the same
+//     cap would be swallowed and the mute would appear to work only every other
+//     time. Letting the onset through instead needs no contact-end branch at
+//     all. Costed both ways against the real minifier: this shape 844 at the
+//     worst knob position, 11-08's literal idiom 836. Eight characters for a
+//     mute row that answers every tap.
+//
+//     THE FADER PATH CLEARS THE GUARD (`s.q[i]=nil`), for the gesture the
+//     dedup would otherwise eat: slide off the cap into the strip and back onto
+//     the same cap, and without the clear the second visit is a repeat. Eleven
+//     characters, 844 against 833.
 //   - A repaint is ONE PASS over the column, every cell written exactly once,
 //     never erase-then-paint: firmware has no double buffer and a two-pass
 //     repaint can tear. The repaint is also GATED - a sample that lands on the
@@ -97,9 +128,12 @@
 //     A fraction reaching a firmware call becomes 0, silently.
 //   - @CC + 8 < 128 AT EVERY KNOB VALUE. See the arithmetic above.
 //   - CODE 9 IS HANDLED, AND IT IS THE WHOLE MUTE. A fast tap arrives as a
-//     single DOWNUP 9 with no separate press or lift, so the mute test is
-//     `e == 4 or e > 8`. A branch written against e == 5 would miss every fast
-//     tap on the mute row and the mute would appear to work only sometimes.
+//     single DOWNUP 9 with no separate press or lift, so the mute's onset test
+//     is `e == 4 or e > 8`. A branch written against e == 5 would miss every
+//     fast tap on the mute row and the mute would appear to work only
+//     sometimes. The swipe arm added beside it (`or s.q[i]~=c`) does not weaken
+//     that: the onset half is still the whole of the fast-tap path and it is
+//     still the first thing the chain tests.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP. 260 renders as 4. Every channel of
 //     every value of @LEVELC, @RAILC and @MUTEC is inside 0..255 by
 //     construction.
@@ -138,19 +172,19 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 779 characters, Timer 0, both fixed points
+// against the pinned minifier: Setup 821 characters, Timer 0, both fixed points
 // of compressScript and both accepted by checkSyntax.
 //
 // TWO CORNERS, AND THE BINDING ONE IS NOT THE PALETTE'S. The all-longest corner
-// over the five DECLARED palettes is 783 / 0; the all-longest corner a VISITOR
-// CAN ACTUALLY REACH is 802 / 0, leaving 106 free of 908, because D-06 lets the
+// over the five DECLARED palettes is 825 / 0; the all-longest corner a VISITOR
+// CAN ACTUALLY REACH is 844 / 0, leaving 64 free of 908, because D-06 lets the
 // colour picker write any of the 4,096 RGB444 literals and 255,255,255 is two
 // characters longer than the longest colour this card declares. THREE colour
 // tokens, occurring 3 + 2 + 2 times, is 19 of the 23 characters between the two
 // corners. src/lib/catalog/lua-entries.sweep.spec.ts gates the PICKER corner -
 // that is the number 908 is checked against - so it is the one this header
 // quotes and the one every margin in 11-07-SUMMARY.md is stated at. The
-// all-shortest corner is 756 / 0.
+// all-shortest corner is 798 / 0.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
@@ -161,7 +195,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.v={}self.m={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local c=x*9//128 local r=y*9//128 if r==0 then if e==4 or e>8 then local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//7,0)P(s,c)end return end local h=8-r if h~=s.v[c]and not s.m[c]then s.v[c]=h s:gms(@CH,176,@CC+c,h*127//7,0)P(s,c)end end";
+  "--[[@cb]]self.v={}self.m={}self.q={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local c=x*9//128 local r=y*9//128 if r==0 then if e==4 or e>8 or s.q[i]~=c then s.q[i]=c local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//7,0)P(s,c)end return end s.q[i]=nil local h=8-r if h~=s.v[c]and not s.m[c]then s.v[c]=h s:gms(@CH,176,@CC+c,h*127//7,0)P(s,c)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
