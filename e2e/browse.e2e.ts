@@ -47,6 +47,7 @@ import {
   DARK_BY_CONSTRUCTION,
   isDarkByConstruction,
 } from "../src/lib/sim/demo";
+import { guarded } from "./poll";
 
 /** trailingSlash: "always" (src/routes/+layout.ts). Never without the slash. */
 const BROWSE = "/browse/";
@@ -976,6 +977,13 @@ test.describe("the wall is really running, and it is measured rather than gated"
       .locator(`[data-testid="card-${luaId as string}"]`)
       .scrollIntoViewIfNeeded();
 
+    // NOT GUARDED, AND THE REASON IS RECORDED RATHER THAN THE SITE SKIPPED.
+    // vmOnly() is `wasm.filter(w => !w.url.includes(FORMATTER))` over a plain
+    // node-side array that a `response` listener pushes string fields into - no
+    // page, no CDP hop, no locator, and a total predicate over `{ url: string }`
+    // - so there is nothing here that can throw and nothing for e2e/poll.ts's
+    // guard to catch. It is the only one of the eleven poll sites in e2e/ that
+    // reads node-side state.
     await expect
       .poll(() => seen.vmOnly().length, { timeout: 30_000 })
       .toBeGreaterThan(0);
@@ -1304,10 +1312,10 @@ test.describe("browse, open a configuration, and come back", () => {
     let restoredTo = -1;
     await expect
       .poll(
-        async () => {
+        guarded(async () => {
           restoredTo = await page.evaluate(() => Math.round(window.scrollY));
           return Math.abs(restoredTo - scrolledTo) <= SCROLL_TOLERANCE_PX;
-        },
+        }, "window.scrollY after the Back navigation"),
         {
           message: `the browse view came back at the offset it left, within ${SCROLL_TOLERANCE_PX}px`,
           timeout: 10_000,

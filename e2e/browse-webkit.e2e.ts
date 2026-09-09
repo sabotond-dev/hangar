@@ -38,6 +38,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { columnsForWidth, columnsFromTemplate } from "../src/lib/browse/grid";
 import { sortListing, type BrowseSort } from "../src/lib/browse/sort";
 import { LISTING } from "../src/lib/catalog/listing";
+import { guarded } from "./poll";
 
 /** trailingSlash: "always" (src/routes/+layout.ts). Never without the slash. */
 const BROWSE = "/browse/";
@@ -121,20 +122,49 @@ function documentOverflow(
  * store. A count rather than the 324-byte string, because what test 2 needs to
  * know is "is there still a picture here", and a count says that in one number
  * that can be printed into the run's output.
+ *
+ * THREE RETURN SHAPES, AND THE THIRD IS A DIAGNOSTIC RATHER THAN A FIX.
+ *
+ *   number - the count.
+ *   null   - the canvas is not on the page, or has no 9x9 backing store yet.
+ *   string - THE ENGINE REFUSED, and this is the one that was missing. The body
+ *            had no try, so getContext or getImageData throwing sent the raw
+ *            error out of a poll callback - which Playwright evaluates OUTSIDE
+ *            its retry try block (see e2e/poll.ts), so the test died at the
+ *            first attempt with an unattributed stack. Two waves of summaries
+ *            could describe the flake's SHAPE and never its cause because of
+ *            exactly this.
+ *
+ * Catching it improves attribution and CHANGES NOTHING about the product. The
+ * product half - a SimHost that notices a dead 2D context - is src/lib/sim/
+ * host.ts, and the test at the bottom of this file is what proves it.
  */
-function litCells(page: Page, id: string): Promise<number | null> {
+function litCells(page: Page, id: string): Promise<number | string | null> {
   return page.evaluate((sel) => {
-    const canvas = document.querySelector(sel) as HTMLCanvasElement | null;
-    if (canvas === null || canvas.width !== 9) return null;
-    const ctx = canvas.getContext("2d");
-    if (ctx === null) return null;
-    const data = ctx.getImageData(0, 0, 9, 9).data;
-    let lit = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i] !== 0 || data[i + 1] !== 0 || data[i + 2] !== 0) lit += 1;
+    try {
+      const canvas = document.querySelector(sel) as HTMLCanvasElement | null;
+      if (canvas === null || canvas.width !== 9) return null;
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) return null;
+      const data = ctx.getImageData(0, 0, 9, 9).data;
+      let lit = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] !== 0 || data[i + 1] !== 0 || data[i + 2] !== 0) lit += 1;
+      }
+      return lit;
+    } catch (error) {
+      // The error's OWN name and message, so the failure says which engine
+      // refused and why instead of pointing at a line number.
+      const name = error instanceof Error ? error.name : typeof error;
+      const message = error instanceof Error ? error.message : String(error);
+      return `the page refused to read this canvas: ${name}: ${message}`;
     }
-    return lit;
   }, `[data-testid="pad-canvas-${id}"]`);
+}
+
+/** litCells as a number, or undefined when it came back null or a message. */
+function countOf(value: number | string | null): number | undefined {
+  return typeof value === "number" ? value : undefined;
 }
 
 test.describe("the shelf on a phone engine", () => {
@@ -179,7 +209,10 @@ test.describe("the shelf on a phone engine", () => {
     await page.setViewportSize({ width: 375, height: 659 });
     await expect
       .poll(
-        async () => columnsFromTemplate((await gridGeometry(page))?.template),
+        guarded(
+          async () => columnsFromTemplate((await gridGeometry(page))?.template),
+          "the grid's computed template",
+        ),
         {
           message: "the grid collapses to a single column on a phone",
           timeout: 10_000,
@@ -254,13 +287,16 @@ test.describe("the shelf on a phone engine", () => {
     const card = page.locator(`[data-testid="card-${still.id}"]`);
     await card.scrollIntoViewIfNeeded();
     await expect
-      .poll(() => litCells(page, still.id), {
-        message: `${still.id} built its engine and painted a picture`,
-        timeout: 30_000,
-      })
+      .poll(
+        guarded(() => litCells(page, still.id), `${still.id}'s pad`),
+        {
+          message: `${still.id} built its engine and painted a picture`,
+          timeout: 30_000,
+        },
+      )
       .toBeGreaterThan(0);
 
-    const before = await litCells(page, still.id);
+    const before = countOf(await litCells(page, still.id));
     const wasAt = (await renderedIds(page)).indexOf(still.id);
     expect(wasAt, `${still.id} is in the grid before the sort`).toBe(
       featured.indexOf(still.id),
@@ -275,10 +311,13 @@ test.describe("the shelf on a phone engine", () => {
       page.getByTestId("browse-sort").locator('input[value="name"]'),
     ).toBeChecked();
     await expect
-      .poll(() => renderedIds(page), {
-        message: "the grid re-rendered in name order",
-        timeout: 10_000,
-      })
+      .poll(
+        guarded(() => renderedIds(page), "the rendered card order"),
+        {
+          message: "the grid re-rendered in name order",
+          timeout: 10_000,
+        },
+      )
       .toEqual(byName);
 
     const nowAt = (await renderedIds(page)).indexOf(still.id);
@@ -287,17 +326,17 @@ test.describe("the shelf on a phone engine", () => {
       `${still.id} really moved in the DOM: ${wasAt} to ${nowAt}`,
     ).not.toBe(wasAt);
 
-    const after = await litCells(page, still.id);
+    const after = countOf(await litCells(page, still.id));
     console.log(
       `${still.id} lit cells across a sort: ${String(before)} before at index ${wasAt}, ` +
         `${String(after)} after at index ${nowAt} (of 81)`,
     );
 
-    expect(before, `${still.id} was lit before the sort`).not.toBeNull();
+    expect(before, `${still.id} was lit before the sort`).toBeDefined();
     expect(
       after,
       `${still.id} is still on the page after the sort`,
-    ).not.toBeNull();
+    ).toBeDefined();
     expect(before as number).toBeGreaterThan(0);
     expect(
       after as number,

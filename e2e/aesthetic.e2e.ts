@@ -54,6 +54,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
+import { guarded } from "./poll";
 
 /** trailingSlash: "always" (src/routes/+layout.ts). Never without the slash. */
 const FRONT_DOOR = "/";
@@ -316,14 +317,20 @@ function computed(
  */
 async function settledScreen(page: Page, expected: string): Promise<void> {
   await expect
-    .poll(() => screenAttribute(page), {
-      message: `data-screen is ${expected} once this page has hydrated`,
-    })
+    .poll(
+      guarded(() => screenAttribute(page), "data-screen on <html>"),
+      {
+        message: `data-screen is ${expected} once this page has hydrated`,
+      },
+    )
     .toBe(expected);
   await expect
-    .poll(() => crtProperty(page), {
-      message: `--crt follows data-screen=${expected}`,
-    })
+    .poll(
+      guarded(() => crtProperty(page), "the computed --crt"),
+      {
+        message: `--crt follows data-screen=${expected}`,
+      },
+    )
     .toBe(expected === "flat" ? "0" : "1");
 }
 
@@ -336,9 +343,12 @@ async function chooseScreen(
   await expect(group, "the SCREEN control is on this route").toHaveCount(1);
   await group.locator("label", { hasText: label }).click();
   await expect
-    .poll(() => screenAttribute(page), {
-      message: `SCREEN: ${label} reached <html> as data-screen`,
-    })
+    .poll(
+      guarded(() => screenAttribute(page), "data-screen on <html>"),
+      {
+        message: `SCREEN: ${label} reached <html> as data-screen`,
+      },
+    )
     .toBe(label.toLowerCase());
 }
 

@@ -61,6 +61,7 @@ import { expect, test, type Page } from "@playwright/test";
 // zero import statements; src/lib/tune/copy.ts is a leaf by design.)
 import { COPY_LINK, LINK_COPIED, MEASURING } from "../src/lib/tune/copy";
 import { failureCopy } from "../src/lib/transport/transport";
+import { guarded, guardedNot } from "./poll";
 
 /** The opening centre of the front-door row, and an `animated` entry. */
 const ENTRY = "aurora";
@@ -265,13 +266,28 @@ test.describe("the whole site except install, on a phone engine", () => {
       "the hero has a picture before two samples are compared",
     ).toBe(true);
 
+    // THE SECOND NEGATED POLL SITE IN THIS REPOSITORY, and it takes the
+    // inverted guard for the same reason tuning.e2e.ts's remeasured() does: a
+    // string sentinel returned on a throw is ALSO not equal to `first`, so it
+    // would satisfy the negation and report a page that refused to read its
+    // canvas as a simulator that is running. guardedNot returns `first`
+    // itself, which fails the negation, so the poll keeps its whole budget.
+    const changed = guardedNot(
+      () => sample(page, ENTRY),
+      first,
+      `${ENTRY}'s backing store`,
+    );
     await expect
-      .poll(() => sample(page, ENTRY), {
+      .poll(changed.read, {
         message:
           "the simulator is really running on this engine: the hero's own backing store changes between samples",
         timeout: 10_000,
       })
       .not.toBe(first);
+    expect(
+      changed.lastError(),
+      "the poll above reached its answer without the page ever refusing to read the canvas",
+    ).toBeUndefined();
 
     expect(consoleErrors).toEqual([]);
   });
@@ -313,11 +329,17 @@ test.describe("the whole site except install, on a phone engine", () => {
     // query fires and the layout stacks - and still nothing scrolls sideways.
     await page.setViewportSize({ width: 320, height: 659 });
     await expect
-      .poll(async () => (await rowLayout(page))?.layout, {
-        message:
-          "the container query re-evaluated after the resize and the row stacked",
-        timeout: 10_000,
-      })
+      .poll(
+        guarded(
+          async () => (await rowLayout(page))?.layout,
+          "the first rail knob's row layout",
+        ),
+        {
+          message:
+            "the container query re-evaluated after the resize and the row stacked",
+          timeout: 10_000,
+        },
+      )
       .toBe("stacked");
 
     const narrow = await rowLayout(page);

@@ -64,6 +64,7 @@ import {
   stampUnreadable,
   tryOnBudgetReason,
 } from "../src/lib/tune/copy";
+import { guardedNot } from "./poll";
 
 /** The configuration every test in this file opens. */
 const ENTRY = "aurora";
@@ -815,11 +816,27 @@ async function pressScroll(page: Page, key: "Home" | "End"): Promise<void> {
  *
  * `recomputed` is still used for the other direction - in budget to over - and
  * it is the stronger wait, so the debounce keeps its own assertion.
+ *
+ * THE ONE NEGATED POLL IN THIS FILE, AND THE TRAP IT SETS. e2e/poll.ts's
+ * positive guard returns a descriptive STRING when the callback throws, which
+ * no numeric matcher can match - so every `.toBe` / `.toEqual` /
+ * `.toBeGreaterThan` site keeps polling. Here the matcher is `.not.toBe(was)`,
+ * and a string is ALSO not equal to `was`: the sentinel would SATISFY THE
+ * NEGATION and turn this green on a page that could not be read at all.
+ * guardedNot returns `was` itself, which fails the negation, so the poll runs
+ * its whole thirty seconds and the swallowed error is named afterwards.
  */
 async function remeasured(page: Page, was: number): Promise<void> {
-  await expect
-    .poll(() => meterUsed(page, "setup"), { timeout: 30_000 })
-    .not.toBe(was);
+  const moved = guardedNot(
+    () => meterUsed(page, "setup"),
+    was,
+    "the Setup meter's numeral",
+  );
+  await expect.poll(moved.read, { timeout: 30_000 }).not.toBe(was);
+  expect(
+    moved.lastError(),
+    "the meter moved without the page ever refusing to read it",
+  ).toBeUndefined();
   await settled(page);
 }
 
