@@ -1,8 +1,17 @@
-// The stamp's spec: eight tests, and the count never moves.
+// The stamp's spec: nine tests, and the count does not move with the CATALOG.
 //
 // Every test loops over the catalog internally and names the offending entry in
 // its assertion message, so a configuration added in a later phase changes no
 // number here (05-VALIDATION, "The design decision that shapes every count").
+//
+// THE COUNT WENT EIGHT TO NINE IN PLAN 11-09, AND THE RULE IT DOES NOT BREAK.
+// The rule above is about the CATALOG: adding, removing or retuning an entry
+// must not move a number in this file, and it still does not. Test 9 is a new
+// INVARIANT rather than a new entry - that appending values to a knob leaves
+// the old indices pointing where they always pointed - and it could not ride
+// inside an existing test the way plan 10-08's captured fixture rode inside
+// test 7, because it asserts something no other test here asks: the mapping
+// from payload character to knob VALUE, on a knob that has been resized.
 //
 // TEST 5 IS THE ONE THAT MATTERS. `decodeStamp("pdial")` succeeds on its own,
 // so nothing in the vendored codec stops `/c/aurora/#z.pdial` from rendering
@@ -30,6 +39,7 @@ import {
   decodeFor,
   encodeFor,
   parseHash,
+  readLuaColourPayload,
   stampKnobs,
 } from "./stamp";
 
@@ -421,10 +431,35 @@ describe("the stamp: the envelope", () => {
         record.payload[0],
         `${record.entry}: the captured literal must be format x`,
       ).toBe(HANGAR_FORMAT_LUA);
+      // THE ONE EXCEPTION, AND IT IS A RESIZE RATHER THAN A REGRESSION.
+      //
+      // Plan 11-09 appended a one-minute and a five-minute interval to
+      // POMODORO's @MINS on the bench's ask. Appending is the SAFE half - the
+      // four old indices still name 15, 20, 25 and 50, which test 9 asserts
+      // against four literals captured before the change - but it is still a
+      // resize, and the shape character is a resize tripwire by construction:
+      // shapeOf sums the option counts, so POMODORO's shape moved from `n` to
+      // `p` and no stamp minted under the old shape can be called `restored`
+      // any more. Test 3 already pins that semantics in the abstract ("a
+      // resized knob must be older, never restored"); this is the first entry
+      // in the tree to spend it.
+      //
+      // `older` is the graceful apology, not a wrong interval, and that is the
+      // whole reason the character exists. THE FIXTURE IS NOT REGENERATED AND
+      // NOT EDITED: the payload literal below is still the byte-for-byte
+      // capture from commit b3f99bb, and the expectation moved here where the
+      // reason can be written down. Every OTHER captured stamp must still land
+      // restored, and a second entry appearing in this branch is a signal that
+      // somebody is resizing knobs casually.
+      const resized = record.entry === "pomodoro";
       expect(
         decodeFor(each, record.payload),
-        `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
-      ).toEqual({ kind: "restored", indices });
+        resized
+          ? `${record.entry}: the format x stamp ${record.payload} must land ` +
+              "older - its knob was resized in plan 11-09 - and never " +
+              "unreadable and never restored"
+          : `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
+      ).toEqual(resized ? { kind: "older" } : { kind: "restored", indices });
       wild += 1;
     }
     expect(wild, "captured format x stamps re-decoded").toBe(18);
@@ -445,6 +480,92 @@ describe("the stamp: the envelope", () => {
       // missed this third one - reported in 11-01-SUMMARY.md rather than
       // reconciled.
     ).toBe(16);
+  });
+
+  it("keeps POMODORO's four original intervals on their four original indices", () => {
+    // THE ONLY GUARD AGAINST THE INSERTION MISTAKE, AND THE REASON IT HAD TO
+    // BE WRITTEN (plan 11-09).
+    //
+    // The bench asked for a one-minute and a five-minute POMODORO. Both formats
+    // write ONE base-32 character per non-colour knob, BY INDEX, so where the
+    // two new values went in the option list is the whole question. Appended,
+    // every link ever minted keeps naming the interval it named. Inserted at
+    // the front - which is what a tidy author sorting the list ascending would
+    // do - a link minted at index 0 would render 1 minute where it used to
+    // render 15, and NOTHING ELSE IN THIS FILE WOULD GO RED: every other test
+    // here compares indices to indices, and the indices would round-trip
+    // perfectly. They would simply mean something else.
+    //
+    // So this test compares indices to VALUES, and it does it against four
+    // payload literals captured with the encoder as it stood BEFORE the append.
+    // A vector built from the catalog at run time would be a tautology in the
+    // same way a regenerated fixture is.
+    const pom = entry("pomodoro");
+    const knobs = stampKnobs(pom);
+    const mins = knobs.find((knob) => knob.id === "mins");
+    expect(mins, "pomodoro still declares a mins knob").toBeDefined();
+    if (!mins) return;
+
+    // Captured on 2026-09-09, one per interval, every other knob held at
+    // ring 1 / break 2 / note 3 / channel 1 so the four differ only in the
+    // character under test - the third, which is the mins index.
+    const CAPTURED: readonly { payload: string; minutes: string }[] = [
+      { payload: "wn0f2145f31", minutes: "15" },
+      { payload: "wn1f2145f31", minutes: "20" },
+      { payload: "wn2f2145f31", minutes: "25" },
+      { payload: "wn3f2145f31", minutes: "50" },
+    ];
+
+    for (let at = 0; at < CAPTURED.length; at += 1) {
+      const each = CAPTURED[at];
+      // 1. THE PAYLOAD STILL PARSES TO THE INDEX IT WAS WRITTEN WITH.
+      //    readLuaColourPayload does length, range and field layout and does
+      //    NOT consult the shape character, which is what makes this readable
+      //    on a resized knob at all.
+      const read = readLuaColourPayload(knobs, each.payload);
+      expect(
+        read,
+        `pomodoro: the captured stamp ${each.payload} no longer parses - its ` +
+          "length or its field layout moved, which is a bigger change than a " +
+          "resize",
+      ).toBeDefined();
+      if (!read) continue;
+      expect(
+        read.indices.mins,
+        `pomodoro: ${each.payload} was written at mins index ${at}`,
+      ).toBe(at);
+      // 2. THAT INDEX STILL NAMES THE INTERVAL THE LINK WAS MINTED FOR. This
+      //    is the assertion. If the two new values were INSERTED rather than
+      //    appended, this is where it says so, and it says it in minutes.
+      expect(
+        mins.options[read.indices.mins],
+        `pomodoro: A SHARED LINK MUST STILL RENDER THE INTERVAL IT WAS ` +
+          `SHARED FOR. ${each.payload} was minted for ${each.minutes} ` +
+          `minutes at index ${at}; that index now names ` +
+          `${mins.options[read.indices.mins]} minutes. The one-minute and ` +
+          "five-minute values must be APPENDED to @MINS, never inserted and " +
+          "never sorted in",
+      ).toBe(each.minutes);
+    }
+
+    // 3. THE TWO NEW INTERVALS ARE REALLY THERE, so this test cannot pass by
+    //    the append never having happened.
+    expect(
+      [...mins.options],
+      "pomodoro: the bench asked for a one-minute and a five-minute interval",
+    ).toEqual(["15", "20", "25", "50", "1", "5"]);
+
+    // 4. AND THE LANDING IS NAMED RATHER THAN LEFT TO BE DISCOVERED. A resize
+    //    moves the shape character, so these four land `older` - the honest
+    //    apology - and not `unreadable`, which would be the panel telling a
+    //    visitor their perfectly good link is corrupt.
+    for (const each of CAPTURED) {
+      expect(
+        decodeFor(pom, each.payload).kind,
+        `pomodoro: ${each.payload} must land older after the @MINS resize, ` +
+          "never unreadable",
+      ).toBe("older");
+    }
   });
 
   it("is idempotent, on both routes and through a restore", () => {

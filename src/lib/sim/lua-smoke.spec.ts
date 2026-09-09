@@ -1,8 +1,10 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// Three tests, and the count never moves - each loops over the Lua entries
-// internally and names the entry in its message, so waves 5 and 6 add
-// configurations without touching a number here. The budget, canonical form and
+// Thirteen tests, and the count never moves WITH THE CATALOG - each loops over
+// the Lua entries internally and names the entry in its message, so waves 5 and
+// 6 add configurations without touching a number here. A test that pins ONE
+// entry's answer to ONE bench note is the exception the last four plans have
+// each spent once, and it is named in its own title. The budget, canonical form and
 // subset questions belong to src/lib/catalog/lua-entries.sweep.spec.ts; this file asks
 // the only question a static analysis cannot: does it work.
 //
@@ -2478,5 +2480,155 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       "\nMORPH suppression, plan 11-08:\n  " + report.join("\n  ") + "\n",
     );
     expect(report.length, "both strokes reported").toBe(2);
+  }, 120000);
+
+  it("moves ARC's heart and ARC's controller together, at three depths", async () => {
+    // THE BENCH NOTE THIS ANSWERS: "cannot see amplitude need visual feedback
+    // for that" (plan 11-09).
+    //
+    // ARC paints a 3x3 heart on layer 1 and sends a triangle on a CC. Until
+    // 11-09 the heart was painted with the RAW triangle and the CC was scaled
+    // by the depth - s.d = 127 - y - so at the bottom edge of the pad the
+    // controller pinned at 64 and the card was sending NOTHING while the heart
+    // went on swinging its full travel. The picture lied about the amplitude,
+    // which is what the bench saw.
+    //
+    // THE ASSERTION IS A CORRELATION, NOT A BRIGHTNESS. Three depths, and the
+    // heart's travel must be ordered the same way the controller's excursion
+    // from 64 is ordered, with a flat controller demanding a still heart. A
+    // future re-scaling of the heart - a gamma, a floor, a different divisor -
+    // keeps this green as long as it keeps the picture honest, and only a
+    // picture that stops tracking the output turns it red.
+    //
+    // LAYER 1'S PHASE IS THE OBSERVABLE, NOT THE RENDERED FRAME. Layer 2's
+    // swirl covers all 81 cells and is added into the same pixels, so a frame
+    // reading would measure the swirl as well. Layer 1 carries no rate here -
+    // Setup arms it with glp alone - so its phase is exactly the last value
+    // glp wrote and nothing advances it behind the test's back.
+    const entry = entryById("arc");
+    const cc = knobValueOf(entry, "cc");
+    // The heart, from the entry's own two loops: 40 + j*9 + k, j and k in -1..1.
+    const HEART = [-1, 0, 1].flatMap((j) =>
+      [-1, 0, 1].map((k) => 40 + j * 9 + k),
+    );
+    const RUN_TICKS = 400;
+
+    type Depth = {
+      label: string;
+      depth: number;
+      span: number;
+      excursion: number;
+      messages: number;
+    };
+    const depths: Depth[] = [];
+    const report: string[] = [];
+
+    for (const fraction of [0, 0.5, 1]) {
+      const { host, sim } = await open(entry);
+      try {
+        const y = Math.round(fraction * host.coordMax);
+        // x is held at the middle at every depth, so the OSCILLATOR RATE is
+        // the same in all three runs and the only thing that moves is s.d.
+        const x = Math.round(0.5 * host.coordMax);
+        host.touchDown(0, x, y);
+        host.tick();
+        host.touchUp(0, x, y);
+        host.tick();
+        const from = host.midi.length;
+        let low = Number.POSITIVE_INFINITY;
+        let high = Number.NEGATIVE_INFINITY;
+        for (let t = 0; t < RUN_TICKS; t += 1) {
+          host.tick();
+          for (const n of HEART) {
+            const phase = sim.layer(
+              screenToHw(n % 9, Math.floor(n / 9)),
+              1,
+            ).pha;
+            if (phase < low) low = phase;
+            if (phase > high) high = phase;
+          }
+        }
+        const values = host.midi
+          .slice(from)
+          .filter((m) => m.p1 === cc)
+          .map((m) => m.p2);
+        const excursion = values.reduce(
+          (worst, v) => Math.max(worst, Math.abs(v - 64)),
+          0,
+        );
+        depths.push({
+          label: `y=${y}`,
+          depth: 127 - y,
+          span: high - low,
+          excursion,
+          messages: values.length,
+        });
+        report.push(
+          `${`y=${y}`.padEnd(6)} depth ${String(127 - y).padStart(3)}: heart ` +
+            `travel ${high - low}, cc ${cc} excursion from 64 ${excursion}, ` +
+            `over ${values.length} message(s)`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // NON-VACUITY FIRST. A run that delivered no CC at all would satisfy every
+    // correlation below for free.
+    for (const each of depths)
+      expect(
+        each.messages,
+        `arc at ${each.label}: the Timer sent no controller at all, so ` +
+          "nothing below proves anything",
+      ).toBeGreaterThan(RUN_TICKS / 4);
+    expect(
+      depths[0].excursion,
+      "arc at the top edge: the controller must actually swing, or this test " +
+        "is comparing two flat lines",
+    ).toBeGreaterThan(0);
+
+    // 1. THE FLAT CASE, WHICH IS THE ONE THE BENCH SAW. At the bottom edge the
+    //    depth is zero, the controller is pinned at 64, and the heart must be
+    //    still. Before plan 11-09 it swung its full travel here.
+    const bottom = depths[depths.length - 1];
+    expect(bottom.depth, "arc: the bottom edge of the pad is depth zero").toBe(
+      0,
+    );
+    expect(
+      bottom.excursion,
+      "arc: at depth zero the controller cannot leave 64",
+    ).toBe(0);
+    expect(
+      bottom.span,
+      "arc: THE PICTURE MUST NOT LIE ABOUT THE AMPLITUDE. At the bottom edge " +
+        "of the pad the depth is 0, so the card is sending a dead, constant " +
+        `64 - and the heart moved ${bottom.span} anyway. That is the lie, ` +
+        "made visible: a pad pulsing at full brightness while nothing at all " +
+        "is going out. Scale the heart by the same s.d the controller is " +
+        "scaled by",
+    ).toBe(0);
+
+    // 2. THE ORDERING AGREES AT EVERY PAIR. Rank rather than ratio, so any
+    //    monotone re-scaling of the heart survives and only a decoupling
+    //    fails.
+    const sign = (n: number): number => (n === 0 ? 0 : n > 0 ? 1 : -1);
+    for (let i = 0; i < depths.length; i += 1) {
+      for (let j = i + 1; j < depths.length; j += 1) {
+        expect(
+          sign(depths[i].span - depths[j].span),
+          `arc: the heart and the controller must move TOGETHER. Between ` +
+            `${depths[i].label} and ${depths[j].label} the controller's ` +
+            `excursion went ${depths[i].excursion} -> ${depths[j].excursion} ` +
+            `while the heart's travel went ${depths[i].span} -> ` +
+            `${depths[j].span}. A heart that does not follow the depth is a ` +
+            "picture of an amplitude the card is not sending",
+        ).toBe(sign(depths[i].excursion - depths[j].excursion));
+      }
+    }
+
+    process.stdout.write(
+      "\nARC amplitude, plan 11-09:\n  " + report.join("\n  ") + "\n",
+    );
+    expect(report.length, "three depths reported").toBe(3);
   }, 120000);
 });

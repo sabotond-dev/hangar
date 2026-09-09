@@ -56,6 +56,54 @@
 //     same branch and the branch can never be entered again until a tap resets
 //     the interval.
 //
+// THE SIX INTERVALS, AND WHY TWO OF THEM ARE SHORT (plan 11-09, from the
+// bench: "make a 1 minute and a 5 minute one").
+//
+//   @MINS carries 15, 20, 25, 50, 1 and 5, IN THAT ORDER, and the order is not
+//   untidiness. A knob position is stamp payload: format x and format w both
+//   write ONE base-32 character per non-colour knob, BY INDEX, so inserting 1
+//   and 5 at the front would have silently re-pointed every POMODORO link ever
+//   shared at a different interval - a 50-minute link rendering as 1 minute,
+//   with nothing anywhere going red. APPEND. NEVER INSERT, NEVER SORT, NEVER
+//   TIDY. src/lib/share/stamp.spec.ts test 9 pins indices 0..3 to 15, 20, 25
+//   and 50 against four payload literals captured before the append.
+//
+//   THE PRICE OF THE APPEND, STATED RATHER THAN DISCOVERED LATER. Appending
+//   keeps the four old indices pointing at the four old intervals, which is
+//   the silent failure it exists to avoid - but it is still a RESIZE, and the
+//   stamp's shape character is a resize tripwire. luaColour/lua shapeOf sums
+//   the option counts, so POMODORO's shape moves from `n` to `p` and every
+//   POMODORO stamp minted before this change now lands `older` instead of
+//   `restored`. That is the tripwire working: stamp.spec.ts test 3 already
+//   pins "a resized knob must be older, never restored", and `older` is the
+//   graceful apology rather than a wrong interval. It cannot be avoided while
+//   the knob grows - the shape character is a function of the option count -
+//   and it is the reason test 9 asserts the INDEX MAPPING through
+//   readLuaColourPayload rather than asserting a landing of `restored`.
+//
+//   THE SHORT INTERVALS ARE THE EASY CASE, AND THE OBVIOUS WORRY IS THE WRONG
+//   ONE. Everything below about the 655 second ceiling belongs to the LONG
+//   intervals: 25 minutes is 1500 seconds and 50 is 3000, both far past the
+//   600-second keeper, and both depend on the Timer's 300-second re-issue.
+//   One minute and five minutes are 60 and 300 seconds and cannot reach the
+//   ceiling during their countdown at all. They still need the re-issue AFTER
+//   they finish - the card goes on breathing forever and the re-arm branch
+//   sits outside `if s.p > 0` precisely so that it does - which is measured:
+//   the inner breathe is still advancing a phase step per tick at t = 700 s at
+//   1, 5 and 25 minutes alike.
+//
+//   THE RING ARITHMETIC HOLDS AT BOTH, CHECKED RATHER THAN ASSUMED.
+//   m = s.t*32//s.n takes all 33 values 32..0 at every interval, so no cell is
+//   skipped and none is drawn twice: at n = 60 a step is 1.875 s and at
+//   n = 300 it is 9.375 s. Measured end to end through the real Lua host, the
+//   ring drains monotonically to zero and exactly one alarm note-on is sent.
+//
+//   AT FIVE MINUTES THE RE-ISSUE AND THE COMPLETION LAND ON THE SAME TIMER
+//   CALL, and the order is the one that works. self.c reaches 0 at tick 300
+//   and self.t reaches 0 at tick 300; the re-issue branch runs FIRST and only
+//   re-arms glpfs and glt, then the completion branch writes @BREAKC over it.
+//   A re-issue that also wrote a colour would have to move.
+//
 // THE 655 SECOND CEILING, AND WHY THIS ENTRY EXISTS IN THIS FORM.
 //
 //   glt CAPS AT 65535 TICKS, WHICH IS ABOUT 655 SECONDS. THE INNER BREATHE IS
@@ -140,11 +188,26 @@
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier: Setup 733 characters, Timer 647, both fixed
-// points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the five-knob cross-product is 735 / 649, which leaves 173 free of
-// 908 on the Setup and 259 on the Timer, and the all-shortest corner is
-// 733 / 647.
+// points of compressScript and both accepted by checkSyntax.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
+//
+// THE CORNER, RE-MEASURED AT THE ONE THE GATE READS (plan 11-09). This header
+// used to say the all-longest corner was 735 / 649 with 173 and 259 free. That
+// is the DECLARED-PALETTE corner - the longest literal each colour knob
+// happens to ship - and it is not what the 908 gate reads. A picker can write
+// any RGB444 colour into a colour token (D-06), so the real worst corner puts
+// 255,255,255 in both colour knobs, and POMODORO declares neither. The picker
+// corner is 743 / 659, which leaves 165 free on the Setup and 249 on the
+// Timer. Lower than the header claimed, in the dangerous direction, and the
+// same systematic error plans 11-07 and 11-08 corrected in CONSOLE, FORGE and
+// STEPS. POMODORO is the fourth.
+//
+// APPENDING TWO ONE-DIGIT INTERVALS DID NOT MOVE THE WORST CORNER AND COULD
+// NOT HAVE. The worst corner takes each knob's LONGEST value, and "1" and "5"
+// are shorter than the four that were already there, so the corner is still
+// 743 / 659 exactly. What moved is the ALL-SHORTEST corner, 717 -> 716 on the
+// Setup and 627 unchanged on the Timer - a single character, which is also the
+// proof that @MINS reaches exactly one site and that site is in the Setup.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.
@@ -198,11 +261,24 @@ export const POMODORO: CatalogEntry = {
       token: "@MINS",
       // The interval. 25 is the pomodoro proper; 15 and 20 are the shorter
       // intervals people actually keep to, and 50 is the two-pomodoro block.
-      // Every value is two digits, so this knob costs the budget nothing at
-      // any corner. It reaches ONE site - self.n = @MINS * 60 in the Setup -
-      // and everything downstream divides by self.n, so the ring's arithmetic
-      // cannot disagree with the interval it is drawing.
-      values: ["15", "20", "25", "50"],
+      // 1 and 5 are the bench's ask (plan 11-09) - a one-minute and a
+      // five-minute timer, for the short things a pomodoro is too long for.
+      //
+      // THE ORDER IS THE POINT AND IT IS NOT SORTED. The two new values are
+      // APPENDED, so 15, 20, 25 and 50 keep indices 0, 1, 2 and 3 forever. A
+      // knob position is stamp payload - one base-32 character per non-colour
+      // knob, by index, in both format x and format w - so an insertion at the
+      // front would re-point every link ever shared at a different interval,
+      // silently, with no test anywhere going red. `stamp.spec.ts` test 9
+      // exists for exactly this and pins the four to four captured literals.
+      //
+      // It reaches ONE site - self.n = @MINS * 60 in the Setup - and
+      // everything downstream divides by self.n, so the ring's arithmetic
+      // cannot disagree with the interval it is drawing. Two of the six values
+      // are now one digit rather than two, which lowers the all-shortest
+      // corner by one character and leaves the worst corner exactly where it
+      // was.
+      values: ["15", "20", "25", "50", "1", "5"],
       default: 2,
     },
     {

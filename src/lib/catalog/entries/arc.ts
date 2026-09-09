@@ -10,8 +10,33 @@
 // rotation speed IS the LFO rate. That works because glf(a, layer, fre) is a
 // RATE-ONLY setter: it changes speed without resetting phase, so the swirl
 // accelerates smoothly under your finger instead of jumping. In the middle, a
-// 3x3 heart on layer 1 pulses at exactly the LFO value, so you can see the
-// modulation and not only hear it.
+// 3x3 heart on layer 1 pulses at the LFO value SCALED BY THE DEPTH, so you can
+// see the modulation and not only hear it.
+//
+// THE HEART IS SCALED BY s.d BECAUSE THE CC IS, AND THE PICTURE MUST NOT LIE
+// (plan 11-09, from the bench: "cannot see amplitude need visual feedback for
+// that"). Until 11-09 the heart was painted with the RAW triangle - glp(a,1,v)
+// - while the CC went out as glim(64+(v-128)*s.d//255,0,127), depth-scaled. At
+// the bottom edge of the pad s.d = 127 - y = 0, so the controller pinned at 64
+// and the card was sending nothing AT ALL while the heart went on swinging its
+// full 0..254. Measured through the real Lua host before the change, at three
+// depths:
+//
+//   d = 127   heart span 254   CC excursion from 64: 64
+//   d =  63   heart span 254   CC excursion from 64: 32
+//   d =   0   heart span 254   CC excursion from 64:  0   <- the lie
+//
+// and after it: spans 254 / 126 / 0 against excursions 64 / 32 / 0. The heart
+// now goes dark and still exactly when the card goes quiet.
+//
+// THE SCALE IS v*s.d//127 AND NOT THE EMITTED BYTE ITSELF. Painting the heart
+// with (64+(v-128)*s.d//255)*2 would be the more literal reading of "show what
+// you are sending", and it is the wrong one: at zero depth that is a CONSTANT
+// 128 - a heart glowing steadily on a card that is sending nothing, which is
+// the same lie in a quieter voice. Scaling the amplitude makes the dead zone
+// black. It also leaves the resting picture byte-identical, because self.d is
+// 127 until a finger moves it, so src/lib/catalog/frames.json does not move.
+// +9 characters, all in the Timer.
 //
 // THE TWO glt(a,2,65535) CALLS ARE CORRECT AND MUST NOT BE REMOVED. 65535 is
 // the keeper idiom - a maximum timeout that stops the LED engine ever freezing
@@ -47,10 +72,19 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 387 characters, Timer 251, both fixed
+// against the pinned minifier: Setup 387 characters, Timer 260, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the five-knob cross-product is 390 / 253, against a budget of 908
-// an event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those.
+// corner of the five-knob cross-product is 390 / 262 - 518 free on the Setup
+// and 646 on the Timer, against a budget of 908 an event.
+// src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those.
+//
+// THE CORNER QUOTED ABOVE IS THE RGB444 PICKER CORNER, WHICH IS THE ONE THE
+// 908 GATE READS, and it was re-measured rather than inherited (plan 11-09).
+// Plans 11-07 and 11-08 found CONSOLE's, FORGE's and STEPS's headers quoting
+// the DECLARED-PALETTE corner instead, which is lower and therefore wrong in
+// the dangerous direction. ARC is clean by accident and the accident is worth
+// naming: both of its colour knobs already declare 255,255,255, so the two
+// corners coincide here at exactly 390 / 262.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.
@@ -62,7 +96,7 @@ const SETUP =
   "--[[@cb]]for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r local f=glim(r//2,1,120)for a=0,80 do glf(a,2,f)end end end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r)%256 s.h=p if p<s.r then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v)end end";
+  "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r)%256 s.h=p if p<s.r then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
