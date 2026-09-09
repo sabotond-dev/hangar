@@ -65,8 +65,97 @@
 // doesn't change don't send it don't send 0 value, also the LED's colors stuck
 // again" - the stuck colours are the class-A fix above and the class-B fix
 // below (plan 11-02); the SUPPRESSION is the section immediately following
-// (plan 11-08); and "mapping mode" is a question at 11-09's checkpoint because
-// it admits several readings and is NOT answered anywhere in this file.
+// (plan 11-08); and "mapping mode" was a question at 11-09's checkpoint
+// because it admitted several readings. IT IS ANSWERED NOW, in the section
+// below on the corner tap (plan 11-09.1). All three clauses are closed.
+//
+// ---------------------------------------------------------------------------
+// A CORNER TAP SPEAKS FOR ONE CORNER (plan 11-09.1)
+// ---------------------------------------------------------------------------
+//
+// The user answered "mapping mode needed in" with "when you tap morphs corners
+// it should only send one MIDI message"
+// (.planning/phases/11-bench-corrections/11-09-ANSWERS.md). Tap corner j, emit
+// only CC @CCB+j. The continuous bilinear morph is unchanged.
+//
+// THIS IS A FOURTH READING AND IT IS CHEAPER THAN THE THREE THE CHECKPOINT
+// COSTED, and the reason belongs here rather than only in a plan. The richest
+// option was an assignment MODE - a latch, a selection gesture and a
+// single-corner emit - and it named THE GESTURE as the expensive part. That
+// expense is gone: self.k already declares four 2x2 corner blocks, so THE
+// CORNER TAP IS THE SELECTION. No latch, no mode, no new gesture, nothing to
+// exit.
+//
+// WHY IT MATTERS, AND IT IS THE SAME COMPLAINT AS THE SUPPRESSION CLAUSE. In a
+// DAW, MIDI-learn binds whichever message arrives first. With four CCs
+// streaming from every touch, corner 3 cannot be bound to a filter: the moment
+// you hit learn, one of the other three lands first and takes it. That is why
+// "mapping mode needed in" sat in the same sentence as "if something doesn't
+// change don't send it don't send 0 value" - BOTH CLAUSES ARE ABOUT THE PAD
+// SHOUTING OVER ITSELF. 11-08 fixed the shouting; this makes each corner
+// individually reachable.
+//
+// THE MEASUREMENT CAME FIRST AND IT DID NOT SHRINK THE TASK, WHICH IS WORTH
+// SAYING BECAUSE IT COULD HAVE. 11-08's per-corner suppression already
+// silences three of the four AT A CORNER, because three weights are
+// arithmetically 0 there and s.p holds them at 0. Driven through the real Lua
+// host before any change:
+//
+//   press on the exact extreme pixel (0,0)          1 message
+//   press on the CENTRE of the 2x2 corner block     4 messages
+//   the same, arriving after a stroke elsewhere     4 messages
+//
+// A finger aimed at a corner lands in the BLOCK, not on the one pixel where
+// the arithmetic is already clean - at (14,14) the weights are 100/12/12/1 and
+// all four leave. So the gap is real at the point a hand reaches, and
+// lua-smoke.spec.ts pins its probes to points where all four weights are
+// non-zero, so a one-message result can never be the old behaviour wearing the
+// new one's clothes.
+//
+// THE DISCRIMINATION IS THE ONSET EDGE, "e==4 or e>8", and it is the SAME edge
+// arc.ts takes in the same plan - one idiom in the catalogue for telling a
+// discrete tap from the start of a drag, cited to stage.ts and to
+// src/vendor/botor/pad-sim.ts:228-241 rather than re-derived. On the onset
+// sample, if the cell is inside a corner block, only that corner may speak; on
+// any MOVE sample q is 0 and the full bilinear morph runs exactly as 11-08
+// left it.
+//
+// THE REJECTED ALTERNATIVE - "only a coalesced DOWNUP (e>8) counts as a tap" -
+// IS CHEAPER STILL AND IT IS REJECTED BY MEASUREMENT TWICE OVER. First, the
+// shipped src/lib/sim/touch.ts NEVER PRODUCES CODE 9 AT ALL: measured, a press
+// held 300 ms and the fastest press a pointer can make both deliver 4 then 5,
+// so the headline gesture of the card would be invisible in the browser, which
+// is the failure PREV-01 exists to prevent and the same reason 11-09 rejected
+// a second contact. Second, on hardware a deliberate tap aimed at a MIDI-learn
+// button is exactly the slow kind that arrives as 4 then 5, so the feature
+// would be unreliable in the one situation it exists for.
+//
+// THE CORNER BLOCKS ARE DERIVED FROM self.k, NOT TYPED. The Lua walks
+// s.k[j] + d%2 + d//2*9 for d = 0..3, the same expression the Setup paint loop
+// and the send loop already use, so moving a corner moves all three together.
+// lua-smoke.spec.ts reads self.k out of the entry's own source for the same
+// reason.
+//
+// 11-08'S SUPPRESSION IS NOT BYPASSED, RE-KEYED OR RESET. A corner tap updates
+// s.p FOR THAT CORNER ONLY. The other three keep their old entries on purpose:
+// they were not sent, so the receiver has not heard them, and the next
+// continuous sample must be free to say so. THE HONEST PRICE, stated rather
+// than discovered: tap corner 1 and then corner 2 and a receiver holds corner
+// 1 at its tapped value until a continuous stroke moves it. That is what
+// "speaks for one corner" means, and it is what makes MIDI-learn work.
+//
+// THE PAINT STAYS UNCONDITIONAL, exactly as the section further down says: the
+// picture is a READOUT and the wire is TRAFFIC. A corner tap repaints all four
+// corners' current weights even though it speaks for one.
+//
+// THE CELL INDEX IS NOW A LOCAL, WHICH PAID FOR PART OF THE FEATURE. The comet
+// at the end of the handler recomputed x*9//128+y*9//128*9; the corner test
+// needs the same value, so it is bound once as `c` and used twice - 18
+// characters back.
+//
+// COST: Setup 579 -> 710 of 908 at the RGB444 picker corner, 198 free. Timer
+// still the empty string, and NO KEEPER WAS ADDED - see the capitalised note
+// above, which stands.
 //
 // A CORNER SPEAKS ONLY WHEN THAT CORNER MOVED. self.p={0,0,0,0} holds the last
 // value sent for each of the four macros and the send is guarded on
@@ -131,12 +220,13 @@
 //
 // THE STRING BELOW IS A TEMPLATE OVER CANONICAL LUA. Rendered at the defaults
 // by renderLua it is byte-identical to the canonical text measured against the
-// pinned minifier: Setup 575 characters, a fixed point of compressScript and
-// accepted by checkSyntax. THE CORNER THE 908 GATE READS IS 579, leaving 329
-// free, and it is the RGB444 PICKER corner (D-06) rather than the all-longest
-// corner of the declared palettes - the two coincide here only because @TRAILC
-// already declares 255,255,255, and plan 11-07 measured them 21 characters
-// apart on CONSOLE.
+// pinned minifier: a fixed point of compressScript and accepted by
+// checkSyntax. THE CORNER THE 908 GATE READS IS 710, leaving 198 free, and it
+// is the RGB444 PICKER corner (D-06) rather than the all-longest corner of the
+// declared palettes - the two coincide here only because @TRAILC already
+// declares 255,255,255, and plan 11-07 measured them 21 characters apart on
+// CONSOLE. It was 579 before plan 11-09.1's corner tap, and re-measured rather
+// than inherited.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -146,7 +236,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}self.p={0,0,0,0}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,z*2)end end local a=glag(0,x*9//128+y*9//128*9)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
+  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}self.p={0,0,0,0}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local c=x*9//128+y*9//128*9 local q=0 if e==4 or e>8 then for j=1,4 do for d=0,3 do if c==s.k[j]+d%2+d//2*9 then q=j end end end end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,z*2)end end local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
 
 // THE TIMER IS THE EMPTY STRING, WRITTEN INLINE. See the header: MORPH has no
 // Timer EVENT, and a named constant holding nothing would only invite someone

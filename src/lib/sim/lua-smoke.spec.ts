@@ -2482,6 +2482,253 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     expect(report.length, "both strokes reported").toBe(2);
   }, 120000);
 
+  it("gives a MORPH corner tap one message, and leaves the morph alone", async () => {
+    // THE BENCH NOTE THIS ANSWERS: "mapping mode needed in" (plan 11-09's
+    // checkpoint), answered "when you tap morphs corners it should only send
+    // one MIDI message".
+    //
+    // WHY IT IS THE SAME COMPLAINT AS THE SUPPRESSION CLAUSE ABOVE. In a DAW,
+    // MIDI-learn binds whichever message arrives first. With four CCs leaving
+    // on every accepted sample, corner 3 cannot be bound to anything: the
+    // moment you hit learn, one of the other three lands first and takes it.
+    // That is why "mapping mode needed in" sat in the same sentence as "if
+    // something doesn't change don't send it don't send 0 value" - both
+    // clauses are about the pad shouting over itself. 11-08 fixed the
+    // shouting; this makes each corner individually reachable.
+    //
+    // THE MEASUREMENT THAT DECIDED THE SHAPE, TAKEN BEFORE THE CHANGE. A press
+    // at the CENTRE OF A CORNER BLOCK - which is where a finger aimed at a
+    // corner actually lands - emitted FOUR messages, from rest and from
+    // elsewhere alike. Only a press on the exact extreme pixel (0,0), where
+    // three weights are arithmetically 0 and 11-08's s.p holds them silent,
+    // already emitted one. So the gap is real at the point a finger reaches,
+    // and the non-vacuity clause below pins the probe to such a point.
+    //
+    // THE DISCRIMINATION IS THE ONSET EDGE, e==4 or e>8, THE SAME ONE arc.ts
+    // TAKES IN THIS PLAN. The rejected alternative was "only a coalesced
+    // DOWNUP counts as a tap", and it is rejected by measurement twice over:
+    // the shipped src/lib/sim/touch.ts NEVER emits 9 - a 300 ms press and the
+    // fastest press a pointer can make both deliver 4 then 5 - so the feature
+    // would be invisible in the browser (PREV-01), and on hardware a
+    // deliberate tap aimed at a MIDI-learn button is exactly the slow kind
+    // that arrives as 4 then 5.
+    const entry = entryById("morph");
+    const base = knobValueOf(entry, "ccBase");
+    const setup = entry.source.kind === "lua" ? entry.source.setup : "";
+    // THE CORNER BASES ARE READ OUT OF THE ENTRY'S OWN self.k, never typed, so
+    // moving a corner reddens this test instead of escaping it.
+    const kDecl = /self\.k=\{([^}]*)\}/.exec(setup);
+    expect(kDecl, "morph: self.k must be declared in the Setup").not.toBe(null);
+    const K = (kDecl as RegExpExecArray)[1].split(",").map(Number);
+    expect(K.length, "morph: four corner blocks").toBe(4);
+    // The 2x2 block, in the entry's own words: cells k + d%2 + d//2*9.
+    const blockOf = (k: number): number[] =>
+      [0, 1, 2, 3].map((d) => k + (d % 2) + Math.floor(d / 2) * 9);
+    const cellOf = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    /** The bilinear weights the entry computes, in the entry's own order. */
+    const weightsAt = (x: number, y: number): number[] => {
+      const u = 127 - x;
+      const v = 127 - y;
+      return [
+        Math.floor((u * v) / 127),
+        Math.floor((x * v) / 127),
+        Math.floor((u * y) / 127),
+        Math.floor((x * y) / 127),
+      ];
+    };
+    /** A point in the middle of corner j's 2x2 block. */
+    const aimAt = (k: number): [number, number] => {
+      const column = (c: number): number[] => {
+        const out: number[] = [];
+        for (let t = 0; t <= 127; t += 1)
+          if (Math.floor((t * 9) / 128) === c) out.push(t);
+        return out;
+      };
+      const cx = k % 9;
+      const cy = Math.floor(k / 9);
+      const xs = [...column(cx), ...column(cx + 1)];
+      const ys = [...column(cy), ...column(cy + 1)];
+      return [xs[Math.floor(xs.length / 2)], ys[Math.floor(ys.length / 2)]];
+    };
+    const report: string[] = [];
+
+    for (let j = 0; j < 4; j += 1) {
+      const [x, y] = aimAt(K[j]);
+      const w = weightsAt(x, y);
+      // NON-VACUITY. At the exact extreme pixel three weights are 0 and 11-08
+      // already delivered one message, so a probe there would prove nothing.
+      // Every weight here is non-zero, so an unguarded card sends FOUR.
+      for (let n = 0; n < 4; n += 1)
+        expect(
+          w[n],
+          `morph: the probe for corner ${j + 1} must land where ALL FOUR ` +
+            "corners have a non-zero weight, or a one-message result is the " +
+            `old behaviour wearing the new one's clothes. Weights ${w.join(", ")}`,
+        ).toBeGreaterThan(0);
+      expect(
+        blockOf(K[j]),
+        `morph: the probe for corner ${j + 1} must be inside that corner's ` +
+          "own 2x2 block, derived from self.k",
+      ).toContain(cellOf(x, y));
+
+      for (const mode of ["slow", "fast"] as const) {
+        const { host } = await open(entry);
+        try {
+          if (mode === "fast") {
+            host.touchTap(0, x, y);
+            host.tick();
+          } else {
+            host.touchDown(0, x, y);
+            host.tick();
+            host.touchUp(0, x, y);
+            host.tick();
+          }
+          const sent = [...host.midi];
+          report.push(
+            `${mode.padEnd(4)} tap on corner ${j + 1} at (${x},${y}): ` +
+              `${sent.length} message(s) ` +
+              sent.map((m) => `(cc ${m.p1}, ${m.p2})`).join(" ") +
+              ` - unguarded this point is 4, weights ${w.join("/")}`,
+          );
+          // 1. EXACTLY ONE MESSAGE.
+          expect(
+            sent.length,
+            `morph: A CORNER TAP MUST SEND ONE MIDI MESSAGE (${mode} tap on ` +
+              `corner ${j + 1}). All four weights are non-zero here, so the ` +
+              `unguarded card sends 4. Observed ${sent.length}: ` +
+              sent.map((m) => `(cc ${m.p1}, ${m.p2})`).join(" "),
+          ).toBe(1);
+          // 2. AND IT IS THE RIGHT ONE. A card that always spoke for corner 1
+          //    would pass clause 1 and fail here, which is the difference
+          //    between counting messages and reading them.
+          expect(
+            sent[0].p1,
+            `morph: the one message must be THAT corner's. Corner ${j + 1} ` +
+              `owns cc ${base + j + 1}; cc ${sent[0].p1} arrived`,
+          ).toBe(base + j + 1);
+          expect(
+            sent[0].p2,
+            `morph: the value must be the corner's own bilinear weight at ` +
+              `(${x},${y})`,
+          ).toBe(w[j]);
+        } finally {
+          host.close();
+        }
+      }
+
+      // 3. FROM ELSEWHERE, not only from rest. 11-08's s.p is not reset or
+      //    bypassed by the corner branch, so a corner tap that arrives after a
+      //    stroke which left the other three non-zero still speaks once.
+      {
+        const { host } = await open(entry);
+        try {
+          host.touchDown(0, 64, 64);
+          host.tick();
+          for (let s = 0; s < 8; s += 1) {
+            host.touchMove(0, 64 + s, 64 - s);
+            host.tick();
+          }
+          host.touchUp(0, 71, 57);
+          host.tick();
+          const from = host.midi.length;
+          expect(
+            from,
+            "morph: the priming stroke sent nothing, so 'from elsewhere' is " +
+              "the same probe as 'from rest'",
+          ).toBeGreaterThan(3);
+          host.touchDown(0, x, y);
+          host.tick();
+          const sent = host.midi.slice(from);
+          report.push(
+            `after a stroke, corner ${j + 1}: ${sent.length} message(s) ` +
+              sent.map((m) => `(cc ${m.p1}, ${m.p2})`).join(" "),
+          );
+          expect(
+            sent.length,
+            `morph: a corner tap arriving FROM ELSEWHERE must still speak ` +
+              `once. Corner ${j + 1} sent ${sent.length}`,
+          ).toBe(1);
+          expect(sent[0].p1, `morph: and it must be corner ${j + 1}'s`).toBe(
+            base + j + 1,
+          );
+        } finally {
+          host.close();
+        }
+      }
+    }
+
+    // 4. THE CONTINUOUS MORPH IS UNMOVED, AND IT IS ASSERTED AGAINST A LITERAL
+    //    CAPTURED BEFORE THE CHANGE rather than against a count. 11-08 shipped
+    //    a first swipe shape whose output was indistinguishable from the bug
+    //    it was fixing, and a message count would have gone green on it. This
+    //    stroke starts at the centre cell - so its onset is NOT in a corner -
+    //    and runs the diagonal into the bottom-right block, so it also proves
+    //    that a MOVE sample crossing a corner still morphs.
+    const DIAGONAL_BEFORE = [
+      "16:31 17:31 18:31 19:32 16:30 19:33 16:29 19:34 16:28",
+      "19:35 16:27 19:36 16:26 19:37 16:25 19:38 16:24 19:39",
+      "16:23 19:40 16:22 19:41 17:30 18:30 19:43 16:21 19:44",
+      "16:20 19:45 16:19 19:46 16:18 19:47 17:29 18:29 19:49",
+      "16:17 19:50 16:16 19:51 16:15 19:52 17:28 18:28 19:54",
+      "16:14 19:55 16:13 19:56 17:27 18:27 19:58 16:12 19:59",
+      "16:11 19:60 17:26 18:26 19:62 16:10 19:63 17:25 18:25",
+      "19:65 16:9 19:66 17:24 18:24 19:68 16:8 19:69 17:23",
+      "18:23 19:71 16:7 19:72 17:22 18:22 19:74 16:6 19:75",
+      "17:21 18:21 19:77 16:5 19:78 17:20 18:20 19:80 16:4",
+      "19:81 17:19 18:19 19:83 17:18 18:18 19:85 16:3 19:86",
+      "17:17 18:17 19:88 17:16 18:16 19:90 16:2 19:91 17:15",
+      "18:15 19:93 17:14 18:14 19:95 17:13 18:13 19:97 16:1",
+      "19:98 17:12 18:12 19:100 17:11 18:11 19:102 17:10 18:10",
+      "19:104 16:0 19:105 17:9 18:9 19:107 17:8 18:8 19:109",
+      "17:7 18:7 19:111 17:6 18:6 19:113 17:5 18:5 19:115",
+      "17:4 18:4 19:117 17:3 18:3 19:119 17:2 18:2 19:121",
+      "17:1 18:1 19:123 17:0 18:0 19:125 19:127",
+    ]
+      .join(" ")
+      .split(" ");
+    {
+      const { host } = await open(entry);
+      try {
+        expect(
+          cellOf(64, 64),
+          "morph: the invariance stroke must NOT begin in a corner block",
+        ).toBe(40);
+        host.touchDown(0, 64, 64);
+        host.tick();
+        for (let t = 65; t <= 127; t += 1) {
+          host.touchMove(0, t, t);
+          host.tick();
+        }
+        host.touchUp(0, 127, 127);
+        host.tick();
+        const seq = host.midi.map((m) => `${m.p1}:${m.p2}`);
+        report.push(
+          `diagonal from the centre cell: ${seq.length} message(s), ` +
+            `${DIAGONAL_BEFORE.length} captured before the change`,
+        );
+        expect(
+          seq.join(" "),
+          "morph: THE CONTINUOUS MORPH MUST BE BYTE-IDENTICAL. This is the " +
+            "sequence a diagonal stroke from the centre emitted BEFORE the " +
+            "corner-tap branch existed, captured against the entry as 11-08 " +
+            "left it and committed as a literal. A corner branch that reached " +
+            "MOVE samples would truncate it here",
+        ).toBe(DIAGONAL_BEFORE.join(" "));
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nMORPH corner taps, plan 11-09.1:\n  " + report.join("\n  ") + "\n",
+    );
+    expect(
+      report.length,
+      "four corners times three probes, plus the stroke",
+    ).toBe(13);
+  }, 120000);
+
   it("moves ARC's heart and ARC's controller together, at three depths", async () => {
     // THE BENCH NOTE THIS ANSWERS: "cannot see amplitude need visual feedback
     // for that" (plan 11-09).
