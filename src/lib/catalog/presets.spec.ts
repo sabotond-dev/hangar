@@ -36,41 +36,21 @@ import {
   type PadPreset,
 } from "../../vendor/botor/_pad";
 import { padReady } from "../pad/ready";
+// THE TABLE MOVED OUT OF THIS FILE IN PLAN 11-06, AND ONLY THE TABLE.
+// catalog.spec.ts and frames.spec.ts both hold a HANGAR value against a
+// VENDORED one too - names and sentences in the first, golden frames in the
+// second - so both need to read the same record this file reads. A spec file
+// cannot be imported by another spec file without its `describe` blocks
+// registering twice, so the const had to become a module for a second reader to
+// exist at all. Everything else about the gate is unchanged, including the
+// header above and the assertion below that it is still there.
+import { INTENDED_DIVERGENCE } from "./divergence";
 import { PRESETS, presetById } from "./presets";
 
 const SOURCE = readFileSync(
   new URL("./presets.spec.ts", import.meta.url),
   "utf8",
 );
-
-/**
- * A deliberate difference between HANGAR's declared preset and the vendored one
- * it was taken from. Same shape as upstream-manifest.json's intendedDivergence
- * and preset-baseline.spec.ts's own table, and for the same reason: the record
- * has to say WHY, or it is a diff a reader could have got from git.
- *
- * `path` is the full field path as test 1 reports it - `state.sends.grid`,
- * never `state`. `hangar` and `vendored` are BOTH required and are compared
- * against the real values, so a row cannot suppress a field it does not
- * actually describe.
- *
- * EMPTY WHEN PLAN 11-05 LANDED IT, AND EMPTY IS LEGIBLE HERE AS "NOT YET
- * SPENT", NOT AS "NOTHING TO DECLARE". Plan 11-06 fills it with the five
- * preset bench asks. That ordering is deliberate and it matches 11-03: the
- * record is proved to work - by the three negative checks 11-05 ran against it -
- * before anything is put in it.
- */
-interface PresetDivergence {
-  preset: string;
-  path: string;
-  hangar: unknown;
-  vendored: unknown;
-  reason: string;
-  plan: string;
-  dated: string;
-}
-
-const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [];
 
 /** `11-06`. Narrow on purpose; see the failure message in test 2. */
 const PLAN_ID = /^11-[0-9]{2}$/;

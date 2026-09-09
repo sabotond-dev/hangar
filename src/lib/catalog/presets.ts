@@ -94,39 +94,59 @@ export const PRESETS: readonly PadPreset[] = [
   preset(
     "aurora",
     "Aurora",
-    "A band of light crosses the pad, and your finger leaves a glowing tail behind it.",
+    "A band of light crosses the pad, your finger leaves a glowing tail, and the pad sends your position.",
     "looks",
     ["colour", "speed", "direction", "size"],
-    () => {
-      // The default state is this card.
+    (d) => {
+      // The default state was this card until plan 11-06. The user's bench
+      // note is "send MIDI", and an xy stream is the one field that answers
+      // it - the same field RADAR already ships for the same words.
+      //
+      // `fingers` is "first" and not "each" on purpose. "each" measures 320
+      // against "first"'s 415, so the cheaper option was the one NOT taken:
+      // a per-finger stream reads at the host as several controllers at
+      // once, and the user asked for MIDI rather than for a finger policy.
+      d.sends.kind = "xy";
+      d.sends.fingers = "first";
     },
-    { setup: 250, timer: 55 },
+    { setup: 415, timer: 55 },
   ),
   preset(
     "pinwheel",
     "Pinwheel",
-    "Light turns around the centre, and each finger paints in its own colour.",
+    "Light turns around the centre, each finger paints in its own colour, and the pad sends your position.",
     "looks",
     ["colour", "speed", "count"],
     (d) => {
       d.look.kind = "swirl";
       d.look.colour = { r: 0, g: 110, b: 255 };
       d.touch.kind = "perFinger";
+      // "make this send MIDI" (bench, 2026-09-09). The per-finger paint above
+      // is a LOOK; the wire policy below is deliberately "first", for the
+      // reason written out on aurora.
+      d.sends.kind = "xy";
+      d.sends.fingers = "first";
     },
-    { setup: 312, timer: 55 },
+    { setup: 477, timer: 55 },
   ),
   preset(
     "starfield",
     "Starfield",
-    "Every light breathes at its own pace, so the pad never repeats itself.",
+    "Every light breathes at its own pace, so the pad never repeats itself, and it sends your position.",
     "looks",
     ["colour", "feel"],
     (d) => {
       d.look.kind = "shimmer";
       d.look.colour = { r: 119, g: 153, b: 255 };
       d.touch.kind = "comet";
+      // "should send midi" (bench, 2026-09-09). Same one field as aurora and
+      // pinwheel, which is why the roadmap's "three of the eight need no new
+      // behaviour" is four: STARFIELD's stuck colour was the hard half and
+      // plan 11-04 fixed it at its source in the decay start.
+      d.sends.kind = "xy";
+      d.sends.fingers = "first";
     },
-    { setup: 238, timer: 55 },
+    { setup: 403, timer: 55 },
   ),
   preset(
     "radar",

@@ -18,6 +18,7 @@ import {
   previewFor,
   ZONA_MODULE_TYPE,
 } from "./index";
+import { declaredDivergence } from "./divergence";
 
 // CONT-03's gate. Exactly ten tests, and every one of them loops over the
 // entries INTERNALLY and names the offending entry in its message. That is
@@ -106,23 +107,65 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
   // module under test - it is a genuine comparison between HANGAR's nine and
   // BOTOR's, and it only became one when that import moved. Before 11-05 both
   // sides of these two assertions were literally the same object.
+  //
+  // PLAN 11-06 SPENT THREE ROWS OF THE DIVERGENCE RECORD AGAINST THIS TEST, AND
+  // THE TEST STILL COMPARES FIRST. AURORA's, PINWHEEL's and STARFIELD's
+  // sentences each gained a clause naming what the card now sends, so three of
+  // the nine descriptions no longer equal BOTOR's. The allowance is NOT a skip
+  // list: the comparison is made for all nine, and only a mismatch consults
+  // src/lib/catalog/divergence.ts - so a card whose sentence drifts without a
+  // row is still red, and a row whose card came back into agreement is caught
+  // by presets.spec.ts test 2 rather than left standing here.
   it("agrees with the vendored shelf on every ported name and description", () => {
     expect(presetEntries.length, "there are ported entries").toBeGreaterThan(0);
+    let compared = 0;
+    let allowed = 0;
     for (const entry of presetEntries) {
       if (entry.source.kind !== "preset") throw new Error("unreachable");
-      const preset = presetById(entry.source.presetId);
+      const id = entry.source.presetId;
+      const preset = presetById(id);
       expect(
         preset,
-        `${entry.id}: presetId "${entry.source.presetId}" is on the shelf`,
+        `${entry.id}: presetId "${id}" is on the shelf`,
       ).toBeDefined();
-      expect(entry.name, `${entry.id}: name matches the preset`).toBe(
-        preset?.name,
-      );
-      expect(
-        entry.description,
-        `${entry.id}: description matches the preset sentence`,
-      ).toBe(preset?.sentence);
+
+      for (const [path, mine, theirs] of [
+        ["name", entry.name, preset?.name],
+        ["sentence", entry.description, preset?.sentence],
+      ] as const) {
+        compared += 1;
+        if (mine === theirs) continue;
+        const row = declaredDivergence(id, path);
+        expect(
+          row,
+          `${entry.id} at ${path}: HANGAR says ${JSON.stringify(mine)} where ` +
+            `the vendored shelf says ${JSON.stringify(theirs)}, and NOBODY ` +
+            `DECLARED IT. HANGAR owns the nine values since plan 11-05, so ` +
+            `this is allowed - but it has to be written down in ` +
+            `src/lib/catalog/divergence.ts with this exact path, both values, ` +
+            `a reason, a plan id and a date, or reverted.`,
+        ).toBeDefined();
+        expect(
+          row?.hangar,
+          `${entry.id} at ${path}: the row's \`hangar\` value is stale`,
+        ).toBe(mine);
+        expect(
+          row?.vendored,
+          `${entry.id} at ${path}: the row's \`vendored\` value is stale`,
+        ).toBe(theirs);
+        allowed += 1;
+      }
     }
+    // Both counted, so an allowance list that quietly grew to cover everything
+    // cannot pass as a comparison. Eighteen strings, three of them declared.
+    expect(compared, "two strings per ported entry were compared").toBe(
+      presetEntries.length * 2,
+    );
+    expect(
+      allowed,
+      "the strings HANGAR deliberately diverges on; every other one matched " +
+        "the vendored shelf exactly",
+    ).toBeLessThan(compared);
   });
 
   it("carries all nine shelf presets, each exactly once", () => {

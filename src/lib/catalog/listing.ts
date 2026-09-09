@@ -124,7 +124,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "aurora",
     name: "Aurora",
     description:
-      "A band of light crosses the pad, and your finger leaves a glowing tail behind it.",
+      "A band of light crosses the pad, your finger leaves a glowing tail, and the pad sends your position.",
     motion: "animated",
     tags: ["show", "generative", "expressive"],
     featured: true,
@@ -135,7 +135,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "pinwheel",
     name: "Pinwheel",
     description:
-      "Light turns around the centre, and each finger paints in its own colour.",
+      "Light turns around the centre, each finger paints in its own colour, and the pad sends your position.",
     motion: "animated",
     tags: ["show", "generative", "expressive"],
     featured: true,
@@ -146,7 +146,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "starfield",
     name: "Starfield",
     description:
-      "Every light breathes at its own pace, so the pad never repeats itself.",
+      "Every light breathes at its own pace, so the pad never repeats itself, and it sends your position.",
     motion: "animated",
     tags: ["show", "generative", "readable"],
     featured: false,
