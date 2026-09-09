@@ -41,6 +41,26 @@
 // THE HONEST LIMIT, for the card copy: cells on the same ring share a pitch.
 // That is the point rather than a compromise - ring is voice, angle is time.
 //
+// THE SWEEP'S DECAY PAIR IS THE HOUSE IDIOM AND MUST STAY THAT WAY (11-02).
+// It shipped glpfs(a,2,255,250,0) with glt(a,2,42), and that pair can NEVER
+// land on phase 0: glpfs walks the phase with `pha += fre` on a uint8_t, 255 is
+// odd, the step 256 - 250 = 6 is even, so 255 - 6T is odd at every T and never
+// reaches zero. Every cell the sweep touched froze part-way down and stayed
+// permanently, faintly lit with nothing coming back to clear it.
+//
+// It now writes glpfs(a,2,252,250,0) - the same idiom at T = 42, since the step
+// is 6, 6 x 42 = 252 and 252 - 252 = 0 exactly. THE TIMEOUT DID NOT MOVE,
+// deliberately: the trail is the same 420 ms it always was and only the
+// starting phase changed. Cost: +0 characters.
+//
+// AND THE RESIDUE WAS NOT INVISIBLE HERE, contrary to what 11-02 predicted.
+// frames.json, which records an UNTOUCHED run, went 194 -> 96 lit bytes at tick
+// 500 and 188 -> 78 at tick 1009. Roughly half the pad was permanent glow left
+// behind by the sweep's own Timer, on a card nobody had to touch.
+//
+// src/lib/catalog/decay-idiom.spec.ts holds the rule, the arithmetic and the
+// list of usable timeouts, and it is CITED here rather than restated.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier: Setup 432 characters, Timer 279, both fixed
@@ -59,7 +79,7 @@ const SETUP =
   "--[[@cb]]self.a={}self.o={}self.v={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end self.touch_cb=function(s,i,e,x,y)if e~=4 and e~=9 then return end local n=x*9//128+y*9//128*9 s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@PERIOD)local s=self local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,255,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
+  "--[[@cb]]gtt(0,@PERIOD)local s=self local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 

@@ -27,6 +27,22 @@
 // some unrelated controller. It is the one place in this phase where a knob
 // costs something, and it is worth it.
 //
+// THE TIMER'S DECAY PAIR IS THE HOUSE IDIOM AND MUST STAY THAT WAY (11-02).
+// It shipped glpfs(a,l,255,250,0) with glt(a,l,42), and that pair can NEVER
+// land on phase 0: glpfs walks the phase with `pha += fre` on a uint8_t, 255 is
+// odd, the step 256 - 250 = 6 is even, so 255 - 6T is odd at every T and never
+// reaches zero. The comet froze part-way down and every cell it crossed stayed
+// permanently, faintly lit.
+//
+// It now writes glpfs(a,l,252,250,0) - the same idiom at T = 42, since the step
+// is 6, 6 x 42 = 252 and 252 - 252 = 0 exactly. THE TIMEOUT DID NOT MOVE and
+// the cost is +0 characters. GHOST is rewritten from scratch in plan 11-11; it
+// is fixed here anyway, so the gate that lands in 11-02 is green when the
+// redesign inherits it rather than being something the redesign must remember.
+//
+// src/lib/catalog/decay-idiom.spec.ts holds the rule, the arithmetic and the
+// list of usable timeouts, and it is CITED here rather than restated.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier - Setup 305 characters - except for the Timer,
@@ -45,7 +61,7 @@ const SETUP =
   "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end self.g={}self.n=0 self.j=0 self.touch_cb=function(s,i,e,x,y)if i>0 then if e==4 then s.g={}s.n=0 s.j=0 for a=0,80 do glp(a,1,0)end end return end if e==3 or e>=5 then s.h=nil return end s.h=1 s.x=x s.y=y end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,x*9//128+y*9//128*9)local l=s.h and 1 or 2 glpfs(a,l,255,250,0)glt(a,l,42)end";
+  "--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,x*9//128+y*9//128*9)local l=s.h and 1 or 2 glpfs(a,l,252,250,0)glt(a,l,42)end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 

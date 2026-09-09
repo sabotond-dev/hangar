@@ -10,9 +10,38 @@
 // The look is a blue/violet chessboard on layer 1, painted at phase 255 from
 // Setup - which is why restsBlack is false - and, on every press, a warm amber
 // bloom expanding outward from the pad you hit. The bloom is 81 glpfs calls in
-// one burst and then zero Lua for 0.64 s: the LED engine's own phase-from-start
-// argument does the expansion, and math.sqrt of the cell's distance from the
-// pressed pad is what makes it a circle rather than a square.
+// one burst and then zero Lua for up to 0.64 s: the LED engine's own
+// phase-from-start argument does the expansion, and math.sqrt of the cell's
+// distance from the pressed pad is what makes it a circle rather than a square.
+//
+// THE BLOOM USES THE COMPUTED DECAY FORM, AND IT MUST (plan 11-02, class A).
+// The starting phase is per cell, so a FIXED timeout cannot land it on zero:
+// glpfs walks the phase around a 256-value ring with `pha += fre` on a uint8_t,
+// and whatever phase the countdown expires on is where the cell stays, forever.
+// The shipped pair was start 255 - dist*22 with rate @BLOOMRATE and glt 64, and
+// @BLOOMRATE * 64 mod 256 is 0 for every multiple of four - so every one of the
+// 81 cells froze at exactly the brightness it opened on and the whole pad kept
+// a permanent amber wash. That is the bench report "colour stucks after
+// touching it", word for word.
+//
+// The form it now uses is the one src/lib/catalog/decay-idiom.spec.ts's header
+// carries, rescued out of gridlock.ts before that file was deleted: DERIVE THE
+// TIMEOUT FROM THE START.
+//
+//     local w=glim(248 - dist*@SPREAD//4*4, 0, 248)
+//     glpfs(a,2,w,4,0)  glt(a,2,(256-w)//4)
+//
+// The rate is fixed at 4, w is a multiple of 4 by construction, and
+// w + 4*((256-w)/4) = 256 = 0 for every cell. glim is not decoration: it holds
+// w inside 0..248 so the timeout stays inside 2..64 and can never be the 0 that
+// CANCELS a countdown rather than scheduling one.
+//
+// TWO CONSEQUENCES, both real and both stated rather than discovered later.
+// The leading edge is very slightly dimmer, because the start is a multiple of
+// four capped at 248 instead of 255 - frames.json records the new picture. And
+// the bloom now passes ONCE and dies, where the old pair cycled the ring for a
+// fixed 0.64 s and could show two or three ripples at a high rate. That is the
+// fix, not a side effect: the third ripple was the one that never went out.
 //
 // THE TIMER IS A PER-CONTACT CHORD WATCHDOG, not an animator. Touch enqueue is
 // change-gated per contact, so a finger held perfectly still emits no further
@@ -27,9 +56,9 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 729 characters, Timer 173, both fixed
+// against the pinned minifier: Setup 760 characters, Timer 173, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 733 / 174, against a budget of 908 an
+// corner of the six-knob cross-product is 763 / 174, against a budget of 908 an
 // event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -39,7 +68,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.z={}self.t={}self.touch_cb=function(s,i,e,x,y)s.t[i]=0 local z=x*3//128+y*3//128*3 if e==3 or e>=5 then z=nil end local o=s.z[i]if o==z then return end if o then for j=1,3 do s:gms(@CH,128,s.h[o][j],0,0)end end if z then for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local a=glag(0,n)glpfs(a,2,255-math.sqrt(p*p+q*q)*22//1,@BLOOMRATE,0)glt(a,2,64)end end s.z[i]=z end gtt(0,100)";
+  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.z={}self.t={}self.touch_cb=function(s,i,e,x,y)s.t[i]=0 local z=x*3//128+y*3//128*3 if e==3 or e>=5 then z=nil end local o=s.z[i]if o==z then return end if o then for j=1,3 do s:gms(@CH,128,s.h[o][j],0,0)end end if z then for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end end s.z[i]=z end gtt(0,100)";
 
 const TIMER =
   "--[[@cb]]gtt(0,100)local s=self for i,z in pairs(s.z)do local t=(s.t[i]or 0)+1 s.t[i]=t if t>20 then for j=1,3 do s:gms(@CH,128,s.h[z][j],0,0)end s.z[i]=nil s.t[i]=nil end end";
@@ -112,14 +141,39 @@ export const CHORUS: CatalogEntry = {
     },
     {
       id: "bloomSpeed",
-      label: "Bloom speed",
+      label: "Bloom spread",
       kind: "speed",
-      token: "@BLOOMRATE",
-      // The decay rate handed to glpfs, in phase units per tick. Small is slow:
-      // at 2 the bloom takes about 1.3 s to cross the pad, at 12 it is a flash.
-      // NEVER a keeper - this layer carries a decaying burst, and the paired
-      // glt timeout of 64 is a countdown the engine is meant to finish.
-      values: ["2", "4", "6", "8", "12"],
+      token: "@SPREAD",
+      // THIS KNOB CHANGED MEANING IN PLAN 11-02, AND THE CHANGE IS NAMED RATHER
+      // THAN SLIPPED IN. It used to be @BLOOMRATE - the phase step handed to
+      // glpfs - and the rate is now FIXED AT 4 so the per-cell timeout can be
+      // derived from the per-cell starting phase (see the header). What the
+      // knob controls now is the SPREAD: how many phase units of head start
+      // each unit of distance from the pressed pad gives up. Larger is a slower,
+      // wider-travelling ring; smaller is a flatter flash where the whole pad
+      // finishes at once.
+      //
+      // EVERY VALUE IS A MULTIPLE OF FOUR, exactly as GRIDLOCK's @SPREAD was and
+      // for the same reason: the derived timeout is (256 - w)//4 and it has to
+      // be exact, or a ring is stranded part-way down with no Timer to repaint
+      // it. The four is not arbitrary either - it is the glpfs rate, and the two
+      // must stay equal.
+      //
+      // THE CEILING IS 24, NOT 32. The farthest cell from a corner pad's centre
+      // is sqrt(7*7 + 7*7) = 9.9 units away, so a spread above 25 drives the
+      // starting phase below zero, glim clamps it to 0, and every cell past that
+      // distance dies on the same tick instead of in sequence. 24 is the largest
+      // multiple of four that keeps the whole ring travelling.
+      //
+      // NEVER A KEEPER - this layer carries a decaying burst, and the derived
+      // countdown is one the engine is meant to finish.
+      //
+      // THE KNOB ID DOES NOT MOVE. src/lib/share/fixtures/wild-stamps.json holds
+      // two CHORUS records keyed on "bloomSpeed" (indices 1 and 4), captured
+      // byte-for-byte at b3f99bb; renaming the id would break a fixture whose
+      // whole value is that it was never regenerated. The arity does not move
+      // either, for the same reason - index 4 must still resolve.
+      values: ["8", "12", "16", "20", "24"],
       default: 1,
     },
     {

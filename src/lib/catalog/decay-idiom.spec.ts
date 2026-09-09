@@ -102,11 +102,18 @@
 // `p` can take must be a multiple of R. GRIDLOCK discharged that by declaring
 // R = 4 and constraining `@SPREAD` to multiples of four.
 //
-// A COMPUTED START WITH A FIXED TIMEOUT IS THE BUG. CHORUS ships
+// A COMPUTED START WITH A FIXED TIMEOUT IS THE BUG, and CHORUS was the case.
+// Until plan 11-02 it shipped
 // `glpfs(a,2,255-math.sqrt(p*p+q*q)*22//1,@BLOOMRATE,0)` with `glt(a,2,64)`,
 // and `@BLOOMRATE * 64 mod 256` is 0 for every rate that is a multiple of 4 -
-// so the layer freezes at exactly the brightness it opened on and the colour
-// sticks. That is the user's bench report, derived.
+// so the layer froze at exactly the brightness it opened on and the colour
+// stuck. That is the user's bench report, derived.
+//
+// `entries/chorus.ts` IS NOW THE LIVE WORKED EXAMPLE OF THIS ARM, and it is
+// cited rather than restated: see the block above its Setup and its @SPREAD
+// knob, which carries the multiple-of-four guarantee the gate cannot see.
+// GRIDLOCK held that role and was deleted by 11-01, which left this arm
+// unexercised by any shipped entry for exactly one plan.
 //
 // ---------------------------------------------------------------------------
 // 4. WHAT THIS FILE DOES NOT CHECK
@@ -153,53 +160,12 @@ type KnownViolation = {
 };
 
 const KNOWN_VIOLATIONS: readonly KnownViolation[] = [
-  {
-    entry: "euclid",
-    event: "timer",
-    glpfs: "glpfs(a,2,255,250,0)",
-    glt: "glt(a,2,@TRAIL)",
-    frozen:
-      "@TRAIL 21 -> 129, 42 -> 3, 64 -> 127, 100 -> 167, 150 -> 123. " +
-      "Start 255 is odd and the step 6 is even, so NO timeout can reach 0",
-    closedBy: "11-02",
-  },
-  {
-    entry: "ghost",
-    event: "timer",
-    glpfs: "glpfs(a,l,255,250,0)",
-    glt: "glt(a,l,42)",
-    frozen: "3",
-    closedBy: "11-02",
-  },
-  {
-    entry: "morph",
-    event: "setup",
-    glpfs: "glpfs(a,2,255,250,0)",
-    glt: "glt(a,2,@DECAY)",
-    frozen:
-      "@DECAY 20 -> 135, 42 -> 3, 80 -> 31, 120 -> 47. " +
-      "Start 255 is odd and the step 6 is even, so NO value can reach 0",
-    closedBy: "11-02",
-  },
-  {
-    entry: "sonar",
-    event: "timer",
-    glpfs: "glpfs(a,2,255,250,0)",
-    glt: "glt(a,2,42)",
-    frozen: "3",
-    closedBy: "11-02",
-  },
-  {
-    entry: "chorus",
-    event: "setup",
-    glpfs: "glpfs(a,2,255-math.sqrt(p*p+q*q)*22//1,@BLOOMRATE,0)",
-    glt: "glt(a,2,64)",
-    frozen:
-      "the opening brightness itself at @BLOOMRATE 4, 8 and 12, because " +
-      "rate*64 mod 256 is 0 for every multiple of 4; opening brightness " +
-      "plus 128 at 2 and 6",
-    closedBy: "11-02",
-  },
+  // EMPTY, AND THAT IS THE POINT. Plan 11-01 opened this table with five rows -
+  // euclid.timer, ghost.timer, morph.setup, sonar.timer and chorus.setup - and
+  // plan 11-02 closed all five. The type and the tests stay, because the table
+  // is the mechanism by which a NEW violation is admitted deliberately rather
+  // than discovered later, and a mechanism deleted the day it empties is a
+  // mechanism that has to be reinvented by whoever next needs it.
 ];
 
 // ---------------------------------------------------------------------------
@@ -498,10 +464,15 @@ function allSites(): Site[] {
  * Does the timeout DERIVE from the start, in GRIDLOCK's computed shape?
  *
  * `glpfs(a,l,p,R,0)` plus `glt(a,l,(256-p)//R)` lands on 0 for every `p` that R
- * divides, so a site of that shape is accepted WITHOUT resolving `p`. This is
- * the arm 11-02 will bring CHORUS into; no entry shipping today uses it,
- * because the one that did - GRIDLOCK - is deleted by this same plan, and that
- * is said here rather than left for a reader to discover.
+ * divides, so a site of that shape is accepted WITHOUT resolving `p`. CHORUS's
+ * bloom is the one shipped site of this shape, brought into it by 11-02;
+ * GRIDLOCK held the role before 11-01 deleted it.
+ *
+ * WHAT THIS ARM CANNOT SEE, said plainly because accepting a site without
+ * resolving it is a real weakening: that every value `p` can take really is a
+ * multiple of R. That guarantee is owed by the ENTRY, in its own source, and
+ * CHORUS discharges it by rounding the distance term down to a multiple of four
+ * and clamping with glim.
  */
 function derivesTimeout(site: Site): boolean {
   return (
@@ -698,12 +669,25 @@ describe("the decay idiom", () => {
     expect(problems.join("\n\n"), "the violations table is honest").toBe("");
 
     // The record itself, printed so a reader of a green run still sees it.
+    // 11-01 printed five rows here; 11-02 closed all five, so what a green run
+    // now prints is the empty roll and that is the record.
     const roll = KNOWN_VIOLATIONS.map(
       (row) =>
         `${row.entry}.${row.event}: ${row.glpfs} + ${row.glt} freezes at ` +
         `${row.frozen} (closed by ${row.closedBy})`,
     ).join("\n");
-    expect(roll, "five rows, each with its frozen phase").toContain("chorus");
-    expect(KNOWN_VIOLATIONS.length, "the open class-A sites").toBe(5);
+    expect(roll, "no open class-A site is on the record").toBe("");
+    expect(KNOWN_VIOLATIONS.length, "the open class-A sites").toBe(0);
+
+    // AND THE NON-VACUITY HALF, so an empty table cannot make this file a
+    // no-op. Tests 1 and 2 assert their site counts are above zero, and this
+    // asserts the same thing from the other side: with nothing excused, every
+    // decay site in the catalog is being CHECKED rather than merely counted.
+    const checked = sites.filter((site) => recorded(site) === undefined);
+    expect(
+      checked.length,
+      "every decay site in the catalog is checked, none excused",
+    ).toBe(sites.length);
+    expect(sites.length, "there are decay sites to check").toBeGreaterThan(0);
   });
 });

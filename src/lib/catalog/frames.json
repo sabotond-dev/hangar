@@ -299,26 +299,26 @@
       },
       {
         "tick": 37,
-        "sha256": "7555f3fbb2899706d5bb3f9272749a938450c415283535ea1daf3c7f2915c793",
+        "sha256": "fbf5e753419967d3353477c6c8238dba7703a91609a77b4d51db88415ac1bb16",
         "nonZeroBytes": 45,
         "animating": true
       },
       {
         "tick": 101,
-        "sha256": "02216841eaef8d3201a418a4d1a63211f18ca8fe82d72da352f823d5deb670cb",
-        "nonZeroBytes": 73,
+        "sha256": "bf6a7a89ec0ad828238f1ffbbce15ef71750b15a330581fd1518fa6e7646a795",
+        "nonZeroBytes": 50,
         "animating": true
       },
       {
         "tick": 500,
-        "sha256": "060969153e2cfd50309837dfb768d090dd937031164283bbfbdffc1c4922b289",
-        "nonZeroBytes": 111,
+        "sha256": "a5a2d8adb2fe0bbdd0b325e954250b4090bae4dcc5b152a696c3664619e4f578",
+        "nonZeroBytes": 51,
         "animating": true
       },
       {
         "tick": 1009,
-        "sha256": "4cec8ae27f0bc6be0faa6919bc5a9c85127ef8157a23b659afde0684f7e1ca02",
-        "nonZeroBytes": 111,
+        "sha256": "e21cd5611db6f1cf9cca40ecf286ddf27453db774aced2f9fe937e5133cf1504",
+        "nonZeroBytes": 45,
         "animating": true
       }
     ],
@@ -491,26 +491,26 @@
       },
       {
         "tick": 37,
-        "sha256": "5ec9d450f86ae4928ac1052e5ca28b84d86c9240a6cb5ca5ed24d4f44d80788c",
+        "sha256": "41c2df793cbc50459ed98377dbb2563f5bdf27a0cfcb26e8b55e3dc36b5b2879",
         "nonZeroBytes": 81,
         "animating": true
       },
       {
         "tick": 101,
-        "sha256": "fab203f3ab1164e81cfdab6f94ee1cd0036a74885cde03dc5a00aafcc1638b08",
-        "nonZeroBytes": 184,
+        "sha256": "84c2b7e08be3d1aece284b66a40a5fafaa6e5dc05426a717c5d700266ea21aa7",
+        "nonZeroBytes": 102,
         "animating": true
       },
       {
         "tick": 500,
-        "sha256": "8dc7181880da77f467ff592d1e132ef9086e4e6caf21cd3ce0ba5c2225cf717b",
-        "nonZeroBytes": 194,
+        "sha256": "f27cc0e296889beef4d25f9ca1036e2fd9bf741e86c2b5c25d699685bf0fb55f",
+        "nonZeroBytes": 96,
         "animating": true
       },
       {
         "tick": 1009,
-        "sha256": "1d71b6aecc1b97af438b9a82e3382e46ffdf40f01190d7b9ad479ac4a5261375",
-        "nonZeroBytes": 188,
+        "sha256": "4f09be39fc64b4374b5e897d7ff0e9b8d4b0c5c46ec9d0e9d1924d16588a7928",
+        "nonZeroBytes": 78,
         "animating": true
       }
     ],

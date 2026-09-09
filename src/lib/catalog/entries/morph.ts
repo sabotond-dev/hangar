@@ -15,8 +15,10 @@
 //
 // MORPH HAS NO TIMER, AND THAT IS THE RIGHT ANSWER RATHER THAN AN OMISSION.
 // Its only animation is a per-touch decay, which is self-limiting: the cells
-// under your finger are handed glpfs(a,2,255,250,0) plus glt(a,2,<trail>) and
-// then die on their own. There is nothing for a Timer to advance.
+// under your finger are handed glpfs(a,2,252,256-252//@DECAY,0) plus
+// glt(a,2,@DECAY) and then die on their own. There is nothing for a Timer to
+// advance - which is also why nothing was ever coming back to clear the cells
+// the old pair left stranded. See the class-A note below.
 //
 // DO NOT ADD THE STANDARD KEEPER. The reflex is to write
 // "for a=0,80 do glt(a,L,65535) end" into a Timer so a layer never expires.
@@ -33,6 +35,40 @@
 // at all - which is what firmware does too, since gtt is a no-op until the
 // Timer event holds at least one stored action.
 //
+// THE COMET'S DECAY PAIR IS THE HOUSE IDIOM, AND @DECAY'S VALUES ARE PART OF
+// IT (plan 11-02). Setup shipped glpfs(a,2,255,250,0) with glt(a,2,@DECAY), and
+// that pair can NEVER land on phase 0 at any value: glpfs walks the phase with
+// `pha += fre` on a uint8_t, 255 is odd, the step 256 - 250 = 6 is even, so
+// 255 - 6T is odd at every T. Re-choosing @DECAY could not have fixed it - the
+// STARTING PHASE had to move. Measured in the simulator, every crossed cell was
+// left at rgb [47,66,66] forever, and MORPH HAS NO TIMER, so nothing was ever
+// going to repaint it. That is the bench report "the LED's colors stuck again".
+//
+// It now writes glpfs(a,2,252,256-252//@DECAY,0), the parameterised house idiom
+// steps.ts and cull.ts already ship: start at 252, step 252//T, land on
+// 252 - T*(252//T) = 0 whenever T is an EXACT DIVISOR of 252. Cost: +8
+// characters at the defaults, +9 at the all-longest corner.
+//
+// @DECAY'S VALUES MOVED WITH IT, AND A SHARED LINK IS THE PRICE. 20, 80 and 120
+// do not divide 252, so they became 21, 84 and 126 - the nearest legal value to
+// each, same arity, still ascending, 42 already legal and untouched. A stamp
+// encodes the knob's INDEX, not its value, so every link anybody has ever
+// shared still decodes and still restores; a link carrying index 3 now renders
+// a 1260 ms trail where it used to render a 1200 ms one. stamp.spec.ts compares
+// indices and stays green either way, so no test says this out loud and this
+// comment does.
+//
+// src/lib/catalog/decay-idiom.spec.ts holds the rule, the arithmetic and the
+// list of usable timeouts, and it is CITED here rather than restated.
+//
+// MORPH'S BENCH NOTE HAS THREE CLAUSES AND 11-02 ANSWERS ONE. "mapping mode
+// needed in, if something doesn't change don't send it don't send 0 value, also
+// the LED's colors stuck again" - the stuck colours are the class-A fix above
+// and the class-B fix below. The SUPPRESSION clause (a per-contact last-sent
+// guard) belongs to plan 11-08, and "mapping mode" is a question at 11-09's
+// checkpoint because it admits two readings. Do not read this file's fix as an
+// answer to the whole note.
+//
 // THE TOKEN FOR THE TRAIL LENGTH IS @DECAY, NOT @TRAIL. renderLua substitutes
 // by plain string replacement, so a token that is a PREFIX of another token is
 // eaten or corrupted depending on knob order - "@TRAIL" inside "@TRAILC" would
@@ -45,9 +81,9 @@
 //
 // THE STRING BELOW IS A TEMPLATE OVER CANONICAL LUA. Rendered at the defaults
 // by renderLua it is byte-identical to the canonical text measured against the
-// pinned minifier: Setup 507 characters, a fixed point of compressScript and
+// pinned minifier: Setup 515 characters, a fixed point of compressScript and
 // accepted by checkSyntax. The all-longest corner of the five-knob
-// cross-product is 510, against a budget of 908 an event.
+// cross-product is 519, against a budget of 908 an event.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -57,7 +93,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 then return end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do s:gms(@CH,176,@CCB+j,w[j],0)local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,w[j]*2)end end local a=glag(0,x*9//128+y*9//128*9)glpfs(a,2,255,250,0)glt(a,2,@DECAY)end";
+  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 then return end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do s:gms(@CH,176,@CCB+j,w[j],0)local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,w[j]*2)end end local a=glag(0,x*9//128+y*9//128*9)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
 
 // THE TIMER IS THE EMPTY STRING, WRITTEN INLINE. See the header: MORPH has no
 // Timer EVENT, and a named constant holding nothing would only invite someone
@@ -152,7 +188,13 @@ export const MORPH: CatalogEntry = {
       // header on the prefix hazard. These are countdowns and nothing here is
       // anywhere near keeper height, so the pitfall-1 guard stays quiet by
       // construction rather than by exemption.
-      values: ["20", "42", "80", "120"],
+      //
+      // EVERY VALUE IS AN EXACT DIVISOR OF 252, because the emitted rate is
+      // 256 - 252//@DECAY and the phase starts at 252, so the walk lands on
+      // exactly 0 only when the division is exact. 20, 80 and 120 were not, and
+      // became 21, 84 and 126 in plan 11-02 - see the header for what that does
+      // to a link somebody already shared.
+      values: ["21", "42", "84", "126"],
       default: 1,
     },
     {

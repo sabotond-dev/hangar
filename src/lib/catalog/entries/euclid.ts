@@ -10,9 +10,39 @@
 // with a short decay behind it. The three ring lengths beat against each other
 // on a 48-tick cycle. Tapping a cell toggles that step.
 //
+// THE TRAIL'S DECAY PAIR IS THE HOUSE IDIOM, AND @TRAIL'S VALUES ARE PART OF
+// IT (plan 11-02). The Timer shipped glpfs(a,2,255,250,0) with glt(a,2,@TRAIL),
+// and that pair can NEVER land on phase 0 at any value: glpfs walks the phase
+// with `pha += fre` on a uint8_t, 255 is odd, the step 256 - 250 = 6 is even,
+// so 255 - 6T is odd at every T. Re-choosing @TRAIL could not have fixed it -
+// the STARTING PHASE had to move. Every ring cell the head passed over froze
+// part-way down and stayed permanently, faintly lit.
+//
+// It now writes glpfs(a,2,252,256-252//@TRAIL,0), which is the parameterised
+// house idiom steps.ts and cull.ts already ship: start at 252, step 252//T, land
+// on 252 - T*(252//T) = 0 whenever T is an EXACT DIVISOR of 252. Cost: +8
+// characters on the Timer at the defaults, +9 at the all-longest corner.
+//
+// @TRAIL'S VALUES MOVED WITH IT, AND A SHARED LINK IS THE PRICE. 64, 100 and
+// 150 do not divide 252, so they became 63, 84 and 126 - the nearest legal
+// value to each, same arity, still ascending, 21 and 42 already legal and
+// untouched. A stamp encodes the knob's INDEX, not its value, so every link
+// anybody has ever shared still decodes and still restores; a link carrying
+// index 3 now renders an 840 ms trail where it used to render a 1000 ms one.
+// stamp.spec.ts compares indices and stays green either way, so no test says
+// this out loud and this comment does.
+//
+// AND THE RESIDUE WAS NOT INVISIBLE HERE, contrary to what 11-02 predicted.
+// frames.json, which records an UNTOUCHED run, went 111 -> 51 lit bytes at tick
+// 500 and 111 -> 45 at tick 1009. Half the pad was permanent glow the Timer put
+// there itself.
+//
+// src/lib/catalog/decay-idiom.spec.ts holds the rule, the arithmetic and the
+// list of usable timeouts, and it is CITED here rather than restated.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 702 characters, Timer 218, both fixed
+// against the pinned minifier: Setup 702 characters, Timer 226, both fixed
 // points of compressScript and both accepted by checkSyntax. That is what makes
 // the budget meter honest, because cost() charges max(compressed, raw) and a
 // readable, indented version of this configuration would be charged its raw
@@ -31,7 +61,7 @@ const SETUP =
   "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glc(a,2,@RINGC,1)glp(a,2,0)end self.c={}self.p={}self.i={}local h={@PULSES}for d=1,3 do local n=d*8 local u={}local v={}for t=0,n-1 do local q=t//(d*2)local w=t%(d*2)local a,b if q==0 then a,b=d,w-d elseif q==1 then a,b=d-w,d elseif q==2 then a,b=-d,d-w else a,b=w-d,-d end local m=a+4+(b+4)*9 u[t]=m self.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end self.c[d]=u self.p[d]=v end self.touch_cb=function(s,i,e,x,y)if e~=4 and e~=9 then return end local v=s.i[x*9//128+y*9//128*9]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,s.c[d][t]),1,s.p[d][t]and 255 or 0)end gtt(0,@TEMPO)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@TEMPO)local s=self local k=(s.k or 0)%24 s.k=k+1 for d=1,3 do local t=k%(d*8)local a=glag(0,s.c[d][t])glpfs(a,2,255,250,0)glt(a,2,@TRAIL)s:gms(@CH,128,@NOTE+d*2,0,0)if s.p[d][t]then s:gms(@CH,144,@NOTE+d*2,100,0)end end";
+  "--[[@cb]]gtt(0,@TEMPO)local s=self local k=(s.k or 0)%24 s.k=k+1 for d=1,3 do local t=k%(d*8)local a=glag(0,s.c[d][t])glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,@NOTE+d*2,0,0)if s.p[d][t]then s:gms(@CH,144,@NOTE+d*2,100,0)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -51,7 +81,7 @@ export const EUCLID: CatalogEntry = {
   // Six knobs - the cap (D-12) - each one literal token substitution over the
   // shared widget vocabulary the compiler-driven cards use (TUNE-01). The
   // default of every knob is the INDEX of the value that reproduces the
-  // canonical text, so renderLua at the defaults is the measured 702/218.
+  // canonical text, so renderLua at the defaults is the measured 702/226.
   knobs: [
     {
       id: "tempo",
@@ -100,7 +130,13 @@ export const EUCLID: CatalogEntry = {
       // Ticks of decay behind the head, at 10 ms a tick. Never a keeper: this
       // layer carries a decaying trail, and 65535 here would replace the
       // countdown and strobe every touched cell forever.
-      values: ["21", "42", "64", "100", "150"],
+      //
+      // EVERY VALUE IS AN EXACT DIVISOR OF 252, because the emitted rate is
+      // 256 - 252//@TRAIL and the phase starts at 252, so the walk lands on
+      // exactly 0 only when the division is exact. 64, 100 and 150 were not,
+      // and became 63, 84 and 126 in plan 11-02 - see the header for what that
+      // does to a link somebody already shared.
+      values: ["21", "42", "63", "84", "126"],
       default: 1,
     },
     {
