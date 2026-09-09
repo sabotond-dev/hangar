@@ -3334,4 +3334,235 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
     expect(report.length, "both halves of the gesture reported").toBe(2);
   }, 120000);
+
+  it("carries LUMEN's depth knob all the way to the emitted bytes, downwards, and only below the top row", async () => {
+    // THE BENCH NOTE THIS ANSWERS: "LUMEN ... the color depth / opacity doesn't
+    // work", answered at the 11-09 checkpoint with "try it but we observed no
+    // difference in the LEDs".
+    //
+    // THE OPTION THAT NOTE WAS COSTED FROM SAID DEPTH MOVES THE ANCHOR FROM 78
+    // PER CENT TO 11 PER CENT. That figure is the arithmetic d/36 and it is NOT
+    // a reading of a frame: between it and a lit LED sit glc's three colour
+    // stops, glp's phase, shapeIntensity, the per-layer weights, the two-layer
+    // sum and the single divide by 512 with its clamp at 255
+    // (pad-sim.ts render()). So this test reads the FRAME.
+    //
+    // WHAT IT FOUND, and it is why nothing was deepened on the strength of the
+    // note: the knob delivers. Four @DEPTH values render four distinct 243-byte
+    // frames. Column 0's bottom row walks 196,69,0 -> 139,49,0 -> 84,29,0 ->
+    // 27,9,0, which is 77 per cent of the emitted anchor down to 11 per cent of
+    // it - the costed ratio, confirmed in bytes.
+    //
+    // AND WHY "NO DIFFERENCE IN THE LEDS" IS STILL CONSISTENT WITH THAT. The
+    // whole of the knob's travel is in the LOWER rows. d = 36 - row*@DEPTH, so
+    // ROW 0 IS d = 36 AT EVERY VALUE AND CANNOT MOVE - that is arithmetic, not
+    // a defect - and the worst channel spread across all four values climbs
+    // 0, 21, 42, 63, 85, 105, 126, 148, 169 from row 0 to row 8. The shipped
+    // default is index 2 of 4, so ONE STEP moves row 1 by seven counts of 255
+    // and the bottom row by fifty-five. A person watching the top of the pad
+    // while turning the knob is reporting what the pad does.
+    //
+    // ASSERTED AS RELATIONS, NEVER AS BRIGHTNESS LITERALS, so a future re-cut
+    // of the four values or of the divisor survives this test and only a
+    // DECOUPLING - or an inversion - reddens it. Clause 5 is the shortfall this
+    // wave found made permanent: 8*max(@DEPTH) has to stay inside the
+    // subtrahend or the bottom row goes negative and truncates to garbage, so
+    // @DEPTH's four values ARE the whole legal travel and there is no deeper
+    // re-cut available at the current arithmetic. It reddens the day someone
+    // widens one without the other.
+    const entry = entryById("lumen");
+    const knob = entry.knobs.find((k) => k.id === "depth");
+    expect(knob, "lumen declares a depth knob").toBeDefined();
+    const values = knob!.values;
+    // LUMEN's Setup paints once and its Timer is the empty string, so the
+    // picture is settled the moment Setup returns. Five ticks is the same
+    // sample frames.spec.ts takes, and a picture that moved between tick 0 and
+    // tick 5 would be a decay this entry is not supposed to have.
+    const SAMPLE_TICKS = 5;
+    const GRID_W = 9;
+
+    const frames: Uint8Array[] = [];
+    for (let i = 0; i < values.length; i += 1) {
+      const { setup, timer } = renderLua(entry, { depth: i });
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        setup,
+        timer: timer.trim() === "" ? undefined : timer,
+      });
+      try {
+        for (let t = 0; t < SAMPLE_TICKS; t += 1) host.tick();
+        expect(
+          host.errors,
+          `lumen at @DEPTH ${values[i]}: the configuration must run clean`,
+        ).toEqual([]);
+        frames.push(Uint8Array.from(host.frame));
+      } finally {
+        host.close();
+      }
+    }
+
+    const channelAt = (
+      frame: Uint8Array,
+      col: number,
+      row: number,
+      ch: number,
+    ): number => frame[(col + row * GRID_W) * 3 + ch];
+    const tripleAt = (frame: Uint8Array, col: number, row: number): string =>
+      rgbAt(frame, col + row * GRID_W);
+    const CHANNELS = ["r", "g", "b"] as const;
+
+    // 1. ROW 0 CANNOT MOVE, AND THAT IS ARITHMETIC. d = 36 - 0*@DEPTH = 36 at
+    //    every value of the knob, so the top row is the anchor colour whatever
+    //    the knob says. Stated out loud because a user looking at the top of
+    //    the pad while turning the knob would correctly report seeing nothing.
+    for (let col = 0; col < GRID_W; col += 1) {
+      const seen = new Set(frames.map((f) => tripleAt(f, col, 0)));
+      expect(
+        [...seen],
+        `lumen: ROW 0 IS THE ANCHOR AT EVERY @DEPTH - d = 36 - 0*@DEPTH is ` +
+          `36 for all of ${values.join(", ")}. Column ${col} row 0 rendered ` +
+          `${[...seen].join(" and ")}`,
+      ).toHaveLength(1);
+    }
+
+    // 2. THE BOTTOM ROW IS STRICTLY MONOTONIC IN THE KNOB INDEX, PER CHANNEL,
+    //    AND IT GOES DOWN. LUMEN's header promises "A LARGER @DEPTH IS A DEEPER
+    //    RAMP, which is the way round the label reads"; this is that sentence
+    //    under test. A channel whose ANCHOR is zero - eight of the nine columns
+    //    are a pure hue and so have one - is zero at every row and every value,
+    //    and is skipped by reading row 0 rather than by a list of columns.
+    const BOTTOM = GRID_W - 1;
+    let checked = 0;
+    let anchored = 0;
+    for (let col = 0; col < GRID_W; col += 1) {
+      for (let ch = 0; ch < CHANNELS.length; ch += 1) {
+        if (channelAt(frames[0], col, 0, ch) === 0) continue;
+        anchored += 1;
+        const series = frames.map((f) => channelAt(f, col, BOTTOM, ch));
+        const observed = frames
+          .map((f, i) => `@DEPTH ${values[i]} ${tripleAt(f, col, BOTTOM)}`)
+          .join(", ");
+        for (let i = 1; i < series.length; i += 1) {
+          expect(
+            series[i],
+            `lumen: THE DEPTH KNOB MUST REACH THE EMITTED BYTES AND MUST ` +
+              `DARKEN. Column ${col}, row ${BOTTOM}, channel ` +
+              `${CHANNELS[ch]}: @DEPTH ${values[i]} emitted ${series[i]} ` +
+              `where @DEPTH ${values[i - 1]} emitted ${series[i - 1]}. ` +
+              `The whole row reads ${observed}`,
+          ).toBeLessThan(series[i - 1]);
+          checked += 1;
+        }
+      }
+    }
+    // NON-VACUITY, DERIVED RATHER THAN TYPED. Every channel that is non-zero on
+    // row 0 is non-zero on every row - the ramp scales, it does not mask - so
+    // the count of anchored channels IS the count the loop above must have
+    // walked. A plant that blacked the pad out would reach here with zero.
+    expect(
+      anchored,
+      "lumen: the bottom-row sweep walked no channel at all, so its " +
+        "monotonicity claim is vacuous",
+    ).toBeGreaterThan(0);
+    expect(
+      checked,
+      `lumen: the sweep must compare every one of the ${anchored} anchored ` +
+        `channels across all ${values.length} declared @DEPTH values`,
+    ).toBe(anchored * (values.length - 1));
+
+    // 3. THE KNOB'S TRAVEL LIVES IN THE LOWER ROWS, AND THAT IS THE ANSWER TO
+    //    THE BENCH NOTE. The spread a row shows across the four values is zero
+    //    at the top and grows with every row down. Asserted as a strict
+    //    ordering between rows, so re-cutting the values keeps it green.
+    const spreadOf = (row: number): number => {
+      let worst = 0;
+      for (let col = 0; col < GRID_W; col += 1)
+        for (let ch = 0; ch < CHANNELS.length; ch += 1) {
+          const vals = frames.map((f) => channelAt(f, col, row, ch));
+          worst = Math.max(worst, Math.max(...vals) - Math.min(...vals));
+        }
+      return worst;
+    };
+    const spreads = Array.from({ length: GRID_W }, (_, row) => spreadOf(row));
+    expect(
+      spreads[0],
+      `lumen: row 0 must not move at all across ${values.join(", ")}; the ` +
+        `nine rows spread ${spreads.join(", ")}`,
+    ).toBe(0);
+    for (let row = 1; row < GRID_W; row += 1) {
+      expect(
+        spreads[row],
+        `lumen: EVERY ROW DOWN MUST MOVE MORE THAN THE ONE ABOVE IT, because ` +
+          `d = 36 - row*@DEPTH. Row ${row} spread ${spreads[row]} against ` +
+          `row ${row - 1}'s ${spreads[row - 1]}; the nine rows spread ` +
+          spreads.join(", "),
+      ).toBeGreaterThan(spreads[row - 1]);
+    }
+
+    // 4. THE SHORTFALL, PINNED TO THE SOURCE RATHER THAN TO THIS WAVE'S PROSE.
+    //    Read the subtrahend and the channel divisor out of the entry's own
+    //    Lua. They must be the same number, or row 0 stops being the anchor;
+    //    8*max(@DEPTH) must not exceed the subtrahend, or the bottom row goes
+    //    NEGATIVE and a colour channel truncates rather than clamping; and the
+    //    largest declared value must already be the largest the arithmetic
+    //    admits, which is why the answer to "deepen the ramp" is that there is
+    //    no deeper four-value re-cut to make.
+    const template = (entry.source as { setup: string }).setup;
+    const ramp = /d=(\d+)-n\/\/9\*@DEPTH/.exec(template);
+    const scale = /\*d\/\/(\d+)/.exec(template);
+    expect(
+      ramp,
+      `lumen: the depth ramp must still read d=<N>-n//9*@DEPTH`,
+    ).not.toBeNull();
+    expect(
+      scale,
+      "lumen: the channel scale must still read *d//<N>",
+    ).not.toBeNull();
+    const subtrahend = Number(ramp![1]);
+    const divisor = Number(scale![1]);
+    expect(
+      divisor,
+      `lumen: the subtrahend (${subtrahend}) and the channel divisor ` +
+        `(${divisor}) must be the same number, or row 0 is no longer the ` +
+        "anchor colour exactly and the card's whole claim goes with it",
+    ).toBe(subtrahend);
+    const deepest = Math.max(...values.map(Number));
+    expect(
+      (GRID_W - 1) * deepest,
+      `lumen: 8*max(@DEPTH) = ${(GRID_W - 1) * deepest} must stay inside the ` +
+        `subtrahend ${subtrahend}, or the bottom row's d goes negative and a ` +
+        "channel TRUNCATES rather than clamping. The obvious alternative " +
+        "form, anchor*(@DEPTH-row)//@DEPTH, is negative at @DEPTH 6 and " +
+        "exactly black at 8 - see the entry header",
+    ).toBeLessThanOrEqual(subtrahend);
+    expect(
+      (GRID_W - 1) * (deepest + 1),
+      `lumen: @DEPTH's declared values ${values.join(", ")} ARE the whole ` +
+        `legal travel at subtrahend ${subtrahend} - ${deepest} is the ` +
+        "deepest integer the arithmetic admits, so there is no deeper " +
+        "re-cut. Widening one without the other is what this reddens on",
+    ).toBeGreaterThan(subtrahend);
+
+    // The nine-row table, printed so the measurement is in the run and not
+    // only in the entry header. Column 0 is the anchor 255,90,0 - a pure hue
+    // with a zero channel - and column 8 is the amber white 255,230,190, the
+    // only three-channel column; they truncate differently and both are shown.
+    const table = [0, GRID_W - 1].map((col) => {
+      const rows = Array.from(
+        { length: GRID_W },
+        (_, row) =>
+          `    row ${row}  ` +
+          frames.map((f) => tripleAt(f, col, row).padEnd(14)).join(" "),
+      );
+      return (
+        `  column ${col}, @DEPTH ${values.join(" / ")}\n` + rows.join("\n")
+      );
+    });
+    process.stdout.write(
+      "\nLUMEN depth to emitted bytes, plan 11-09.2:\n" +
+        table.join("\n") +
+        `\n  row spreads across all four values: ${spreads.join(", ")}\n`,
+    );
+  }, 120000);
 });
