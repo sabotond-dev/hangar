@@ -2631,4 +2631,227 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
     expect(report.length, "three depths reported").toBe(3);
   }, 120000);
+
+  it("shows STAGE's live, lined-up and idle zones as THREE states", async () => {
+    // THE BENCH NOTE THIS ANSWERS: "Lining up breathing is missing" (plan
+    // 11-09), and the answer was "implement breathing as planned".
+    //
+    // WHAT THE MEASUREMENT FOUND IS THE INTERESTING HALF. The breathing state
+    // was never broken: src/lib/catalog/listing.ts has promised it since phase
+    // 9 - "the live one glows and the one you are lining up breathes" - while
+    // stage.ts carried only LIVE (rate 4) and UNDER A FINGER (rate 24). It was
+    // described, shipped in the copy, and never built.
+    //
+    // THE ASSERTION IS DISTINGUISHABILITY, NOT A RATE LITERAL. Every claim
+    // below is about how the four watched zones DIFFER from one another in the
+    // rendered frame, so re-tuning any rate keeps this green and only a
+    // COLLAPSE - two states that render the same - turns it red. Three states
+    // that look like two is the bug the user reported in the first place.
+    const entry = entryById("stage");
+    // The window is long enough for the slowest state to complete several
+    // cycles: the phase advances by the rate every tick and wraps at 256, so
+    // the slowest rate any of these states could sensibly carry still turns
+    // over inside it.
+    const WINDOW = 512;
+    // How much faster one state's cycle count must be than another's before
+    // the two read as different states at arm's length. A LEGIBILITY claim, not
+    // a rate: two zones whose breathe differs by a few per cent are two zones
+    // an operator sees as one state. 1.5 is also comfortably outside the
+    // one-cycle window-alignment artefact a fixed sample window produces.
+    const SEPARATION = 1.5;
+
+    // The zones, from the entry's own arithmetic: zone z has zone-row z//3 and
+    // zone-column z%3, its top-left cell is z//3*27 + z%3*3, and its four
+    // corners are that cell plus 0, 2, 18 and 20.
+    const cornersOf = (z: number): number[] => {
+      const r = Math.floor(z / 3) * 27 + (z % 3) * 3;
+      return [0, 2, 18, 20].map((offset) => r + offset);
+    };
+    // A finger's zone is x*3//128 + y*3//128*3, so a third of 128 is 42.67 and
+    // the middle of zone-column c is c*128//3 + 21.
+    const centreOf = (z: number): [number, number] => [
+      Math.floor(((z % 3) * 128) / 3) + 21,
+      Math.floor((Math.floor(z / 3) * 128) / 3) + 21,
+    ];
+    const brightnessOf = (frame: Uint8Array, cell: number): number =>
+      frame[cell * 3] + frame[cell * 3 + 1] + frame[cell * 3 + 2];
+
+    type Trace = { floor: number; ceil: number; swing: number; cycles: number };
+    const traceOf = (series: readonly number[]): Trace => {
+      const floor = Math.min(...series);
+      const ceil = Math.max(...series);
+      const mid = (floor + ceil) / 2;
+      let cycles = 0;
+      for (let i = 1; i < series.length; i += 1)
+        if (series[i - 1] <= mid && series[i] > mid) cycles += 1;
+      return { floor, ceil, swing: ceil - floor, cycles };
+    };
+
+    // LIVE starts on zone 0. The gesture cuts to the CENTRE zone and then lines
+    // up the BOTTOM-RIGHT one, leaving the TOP-RIGHT one untouched as the idle
+    // control.
+    const CUT_TO = 4;
+    const LINE_UP = 8;
+    const IDLE = 2;
+    const WATCHED = [CUT_TO, LINE_UP, IDLE];
+    expect(
+      new Set(WATCHED).size,
+      "the three watched zones are three different zones",
+    ).toBe(3);
+
+    const { host } = await open(entry);
+    const report: string[] = [];
+    try {
+      const collect = (): Map<number, Trace> => {
+        const series = new Map<number, number[]>();
+        for (const z of WATCHED) series.set(z, []);
+        for (let t = 0; t < WINDOW; t += 1) {
+          host.tick();
+          for (const z of WATCHED) {
+            const cells = cornersOf(z);
+            let total = 0;
+            for (const cell of cells) total += brightnessOf(host.frame, cell);
+            (series.get(z) as number[]).push(total);
+          }
+        }
+        const out = new Map<number, Trace>();
+        for (const z of WATCHED) out.set(z, traceOf(series.get(z) as number[]));
+        return out;
+      };
+      const say = (label: string, traces: Map<number, Trace>): void => {
+        report.push(
+          `${label.padEnd(24)} ` +
+            WATCHED.map((z) => {
+              const t = traces.get(z) as Trace;
+              return `zone ${z}: floor ${t.floor} ceil ${t.ceil} cycles ${t.cycles}`;
+            }).join("  |  "),
+        );
+      };
+
+      // 1. THE GESTURE. A press cuts, exactly as it always has; the finger then
+      //    SLIDES to another zone, which lines that zone up. The slide is the
+      //    selection, and it is the one gesture on a nine-zone pad with no
+      //    modifier key that costs the cut nothing - see stage.ts's header for
+      //    the two that were rejected and why.
+      const [cutX, cutY] = centreOf(CUT_TO);
+      host.touchDown(0, cutX, cutY);
+      host.tick();
+      const hidAfterCut = host.hid.length;
+      const [upX, upY] = centreOf(LINE_UP);
+      host.touchMove(0, upX, upY);
+      host.tick();
+
+      // 2. LINING UP MUST NOT GO ON AIR. The whole point of a preview scene is
+      //    that the audience does not see it, so the slide must send NO
+      //    keystroke at all. A "line up" that also cuts is worse than no
+      //    feature.
+      expect(
+        host.hid.length,
+        `stage: SLIDING ONTO A ZONE MUST NOT CUT TO IT. The press sent ` +
+          `${hidAfterCut} keystroke(s) and the slide onto zone ${LINE_UP} ` +
+          `took the total to ${host.hid.length}. A scene you are lining up ` +
+          "is one the audience must not see",
+      ).toBe(hidAfterCut);
+
+      // 3. WITH THE FINGER STILL DOWN: the live zone is under the hand, the
+      //    lined-up zone is breathing at its own rate, the idle zone is still.
+      const held = collect();
+      say("finger down, slid over", held);
+
+      host.touchUp(0, upX, upY);
+      host.tick();
+
+      // 4. AFTER THE LIFT: the live zone settles to its slow breathe and the
+      //    lined-up zone keeps its own. This is the state an operator actually
+      //    looks at, and it is the pair that has to read as two things.
+      const rest = collect();
+      say("after the lift", rest);
+
+      const idle = rest.get(IDLE) as Trace;
+      const preview = rest.get(LINE_UP) as Trace;
+      const live = rest.get(CUT_TO) as Trace;
+      const under = held.get(CUT_TO) as Trace;
+
+      // 5. NON-VACUITY. A run in which nothing lit at all would satisfy every
+      //    "these differ" clause below by comparing three zeros.
+      expect(
+        idle.floor,
+        `stage: the idle zone ${IDLE} rendered black, so the comparisons ` +
+          "below are being made against nothing. Setup paints nine idle boxes",
+      ).toBeGreaterThan(0);
+
+      // 6. THE IDLE ZONE IS STILL, AND THE OTHER THREE ARE NOT. This is what
+      //    separates "a scene" from "a scene doing something".
+      expect(
+        idle.swing,
+        `stage: zone ${IDLE} was never touched and must not move. Observed ` +
+          `floor ${idle.floor}, ceil ${idle.ceil}`,
+      ).toBe(0);
+      for (const [label, trace] of [
+        ["the live zone", live],
+        ["the lined-up zone", preview],
+        ["the zone under the finger", under],
+      ] as const)
+        expect(
+          trace.swing,
+          `stage: ${label} rendered a constant ${trace.floor} across ` +
+            `${WINDOW} ticks. All three of STAGE's active states breathe; a ` +
+            "still one is a state that has collapsed into the idle box",
+        ).toBeGreaterThan(0);
+
+      // 7. THE LINED-UP ZONE SITS ON THE IDLE BASE, AND THE LIVE ZONE DOES
+      //    NOT. This is the second axis, and it is the one that says "not on
+      //    air": the previewed box keeps the dim idle colour underneath and
+      //    only pulses the live colour through it, while the live box carries
+      //    the live colour underneath as well.
+      expect(
+        preview.floor,
+        `stage: the lined-up zone ${LINE_UP} must rest on the SAME base the ` +
+          `idle zones do - it is not on air. Observed ${preview.floor} ` +
+          `against the idle ${idle.floor}`,
+      ).toBe(idle.floor);
+      expect(
+        live.floor,
+        `stage: the live zone ${CUT_TO} must rest on a BRIGHTER base than ` +
+          `the lined-up zone ${LINE_UP}, or the two read as the same state ` +
+          `between pulses. Observed ${live.floor} against ${preview.floor}`,
+      ).toBeGreaterThan(preview.floor);
+
+      // 8. THE THREE RATES ARE THREE RATES, PAIRWISE. Cycle counts rather than
+      //    the rates themselves, so this is a claim about what the pad LOOKS
+      //    like and not about what the source says.
+      const rates = [
+        [`the live zone ${CUT_TO} at rest`, live],
+        [`the lined-up zone ${LINE_UP}`, preview],
+        [`the zone ${CUT_TO} under the finger`, under],
+      ] as const;
+      for (let i = 0; i < rates.length; i += 1) {
+        expect(
+          rates[i][1].cycles,
+          `stage: ${rates[i][0]} completed no full cycle in ${WINDOW} ticks, ` +
+            "so its rate cannot be compared with anything",
+        ).toBeGreaterThan(0);
+        for (let j = i + 1; j < rates.length; j += 1) {
+          const a = rates[i][1].cycles;
+          const b = rates[j][1].cycles;
+          expect(
+            Math.max(a, b) / Math.min(a, b),
+            `stage: THREE STATES THAT LOOK LIKE TWO IS THE BUG. ` +
+              `${rates[i][0]} breathed ${a} time(s) in ${WINDOW} ticks and ` +
+              `${rates[j][0]} breathed ${b} - too close to read as different ` +
+              "states at arm's length. Separate the rates; do not relax this",
+          ).toBeGreaterThanOrEqual(SEPARATION);
+        }
+      }
+    } finally {
+      host.close();
+    }
+
+    process.stdout.write(
+      "\nSTAGE's three zone states, plan 11-09:\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+    expect(report.length, "both halves of the gesture reported").toBe(2);
+  }, 120000);
 });
