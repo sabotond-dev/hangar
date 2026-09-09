@@ -61,7 +61,7 @@ numbers disagreed.
 | `BASE_SWEEP_WALL` | the `npm run test:sweep` wall clock on the clean tree, with free memory beside it | **never moves.** Measured in 11-01. 11-16 compares against it. The sweep gets **cheaper** in this phase — 36 entries become 28 — and a wall clock that did not fall is evidence the removal did not reach the sweep |
 | `PREV_SWEEP_WALL` | the last measured sweep wall clock | re-measured by 11-01 and 11-16 |
 | `BASE_E2E` | the Playwright total on the clean tree, measured once in 11-01 | **never moves.** 11-16 asserts against it |
-| `PREV_E2E` | the last measured Playwright total, with the plan that measured it named beside it | starts equal to `BASE_E2E`; re-measured by **11-01, 11-05, 11-15 and 11-16** — **four plans, not three**. 11-15 builds a new route and a new OG image and runs the suite at `11-15:320` and `:361`, so under the `BASE_SWEEP` row's own contract it names itself |
+| `PREV_E2E` | the last measured Playwright total, with the plan that measured it named beside it | starts equal to `BASE_E2E`; re-measured by **11-01, 11-05, 11-08.1, 11-15 and 11-16** — **five plans, not four and not three**. 11-15 builds a new route and a new OG image and runs the suite at `11-15:320` and `:361`, so under the `BASE_SWEEP` row's own contract it names itself; **11-08.1 is the one plan in the phase that MOVES this baseline**, 103 to 105, because a canvas context-loss fix is unprovable without a browser |
 | `BASE_OG_BYTES` | `static/og/` total bytes over its file count on the clean tree | **never moves.** 11-16 compares. It is 36 files before this phase and **28** after |
 | `BASE_CATALOG` | `CATALOG.length` on the clean tree, expected 36 | **never moves.** Every plan states the running catalog size as a carried name plus a delta, never as a restated total |
 
@@ -81,7 +81,7 @@ The phase's headline number is a chain, for the same reason the test total is:
 BASE_CATALOG (36)
   −9 (11-01: hold, keys, learn, switch, etch, gridlock, life, slam, table)
   +0 (11-02) +0 (11-03) +0 (11-04) +0 (11-05) +0 (11-06) +0 (11-07) +0 (11-08)
-  +0 (11-09) +0 (11-10) +0 (11-11) +0 (11-12) +0 (11-13)
+  +0 (11-08.1) +0 (11-09) +0 (11-10) +0 (11-11) +0 (11-12) +0 (11-13)
   + T14 (11-14: +0 if RADAR changes SOURCE, +1 under new-entry — see the ring question)
   +1 (11-15: the wheels)
   +0 (11-16)
@@ -94,12 +94,12 @@ together. 11-14 carries the authoritative branch table and its SUMMARY copies th
 
 | 11-14's answer | `T14` | catalog | preset / Lua | `static/og/` | audition rows after 11-15 | test total |
 |---|---|---|---|---|---|---|
-| `ring-seven` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 33` |
-| `ring-eight-lua` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 33` |
-| `new-entry` | **+1** | **29** | 9 + 20 | **29** | **25** | `BASE_TESTS + 33` |
-| `fold-into-sonar` | +0 | **28** | 9 + 19 | 28 | 24 | `BASE_TESTS + 32` |
+| `ring-seven` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 36` |
+| `ring-eight-lua` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 36` |
+| `new-entry` | **+1** | **29** | 9 + 20 | **29** | **25** | `BASE_TESTS + 36` |
+| `fold-into-sonar` | +0 | **28** | 9 + 19 | 28 | 24 | `BASE_TESTS + 35` |
 
-**Sixteen terms, one per plan, and every `+0` is written out rather than omitted**, because a zero
+**Seventeen terms, one per plan, and every `+0` is written out rather than omitted**, because a zero
 absent from a chain is indistinguishable from a term nobody computed. The split behind the 28 moves
 too and is stated the same way: **9 preset-backed + 19 hand-authored Lua**, unless 11-14's ring
 question is answered in a way that moves radar out of the preset-backed set, in which case it is
@@ -213,6 +213,14 @@ No two plans in this phase run concurrently. Two reasons, the second stronger th
 The `wave` numbers in the frontmatter are dependency groupings, one plan each; `depends_on` names the
 previous plan explicitly.
 
+**11-08.1 was inserted between waves 8 and 9 after the phase was written**, by the decimal convention
+Phase 10 set when D-17 inserted 10-13.1 — no plan is renumbered, `11-09`'s `depends_on` becomes
+`["11-08.1"]`, and the `wave` field of 11-09 through 11-16 rises by one. **It takes its own wave for
+reason 1 and not for reason 2**: it asserts an exact cumulative count like every other plan, but it is
+the one plan in the phase that does NOT regenerate `frames.json`, because the fixture runs each
+entry's engine in node with no canvas and `SimHost` is not in its path. Thirteen plans regenerate it;
+this is not one of them.
+
 **The one ordering claim worth defending.** The research argues, and the phase brief directs, that the
 removal leads — because it closes nine reports outright, shrinks every later wave from 36 entries to
 27, and is the only change that must precede the fixture regenerations. It is followed here. The cost
@@ -238,19 +246,20 @@ per-file count. The file column counts spec files created or deleted.
 | 11-06 | 6 | +0 | **+1** | `4 19` | `+0` | `knobs.preset.spec.ts` +1 — the ninepads grid knob |
 | 11-07 | 7 | +0 | **+4** | `4 19` | `+0` | `lua-smoke.spec.ts` **+4** — CONSOLE reaches 127; a muted fader emits nothing; **FORGE's whole travel swept**; **LATTICE's clamp swept**. The last two answer bench notes that previously reached no plan, no removal and no deferral |
 | 11-08 | 8 | +0 | **+2** | `4 19` | `+0` | `lua-smoke.spec.ts` **+2** — a swipe toggles once per cell crossed, not at 100 Hz; **MORPH sends a corner only when that corner changed**, which is the second clause of MORPH's note and had reached no plan |
-| 11-09 | 9 | +0 | **+2** | `4 19` | `+0` | `lua-smoke.spec.ts` +1 (ARC's picture tracks its emitted value); `stamp.spec.ts` +1 (POMODORO's first four indices unmoved) |
-| 11-10 | 10 | +0 | **+2** | `4 19` | `+0` | `lua-host.spec.ts` +1 and `host-surface.spec.ts` +1 for `gmss` |
-| 11-11 | 11 | +0 | **+1** | `4 19` | `+0` | GHOST's redesign carries one behaviour test |
-| 11-12 | 12 | +0 | **+1** | `4 19` | `+0` | SHUTTLE's |
-| 11-13 | 13 | +0 | **+2** | `4 19` | `+0` | STRIP's three independent streams, and the 14-bit loss recorded as a test rather than a comment |
-| 11-14 | 14 | +0 | **+1**, or **+0** under `fold-into-sonar` | `4 19` | `+0` | RADAR — **blocked on the ring question**. Under `new-entry` the plan also owns a catalog `+1`, an audition row and a `static/og/` file; see the branch table above. 11-16 names the term either way |
-| 11-15 | 15 | +0 | **+2** | `4 19` | `+0` | the wheels: the spring returns in MIDI as well as in light; mod holds across a release |
-| 11-16 | 16 | +0 | **+0** | `4 19` | measured, expected `+0` | the gate writes no tests — written out, not omitted, so the term count is the plan count |
-| **Phase total** | | **+3** | **+33**, or **+32** under `fold-into-sonar` | `4 19` **unchanged** | **+0** | 3+5+2+1+4+1+4+2+2+2+1+1+2+T14+2+0, where the fifteen fixed terms sum to **32** and `T14` is 1 or 0 — in **sixteen** terms. The three created files are `decay-idiom.spec.ts`, `touch-guard.spec.ts`, `presets.spec.ts`. **The e2e total is `BASE_E2E + 0` in sixteen terms, every one written out** — no Playwright title is added, moved or removed anywhere in this phase, and the **four** plans that run the suite (**11-01, 11-05, 11-15, 11-16**) prove their own zero with `grep -c "test("` before and after |
+| 11-08.1 | 9 | +0 | **+3** | `4 19` | **+2** | `host.spec.ts` **18 → 21** — a lost 2D context noticed by event AND by paint-time guard, recovered by both routes, both listeners removed at teardown. **The one non-zero e2e term in the phase**: one `@webkit` title, which counts +1 in `grep -c "test("` and **+2** in the run. `frames.json` is NOT regenerated — the fixture runs each entry's engine in node with no canvas, so `SimHost` is not in its path |
+| 11-09 | 10 | +0 | **+2** | `4 19` | `+0` | `lua-smoke.spec.ts` +1 (ARC's picture tracks its emitted value); `stamp.spec.ts` +1 (POMODORO's first four indices unmoved) |
+| 11-10 | 11 | +0 | **+2** | `4 19` | `+0` | `lua-host.spec.ts` +1 and `host-surface.spec.ts` +1 for `gmss` |
+| 11-11 | 12 | +0 | **+1** | `4 19` | `+0` | GHOST's redesign carries one behaviour test |
+| 11-12 | 13 | +0 | **+1** | `4 19` | `+0` | SHUTTLE's |
+| 11-13 | 14 | +0 | **+2** | `4 19` | `+0` | STRIP's three independent streams, and the 14-bit loss recorded as a test rather than a comment |
+| 11-14 | 15 | +0 | **+1**, or **+0** under `fold-into-sonar` | `4 19` | `+0` | RADAR — **blocked on the ring question**. Under `new-entry` the plan also owns a catalog `+1`, an audition row and a `static/og/` file; see the branch table above. 11-16 names the term either way |
+| 11-15 | 16 | +0 | **+2** | `4 19` | `+0` | the wheels: the spring returns in MIDI as well as in light; mod holds across a release |
+| 11-16 | 17 | +0 | **+0** | `4 19` | measured, expected `+0` | the gate writes no tests — written out, not omitted, so the term count is the plan count |
+| **Phase total** | | **+3** | **+36**, or **+35** under `fold-into-sonar` | `4 19` **unchanged** | **+2** | 3+5+2+1+4+1+4+2+3+2+2+1+1+2+T14+2+0, where the sixteen fixed terms sum to **35** and `T14` is 1 or 0 — in **seventeen** terms. The three created files are `decay-idiom.spec.ts`, `touch-guard.spec.ts`, `presets.spec.ts`; 11-08.1 creates a fourth, `e2e/poll.ts`, which the gate does not count because `e2e/` is in neither the vitest `server` project nor `svelte-check`'s reach. **The e2e total is `BASE_E2E + 2` in seventeen terms** — sixteen written-out zeros and 11-08.1's `+2`. **`grep -c "test("` proves a zero term and cannot prove a non-zero one**: `BASE_E2E` 103 is 85 chromium titles plus 18 `@webkit` titles run twice, so 11-08.1's one tagged title moves the grep 85 → 86 and the run 103 → 105. The **five** plans that run the suite (**11-01, 11-05, 11-08.1, 11-15, 11-16**) state both numbers |
 
 **A wave asserts against `PREV_FILES` / `PREV_TESTS`.** **Only 11-16 asserts against
-`BASE_FILES` / `BASE_TESTS`**, and its number is the phase total written out as a sixteen-term chain,
-never as a total alone. **The count of terms is itself asserted**: sixteen, equal to the plan count,
+`BASE_FILES` / `BASE_TESTS`**, and its number is the phase total written out as a seventeen-term chain,
+never as a total alone. **The count of terms is itself asserted**: seventeen, equal to the plan count,
 checked against every prose statement of it in this document and in 11-16. That number drifted twice
 in Phase 10 after being fixed, which is why it is asserted rather than described.
 
@@ -264,6 +273,7 @@ Per-file counts, which **are** asserted absolutely:
 | `src/lib/fidelity/vendored-diff.spec.ts` | 14 → **15** | 11-03 |
 | `src/lib/fidelity/preset-baseline.spec.ts` | +1 | 11-03 |
 | `src/lib/sim/lua-smoke.spec.ts` | **+17 across ten plans** — see the breakdown below | 11-02, 11-04, 11-07, 11-08, 11-09, 11-11, 11-12, 11-13, 11-14, 11-15 |
+| `src/lib/sim/host.spec.ts` | 18 → **21** | 11-08.1 |
 | `src/lib/sim/lua-host.spec.ts` | +1 | 11-10 |
 | `src/lib/catalog/host-surface.spec.ts` | +1 | 11-10 |
 | `src/lib/tune/knobs.preset.spec.ts` | +1 | 11-06 |
@@ -272,6 +282,7 @@ Per-file counts, which **are** asserted absolutely:
 | `src/lib/catalog/audition.spec.ts` | **unchanged** (`ROW_COUNT` 32 → 23 inside) | 11-01 |
 | `src/lib/catalog/frames.spec.ts` | **unchanged** (the fixture moves, the spec does not) | thirteen plans |
 | `src/lib/fidelity/golden-frames.spec.ts` | **unchanged** (fixture regenerated in 11-04) | 11-04 |
+| `e2e/browse-webkit.e2e.ts` | 3 → **4** titles, all `@webkit`, so **6 → 8** runs | 11-08.1 |
 
 **`lua-smoke.spec.ts` is the file most of this phase's behavioural evidence lands in, and its row
 above used to name five plans totalling +8. Ten plans declare it in their own `files_modified`:**
@@ -420,14 +431,23 @@ merely convenient, and 11-16 records that as the reason the deferral was right.
   exception of 11-03, which lands no source hunk and proves it by grep.
 - **Add `npm run build`** for any wave that changes the catalog's membership or a card's picture —
   then **`npm run test:quick` again**, because three specs read `build/`.
-- **e2e runs in FOUR waves** — 11-01 (routes and OG images stop being generated for nine ids), 11-05
-  (the preset entries change hands), **11-15** (a new entry adds a route and an OG image) and 11-16
-  (the gate) — at `--workers 3`, with `test-results/` removed by hand afterwards and
-  `git status --porcelain` confirmed empty. No other wave runs it, because no title moves in it and a
-  two-minute run buys nothing. **Every one of the four proves its own `+0` with `grep -c "test("`
-  before and after.** (Under 11-14's `new-entry` answer that plan also adds a route; it does not run
-  the suite, because 11-15's run is the next thing that happens and it rebuilds from scratch. Say so
-  rather than leaving the gap unexplained.)
+- **e2e runs in FIVE waves** — 11-01 (routes and OG images stop being generated for nine ids), 11-05
+  (the preset entries change hands), **11-08.1** (the canvas context-loss fix, which a source scan
+  cannot prove), **11-15** (a new entry adds a route and an OG image) and 11-16 (the gate) — at
+  `--workers 3`, with `test-results/` removed by hand afterwards and `git status --porcelain`
+  confirmed empty. No other wave runs it, because no title moves in it and a two-minute run buys
+  nothing. **Four of the five prove their own `+0` with `grep -c "test("` before and after; 11-08.1
+  cannot, and says so.** Its one `@webkit` title counts **once** in the grep and **twice** in the run,
+  so it states `grep -c "test("` 85 → 86 AND the run total 103 → 105, with the reason they differ.
+  **The grep is a sound proof of a zero term and an unsound proof of a non-zero one** — written here
+  because 11-16 derives the e2e chain from this bullet. (Under 11-14's `new-entry` answer that plan
+  also adds a route; it does not run the suite, because 11-15's run is the next thing that happens
+  and it rebuilds from scratch. Say so rather than leaving the gap unexplained.)
+- **Do not commit while the suite is running.** `e2e/artifacts.e2e.ts` reads `git rev-parse HEAD` and
+  asserts `build/source-<sha>.tar.gz` exists, so a commit mid-run reddens it for a reason unrelated to
+  the code; combined with `reuseExistingServer`, a stale server also means `npm run build` never
+  re-runs and the suite silently tests a stale `build/`. Diagnosed in `CANVAS-CONTEXT-LOSS.md`,
+  narrowed by 11-08.1, and a run-procedure rule for every wave that runs the suite.
 - **Max feedback latency:** ~45 s (quick), ~3 min (wave with the sweep), ~6 min (wave with a build and
   e2e).
 
@@ -459,21 +479,24 @@ merely convenient, and 11-16 records that as the reason the deferral was right.
 | 11-08-01 | 08 | 8 | CONT-02 | unit + sweep | EUCLID, SONAR and STEPS accept MOVE with a **per-contact last-cell guard**, so a resting finger does not toggle at 100 Hz; EUCLID `+76` against 204 free | exists | pending |
 | 11-08-02 | 08 | 8 | CONT-02 | unit | SONAR's centre always lit and its notes released after a while; **clock sync explicitly not built**, with both blockers named | exists | pending |
 | 11-08-03 | 08 | 8 | CONT-02 | unit (Lua host) | **MORPH's suppression clause**, which had reached no plan: a per-corner last-sent table consulted before `gms` and initialised to zeros, so a corner that has not changed sends nothing and a corner sitting at zero sends nothing at all, while a corner that *falls* to zero sends its zero once rather than leaving a stale value on the wire. Costed at worst against what 11-02 left. `lua-smoke.spec.ts` **+1**, asserted as three counts | **Wave 0 gap — the assertion does not exist** | pending |
-| 11-09-01 | 09 | 9 | CONT-02, SHARE-01 | unit | ARC's amplitude visible: the 3×3 heart scaled by the same `s.d` the CC is scaled by, `+21` against 527 free at worst. **And POMODORO's `@MINS` gains `"1"` and `"5"` APPENDED, never inserted**, with `stamp.spec.ts` +1 asserting the first four indices still decode to 15/20/25/50 — **moved ahead of 11-09-02's checkpoint, because nothing in "make a 1 minute and a 5 minute one" is ambiguous and nothing in it depends on an answer** | exists | pending |
-| 11-09-02 | 09 | 9 | — | **checkpoint:decision** | the three remaining two-reading notes put to the user together: **ARC's centre-press**, **STAGE's lining-up** (with the evidence that `listing.ts:447` already promises it) and **LUMEN's depth** | n/a | pending |
-| 11-09-03 | 09 | 9 | CONT-02 | unit | STAGE's third zone state per the answer, or the answer recorded and nothing shipped. **Term `+0`, written out.** MORPH's "mapping mode" answer recorded and carried to 11-16 rather than acted on here | exists | pending |
-| 11-10-01 | 10 | 10 | PREV-01 | unit | `gmss` reaches the Lua host on the `gmms`/`gmbs`/`gks` template: `lua-host.ts`, `HOST_GLOBALS` 15 → **16**, `host-surface.spec.ts` +1, `lua-host.spec.ts` +1, and **every literal 15 in the tree named and moved** | exists | pending |
-| 11-10-02 | 10 | 10 | CONT-02 | unit | LUMEN sends its colour as hex over sysex, `0xF0` and `0xF7` supplied by the entry; costed against 302 free Setup at worst and a **completely free Timer**; the depth half per 11-09-02's answer. **`lua-host.spec.ts` +1 as a new test, not an extension of 11-10-01's** — the plan's asserted `PREV_TESTS+2` depends on it | exists | pending |
-| 11-11-01/02 | 11 | 11 | CONT-02, PREV-01 | unit | GHOST from a blank page: the budget costed up front (601 / 573 free), the reliability the user reported diagnosed as **gone rather than patched**, `restsBlack` re-declared and proved in both directions by `frames.json`, and its demo path in `demo.ts:177` re-cut | exists | pending |
-| 11-12-01/02 | 12 | 12 | CONT-02 | unit | SHUTTLE from a blank page (D-04): the lift-stops decision at `shuttle.ts:80-92` **reversed on the record with its two reasons answered**, the `gtt(index,0)` floor kept, 245 free spent deliberately | exists | pending |
-| 11-13-01/02 | 13 | 13 | CONT-02 | unit | STRIP as two independent faders plus a crossfader; **what is discarded named**: the repository's only worked 10-bit unlock and its 14-bit stream, traded for three 7-bit streams | exists | pending |
-| 11-14-01 | 14 | 14 | — | **checkpoint:decision** | the front-door ring question: RADAR is ring position 6 and the ring requires `preview === "padsim"` | n/a | pending |
-| 11-14-02 | 14 | 14 | CONT-02, CAT-04 | unit | RADAR per the answer, with D-03's rule honoured — neither RADAR nor SONAR is given a job the user did not ask for | exists | pending |
-| 11-15-01 | 15 | 15 | CONT-02 | unit | the wheels, costed **before** designed: pitch left, mod right, column 4 a lit divider, pitch bend as status **224** through `self:gms`, **never `gmbs`**; the value not quantised to the row | created here | pending |
-| 11-15-02 | 15 | 15 | CONT-02, CONT-03 | unit + sweep | the spring returns **in MIDI as well as in light** — the named failure mode — and mod holds across a release; both budgets stated; catalog `27 + 1 = 28`; one `FOR` and two `FEELS` with the FEELS floor re-checked | exists | pending |
-| 11-16-01 | 16 | 16 | all | measured + docs | every projection in this document replaced by an observation, **every wrong one named as wrong**; `docs/TESTING.md`, `docs/HARDWARE-AUDITION.md` and `deferred-items.md` re-measured and rewritten | exists | pending |
-| 11-16-02 | 16 | 16 | all | phase gate | quick `BASE_FILES + 3` / **`BASE_TESTS + 33`** (or `+ 32` under `fold-into-sonar`) as a **sixteen-term** chain with `T14` named; sweep `4 19`; e2e `BASE_E2E + 0` in sixteen terms with **four** suite-running plans named; catalog **28, or 29 under `new-entry`**, as a sixteen-term chain; `CONT-01` and `FOUND-02` amended by name and dated; `firmware-oracle.spec.ts` green — and its **seventh** test named as the one that runs through `pad-sim.ts:987`, which is what makes the D-02 proof mechanical; the vendored divergence enumerated and justified | exists | pending |
-| 11-16-03 | 16 | 16 | — | **checkpoint:human-verify** | the hardware rows and the six things this phase could not do, handed over unasserted | n/a | pending |
+| 11-08.1-01 | 08.1 | 9 | PREV-01 | browser (harness) | `litCells` attributes its own failure and is labelled a DIAGNOSTIC; `e2e/poll.ts` created in two shapes; **all eleven `expect.poll` sites** enumerated with a per-site verdict and every throwing one guarded, including `tuning.e2e.ts:821`'s `.not.toBe(was)`, where a string sentinel would SATISFY the negation and turn a broken page green. Two plants red, with both `litCells` wall times published | **Wave 0 gap — `e2e/poll.ts` does not exist** | pending |
+| 11-08.1-02 | 08.1 | 9 | PREV-01 | browser | `/dev/session/` publishes `install-phase`; `onlyReads` waits on the store LEAVING `snapshotting` and reads the safety counters AFTER, in that order, so a late write is still caught; the `0 <= shown <= 3` pair retired to an equality, with the constant-zero plant published passing under the old form and red under the new; `browse.e2e.ts:669`'s `built >= 4` of 27 floor derived rather than typed; `artifacts.e2e.ts` reads the BUILD and names a stale build or a moved HEAD as itself | exists | pending |
+| 11-08.1-03 | 08.1 | 9 | PREV-01, PREV-05, DEGR-01 | unit + browser | **The product defect: there is no `contextlost`, `contextrestored` or `isContextLost` handler anywhere in `src/`.** `SimHost` notices by event AND by paint-time guard, **and neither half is redundant** — the event is the only thing that can reach a STILL card, which never paints, and the guard is the only thing that can reach a card on an engine that never emits the event. `host.spec.ts` **18 → 21**; one `@webkit` title proving the picture comes back with the card sitting still and `BrowseGrid`'s `started` set never consulted. **This plan runs the suite** | **Wave 0 gap — the browser assertion does not exist** | pending |
+| 11-09-01 | 09 | 10 | CONT-02, SHARE-01 | unit | ARC's amplitude visible: the 3×3 heart scaled by the same `s.d` the CC is scaled by, `+21` against 527 free at worst. **And POMODORO's `@MINS` gains `"1"` and `"5"` APPENDED, never inserted**, with `stamp.spec.ts` +1 asserting the first four indices still decode to 15/20/25/50 — **moved ahead of 11-09-02's checkpoint, because nothing in "make a 1 minute and a 5 minute one" is ambiguous and nothing in it depends on an answer** | exists | pending |
+| 11-09-02 | 09 | 10 | — | **checkpoint:decision** | the three remaining two-reading notes put to the user together: **ARC's centre-press**, **STAGE's lining-up** (with the evidence that `listing.ts:447` already promises it) and **LUMEN's depth** | n/a | pending |
+| 11-09-03 | 09 | 10 | CONT-02 | unit | STAGE's third zone state per the answer, or the answer recorded and nothing shipped. **Term `+0`, written out.** MORPH's "mapping mode" answer recorded and carried to 11-16 rather than acted on here | exists | pending |
+| 11-10-01 | 10 | 11 | PREV-01 | unit | `gmss` reaches the Lua host on the `gmms`/`gmbs`/`gks` template: `lua-host.ts`, `HOST_GLOBALS` 15 → **16**, `host-surface.spec.ts` +1, `lua-host.spec.ts` +1, and **every literal 15 in the tree named and moved** | exists | pending |
+| 11-10-02 | 10 | 11 | CONT-02 | unit | LUMEN sends its colour as hex over sysex, `0xF0` and `0xF7` supplied by the entry; costed against 302 free Setup at worst and a **completely free Timer**; the depth half per 11-09-02's answer. **`lua-host.spec.ts` +1 as a new test, not an extension of 11-10-01's** — the plan's asserted `PREV_TESTS+2` depends on it | exists | pending |
+| 11-11-01/02 | 11 | 12 | CONT-02, PREV-01 | unit | GHOST from a blank page: the budget costed up front (601 / 573 free), the reliability the user reported diagnosed as **gone rather than patched**, `restsBlack` re-declared and proved in both directions by `frames.json`, and its demo path in `demo.ts:177` re-cut | exists | pending |
+| 11-12-01/02 | 12 | 13 | CONT-02 | unit | SHUTTLE from a blank page (D-04): the lift-stops decision at `shuttle.ts:80-92` **reversed on the record with its two reasons answered**, the `gtt(index,0)` floor kept, 245 free spent deliberately | exists | pending |
+| 11-13-01/02 | 13 | 14 | CONT-02 | unit | STRIP as two independent faders plus a crossfader; **what is discarded named**: the repository's only worked 10-bit unlock and its 14-bit stream, traded for three 7-bit streams | exists | pending |
+| 11-14-01 | 14 | 15 | — | **checkpoint:decision** | the front-door ring question: RADAR is ring position 6 and the ring requires `preview === "padsim"` | n/a | pending |
+| 11-14-02 | 14 | 15 | CONT-02, CAT-04 | unit | RADAR per the answer, with D-03's rule honoured — neither RADAR nor SONAR is given a job the user did not ask for | exists | pending |
+| 11-15-01 | 15 | 16 | CONT-02 | unit | the wheels, costed **before** designed: pitch left, mod right, column 4 a lit divider, pitch bend as status **224** through `self:gms`, **never `gmbs`**; the value not quantised to the row | created here | pending |
+| 11-15-02 | 15 | 16 | CONT-02, CONT-03 | unit + sweep | the spring returns **in MIDI as well as in light** — the named failure mode — and mod holds across a release; both budgets stated; catalog `27 + 1 = 28`; one `FOR` and two `FEELS` with the FEELS floor re-checked | exists | pending |
+| 11-16-01 | 16 | 17 | all | measured + docs | every projection in this document replaced by an observation, **every wrong one named as wrong**; `docs/TESTING.md`, `docs/HARDWARE-AUDITION.md` and `deferred-items.md` re-measured and rewritten | exists | pending |
+| 11-16-02 | 16 | 17 | all | phase gate | quick `BASE_FILES + 3` / **`BASE_TESTS + 36`** (or `+ 35` under `fold-into-sonar`) as a **seventeen-term** chain with `T14` named; sweep `4 19`; e2e **`BASE_E2E + 2`** in seventeen terms — sixteen written-out zeros and 11-08.1's `+2` — with **five** suite-running plans named and BOTH e2e numbers stated (`grep -c "test("` 85 → 86, run 103 → 105) with the reason they differ; catalog **28, or 29 under `new-entry`**, as a seventeen-term chain; `CONT-01` and `FOUND-02` amended by name and dated; `firmware-oracle.spec.ts` green — and its **seventh** test named as the one that runs through `pad-sim.ts:987`, which is what makes the D-02 proof mechanical; the vendored divergence enumerated and justified | exists | pending |
+| 11-16-03 | 16 | 17 | — | **checkpoint:human-verify** | the hardware rows and the six things this phase could not do, handed over unasserted | n/a | pending |
 
 *Status: pending / green / red / flaky. Every row starts pending; an executing plan updates only its own rows.*
 
@@ -493,6 +516,12 @@ measurement and three files.
       silently excused → **11-02-02**
 - [ ] `src/lib/catalog/presets.spec.ts` — the divergence spec that replaces the read-through
       guarantee → **11-05-02**
+- [ ] `e2e/poll.ts` — the guard that makes a Playwright poll's timeout real, in the two shapes the
+      eleven sites need. **Added by 11-08.1, which was inserted after this list was written** →
+      **11-08.1-01**
+- [ ] The browser assertion that a pad whose 2D backing store is dropped gets its picture back. **A
+      source scan cannot see paint order**, and this repository has twice shipped something that
+      painted nothing while every scan stayed green → **11-08.1-03**
 
 ---
 
@@ -532,6 +561,13 @@ and the failing message. **`git add` any new file before perturbing it**: on an 
 | 11-05 | rename one preset in `presets.ts` | `presets.spec.ts`, naming the field and the card, and saying the divergence is undeclared |
 | 11-06 | leave AURORA's `cost` declaration at 250 | `preset-baseline`-style cost assertion red at 408 |
 | 11-07 | restore `h*127//8` | the CONSOLE full-scale test, naming 111 and 127 |
+| 11-08.1 | plant `throw new Error("planted")` in `litCells` | the poll runs its FULL 30 s and fails naming `planted`, instead of dying at 0.2 s with an unattributed stack — **both wall times recorded** |
+| 11-08.1 | plant the same throw in `tuning.e2e.ts:821`'s callback | that test RED. **Green means the `.not.toBe(was)` inversion was not applied and a throw is satisfying the negation** |
+| 11-08.1 | comment out `install.svelte.ts`'s `this.phase = "ready"` | the new wait failing by naming the phase it was stuck in, not an off-by-one count |
+| 11-08.1 | wire `session-writes` to a constant `0` | the retired assertion RED — and **published passing under the old `0 <= shown <= 3` form**, which is the whole reason it is being retired |
+| 11-08.1 | remove the `contextlost` listener | the still-card half of the browser proof red, naming the black pad |
+| 11-08.1 | drop the `paint()` re-acquire guard | the animating-card half red. **If it stays green, that is a finding about which half is load-bearing and is recorded, never reconciled** |
+| 11-08.1 | keep `entry.scratch` across the loss | may well be GREEN, because an `ImageData` is a plain object. If so, the scratch clear is defensive rather than load-bearing and is labelled as such |
 | 11-09 | insert `"1"` at the front of `@MINS` | `stamp.spec.ts`'s index test, naming the interval a shared link would now render |
 | 11-10 | call `gmss` before it is registered | `host-surface.spec.ts`, refusing a call outside `HOST_GLOBALS` |
 | 11-15 | use `gmbs` for the bend | the wheels' MIDI test, naming a recorded **mouse button** where a bend was expected |
@@ -651,6 +687,11 @@ Each is put to the user by a named task rather than guessed. **Four of them bloc
 - [ ] EUCLID, SONAR and STEPS take a swipe without toggling at 100 Hz; **MORPH sends a corner only
       when it changed and a corner at zero sends nothing**; and clock sync is **named as not built**
       with both blockers stated (11-08)
+- [ ] **HANGAR notices when a canvas loses its 2D context and comes back** — by event and by
+      paint-time guard, with neither half redundant — proved in a browser on a still card and on an
+      animating one, with the card sitting still; the eleven `expect.poll` sites repaired including the
+      one negation that would have gone green on a throw; `onlyReads` waiting on a signal that implies
+      completion; and `retries`, `workers` and `waitForTimeout` refused by name (11-08.1)
 - [ ] ARC's picture stops lying about its amplitude; POMODORO gains one and five minutes **appended,
       before the checkpoint rather than behind it**; the **four** multi-reading notes are the user's
       answer and not the planner's (11-09)
@@ -663,9 +704,10 @@ Each is put to the user by a named task rather than guessed. **Four of them bloc
 - [ ] The wheels: pitch springs home in MIDI as well as in light, mod holds, status **224** through
       `self:gms` and never `gmbs`, and the catalog lands at the branch table's total for 11-14's
       recorded answer — **28, or 29 under `new-entry`** (11-15)
-- [ ] The phase gate green against a production build at quick `BASE_FILES + 3` / **`BASE_TESTS + 33`**
-      (or `+ 32` under `fold-into-sonar`) in a **sixteen-term** chain with `T14` named, sweep `4 19`,
-      e2e `BASE_E2E + 0` in sixteen terms, catalog **28 or 29** in sixteen terms; CONT-01 and FOUND-02
+- [ ] The phase gate green against a production build at quick `BASE_FILES + 3` / **`BASE_TESTS + 36`**
+      (or `+ 35` under `fold-into-sonar`) in a **seventeen-term** chain with `T14` named, sweep `4 19`,
+      e2e **`BASE_E2E + 2`** in seventeen terms with both e2e numbers stated, catalog **28 or 29** in
+      seventeen terms; CONT-01 and FOUND-02
       amended by name; **every** thing named as not done rather than quietly dropped — the six certain,
       plus FORGE's and LATTICE's precision notes if their sweeps came back clean, plus MORPH's
       "mapping mode" per the user's answer (11-16)
