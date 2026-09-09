@@ -33,11 +33,25 @@
 // It is the same known limitation the shipped Nine pads card has, because the
 // repaint keys on the cell rather than on a per-cell contact count.
 //
+// THE GUARD IS "e==3 or e>=5 and e<9", AND THE UPPER BOUND IS THE POINT
+// (plan 11-02, class B). Firmware coalesces a sub-cycle press-and-lift into ONE
+// message with event code 9 - a down AND an up, no separate DOWN and no
+// separate UP. It used to write "e>=5" bare, so a fast tap was read as a
+// lift, the press it also carried was thrown away, and a quick stab at a key
+// sent NOTHING - 0 MIDI messages against 2 on a slow press. That is the bench
+// report "not precise enough" exactly: the card was not imprecise, it was
+// ignoring the touch. A tap now sounds the note and the Timer's own
+// two-second watchdog releases it, because a coalesced tap brings no lift.
+// src/lib/catalog/touch-guard.spec.ts holds the convention and gates it; the
+// event table itself lives in src/vendor/botor/pad-sim.ts:228-241 and in
+// zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
+// characters.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 615 characters, Timer 171, both fixed
+// against the pinned minifier: Setup 623 characters, Timer 171, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 618 / 172, against a budget of 908 an
+// corner of the six-knob cross-product is 626 / 172, against a budget of 908 an
 // event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -47,7 +61,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.m={@SCALE}self.n={}self.p={}self.t={}for i=0,80 do local a=glag(0,i)local n=@BASE+i%9+(8-i//9)*@ROW self.n[i]=n local p=(n-@BASE)%12 local q=0 for j=1,7 do if self.m[j]==p then q=1 end end if p==0 then glc(a,2,@ROOTC,1)elseif q>0 then glc(a,2,0,90,160,1)else glc(a,2,0,25,50,1)end glp(a,2,255)glc(a,1,255,255,255,1)glp(a,1,0)end self.touch_cb=function(s,i,e,x,y)s.t[i]=0 local c=x*9//128+y*9//128*9 if e==3 or e>=5 then c=nil end local o=s.p[i]if o~=c then if o then s:gms(@CH,128,s.n[o],0,0)glp(glag(0,o),1,0)end if c then s:gms(@CH,144,s.n[c],@VEL,0)glp(glag(0,c),1,255)end s.p[i]=c end end gtt(0,100)";
+  "--[[@cb]]self.m={@SCALE}self.n={}self.p={}self.t={}for i=0,80 do local a=glag(0,i)local n=@BASE+i%9+(8-i//9)*@ROW self.n[i]=n local p=(n-@BASE)%12 local q=0 for j=1,7 do if self.m[j]==p then q=1 end end if p==0 then glc(a,2,@ROOTC,1)elseif q>0 then glc(a,2,0,90,160,1)else glc(a,2,0,25,50,1)end glp(a,2,255)glc(a,1,255,255,255,1)glp(a,1,0)end self.touch_cb=function(s,i,e,x,y)s.t[i]=0 local c=x*9//128+y*9//128*9 if e==3 or e>=5 and e<9 then c=nil end local o=s.p[i]if o~=c then if o then s:gms(@CH,128,s.n[o],0,0)glp(glag(0,o),1,0)end if c then s:gms(@CH,144,s.n[c],@VEL,0)glp(glag(0,c),1,255)end s.p[i]=c end end gtt(0,100)";
 
 const TIMER =
   "--[[@cb]]gtt(0,100)local s=self for i,c in pairs(s.p)do local t=(s.t[i]or 0)+1 s.t[i]=t if t>20 then s:gms(@CH,128,s.n[c],0,0)glp(glag(0,c),1,0)s.p[i]=nil s.t[i]=nil end end";

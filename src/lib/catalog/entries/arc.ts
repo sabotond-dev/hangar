@@ -33,11 +33,23 @@
 // Honest limit for the card copy: the 20 ms Timer is the LFO clock, so the
 // fastest cycle is about 165 ms and anything faster gets steppy.
 //
+// THE GUARD IS "e==3 or e>=5 and e<9", AND THE UPPER BOUND IS THE POINT
+// (plan 11-02, class B). Firmware coalesces a sub-cycle press-and-lift into ONE
+// message with event code 9 - a down AND an up, no separate DOWN and no
+// separate UP. It used to write "e>=5" bare, so a fast tap returned
+// early and neither the ARM count nor the depth followed the finger. ARC's own
+// MIDI comes from the Timer, so the symptom here was a knob that did not move
+// rather than silence - quieter than LATTICE's, and the same bug.
+// src/lib/catalog/touch-guard.spec.ts holds the convention and gates it; the
+// event table itself lives in src/vendor/botor/pad-sim.ts:228-241 and in
+// zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
+// characters.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 379 characters, Timer 251, both fixed
+// against the pinned minifier: Setup 387 characters, Timer 251, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the five-knob cross-product is 382 / 253, against a budget of 908
+// corner of the five-knob cross-product is 390 / 253, against a budget of 908
 // an event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -47,7 +59,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 then return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r local f=glim(r//2,1,120)for a=0,80 do glf(a,2,f)end end end gtt(0,20)";
+  "--[[@cb]]for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r local f=glim(r//2,1,120)for a=0,80 do glf(a,2,f)end end end gtt(0,20)";
 
 const TIMER =
   "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r)%256 s.h=p if p<s.r then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v)end end";

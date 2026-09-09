@@ -79,11 +79,22 @@
 // returns immediately for i > 0, because four fingers fighting over one blend
 // is noise rather than expression.
 //
+// THE GUARD IS "e==3 or e>=5 and e<9", AND THE UPPER BOUND IS THE POINT
+// (plan 11-02, class B). Firmware coalesces a sub-cycle press-and-lift into ONE
+// message with event code 9 - a down AND an up, no separate DOWN and no
+// separate UP. Setup used to write "e>=5" bare, so a fast tap returned
+// early and the four macros never moved - 0 MIDI messages against 4 on a slow
+// press. MORPH HAS NO TIMER, so nothing was going to catch up later either.
+// src/lib/catalog/touch-guard.spec.ts holds the convention and gates it; the
+// event table itself lives in src/vendor/botor/pad-sim.ts:228-241 and in
+// zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
+// characters.
+//
 // THE STRING BELOW IS A TEMPLATE OVER CANONICAL LUA. Rendered at the defaults
 // by renderLua it is byte-identical to the canonical text measured against the
-// pinned minifier: Setup 515 characters, a fixed point of compressScript and
+// pinned minifier: Setup 523 characters, a fixed point of compressScript and
 // accepted by checkSyntax. The all-longest corner of the five-knob
-// cross-product is 519, against a budget of 908 an event.
+// cross-product is 527, against a budget of 908 an event.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -93,7 +104,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 then return end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do s:gms(@CH,176,@CCB+j,w[j],0)local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,w[j]*2)end end local a=glag(0,x*9//128+y*9//128*9)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
+  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do s:gms(@CH,176,@CCB+j,w[j],0)local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,w[j]*2)end end local a=glag(0,x*9//128+y*9//128*9)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
 
 // THE TIMER IS THE EMPTY STRING, WRITTEN INLINE. See the header: MORPH has no
 // Timer EVENT, and a named constant holding nothing would only invite someone

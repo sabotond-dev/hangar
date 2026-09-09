@@ -43,12 +43,36 @@
 // src/lib/catalog/decay-idiom.spec.ts holds the rule, the arithmetic and the
 // list of usable timeouts, and it is CITED here rather than restated.
 //
+// THE GUARD IS "e==3 or e>=5 and e<9", AND THE UPPER BOUND IS THE POINT
+// (plan 11-02, class B). Firmware coalesces a sub-cycle press-and-lift into ONE
+// message with event code 9 - a down AND an up, no separate DOWN and no
+// separate UP. Setup used to write "e>=5" bare, so a fast tap was read
+// as a lift, the recorder never armed, and a quick stab sent NOTHING - 0 MIDI
+// messages against 8 on a slow press.
+//
+// THE SECOND-FINGER ERASE TOOK THE SAME FIX IN ITS OTHER FORM. "if e==4" is an
+// ONSET test and a bare 4 misses the fast tap, so a quick two-finger stab did
+// not clear the recording. It reads "e==4 or e>8" now: +7 characters, found by
+// touch-guard.spec.ts test 2 rather than by the plan, which named five "ended"
+// sites and no "started" one.
+//
+// AND ONE THING THE ESCAPE DOES NOT CLOSE, said here rather than left to be
+// rediscovered: a code-9 tap sets s.h and NOTHING EVER CLEARS IT, because only
+// a lift does and a coalesced tap has none. GHOST then records one frozen point
+// forever instead of entering playback. The honest fix costs more than the
+// escape does and changes what the card means; plan 11-11 rewrites this entry
+// from scratch and owns it.
+// src/lib/catalog/touch-guard.spec.ts holds the convention and gates it; the
+// event table itself lives in src/vendor/botor/pad-sim.ts:228-241 and in
+// zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
+// characters.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier - Setup 305 characters - except for the Timer,
+// against the pinned minifier - Setup 320 characters - except for the Timer,
 // which renders 333 for the reason above. Both are fixed points of
 // compressScript and both are accepted by checkSyntax. The all-longest corner
-// of the five-knob cross-product is 308 / 337, against a budget of 908 an
+// of the five-knob cross-product is 323 / 337, against a budget of 908 an
 // event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -58,7 +82,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end self.g={}self.n=0 self.j=0 self.touch_cb=function(s,i,e,x,y)if i>0 then if e==4 then s.g={}s.n=0 s.j=0 for a=0,80 do glp(a,1,0)end end return end if e==3 or e>=5 then s.h=nil return end s.h=1 s.x=x s.y=y end gtt(0,20)";
+  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end self.g={}self.n=0 self.j=0 self.touch_cb=function(s,i,e,x,y)if i>0 then if e==4 or e>8 then s.g={}s.n=0 s.j=0 for a=0,80 do glp(a,1,0)end end return end if e==3 or e>=5 and e<9 then s.h=nil return end s.h=1 s.x=x s.y=y end gtt(0,20)";
 
 const TIMER =
   "--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,x*9//128+y*9//128*9)local l=s.h and 1 or 2 glpfs(a,l,252,250,0)glt(a,l,42)end";

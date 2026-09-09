@@ -134,6 +134,20 @@
 // verbatim into the budget. Everything worth saying about this configuration is
 // said here, in TypeScript, where it costs nothing.
 //
+// STAGE IS A DECLARED EXCEPTION TO THE CLASS-B GATE, AND IT IS NOT A HOLE
+// (plan 11-02). Setup writes "if e==4 or e>8 then ... elseif e>=5 then ... end".
+// The elseif has no upper bound, which is the exact shape
+// src/lib/catalog/touch-guard.spec.ts test 1 forbids - but code 9 satisfies the
+// FIRST branch and never reaches it, so the guard is correct because of the
+// chain around it rather than because of its own text. A scan of the text alone
+// cannot see that, so the row is declared in DECLARED_EXCEPTIONS with that
+// reason, keyed on the whole branch clause; write the same comparison as a
+// standalone "if" and the gate goes red, which is the difference between a
+// declared exception and a per-file amnesty.
+//
+// STAGE also USES the code rather than merely tolerating it: Z(z,e>8 and 4 or
+// 24) lights the zone at rate 4 for a fast tap and 24 for a held press.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 

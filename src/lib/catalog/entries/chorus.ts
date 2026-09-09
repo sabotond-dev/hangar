@@ -54,11 +54,24 @@
 // bloom rather than stacking it, because layer 2 is one field and the second
 // burst overwrites the first. Sliding between pads is legato by construction.
 //
+// THE GUARD IS "e==3 or e>=5 and e<9", AND THE UPPER BOUND IS THE POINT
+// (plan 11-02, class B). Firmware coalesces a sub-cycle press-and-lift into ONE
+// message with event code 9 - a down AND an up, no separate DOWN and no
+// separate UP. It used to write "e>=5" bare, so a fast tap was read as a
+// lift, z was cleared before the chord was built, and a quick stab at a pad
+// sent NOTHING - 0 MIDI messages against 6 on a slow press. A tap now sounds
+// the triad and the Timer's two-second watchdog releases it, because a
+// coalesced tap brings no lift of its own.
+// src/lib/catalog/touch-guard.spec.ts holds the convention and gates it; the
+// event table itself lives in src/vendor/botor/pad-sim.ts:228-241 and in
+// zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
+// characters.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 760 characters, Timer 173, both fixed
+// against the pinned minifier: Setup 768 characters, Timer 173, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 763 / 174, against a budget of 908 an
+// corner of the six-knob cross-product is 771 / 174, against a budget of 908 an
 // event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -68,7 +81,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.z={}self.t={}self.touch_cb=function(s,i,e,x,y)s.t[i]=0 local z=x*3//128+y*3//128*3 if e==3 or e>=5 then z=nil end local o=s.z[i]if o==z then return end if o then for j=1,3 do s:gms(@CH,128,s.h[o][j],0,0)end end if z then for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end end s.z[i]=z end gtt(0,100)";
+  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.z={}self.t={}self.touch_cb=function(s,i,e,x,y)s.t[i]=0 local z=x*3//128+y*3//128*3 if e==3 or e>=5 and e<9 then z=nil end local o=s.z[i]if o==z then return end if o then for j=1,3 do s:gms(@CH,128,s.h[o][j],0,0)end end if z then for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end end s.z[i]=z end gtt(0,100)";
 
 const TIMER =
   "--[[@cb]]gtt(0,100)local s=self for i,z in pairs(s.z)do local t=(s.t[i]or 0)+1 s.t[i]=t if t>20 then for j=1,3 do s:gms(@CH,128,s.h[z][j],0,0)end s.z[i]=nil s.t[i]=nil end end";

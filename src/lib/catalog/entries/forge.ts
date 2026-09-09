@@ -187,6 +187,19 @@
 // verbatim into the budget. Everything worth saying about this configuration is
 // said here, in TypeScript, where it costs nothing.
 //
+// FORGE IS A DECLARED EXCEPTION TO THE CLASS-B GATE, AND THE BARE 4 IS THE FIX
+// (plan 11-02). The corner cell's onset is "if e==4 then s.k=i s.b=1 W(1)..." -
+// a bare test for 4, which is the shape src/lib/catalog/touch-guard.spec.ts
+// test 2 forbids for an onset. Here it is correct: that onset ARMS A LATCH that
+// only a lift clears, and the release lives in the same handler's
+// "if e>=5 and e<9" branch. A coalesced fast tap carries NO LIFT, so admitting
+// code 9 would arm the corner hold and leave it armed forever. Excluding 9 from
+// this one onset is deliberate, and it is declared in DECLARED_EXCEPTIONS with
+// that reason rather than silently excused.
+//
+// The "contact ended" guard three statements earlier is the ordinary form,
+// "e>=5 and e<9", and was already correct before 11-02.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
