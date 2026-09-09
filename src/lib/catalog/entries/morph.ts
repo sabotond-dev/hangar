@@ -61,13 +61,52 @@
 // src/lib/catalog/decay-idiom.spec.ts holds the rule, the arithmetic and the
 // list of usable timeouts, and it is CITED here rather than restated.
 //
-// MORPH'S BENCH NOTE HAS THREE CLAUSES AND 11-02 ANSWERS ONE. "mapping mode
-// needed in, if something doesn't change don't send it don't send 0 value, also
-// the LED's colors stuck again" - the stuck colours are the class-A fix above
-// and the class-B fix below. The SUPPRESSION clause (a per-contact last-sent
-// guard) belongs to plan 11-08, and "mapping mode" is a question at 11-09's
-// checkpoint because it admits two readings. Do not read this file's fix as an
-// answer to the whole note.
+// MORPH'S BENCH NOTE HAS THREE CLAUSES. "mapping mode needed in, if something
+// doesn't change don't send it don't send 0 value, also the LED's colors stuck
+// again" - the stuck colours are the class-A fix above and the class-B fix
+// below (plan 11-02); the SUPPRESSION is the section immediately following
+// (plan 11-08); and "mapping mode" is a question at 11-09's checkpoint because
+// it admits several readings and is NOT answered anywhere in this file.
+//
+// A CORNER SPEAKS ONLY WHEN THAT CORNER MOVED. self.p={0,0,0,0} holds the last
+// value sent for each of the four macros and the send is guarded on
+// z ~= s.p[j]. Before it, four CC messages left on EVERY accepted sample, at
+// 100 Hz for as long as a finger moved: measured through the real Lua host, a
+// 128-sample stroke along the top edge sent 512 messages and now sends 255, and
+// a jittering finger inside one cell sent 840 and now sends 450.
+//
+// "DON'T SEND 0 VALUE" IS A READING OF THE USER'S WORDS AND IT IS WRITTEN HERE
+// AS ONE. The four weights are a bilinear corner split - w = {u*v//127,
+// x*v//127, u*y//127, x*y//127} with u = 127-x and v = 127-y - so at any EDGE
+// two of the four are exactly 0 and at any CORNER three are, and all four were
+// being sent regardless. The reading taken is: A CORNER THAT IS AT ZERO AND WAS
+// AT ZERO SENDS NOTHING, AND A CORNER THAT FALLS TO ZERO SENDS ZERO ONCE. The
+// zero-initialised table is what delivers both halves with one mechanism -
+// every corner is 0 at Setup, so a corner the finger is far from never speaks
+// at all; measured on a y = 0 stroke, the two bottom corners send exactly 0
+// messages over 128 samples.
+//
+// THE ALTERNATIVE READING - never emit a 0 at all - WAS REJECTED, and the
+// reason is a worse bug than the one reported. The finger has to be able to
+// LEAVE a corner. Under the literal reading the receiver would hold the last
+// non-zero value of every corner the finger walked away from, forever, so a
+// slide from one corner to the opposite one would leave both macros up. The
+// top-left corner's single 0 at the end of a top-edge stroke is asserted by
+// name in lua-smoke.spec.ts, as is the fact that it is that corner's LAST word
+// rather than a value it passed through.
+//
+// THE PAINT IS DELIBERATELY LEFT UNCONDITIONAL, from the same local z the send
+// is guarded on. A suppressed send with a suppressed repaint is one decision
+// and a suppressed send with a live repaint is another; this is the second,
+// because the picture is a READOUT and the wire is TRAFFIC. glp is a local
+// write with no bus behind it, so repainting a corner that has not moved costs
+// nothing and guarantees the picture cannot drift from the last value sent -
+// which is the failure mode a shared guard would have introduced.
+//
+// s.p IS INDEXED BY CORNER, NOT BY CONTACT, and that was checked rather than
+// assumed: the callback's first line is "if i>0 or e==3 or e>=5 and e<9 then
+// return end", so this card is single-contact by construction. If that guard
+// ever moves, the table's key has to move with it.
 //
 // THE TOKEN FOR THE TRAIL LENGTH IS @DECAY, NOT @TRAIL. renderLua substitutes
 // by plain string replacement, so a token that is a PREFIX of another token is
@@ -92,9 +131,12 @@
 //
 // THE STRING BELOW IS A TEMPLATE OVER CANONICAL LUA. Rendered at the defaults
 // by renderLua it is byte-identical to the canonical text measured against the
-// pinned minifier: Setup 523 characters, a fixed point of compressScript and
-// accepted by checkSyntax. The all-longest corner of the five-knob
-// cross-product is 527, against a budget of 908 an event.
+// pinned minifier: Setup 575 characters, a fixed point of compressScript and
+// accepted by checkSyntax. THE CORNER THE 908 GATE READS IS 579, leaving 329
+// free, and it is the RGB444 PICKER corner (D-06) rather than the all-longest
+// corner of the declared palettes - the two coincide here only because @TRAILC
+// already declares 255,255,255, and plan 11-07 measured them 21 characters
+// apart on CONSOLE.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -104,7 +146,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do s:gms(@CH,176,@CCB+j,w[j],0)local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,w[j]*2)end end local a=glag(0,x*9//128+y*9//128*9)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
+  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}self.p={0,0,0,0}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,z*2)end end local a=glag(0,x*9//128+y*9//128*9)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
 
 // THE TIMER IS THE EMPTY STRING, WRITTEN INLINE. See the header: MORPH has no
 // Timer EVENT, and a named constant holding nothing would only invite someone

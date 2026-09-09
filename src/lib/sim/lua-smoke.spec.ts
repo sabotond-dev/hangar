@@ -2310,4 +2310,173 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       SWIPE_ENTRIES.length * 4 + 2,
     );
   }, 120000);
+
+  it("sends a MORPH corner only when that corner moved, and never a stale zero", async () => {
+    const entry = entryById("morph");
+    const base = knobValueOf(entry, "ccBase");
+    // The four corners send @CCB+1 .. @CCB+4, in the entry's own corner order:
+    // j=1 is u*v (top left), j=2 is x*v (top right), j=3 is u*y (bottom left),
+    // j=4 is x*y (bottom right), where u = 127-x and v = 127-y.
+    const CORNERS = [
+      { cc: base + 1, name: "top left" },
+      { cc: base + 2, name: "top right" },
+      { cc: base + 3, name: "bottom left" },
+      { cc: base + 4, name: "bottom right" },
+    ];
+    const report: string[] = [];
+
+    /** Drag one contact across the pad, one raw coordinate a tick. */
+    const drag = async (
+      label: string,
+      path: readonly (readonly [number, number])[],
+    ): Promise<{ samples: number; sent: HostMidi[] }> => {
+      const { host } = await open(entry);
+      try {
+        host.touchDown(0, path[0][0], path[0][1]);
+        host.tick();
+        let samples = 1;
+        for (let i = 1; i < path.length; i += 1) {
+          host.touchMove(0, path[i][0], path[i][1]);
+          host.tick();
+          samples += 1;
+        }
+        const sent = [...host.midi];
+        host.touchUp(0, path[path.length - 1][0], path[path.length - 1][1]);
+        host.tick();
+        const perCc = CORNERS.map((corner) => {
+          const values = sent
+            .filter((m) => m.p1 === corner.cc)
+            .map((m) => m.p2);
+          return `cc ${corner.cc} (${corner.name}) ${values.length}`;
+        });
+        report.push(
+          `${label}: ${samples} sample(s) accepted, ${sent.length} message(s) ` +
+            `against ${samples * 4} unguarded - ${perCc.join(", ")}`,
+        );
+        return { samples, sent };
+      } finally {
+        host.close();
+      }
+    };
+
+    // 1. THE TOP EDGE, y = 0. The arithmetic makes this the clean case and it
+    //    is not a coincidence: at y = 0 both u*y and x*y are exactly 0 for
+    //    every x, so the two bottom corners never leave zero for the whole
+    //    stroke - which is the bench's "don't send 0 value" stated as
+    //    arithmetic rather than as a complaint.
+    const top: [number, number][] = [];
+    for (let x = 0; x <= 127; x += 1) top.push([x, 0]);
+    const edge = await drag("top edge, y=0", top);
+
+    expect(
+      edge.samples,
+      "morph: the top-edge drag delivered nothing, so nothing below proves " +
+        "anything",
+    ).toBe(128);
+    expect(
+      edge.sent.length,
+      "morph: A CORNER MUST NOT BE RE-SENT WHEN IT HAS NOT MOVED. Four CCs " +
+        `left on every accepted sample, so an unguarded run is ${edge.samples * 4} ` +
+        `messages. Observed ${edge.sent.length}`,
+    ).toBeLessThan(edge.samples * 4);
+
+    for (const corner of CORNERS) {
+      const values = edge.sent
+        .filter((m) => m.p1 === corner.cc)
+        .map((m) => m.p2);
+      // 1a. NO CORNER REPEATS ITSELF. This is the clause, asserted directly
+      //     rather than through a count: a card that suppressed the WRONG
+      //     corners would still send fewer messages.
+      for (let i = 1; i < values.length; i += 1)
+        expect(
+          values[i],
+          `morph: cc ${corner.cc} (${corner.name}) sent ${values[i]} twice ` +
+            `in a row at message ${i}. self.p[j] holds the last value sent ` +
+            "and the send is guarded on z ~= s.p[j]",
+        ).not.toBe(values[i - 1]);
+      // 1b. NO CORNER OPENS WITH A ZERO. self.p is initialised to zeros, so a
+      //     corner that is at 0 and was at 0 - which is every corner at Setup
+      //     and every corner the finger is far from - never speaks at all.
+      if (values.length > 0)
+        expect(
+          values[0],
+          `morph: cc ${corner.cc} (${corner.name}) opened with a 0. ` +
+            "self.p={0,0,0,0} is half of the mechanism: a corner already at " +
+            "zero has not changed, so it has nothing to say",
+        ).not.toBe(0);
+    }
+
+    // 1c. THE TWO CORNERS THE FINGER IS NOWHERE NEAR SAY NOTHING AT ALL.
+    for (const corner of CORNERS.slice(2)) {
+      const values = edge.sent.filter((m) => m.p1 === corner.cc);
+      expect(
+        values.length,
+        `morph: cc ${corner.cc} (${corner.name}) is exactly 0 at every point ` +
+          "of a y = 0 stroke, and a corner that is at zero and was at zero " +
+          `must emit nothing. Observed ${values.length} message(s)`,
+      ).toBe(0);
+    }
+
+    // 1d. THE CORNER THE FINGER LEAVES SENDS ITS ZERO EXACTLY ONCE. This is
+    //     the half of the reading that the literal "never emit 0" would get
+    //     wrong: without it the receiver holds a stale non-zero value for a
+    //     corner the finger has left, which is a worse bug than the reported
+    //     one.
+    {
+      const values = edge.sent
+        .filter((m) => m.p1 === CORNERS[0].cc)
+        .map((m) => m.p2);
+      const zeros = values.filter((v) => v === 0);
+      expect(
+        zeros.length,
+        `morph: cc ${CORNERS[0].cc} (${CORNERS[0].name}) runs from 127 down ` +
+          "to 0 across this stroke, and the finger LEAVING it must send its " +
+          `0 exactly once. Observed ${zeros.length} zero(s) in ` +
+          `${values.length} message(s)`,
+      ).toBe(1);
+      expect(
+        values[values.length - 1],
+        `morph: the departed corner's 0 must be its LAST word, not a value ` +
+          `it passed through. Observed ${values.slice(-3).join(", ")}`,
+      ).toBe(0);
+    }
+
+    // 2. A JITTERING FINGER, which is what the bench actually had under its
+    //    hand. Every sample is a DISTINCT coordinate inside one cell - the
+    //    host's enqueue is change-gated on (event, x, y) per contact, so a
+    //    probe that re-sent one point would measure the host's dedup and call
+    //    it the entry's. A one-unit wobble moves the RAW coordinate every
+    //    sample and moves a derived corner weight far less often.
+    const wobble: [number, number][] = [];
+    for (const y of coordinatesIn(4))
+      for (const x of coordinatesIn(3)) wobble.push([x, y]);
+    const held = await drag("jitter inside one cell", wobble);
+    expect(
+      held.samples,
+      "morph: the jitter probe delivered too few samples to tell a guard " +
+        "from a coincidence",
+    ).toBeGreaterThan(100);
+    expect(
+      held.sent.length,
+      "morph: A JITTERING FINGER MUST NOT RESTATE A CORNER THAT HAS NOT " +
+        `MOVED. Unguarded this stroke is ${held.samples * 4} messages, four ` +
+        `on every sample. Observed ${held.sent.length}`,
+    ).toBeLessThan(held.samples * 4);
+    for (const corner of CORNERS) {
+      const values = held.sent
+        .filter((m) => m.p1 === corner.cc)
+        .map((m) => m.p2);
+      for (let i = 1; i < values.length; i += 1)
+        expect(
+          values[i],
+          `morph: cc ${corner.cc} (${corner.name}) restated ${values[i]} ` +
+            `under a jittering finger, at message ${i}`,
+        ).not.toBe(values[i - 1]);
+    }
+
+    process.stdout.write(
+      "\nMORPH suppression, plan 11-08:\n  " + report.join("\n  ") + "\n",
+    );
+    expect(report.length, "both strokes reported").toBe(2);
+  }, 120000);
 });
