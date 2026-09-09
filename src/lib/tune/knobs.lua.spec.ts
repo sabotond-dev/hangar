@@ -10,7 +10,13 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
-import { PRESETS } from "../../vendor/botor/_pad";
+// HANGAR's nine, not the vendored shelf's (plan 11-05). This loop only ever
+// reads `preset.id`, and the two id lists are held identical by
+// src/lib/catalog/presets.spec.ts test 3 - so this is flat today. It is flipped
+// anyway because the thing it EXAMINES is presetKnobs(), which resolves through
+// HANGAR's shelf: a walk driven by a list its subject no longer uses is exactly
+// the shape that passes having read nothing.
+import { PRESETS } from "../catalog/presets";
 import { CATALOG } from "../catalog";
 import type { CatalogEntry } from "../catalog/types";
 import { COLOUR_LATTICE_SIZE, presetKnobs } from "./knobs.preset";

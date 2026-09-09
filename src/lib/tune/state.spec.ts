@@ -13,12 +13,8 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
-import {
-  encodeStamp,
-  presetById,
-  type PadState,
-  type RGB,
-} from "../../vendor/botor/_pad";
+import { encodeStamp, type PadState, type RGB } from "../../vendor/botor/_pad";
+import { presetById } from "../catalog/presets";
 import { byId } from "../catalog";
 import {
   applyKnob,
@@ -29,9 +25,15 @@ import {
   type KnobBinding,
 } from "./state";
 
+// HANGAR's shelf (plan 11-05), and here it is load-bearing rather than tidy.
+// The first test asserts that withChange does not mutate the object it was
+// handed, because the shelf's state is SHARED and a mutation would poison every
+// later reader - and after 11-05 the later readers are state.ts's own, which
+// resolve through $lib/catalog/presets. Reading the vendored object here would
+// have left that guard pointed at a shelf nothing under test touches.
 const aurora = () => {
   const preset = presetById("aurora");
-  if (!preset) throw new Error("the vendored shelf lost aurora");
+  if (!preset) throw new Error("the shelf lost aurora");
   return preset.state;
 };
 
