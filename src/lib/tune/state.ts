@@ -25,9 +25,9 @@
 import {
   clonePadState,
   groundPadState,
-  presetById,
   type PadState,
 } from "../../vendor/botor/_pad";
+import { presetById } from "../catalog/presets";
 import type { CatalogEntry } from "../catalog/types";
 
 /**

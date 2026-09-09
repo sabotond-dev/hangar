@@ -8,6 +8,12 @@
  * compares the VENDORED compiler against it is comparing the copy to the
  * original, not the copy to itself.
  *
+ * IT READS THE SIBLING'S `pad.PRESETS`, NEVER src/lib/catalog/presets.ts (plan
+ * 11-05). HANGAR now declares its own nine, but this script's whole job is to
+ * capture the ORIGINAL's shelf and the original's output. Pointing it at
+ * HANGAR's values would record the copy's behaviour under the original's name,
+ * which is the one failure the fixture exists to make impossible.
+ *
  * Read-only in the sibling repository. It runs no state-changing git command
  * there, writes no file there, and asserts the sibling's `git status
  * --porcelain` is byte-identical before and after. `cwd` stays in HANGAR

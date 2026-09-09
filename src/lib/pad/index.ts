@@ -25,8 +25,6 @@ import {
   fits as vendorFits,
   measure as vendorMeasure,
   validate as vendorValidate,
-  presetById,
-  PRESETS,
   type CompileResult,
   type FitPlan,
   type FitStep,
@@ -37,6 +35,12 @@ import {
   type PadState,
   type PadUserCode,
 } from "../../vendor/botor/_pad";
+// The nine shelf presets are HANGAR's, not the vendored module's (plan 11-05).
+// This re-export is how the rest of HANGAR reaches the shelf, so this one line
+// moves five call sites that never name a preset module themselves. The
+// vendored PRESETS array is still exported and is still what the two fidelity
+// fixtures measure - it is the PORT's gate, not the CATALOG's.
+import { PRESETS, presetById } from "../catalog/presets";
 
 export { PRESETS, presetById, padReady };
 export type {

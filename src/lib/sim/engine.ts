@@ -38,7 +38,7 @@
 // the line that makes it true.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { presetById } from "../../vendor/botor/_pad";
+import { presetById } from "../catalog/presets";
 import { PadSim } from "../../vendor/botor/pad-sim";
 import type { CatalogEntry } from "../catalog/types";
 

@@ -4,6 +4,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { PadSim } from "../../vendor/botor/pad-sim";
+// THE VENDORED SHELF, DELIBERATELY (plan 11-05). HANGAR declares its own nine
+// in src/lib/catalog/presets.ts; this fixture's hashes were sampled from a
+// PadSim built over the VENDORED states, so this is the port's tripwire and not
+// the catalog's. Pointing it at HANGAR's nine would compare HANGAR against
+// HANGAR. src/lib/catalog/frames.json is the catalog-side counterpart and
+// carries a row per catalog entry.
 import { PRESETS, presetById } from "../../vendor/botor/_pad";
 
 // D-07. This is a regression tripwire, not an oracle. These hashes come from

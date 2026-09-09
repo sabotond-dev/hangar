@@ -18,6 +18,14 @@ import { PROTOCOL_PIN } from "../protocol-pin";
 // rather than a tautology: if the vendored compiler and the fixture agree on
 // all nine presets character for character, the port introduced nothing.
 //
+// IT KEEPS IMPORTING `PRESETS` FROM src/vendor/, AND THAT IS THE POINT (plan
+// 11-05). HANGAR now declares its own nine in src/lib/catalog/presets.ts, and
+// pointing this spec there would make it compare HANGAR's compiler against
+// HANGAR's own preset values - a tautology dressed as a fidelity gate. This is
+// the PORT's gate, not the CATALOG's, which is what it always actually was.
+// HANGAR's nine are covered instead by src/lib/catalog/presets.spec.ts (field
+// by field against these) and by src/lib/catalog/frames.json.
+//
 // This spec itself reads nothing outside the repository. The fixture is
 // committed, so the gate is green on a machine that has never checked out the
 // sibling repository - src/lib/format-parity.spec.ts stays the one deliberate

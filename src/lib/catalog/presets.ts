@@ -1,0 +1,268 @@
+// The nine shelf presets, DECLARED BY HANGAR.
+//
+// WHAT MOVED AND WHAT DID NOT. `PadPreset`, `PadState` and `KnobKind` are still
+// vendored types and are imported, never restated: HANGAR owns the nine VALUES
+// and never the shapes. The factory below is a re-implementation of the
+// twenty-line module-private `preset()` at src/vendor/botor/_pad.ts:4189-4211 -
+// `defaultState()`, apply the mutator, stamp `state.preset`, normalise - and it
+// calls the vendored `defaultState` and `normalisePadState` directly, so the
+// nine states are still built by the vendored compiler's own rules.
+//
+// WHY. Reading the nine out of `PRESETS` made every bench correction to a
+// preset an edit inside src/vendor/, which D-02 grants only for fidelity fixes
+// with a manifest row and a written reason. Eight of the user's bench notes are
+// preset-definition changes - a colour, a knob, a grid size - and none of them
+// is a fidelity fix. They were unfixable here for a STRUCTURAL reason, not a
+// technical one. This module is what removes that.
+//
+// THE VENDORED `PRESETS` ARRAY IS NOT DELETED AND IS NOT SHRINKING. It is still
+// exported from src/vendor/botor/_pad.ts, it is still what
+// src/lib/fidelity/preset-baseline.spec.ts and golden-frames.spec.ts measure,
+// and it is still what scripts/capture-preset-baseline.mjs captures. Those are
+// the PORT's gate, not the CATALOG's, and pointing them here would make them
+// compare HANGAR against HANGAR.
+//
+// WHAT HOLDS THE TWO TOGETHER. src/lib/catalog/presets.spec.ts diffs every one
+// of the nine against the vendored one field by field - `id`, `name`,
+// `sentence`, `category`, `knobs`, `exclusive`, `quiet` and the whole of
+// `state`, deeply - and fails on any difference not written down in its
+// `INTENDED_DIVERGENCE` table with a reason, a plan and a date. Before this
+// module existed, src/lib/catalog/entries/ported.ts read `name` and `sentence`
+// through `presetById` so a BOTOR rename could not silently disagree. That was
+// two strings. This is everything, and the price is that a divergence now has
+// to be DECLARED rather than merely made.
+//
+// STANDING RULE, INHERITED FROM PLAN 11-04: A HANGAR-OWNED PRESET MUST NEVER
+// SELECT `bloom` OR `disturb` AS ITS `touch.kind`.
+// Both carry the worst cases of the class-A decay defect 11-04 repaired for the
+// comet family: measured residue up to 125 of 255 on every cell a finger
+// crossed, against comet's 1 to 7. Repairing them needs a per-cell timeout
+// derived from a per-cell start - a change to the EMITTED SHAPE - and D-02
+// grants the emitted constants, not the emitted shape. Neither is reachable
+// today, because `touch.kind` is exposed as no knob on any of the nine; this
+// header is what keeps that true the day somebody adds one. None of the nine
+// below selects either, and presets.spec.ts holds every `state` field against
+// the vendored shelf, so a change here that reached for one would have to be
+// declared in writing first.
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import {
+  defaultState,
+  normalisePadState,
+  type KnobKind,
+  type PadPreset,
+  type PadState,
+} from "../../vendor/botor/_pad";
+
+export type { KnobKind, PadPreset, PadState };
+
+/**
+ * The vendored `preset()` factory, re-implemented over the vendored helpers.
+ *
+ * The ids are the short stamp payload, so they are permanent: renaming one
+ * orphans every pad that carries it. Every declared cost is asserted in
+ * presets.spec.ts against the compiler's own output, because without that one
+ * edit to a shared codegen helper leaves every published capacity number stale
+ * with no device-free way to catch it.
+ */
+function preset(
+  id: string,
+  name: string,
+  sentence: string,
+  category: PadPreset["category"],
+  knobs: KnobKind[],
+  change: (d: PadState) => void,
+  cost: { setup: number; timer: number },
+  extra?: { exclusive?: boolean; quiet?: string },
+): PadPreset {
+  const state = defaultState();
+  change(state);
+  state.preset = id;
+  return {
+    id,
+    name,
+    sentence,
+    category,
+    knobs,
+    state: normalisePadState(state),
+    cost,
+    ...(extra ?? {}),
+  };
+}
+
+export const PRESETS: readonly PadPreset[] = [
+  preset(
+    "aurora",
+    "Aurora",
+    "A band of light crosses the pad, and your finger leaves a glowing tail behind it.",
+    "looks",
+    ["colour", "speed", "direction", "size"],
+    () => {
+      // The default state is this card.
+    },
+    { setup: 250, timer: 55 },
+  ),
+  preset(
+    "pinwheel",
+    "Pinwheel",
+    "Light turns around the centre, and each finger paints in its own colour.",
+    "looks",
+    ["colour", "speed", "count"],
+    (d) => {
+      d.look.kind = "swirl";
+      d.look.colour = { r: 0, g: 110, b: 255 };
+      d.touch.kind = "perFinger";
+    },
+    { setup: 312, timer: 55 },
+  ),
+  preset(
+    "starfield",
+    "Starfield",
+    "Every light breathes at its own pace, so the pad never repeats itself.",
+    "looks",
+    ["colour", "feel"],
+    (d) => {
+      d.look.kind = "shimmer";
+      d.look.colour = { r: 119, g: 153, b: 255 };
+      d.touch.kind = "comet";
+    },
+    { setup: 238, timer: 55 },
+  ),
+  preset(
+    "radar",
+    "Radar",
+    "Rings roll out from the centre, and the pad sends your finger's position to your computer.",
+    "instruments",
+    ["colour", "speed", "note"],
+    (d) => {
+      d.look.kind = "ripple";
+      d.look.colour = { r: 255, g: 68, b: 0 };
+      d.touch.kind = "comet";
+      d.sends.kind = "xy";
+      d.sends.fingers = "first";
+    },
+    { setup: 445, timer: 55 },
+  ),
+  preset(
+    "joystick",
+    "Joystick",
+    "Push the pad like a synth stick: left-right bends pitch, and letting go snaps everything home.",
+    "instruments",
+    // bend is the per-axis message switch, spring the return-on-lift
+    // three-way. Colour and the CC number matter more here than speed, so
+    // the look stays an Adjust-sheet edit.
+    ["colour", "note", "bend", "spring"],
+    (d) => {
+      // Dark field, one glow dot: the dot is the stick's position, parks
+      // on the home cell on lift, and the home cell is lit from power-on.
+      d.look.kind = "none";
+      d.enabled.look = false;
+      d.touch.kind = "glow";
+      d.touch.colour = { r: 255, g: 187, b: 0 };
+      d.sends.kind = "xy";
+      d.sends.fingers = "first";
+      d.sends.spring = true;
+      d.sends.bend = "x";
+      // The classic pitch/mod stick: the bend axis centres by definition,
+      // and the CC axis falls to zero like a mod amount. Up is more, like
+      // the fader cards, so the stick rests at the bottom-centre cell.
+      d.sends.springTo = "zero";
+      d.sends.invertY = true;
+    },
+    { setup: 542, timer: 24 },
+    {
+      quiet:
+        "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
+    },
+  ),
+  preset(
+    "ninepads",
+    "Nine pads",
+    "Nine drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
+    "instruments",
+    ["colour", "note", "scale", "amount"],
+    (d) => {
+      d.look.kind = "none";
+      d.enabled.look = false;
+      d.touch.kind = "none";
+      d.enabled.touch = false;
+      d.sends.kind = "zones";
+      d.sends.grid = "3x3";
+      d.sends.showGrid = true;
+      d.sends.fingers = "each";
+    },
+    { setup: 580, timer: 158 },
+  ),
+  preset(
+    "faders",
+    "Four faders",
+    "Four faders side by side, each with a white rail and a coloured level you can see across the room.",
+    "instruments",
+    ["note", "amount"],
+    (d) => {
+      d.look.kind = "none";
+      d.enabled.look = false;
+      d.touch.kind = "none";
+      d.enabled.touch = false;
+      d.sends.kind = "faders";
+      d.sends.faders = 4;
+      d.sends.layout = "rails";
+      d.sends.showGrid = true;
+      d.sends.phase = "held";
+    },
+    { setup: 520, timer: 24 },
+  ),
+  preset(
+    "dial",
+    "Dial",
+    "Circle your finger and the pad becomes an endless knob, sending how far you turned.",
+    "instruments",
+    // note is the CC, feel the sensitivity detent, mode the
+    // relative/absolute switch, amount the distance-from-centre stream.
+    // Colour and speed stay Adjust-sheet edits: the preset cap is four
+    // knobs and the mapping knobs matter more on this card.
+    ["note", "feel", "mode", "amount"],
+    (d) => {
+      // Amber swirl: the rotational look matches the gesture, and colour
+      // plus the comet response distinguish it from Pinwheel's blue swirl.
+      // No new visual vocabulary, zero new LED budget.
+      d.look.kind = "swirl";
+      d.look.colour = { r: 255, g: 170, b: 0 };
+      d.look.arms = 3;
+      d.look.speed = 2;
+      d.touch.kind = "comet";
+      // Brings fingers "first" and hiRes off through normalise.
+      d.sends.kind = "dial";
+    },
+    { setup: 646, timer: 55 },
+    {
+      quiet:
+        "Clockwise raises, counter-clockwise lowers. The middle of the pad stays quiet.",
+    },
+  ),
+  preset(
+    "tpad",
+    "Trackpad",
+    "One finger moves the pointer, two fingers scroll, a tap clicks and two fingers tapping right-click.",
+    "computer",
+    ["feel", "amount"],
+    (d) => {
+      d.look.kind = "none";
+      d.enabled.look = false;
+      d.touch.kind = "none";
+      d.enabled.touch = false;
+      d.sends.kind = "trackpad";
+    },
+    { setup: 902, timer: 146 },
+    {
+      exclusive: true,
+      quiet:
+        "The pad has no pressure sensing, so this cannot tell a firm press from a light one.",
+    },
+  ),
+];
+
+/** The shelf card with this id, or undefined. Same signature as the vendored one. */
+export function presetById(id: string): PadPreset | undefined {
+  return PRESETS.find((p) => p.id === id);
+}

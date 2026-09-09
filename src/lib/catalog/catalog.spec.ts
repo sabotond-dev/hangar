@@ -101,7 +101,12 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
     }
   });
 
-  it("reads ported names and descriptions off the vendored shelf", () => {
+  // KEPT ON THE VENDORED SHELF ON PURPOSE (plan 11-05). entries/ported.ts now
+  // reads $lib/catalog/presets, so this is no longer a restatement of the
+  // module under test - it is a genuine comparison between HANGAR's nine and
+  // BOTOR's, and it only became one when that import moved. Before 11-05 both
+  // sides of these two assertions were literally the same object.
+  it("agrees with the vendored shelf on every ported name and description", () => {
     expect(presetEntries.length, "there are ported entries").toBeGreaterThan(0);
     for (const entry of presetEntries) {
       if (entry.source.kind !== "preset") throw new Error("unreachable");

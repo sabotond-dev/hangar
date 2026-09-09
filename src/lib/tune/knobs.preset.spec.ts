@@ -26,13 +26,18 @@
 import { describe, expect, it } from "vitest";
 import {
   BRIGHTNESS_TABLE,
-  PRESETS,
   compile,
   padLightsAnything,
-  presetById,
   quantiseColour,
   type PadState,
 } from "../../vendor/botor/_pad";
+// HANGAR's nine, not the vendored shelf's, and that is load-bearing: this spec
+// holds the knob KINDS against `presetById(id).knobs`, so if it kept reading
+// src/vendor/ then a later plan adding a knob to a HANGAR-owned preset would go
+// red here for the wrong reason - a disagreement with a shelf HANGAR no longer
+// ships. The two shelves are held identical field by field by
+// src/lib/catalog/presets.spec.ts, which is where that comparison belongs.
+import { PRESETS, presetById } from "../catalog/presets";
 import { applyKnob, readKnob } from "./state";
 import { CATALOG } from "../catalog";
 import {

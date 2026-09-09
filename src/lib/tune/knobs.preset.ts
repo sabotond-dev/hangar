@@ -33,13 +33,13 @@ import {
   TRACKPAD_SCROLL_UNITS,
   TRACKPAD_TAP_TOLERANCE,
   padLightsAnything,
-  presetById,
   quantiseColour,
   type PadSheet,
   type PadState,
   type RGB,
   type TouchKind,
 } from "../../vendor/botor/_pad";
+import { presetById } from "../catalog/presets";
 import { withChange, type KnobBinding } from "./state";
 import type { KnobKindName } from "./view";
 

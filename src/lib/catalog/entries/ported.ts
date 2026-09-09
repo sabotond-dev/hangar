@@ -1,16 +1,33 @@
 // The nine ported shelf presets as catalog entries (D-09).
 //
-// `name` and `description` are READ from the vendored shelf through
-// presetById, never restated here, so a BOTOR re-sync that renames a card shows
-// up in the catalog instead of silently disagreeing with it. What HANGAR owns
-// is the table below: the feel-based tags, the Featured flag, the addedAt date
-// and the resting-black fact.
+// `name` and `description` are READ from the shelf through presetById, never
+// restated here. What HANGAR owns is the table below: the feel-based tags, the
+// Featured flag, the addedAt date and the resting-black fact.
 //
-// The vendored PRESETS array stays the nine and is never extended (D-09). New
-// configurations land in this module's siblings, not in src/vendor/.
+// WHICH SHELF, AND WHY THE ANSWER CHANGED (plan 11-05). Until 11-05 this read
+// src/vendor/botor/_pad.ts, and the read-through was the guarantee: a BOTOR
+// re-sync that renamed a card showed up in the catalog instead of silently
+// disagreeing with it. HANGAR now DECLARES the nine, in ../presets.ts, because
+// while the definitions lived upstream no bench correction to a preset could be
+// made here at all. So the read-through no longer holds anything against BOTOR,
+// and saying otherwise here would be the exact silence it was written to
+// prevent.
+//
+// WHAT REPLACES IT, in one line: ../presets.spec.ts diffs all nine against the
+// vendored ones across `id`, `name`, `sentence`, `category`, `knobs`,
+// `exclusive`, `quiet` and the whole of `state`, and fails on any difference
+// not written down with a reason. That is strictly more than the two strings
+// this line used to hold. The cost is that an intended divergence must now be
+// DECLARED; an undeclared one is a red test rather than a quiet disagreement.
+// ../catalog.spec.ts still compares these names and sentences to the VENDORED
+// shelf as a second, independent guard - and that comparison became real on the
+// day this import moved, because before it the two sides were one object.
+//
+// The shelf stays the nine and is never extended (D-09). New configurations
+// land in this module's siblings, not in ../presets.ts and not in src/vendor/.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { presetById } from "../../../vendor/botor/_pad";
+import { presetById } from "../presets";
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 /**

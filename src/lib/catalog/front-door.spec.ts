@@ -18,7 +18,10 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { presetById } from "../../vendor/botor/_pad";
+// HANGAR's nine (plan 11-05). The byte-equal `quiet` assertion below holds the
+// front door's row against the shelf HANGAR actually ships; the vendored shelf
+// is held against that one, field by field, by ./presets.spec.ts.
+import { presetById } from "./presets";
 import {
   EXCLUDED_FROM_ROW,
   FRONT_DOOR,
