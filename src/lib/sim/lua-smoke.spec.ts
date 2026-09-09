@@ -663,6 +663,106 @@ const PRESET_PARITY_ALLOWANCES: readonly {
   },
 ];
 
+// ---------------------------------------------------------------------------
+// THE SWEEP HELPERS (plan 11-07)
+//
+// Everything below drives ONE named entry rather than the catalog, which is
+// why it sits apart from the walks above: a value sweep is a question about a
+// particular piece of arithmetic and there is nothing uniform to ask.
+//
+// EVERY COORDINATE IS DERIVED FROM THE ENTRY'S OWN DIVISION, never pasted. All
+// three cards read a cell as t*9//128, so the centre of cell k is
+// (k*128 + 64)//9, and a probe that hard-coded pixels would silently drift the
+// day a card unlocked the 10-bit range.
+// ---------------------------------------------------------------------------
+
+/** The centre of cell index k on one axis, for a nine-wide t*9//128 mapping. */
+function cellCentre(k: number): number {
+  return Math.floor((k * 128 + 64) / 9);
+}
+
+function entryById(id: string): CatalogEntry {
+  const found = CATALOG.find((candidate) => candidate.id === id);
+  if (typeof found === "undefined")
+    throw new Error(`${id} is not in the catalog`);
+  return found;
+}
+
+const consoleEntry = (): CatalogEntry => entryById("console");
+
+/** A knob's SELECTED value, as a number. Derived, never restated. */
+function knobValueOf(entry: CatalogEntry, knobId: string): number {
+  const knob = entry.knobs.find((candidate) => candidate.id === knobId);
+  if (typeof knob === "undefined")
+    throw new Error(`${entry.id} has no knob "${knobId}"`);
+  const index = entry.defaults[knob.id] ?? knob.default;
+  return Number.parseInt(knob.values[index], 10);
+}
+
+/** Press cell (column, row) and lift again, two ticks apart. */
+function tapConsoleCell(
+  host: { touchDown: TouchFn; touchUp: TouchFn; tick: () => void },
+  column: number,
+  row: number,
+): void {
+  const x = cellCentre(column);
+  const y = cellCentre(row);
+  host.touchDown(0, x, y);
+  host.tick();
+  host.touchUp(0, x, y);
+  host.tick();
+}
+
+type TouchFn = (id: number, x: number, y: number) => void;
+
+/**
+ * Drag a finger up the eight body cells of one column, bottom to top, and
+ * return the delivered sample count.
+ *
+ * Rows 8 down to 1: row 0 is the mute cap and is deliberately never crossed,
+ * so this measures the FADER and nothing else.
+ */
+function sweepConsoleBody(
+  host: {
+    touchDown: TouchFn;
+    touchMove: TouchFn;
+    touchUp: TouchFn;
+    tick: () => void;
+  },
+  column: number,
+): number[] {
+  const x = cellCentre(column);
+  const rows: number[] = [];
+  host.touchDown(0, x, cellCentre(8));
+  host.tick();
+  rows.push(8);
+  for (let row = 7; row >= 1; row -= 1) {
+    host.touchMove(0, x, cellCentre(row));
+    host.tick();
+    rows.push(row);
+  }
+  host.touchUp(0, x, cellCentre(1));
+  host.tick();
+  return rows;
+}
+
+/** The controller values one column emits over its whole travel. */
+async function sweepConsoleColumn(
+  entry: CatalogEntry,
+  column: number,
+): Promise<number[]> {
+  const { host } = await open(entry);
+  try {
+    const controller = knobValueOf(entry, "cc") + column;
+    sweepConsoleBody(host, column);
+    return host.midi
+      .filter((m) => m.cmd === 176 && m.p1 === controller)
+      .map((m) => m.p2);
+  } finally {
+    host.close();
+  }
+}
+
 describe("hand-authored Lua entries execute (CONT-02)", () => {
   it("builds, and lights the pad under a finger", async () => {
     // NOT "non-black immediately after Setup". A blank layer's stops are all
@@ -1132,5 +1232,147 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length, "the probe ran every preset").toBe(presets.length);
+  }, 120000);
+
+  // -------------------------------------------------------------------------
+  // THE VALUE SWEEPS (plan 11-07)
+  //
+  // The probes above ask whether an entry SENDS. These ask WHAT it sends,
+  // across the whole travel of a control, and they exist because CONSOLE's
+  // bench complaint - "clamp issue in the top row because its not precise" -
+  // sounded like an event-handling fault and was an arithmetic ceiling:
+  // h*127//8 over a reachable h of 0..7 tops out at 111 of 127, and the only
+  // way to see that is to drive the control and read the numbers off the wire.
+  //
+  // EACH ASSERTS A COUNT AND AN ENDPOINT, NEVER THE WHOLE LIST. A list
+  // assertion goes red on any future re-scaling for no reason; a count plus an
+  // endpoint goes red exactly when the arithmetic stops reaching the end of its
+  // range, which is the defect these were written from.
+  // -------------------------------------------------------------------------
+
+  it("drives a CONSOLE column across its whole travel and reaches 127", async () => {
+    const entry = consoleEntry();
+    // Derived from the entry's own knob rather than pasted: the controller a
+    // column sends is @CC + c, and @CC is whatever the card ships as default.
+    const cc = knobValueOf(entry, "cc");
+    const report: string[] = [];
+    let observed: number[] = [];
+
+    for (let column = 0; column < 9; column += 1) {
+      const values = await sweepConsoleColumn(entry, column);
+      report.push(`column ${column} (cc ${cc + column}): ${values.join(", ")}`);
+      if (column === 4) observed = values;
+      const distinct = new Set(values);
+      expect(
+        values.length,
+        `console column ${column}: the sweep sent nothing at all, so nothing ` +
+          "below proves anything",
+      ).toBeGreaterThan(0);
+      expect(
+        distinct,
+        `console column ${column}: A FADER MUST REACH THE TOP OF ITS RANGE. ` +
+          "The body of a column is rows 1..8, so h = 8-r runs 0..7 and the " +
+          "scale factor has to be 127//7. It was 127//8, whose maximum over " +
+          "that h is 7*127//8 = 111, so every strip stopped an eighth short " +
+          `of full scale at every position. Observed: ${values.join(", ")}`,
+      ).toContain(127);
+      expect(
+        distinct.size,
+        `console column ${column}: eight body cells are eight levels, and a ` +
+          "sweep down the column must produce all eight. Observed " +
+          `${[...distinct].join(", ")}`,
+      ).toBe(8);
+    }
+
+    process.stdout.write(
+      "\nCONSOLE column sweep, one value per body cell:\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+    // The zero end is asserted too, so the range is pinned at BOTH ends and a
+    // rescaling that lifted the floor off 0 would be caught as readily as one
+    // that dropped the ceiling.
+    expect(observed, "the sweep reached column 4").toContain(0);
+  }, 120000);
+
+  it("leaves a muted CONSOLE column inert, and gives it back from the mute cap", async () => {
+    const entry = consoleEntry();
+    const cc = knobValueOf(entry, "cc");
+    const column = 3;
+    const controller = cc + column;
+    const { host } = await open(entry);
+    const report: string[] = [];
+    try {
+      const on = (n: number): number[] =>
+        host.midi
+          .slice(n)
+          .filter((m) => m.cmd === 176 && m.p1 === controller)
+          .map((m) => m.p2);
+
+      // 1. The mute cap, tapped. Setup left every strip at level 4, so this
+      //    sends a 0 and remembers the 4.
+      let mark = host.midi.length;
+      tapConsoleCell(host, column, 0);
+      const muted = on(mark);
+      report.push(`mute cap tapped: ${muted.join(", ") || "(nothing)"}`);
+      expect(
+        muted,
+        "console: tapping the mute cap must send the column's controller at 0",
+      ).toEqual([0]);
+
+      // 2. The whole fader body, swept, while the column is muted.
+      mark = host.midi.length;
+      const whileMuted = sweepConsoleBody(host, column);
+      report.push(
+        `swept while muted: ${whileMuted.length} sample(s) delivered, ` +
+          `${on(mark).length} message(s)`,
+      );
+      expect(
+        whileMuted.length,
+        "console: the muted sweep delivered no touch samples at all, so its " +
+          "silence proves nothing. Fix the gesture, not the assertion",
+      ).toBeGreaterThan(0);
+      expect(
+        on(mark),
+        "console: A MUTED FADER MUST DO NOTHING. The bench asked that a muted " +
+          "strip stop responding to touch, which REVERSES the shipped " +
+          "`s.m[c]=nil` - a fader you touch is a fader you want. The body is " +
+          "gated on `and not s.m[c]`; if that gate goes, this sweep sends " +
+          "eight messages and silently clears the mute half way through",
+      ).toEqual([]);
+
+      // 3. The mute cap again. It must give back the REMEMBERED level, which
+      //    is still 4 - proving step 2 stored nothing as well as sent nothing.
+      mark = host.midi.length;
+      tapConsoleCell(host, column, 0);
+      const restored = on(mark);
+      report.push(`mute cap tapped again: ${restored.join(", ")}`);
+      expect(
+        restored,
+        "console: unmuting must re-send the level the strip was muted at. " +
+          "Setup leaves every strip at h = 4, which is 4*127//7 = 72. A " +
+          "different number here means the muted sweep wrote self.v[c] even " +
+          "though it sent nothing",
+      ).toEqual([Math.floor((4 * 127) / 7)]);
+
+      // 4. And the fader answers again, so the mute is undoable rather than a
+      //    one-way door. This half is the whole reason the cap is the only
+      //    remaining unmute path: a mute you cannot clear is worse than the
+      //    complaint.
+      mark = host.midi.length;
+      sweepConsoleBody(host, column);
+      const after = on(mark);
+      report.push(`swept after unmuting: ${after.join(", ")}`);
+      expect(
+        after,
+        "console: after unmuting from the cap the fader must respond again",
+      ).toContain(127);
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nCONSOLE mute behaviour, column 3:\n  " + report.join("\n  ") + "\n",
+    );
+    expect(report.length, "every stage of the mute probe ran").toBe(4);
   }, 120000);
 });

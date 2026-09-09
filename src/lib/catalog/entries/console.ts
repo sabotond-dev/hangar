@@ -34,18 +34,43 @@
 // THE MECHANISM, with its 9x9 arithmetic.
 //
 //   - The column is c = x*9//128, so there are nine strips and no spare column.
-//   - The level is h = 8 - y*9//128, which is 8 at the top row and 0 at the
-//     bottom, because +y RUNS DOWN on this module (ZONA-CAPABILITIES.md 2.2).
-//     h is stored in self.v[c] and is NINE values, 0 to 8, drawn over the eight
-//     body cells of the column: row r (1..8) is lit when 8-r < h. h = 0 lights
-//     nothing and h = 8 lights all eight.
-//   - The controller value is self.v[c]*127//8, which is exactly 0 at h = 0 and
-//     exactly 127 at h = 8, with no scaling error at either end.
-//   - self.m[c] is the mute latch. A tap (e == 4 or e > 8) whose row is 0
-//     toggles it, sends the column's controller at 0, and repaints the column.
-//     Untoggling re-sends the REMEMBERED level, which is still in self.v[c] -
-//     muting never touches it. Sliding a muted column clears the mute, because
-//     moving a fader is an unambiguous request for that level.
+//   - The level is h = 8 - y*9//128, and because +y RUNS DOWN on this module
+//     (ZONA-CAPABILITIES.md 2.2) the top of the pad is the top of the fader.
+//     THE FADER BODY IS ROWS 1 TO 8, NEVER ROW 0 - row 0 is the mute cap - so
+//     r runs 1..8 and h runs 0..7. EIGHT values, not nine. h is stored in
+//     self.v[c] and drawn over the eight body cells: row r is lit when
+//     8-r < h, so h cells light and h = 0 lights nothing.
+//   - THE CONTROLLER VALUE IS self.v[c]*127//7, AND THE DIVISOR IS 7 BECAUSE
+//     THE MUTE ROW OWNS THE TOP OF THE TRAVEL. It used to be *127//8, whose
+//     maximum over the reachable h is 7*127//8 = 111: sweeping a column through
+//     the real Lua host emitted exactly 0, 15, 31, 47, 63, 79, 95, 111 and
+//     could not reach 127 at any point of any column. That is the bench report
+//     "clamp issue in the top row because its not precise" - the fader was not
+//     imprecise, it was short of full scale by an eighth. Dividing by 7 makes
+//     the eight steps span 0..127 exactly, at +0 characters, because both
+//     literals are one digit. src/lib/sim/lua-smoke.spec.ts sweeps every column
+//     and asserts 127 is present and the distinct count is 8.
+//     THE PICTURE STILL TOPS OUT AT SEVEN OF EIGHT BODY CELLS, and that is a
+//     separate fact rather than a leftover of the same defect: h cells light
+//     for h in 0..7, so the row you touch to reach full scale is itself dark.
+//     Lighting 0..8 cells would need nine levels over eight touchable rows, so
+//     it is a layout change and not a constant, and it is a bench question
+//     rather than an arithmetic one. Recorded in 11-07-SUMMARY.md.
+//   - self.m[c] is the mute latch. Row 0 toggles it, sends the column's
+//     controller at 0, and repaints the column. Untoggling re-sends the
+//     REMEMBERED level, which is still in self.v[c] - muting never touches it.
+//     A MUTED COLUMN IGNORES ITS FADER ENTIRELY, and that REVERSES a shipped
+//     decision. The fader body used to clear the mute (s.m[c]=nil) on the
+//     argument that moving a fader is an unambiguous request for that level;
+//     the bench asked for the opposite - "you should not be able to interact
+//     with the 'muted' faders" - so the body is now gated on `and not s.m[c]`
+//     and a muted column emits nothing and stores nothing. THE ONLY WAY BACK
+//     IS THE MUTE CAP, and it is reachable by construction: it is row 0 of the
+//     same column, the cell directly above the fader the finger is already on,
+//     and it is painted in @MUTEC on both layers while the mute is held, so it
+//     is the one cell in that column that says what to press. Folding the test
+//     into the existing condition rather than adding an early return cost
+//     -6 characters, because it drops the s.m[c]=nil the reversal removed.
 //   - A repaint is ONE PASS over the column, every cell written exactly once,
 //     never erase-then-paint: firmware has no double buffer and a two-pass
 //     repaint can tear. The repaint is also GATED - a sample that lands on the
@@ -68,7 +93,7 @@
 //
 // THE TRAPS THIS ENTRY CONTAINS.
 //
-//   - EVERY DIVISION IS FLOORED. x*9//128, y*9//128 and *127//8 are all `//`.
+//   - EVERY DIVISION IS FLOORED. x*9//128, y*9//128 and *127//7 are all `//`.
 //     A fraction reaching a firmware call becomes 0, silently.
 //   - @CC + 8 < 128 AT EVERY KNOB VALUE. See the arithmetic above.
 //   - CODE 9 IS HANDLED, AND IT IS THE WHOLE MUTE. A fast tap arrives as a
@@ -95,9 +120,10 @@
 //
 // THE HONEST LIMIT, for the card copy. Two things.
 //
-//   1. Nine steps per strip is the resolution the pad has. This is a control
-//      surface, not a motorised console, and a fader you can put in nine places
-//      is what nine cells buy.
+//   1. EIGHT steps per strip is the resolution the pad has - eight, because the
+//      ninth cell of the column is the mute cap and never a level. This is a
+//      control surface, not a motorised console, and a fader you can put in
+//      eight places is what eight cells buy. The eight now span 0..127 exactly.
 //   2. It cannot show what the mixer is doing. Nothing in this phase receives
 //      (D-04), so the pad shows the level YOU set, never the level the desk is
 //      at, and a fader moved in the DAW leaves this pad with nothing to say.
@@ -112,11 +138,19 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 785 characters, Timer 0, both fixed points
-// of compressScript and both accepted by checkSyntax. The all-longest corner of
-// the five-knob cross-product is 789 / 0, leaving 119 free of 908, and the
-// all-shortest corner is 780 / 0.
-// src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
+// against the pinned minifier: Setup 779 characters, Timer 0, both fixed points
+// of compressScript and both accepted by checkSyntax.
+//
+// TWO CORNERS, AND THE BINDING ONE IS NOT THE PALETTE'S. The all-longest corner
+// over the five DECLARED palettes is 783 / 0; the all-longest corner a VISITOR
+// CAN ACTUALLY REACH is 802 / 0, leaving 106 free of 908, because D-06 lets the
+// colour picker write any of the 4,096 RGB444 literals and 255,255,255 is two
+// characters longer than the longest colour this card declares. THREE colour
+// tokens, occurring 3 + 2 + 2 times, is 19 of the 23 characters between the two
+// corners. src/lib/catalog/lua-entries.sweep.spec.ts gates the PICKER corner -
+// that is the number 908 is checked against - so it is the one this header
+// quotes and the one every margin in 11-07-SUMMARY.md is stated at. The
+// all-shortest corner is 756 / 0.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
@@ -127,7 +161,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.v={}self.m={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local c=x*9//128 local r=y*9//128 if r==0 then if e==4 or e>8 then local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//8,0)P(s,c)end return end local h=8-r if h~=s.v[c]or s.m[c]then s.v[c]=h s.m[c]=nil s:gms(@CH,176,@CC+c,h*127//8,0)P(s,c)end end";
+  "--[[@cb]]self.v={}self.m={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local c=x*9//128 local r=y*9//128 if r==0 then if e==4 or e>8 then local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//7,0)P(s,c)end return end local h=8-r if h~=s.v[c]and not s.m[c]then s.v[c]=h s:gms(@CH,176,@CC+c,h*127//7,0)P(s,c)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
