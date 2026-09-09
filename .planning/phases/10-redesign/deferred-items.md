@@ -373,3 +373,180 @@ diagnosis table checked against `install-copy.ts`'s exports.
 `src/lib/sim/demo.spec.ts`, `src/lib/tune/mix.spec.ts` and `src/lib/ui/font-assets.spec.ts`. They
 are green and they are gates. None of them is 10-13's, so none was touched; plan 10-14 re-measures
 the tree at the phase gate and is the natural place for them.
+
+## From 10-13.1 and 10-13.2 — the aesthetic pass and its correction
+
+### 11. The second halftone density was measured over budget and did not ship
+
+`DENSITIES` is **1**. The second 3px-offset pitch cost **12.00 ms** at p95 on webkit-phone against
+10-UI-SPEC §8.5's declared **2 ms** threshold — six times over — with chromium at **0.00 ms** in both
+arms. The measurement is in `10-13.1-SUMMARY.md` with all eight numbers, taken at document-start via
+`addInitScript` (not `page.addStyleTag`, which lands after load and makes the first-paint half vacuous
+by construction), median of three runs per arm, arm proved per run by reading `background-size` back
+out of the page.
+
+**What would close it.** Either a cheaper spelling of the second density that measures under 2 ms on
+webkit-phone by the same instrument, or a decision that §8.5's threshold is the wrong instrument for
+a ground texture. Note that §8.5's 2 ms is written about **Layer S**, not Layer G — 10-13.1 applied it
+to Layer G deliberately, and that choice is itself worth revisiting rather than inheriting. Scan 4
+asserts `DENSITIES` against the named constant, so the fallback is a state the tree is checked
+against rather than a silence: closing this means moving a number a test reads.
+
+### 12. `isolation: isolate` is load-bearing and its absence is invisible to every source scan
+
+The lattice shipped once painting **nothing at all** with every source scan green. Two screenshots of
+`/browse/` — one as authored, one with `.lattice::before { display: none }` injected — came back
+**byte-identical at 8,492 bytes**. The cause is CSS 2.1 Appendix E painting order: without a stacking
+context on `.lattice`, a negative-`z-index` pseudo-element belongs to the nearest ancestor stacking
+context (the root) and paints at step 2, while `body`'s own background paints at step 3. Opaque black,
+straight over the top.
+
+It is now asserted **by name** in `instrument.spec.ts` scan 3 with the measurement in its own failure
+message, and 10-13.2's `e2e/aesthetic.e2e.ts` test 5 proves the pixels in a browser.
+
+**What would close it as a class, rather than for this one declaration.** Nothing in this repository
+gates *paint order* except that one e2e title. Any future `z-index: -1` decoration on a new root has
+the same failure mode and no gate. A cheap generalisation exists: a spec that finds every
+`z-index: -1` pseudo-element rule in `src/app.css` and asserts its owning selector also declares
+`isolation: isolate`. Six lines, and it turns a proved-once fact into a held one.
+
+### 13. The lattice's declaration count is a floor, not an equality (A-60)
+
+`instrument.spec.ts:849-851` reads `expect(declared.size).toBeGreaterThan(6)`. 10-13.2's brief asked
+for the equality to be "re-derived"; there is no equality, and the whole lattice ground fix lives
+outside `.lattice::before` anyway, so the rule gained no declaration. Recorded as A-60.
+
+**What would close it.** The same thing item 8 of this file wants and the gate's own negative check
+found in `facets.spec.ts`: a floor is only a gate if it sits at the observation. Deriving these
+floors from the observed count — or asserting equality with a named constant — is a small, boring,
+repository-wide job that nobody has done.
+
+### 14. `demo.spec.ts` stays green when `tpad` is renamed out of `DARK_BY_CONSTRUCTION`
+
+Observed during 10-13.2, reported rather than adjusted. The honesty gate that says *"this entry is
+dark and a finger cannot help it"* is held in **two** places, not three: `demo.spec.ts` asserts the
+list's **length** and iterates its members, so a rename inside the list satisfies both. The list is
+also imported rather than quoted by `aesthetic.spec.ts` scan 8, which is what keeps the two in step.
+
+**What would close it.** An assertion that the set of dark-by-construction ids **equals** a named
+literal set, so a rename is a diff rather than a silent substitution. It costs one line and it moves
+no count.
+
+### 15. Four accessibility walks read hand-declared component lists, and one of them read nothing
+
+10-13 found it: a 44px both-axes walk **passed having read nothing** when a component was dropped from
+its hand-declared list, and only the separate length assertion caught it. `DEVICE_COMPONENTS` is
+**seven** and `device-ui.spec.ts:232` asserts `.toBe(7)`; `instrument.spec.ts` is the repository's
+first **directory-derived** component walk and does not have this hole.
+
+**What would close it.** Derive the other three walks from the directory the way `instrument.spec.ts`
+does, with the declared list demoted to an exception table. That is the shape that makes adding a
+component to `src/lib/ui/` fail loudly until somebody says what it is, instead of quietly.
+
+### 16. `FacetRow.svelte` straddles the register line, and nothing states that as a rule
+
+On `/browse/` it renders pilled `TagChip`s; on `/` it renders unpilled links. That is the sharpest
+demonstration on the site that D-16's register line is a **class of surface** rather than a file list
+— which is finding 1 of `10-13.1-SUMMARY.md`, where the plan's own `<interfaces>` block stated the
+line as DOM containment twice and its own task 2 would have been illegal under it.
+
+**What would close it.** 10-UI-SPEC §19.1g still states the line as containment. Rewriting it as
+authorship, with `FacetRow.svelte` and `ScreenToggle.svelte` as its two worked examples, is a
+documentation change with no code behind it — which is exactly why it will be skipped unless it is
+written down here.
+
+## From 10-12 — the compiler audit that names nothing
+
+### 17. The exhaustiveness audit over `InstallAction` is satisfied by nothing switching over it
+
+`InstallAction` widened to **four** members when `CLEAR` landed, and the type-level guarantee that a
+fifth member forces every consumer to acknowledge it is **vacuous today**: nothing in `src/` switches
+exhaustively over the union, so `tsc` has nothing to complain about. The four-member `WRITE_CLICKS`
+tuple is the assertion that is actually load-bearing — length 4, equal to the four control labels —
+and `install.spec.ts` test 4 counts writes **by class**, which is why CLEAR needed no widening of the
+proof.
+
+**What would close it.** One `switch` with a `never`-typed default in the place where an action is
+turned into copy — `install-copy.ts`'s reason lookup is the natural site — so the compiler starts
+enforcing what the type was added to enforce.
+
+## Phase-level items, collected at the gate
+
+### 18. T3 — `SURPRISE ME` as a shelf of five rather than one roll
+
+Deferred from the tuning waves. `surpriseIndices` already takes the held set and the twelve-draw
+bound, and 10-09 drove the exhaustion path with a test that observes **12 draws, 0 offered to the
+compiler**. Five results is `MixTwo`'s shape with one candidate instead of two.
+
+**What would close it.** The same wiring item 8 of this file costs for MIX TWO, plus a term in
+`TuningRegion.svelte`'s height reservation. It is blocked by the same missing hop and by the same
+un-costed reservation term, and it should not be built before MIX TWO is mounted, because mounting
+MIX TWO is what settles the reservation question for both.
+
+### 19. T5 — a hardware A/B audition, and it is a SAFETY risk rather than a technical one
+
+Carried verbatim, because the reason is the whole item: **it adds a class of click that writes twice
+per gesture and cannot be verified without hardware.** Every other tuning idea in this phase is
+provable against the fake. This one is not: the thing worth checking is what two rapid RAM writes do
+to a module mid-animation, and no scripted transport can answer it.
+
+**What would close it.** Not a plan. A bench session with a real ZONA, a written protocol for it, and
+a decision about whether a double write per gesture is acceptable under SAFE-01's "nothing is written
+without a click" — because an A/B toggle is one click producing two writes, which is the first thing
+in this project that would strain that sentence.
+
+### 20. T6 — knobs on the pad itself
+
+Deferred from the tuning waves: turning a knob by dragging on the 9×9 preview rather than on a rail.
+
+**What would close it.** It needs the interactive preview's tick-locked, at-most-one-sample-per-tick
+pointer delivery to carry a second meaning, and that path is the one place the simulator's firmware
+fidelity is asserted. Costing it starts with deciding whether a knob drag is a *touch* the firmware
+sees or a gesture intercepted before the sampler — and those are different products.
+
+### 21. The CRT-over-text mitigations, and the new class of gate they need (10-UI-SPEC Open item 8)
+
+§8.3 rules that the CRT never covers text, and 10-13.2 spent a whole plan enforcing the same rule for
+the lattice. If a scanline over the hero copy is ever wanted, the priced change is **four** things:
+raise every affected token one rung, drop the overlay to ≤ 0.08 over text regions, widen the period to
+6px, **and** add a contrast gate that **composites** the overlay rather than reading the token.
+
+**What would close it.** The fourth is the hard one and it is a new class of test for this repository:
+every contrast assertion here reads declared token values, and a composited overlay is invisible to
+all of them. It wants the pixel-reading idiom `e2e/aesthetic.e2e.ts` test 5 established — sample the
+rendered pixel, not the declared colour — generalised into a contrast helper.
+
+### 22. The front-door ring cannot grow (10-UI-SPEC Open item 3)
+
+Already recorded from 10-07 above; restated here because it is one of the decisions handed to the
+user at the gate. `front-door.spec.ts:110-112` requires every ring member to be a `padsim` entry, and
+**twenty-seven of thirty-six** entries fail it. The ring stays at eight and gains the `FOR` link row.
+
+**What would close it.** Either a ring that admits Lua-backed entries — which means the assertion is
+rewritten and the front door pays a `wasmoon` fetch it currently never makes, and `e2e/catalog.e2e.ts`
+proves a cold catalog load never fetches it today — or a decision that eight is the answer and the
+assertion is the reason rather than an obstacle.
+
+### 23. Nothing type-checks `e2e/`
+
+Proved by measurement in 10-07 and unchanged since: a retired sort was restored inside an e2e file and
+`npm run check` did not move, while `npx tsc` over the same file named it. `svelte-check --tsconfig
+./tsconfig.json` does not reach the directory.
+
+**What would close it.** A second `tsconfig` covering `e2e/` and a `check:e2e` script, or widening the
+existing include. It is small; the reason it has not been done is that nobody has decided whether
+Playwright's types and the app's types can share one project without a fight.
+
+### 24. Nothing gates `docs/INSTALL-RUNBOOK.md` or `docs/TESTING.md`
+
+Restated from item 10 with the gate's own evidence behind it. A-51 folded `CLEAR`'s hardware check
+into **row C** precisely so the row count would not move — and if it had moved, nothing would have
+caught the runbook's "Seven rows" sentence going stale. `docs/TESTING.md` is named by a spec but its
+**contents** are not gated either: every count in it was hand-transcribed from a runner, including the
+tables plan 10-14 wrote.
+
+**What would close it.** For the runbook, a `ROW_COUNT`-shaped gate: row letters parsed out of the
+table, the count asserted against the sentence, every block caption checked against
+`install-copy.ts`'s exports. For `docs/TESTING.md`, the honest answer is that a document of observed
+numbers cannot be gated against the tree without re-running the tree — so the useful gate is narrower:
+assert that every spec path named in it exists, and that every spec file in `src/` is named in it.

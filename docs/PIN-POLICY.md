@@ -63,6 +63,11 @@ order, and all six items must hold:
    entries at the end of Phase 8 and covers **twenty-seven** after Phase 9, over 701 knob
    combinations on both events, and a minifier bump can turn any one of the twenty-seven
    non-canonical on its own.
+   **The pin now also decides whether the 4,096 lattice literals fit** (Phase 10, plan 10-08): the
+   colour knob describes the whole RGB444 lattice rather than a five-member palette, so a protocol
+   bump is gated by `src/lib/tune/reachability.sweep.spec.ts`'s **two passes** — Pass A's 19,502
+   non-colour states and Pass B's 24,576 colour states, 44,078 together — as well as by the
+   twenty-seven stored strings, and the margin it can move is `ninepads` at 640 of 908 with 268 free.
 5. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
    below. A moved cost is a change to the budget every preset is calibrated against, not a detail.
 6. **The reachability sweep is re-run:** `npm run test:sweep` reports **4 files / 19 tests**. The

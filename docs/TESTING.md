@@ -11,28 +11,30 @@ work) and is not repeated here.
 
 ## How to run it
 
-**Re-measured whole on 2026-09-07 at the Phase 9 gate (plan 09-10), at commit `36a1965`**, on this
-machine (Windows 11, Node v24.14.0), against a fresh `npm run build`, with **1.29 GB of 15.26 GB of
-memory free** at the time of the quick run. Wall times are the whole command including npm and
+**Re-measured whole on 2026-09-09 at the Phase 10 gate (plan 10-14), at commit `305e425`**, on this
+machine (Windows 11, Node v24.14.0), against a fresh `npm run build`, on a clean tree, with **6.3–6.7
+GB of 15.26 GB of memory free** throughout. Wall times are the whole command including npm and
 process startup, each command run alone in the order below; the parenthesised figure is the runner's
 own reported duration. Every number here is **observed**, never predicted — the tree is shared
 between phases, so a row that was guessed rather than run is worse than no row at all. The catalog
 under these numbers is **thirty-six configurations, twenty-seven of them hand-authored Lua**; the
 figures they replace were taken at sixteen and seven.
 
-| Command                      | Covers                                                               | Measured                                                                                                                     |
-| ---------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`              | `svelte-check` over the whole project                                | 567 files, 0 errors, 0 warnings; 8 s wall                                                                                    |
-| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 18 s wall                                                                                                            |
-| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; 12 s wall (12.08 s) — **unmoved from sixteen entries**, and see "The cost of thirty-six" below                       |
-| `npm run test:quick`         | the `server` Vitest project — everything except the four sweeps      | 74 files, 780 passed + 1 todo (781); 28 s wall (25.1 s), no timeout at 1.29 GB free                                          |
-| `npm run test:sweep`         | the `sweep` project: four files, and most of its cost is one of them | 4 files, 19 tests; 93 s wall (89.7 s) at 1.3 GB free, 162 s wall (157.2 s) at 0.43 GB free — the machine, not the tree       |
-| `npm run test:unit -- --run` | both Vitest projects in one run                                      | 78 files, 799 passed + 1 todo (800); 169 s wall (164.6 s). **Green again since the two fixes below**                         |
-| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | 89 tests (78 chromium, 11 webkit-phone) at `--workers 3`; 1.9 m runner time, 114 s wall including the cold start, first time |
+| Command                      | Covers                                                               | Measured                                                                                                                                     |
+| ---------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run check`              | `svelte-check` over the whole project                                | **584 files, 0 errors, 0 warnings**; 8 s wall, 6.69 GB free                                                                                  |
+| `npm run lint`               | `prettier --check .` then `eslint .`                                 | exit 0; 16 s wall, 6.68 GB free                                                                                                              |
+| `npm run build`              | `gen-og.mjs`, `vite build`, `postbuild.mjs`                          | exit 0; **10 s wall** — under Phase 9's 12.08 s and well under the 16–20 s the research projected at thirty-six                              |
+| `npm run test:quick`         | the `server` Vitest project — everything except the four sweeps      | **81 files, 828 passed + 1 todo (829)**; 32 s wall (29.90 s) at 6.67 GB free, and 32 s again after the build                                 |
+| `npm run test:sweep`         | the `sweep` project: four files, and most of its cost is one of them | **4 files, 19 tests**; 93 s wall (90.47 s) at 6.64 GB free                                                                                   |
+| `npm run test:unit -- --run` | both Vitest projects in one run                                      | **not re-run at this gate.** It is the sum of the two rows above, **85 files / 847 tests**; the last observation was Phase 9's 78 / 799      |
+| `npm run test:e2e`           | Playwright over the built site through `wrangler dev`, two projects  | **103 tests (85 chromium, 18 webkit-phone)** at `--workers 3`; 1.8 m runner time, 109 s wall including the cold start, 6.29 GB free at start |
+| `npm run licenses`           | `gen-licenses.mjs` over the production dependency tree               | exit 0; 12 s wall; five production dependencies, Inter and Grifter recorded, **no Quicksand anywhere**                                       |
 
-**The counts reconcile across the three commands, and that is worth one line:** `test:quick` is 74
-files / 780 tests, `test:sweep` is 4 / 19, and `test:unit` is exactly their sum, **78 / 799**. A
-combined run that does not add up is a project-routing bug, not a rounding difference.
+**The counts reconcile across the three commands, and that is worth one line:** `test:quick` is 81
+files / 828 tests, `test:sweep` is 4 / 19, so `test:unit` must be **85 / 847**. A combined run that
+does not add up is a project-routing bug, not a rounding difference. **That sum is arithmetic, not an
+observation, and it is marked as such** — Phase 9's row was measured and this one was not.
 
 **Three load-sensitive tests were found and fixed at the Phase 9 gate, and all three were found by
 running the commands rather than by reading them.** Thirty-six configurations is roughly twice the
@@ -438,7 +440,7 @@ thirty-six, on this machine, at commit `36a1965`, and this is the comparison.
 | `glue.<hash>.wasm` (the Lua VM)   | 271,581 B                   | 271,581 B, +0           | **271,581 B**                     | **exactly zero growth, confirmed**              |
 | `lua_fmt_bg.<hash>.wasm`          | 628,148 B                   | 628,148 B, +0           | **628,148 B**                     | **exactly zero growth, confirmed**              |
 | protocol chunk                    | 39,269 B                    | unchanged               | **39,269 B**                      | unchanged                                       |
-| `static/og/`                      | 132 KB, 16 images           | ~300 KB                 | **292 KB, 36 images** (210,926 B) | within 3 %                                      |
+| `static/og/`                      | 132 KB, 16 images           | ~300 KB                 | **292 KB, 36 images** (210,926 B) | within 3 % — **moved to 213,919 B by 10-05**    |
 | `npm run build`                   | 12 s                        | ~16-20 s                | **12.08 s**                       | **the projection was wrong: it did not grow**   |
 | `frames.json`                     | 15,259 B                    | ~34,300 B               | **33,553 B**                      | −2 %                                            |
 | `lua-entries` sweep, combinations | 283                         | ~1,090                  | **701**                           | **−36 %** — see below                           |
@@ -910,23 +912,179 @@ Two conventions in that file worth copying, beyond Phase 6's three:
   module's own cadence. The same state needed 1, 2 and 3 beats across runs; a single timed beat would
   have been a flaky test by construction.
 
-## Phase 10's own suites, so far
+## Phase 10's suites, measured at the gate
 
-Per-file counts only. **The phase totals are not written here** — plan 10-14 re-measures the whole
-tree at the phase gate and writes them once, and a total transcribed early is a total that rots.
-Every number below was observed on 2026-09-09 by running the file on its own.
+**Every count below was observed on 2026-09-09 at commit `305e425`**, from one
+`vitest run --project server` whose per-file totals were read out of the runner's own JSON rather
+than transcribed from a plan. `.planning/phases/10-redesign/10-VALIDATION.md` carried a _projected_
+per-file table from planning time; this table is the observation that replaces it, and every
+disagreement is named in "Where the planner was wrong" below.
 
-| File                                 | Tests | What it holds                                                                                                                                                                                                                                                     |
-| ------------------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/ui/aesthetic.spec.ts`       | 7     | the CRT treatment as source: the four layers, the tokens they are allowed to name, and the reduced-motion and SCREEN escapes declared rather than assumed                                                                                                         |
-| `src/lib/tune/colour-picker.spec.ts` | 6     | the picker's model: one picker per panel, three rails, and the two-swatch window retired                                                                                                                                                                          |
-| `e2e/aesthetic.e2e.ts`               | 4 / 8 | the treatment at the compositor, all four titles `@webkit`-tagged so they run on both projects: reduced motion stops both moving layers, `SCREEN: FLAT` turns off all four, the choice survives a navigation and a reload, and Switch 3 removes only the roll bar |
+### The seven files this phase created
 
-**Eight suites older than Phase 10 are still absent from this document** — `browse/facets.spec.ts`,
-`fidelity/vendored-diff.spec.ts`, `format-parity.spec.ts`, `licence-notices.spec.ts`,
-`pad/ready.spec.ts`, `sim/demo.spec.ts`, `tune/mix.spec.ts` and `ui/font-assets.spec.ts`. They are
-green and they are gates; they were simply never written up. Recorded here rather than fixed,
-because none of them is plan 10-13's, and `.planning/phases/10-redesign/deferred-items.md` carries it.
+| File                                 | Tests | What it holds                                                                                                                                                                                             |
+| ------------------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/ui/aesthetic.spec.ts`       | **8** | the CRT treatment as source: the four layers, the tokens they may name, the reduced-motion and `SCREEN` escapes declared rather than assumed, and (scan 8) the unlit-cell wash capped below the dot       |
+| `src/lib/ui/font-assets.spec.ts`     | **5** | the gate `npm run licenses` cannot be: every font binary in `git ls-files` is allowlisted, licensed and recorded                                                                                          |
+| `src/lib/sim/demo.spec.ts`           | **2** | the three authored demo gestures light cells `frames.json` records as dark, and `DARK_BY_CONSTRUCTION` names the one entry a finger cannot help                                                           |
+| `src/lib/browse/facets.spec.ts`      | **4** | the closed sixteen terms in two facets, exactly three per entry in both directions, both health rules, and the legacy table's bounds                                                                      |
+| `src/lib/tune/colour-picker.spec.ts` | **6** | the picker's model: one picker per panel, three rails over the 4,096-colour lattice, A-09's six forbidden shapes, and the two-swatch window retired                                                       |
+| `src/lib/tune/mix.spec.ts`           | **2** | the seeded crossover property over all 36 entries with knobs, and the four boundaries                                                                                                                     |
+| `src/lib/ui/instrument.spec.ts`      | **6** | the register line asserted from both sides, the pill, the lattice and its `:where()` ground rule with three declared exceptions, the halftone density, the headline form and the seven `--font-mono` uses |
+
+### The files this phase touched without creating
+
+| File                                          | Tests  | Moved by                                        |
+| --------------------------------------------- | ------ | ----------------------------------------------- |
+| `src/lib/ui/identity.spec.ts`                 | **7**  | 10-02 (6 → 7)                                   |
+| `src/lib/sim/host.spec.ts`                    | **18** | 10-05 (+3)                                      |
+| `src/lib/browse/sort.spec.ts`                 | **5**  | 10-07 (6 → 5, the only negative term)           |
+| `src/lib/browse/filter.spec.ts`               | **6**  | 10-06, 10-07 — unchanged, rewritten inside      |
+| `src/lib/browse/query.spec.ts`                | **5**  | 10-07 — unchanged, cases land inside its blocks |
+| `src/lib/catalog/copy.spec.ts`                | **5**  | 10-06 — unchanged, `KNOWN_TAGS` re-cut          |
+| `src/lib/catalog/listing.spec.ts`             | **5**  | 10-05, 10-07 — unchanged                        |
+| `src/lib/tune/copy.spec.ts`                   | **6**  | 10-03, 10-09, 10-11 — unchanged                 |
+| `src/lib/tune/surprise.spec.ts`               | **5**  | 10-09 (4 → 5)                                   |
+| `src/lib/ui/tune-ui.spec.ts`                  | **9**  | 10-03, 10-09, 10-11 (5 → 9)                     |
+| `src/lib/ui/device-ui.spec.ts`                | **13** | 10-03, 10-13 (11 → 13); 10-13.1 rode inside it  |
+| `src/lib/ui/browse-ui.spec.ts`                | **6**  | 10-13.1 — unchanged, edited inside              |
+| `src/lib/device/install.spec.ts`              | **21** | 10-12 (18 → 21)                                 |
+| `src/lib/device/install-copy.spec.ts`         | **6**  | 10-03, 10-12 — unchanged                        |
+| `src/lib/device/session.spec.ts`              | **21** | 10-12 — unchanged; test 15's needles 9 → 10     |
+| `src/lib/device/session-copy.spec.ts`         | **6**  | 10-03 — unchanged, tests 5 and 6 rewritten      |
+| `src/lib/protocol/constants.spec.ts`          | **7**  | 10-12 (5 → 7)                                   |
+| `src/lib/tune/reachability.sweep.spec.ts`     | **2**  | 10-08 — unchanged, two passes inside            |
+| `src/lib/share/stamp-roundtrip.sweep.spec.ts` | **2**  | 10-08 — unchanged, two passes inside            |
+| `src/lib/catalog/lua-entries.sweep.spec.ts`   | **6**  | 10-08 — unchanged, 27-literal colour sample     |
+
+### The standing gates, re-read at the gate rather than assumed
+
+`src/lib/fidelity/vendored-diff.spec.ts` **14**, `src/lib/fidelity/lua-parity.spec.ts` **5**,
+`src/lib/fidelity/preset-baseline.spec.ts` **19**, `src/lib/fidelity/firmware-oracle.spec.ts` **8**,
+`src/lib/fidelity/golden-frames.spec.ts` **11**, `src/lib/protocol-pin.spec.ts` **5**,
+`src/lib/sim/paint.spec.ts` **5**, `src/lib/catalog/front-door.spec.ts` **8**,
+`src/lib/catalog/frames.spec.ts` **5**, `src/lib/sim/lazy.spec.ts` **3**,
+`src/lib/format-parity.spec.ts` **3**, `src/lib/licence-notices.spec.ts` **7**,
+`src/lib/pad/ready.spec.ts` **6**. All green, none edited by this phase.
+
+**The eight suites this document was missing are now four.** `browse/facets.spec.ts`,
+`sim/demo.spec.ts`, `tune/mix.spec.ts` and `ui/font-assets.spec.ts` are written up in the tables
+above. `fidelity/vendored-diff.spec.ts`, `format-parity.spec.ts`, `licence-notices.spec.ts` and
+`pad/ready.spec.ts` have a count and no description, which is less than they deserve and more than
+they had. Carried in `.planning/phases/10-redesign/deferred-items.md`.
+
+### e2e
+
+| File                   | Titles      | What it holds                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/aesthetic.e2e.ts` | **5** / 10  | the treatment at the compositor, every title `@webkit`-tagged so it runs on both projects: reduced motion stops both moving layers, `SCREEN: FLAT` turns off all four, the choice survives a navigation and a reload, Switch 3 removes only the roll bar, and (test 5) the lattice ground and the unlit-cell wash proved as **paint order**, which no source scan can see |
+| `e2e/install.e2e.ts`   | **+2** / +4 | `CLEAR` end to end against the scripted ZONA in both projects                                                                                                                                                                                                                                                                                                             |
+
+### The phase total, written as a chain
+
+**Nothing below is a transcribed total.** `BASE_FILES`, `BASE_TESTS` and `BASE_E2E` were measured by
+plan 10-01 on a clean tree at commit `0c8a18d` — **74 / 780 / 89** — and every plan since carried a
+stated delta. The gate observes the far end and the two ends meet:
+
+```
+BASE_TESTS 780
+  +6 (10-01: aesthetic 1, font-assets 5)      786
+  +1 (10-02: identity 6 -> 7)                 787
+  +0 (10-03)                                  787
+  +6 (10-04: aesthetic 1 -> 7)                793
+  +5 (10-05: demo 2, host +3)                 798
+  +4 (10-06: facets 4)                        802
+  -1 (10-07: sort 6 -> 5)                     801
+  +0 (10-08)                                  801
+  +3 (10-09: tune-ui +2, surprise +1)         804
+  +6 (10-10: colour-picker 6)                 810
+  +4 (10-11: mix 2, tune-ui +2)               814
+  +5 (10-12: install +3, constants +2)        819
+  +2 (10-13: device-ui +2)                    821
+  +5 (10-13.1: instrument created with 5)     826
+  +2 (10-13.2: instrument 5 -> 6, aesthetic 7 -> 8)  828
+  +0 (10-14: the gate writes no tests)        828
+```
+
+**Sixteen terms, one per plan** — the zero terms are written out rather than omitted, because a zero
+absent from a chain is indistinguishable from a term nobody computed. Observed at the gate:
+**81 files, 828 tests**, which is `BASE_FILES + 7` and `BASE_TESTS + 48`. The seven created files are
+the seven in the first table.
+
+```
+BASE_E2E 89
+  +8 (10-04: aesthetic.e2e.ts, 4 titles x 2 projects)   97
+  +0 (10-05: gen-og and the dark exemption, no title moves)  97
+  +0 (10-07: D-11 and A-19, six sites, every edit inside an existing title)  97
+  +4 (10-13: install.e2e.ts, 2 titles x 2 projects)     101
+  +0 (10-13.1: the aesthetic pass adds no title - and runs the suite anyway)  101
+  +2 (10-13.2: aesthetic.e2e.ts test 5, 1 title x 2 projects, @webkit)  103
+```
+
+**Six terms.** Observed at the gate: **103 passed**, which is `BASE_E2E + 14`.
+
+`svelte-check` moved **567 → 584**, always 0 errors and 0 warnings. The sweep is `4 19` at both ends;
+10-08 grew what it enumerates by a third without adding a test.
+
+### The cost, observed against what was projected
+
+| Thing                             | Projected / carried                                                    | **Observed 2026-09-09**                                 | Verdict                                                                                                                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run test:sweep` wall         | `BASE_SWEEP_WALL` **123 s** (10-01, before 10-08 grew it)              | **93 s (90.47 s runner)**                               | the sweep got a third bigger and **25 % faster**; the 2026-09-07 figures were taken at 0.4–1.3 GB free                                                                  |
+| sweep, three later readings       | 119 s (10-08), 130 s (10-10), 90 s (10-12/10-13)                       | **93 s**                                                | consistent with the last two; the spread is the machine, not the tree                                                                                                   |
+| `npm run build`                   | 12 s at 16 entries; 12.08 s at 36 (09-VERIFICATION); 16–20 s projected | **10 s**                                                | **the projection was wrong twice over** — it did not grow at 36 and it did not grow through this phase's four CRT layers, two shared rules and a demo-path replay       |
+| `npm run test:e2e -- --workers 3` | 89 titles / 2.0 min at 1.56 GB free                                    | **103 titles / 1.8 m runner, 109 s wall**, 6.29 GB free | +14 titles for −6 s; memory was never the constraint at this gate                                                                                                       |
+| `static/og/`                      | 210,926 B over 36 files (Phase 9)                                      | **213,919 B over 36 files**                             | **+2,993 B, and it is the point**: 10-05 removed `gen-og.mjs`'s `restsBlack` exemption, so ETCH's 4,192-byte black square became a 4,737-byte picture of a real gesture |
+| `reachability.sweep.spec.ts`      | 32,852 states → 44,078, +34 %                                          | **19,502 + 24,576 = 44,078 in 87.0 s**                  | exact                                                                                                                                                                   |
+| `stamp-roundtrip.sweep.spec.ts`   | compiler 44,078; Lua 276,160 → 234,784 (−15 %)                         | **44,078 and 234,784**                                  | exact                                                                                                                                                                   |
+| `lua-entries.sweep.spec.ts`       | 701 → 1,728 combinations, 3,456 measurements                           | **1,728 and 3,456**                                     | exact                                                                                                                                                                   |
+| TUNE-05's margin                  | `ninepads` 640 of 908, 268 free; `tpad` 907 of 908                     | **640 / 268 and 907 / 1**                               | exact, and over-budget states **0**, Pass B colours excluded **0**                                                                                                      |
+| `build/source-<sha>.tar.gz`       | 1,216 KB at 10-01                                                      | **1,468 KB**                                            | +252 KB, which is this phase's documents; the font binary is still absent and `static/fonts/README.md` is still in its place                                            |
+
+### Where the planner was wrong, named rather than corrected
+
+A validation document whose estimates are never checked teaches the next phase to estimate
+carelessly, so every row `10-VALIDATION.md` got wrong is named here.
+
+1. **The e2e sampling rule said five waves; it was seven.** The rule's stated reason — _"no e2e title
+   moves in it"_ — was wrong for two waves that move no title and must run anyway: 10-13.1 repaints
+   every surface three e2e files measure, and 10-13.2's subject is paint order, which a source scan
+   is structurally blind to. Amended twice, by name, on 2026-09-08 and 2026-09-09.
+2. **The 10-12 term was `+4`, then `+3`, and it is `+5`.** Revision 1 carried a `session.spec.ts +1`
+   that 10-12's own task 02 denies twice; revision 2 carried a payload of empty strings. A-48 made
+   the payload the pinned package's own `defaultConfig`, so `constants.spec.ts` gained two tests.
+3. **The 10-13 term was `+3`; it is `+2`.** A-45 removed `ClearConfirm.svelte` from the control walk
+   and A-46 retired the tracking-uniqueness test with the Bare tier.
+4. **`src/lib/tune/copy.spec.ts` was printed as 5 and is 6.** Corrected 2026-09-08. It moves no
+   total — the file is unchanged by all three plans that touch it — which is exactly why stating it
+   matters: an absolute that disagrees with the tree teaches the reader to distrust the column that
+   _is_ asserted.
+5. **`browse-webkit.e2e.ts` was said never to name `newest`.** It does, at `:79`, in its own
+   `orderOf` literal union. Retracted 2026-09-08. The edit moves no title, so 10-07's term stays 0 —
+   the claim was wrong and the number was right.
+6. **The phase total itself moved four times** — `+40` in fourteen terms, `+45` when D-17 inserted
+   10-13.1, `+46` when the CLEAR fold moved two terms, `+48` when D-22 inserted 10-13.2 — and six
+   occurrences of a superseded total survive in shipped SUMMARYs and are deliberately not edited. A
+   shipped SUMMARY is a record of what was observed and believed; rewriting one falsifies it.
+7. **`npm run check` "must print nothing" is impossible.** `svelte-check`'s own summary line matches
+   `grep -Ei "error|warning"`. The grep prints exactly one line and the assertion that means anything
+   is that it reads `0 ERRORS 0 WARNINGS`. First recorded by 10-01; still true at 584 files.
+8. **The gate's own negative-check instruction was wrong, and the finding is worth more than the
+   check.** 10-14 asked for a non-vacuity floor raised **by one**, expecting red.
+   `facets.spec.ts:99`'s floor is `> 30` against an observed `LISTING.length` of **36**, so raising
+   it to 31 is **green** — six silent raises of headroom. Red arrives only at 36, with
+   `the listing was actually read: expected 36 to be greater than 36`. Both arms were run, the file
+   was restored from a scratch copy (never `git checkout --`, see below) and its sha256 is identical
+   before and after. **A floor six below its observation is a floor that would not notice five
+   entries disappearing.**
+
+### One process hazard this phase proved the hard way
+
+`git checkout -- <path>` restores to **HEAD**, and during 10-13.2 it silently destroyed the
+uncommitted work of the task that was running, in two files. It was caught only because the plan
+already required a sha256 comparison around every negative check. **Restore a perturbed file from a
+scratch copy taken immediately before the perturbation**, and compare sha256 both sides. Every
+negative check in this repository from 10-13.2 onward uses that idiom.
 
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
