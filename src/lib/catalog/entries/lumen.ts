@@ -55,6 +55,98 @@
 //                All twelve channels inside 0..255, none of them zero that was
 //                not zero at the top.
 //
+// WHAT THE DEPTH KNOB DOES TO THE EMITTED FRAME, IN BYTES RATHER THAN IN
+// RATIOS (plan 11-09.2, answering the bench note "the color depth / opacity
+// doesn't work" and the checkpoint answer "try it but we observed no
+// difference in the LEDs").
+//
+// THE OPTION THAT NOTE WAS COSTED FROM QUOTED 78 PER CENT AT @DEPTH 1 DOWN TO
+// 11 PER CENT AT @DEPTH 4, AND THAT FIGURE IS THE ARITHMETIC d/36 - NOT A
+// READING OF A FRAME. Between the arithmetic and a lit LED sit glc's three
+// colour stops, glp's phase, shapeIntensity, the per-layer weights, the
+// two-layer sum and the single divide by 512 with its clamp at 255
+// (pad-sim.ts, render()). So the frame was read, with no gesture, at all four
+// declared values. Both columns are shown because column 0 is a pure hue with
+// a ZERO channel and column 8 is the only three-channel column, and the two
+// truncate differently. * is the shipped default, index 2 of 4.
+//
+//   column 0, the anchor 255,90,0
+//              @DEPTH 1   @DEPTH 2   @DEPTH 3*  @DEPTH 4
+//     row 0    253,89,0   253,89,0   253,89,0   253,89,0
+//     row 1    245,86,0   238,84,0   231,81,0   224,79,0
+//     row 2    238,84,0   224,79,0   210,74,0   196,69,0
+//     row 3    231,81,0   210,74,0   189,66,0   168,59,0
+//     row 4    224,79,0   196,69,0   168,59,0   139,49,0
+//     row 5    217,76,0   182,64,0   146,51,0   112,39,0
+//     row 6    210,74,0   168,59,0   126,44,0   84,29,0
+//     row 7    203,71,0   153,54,0   105,36,0   55,19,0
+//     row 8    196,69,0   139,49,0   84,29,0    27,9,0
+//
+//   column 8, the amber white 255,230,190
+//              @DEPTH 1      @DEPTH 2      @DEPTH 3*     @DEPTH 4
+//     row 0    253,228,188   253,228,188   253,228,188   253,228,188
+//     row 1    245,221,182   238,215,177   231,208,172   224,202,166
+//     row 2    238,215,177   224,202,166   210,189,156   196,176,145
+//     row 3    231,208,172   210,189,156   189,170,140   168,151,125
+//     row 4    224,202,166   196,176,145   168,151,125   139,126,104
+//     row 5    217,196,161   182,164,135   146,132,109   112,101,83
+//     row 6    210,189,156   168,151,125   126,114,94    84,75,62
+//     row 7    203,183,151   153,138,115   105,94,78     55,50,41
+//     row 8    196,176,145   139,126,104   84,75,62      27,24,20
+//
+// FOUR VALUES, FOUR DISTINCT 243-BYTE FRAMES: THE KNOB DELIVERS, and the
+// costed ratio survives to the bytes almost exactly - the bottom row is 196 of
+// the emitted anchor's 253 at @DEPTH 1 (77 per cent) and 27 of it at @DEPTH 4
+// (11 per cent).
+//
+// NOTE WHAT THE CORNER PROOF ABOVE IS MEASURING AND THIS TABLE IS NOT. 255,90,0
+// is the colour ASKED FOR; the frame emits 253,89,0, because both layers carry
+// the same colour and one layer caps at 254/512 of what it was given. Every
+// figure in the corner proof is an asked colour, every figure here is an
+// emitted byte, and they differ by one count. Neither is wrong; they are
+// different measurements and this card has now had both.
+//
+// AND WHY "NO DIFFERENCE IN THE LEDS" IS STILL CONSISTENT WITH A KNOB THAT
+// WORKS. d = 36 - row*@DEPTH, so ROW 0 IS d = 36 AT EVERY VALUE AND CANNOT
+// MOVE - that is arithmetic, not a defect. The worst channel spread across all
+// four values, row by row from the top, is 0, 21, 42, 63, 85, 105, 126, 148,
+// 169. The whole of the knob's travel is in the lower half of the pad, and the
+// shipped default is index 2 of 4, so ONE STEP moves row 1 by seven counts of
+// 255 and the bottom row by fifty-five. Somebody watching the top of the pad
+// while turning the knob is reporting what the pad does.
+//
+// THERE IS NO DEEPER FOUR-VALUE RE-CUT, AND THAT IS THE SHORTFALL AGAINST THE
+// ASK RATHER THAN A REFUSAL OF IT. 8*max(@DEPTH) has to stay inside the
+// subtrahend 36 or the bottom row's d goes negative and a channel truncates
+// rather than clamping (see the lower bound above), so 4 is the largest value
+// the arithmetic admits - and {1, 2, 3, 4} is therefore the ONLY four-element
+// set of positive integers this knob can carry. The ramp is already at full
+// travel. Deepening it means moving the SUBTRAHEND and the DIVISOR together,
+// which makes it a different card, and both routes were costed rather than
+// chosen:
+//
+//   move the default   index 2 -> 3 ships the deepest ramp there is. Costs
+//                      ZERO characters and no arithmetic, but rewrites eighty
+//                      of the eighty-one cells in frames.json, moves the OG
+//                      image with them, and spends the knob's last step.
+//   subtrahend 32      d = 32 - row*@DEPTH with anchor*d//32 and the same four
+//                      values. MEASURED at 608 at the picker corner, which is
+//                      the same 608 it costs today, and the bottom row reaches
+//                      EXACT BLACK at @DEPTH 4 - 0,0,0, with the frame falling
+//                      from 171 non-zero bytes to 152. At the shipped default
+//                      the bottom row becomes 62,21,0 where it is 84,29,0
+//                      today, so this rewrites frames.json and the OG image
+//                      too, and the never-black guarantee below has to be
+//                      restated as 8*max(@DEPTH) <= 32 with equality allowed.
+//
+// NEITHER IS SHIPPED, AND THAT IS A DECISION RATHER THAN AN OMISSION. Both
+// change the picture this card is known by, the note being answered described
+// an effect the simulator says is already present, and NOTHING HERE IS
+// HARDWARE-VERIFIED - every figure above is a statement about the simulator
+// and this source. THE OBSERVATION THAT SETTLES IT ON THE MODULE: install at
+// @DEPTH 1, install again at @DEPTH 4, and compare the BOTTOM row rather than
+// the pad as a whole.
+//
 // THE LOOK, and why restsBlack is FALSE. Setup lights all eighty-one cells,
 // and the frame carries 171 non-zero bytes of 243 at every sampled tick.
 // MEASURED, NOT ASSUMED, AND IT IS NOT THE HIGHEST IN THE CATALOG: the ported
@@ -118,6 +210,21 @@
 // the four-knob cross-product is 608 / 0, leaving 300 free of 908, and the
 // all-shortest corner is 604 / 0.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
+//
+// RE-MEASURED BY PLAN 11-09.2 AT THE RGB444 PICKER CORNER (D-06), WHICH IS THE
+// CORNER THE 908 GATE ACTUALLY READS: Setup 608 of 908 leaving 300 free, Timer
+// 0 of 908 leaving the whole 908 - the most free Timer in the catalog. THAT IS
+// THE SAME 608 THE DECLARED CROSS-PRODUCT GIVES, AND IT IS A COINCIDENCE
+// RATHER THAN A RULE: @CURSORC already declares 255,255,255, which is the
+// longest literal any picker can write, so this entry's declared corner and
+// its picker corner are the same point. ARC and MORPH are correct by the same
+// accident; five entry headers in this catalog are NOT, and quote the declared
+// corner as though it were the picker one. Do not read this line as the norm.
+// AND 604 IS THE DEFAULTS FIGURE, NOT A CORNER AT ALL - it happens to equal
+// the all-shortest declared corner because every default is that knob's
+// shortest literal, and quoting it as the budget figure understates the cost
+// by four characters. @CC and @CH each appear TWICE in the Setup, which is why
+// two knobs one character longer cost four rather than two.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
@@ -204,6 +311,14 @@ export const LUMEN: CatalogEntry = {
       // deeper: the bottom row lands at 28, 20, 12 or 4 out of 36. The largest
       // value costs 8*4 = 32 of the 36, which is why no value can take the
       // bottom row to black or below it.
+      //
+      // THESE FOUR ARE THE WHOLE LEGAL TRAVEL, not a sample of it: 5 would put
+      // the bottom row's d at -4 and truncate a channel rather than clamp it,
+      // so {1, 2, 3, 4} is the only four-element set of positive integers this
+      // knob can carry at subtrahend 36. There is no deeper re-cut without
+      // moving the arithmetic. The header's depth table says what each value
+      // is worth in emitted bytes, and lua-smoke.spec.ts holds the travel
+      // clause red the day one is widened without the other.
       values: ["1", "2", "3", "4"],
       default: 2,
     },
