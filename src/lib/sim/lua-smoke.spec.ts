@@ -969,6 +969,86 @@ async function sweepConsoleColumn(
   }
 }
 
+// ---------------------------------------------------------------------------
+// THE SWIPE FAMILY (plan 11-08)
+//
+// EUCLID, SONAR and STEPS all toggle a cell, and all three used to filter every
+// MOVE out at the first line of the touch callback - so a finger drawn across
+// the pad changed the cell it landed on and nothing else. Measured, before the
+// fix: a 128-sample swipe along row 4 changed 0 cells on EUCLID (its landing
+// cell is not on a ring) and exactly 1 on SONAR and STEPS.
+//
+// Accepting MOVE alone would have been worse than the complaint: a MOVE arrives
+// every 10 ms, so a finger resting inside one cell would toggle it at 100 Hz.
+// The per-contact last-cell guard is what makes a drag survivable, and this
+// test measures all three halves of it.
+//
+// THE OBSERVABLE IS THE ARM LAYER'S PHASE, NOT THE FRAME. All three entries
+// animate from a Timer, so a frame diff over a 130-tick gesture would be mostly
+// the Timer's own work. Each entry paints its armed state on a layer its Timer
+// never writes - EUCLID and SONAR on layer 1, STEPS on layer 2 - so the phase
+// of that layer is exactly "is this cell armed", independent of the tick.
+// ---------------------------------------------------------------------------
+
+type SwipeEntry = {
+  readonly id: string;
+  /** The layer the entry paints ARMED state on. Its Timer writes the other. */
+  readonly armLayer: 0 | 1 | 2;
+  /**
+   * Does a touch on this screen cell change anything at all?
+   *
+   * DERIVED FROM THE ENTRY'S OWN RULE, restated here in one line each with the
+   * source it comes from, because the alternative - asserting a bare count - is
+   * the count-only assertion 11-07 caught passing green on a real off-by-one.
+   */
+  readonly eligible: (cell: number) => boolean;
+  readonly why: string;
+};
+
+/** Chebyshev distance from the centre cell (4,4). EUCLID's ring number. */
+function ringOf(cell: number): number {
+  return Math.max(Math.abs((cell % 9) - 4), Math.abs(Math.floor(cell / 9) - 4));
+}
+
+const SWIPE_ENTRIES: readonly SwipeEntry[] = [
+  {
+    id: "euclid",
+    armLayer: 1,
+    eligible: (cell) => ringOf(cell) >= 1 && ringOf(cell) <= 3,
+    why:
+      "EUCLID's rings are the three concentric squares at Chebyshev distance " +
+      "1, 2 and 3; the centre and the outermost square carry no step, and its " +
+      "Setup leaves self.i nil for both",
+  },
+  {
+    id: "sonar",
+    armLayer: 1,
+    eligible: () => true,
+    why: "SONAR arms any of the 81 cells - ring is pitch, angle is time",
+  },
+  {
+    id: "steps",
+    armLayer: 2,
+    eligible: (cell) => cell % 9 <= 7 && Math.floor(cell / 9) <= 7,
+    why:
+      "STEPS is eight by eight inside a nine by nine pad and its callback " +
+      "returns for c > 7 or r > 7",
+  },
+];
+
+/** The hardware index of a screen cell, for the raw layer reads below. */
+function hwOfCell(cell: number): number {
+  return screenToHw(cell % 9, Math.floor(cell / 9));
+}
+
+/** One phase per screen cell on one layer - the armed picture, as a vector. */
+function armVector(sim: PadSim, layer: 0 | 1 | 2): number[] {
+  const out: number[] = [];
+  for (let cell = 0; cell < 81; cell += 1)
+    out.push(sim.layer(hwOfCell(cell), layer).pha);
+  return out;
+}
+
 describe("hand-authored Lua entries execute (CONT-02)", () => {
   it("builds, and lights the pad under a finger", async () => {
     // NOT "non-black immediately after Setup". A blank layer's stops are all
@@ -1840,5 +1920,224 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length, "the sweep reported every measurement").toBe(4);
+  }, 120000);
+
+  it("arms one cell per cell a swipe crosses, on EUCLID, SONAR and STEPS", async () => {
+    const report: string[] = [];
+
+    for (const row of SWIPE_ENTRIES) {
+      const entry = entryById(row.id);
+
+      // 1. THE SWIPE. One contact along row 4, one RAW coordinate a tick, so
+      //    the host's change gate delivers every sample. Nine cells crossed;
+      //    the entry's own rule says how many of them can change.
+      const swiped: number[] = [];
+      {
+        const { host, sim } = await open(entry);
+        try {
+          const y = cellCentre(4);
+          const before = armVector(sim, row.armLayer);
+          host.touchDown(0, 0, y);
+          host.tick();
+          let delivered = 1;
+          for (let x = 1; x <= 127; x += 1) {
+            host.touchMove(0, x, y);
+            host.tick();
+            delivered += 1;
+          }
+          host.touchUp(0, 127, y);
+          host.tick();
+          const after = armVector(sim, row.armLayer);
+          for (let cell = 0; cell < 81; cell += 1)
+            if (before[cell] !== after[cell]) swiped.push(cell);
+          expect(
+            delivered,
+            `${row.id}: the swipe delivered nothing, so nothing below proves ` +
+              "anything",
+          ).toBe(128);
+        } finally {
+          host.close();
+        }
+      }
+
+      const crossed: number[] = [];
+      for (let column = 0; column < 9; column += 1) {
+        const cell = 4 * 9 + column;
+        if (row.eligible(cell)) crossed.push(cell);
+      }
+      expect(
+        crossed.length,
+        `${row.id}: row 4 crosses no cell this entry can arm, so the swipe ` +
+          "assertion would be vacuous",
+      ).toBeGreaterThan(0);
+      report.push(
+        `${row.id}: swipe across row 4 changed ${swiped.length} cell(s) ` +
+          `[${swiped.join(", ")}], eligible [${crossed.join(", ")}]`,
+      );
+      // The CELLS, not the count. A guard keyed on the wrong index would still
+      // change the right NUMBER of cells while changing the wrong ones - which
+      // is the shape of defect 11-07's endpoint assertion caught on FORGE.
+      expect(
+        swiped,
+        `${row.id}: A SWIPE MUST ARM EVERY CELL IT CROSSES, ONCE EACH. The ` +
+          "callback used to filter every MOVE out at its first line, so a " +
+          "drag changed only the cell it landed on: measured before the fix, " +
+          "0 cells on euclid and 1 on sonar and steps. " +
+          `${row.why}. Observed [${swiped.join(", ")}]`,
+      ).toEqual(crossed);
+
+      // 2. THE RESTING FINGER. Every sample is a DISTINCT coordinate inside one
+      //    cell, because the host's enqueue is change-gated on (event, x, y)
+      //    per contact and a probe that re-sent one point would measure the
+      //    host's dedup and call it the entry's.
+      {
+        const { host, sim } = await open(entry);
+        try {
+          const cell = 4 * 9 + 3;
+          expect(
+            row.eligible(cell),
+            `${row.id}: the resting probe sits on a cell this entry ignores`,
+          ).toBe(true);
+          const xs = coordinatesIn(3);
+          const ys = coordinatesIn(4);
+          const at = hwOfCell(cell);
+          host.touchDown(0, xs[0], ys[0]);
+          host.tick();
+          const armed = sim.layer(at, row.armLayer).pha;
+          let last = armed;
+          let transitions = 0;
+          let delivered = 1;
+          for (const y of ys)
+            for (const x of xs) {
+              if (x === xs[0] && y === ys[0]) continue;
+              host.touchMove(0, x, y);
+              host.tick();
+              delivered += 1;
+              const now = sim.layer(at, row.armLayer).pha;
+              if (now !== last) transitions += 1;
+              last = now;
+            }
+          host.touchUp(0, xs[xs.length - 1], ys[ys.length - 1]);
+          host.tick();
+          report.push(
+            `${row.id}: rested inside cell ${cell}, ${delivered} sample(s) ` +
+              `delivered, ${transitions} further change(s)`,
+          );
+          expect(
+            delivered,
+            `${row.id}: the resting probe delivered ${delivered} samples, ` +
+              "which is not enough to tell a guard from a coincidence",
+          ).toBeGreaterThan(100);
+          // COUNTED, NOT ASSERTED AS A BOOLEAN. Unguarded this is one toggle
+          // per sample: 209 further changes against 209 samples, a cell
+          // flickering at 100 Hz under a still finger.
+          expect(
+            transitions,
+            `${row.id}: A FINGER RESTING INSIDE ONE CELL MUST CHANGE IT ONCE. ` +
+              "A MOVE arrives every 10 ms, so accepting drags without a " +
+              "per-contact last-cell guard toggles the cell at 100 Hz. " +
+              `Observed ${transitions} change(s) after the first sample, over ` +
+              `${delivered - 1} further samples`,
+          ).toBe(0);
+        } finally {
+          host.close();
+        }
+      }
+
+      // 3. THE SECOND CONTACT. What the s.q[i] clear buys: a fresh press on
+      //    the cell the last contact ended on must not be swallowed.
+      {
+        const { host, sim } = await open(entry);
+        try {
+          const cell = 4 * 9 + 3;
+          const at = hwOfCell(cell);
+          const x = cellCentre(3);
+          const y = cellCentre(4);
+          const rest = sim.layer(at, row.armLayer).pha;
+          host.touchDown(0, x, y);
+          host.tick();
+          const first = sim.layer(at, row.armLayer).pha;
+          host.touchUp(0, x, y);
+          host.tick();
+          // A DIFFERENT coordinate in the SAME cell, so the host's change gate
+          // delivers it and the entry's guard is the only thing that could
+          // swallow it.
+          host.touchDown(0, x + 1, y);
+          host.tick();
+          const second = sim.layer(at, row.armLayer).pha;
+          host.touchUp(0, x + 1, y);
+          host.tick();
+          report.push(
+            `${row.id}: press, lift, press on cell ${cell}: ` +
+              `${rest} -> ${first} -> ${second}`,
+          );
+          expect(
+            first,
+            `${row.id}: the first press did not arm cell ${cell}, so the ` +
+              "second-contact assertion below proves nothing",
+          ).not.toBe(rest);
+          expect(
+            second,
+            `${row.id}: A SECOND CONTACT ON THE SAME CELL MUST NOT BE ` +
+              "SWALLOWED. The per-contact guard remembers the last cell a " +
+              "contact touched; without the clear on contact end it would " +
+              "still be remembering it when the next press arrives, and the " +
+              `cell would toggle every other time. Observed ${rest} -> ` +
+              `${first} -> ${second}`,
+          ).toBe(rest);
+        } finally {
+          host.close();
+        }
+      }
+
+      // 4. THREE FAST TAPS ON ONE CELL, and this is what the nine characters
+      //    of `e==1 and ` in front of the dedup actually buy. Code 9 is a whole
+      //    contact in ONE message with no lift after it, so a guard that
+      //    deduped every event would still be holding this cell when the next
+      //    tap arrived: measured on the bare shape, 0 -> 255 -> 255 -> 255, a
+      //    step that can be armed and never disarmed from the pad.
+      {
+        const { host, sim } = await open(entry);
+        try {
+          const cell = 4 * 9 + 3;
+          const at = hwOfCell(cell);
+          const y = cellCentre(4);
+          const seen: number[] = [sim.layer(at, row.armLayer).pha];
+          for (let n = 0; n < 3; n += 1) {
+            // A DIFFERENT coordinate each time, inside the same cell, so the
+            // host's change gate delivers all three.
+            host.touchTap(0, cellCentre(3) + n, y);
+            host.tick();
+            seen.push(sim.layer(at, row.armLayer).pha);
+          }
+          report.push(
+            `${row.id}: three fast taps on cell ${cell}: ${seen.join(" -> ")}`,
+          );
+          expect(
+            seen,
+            `${row.id}: A FAST TAP IS A WHOLE CONTACT AND EVERY ONE OF THEM ` +
+              "MUST LAND. Event code 9 carries a down AND an up in one " +
+              "message and has no lift after it to clear the last-cell " +
+              "guard, so a dedup applied to every event swallows every tap " +
+              "after the first and the cell can be armed but never disarmed. " +
+              `Observed ${seen.join(" -> ")}`,
+          ).toEqual([seen[0], seen[1], seen[0], seen[1]]);
+          expect(
+            seen[1],
+            `${row.id}: the first fast tap changed nothing, so the three-tap ` +
+              "assertion proves nothing",
+          ).not.toBe(seen[0]);
+        } finally {
+          host.close();
+        }
+      }
+    }
+
+    process.stdout.write(
+      "\nthe swipe family, plan 11-08:\n  " + report.join("\n  ") + "\n",
+    );
+    expect(report.length, "every entry reported all three probes").toBe(
+      SWIPE_ENTRIES.length * 4,
+    );
   }, 120000);
 });

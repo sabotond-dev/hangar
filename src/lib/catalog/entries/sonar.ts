@@ -38,6 +38,38 @@
 // the first fire and the Timer re-arms every subsequent one, so a mismatch
 // would tick once at one rate and then forever at another.
 //
+// A SWIPE ARMS EVERY CELL IT CROSSES, AND THE ONSET-ONLY GUARD IS DELIBERATELY
+// REVERSED (plan 11-08). The callback opened with "e~=4 and e~=9 then return",
+// so every MOVE was thrown away at the first line: measured through the real
+// Lua host, a 128-sample swipe along row 4 armed exactly 1 cell, the one the
+// finger landed on. That is the bench note "not precise enough". It now arms
+// all nine.
+//
+// ACCEPTING MOVE ALONE WOULD HAVE BEEN WORSE THAN THE COMPLAINT. A MOVE
+// arrives every 10 ms, so a finger resting inside one cell would arm and disarm
+// it at 100 Hz - measured unguarded at 209 changes over 209 further samples.
+// self.q[i] remembers the pad cell the contact last touched and swallows a
+// repeat; the contact-end branch clears it so a fresh press on the same cell is
+// not eaten.
+//
+// EVERY EVENT IS DEDUPED, AND THE FAST TAP ESCAPES BY STORING NOTHING. The
+// store is "s.q[i]=e<9 and n", not the bare "s.q[i]=n" plan 11-08 sketched,
+// and the eight characters that costs buy a real fix. Event code 9 is a whole
+// contact in ONE message with no lift after it, so the contact-end branch never
+// runs for a tap and under the bare store the SECOND fast tap on the same cell
+// would find s.q[i] still holding it and be swallowed. Measured on the bare
+// shape: three fast taps on one cell read 0 -> 255 -> 255 -> 255, a step that
+// can be armed from the pad and never disarmed. "e<9 and n" evaluates to
+// false for a tap, and false is never equal to a cell index, so the next tap
+// always lands. src/lib/catalog/touch-guard.spec.ts holds the event-code
+// convention the clear is written in.
+//
+// WHAT THE REVERSAL COSTS: a swipe that crosses a cell twice toggles it twice,
+// so dragging back over your own stroke erases it. That is correct for a toggle
+// and it is not what a paint gesture does; the set-rather-than-toggle
+// alternative is named as an open bench question in euclid.ts rather than
+// shipped as an interpretation.
+//
 // THE HONEST LIMIT, for the card copy: cells on the same ring share a pitch.
 // That is the point rather than a compromise - ring is voice, angle is time.
 //
@@ -63,11 +95,13 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 432 characters, Timer 279, both fixed
-// points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the five-knob cross-product is 433 / 282, against a budget of 908
-// an event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those
-// claims.
+// against the pinned minifier: Setup 506 characters, Timer 279, both fixed
+// points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
+// GATE READS IS 507 / 282, leaving 401 free, and it is the RGB444 PICKER corner
+// (D-06) rather than the all-longest corner of the declared palettes - the two
+// coincide here only because @SWEEPC already declares 255,255,255, and plan
+// 11-07 measured them 21 characters apart on CONSOLE. src/lib/catalog/
+// lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.
@@ -76,7 +110,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.a={}self.o={}self.v={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end self.touch_cb=function(s,i,e,x,y)if e~=4 and e~=9 then return end local n=x*9//128+y*9//128*9 s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
+  "--[[@cb]]self.a={}self.o={}self.v={}self.q={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local n=x*9//128+y*9//128*9 if s.q[i]==n then return end s.q[i]=e<9 and n s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
 
 const TIMER =
   "--[[@cb]]gtt(0,@PERIOD)local s=self local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";

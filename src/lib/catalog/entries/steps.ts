@@ -54,6 +54,54 @@
 // That is why the trail values are 12, 28, 42 and 63 rather than a rounder
 // looking 12, 24, 42, 64. Any new value must divide 252.
 //
+// A SWIPE ARMS EVERY CELL IT CROSSES, AND THE ONSET-ONLY GUARD THIS HEADER
+// USED TO DEFEND IS DELIBERATELY REVERSED (plan 11-08). The trap list below
+// used to read "a move never toggles a cell" as a design statement. The bench
+// asked for the opposite - "STEPS: same as SONAR or EUCLID", against SONAR's
+// "not precise enough" and EUCLID's "you should be able to add by swiping your
+// finger" - so the decision is overturned rather than quietly replaced.
+// Measured through the real Lua host before the change: a 128-sample swipe
+// along row 4 armed exactly 1 cell, the one the finger landed on. It now arms
+// all eight that row 4 contains inside the 8x8 grid.
+//
+// ACCEPTING MOVE ALONE WOULD HAVE BEEN WORSE THAN THE COMPLAINT. A MOVE
+// arrives every 10 ms, so a finger resting inside one cell would arm and disarm
+// it at 100 Hz - measured unguarded at 209 changes over 209 further samples.
+// self.q[i] remembers the cell the contact last touched and swallows a repeat;
+// the contact-end branch clears it so a fresh press on the same cell is not
+// eaten.
+//
+// EVERY EVENT IS DEDUPED, AND THE FAST TAP ESCAPES BY STORING NOTHING. The
+// store is "s.q[i]=e<9 and a", not the bare "s.q[i]=a" plan 11-08 sketched,
+// and the eight characters that costs buy a real fix. Event code 9 is a whole
+// contact in ONE message with no lift after it, so the contact-end branch never
+// runs for a tap and under the bare store the SECOND fast tap on the same cell
+// would find s.q[i] still holding it and be swallowed. Measured on the bare
+// shape: three fast taps on one cell read 0 -> 255 -> 255 -> 255, a step that
+// can be armed from the pad and never disarmed. "e<9 and a" evaluates to
+// false for a tap, and false is never equal to a cell index, so the next tap
+// always lands. src/lib/catalog/touch-guard.spec.ts holds the event-code
+// convention the clear is written in.
+//
+// THE GUARD'S KEY IS THE 9x9 PAD CELL c+r*9, NOT THE 8x8 PATTERN INDEX c+r*8,
+// AND THAT IS THE ONE PLACE THIS ENTRY DIFFERS FROM ITS TWO SIBLINGS. The
+// pattern index is only defined for c <= 7 and r <= 7; extended over the whole
+// pad it ALIASES - c=8,r=0 and c=0,r=1 are both 8 - so a finger that swiped
+// down the dark ninth column and then crossed into cell (0,1) would find its
+// own stale key waiting and lose the arm. c+r*9 is unique over all 81 cells,
+// and it is the value glp already needs, so keying on it costs nothing and
+// saves the second expression.
+//
+// WHAT THE REVERSAL COSTS: a swipe that crosses a cell twice toggles it twice,
+// so dragging back over your own stroke erases it. That is correct for a toggle
+// and it is not what a paint gesture does; the set-rather-than-toggle
+// alternative is named as an open bench question in euclid.ts.
+//
+// CLOCK SYNC IS NOT BUILT. STEPS carries the request only by reference - the
+// bench note is "same as SONAR or EUCLID" - so the two blockers are stated ONCE
+// each, in sonar.ts's and euclid.ts's headers, and CITED here. Three statements
+// of one fact drift.
+//
 // THE TRAPS THIS ENTRY CONTAINS.
 //
 //   - F2Ieq on both coordinate divisions. x*9//128 and y*9//128 are floored; a
@@ -64,10 +112,11 @@
 //     against it rather than guessed.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP. 260 renders as 4. Every channel of
 //     every @ARMC and @SWEEPC value is inside 0..255 by construction.
-//   - EVENT CODES. The guard is "e~=4 and e<9 then return", so onset is
-//     e == 4 or e > 8 and a move never toggles a cell. e == 5 appears nowhere:
-//     a handler that tested for it would leak on a fast tap, which arrives as
-//     code 9 with no separate lift.
+//   - EVENT CODES. The guard admits MOVE - "e~=1 and e~=4 and e<9 then
+//     s.q[i]=nil return" - which is the LIVE spelling of the class-B
+//     convention, and e == 5 still appears nowhere: a handler that tested for
+//     it would leak on a fast tap, which arrives as code 9 with no separate
+//     lift. src/lib/catalog/touch-guard.spec.ts holds the convention.
 //   - glp IS NEVER CALLED WITH A NEGATIVE PHASE. glp(n,l,-1) does nothing on
 //     ZONA; every phase here is an explicit 0 or 255.
 //   - NO KEEPER IS WRITTEN ON LAYER 1 AT ALL, and that is deliberate. The
@@ -87,10 +136,19 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 388 characters, Timer 251, both fixed
-// points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 391 / 253, leaving 517 free of 908 on
-// the Setup and 655 on the Timer, and the all-shortest is 386 / 250.
+// against the pinned minifier: Setup 473 characters, Timer 251, both fixed
+// points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
+// GATE READS IS 479 / 253, leaving 429 free of 908 on the Setup and 655 on the
+// Timer, and the all-shortest corner a picker can reach is 466 / 250.
+//
+// THAT CORNER IS NOT THE ONE THIS HEADER USED TO QUOTE, and the correction is
+// plan 11-07's finding applied here. It read "391 / 253, leaving 517 free" -
+// the all-longest corner of the DECLARED PALETTES. Since plan 10-08 the sweep
+// writes any colour an RGB444 picker can (D-06), and @ARMC's longest declared
+// literal is the eight-character "30,30,30" against the picker's eleven, so the
+// binding corner was 394, not 391, and the entry had 514 free before this plan
+// rather than 517. Fifteen other hand-authored entries are still unchecked for
+// the same error; that is 11-16's row (f).
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // TWO SPACES WERE MEASURED OUT OF THE SETUP, not designed out. The readable
@@ -107,7 +165,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.p={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)if e~=4 and e<9 then return end local c=x*9//128 local r=y*9//128 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,c+r*9),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)";
+  "--[[@cb]]self.p={}self.q={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local c=x*9//128 local r=y*9//128 local a=c+r*9 if s.q[i]==a then return end s.q[i]=e<9 and a if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)";
 
 const TIMER =
   "--[[@cb]]gtt(0,@TEMPO)local s=self local k=s.k%8 s.k=k+1 local q=(k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end";
