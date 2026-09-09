@@ -84,6 +84,47 @@
 // THE LOOK, and why restsBlack is FALSE. Setup paints all eighty-one cells in
 // three colours before anything is touched, and none of them ever goes out.
 //
+// "WAAY NOT PRECISE ENOUGH": WHAT THE SWEEP FOUND, AND WHY NOTHING CHANGED
+// HERE (plan 11-07). The bench note is real and it had reached no plan, no
+// removal and no deferral, so the whole travel was driven through the real Lua
+// host - all 16,384 raw coordinates, pressed and lifted one at a time - the way
+// CONSOLE's column was. CONSOLE's identical-sounding complaint turned out to be
+// an arithmetic ceiling. THIS ONE IS NOT. The measurements, which
+// src/lib/sim/lua-smoke.spec.ts now asserts:
+//
+//   - ALL TWENTY-SEVEN macro indices are reachable, @KEY0 through @KEY0 + 26,
+//     with both endpoints present. Nothing is lost to a floored division.
+//   - Column boundaries fall at raw x = 0, 15, 29, 43, 57, 72, 86, 100, 114, so
+//     seven columns are 14 raw units wide and TWO - columns 0 and 4 - are 15.
+//     Band boundaries fall at raw y = 0, 43, 86: two bands 43 tall, one 42.
+//   - Target areas run from 588 to 645 raw units, EXCEPT macro 26's, which is
+//     392. Cell 80 is the bank corner and its branch returns before the send,
+//     so macro 26 keeps two rows of its three - 14 x 42 minus 14 x 14. The
+//     corner itself is 196 raw units that send nothing at all. That is a fact
+//     of the bank's geometry rather than a defect, and it is asserted so it
+//     cannot move quietly.
+//   - THE PRESS IS FINAL, and this is the one plausible mechanism the sweep
+//     turned up. `if e~=4 and e<9 then return end` means a finger that lands
+//     one column off and slides to the macro it wanted sends the WRONG macro,
+//     once, and never corrects. Measured: down at raw x = 10 and slid to 40 -
+//     two columns - emits exactly one keystroke, column 0's; down at raw
+//     y = 40 and slid to 90 - two bands - emits exactly one, band 0's.
+//
+// THE OBVIOUS FIX IS WORSE THAN THE COMPLAINT AND IS NOT TAKEN. Firing on MOVE
+// would spray a keystroke into every target a finger crossed, which on a macro
+// pad bound to build, commit and push is a genuinely bad afternoon. Committing
+// on RELEASE instead is a coherent alternative - it lets a finger correct
+// before the key lands - but it is a different feel from what the card ships,
+// it interacts with the code-9 tap that carries no lift, and it is not what the
+// note asked for in so many words. It is a bench decision, recorded in
+// 11-07-SUMMARY.md for 11-16 with the numbers above rather than guessed at
+// here.
+//
+// AND THE 10-BIT UNLOCK IS NOT THE ANSWER EITHER. `self:txma(1023)` /
+// `self:tyma(1023)` costs +30 and buys nothing on a cell grid: at 7 bits a
+// column boundary is already placed to within 0.07 of a cell, and 10 bits makes
+// that 0.009. 11-RESEARCH.md:599 rules it out for this card by name.
+//
 // THE TRAPS THIS ENTRY CONTAINS.
 //
 //   - THE DROPPED-RELEASE BUG, AND THE TWO MITIGATIONS IT NEEDS.
@@ -176,11 +217,17 @@
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier: Setup 716 characters, Timer 373, both fixed
-// points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the five-knob cross-product is 722 / 377, leaving 186 free of 908,
-// and the all-shortest corner is 712 / 373 - the four characters are the two
-// sites of @MOD at its shortest value, 0.
-// src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
+// points of compressScript and both accepted by checkSyntax.
+//
+// TWO CORNERS, AND THE BINDING ONE IS NOT THE PALETTE'S (re-measured, plan
+// 11-07). The all-longest corner over the five DECLARED palettes is 722 / 377;
+// the all-longest corner a VISITOR CAN ACTUALLY REACH is 725 / 380, leaving
+// 183 free of 908, because D-06 lets the colour picker write any of the 4,096
+// RGB444 literals and 255,255,255 is one character longer than the longest
+// colour this card declares. src/lib/catalog/lua-entries.sweep.spec.ts gates
+// the PICKER corner - that is the number 908 is checked against - so it is the
+// one this header quotes. The all-shortest corner a picker can reach is
+// 701 / 362.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving

@@ -808,6 +808,150 @@ function restConsoleMuteCell(
   return delivered;
 }
 
+/**
+ * FORGE's macro index inside its `gks` call, and it is CHECKED, not counted on.
+ *
+ * The call is gks(10, 1,1,@MOD, 1,1,m, 0,2,@KEY0+n, 1,0,m, 1,0,@MOD): a leading
+ * delay then five three-argument tuples, sixteen arguments in all. The keycode
+ * is the third member of the third tuple, so index 9. Firmware rejects the call
+ * unless (nargs - 1) % 3 == 0 and A REJECTED gks IS SILENT, so the sweep below
+ * asserts the arity before it reads anything off the position.
+ */
+const FORGE_GKS_ARITY = 16;
+const FORGE_KEY_ARG = 9;
+
+/** The marker for "this press sent nothing at all". */
+const NO_SEND = -1;
+
+/**
+ * Press every raw coordinate on the pad once and record what FORGE sent.
+ *
+ * A PRESS AND A LIFT PER POINT, 16,384 of them, because FORGE is onset-gated:
+ * a drag would report one macro for a whole stroke, which is the very thing the
+ * slide probe below measures on purpose.
+ */
+async function sweepForge(entry: CatalogEntry): Promise<{
+  area: Map<number, number>;
+  columnFirstX: Map<number, number>;
+  bandFirstY: Map<number, number>;
+  arity: number;
+  slidAcrossColumns: number[];
+  slidAcrossBands: number[];
+  cornerTap: number;
+}> {
+  const { host } = await open(entry);
+  try {
+    let arity = 0;
+    const press = (x: number, y: number): number => {
+      const before = host.hid.length;
+      host.touchDown(0, x, y);
+      host.tick();
+      host.touchUp(0, x, y);
+      host.tick();
+      const sent = host.hid.slice(before);
+      if (sent.length === 0) return NO_SEND;
+      arity = Math.max(arity, sent[0].args.length);
+      return sent[0].args[FORGE_KEY_ARG];
+    };
+
+    const area = new Map<number, number>();
+    for (let y = 0; y <= 127; y += 1)
+      for (let x = 0; x <= 127; x += 1) {
+        const key = press(x, y);
+        area.set(key, (area.get(key) ?? 0) + 1);
+      }
+
+    // The boundaries, read off two one-dimensional passes rather than derived.
+    const columnFirstX = new Map<number, number>();
+    let previous = NaN;
+    for (let x = 0; x <= 127; x += 1) {
+      const key = press(x, 20);
+      if (key !== previous) columnFirstX.set(key, x);
+      previous = key;
+    }
+    const bandFirstY = new Map<number, number>();
+    previous = NaN;
+    for (let y = 0; y <= 127; y += 1) {
+      const key = press(64, y);
+      if (key !== previous) bandFirstY.set(key, y);
+      previous = key;
+    }
+
+    // A press that lands one target off and slides to the intended one.
+    const slide = (
+      from: readonly [number, number],
+      to: readonly [number, number],
+    ): number[] => {
+      const before = host.hid.length;
+      host.touchDown(0, from[0], from[1]);
+      host.tick();
+      const steps = Math.max(
+        Math.abs(to[0] - from[0]),
+        Math.abs(to[1] - from[1]),
+      );
+      for (let i = 1; i <= steps; i += 1) {
+        host.touchMove(
+          0,
+          from[0] + Math.round(((to[0] - from[0]) * i) / steps),
+          from[1] + Math.round(((to[1] - from[1]) * i) / steps),
+        );
+        host.tick();
+      }
+      host.touchUp(0, to[0], to[1]);
+      host.tick();
+      return host.hid.slice(before).map((h) => h.args[FORGE_KEY_ARG]);
+    };
+    const slidAcrossColumns = slide([10, 20], [40, 20]);
+    const slidAcrossBands = slide([64, 40], [64, 90]);
+
+    const beforeTap = host.hid.length;
+    host.touchTap(0, 127, 127);
+    host.tick();
+    host.tick();
+    const cornerTap = host.hid.length - beforeTap;
+
+    return {
+      area,
+      columnFirstX,
+      bandFirstY,
+      arity,
+      slidAcrossColumns,
+      slidAcrossBands,
+      cornerTap,
+    };
+  } finally {
+    host.close();
+  }
+}
+
+/** Press every raw coordinate once and record every note LATTICE sounded. */
+async function sweepLattice(
+  entry: CatalogEntry,
+): Promise<{ area: Map<number, number>; cells: number }> {
+  const { host } = await open(entry);
+  try {
+    const area = new Map<number, number>();
+    let cells = 0;
+    for (let y = 0; y <= 127; y += 1)
+      for (let x = 0; x <= 127; x += 1) {
+        const before = host.midi.length;
+        host.touchDown(0, x, y);
+        host.tick();
+        host.touchUp(0, x, y);
+        host.tick();
+        const notes = host.midi
+          .slice(before)
+          .filter((m) => m.cmd === 144)
+          .map((m) => m.p1);
+        if (notes.length > 0) cells += 1;
+        for (const note of notes) area.set(note, (area.get(note) ?? 0) + 1);
+      }
+    return { area, cells };
+  } finally {
+    host.close();
+  }
+}
+
 /** The controller values one column emits over its whole travel. */
 async function sweepConsoleColumn(
   entry: CatalogEntry,
@@ -1500,5 +1644,201 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length, "every stage of the mute probe ran").toBe(6);
+  }, 120000);
+
+  it("reaches every one of FORGE's twenty-seven macros, at both ends", async () => {
+    // MEASURED AND CLEAN, and this test is what makes that a fact rather than
+    // a claim (plan 11-07). FORGE's bench note - "waay not precise enough" -
+    // had reached no plan, no removal and no deferral, so its whole travel was
+    // swept the way CONSOLE's column was. Nothing was found in the target map:
+    // all twenty-seven macro indices are reachable, both endpoints included.
+    //
+    // THE TWO THINGS THE SWEEP DID FIND ARE GEOMETRY, NOT ARITHMETIC, and both
+    // are asserted below so they cannot drift while nobody is looking: macro 26
+    // is smaller than every other target because the bank corner takes a third
+    // of it, and a press is FINAL because the handler is onset-gated. Neither
+    // is fixed here. Firing on MOVE would spray keystrokes off a macro pad,
+    // which is strictly worse than the complaint, so what to do about the
+    // press-is-final gesture is a bench question - see 11-07-SUMMARY.md.
+    const entry = entryById("forge");
+    const key0 = knobValueOf(entry, "key");
+    const swept = await sweepForge(entry);
+    const reachable = [...swept.area.keys()]
+      .filter((k) => k !== NO_SEND)
+      .sort((a, b) => a - b);
+    const report: string[] = [];
+
+    expect(
+      swept.arity,
+      "forge: A REJECTED gks IS SILENT. The call must carry a leading delay " +
+        "plus five three-argument tuples, and (nargs - 1) % 3 must be 0, or " +
+        "nothing below is reading a keycode at all",
+    ).toBe(FORGE_GKS_ARITY);
+    expect((swept.arity - 1) % 3, "forge: the gks arity rule").toBe(0);
+
+    report.push(`reachable macro indices: ${reachable.join(", ")}`);
+    expect(
+      reachable.length,
+      "forge: THE CARD CLAIMS TWENTY-SEVEN MACROS AND MUST REACH ALL OF THEM. " +
+        `Swept every one of the 16,384 raw coordinates; ${reachable.length} ` +
+        `distinct keycodes came back: ${reachable.join(", ")}`,
+    ).toBe(27);
+    expect(
+      reachable[0],
+      "forge: the first macro is @KEY0 itself, at the top-left target",
+    ).toBe(key0);
+    expect(
+      reachable[reachable.length - 1],
+      "forge: the last macro is @KEY0 + 26, at the bottom-right of band 2. " +
+        "An index past it has run off the end of the twenty-seven contiguous " +
+        "usage ids the header writes out, and a wrong usage id is a card that " +
+        "presses the wrong key on somebody's machine",
+    ).toBe(key0 + 26);
+    for (const index of reachable)
+      expect(
+        index >= key0 && index <= key0 + 26,
+        `forge: keycode ${index} is outside @KEY0..@KEY0+26 (${key0}..${key0 + 26})`,
+      ).toBe(true);
+
+    // The boundaries and the target sizes, in raw coordinate units.
+    const columns = [...swept.columnFirstX.values()].sort((a, b) => a - b);
+    const bands = [...swept.bandFirstY.values()].sort((a, b) => a - b);
+    report.push(`column boundaries (raw x): ${columns.join(", ")}`);
+    report.push(`band boundaries (raw y): ${bands.join(", ")}`);
+    report.push(
+      "target areas (raw units): " +
+        reachable.map((k) => `${k}:${swept.area.get(k)}`).join(" "),
+    );
+    expect(columns.length, "forge: nine columns").toBe(9);
+    expect(bands.length, "forge: three bands").toBe(3);
+
+    // Macro 26 loses its bottom row to the bank corner, so its target is two
+    // thirds of its band-mates'. A FACT, recorded, not a defect being fixed.
+    const last = swept.area.get(key0 + 26) ?? 0;
+    const others = reachable
+      .filter((k) => k !== key0 + 26)
+      .map((k) => swept.area.get(k) ?? 0);
+    report.push(
+      `macro 26 area ${last} against a smallest other of ${Math.min(...others)} ` +
+        `and a largest of ${Math.max(...others)}; the bank corner itself is ` +
+        `${swept.area.get(NO_SEND)} raw units that send nothing`,
+    );
+    expect(
+      last < Math.min(...others),
+      "forge: macro 26 sits in the same column as the bank corner and cell 80 " +
+        "returns before the send, so its target is smaller than every other " +
+        "macro's. If that stops being true the corner has moved and the " +
+        "header's bank argument needs re-reading",
+    ).toBe(true);
+    expect(
+      swept.area.get(NO_SEND),
+      "forge: the bank corner is one cell of the nine-wide mapping and sends " +
+        "no keystroke at all",
+    ).toBe(14 * 14);
+
+    // THE PRESS IS FINAL. Land one target off, slide to the intended one, and
+    // the pad has already sent the wrong macro.
+    report.push(
+      `slid across a column boundary: ${swept.slidAcrossColumns.join(", ") || "(nothing)"}`,
+    );
+    report.push(
+      `slid across a band boundary: ${swept.slidAcrossBands.join(", ") || "(nothing)"}`,
+    );
+    report.push(`fast tap on the bank corner: ${swept.cornerTap} keystroke(s)`);
+    expect(
+      swept.slidAcrossColumns,
+      "forge: A PRESS IS FINAL, and this pins it. The handler reads " +
+        "`if e~=4 and e<9 then return end`, so a finger that lands in column 0 " +
+        "and slides to column 2 sends column 0's macro once and never " +
+        "corrects. Do NOT 'fix' this by firing on MOVE - that sprays " +
+        "keystrokes across every target crossed",
+    ).toEqual([key0]);
+    expect(
+      swept.slidAcrossBands,
+      "forge: the same, across a band boundary rather than a column one",
+    ).toEqual([key0 + 4]);
+    expect(
+      swept.cornerTap,
+      "forge: a coalesced tap on the bank corner arms nothing and sends " +
+        "nothing, because a bank armed by code 9 could never be released by " +
+        "the gesture that armed it",
+    ).toBe(0);
+
+    process.stdout.write(
+      "\nFORGE travel sweep, 16,384 presses:\n  " + report.join("\n  ") + "\n",
+    );
+    expect(report.length, "the sweep reported every measurement").toBe(8);
+  }, 120000);
+
+  it("reaches both ends of LATTICE's range across the whole travel", async () => {
+    // MEASURED AND CLEAN (plan 11-07). LATTICE's bench note has three clauses.
+    // "Not precise enough" was the fast tap and 11-02 fixed it at +8; "CLAMP IT
+    // BETTER" had never been looked at, and CONSOLE's clamp complaint sounded
+    // identical and turned out to be a real ceiling, so an assertion that the
+    // fast-tap fix covered this one was not evidence.
+    //
+    // Swept: every one of the 16,384 raw coordinates, pressed and lifted. The
+    // emitted set is exactly the set the card's own header claims - 49 notes
+    // from @BASE to @BASE + 8 + 8*@ROW, four octaves - with both ends present
+    // and nothing truncated away. There is no clamp to improve because there is
+    // no value the arithmetic cannot emit, which is the opposite of what
+    // CONSOLE's sweep found and is why this is a measurement rather than a fix.
+    const entry = entryById("lattice");
+    const base = knobValueOf(entry, "base");
+    const row = knobValueOf(entry, "rowInterval");
+    const swept = await sweepLattice(entry);
+    const notes = [...swept.area.keys()].sort((a, b) => a - b);
+    const report: string[] = [];
+
+    // The range the ENTRY claims, derived from its own two lines:
+    // n = @BASE + i%9 + (8 - i//9) * @ROW over i = 0..80.
+    const lowest = base;
+    const highest = base + 8 + 8 * row;
+    report.push(
+      `emitted ${notes.length} distinct notes, ${notes[0]} to ${notes[notes.length - 1]}`,
+    );
+    report.push(`the card's own arithmetic claims ${lowest} to ${highest}`);
+    report.push(
+      `raw coordinates per note: ${notes.map((n) => `${n}:${swept.area.get(n)}`).join(" ")}`,
+    );
+    report.push(`coordinates that sounded something: ${swept.cells} of 16384`);
+
+    expect(
+      notes,
+      "lattice: THE BOTTOM OF THE RANGE MUST BE REACHABLE. It is @BASE, at " +
+        "the bottom-left cell, and a coordinate division that lost the last " +
+        "column or the last row would take it away silently",
+    ).toContain(lowest);
+    expect(
+      notes,
+      "lattice: THE TOP OF THE RANGE MUST BE REACHABLE. It is " +
+        "@BASE + 8 + 8*@ROW, at the top-right cell. CONSOLE's defect was " +
+        "exactly this shape - an arithmetic ceiling one step under the top of " +
+        `the declared range - so it is asserted here by number: ${highest}`,
+    ).toContain(highest);
+    expect(
+      notes.length,
+      "lattice: an isomorphic grid in @ROW-semitone rows emits every " +
+        "semitone between its ends, because a nine-wide row covers more than " +
+        `@ROW consecutive steps. Observed ${notes.length}: ${notes.join(", ")}`,
+    ).toBe(highest - lowest + 1);
+    for (const note of notes)
+      expect(
+        note >= 0 && note <= 127,
+        `lattice: note ${note} is outside the MIDI range`,
+      ).toBe(true);
+    expect(
+      swept.cells,
+      "lattice: every raw coordinate on the pad is inside some cell, so every " +
+        "one of them must sound a note. A coordinate that sounded nothing is a " +
+        "hole in the map",
+    ).toBe(128 * 128);
+
+    process.stdout.write(
+      "\nLATTICE travel sweep, 16,384 presses:\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+    expect(report.length, "the sweep reported every measurement").toBe(4);
   }, 120000);
 });

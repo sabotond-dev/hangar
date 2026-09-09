@@ -47,12 +47,48 @@
 // zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
 // characters.
 //
+// "CLAMP IT BETTER" IS THE THIRD CLAUSE OF THE SAME BENCH NOTE, AND THERE IS NO
+// CLAMP TO IMPROVE (plan 11-07). The paragraph above answers the first two
+// clauses. Nothing had ever looked at the third, and CONSOLE's clamp complaint
+// sounded identical and was a real ceiling - h*127//8 topping out at 111 of 127
+// - so "the fast-tap fix probably covered it" was not evidence. The whole
+// travel was therefore driven through the real Lua host, all 16,384 raw
+// coordinates pressed and lifted one at a time, and the numbers are:
+//
+//   - 49 DISTINCT NOTES, 36 to 84 at the defaults, which is EXACTLY the range
+//     this card's own arithmetic claims: @BASE to @BASE + 8 + 8*@ROW, four
+//     octaves. Both ends present. No value the arithmetic can name is
+//     unreachable, and nothing is truncated away by a floored division.
+//   - EVERY ONE of the 16,384 coordinates sounds something, so there is no hole
+//     in the map and no dead border.
+//   - The picture's boundaries and the note's steps are the SAME division:
+//     column boundaries at raw x = 0, 15, 29, 43, 57, 72, 86, 100, 114 and row
+//     boundaries at the same nine values of y, so seven columns are 14 raw
+//     units wide and two - 0 and 4 - are 15, and likewise for the rows. A cell
+//     of the map is exactly a cell of the picture.
+//   - No knob combination can leave the MIDI range: the top cell is
+//     @BASE + 8 + 8*@ROW, which is 108 at the largest root with the widest row
+//     interval, and the smallest root is 24.
+//
+// So this is a MEASURED NON-DELIVERY rather than a silence, and
+// src/lib/sim/lua-smoke.spec.ts pins both endpoints and the distinct count so
+// that a future re-cut of the coordinate expression cannot quietly narrow what
+// was just checked. What would close the note now is a bench answer about what
+// "clamp" meant. It is NOT the 10-bit unlock: `self:txma(1023)` /
+// `self:tyma(1023)` costs +30 and places a cell boundary to within 0.009 of a
+// cell where 7 bits already places it to within 0.07 - imperceptible on a
+// nine-cell grid, and ruled out for this card by name at
+// 11-RESEARCH.md:599.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier: Setup 623 characters, Timer 171, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 626 / 172, against a budget of 908 an
-// event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
+// corner is 626 / 172, leaving 282 free of 908 - and it is the same at the
+// DECLARED palettes and at the picker corner D-06 opens, because this card's
+// one colour token already declares 255,255,255. The all-shortest corner a
+// picker can reach is 617 / 171.
+// src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.
