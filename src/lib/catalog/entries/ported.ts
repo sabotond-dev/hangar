@@ -67,7 +67,7 @@ const PORTED_META = [
   },
   {
     id: "ninepads",
-    tags: ["drums", "playable", "readable"],
+    tags: ["play", "playable", "readable"],
     featured: true,
     restsBlack: false,
   },

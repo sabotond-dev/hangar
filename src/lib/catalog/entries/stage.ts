@@ -156,7 +156,7 @@ export const STAGE: CatalogEntry = {
   // scenes you fire and watch is what "clips" and "playable" mean, and it puts
   // this card on the same shelf as GRIDLOCK, which is where a visitor looking
   // for either would look.
-  tags: ["clips", "playable", "readable"],
+  tags: ["shortcuts", "playable", "readable"],
   featured: false,
   addedAt: "2026-09-07",
   source: SOURCE,

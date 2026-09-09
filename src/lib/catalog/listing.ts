@@ -185,7 +185,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "This one is an instrument rather than a light show. The nine zones stay lit and wait for a finger.",
-    tags: ["drums", "playable", "readable"],
+    tags: ["play", "playable", "readable"],
     featured: true,
     restsBlack: false,
     preview: "padsim",
@@ -370,7 +370,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Nine scenes for your stream: the live one glows and the one you are lining up breathes.",
     motion: "animated",
-    tags: ["clips", "playable", "readable"],
+    tags: ["shortcuts", "playable", "readable"],
     featured: false,
     restsBlack: false,
     preview: "lua",

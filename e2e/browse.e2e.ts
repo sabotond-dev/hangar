@@ -340,24 +340,29 @@ test.describe("the browse screen, with nothing plugged in", () => {
 
     // A TYPED WORD. Filtering is synchronous on every keystroke, so the grid is
     // asserted with no waiting beyond the locator's own.
-    const expectedForDrums = sortListing(
+    // The word was "drums" until plan 11-01 (D-01) retired that tag; "drums"
+    // lived ONLY in the tag, so this assertion would have gone from two
+    // entries to zero on a deployed artefact with nothing in the quick run to
+    // catch it. "colour" is a description word, carried by six entries, and
+    // src/lib/catalog/copy.spec.ts holds the same word as its anchor.
+    const expectedForColour = sortListing(
       LISTING.filter((entry) =>
         [entry.name, entry.description, ...entry.tags]
           .join(" ")
           .toLowerCase()
-          .includes("drums"),
+          .includes("colour"),
       ),
       "featured",
     ).map((entry) => entry.id);
     expect(
-      expectedForDrums.length,
+      expectedForColour.length,
       "the typed word narrows the catalog without emptying it",
     ).toBeGreaterThan(1);
 
-    await field.fill("drums");
-    await expect(page.locator(CARDS)).toHaveCount(expectedForDrums.length);
-    expect(await renderedIds(page)).toEqual(expectedForDrums);
-    await expectCount(page, expectedForDrums.length, total);
+    await field.fill("colour");
+    await expect(page.locator(CARDS)).toHaveCount(expectedForColour.length);
+    expect(await renderedIds(page)).toEqual(expectedForColour);
+    await expectCount(page, expectedForColour.length, total);
 
     // The field's own CLEAR, which exists only while there is something to
     // clear and hands focus back to the field it removes itself from.

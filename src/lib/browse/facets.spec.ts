@@ -55,14 +55,18 @@ const histogram = () =>
   ).join(" | ");
 
 describe("the browse facets (src/lib/browse/facets.ts)", () => {
-  it("declares a closed vocabulary of sixteen in two facets", () => {
-    expect(FOR_TERMS, "FOR is ten terms").toHaveLength(10);
+  it("declares a closed vocabulary of fourteen in two facets", () => {
+    // Re-cut by plan 11-01 under D-01: the nine bench removals took drums,
+    // clips and play to one entry each, and the answer was to retire the first
+    // two rather than to weaken the zero-singleton rule below. FEELS did not
+    // move.
+    expect(FOR_TERMS, "FOR is eight terms").toHaveLength(8);
     expect(FEELS_TERMS, "FEELS is six terms").toHaveLength(6);
-    expect(ALL_TERMS, "sixteen in all").toHaveLength(16);
+    expect(ALL_TERMS, "fourteen in all").toHaveLength(14);
     expect(
       new Set(ALL_TERMS).size,
       "no term is repeated, and no term is in both facets",
-    ).toBe(16);
+    ).toBe(14);
 
     for (const term of ALL_TERMS) {
       // A chip's label is the term uppercased at render time, and a chip's URL
@@ -96,7 +100,14 @@ describe("the browse facets (src/lib/browse/facets.ts)", () => {
 
   it("gives every entry exactly three terms, one FOR and two FEELS, and leaves no term unused", () => {
     // Non-vacuity first: an empty listing would satisfy every loop below.
-    expect(LISTING.length, "the listing was actually read").toBeGreaterThan(30);
+    // A NON-VACUITY GUARD, RE-CHOSEN BY PLAN 11-01. It was 30 at a catalog of
+    // 36 and became a permanent red at 27. 20 is a guard at 27: it fails on a
+    // listing that quietly lost a quarter of itself, which is the shape of the
+    // failure it exists for - a fixture regeneration or an import that returns
+    // a partial array. It is deliberately NOT LISTING.length, which would be a
+    // tautology, and deliberately not 27, which would make every future
+    // removal edit this line for no reason.
+    expect(LISTING.length, "the listing was actually read").toBeGreaterThan(20);
 
     for (const entry of LISTING) {
       const forTerms = entry.tags.filter((tag) => facetOf(tag) === "for");
@@ -138,26 +149,32 @@ describe("the browse facets (src/lib/browse/facets.ts)", () => {
     // And the predicate the toolbar will use agrees with the data: OR within a
     // facet, AND across. Derived from LISTING with the question restated, so
     // agreeing is evidence rather than a tautology.
-    const drumsOrKeys = LISTING.filter((e) =>
-      matchesFacets(e, { for: ["drums", "keys"], feels: [] }),
+    // The sample pair was drums / keys until plan 11-01 retired `drums`
+    // under D-01. `play` is the term `ninepads` was re-homed onto, so this
+    // still asks the union question of the same card.
+    const playOrKeys = LISTING.filter((e) =>
+      matchesFacets(e, { for: ["play", "keys"], feels: [] }),
     ).map((e) => e.id);
     expect(
-      drumsOrKeys,
+      playOrKeys,
       "two FOR chips are a UNION - under AND this would be empty, because every entry has exactly one FOR term",
     ).toEqual(
       LISTING.filter(
-        (e) => e.tags.includes("drums") || e.tags.includes("keys"),
+        (e) => e.tags.includes("play") || e.tags.includes("keys"),
       ).map((e) => e.id),
     );
-    expect(drumsOrKeys.length, "and the union is not empty").toBeGreaterThan(2);
+    expect(playOrKeys.length, "and the union is not empty").toBeGreaterThan(2);
 
     const across = LISTING.filter((e) =>
-      matchesFacets(e, { for: ["drums"], feels: ["generative"] }),
+      matchesFacets(e, { for: ["play"], feels: ["generative"] }),
     ).map((e) => e.id);
     expect(across, "across facets it is an intersection").toEqual(
       LISTING.filter(
-        (e) => e.tags.includes("drums") && e.tags.includes("generative"),
+        (e) => e.tags.includes("play") && e.tags.includes("generative"),
       ).map((e) => e.id),
+    );
+    expect(across.length, "and the intersection is not empty").toBeGreaterThan(
+      0,
     );
     expect(
       LISTING.filter((e) => matchesFacets(e, { for: [], feels: [] })).length,
@@ -166,7 +183,14 @@ describe("the browse facets (src/lib/browse/facets.ts)", () => {
   });
 
   it("keeps both health rules: no FOR term below two, no FEELS term outside six to eighteen", () => {
-    expect(LISTING.length, "the listing was actually read").toBeGreaterThan(30);
+    // A NON-VACUITY GUARD, RE-CHOSEN BY PLAN 11-01. It was 30 at a catalog of
+    // 36 and became a permanent red at 27. 20 is a guard at 27: it fails on a
+    // listing that quietly lost a quarter of itself, which is the shape of the
+    // failure it exists for - a fixture regeneration or an import that returns
+    // a partial array. It is deliberately NOT LISTING.length, which would be a
+    // tautology, and deliberately not 27, which would make every future
+    // removal edit this line for no reason.
+    expect(LISTING.length, "the listing was actually read").toBeGreaterThan(20);
 
     // A term matching ONE card is a thing the search field does better, and it
     // is the failure mode the retired vocabulary had twenty-seven of.

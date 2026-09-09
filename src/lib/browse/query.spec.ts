@@ -92,7 +92,7 @@ const STATES: readonly {
     query: {
       sort: "name",
       q: "café noir",
-      for: ["drums"],
+      for: ["play"],
       feels: ["generative", "playable"],
     },
   },
@@ -204,9 +204,9 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
       "an unknown FOR term survived into the browse state",
     ).toEqual([]);
     expect(
-      parse("for=modulation&for=nonesuch&for=drums").for,
+      parse("for=modulation&for=nonesuch&for=play").for,
       "the unknown term was dropped but took a known one with it",
-    ).toEqual(["modulation", "drums"]);
+    ).toEqual(["modulation", "play"]);
     expect(
       parse("for=nonesuch&for=modulation").for,
       "an unknown term in FIRST position must not shift the rest",
@@ -226,13 +226,23 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
     // G-10, THE MIGRATION, AND THE FOUR WAYS AN INBOUND ?tag= CAN GO.
     //
     // MAPPED: the old word has a facet term and becomes that chip. `drums`
-    // survives the re-cut as itself (clause 1 of LEGACY_TAG_MAP's rule).
+    // mapped to ITSELF under clause 1 until plan 11-01 retired it (D-01); it
+    // now folds to `play` under clause 2, because `ninepads` - one of its two
+    // carriers - was re-homed there and the other, `slam`, was deleted. THIS
+    // ASSERTION IS THE D-01 LINK MIGRATION'S ONLY TEST: an address somebody
+    // shared while `drums` was a chip still lands on a live grid.
     expect(parse("tag=drums"), "a mapped legacy tag becomes its chip").toEqual({
       sort: "featured",
       q: "",
-      for: ["drums"],
+      for: ["play"],
       feels: [],
     });
+    // And the second half of the same D-01 fold, so both retired terms are
+    // covered rather than one standing in for the pair.
+    expect(
+      parse("tag=clips").for,
+      "the other retired FOR term lands on the term its surviving carrier took",
+    ).toEqual(["shortcuts"]);
     // A FOLD, which is the same rule reaching a different word: `sequencer`
     // retired into the `sequencing` facet term.
     expect(
@@ -286,7 +296,7 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
       {
         sort: "featured",
         q: "looper",
-        for: ["drums"],
+        for: ["play"],
         feels: [],
       },
     );
@@ -384,11 +394,11 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
       serialiseBrowseQuery({
         sort: "name",
         q: "ghost",
-        for: ["modulation", "drums"],
+        for: ["modulation", "play"],
         feels: ["generative"],
       }),
       "the address is not the one 10-UI-SPEC 9.4 prints",
-    ).toBe("sort=name&q=ghost&for=modulation&for=drums&feels=generative");
+    ).toBe("sort=name&q=ghost&for=modulation&for=play&feels=generative");
 
     // AND `tag` IS NEVER WRITTEN AGAIN. The legacy parameter is read-only for
     // its one release, so an address a visitor builds is always the new shape -
@@ -403,7 +413,7 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
     expect(
       serialiseBrowseQuery(parse("tag=drums&tag=looper")),
       "a legacy address is REWRITTEN into the new shape, never echoed",
-    ).toBe("q=looper&for=drums");
+    ).toBe("q=looper&for=play");
 
     // And the parser reads that sequence back as the sequence, so a link
     // somebody sends restores the chips in the order they were pressed.
@@ -414,12 +424,12 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
     // Across the two parameters, the walk is over the ADDRESS in order, so an
     // interleaved address restores each facet's own sequence.
     expect(
-      parse("feels=precise&for=drums&feels=readable"),
+      parse("feels=precise&for=play&feels=readable"),
       "an interleaved address keeps each facet's activation order",
     ).toEqual({
       sort: "featured",
       q: "",
-      for: ["drums"],
+      for: ["play"],
       feels: ["precise", "readable"],
     });
   });

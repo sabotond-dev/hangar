@@ -1,5 +1,21 @@
-// The browse vocabulary: sixteen closed terms in two facets, and the rule that
-// decides what a chip is.
+// The browse vocabulary: fourteen closed terms in two facets, and the rule
+// that decides what a chip is.
+//
+// IT WAS SIXTEEN UNTIL PLAN 11-01 (D-01). The user's bench report removed nine
+// configurations, which took `play`, `drums` and `clips` to exactly one entry
+// each against the zero-singleton rule below. THE RULE WAS NOT WEAKENED. Two
+// thin FOR terms were RETIRED - `drums` and `clips` - and their two surviving
+// carriers were re-homed onto terms that describe how the cards actually feel
+// (CONT-03): `ninepads` is nine drum pads under your fingers, so it is `play`;
+// `stage` is nine scene buttons that send keystrokes to a streaming
+// application, so it is `shortcuts`. Eight FOR terms remain and every one of
+// them carries two or more.
+//
+//   A TENTH REMOVAL IN ANY LATER PHASE BREAKS A FEELS RULE. `precise` and
+//   `still` land at EXACTLY 6 after 11-01, which is the floor
+//   `facets.spec.ts` asserts ("below six it is not a filter"). This is written
+//   here, beside the zero-singleton note, rather than in a planning document
+//   nobody greps - because this file's spec is what goes red.
 //
 // D-10, and it replaces a derivation. Until this module existed a chip was "a
 // tag two or more entries happen to carry" (filter.ts's chipTags), computed
@@ -11,7 +27,7 @@
 //   EVERY FACET MEMBER IS ALWAYS A CHIP. The vocabulary is closed and lives
 //   here; it is not derived from counts, so it does not drift as the catalog
 //   grows, and no disclosure is needed. An entry that cannot be described with
-//   these sixteen terms is evidence that the vocabulary is wrong, not that the
+//   these fourteen terms is evidence that the vocabulary is wrong, not that the
 //   entry needs a new word.
 //
 // WHY THIS MODULE IMPORTS NOTHING - not a value, not even a type.
@@ -19,8 +35,9 @@
 // for the same measured reason: a runtime import of $lib/catalog here would
 // drag entries/ported.ts, the vendored compiler and @intechstudio/grid-protocol
 // - a 131,101-byte chunk, measured in 04-RESEARCH's Bundle facts - onto the
-// first paint of /browse/ (D-12). /browse/ is prerendered and the sixteen terms
-// have to be in its HTML at first paint, so they cannot arrive behind a chunk.
+// first paint of /browse/ (D-12). /browse/ is prerendered and the fourteen
+// terms have to be in its HTML at first paint, so they cannot arrive behind a
+// chunk.
 //
 // It goes one step further than its neighbours and declares NO import at all,
 // including no `import type`. That is what forces every function below to take
@@ -41,14 +58,12 @@ export type FacetName = "for" | "feels";
 export type ForTerm =
   | "modulation"
   | "show"
-  | "keys"
   | "mixing"
   | "sequencing"
   | "shortcuts"
+  | "keys"
   | "pointing"
-  | "play"
-  | "drums"
-  | "clips";
+  | "play";
 
 /** Facet 2 - how it behaves under a finger and under an eye. Two per entry. */
 export type FeelsTerm =
@@ -62,24 +77,32 @@ export type FeelsTerm =
 export type FacetTerm = ForTerm | FeelsTerm;
 
 /**
- * Ten terms, in the toolbar's order - which is descending by how many entries
+ * Eight terms, in the toolbar's order - which is descending by how many entries
  * carry them, so the widest doors are nearest the left edge.
+ *
+ * Re-sorted by plan 11-01, because the removals changed the order as well as
+ * the membership: at 27 entries it is modulation 7, show 5, mixing 3,
+ * sequencing 3, shortcuts 3, keys 2, pointing 2, play 2 - which sums to 27,
+ * one FOR slot per entry, and has no singleton in it.
  */
 export const FOR_TERMS: readonly ForTerm[] = Object.freeze([
   "modulation",
   "show",
-  "keys",
   "mixing",
   "sequencing",
   "shortcuts",
+  "keys",
   "pointing",
   "play",
-  "drums",
-  "clips",
 ]);
 
 /**
- * Six terms, in the toolbar's order.
+ * Six terms, in the toolbar's order. PLAN 11-01 MOVED NONE OF THEM, and that is
+ * the half of D-01 worth writing down: the nine removals cost the FOR facet two
+ * terms and cost the FEELS facet nothing.
+ *
+ * They did cost it headroom. `precise` and `still` now sit at exactly 6, which
+ * is the floor - see the note at the top of this file.
  *
  * `still` and `generative` are OPPOSITES on the motion axis - the axis a
  * visitor most wants to filter on ("show me the ones that move by themselves")
@@ -125,8 +148,8 @@ export type FacetSelection = {
  * OR WITHIN A FACET, AND ACROSS FACETS. This is a named amendment to
  * 05.1-UI-SPEC's "Combining is AND".
  *
- * `FOR: drums, keys` shows every drum pad and every keyboard. `FOR: drums` plus
- * `FEELS: generative` shows the generative drum pads.
+ * `FOR: play, keys` shows every instrument pad and every keyboard.
+ * `FOR: play` plus `FEELS: generative` shows the generative ones.
  *
  * The OR half is REQUIRED rather than conventional, and the reason is in the
  * data: `FOR` gives every entry EXACTLY ONE term, so under a pure AND any
@@ -224,12 +247,19 @@ export const RETIRED_VOCABULARY: readonly string[] = Object.freeze([
  *
  * THE RULE THAT DECIDED EVERY ROW, in two clauses:
  *
- *   1. A term that is itself one of the sixteen maps to ITSELF. Ten do. The
+ *   1. A term that is itself one of the fourteen maps to ITSELF. Eight do. The
  *      word survives with a declared meaning, so the link still names something
  *      the site names.
  *   2. A retired term maps to a facet member only when TWO OR MORE entries
  *      carried it AND every one of those entries carries that member after the
- *      re-cut. Twelve do. Anything else maps to undefined.
+ *      re-cut. Fourteen do. Anything else maps to undefined.
+ *
+ * PLAN 11-01 MOVED TWO ROWS FROM CLAUSE 1 TO CLAUSE 2, and nothing else in this
+ * table. `drums` and `clips` stopped being facet members under D-01, so they
+ * stopped qualifying for clause 1 and fell to clause 2 - which they satisfy,
+ * because each had two carriers when it shipped as a chip. The counts went
+ * 10 + 12 to 8 + 14; the total is still 55 and RETIRED_VOCABULARY did not grow,
+ * because both words were already on it.
  *
  * Clause 2's first half is why no singleton is mapped. A tag that sat on
  * exactly one entry MEANT THAT CARD - it is what somebody shares when they mean
@@ -253,9 +283,7 @@ export const RETIRED_VOCABULARY: readonly string[] = Object.freeze([
  */
 export const LEGACY_TAG_MAP: Readonly<Record<string, FacetTerm | undefined>> =
   Object.freeze({
-    // Clause 1 - the ten that survive, mapping to themselves.
-    clips: "clips",
-    drums: "drums",
+    // Clause 1 - the eight that survive, mapping to themselves.
     expressive: "expressive",
     generative: "generative",
     mixing: "mixing",
@@ -265,12 +293,23 @@ export const LEGACY_TAG_MAP: Readonly<Record<string, FacetTerm | undefined>> =
     readable: "readable",
     still: "still",
 
-    // Clause 2 - twelve folds. `hypnotic` into `generative` is the one
+    // Clause 2 - fourteen folds. `hypnotic` into `generative` is the one
     // 10-UI-SPEC 9.4 names out loud.
     accessible: "readable",
     ambient: "generative",
     blooming: "playable",
     calm: "generative",
+    // THE TWO PLAN 11-01 ADDED, AND THE FACT NEITHER ROW RECOVERS FROM THE
+    // DATA: each of these tags had exactly two carriers, and ONE OF EACH PAIR
+    // WAS DELETED RATHER THAN RE-HOMED. `clips` was carried by `stage` and
+    // `gridlock`; `gridlock` is gone and `stage` is now `shortcuts`. `drums`
+    // was carried by `ninepads` and `slam`; `slam` is gone and `ninepads` is
+    // now `play`. So each destination is where EVERY SURVIVING carrier went,
+    // which is what clause 2 asks - but a future reader counting carriers in
+    // today's listing would find one apiece and wrongly read these as singleton
+    // folds. They are not, and this comment is the only place that says so.
+    clips: "shortcuts",
+    drums: "play",
     colour: "show",
     game: "play",
     harmonic: "keys",
@@ -280,10 +319,17 @@ export const LEGACY_TAG_MAP: Readonly<Record<string, FacetTerm | undefined>> =
     rails: "mixing",
     sequencer: "sequencing",
 
-    // Twenty-six of the twenty-seven singletons: they meant one card each, so
-    // they go to the search field rather than to a chip. The twenty-seventh is
-    // `clips`, which sat on gridlock alone and is above, because clause 1 outranks
-    // clause 2 - a surviving word maps to itself whatever its old count was.
+    // Twenty-six of the twenty-seven singletons of the FIFTY-FIVE-term
+    // vocabulary: they meant one card each, so they go to the search field
+    // rather than to a chip. The twenty-seventh is `clips`, which sat on
+    // gridlock alone back then, and it is above.
+    //
+    // `clips` IS THEREFORE THE ONE ROW WITH TWO HISTORIES, and both are true of
+    // different vocabularies. In the fifty-five it was a singleton on gridlock;
+    // 10-06 promoted it to a facet member and `stage` took it too, so as a CHIP
+    // it shipped with two carriers - which is the count clause 2 asks about,
+    // because a shared `?tag=clips` link could only have been made while it was
+    // a chip. Plan 11-01 retired it and it maps to `shortcuts`.
     automation: undefined,
     blend: undefined,
     chords: undefined,
@@ -313,7 +359,7 @@ export const LEGACY_TAG_MAP: Readonly<Record<string, FacetTerm | undefined>> =
 
     // Seven that two or more entries carried and that no single facet member
     // covers: their carriers scattered across the new vocabulary, so there is no
-    // destination that would not lie to somebody. 10 + 12 + 26 + 7 = 55.
+    // destination that would not lie to somebody. 8 + 14 + 26 + 7 = 55.
     gestural: undefined,
     grid: undefined,
     "hands-free": undefined,

@@ -323,15 +323,31 @@ describe("catalog copy, counted rather than read (CONT-03)", () => {
       ).toEqual([id]);
     }
 
-    // And the inverse anchor: e2e/browse.e2e.ts:337-349 types a word and
-    // asserts the grid NARROWS without emptying, so this one must stay plural.
-    const drums = LISTING.filter((entry) =>
-      searchable(entry).includes("drums"),
+    // And the inverse anchor: e2e/browse.e2e.ts types a word and asserts the
+    // grid NARROWS without emptying, so this one must stay plural.
+    //
+    // THE WORD WAS "drums" UNTIL PLAN 11-01. D-01 retired the `drums` tag, and
+    // "drums" appeared in no entry's name or description - only in that tag -
+    // so the anchor went from two entries to zero and the e2e assertion it
+    // guards would have failed on the deployed artefact. "colour" is a
+    // DESCRIPTION word rather than a tag, carried by six entries, so a future
+    // vocabulary re-cut cannot empty it. e2e/browse.e2e.ts types the same word
+    // and this file and that one must never disagree about it.
+    //
+    // THIS FILE AND e2e/browse.e2e.ts ARE NOT IN 11-01-PLAN.md'S BLAST-RADIUS TABLE.
+    // Reported in 11-01-SUMMARY.md rather than quietly absorbed - and it is the
+    // one place in this plan where a vocabulary decision reached the e2e suite.
+    const colour = LISTING.filter((entry) =>
+      searchable(entry).includes("colour"),
     );
     expect(
-      drums.length,
-      "a typed drums must narrow the catalog without emptying it",
+      colour.length,
+      "a typed colour must narrow the catalog without emptying it",
     ).toBeGreaterThan(1);
+    expect(
+      colour.length,
+      "and it must not match everything, or it is not narrowing",
+    ).toBeLessThan(LISTING.length);
   });
 
   it("computes the census the copy rules are counted over", () => {

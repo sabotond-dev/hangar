@@ -4,7 +4,7 @@
 // has its own test:
 //
 //   D-05  search is free text over name, description and tags, and there is NO
-//         power syntax - a typed "$tag:drums" is four literal words, not a
+//         power syntax - a typed "$tag:play" is four literal words, not a
 //         query language (test 3).
 //   W-04  active chips INTERSECT. Union was considered and rejected in the
 //         approved spec: most tags sat on exactly one entry, so a union would
@@ -135,34 +135,44 @@ const search = (query: string) =>
  * (thirty-one), then 09-08 (thirty-four), then 09-09 (thirty-six) - which was
  * the last entry wave of phase 09 and the finished OPEN vocabulary - then
  * 10-06, which re-cut all thirty-six entries from 55 terms to 16, then 10-07,
- * which deleted the derivation the old shape of this block described.
+ * which deleted the derivation the old shape of this block described, then
+ * 11-01, THE FIRST WAVE THAT EVER SHRANK IT.
+ *
+ * 11-01 (D-01) removed nine configurations on the user's bench report and
+ * retired two FOR terms rather than weaken `singletons: 0`. `entries` 36 to 27,
+ * `tags` 16 to 14, and every count below re-observed. `drums` and `clips` are
+ * gone as keys; `play` and `shortcuts` each gained the one carrier that was
+ * re-homed onto it. `singletons` IS STILL ZERO, which is the whole point of the
+ * decision.
+ *
+ * THIS FILE IS NOT IN 11-01-PLAN.md'S BLAST-RADIUS TABLE. It was found by
+ * running the suite, and the omission is reported in 11-01-SUMMARY.md rather
+ * than quietly absorbed.
  *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
  * "The tag chips", quoted the row and its counts verbatim. 10-06 amended that
  * document by name rather than restating the new row there.
  */
 const RECORDED = {
-  entries: 36,
-  tags: 16,
+  entries: 27,
+  tags: 14,
   singletons: 0,
   /** Keyed by term, in FOR order then FEELS order - the toolbar's own order. */
   counts: {
-    modulation: 9,
+    modulation: 7,
     show: 5,
-    keys: 3,
     mixing: 3,
     sequencing: 3,
     shortcuts: 3,
-    pointing: 3,
-    play: 3,
-    drums: 2,
-    clips: 2,
-    readable: 16,
-    expressive: 14,
-    playable: 13,
-    generative: 13,
-    precise: 8,
-    still: 8,
+    keys: 2,
+    pointing: 2,
+    play: 2,
+    readable: 11,
+    expressive: 11,
+    playable: 8,
+    generative: 12,
+    precise: 6,
+    still: 6,
   } as Readonly<Record<string, number>>,
 } as const;
 
@@ -261,11 +271,14 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     // narrow the result without emptying it.
     //
     // THE PAIR MOVED IN 10-06 AND THE REASON IS THE POINT. It was "drums" and
-    // "nine drums". D-10 gives "drums" to the two entries that are drum pads,
+    // "nine drums". D-10 gave "drums" to the two entries that were drum pads,
     // Nine pads and SLAM - and BOTH of them say "Nine" in their first word, so
-    // the second term stopped narrowing anything: 2 of 2. "playable" is carried
-    // by thirteen entries and four of them say "nine", which is 4 of 13 and a
-    // real narrowing again.
+    // the second term stopped narrowing anything: 2 of 2. "playable" was
+    // carried by thirteen entries and four of them say "nine", which is 4 of 13
+    // and a real narrowing again. AT 27 ENTRIES (plan 11-01) "playable" is
+    // carried by eight, which is still a narrowing and still derived - the
+    // numbers in this paragraph are the ones observed when it was written and
+    // the assertions below are computed, so neither has to be edited again.
     const oneTerm = search("playable");
     const twoTerms = search("nine playable");
     expect(
@@ -295,29 +308,34 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
   });
 
   it("has no power syntax: a typed $tag: is four literal characters", () => {
-    // D-05 and the feature research both refuse a query language. "$tag:drums"
+    // D-05 and the feature research both refuse a query language. "$tag:play"
     // is searched as written, and nothing in the catalog contains it, so the
     // honest answer is zero results and the empty state - not a silent
-    // reinterpretation as the drums chip.
+    // reinterpretation as the play chip.
+    //
+    // The sample was "$tag:drums" until plan 11-01 retired `drums` under D-01.
+    // `play` is a live FOR term and `ninepads` is the card that moved onto it,
+    // so the pair below still asks the question this test was written for: a
+    // real chip name, prefixed, must find nothing.
     expect(
-      ids(LISTING.filter((e) => matches(e, "$tag:drums"))),
-      "$tag:drums is a literal and matches nothing",
+      ids(LISTING.filter((e) => matches(e, "$tag:play"))),
+      "$tag:play is a literal and matches nothing",
     ).toEqual([]);
     expect(
-      ids(filterListing(LISTING, "$tag:drums", NO_FACETS)),
+      ids(filterListing(LISTING, "$tag:play", NO_FACETS)),
       "filterListing agrees",
     ).toEqual([]);
 
     // Proof that it is the literal, not the word: dropping the prefix finds the
-    // entries again - derived, so a new drum configuration joins the list
+    // entries again - derived, so a new instrument configuration joins the list
     // instead of reddening it.
-    expect(search("drums").length, "drums alone finds entries").toBeGreaterThan(
+    expect(search("play").length, "play alone finds entries").toBeGreaterThan(
       1,
     );
     expect(
-      ids(filterListing(LISTING, "drums", NO_FACETS)),
-      "drums alone",
-    ).toEqual(search("drums"));
+      ids(filterListing(LISTING, "play", NO_FACETS)),
+      "play alone",
+    ).toEqual(search("play"));
   });
 
   it("ORs within a facet and ANDs across them, and an unknown term returns nothing", () => {
@@ -390,14 +408,17 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     // REQUIRED rather than conventional: every entry carries exactly one FOR
     // term, so under a pure AND this would be empty for every pair on the
     // shelf and the second click in that row would be dead for ever.
-    const twoFor = agreesWithFacets(active(["drums", "keys"]));
+    // The pair was drums / keys until plan 11-01 retired `drums` (D-01).
+    const twoFor = agreesWithFacets(active(["play", "keys"]));
     expect(twoFor.length, "two FOR chips under AND would be zero").toBe(
-      carrying("drums").length + carrying("keys").length,
+      carrying("play").length + carrying("keys").length,
     );
     expect(
-      LISTING.filter(
-        (e) => e.tags.includes("drums") && e.tags.includes("keys"),
-      ),
+      twoFor.length,
+      "and the union is not empty, or the union half would be vacuous",
+    ).toBeGreaterThan(0);
+    expect(
+      LISTING.filter((e) => e.tags.includes("play") && e.tags.includes("keys")),
       "no entry carries two FOR terms, which is why AND-within is impossible",
     ).toEqual([]);
 
@@ -406,9 +427,9 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       "a term nobody carries shows nothing, never everything",
     ).toEqual([]);
     expect(
-      ids(filterListing(LISTING, "", active(["drums", "nosuchterm"]))),
+      ids(filterListing(LISTING, "", active(["play", "nosuchterm"]))),
       "but inside a facet it is an OR, so it cannot empty a live set",
-    ).toEqual(carrying("drums"));
+    ).toEqual(carrying("play"));
 
     expect(
       ids(filterListing(LISTING, "", NO_FACETS)),
@@ -423,7 +444,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       "query and chips are ANDed too",
     ).toEqual(["ghost"]);
     expect(
-      agreesWithFacets(active(["drums"]), "ghost"),
+      agreesWithFacets(active(["play"]), "ghost"),
       "and they can disagree",
     ).toEqual([]);
 
@@ -432,7 +453,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     expect(filterListing(input, "", NO_FACETS)).not.toBe(input);
   });
 
-  it("stands sixteen chips, and every one of them is carried by two or more entries", () => {
+  it("stands fourteen chips, and every one of them is carried by two or more entries", () => {
     const row = [...FOR_TERMS, ...FEELS_TERMS];
     const known = allTags(LISTING);
     const count = (tag: string) =>
@@ -446,7 +467,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       "the standing row IS the two facets, in their order",
     ).toHaveLength(RECORDED.tags);
 
-    // THE ROW AND THE DATA ARE THE SAME SIXTEEN WORDS, in both directions. This
+    // THE ROW AND THE DATA ARE THE SAME FOURTEEN WORDS, in both directions. This
     // is what chipTags() used to compute and what its deletion replaced: on the
     // shipped data the retired derivation and the declared vocabulary agreed
     // exactly, which is why the swap was a replacement rather than a change.
@@ -551,14 +572,14 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
 
     // AN ACTIVE CHIP IS JUDGED BY THE SAME QUESTION AS ANY OTHER, so it is
     // never reported disabled merely for being on.
-    const forActive = active(["drums"], []);
+    const forActive = active(["play"], []);
     expect(
       disabledTags(LISTING, "", forActive, "for", FOR_TERMS),
       "an active chip is never its own disabled chip",
-    ).not.toContain("drums");
+    ).not.toContain("play");
     expect(
       disabledTags(LISTING, "", forActive, "feels", FEELS_TERMS),
-      "playable survives - the drum entries carry it too",
+      "playable survives - the play entries carry it too",
     ).not.toContain("playable");
 
     // A QUERY ALONE CAN EMPTY A CHIP, and the chip is still reported: a click
