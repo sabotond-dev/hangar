@@ -315,75 +315,12 @@ export const LISTING: readonly ListingEntry[] = [
     preview: "lua",
   },
   {
-    id: "hold",
-    name: "HOLD",
-    description:
-      "A latching effect pad: lift your finger and the value stays where you left it, lit and breathing.",
-    motion: "animated",
-    tags: ["modulation", "expressive", "readable"],
-    featured: true,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
     id: "steps",
     name: "STEPS",
     description:
       "Tap a cell to arm it and a bright column sweeps across, playing back the pattern you drew.",
     motion: "animated",
     tags: ["sequencing", "generative", "playable"],
-    featured: false,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
-    id: "slam",
-    name: "SLAM",
-    description:
-      "Nine drum pads where how high you hit is how hard it plays, and the bloom shows the velocity.",
-    motion: "static",
-    quiet:
-      "The nine zone outlines sit still until you hit one; every bloom is a hit you made.",
-    tags: ["drums", "playable", "expressive"],
-    featured: false,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
-    id: "keys",
-    name: "KEYS",
-    description:
-      "Every note of one key across the pad: roots bright, the scale dim, and the wrong notes dark.",
-    motion: "static",
-    quiet:
-      "The key sits on the pad whether or not anyone is playing it; the light is the map, not the motion.",
-    tags: ["keys", "playable", "readable"],
-    featured: true,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
-    id: "gridlock",
-    name: "GRIDLOCK",
-    description:
-      "Eighty-one clips under one hand, and a ring rolls out from the one you fired so you know it took.",
-    motion: "static",
-    quiet:
-      "The nine track blocks stay put until you fire a cell; every ring on this pad is one you started.",
-    tags: ["clips", "playable", "readable"],
-    featured: false,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
-    id: "table",
-    name: "TABLE",
-    description:
-      "Slide across to change the wave and down to filter it, and the grid draws the shape you land on.",
-    motion: "static",
-    quiet:
-      "The plot holds the shape you last landed on; move across the pad and it redraws.",
-    tags: ["modulation", "expressive", "precise"],
     featured: false,
     restsBlack: false,
     preview: "lua",
@@ -411,19 +348,6 @@ export const LISTING: readonly ListingEntry[] = [
       "The bar rests at the number you last sent; nothing here moves on its own.",
     tags: ["mixing", "precise", "still"],
     featured: false,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
-    id: "learn",
-    name: "LEARN",
-    description:
-      "Mapping helper: it sends one axis at a time and lights the row or column it is sending on.",
-    motion: "static",
-    quiet:
-      "The lit row or column is the legend, and it stays lit until you change the mode.",
-    tags: ["pointing", "precise", "readable"],
-    featured: true,
     restsBlack: false,
     preview: "lua",
   },
@@ -489,19 +413,6 @@ export const LISTING: readonly ListingEntry[] = [
     preview: "lua",
   },
   {
-    id: "switch",
-    name: "SWITCH",
-    description:
-      "Nine apps in nine blocks, each with its own mark, so you find one without reading anything.",
-    motion: "static",
-    quiet:
-      "The nine marks are painted once and stay; the block you press is the only thing that moves.",
-    tags: ["shortcuts", "readable", "still"],
-    featured: true,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
     id: "snake",
     name: "SNAKE",
     description:
@@ -509,32 +420,6 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "animated",
     tags: ["play", "playable", "generative"],
     featured: true,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
-    id: "etch",
-    name: "ETCH",
-    description:
-      "Draw on the pad with a finger and it stays; sweep across it fast and the whole thing wipes.",
-    motion: "dark",
-    // The shared line every demonstration card carries, byte-equal, as
-    // listing.spec.ts requires. ETCH is the third of them, after GHOST and
-    // MORPH; tpad is the fourth resting-black entry and is NOT one of these.
-    quiet: DEMO_TOUCH_NOTE,
-    tags: ["play", "playable", "still"],
-    featured: false,
-    restsBlack: true,
-    preview: "lua",
-  },
-  {
-    id: "life",
-    name: "LIFE",
-    description:
-      "Conway’s Life on the pad: tap to seed it, and the pattern plays itself out in light and notes.",
-    motion: "animated",
-    tags: ["play", "generative", "playable"],
-    featured: false,
     restsBlack: false,
     preview: "lua",
   },

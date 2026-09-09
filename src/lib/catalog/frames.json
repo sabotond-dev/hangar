@@ -514,38 +514,6 @@
         "animating": true
       }
     ],
-    "hold": [
-      {
-        "tick": 0,
-        "sha256": "4c846668b6d7d679b52d6812d72ec880e020133e436ae06fac42ecdd1846f40d",
-        "nonZeroBytes": 66,
-        "animating": true
-      },
-      {
-        "tick": 37,
-        "sha256": "6d457be6eedd14361397d3d3a1b2d45ea3f3a4129a7979db0900789e101dfdee",
-        "nonZeroBytes": 66,
-        "animating": true
-      },
-      {
-        "tick": 101,
-        "sha256": "b7b7c23e98810d6354a62432bb643337ffa474ee1c89c3d915a026e28ef6a9ee",
-        "nonZeroBytes": 66,
-        "animating": true
-      },
-      {
-        "tick": 500,
-        "sha256": "dcf58fe8f89a9727de026c5ccadd7107a9e0446f22412db96acc70730f290ea8",
-        "nonZeroBytes": 66,
-        "animating": true
-      },
-      {
-        "tick": 1009,
-        "sha256": "37a782bad8f42d53d7460ae2d293f3899d4b7e7c6152c46267e47b76c821c1a9",
-        "nonZeroBytes": 66,
-        "animating": true
-      }
-    ],
     "steps": [
       {
         "tick": 0,
@@ -576,134 +544,6 @@
         "sha256": "9c96f6cfa01f1a5861a19045208308d0c26df71d012984784cf010a5b58c28c2",
         "nonZeroBytes": 68,
         "animating": true
-      }
-    ],
-    "slam": [
-      {
-        "tick": 0,
-        "sha256": "b07c39967b1a549abf16b72bee5d73aefe82c8935052d2ef5580e30fcc684ef5",
-        "nonZeroBytes": 72,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "b07c39967b1a549abf16b72bee5d73aefe82c8935052d2ef5580e30fcc684ef5",
-        "nonZeroBytes": 72,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "b07c39967b1a549abf16b72bee5d73aefe82c8935052d2ef5580e30fcc684ef5",
-        "nonZeroBytes": 72,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "b07c39967b1a549abf16b72bee5d73aefe82c8935052d2ef5580e30fcc684ef5",
-        "nonZeroBytes": 72,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "b07c39967b1a549abf16b72bee5d73aefe82c8935052d2ef5580e30fcc684ef5",
-        "nonZeroBytes": 72,
-        "animating": false
-      }
-    ],
-    "keys": [
-      {
-        "tick": 0,
-        "sha256": "80e979b0d909d3a1b608dc33fe4b6c575bc01b940f1465c8bedc1eaaa6a6f106",
-        "nonZeroBytes": 141,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "80e979b0d909d3a1b608dc33fe4b6c575bc01b940f1465c8bedc1eaaa6a6f106",
-        "nonZeroBytes": 141,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "80e979b0d909d3a1b608dc33fe4b6c575bc01b940f1465c8bedc1eaaa6a6f106",
-        "nonZeroBytes": 141,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "80e979b0d909d3a1b608dc33fe4b6c575bc01b940f1465c8bedc1eaaa6a6f106",
-        "nonZeroBytes": 141,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "80e979b0d909d3a1b608dc33fe4b6c575bc01b940f1465c8bedc1eaaa6a6f106",
-        "nonZeroBytes": 141,
-        "animating": false
-      }
-    ],
-    "gridlock": [
-      {
-        "tick": 0,
-        "sha256": "c1e52e2ba45377e219623db99257123c283baf27f4d1cb3a74d374917edbf315",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "c1e52e2ba45377e219623db99257123c283baf27f4d1cb3a74d374917edbf315",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "c1e52e2ba45377e219623db99257123c283baf27f4d1cb3a74d374917edbf315",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "c1e52e2ba45377e219623db99257123c283baf27f4d1cb3a74d374917edbf315",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "c1e52e2ba45377e219623db99257123c283baf27f4d1cb3a74d374917edbf315",
-        "nonZeroBytes": 162,
-        "animating": false
-      }
-    ],
-    "table": [
-      {
-        "tick": 0,
-        "sha256": "5281f9ee5cdb8b0b776badda09c27cfb8c1216852ccb4c44a88f2aebd184636b",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "5281f9ee5cdb8b0b776badda09c27cfb8c1216852ccb4c44a88f2aebd184636b",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "5281f9ee5cdb8b0b776badda09c27cfb8c1216852ccb4c44a88f2aebd184636b",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "5281f9ee5cdb8b0b776badda09c27cfb8c1216852ccb4c44a88f2aebd184636b",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "5281f9ee5cdb8b0b776badda09c27cfb8c1216852ccb4c44a88f2aebd184636b",
-        "nonZeroBytes": 162,
-        "animating": false
       }
     ],
     "console": [
@@ -767,38 +607,6 @@
         "tick": 1009,
         "sha256": "755bc05481ca409ff94b798037ae65f933cbabf8fdab5825cc2ba4011dd735c4",
         "nonZeroBytes": 163,
-        "animating": false
-      }
-    ],
-    "learn": [
-      {
-        "tick": 0,
-        "sha256": "034736a5d5cf922fd2afee8acde5d283b49509f70c50b4ca4156f5e8b344908c",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "034736a5d5cf922fd2afee8acde5d283b49509f70c50b4ca4156f5e8b344908c",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "034736a5d5cf922fd2afee8acde5d283b49509f70c50b4ca4156f5e8b344908c",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "034736a5d5cf922fd2afee8acde5d283b49509f70c50b4ca4156f5e8b344908c",
-        "nonZeroBytes": 162,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "034736a5d5cf922fd2afee8acde5d283b49509f70c50b4ca4156f5e8b344908c",
-        "nonZeroBytes": 162,
         "animating": false
       }
     ],
@@ -962,38 +770,6 @@
         "animating": false
       }
     ],
-    "switch": [
-      {
-        "tick": 0,
-        "sha256": "edd4bc4c62d6befaa1ac255ece2cc1591351fc0df000eff453bb6c2fbf27759a",
-        "nonZeroBytes": 243,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "edd4bc4c62d6befaa1ac255ece2cc1591351fc0df000eff453bb6c2fbf27759a",
-        "nonZeroBytes": 243,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "edd4bc4c62d6befaa1ac255ece2cc1591351fc0df000eff453bb6c2fbf27759a",
-        "nonZeroBytes": 243,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "edd4bc4c62d6befaa1ac255ece2cc1591351fc0df000eff453bb6c2fbf27759a",
-        "nonZeroBytes": 243,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "edd4bc4c62d6befaa1ac255ece2cc1591351fc0df000eff453bb6c2fbf27759a",
-        "nonZeroBytes": 243,
-        "animating": false
-      }
-    ],
     "snake": [
       {
         "tick": 0,
@@ -1023,70 +799,6 @@
         "tick": 1009,
         "sha256": "fe9da6ce3a5b0378f1bbfe3fce0b2d9a9b4cd28ed66b9458c7041167ee36a31e",
         "nonZeroBytes": 12,
-        "animating": true
-      }
-    ],
-    "etch": [
-      {
-        "tick": 0,
-        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
-        "nonZeroBytes": 0,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
-        "nonZeroBytes": 0,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
-        "nonZeroBytes": 0,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
-        "nonZeroBytes": 0,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
-        "nonZeroBytes": 0,
-        "animating": false
-      }
-    ],
-    "life": [
-      {
-        "tick": 0,
-        "sha256": "4d8b2f65fce04956e42feb0832d3dc4d91304345dcd7345ea6a56434acb2649c",
-        "nonZeroBytes": 10,
-        "animating": true
-      },
-      {
-        "tick": 37,
-        "sha256": "4d8b2f65fce04956e42feb0832d3dc4d91304345dcd7345ea6a56434acb2649c",
-        "nonZeroBytes": 10,
-        "animating": true
-      },
-      {
-        "tick": 101,
-        "sha256": "c6f8bad34f84decde9cddd04b7b5274642c4f9215666a8229aca43ea635d5844",
-        "nonZeroBytes": 14,
-        "animating": true
-      },
-      {
-        "tick": 500,
-        "sha256": "3a96aac5ee3620013fffd58a271289b1ebfa4e4d6060e9bd7a43b50df3938bb2",
-        "nonZeroBytes": 14,
-        "animating": true
-      },
-      {
-        "tick": 1009,
-        "sha256": "1a777083c3952421dd6250f38eb428f15fe8555d028df86643a8773785d0ebd1",
-        "nonZeroBytes": 14,
         "animating": true
       }
     ],

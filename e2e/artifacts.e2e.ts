@@ -70,7 +70,12 @@ test("every configuration's link image is served by the built site", async ({
   // was sixteen and said nothing at all at thirty-six; plan 09-10 raised it. It
   // stays a literal on purpose - `toBeGreaterThanOrEqual(ROUTED.length)` is a
   // tautology, and the point of the line is a number somebody picked.
-  expect(ROUTED.length, "there are images to check").toBeGreaterThanOrEqual(36);
+  //
+  // RE-CHOSEN IN PLAN 11-01. The nine bench removals took the routed set to 27,
+  // so 36 stopped being a floor and became a permanent red. 27 is the whole
+  // routed set today; what it guards from here is a set that shortens without
+  // anybody editing this line.
+  expect(ROUTED.length, "there are images to check").toBeGreaterThanOrEqual(27);
   for (const entry of ROUTED) {
     const path = `/og/${entry.id}.png`;
     const response = await request.get(path);

@@ -383,12 +383,21 @@ describe("the stamp: the envelope", () => {
     // assert only that the encoder agrees with itself and would pass just as
     // happily on the day `x` stopped decoding.
     //
-    // Fifty-four records: every one of the twenty-seven hand-authored entries
-    // at its defaults, where the payload is null because a URL with no
-    // fragment IS the base configuration, and at a wild vector with every knob
-    // at its last position. Twenty-five of those entries now EMIT `w`. All
-    // fifty-four must still land, and a `w`-emitting entry landing its old `x`
-    // link is the whole point.
+    // Thirty-six records: every one of the eighteen hand-authored entries that
+    // survived plan 11-01's nine removals, at its defaults, where the payload
+    // is null because a URL with no fragment IS the base configuration, and at
+    // a wild vector with every knob at its last position. Sixteen of those
+    // eighteen now EMIT `w`; CULL and QUADRANT declare no colour knob and so
+    // still emit `x`. All thirty-six must still land, and a `w`-emitting entry
+    // landing its old `x` link is the whole point.
+    //
+    // THE FIXTURE SHRANK; IT WAS NOT REGENERATED. Plan 11-01 deleted the
+    // eighteen records naming the nine configurations the bench asked to have
+    // removed, because the toBeDefined() below asserts every record's entry is
+    // still in the catalog. Every surviving payload is the byte-for-byte
+    // literal captured at commit b3f99bb, which is the only thing that makes
+    // this a test against history rather than a round trip of the encoder
+    // against itself.
     //
     // It rides inside this test rather than becoming a ninth, because this
     // file's header says the count never moves and 10-08's own budget is
@@ -418,8 +427,8 @@ describe("the stamp: the envelope", () => {
       ).toEqual({ kind: "restored", indices });
       wild += 1;
     }
-    expect(wild, "captured format x stamps re-decoded").toBe(27);
-    expect(nulls, "captured default vectors").toBe(27);
+    expect(wild, "captured format x stamps re-decoded").toBe(18);
+    expect(nulls, "captured default vectors").toBe(18);
     // The fixture is only evidence if the tree has moved past it: at least one
     // captured entry must now emit a DIFFERENT format from the one recorded.
     const moved = WILD.filter((record) => {
@@ -430,7 +439,12 @@ describe("the stamp: the envelope", () => {
     expect(
       moved.length,
       "no entry changed format, so the fixture is proving nothing",
-    ).toBe(25);
+      // Re-chosen in plan 11-01: sixteen of the eighteen surviving entries,
+      // because CULL and QUADRANT declare no colour knob and still emit x.
+      // The plan's blast-radius table named the two literals above and
+      // missed this third one - reported in 11-01-SUMMARY.md rather than
+      // reconciled.
+    ).toBe(16);
   });
 
   it("is idempotent, on both routes and through a restore", () => {

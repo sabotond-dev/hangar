@@ -537,7 +537,7 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     ).toBe(0);
   });
 
-  it("the selector is rendered only when an entry has more than one colour knob, and the shelf splits 14 / 14 / 3 / 5", () => {
+  it("the selector is rendered only when an entry has more than one colour knob, and the shelf splits 12 / 7 / 3 / 5", () => {
     // RECOUNTED FROM THE CATALOG, never from a literal list, because the split
     // is a fact about the shipped tree and a list is a copy of it that rots.
     const split = { none: 0, two: 0, three: 0, noPicker: 0 };
@@ -552,17 +552,25 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
         three.push(entry.id);
       }
     }
+    // RE-RECORDED BY PLAN 11-01, which removed nine hand-authored entries: the
+    // split was 14 / 14 / 3 / 5 over thirty-six. Seven of the nine declared two
+    // colour knobs and two declared one, so `two` fell by seven and `none` by
+    // two, and `three` and `noPicker` did not move at all - console, forge and
+    // strip all survived, and so did both entries with no colour knob.
+    //
+    // THIS FILE IS NOT IN 11-01-PLAN.md'S BLAST-RADIUS TABLE. Found by running
+    // the suite; reported in 11-01-SUMMARY.md rather than quietly absorbed.
     expect(
       split,
-      "the colour-knob split moved. 14 entries render no selector (one colour knob), 14 render two options, 3 render three, and 5 have no picker at all",
-    ).toEqual({ none: 14, two: 14, three: 3, noPicker: 5 });
+      "the colour-knob split moved. 12 entries render no selector (one colour knob), 7 render two options, 3 render three, and 5 have no picker at all",
+    ).toEqual({ none: 12, two: 7, three: 3, noPicker: 5 });
     expect(
       three.sort(),
       "the three-colour entries are console, forge and strip - the worst case the six-canvas budget is measured against",
     ).toEqual(["console", "forge", "strip"]);
     expect(
       CATALOG.length,
-      "the catalog is no longer 36 entries, so the split above is a different denominator",
+      "the catalog is no longer 27 entries, so the split above is a different denominator",
     ).toBe(split.none + split.two + split.three + split.noPicker);
 
     // THE PRESENCE RULE, IN BOTH DIRECTIONS, as a property of the source: the

@@ -2,11 +2,14 @@
 // nothing until it is touched.
 //
 // D-09 is the user's instruction that no pad thumbnail stays dark. The evidence
-// that decides how it is met is src/lib/catalog/frames.json: four entries -
-// tpad, ghost, morph and etch - record nonZeroBytes 0 at every one of the five
+// that decides how it is met is src/lib/catalog/frames.json: three entries -
+// tpad, ghost and morph - record nonZeroBytes 0 at every one of the five
 // sampled ticks, so there is no representative motion frame to fall back on.
-// The choice was therefore "change what four pads do on somebody's hardware" or
-// "supply a finger", and 10-UI-SPEC 9.3 rules:
+// The choice was therefore "change what three pads do on somebody's hardware"
+// or "supply a finger", and 10-UI-SPEC 9.3 rules:
+//
+// IT WAS FOUR UNTIL PLAN 11-01. ETCH was the fourth, and the bench asked for it
+// to be removed, so its path went with it. GHOST and MORPH are untouched.
 //
 //   Every card paints. A configuration that paints nothing until it is touched
 //   is given a finger, not a light. HANGAR supplies the gesture; the firmware
@@ -208,54 +211,14 @@ const MORPH_PATH: DemoPath = {
 };
 
 /**
- * ETCH: a short stroke drawn, then a fast sweep that wipes it - and then a
- * second short stroke, which is both the picture the card rests on and the head
- * of the next loop.
- *
- * The third gesture is not decoration and it is not in 10-UI-SPEC 9.3's
- * one-line description of the gesture. It is there because the wipe works: a
- * path that ended on the sweep would leave the pad black, and a black pad at
- * the end of the path is a black OG image and a black reduced-motion still
- * frame - the exact outcome D-09 exists to remove. MEASURED: the pad peaks at
- * 15 lit cells while the strokes are on it, falls to 0 the tick the sweep
- * lands, and rests at 5 for the whole tail of the period.
- */
-const ETCH_PATH: DemoPath = {
-  id: "etch",
-  gesture: "a short stroke drawn, then a fast sweep that wipes it",
-  periodTicks: 420,
-  samples: [
-    { tick: 8, pointer: 1, event: "down", x: 2, y: 2 },
-    ...drag(1, [2, 2], [6, 2], 8, 6, 4),
-    ...drag(1, [6, 2], [6, 6], 32, 6, 4),
-    { tick: 60, pointer: 1, event: "up", x: 6, y: 6 },
-    // The sweep. Four cells of travel per tick is what "fast" means to a
-    // configuration that measures a stroke's speed; the stroke above moved less
-    // than one cell per tick.
-    { tick: 160, pointer: 2, event: "down", x: 0, y: 4 },
-    { tick: 161, pointer: 2, event: "move", x: 4, y: 4 },
-    { tick: 162, pointer: 2, event: "move", x: 8, y: 4 },
-    { tick: 163, pointer: 2, event: "up", x: 8, y: 4 },
-    // The picture the card rests on. It starts 27 ticks after the sweep rather
-    // than at the end of a long pause: the wiped pad IS black, and the shorter
-    // that window the less of a 4.2 second loop a visitor can glance at and see
-    // nothing. MEASURED over a steady-state period: 29 black ticks of 420,
-    // 6.9 per cent. GHOST and MORPH are never black at any tick of theirs.
-    { tick: 190, pointer: 3, event: "down", x: 3, y: 6 },
-    ...drag(3, [3, 6], [5, 3], 190, 6, 4),
-    { tick: 238, pointer: 3, event: "up", x: 5, y: 3 },
-  ],
-};
-
-/**
  * Every authored path, keyed by catalog id.
  *
- * THREE, not four. See DARK_BY_CONSTRUCTION.
+ * TWO, not three, since plan 11-01 removed ETCH from the catalog. See
+ * DARK_BY_CONSTRUCTION for the one entry that is dark and gets no finger.
  */
 export const DEMO_PATHS: Readonly<Record<string, DemoPath>> = {
   ghost: GHOST_PATH,
   morph: MORPH_PATH,
-  etch: ETCH_PATH,
 };
 
 /**
@@ -285,8 +248,9 @@ export const DEMO_PATHS: Readonly<Record<string, DemoPath>> = {
  *
  * This list is not a convenience. It is what gates read: scripts/gen-og.mjs
  * exempts an entry from its non-dark gate ONLY if it is named here, so removing
- * a demo path from ghost, morph or etch turns that gate red instead of quietly
- * re-exempting the entry.
+ * a demo path from ghost or morph turns that gate red instead of quietly
+ * re-exempting the entry. Removing the ENTRY as well - which is what plan 11-01
+ * did to ETCH - is the one way a path may leave without turning it red.
  */
 export const DARK_BY_CONSTRUCTION: readonly { id: string; why: string }[] = [
   {

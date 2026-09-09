@@ -20,6 +20,15 @@ between phases, so a row that was guessed rather than run is worse than no row a
 under these numbers is **thirty-six configurations, twenty-seven of them hand-authored Lua**; the
 figures they replace were taken at sixteen and seven.
 
+> **AMENDMENT, plan 11-01, 2026-09-09. THE CATALOG IS NOW TWENTY-SEVEN CONFIGURATIONS, EIGHTEEN OF
+> THEM HAND-AUTHORED LUA.** The user's bench report asked for nine to be removed — HOLD, KEYS, LEARN,
+> SWITCH, ETCH, GRIDLOCK, LIFE, SLAM and TABLE — and 11-01 removed them. **Every measured row in this
+> document was observed at thirty-six and is left exactly as it was observed**, because a measurement
+> rewritten to match a later tree is no longer a measurement. Plan 11-16 re-measures the whole set
+> against the phase's closing build and is the plan that moves these numbers. Where a count below
+> describes what the catalog IS rather than what a run reported, it has been corrected in place and
+> says so.
+
 | Command                      | Covers                                                               | Measured                                                                                                                                     |
 | ---------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run check`              | `svelte-check` over the whole project                                | **584 files, 0 errors, 0 warnings**; 8 s wall, 6.69 GB free                                                                                  |
@@ -371,7 +380,9 @@ reduced-motion title. The test therefore also calls `page.emulateMedia({ reduced
 
 Phase 8 added the catalog module, a real Lua 5.4 VM (`wasmoon`, lazily loaded) and seven
 hand-authored configurations. Phase 9 took the catalog to **thirty-six entries, twenty-seven of them
-hand-authored Lua**, and added two gates. Every count and cost below was re-observed on **2026-09-07
+hand-authored Lua**, and added two gates. **Plan 11-01 then removed nine on the user's bench report,
+leaving twenty-seven entries, eighteen of them hand-authored** — see the amendment at the top of this
+document for why the measured figures below still read thirty-six. Every count and cost below was re-observed on **2026-09-07
 at commit `36a1965`** by running each file on its own; the cost is that single-file run's reported
 duration, which includes transform and import and is therefore dominated by startup for the cheap
 ones.
@@ -661,9 +672,10 @@ entry a prerendered `/c/<id>/` page, and the routed set has exactly one declarat
 `src/lib/og/build.spec.ts` and by `e2e/artifacts.e2e.ts`. Before that widening the row WAS the routed
 set and the gate asserted the eight that had an address; the four files were amended together
 because widening any one of them alone ships eight pages whose `og:image` 404s with nothing red
-anywhere — observed between that plan's two commits. **Four of the thirty-six images** (tpad, ghost,
-morph and etch — three of thirty-four until ETCH arrived in plan 09-08)
-carry no lit LED at all and are exempted by their own declared `restsBlack`, not by a list.
+anywhere — observed between that plan's two commits. **Three of the twenty-seven images** (tpad,
+ghost and morph) carry no lit LED at all and are exempted by their own declared `restsBlack`, not by
+a list. It was four of thirty-six until plan 11-01 removed ETCH, and three of thirty-four before ETCH
+arrived in plan 09-08.
 
 **And a real Discord unfurl cannot be verified until the Basic Auth gate comes down.** Every crawler —
 Discord's, Slack's, Twitter's — gets a 401 from `worker/index.js` and never reaches the `<head>` these

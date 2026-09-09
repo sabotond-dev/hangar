@@ -37,7 +37,11 @@
 // D-06 lets a picker write any of the 4,096 RGB444 colours into a colour
 // knob's token, so test 6's question changed from "does every declared palette
 // literal fit" to "does every colour a picker could write fit". `luaKnobs`
-// declares 45 colour knobs across 25 of the 27 hand-authored entries;
+// declared 45 colour knobs across 25 of the 27 hand-authored entries when this
+// note was written; after plan 11-01's nine removals it is **29 colour knobs
+// across 16 of 18 entries**, and the total knob count fell from 133 to 91.
+// Every number in this file's tests is derived from the entries at run time, so
+// the removal moved this prose and nothing else;
 // enumerating the lattice on each would make this 184,833 combinations of
 // compressScript + measureLua and is simply not an option. The sample is 27
 // literals per colour knob and it is LENGTH-COMPLETE - the licence, and the

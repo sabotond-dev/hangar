@@ -67,8 +67,18 @@ const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
  * 10-07 (D-11) RETIRED NEWEST and moved this file from six tests to five. It
  * moved no number in this block either: the count is still 36 and the Featured
  * boundary is still 15, because removing an order removes no entry.
+ *
+ * 11-01 MOVED BOTH, AND IT IS THE FIRST WAVE THAT EVER HAS. The user's bench
+ * report asked for nine configurations to be removed, so the count is 27 and the
+ * Featured boundary is 11 - four of the nine (HOLD, KEYS, LEARN and SWITCH) were
+ * flagged featured. Ordering still never reads a tag, so the vocabulary re-cut
+ * in the same plan moved nothing here; the entry count did.
+ *
+ * THIS FILE IS NOT IN 11-01-PLAN.md'S BLAST-RADIUS TABLE. It was found by
+ * running the suite, and the omission is reported in 11-01-SUMMARY.md rather
+ * than quietly absorbed.
  */
-const RECORDED = { entries: 36, featured: 15 } as const;
+const RECORDED = { entries: 27, featured: 11 } as const;
 
 /**
  * Two deterministic permutations of the listing, not a random shuffle: a sort

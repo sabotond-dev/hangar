@@ -217,7 +217,14 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
     // it. It stays a literal deliberately: comparing against ROUTED.length
     // would be a tautology, and the whole value of the line is that a number a
     // person chose has to be re-chosen when the catalog shrinks past it.
-    expect(wanted.length).toBeGreaterThanOrEqual(36);
+    //
+    // RE-CHOSEN IN PLAN 11-01, WHICH IS THE LINE'S OWN SENTENCE COMING TRUE.
+    // The nine removals took the routed set to 27, so 36 stopped being a floor
+    // and became a permanent red. 27 is the whole routed set today, so what it
+    // now guards is a set that shortens WITHOUT this file being edited - the
+    // fixture regenerations of waves 3 and 14 are exactly the moment that
+    // could happen silently.
+    expect(wanted.length).toBeGreaterThanOrEqual(27);
   });
 
   it("writes 1200 x 630 truecolour PNGs under a megabyte", () => {

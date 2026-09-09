@@ -91,27 +91,7 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {
-    id: "hold",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
     id: "steps",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "slam",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "keys",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "gridlock",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "table",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {
@@ -120,10 +100,6 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
   },
   {
     id: "strip",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "learn",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {
@@ -147,19 +123,7 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {
-    id: "switch",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
     id: "snake",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "etch",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "life",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {

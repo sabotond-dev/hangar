@@ -302,8 +302,25 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
         guarded += 1;
       }
     }
-    expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(80);
-    expect(exempted, "the colour knobs, exempt by format").toBe(45);
+    // RE-CHOSEN BY PLAN 11-01, which removed nine hand-authored entries on the
+    // user's bench report. The catalog's hand-authored knob total went 133 to
+    // 91 and its colour knobs 45 to 29, so `guarded` went 88 to 62 - which is
+    // the same arithmetic seen from the other side, and it reconciles: 62 + 29
+    // is 91.
+    //
+    // 50 is a NON-VACUITY FLOOR and not a count: it fails on a `stampKnobs`
+    // that quietly stopped returning most of them, which is the failure this
+    // line exists for, and it does not have to be edited by every wave that
+    // adds or removes a knob. `exempted` stays an EQUALITY, because the colour
+    // exemption is the thing being audited and a floor would let a knob slip
+    // out of the guarded set unnoticed.
+    //
+    // THIS FILE IS NOT IN 11-01-PLAN.md'S BLAST-RADIUS TABLE, which recorded
+    // the sweep as untouched at "4 19". The member list and the test count are
+    // indeed unchanged; two literals inside one of the tests were not.
+    // Reported in 11-01-SUMMARY.md rather than quietly absorbed.
+    expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
+    expect(exempted, "the colour knobs, exempt by format").toBe(29);
 
     // PASS A. Every non-colour knob cross-producted, colour knobs at their
     // defaults, through the real encoder and the real decoder.
@@ -413,10 +430,18 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     expect(examinedB, "Pass B's enumeration silently shrank").toBe(expectedB);
     // THE FLOOR, RE-DERIVED as the two passes' own sum, the same way the
     // compiler half's is. The old 100,000 was a fraction of one 276,160-vector
-    // cross-product. 200,000 is above EITHER PASS ALONE - Pass A is 50,464 and
-    // Pass B is 184,320 - so it can only be cleared when both really ran.
+    // cross-product. 200,000 was above EITHER PASS ALONE at thirty-six entries
+    // - Pass A was 50,464 and Pass B 184,320 - so it could only be cleared when
+    // both really ran.
+    //
+    // RE-CHOSEN BY PLAN 11-01, and the construction is kept rather than the
+    // number. At twenty-seven entries the observed passes are Pass A 49,792 and
+    // Pass B 118,784, summing to 168,576, so 200,000 stopped being a floor and
+    // became a permanent red. 120,000 is above either pass alone by the same
+    // rule the old number was chosen by: neither 49,792 nor 118,784 clears it,
+    // and only the sum does.
     expect(examined, "the Lua cross-product is not trivial").toBeGreaterThan(
-      200000,
+      120000,
     );
     // AND THE DIRECTION. The Lua half must SHRINK against the 276,160 vectors
     // the single cross-product cost, because lifting four- and five-option

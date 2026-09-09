@@ -11,15 +11,9 @@ import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { CONSOLE } from "./entries/console";
 import { CULL } from "./entries/cull";
-import { ETCH } from "./entries/etch";
 import { EUCLID } from "./entries/euclid";
 import { FORGE } from "./entries/forge";
 import { GHOST } from "./entries/ghost";
-import { GRIDLOCK } from "./entries/gridlock";
-import { HOLD } from "./entries/hold";
-import { KEYS } from "./entries/keys";
-import { LIFE } from "./entries/life";
-import { LEARN } from "./entries/learn";
 import { LATTICE } from "./entries/lattice";
 import { LUMEN } from "./entries/lumen";
 import { MORPH } from "./entries/morph";
@@ -27,14 +21,11 @@ import { POMODORO } from "./entries/pomodoro";
 import { PORTED } from "./entries/ported";
 import { QUADRANT } from "./entries/quadrant";
 import { SHUTTLE } from "./entries/shuttle";
-import { SLAM } from "./entries/slam";
 import { SNAKE } from "./entries/snake";
 import { SONAR } from "./entries/sonar";
 import { STAGE } from "./entries/stage";
-import { SWITCH } from "./entries/switch";
 import { STRIP } from "./entries/strip";
 import { STEPS } from "./entries/steps";
-import { TABLE } from "./entries/table";
 import type { CatalogEntry } from "./types";
 
 export {
@@ -63,24 +54,15 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   LATTICE,
   MORPH,
   SONAR,
-  HOLD,
   STEPS,
-  SLAM,
-  KEYS,
-  GRIDLOCK,
-  TABLE,
   CONSOLE,
   STRIP,
-  LEARN,
   LUMEN,
   STAGE,
   SHUTTLE,
   CULL,
   FORGE,
-  SWITCH,
   SNAKE,
-  ETCH,
-  LIFE,
   QUADRANT,
   POMODORO,
 ]);
@@ -92,24 +74,15 @@ export { GHOST } from "./entries/ghost";
 export { LATTICE } from "./entries/lattice";
 export { MORPH } from "./entries/morph";
 export { SONAR } from "./entries/sonar";
-export { HOLD } from "./entries/hold";
 export { STEPS } from "./entries/steps";
-export { SLAM } from "./entries/slam";
-export { KEYS } from "./entries/keys";
-export { GRIDLOCK } from "./entries/gridlock";
-export { TABLE } from "./entries/table";
 export { CONSOLE } from "./entries/console";
 export { STRIP } from "./entries/strip";
-export { LEARN } from "./entries/learn";
 export { LUMEN } from "./entries/lumen";
 export { STAGE } from "./entries/stage";
 export { SHUTTLE } from "./entries/shuttle";
 export { CULL } from "./entries/cull";
 export { FORGE } from "./entries/forge";
-export { SWITCH } from "./entries/switch";
 export { SNAKE } from "./entries/snake";
-export { ETCH } from "./entries/etch";
-export { LIFE } from "./entries/life";
 export { QUADRANT } from "./entries/quadrant";
 export { POMODORO } from "./entries/pomodoro";
 
