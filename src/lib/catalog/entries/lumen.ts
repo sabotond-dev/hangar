@@ -35,6 +35,73 @@
 //     makes this the cheapest spectacular card in the catalog: eighty-one
 //     distinct computed colours for zero recurring cost.
 //
+// WHAT THE PAD SENDS, AND WHY THE COLOUR GOES OUT AS HEX (plan 11-10, the bench
+// note "LUMEN: should send HEX in sysex").
+//
+// THREE MESSAGES, TWO OF THEM CONTINUOUS AND ONE OF THEM PER COLOUR.
+//
+//   @CC     the x coordinate, on every surviving touch sample
+//   @CC + 1 the y coordinate, on every surviving touch sample
+//   sysex   the colour under the finger, as SIX ASCII HEX DIGITS, whenever the
+//           cell changes OR the contact begins - `if n~=s.c or e>3`. e > 3
+//           inside the shipped filter is a press (4) or a fast tap (9), so
+//           touching the same cell twice sends the colour twice and a desk
+//           that missed one gets another without the finger having to move.
+//
+// THE MESSAGE, BYTE BY BYTE, at the top-left cell (anchor 255,90,0, row 0, so
+// the asked colour is the anchor exactly):
+//
+//   240  0xF0, supplied BY THIS CONFIGURATION, not by firmware
+//   125  0x7D, the MIDI non-commercial manufacturer id - the byte a receiver
+//        reads as "who is this from", and the one id reserved for exactly this
+//   70   'F'  |
+//   70   'F'  |  255 -> "FF"
+//   53   '5'  |
+//   65   'A'  |   90 -> "5A"
+//   48   '0'  |
+//   48   '0'  |    0 -> "00"
+//   247  0xF7, also this configuration's
+//
+// `gmss` takes two or more integers and EVERY ONE OF THEM IS ONE PAYLOAD BYTE,
+// and the caller supplies the 0xF0 and the 0xF7 itself - VERIFIED against
+// `grid_lua_api.c:905-935` through `../zona-docs/docs/ZONA_REFERENCE.md:1241`
+// and `:2022`. `grid_decode.c:96-100` warns and transmits anyway when the
+// framing is missing, which is a good reason to be sure it is there and a bad
+// reason to rely on the firmware noticing.
+//
+// WHY ASCII HEX AND NOT A RAW THREE-BYTE RGB PAYLOAD, WHICH IS SHORTER. Both
+// were costed against this entry's own budget before either was written:
+//
+//   raw RGB           gmss(240,125,r,g,b,247)          660 at the picker corner
+//   raw, 7-bit split  each channel as v%128, v//128    693
+//   ASCII hex         the six digits above             746 as shipped
+//
+// SO THE SHORT ONE IS NOT A CANDIDATE, AND THE DECIDING FACT IS NOT TASTE:
+// SYSEX DATA BYTES ARE SEVEN-BIT. Every byte between the 0xF0 and the 0xF7 has
+// to be 0..127, because a byte with the high bit set is a STATUS byte and ends
+// the message where it stands. Row 0 of this pad is the anchor colour exactly,
+// so the very first thing a visitor touches emits a channel of 255 - and the
+// 52 characters the raw form saves buy a message that is malformed at the top
+// of the pad and fine at the bottom, which is the worst kind of wrong. The
+// seven-bit-safe raw split (693) is transmissible but it is not hex, it is not
+// readable at the other end, and it costs 53 of the 86 characters ASCII hex
+// costs over it. The user asked for hex; hex is also the only one of the three
+// that is both legal and legible.
+//
+// `D(v)` is the whole encoder: `v<10 and 48+v or 55+v`, which is '0'..'9' then
+// 'A'..'F'. Uppercase, because a desk's own display is. There is no string
+// library on the module and no `:byte` the host would accept, so a sixteen-entry
+// lookup table would be the alternative and it is longer.
+//
+// F RETURNS THE COLOUR IT PAINTED. That is the one structural change: `F(n)`
+// now ends `return r,g,b`, and the touch handler calls it on the NEW cell for
+// its return value and then paints the cursor colour over the top. The cell is
+// therefore written twice on a cell change - five firmware calls wasted - and
+// that is deliberate: the alternative is a second function computing the same
+// three channels, which was measured at 766 against this 746. The picture is
+// identical either way, because glc overwrites both layers and every phase in
+// the field is already 255.
+//
 // THE COLOUR ARITHMETIC, CHECKED AT ALL FOUR CORNERS RATHER THAN IN THE
 // MIDDLE. Channels TRUNCATE rather than clamp, so a 260 renders as 4 and a
 // negative renders as garbage; both ends have to be proved, not assumed.
@@ -131,8 +198,10 @@
 //                      of the eighty-one cells in frames.json, moves the OG
 //                      image with them, and spends the knob's last step.
 //   subtrahend 32      d = 32 - row*@DEPTH with anchor*d//32 and the same four
-//                      values. MEASURED at 608 at the picker corner, which is
-//                      the same 608 it costs today, and the bottom row reaches
+//                      values. MEASURED by 11-09.2 at 608 at the picker corner
+//                      against the 608 the entry cost THAT DAY - character
+//                      neutral, and still character neutral against today's
+//                      746, because only two literals move. The bottom row reaches
 //                      EXACT BLACK at @DEPTH 4 - 0,0,0, with the frame falling
 //                      from 171 non-zero bytes to 152. At the shipped default
 //                      the bottom row becomes 62,21,0 where it is 84,29,0
@@ -161,9 +230,26 @@
 //
 // THE TRAPS THIS ENTRY CONTAINS.
 //
-//   - EVERY DIVISION IS FLOORED. anchor*d//36, n%9, n//9, x*9//128, y*9//128
-//     and *127//128 are all `//` or `%`. A fraction reaching a firmware call
+//   - EVERY DIVISION IS FLOORED. anchor*d//36, n%9, n//9, x*9//128, y*9//128,
+//     r//16 and r%16 are all `//` or `%`. A fraction reaching a firmware call
 //     becomes 0, silently.
+//   - THE CONTROLLERS SEND x AND y RAW, AND THAT IS THE FIX RATHER THAN THE
+//     OMISSION. They read `x*127//128` until plan 11-10. That maps 0..127 onto
+//     0..126 and CAN NEVER EMIT 127 - the same family as CONSOLE's 111, on
+//     BOTH axes - because 127*127//128 is 126. This entry never calls txma or
+//     tyma, so the touch range IS 0..127 and a controller value IS 0..127:
+//     the scale had nothing to scale. Removing it costs MINUS eighteen
+//     characters and the top of both axes is now reachable. Measured, not
+//     reasoned: 608 at the picker corner before, 590 with the scale gone.
+//   - SYSEX DATA BYTES ARE SEVEN-BIT AND NOTHING IN HANGAR CHECKS THAT. The
+//     browser host records what a configuration asked to send, byte for byte,
+//     with no range check and no mask (lua-host.ts, recordSysex - deliberately,
+//     so a bad byte stays visible). The compiler's own trap scanner does not
+//     know `gmss` at all: it is not in _pad.ts's OUT_CALLS. So the ONLY thing
+//     standing between a channel above 127 and a malformed message is this
+//     entry's choice of encoding and the clause in lua-smoke.spec.ts that
+//     asserts every emitted data byte is 0..127. Any second entry that sends
+//     sysex needs its own.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP. Proved at all four corners above,
 //     over the knob's own values rather than at the default.
 //   - THE DEPTH DIVISOR IS THE LITERAL 36 AND IS NEVER A KNOB, so it can never
@@ -173,9 +259,12 @@
 //     F over all eighty-one cells". touch_cb has a 1000-microsecond budget at
 //     100 Hz; eighty-one cells is four firmware calls each, and a handler that
 //     overruns starts dropping touch samples, so the cursor would stutter
-//     exactly when the finger moves fastest. One pass over ONE cell to restore
-//     the field colour and one glc pair on the new cell is the whole repaint,
-//     and it is at most two cells per sample.
+//     exactly when the finger moves fastest. Two F calls - one to restore the
+//     cell being left, one to read the colour of the cell being entered - plus
+//     a glc pair is the whole repaint, and it is at most two cells per sample.
+//     The second F was added by 11-10 and is the price of the sysex payload;
+//     it is bounded by the same "at most two cells" and it fires only when the
+//     cell changes or a contact begins, never on a move within one cell.
 //   - CODE 9 IS HANDLED. A fast tap arrives as a single DOWNUP 9 with no
 //     separate press or lift, and it must both move the cursor and send, so
 //     the filter is the shipped `e~=1 and e~=4 and e<9`.
@@ -206,26 +295,41 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 604 characters, Timer 0, both fixed points
+// against the pinned minifier: Setup 742 characters, Timer 0, both fixed points
 // of compressScript and both accepted by checkSyntax. The all-longest corner of
-// the four-knob cross-product is 608 / 0, leaving 300 free of 908, and the
-// all-shortest corner is 604 / 0.
+// the four-knob cross-product is 746 / 0, leaving 162 free of 908, and the
+// all-shortest corner is 742 / 0.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
-// RE-MEASURED BY PLAN 11-09.2 AT THE RGB444 PICKER CORNER (D-06), WHICH IS THE
-// CORNER THE 908 GATE ACTUALLY READS: Setup 608 of 908 leaving 300 free, Timer
-// 0 of 908 leaving the whole 908 - the most free Timer in the catalog. THAT IS
-// THE SAME 608 THE DECLARED CROSS-PRODUCT GIVES, AND IT IS A COINCIDENCE
-// RATHER THAN A RULE: @CURSORC already declares 255,255,255, which is the
-// longest literal any picker can write, so this entry's declared corner and
-// its picker corner are the same point. ARC and MORPH are correct by the same
-// accident; five entry headers in this catalog are NOT, and quote the declared
-// corner as though it were the picker one. Do not read this line as the norm.
-// AND 604 IS THE DEFAULTS FIGURE, NOT A CORNER AT ALL - it happens to equal
-// the all-shortest declared corner because every default is that knob's
-// shortest literal, and quoting it as the budget figure understates the cost
-// by four characters. @CC and @CH each appear TWICE in the Setup, which is why
-// two knobs one character longer cost four rather than two.
+// AT THE RGB444 PICKER CORNER (D-06), WHICH IS THE CORNER THE 908 GATE ACTUALLY
+// READS: Setup 746 of 908 leaving 162 free, Timer 0 of 908 leaving the whole
+// 908 - still the most free Timer in the catalog. THAT IS THE SAME 746 THE
+// DECLARED CROSS-PRODUCT GIVES, AND IT IS A COINCIDENCE RATHER THAN A RULE:
+// @CURSORC already declares 255,255,255, which is the longest literal any
+// picker can write, so this entry's declared corner and its picker corner are
+// the same point. ARC and MORPH are correct by the same accident; five entry
+// headers in this catalog are NOT, and quote the declared corner as though it
+// were the picker one. Do not read this line as the norm. AND 742 IS THE
+// DEFAULTS FIGURE, NOT A CORNER AT ALL - it happens to equal the all-shortest
+// declared corner because every default is that knob's shortest literal, and
+// quoting it as the budget figure understates the cost by four characters.
+// @CC and @CH each appear TWICE in the Setup, which is why two knobs one
+// character longer cost four rather than two.
+//
+// WHERE THE 746 CAME FROM, AS A LADDER RATHER THAN A NUMBER (all at the picker
+// corner, all `max(compressScript(lua).length, lua.length)` after padReady):
+//
+//   608  as 11-09.2 measured and left it
+//   590  minus 18, the two `*127//128` scales removed - a FIX that pays
+//   746  plus 156, the sysex half: `D`, `return r,g,b`, the second F call,
+//        `or e>3`, and the nine-byte gmss itself
+//
+// So the whole of this wave costs +138 against the 608 it inherited, and LUMEN
+// still has 162 free on Setup and the entire 908 on Timer. THE TIMER WAS NEVER
+// TOUCHED, and it is deliberately not where the sysex went: a Timer that sends
+// on every tick is a different card - it would emit the cursor's colour a
+// hundred times a second whether or not anything changed. A colour message
+// belongs to the gesture that chose the colour.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
@@ -236,7 +340,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local H={255,90,0,200,255,0,30,255,0,0,255,150,0,150,255,30,0,255,200,0,255,255,0,100,255,230,190}local function F(n)local a=glag(0,n)local i=n%9*3 local d=36-n//9*@DEPTH local r=H[i+1]*d//36 local g=H[i+2]*d//36 local b=H[i+3]*d//36 glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)end for n=0,80 do F(n)end self.c=-1 self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local n=x*9//128+y*9//128*9 if n~=s.c then if s.c>=0 then F(s.c)end local a=glag(0,n)glc(a,1,@CURSORC,1)glc(a,2,@CURSORC,1)s.c=n end s:gms(@CH,176,@CC,x*127//128,0)s:gms(@CH,176,@CC+1,y*127//128,0)end";
+  "--[[@cb]]local H={255,90,0,200,255,0,30,255,0,0,255,150,0,150,255,30,0,255,200,0,255,255,0,100,255,230,190}local function D(v)return v<10 and 48+v or 55+v end local function F(n)local a=glag(0,n)local i=n%9*3 local d=36-n//9*@DEPTH local r=H[i+1]*d//36 local g=H[i+2]*d//36 local b=H[i+3]*d//36 glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)return r,g,b end for n=0,80 do F(n)end self.c=-1 self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local n=x*9//128+y*9//128*9 if n~=s.c or e>3 then if s.c>=0 then F(s.c)end local r,g,b=F(n)gmss(240,125,D(r//16),D(r%16),D(g//16),D(g%16),D(b//16),D(b%16),247)local a=glag(0,n)glc(a,1,@CURSORC,1)glc(a,2,@CURSORC,1)s.c=n end s:gms(@CH,176,@CC,x,0)s:gms(@CH,176,@CC+1,y,0)end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
@@ -244,7 +348,7 @@ export const LUMEN: CatalogEntry = {
   id: "lumen",
   name: "LUMEN",
   description:
-    "A colour picker for a lighting desk: hue across, depth down, and the pad is the colour it sends.",
+    "A colour picker for a lighting desk: hue across, depth down, and the colour goes out as hex over sysex.",
   // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   // "lighting" was coined here and no later wave ever gave it a second

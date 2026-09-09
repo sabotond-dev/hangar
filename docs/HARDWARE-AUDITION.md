@@ -75,6 +75,10 @@ Measured at their default knob positions with the pinned minifier. The first sev
 `08-06-SUMMARY.md`; STEPS was measured by `09-03-SUMMARY.md`, CONSOLE and STRIP by
 `09-05-SUMMARY.md`, LUMEN, STAGE and SHUTTLE by `09-06-SUMMARY.md`, CULL and FORGE by
 `09-07-SUMMARY.md`, SNAKE by `09-08-SUMMARY.md`, and QUADRANT and POMODORO by `09-09-SUMMARY.md`.
+**LUMEN was RE-MEASURED by `11-10-SUMMARY.md` and its row now reads 742, not the 604 it read
+from plan 09-06 until then** — plan 11-10 removed two `*127//128` scales (−18) and added the
+sysex colour send (+156). Every other row in this table is still its original wave's measurement and
+none of them has been re-checked.
 The nine other measurements that used to sit here left with the nine configurations plan 11-01
 removed. The catalog holds nine more entries, and those nine are BOTOR's shelf presets rather than
 HANGAR's own Lua:
@@ -91,7 +95,7 @@ HANGAR's own Lua:
 | `steps`    | STEPS    | 388   | 251              | 6     | no           |
 | `console`  | CONSOLE  | 785   | 0 — **no Timer** | 5     | no           |
 | `strip`    | STRIP    | 638   | 0 — **no Timer** | 5     | no           |
-| `lumen`    | LUMEN    | 604   | 0 — **no Timer** | 4     | no           |
+| `lumen`    | LUMEN    | 742   | 0 — **no Timer** | 4     | no           |
 | `stage`    | STAGE    | 505   | 109              | 4     | no           |
 | `shuttle`  | SHUTTLE  | 663   | 201              | 6     | no           |
 | `cull`     | CULL     | 564   | 0 — **no Timer** | 4     | no           |

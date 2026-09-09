@@ -355,7 +355,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "lumen",
     name: "LUMEN",
     description:
-      "A colour picker for a lighting desk: hue across, depth down, and the pad is the colour it sends.",
+      "A colour picker for a lighting desk: hue across, depth down, and the colour goes out as hex over sysex.",
     motion: "static",
     quiet:
       "The whole field stays lit and still, so you read the colour instead of watching it.",

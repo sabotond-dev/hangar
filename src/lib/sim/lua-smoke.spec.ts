@@ -3565,4 +3565,256 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         `\n  row spreads across all four values: ${spreads.join(", ")}\n`,
     );
   }, 120000);
+
+  it("sends LUMEN's colour as framed seven-bit hex over sysex, once per colour", async () => {
+    // THE BENCH NOTE THIS ANSWERS: "LUMEN: should send HEX in sysex".
+    //
+    // The call is `gmss`, midi_sysex_send. Every argument is ONE PAYLOAD BYTE
+    // and the CONFIGURATION supplies 0xF0 and 0xF7 itself (`grid_lua_api.c:
+    // 905-935`, read through `../zona-docs/docs/ZONA_REFERENCE.md:1241` and
+    // `:2022`). Plan 11-10 added `gmss` to the host's sixteen globals so this
+    // entry could be PREVIEWED rather than raising in its own catalog card;
+    // `lua-host.spec.ts` proves the name reaches the recorder, and this test
+    // proves the ENTRY produces a correctly framed message - a different claim
+    // about a different file.
+    //
+    // WHY ASCII HEX AND NOT RAW RGB, ASSERTED RATHER THAN ARGUED. Sysex data
+    // bytes are SEVEN-BIT: a byte with the high bit set is a status byte and
+    // ends the message where it stands. Row 0 of this pad is the anchor colour
+    // EXACTLY, so the first cell a visitor touches has a channel of 255 - which
+    // a raw three-byte payload could not carry. Clause 4 below asserts both
+    // halves of that: the asked colour really does exceed 127, and every byte
+    // that actually goes out really is inside it.
+    //
+    // NOTHING IN HANGAR VALIDATES SEVEN-BIT SYSEX DATA. The host records what
+    // the configuration asked to send, unmasked and unchecked, on purpose
+    // (lua-host.ts, recordSysex), and the vendored trap scanner does not know
+    // `gmss` at all - it is absent from `_pad.ts`'s OUT_CALLS. Clause 4 IS the
+    // check, and it covers this entry only. A second sysex entry needs its own.
+    const entry = entryById("lumen");
+    const { setup, timer } = renderLua(entry);
+    const GRID_W = 9;
+
+    // THE EXPECTED COLOUR IS DERIVED FROM THE ENTRY'S OWN LUA, never restated,
+    // so a future re-cut of the palette or of the ramp survives this test and
+    // only a broken ENCODING reddens it. Same parse the depth test above uses.
+    const anchors = /local H=\{([0-9,]+)\}/.exec(setup);
+    const ramp = /d=(\d+)-n\/\/9\*(\d+)/.exec(setup);
+    const scale = /\*d\/\/(\d+)/.exec(setup);
+    expect(
+      anchors,
+      "lumen: the anchor table must still read local H={...}",
+    ).not.toBeNull();
+    expect(
+      ramp,
+      "lumen: the depth ramp must still read d=<N>-n//9*<D>",
+    ).not.toBeNull();
+    expect(
+      scale,
+      "lumen: the channel scale must still read *d//<N>",
+    ).not.toBeNull();
+    const H = anchors![1].split(",").map(Number);
+    expect(
+      H,
+      "lumen: the anchor table is three channels per column",
+    ).toHaveLength(GRID_W * 3);
+    const subtrahend = Number(ramp![1]);
+    const depth = Number(ramp![2]);
+    const divisor = Number(scale![1]);
+
+    /** The colour the configuration ASKS for at a cell - not the emitted byte. */
+    const askedAt = (col: number, row: number): number[] => {
+      const d = subtrahend - row * depth;
+      return [0, 1, 2].map((k) => Math.floor((H[col * 3 + k] * d) / divisor));
+    };
+
+    // The encoder under test, restated here as the INVERSE: this test reads
+    // the six digits back to a number, so it never has to know '0'..'9' and
+    // 'A'..'F' as two magic constants twice.
+    const HEX = "0123456789ABCDEF";
+    const decode = (bytes: readonly number[]): number[] => {
+      const digits = bytes.map((b) => HEX.indexOf(String.fromCharCode(b)));
+      return [0, 1, 2].map((k) => digits[k * 2] * 16 + digits[k * 2 + 1]);
+    };
+
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      setup,
+      timer: timer.trim() === "" ? undefined : timer,
+    });
+    const seen: { label: string; bytes: number[] }[] = [];
+    try {
+      expect(host.errors, "lumen: Setup must run clean").toEqual([]);
+      expect(
+        host.sysex,
+        "lumen: Setup alone must send nothing - a card that talks before it " +
+          "is touched is a card that talks on every page load",
+      ).toEqual([]);
+
+      // 1. A PRESS ON THE TOP-LEFT CELL. Row 0, column 0: the anchor colour
+      //    exactly, and the one cell whose channels are largest.
+      const c0 = cellCentre(0);
+      const c8 = cellCentre(GRID_W - 1);
+      host.touchDown(0, c0, c0);
+      host.tick();
+      seen.push({
+        label: "press on cell 0",
+        bytes: [...(host.sysex.at(-1)?.bytes ?? [])],
+      });
+
+      // 2. A MOVE THAT STAYS INSIDE THE SAME CELL SENDS NOTHING. The colour did
+      //    not change, so neither did the message - this is the whole reason
+      //    the send sits inside the cursor's own change gate rather than beside
+      //    the two controllers, which do fire on every sample.
+      const beforeIdleMove = host.sysex.length;
+      host.touchMove(0, c0 + 1, c0 + 1);
+      host.tick();
+      const afterIdleMove = host.sysex.length;
+
+      // 3. A MOVE TO ANOTHER CELL SENDS THAT CELL'S COLOUR.
+      host.touchMove(0, c8, c8);
+      host.tick();
+      seen.push({
+        label: "move to cell 80",
+        bytes: [...(host.sysex.at(-1)?.bytes ?? [])],
+      });
+
+      // 4. A FRESH CONTACT ON THE CELL ALREADY UNDER THE CURSOR SENDS AGAIN.
+      //    `if n~=s.c or e>3` - e above 3 inside the shipped filter is a press
+      //    or a fast tap. Without the second half a desk that missed the first
+      //    message would need the finger to move to another cell and back.
+      host.touchUp(0, c8, c8);
+      host.tick();
+      host.touchDown(0, c8, c8);
+      host.tick();
+      seen.push({
+        label: "press again on cell 80",
+        bytes: [...(host.sysex.at(-1)?.bytes ?? [])],
+      });
+
+      expect(host.errors, "lumen: the gesture must run clean").toEqual([]);
+      expect(
+        afterIdleMove,
+        "lumen: a move inside one cell re-sent the colour, so the send is no " +
+          "longer gated on the cursor changing",
+      ).toBe(beforeIdleMove);
+      expect(
+        host.sysex.length,
+        `lumen: expected three sysex messages from this gesture, saw ` +
+          `${host.sysex.length}`,
+      ).toBe(3);
+
+      // CLAUSE 1 - THE FRAMING, ASSERTED EXPLICITLY ON EVERY MESSAGE. It is the
+      // part a later edit is most likely to drop, and firmware WARNS and
+      // transmits anyway rather than refusing (grid_decode.c:96-100), so a
+      // dropped terminator would ship silently.
+      for (const message of seen) {
+        expect(
+          message.bytes[0],
+          `lumen/${message.label}: a sysex message must OPEN with 0xF0, and ` +
+            `this configuration supplies it - got ${message.bytes[0]}`,
+        ).toBe(0xf0);
+        expect(
+          message.bytes.at(-1),
+          `lumen/${message.label}: a sysex message must END with 0xF7, and ` +
+            `this configuration supplies it - got ${message.bytes.at(-1)}`,
+        ).toBe(0xf7);
+        expect(
+          message.bytes.length,
+          `lumen/${message.label}: 0xF0, a manufacturer id, six hex digits ` +
+            `and 0xF7 is nine bytes; got ${message.bytes.length}: ` +
+            message.bytes.join(", "),
+        ).toBe(9);
+      }
+
+      // CLAUSE 2 - THE PAYLOAD IS THE COLOUR UNDER THE FINGER, decoded back
+      // from its six digits and compared against the entry's own arithmetic.
+      const expected: number[][] = [
+        askedAt(0, 0),
+        askedAt(GRID_W - 1, GRID_W - 1),
+        askedAt(GRID_W - 1, GRID_W - 1),
+      ];
+      for (let i = 0; i < seen.length; i += 1) {
+        const digits = seen[i].bytes.slice(2, 8);
+        expect(
+          decode(digits),
+          `lumen/${seen[i].label}: the six digits ` +
+            `"${digits.map((b) => String.fromCharCode(b)).join("")}" decode ` +
+            `to ${decode(digits).join(",")}, and the cell's colour is ` +
+            `${expected[i].join(",")}`,
+        ).toEqual(expected[i]);
+      }
+
+      // CLAUSE 3 - THE SAME CELL SENDS THE SAME MESSAGE. Messages 2 and 3 are
+      // the same cell reached two different ways, so any difference between
+      // them is state leaking into the payload.
+      expect(
+        seen[2].bytes,
+        "lumen: the same cell sent two different messages",
+      ).toEqual(seen[1].bytes);
+      expect(
+        seen[0].bytes,
+        "lumen: two different cells sent the same message, so the payload is " +
+          "not reading the cell",
+      ).not.toEqual(seen[1].bytes);
+
+      // CLAUSE 4 - SEVEN BITS, AND THE REASON THE ENCODING IS NOT RAW RGB.
+      // Nothing else in the tree checks this: not the host, which records
+      // unmasked on purpose, and not the vendored trap scanner, which has never
+      // heard of gmss.
+      const anchor = askedAt(0, 0);
+      expect(
+        Math.max(...anchor),
+        `lumen: the top-left cell asks for ${anchor.join(",")}, and if its ` +
+          "largest channel were inside 127 this clause would be vacuous - a " +
+          "raw RGB payload would then have been legal and 86 characters cheaper",
+      ).toBeGreaterThan(0x7f);
+      for (const message of seen) {
+        for (let at = 1; at < message.bytes.length - 1; at += 1) {
+          expect(
+            message.bytes[at],
+            `lumen/${message.label}: byte ${at} is ${message.bytes[at]}, and ` +
+              "a sysex DATA byte above 127 is a status byte - it would end " +
+              `the message where it stands. Whole message: ` +
+              message.bytes.join(", "),
+          ).toBeLessThanOrEqual(0x7f);
+          expect(
+            message.bytes[at],
+            `lumen/${message.label}: byte ${at} is negative`,
+          ).toBeGreaterThanOrEqual(0);
+        }
+      }
+
+      // CLAUSE 5 - THE MANUFACTURER ID IS THE NON-COMMERCIAL ONE. The byte
+      // right after 0xF0 is what a receiver reads as "who is this from", and
+      // 0x7D is the id reserved for exactly this use. Anything else in that
+      // slot claims somebody's registered id.
+      for (const message of seen) {
+        expect(
+          message.bytes[1],
+          `lumen/${message.label}: the byte after 0xF0 is a manufacturer id ` +
+            `and must be 0x7D, the non-commercial one - got ` +
+            `${message.bytes[1]}`,
+        ).toBe(0x7d);
+      }
+    } finally {
+      host.close();
+    }
+
+    process.stdout.write(
+      "\nLUMEN colour over sysex, plan 11-10:\n" +
+        seen
+          .map(
+            (message) =>
+              `  ${message.label.padEnd(22)} ${message.bytes.join(", ")}` +
+              `   "${message.bytes
+                .slice(2, 8)
+                .map((b) => String.fromCharCode(b))
+                .join("")}"`,
+          )
+          .join("\n") +
+        "\n",
+    );
+  }, 120000);
 });
