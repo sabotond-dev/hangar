@@ -95,10 +95,10 @@ together. 11-14 carries the authoritative branch table and its SUMMARY copies th
 
 | 11-14's answer | `T14` | catalog | preset / Lua | `static/og/` | audition rows after 11-15 | test total |
 |---|---|---|---|---|---|---|
-| `ring-seven` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 40` |
-| `ring-eight-lua` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 40` |
-| `new-entry` | **+1** | **29** | 9 + 20 | **29** | **25** | `BASE_TESTS + 40` |
-| `fold-into-sonar` | +0 | **28** | 9 + 19 | 28 | 24 | `BASE_TESTS + 39` |
+| `ring-seven` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 41` |
+| `ring-eight-lua` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 41` |
+| `new-entry` | **+1** | **29** | 9 + 20 | **29** | **25** | `BASE_TESTS + 41` |
+| `fold-into-sonar` | +0 | **28** | 9 + 19 | 28 | 24 | `BASE_TESTS + 40` |
 
 **Nineteen terms, one per plan, and every `+0` is written out rather than omitted**, because a zero
 absent from a chain is indistinguishable from a term nobody computed. The split behind the 28 moves
@@ -277,14 +277,14 @@ per-file count. The file column counts spec files created or deleted.
 | 11-09 | 10 | +0 | **+3** | `4 19` | `+0` | `lua-smoke.spec.ts` +2 (task 01: ARC's picture tracks its emitted value; task 03: STAGE's three zone states are pairwise distinguishable); `stamp.spec.ts` +1 (POMODORO's first four indices unmoved). **Was `+2` with task 03 declared `+0`, while that task also said "if nothing does, add it" — a latent chain break, resolved in favour of the test when the STAGE answer came back as `implement breathing as planned`** |
 | **11-09.1** | **11** | +0 | **+2** | `4 19` | `+0` | **Inserted by decimal after the four checkpoint answers came back; no plan is renumbered.** `lua-smoke.spec.ts` +2 — ARC's centre-tap stop/resume, and MORPH's corner tap emitting one message. **Both answers fell OUTSIDE the option set they answered**: ARC's is new feature work on an entry with no toggle at all, MORPH's is a fourth reading cheaper than all three costed. `frames.json` is NOT regenerated — both behaviours are reachable only from `touch_cb` and the fixture runs each entry with no gesture |
 | **11-09.2** | **12** | +0 | **+1** | `4 19` | `+0` | **Inserted by decimal.** `lua-smoke.spec.ts` +1 — LUMEN's depth ramp, pinned as a monotonic relation whichever way the sweep landed. The user answered the depth note with an **investigation** rather than with either costed option, so this plan establishes whether the knob reaches a LED write at all before anything is deepened. `frames.json` moves **only** if `@DEPTH`'s default-index value moves |
-| 11-10 | 13 | +0 | **+2** | `4 19` | `+0` | `lua-host.spec.ts` +1 and `host-surface.spec.ts` +1 for `gmss` |
+| 11-10 | 13 | +0 | **+3** | `4 19` | `+0` | `host-surface.spec.ts` +1 and `lua-host.spec.ts` +1 for `gmss`, plus `lua-smoke.spec.ts` +1 for LUMEN emitted bytes. **Declared +2 and observed +3** - the plan task 02 asks for a third test while its term names only task 01 pair. Reported by the executor rather than reconciled, and corrected here |
 | 11-11 | 14 | +0 | **+1** | `4 19` | `+0` | GHOST's redesign carries one behaviour test |
 | 11-12 | 15 | +0 | **+1** | `4 19` | `+0` | SHUTTLE's |
 | 11-13 | 16 | +0 | **+2** | `4 19` | `+0` | STRIP's three independent streams, and the 14-bit loss recorded as a test rather than a comment |
 | 11-14 | 17 | +0 | **+1**, or **+0** under `fold-into-sonar` | `4 19` | `+0` | RADAR — **blocked on the ring question**. Under `new-entry` the plan also owns a catalog `+1`, an audition row and a `static/og/` file; see the branch table above. 11-16 names the term either way |
 | 11-15 | 18 | +0 | **+2** | `4 19` | `+0` | the wheels: the spring returns in MIDI as well as in light; mod holds across a release |
 | 11-16 | 19 | +0 | **+0** | `4 19` | measured, expected `+0` | the gate writes no tests — written out, not omitted, so the term count is the plan count |
-| **Phase total** | | **+3** | **+40**, or **+39** under `fold-into-sonar` | `4 19` **unchanged** | **+2** | 3+5+2+1+4+1+4+2+3+**3**+**2**+**1**+2+1+1+2+T14+2+0, where the eighteen fixed terms sum to **39** and `T14` is 1 or 0 — in **nineteen** terms. The three created files are `decay-idiom.spec.ts`, `touch-guard.spec.ts`, `presets.spec.ts`; 11-08.1 creates a fourth, `e2e/poll.ts`, which the gate does not count because `e2e/` is in neither the vitest `server` project nor `svelte-check`'s reach. **The e2e total is `BASE_E2E + 2` in nineteen terms** — eighteen written-out zeros and 11-08.1's `+2`. **`grep -c "test("` proves a zero term and cannot prove a non-zero one**: `BASE_E2E` 103 is 85 chromium titles plus 18 `@webkit` titles run twice, so 11-08.1's one tagged title moves the grep 85 → 86 and the run 103 → 105. The **five** plans that run the suite (**11-01, 11-05, 11-08.1, 11-15, 11-16**) state both numbers |
+| **Phase total** | | **+3** | **+40**, or **+39** under `fold-into-sonar` | `4 19` **unchanged** | **+2** | 3+5+2+1+4+1+4+2+3+**3**+**3**+**1**+2+1+1+2+T14+2+0, where the eighteen fixed terms sum to **40** and `T14` is 1 or 0 — in **nineteen** terms. The three created files are `decay-idiom.spec.ts`, `touch-guard.spec.ts`, `presets.spec.ts`; 11-08.1 creates a fourth, `e2e/poll.ts`, which the gate does not count because `e2e/` is in neither the vitest `server` project nor `svelte-check`'s reach. **The e2e total is `BASE_E2E + 2` in nineteen terms** — eighteen written-out zeros and 11-08.1's `+2`. **`grep -c "test("` proves a zero term and cannot prove a non-zero one**: `BASE_E2E` 103 is 85 chromium titles plus 18 `@webkit` titles run twice, so 11-08.1's one tagged title moves the grep 85 → 86 and the run 103 → 105. The **five** plans that run the suite (**11-01, 11-05, 11-08.1, 11-15, 11-16**) state both numbers |
 
 **A wave asserts against `PREV_FILES` / `PREV_TESTS`.** **Only 11-16 asserts against
 `BASE_FILES` / `BASE_TESTS`**, and its number is the phase total written out as a nineteen-term chain,
@@ -530,7 +530,7 @@ merely convenient, and 11-16 records that as the reason the deferral was right.
 | 11-15-01 | 15 | 18 | CONT-02 | unit | the wheels, costed **before** designed: pitch left, mod right, column 4 a lit divider, pitch bend as status **224** through `self:gms`, **never `gmbs`**; the value not quantised to the row | created here | pending |
 | 11-15-02 | 15 | 18 | CONT-02, CONT-03 | unit + sweep | the spring returns **in MIDI as well as in light** — the named failure mode — and mod holds across a release; both budgets stated; catalog `27 + 1 = 28`; one `FOR` and two `FEELS` with the FEELS floor re-checked | exists | pending |
 | 11-16-01 | 16 | 19 | all | measured + docs | every projection in this document replaced by an observation, **every wrong one named as wrong**; `docs/TESTING.md`, `docs/HARDWARE-AUDITION.md` and `deferred-items.md` re-measured and rewritten | exists | pending |
-| 11-16-02 | 16 | 19 | all | phase gate | quick `BASE_FILES + 3` / **`BASE_TESTS + 40`** (or `+ 39` under `fold-into-sonar`) as a **nineteen-term** chain with `T14` named; sweep `4 19`; e2e **`BASE_E2E + 2`** in nineteen terms — eighteen written-out zeros and 11-08.1's `+2` — with **five** suite-running plans named and BOTH e2e numbers stated (`grep -c "test("` 85 → 86, run 103 → 105) with the reason they differ; catalog **28, or 29 under `new-entry`**, as a nineteen-term chain; `CONT-01`, `FOUND-02` **and `SHARE-03`** amended by name and dated - SHARE-03 because POMODORO's append moved its shape character `n` -> `p` and demoted every POMODORO stamp ever minted to `older`, which is the first payload in the tree to spend `wild-stamps.json`'s forever-clause; `firmware-oracle.spec.ts` green — and its **seventh** test named as the one that runs through `pad-sim.ts:987`, which is what makes the D-02 proof mechanical; the vendored divergence enumerated and justified | exists | pending |
+| 11-16-02 | 16 | 19 | all | phase gate | quick `BASE_FILES + 3` / **`BASE_TESTS + 41`** (or `+ 40` under `fold-into-sonar`) as a **nineteen-term** chain with `T14` named; sweep `4 19`; e2e **`BASE_E2E + 2`** in nineteen terms — eighteen written-out zeros and 11-08.1's `+2` — with **five** suite-running plans named and BOTH e2e numbers stated (`grep -c "test("` 85 → 86, run 103 → 105) with the reason they differ; catalog **28, or 29 under `new-entry`**, as a nineteen-term chain; `CONT-01`, `FOUND-02` **and `SHARE-03`** amended by name and dated - SHARE-03 because POMODORO's append moved its shape character `n` -> `p` and demoted every POMODORO stamp ever minted to `older`, which is the first payload in the tree to spend `wild-stamps.json`'s forever-clause; `firmware-oracle.spec.ts` green — and its **seventh** test named as the one that runs through `pad-sim.ts:987`, which is what makes the D-02 proof mechanical; the vendored divergence enumerated and justified | exists | pending |
 | 11-16-03 | 16 | 19 | — | **checkpoint:human-verify** | the hardware rows and the six things this phase could not do, handed over unasserted | n/a | pending |
 
 *Status: pending / green / red / flaky. Every row starts pending; an executing plan updates only its own rows.*
@@ -744,8 +744,8 @@ Each is put to the user by a named task rather than guessed. **Four of them bloc
 - [ ] The wheels: pitch springs home in MIDI as well as in light, mod holds, status **224** through
       `self:gms` and never `gmbs`, and the catalog lands at the branch table's total for 11-14's
       recorded answer — **28, or 29 under `new-entry`** (11-15)
-- [ ] The phase gate green against a production build at quick `BASE_FILES + 3` / **`BASE_TESTS + 40`**
-      (or `+ 39` under `fold-into-sonar`) in a **nineteen-term** chain with `T14` named, sweep `4 19`,
+- [ ] The phase gate green against a production build at quick `BASE_FILES + 3` / **`BASE_TESTS + 41`**
+      (or `+ 40` under `fold-into-sonar`) in a **nineteen-term** chain with `T14` named, sweep `4 19`,
       e2e **`BASE_E2E + 2`** in nineteen terms with both e2e numbers stated, catalog **28 or 29** in
       nineteen terms; **CONT-01, FOUND-02 and SHARE-03** amended by name; **the user told plainly that
       every POMODORO link shared before this phase now lands `older`** — what happened, why `older` is
