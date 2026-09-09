@@ -133,31 +133,31 @@
     "joystick": [
       {
         "tick": 0,
-        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "sha256": "7ee5cbd714c2ed051a12a444ffa4a50d339d5422453ca3d84a40c6596ef69e8f",
         "nonZeroBytes": 2,
         "animating": false
       },
       {
         "tick": 37,
-        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "sha256": "7ee5cbd714c2ed051a12a444ffa4a50d339d5422453ca3d84a40c6596ef69e8f",
         "nonZeroBytes": 2,
         "animating": false
       },
       {
         "tick": 101,
-        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "sha256": "7ee5cbd714c2ed051a12a444ffa4a50d339d5422453ca3d84a40c6596ef69e8f",
         "nonZeroBytes": 2,
         "animating": false
       },
       {
         "tick": 500,
-        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "sha256": "7ee5cbd714c2ed051a12a444ffa4a50d339d5422453ca3d84a40c6596ef69e8f",
         "nonZeroBytes": 2,
         "animating": false
       },
       {
         "tick": 1009,
-        "sha256": "875b0381d7b780b57eddf12596098bfd746adbdb3cf560c8597203cd35440507",
+        "sha256": "7ee5cbd714c2ed051a12a444ffa4a50d339d5422453ca3d84a40c6596ef69e8f",
         "nonZeroBytes": 2,
         "animating": false
       }

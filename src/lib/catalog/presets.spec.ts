@@ -147,6 +147,39 @@ describe("HANGAR's nine against the vendored nine (src/lib/catalog/presets.ts)",
   it("differs from the vendored shelf only where a row says so", () => {
     expect(PRESETS.length, "HANGAR declares nine").toBe(9);
     for (const hangar of PRESETS) {
+      // PLAN 11-04'S STANDING RULE, AS A GATE RATHER THAN AS A HEADER COMMENT,
+      // AND THIS IS NOT DEFENSIVE PROGRAMMING - THE HOLE WAS MEASURED.
+      // 11-06 planted `touch.kind = "bloom"` on JOYSTICK. The diff below caught
+      // it, correctly, as an UNDECLARED divergence - and the whole file went
+      // GREEN the moment a row was written for it and the declared cost was
+      // updated to match, which is exactly what an author following the failure
+      // message would do. So the record enforced "say it out loud" and nothing
+      // at all enforced the rule itself. It does now.
+      //
+      // WHY THE RULE. `bloom` and `disturb` are the worst cases of the class-A
+      // decay defect plan 11-04 repaired for the comet family: measured residue
+      // up to 125 of 255 on every cell a finger crossed, against comet's 1 to 7.
+      // Repairing them needs a per-cell timeout derived from a per-cell start -
+      // a change to the EMITTED SHAPE - and D-02 grants the emitted constants,
+      // not the emitted shape. A card that selected one would ship a pad that
+      // stays dirty, which is the exact bench complaint 11-04 closed.
+      //
+      // It is asserted HERE, inside the walk that already visits all nine,
+      // rather than as a test of its own, so the suite total is unmoved.
+      expect(
+        ["bloom", "disturb"].includes(hangar.state.touch.kind),
+        `${hangar.id}: selects touch.kind "${hangar.state.touch.kind}". A ` +
+          `HANGAR-OWNED PRESET MUST NEVER SELECT bloom OR disturb (plan ` +
+          `11-04's standing rule). Both leave permanent residue on every cell ` +
+          `a finger crosses - up to 125 of 255 - and repairing them is a ` +
+          `change to the emitted SHAPE, which D-02 does not grant. Declaring ` +
+          `the divergence does NOT make this allowed: this line is above the ` +
+          `record on purpose, because a row plus a refreshed cost was measured ` +
+          `to be enough to land bloom silently otherwise. If a later phase ` +
+          `repairs the decay at its source, delete this line in the plan that ` +
+          `does it.`,
+      ).toBe(false);
+
       const vendored = vendoredById(hangar.id);
       expect(
         vendored,

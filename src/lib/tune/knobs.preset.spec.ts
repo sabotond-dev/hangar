@@ -31,6 +31,10 @@ import {
   quantiseColour,
   type PadState,
 } from "../../vendor/botor/_pad";
+// The simulator, for one assertion only: what the NINE PADS 4x4 picture
+// actually looks like. No WASM is involved, so the file's no-formatter rule
+// above is untouched.
+import { PadSim } from "../../vendor/botor/pad-sim";
 // HANGAR's nine, not the vendored shelf's, and that is load-bearing: this spec
 // holds the knob KINDS against `presetById(id).knobs`, so if it kept reading
 // src/vendor/ then a later plan adding a knob to a HANGAR-owned preset would go
@@ -371,5 +375,78 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
       touch: false,
       sends: true,
     });
+  });
+
+  it("reaches 4x4 from an APPENDED NINE PADS knob, and says what 4x4 looks like", () => {
+    // The user's bench note is "make it selectable to 4x4" (2026-09-09).
+    // sends.grid already accepted "4x4" and already compiled; plan 11-05
+    // measured it emitting note 44 where 3x3 emits 39. What was missing was a
+    // knob, so this is the test that makes "selectable" a fact.
+    const knobs = presetKnobs("ninepads");
+
+    // APPENDED, NEVER INSERTED. Every knob that existed before plan 11-06 keeps
+    // the index it had, asserted by id AND position rather than by length, and
+    // brightness stays last because presetKnobs appends it by construction.
+    expect(
+      knobs.map((knob) => knob.id),
+      "the rack order: the pre-11-06 four, then the new knob, then brightness",
+    ).toEqual(["colour", "notes", "scale", "channel", "grid", "brightness"]);
+    expect(
+      knobs.at(-1)?.id,
+      "brightness is last, so the appended knob went before it and not after",
+    ).toBe(BRIGHTNESS_KNOB_ID);
+    // Six is the ceiling test 1 enforces, so this card is now AT it. A seventh
+    // knob on NINE PADS turns test 1 red, which is the intended conversation.
+    expect(knobs.length, "at the six-knob ceiling").toBe(6);
+
+    const grid = knobs.find((knob) => knob.id === "grid");
+    if (!grid) throw new Error("ninepads has no grid knob");
+    expect(grid.label, "reads as the number of pads").toBe("Pads");
+    expect(grid.options, "nine pads or sixteen").toEqual(["9", "16"]);
+    expect(
+      grid.default,
+      "the card still SHIPS at 3x3; selectable, not moved",
+    ).toBe(0);
+
+    // Both positions reach the field, and both reach it as the compiler reads
+    // it: the zone divisor in the emitted Lua is the proof, not the state.
+    const base = stateOf("ninepads");
+    const at = (index: number) => applyKnob(base, grid, index);
+    expect(at(0).sends.grid).toBe("3x3");
+    expect(at(1).sends.grid).toBe("4x4");
+    expect(readKnob(at(1), grid), "reads back the position it wrote").toBe(1);
+    expect(bodies(at(0)), "3x3 divides the axis by three").toContain(
+      "x*3//128",
+    );
+    expect(bodies(at(1)), "4x4 divides the axis by four").toContain("x*4//128");
+
+    // WHAT 4x4 ACTUALLY LOOKS LIKE, PINNED RATHER THAN ASSUMED, because four
+    // does not divide nine and the two pictures are not the same KIND of
+    // picture. At 3x3 the compiler paints the WHOLE pad as a nine-zone
+    // checkerboard; at 4x4 it cannot tile, so it lights ONE MARKER CELL per
+    // zone - sixteen dots on an otherwise dark pad. That is 162 lit bytes
+    // against 32, a fifth of the light, and it is a real regression in how the
+    // card reads across a room. It ships because the user asked for it to be
+    // selectable and because the compiler's answer is the honest one for a
+    // grid that does not tile; this assertion is what stops it being a
+    // surprise, and what goes red if a re-sync changes the marker layout.
+    const lit = (state: PadState): number => {
+      const sim = new PadSim(state);
+      sim.run(0);
+      return sim.frame.reduce((n, byte) => n + (byte !== 0 ? 1 : 0), 0);
+    };
+    expect(lit(at(0)), "3x3 tiles the whole pad").toBe(162);
+    expect(lit(at(1)), "4x4 lights one marker cell per zone, and no more").toBe(
+      32,
+    );
+
+    // 9x9 IS REACHABLE IN THE DESCRIPTOR AND DELIBERATELY NOT OFFERED, so the
+    // knob's option list is asserted to be the short one on purpose rather than
+    // by omission. Eighty-one zones is a different card, and the note asked for
+    // 4x4.
+    expect(
+      grid.options.includes("81"),
+      "9x9 compiles and is not offered; adding it is one entry in GRID_PADS",
+    ).toBe(false);
   });
 });

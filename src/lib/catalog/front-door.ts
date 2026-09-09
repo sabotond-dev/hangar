@@ -207,7 +207,7 @@ export const FRONT_DOOR: readonly FrontDoorEntry[] = [
     motion: "static",
     // Byte-equal to PadPreset.quiet on the vendored shelf; the spec asserts it.
     quiet:
-      "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
+      "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that returns to the middle on lift.",
   },
   {
     id: "radar",

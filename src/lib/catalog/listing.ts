@@ -171,7 +171,7 @@ export const LISTING: readonly ListingEntry[] = [
       "Push the pad like a synth stick: left-right bends pitch, and letting go snaps everything home.",
     motion: "static",
     quiet:
-      "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
+      "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that returns to the middle on lift.",
     tags: ["modulation", "expressive", "still"],
     featured: false,
     restsBlack: false,

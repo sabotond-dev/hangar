@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { createEngine } from "../sim/engine";
+import { stateDiverges } from "./divergence";
 import { CATALOG, type CatalogEntry } from "./index";
 
 // Every catalog entry carries a recorded frame set at the five Phase 3 ticks.
@@ -183,32 +184,72 @@ describe("catalog golden frames", () => {
   it("agrees with the Phase 3 tripwire on every ported entry", () => {
     // This is what proves a catalog entry's presetId resolves to the state
     // Phase 3 pinned in golden-frames.json, rather than to a lookalike.
+    //
+    // AND IT IS THE ONE CROSS-CHECK PLAN 11-05 PUT ON A COLLISION COURSE WITH
+    // ITSELF. golden-frames.json's hashes were sampled from a PadSim over the
+    // VENDORED states and golden-frames.spec.ts deliberately still reads
+    // src/vendor/; this fixture is sampled over HANGAR's own nine, which
+    // src/lib/catalog/presets.ts has owned since 11-05. While the two shelves
+    // were byte-identical the cross-check was exact. The moment HANGAR changes
+    // a preset's STATE on purpose - which is the whole point of 11-05 - the two
+    // fixtures stop describing the same configuration, and an exact comparison
+    // would report a catalog decision as a port regression. That is the same
+    // wrong diagnosis 11-05's negative check 1b recorded against
+    // preset-baseline.spec.ts, arrived at from the other side.
+    //
+    // THE ALLOWANCE IS NOT A SKIP LIST, and the difference is measurable here
+    // rather than rhetorical: AURORA, PINWHEEL and STARFIELD all carry declared
+    // `state.*` rows from this same plan, and all three still hash IDENTICALLY
+    // to Phase 3, because an xy stream claims no LED layer. A gate that skipped
+    // every card with a declared row would have stopped comparing thirty of the
+    // forty-five samples to buy the one it needed. So the comparison is made
+    // for all nine at all five ticks, and only a DISAGREEMENT consults
+    // src/lib/catalog/divergence.ts. `compared` and `excused` are both counted,
+    // so a record that grew to excuse everything cannot pass as a cross-check.
     const ported = CATALOG.filter((e) => e.source.kind === "preset");
     expect(ported.length, "there are ported entries to cross-check").toBe(9);
     expect(golden.ticks, "the two fixtures sample the same ticks").toEqual([
       ...TICKS,
     ]);
+    let compared = 0;
+    let excused = 0;
     for (const entry of ported) {
       if (entry.source.kind !== "preset") throw new Error("unreachable");
-      const theirs = golden.presets[entry.source.presetId];
+      const presetId = entry.source.presetId;
+      const theirs = golden.presets[presetId];
       expect(
         theirs,
-        `${entry.id}: golden-frames.json has no record for ` +
-          `"${entry.source.presetId}"`,
+        `${entry.id}: golden-frames.json has no record for "${presetId}"`,
       ).toBeDefined();
       const ours = fixture.entries[entry.id];
       for (let i = 0; i < TICKS.length; i += 1) {
+        compared += 1;
+        const agrees =
+          ours[i].sha256 === theirs[i].sha256 &&
+          ours[i].nonZeroBytes === theirs[i].nonZeroBytes;
+        if (agrees) continue;
         expect(
-          ours[i].sha256,
-          `${entry.id} at tick ${TICKS[i]}: disagrees with golden-frames.json`,
-        ).toBe(theirs[i].sha256);
-        expect(
-          ours[i].nonZeroBytes,
-          `${entry.id} at tick ${TICKS[i]}: lit byte count disagrees with ` +
-            "golden-frames.json",
-        ).toBe(theirs[i].nonZeroBytes);
+          stateDiverges(presetId),
+          `${entry.id} at tick ${TICKS[i]}: disagrees with golden-frames.json ` +
+            `(${ours[i].nonZeroBytes} lit bytes here against ` +
+            `${theirs[i].nonZeroBytes} there), and HANGAR declares NO state ` +
+            `divergence for "${presetId}". This is a real disagreement between ` +
+            `the catalog and the Phase 3 tripwire, not a bench correction: ` +
+            `either the presetId resolves to a lookalike, or a state change ` +
+            `landed without a row in src/lib/catalog/divergence.ts.`,
+        ).toBe(true);
+        excused += 1;
       }
     }
+    // Forty-five samples, and only the ones that actually moved are excused.
+    expect(compared, "every ported entry was sampled at every tick").toBe(
+      ported.length * TICKS.length,
+    );
+    expect(
+      excused,
+      "the samples HANGAR deliberately diverges on; if this ever reaches the " +
+        "whole set the cross-check has stopped checking anything",
+    ).toBeLessThan(compared);
   });
 
   it("proves every entry's declared restsBlack, in both directions", () => {

@@ -204,6 +204,74 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
     plan: "11-06",
     dated: "2026-09-09",
   },
+
+  // -------------------------------------------------------------------------
+  // NINE PADS: "make it selectable to 4x4".
+  //
+  // The DEFAULT does not move, so there is no `state` row here and the card's
+  // frames are unmoved. What diverges is `knobs`, BOTOR's declaration of which
+  // kinds a card offers, because HANGAR adds a fifth. The knob itself lives in
+  // src/lib/tune/knobs.preset.ts and knobs.preset.spec.ts holds the two sides
+  // against each other by deduped kind set.
+  {
+    preset: "ninepads",
+    path: "knobs.length",
+    hangar: 5,
+    vendored: 4,
+    reason:
+      'The user\'s bench note for NINE PADS is "make it selectable to 4x4". sends.grid already accepted "4x4" and already compiled - plan 11-05 measured it emitting note 44 where 3x3 emits 39 - so the ask was never about the compiler. It was that no knob reached it. A fifth declared kind is what makes 4x4 selectable rather than merely reachable.',
+    plan: "11-06",
+    dated: "2026-09-09",
+  },
+  {
+    preset: "ninepads",
+    path: "knobs[4]",
+    hangar: "count",
+    vendored: undefined,
+    reason:
+      'The kind the new Pads knob exposes. "count" is an existing member of the vendored KnobKind union - PINWHEEL\'s arms knob already uses it - so this adds a knob and never a vocabulary. The two positions cost 580 and 550 of 908 setup at 158 timer, so the REQUESTED option is the cheaper one; the sweep costs the whole widened cross-product and reports nothing over budget.',
+    plan: "11-06",
+    dated: "2026-09-09",
+  },
+
+  // -------------------------------------------------------------------------
+  // JOYSTICK: "should start from the middle by default".
+  //
+  // A REVERSAL of a design decision the shipped mutator argues for in its own
+  // comment, not a tweak. The comment is carried verbatim into presets.ts
+  // beside the change, so the argument that was overruled is still readable.
+  {
+    preset: "joystick",
+    path: "state.sends.springTo",
+    hangar: "centre",
+    vendored: "zero",
+    reason:
+      'The user\'s bench note for JOYSTICK is "should start from the middle by default". springRestCell moves from 76 to 40 and sendsInit lights cell 40 from power-on. This REVERSES the shipped mutator\'s own argument - "the CC axis falls to zero like a mod amount ... so the stick rests at the bottom-centre cell" - and what the reversal costs is that the Y axis no longer falls to zero on lift, so a held mod amount rests at 64. springTo is one field and not one per axis, so "centre on bend, zero on CC" is not reachable without a compiler change.',
+    plan: "11-06",
+    dated: "2026-09-09",
+  },
+  {
+    preset: "joystick",
+    path: "cost.setup",
+    hangar: 543,
+    vendored: 542,
+    reason:
+      "The measured price of the row above: one character, because the parked CC literal goes from 0 to 64. 543 of 908 at the shipped knob positions and 551 at the worst reachable one, 357 free. invertY was deliberately NOT flipped alongside it - that would save 4 more and reverse a second decision nobody asked about.",
+    plan: "11-06",
+    dated: "2026-09-09",
+  },
+  {
+    preset: "joystick",
+    path: "quiet",
+    hangar:
+      "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that returns to the middle on lift.",
+    vendored:
+      "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
+    reason:
+      "The shipped quiet line says the mod amount falls to zero on lift, which the springTo row above made untrue. front-door.spec.ts asserts this string byte-equal against the preset and listing.spec.ts asserts it against the catalog, so it moves in all three files or in none.",
+    plan: "11-06",
+    dated: "2026-09-09",
+  },
 ];
 
 /** The row declaring this exact field path on this preset, or undefined. */

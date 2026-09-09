@@ -25,10 +25,34 @@
   onMount(async () => {
     try {
       const { compilePreset, costOf, measureLua } = await import("$lib/pad");
-      const built = await compilePreset("aurora");
+      // DIAL AND NOT AURORA SINCE PLAN 11-06, AND THE SECOND CHOICE RATHER
+      // THAN THE FIRST. compilePreset resolves through $lib/pad, which plan
+      // 11-05 pointed at HANGAR's own nine, and e2e/fidelity.e2e.ts holds the
+      // result against src/lib/fidelity/preset-baseline.json - BOTOR's
+      // compiler's output over BOTOR's states, captured before plan 11-04.
+      //
+      // Two things can put the probe and that fixture out of step, and the
+      // preset has to be clean on BOTH:
+      //
+      //   1. HANGAR changing the card's STATE. AURORA took sends.kind = "xy"
+      //      from the 2026-09-09 bench and the probe went to 415 against the
+      //      fixture's 250. e2e/fidelity.e2e.ts asserts this axis mechanically
+      //      against src/lib/catalog/divergence.ts, so it never has to be
+      //      trusted to a comment.
+      //   2. The VENDORED COMPILER moving, which the fixture predates. Plan
+      //      11-04's class-B fast-tap guard moved PINWHEEL, RADAR, JOYSTICK
+      //      and FADERS by +7 each and preset-baseline.json was never
+      //      recaptured, so it still reads 305 / 438 / 535 / 513 against a
+      //      compiler that now emits 312 / 445 / 542 / 520. RADAR was tried
+      //      here first and failed at "expected 438, received 445" for exactly
+      //      that reason.
+      //
+      // DIAL is clean on both: untouched by 11-04 and untouched by 11-06, at
+      // 646 / 55 on the fixture and on the compiler alike.
+      const built = await compilePreset("dial");
       const c = await costOf(built);
       out = JSON.stringify({
-        preset: "aurora",
+        preset: "dial",
         setupRawLength: built.setupLua.length,
         timerRawLength: built.timerLua.length,
         setupCompressedLength: await measureLua(built.setupLua),

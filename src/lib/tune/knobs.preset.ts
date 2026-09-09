@@ -454,6 +454,52 @@ function notesKnob(base: PadState): PresetKnob {
   };
 }
 
+/**
+ * NINE PADS' grid, as the number of PADS rather than as a grid string.
+ *
+ * The user's bench note is "make it selectable to 4x4". `sends.grid` already
+ * accepted "4x4" and already compiled; nothing reached it. This is that knob.
+ *
+ * THE OPTIONS ARE "9" AND "16" AND NOT "3x3" AND "4x4", and the reason is the
+ * readout rather than taste. `count` is not one of view.ts's WORD_KINDS, so a
+ * grid knob renders as a rail, and a rail prints `integerReadout` when every
+ * option is a single integer and falls back to "2 of 3" when one is not.
+ * "3x3" is not an integer, so a literal grid string would render the card's
+ * one new control as a positional rail with nothing on it. 9 and 16 ARE the
+ * number of pads, which is the one readout a visitor can act on without
+ * knowing what a zone grid is - and the card is called Nine pads.
+ *
+ * 9x9 IS REACHABLE IN THE DESCRIPTOR AND IS DELIBERATELY NOT OFFERED. It
+ * compiles, at 307 of 908 - cheaper than either - but eighty-one zones is a
+ * different card rather than a position of this one, and the note asked for
+ * 4x4. Adding it later is one entry in each of the two lists below.
+ */
+const GRID_PADS: readonly { pads: string; grid: PadState["sends"]["grid"] }[] =
+  [
+    { pads: "9", grid: "3x3" },
+    { pads: "16", grid: "4x4" },
+  ];
+const GRID_OPTIONS: readonly string[] = GRID_PADS.map((row) => row.pads);
+
+const padsOfGrid = (grid: PadState["sends"]["grid"]): string =>
+  GRID_PADS.find((row) => row.grid === grid)?.pads ?? GRID_PADS[0].pads;
+
+function gridKnob(base: PadState): PresetKnob {
+  return {
+    id: "grid",
+    label: "Pads",
+    kind: "count",
+    options: GRID_OPTIONS,
+    default: mustIndex(GRID_OPTIONS, padsOfGrid(base.sends.grid), "grid"),
+    sheet: "sends",
+    apply: (state, index) =>
+      withChange(state, (draft) => {
+        draft.sends.grid = GRID_PADS[index].grid;
+      }),
+    read: (state) => indexOf(GRID_OPTIONS, padsOfGrid(state.sends.grid)),
+  };
+}
+
 /** The compiler's four `ScaleKind` members, which view.ts already words. */
 const SCALE_OPTIONS: readonly string[] = [
   "chromatic",
@@ -716,7 +762,17 @@ const BY_PRESET: Readonly<Record<string, readonly Factory[]>> = {
   starfield: [colourKnob, edgeKnob],
   radar: [colourKnob, speedKnob, sendKnob],
   joystick: [colourKnob, sendKnob, bendKnob, springKnob],
-  ninepads: [colourKnob, notesKnob, scaleKnob, channelKnob],
+  // gridKnob is APPENDED, never inserted, so every pre-existing knob keeps its
+  // index (knobs.preset.spec.ts asserts that by id and position). What it does
+  // NOT change, and this is worth knowing before the next plan writes the same
+  // caution: a preset-backed entry's stamp is not an index vector at all.
+  // share/stamp.ts's encodeFor sends a "padsim" entry through the VENDORED
+  // encodeStamp over the PadState, and only a "lua" entry gets format x or w,
+  // whose payload is one base-32 character per knob BY INDEX. So knob order is
+  // stamp payload for the eighteen hand-authored entries and for none of the
+  // nine. Appending is still the right shape, and the assertion is still worth
+  // its line, but no shared NINE PADS link was ever at risk here.
+  ninepads: [colourKnob, notesKnob, scaleKnob, channelKnob, gridKnob],
   faders: [sendKnob, channelKnob],
   dial: [sendKnob, senseKnob, modeKnob, channelKnob],
   tpad: [tapKnob, pointerKnob, scrollKnob],

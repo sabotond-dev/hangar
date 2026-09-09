@@ -175,6 +175,29 @@ export const PRESETS: readonly PadPreset[] = [
     (d) => {
       // Dark field, one glow dot: the dot is the stick's position, parks
       // on the home cell on lift, and the home cell is lit from power-on.
+      //
+      // THE TRAIL THE SAME BENCH NOTE ASKS FOR IS NOT REACHABLE BESIDE THE
+      // SENTENCE ABOVE, and plan 11-06 measured that rather than assuming it.
+      // The note reads "should start from the middle by default and should
+      // improve the visual aspect on ZONA, maybe more led animation, trail or
+      // something", and the two halves fight each other at one line of the
+      // compiler: `sendsInit` emits the power-on `glp(glag(0,cell),1,255)`
+      // only when `springLed` returns "glow" (_pad.ts:1951), and `springLed`
+      // returns "comet" the moment `touch.kind` is "comet". So
+      // `touch.kind = "comet"` buys a trail and costs BOTH the parked dot and
+      // the lit-from-power-on cell. Measured over five sampled ticks with no
+      // finger on the pad: glow lights 2 bytes, comet lights ZERO - the card
+      // becomes a black square, which is the one property front-door.ts cites
+      // for keeping tpad out of the row entirely.
+      //
+      // So the definite half of the note ships and the tentative half does
+      // not, with the numbers on the record: comet alone 478, comet with the
+      // centre rest 479, against 543 here - it is cheaper, and cheaper is not
+      // the question. What IS reachable and keeps the dot is a look layer
+      // behind it - ripple 652, shimmer 603, wave 621, swirl 641 of 908, all
+      // animating - but that reverses the "dark field" decision above without
+      // being asked to, so it is costed for the user's next bench pass rather
+      // than taken here.
       d.look.kind = "none";
       d.enabled.look = false;
       d.touch.kind = "glow";
@@ -183,16 +206,36 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.fingers = "first";
       d.sends.spring = true;
       d.sends.bend = "x";
-      // The classic pitch/mod stick: the bend axis centres by definition,
-      // and the CC axis falls to zero like a mod amount. Up is more, like
-      // the fader cards, so the stick rests at the bottom-centre cell.
-      d.sends.springTo = "zero";
+      // THE SHIPPED ARGUMENT, KEPT VERBATIM BECAUSE PLAN 11-06 REVERSES IT
+      // AND A REVERSAL NEEDS THE THING IT REVERSED STILL READABLE:
+      //
+      //   "The classic pitch/mod stick: the bend axis centres by definition,
+      //    and the CC axis falls to zero like a mod amount. Up is more, like
+      //    the fader cards, so the stick rests at the bottom-centre cell."
+      //
+      // The user's bench note overrules it: "should start from the middle by
+      // default". springTo = "centre" moves springRestCell from 76 to 40, and
+      // sendsInit lights that cell from power-on, which is the whole of the
+      // ask. WHAT IT COSTS, stated rather than glossed: the Y axis no longer
+      // falls to zero on lift, so a held mod amount now rests at 64 instead
+      // of 0. `springTo` is ONE field on the state and not one per axis
+      // (_pad.ts:312, `SpringTo = "centre" | "zero"`), so "centre on the bend
+      // axis, zero on the CC axis" is not reachable in this descriptor - it
+      // would be a compiler change, which D-02 does not grant here.
+      d.sends.springTo = "centre";
+      // invertY IS DELIBERATELY LEFT ALONE, against the plan, which pairs
+      // this change with invertY = false for a saving of 4 characters.
+      // springRestCell never reads invert once springTo is "centre" (both
+      // axes return 4), so flipping it buys nothing for the ask and reverses
+      // a SECOND decision the user did not mention - "up is more". 543 with
+      // it true, 539 with it false; the extra 4 characters are the price of
+      // not changing something nobody asked to change.
       d.sends.invertY = true;
     },
-    { setup: 542, timer: 24 },
+    { setup: 543, timer: 24 },
     {
       quiet:
-        "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that falls to zero on lift.",
+        "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that returns to the middle on lift.",
     },
   ),
   preset(
@@ -200,13 +243,24 @@ export const PRESETS: readonly PadPreset[] = [
     "Nine pads",
     "Nine drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
     "instruments",
-    ["colour", "note", "scale", "amount"],
+    // "count" IS THE FIFTH, ADDED BY PLAN 11-06. The user's bench note is
+    // "make it selectable to 4x4", and `sends.grid` already accepted "4x4" -
+    // what was missing was a knob that reached it. "count" is an existing
+    // member of the vendored KnobKind union (PINWHEEL's arms knob uses it), so
+    // this adds a knob and never a vocabulary, and knobs.preset.spec.ts holds
+    // this array against the descriptors in src/lib/tune/knobs.preset.ts.
+    ["colour", "note", "scale", "amount", "count"],
     (d) => {
       d.look.kind = "none";
       d.enabled.look = false;
       d.touch.kind = "none";
       d.enabled.touch = false;
       d.sends.kind = "zones";
+      // The DEFAULT does not move. "selectable" is a knob, not a different
+      // card, and the requested option is the CHEAPER one: 4x4 compiles to
+      // 550 against 3x3's 580, because sixteen zones of four cells need less
+      // arithmetic than nine zones of nine. A request that reduces a budget
+      // is rare enough to write down.
       d.sends.grid = "3x3";
       d.sends.showGrid = true;
       d.sends.fingers = "each";
