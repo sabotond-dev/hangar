@@ -1,7 +1,7 @@
 // CAT-02 / CAT-03 / DEGR-01: the browse screen on the engine a large share of
 // visitors will actually use it with.
 //
-// Three tests, and EVERY TITLE ENDS WITH THE TAG the webkit-phone project greps
+// Four tests, and EVERY TITLE ENDS WITH THE TAG the webkit-phone project greps
 // for. That is the whole arithmetic of this file, and e2e/tuning-webkit.e2e.ts
 // wrote it out first:
 //
@@ -10,22 +10,33 @@
 //     (1280x720).
 //   - webkit-phone carries grep: /@webkit/ and devices["iPhone 15"]
 //     (393x659, isMobile, hasTouch).
-//   - A tagged title therefore RUNS TWICE and COUNTS TWICE. This file's three
-//     tests contribute six to the suite total.
+//   - A tagged title therefore RUNS TWICE and COUNTS TWICE. This file's four
+//     tests contribute eight to the suite total.
+//
+// THAT ASYMMETRY IS ALSO WHY COUNTING TITLE OPENINGS IN SOURCE CANNOT PROVE A
+// NON-ZERO e2e DELTA (plan 11-08.1). A tagged title counts ONCE in a source grep
+// and TWICE in the run. The convention that a suite-running plan proves its own
+// zero that way is sound while the term is zero and unsound for anything else:
+// the fourth test below moves the grep by one and the run by two, and both
+// numbers belong in a summary. (The grep pattern is deliberately not written out
+// in this comment. It is a plain substring scan, and quoting it here added a
+// phantom match to the file's own count - observed, on the first attempt.)
 //
 // It is not a second phone run: chromium takes the same assertions at a desktop
-// width on a different engine, which is what makes these three cross-browser
+// width on a different engine, which is what makes these four cross-browser
 // rather than WebKit-only. Every assertion below is therefore written to be
 // true at BOTH widths, and where the answer genuinely differs by width - the
 // column count - it is computed from the shipped ladder rather than typed.
 //
-// WHY THESE THREE AND NOT A COPY OF e2e/browse.e2e.ts. iOS Safari can never
+// WHY THESE FOUR AND NOT A COPY OF e2e/browse.e2e.ts. iOS Safari can never
 // install, so for a large share of visitors the catalog IS the product. The
-// three things that decide whether the shelf works on a phone are: it renders
+// four things that decide whether the shelf works on a phone are: it renders
 // at one column with nothing hanging off the side, a pad that does not animate
-// is still lit after the grid reorders under it, and the search field does not
-// zoom the viewport the moment it is touched. Everything else about the screen
-// is engine-independent and is proven once, in chromium.
+// is still lit after the grid reorders under it, the search field does not
+// zoom the viewport the moment it is touched, and - the one this file was
+// missing until 11-08.1 - a pad whose backing store the engine drops gets its
+// picture back instead of going black for the rest of the visit. Everything
+// else about the screen is engine-independent and is proven once, in chromium.
 //
 // NOTHING HERE READS A CLIPBOARD. context.grantPermissions(["clipboard-read",
 // "clipboard-write"]) is chromium-only and throws on WebKit, and this phase
@@ -165,6 +176,117 @@ function litCells(page: Page, id: string): Promise<number | string | null> {
 /** litCells as a number, or undefined when it came back null or a message. */
 function countOf(value: number | string | null): number | undefined {
   return typeof value === "number" ? value : undefined;
+}
+
+/**
+ * Kill a pad's picture the way a dropped backing store looks, and optionally
+ * tell the page it is back.
+ *
+ * THE VACUITY TRAP THIS AVOIDS, NAMED SO IT CANNOT BE WALKED BACK INTO. A
+ * synthetic `contextlost` does not actually lose anything. A test that
+ * dispatched the event and then asserted the pixels were unchanged would PASS
+ * AGAINST THE UNFIXED CODE, because the pixels were never disturbed. So the
+ * store is CLEARED from the test, which is what a dropped-and-restored backing
+ * store actually looks like from the page: blank.
+ *
+ * It returns `defaultPrevented` as well, because the canvas-2D polarity is the
+ * opposite of WebGL's: per the HTML standard, canceling `contextlost` is what
+ * tells the user agent NOT to restore. src/lib/sim/host.ts must therefore leave
+ * it alone, and this is the assertion that says so.
+ */
+function dropBackingStore(
+  page: Page,
+  id: string,
+  restore: boolean,
+): Promise<{
+  defaultPrevented: boolean;
+  blanked: number;
+  restored: boolean;
+} | null> {
+  return page.evaluate(
+    ([sel, doRestore]) => {
+      const canvas = document.querySelector(
+        sel as string,
+      ) as HTMLCanvasElement | null;
+      if (canvas === null || canvas.width !== 9) return null;
+
+      const lost = new Event("contextlost", { cancelable: true });
+      canvas.dispatchEvent(lost);
+
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) return null;
+      ctx.clearRect(0, 0, 9, 9);
+      const data = ctx.getImageData(0, 0, 9, 9).data;
+      let blanked = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] !== 0 || data[i + 1] !== 0 || data[i + 2] !== 0) blanked++;
+      }
+
+      if (doRestore) canvas.dispatchEvent(new Event("contextrestored"));
+      return {
+        defaultPrevented: lost.defaultPrevented,
+        blanked,
+        restored: doRestore === true,
+      };
+    },
+    [`[data-testid="pad-canvas-${id}"]`, restore] as [string, boolean],
+  );
+}
+
+/** Where a card sits: its DOM index, and its box on screen. */
+function cardPlace(
+  page: Page,
+  id: string,
+): Promise<{ index: number; x: number; y: number } | null> {
+  return page.evaluate(
+    ([selector, wanted]) => {
+      const cards = Array.from(document.querySelectorAll(selector));
+      const index = cards.findIndex(
+        (li) => li.getAttribute("data-testid") === `card-${wanted}`,
+      );
+      if (index < 0) return null;
+      const box = cards[index].getBoundingClientRect();
+      return { index, x: Math.round(box.x), y: Math.round(box.y) };
+    },
+    [CARDS, id] as [string, string],
+  );
+}
+
+/**
+ * Count the contextlost / contextrestored events the ENGINE fires, as opposed
+ * to the ones this file dispatches. `isTrusted` is the whole discriminator, and
+ * the listener is a capturing one on `document` because the spec fires these at
+ * the canvas without bubbling - capture reaches a non-bubbling event, bubble
+ * does not.
+ *
+ * IT MEASURES OR IT REPORTS AN UNKNOWN, AND NEVER GUESSES. Emission cannot be
+ * forced from a test, so a zero here is "not observed in this run", not "WebKit
+ * does not emit these". That difference is exactly why the paint-time guard in
+ * src/lib/sim/host.ts is not optional: a fix that depended on an event the
+ * engine may never send would run green here and blank the pads on the device
+ * the bug was found on.
+ */
+async function watchTrustedContextEvents(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const store = window as unknown as {
+      __trustedContextEvents: { lost: number; restored: number };
+    };
+    store.__trustedContextEvents = { lost: 0, restored: 0 };
+    document.addEventListener(
+      "contextlost",
+      (e) => {
+        if (e.isTrusted) store.__trustedContextEvents.lost++;
+      },
+      true,
+    );
+    document.addEventListener(
+      "contextrestored",
+      (e) => {
+        if (e.isTrusted) store.__trustedContextEvents.restored++;
+      },
+      true,
+    );
+  });
 }
 
 test.describe("the shelf on a phone engine", () => {
@@ -402,6 +524,186 @@ test.describe("the shelf on a phone engine", () => {
     // can reach.
     await field.fill("aurora");
     await expect(page.locator(CARDS)).toHaveCount(1);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  /*
+    A PAD WHOSE BACKING STORE DIES GETS ITS PICTURE BACK, ON THE CARD IT IS
+    ALREADY SITTING ON (plan 11-08.1, CANVAS-CONTEXT-LOSS.md).
+
+    ONE TITLE, TWO BRANCHES, following 11-08's precedent of extending rather
+    than adding, and because the two branches are the two halves of one fix that
+    must not be conflated - see src/lib/sim/host.ts's header table.
+
+    WHAT EACH BRANCH IS RED AGAINST, stated rather than implied, because a
+    negative check that cannot redden is this phase's recurring lesson:
+
+      STILL BRANCH   - red against the code as it shipped before this plan. A
+                       still pad never paints again, so with no contextrestored
+                       listener nothing on earth repaints it and it is black
+                       forever. This is the assertion.
+
+      ANIMATING      - GREEN against that same unfixed code, and it is said out
+      BRANCH           loud rather than hidden: clearing pixels does not lose a
+                       context, so an unfixed host's loop simply repaints. What
+                       it IS red against is a build that has the listener half
+                       and no paint-time guard - the listener clears entry.ctx,
+                       nothing re-acquires, and the pad stays black while the
+                       engine runs. src/lib/sim/host.spec.ts reddens that same
+                       counterfactual in node, where the context can really be
+                       made to report itself lost.
+
+    NEITHER BRANCH SORTS, SCROLLS AWAY FROM, RELOADS OR RE-REGISTERS THE CARD.
+    BrowseGrid.svelte's `started` set builds a card's engine exactly once ever,
+    and the recovery happens entirely inside SimHost with no second register().
+    repaintAll() would also heal a still pad on a sort - that is a bonus, not the
+    mechanism, and this test must not lean on it - so the card's DOM index and
+    its box on screen are asserted unmoved across the whole thing.
+  */
+  test("a pad whose backing store dies gets its picture back where it sits @webkit", async ({
+    page,
+  }) => {
+    await watchTrustedContextEvents(page);
+    const consoleErrors = collectErrors(page);
+
+    // Both cards are DERIVED from the catalog's recorded facts, never typed as
+    // ids - the same rule the sort test above follows. The still one is
+    // preferred out of the two whose still frame is a picture rather than a
+    // single lit cell, because "one pixel came back" is a true assertion
+    // resting on nothing.
+    const stillest = ["ninepads", "faders"]
+      .map((id) => LISTING.find((entry) => entry.id === id))
+      .find(
+        (entry) =>
+          entry !== undefined && entry.motion === "static" && !entry.restsBlack,
+      );
+    expect(
+      stillest,
+      "the catalog declares a still, lit configuration",
+    ).toBeDefined();
+    const still = stillest as NonNullable<typeof stillest>;
+
+    const moving = orderOf("featured").find((id) => {
+      const entry = LISTING.find((e) => e.id === id);
+      return entry?.motion === "animated" && !entry.restsBlack;
+    });
+    expect(
+      moving,
+      "the catalog declares an animated, lit configuration",
+    ).toBeDefined();
+    const movingId = moving as string;
+
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+
+    // ---- BRANCH ONE: THE STILL CARD ------------------------------------
+    await page
+      .locator(`[data-testid="card-${still.id}"]`)
+      .scrollIntoViewIfNeeded();
+    await expect
+      .poll(
+        guarded(() => litCells(page, still.id), `${still.id}'s pad`),
+        {
+          message: `${still.id} built its engine and painted a picture`,
+          timeout: 30_000,
+        },
+      )
+      .toBeGreaterThan(0);
+
+    const before = countOf(await litCells(page, still.id));
+    expect(
+      before,
+      `${still.id} is lit before anything is done to it`,
+    ).toBeDefined();
+    const wasAt = await cardPlace(page, still.id);
+    expect(wasAt, `${still.id} is placed in the grid`).not.toBeNull();
+
+    const killed = await dropBackingStore(page, still.id, true);
+    expect(killed, `${still.id}'s canvas was reachable`).not.toBeNull();
+    const k = killed as NonNullable<typeof killed>;
+
+    // THE CLEAR REALLY HAPPENED. Without this the whole test is the vacuous
+    // version: dispatch an event, disturb nothing, assert nothing changed.
+    expect(
+      k.blanked,
+      `${still.id}'s 9x9 store was cleared from the test, so the recovery below is a real one`,
+    ).toBe(0);
+
+    // AND THE HOST DID NOT CANCEL THE EVENT. Canceling contextlost on a 2D
+    // canvas is what tells the user agent NOT to restore - the opposite of the
+    // WebGL idiom, and the single most likely way to ship a listener that runs
+    // and achieves nothing.
+    expect(
+      k.defaultPrevented,
+      "src/lib/sim/host.ts called preventDefault() on contextlost, which on a 2D canvas suppresses restoration",
+    ).toBe(false);
+
+    await expect
+      .poll(
+        guarded(() => litCells(page, still.id), `${still.id}'s pad, healing`),
+        {
+          message: `${still.id} is a STILL pad: nothing ticks it, so only a contextrestored listener can have put its picture back`,
+          timeout: 30_000,
+        },
+      )
+      .toBe(before);
+
+    const nowAt = await cardPlace(page, still.id);
+    expect(
+      nowAt,
+      `${still.id} healed exactly where it sat: no sort, no scroll, no reload, no re-register`,
+    ).toEqual(wasAt);
+
+    // ---- BRANCH TWO: THE ANIMATING CARD, WITH NO contextrestored --------
+    await page
+      .locator(`[data-testid="card-${movingId}"]`)
+      .scrollIntoViewIfNeeded();
+    await expect
+      .poll(
+        guarded(() => litCells(page, movingId), `${movingId}'s pad`),
+        {
+          message: `${movingId} built its engine and painted a picture`,
+          timeout: 30_000,
+        },
+      )
+      .toBeGreaterThan(0);
+
+    const movingKilled = await dropBackingStore(page, movingId, false);
+    expect(movingKilled, `${movingId}'s canvas was reachable`).not.toBeNull();
+    const m = movingKilled as NonNullable<typeof movingKilled>;
+    expect(m.blanked, `${movingId}'s store was cleared`).toBe(0);
+    expect(
+      m.restored,
+      "no contextrestored was dispatched, so only the paint-time guard can answer this branch",
+    ).toBe(false);
+
+    await expect
+      .poll(
+        guarded(() => litCells(page, movingId), `${movingId}'s pad, healing`),
+        {
+          message: `${movingId} is ANIMATING: it came back on its own next paint with no event at all`,
+          timeout: 30_000,
+        },
+      )
+      .toBeGreaterThan(0);
+
+    const stillAfter = countOf(await litCells(page, still.id));
+    const movingAfter = countOf(await litCells(page, movingId));
+    const trusted = await page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            __trustedContextEvents: { lost: number; restored: number };
+          }
+        ).__trustedContextEvents,
+    );
+    console.log(
+      `context loss recovery: ${still.id} (still) ${String(before)} lit before, ` +
+        `0 while dropped, ${String(stillAfter)} after contextrestored at index ${wasAt?.index}; ` +
+        `${movingId} (animating) ${String(movingAfter)} lit after a drop with NO event; ` +
+        `engine-fired (isTrusted) contextlost ${trusted.lost}, contextrestored ${trusted.restored}`,
+    );
 
     expect(consoleErrors).toEqual([]);
   });

@@ -38,13 +38,76 @@
 //     preview engine, so stepping away and back never restarts a pad at tick 0.
 //   - paintPad (one putImageData into a 9x9 backing store) instead of blit.
 //
+// A DEAD 2D CONTEXT IS NOTICED TWICE, AND NEITHER HALF IS REDUNDANT
+// (plan 11-08.1, .planning/phases/11-bench-corrections/CANVAS-CONTEXT-LOSS.md).
+//
+// Until that plan, `grep -rn "contextlost\|contextrestored\|isContextLost" src/`
+// returned NOTHING. BrowseGrid.svelte builds a card's engine exactly once ever,
+// register() took the 2D context once and cached it, and paint() wrote through
+// that cached context forever. So when an engine dropped a pad's backing store -
+// which is what WebKit does on a memory-constrained device with 27 canvas layers
+// on /browse/, each scaled up by image-rendering: pixelated - HANGAR never
+// noticed and never recovered. The visitor got permanently black pads, and iOS
+// can never install (DEGR-01), so the shelf IS the entire product for them.
+// .planning/research/PITFALLS.md:465 predicted it and nobody acted on it.
+//
+// The two halves below are BOTH required. Deleting either one as duplication
+// reopens a case the other cannot reach:
+//
+//   HALF                        CATCHES                    CANNOT CATCH
+//   ------------------------    -----------------------    --------------------
+//   contextlost / contextre-    a STILL card, which         an engine that drops
+//   stored listeners on each    never paints again and      a backing store
+//   registered canvas           which nothing else would    WITHOUT EMITTING THE
+//                               ever repaint                EVENTS
+//
+//   the paint() guard, which    any ANIMATING card, on      a STILL card - it
+//   re-acquires when the ctx    its very next paint, with   settles to zero CPU
+//   is missing or reports       no event at all             by design and paint()
+//   isContextLost()                                         is never called again
+//
+// The still-card column is not hypothetical: "the last frame with nothing
+// running does not ask for another" is this file's own proudest property, four
+// paragraphs up, and it is exactly what makes the paint guard insufficient
+// alone. Whether WebKit emits the 2D events at all is the open question, which
+// is why the guard is not optional either.
+//
+// preventDefault() IS OPPOSITE BETWEEN WebGL AND CANVAS 2D, AND THIS CODE DOES
+// NOT CALL IT. For `webglcontextlost`, preventDefault() is what makes the UA
+// attempt restoration. For canvas 2D the polarity is inverted: HTML Living
+// Standard §4.12.5.1.10 "Canvas context lost and restored" runs
+// `Let shouldRestore be the result of firing an event named contextlost at
+// canvas, with cancelable initialized to true` and then `If shouldRestore is
+// false, then abort these steps` - and firing returns false exactly when the
+// event was canceled. MDN says the same in one sentence: canceling contextlost
+// prevents the browser from attempting to restore the context. So calling
+// preventDefault() here, by copying the WebGL idiom from memory, would suppress
+// the very restoration this code exists to survive. The e2e proof asserts
+// defaultPrevented is still false after our listener has run.
+//
+// isContextLost() IS DECLARED BY THIS TOOLCHAIN and needs no local structural
+// type: TypeScript 6.0.3's lib.dom.d.ts puts `isContextLost(): boolean` on the
+// CanvasState mixin of CanvasRenderingContext2D. It is still FEATURE-DETECTED at
+// the call site, because it ships in Chrome 130+ and Firefox 151+ and is not in
+// the Chrome 89 baseline HANGAR's support matrix names.
+//
+// THE SCRATCH CLEAR IS DEFENSIVE, NOT LOAD-BEARING, AND THAT IS A MEASUREMENT
+// RATHER THAN A GUESS. entry.scratch is ctx.createImageData(9, 9), and the
+// obvious worry is that one minted by a dead context is unusable. 11-08.1 ran
+// the negative check - carry the scratch across the loss, rebuild only the ctx -
+// and all 21 tests in host.spec.ts stayed GREEN. An ImageData is a plain object
+// and putImageData accepts it. The clear is KEPT with this label, because the
+// cost is one allocation on a path that runs once per loss; what it must not be
+// is claimed as a check that bites.
+//
 // Nothing here may go into a Svelte rune: $state deep-proxies, and a proxy trap
 // inside a 100 Hz tick loop turns a 0.35 us tick into something else entirely
 // (04-RESEARCH §Pitfall 3). Engines, canvases and frame buffers live in the
 // plain Map below, and only scalars cross into a component.
 //
 // There is no setInterval anywhere in this design, so after destroy() there is
-// nothing left to leak.
+// nothing left to leak - which is why the two listeners above are removed by
+// unregister() AND by destroy(), asserted as a count in host.spec.ts.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { type DemoPath, driveDemo } from "./demo";
@@ -141,6 +204,12 @@ type Entry = {
   wasRunning: boolean;
   lastPaint: number;
   unobserve: () => void;
+  /**
+   * Removes BOTH the contextlost and the contextrestored listener. Held on the
+   * entry rather than re-derived, because removeEventListener matches on
+   * function identity and these two closures capture this entry.
+   */
+  unlisten: () => void;
 };
 
 const noop = (): void => {};
@@ -287,8 +356,11 @@ export class SimHost {
       wasRunning: false,
       lastPaint: this.deps.now(),
       unobserve: noop,
+      unlisten: noop,
     };
     this.entries.set(id, entry);
+    // BEFORE the first paint, so a loss during it is still heard.
+    entry.unlisten = this.listen(entry);
     if (this.reduced) this.stillFrame(entry);
     this.paint(entry, entry.lastPaint);
     entry.unobserve = this.deps.observe(canvas, (intersecting) => {
@@ -353,6 +425,10 @@ export class SimHost {
     const entry = this.entries.get(id);
     if (typeof entry === "undefined") return;
     entry.unobserve();
+    // Both context listeners come off with the observer. A surviving listener
+    // would hold this entry - and its engine - alive on a canvas the host has
+    // let go of, which falsifies the header's no-leak promise.
+    entry.unlisten();
     entry.canvas.width = 0;
     this.entries.delete(id);
   }
@@ -422,6 +498,7 @@ export class SimHost {
     }
     for (const entry of this.entries.values()) {
       entry.unobserve();
+      entry.unlisten();
       // Nine mounted pads at a large backing store are megabytes of compositor
       // memory; width = 0 is what releases them
       // (.planning/research/PITFALLS.md C14).
@@ -556,8 +633,92 @@ export class SimHost {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Noticing a dead 2D context. See the two-halves table in the file header:
+  // the listener pair below is one half, the guard inside paint() is the other,
+  // and NEITHER IS REDUNDANT.
+
+  /**
+   * Attach the contextlost / contextrestored pair to one canvas. Returns the
+   * remover for both, which unregister() and destroy() call.
+   *
+   * NO preventDefault(). The polarity is inverted from WebGL's - see the header
+   * - and canceling this event is what tells the user agent NOT to restore.
+   *
+   * The typeof guard is not defensive dressing: this module is imported in node
+   * tests with no DOM, and the engine shape is structural, so a canvas that is
+   * not an EventTarget is a real input rather than a programming error.
+   */
+  private listen(entry: Entry): () => void {
+    const target = entry.canvas;
+    if (
+      typeof target.addEventListener !== "function" ||
+      typeof target.removeEventListener !== "function"
+    ) {
+      return noop;
+    }
+    const onLost = (): void => {
+      // Drop the cached context AND the scratch. Nothing repaints here: the
+      // backing store is gone, so a paint would be into nothing.
+      entry.ctx = undefined;
+      entry.scratch = undefined;
+    };
+    const onRestored = (): void => {
+      // The half a paint guard can never reach: a still pad settles to zero CPU
+      // and paint() is never called on it again, so the picture only comes back
+      // because this listener puts it back.
+      this.reacquire(entry);
+      this.paint(entry, this.deps.now());
+    };
+    target.addEventListener("contextlost", onLost);
+    target.addEventListener("contextrestored", onRestored);
+    return () => {
+      target.removeEventListener("contextlost", onLost);
+      target.removeEventListener("contextrestored", onRestored);
+    };
+  }
+
+  /**
+   * Take the 2D context again and rebuild the scratch FROM THE NEW ONE.
+   *
+   * The scratch is never carried across a loss. entry.scratch is
+   * ctx.createImageData(9, 9), and putImageData may well accept one minted by a
+   * context that has since died - an ImageData is a plain object - so this is
+   * recorded as DEFENSIVE rather than claimed as load-bearing. 11-08.1 measured
+   * it; the summary carries the answer.
+   *
+   * Returns whether there is a context to paint through.
+   */
+  private reacquire(entry: Entry): boolean {
+    const ctx = entry.canvas.getContext("2d") ?? undefined;
+    entry.ctx = ctx;
+    entry.scratch = typeof ctx === "undefined" ? undefined : createScratch(ctx);
+    return typeof ctx !== "undefined";
+  }
+
+  /**
+   * Is this entry's cached context unusable?
+   *
+   * ONE FEATURE-DETECTED CALL ON THE HOT PATH, never a getContext per paint per
+   * card. isContextLost is declared by TypeScript 6.0.3's lib.dom but ships in
+   * Chrome 130+ / Firefox 151+, so it is detected rather than assumed - and an
+   * engine that has neither the method nor the events is exactly the case the
+   * missing-ctx branch above still covers.
+   */
+  private lost(entry: Entry): boolean {
+    const ctx = entry.ctx;
+    if (typeof ctx === "undefined" || typeof entry.scratch === "undefined") {
+      return true;
+    }
+    return typeof ctx.isContextLost === "function" && ctx.isContextLost();
+  }
+
   private paint(entry: Entry, now: number): void {
     entry.lastPaint = now;
+    // The other half of the header's table: an ANIMATING card comes back on its
+    // very next paint with no event at all, which is what makes the fix
+    // independent of whether WebKit emits the 2D events.
+    if (this.lost(entry) && !this.reacquire(entry)) return;
     if (
       typeof entry.ctx === "undefined" ||
       typeof entry.scratch === "undefined"

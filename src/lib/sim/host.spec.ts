@@ -98,23 +98,75 @@ type Recording = HTMLCanvasElement & {
    * the same 0-then-9 pair being measured in Chromium).
    */
   widths: number[];
+  /**
+   * The contexts this canvas has handed out, oldest first, each with its own
+   * paint log. A recovery is only observable if the host can be shown painting
+   * through a DIFFERENT object from the one it cached, so `contexts` is what
+   * turns "it re-acquired" from an inference into an assertion.
+   */
+  contexts: FakeCtx[];
+  /** Live listeners by type. A teardown is asserted as a count off this. */
+  listeners: Map<string, Set<() => void>>;
+  /** Drop the backing store the way an engine does, and tell the page. */
+  loseContext(): void;
+  /** Hand out a NEW context and fire contextrestored. */
+  restoreContext(): void;
+  /** Fire one event type at whatever is listening. */
+  fire(type: string): void;
 };
 
-/** A canvas whose context draws nothing and records when it was painted. */
+type FakeCtx = {
+  paints: number[];
+  lost: boolean;
+  createImageData: (w: number, h: number) => ImageData;
+  putImageData: () => void;
+  isContextLost: () => boolean;
+};
+
+/**
+ * A canvas whose context draws nothing and records when it was painted.
+ *
+ * IT HANDS OUT A NEW CONTEXT OBJECT AFTER A LOSS, which is the whole point of
+ * the three tests plan 11-08.1 added: the vendored reference host
+ * (src/vendor/botor/pad-sim-host.ts) calls getContext inside blit() on every
+ * paint and so never holds a reference across a loss, while HANGAR caches the
+ * context AND a persistent ImageData because putImageData into a 9x9 store is
+ * the whole point of the faster painter (04-CONTEXT D-15). The performance win
+ * traded away an accidental resilience, and nobody noticed the trade. A fake
+ * that reused one ctx object could not have caught it.
+ */
 function fakeCanvas(now: () => number): Recording {
-  const paints: number[] = [];
   const widths: number[] = [];
+  const contexts: FakeCtx[] = [];
+  const listeners = new Map<string, Set<() => void>>();
   let width = 0;
-  const ctx = {
-    createImageData: (w: number, h: number) => ({
-      width: w,
-      height: h,
-      data: new Uint8ClampedArray(w * h * 4),
-    }),
-    putImageData: () => {
-      paints.push(now());
-    },
+
+  const mintContext = (): FakeCtx => {
+    const ctx: FakeCtx = {
+      paints: [],
+      lost: false,
+      createImageData: (w: number, h: number) =>
+        ({
+          width: w,
+          height: h,
+          data: new Uint8ClampedArray(w * h * 4),
+        }) as unknown as ImageData,
+      putImageData: () => {
+        // A real dead context throws here. This one records, so a test can
+        // assert that the host never even reached it.
+        ctx.paints.push(now());
+      },
+      isContextLost: () => ctx.lost,
+    };
+    contexts.push(ctx);
+    return ctx;
   };
+  let current = mintContext();
+
+  const fire = (type: string): void => {
+    for (const fn of Array.from(listeners.get(type) ?? [])) fn();
+  };
+
   return {
     get width(): number {
       return width;
@@ -124,10 +176,48 @@ function fakeCanvas(now: () => number): Recording {
       widths.push(value);
     },
     height: 0,
-    paints,
+    /** Every paint this canvas ever received, across every context. */
+    get paints(): number[] {
+      return contexts.flatMap((c) => c.paints).sort((a, b) => a - b);
+    },
     widths,
-    getContext: () => ctx,
+    contexts,
+    listeners,
+    // A LOST CONTEXT IS NEVER HANDED OUT AGAIN. On a real canvas getContext
+    // returns the same object and isContextLost() flips back; minting a new one
+    // is the same fact made OBSERVABLE, which is what lets a test assert
+    // "it re-acquired" instead of inferring it. It is also the shape the
+    // vendored reference host gets for free, because blit() calls getContext on
+    // every paint (src/vendor/botor/pad-sim-host.ts) and so never holds a
+    // reference across a loss at all.
+    getContext: () => {
+      if (current.lost) current = mintContext();
+      return current;
+    },
+    addEventListener: (type: string, fn: () => void) => {
+      const set = listeners.get(type) ?? new Set<() => void>();
+      set.add(fn);
+      listeners.set(type, set);
+    },
+    removeEventListener: (type: string, fn: () => void) => {
+      listeners.get(type)?.delete(fn);
+    },
+    loseContext: (): void => {
+      current.lost = true;
+      fire("contextlost");
+    },
+    restoreContext: (): void => {
+      fire("contextrestored");
+    },
+    fire,
   } as unknown as Recording;
+}
+
+/** Every live listener on a canvas, of any type. A teardown is this at zero. */
+function listenerCount(canvas: Recording): number {
+  let total = 0;
+  for (const set of canvas.listeners.values()) total += set.size;
+  return total;
 }
 
 type TouchCall = [string, number, number, number];
@@ -1082,5 +1172,174 @@ describe("the simulator host (src/lib/sim/host.ts)", () => {
     }
 
     h.host.destroy();
+  });
+});
+
+/*
+  A DEAD 2D CONTEXT, AND THE TWO ROUTES BACK FROM IT (plan 11-08.1).
+
+  Before this block `grep -rn "contextlost\|contextrestored\|isContextLost"
+  src/` returned nothing: BrowseGrid builds a card's engine exactly once ever,
+  register() took the context once, and paint() wrote through it forever. On a
+  memory-constrained device with 27 canvas layers the pads went black and
+  stayed black - on the one screen an iOS visitor has, because DEGR-01 says
+  they can never install.
+
+  The three tests below are written against the two halves separately, because
+  the header's table says each catches what the other cannot and a test that
+  exercised only the pair together would let either be deleted as duplication.
+*/
+describe("a canvas whose backing store dies (src/lib/sim/host.ts)", () => {
+  it("drops the cached context and the scratch on contextlost, and paints through neither", () => {
+    const h = harness();
+    const canvas = h.canvas();
+    const engine = fakeEngine();
+    h.host.register("pad", canvas, engine);
+
+    const first = canvas.contexts[0];
+    expect(
+      first.paints.length,
+      "register() painted the first frame at once, through the context it cached",
+    ).toBe(1);
+    expect(canvas.contexts, "one context so far").toHaveLength(1);
+
+    // The engine drops the backing store and says so.
+    canvas.loseContext();
+
+    // THE LISTENER CLEARS AND DOES NOT REPAINT. There is nothing to paint into
+    // yet - the store is gone - so contextlost is a release, never a redraw.
+    expect(
+      canvas.contexts,
+      "the contextlost handler went looking for a context there was no point asking for",
+    ).toHaveLength(1);
+    expect(
+      first.paints.length,
+      "the contextlost handler painted into the store that had just been dropped",
+    ).toBe(1);
+
+    // And the next paint re-acquires rather than writing through the dead
+    // reference. The fake's putImageData records rather than throwing precisely
+    // so this is an assertion about the host and not about the fake.
+    h.host.repaintAll();
+    expect(
+      first.paints.length,
+      "the host wrote into the dead context after it had been told the store was gone",
+    ).toBe(1);
+    expect(
+      canvas.contexts.length,
+      "the host re-acquired instead of giving up silently",
+    ).toBe(2);
+    expect(
+      canvas.contexts[1].paints.length,
+      "and it painted the engine's current frame through the new one",
+    ).toBe(1);
+
+    h.host.destroy();
+  });
+
+  it("comes back by the event on a still card, and by the next paint on an animating one", () => {
+    // BRANCH ONE: A STILL CARD. It never paints again by itself - the loop is
+    // self-cancelling and a settled pad costs zero CPU - so only the
+    // contextrestored listener can put its picture back. This is the case a
+    // paint-time guard alone can NEVER reach.
+    const still = harness();
+    const stillCanvas = still.canvas();
+    // stopAfterTicks 0: animating is false from the first read, so this pad is
+    // settled and the loop has nothing to run for it.
+    const stillEngine = fakeEngine(0);
+    still.host.register("still", stillCanvas, stillEngine);
+    still.clock.step(50);
+    const beforeLoss = stillCanvas.paints.length;
+
+    stillCanvas.loseContext();
+    still.clock.step(200);
+    expect(
+      stillCanvas.paints.length,
+      "a still pad painted itself while its context was dead - the branch is measuring nothing",
+    ).toBe(beforeLoss);
+
+    // A NEW CONTEXT IS DEMANDED EXPLICITLY, and the assertion is not
+    // `contexts[length - 1]` alone. With no listener attached nothing calls
+    // getContext again, so the last element would still be the ORIGINAL, whose
+    // paint count from register() is one - and the test would pass against a
+    // host that never recovered. Measured: it did, until this was tightened.
+    const beforeRestore = stillCanvas.contexts.length;
+    stillCanvas.restoreContext();
+    expect(
+      stillCanvas.contexts.length,
+      "nothing asked the canvas for a context, so the still pad is black and stays black - the case a paint guard can never reach",
+    ).toBe(beforeRestore + 1);
+    const fresh = stillCanvas.contexts[stillCanvas.contexts.length - 1];
+    expect(fresh, "the new context is not the dead one").not.toBe(
+      stillCanvas.contexts[0],
+    );
+    expect(
+      fresh.paints.length,
+      "the still pad got its picture back on the card it was already sitting on, through the NEW context",
+    ).toBe(1);
+    still.host.destroy();
+
+    // BRANCH TWO: AN ANIMATING CARD, WITH NO EVENT AT ALL. Nothing is
+    // dispatched here - the context simply starts reporting isContextLost() -
+    // which is the case an event listener alone can never reach, and the reason
+    // the fix does not depend on an engine WebKit may never emit for.
+    const moving = harness();
+    const movingCanvas = moving.canvas();
+    const movingEngine = fakeEngine();
+    moving.host.register("moving", movingCanvas, movingEngine);
+    const original = movingCanvas.contexts[0];
+    expect(movingCanvas.contexts, "one context so far").toHaveLength(1);
+
+    original.lost = true; // no dispatch, no listener, no notification
+    moving.clock.step(SIDE_INTERVAL_MS + TICK_MS);
+
+    expect(
+      movingCanvas.contexts.length,
+      "the paint guard never asked for a context again, so an engine that emits no event blanks the pad forever",
+    ).toBeGreaterThan(1);
+    const replacement = movingCanvas.contexts[movingCanvas.contexts.length - 1];
+    expect(
+      replacement.paints.length,
+      "the animating pad came back on its own next paint, through the new context",
+    ).toBeGreaterThan(0);
+    expect(
+      original.paints.length,
+      "and nothing further went through the dead one",
+    ).toBe(1);
+
+    moving.host.destroy();
+  });
+
+  it("removes both listeners on unregister and on destroy", () => {
+    const h = harness();
+    const one = h.canvas();
+    const two = h.canvas();
+    h.host.register("one", one, fakeEngine());
+    h.host.register("two", two, fakeEngine());
+
+    expect(
+      listenerCount(one),
+      "register attached exactly the contextlost and contextrestored pair",
+    ).toBe(2);
+    expect(one.listeners.get("contextlost")?.size).toBe(1);
+    expect(one.listeners.get("contextrestored")?.size).toBe(1);
+    expect(listenerCount(two)).toBe(2);
+
+    h.host.unregister("one");
+    expect(
+      listenerCount(one),
+      "unregister left a listener holding an entry the host has let go of",
+    ).toBe(0);
+    expect(listenerCount(two), "and it took nothing off the other pad").toBe(2);
+
+    // A re-register does not accumulate: register() unregisters first.
+    h.host.register("two", two, fakeEngine());
+    expect(listenerCount(two), "a second register doubled the pair").toBe(2);
+
+    h.host.destroy();
+    expect(
+      listenerCount(two),
+      "after destroy() there is nothing left to leak - the file's own promise",
+    ).toBe(0);
   });
 });
