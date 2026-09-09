@@ -485,32 +485,32 @@
     "sonar": [
       {
         "tick": 0,
-        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
-        "nonZeroBytes": 0,
+        "sha256": "d296fe9d4be806c569fa97ac52d6a43066e657b736b1587b8782325570e3609a",
+        "nonZeroBytes": 3,
         "animating": true
       },
       {
         "tick": 37,
-        "sha256": "41c2df793cbc50459ed98377dbb2563f5bdf27a0cfcb26e8b55e3dc36b5b2879",
+        "sha256": "bd23e86141a383d15e95ba791b5d4463691f013efb431aad8b49ea08f299d47c",
         "nonZeroBytes": 81,
         "animating": true
       },
       {
         "tick": 101,
-        "sha256": "84c2b7e08be3d1aece284b66a40a5fafaa6e5dc05426a717c5d700266ea21aa7",
-        "nonZeroBytes": 102,
+        "sha256": "2980ac3acd4bb76917e97ecf915a8835b7b2c24d430d10f43342245dbc25ae0e",
+        "nonZeroBytes": 105,
         "animating": true
       },
       {
         "tick": 500,
-        "sha256": "f27cc0e296889beef4d25f9ca1036e2fd9bf741e86c2b5c25d699685bf0fb55f",
-        "nonZeroBytes": 96,
+        "sha256": "dd0a1b12272076e3e1c3d359624569854fd9bc87a9df57dd7d907bf36d14e0b5",
+        "nonZeroBytes": 99,
         "animating": true
       },
       {
         "tick": 1009,
-        "sha256": "4f09be39fc64b4374b5e897d7ff0e9b8d4b0c5c46ec9d0e9d1924d16588a7928",
-        "nonZeroBytes": 78,
+        "sha256": "e116981e50ee627fc39618664419d0055e9c923ceba0c7678ebc9d089c260728",
+        "nonZeroBytes": 81,
         "animating": true
       }
     ],

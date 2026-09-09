@@ -54,6 +54,24 @@
 // always lands. src/lib/catalog/touch-guard.spec.ts holds the event-code
 // convention the clear is written in.
 //
+// MIDI SYNC IS NOT BUILT, AND IT IS NAMED HERE RATHER THAN DROPPED. The bench
+// asked to "MIDI sync the circles"; two gates are shut and the second does not
+// open when the first does. FIRST, the hardware answer is unknown:
+// docs/MIDI-IN-PROBE.md is a written, minifier-checked pair of probe scripts
+// for exactly this question whose Results section reads "None yet. This probe
+// has not been run", and since gts is dead on ZONA and rtmrx_cb is the only
+// clock route the hardware has, a NO on that probe CLOSES this family rather
+// than redirecting it. SECOND, even a yes leaves the card UNPREVIEWABLE:
+// HANGAR's Lua host has no inbound MIDI path of any kind - grxm is a recorded
+// no-op that discards its slot argument, and neither midirx_cb nor rtmrx_cb
+// appears under src/ outside one sentence of prose in audition.spec.ts - so a
+// clock-locked EUCLID would run on a real ZONA and sit motionless in its own
+// catalog card. The prerequisite is a synthetic MIDI source and a synthetic
+// clock in src/lib/sim/, which is a phase and not a task. Nothing here is
+// stubbed, flagged or reserved against an answer nobody has: a knob held back
+// "for later" is a stamp slot, and a stamp slot spent on a feature that may
+// never exist is a link format nobody can take back.
+//
 // THE TRAIL'S DECAY PAIR IS THE HOUSE IDIOM, AND @TRAIL'S VALUES ARE PART OF
 // IT (plan 11-02). The Timer shipped glpfs(a,2,255,250,0) with glt(a,2,@TRAIL),
 // and that pair can NEVER land on phase 0 at any value: glpfs walks the phase

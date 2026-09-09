@@ -2133,11 +2133,181 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       }
     }
 
+    // -----------------------------------------------------------------------
+    // SONAR'S OTHER TWO ASKS (plan 11-08), extended onto this test rather than
+    // given a fourth of their own: they are the same card and the same run.
+    // -----------------------------------------------------------------------
+
+    // 5. THE CENTRE IS ALWAYS LIT, AND THE LAYER IS THE WHOLE ASSERTION.
+    //    Cell 40 is the sweep's own pivot. Setup lights it on LAYER 0, which
+    //    neither the Timer (layer 2) nor the arming touch (layer 1) writes, so
+    //    the interesting moment is not tick 0 - it is the tick the sweep is
+    //    ON TOP of it, which is what a Setup-only change can get wrong.
+    {
+      const entry = entryById("sonar");
+      const { host, sim } = await open(entry);
+      try {
+        const at = hwOfCell(40);
+        const restRgb = rgbAt(host.frame, 40);
+        expect(
+          litAt(host.frame, 40),
+          "sonar: THE CENTRE MUST BE LIT AT REST. Cell 40 is the sweep's " +
+            "pivot and it used to be the one cell on the pad with nothing to " +
+            `say. Observed ${restRgb} at tick 0`,
+        ).toBe(true);
+
+        // Run until the sweep is demonstrably ON cell 40, then look; then run
+        // on until its trail has expired and look again. THE SECOND LOOK IS
+        // THE ONE THAT PINS THE LAYER CHOICE: a hub written on layer 2 is lit
+        // at rest and lit under the sweep, and goes black when the sweep's
+        // 42-tick decay runs out from under it.
+        let sweptTick = -1;
+        let sweptRgb = "";
+        for (let tick = 1; tick <= 400 && sweptTick < 0; tick += 1) {
+          host.tick();
+          if (sim.layer(at, 2).pha === 0) continue;
+          sweptTick = tick;
+          sweptRgb = rgbAt(host.frame, 40);
+        }
+        expect(
+          sweptTick,
+          "sonar: the sweep never reached cell 40 in 400 ticks, so the " +
+            "assertions below would be vacuous - they would only be " +
+            "re-reading tick 0",
+        ).toBeGreaterThan(0);
+        expect(
+          litAt(host.frame, 40),
+          `sonar: the centre reads ${sweptRgb} while the sweep is over it`,
+        ).toBe(true);
+
+        let afterTick = sweptTick;
+        for (let tick = 0; tick < 60; tick += 1) {
+          host.tick();
+          afterTick += 1;
+        }
+        const afterRgb = rgbAt(host.frame, 40);
+        report.push(
+          `sonar: centre cell 40 reads ${restRgb} at rest, ${sweptRgb} at ` +
+            `tick ${sweptTick} with the sweep on top of it, and ${afterRgb} ` +
+            `at tick ${afterTick} once the trail has expired`,
+        );
+        expect(
+          sim.layer(at, 2).pha,
+          "sonar: the sweep's trail had not expired by tick " +
+            `${afterTick}, so the assertion below is not measuring what it ` +
+            "claims",
+        ).toBe(0);
+        expect(
+          litAt(host.frame, 40),
+          "sonar: THE CENTRE MUST SURVIVE THE SWEEP PASSING OVER IT. That is " +
+            "the case a bench will actually look at, and it is the one a " +
+            "Setup-only change gets wrong by choosing the layer the Timer " +
+            "writes: on layer 2 the hub is lit at rest and lit under the " +
+            "sweep, and then the 42-tick decay runs it down to black and " +
+            `nothing ever puts it back. Observed ${afterRgb} at tick ` +
+            `${afterTick}`,
+        ).toBe(true);
+        // And the layer choice itself, pinned by name rather than inferred
+        // from the picture, so a future edit that moved the hub onto a layer
+        // that merely happens to be quiet today is caught.
+        expect(
+          sim.layer(at, 0).pha,
+          "sonar: the centre is written on LAYER 0, which neither the Timer " +
+            "(layer 2) nor the arming touch (layer 1) writes. Observed layer " +
+            `0 phase ${sim.layer(at, 0).pha}`,
+        ).toBe(255);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 6. EVERY NOTE THE SWEEP FIRES IS RELEASED, AND THE GATE IS ONE STEP.
+    //    The bench asked for notes that "disappear after a while" and the
+    //    source already does it: every note goes into s.z and the FOLLOWING
+    //    fire releases the whole list before playing anything new. This pins
+    //    that, because it is the thing a future edit to the Timer would break
+    //    silently - a hung note is inaudible in a unit run.
+    {
+      const entry = entryById("sonar");
+      const { host } = await open(entry);
+      try {
+        // Derived from the entry's own knob, never pasted: one step is @PERIOD
+        // milliseconds and the host ticks at 10 ms.
+        const stepTicks = knobValueOf(entry, "sweep") / 10;
+        host.touchTap(0, cellCentre(4), cellCentre(0));
+        host.tick();
+        const mark = host.midi.length;
+        let seen = mark;
+        const opened = new Map<number, number>();
+        const gaps: number[] = [];
+        let hung = 0;
+        let fired = 0;
+        for (let tick = 0; tick < 400; tick += 1) {
+          host.tick();
+          while (seen < host.midi.length) {
+            const message = host.midi[seen];
+            seen += 1;
+            if (message.cmd === 144) {
+              fired += 1;
+              if (opened.has(message.p1)) hung += 1;
+              opened.set(message.p1, tick);
+              continue;
+            }
+            if (message.cmd !== 128) continue;
+            const at = opened.get(message.p1);
+            if (typeof at === "undefined") continue;
+            gaps.push(tick - at);
+            opened.delete(message.p1);
+          }
+        }
+        report.push(
+          `sonar: ${fired} note(s) fired, ${gaps.length} released after ` +
+            `${[...new Set(gaps)].join(", ")} tick(s), ${opened.size} still ` +
+            "open at the end of 400 ticks",
+        );
+        // NON-VACUITY ON THE NOTE-ONS, NOT ON THE RELEASES, and the order is
+        // the point: a Timer that never releases anything produces zero gaps,
+        // and a run that asserted `gaps.length > 0` first would fail with
+        // "the sweep fired nothing" - the wrong diagnosis for a hung note.
+        expect(
+          fired,
+          "sonar: the sweep fired no note at all in 400 ticks, so every " +
+            "assertion below would be vacuous",
+        ).toBeGreaterThan(0);
+        expect(
+          [...opened.keys()],
+          "sonar: EVERY NOTE THE SWEEP STARTS MUST BE RELEASED. The Timer's " +
+            "first act is to send note-off for everything in s.z; without it " +
+            "each fired pitch is held forever and the track hangs. Left open " +
+            `at the end of 400 ticks, after ${fired} note-on(s)`,
+        ).toEqual([]);
+        expect(
+          gaps.length,
+          "sonar: no release was paired to a note-on, so the gap assertion " +
+            "below proves nothing",
+        ).toBeGreaterThan(0);
+        expect(
+          hung,
+          "sonar: a note was started twice without being released in " +
+            "between, which is a hung voice",
+        ).toBe(0);
+        expect(
+          Math.max(...gaps),
+          "sonar: A NOTE MUST BE RELEASED WITHIN ONE STEP. The Timer's first " +
+            "act is to release everything in s.z, so a note fired at step k " +
+            `is off at step k+1 - ${stepTicks} ticks at the default @PERIOD. ` +
+            `Observed ${gaps.join(", ")}`,
+        ).toBe(stepTicks);
+      } finally {
+        host.close();
+      }
+    }
+
     process.stdout.write(
       "\nthe swipe family, plan 11-08:\n  " + report.join("\n  ") + "\n",
     );
-    expect(report.length, "every entry reported all three probes").toBe(
-      SWIPE_ENTRIES.length * 4,
+    expect(report.length, "every entry reported all four probes").toBe(
+      SWIPE_ENTRIES.length * 4 + 2,
     );
   }, 120000);
 });

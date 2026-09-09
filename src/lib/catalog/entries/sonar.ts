@@ -70,6 +70,60 @@
 // alternative is named as an open bench question in euclid.ts rather than
 // shipped as an interpretation.
 //
+// THE CENTRE IS ALWAYS LIT, ON LAYER 0, AND THE LAYER IS THE WHOLE POINT
+// (plan 11-08). Cell 40 is the sweep's own pivot and it used to be the one
+// cell on the pad with nothing to say. Setup now writes it in @SWEEPC on LAYER
+// 0, which NEITHER the sweep nor the arming touch writes: the Timer writes
+// layer 2 and armed cells are layer 1. Layer 1 would have been erased by the
+// first tap on the centre. LAYER 2 IS THE INTERESTING WRONG ANSWER, because it
+// looks right twice - the hub is lit at rest and lit under the sweep - and then
+// the sweep's 42-tick decay runs it down to black with nothing to put it back;
+// measured on that plant, [0,0,0] sixty ticks after the pass. On layer 0 the
+// centre reads [59,126,126] at rest, [116,248,248] with the sweep on top of it
+// because the LED engine ADDS layers, and [59,126,126] again once the trail
+// expires. Cost: +52 characters, and +0 at the picker corner over a hard-coded
+// white, since a colour token and 255,255,255 are the same eleven characters
+// there.
+//
+// "NOTES SHOULD DISAPPEAR AFTER A WHILE" DESCRIBES SOMETHING THIS CARD ALREADY
+// DOES, and that is reported rather than answered with a change. Of the two
+// honest readings - a missing or mistimed note-off, or a note length that wants
+// a shorter constant - the source supports the SECOND, and the constant is
+// already at its floor. Every note the Timer starts goes into s.z and the
+// FOLLOWING fire releases the whole list before playing anything: measured
+// through the real Lua host at the defaults, three notes fired and three
+// released, every one of them exactly 7 ticks later, which is one @PERIOD, and
+// nothing left open after 400 ticks. One step is also the shortest gate this
+// card can express, because it has one timer and its resolution IS one step.
+// There is no constant to shorten and no bug to fix, so nothing was changed and
+// the behaviour is now pinned by an assertion instead.
+//
+// THE THIRD READING IS A REAL DESIGN QUESTION AND IT IS LEFT AS ONE. The words
+// could instead mean that the ARMED CELLS should fade, so a pattern you drew
+// decays on its own. That is a much larger behaviour change - 81 per-cell
+// countdowns with no spare table and no Timer budget for a second sweep of the
+// grid - it is not what "notes should disappear" most naturally says, and it is
+// MORE attractive after plan 11-08 than before it, because a swipe now arms
+// nine cells where a tap armed one. It is a bench question, not a guess.
+//
+// CLOCK SYNC IS NOT BUILT, AND IT IS NAMED HERE RATHER THAN DROPPED. The bench
+// asked to "include synchronization, clock sync"; two gates are shut and the
+// second does not open when the first does. FIRST, the hardware answer is
+// unknown: docs/MIDI-IN-PROBE.md is a written, minifier-checked pair of probe
+// scripts for exactly this question whose Results section reads "None yet. This
+// probe has not been run", and since gts is dead on ZONA and rtmrx_cb is the
+// only clock route the hardware has, a NO on that probe CLOSES this family
+// rather than redirecting it. SECOND, even a yes leaves the card
+// UNPREVIEWABLE: HANGAR's Lua host has no inbound MIDI path of any kind - grxm
+// is a recorded no-op that discards its slot argument, and neither midirx_cb
+// nor rtmrx_cb appears under src/ outside one sentence of prose in
+// audition.spec.ts - so a clock-locked SONAR would run on a real ZONA and sit
+// motionless in its own catalog card. The prerequisite is a synthetic MIDI
+// source and a synthetic clock in src/lib/sim/, which is a phase and not a
+// task. Nothing here is stubbed, flagged or reserved against an answer nobody
+// has: a knob held back "for later" is a stamp slot, and a stamp slot spent on
+// a feature that may never exist is a link format nobody can take back.
+//
 // THE HONEST LIMIT, for the card copy: cells on the same ring share a pitch.
 // That is the point rather than a compromise - ring is voice, angle is time.
 //
@@ -95,9 +149,9 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 506 characters, Timer 279, both fixed
+// against the pinned minifier: Setup 558 characters, Timer 279, both fixed
 // points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
-// GATE READS IS 507 / 282, leaving 401 free, and it is the RGB444 PICKER corner
+// GATE READS IS 559 / 282, leaving 349 free, and it is the RGB444 PICKER corner
 // (D-06) rather than the all-longest corner of the declared palettes - the two
 // coincide here only because @SWEEPC already declares 255,255,255, and plan
 // 11-07 measured them 21 characters apart on CONSOLE. src/lib/catalog/
@@ -110,7 +164,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.a={}self.o={}self.v={}self.q={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local n=x*9//128+y*9//128*9 if s.q[i]==n then return end s.q[i]=e<9 and n s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
+  "--[[@cb]]self.a={}self.o={}self.v={}self.q={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local n=x*9//128+y*9//128*9 if s.q[i]==n then return end s.q[i]=e<9 and n s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
 
 const TIMER =
   "--[[@cb]]gtt(0,@PERIOD)local s=self local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
@@ -236,10 +290,12 @@ export const SONAR: CatalogEntry = {
     channel: 0,
   },
 
-  // FALSE. Both layers are coloured at Setup and left at phase 0, so tick 0 is
-  // genuinely black - but the sweep's first fire lands at 70 ms, seven ticks
-  // in, and lights a wedge of cells. Every sampled tick after the first
-  // therefore reads non-zero, which is what "rests black" asks about.
-  // frames.spec.ts test 5 turns that declaration into a checked fact.
+  // FALSE, and since plan 11-08 it is false at TICK 0 too. It used to be true
+  // in the narrow sense that both layers were coloured at Setup and left at
+  // phase 0, so the very first frame was black and the sweep's first fire at
+  // 70 ms lit a wedge seven ticks later. The always-lit centre now puts three
+  // non-zero bytes into frames.json's tick-0 record - the hub, on layer 0 -
+  // so nothing this card is sampled at reads black. frames.spec.ts test 5
+  // turns that declaration into a checked fact.
   restsBlack: false,
 };
