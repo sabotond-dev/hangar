@@ -2527,9 +2527,21 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const { host, sim } = await open(entry);
       try {
         const y = Math.round(fraction * host.coordMax);
-        // x is held at the middle at every depth, so the OSCILLATOR RATE is
-        // the same in all three runs and the only thing that moves is s.d.
-        const x = Math.round(0.5 * host.coordMax);
+        // x is held CONSTANT at every depth, so the OSCILLATOR RATE is the
+        // same in all three runs and the only thing that moves is s.d.
+        //
+        // IT IS NO LONGER HELD AT THE MIDDLE, AND THE REASON IS THE HOLE PLAN
+        // 11-09.1 PUT THERE. This probe used to press x = y = 64, which is
+        // cell 40 exactly - and cell 40 is now the stop/resume toggle. At the
+        // middle depth the probe was TAPPING THE STOP BUTTON, so the heart
+        // froze, the travel read 0 and the rank correlation went red. That is
+        // not a failure of this test, it is the documented cost of the feature
+        // arriving as a measurement: a press that STARTS in cell 40 can no
+        // longer set rate 14..18 at depth 56..70. x = 40 is column 2, so no
+        // depth on this axis reaches the centre cell, and the rate it fixes
+        // (1 + 40*31//127 = 10) is still identical across all three runs -
+        // which is the only property this test ever needed from x.
+        const x = 40;
         host.touchDown(0, x, y);
         host.tick();
         host.touchUp(0, x, y);
@@ -2630,6 +2642,227 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       "\nARC amplitude, plan 11-09:\n  " + report.join("\n  ") + "\n",
     );
     expect(report.length, "three depths reported").toBe(3);
+  }, 120000);
+
+  it("stops ARC on a centre tap and resumes it on the next, once per press", async () => {
+    // THE BENCH NOTE, AND THE ANSWER THAT REFRAMED IT. The note read "if you
+    // press the center it stops, pressing it again resumes, not intuitive
+    // enough" and ARC had NO stop, no resume and no toggle of any kind -
+    // s.r = 1 + x*31//127 is at least 1 at every x, so the oscillator could
+    // not reach rate 0. The open worry was that the hardware did something the
+    // simulator does not reproduce, which would have meant the preview was
+    // lying about a shipped card. IT DOES NOT. The user answered "i meant to
+    // add stopping and resuming tap as a feature" (11-09-ANSWERS.md): they
+    // were describing what they want, not what they saw. The simulator was
+    // never wrong, and this test is the feature rather than the repair.
+    //
+    // THE ASSERTION IS A SEQUENCE, NOT A COUNT, and the flat stretch is pinned
+    // BY ITS LENGTH. A toggle that fired on the DOWN and again on the UP of
+    // one press would stop and resume inside one gesture and look exactly like
+    // a card that does nothing; a test that counted messages would go green on
+    // it, which is 11-08's lesson in its own words. A one-sample plateau
+    // therefore cannot pass here - the whole wait has to be flat.
+    //
+    // BOTH ARRIVAL SHAPES ARE DRIVEN, and that is the point of the plan. A
+    // deliberate press arrives as DOWN then UP; a sub-cycle one arrives as the
+    // single coalesced DOWNUP, code 9, which 11-02 admitted as a real press.
+    // Measured on the shipped src/lib/sim/touch.ts, the BROWSER never produces
+    // 9 at all - a 300 ms press and the fastest press a pointer can make both
+    // deliver 4 then 5 - so code 9 reaches an entry from HARDWARE only and has
+    // to be synthesised to be tested. Both are, and both must toggle once.
+    const entry = entryById("arc");
+    const cc = knobValueOf(entry, "cc");
+    // The centre cell of the 3x3 heart, from the entry's own paint loop.
+    const CENTRE_CELL = 40;
+    const cellOf = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    // One second. ARC's Timer is gtt(0,20) against a 10 ms tick, so it runs
+    // half as often as the host ticks.
+    const WAIT_TICKS = 100;
+    const TIMER_RUNS = WAIT_TICKS / 2;
+    const report: string[] = [];
+
+    for (const mode of ["slow: DOWN then UP", "fast: coalesced DOWNUP"]) {
+      const { host, sim } = await open(entry);
+      try {
+        const emitted = (from: number): number[] =>
+          host.midi
+            .slice(from)
+            .filter((m) => m.p1 === cc)
+            .map((m) => m.p2);
+        // The swirl's rate is the visible half: a stopped ARC has to LOOK
+        // stopped, not merely go quiet.
+        const swirlRate = (): number => sim.layer(screenToHw(0, 0), 2).fre;
+
+        let nth = 0;
+        const tapCentre = (): void => {
+          // The host's enqueue is change-gated on (event, x, y) per contact,
+          // so two identical taps at one pixel would measure the HOST's dedup
+          // and report it as the entry's. Both points are inside cell 40.
+          const p = 60 + nth * 5;
+          nth += 1;
+          expect(
+            cellOf(p, p),
+            `arc: the probe must press the centre cell, not near it`,
+          ).toBe(CENTRE_CELL);
+          if (mode.startsWith("fast")) {
+            host.touchTap(0, p, p);
+            host.tick();
+          } else {
+            host.touchDown(0, p, p);
+            host.tick();
+            host.touchUp(0, p, p);
+            host.tick();
+          }
+        };
+
+        let from = host.midi.length;
+        host.run(WAIT_TICKS);
+        const running = emitted(from);
+
+        tapCentre();
+        const stoppedRate = swirlRate();
+        from = host.midi.length;
+        host.run(WAIT_TICKS);
+        const stopped = emitted(from);
+
+        tapCentre();
+        const resumedRate = swirlRate();
+        from = host.midi.length;
+        host.run(WAIT_TICKS);
+        const resumed = emitted(from);
+
+        const shape = (v: number[]): string =>
+          `${v.length} msg, ${new Set(v).size} distinct, ` +
+          `${v.length > 0 ? Math.min(...v) : 0}..` +
+          `${v.length > 0 ? Math.max(...v) : 0}`;
+        report.push(
+          `${mode.padEnd(22)} running [${shape(running)}] -> stopped ` +
+            `[${shape(stopped)}] -> resumed [${shape(resumed)}]; swirl rate ` +
+            `${stoppedRate} while stopped, ${resumedRate} after`,
+        );
+
+        // NON-VACUITY FIRST. A run that emitted nothing would satisfy "flat"
+        // for free, and a Timer that raised would emit nothing either.
+        for (const [label, run] of [
+          ["before the first tap", running],
+          ["while stopped", stopped],
+          ["after the second tap", resumed],
+        ] as const)
+          expect(
+            run.length,
+            `arc ${mode}: the Timer sent no controller at all ${label}, so ` +
+              "nothing below proves anything. ARC KEEPS SENDING WHILE " +
+              "STOPPED, deliberately: a stop that went silent would be " +
+              "indistinguishable from a Timer that raised",
+          ).toBeGreaterThan(TIMER_RUNS - 4);
+
+        expect(
+          new Set(running).size,
+          "arc: the controller must be moving before the first tap, or the " +
+            "flat stretch below is comparing two still pictures",
+        ).toBeGreaterThan(1);
+
+        // 1. THE STOP, PINNED BY LENGTH AS WELL AS BY CONSTANCY. This is the
+        //    clause that a toggle firing twice inside one gesture cannot pass:
+        //    such a card never flattens at all.
+        expect(
+          new Set(stopped).size,
+          `arc ${mode}: ONE TAP MUST BE ONE TOGGLE. The centre was tapped ` +
+            `once and the controller went on moving - ${stopped.length} ` +
+            `message(s) over ${TIMER_RUNS} Timer runs taking ` +
+            `${new Set(stopped).size} distinct values. A toggle that fires ` +
+            "on the down AND on the up of one press stops and resumes inside " +
+            "the same gesture, which looks exactly like a card that does " +
+            "nothing. The onset edge is e==4 or e>8 - see stage.ts",
+        ).toBe(1);
+        expect(
+          stopped.length,
+          `arc ${mode}: the stop must hold for the WHOLE wait, not for one ` +
+            `sample. ${TIMER_RUNS} Timer runs elapsed and only ` +
+            `${stopped.length} message(s) arrived`,
+        ).toBeGreaterThan(TIMER_RUNS - 4);
+
+        // 2. THE RESUME. The next tap has to give the movement back, and this
+        //    is the half that a stop written as s.r = 0 fails: the touch
+        //    handler recomputes r = 1 + x*31//127 on every accepted sample, so
+        //    a zeroed rate is revived by the very touch meant to resume it.
+        expect(
+          new Set(resumed).size,
+          `arc ${mode}: THE SECOND TAP MUST RESUME. After it the controller ` +
+            `took ${new Set(resumed).size} distinct value(s) over ` +
+            `${resumed.length} message(s)`,
+        ).toBeGreaterThan(1);
+
+        // 3. THE STOP IS VISIBLE. "not intuitive enough" arrives by a second
+        //    route if a user has to wait and listen to find out whether the
+        //    card stopped. Layer 2 is the whole-pad swirl and glf is a
+        //    rate-only setter, so rate 0 freezes the picture without blanking
+        //    it - measured, the brightest frozen cell is 253 of 255.
+        expect(
+          stoppedRate,
+          `arc ${mode}: A STOPPED ARC MUST LOOK STOPPED. The swirl's rate is ` +
+            `${stoppedRate}; a card whose only sign of life is the MIDI it ` +
+            "is not sending is the 'not intuitive enough' the bench note " +
+            "complained about, arriving by another route",
+        ).toBe(0);
+        expect(
+          resumedRate,
+          `arc ${mode}: the swirl must turn again after the resume. Rate ` +
+            `${resumedRate}`,
+        ).toBeGreaterThan(0);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 4. THE TOGGLE IS ON THE ONSET EDGE ONLY. A finger that presses outside
+    //    the centre and DRAGS THROUGH it is setting the rate, not tapping, so
+    //    the card must keep running - which is also what shrinks the hole the
+    //    centre cell leaves in the mapping to "a press that STARTS there".
+    {
+      const { host, sim } = await open(entry);
+      try {
+        host.touchDown(0, 10, 64);
+        host.tick();
+        for (let x = 11; x <= 120; x += 1) {
+          host.touchMove(0, x, 64);
+          host.tick();
+        }
+        host.touchUp(0, 120, 64);
+        host.tick();
+        const from = host.midi.length;
+        host.run(WAIT_TICKS);
+        const values = host.midi
+          .slice(from)
+          .filter((m) => m.p1 === cc)
+          .map((m) => m.p2);
+        const rate = sim.layer(screenToHw(0, 0), 2).fre;
+        report.push(
+          `drag THROUGH the centre: swirl rate ${rate}, ` +
+            `${values.length} msg, ${new Set(values).size} distinct`,
+        );
+        expect(
+          new Set(values).size,
+          "arc: A DRAG THROUGH THE CENTRE MUST NOT STOP THE CARD. The " +
+            "toggle fires on the onset edge (e==4 or e>8) only; a MOVE " +
+            "sample over cell 40 sets the rate and the depth like any other. " +
+            `Observed ${new Set(values).size} distinct value(s) after the drag`,
+        ).toBeGreaterThan(1);
+        expect(
+          rate,
+          "arc: the swirl must still be turning after a drag that crossed " +
+            "the centre",
+        ).toBeGreaterThan(0);
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nARC stop/resume, plan 11-09.1:\n  " + report.join("\n  ") + "\n",
+    );
+    expect(report.length, "both tap shapes and the drag reported").toBe(3);
   }, 120000);
 
   it("shows STAGE's live, lined-up and idle zones as THREE states", async () => {

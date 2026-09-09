@@ -53,7 +53,8 @@
 // The Timer's keeper is folded into the oscillator rather than written
 // separately: "if p<s.r" is true exactly on the phase wrap, so layer 2 is
 // re-armed once per LFO revolution for forty characters instead of a second
-// keeper pass.
+// keeper pass. A STOPPED CARD HAS NO WRAP, which is why "or s.s<1" was added
+// beside it in plan 11-09.1 - see the stop/resume section below.
 //
 // Honest limit for the card copy: the 20 ms Timer is the LFO clock, so the
 // fastest cycle is about 165 ms and anything faster gets steppy.
@@ -70,21 +71,136 @@
 // zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
 // characters.
 //
+// TAP THE CENTRE TO STOP IT, TAP AGAIN TO RESUME - AND THE SIMULATOR WAS
+// NEVER WRONG ABOUT THIS (plan 11-09.1). The bench note read "if you press the
+// center it stops, pressing it again resumes, not intuitive enough", and until
+// this plan ARC HAD NO STOP, NO RESUME AND NO TOGGLE OF ANY KIND: s.r is
+// 1 + x*31//127, which is at least 1 at every x, so the oscillator could not
+// reach rate 0 by any gesture. The open worry was therefore that the hardware
+// did something the preview does not reproduce - that a card in the catalogue
+// was being shown as something it is not. It is not. Asked at 11-09's
+// checkpoint the user answered "i meant to add stopping and resuming tap as a
+// feature" (.planning/phases/11-bench-corrections/11-09-ANSWERS.md). This is a
+// FEATURE, the note was an intention rather than an observation, and a whole
+// class of worry about the simulator closes with it.
+//
+// THE STATE IS A SEPARATE FLAG, self.s, AND ZEROING s.r WOULD NOT HAVE WORKED.
+// The touch handler recomputes r = 1 + x*31//127 on every accepted sample, so
+// a zeroed rate is revived by the next touch. Measured as a negative check:
+// planting "stop by s.r = 0" leaves the card stopped and the SECOND tap stops
+// it again - "the controller took 1 distinct value over 50 messages" - so the
+// toggle would work in one direction only. self.s is 1 running, 0 stopped; the
+// Timer multiplies the phase step by it (s.h + s.r*s.s) so a stopped card
+// freezes its phase instead of losing its rate.
+//
+// THE TARGET IS CELL 40, THE MIDDLE PIXEL OF THE 3x3 HEART, AND THE HOLE IT
+// LEAVES IS NAMED. Three gestures were costed:
+//
+//   (a) CHOSEN - cell 40, one cell test on the onset edge. A press there is
+//       aimed at the middle of a shape the card already draws. THE HOLE: raw
+//       x and y in 57..71 map to it, so a press STARTING in cell 40 can no
+//       longer set rate 14..18 (of 1..32) at depth 56..70 (of 0..127) - the
+//       middle of both ranges. It is halved by the onset gating: a finger that
+//       presses anywhere else and DRAGS through the centre still sets both,
+//       because a MOVE sample never reaches the toggle. lua-smoke.spec.ts
+//       asserts exactly that.
+//   (b) REJECTED - the whole 3x3 heart, a nine-times bigger target and a
+//       nine-times bigger hole: rate 11..21 and depth 42..84 unreachable from
+//       a press starting there, which is precisely where a user aiming for
+//       "medium rate, medium depth" puts their finger.
+//   (c) REJECTED - a second contact, which this handler currently ignores
+//       outright (i > 0 returns). Plan 11-09 MEASURED the half everyone
+//       assumes is the problem and found it fine: touch_cb really does see
+//       i = 0, 1, 2 through the Lua host and TouchSampler really does allocate
+//       three slots. It fails downstream of that, and PREV-01 is the reason -
+//       Coverflow.svelte maps ONE pointerId to ONE contact, so a visitor
+//       driving the preview with a mouse could never perform the headline
+//       gesture of the card. Cited from stage.ts's own note rather than
+//       re-derived.
+//
+// THE STOPPED PICTURE IS THE FROZEN SWIRL, NOT THE FROZEN HEART ALONE. Two
+// were costed:
+//
+//   (i)  REJECTED - freeze the heart and let the swirl turn. Free, because it
+//        falls out of freezing the phase, AND IT CAN FREEZE BLACK: measured
+//        across 60 consecutive stop moments at full depth the heart lands
+//        anywhere in 0..254 and below 16 on 2 of the 60. A stopped card that
+//        is sometimes indistinguishable from a dead one is the "not intuitive
+//        enough" of the bench note arriving by a second route.
+//   (ii) CHOSEN - freeze the heart AND stop the swirl, F(0) on stop and F(s.f)
+//        on resume. glf is a RATE-ONLY setter, so rate 0 holds the swirl's
+//        picture rather than blanking it: measured, the brightest frozen cell
+//        is 253 of 255, so a stopped ARC is a still, plainly lit pad and never
+//        a dark one. It reuses the 81-write shape the rate-change branch
+//        already performs, through a shared local function F - the same
+//        Setup-local-closure idiom stage.ts's Z(z,f,g) uses.
+//
+// self.f CARRIES THE SWIRL RATE SO THE RESUME IS EXACT. Setup arms layer 2 at
+// rate 4 while the touch path writes glim(r//2,1,120), which is 2 at the
+// default r = 4 - so a resume that recomputed the rate would hand the card
+// back slightly slower than it left. self.f = 4 at Setup and s.f = the value
+// actually written on every rate change, so F(s.f) restores what was there.
+//
+// THE KEEPER RE-ARM GAINED "or s.s<1", AND IT IS NOT DECORATION. The Timer's
+// keeper rides on "p<s.r", true exactly on the phase wrap - but a stopped card
+// has no wrap, so 65535 ticks (655 seconds) after a stop the LED engine would
+// expire layer 2 and the frozen swirl would go out. While stopped the keeper
+// is re-armed every tick instead. A zero rate together with a keeper is the
+// LEGITIMATE form and not pitfall 1: the pitfall's signature is a keeper
+// TOGETHER WITH a decay at or above 200, and 0 is as far from that as a rate
+// gets. src/lib/catalog/decay-idiom.spec.ts is green on it.
+//
+// A STOPPED ARC GOES ON SENDING, AND THE NUMBER IS 50 MESSAGES A SECOND. The
+// Timer still runs at 20 ms and still emits the frozen value. Suppressing it
+// the way morph.ts suppresses an unmoved corner was considered and REJECTED,
+// for three reasons: (1) MORPH's shouting was four DIFFERENT CCs racing each
+// other for a MIDI-learn binding, and ARC has exactly ONE CC, so repeating it
+// is what makes it learnable rather than what makes it unreachable; (2) MIDI
+// is stateful, so a host that connects mid-stop learns the held value at once
+// instead of waiting for a resume; (3) A STOP THAT WENT SILENT WOULD BE
+// INDISTINGUISHABLE FROM A TIMER THAT RAISED, and the smoke gate's
+// non-vacuity clause would have nothing left to stand on. A general
+// last-value guard is also not available here at any price: at depth 0 the
+// controller is a constant 64 by design, and 11-09's amplitude test asserts
+// that ARC still sends there.
+//
+// THE ONSET EDGE IS "e==4 or e>8" AND IT IS CITED, NOT DERIVED. It is the
+// house spelling for "this contact STARTED", stage.ts ships it, and
+// src/lib/catalog/touch-guard.spec.ts is where the convention lives; the event
+// table itself is src/vendor/botor/pad-sim.ts:228-241 and
+// zona-docs/docs/ZONA_REFERENCE.md s4.6. No DECLARED_EXCEPTIONS row is earned
+// by it - an onset test with no unbounded elseif behind it is what that gate
+// wants. MORPH takes the same edge in the same plan, so the catalogue has ONE
+// idiom for telling a discrete tap from the onset of a drag.
+//
+// AND ONE THING THE PLAN ASSERTED THAT THIS ENTRY DOES NOT SUPPORT: the
+// dangerous naive spelling "e==4 or e>=5" is HARMLESS here, and it was
+// measured that way rather than assumed. Code 5 never reaches the toggle at
+// all, because the ended guard on the line above already returns for
+// "e>=5 and e<9" - so the plant came back GREEN. What DOES double-fire is a
+// toggle placed ABOVE that guard, and it double-fires on the SLOW tap (4 then
+// 5), not on the fast one: code 9 is the safe arrival and code 5 is the
+// hazard. Planted that way the test is red with "50 message(s) over 50 Timer
+// runs taking 50 distinct values". The correct spelling ships anyway, because
+// it is the house form and because it stays correct if that guard ever moves.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 387 characters, Timer 260, both fixed
-// points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the five-knob cross-product is 390 / 262 - 518 free on the Setup
-// and 646 on the Timer, against a budget of 908 an event.
+// against the pinned minifier: both fixed points of compressScript and both
+// accepted by checkSyntax. AT THE RGB444 PICKER CORNER, which is the one the
+// 908 gate reads, this entry is Setup 523 of 908 (385 free) and Timer 275 of
+// 908 (633 free). Plan 11-09.1 measured it at 390 / 262 before its work and
+// spent +133 on the Setup and +13 on the Timer.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those.
 //
 // THE CORNER QUOTED ABOVE IS THE RGB444 PICKER CORNER, WHICH IS THE ONE THE
-// 908 GATE READS, and it was re-measured rather than inherited (plan 11-09).
-// Plans 11-07 and 11-08 found CONSOLE's, FORGE's and STEPS's headers quoting
-// the DECLARED-PALETTE corner instead, which is lower and therefore wrong in
-// the dangerous direction. ARC is clean by accident and the accident is worth
-// naming: both of its colour knobs already declare 255,255,255, so the two
-// corners coincide here at exactly 390 / 262.
+// 908 GATE READS, and it was re-measured rather than inherited (plans 11-09
+// and 11-09.1). Plans 11-07, 11-08 and 11-09 found CONSOLE's, FORGE's,
+// STEPS's, POMODORO's and STAGE's headers quoting the DECLARED-PALETTE corner
+// instead, which is lower and therefore wrong in the dangerous direction. ARC
+// is clean by accident and the accident is worth naming: both of its colour
+// knobs already declare 255,255,255, so the two corners coincide here. Do not
+// read that as the house norm - five entries out of the twenty were wrong.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.
@@ -93,10 +209,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r local f=glim(r//2,1,120)for a=0,80 do glf(a,2,f)end end end gtt(0,20)";
+  "--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end if(e==4 or e>8)and x*9//128+y*9//128*9==40 then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)F(s.f)end end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r)%256 s.h=p if p<s.r then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end";
+  "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
