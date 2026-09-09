@@ -112,7 +112,8 @@
 // four values, row by row from the top, is 0, 21, 42, 63, 85, 105, 126, 148,
 // 169. The whole of the knob's travel is in the lower half of the pad, and the
 // shipped default is index 2 of 4, so ONE STEP moves row 1 by seven counts of
-// 255 and the bottom row by fifty-five. Somebody watching the top of the pad
+// 255 and the bottom row by fifty-five going shallower (84 -> 139) or
+// fifty-seven going deeper (84 -> 27). Somebody watching the top of the pad
 // while turning the knob is reporting what the pad does.
 //
 // THERE IS NO DEEPER FOUR-VALUE RE-CUT, AND THAT IS THE SHORTFALL AGAINST THE
