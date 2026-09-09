@@ -61,7 +61,7 @@ numbers disagreed.
 | `BASE_SWEEP_WALL` | the `npm run test:sweep` wall clock on the clean tree, with free memory beside it | **never moves.** Measured in 11-01. 11-16 compares against it. The sweep gets **cheaper** in this phase — 36 entries become 28 — and a wall clock that did not fall is evidence the removal did not reach the sweep |
 | `PREV_SWEEP_WALL` | the last measured sweep wall clock | re-measured by 11-01 and 11-16 |
 | `BASE_E2E` | the Playwright total on the clean tree, measured once in 11-01 | **never moves.** 11-16 asserts against it |
-| `PREV_E2E` | the last measured Playwright total, with the plan that measured it named beside it | starts equal to `BASE_E2E`; re-measured by 11-01, 11-05 and 11-16 |
+| `PREV_E2E` | the last measured Playwright total, with the plan that measured it named beside it | starts equal to `BASE_E2E`; re-measured by **11-01, 11-05, 11-15 and 11-16** — **four plans, not three**. 11-15 builds a new route and a new OG image and runs the suite at `11-15:320` and `:361`, so under the `BASE_SWEEP` row's own contract it names itself |
 | `BASE_OG_BYTES` | `static/og/` total bytes over its file count on the clean tree | **never moves.** 11-16 compares. It is 36 files before this phase and **28** after |
 | `BASE_CATALOG` | `CATALOG.length` on the clean tree, expected 36 | **never moves.** Every plan states the running catalog size as a carried name plus a delta, never as a restated total |
 
@@ -82,11 +82,22 @@ BASE_CATALOG (36)
   −9 (11-01: hold, keys, learn, switch, etch, gridlock, life, slam, table)
   +0 (11-02) +0 (11-03) +0 (11-04) +0 (11-05) +0 (11-06) +0 (11-07) +0 (11-08)
   +0 (11-09) +0 (11-10) +0 (11-11) +0 (11-12) +0 (11-13)
-  +0 (11-14: RADAR changes SOURCE, never count — see the ring question)
+  + T14 (11-14: +0 if RADAR changes SOURCE, +1 under new-entry — see the ring question)
   +1 (11-15: the wheels)
   +0 (11-16)
-  = 28
+  = 28, or 29 under new-entry
 ```
+
+**`T14` is a function of an answer the user has not yet given**, and it moves four downstream numbers
+together. 11-14 carries the authoritative branch table and its SUMMARY copies the applicable row;
+11-15 and 11-16 read that row rather than restating a literal:
+
+| 11-14's answer | `T14` | catalog | preset / Lua | `static/og/` | audition rows after 11-15 | test total |
+|---|---|---|---|---|---|---|
+| `ring-seven` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 33` |
+| `ring-eight-lua` | +0 | **28** | 8 + 20 | 28 | 24 | `BASE_TESTS + 33` |
+| `new-entry` | **+1** | **29** | 9 + 20 | **29** | **25** | `BASE_TESTS + 33` |
+| `fold-into-sonar` | +0 | **28** | 9 + 19 | 28 | 24 | `BASE_TESTS + 32` |
 
 **Sixteen terms, one per plan, and every `+0` is written out rather than omitted**, because a zero
 absent from a chain is indistinguishable from a term nobody computed. The split behind the 28 moves
@@ -222,20 +233,20 @@ per-file count. The file column counts spec files created or deleted.
 | 11-01 | 1 | **+1** | **+3** | `4 19` (measured, and **faster**) | measured, expected `+0` | `decay-idiom.spec.ts` created with 3. Nine entry files deleted are **sources, not specs**, so the file column does not fall |
 | 11-02 | 2 | **+1** | **+5** | `4 19` | `+0` | `touch-guard.spec.ts` created with 3; `lua-smoke.spec.ts` +2 (the matched-pair residue probe, the fast-tap parity probe) |
 | 11-03 | 3 | +0 | **+2** | `4 19` | `+0` | `vendored-diff.spec.ts` 14 → **15**; `preset-baseline.spec.ts` +1. **No source hunk lands in this plan** |
-| 11-04 | 4 | +0 | **+1** | `4 19` | `+0` | one fast-tap parity test over the nine compiled presets |
+| 11-04 | 4 | +0 | **+1** | `4 19` | `+0` | `lua-smoke.spec.ts` +1 — one fast-tap parity test over the nine compiled presets |
 | 11-05 | 5 | **+1** | **+4** | `4 19` | measured, expected `+0` | `src/lib/catalog/presets.spec.ts` created with 4 |
 | 11-06 | 6 | +0 | **+1** | `4 19` | `+0` | `knobs.preset.spec.ts` +1 — the ninepads grid knob |
-| 11-07 | 7 | +0 | **+2** | `4 19` | `+0` | `lua-smoke.spec.ts` +2 — CONSOLE reaches 127; a muted fader emits nothing |
-| 11-08 | 8 | +0 | **+1** | `4 19` | `+0` | `lua-smoke.spec.ts` +1 — a swipe toggles once per cell crossed, not at 100 Hz |
+| 11-07 | 7 | +0 | **+4** | `4 19` | `+0` | `lua-smoke.spec.ts` **+4** — CONSOLE reaches 127; a muted fader emits nothing; **FORGE's whole travel swept**; **LATTICE's clamp swept**. The last two answer bench notes that previously reached no plan, no removal and no deferral |
+| 11-08 | 8 | +0 | **+2** | `4 19` | `+0` | `lua-smoke.spec.ts` **+2** — a swipe toggles once per cell crossed, not at 100 Hz; **MORPH sends a corner only when that corner changed**, which is the second clause of MORPH's note and had reached no plan |
 | 11-09 | 9 | +0 | **+2** | `4 19` | `+0` | `lua-smoke.spec.ts` +1 (ARC's picture tracks its emitted value); `stamp.spec.ts` +1 (POMODORO's first four indices unmoved) |
 | 11-10 | 10 | +0 | **+2** | `4 19` | `+0` | `lua-host.spec.ts` +1 and `host-surface.spec.ts` +1 for `gmss` |
 | 11-11 | 11 | +0 | **+1** | `4 19` | `+0` | GHOST's redesign carries one behaviour test |
 | 11-12 | 12 | +0 | **+1** | `4 19` | `+0` | SHUTTLE's |
 | 11-13 | 13 | +0 | **+2** | `4 19` | `+0` | STRIP's three independent streams, and the 14-bit loss recorded as a test rather than a comment |
-| 11-14 | 14 | +0 | **+1** | `4 19` | `+0` | RADAR — **blocked on the ring question**; if the answer retires the ask, the term becomes `+0` and 11-16 names it |
+| 11-14 | 14 | +0 | **+1**, or **+0** under `fold-into-sonar` | `4 19` | `+0` | RADAR — **blocked on the ring question**. Under `new-entry` the plan also owns a catalog `+1`, an audition row and a `static/og/` file; see the branch table above. 11-16 names the term either way |
 | 11-15 | 15 | +0 | **+2** | `4 19` | `+0` | the wheels: the spring returns in MIDI as well as in light; mod holds across a release |
 | 11-16 | 16 | +0 | **+0** | `4 19` | measured, expected `+0` | the gate writes no tests — written out, not omitted, so the term count is the plan count |
-| **Phase total** | | **+3** | **+30** | `4 19` **unchanged** | **+0** | 3+5+2+1+4+1+2+1+2+2+1+1+2+1+2+0 = **30**, in **sixteen** terms. The three created files are `decay-idiom.spec.ts`, `touch-guard.spec.ts`, `presets.spec.ts`. **The e2e total is `BASE_E2E + 0` in sixteen terms, every one written out** — no Playwright title is added, moved or removed anywhere in this phase, and the plans that run the suite (11-01, 11-05, 11-16) prove their own zero with `grep -c "test("` before and after |
+| **Phase total** | | **+3** | **+33**, or **+32** under `fold-into-sonar` | `4 19` **unchanged** | **+0** | 3+5+2+1+4+1+4+2+2+2+1+1+2+T14+2+0, where the fifteen fixed terms sum to **32** and `T14` is 1 or 0 — in **sixteen** terms. The three created files are `decay-idiom.spec.ts`, `touch-guard.spec.ts`, `presets.spec.ts`. **The e2e total is `BASE_E2E + 0` in sixteen terms, every one written out** — no Playwright title is added, moved or removed anywhere in this phase, and the **four** plans that run the suite (**11-01, 11-05, 11-15, 11-16**) prove their own zero with `grep -c "test("` before and after |
 
 **A wave asserts against `PREV_FILES` / `PREV_TESTS`.** **Only 11-16 asserts against
 `BASE_FILES` / `BASE_TESTS`**, and its number is the phase total written out as a sixteen-term chain,
@@ -252,7 +263,7 @@ Per-file counts, which **are** asserted absolutely:
 | `src/lib/catalog/presets.spec.ts` | **4** | 11-05 (created) |
 | `src/lib/fidelity/vendored-diff.spec.ts` | 14 → **15** | 11-03 |
 | `src/lib/fidelity/preset-baseline.spec.ts` | +1 | 11-03 |
-| `src/lib/sim/lua-smoke.spec.ts` | +2, +2, +1, +1, +2 | 11-02, 11-07, 11-08, 11-09, 11-15 |
+| `src/lib/sim/lua-smoke.spec.ts` | **+17 across ten plans** — see the breakdown below | 11-02, 11-04, 11-07, 11-08, 11-09, 11-11, 11-12, 11-13, 11-14, 11-15 |
 | `src/lib/sim/lua-host.spec.ts` | +1 | 11-10 |
 | `src/lib/catalog/host-surface.spec.ts` | +1 | 11-10 |
 | `src/lib/tune/knobs.preset.spec.ts` | +1 | 11-06 |
@@ -261,6 +272,26 @@ Per-file counts, which **are** asserted absolutely:
 | `src/lib/catalog/audition.spec.ts` | **unchanged** (`ROW_COUNT` 32 → 23 inside) | 11-01 |
 | `src/lib/catalog/frames.spec.ts` | **unchanged** (the fixture moves, the spec does not) | thirteen plans |
 | `src/lib/fidelity/golden-frames.spec.ts` | **unchanged** (fixture regenerated in 11-04) | 11-04 |
+
+**`lua-smoke.spec.ts` is the file most of this phase's behavioural evidence lands in, and its row
+above used to name five plans totalling +8. Ten plans declare it in their own `files_modified`:**
+
+| Plan | delta | what it adds |
+|---|---|---|
+| 11-02 | +2 | the matched-pair residue probe; the fast-tap parity probe |
+| 11-04 | +1 | fast-tap parity across the nine compiled presets |
+| 11-07 | +4 | CONSOLE's full scale; the inert mute; FORGE's travel sweep; LATTICE's clamp sweep |
+| 11-08 | +2 | the swipe guard; MORPH's per-corner suppression |
+| 11-09 | +1 | ARC's picture and emitted value moving together |
+| 11-11 | +1 | GHOST |
+| 11-12 | +1 | SHUTTLE |
+| 11-13 | +2 | STRIP's three streams; the 14-bit loss |
+| 11-14 | +1, or +0 under `fold-into-sonar` | RADAR |
+| 11-15 | +2 | the wheels |
+| **total** | **+17**, or +16 | |
+
+**11-16 is told to derive each chain term from this per-file table**, which is why the row being wrong
+mattered more than a stale note usually would.
 
 Standing gates that must be green at the phase gate and are **not** edited:
 `src/lib/fidelity/firmware-oracle.spec.ts` (**the proof the phase walk was not touched — see below**),
@@ -343,26 +374,35 @@ Every request is costed **before** it is designed, with
 `await padReady()`. **A request that cannot fit is a finding, not a failure**, and the plan that finds
 one says so in the SUMMARY rather than trimming the user's ask to fit.
 
+**"Free" means two different things and they must never share a column heading.** *Free at defaults*
+is `908 − cost at the shipped knob values`; *free at worst* is `908 − cost at the worst reachable knob
+position`. They differ by 1-5 characters, and **the binding gate is worst-based** —
+`lua-entries.sweep.spec.ts` asserts every entry inside 908 at every knob position. **Every margin in
+every plan and every SUMMARY is stated at worst.** The table below states the cost at defaults and the
+free at worst, which is the pairing `11-RESEARCH.md`'s survey uses, and it says so in its headings
+rather than leaving a reader to infer it.
+
 Measured headroom for every entry this phase touches, from `11-RESEARCH.md` and re-verified where a
 plan spends it:
 
-| Entry | Setup | free | Timer | free | What this phase asks of it |
+| Entry | Setup (at defaults) | **Setup free (at worst)** | Timer (at defaults) | **Timer free (at worst)** | What this phase asks of it |
 |---|---|---|---|---|---|
 | console | 785 | **121** | 0 | 908 | three asks: `+0`, `+5`, and the mute-row swipe |
+| forge | 716 | **189** | 373 | **532** | its whole travel swept, then a costed fix or a named non-delivery |
 | chorus | 729 | **177** | 173 | 734 | `+8` for the guard, plus the bloom re-cut |
 | euclid | 702 | **204** | 218 | 688 | `+76` for the swipe guard, `−5` for the decay |
 | shuttle | 663 | **245** | 201 | 707 | a blank page |
 | strip | 638 | **266** | 0 | 908 | three streams instead of one 14-bit fader |
-| lattice | 615 | 291 | 171 | 736 | `+8` |
+| lattice | 615 | 291 | 171 | 736 | `+8`, then the clamp clause swept |
 | lumen | 604 | 302 | **0** | **908** | sysex, and the most room in the catalog |
 | snake | 581 | 327 | **870** | **36** | **nothing. Deferred by the user** |
 | stage | 505 | 399 | 109 | 799 | a third zone state, if the answer says so |
-| morph | 507 | 400 | 0 | 908 | `+8`, and a `@DECAY` re-cut |
+| morph | 507 | 400 | 0 | 908 | `+8`, a `@DECAY` re-cut, and the per-corner send suppression |
 | sonar | 432 | 475 | 279 | 627 | swipe, centre lit, note length |
 | steps | 388 | 518 | 251 | 655 | swipe |
 | arc | 379 | 527 | 251 | 656 | `+21` for the amplitude |
 | ghost | 305 | 601 | 333 | 573 | a blank page |
-| **tpad** | **902** | **6** | 146 | 762 | **nothing can be afforded. Recorded, not attempted** |
+| **tpad** | **902** | **1** | 146 | 762 | **nothing can be afforded. Recorded, not attempted.** This row previously read **6**, which is the free-at-defaults figure; at the worst reachable knob position tpad costs **907**, so the correct worst-based figure is **1**. It is the one row in this table that used the other convention |
 
 **SNAKE's Timer has 36 characters free**, which is the phase's clearest example of a request that
 cannot fit — "one note per movement" does not go in. The user deferring it is fortunate rather than
@@ -380,11 +420,14 @@ merely convenient, and 11-16 records that as the reason the deferral was right.
   exception of 11-03, which lands no source hunk and proves it by grep.
 - **Add `npm run build`** for any wave that changes the catalog's membership or a card's picture —
   then **`npm run test:quick` again**, because three specs read `build/`.
-- **e2e runs in THREE waves** — 11-01 (routes and OG images stop being generated for nine ids), 11-05
-  (the preset entries change hands) and 11-16 (the gate) — at `--workers 3`, with `test-results/`
-  removed by hand afterwards and `git status --porcelain` confirmed empty. No other wave runs it,
-  because no title moves in it and a two-minute run buys nothing. **Every one of the three proves its
-  own `+0` with `grep -c "test("` before and after.**
+- **e2e runs in FOUR waves** — 11-01 (routes and OG images stop being generated for nine ids), 11-05
+  (the preset entries change hands), **11-15** (a new entry adds a route and an OG image) and 11-16
+  (the gate) — at `--workers 3`, with `test-results/` removed by hand afterwards and
+  `git status --porcelain` confirmed empty. No other wave runs it, because no title moves in it and a
+  two-minute run buys nothing. **Every one of the four proves its own `+0` with `grep -c "test("`
+  before and after.** (Under 11-14's `new-entry` answer that plan also adds a route; it does not run
+  the suite, because 11-15's run is the next thing that happens and it rebuilds from scratch. Say so
+  rather than leaving the gap unexplained.)
 - **Max feedback latency:** ~45 s (quick), ~3 min (wave with the sweep), ~6 min (wave with a build and
   e2e).
 
@@ -411,14 +454,16 @@ merely convenient, and 11-16 records that as the reason the deferral was right.
 | 11-06-01 | 06 | 6 | CONT-01, TUNE-01 | unit + sweep | AURORA `xy` 250 → **408**, PINWHEEL 305 → **463**, STARFIELD 238 → **396**, all `fingers: "first"`; nine `cost` declarations re-measured; `frames.json` regenerated | exists | pending |
 | 11-06-02 | 06 | 6 | TUNE-01, CONT-01 | unit | NINE PADS `sends.grid` reaching `"4x4"` **as a knob** (580 → **550**, cheaper), and JOYSTICK `springTo: "centre"` with `invertY: false` (535 → **532**) plus the `comet` trail (→ **468**), whose residue 11-04 removed — **the trade-off the research required be stated is now gone, and the plan says why**; `knobs.preset.spec.ts` +1 | exists | pending |
 | 11-07-01 | 07 | 7 | CONT-02 | unit (Lua host) | CONSOLE reaches full scale: `h*127//8` → `h*127//7`, **+0**, with the emitted set swept through the real host and **127 asserted present**; muted faders inert, `+5` | exists | pending |
-| 11-07-02 | 07 | 7 | CONT-02 | unit | the mute row accepts a swipe as well as a press — today it is onset-gated `if e==4 or e>8` inside a body that already accepts MOVE; costed against **121** free | exists | pending |
+| 11-07-02 | 07 | 7 | CONT-02 | unit | the mute row accepts a swipe as well as a press — today it is onset-gated `if e==4 or e>8` inside a body that already accepts MOVE; costed against **121** free at worst | exists | pending |
+| 11-07-03 | 07 | 7 | CONT-02, TUNE-05 | unit (Lua host) | **FORGE's and LATTICE's whole travel swept the way CONSOLE's was.** FORGE: reachable macro indices against the twenty-seven its header claims, every boundary's raw coordinate, each target's size, macro 26's reduced area behind the bank corner, and what a down-then-slide emits from an onset-gated handler. LATTICE: emitted range against claimed range, on both axes. **Then a costed fix or a named non-delivery carrying the numbers — never silence.** `lua-smoke.spec.ts` **+2**, one assertion per card, pinning whichever way each landed | **Wave 0 gap — the assertions do not exist** | pending |
 | 11-08-01 | 08 | 8 | CONT-02 | unit + sweep | EUCLID, SONAR and STEPS accept MOVE with a **per-contact last-cell guard**, so a resting finger does not toggle at 100 Hz; EUCLID `+76` against 204 free | exists | pending |
 | 11-08-02 | 08 | 8 | CONT-02 | unit | SONAR's centre always lit and its notes released after a while; **clock sync explicitly not built**, with both blockers named | exists | pending |
-| 11-09-01 | 09 | 9 | CONT-02 | unit | ARC's amplitude visible: the 3×3 heart scaled by the same `s.d` the CC is scaled by, `+21` against 527 free | exists | pending |
+| 11-08-03 | 08 | 8 | CONT-02 | unit (Lua host) | **MORPH's suppression clause**, which had reached no plan: a per-corner last-sent table consulted before `gms` and initialised to zeros, so a corner that has not changed sends nothing and a corner sitting at zero sends nothing at all, while a corner that *falls* to zero sends its zero once rather than leaving a stale value on the wire. Costed at worst against what 11-02 left. `lua-smoke.spec.ts` **+1**, asserted as three counts | **Wave 0 gap — the assertion does not exist** | pending |
+| 11-09-01 | 09 | 9 | CONT-02, SHARE-01 | unit | ARC's amplitude visible: the 3×3 heart scaled by the same `s.d` the CC is scaled by, `+21` against 527 free at worst. **And POMODORO's `@MINS` gains `"1"` and `"5"` APPENDED, never inserted**, with `stamp.spec.ts` +1 asserting the first four indices still decode to 15/20/25/50 — **moved ahead of 11-09-02's checkpoint, because nothing in "make a 1 minute and a 5 minute one" is ambiguous and nothing in it depends on an answer** | exists | pending |
 | 11-09-02 | 09 | 9 | — | **checkpoint:decision** | the three remaining two-reading notes put to the user together: **ARC's centre-press**, **STAGE's lining-up** (with the evidence that `listing.ts:447` already promises it) and **LUMEN's depth** | n/a | pending |
-| 11-09-03 | 09 | 9 | CONT-02, SHARE-01 | unit | POMODORO's `@MINS` gains `"1"` and `"5"` **APPENDED, never inserted** — `stamp.spec.ts` +1 asserting the first four indices still decode to 15/20/25/50; STAGE's third zone state per the answer, or the answer recorded and nothing shipped | exists | pending |
+| 11-09-03 | 09 | 9 | CONT-02 | unit | STAGE's third zone state per the answer, or the answer recorded and nothing shipped. **Term `+0`, written out.** MORPH's "mapping mode" answer recorded and carried to 11-16 rather than acted on here | exists | pending |
 | 11-10-01 | 10 | 10 | PREV-01 | unit | `gmss` reaches the Lua host on the `gmms`/`gmbs`/`gks` template: `lua-host.ts`, `HOST_GLOBALS` 15 → **16**, `host-surface.spec.ts` +1, `lua-host.spec.ts` +1, and **every literal 15 in the tree named and moved** | exists | pending |
-| 11-10-02 | 10 | 10 | CONT-02 | unit | LUMEN sends its colour as hex over sysex, `0xF0` and `0xF7` supplied by the entry; costed against 302 free Setup and a **completely free Timer**; the depth half per 11-09-02's answer | exists | pending |
+| 11-10-02 | 10 | 10 | CONT-02 | unit | LUMEN sends its colour as hex over sysex, `0xF0` and `0xF7` supplied by the entry; costed against 302 free Setup at worst and a **completely free Timer**; the depth half per 11-09-02's answer. **`lua-host.spec.ts` +1 as a new test, not an extension of 11-10-01's** — the plan's asserted `PREV_TESTS+2` depends on it | exists | pending |
 | 11-11-01/02 | 11 | 11 | CONT-02, PREV-01 | unit | GHOST from a blank page: the budget costed up front (601 / 573 free), the reliability the user reported diagnosed as **gone rather than patched**, `restsBlack` re-declared and proved in both directions by `frames.json`, and its demo path in `demo.ts:177` re-cut | exists | pending |
 | 11-12-01/02 | 12 | 12 | CONT-02 | unit | SHUTTLE from a blank page (D-04): the lift-stops decision at `shuttle.ts:80-92` **reversed on the record with its two reasons answered**, the `gtt(index,0)` floor kept, 245 free spent deliberately | exists | pending |
 | 11-13-01/02 | 13 | 13 | CONT-02 | unit | STRIP as two independent faders plus a crossfader; **what is discarded named**: the repository's only worked 10-bit unlock and its 14-bit stream, traded for three 7-bit streams | exists | pending |
@@ -427,7 +472,7 @@ merely convenient, and 11-16 records that as the reason the deferral was right.
 | 11-15-01 | 15 | 15 | CONT-02 | unit | the wheels, costed **before** designed: pitch left, mod right, column 4 a lit divider, pitch bend as status **224** through `self:gms`, **never `gmbs`**; the value not quantised to the row | created here | pending |
 | 11-15-02 | 15 | 15 | CONT-02, CONT-03 | unit + sweep | the spring returns **in MIDI as well as in light** — the named failure mode — and mod holds across a release; both budgets stated; catalog `27 + 1 = 28`; one `FOR` and two `FEELS` with the FEELS floor re-checked | exists | pending |
 | 11-16-01 | 16 | 16 | all | measured + docs | every projection in this document replaced by an observation, **every wrong one named as wrong**; `docs/TESTING.md`, `docs/HARDWARE-AUDITION.md` and `deferred-items.md` re-measured and rewritten | exists | pending |
-| 11-16-02 | 16 | 16 | all | phase gate | quick `BASE_FILES + 3` / `BASE_TESTS + 30` as a **sixteen-term** chain; sweep `4 19`; e2e `BASE_E2E + 0` in sixteen terms; catalog **28** as a sixteen-term chain; `CONT-01` and `FOUND-02` amended by name and dated; `firmware-oracle.spec.ts` green; the vendored divergence enumerated and justified | exists | pending |
+| 11-16-02 | 16 | 16 | all | phase gate | quick `BASE_FILES + 3` / **`BASE_TESTS + 33`** (or `+ 32` under `fold-into-sonar`) as a **sixteen-term** chain with `T14` named; sweep `4 19`; e2e `BASE_E2E + 0` in sixteen terms with **four** suite-running plans named; catalog **28, or 29 under `new-entry`**, as a sixteen-term chain; `CONT-01` and `FOUND-02` amended by name and dated; `firmware-oracle.spec.ts` green — and its **seventh** test named as the one that runs through `pad-sim.ts:987`, which is what makes the D-02 proof mechanical; the vendored divergence enumerated and justified | exists | pending |
 | 11-16-03 | 16 | 16 | — | **checkpoint:human-verify** | the hardware rows and the six things this phase could not do, handed over unasserted | n/a | pending |
 
 *Status: pending / green / red / flaky. Every row starts pending; an executing plan updates only its own rows.*
@@ -577,7 +622,8 @@ Each is put to the user by a named task rather than guessed. **Four of them bloc
 8. **TRACKPAD's animation.** Blocked twice and not attempted: `normalisePadState` forces
    `look.kind` and `touch.kind` to `"none"` for a trackpad state — measured, a `breathe`/`comet`
    variant normalises straight back and compiles to the identical 902 characters — and there are
-   **six characters free**. Recorded by 11-16 as an honest "not in this phase".
+   **six characters free at the defaults, one at the worst reachable knob position**. Recorded by
+   11-16 as an honest "not in this phase".
 
 ---
 
@@ -599,11 +645,15 @@ Each is put to the user by a named task rather than guessed. **Four of them bloc
       said so in those words (11-05)
 - [ ] Five preset asks delivered, four of them free and one of them cheaper than what it replaced
       (11-06)
-- [ ] CONSOLE reaches 127, its muted faders are inert, and its mute row takes a swipe (11-07)
-- [ ] EUCLID, SONAR and STEPS take a swipe without toggling at 100 Hz, and clock sync is **named as
-      not built** with both blockers stated (11-08)
-- [ ] ARC's picture stops lying about its amplitude; POMODORO gains one and five minutes **appended**;
-      the three two-reading notes are the user's answer and not the planner's (11-09)
+- [ ] CONSOLE reaches 127, its muted faders are inert, and its mute row takes a swipe; **FORGE's and
+      LATTICE's travel both swept the same way**, each answered by a costed fix or by a named
+      non-delivery carrying its numbers (11-07)
+- [ ] EUCLID, SONAR and STEPS take a swipe without toggling at 100 Hz; **MORPH sends a corner only
+      when it changed and a corner at zero sends nothing**; and clock sync is **named as not built**
+      with both blockers stated (11-08)
+- [ ] ARC's picture stops lying about its amplitude; POMODORO gains one and five minutes **appended,
+      before the checkpoint rather than behind it**; the **four** multi-reading notes are the user's
+      answer and not the planner's (11-09)
 - [ ] `gmss` reaches the host and LUMEN sends hex over sysex (11-10)
 - [ ] GHOST and SHUTTLE are re-authored from blank pages with their budgets costed up front (11-11,
       11-12)
@@ -611,9 +661,12 @@ Each is put to the user by a named task rather than guessed. **Four of them bloc
 - [ ] RADAR is built per the user's answer to the ring question, and neither RADAR nor SONAR is given
       a job the user did not ask for (11-14)
 - [ ] The wheels: pitch springs home in MIDI as well as in light, mod holds, status **224** through
-      `self:gms` and never `gmbs`, and the catalog lands at **28** (11-15)
-- [ ] The phase gate green against a production build at quick `BASE_FILES + 3` / `BASE_TESTS + 30` in
-      a **sixteen-term** chain, sweep `4 19`, e2e `BASE_E2E + 0` in sixteen terms, catalog **28** in
-      sixteen terms; CONT-01 and FOUND-02 amended by name; six things named as not done rather than
-      quietly dropped (11-16)
+      `self:gms` and never `gmbs`, and the catalog lands at the branch table's total for 11-14's
+      recorded answer — **28, or 29 under `new-entry`** (11-15)
+- [ ] The phase gate green against a production build at quick `BASE_FILES + 3` / **`BASE_TESTS + 33`**
+      (or `+ 32` under `fold-into-sonar`) in a **sixteen-term** chain with `T14` named, sweep `4 19`,
+      e2e `BASE_E2E + 0` in sixteen terms, catalog **28 or 29** in sixteen terms; CONT-01 and FOUND-02
+      amended by name; **every** thing named as not done rather than quietly dropped — the six certain,
+      plus FORGE's and LATTICE's precision notes if their sweeps came back clean, plus MORPH's
+      "mapping mode" per the user's answer (11-16)
 - [ ] The hardware rows handed to the user, unanswered, and no agent having touched a device (11-16-03)
