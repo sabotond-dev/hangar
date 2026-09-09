@@ -24,7 +24,7 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
 import { CELLS } from "../../vendor/botor/_pad";
-import { PadSim } from "../../vendor/botor/pad-sim";
+import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, renderLua } from "./lua-pad-sim";
@@ -197,6 +197,342 @@ function runFor(entry: CatalogEntry): Promise<SmokeRun> {
   return started;
 }
 
+// ---------------------------------------------------------------------------
+// THE TWO BEHAVIOURAL PROBES (plan 11-02)
+//
+// Tests 1 to 3 above and the two syntactic gates - decay-idiom.spec.ts and
+// touch-guard.spec.ts - all ask about the SHAPE of a configuration. These two
+// ask what it DOES, because a source scan cannot see a stuck pixel and cannot
+// see a message that was never sent.
+// ---------------------------------------------------------------------------
+
+/**
+ * The residue probe's gesture point, in fractions of the coordinate maximum.
+ *
+ * DELIBERATELY INSIDE THE TOP-LEFT NINTH. Any entry laid out as a 3x3 of zones
+ * puts this in zone 0, which is the zone a 3x3 latch starts on - so tapping it
+ * TWICE returns the latch to exactly where Setup left it and a genuine state
+ * change is not counted as residue. STAGE is the case: it is a scene switcher
+ * whose whole purpose is a latch, and it passes this probe with no allowance
+ * because the gesture is chosen rather than because the entry is excused.
+ *
+ * AND DELIBERATELY AT COLUMN 2, ROW 2 OF THE NINE-WIDE MAPPING, NOT COLUMN 1.
+ * MORPH's four macro quads sit at cells {0,1,9,10}, {7,8,16,17}, {63,64,72,73}
+ * and {70,71,79,80}, and they carry an allowance in the table below. A tap at
+ * column 1 row 1 lands on cell 10, which is INSIDE that quad, so the allowance
+ * would excuse MORPH's comet trail as well as its macros - and the comet is the
+ * one thing on that card this probe exists to watch. Cell 20 is in zone 0 and
+ * in no macro quad, which is what makes the allowance narrow rather than a skip
+ * wearing a reason.
+ */
+const RESIDUE_TAP: readonly [number, number] = [0.25, 0.25];
+
+/** Ticks before the first tap, between the two taps, and after the second. */
+const RESIDUE_WARMUP = 20;
+const RESIDUE_GAP = 30;
+
+/**
+ * The parity probe's cell, and it is NOT the smoke gesture's TAP.
+ *
+ * TAP lands on row 4 of a nine-wide mapping, which is the middle row - and the
+ * middle row is CONSOLE's default fader level and QUADRANT's dead cross. Both
+ * entries therefore sent NOTHING on either run and passed the probe vacuously,
+ * observed on the first run of it. Row 5 moves a fader off its default and
+ * lands inside one of QUADRANT's four zones, so both are exercised. The
+ * non-vacuity assertion at the end of the test is what keeps this honest: an
+ * entry that sends nothing on BOTH runs is declared, never quietly counted.
+ */
+const PARITY_TAP: readonly [number, number] = [0.15, 0.65];
+
+/** Ticks a slow press is held in the parity probe. */
+const PARITY_HOLD = 6;
+
+/**
+ * Ticks the parity probe runs AFTER the gesture, and it is deliberately longer
+ * than SETTLE_TICKS.
+ *
+ * A watchdog release is part of what a fast tap sends. CHORUS and LATTICE both
+ * hold a chord until twenty 100 ms Timer ticks have passed with no event on
+ * that contact, because a coalesced tap brings no lift of its own and a
+ * note-off driven only by the touch callback would hang a track. That is 200
+ * simulator ticks after the tap; a probe settling for 200 measures the watchdog
+ * rather than the tap, and 400 clears it with the same margin again. Found by
+ * running this probe, which reported CHORUS as sending three note-ons and no
+ * note-offs when the note-offs were one Timer tick away.
+ */
+const PARITY_SETTLE = 400;
+
+/**
+ * The gaps between the residue probe's samples, after the settle.
+ *
+ * SEVERAL SAMPLES, BECAUSE FROZEN IS THE WHOLE POINT. A layer the configuration
+ * is still driving - ARC's heart, SNAKE's head, any Timer repainting a cell -
+ * is alive, not residue, and its phase moves between samples. A layer whose
+ * countdown expired above zero cannot move again: nothing decrements an expired
+ * timeout and no Timer is coming back. The probe therefore reports only what is
+ * non-zero AND identical at every sample.
+ *
+ * THE GAPS ARE UNEVEN ON PURPOSE, AND THE EVEN ONE WAS A REAL FALSE POSITIVE.
+ * A first cut sampled twice, 40 ticks apart. GHOST re-arms the same decay from
+ * a Timer running every 2 ticks, so its phase is periodic with period 2 and two
+ * samples 40 apart ALIAS ONTO THE SAME POINT of that cycle - the probe called
+ * a repainting cell frozen and named a bug that was not there. 1 and 7 are odd
+ * and mutually coprime, so no timer period the catalog uses can hide behind
+ * all three.
+ */
+const RESIDUE_SAMPLE_GAPS: readonly number[] = [1, 7, 32];
+
+/**
+ * A layer a gesture is ALLOWED to leave frozen above zero, with the reason.
+ *
+ * NEVER A SKIP. A skipped entry is an entry nobody is checking; a row here
+ * names the cells, says why the state is legitimate, and leaves every other
+ * cell in that entry under the probe. Test 4 fails a row that no longer
+ * matches anything, so an allowance cannot outlive the design that earned it.
+ */
+type ResidueAllowance = {
+  readonly entry: string;
+  /** Hardware cell indices, 0..80, in screen order. */
+  readonly cells: readonly number[];
+  readonly reason: string;
+};
+
+/** One layer's state at one tick: everything the comparison needs. */
+type LayerSample = { readonly sha: number; readonly pha: number };
+
+/** One sample: every layer by HARDWARE index, and the rendered SCREEN frame. */
+type Sample = {
+  readonly layers: readonly (readonly LayerSample[])[];
+  readonly frame: Uint8Array;
+};
+
+type ResidueRun = {
+  readonly samples: readonly Sample[];
+  readonly errors: readonly string[];
+  readonly coordMax: number;
+};
+
+const LAYERS = [0, 1, 2] as const;
+
+function snapshot(sim: PadSim, frame: Uint8Array): Sample {
+  const layers: LayerSample[][] = [];
+  for (let hw = 0; hw < CELLS; hw += 1) {
+    layers.push(
+      LAYERS.map((layer) => {
+        const record = sim.layer(hw, layer);
+        return { sha: record.sha, pha: record.pha };
+      }),
+    );
+  }
+  return { layers, frame: Uint8Array.from(frame) };
+}
+
+/** Is this screen cell showing anything at all? */
+function litAt(frame: Uint8Array, cell: number): boolean {
+  const i = cell * 3;
+  return frame[i] !== 0 || frame[i + 1] !== 0 || frame[i + 2] !== 0;
+}
+
+function rgbAt(frame: Uint8Array, cell: number): string {
+  const i = cell * 3;
+  return `[${frame[i]},${frame[i + 1]},${frame[i + 2]}]`;
+}
+
+/**
+ * The sixteen cells MORPH's four macro quads occupy, in the entry's own
+ * arithmetic: k = {0,7,63,70} and each quad is base + d%2 + d//2*9.
+ */
+const MORPH_MACROS: readonly number[] = [0, 7, 63, 70].flatMap((base) =>
+  [0, 1, 2, 3].map((d) => base + (d % 2) + Math.floor(d / 2) * 9),
+);
+
+/**
+ * CONSOLE's fader column 1, between its default level and the tapped one.
+ *
+ * Setup sets every fader to 4. The gesture lands at column 2, row 2, and the
+ * entry reads a level off the row as h = 8 - r = 6, so rows 3 and 4 of that
+ * column light where the default level left them dark. Derived here from the
+ * entry's own two lines rather than pasted as numbers.
+ */
+const CONSOLE_TAPPED_COLUMN = 2;
+const CONSOLE_FADER: readonly number[] = [3, 4].map(
+  (row) => CONSOLE_TAPPED_COLUMN + row * 9,
+);
+
+const RESIDUE_ALLOWANCES: readonly ResidueAllowance[] = [
+  {
+    entry: "morph",
+    cells: MORPH_MACROS,
+    reason:
+      "MORPH is an XY macro controller and these sixteen cells ARE its four " +
+      "macro readouts - Setup paints them at phase 0 and every touch writes " +
+      "the value it just sent to them. A touched MORPH is supposed to show " +
+      "four non-zero macros, and no coordinate exists that returns all four " +
+      "to zero (the four products of x, y, 127-x and 127-y cannot all vanish " +
+      "at once), so this cannot be double-tapped away. The comet trail on " +
+      "layer 2 is NOT allowed here and is exactly what the probe watches.",
+  },
+  {
+    entry: "console",
+    cells: CONSOLE_FADER,
+    reason:
+      "CONSOLE is a nine-channel mixer and these three cells are fader 1 " +
+      "between the level Setup gave it and the level the gesture set. A fader " +
+      "is an ABSOLUTE control, not a toggle, so a second tap at the same row " +
+      "sets the same level again rather than undoing it - it cannot be " +
+      "double-tapped back and it should not be. The other eight columns and " +
+      "the whole mute row stay under the probe.",
+  },
+];
+
+/**
+ * The two renderings the residue probe runs, and the second one is not
+ * decoration.
+ *
+ * WHERE A DECAY FREEZES DEPENDS ON THE KNOB, AND THE DEFAULT IS NOT THE WORST.
+ * MORPH's broken pair froze at phase 3 at its DEFAULT trail length, which
+ * renders as rgb [1,1,1] - lit, and caught, but only just. At the first
+ * declared value of the same knob it freezes at 129 and the cell is
+ * unmistakably lit. One rendering would have staked the whole probe on whichever
+ * value an author happened to make the default.
+ *
+ * TWO RENDERINGS IS A SAMPLE, NOT A PROOF, and the division of labour is
+ * deliberate: src/lib/catalog/decay-idiom.spec.ts checks EVERY declared value
+ * of every knob, arithmetically, and this probe checks that the arithmetic
+ * reaches the picture.
+ */
+const RESIDUE_RENDERINGS = ["defaults", "first value of every knob"] as const;
+type Rendering = (typeof RESIDUE_RENDERINGS)[number];
+
+function indicesFor(
+  entry: CatalogEntry,
+  rendering: Rendering,
+): Record<string, number> | undefined {
+  if (rendering === "defaults") return undefined;
+  const out: Record<string, number> = {};
+  for (const knob of entry.knobs) out[knob.id] = 0;
+  return out;
+}
+
+/** One host and the sim behind it, built exactly as `smoke` builds them. */
+async function open(entry: CatalogEntry, rendering: Rendering = "defaults") {
+  const { setup, timer } = renderLua(entry, indicesFor(entry, rendering));
+  const sim = new PadSim(blankPadState());
+  const host = await createLuaHost({
+    sim,
+    setup,
+    timer: timer.trim() === "" ? undefined : timer,
+  });
+  return { host, sim };
+}
+
+/**
+ * Run one entry for the same tick count with and without a double tap.
+ *
+ * Both hosts see the same number of ticks and the same timer schedule, so an
+ * entry whose Timer animates forever is compared at the same moment in its own
+ * cycle rather than against a settled picture it never has.
+ */
+async function residue(
+  entry: CatalogEntry,
+  gesture: boolean,
+  rendering: Rendering,
+): Promise<ResidueRun> {
+  const { host, sim } = await open(entry, rendering);
+  try {
+    const at = (f: number): number => Math.round(f * host.coordMax);
+    const x = at(RESIDUE_TAP[0]);
+    const y = at(RESIDUE_TAP[1]);
+    const advance = (n: number): void => {
+      for (let i = 0; i < n; i += 1) host.tick();
+    };
+    advance(RESIDUE_WARMUP);
+    if (gesture) host.touchTap(0, x, y);
+    advance(RESIDUE_GAP);
+    // THE SECOND TAP IS THE LATCH RESET. A toggle - a sequencer step, a scene,
+    // a mute - is a legitimate state change, and counting it as residue would
+    // make this probe fail on correct entries and be switched off.
+    //
+    // IT IS ONE COORDINATE UNIT AWAY, AND THAT IS NOT COSMETIC. The host's
+    // enqueue is CHANGE-GATED per contact on (event, x, y), so a second
+    // touchTap at exactly the same point on the same contact is silently
+    // dropped and the reset never happens. Found by running this probe, which
+    // then reported SONAR's toggled step - a cell the user asked to light - as
+    // residue. One unit is the same LED cell in every mapping the catalog uses,
+    // which the assertion below proves rather than assumes.
+    if (gesture) host.touchTap(0, x + 1, y + 1);
+    advance(SETTLE_TICKS);
+    const samples = [snapshot(sim, host.frame)];
+    for (const gap of RESIDUE_SAMPLE_GAPS) {
+      advance(gap);
+      samples.push(snapshot(sim, host.frame));
+    }
+    return {
+      samples,
+      errors: [...host.errors],
+      coordMax: host.coordMax,
+    };
+  } finally {
+    host.close();
+  }
+}
+
+/** Every MIDI and HID message one entry sent, as comparable strings. */
+type Sent = readonly string[];
+
+async function parity(entry: CatalogEntry, fast: boolean): Promise<Sent> {
+  const { host } = await open(entry);
+  try {
+    const at = (f: number): number => Math.round(f * host.coordMax);
+    const x = at(PARITY_TAP[0]);
+    const y = at(PARITY_TAP[1]);
+    const advance = (n: number): void => {
+      for (let i = 0; i < n; i += 1) host.tick();
+    };
+    advance(RESIDUE_WARMUP);
+    if (fast) {
+      // ONE message, event code 9, with no separate press and no separate
+      // lift. touchTap is the only path in the whole simulator that makes one.
+      host.touchTap(0, x, y);
+      advance(PARITY_HOLD);
+    } else {
+      host.touchDown(0, x, y);
+      advance(PARITY_HOLD);
+      host.touchUp(0, x, y);
+    }
+    advance(PARITY_SETTLE);
+    return [
+      ...host.midi.map(
+        (m) => `midi(${m.ch},${m.cmd},${m.p1},${m.p2},${m.mode})`,
+      ),
+      ...host.hid.map((h) => `hid(${JSON.stringify(h)})`),
+    ];
+  } finally {
+    host.close();
+  }
+}
+
+/**
+ * An entry whose output legitimately depends on how long the contact lasted,
+ * so a fast tap and a slow one are NOT supposed to agree.
+ *
+ * Same rule as the residue allowances: a reason, never a skip, and test 5
+ * fails a row whose two lists have stopped differing.
+ */
+const PARITY_ALLOWANCES: readonly { entry: string; reason: string }[] = [
+  {
+    entry: "shuttle",
+    reason:
+      "SHUTTLE is a jog wheel and its output is a function of CONTACT " +
+      "DURATION, not of the tap: holding a column runs the transport while " +
+      "the finger is down and its Timer emits a keystroke per tick. A " +
+      "coalesced press-and-lift has a duration of zero, so `(e==1 or e==4)` " +
+      "correctly evaluates the speed to 0 and nothing is sent. That is the " +
+      "right answer for a shuttle, and making the two agree would mean " +
+      "jogging the transport on a tap nobody held.",
+  },
+];
+
 describe("hand-authored Lua entries execute (CONT-02)", () => {
   it("builds, and lights the pad under a finger", async () => {
     // NOT "non-black immediately after Setup". A blank layer's stops are all
@@ -331,4 +667,223 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       ).toBe(true);
     }
   });
+
+  it("leaves no cell lit that a never-touched run leaves dark", async () => {
+    // THE CLASS-A PROBE (plan 11-02). decay-idiom.spec.ts proves the
+    // ARITHMETIC of every glpfs/glt pair it can read; this proves the PICTURE,
+    // including the pairs no static scan can resolve and the ones nobody
+    // thought to write as a pair at all.
+    //
+    // The measured symptom it exists to catch: CHORUS left all 81 cells stuck
+    // at up to phase 126 of 255 forever, and MORPH left every crossed cell at
+    // rgb [47,66,66]. Those are the bench reports "colour stucks after
+    // touching it" and "the LED's colors stuck again".
+    const entries = luaEntries();
+    expect(entries.length, "there are hand-authored entries").toBeGreaterThan(
+      0,
+    );
+    const consumed = new Set<string>();
+    let compared = 0;
+
+    for (const entry of entries)
+      for (const rendering of RESIDUE_RENDERINGS) {
+        const [quiet, touched] = await Promise.all([
+          residue(entry, false, rendering),
+          residue(entry, true, rendering),
+        ]);
+        expect(
+          touched.errors,
+          `${entry.id} at ${rendering}: a handler raised during the gesture ` +
+            "run - " +
+            touched.errors.join(" | "),
+        ).toEqual([]);
+        expect(
+          quiet.samples.length,
+          `${entry.id}: both runs took the same number of samples`,
+        ).toBe(touched.samples.length);
+        // The reset tap has to land on the same LED cell as the first, or it
+        // toggles a neighbour instead of undoing the toggle. Derived from the
+        // entry's own coordinate maximum, never assumed.
+        const span = touched.coordMax + 1;
+        for (const divisor of [3, 9]) {
+          const first = Math.round(RESIDUE_TAP[0] * touched.coordMax);
+          expect(
+            Math.floor(((first + 1) * divisor) / span),
+            `${entry.id}: the reset tap lands on the same cell as the first at ` +
+              `a ${divisor}-wide mapping`,
+          ).toBe(Math.floor((first * divisor) / span));
+        }
+
+        const allowance = RESIDUE_ALLOWANCES.find(
+          (row) => row.entry === entry.id,
+        );
+        const allowed = new Set(allowance?.cells ?? []);
+        const problems: string[] = [];
+
+        for (let cell = 0; cell < CELLS; cell += 1) {
+          compared += 1;
+          // THE TWO INDEX SPACES, AND THEY ARE NOT THE SAME ONE. `cell` is the
+          // SCREEN index the entries themselves write - `glag(0, n)` takes
+          // exactly this, and every allowance below is stated in it. The layer
+          // records are keyed by HARDWARE index, which is serpentine, and the
+          // frame is screen order. Conflating them prints one cell's phase
+          // beside another cell's colour, which is how a first cut of this probe
+          // reported CONSOLE's fader at column 7 when it had moved column 1.
+          const hw = screenToHw(cell % 9, Math.floor(cell / 9));
+          // THE PIXEL IS THE QUESTION, AND THE PHASE IS THE DIAGNOSIS. A cell has
+          // to be VISIBLY lit in the gesture run and VISIBLY dark in the quiet
+          // one at every sample before it is residue at all. SNAKE is the case
+          // that made this explicit: it erases its tail with P(k,0,0,0), which
+          // writes a BLACK colour at phase 255, so every cell the snake ever
+          // vacated is permanently "frozen above zero" and permanently invisible.
+          // A phase-only probe reports a game working exactly as designed.
+          if (touched.samples.some((s) => !litAt(s.frame, cell))) continue;
+          if (quiet.samples.some((s) => litAt(s.frame, cell))) continue;
+          const frozen: string[] = [];
+          for (const layer of LAYERS) {
+            const here = touched.samples.map((s) => s.layers[hw][layer]);
+            const there = quiet.samples.map((s) => s.layers[hw][layer]);
+            const now = here[0];
+            // A SHAPED LAYER IS A KEEPER, NOT A DECAY - the same exclusion
+            // src/lib/catalog/decay-idiom.spec.ts section 4 makes, for the same
+            // reason: ARC, POMODORO, SHUTTLE and STAGE each run one deliberately
+            // and forever, and a gesture is allowed to change what it looks like.
+            if (now.sha !== 0) continue;
+            if (now.pha === 0) continue;
+            // Alive, not residue: something is still driving this layer.
+            if (here.some((sample) => sample.pha !== now.pha)) continue;
+            // The untouched run must hold it dark at EVERY sample, or the two
+            // runs are simply at different points of one animation.
+            if (there.some((sample) => sample.pha !== 0)) continue;
+            frozen.push(`layer ${layer} at phase ${now.pha}`);
+          }
+          if (frozen.length === 0) continue;
+          if (allowed.has(cell)) {
+            consumed.add(entry.id);
+            continue;
+          }
+          problems.push(
+            `cell ${cell} (col ${cell % 9}, row ${Math.floor(cell / 9)}, ` +
+              `hardware ${hw}): ${frozen.join(" and ")}, where an untouched run ` +
+              "holds 0; rendered " +
+              rgbAt(quiet.samples[0].frame, cell) +
+              " against " +
+              rgbAt(touched.samples[0].frame, cell),
+          );
+        }
+
+        expect(
+          problems.join("\n"),
+          `${entry.id} at ${rendering}: A GESTURE MUST LEAVE NO CELL LIT THAT A ` +
+            "NEVER-TOUCHED RUN LEAVES DARK. Two runs of the same length, one " +
+            "double-tapped so a latch is back where it started, and these " +
+            `layers are still sitting above phase 0 ${SETTLE_TICKS} ticks after ` +
+            "the finger went away and unchanged at every one of " +
+            `${RESIDUE_SAMPLE_GAPS.length + 1} samples - so nothing is driving ` +
+            "them and nothing is coming back. A decaying layer that does not " +
+            "land on phase 0 freezes " +
+            "wherever the timeout caught it - see " +
+            "src/lib/catalog/decay-idiom.spec.ts. If the state is legitimate, " +
+            "add it to RESIDUE_ALLOWANCES with the cells and the reason",
+        ).toBe("");
+      }
+
+    // The allowance table only ever shrinks: a row that stopped mattering is a
+    // standing amnesty for whatever moves into those cells next.
+    for (const row of RESIDUE_ALLOWANCES) {
+      expect(
+        consumed.has(row.entry),
+        `RESIDUE_ALLOWANCES excuses ${row.entry} and nothing in it needed ` +
+          "excusing. Delete the row",
+      ).toBe(true);
+      expect(
+        row.reason.trim().length,
+        `RESIDUE_ALLOWANCES row ${row.entry} carries no usable reason`,
+      ).toBeGreaterThan(40);
+    }
+    expect(compared, "the probe compared cells").toBe(
+      CELLS * entries.length * RESIDUE_RENDERINGS.length,
+    );
+  }, 120000);
+
+  it("sends the same on a fast tap as on a slow one", async () => {
+    // THE CLASS-B PROBE (plan 11-02). Firmware coalesces a sub-cycle
+    // press-and-lift into ONE message with event code 9, and touchTap is the
+    // only path in the simulator that makes one. Five entries read that as a
+    // plain lift and produced NOTHING: measured in 11-RESEARCH, LATTICE sent 0
+    // messages on a fast tap against 2 on a slow one, CHORUS 0 against 6,
+    // MORPH 0 against 4 and GHOST 0 against 8.
+    //
+    // THE LISTS ARE COMPARED, NOT THEIR LENGTHS. A note-off arriving without
+    // its note-on is the same count and a different instrument.
+    const entries = luaEntries();
+    expect(entries.length, "there are hand-authored entries").toBeGreaterThan(
+      0,
+    );
+    const consumed = new Set<string>();
+    const report: string[] = [];
+
+    for (const entry of entries) {
+      const [fast, slow] = await Promise.all([
+        parity(entry, true),
+        parity(entry, false),
+      ]);
+      report.push(
+        `${entry.id}: fast tap ${fast.length}, slow tap ${slow.length}`,
+      );
+      // NON-VACUITY, PER ENTRY. Two empty lists are equal, so an entry the tap
+      // never reaches passes this test having proved nothing - which is exactly
+      // what CONSOLE and QUADRANT did at the probe's first tap point. The slow
+      // run is the reference and it must have produced something.
+      expect(
+        slow.length,
+        `${entry.id}: the slow tap at (${PARITY_TAP[0]}, ${PARITY_TAP[1]}) ` +
+          "produced no MIDI and no HID, so comparing the two runs proves " +
+          "nothing. Move PARITY_TAP, do not weaken this",
+      ).toBeGreaterThan(0);
+      const allowance = PARITY_ALLOWANCES.find((row) => row.entry === entry.id);
+      if (typeof allowance !== "undefined") {
+        consumed.add(entry.id);
+        expect(
+          fast.join("\n") === slow.join("\n"),
+          `PARITY_ALLOWANCES excuses ${entry.id} and its two runs now agree. ` +
+            "Delete the row",
+        ).toBe(false);
+        continue;
+      }
+      expect(
+        fast,
+        `${entry.id}: A FAST TAP MUST SEND WHAT A SLOW TAP SENDS. Event code ` +
+          "9 is a down AND an up in one message; a guard that reads it as " +
+          "only a lift throws the press away and the configuration goes " +
+          `silent. fast tap sent ${fast.length} message(s):\n  ` +
+          (fast.join("\n  ") || "(nothing)") +
+          `\nslow tap sent ${slow.length}:\n  ` +
+          (slow.join("\n  ") || "(nothing)") +
+          "\nIf the difference is legitimate, add it to PARITY_ALLOWANCES " +
+          "with the reason - see src/lib/catalog/touch-guard.spec.ts",
+      ).toEqual(slow);
+    }
+
+    for (const row of PARITY_ALLOWANCES) {
+      expect(
+        consumed.has(row.entry),
+        `PARITY_ALLOWANCES names ${row.entry}, which is not in the catalog`,
+      ).toBe(true);
+      expect(
+        row.reason.trim().length,
+        `PARITY_ALLOWANCES row ${row.entry} carries no usable reason`,
+      ).toBeGreaterThan(40);
+    }
+
+    // Report first, assert second - the sibling sweeps' idiom. These are the
+    // numbers plan 11-02 is judged on, printed rather than inferred from a
+    // green run.
+    process.stdout.write(
+      "\nfast tap against slow tap, per entry:\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+    expect(report.length, "the probe ran every entry").toBe(entries.length);
+  }, 120000);
 });
