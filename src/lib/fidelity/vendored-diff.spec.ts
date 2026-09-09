@@ -2,12 +2,20 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// D-04, asserted rather than promised. VENDOR.md can say the vendored files
-// were not touched; it cannot fail. This spec reconstructs the PRISTINE upstream
+// D-04, asserted rather than promised. VENDOR.md can say what was changed in a
+// vendored file; it cannot fail. This spec reconstructs the PRISTINE upstream
 // bytes from each vendored copy - strip the provenance header block, invert the
-// recorded import/type rewrites - and compares a sha256 against the manifest.
-// A fourth change of any kind (a reformat, a reorder, a local bug fix) moves the
-// hash and names the file.
+// recorded import/type rewrites, invert the recorded intended divergences - and
+// compares a sha256 against the manifest. A change that is in NEITHER list moves
+// the hash and names the file.
+//
+// D-02 (11-CONTEXT.md) dropped the byte-pin: src/vendor/ MAY now be edited, and
+// the compiler's emitted decay constants are the thing being edited. The pin was
+// what stopped a BOTOR re-sync silently reverting a local fix, so it was not
+// deleted, it was REPLACED: "the divergence must become a record, not an
+// absence". The record is upstream-manifest.json's intendedDivergence, and the
+// gate did not get weaker, it got more SPECIFIC - it now names which hunks are
+// allowed and why, instead of allowing none.
 //
 // It deliberately reads NOTHING outside this repository. The upstream bytes are
 // pinned by the committed hash manifest, so the suite is green on a machine that
@@ -18,7 +26,9 @@ import { describe, expect, it } from "vitest";
 // separate, deliberate canary about formatter parity, and it stays that way.
 //
 // scripts/record-upstream-manifest.mjs regenerates the manifest, read-only,
-// as step 5 of the sync procedure in src/vendor/botor/VENDOR.md.
+// as step 6 of the sync procedure in src/vendor/botor/VENDOR.md. It carries the
+// intendedDivergence rows forward rather than re-deriving them, because nothing
+// in an upstream checkout can tell it what HANGAR deliberately changed.
 
 const root = (file: string) => new URL(`../../../${file}`, import.meta.url);
 const text = (file: string) => readFileSync(root(file), "utf8");
@@ -27,9 +37,24 @@ const text = (file: string) => readFileSync(root(file), "utf8");
 // that took the expected value from the file under test would assert nothing.
 const PINNED_BOTOR_SHA = "a0fb69d5d0e78ce0f6423fc1d1a9783937c5380c";
 
+// A DELTA is a mechanical rewrite forced by vendoring - an import specifier that
+// cannot resolve in the flat vendor layout. It is not a decision; it is the cost
+// of moving a file.
 interface Delta {
   vendored: string;
   upstream: string;
+}
+
+// An INTENDED DIVERGENCE is a deliberate behaviour change HANGAR chose. It sits
+// BESIDE deltas and never inside them, because conflating "we had to" with "we
+// decided to" would lose the only distinction that makes the record worth
+// keeping: a re-syncer must re-check a decision and need not re-check a path.
+interface IntendedDivergence {
+  vendored: string;
+  upstream: string;
+  reason: string;
+  plan: string;
+  dated: string;
 }
 
 interface FileEntry {
@@ -38,6 +63,11 @@ interface FileEntry {
   bytes: number;
   sha256: string;
   deltas: Delta[];
+  // Declared OPTIONAL on purpose. The field is REQUIRED by policy, and typing it
+  // as required would make a manifest that lost the field a type error in a file
+  // nobody type-checks on the way past. Optional here means the loss shows up as
+  // a RED TEST naming the file - see "every intended divergence is justified".
+  intendedDivergence?: IntendedDivergence[];
 }
 
 interface Manifest {
@@ -88,12 +118,43 @@ const splitHeader = (vendored: string) => {
 
 const vendoredPaths = manifest.files.map((f) => f.vendored);
 
-describe("vendored BOTOR files (D-04)", () => {
+describe("vendored BOTOR files (D-04, D-02)", () => {
   it.each(vendoredPaths)(
-    "%s is byte-identical to upstream once the permitted deltas are inverted",
+    "%s is byte-identical to upstream once the recorded deltas and divergences are inverted",
     (vendored) => {
       const entry = entryFor(vendored);
       let body = splitHeader(vendored).body;
+
+      // THE INVERSION ORDER, DERIVED - not chosen for symmetry.
+      //
+      // The vendored file is built as: upstream bytes -> apply the deltas ->
+      // apply the intended divergences. That order is not a convention, it is
+      // the physical order of the sync procedure: VENDOR.md's step 3 re-applies
+      // the deltas to a freshly copied upstream file, and a divergence is
+      // applied afterwards by a plan editing the file that step produced. So a
+      // divergence's `vendored` text is quoted from the DELTA-ERA file, and a
+      // delta's `vendored` text is quoted from the UPSTREAM file.
+      //
+      // Reconstruction is the inverse of a composition, so it runs LAST APPLIED,
+      // FIRST INVERTED: divergences first, then deltas. Within one file the rows
+      // are applied in array order, so they invert in REVERSE array order.
+      //
+      // The order is only OBSERVABLE where a divergence's text overlaps a
+      // delta's, and it is proved there rather than argued: 11-03-SUMMARY.md
+      // negative check 4 builds exactly that overlap and records that this order
+      // reconstructs green while the swapped order reports the delta occurring
+      // ZERO times.
+      const divergences = entry.intendedDivergence ?? [];
+      for (const divergence of [...divergences].reverse()) {
+        // Exactly once, for the same reason deltas are. A divergence that
+        // matched twice means the edit reached a site nobody recorded, and the
+        // second site is then a silent, unjustified change to a GPLv3 file.
+        expect(
+          body.split(divergence.vendored).length - 1,
+          `${vendored}: expected the intended divergence to occur exactly once. Recorded by plan ${divergence.plan} (${divergence.dated}), because: ${divergence.reason}\n  ${divergence.vendored}`,
+        ).toBe(1);
+        body = body.replace(divergence.vendored, divergence.upstream);
+      }
 
       for (const delta of entry.deltas) {
         // Exactly once. A delta that matched twice would mean the rewrite hit a
@@ -111,12 +172,12 @@ describe("vendored BOTOR files (D-04)", () => {
       // than a hash mismatch, and it is what catches a lossy decode.
       expect(
         buf.length,
-        `${vendored}: reconstructed ${buf.length} bytes, upstream ${entry.upstream} is ${entry.bytes}. A change of ${buf.length - entry.bytes} bytes is not one of the three permitted deltas.`,
+        `${vendored}: reconstructed ${buf.length} bytes, upstream ${entry.upstream} is ${entry.bytes}. A change of ${buf.length - entry.bytes} bytes is in neither the delta list nor the intended-divergence list.`,
       ).toBe(entry.bytes);
 
       expect(
         createHash("sha256").update(buf).digest("hex"),
-        `${vendored}: the reconstructed bytes do not hash to the recorded upstream sha256 for ${entry.upstream} at ${manifest.upstream.commit}. Something other than the provenance header and the recorded deltas was changed. Fix it upstream and re-sync (D-03/D-08); never patch a vendored file locally.`,
+        `${vendored}: the reconstructed bytes do not hash to the recorded upstream sha256 for ${entry.upstream} at ${manifest.upstream.commit}. Something outside the provenance header, the recorded deltas and the recorded intended divergences was changed. D-02 permits editing this tree; it does not permit editing it SILENTLY. Either revert the change, or record it in upstream-manifest.json's intendedDivergence with a reason, a plan and a date. A fidelity bug is still a BOTOR bug (D-08): prefer fixing it upstream and re-syncing.`,
       ).toBe(entry.sha256);
     },
   );
@@ -172,6 +233,11 @@ describe("vendored BOTOR files (D-04)", () => {
     // Six files, and exactly five inverse rewrites across them: one RGB type
     // inline and four import specifiers. That count IS the D-04 allow-list, so
     // a sixth appearing without a decision turns this red.
+    //
+    // Intended divergences are NOT capped by a count and deliberately so: a
+    // delta is allowed by being on a closed list, a divergence is allowed by
+    // carrying its own justification. Counting them would invite a reader to
+    // bump the number instead of writing the sentence.
     expect(manifest.files).toHaveLength(6);
     expect(manifest.files.reduce((n, f) => n + f.deltas.length, 0)).toBe(5);
 
@@ -186,7 +252,73 @@ describe("vendored BOTOR files (D-04)", () => {
     }
   });
 
-  it("VENDOR.md names the same upstream and lists every vendored file", () => {
+  it("every intended divergence is justified - VACUOUS over the rows while the table is empty, and not vacuous about the field", () => {
+    // READ THIS BEFORE TRUSTING A GREEN RUN. The table is EMPTY as of plan
+    // 11-03, which built the record and spent none of it; 11-04 is what puts
+    // rows in it. The row loop at the bottom of this test therefore checks
+    // NOTHING today, and a green run here is not evidence that the divergences
+    // are justified - it is evidence that there are none.
+    //
+    // What IS checked at zero rows is the field's PRESENCE on every entry. That
+    // is the half that cannot be vacuous, and it is the half that matters: a
+    // manifest regenerated by a tool that does not know the field exists would
+    // silently delete the whole record, and the next re-sync would revert every
+    // recorded fix with nothing to say so.
+    for (const entry of manifest.files) {
+      expect(
+        Array.isArray(entry.intendedDivergence),
+        `${entry.vendored}: intendedDivergence must be written out as an array, empty if there is no divergence. A missing field is indistinguishable from a lost record. If scripts/record-upstream-manifest.mjs dropped it, that script is the bug.`,
+      ).toBe(true);
+    }
+
+    const rows = manifest.files.flatMap((entry) =>
+      (entry.intendedDivergence ?? []).map((row) => ({
+        file: entry.vendored,
+        row,
+      })),
+    );
+
+    for (const { file, row } of rows) {
+      const where = `${file}: intended divergence "${row.vendored.slice(0, 60)}"`;
+
+      expect(
+        row.vendored,
+        `${where}: vendored text must not be empty`,
+      ).not.toBe("");
+      expect(
+        row.upstream,
+        `${where}: upstream text must not be empty`,
+      ).not.toBe("");
+      expect(
+        row.vendored,
+        `${where}: vendored and upstream text are identical, so this row records no divergence at all. Delete the row - the record is not a place to note that nothing changed.`,
+      ).not.toBe(row.upstream);
+
+      // A row that says only WHAT changed is a diff, and git already has that.
+      // The whole value of the record is that a future re-syncer learns WHY,
+      // and can therefore judge whether an upstream fix has retired the row.
+      expect(
+        row.reason?.trim().length ?? 0,
+        `${where}: reason must be a sentence saying what behaviour changed and why. Got: ${JSON.stringify(row.reason)}`,
+      ).toBeGreaterThan(20);
+
+      // Narrow on purpose: every divergence this table can hold today was
+      // chosen inside phase 11. A later phase that adds one WIDENS this regex
+      // deliberately, in its own plan, rather than inheriting a pattern loose
+      // enough that a typo passes.
+      expect(
+        row.plan,
+        `${where}: plan must name the plan that chose this divergence, as "11-NN". Got: ${JSON.stringify(row.plan)}`,
+      ).toMatch(/^11-[0-9]{2}$/);
+
+      expect(
+        row.dated,
+        `${where}: dated must be an ISO calendar date (GPLv3 5(a) "a relevant date"). Got: ${JSON.stringify(row.dated)}`,
+      ).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it("VENDOR.md names the same upstream, lists every vendored file, and describes a merge", () => {
     const doc = text("src/vendor/botor/VENDOR.md");
 
     expect(doc).toContain("sabotond-dev/botor");
@@ -196,6 +328,15 @@ describe("vendored BOTOR files (D-04)", () => {
       const basename = entry.vendored.split("/").pop() as string;
       expect(doc, `VENDOR.md does not mention ${basename}`).toContain(basename);
     }
+
+    // The sync procedure is now a MERGE against an enumerated divergence, not a
+    // copy over an empty one. A VENDOR.md that stopped naming the record would
+    // send a re-syncer through the old copy-and-verify procedure and revert
+    // every recorded fix.
+    expect(
+      doc,
+      "VENDOR.md must name upstream-manifest.json's intendedDivergence as the single authority on what HANGAR changed",
+    ).toContain("intendedDivergence");
 
     // A placeholder left in the one document a re-syncer follows is worse than
     // no document at all.

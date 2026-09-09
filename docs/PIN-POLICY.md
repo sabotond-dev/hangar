@@ -70,6 +70,12 @@ order, and all six items must hold:
    twenty-seven stored strings, and the margin it can move is `ninepads` at 640 of 908 with 268 free.
 5. If any cost moved at all, the bump is a written decision with a reason recorded in the bump log
    below. A moved cost is a change to the budget every preset is calibrated against, not a detail.
+   **The pin now also decides whether a recorded divergence is still needed** (D-02, plan 11-03): a
+   protocol bump or a BOTOR re-sync can land the same behaviour upstream and retire a row in
+   `intendedDivergence`, so both are gated by the justification test in
+   `src/lib/fidelity/vendored-diff.spec.ts` and by step 4 of `src/vendor/botor/VENDOR.md`'s merge
+   procedure, as well as by every gate above. A row that survives a bump without being re-checked is
+   a local patch nobody re-justified.
 6. **The reachability sweep is re-run:** `npm run test:sweep` reports **4 files / 19 tests**. The
    unreachability finding behind TUNE-04 and TUNE-05 — no knob state any visitor can produce goes
    over 908, measured across all 32,852 of them — is a property of the pinned compiler, not a law.

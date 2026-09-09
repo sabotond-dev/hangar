@@ -2,7 +2,7 @@
 /**
  * Record the sha256 of the PRISTINE upstream bytes of every vendored BOTOR file.
  *
- * This is step 5 of the sync procedure in `src/vendor/botor/VENDOR.md`. It reads
+ * This is step 6 of the sync procedure in `src/vendor/botor/VENDOR.md`. It reads
  * the sibling grid-editor checkout and writes
  * `src/lib/fidelity/upstream-manifest.json`. It never writes anything outside
  * this repository and never runs a state-changing git command in the sibling:
@@ -12,14 +12,20 @@
  * The manifest is what lets `src/lib/fidelity/vendored-diff.spec.ts` run on a
  * machine that has no grid-editor checkout. The spec reconstructs the pristine
  * bytes from the vendored copy - strip the provenance header block, invert the
- * recorded deltas - and compares hashes, so 436 KB of upstream source never has
- * to be committed twice, once here and again in every per-deploy GPLv3 source
- * archive.
+ * recorded intended divergences, then invert the recorded deltas - and compares
+ * hashes, so 436 KB of upstream source never has to be committed twice, once
+ * here and again in every per-deploy GPLv3 source archive.
  *
  * The delta table below is hard-coded on purpose. It is the D-04 allow-list, not
  * something to be discovered by diffing: a delta that appeared in a file without
  * being added here must turn the suite red, which is exactly what happens when
  * the reconstructed bytes fail to hash back to the recorded value.
+ *
+ * The intendedDivergence rows (D-02) are NOT in that table and cannot be: they
+ * are HANGAR's own deliberate edits, and no upstream checkout knows about them.
+ * They are read back out of the existing manifest and carried forward, because a
+ * regeneration that dropped them would delete the record in the exact step
+ * VENDOR.md tells a re-syncer to run.
  *
  * Copyright (C) 2026 Botond Sandor
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -45,8 +51,15 @@ const HEADER_SENTINEL =
 const NOTE =
   "sha256 is of the PRISTINE upstream bytes. vendored-diff.spec.ts reconstructs " +
   "them from the vendored file by stripping the provenance header block through " +
-  "headerSentinel plus one blank line, then applying each delta in reverse. " +
-  "A fourth change of any kind moves the hash.";
+  "headerSentinel plus one blank line, then inverting intendedDivergence and " +
+  "then deltas - last applied, first inverted. A DELTA is a mechanical rewrite " +
+  "forced by vendoring: an import path that cannot resolve in the flat vendor " +
+  "layout. An INTENDED DIVERGENCE is a deliberate behaviour change HANGAR chose " +
+  "(D-02), and carries the reason, the plan that chose it and a date. Both lists " +
+  "are inverted before hashing, so upstream's sha256 still rules: a change that " +
+  "is in neither list still moves the hash and still names the file. The field " +
+  "is written out as an empty array where there is no divergence, so a reader " +
+  "can tell 'none' from 'a field nobody added'.";
 
 /**
  * The complete D-04 allow-list: header block (stripped, not inverted), import
@@ -215,6 +228,34 @@ if (head !== UPSTREAM_COMMIT) {
 // Read the upstream files as BUFFERS. The pristine byte stream is the subject:
 // pad.test.js is UTF-8 with non-ASCII content and a decode/re-encode round trip
 // is exactly the kind of silent change this manifest exists to catch.
+// D-02. The intended-divergence rows are CARRIED FORWARD from the existing
+// manifest, never re-derived: nothing in an upstream checkout can tell this
+// script what HANGAR deliberately changed, and a regeneration that dropped the
+// field would delete the whole record in the one step VENDOR.md tells a
+// re-syncer to run. That would be worse than the bug the record exists to
+// prevent - the next sync would silently revert every recorded fix.
+//
+// Carrying forward is NOT the same as blessing: step 4 of the sync procedure is
+// re-checking each row, which is why every carried row is printed at the end of
+// this run as an explicit checklist.
+const carried = new Map();
+if (existsSync(MANIFEST)) {
+  try {
+    const previous = JSON.parse(readFileSync(MANIFEST, "utf8"));
+    for (const entry of previous.files ?? []) {
+      carried.set(entry.vendored, entry.intendedDivergence ?? []);
+    }
+  } catch (error) {
+    fail(
+      "the existing manifest at " +
+        MANIFEST +
+        " could not be parsed, and overwriting it would destroy the " +
+        "intendedDivergence record: " +
+        (error.message || error),
+    );
+  }
+}
+
 const files = FILES.map((entry) => {
   const from = join(BOTOR, ...entry.upstream.split("/"));
   if (!existsSync(from)) {
@@ -227,6 +268,9 @@ const files = FILES.map((entry) => {
     bytes: buf.length,
     sha256: createHash("sha256").update(buf).digest("hex"),
     deltas: entry.deltas,
+    // Always written out, empty array included. "No divergence" and "a field
+    // nobody added" must not look the same to a reader or to the spec.
+    intendedDivergence: carried.get(entry.vendored) ?? [],
   };
 });
 
@@ -275,4 +319,30 @@ for (const entry of files) {
       " bytes  sha256 " +
       entry.sha256.slice(0, 12),
   );
+}
+
+// The carried rows, printed as a checklist rather than as a summary. VENDOR.md
+// step 4 is "re-apply each intendedDivergence, and re-check every one before you
+// do" - an upstream fix that lands the same behaviour RETIRES a row, and a
+// record that only ever grows is a record nobody trusts.
+const rows = files.flatMap((entry) =>
+  entry.intendedDivergence.map((row) => ({ file: entry.vendored, row })),
+);
+if (rows.length === 0) {
+  console.log(
+    "\nintendedDivergence: no rows carried forward. src/vendor/ is byte-identical " +
+      "to upstream apart from the headers and the five deltas.",
+  );
+} else {
+  console.log(
+    "\nintendedDivergence: " +
+      rows.length +
+      " row(s) CARRIED FORWARD, not re-checked. Confirm each is still needed " +
+      "(VENDOR.md sync step 4) and delete any that upstream has now fixed:",
+  );
+  for (const { file, row } of rows) {
+    console.log(
+      "  " + file + "  [" + row.plan + ", " + row.dated + "]  " + row.reason,
+    );
+  }
 }

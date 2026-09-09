@@ -5,7 +5,7 @@
     "commit": "a0fb69d5d0e78ce0f6423fc1d1a9783937c5380c"
   },
   "headerSentinel": "// Original copyright and licence (GNU GPL v3 or later) retained below.",
-  "note": "sha256 is of the PRISTINE upstream bytes. vendored-diff.spec.ts reconstructs them from the vendored file by stripping the provenance header block through headerSentinel plus one blank line, then applying each delta in reverse. A fourth change of any kind moves the hash.",
+  "note": "sha256 is of the PRISTINE upstream bytes. vendored-diff.spec.ts reconstructs them from the vendored file by stripping the provenance header block through headerSentinel plus one blank line, then inverting intendedDivergence and then deltas - last applied, first inverted. A DELTA is a mechanical rewrite forced by vendoring: an import path that cannot resolve in the flat vendor layout. An INTENDED DIVERGENCE is a deliberate behaviour change HANGAR chose (D-02), and carries the reason, the plan that chose it and a date. Both lists are inverted before hashing, so upstream's sha256 still rules: a change that is in neither list still moves the hash and still names the file. The field is written out as an empty array where there is no divergence, so a reader can tell 'none' from 'a field nobody added'.",
   "files": [
     {
       "vendored": "src/vendor/botor/_pad.ts",
@@ -17,21 +17,24 @@
           "vendored": "export type RGB = { r: number; g: number; b: number };",
           "upstream": "import type { RGB } from \"../../config-blocks/_screen\";"
         }
-      ]
+      ],
+      "intendedDivergence": []
     },
     {
       "vendored": "src/vendor/botor/pad-sim.ts",
       "upstream": "src/renderer/main/zona/pad-sim.ts",
       "bytes": 56314,
       "sha256": "23464381580b0408b5ee17f9f4d03b78a703878709b1895b9c512fa122ce1602",
-      "deltas": []
+      "deltas": [],
+      "intendedDivergence": []
     },
     {
       "vendored": "src/vendor/botor/pad-sim-host.ts",
       "upstream": "src/renderer/main/zona/pad-sim-host.ts",
       "bytes": 19382,
       "sha256": "fe2088884b616f48b3d19d939455b3ff13d3b31288a9b448cb898411366f0669",
-      "deltas": []
+      "deltas": [],
+      "intendedDivergence": []
     },
     {
       "vendored": "src/vendor/botor/tests/pad.test.js",
@@ -43,7 +46,8 @@
           "vendored": "} from \"../_pad\";",
           "upstream": "} from \"../main/zona/_pad\";"
         }
-      ]
+      ],
+      "intendedDivergence": []
     },
     {
       "vendored": "src/vendor/botor/tests/pad-sim.test.js",
@@ -59,7 +63,8 @@
           "vendored": "} from \"../_pad\";",
           "upstream": "} from \"../main/zona/_pad\";"
         }
-      ]
+      ],
+      "intendedDivergence": []
     },
     {
       "vendored": "src/vendor/botor/tests/pad-invariants.test.js",
@@ -71,7 +76,8 @@
           "vendored": "} from \"../_pad\";",
           "upstream": "} from \"../main/zona/_pad\";"
         }
-      ]
+      ],
+      "intendedDivergence": []
     }
   ]
 }
