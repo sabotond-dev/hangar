@@ -272,7 +272,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "ghost",
     name: "GHOST",
     description:
-      "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger’s.",
+      "Drag once and a ghost retraces your path forever, still sending; the red corner takes it back.",
     motion: "dark",
     quiet: DEMO_TOUCH_NOTE,
     tags: ["modulation", "generative", "expressive"],
