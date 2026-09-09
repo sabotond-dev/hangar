@@ -326,4 +326,64 @@ describe("the Lua host", () => {
 
     host.close();
   });
+
+  it("records a bare gmss whole, and the surface it joined is sixteen names on a booted VM", async () => {
+    // gmss is midi_sysex_send. Two or more arguments, EVERY ONE OF THEM ONE
+    // PAYLOAD BYTE, and the configuration supplies 0xF0 and 0xF7 itself
+    // (`grid_lua_api.c:905-935`, read through `../zona-docs/docs/
+    // ZONA_REFERENCE.md:1241` and `:2022`). It is the fourth fire-and-forget
+    // out-call on the surface and the first that no compiled recipe uses - the
+    // vendored compiler's OUT_CALLS does not list it at all - so a hand-authored
+    // entry is the only thing that can reach it, and without this binding such
+    // an entry would run on a ZONA and raise in its own catalog card.
+    //
+    // THE WHOLE PAYLOAD IS RECORDED, IN CALL ORDER. A recorder that stored a
+    // count or a length would make the framing assertion an entry needs
+    // unwritable, and the framing bytes are exactly the part a later edit is
+    // most likely to drop.
+    const host = await createLuaHost({
+      sim: blank(),
+      setup: "gmss(240,1,2,247)gmss(240,127,247)",
+    });
+    expect(host.errors).toEqual([]);
+    expect(
+      host.sysex.map((message) => [...message.bytes]),
+      "the two messages must arrive whole, in order, framing included",
+    ).toEqual([
+      [240, 1, 2, 247],
+      [240, 127, 247],
+    ]);
+    host.close();
+
+    // THE FRAMING IS THE CONFIGURATION'S, NOT THE HOST'S. Firmware warns and
+    // transmits anyway when 0xF0/0xF7 are missing, so a host that helpfully
+    // added them would hide a real defect - and an entry's own framing test
+    // would then be asserting the host's behaviour rather than the entry's.
+    const bare = await createLuaHost({ sim: blank(), setup: "gmss(1,2)" });
+    expect(
+      bare.sysex.map((message) => [...message.bytes]),
+      "the host must not supply framing the configuration omitted",
+    ).toEqual([[1, 2]]);
+    bare.close();
+
+    // SIXTEEN, OBSERVED ON A BOOTED VM RATHER THAN READ OFF THE ARRAY. The
+    // array is the registration, so counting it would only prove it counts
+    // itself; the Grid-shaped keys really in _G are the evidence. The previous
+    // test holds the two directions equal, which is what lets this one state a
+    // number.
+    const probe = await createLuaHost({ sim: blank(), setup: "" });
+    const gridShaped = /^(g[a-z]{1,4}|t[xy]m[ai])$/;
+    const inTheVm = probe.globalKeys().filter((k) => gridShaped.test(k));
+    expect(
+      [...inTheVm].sort(),
+      "the Grid names really in _G are not the sixteen the host registers",
+    ).toEqual([...HOST_GLOBALS].sort());
+    expect(
+      inTheVm.length,
+      `the VM carries ${inTheVm.length} Grid-shaped globals: ` +
+        [...inTheVm].sort().join(", "),
+    ).toBe(16);
+    expect(inTheVm, "gmss did not reach the VM").toContain("gmss");
+    probe.close();
+  });
 });

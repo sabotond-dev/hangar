@@ -48,6 +48,32 @@ export type HostHid = {
   readonly args: readonly number[];
 };
 
+/**
+ * One recorded sysex message, in the order the configuration issued it.
+ *
+ * A THIRD LOG RATHER THAN A WIDENED `HostHid` OR A WIDENED `HostMidi`, and the
+ * reason is the shape of the message, not taste. Sysex is not a human
+ * interface device, so putting it in a type named for mouse clicks and key
+ * codes would make the `call` union unreadable; and it is not a voice message
+ * either, so `HostMidi`'s five fixed fields (`ch`, `cmd`, `p1`, `p2`, `mode`)
+ * have no meaning for it - four of the five would be permanently zero. What a
+ * sysex message IS is a variable-length run of bytes, so that is what is
+ * recorded.
+ *
+ * NO `call` DISCRIMINANT, DELIBERATELY. `gmss` is the only sysex emitter in the
+ * whole Grid global table (`../zona-docs/docs/ZONA_REFERENCE.md:1249-1250`,
+ * `grid_lua_api.c:2220-2221`), so a union here would have exactly one member
+ * and a discriminant that never discriminates.
+ *
+ * `bytes` is what the configuration ASKED to send, byte for byte and in call
+ * order - not what a wire would carry. Nothing narrows it to seven bits, which
+ * is what makes an illegal data byte visible in a test instead of hidden by a
+ * clamp. See `recordSysex`.
+ */
+export type HostSysex = {
+  readonly bytes: readonly number[];
+};
+
 export type LuaHostOptions = {
   /**
    * A blank, fully "user"-owned PadSim. The host owns every slot; the sim
@@ -139,7 +165,9 @@ function clampIndex(n: number): number {
  *
  * gms is ABSENT on purpose - it is bridged under a private name so a bare
  * gms(...) still raises. gmms, gmbs and gks are PRESENT on purpose - tpad's
- * Setup opens with a bare gmbs(3,0).
+ * Setup opens with a bare gmbs(3,0). gmss is PRESENT on purpose too, and for a
+ * different reason: firmware gives it no `self:` form at all
+ * (`ZONA_REFERENCE.md:2022`), so bare is the only spelling there is.
  */
 export const HOST_GLOBALS = [
   "glag",
@@ -157,6 +185,7 @@ export const HOST_GLOBALS = [
   "gmms",
   "gmbs",
   "gks",
+  "gmss",
 ] as const;
 
 /** Every name reachable only as self:<name>(...). */
@@ -265,6 +294,7 @@ export class LuaHost {
   private _coordMax: 127 | 1023 = 127;
   private readonly midiLog: HostMidi[] = [];
   private readonly hidLog: HostHid[] = [];
+  private readonly sysexLog: HostSysex[] = [];
   private readonly errorLog: string[] = [];
   private _rxMode: number | undefined;
 
@@ -381,6 +411,7 @@ export class LuaHost {
     this._rxMode = undefined;
     this.midiLog.length = 0;
     this.hidLog.length = 0;
+    this.sysexLog.length = 0;
     this.errorLog.length = 0;
     this.sim.reset();
 
@@ -434,6 +465,16 @@ export class LuaHost {
     // method-only. Variadic on purpose: what matters here is that the symbol
     // resolves and the call is observable, not that HANGAR re-derives a HID
     // arity it has no host for.
+    //
+    // gmss is a FOURTH out-call of the same character - fire and forget, no
+    // return value - and the compiler's OUT_CALLS does not know it at all
+    // (`_pad.ts:3563`), because no compiled recipe sends sysex. A HAND-AUTHORED
+    // entry can, so the host binds it: without it a configuration that sends
+    // sysex would run on a ZONA and raise in its own catalog card, which is the
+    // one outcome the preview exists to prevent. Variadic for firmware's own
+    // reason this time rather than HANGAR's: `gmss` takes two or more
+    // arguments and each is one payload byte, so there is no fixed arity to
+    // re-derive.
     const bindings: Record<(typeof HOST_GLOBALS)[number], HostBinding> = {
       glag: (_slot: unknown, n: unknown) => this.glag(n),
       glc: (
@@ -458,6 +499,11 @@ export class LuaHost {
       gmms: (...args: unknown[]) => this.recordHid("gmms", args),
       gmbs: (...args: unknown[]) => this.recordHid("gmbs", args),
       gks: (...args: unknown[]) => this.recordHid("gks", args),
+      // Its OWN recorder rather than recordHid's, because a sysex message is a
+      // variable-length run of bytes and not a mouse click, so it gets a list
+      // whose element type says so instead of a `call` union widened past what
+      // it is named for.
+      gmss: (...args: unknown[]) => this.recordSysex(args),
     };
     for (const name of HOST_GLOBALS) g.set(name, bindings[name]);
 
@@ -483,6 +529,27 @@ export class LuaHost {
   /** Records one mouse or keyboard send. Nothing in HANGAR consumes them. */
   private recordHid(call: HostHid["call"], args: readonly unknown[]): void {
     this.hidLog.push({ call, args: args.map((a) => f2i(num(a))) });
+  }
+
+  /**
+   * Records one sysex message, WHOLE and in call order.
+   *
+   * Every argument is one payload byte and the CONFIGURATION supplies 0xF0 and
+   * 0xF7 itself (`grid_lua_api.c:905-935`; `grid_decode.c:96-100` logs a
+   * warning if they are missing and transmits anyway), so the framing bytes are
+   * part of the recorded payload rather than something the host adds. A
+   * recorder that stored only a count or only a length would make the entry's
+   * own test unwritable.
+   *
+   * F2Ieq and nothing else, exactly as recordHid does. NO seven-bit narrowing
+   * and no range check: a data byte above 127 is not transmissible as sysex,
+   * and masking it here would turn a real defect in a configuration into a
+   * message that looks fine in the preview and is wrong on the wire. HANGAR has
+   * no sysex host to send to, so a recorded message is a record of what was
+   * asked for and nothing more.
+   */
+  private recordSysex(args: readonly unknown[]): void {
+    this.sysexLog.push({ bytes: args.map((a) => f2i(num(a))) });
   }
 
   /**
@@ -770,6 +837,11 @@ export class LuaHost {
   /** Every mouse and keyboard send the configuration issued, in order. */
   get hid(): readonly HostHid[] {
     return this.hidLog;
+  }
+
+  /** Every sysex message the configuration issued, whole and in order. */
+  get sysex(): readonly HostSysex[] {
+    return this.sysexLog;
   }
 
   /** Every Lua error a handler raised, in order. Empty is the passing state. */

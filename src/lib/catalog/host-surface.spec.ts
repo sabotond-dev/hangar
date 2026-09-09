@@ -2,8 +2,10 @@
 // host does not register.
 //
 // WHY THIS FILE EXISTS, AND WHY IT IS NOT A BLOCKLIST. HANGAR's browser host
-// registers fifteen bare Grid names and nine `self:` methods, and that is the
+// registers sixteen bare Grid names and nine `self:` methods, and that is the
 // whole surface (`src/lib/sim/lua-host.ts`, HOST_GLOBALS / HOST_SELF_METHODS).
+// It was fifteen until plan 11-10 added `gmss`, the sysex send, so a
+// hand-authored entry could emit one and SEE it in the preview.
 // The vendored compiler's own scanner knows a WIDER surface - `findTraps`
 // guards ten LED calls including `gln`, `gld` and `glx` (`_pad.ts:3513-3524`),
 // none of which the host binds. So recipe-book Lua passes the static gate
@@ -16,9 +18,12 @@
 // the registered surface and refuses everything it cannot account for, so a
 // name nobody has thought of yet is refused by construction.
 //
-// FOUR TESTS, AND THE COUNT NEVER MOVES. Every one loops over the entries
-// internally and names the entry, the event, the call and its index, so a wave
-// that adds configurations moves no number here.
+// FIVE TESTS, AND THE COUNT NEVER MOVES WITH THE CATALOG. Every one of the
+// first four loops over the entries internally and names the entry, the event,
+// the call and its index, so a wave that adds configurations moves no number
+// here. It moved from four to five in plan 11-10, and that is the other kind of
+// change: a name JOINED THE SURFACE, which happens roughly never and is exactly
+// what test 5 exists to pin. Adding a configuration still moves nothing.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -438,7 +443,15 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     // gmms, gmbs and gks are bound bare because tpad's compiled Setup opens
     // with a bare gmbs(3,0). The gate has to carry both halves, because the
     // difference is invisible in the recipe book.
-    expect(GLOBALS, "a bare gms became callable").not.toContain("gms");
+    expect(
+      GLOBALS,
+      "a bare gms became callable. It is absent BY DESIGN, not by oversight: " +
+        "the host bridges it under the private name __hangar_gms so that the " +
+        "only spelling a configuration can reach is self:gms(...), which is " +
+        "the spelling every recipe and every shipped entry uses. Binding it " +
+        "bare would silently widen the surface a hand-authored entry may " +
+        "call. Do not 'fix' this by adding it to HOST_GLOBALS",
+    ).not.toContain("gms");
     expect(SELF_METHODS, "self:gms stopped being installed").toContain("gms");
     for (const name of ["gmms", "gmbs", "gks"]) {
       expect(GLOBALS, `${name} must stay callable bare`).toContain(name);
@@ -467,5 +480,66 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
       `the scan over ${entries.length} entries at their defaults found only ` +
         `${sites} call sites`,
     ).toBeGreaterThanOrEqual(40);
+  });
+
+  it("accepts a bare gmss and still refuses a bare gms", async () => {
+    // THE NAME THAT JOINED THE SURFACE, AND THE NAME THAT MUST NOT.
+    //
+    // gmss is midi_sysex_send. Firmware gives it NO `self:` form at all
+    // (`../zona-docs/docs/ZONA_REFERENCE.md:2022`), so bare is the only
+    // spelling there is and the host binds it bare - plan 11-10, so that an
+    // entry sending sysex can be previewed rather than raising in its own card.
+    //
+    // AND THAT IS PRECISELY THE CHANGE THAT COULD MAKE gms's ABSENCE LOOK LIKE
+    // AN OVERSIGHT. Adding a neighbour to HOST_GLOBALS is the moment somebody
+    // notices the MIDI send is missing from the same list and "completes" it.
+    // It is not missing: it is bridged under __hangar_gms so that self:gms is
+    // the only reachable spelling. The two halves are asserted together, in one
+    // test, so the second can never be read without the first.
+    expect(GLOBALS, "gmss is not registered").toContain("gmss");
+    expect(
+      SELF_METHODS,
+      "gmss acquired a self: form the firmware does not have",
+    ).not.toContain("gmss");
+
+    const [sysex] = resolveCalls("gmss(240,125,65,247)");
+    expect(sysex.ok, `the classifier refused a bare gmss: ${sysex.why}`).toBe(
+      true,
+    );
+    expect(sysex.why).toBe("a registered bare global");
+
+    // The other half, from the VM rather than from the array: the name really
+    // resolves to a function, and calling it really does not raise.
+    const probe = await createLuaHost({
+      sim: blank(),
+      setup:
+        '--[[@cb]]if type(gmss)~="function" then error("gmss is "..type(gmss)) end ' +
+        "gmss(240,125,65,247)",
+    });
+    try {
+      expect(probe.errors, "a bare gmss raised inside the VM").toEqual([]);
+      expect(
+        probe.globalKeys(),
+        "gmss is registered but absent from the VM's _G",
+      ).toContain("gmss");
+      expect(
+        probe.sysex.map((message) => [...message.bytes]),
+        "the bare gmss did not reach the recorder whole",
+      ).toEqual([[240, 125, 65, 247]]);
+
+      // gms, unchanged and asserted from the same VM.
+      expect(
+        probe.globalKeys(),
+        "a bare gms is reachable, so the __hangar_gms bridge stopped bridging",
+      ).not.toContain("gms");
+    } finally {
+      probe.close();
+    }
+
+    const [bareGms] = resolveCalls("gms(0,144,60,100,0)");
+    expect(
+      bareGms.ok,
+      "the classifier accepted a bare gms while gmss was being added",
+    ).toBe(false);
   });
 });
