@@ -30,10 +30,27 @@
 // Test 4 then asserts Switch 3 in its own right at a forced 4, because without
 // it that switch is a sentence no test can tell from a typo.
 //
-// ALL FOUR TITLES CARRY @webkit. playwright.config.ts filters the second
+// ALL FIVE TITLES CARRY @webkit. playwright.config.ts filters the second
 // project on /@webkit/, so a title without the tag runs in chromium only -
 // and half the point of this file is that iOS, which can never install, still
-// gets the site it can use. Four titles times two projects is eight.
+// gets the site it can use. Five titles times two projects is ten.
+//
+// TEST 5 IS HERE FOR THE SAME REASON THE OTHER FOUR ARE, ONE LAYER DOWN
+// (10-UI-SPEC A-55, A-58, D-22). The registration lattice shipped in 10-13.1
+// PAINTING NOTHING with every source scan over it green, and the only thing
+// that caught it was two byte-identical screenshots. The cause was paint order.
+// The defect this test guards is also paint order - a field that paints UNDER
+// the words instead of around them - and a text scan of src/app.css is exactly
+// as blind to it as the canvas readback is to a compositor overlay. It can
+// prove `.lattice > :where(*)` is declared; it cannot prove that anything is
+// occluded by it, that the card gutters still show the field, or that an unlit
+// pad cell is brighter than the ground. Those are questions for a browser.
+//
+// It carries @webkit for a reason rather than by habit: this pair of changes
+// introduces two ENGINE-DEPENDENT CSS features - `:where()`'s zero specificity,
+// on which the whole "a component's own background wins" contract rests, and
+// `color-mix()` - and the phone viewport is where DEGR-01's browse-only promise
+// is actually made.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
@@ -49,6 +66,163 @@ const FRONT_DOOR = "/";
 const ROLL = ".crt-roll";
 const SHELL = ".crt-band";
 const PAD = ".pad";
+
+/** trailingSlash: "always". The other lattice root's route. */
+const BROWSE = "/browse/";
+
+/**
+ * THE ALPHA OF A COMPUTED COLOUR, IN TWO SERIALISATIONS RATHER THAN ONE, AND
+ * THE SECOND ONE COST A RED RUN TO FIND.
+ *
+ * `rgba(r, g, b, a)` is the form every colour on this site had until A-58, and
+ * a reader that only handles it is the obvious thing to write. But
+ * `color-mix(in srgb, ...)` does NOT serialise back to rgba: both engines
+ * return `color(srgb 0.839216 1 0.305882 / 0.05)`, measured on 2026-09-09 in
+ * chromium AND webkit at a phone viewport. A parser that misses that form falls
+ * through to its default, and the default matters in both directions - it
+ * reported the unlit cell's 0.05 wash as OPAQUE, and in the occlusion walk it
+ * would report a genuinely opaque `color()` background as transparent.
+ *
+ * THE WALK BELOW CARRIES ITS OWN COPY OF THIS, AND THE DUPLICATION IS FORCED:
+ * the walk is serialised into the page - twice, once by page.evaluate and once
+ * as a string for the control arm - so it cannot close over anything in this
+ * module. The two copies are held together by an assertion rather than by
+ * discipline: the walk returns the one colour both of them can see, and the
+ * test checks they read the same alpha out of it.
+ */
+const ALPHA_OF = (colour: string): number => {
+  const slashed = /\/\s*([0-9.]+%?)\s*\)/.exec(colour);
+  if (slashed !== null) {
+    const raw = slashed[1];
+    return raw.endsWith("%") ? parseFloat(raw) / 100 : parseFloat(raw);
+  }
+  const legacy = /^rgba?\(([^)]+)\)$/.exec(colour);
+  if (legacy === null) return 1;
+  const channels = legacy[1]
+    .split(/[,\s]+/)
+    .filter((piece) => piece !== "")
+    .map((piece) => parseFloat(piece));
+  return channels.length < 4 ? 1 : channels[3];
+};
+
+/**
+ * THE WALK TEST 5 IS BUILT ON, AND IT RUNS IN THE PAGE RATHER THAN OVER SOURCE.
+ *
+ * For every element under a lattice root that owns a non-empty text node, climb
+ * its ancestors reading the computed background until an alpha-1 background is
+ * found or the root is reached. REACHING THE ROOT FIRST MEANS THE ELEMENT
+ * PAINTS OVER BARE LATTICE - the registration field is a z-index -1 child of
+ * the root's own stacking context, so it paints after the root's background and
+ * before the root's content, and only an opaque background in that content
+ * stands between it and a glyph.
+ *
+ * It is declared at module scope and passed to page.evaluate BY VALUE so the
+ * same function can also be stringified for the control arm, where it has to
+ * run again with the ground rule suppressed. One walk, two arms, no second
+ * implementation to drift.
+ */
+const WALK_UNOCCLUDED = () => {
+  // The module-scope ALPHA_OF's twin. See its header: this function is
+  // serialised into the page and can close over nothing, and the test asserts
+  // the two agree rather than trusting that they do.
+  const alphaOf = (colour: string): number => {
+    const slashed = /\/\s*([0-9.]+%?)\s*\)/.exec(colour);
+    if (slashed !== null) {
+      const raw = slashed[1];
+      return raw.endsWith("%") ? parseFloat(raw) / 100 : parseFloat(raw);
+    }
+    const legacy = /^rgba?\(([^)]+)\)$/.exec(colour);
+    if (legacy === null) return 1;
+    const channels = legacy[1]
+      .split(/[,\s]+/)
+      .filter((piece) => piece !== "")
+      .map((piece) => parseFloat(piece));
+    return channels.length < 4 ? 1 : channels[3];
+  };
+  const opaque = (el: Element): boolean =>
+    alphaOf(getComputedStyle(el).backgroundColor) >= 1;
+
+  const roots = Array.from(document.querySelectorAll(".lattice"));
+  const unoccluded: string[] = [];
+  let textBearing = 0;
+
+  for (const root of roots) {
+    for (const el of Array.from(root.querySelectorAll("*"))) {
+      const ownsText = Array.from(el.childNodes).some(
+        (node) =>
+          node.nodeType === 3 && (node.textContent ?? "").trim().length > 0,
+      );
+      if (!ownsText || el.closest("svg") !== null) continue;
+      textBearing += 1;
+      let cursor: Element | null = el;
+      let covered = false;
+      while (cursor !== null && cursor !== root) {
+        if (opaque(cursor)) {
+          covered = true;
+          break;
+        }
+        cursor = cursor.parentElement;
+      }
+      if (!covered)
+        unoccluded.push(
+          `${el.tagName.toLowerCase()} "${(el.textContent ?? "").trim().slice(0, 32)}"`,
+        );
+    }
+  }
+
+  // The other half: is the field still BARE between the cards? A fix that
+  // deleted the lattice rather than relocating it passes the walk perfectly.
+  const cards = Array.from(document.querySelectorAll("li.card"));
+  let gutterBare: boolean | null = null;
+  if (cards.length >= 2) {
+    const root = cards[0].closest(".lattice");
+    let cursor: Element | null = cards[0].parentElement;
+    gutterBare = true;
+    while (cursor !== null && cursor !== root) {
+      if (opaque(cursor)) {
+        gutterBare = false;
+        break;
+      }
+      cursor = cursor.parentElement;
+    }
+  }
+
+  // The one colour BOTH alpha readers can see, returned raw with this walk's
+  // own verdict on it, so the module-scope twin can be checked against it.
+  const dots = document.querySelector("[data-testid='card-tpad'] .dots");
+  const dotsColour =
+    dots === null ? null : getComputedStyle(dots).backgroundColor;
+
+  return {
+    roots: roots.length,
+    textBearing,
+    unoccluded,
+    gutterBare,
+    dotsColour,
+    dotsAlpha: dotsColour === null ? null : alphaOf(dotsColour),
+  };
+};
+
+/**
+ * Wait until a pad has a picture at all. e2e/browse.e2e.ts:167's idiom: the
+ * simulator arrives through a dynamic import AFTER the prerendered frames have
+ * painted, so a canvas sampled too early is empty for a reason that has nothing
+ * to do with the configuration on it.
+ */
+async function waitForPicture(page: Page, id: string): Promise<void> {
+  await page.waitForFunction(
+    (padId) => {
+      const canvas = document.querySelector<HTMLCanvasElement>(
+        `[data-testid='pad-canvas-${padId}']`,
+      );
+      const context = canvas?.getContext("2d");
+      if (!canvas || !context) return false;
+      return context.getImageData(0, 0, 9, 9).data.some((byte) => byte !== 0);
+    },
+    id,
+    { timeout: 15_000 },
+  );
+}
 
 /**
  * A COLD ARRIVAL. The about:blank hop is the idiom e2e/tuning.e2e.ts
@@ -416,5 +590,122 @@ test.describe("the CRT treatment, asserted at the compositor", () => {
       await computed(page, PAD, "::after", "content"),
       "Layer S is still present on a four-core machine",
     ).not.toBe("none");
+  });
+
+  test("@webkit the lattice is a ground and the unlit cell is a cell - both facts only a browser can check", async ({
+    page,
+  }) => {
+    await coldGoto(page, BROWSE);
+    await expect(page.getByTestId("browse-grid")).toBeVisible();
+
+    // ---- ARM A: the shipped page, with the ground live. ----
+    const live = await page.evaluate(WALK_UNOCCLUDED);
+
+    // NON-VACUITY FIRST, and it is not decorative here: a page that rendered no
+    // text under a lattice root would report zero unoccluded elements and pass
+    // this test having proved nothing at all.
+    expect(
+      live.roots,
+      "no .lattice root is mounted on /browse/, so this whole test is measuring an empty set",
+    ).toBeGreaterThan(0);
+    expect(
+      live.textBearing,
+      "fewer than fifty text-bearing elements were found under a lattice root - the walk found almost nothing to judge and its verdict below is close to vacuous",
+    ).toBeGreaterThan(50);
+
+    // ---- THE CLAIM (A-55). The field paints where nothing stands on it. ----
+    expect(
+      live.unoccluded,
+      `these elements paint over BARE LATTICE: ${live.unoccluded.join(" | ")}. A-55 makes the registration field a GROUND - visible in the margins, in the gaps between blocks and in the gutters between cards, and under no glyph. Measured on the built site before the fix: 418 of them on this page, with TWO lattice crossings inside the HANGAR wordmark's box and THIRTEEN inside the headline's. NO SOURCE SCAN CAN SEE THIS - it can read the rule and it cannot read paint order, which is exactly how 10-13.1 shipped a lattice that painted nothing with every scan green.`,
+    ).toEqual([]);
+
+    // ---- AND THE FIELD SURVIVED, which is the half that would have caught
+    // that no-op: a fix that DELETED the lattice satisfies the assertion above
+    // perfectly.
+    expect(
+      live.gutterBare,
+      "the card grid is occluded too, so the lattice paints nowhere on this page. /browse/'s .grid is A-56's declared exception precisely so the field keeps painting in the GUTTERS BETWEEN the cards - the 'around the pads' half of the ruling. A relocation that becomes a removal is this phase's own recorded failure at a different address",
+    ).toBe(true);
+
+    // ---- ARM B: the same walk with the ground disabled. Without it, a page
+    // whose text happened to sit inside opaque components would pass arm A for
+    // reasons that have nothing to do with the rule under test.
+    const control = await page.evaluate(
+      ([off, walk]) => {
+        const style = document.createElement("style");
+        style.textContent = off;
+        document.head.append(style);
+        const result = new Function("return (" + walk + ")()")() as {
+          unoccluded: string[];
+        };
+        style.remove();
+        return result;
+      },
+      [
+        ".lattice > *, li.card, .empty { background-color: transparent !important; }",
+        WALK_UNOCCLUDED.toString(),
+      ] as const,
+    );
+    expect(
+      control.unoccluded.length,
+      "with the ground disabled the walk STILL finds nothing unoccluded, so it is not measuring the ground rule. Either the walk is broken or this page's text is opaque for some other reason, and in both cases arm A proved nothing",
+    ).toBeGreaterThan(100);
+
+    // ---- THE UNLIT CELL (A-58, A-59). Two halves in one place so they cannot
+    // drift apart: the Trackpad card LOOKS like a pad, and its configuration
+    // still LIGHTS NOTHING.
+    await page.getByTestId("card-tpad").scrollIntoViewIfNeeded();
+    await waitForPicture(page, "arc");
+
+    const cell = await page.evaluate(WALK_UNOCCLUDED);
+    expect(
+      cell.dotsColour,
+      "the Trackpad card has no .dots layer - PadFrame's unlit-cell layer is where A-58's wash lives, and without it there is nothing here to measure",
+    ).not.toBeNull();
+    const colour = cell.dotsColour as string;
+    const alpha = ALPHA_OF(colour);
+
+    // The two alpha readers, held together by an assertion rather than by
+    // discipline. One runs here, one is serialised into the page, and the
+    // serialisation is why there are two at all.
+    expect(
+      cell.dotsAlpha,
+      `the walk's own alpha reader and this file's disagree about "${colour}". They are the same rule written twice because the walk cannot close over this module, and a drift between them would silently change what "occluded" means`,
+    ).toBe(alpha);
+
+    expect(
+      alpha,
+      `the unlit cell carries no wash (${colour}). Trackpad's draft enables no LED layer, so its face is eighty-one unlit cells - and the cell STRUCTURE on a pad comes from Layer 3's black gutters, which divide nothing when there is nothing behind them. Without the wash the card reads as one rectangle that failed to load rather than as a pad with nothing lit`,
+    ).toBeGreaterThan(0);
+    expect(
+      alpha,
+      `the unlit cell's wash is ${alpha}, at or above --color-line-soft's own 0.2. A-58 caps it BELOW the dot that sits in the same cell, so an unlit cell on the one card that can never light is exactly as strong as an unlit cell on every other card. "The same strength the other cards' unlit cells have" is the constraint, and out-shining them fails it`,
+    ).toBeLessThan(0.2);
+
+    // ---- AND IT IS STILL DARK. The wash is CSS BEHIND the canvas; the canvas
+    // is the firmware's own output and it is still empty. The same 324 bytes
+    // e2e/browse.e2e.ts reads, with a lit card beside it so an engine that
+    // never started cannot make this pass.
+    const bytes = await page.evaluate(() => {
+      const read = (id: string): number => {
+        const canvas = document.querySelector<HTMLCanvasElement>(
+          `[data-testid='pad-canvas-${id}']`,
+        );
+        const context = canvas?.getContext("2d");
+        if (!canvas || !context) return -1;
+        return context
+          .getImageData(0, 0, 9, 9)
+          .data.reduce((count, byte) => (byte === 0 ? count : count + 1), 0);
+      };
+      return { tpad: read("tpad"), arc: read("arc") };
+    });
+    expect(
+      bytes.arc,
+      "the ARC card's canvas is empty or missing, so the simulator never painted and Trackpad's zero below means nothing at all",
+    ).toBeGreaterThan(0);
+    expect(
+      bytes.tpad,
+      "TRACKPAD IS LIT, AND IT MUST NOT BE. Its draft sets look.kind and touch.kind to none and disables both, measured at 0 of 81 over a drag, a two-finger scroll, taps and 2,000 idle ticks; src/lib/sim/demo.ts's DARK_BY_CONSTRUCTION carries the reason and scripts/gen-og.mjs exempts it by name. A-58 changes how an UNLIT cell is PAINTED and nothing else - a non-zero here means HANGAR has started supplying light the firmware did not, which 10-UI-SPEC 9.3 rejects by name",
+    ).toBe(0);
   });
 });

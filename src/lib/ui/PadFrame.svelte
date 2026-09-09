@@ -10,6 +10,21 @@
   the dots an unlit pad is a black square, and without the gutters a lit one is
   a smear rather than a grid of lamps.
 
+  AND IT IS HALF A DIAGNOSIS, CORRECTED HERE BY MEASUREMENT (10-UI-SPEC A-58,
+  D-22). The dots are there and TRACKPAD WAS STILL A BLACK SQUARE. The cell
+  STRUCTURE on a pad face is drawn by Layer 3, the gutter grid, and Layer 3 is
+  painted in --color-ground: a black grid divides nothing when the cells behind
+  it are also black. Every other card gets its structure for free from its LIT
+  cells; the one configuration that lights none of them therefore got none, and
+  eighty-one lamps collapsed into one rectangle that read as a card which had
+  failed to load. Nine rows of nine dots on black is a dot grid, not a pad.
+
+  So Layer 1 carries a WASH as well as its dots - one quarter of the dot's own
+  alpha, off the same token - and Layer 3's gutters cut it into 81 dark lamps.
+  It is global, not scoped to the dark entry, and that is the point: an unlit
+  cell on the pad that can never light is exactly as strong as an unlit cell on
+  every other card, which is parity by construction rather than a branch.
+
   Layers 1, 3 and 4 are CSS the browser paints once. This component therefore
   issues no draw call of its own, holds no engine and reaches nothing under
   src/vendor - the canvas it wraps is owned by the simulator host, which sets
@@ -92,8 +107,48 @@
     inset: 6px;
   }
 
-  /* Layer 1: one dot per unlit cell, painted once by the browser. */
+  /*
+    Layer 1: one dot per unlit cell, on a wash that makes the cell itself
+    legible. Painted once by the browser; nothing here moves.
+
+    THE WASH IS THE ABSENCE OF A LIGHT, DRAWN SO IT CAN BE SEEN - IT IS NOT A
+    LIGHT (10-UI-SPEC A-58, A-59). HANGAR adds no colour the firmware did not
+    emit, and this changes how an UNLIT cell is painted rather than whether it
+    is unlit. It sits BEHIND the canvas, so a lit cell covers it completely and
+    only the cells the configuration left at alpha 0 show it at all.
+
+    src/vendor/botor/_pad.ts's Trackpad draft sets look.kind = "none",
+    touch.kind = "none" and enabled = { look: false, touch: false }: it is a
+    pointer, it sends, and it has no LED layer to light. Measured at 0 of 81 lit
+    over a one-finger drag, a two-finger scroll, a single tap, a two-finger tap
+    and 2,000 idle ticks. THAT STAYS TRUE AND IS STILL ASSERTED - src/lib/sim/
+    demo.ts's DARK_BY_CONSTRUCTION carries the reason, frames.spec.ts proves
+    every entry's declared restsBlack in both directions, scripts/gen-og.mjs
+    exempts the entry by name and renders its OG image from the engine in Node
+    with no CSS at all, so that image is still black. The card's own sentence -
+    "Trackpad writes no lights at all" - is unchanged and remains accurate.
+
+    THE STRENGTH IS A QUARTER OF THE DOT'S, AND THE CAP IS THE RULE. The dot is
+    --color-line-soft at its full 0.2; the wash is the same token at 25%, so
+    0.05 - strictly dimmer at every pixel, which keeps the dot the brightest
+    mark in an unlit cell and keeps this card's unlit cells at exactly the
+    strength every other card's have.
+
+    color-mix RATHER THAN A LITERAL, A NEW TOKEN OR A PSEUDO-ELEMENT. A literal
+    rgba() here would be a colour no gate on this site can see: identity.spec.ts
+    reads src/app.css and nothing else, and 10-04 proved twice that even inside
+    that file a percent-encoded hue passes all seven of its assertions. A tenth
+    --color-* token is red by construction. A ::before with an opacity would be
+    a fifth layer and a paint-time group on every one of thirty-six cards. This
+    is one declaration that names the existing token, so every colour gate still
+    reads a var() and the ladder is still nine with three hexes.
+  */
   .dots {
+    background-color: color-mix(
+      in srgb,
+      var(--color-line-soft) 25%,
+      transparent
+    );
     background-image: radial-gradient(
       circle at 50% 50%,
       var(--color-line-soft) 0 6%,

@@ -64,6 +64,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+// Scan 8's honesty half is imported rather than described. A CSS wash on an
+// unlit cell must never be mistakable for a lit one, and the place that fact
+// lives is DARK_BY_CONSTRUCTION - so the scan reads the module instead of
+// quoting it, and a plan that ever "fixed" a dark card by deleting its entry
+// turns this file red as well as the three that already hold it.
+import { DARK_BY_CONSTRUCTION, demoPathFor } from "../sim/demo";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
@@ -1036,5 +1042,104 @@ describe("IDENT-01 the CRT reaches no word and duplicates no geometry silently",
           "other, or the roll bar and the tear slip out of register with the pads.",
       ).toBe(band);
     }
+  });
+});
+
+describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", () => {
+  it("scan 8: the unlit cell is drawn as a cell, in the token, and the pad that lights nothing is still dark", () => {
+    const rules = parseRules(strip(read(PAD_FRAME)));
+    const dots = rules.filter((rule) => rule.selector === ".dots");
+
+    // ---- NON-VACUITY, BEFORE ANY CLAIM ABOUT WHAT WAS FOUND. ----
+    expect(
+      dots.map((rule) => rule.selector),
+      `${PAD_FRAME} declares no .dots rule at all - Layer 1 was renamed away, and every assertion below it would be checking nothing`,
+    ).not.toEqual([]);
+    const declared = new Map(
+      dots.flatMap((rule) =>
+        rule.declarations.map(
+          (one) => [one.property, one.value] as [string, string],
+        ),
+      ),
+    );
+
+    // ---- THE DOT IS STILL THERE. The wash is an ADDITION to Layer 1, not a
+    // replacement for it: a face with a wash and no dots would be 81 flat
+    // squares, and the dot is what says "a lamp lives here".
+    expect(
+      declared.get("background-image"),
+      "the unlit cell's DOT is gone. A-58 adds a wash BESIDE the dot field, it does not replace it - a wash alone paints 81 flat squares and loses the mark that says a lamp lives in each of them",
+    ).toContain("var(--color-line-soft)");
+
+    // ---- THE WASH, AND IT IS THE TOKEN RATHER THAN A COLOUR. ----
+    const wash = declared.get("background-color");
+    expect(
+      wash,
+      `${PAD_FRAME}'s .dots declares no background-color. Without it the cell STRUCTURE on an all-unlit face is invisible: Layer 3's gutter grid is painted in --color-ground, and a black grid divides nothing when the cells behind it are also black. Measured: Trackpad's card rendered as one rectangle beside eight cards that read as pads`,
+    ).toBeDefined();
+    const value = wash ?? "";
+    expect(
+      COLOUR_LITERAL.test(value),
+      `the unlit cell's wash is written as a COLOUR rather than as a token: "${value}". 10-UI-SPEC 7.1 puts every colour in src/app.css because identity.spec.ts reads that file and nothing else - and 10-04 proved that even inside that file a percent-encoded hue passes all seven of its assertions, so a literal in a component <style> is a colour NO gate on this site can see. Derive it from the token instead`,
+    ).toBe(false);
+    expect(
+      value,
+      `the unlit cell's wash does not name --color-line-soft: "${value}". It is the same token the dot in the same cell is painted with, at a fraction of it, which is what makes "the same strength every other card's unlit cells have" a fact about one value rather than a comparison somebody has to remember to make`,
+    ).toContain("var(--color-line-soft)");
+
+    // ---- NO TENTH TOKEN. The value names exactly one custom property. ----
+    const named = [...value.matchAll(/var\((--[a-z-]+)/g)].map(
+      (match) => match[1],
+    );
+    expect(
+      named,
+      `the unlit cell's wash names ${named.join(", ")}. It may name exactly one custom property and it must be --color-line-soft: identity.spec.ts goes red on a TENTH --color-* token, and a wash that reached for a new one would have cost the ladder its ninth rung for a decoration`,
+    ).toEqual(["--color-line-soft"]);
+
+    // ---- THE CAP, AND IT IS THE CONSTRAINT RATHER THAN A PREFERENCE. The dot
+    // is the token at its full 0.2. A wash at or above that would make the one
+    // card that can never light the BRIGHTEST unlit face on the site, which is
+    // the precise thing the ruling forbids.
+    const percentage = /([0-9]+(?:\.[0-9]+)?)%/.exec(value);
+    expect(
+      percentage,
+      `the unlit cell's wash carries no percentage to read: "${value}". A-58 fixes it as a FRACTION of --color-line-soft so the cap below is a number a scan can check, rather than an intention`,
+    ).not.toBeNull();
+    const share = Number((percentage as RegExpExecArray)[1]);
+    expect(
+      share,
+      `the unlit cell's wash is ${share}% of --color-line-soft. A-58 caps it at 50: the dot in the same cell is that token at FULL strength, and a wash at or above half would stop the dot being the brightest mark in an unlit cell. "The cell structure at the same strength the other cards' unlit cells have" is the constraint the ruling set, and out-shining them fails it in the other direction`,
+    ).toBeLessThanOrEqual(50);
+    expect(
+      share,
+      "the unlit cell's wash is zero or negative, which is the black square this amendment exists to stop",
+    ).toBeGreaterThan(0);
+
+    // ---- NOTHING NEW MOVES. Phase 4 snaps every animation to a static frame
+    // under prefers-reduced-motion and Playwright asserts exactly TWO layers
+    // stop; a moving wash would be a third.
+    for (const property of ["animation", "transition", "transform", "filter"]) {
+      expect(
+        declared.has(property),
+        `.dots declares "${property}". Layer 1 is painted once by the browser and stays painted - the reduced-motion contract asserts exactly two layers stop, and 04-UI-SPEC's Color rule puts no filter, no blur and no shadow anywhere near a pad face`,
+      ).toBe(false);
+    }
+
+    // ---- AND IT IS STILL AN ABSENCE OF LIGHT RATHER THAN A LIGHT. Read from
+    // the module, not quoted: the entry this amendment was written for is
+    // still declared dark, and it is still given no gesture to light it.
+    const dark = DARK_BY_CONSTRUCTION.find((entry) => entry.id === "tpad");
+    expect(
+      dark,
+      "tpad is no longer in DARK_BY_CONSTRUCTION. A-58 changes how an UNLIT cell is PAINTED and nothing else; if the entry has stopped being declared dark then either the configuration was altered - which 10-UI-SPEC 9.3 rejects by name, because it changes what the pad does on somebody's hardware - or a gate was retired to make a card look better",
+    ).toBeDefined();
+    expect(
+      (dark as { why: string }).why,
+      "tpad's DARK_BY_CONSTRUCTION reason no longer carries the measurement. It is 0 of 81 lit over a drag, a two-finger scroll, taps and 2,000 idle ticks, and that number is the whole reason the card's own sentence is allowed to say what it says",
+    ).toContain("0 of 81");
+    expect(
+      demoPathFor("tpad"),
+      "tpad has been given a demonstration gesture. It has no LED layer to light - look.kind and touch.kind are both none and both disabled - so a path there would be a gesture that demonstrates nothing, and the honest card is the one that says so in its own words",
+    ).toBeUndefined();
   });
 });
