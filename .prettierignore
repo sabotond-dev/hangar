@@ -16,3 +16,9 @@ CLAUDE.md
 # would make `npm run licenses` non-deterministic against the deploy gate.
 THIRD-PARTY.md
 licenses/
+
+# The user's source documents for the GUI overhaul live at the root as working copies;
+# the byte-exact copies are under .planning/phases/13-gui-overhaul/bible/. Never reformat these.
+/HANGAR-ZONA-GUI-design-specification.md
+/HANGAR for ZONA.pdf
+/hangar-logo-w.svg
