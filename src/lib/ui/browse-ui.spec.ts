@@ -227,7 +227,7 @@ describe("the browse screen's structural rules", () => {
     // whose members are one short word wide. A file-level substring check is
     // enough to catch a component that forgot the floor entirely; it is not
     // enough to catch one control among several losing it, and a facet row's
-    // members read `keys`, `play` and `still`. This is the derivation
+    // members read `play`, `show` and `still`. This is the derivation
     // device-ui.spec.ts:278-306 uses, and it names the class it found short.
     const NARROW = [FACET, CHIP].filter((rel) => existsSync(repo(rel)));
     expect(

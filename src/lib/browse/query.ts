@@ -94,8 +94,9 @@ export const DEFAULT_QUERY: BrowseQuery = Object.freeze({
 /**
  * Read a browse view out of an address.
  *
- * `vocabulary` is the closed sixteen and the legacy table, passed in so this
- * module never imports the facets.
+ * `vocabulary` is the closed thirteen and the legacy table, passed in so this
+ * module never imports the facets. (Sixteen at 10-06, fourteen after 11-01,
+ * thirteen after 12-04 retired `keys` - this module never counts them.)
  *
  * W-12, AND ITS G-10 AMENDMENT. The original paragraph stands for the two new
  * parameters and is quoted here rather than rewritten from memory:

@@ -180,7 +180,7 @@ export const SNAKE: CatalogEntry = {
   name: "SNAKE",
   description:
     "Snake on eighty-one lights: steer with a finger, eat, grow, and hear a note for every bite.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   // "game" was coined here and needed LIFE, later in the same wave, to become
   // a chip at all. It is now the FOR term "play", which is a member of a

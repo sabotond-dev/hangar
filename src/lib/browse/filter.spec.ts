@@ -169,28 +169,38 @@ const search = (query: string) =>
  * `singletons` is still zero. Found the same way as the two above - by running
  * the suite - and 11-14-PLAN.md does not name this file either.
  *
+ * 12-04 IS THE FIRST WAVE TO MOVE THESE NUMBERS DOWNWARDS SINCE 11-01, and the
+ * first ever to move the vocabulary and the listing in the same direction. The
+ * second bench round removed LATTICE, FORGE and SHUTTLE: `entries` 29 to 26,
+ * `tags` 14 to 13, and every count below re-observed. `keys` is gone as a term
+ * - it fell to CHORUS alone and was RETIRED rather than the zero-singleton rule
+ * being weakened - CHORUS is on `play`, which makes `play` three, and LUMEN
+ * moved from `expressive` to `still` so that `still` stays at its floor of six
+ * after FORGE left. `singletons` IS STILL ZERO, twice over now. This file IS in
+ * 12-04-PLAN.md's blast-radius table, which is the first time it has been.
+ *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
  * "The tag chips", quoted the row and its counts verbatim. 10-06 amended that
- * document by name rather than restating the new row there.
+ * document by name rather than restating the new row there, and 12-04 does the
+ * same: 05.1-UI-SPEC.md is amended by name and the row is not restated in it.
  */
 const RECORDED = {
-  entries: 29,
-  tags: 14,
+  entries: 26,
+  tags: 13,
   singletons: 0,
   /** Keyed by term, in FOR order then FEELS order - the toolbar's own order. */
   counts: {
-    modulation: 8,
+    modulation: 7,
     show: 5,
-    mixing: 3,
     sequencing: 4,
-    shortcuts: 3,
-    keys: 2,
+    mixing: 3,
+    play: 3,
+    shortcuts: 2,
     pointing: 2,
-    play: 2,
-    readable: 11,
-    expressive: 12,
-    playable: 9,
-    generative: 13,
+    readable: 9,
+    expressive: 10,
+    playable: 8,
+    generative: 12,
     precise: 7,
     still: 6,
   } as Readonly<Record<string, number>>,
@@ -473,7 +483,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     expect(filterListing(input, "", NO_FACETS)).not.toBe(input);
   });
 
-  it("stands fourteen chips, and every one of them is carried by two or more entries", () => {
+  it("stands thirteen chips, and every one of them is carried by two or more entries", () => {
     const row = [...FOR_TERMS, ...FEELS_TERMS];
     const known = allTags(LISTING);
     const count = (tag: string) =>
@@ -487,7 +497,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       "the standing row IS the two facets, in their order",
     ).toHaveLength(RECORDED.tags);
 
-    // THE ROW AND THE DATA ARE THE SAME FOURTEEN WORDS, in both directions. This
+    // THE ROW AND THE DATA ARE THE SAME THIRTEEN WORDS, in both directions. This
     // is what chipTags() used to compute and what its deletion replaced: on the
     // shipped data the retired derivation and the declared vocabulary agreed
     // exactly, which is why the swap was a replacement rather than a change.

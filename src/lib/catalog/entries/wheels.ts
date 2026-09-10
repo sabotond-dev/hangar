@@ -367,7 +367,7 @@ export const WHEELS: CatalogEntry = {
   name: "WHEELS",
   description:
     "Pitch on the left springs home the moment you let go; the mod wheel on the right stays where you left it.",
-  // D-10: one FOR term then two FEELS, drawn from the closed fourteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   //
   // CHOSEN FOR WHAT IS TRUE OF THE CARD, AND THE HISTOGRAM WAS READ AFTERWARDS

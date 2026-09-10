@@ -207,7 +207,7 @@ export const GHOST: CatalogEntry = {
   name: "GHOST",
   description:
     "Drag once and a ghost retraces your path forever, still sending; the red corner takes it back.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   //
   // UNCHANGED BY THE REDESIGN, AND CHECKED RATHER THAN ASSUMED. The card is

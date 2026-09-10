@@ -19,19 +19,19 @@
 
   THE CAPTION IS A REAL LABEL FOR A REAL GROUP. role="group" with its own
   aria-labelledby, so a screen reader says "FOR, group" before the first term
-  rather than reading sixteen words in a row with no idea which facet they came
+  rather than reading thirteen words in a row with no idea which facet they came
   from. The two rows carry different ids, derived from the facet's name, because
   one page renders both and two elements may not share an id.
 
   THE 44px FLOOR IS ON BOTH AXES, per member, in both modes. Phase 4's touch
   contract is about the size of the thing under a finger, and a link reading
-  `keys` is four characters wide - browse-ui.spec.ts checks the block AND the
+  `play` is four characters wide - browse-ui.spec.ts checks the block AND the
   inline axis by selector, which is the derivation device-ui.spec.ts uses, so
   dropping one of them names the class.
 
   NO ADJACENT REASON LINE beside a disabled member (05.1-UI-SPEC, The tag
   chips). The cause of a dead chip is the active chips two centimetres away and
-  the count line beneath them; a sentence per chip would be sixteen sentences.
+  the count line beneath them; a sentence per chip would be thirteen sentences.
 
   NO NUMBER IS PRINTED BESIDE A TERM - not a carrier count, not a rank, nothing
   a visitor could read as popularity (CAT-02, W-04). The disabled state is what

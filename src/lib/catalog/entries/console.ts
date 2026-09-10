@@ -204,7 +204,7 @@ export const CONSOLE: CatalogEntry = {
   name: "CONSOLE",
   description:
     "Nine strips with rails: slide anywhere in a column to set its level, tap the top cell to mute it.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   // "latching" arrived with HOLD and became a standing chip here, on its
   // second carrier. The re-cut retires the word and the threshold together: a

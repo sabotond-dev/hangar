@@ -275,7 +275,7 @@ export const STRIP: CatalogEntry = {
   name: "STRIP",
   description:
     "Slide up the pad for the big fader and along the bottom for the crossfader; each sends its own controller.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   //
   // UNCHANGED BY THE REWRITE, AND THE HISTOGRAM WAS READ BEFORE THAT WAS

@@ -140,7 +140,7 @@ export const QUADRANT: CatalogEntry = {
   name: "QUADRANT",
   description:
     "Four targets big enough to hit without looking, each with its own colour and its own fill.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   // "accessible" arrived with CULL in wave 7 and took its second carrier here,
   // which is what made it a standing chip. The re-cut retires the word and

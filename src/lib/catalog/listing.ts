@@ -47,7 +47,9 @@ export type ListingEntry = FrontDoorEntry & {
    * directions, which is what makes re-cutting this file alone go red.
    *
    * EXACTLY THREE since D-10: one FOR term then two FEELS, drawn from the
-   * closed sixteen in src/lib/browse/facets.ts, whose facets.spec.ts holds
+   * closed vocabulary in src/lib/browse/facets.ts - sixteen at 10-06, fourteen
+   * after 11-01 and THIRTEEN after 12-04 retired `keys` - whose facets.spec.ts
+   * holds
    * every entry here against that vocabulary. Still feel-based and still never
    * a compiler kind (CONT-03), which is amended from four tags to three.
    */
@@ -252,7 +254,7 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit.",
     motion: "animated",
-    tags: ["keys", "playable", "expressive"],
+    tags: ["play", "playable", "expressive"],
     featured: true,
     restsBlack: false,
     preview: "lua",
@@ -348,7 +350,7 @@ export const LISTING: readonly ListingEntry[] = [
     motion: "static",
     quiet:
       "The whole field stays lit and still, so you read the colour instead of watching it.",
-    tags: ["show", "expressive", "readable"],
+    tags: ["show", "still", "readable"],
     featured: true,
     restsBlack: false,
     preview: "lua",

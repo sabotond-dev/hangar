@@ -62,8 +62,11 @@ const parse = (search: string): BrowseQuery =>
  * THE SAMPLE TERMS MOVED IN 10-06 AND THE PARAMETERS MOVED IN 10-07. They were
  * `gestural`, `hypnotic` and `ambient` under a single `?tag=`; D-10 retired all
  * three words and A-20 split the parameter in two. They are now drawn from the
- * closed sixteen and sorted into the facet each belongs to, which is what
- * `?for=` and `?feels=` mean.
+ * closed thirteen and sorted into the facet each belongs to, which is what
+ * `?for=` and `?feels=` mean. NO TITLE HERE MOVED AT PLAN 12-04: it retired the
+ * FOR term `keys`, which was minted at the 10-06 re-cut and was therefore never
+ * a shipped `?tag=`, so LEGACY_TAG_MAP gained no row and every `?tag=` title
+ * below asks exactly what it asked before.
  */
 const STATES: readonly {
   readonly what: string;

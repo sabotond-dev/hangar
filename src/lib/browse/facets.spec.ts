@@ -3,14 +3,14 @@
 // Four tests, and three of them are the reason the vocabulary can be closed at
 // all:
 //
-//   1  the sixteen are sixteen, distinct, and split cleanly into two facets
+//   1  the thirteen are thirteen, distinct, and split cleanly into two facets
 //   2  every entry carries EXACTLY THREE - one FOR and two FEELS - and every
 //      facet member is carried by somebody, so a retired term is red too
 //   3  both health rules, with the whole histogram in the failure message
 //   4  facets.ts imports nothing, and the legacy ?tag= table is bounded
 //
 // WHY TESTS 2 AND 3 READ LISTING RATHER THAN A TABLE. A vocabulary declared in
-// one file and assigned in twenty-nine others is only closed if something holds
+// one file and assigned in twenty-six others is only closed if something holds
 // the two against each other. Restating the assignment here would make this
 // file agree with itself; reading LISTING makes it agree with the shipped data.
 //
@@ -55,18 +55,25 @@ const histogram = () =>
   ).join(" | ");
 
 describe("the browse facets (src/lib/browse/facets.ts)", () => {
-  it("declares a closed vocabulary of fourteen in two facets", () => {
+  it("declares a closed vocabulary of thirteen in two facets", () => {
     // Re-cut by plan 11-01 under D-01: the nine bench removals took drums,
     // clips and play to one entry each, and the answer was to retire the first
     // two rather than to weaken the zero-singleton rule below. FEELS did not
     // move.
-    expect(FOR_TERMS, "FOR is eight terms").toHaveLength(8);
+    //
+    // RE-CUT AGAIN BY PLAN 12-04, the same way: LATTICE, FORGE and SHUTTLE left
+    // on the second bench round, `keys` fell to one carrier, and it was retired
+    // rather than the rule being lowered. FEELS did not move again - LUMEN was
+    // re-homed onto `still` to hold that term at its floor of six. THREE
+    // literals move in this test and not two: the third is the distinctness
+    // count below, which is the same number written a second time.
+    expect(FOR_TERMS, "FOR is seven terms").toHaveLength(7);
     expect(FEELS_TERMS, "FEELS is six terms").toHaveLength(6);
-    expect(ALL_TERMS, "fourteen in all").toHaveLength(14);
+    expect(ALL_TERMS, "thirteen in all").toHaveLength(13);
     expect(
       new Set(ALL_TERMS).size,
       "no term is repeated, and no term is in both facets",
-    ).toBe(14);
+    ).toBe(13);
 
     for (const term of ALL_TERMS) {
       // A chip's label is the term uppercased at render time, and a chip's URL
@@ -150,20 +157,28 @@ describe("the browse facets (src/lib/browse/facets.ts)", () => {
     // facet, AND across. Derived from LISTING with the question restated, so
     // agreeing is evidence rather than a tautology.
     // The sample pair was drums / keys until plan 11-01 retired `drums`
-    // under D-01. `play` is the term `ninepads` was re-homed onto, so this
-    // still asks the union question of the same card.
-    const playOrKeys = LISTING.filter((e) =>
-      matchesFacets(e, { for: ["play", "keys"], feels: [] }),
+    // under D-01, and play / keys until plan 12-04 retired `keys` the same
+    // way. RE-CHOSEN RATHER THAN LEFT: a union of one live term and one dead
+    // word still passes, because a word nothing carries contributes nothing to
+    // either side of the comparison - it would have asked the OR question of a
+    // single chip and looked green doing it. `play` and `shortcuts` are the two
+    // terms 11-01's re-homings created, so the pair still asks the union
+    // question of cards that were moved rather than of cards that never were.
+    const playOrShortcuts = LISTING.filter((e) =>
+      matchesFacets(e, { for: ["play", "shortcuts"], feels: [] }),
     ).map((e) => e.id);
     expect(
-      playOrKeys,
+      playOrShortcuts,
       "two FOR chips are a UNION - under AND this would be empty, because every entry has exactly one FOR term",
     ).toEqual(
       LISTING.filter(
-        (e) => e.tags.includes("play") || e.tags.includes("keys"),
+        (e) => e.tags.includes("play") || e.tags.includes("shortcuts"),
       ).map((e) => e.id),
     );
-    expect(playOrKeys.length, "and the union is not empty").toBeGreaterThan(2);
+    expect(
+      playOrShortcuts.length,
+      "and the union is not empty",
+    ).toBeGreaterThan(2);
 
     const across = LISTING.filter((e) =>
       matchesFacets(e, { for: ["play"], feels: ["generative"] }),

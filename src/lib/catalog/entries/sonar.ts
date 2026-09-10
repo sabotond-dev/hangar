@@ -177,7 +177,7 @@ export const SONAR: CatalogEntry = {
   name: "SONAR",
   description:
     "A sweep turns like radar and fires the cells you armed: the ring is the pitch, the angle the time.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   tags: ["sequencing", "generative", "playable"],
   featured: false,

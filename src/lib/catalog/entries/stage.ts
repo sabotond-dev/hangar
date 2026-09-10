@@ -304,7 +304,7 @@ export const STAGE: CatalogEntry = {
   name: "STAGE",
   description:
     "Nine scenes for your stream: the live one glows and the one you are lining up breathes.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   // "streaming" and "hotkeys" were both coined here and both retire. Nine
   // scenes you fire and watch is what "clips" and "playable" mean, and it puts

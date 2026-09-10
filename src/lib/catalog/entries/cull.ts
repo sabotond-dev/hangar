@@ -156,7 +156,7 @@ export const CULL: CatalogEntry = {
   name: "CULL",
   description:
     "Rate a photo without leaving the keyboard: each rating has its own colour and its own shape.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   // "photo" and "accessible" were both coined here, and "accessible" was a
   // singleton until QUADRANT took it in wave 9. Both retire. "photo" named one

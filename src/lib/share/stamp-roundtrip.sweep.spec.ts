@@ -332,8 +332,19 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // hand-authored knob total goes 97 to 102, `exempted` 32 to 33 and
     // `guarded` 65 to 69. It still reconciles: 69 + 33 is 102. The member
     // list is still "4 19".
+    //
+    // RE-COUNTED BY PLAN 12-04, THE FIRST WAVE TO MOVE THESE NUMBERS DOWN, and
+    // not in that plan's blast-radius table either - found the same way, by
+    // running the sweep, which is now the fourth wave in a row to find this
+    // line by running it rather than by reading a table. LATTICE (six knobs,
+    // one colour), SHUTTLE (six, two) and FORGE (five, three) left on the
+    // second bench round, so the hand-authored knob total goes 102 to 85,
+    // `exempted` 33 to 27 and `guarded` 69 to 58. It still reconciles:
+    // 58 + 27 is 85. The floor of 50 still guards - it has eight to spare - so
+    // it is NOT re-chosen, which is the whole point of its being a floor. The
+    // member list is still "4 19".
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(33);
+    expect(exempted, "the colour knobs, exempt by format").toBe(27);
 
     // PASS A. Every non-colour knob cross-producted, colour knobs at their
     // defaults, through the real encoder and the real decoder.

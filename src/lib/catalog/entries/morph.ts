@@ -248,7 +248,7 @@ export const MORPH: CatalogEntry = {
   name: "MORPH",
   description:
     "Four macros in the corners; slide between them and each corner’s brightness is its own weight.",
-  // D-10: one FOR term then two FEELS, drawn from the closed sixteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   tags: ["modulation", "expressive", "still"],
   featured: true,

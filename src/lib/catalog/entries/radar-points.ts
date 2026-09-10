@@ -196,7 +196,7 @@ export const RADAR_POINTS: CatalogEntry = {
   name: "RADAR POINTS",
   description:
     "Rings roll out from the centre and play the points you placed: the ring is the time, the direction the pitch.",
-  // D-10: one FOR term then two FEELS, drawn from the closed fourteen in
+  // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
   // src/lib/browse/facets.ts. Feel-based, never a compiler kind (CONT-03).
   //
   // THE SAME THREE AS SONAR, AND THAT IS DELIBERATE. They are true of this

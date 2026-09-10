@@ -1,4 +1,4 @@
-// The browse vocabulary: fourteen closed terms in two facets, and the rule
+// The browse vocabulary: thirteen closed terms in two facets, and the rule
 // that decides what a chip is.
 //
 // IT WAS SIXTEEN UNTIL PLAN 11-01 (D-01). The user's bench report removed nine
@@ -8,14 +8,35 @@
 // carriers were re-homed onto terms that describe how the cards actually feel
 // (CONT-03): `ninepads` is nine drum pads under your fingers, so it is `play`;
 // `stage` is nine scene buttons that send keystrokes to a streaming
-// application, so it is `shortcuts`. Eight FOR terms remain and every one of
-// them carries two or more.
+// application, so it is `shortcuts`. Eight FOR terms remained and every one of
+// them carried two or more.
 //
-//   A TENTH REMOVAL IN ANY LATER PHASE BREAKS A FEELS RULE. `precise` and
-//   `still` land at EXACTLY 6 after 11-01, which is the floor
-//   `facets.spec.ts` asserts ("below six it is not a filter"). This is written
-//   here, beside the zero-singleton note, rather than in a planning document
-//   nobody greps - because this file's spec is what goes red.
+// IT WAS FOURTEEN UNTIL PLAN 12-04, AND D-01 ANSWERED THE SAME ARITHMETIC THE
+// SAME WAY. The second bench round removed LATTICE, FORGE and SHUTTLE, which
+// took `keys` to exactly one entry (CHORUS) and `still` to five (FORGE carried
+// it). NEITHER RULE WAS WEAKENED THIS TIME EITHER. `keys` was RETIRED and
+// CHORUS re-homed onto `play` - nine drum pads, a snake, and nine chords under
+// your fingers are all things you reach for a pad in order to PLAY - and LUMEN
+// was re-homed onto `still`, which is the word the card's own quiet line
+// already used. Seven FOR terms remain and every one of them carries two or
+// more.
+//
+//   A THIRTEENTH REMOVAL MAY BREAK A FEELS RULE, AND WHICH ONE DEPENDS ENTIRELY
+//   ON THE CARD. `still` is back at EXACTLY 6 by re-homing, which is the floor
+//   `facets.spec.ts` asserts ("below six it is not a filter"), so removing any
+//   one of JOYSTICK, FADERS, TPAD, MORPH, STRIP or LUMEN goes red at once.
+//   `precise` is at 7 and has one to spare; the other four FEELS terms have
+//   two or more to spare. On the FOR side `shortcuts` and `pointing` sit at
+//   two, so removing either of their carriers retires a term the way `keys`
+//   was retired here. This is written here, beside the zero-singleton note,
+//   rather than in a planning document nobody greps - because this file's spec
+//   is what goes red.
+//
+//   AND THE SENTENCE THIS REPLACES HAD ALREADY GONE UNTRUE. It read "`precise`
+//   and `still` land at EXACTLY 6 after 11-01"; plan 11-15 added WHEELS with
+//   `precise` on it and took that term to 7 without touching this line, because
+//   nothing gates a sentence. Every count above is recounted from LISTING at
+//   plan 12-04 rather than carried from the line before it.
 //
 // D-10, and it replaces a derivation. Until this module existed a chip was "a
 // tag two or more entries happen to carry" (filter.ts's chipTags), computed
@@ -27,7 +48,7 @@
 //   EVERY FACET MEMBER IS ALWAYS A CHIP. The vocabulary is closed and lives
 //   here; it is not derived from counts, so it does not drift as the catalog
 //   grows, and no disclosure is needed. An entry that cannot be described with
-//   these fourteen terms is evidence that the vocabulary is wrong, not that the
+//   these thirteen terms is evidence that the vocabulary is wrong, not that the
 //   entry needs a new word.
 //
 // WHY THIS MODULE IMPORTS NOTHING - not a value, not even a type.
@@ -35,7 +56,7 @@
 // for the same measured reason: a runtime import of $lib/catalog here would
 // drag entries/ported.ts, the vendored compiler and @intechstudio/grid-protocol
 // - a 131,101-byte chunk, measured in 04-RESEARCH's Bundle facts - onto the
-// first paint of /browse/ (D-12). /browse/ is prerendered and the fourteen
+// first paint of /browse/ (D-12). /browse/ is prerendered and the thirteen
 // terms have to be in its HTML at first paint, so they cannot arrive behind a
 // chunk.
 //
@@ -61,7 +82,6 @@ export type ForTerm =
   | "mixing"
   | "sequencing"
   | "shortcuts"
-  | "keys"
   | "pointing"
   | "play";
 
@@ -77,36 +97,59 @@ export type FeelsTerm =
 export type FacetTerm = ForTerm | FeelsTerm;
 
 /**
- * Eight terms, in the toolbar's order - which is descending by how many entries
+ * Seven terms, in the toolbar's order - which is descending by how many entries
  * carry them, so the widest doors are nearest the left edge.
  *
  * Re-sorted by plan 11-01, because the removals changed the order as well as
- * the membership: at 27 entries it is modulation 7, show 5, mixing 3,
- * sequencing 3, shortcuts 3, keys 2, pointing 2, play 2 - which sums to 27,
- * one FOR slot per entry, and has no singleton in it.
+ * the membership: at 27 entries it was modulation 7, show 5, mixing 3,
+ * sequencing 3, shortcuts 3, keys 2, pointing 2, play 2 - which summed to 27,
+ * one FOR slot per entry, with no singleton in it.
+ *
+ * RE-SORTED AGAIN BY PLAN 12-04, AND RECOUNTED FROM LISTING RATHER THAN
+ * SUBTRACTED FROM THAT LINE - which had drifted, and this is why the rule is
+ * to recount: plans 11-14 and 11-15 each added an entry, taking `sequencing`
+ * to 4 and the catalog to 29, and neither re-sorted this array, so the row
+ * shipped out of order by one pair for two waves and nothing was red. At 26
+ * entries it is modulation 7, show 5, sequencing 4, mixing 3, play 3,
+ * shortcuts 2, pointing 2 - which sums to 26, one FOR slot per entry, and has
+ * no singleton in it. Ties keep the order they had. `keys` is gone; the header
+ * says why.
  */
 export const FOR_TERMS: readonly ForTerm[] = Object.freeze([
   "modulation",
   "show",
-  "mixing",
   "sequencing",
-  "shortcuts",
-  "keys",
-  "pointing",
+  "mixing",
   "play",
+  "shortcuts",
+  "pointing",
 ]);
 
 /**
  * Six terms, in the toolbar's order. PLAN 11-01 MOVED NONE OF THEM, and that is
  * the half of D-01 worth writing down: the nine removals cost the FOR facet two
- * terms and cost the FEELS facet nothing.
+ * terms and cost the FEELS facet nothing. PLAN 12-04 MOVED NONE OF THEM EITHER,
+ * and it cost something to keep it that way: FORGE took `still` to five, and
+ * LUMEN was re-homed onto the term rather than the floor being lowered to fit.
  *
- * They did cost it headroom. `precise` and `still` now sit at exactly 6, which
- * is the floor - see the note at the top of this file.
+ * They did cost it headroom. `still` sits at exactly 6, which is the floor, and
+ * `precise` at 7 - see the note at the top of this file.
  *
  * `still` and `generative` are OPPOSITES on the motion axis - the axis a
  * visitor most wants to filter on ("show me the ones that move by themselves")
  * and the one no chip in the retired vocabulary expressed at all.
+ *
+ * LUMEN IS THE CARD THAT AXIS WAS HARDEST ON, and the reading is recorded here
+ * rather than left to the next person to re-derive. It has no Timer at all
+ * (docs/HARDWARE-AUDITION.md lists it among the six Setup-only cards), so
+ * nothing about it moves untouched, which is exactly what the axis asks. What
+ * DOES move is one cursor cell under a finger and the colour it sends - and
+ * that is true of every other carrier of `still` too: JOYSTICK, TPAD, MORPH
+ * and STRIP are all controls whose whole purpose is to move under a hand. The
+ * term has never meant "inert"; it means "it does not run on its own". LUMEN's
+ * own quiet line in listing.ts already said the word - "The whole field stays
+ * lit and still" - which is where it came from rather than from the
+ * arithmetic.
  */
 export const FEELS_TERMS: readonly FeelsTerm[] = Object.freeze([
   "readable",
@@ -148,7 +191,10 @@ export type FacetSelection = {
  * OR WITHIN A FACET, AND ACROSS FACETS. This is a named amendment to
  * 05.1-UI-SPEC's "Combining is AND".
  *
- * `FOR: play, keys` shows every instrument pad and every keyboard.
+ * `FOR: play, shortcuts` shows every instrument pad and every macro pad. The
+ * example read `play, keys` until plan 12-04 retired `keys`, and a doc comment
+ * naming a term the module no longer declares is the kind of thing no test
+ * catches.
  * `FOR: play` plus `FEELS: generative` shows the generative ones.
  *
  * The OR half is REQUIRED rather than conventional, and the reason is in the
@@ -247,7 +293,7 @@ export const RETIRED_VOCABULARY: readonly string[] = Object.freeze([
  *
  * THE RULE THAT DECIDED EVERY ROW, in two clauses:
  *
- *   1. A term that is itself one of the fourteen maps to ITSELF. Eight do. The
+ *   1. A term that is itself one of the thirteen maps to ITSELF. Eight do. The
  *      word survives with a declared meaning, so the link still names something
  *      the site names.
  *   2. A retired term maps to a facet member only when TWO OR MORE entries
@@ -260,6 +306,18 @@ export const RETIRED_VOCABULARY: readonly string[] = Object.freeze([
  * because each had two carriers when it shipped as a chip. The counts went
  * 10 + 12 to 8 + 14; the total is still 55 and RETIRED_VOCABULARY did not grow,
  * because both words were already on it.
+ *
+ * PLAN 12-04 MOVED NO ROW BETWEEN CLAUSES AND ADDED NONE. `harmonic` was a
+ * clause-2 fold before its destination was retired and is one after it was
+ * re-targeted, so the split is still 8 + 14 and the total is still 55. What
+ * moved is a single VALUE - see the row itself. AND NO `keys` ROW WAS ADDED,
+ * for three reasons that each settle it alone: `keys` is not one of the
+ * fifty-five (it was minted at the 10-06 re-cut as `harmonic`'s destination and
+ * was therefore never a shipped `?tag=`); the header above forbids the list
+ * growing at all; and query.ts consults this table only for `?tag=`, so a row
+ * here could not migrate a `?for=keys` link even if one existed. The fate of
+ * those links is recorded in REQUIREMENTS.md under CAT-01 instead, which is
+ * where a decided cost belongs.
  *
  * Clause 2's first half is why no singleton is mapped. A tag that sat on
  * exactly one entry MEANT THAT CARD - it is what somebody shares when they mean
@@ -312,7 +370,20 @@ export const LEGACY_TAG_MAP: Readonly<Record<string, FacetTerm | undefined>> =
     drums: "play",
     colour: "show",
     game: "play",
-    harmonic: "keys",
+    // THE ROW PLAN 12-04 RE-TARGETED, AND THE FACT IT CANNOT RECOVER FROM THE
+    // DATA. `harmonic` had exactly two carriers when it shipped as a chip -
+    // CHORUS and the entry called KEYS - and 09-04-SUMMARY.md:597 is the only
+    // surviving record of that ("Two tags crossed the two-carrier threshold -
+    // `harmonic` (CHORUS plus KEYS)"). THE KEYS ENTRY was deleted by plan
+    // 11-01 rather than re-homed, so CHORUS is the only surviving carrier.
+    // 10-06 folded `harmonic` into the FOR term `keys`; plan 12-04 retired that
+    // TERM as well and sent CHORUS to `play`. So this row has been folded
+    // TWICE, at two different re-cuts, and the two things sharing the word are
+    // unrelated - the deleted ENTRY was named KEYS and the retired TERM was
+    // `keys`. Somebody counting carriers in today's listing would find one and
+    // read this as a singleton fold. It is not, and this comment is the only
+    // place that says so.
+    harmonic: "play",
     hypnotic: "generative",
     latching: "readable",
     macros: "still",

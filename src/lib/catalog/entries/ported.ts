@@ -41,11 +41,12 @@ const PORTED_ADDED_AT = "2026-09-02";
 // here.
 //
 // D-10 re-cut all nine. Each row is EXACTLY THREE terms - one FOR then two
-// FEELS - drawn from the closed sixteen in src/lib/browse/facets.ts. The nine
-// used to carry three terms each while the twenty-seven hand-authored entries
-// carried four; that split is gone, and three is now the rule for every entry
-// in the catalog. Nothing here may coin a word: a preset that cannot be
-// described with the sixteen is evidence the vocabulary is wrong.
+// FEELS - drawn from the closed vocabulary in src/lib/browse/facets.ts, which
+// was sixteen at 10-06, fourteen after 11-01 and is THIRTEEN after 12-04. The
+// nine used to carry three terms each while the twenty-seven hand-authored
+// entries carried four; that split is gone, and three is now the rule for every
+// entry in the catalog. Nothing here may coin a word: a preset that cannot be
+// described with the thirteen is evidence the vocabulary is wrong.
 //
 // restsBlack is a recorded fact, not a preference: frames.spec.ts test 5
 // asserts it in both directions against frames.json. tpad is the only ported

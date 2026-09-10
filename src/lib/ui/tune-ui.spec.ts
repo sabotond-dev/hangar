@@ -698,7 +698,7 @@ describe("the tuning UI's structural rules", () => {
     // (plan 10-10). The colour knobs are billed at ZERO and one 196px block is
     // billed once, because 10-UI-SPEC §11.2 renders one picker per panel
     // however many colour knobs an entry declares. Billing them one each would
-    // over-reserve by 48px on `console`, `strip` and `forge` - the three
+    // over-reserve by 48px on `console`, `strip` and `wheels` - the three
     // entries the rule exists for - and would contradict it in the arithmetic
     // while obeying it in the markup.
     expect(
