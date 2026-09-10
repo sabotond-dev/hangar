@@ -10,7 +10,14 @@ import { CONFIG_MAX, PRINTABLE_ASCII } from "./constants";
 
 export interface FetchedEvent {
   event: number;
-  label: "Setup" | "Timer";
+  /**
+   * The word a refusal names. "System" joined the two in Phase 12 (12-02):
+   * the system element's setup is a third fetched string, and a guard sentence
+   * that called it "Setup" would send a visitor looking at the wrong slot. The
+   * page's own copy words are install-copy.ts's separate `EventWord`, which
+   * 12-03 moves with the classifier; nothing switches exhaustively on this one.
+   */
+  label: "System" | "Setup" | "Timer";
   actionString: string | undefined;
   actionLength: number | undefined;
 }

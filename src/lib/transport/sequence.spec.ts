@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  ELEMENT_SYSTEM,
+  ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
   FrameScanner,
+  SYSTEM_DEFAULT_SETUP,
   TERMINATOR,
   ZONA_HWCFG,
   type DecodedClass,
@@ -21,6 +24,7 @@ import {
 import { NackError, RequestQueue } from "./queue";
 import {
   absorbFrame,
+  fetchAll,
   fetchBoth,
   fetchModuleKey,
   identify,
@@ -29,6 +33,7 @@ import {
   runNoOpCycle,
   storeToFlash,
   targetOf,
+  writeAll,
   writeBack,
   writeBoth,
   type Identity,
@@ -359,6 +364,112 @@ describe("the no-op cycle", () => {
     expect(
       returned.map((c) => String(c.class_parameters.ACTIONSTRING)),
     ).toEqual([TIMER_CONFIG, SETUP_CONFIG]);
+  });
+
+  it("writeAll sends system, Timer, Setup in that order and no other, and the two-event adapters still send two", async () => {
+    // Phase 12, plan 02. THE ORDER IS THE POINT. grid_decode.c:1286-1287
+    // registers a written body and runs it IMMEDIATELY, in write order, so at
+    // install time the initialisation order is HANGAR's: a touch Setup that
+    // calls a library function before the system setup defining it has been
+    // written raises `attempt to call a nil value` once, on the desk, and
+    // installs no touch_cb at all.
+    const state = zonaState();
+    const { transport, queue, steps, id } = rig(zonaResponder(state));
+    const set = {
+      system: "--[[@cb]]function Q()return 1 end",
+      timer: "--[[@cb]]print(8)",
+      setup: "--[[@cb]]Q()",
+    };
+
+    await writeAll(queue, targetOf(id), set);
+
+    const writes = configWrites(transport);
+    expect(writes, "three frames, not two and not five").toHaveLength(3);
+    expect(
+      writes.map((c) => [
+        Number(c.class_parameters.ELEMENTNUMBER),
+        Number(c.class_parameters.EVENTTYPE),
+      ]),
+      "255/0, then 0/6, then 0/0",
+    ).toEqual([
+      [ELEMENT_SYSTEM, EVENT_SETUP],
+      [ELEMENT_TOUCH, EVENT_TIMER],
+      [ELEMENT_TOUCH, EVENT_SETUP],
+    ]);
+    expect(writes.map((c) => String(c.class_parameters.ACTIONSTRING))).toEqual([
+      set.system,
+      set.timer,
+      set.setup,
+    ]);
+    // The pinned ids, in the same order. plan 05's gate and install.spec.ts
+    // read these strings.
+    expect(steps.map((s) => [s.id, s.outcome])).toEqual([
+      ["write-system", "ok"],
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+    ]);
+    // Two RAMs, apart: the library did not land on the pad.
+    expect(state.system?.[EVENT_SETUP]).toBe(set.system);
+    expect(state.configs[EVENT_SETUP]).toBe(set.setup);
+    // 255/4 and 255/6 are never written. Nothing in HANGAR builds them, and
+    // this is where that is asserted rather than assumed.
+    for (const c of writes) {
+      const element = Number(c.class_parameters.ELEMENTNUMBER);
+      const event = Number(c.class_parameters.EVENTTYPE);
+      expect(
+        element === ELEMENT_SYSTEM && (event === 4 || event === EVENT_TIMER),
+        "the utility button and the system timer are never written",
+      ).toBe(false);
+    }
+
+    // THE FETCHER, three requests, under the three fetch ids, answered from
+    // the two RAMs the writes above left.
+    const back = rig(zonaResponder(state));
+    const all = await fetchAll(back.queue, back.id);
+    expect(all.system.actionString).toBe(set.system);
+    expect(all.setup.actionString).toBe(set.setup);
+    expect(all.timer.actionString).toBe(set.timer);
+    expect(all.system.label, "a refusal names the right slot").toBe("System");
+    expect(back.steps.map((s) => s.id)).toEqual([
+      "fetch-system",
+      "fetch-setup",
+      "fetch-timer",
+    ]);
+    const fetches = flat(back.transport).filter(
+      (c) => c.class_name === "CONFIG" && c.class_instr === "FETCH",
+    );
+    expect(
+      fetches.map((c) => Number(c.class_parameters.ELEMENTNUMBER)),
+    ).toEqual([ELEMENT_SYSTEM, ELEMENT_TOUCH, ELEMENT_TOUCH]);
+
+    // A factory module answers the package's own default for the system slot.
+    const factory = rig();
+    expect(
+      (await fetchAll(factory.queue, factory.id)).system.actionString,
+    ).toBe(SYSTEM_DEFAULT_SETUP);
+
+    // THE ADAPTERS' PROMISE, asserted here so it cannot be broken silently:
+    // writeBoth still puts exactly TWO frames on the wire and fetchBoth still
+    // issues exactly TWO. Every count-pinned spec above this file - the
+    // install store's, session.e2e.ts's, install.e2e.ts's - rests on it until
+    // 12-03 moves them together.
+    const two = rig();
+    await writeBoth(two.queue, targetOf(two.id), {
+      setup: set.setup,
+      timer: set.timer,
+    });
+    expect(configWrites(two.transport), "two, not three").toHaveLength(2);
+    expect(two.steps.map((s) => s.id)).toEqual(["write-timer", "write-setup"]);
+
+    const pair = rig();
+    await fetchBoth(pair.queue, pair.id);
+    expect(
+      flat(pair.transport).filter(
+        (c) => c.class_name === "CONFIG" && c.class_instr === "FETCH",
+      ),
+      "two fetches, not three",
+    ).toHaveLength(2);
+    expect(pair.steps.map((s) => s.id)).toEqual(["fetch-setup", "fetch-timer"]);
   });
 
   it("a write to a page the module is not on is refused, and the refusal is not retried", async () => {
