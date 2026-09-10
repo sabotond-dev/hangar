@@ -121,7 +121,10 @@ test("every configuration's link image is served by the built site", async ({
   // so 36 stopped being a floor and became a permanent red. 27 is the whole
   // routed set today; what it guards from here is a set that shortens without
   // anybody editing this line.
-  expect(ROUTED.length, "there are images to check").toBeGreaterThanOrEqual(27);
+  //
+  // RE-CHOSEN IN PLAN 12-04. LATTICE, FORGE and SHUTTLE left on the user's
+  // bench report, so 27 became a permanent red; 26 is the whole routed set.
+  expect(ROUTED.length, "there are images to check").toBeGreaterThanOrEqual(26);
   for (const entry of ROUTED) {
     const path = `/og/${entry.id}.png`;
     const response = await request.get(path);

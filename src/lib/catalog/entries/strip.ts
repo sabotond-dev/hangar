@@ -218,9 +218,10 @@
 //     so. src/lib/share/fixtures/wild-stamps.json keys STRIP's captured
 //     `xn33333` on that id and stamp.spec.ts asserts the decoded indices equal
 //     it, so renaming the id would break a fixture whose whole value is that it
-//     was never regenerated. SHUTTLE's `arc` and `rest` and CHORUS's `@SPREAD`
-//     carry the identical note for the identical reason. THE LABEL CARRIES THE
-//     MEANING; THE ID IS HISTORY.
+//     was never regenerated. CHORUS's `@SPREAD` carries the identical note for
+//     the identical reason; SHUTTLE's `arc` and `rest` did too, until plan
+//     12-04 removed that entry. THE LABEL CARRIES THE MEANING; THE ID IS
+//     HISTORY.
 //
 // THE HONEST LIMIT, for the card copy. Two things.
 //

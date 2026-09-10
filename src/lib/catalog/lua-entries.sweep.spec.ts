@@ -38,8 +38,14 @@
 // knob's token, so test 6's question changed from "does every declared palette
 // literal fit" to "does every colour a picker could write fit". `luaKnobs`
 // declared 45 colour knobs across 25 of the 27 hand-authored entries when this
-// note was written; after plan 11-01's nine removals it is **29 colour knobs
-// across 16 of 18 entries**, and the total knob count fell from 133 to 91.
+// note was written; after plan 11-01's nine removals it read **29 colour knobs
+// across 16 of 18 entries**, with a total knob count of 91. That sentence went
+// stale twice without anybody noticing, because nothing gates it: plans 11-14
+// and 11-15 each added an entry. COUNTED FROM THE ENTRIES AT PLAN 12-04, after
+// LATTICE, FORGE and SHUTTLE were removed, it is **27 colour knobs across 15
+// of 17 entries, with a total knob count of 85** - counted rather than
+// subtracted, which is why it disagrees with the arithmetic anybody would do
+// on the stale figures.
 // Every number in this file's tests is derived from the entries at run time, so
 // the removal moved this prose and nothing else;
 // enumerating the lattice on each would make this 184,833 combinations of

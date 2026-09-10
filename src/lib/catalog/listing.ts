@@ -281,17 +281,6 @@ export const LISTING: readonly ListingEntry[] = [
     preview: "lua",
   },
   {
-    id: "lattice",
-    name: "LATTICE",
-    description:
-      "The whole pad tuned in fourths, so every chord shape is the same shape in every key.",
-    motion: "animated",
-    tags: ["keys", "playable", "readable"],
-    featured: true,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
     id: "morph",
     name: "MORPH",
     description:
@@ -376,17 +365,6 @@ export const LISTING: readonly ListingEntry[] = [
     preview: "lua",
   },
   {
-    id: "shuttle",
-    name: "SHUTTLE",
-    description:
-      "Push right to run the video forward and left to run it back; it keeps going until you press the red row.",
-    motion: "animated",
-    tags: ["modulation", "expressive", "generative"],
-    featured: false,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
     id: "cull",
     name: "CULL",
     description:
@@ -395,19 +373,6 @@ export const LISTING: readonly ListingEntry[] = [
     quiet:
       "The five bands are a legend, not an animation; only the band you press flashes.",
     tags: ["shortcuts", "precise", "readable"],
-    featured: false,
-    restsBlack: false,
-    preview: "lua",
-  },
-  {
-    id: "forge",
-    name: "FORGE",
-    description:
-      "Editor and terminal macros in colour families, with a second bank under a held corner.",
-    motion: "static",
-    quiet:
-      "The three colour bands sit still; the pad only changes when you hold the corner.",
-    tags: ["shortcuts", "readable", "still"],
     featured: false,
     restsBlack: false,
     preview: "lua",
@@ -466,7 +431,9 @@ export const LISTING: readonly ListingEntry[] = [
     // entry whose SETUP arms it and whose Timer re-arms unconditionally; this
     // one does neither - the spring is armed by a lift and stops itself when it
     // lands - so the fixture reports `animating` false at all five sampled
-    // ticks. FORGE is the shipped precedent for exactly that shape.
+    // ticks. FORGE was the shipped precedent for exactly that shape, and plan
+    // 12-04 removed FORGE on the user's bench report - so this entry is now
+    // the only one of that shape and the fixture is its only witness.
     motion: "static",
     quiet:
       "Both wheels sit lit and still: the pitch marker at the centre row, the mod bar wherever you left it.",

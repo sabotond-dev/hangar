@@ -38,7 +38,8 @@
 // "contact ended" as `e == 3 or e >= 5` with no upper bound, so a fast tap was
 // classified as a lift, the press it also carried was thrown away, and the
 // configuration produced NOTHING AT ALL. Counted through the real Lua host in
-// 11-RESEARCH: LATTICE 0 messages on a fast tap against 2 on a slow one,
+// 11-RESEARCH: LATTICE 0 messages on a fast tap against 2 on a slow one
+// (LATTICE was removed by plan 12-04; the measurement is why this file exists),
 // CHORUS 0 against 6, MORPH 0 against 4, GHOST 0 against 8. That is what the
 // bench reported as "not precise enough" - the entries were not imprecise, they
 // were ignoring the touch. Plan 11-02 fixed all five at +8 characters a site
@@ -61,8 +62,9 @@
 // groups consecutive ones into CHAINS, where two comparisons join a chain when
 // the only thing between them is `and` or `or` and brackets. The intent is then
 // read off the chain rather than off one comparison, which is how SHUTTLE's
-// `(e==1 or e==4)` is classified as live and skipped with a reason instead of
-// being reported as a missing onset escape.
+// `(e==1 or e==4)` WAS classified as live and skipped with a reason instead of
+// being reported as a missing onset escape. Plan 12-04 removed SHUTTLE; the
+// chain rule is kept because it is the rule, not because that entry needed it.
 //
 // EVERY NEEDLE IS ASSEMBLED FROM FRAGMENTS AT RUN TIME. This file's own prose
 // and failure messages necessarily contain the exact text they forbid, and a
@@ -106,6 +108,10 @@ const OR = F("o", "r");
  * correct BECAUSE OF THE CODE AROUND IT, and an excuse keyed on the comparison
  * alone would go on excusing the same text moved somewhere it is genuinely
  * wrong. Test 3 proves that: a row whose branch no longer appears fails.
+ *
+ * ONE ROW SINCE PLAN 12-04. It was two; FORGE's onset row left with FORGE when
+ * the user's bench report removed the entry, so the table shrank by a deletion
+ * rather than by a fix, and test 3's closure rule is what kept it honest.
  */
 type DeclaredException = {
   readonly entry: string;
@@ -131,21 +137,6 @@ const DECLARED_EXCEPTIONS: readonly DeclaredException[] = [
       "reads the code on the first branch - it lights the zone at rate 4 for " +
       "a fast tap and 24 for a held press - so it is not merely tolerating 9, " +
       "it is using it.",
-  },
-  {
-    entry: "forge",
-    event: "setup",
-    rule: "started",
-    branch: F("if ", V, EQ, "4"),
-    reason:
-      "This onset ARMS A LATCH that only a lift clears: the same handler " +
-      "opens with " +
-      F("if ", V, GE, "5 ", AND, " ", V, LT, "9") +
-      " and releases the latch there. A coalesced fast tap carries no lift, " +
-      "so admitting 9 here would arm the corner hold and leave it armed " +
-      "forever. Excluding 9 from THIS onset is the fix, not the bug. Found by " +
-      "this gate on its first run; plan 11-02 declared it rather than " +
-      '"fixing" it into a stuck mode.',
   },
 ];
 
@@ -513,9 +504,7 @@ describe("the fast-tap guard", () => {
     expect(roll, "every declared exception carries its reason").toContain(
       "stage",
     );
-    expect(roll, "every declared exception carries its reason").toContain(
-      "forge",
-    );
-    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(2);
+    // 2 -> 1: FORGE was the second row and plan 12-04 removed the entry.
+    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(1);
   });
 });

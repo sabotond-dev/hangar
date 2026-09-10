@@ -79,10 +79,6 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {
-    id: "lattice",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
     id: "morph",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
@@ -111,15 +107,7 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {
-    id: "shuttle",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
     id: "cull",
-    why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
-  },
-  {
-    id: "forge",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {

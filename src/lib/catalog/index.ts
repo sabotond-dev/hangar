@@ -12,16 +12,13 @@ import { CHORUS } from "./entries/chorus";
 import { CONSOLE } from "./entries/console";
 import { CULL } from "./entries/cull";
 import { EUCLID } from "./entries/euclid";
-import { FORGE } from "./entries/forge";
 import { GHOST } from "./entries/ghost";
-import { LATTICE } from "./entries/lattice";
 import { LUMEN } from "./entries/lumen";
 import { MORPH } from "./entries/morph";
 import { POMODORO } from "./entries/pomodoro";
 import { PORTED } from "./entries/ported";
 import { QUADRANT } from "./entries/quadrant";
 import { RADAR_POINTS } from "./entries/radar-points";
-import { SHUTTLE } from "./entries/shuttle";
 import { SNAKE } from "./entries/snake";
 import { SONAR } from "./entries/sonar";
 import { STAGE } from "./entries/stage";
@@ -53,7 +50,6 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   CHORUS,
   ARC,
   GHOST,
-  LATTICE,
   MORPH,
   SONAR,
   STEPS,
@@ -61,9 +57,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   STRIP,
   LUMEN,
   STAGE,
-  SHUTTLE,
   CULL,
-  FORGE,
   SNAKE,
   QUADRANT,
   POMODORO,
@@ -75,7 +69,6 @@ export { EUCLID } from "./entries/euclid";
 export { CHORUS } from "./entries/chorus";
 export { ARC } from "./entries/arc";
 export { GHOST } from "./entries/ghost";
-export { LATTICE } from "./entries/lattice";
 export { MORPH } from "./entries/morph";
 export { SONAR } from "./entries/sonar";
 export { STEPS } from "./entries/steps";
@@ -83,9 +76,7 @@ export { CONSOLE } from "./entries/console";
 export { STRIP } from "./entries/strip";
 export { LUMEN } from "./entries/lumen";
 export { STAGE } from "./entries/stage";
-export { SHUTTLE } from "./entries/shuttle";
 export { CULL } from "./entries/cull";
-export { FORGE } from "./entries/forge";
 export { SNAKE } from "./entries/snake";
 export { QUADRANT } from "./entries/quadrant";
 export { POMODORO } from "./entries/pomodoro";

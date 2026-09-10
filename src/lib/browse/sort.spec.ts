@@ -78,7 +78,14 @@ const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
  * running the suite, and the omission is reported in 11-01-SUMMARY.md rather
  * than quietly absorbed.
  */
-const RECORDED = { entries: 27, featured: 11 } as const;
+// RE-CHOSEN BY PLAN 12-04. `entries` is a FLOOR - the assertion below is
+// toBeGreaterThanOrEqual - and 27 became a permanent red the moment LATTICE,
+// FORGE and SHUTTLE left and the listing fell to 26. `featured` is EXACT and
+// falls by one because LATTICE carried `featured: true` and the other two did
+// not. Note that 27 had ALREADY stopped being the listing's length: plans
+// 11-15 and 11-14 took it to 29 without touching this block, because a floor
+// only goes red when the listing falls THROUGH it.
+const RECORDED = { entries: 26, featured: 10 } as const;
 
 /**
  * Two deterministic permutations of the listing, not a random shuffle: a sort

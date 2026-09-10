@@ -48,8 +48,14 @@ const doc = readFileSync(DOC_URL, "utf8");
 /** The document with every run of whitespace collapsed, for prose matching. */
 const flat = doc.replace(/\s+/g, " ");
 
-/** The number of rows the checklist has, and must keep having. */
-const ROW_COUNT = 25;
+/**
+ * The number of rows the checklist has, and must keep having.
+ *
+ * 25 -> 22 at plan 12-04: the LATTICE row, the SHUTTLE row and the FORGE row
+ * left with their entries, and the shared CHORUS / LATTICE row kept its
+ * surviving name rather than leaving.
+ */
+const ROW_COUNT = 22;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -193,7 +199,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-five numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-two numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",
@@ -207,7 +213,7 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
     expect(ROWS.length, "checklist rows").toBe(ROW_COUNT);
     expect(
       ROWS.map((row) => row.index),
-      "the rows are numbered 1 to 25, in order",
+      "the rows are numbered 1 to 22, in order",
     ).toEqual(Array.from({ length: ROW_COUNT }, (_, i) => i + 1));
 
     for (const row of ROWS) {
@@ -248,7 +254,7 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
     // quietly forgotten.
     expect(
       CLAIMED,
-      `${BLOCKED} is blocked on the audition's own row 11; dropping it from ` +
+      `${BLOCKED} is blocked on the audition's own row 10; dropping it from ` +
         "the checklist would lose the only thing that can unblock it",
     ).toContain(BLOCKED);
     expect(

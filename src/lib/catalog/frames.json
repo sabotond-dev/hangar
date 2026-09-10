@@ -418,38 +418,6 @@
         "animating": true
       }
     ],
-    "lattice": [
-      {
-        "tick": 0,
-        "sha256": "972193eb179c97f56760c11fbd3526eed594bbbd37a5a6561d71f5314e7c4c1e",
-        "nonZeroBytes": 169,
-        "animating": true
-      },
-      {
-        "tick": 37,
-        "sha256": "972193eb179c97f56760c11fbd3526eed594bbbd37a5a6561d71f5314e7c4c1e",
-        "nonZeroBytes": 169,
-        "animating": true
-      },
-      {
-        "tick": 101,
-        "sha256": "972193eb179c97f56760c11fbd3526eed594bbbd37a5a6561d71f5314e7c4c1e",
-        "nonZeroBytes": 169,
-        "animating": true
-      },
-      {
-        "tick": 500,
-        "sha256": "972193eb179c97f56760c11fbd3526eed594bbbd37a5a6561d71f5314e7c4c1e",
-        "nonZeroBytes": 169,
-        "animating": true
-      },
-      {
-        "tick": 1009,
-        "sha256": "972193eb179c97f56760c11fbd3526eed594bbbd37a5a6561d71f5314e7c4c1e",
-        "nonZeroBytes": 169,
-        "animating": true
-      }
-    ],
     "morph": [
       {
         "tick": 0,
@@ -674,38 +642,6 @@
         "animating": true
       }
     ],
-    "shuttle": [
-      {
-        "tick": 0,
-        "sha256": "e4b66e0b5b467f7ed19c8ce9be9284198a76950d09ab87a55fd6790fc33faf65",
-        "nonZeroBytes": 9,
-        "animating": true
-      },
-      {
-        "tick": 37,
-        "sha256": "509e14f7745a90b09b8ec2bf438336a37ba2eb1f7d594d8da2a8b5f9c6f29895",
-        "nonZeroBytes": 57,
-        "animating": true
-      },
-      {
-        "tick": 101,
-        "sha256": "f8d8490bc8f381935484a4436b19e10b4735309f6cb5c0a52c38a3442de83dd2",
-        "nonZeroBytes": 57,
-        "animating": true
-      },
-      {
-        "tick": 500,
-        "sha256": "a472c4244c366de9926122509e639dc1c73949a38c260ff611c3bc4f3cd74767",
-        "nonZeroBytes": 57,
-        "animating": true
-      },
-      {
-        "tick": 1009,
-        "sha256": "844d4e67e40591163fd71d35d3e30c3a9848333ddbe2b1099c95dfefa70c4302",
-        "nonZeroBytes": 57,
-        "animating": true
-      }
-    ],
     "cull": [
       {
         "tick": 0,
@@ -735,38 +671,6 @@
         "tick": 1009,
         "sha256": "70e716f752957254609340ed4432fa512229605f84d6e394a169072f72a35ade",
         "nonZeroBytes": 76,
-        "animating": false
-      }
-    ],
-    "forge": [
-      {
-        "tick": 0,
-        "sha256": "8187f3922f2ee27fc51579e8e8eefaab3f37fc263e950a70b29942a58b91e368",
-        "nonZeroBytes": 163,
-        "animating": false
-      },
-      {
-        "tick": 37,
-        "sha256": "8187f3922f2ee27fc51579e8e8eefaab3f37fc263e950a70b29942a58b91e368",
-        "nonZeroBytes": 163,
-        "animating": false
-      },
-      {
-        "tick": 101,
-        "sha256": "8187f3922f2ee27fc51579e8e8eefaab3f37fc263e950a70b29942a58b91e368",
-        "nonZeroBytes": 163,
-        "animating": false
-      },
-      {
-        "tick": 500,
-        "sha256": "8187f3922f2ee27fc51579e8e8eefaab3f37fc263e950a70b29942a58b91e368",
-        "nonZeroBytes": 163,
-        "animating": false
-      },
-      {
-        "tick": 1009,
-        "sha256": "8187f3922f2ee27fc51579e8e8eefaab3f37fc263e950a70b29942a58b91e368",
-        "nonZeroBytes": 163,
         "animating": false
       }
     ],

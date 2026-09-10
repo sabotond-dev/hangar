@@ -177,14 +177,18 @@
 // pitch wheel and let go, so arming at boot would be a Timer with nothing to do.
 // The consequence is recorded rather than assumed: `frames.json` reports
 // `animating` FALSE at all five sampled ticks and the declared motion is
-// `static`. FORGE is the shipped precedent - a stored Timer of 373 characters,
-// armed only from touch_cb, and `static` at every tick - so "any entry with a
-// stored Timer classifies as animated" is TRUE ONLY OF AN ENTRY WHOSE SETUP
-// ARMS IT AND WHOSE TIMER RE-ARMS UNCONDITIONALLY. This one does neither.
+// `static`. FORGE was the shipped precedent - a stored Timer of 373
+// characters, armed only from touch_cb, and `static` at every tick - until
+// plan 12-04 removed FORGE on the user's bench report, so this entry is now
+// the only one of that shape. "Any entry with a stored Timer classifies as
+// animated" is TRUE ONLY OF AN ENTRY WHOSE SETUP ARMS IT AND WHOSE TIMER
+// RE-ARMS UNCONDITIONALLY. This one does neither.
 //
 // THE DISARM IS THE ABSENCE OF A RE-ARM, NEVER gtt(0,0). `gtt(index,0)` stops a
-// Timer SILENTLY on firmware and is this catalog's documented trap (see
-// shuttle.ts), and worse, src/lib/sim/lua-host.ts:679-685 returns early on a
+// Timer SILENTLY on firmware and is this catalog's documented trap - it was
+// documented in shuttle.ts, which plan 12-04 deleted with the entry, so this
+// header is what survives of it - and worse,
+// src/lib/sim/lua-host.ts:679-685 returns early on a
 // period of zero WITHOUT clearing the deadline - so a card that stopped itself
 // that way would stop on the module and keep running in the preview, with
 // nothing red. Instead the Timer body re-arms itself with `gtt(0,20)` only while
@@ -275,9 +279,9 @@
 // are all Setup-side paint or Setup-side arithmetic, and moving the whole
 // repaint into the Timer is the one thing this card cannot do. touch_cb has to
 // repaint IMMEDIATELY, and the only way a Timer could do it is if touch_cb
-// re-armed on every sample - which shuttle.ts documents as the trap that stops
-// a Timer firing at all while a finger is moving, because each `gtt` pushes the
-// deadline out by a whole period.
+// re-armed on every sample - which was SHUTTLE's documented trap until plan
+// 12-04 removed that entry: it stops a Timer firing at all while a finger is
+// moving, because each `gtt` pushes the deadline out by a whole period.
 //
 // WHAT THE TIMER DOES CARRY IS ITS OWN COPY OF THE PITCH REPAINT, and that
 // duplication is deliberate and is the shipped idiom rather than an oversight:

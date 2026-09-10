@@ -73,7 +73,7 @@ const LUA_BASE: readonly string[] = [
   "tostring", // building a message for an error() a gate will read
   "tonumber", // parsing a knob value that arrived as text
   "ipairs", // walking an array part in order
-  "pairs", // walking a per-contact table - SONAR and LATTICE both do
+  "pairs", // walking a per-contact table - SONAR does; LATTICE did, until 12-04
   "select", // reading a variadic argument count without a table
 ];
 

@@ -224,7 +224,11 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
     // now guards is a set that shortens WITHOUT this file being edited - the
     // fixture regenerations of waves 3 and 14 are exactly the moment that
     // could happen silently.
-    expect(wanted.length).toBeGreaterThanOrEqual(27);
+    //
+    // RE-CHOSEN IN PLAN 12-04, the second time this line's own sentence came
+    // true. LATTICE, FORGE and SHUTTLE left on the user's bench report, so 27
+    // became a permanent red; 26 is the whole routed set today.
+    expect(wanted.length).toBeGreaterThanOrEqual(26);
   });
 
   it("writes 1200 x 630 truecolour PNGs under a megabyte", () => {

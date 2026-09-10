@@ -121,7 +121,8 @@
 //
 // A `glpfs` whose shape argument is not 0 is a KEEPER, not a decay - a shaped
 // oscillation the author intends to run forever under a long `glt`. ARC,
-// POMODORO, SHUTTLE and STAGE all carry one deliberately and all are skipped.
+// POMODORO and STAGE all carry one deliberately and all are skipped; SHUTTLE
+// did too, until plan 12-04 removed it on the user's bench report.
 // A `glt` of 0 cancels rather than schedules and is skipped too.
 //
 // THREE TESTS, AND THE COUNT NEVER MOVES. Each loops over the catalog
