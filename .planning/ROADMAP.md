@@ -32,7 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: New Configurations** - Six or more configs authored for spectacle against a working simulator and budget meter (completed 2026-09-04; the hardware audition is presented to the user and unanswered)
 - [x] **Phase 9: Twenty Configurations** - The catalog goes from sixteen entries to thirty-six, each one useful to a named person in a named application (**all 10 of 10 plans complete as of 2026-09-07; awaiting phase verification** — the baselines and the host-surface gate, the browse literals and the copy gate, and all seven entry waves: HOLD, STEPS and SLAM, then KEYS, GRIDLOCK and TABLE, then CONSOLE, STRIP and LEARN, then LUMEN, STAGE and SHUTTLE, then CULL, FORGE and SWITCH, then SNAKE, ETCH and LIFE, then QUADRANT and POMODORO. **The slate is complete at thirty-six entries, twenty-seven of them hand-authored Lua, twenty authored in this phase and zero of source.kind "state".** The phase gate is green against a fresh production build — check 567/0/0, lint 0, build 36 images and 36 pages, quick 74 / 780 + 1 todo, sweep 4 / 19, e2e 89 at --workers 3, `git diff --stat HEAD -- src/vendor/` empty — and CONT-02, CONT-03 and TUNE-01 close. **The thirty-two-row hardware audition is presented to the user and unanswered; nothing about the twenty configurations is claimed as hardware-verified.**) (completed 2026-09-07)
 - [ ] **Phase 10: Redesign** - The whole interface rebuilt around browsing by niche, a natural try/put-back/keep flow, a stylized colour picker and intelligent tuning, in the ZONA landing's CRT register (**sixteen plans in fifteen waves, all executed; the phase gate is green and its third task is a blocking human-verify checkpoint, unanswered** - quick 81 / 828, sweep 4 / 19, e2e 103, check 584 / 0 / 0, all measured against a fresh production build. `docs/INSTALL-RUNBOOK.md` row C's clear half needs a real ZONA and is the user's. Deployed to the gated preview at a17e926)
-- [ ] **Phase 11: Bench Corrections** - Every configuration the user tested on hardware behaves as asked, is removed, or is deferred on the record; the catalog goes from thirty-six entries to twenty-seven and stops depending on another project to change its own contents (not yet planned)
+- [x] **Phase 11: Bench Corrections** - Every configuration the user tested on hardware behaves as asked, is removed, or is deferred on the record; the catalog stops depending on another project to change its own contents (**19 of 19 plans executed 2026-09-09 to 2026-09-10**; catalog 36 -> 29, nine preset + twenty Lua; quick 84 / 869, sweep 4 19, e2e 86 titles / 105 runs, check 582; three requirements amended by name. **The checkpoint was answered by a second bench round on 2026-09-10** (`BENCH-2026-09-10.txt`): GHOST and POMODORO confirmed; ARC's MIDI stop confirmed and its visual not; EUCLID, STEPS, LUMEN and MORPH reported unfixed on hardware after fixes the simulator measured as correct; three more removals asked for; and one scope decision - a finger-to-LED interaction framework - which is Phase 12. Deployed to the gated preview at 9d435db.) (completed 2026-09-10)
+- [ ] **Phase 12: Touch Framework** - A finger-to-LED interaction framework that works on a real ZONA, as a Lua library in the module's system element that every hand-authored configuration calls; HANGAR learns to write, snapshot, restore and clear that element; the entries the second bench round reported unfixed are re-fitted; three more removals take the catalog to twenty-six (not yet planned)
 
 ## Phase Details
 
@@ -351,12 +352,89 @@ left** - and that asymmetry is the entry. Pitch bend is reachable as status 224 
 `gmbs` is a mouse-button out-call and reading it as bend would emit clicks. The catalog therefore
 lands at **twenty-eight**, not twenty-seven.
 
-**Requirements**: TBD
+**Requirements**: CONT-01 (amended and closed), CONT-02, CONT-03, CAT-01, CAT-03, CAT-04 (still Pending, deliberately), FOUND-02 (amended), PREV-01, PREV-02, PREV-06, TUNE-01, TUNE-05, SHARE-01, SHARE-03 (amended), SHARE-04
 **Depends on:** Phase 10
+**Plans:** 19 plans in 19 waves - 11-01 to 11-16 plus 11-08.1, 11-09.1 and 11-09.2 inserted as decimals
+
+**Closed 2026-09-10.** Final counts: catalog 29 (9 preset + 20 Lua); `test:quick` 84 / 869 + 1 todo; sweep `4 19`; e2e 86 source titles / 105 runs; `svelte-check` 582; `static/og/` 29 files; audition 25 rows; 22 enumerated vendored divergences. **Nothing hardware-verified by an agent.** The user's second bench round answered the gate's checkpoint and is the input to Phase 12 - see `11-bench-corrections/BENCH-2026-09-10.txt`.
+
+Plans:
+- [x] 11-01 the removal, the facet re-cut, the decay gate
+- [x] 11-02 both class bugs and both gates
+- [x] 11-03 the vendored divergence record, empty
+- [x] 11-04 the record spent: comet decay and the fast tap in the compiler
+- [x] 11-05 HANGAR owns the nine presets
+- [x] 11-06 the five preset asks
+- [x] 11-07 CONSOLE, and FORGE and LATTICE swept
+- [x] 11-08 EUCLID, SONAR, STEPS, MORPH's suppression
+- [x] 11-08.1 (inserted) canvas context loss and the harness ordering bug
+- [x] 11-09 ARC's amplitude, POMODORO's intervals, the four-question checkpoint, STAGE's breathing
+- [x] 11-09.1 (inserted) ARC's stop/resume and MORPH's corner tap
+- [x] 11-09.2 (inserted) LUMEN's depth investigated
+- [x] 11-10 gmss reaches the host; LUMEN sends hex over sysex
+- [x] 11-11 GHOST rewritten
+- [x] 11-12 SHUTTLE rewritten
+- [x] 11-13 STRIP as two independent controls
+- [x] 11-14 RADAR POINTS beside the preset (new-entry)
+- [x] 11-15 the wheels
+- [x] 11-16 the gate; checkpoint answered by the second bench round
+
+### Phase 12: Touch Framework
+
+**Goal:** A finger-to-LED interaction framework that works on a real ZONA, delivered as a Lua
+library in the module's **system element** so every hand-authored configuration calls it rather
+than inlining its own; HANGAR learns to write, snapshot, restore and clear that element; and the
+entries the second bench round reported unfixed are re-fitted onto it.
+
+**The decision that opens this phase**, in the user's words from `11-bench-corrections/BENCH-2026-09-10.txt`:
+*"we need to come up with a finger interaction - led interaction framework that works properly on a
+real life ZONA."* The evidence is that **the simulator has been wrong about touch on hardware twice
+in a row**: EUCLID and STEPS were fixed for the fast tap and the decay, measured correct through a
+real Lua VM, and are still "not precise" on the desk; LUMEN's depth walks the bottom row 196 -> 27
+in the simulator and the user has looked twice and seen nothing; and `src/lib/sim/touch.ts` cannot
+produce the firmware's coalesced fast tap at all (`TOUCH-CODE-9.md`). Another round of per-entry
+fixes measured in the simulator would produce a third round of "still not precise".
+
+**What changes the shape of the work: the system element.** `grid.get_element_events("system")`
+returns three events - setup (0), utility (4), timer (6) - each with its own 908, and
+`grid-fw/common/src/c/grid_ui.c:986` states *"Handle system element first then all the ui elements
+in ascending order"*: **system setup runs before touch setup**, so a function defined there is a
+global every touch configuration can call by name. The framework is therefore a **library, not an
+idiom-plus-gate**, and every "cannot fit" Phase 11 reported for helper code (Trackpad at 907,
+WHEELS at 895) is moot for the helper's cost. Per configuration the wire budget goes from 1,816 to
+4,540 characters.
+
+**The cost is that HANGAR knows only the touch element today** - D-21 recorded that "the current
+page" was true of everything HANGAR could change *because* it only ever wrote element 0. That stops
+being true. Install writes three or five events; snapshot and PUT BACK capture and restore the
+system element; CLEAR resets it; the Lua host runs system setup before touch setup or the preview
+cannot call the library; the budget meter grows; the BOTOR compiler does not know the element
+exists, so the nine presets stay as they are and the library serves hand-authored entries.
+
+**Ground truth comes from the user's ZONA, not the simulator.** The phase opens by making the
+system element reachable, then hands the user two probes: one that lights the cell the firmware
+puts a finger in and reports raw x,y (and, by defining a global in system setup and calling it from
+touch setup, confirms the init order on hardware); one that shows four brightness levels for LUMEN's
+depth. The library is written against those answers - cell hit-testing with hysteresis, per-axis
+send-on-change (the user's own snippet, quantised to the LED grid), and the finger lighting the cell
+it is in - then gated, then the affected entries re-fitted: EUCLID, STEPS, RADAR POINTS, CONSOLE,
+MORPH.
+
+**Alongside, not dependent on the probe:** three removals (LATTICE, FORGE, SHUTTLE - catalog 29 ->
+26); ARC's Timer still painting after MIDI stops; CHORUS one chord at a time with exclusive pads;
+MORPH's corner single-channel zones widened; NINE PADS defaulting to 4x4 (the knob shipped and the
+user did not find it - a tuning-panel finding of its own); CONSOLE's muted faders interactive but
+silent, reversing 11-07; JOYSTICK's visuals (trail versus centre dot is a user decision, look-layer
+alternatives costed at 603-652); TRACKPAD's directional edge flash, which needs a from-scratch Lua
+entry because the compiler strips every look from a trackpad state. GHOST and POMODORO confirmed
+good. SNAKE still deferred.
+
+**Requirements**: TBD
+**Depends on:** Phase 11
 **Plans:** 0 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 11 to break down)
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
 
 ## Progress
 

@@ -1,0 +1,32 @@
+minden xy működésre használjon szeparációt a mappolhatóság megkönnyítése okán xy-kor:
+  pos = { -1, -1 }
+  self.touch_cb = function(s, i, e, x, y)
+  local tp = { (x / 127) * (self:led_width() - 1), (y / 127) * (self:led_width() - 1) }
+  if 4 > e and math.abs(tp[1] - pos[1]) > 0 then
+    self:midi_send(0, 176, 16, x)
+  end
+  if 4 > e and math.abs(tp[2] - pos[2]) > 0 then
+    self:midi_send(0, 176, 17, math.floor(map_saturate(y, 0, 127, 127, 0)))
+  end
+  pos = tp
+  end
+
+ARC:MIDI stops reliably but the visual on ZONA doesn't.
+CHORUS: egyszerre cask egy akkordot tudjon küldeni, exkluzivak legyenek a padok
+EUCLID: still not precise.
+LATTICE: remove
+LUMEN: seems like nothing changed
+MORPH: közepén random világítás, ne cask teljesen a sarokban legyen 0 pont, legyen nagyobb tere a mappolásnak ahol. tehát a sarkokban legyenek nagyobbak a területek ahol cask egy ch-t küld ki
+NINE PADS: make a 16 pads cause nothing changed
+SNAKE: nothing changed
+CONSOLE: needs to setup a framework how your finger interacts with the LEDs because everything needs touch detection. you should be able to change the muted ones only don't send the midi from those
+FORGE: remove
+Ghost: good
+JOYSTICK: didn't improve the visuals
+RADAR POINTS: nice but needs the touch detection framework.
+POMODORO:nice
+SHUTTLE: REMOVE
+STEPS: same as the other sequencers
+Trackpad: still no animation. edgek villanjanak fel lekerekítve amelyik irányba a mozgás történik
+
+BIGGER SCOPE DECISION: we need to come up with a finger interaction - led interaction framework that works properly on a real life ZONA.

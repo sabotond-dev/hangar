@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: planning
 stopped_at: Completed 11-14-PLAN.md (the checkpoint answered new-entry; RADAR POINTS landed after 11-15)
 last_updated: "2026-09-10T05:40:23.039Z"
 last_activity: 2026-09-10
@@ -290,6 +290,7 @@ Ad-hoc work outside the phase plan. Each row is a `.planning/quick/<id>-<slug>/`
 
 ### Roadmap Evolution
 
+- Phase 12 added 2026-09-10: **Touch Framework** - the user second bench round (`11-bench-corrections/BENCH-2026-09-10.txt`, copied into the phase directory) found EUCLID, STEPS, LUMEN and MORPH unfixed on hardware after fixes the simulator measured as correct, and asked for a finger-to-LED interaction framework. The system element - three events, each 908, and system setup runs before touch setup per `grid_ui.c:986` - makes it a library rather than an idiom. Phase 11 closed the same day with its checkpoint answered by that bench round.
 - Phase 11 added 2026-09-09: **Bench Corrections** - the user tested all thirty-six configurations on a real ZONA and the notes are kept verbatim at `.planning/phases/11-bench-corrections/BENCH-2026-09-09.txt`. Nine removals take the catalog to twenty-seven; the nine preset definitions move out of `src/vendor/botor/_pad.ts` into HANGAR so the catalog stops depending on another project to change its own contents, while the vendored compiler and simulator stay untouched.
 - Roadmap defect fixed in the same commit: the `## Phases` checklist stopped at Phase 9, so **Phase 10 had no line there for the whole redesign**, and `gsd-tools phase add` filed Phase 11 detail block after `## Verification Note` rather than inside `## Phase Details`. Both corrected.
 
