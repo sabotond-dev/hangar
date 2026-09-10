@@ -5826,4 +5826,293 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
   }, 60000);
+
+  // -------------------------------------------------------------------------
+  // THE BOUNDARY FINGER, ON THE FOUR SEQUENCERS THAT NOW CALL `Q` (plan 12-08)
+  //
+  // This is the user's own complaint, in a VM. "EUCLID: still not precise",
+  // "STEPS: same as the other sequencers", "RADAR POINTS: nice but needs the
+  // touch detection framework" - and PROBE-RESULTS-2026-09-10.md Q2 is what all
+  // three are. A MOTIONLESS finger on the line between two cells sent
+  // 71, 72, 71, 71, 71, and `71*9//128 = 4` while `72*9//128 = 5`, so a
+  // one-unit wobble flipped the cell and the entries toggled BOTH of them.
+  //
+  // SONAR IS THE FOURTH SUBJECT AND NO BENCH NOTE NAMED IT. It carried the same
+  // inlined guard byte for byte, and it TOGGLES - so an EVEN number of boundary
+  // crossings leaves the cell exactly as it was while an arm count still looks
+  // right. That is why the assertions below are on the NET STATE as well as on
+  // the count: plan 11-08's wave found an unguarded swipe toggling each cell an
+  // even number of times, and the naive fix looked exactly like the bug.
+  //
+  // THE OBSERVABLE IS THE ARM LAYER'S PHASE, as in 11-08's swipe test: each of
+  // the four paints its armed state on a layer its own Timer never writes, so
+  // the phase of that layer is exactly "is this cell armed", independent of the
+  // tick the gesture happens to land on.
+  // -------------------------------------------------------------------------
+
+  /**
+   * The four entries, and the layer each one paints ARMED state on.
+   *
+   * RADAR POINTS is not in `SWIPE_ENTRIES` - it was authored after 11-08 - so
+   * this table is its own rather than an extension of that one, and it carries
+   * the fourth subject the swipe test does not have.
+   */
+  const BOUNDARY_ENTRIES: readonly {
+    readonly id: string;
+    readonly armLayer: 0 | 1 | 2;
+    readonly why: string;
+  }[] = [
+    {
+      id: "euclid",
+      armLayer: 1,
+      why: "the ring markers are layer 1; the running head and its trail are layer 2",
+    },
+    {
+      id: "steps",
+      armLayer: 2,
+      why: "armed cells are layer 2; the sweeping column is layer 1",
+    },
+    {
+      id: "radar-points",
+      armLayer: 1,
+      why: "placed points are layer 1; the ping is layer 2 and the emitter is layer 0",
+    },
+    {
+      id: "sonar",
+      armLayer: 1,
+      why: "armed cells are layer 1; the sweep is layer 2 and the hub is layer 0",
+    },
+  ];
+
+  /** The probe's own trace, as raw x: a finger that is not moving. */
+  const BOUNDARY_WOBBLE: readonly number[] = [72, 71, 72, 71, 73, 72];
+  /** The raw coordinates the gesture starts at, and the two it then crosses. */
+  const BOUNDARY_X = 71;
+  const BOUNDARY_Y = 80;
+  const ACROSS_X = 76;
+  const BACK_X = 66;
+
+  /** The naive read of one axis - what every one of the four used to compute. */
+  const naiveAxis = (v: number): number => Math.floor((v * 9) / 128);
+
+  it("holds a boundary finger on one cell on EUCLID, STEPS, RADAR POINTS and SONAR, counted", async () => {
+    // THE GESTURE IS A REAL BOUNDARY WOBBLE AND NOT A STILL FINGER, and that is
+    // asserted before anything is measured through an entry. The naive column
+    // for 71, 72, 71, 72, 71, 73, 72 is 4, 5, 4, 5, 4, 5, 5 - FIVE crossings
+    // out of six samples - so an entry that reads the axis naively has five
+    // chances to toggle and one that holds the cell has none.
+    const naiveWalk = [BOUNDARY_X, ...BOUNDARY_WOBBLE].map(naiveAxis);
+    let naiveCrossings = 0;
+    for (let k = 1; k < naiveWalk.length; k += 1) {
+      if (naiveWalk[k] !== naiveWalk[k - 1]) naiveCrossings += 1;
+    }
+    expect(
+      [naiveWalk, naiveCrossings],
+      "the probe's trace crosses the 71/72 line five times under a naive read",
+    ).toEqual([[4, 5, 4, 5, 4, 5, 5], 5]);
+
+    const held = naiveAxis(BOUNDARY_X) + naiveAxis(BOUNDARY_Y) * 9;
+    const neighbour = naiveAxis(ACROSS_X) + naiveAxis(BOUNDARY_Y) * 9;
+    expect(
+      [held, neighbour],
+      "the finger rests on the line between cells 49 and 50 - column 4 and " +
+        "column 5 of row 5, derived from the entries' own t*9//128 division " +
+        "rather than pasted",
+    ).toEqual([49, 50]);
+
+    const report: string[] = [];
+    const finalState = new Map<string, [number, number]>();
+
+    for (const row of BOUNDARY_ENTRIES) {
+      const entry = entryById(row.id);
+      const { host, sim } = await open(entry);
+      try {
+        const at = (cell: number): number =>
+          sim.layer(hwOfCell(cell), row.armLayer).pha;
+
+        const restHeld = at(held);
+        const restNeighbour = at(neighbour);
+        let lastHeld = restHeld;
+        let lastNeighbour = restNeighbour;
+        let heldChanges = 0;
+        let neighbourChanges = 0;
+        const sample = (): void => {
+          const h = at(held);
+          const n = at(neighbour);
+          if (h !== lastHeld) heldChanges += 1;
+          if (n !== lastNeighbour) neighbourChanges += 1;
+          lastHeld = h;
+          lastNeighbour = n;
+        };
+
+        // 1. THE REST. A DOWN on the line, then the probe's six wobbling MOVEs.
+        //    Every sample is a DISTINCT coordinate, so the host's change gate
+        //    (which dedups the FIFO per contact on event, x and y) delivers all
+        //    of them and this probe measures the entry rather than the gate.
+        host.touchDown(0, BOUNDARY_X, BOUNDARY_Y);
+        host.tick();
+        sample();
+        for (const x of BOUNDARY_WOBBLE) {
+          host.touchMove(0, x, BOUNDARY_Y);
+          host.tick();
+          sample();
+        }
+        const wobbleHeld = heldChanges;
+        const wobbleNeighbour = neighbourChanges;
+        const afterWobble = lastHeld;
+
+        // 2. ACROSS THE LINE FOR REAL. 76 is 12 units from column 4's centre of
+        //    64, outside the +-10 window, so the hysteresis releases and the
+        //    neighbour takes one toggle.
+        host.touchMove(0, ACROSS_X, BOUNDARY_Y);
+        host.tick();
+        sample();
+        const acrossHeld = heldChanges - wobbleHeld;
+        const acrossNeighbour = neighbourChanges - wobbleNeighbour;
+
+        // 3. AND BACK. 66 is 12 units from column 5's centre of 78, so the held
+        //    cell takes one toggle back.
+        host.touchMove(0, BACK_X, BOUNDARY_Y);
+        host.tick();
+        sample();
+        const backHeld = heldChanges - wobbleHeld - acrossHeld;
+        const backNeighbour =
+          neighbourChanges - wobbleNeighbour - acrossNeighbour;
+
+        host.touchUp(0, BACK_X, BOUNDARY_Y);
+        host.tick();
+        sample();
+
+        report.push(
+          `  ${row.id}: rest [${restHeld}, ${restNeighbour}] -> wobble ` +
+            `${wobbleHeld}/${wobbleNeighbour} -> across ${acrossHeld}/` +
+            `${acrossNeighbour} -> back ${backHeld}/${backNeighbour}; ` +
+            `cell ${held} after the wobble ${afterWobble} (${row.why})`,
+        );
+
+        // ONE ARM ACROSS THE WHOLE REST, AND NOTHING ON THE NEIGHBOUR. The
+        // naive column above crosses five times; every one of those crossings
+        // used to be a toggle on one of these two cells.
+        expect(
+          [wobbleHeld, wobbleNeighbour],
+          `${row.id}: A FINGER RESTING ON THE LINE BETWEEN TWO CELLS MUST ARM ` +
+            "ONE OF THEM AND HOLD IT. Before plan 12-08 the one-unit wobble " +
+            "the probe recorded was read as alternating taps on two cells, " +
+            "which is what the bench reported as 'not precise'. Observed " +
+            `${wobbleHeld} change(s) on cell ${held} and ${wobbleNeighbour} ` +
+            `on cell ${neighbour}, over ${BOUNDARY_WOBBLE.length} MOVEs`,
+        ).toEqual([1, 0]);
+
+        // THE NET STATE, NOT ONLY THE COUNT. All four TOGGLE, so an even
+        // number of crossings leaves the cell exactly as it was and a
+        // count-only assertion would pass on the defect. This is the assertion
+        // that makes the count mean something.
+        expect(
+          afterWobble,
+          `${row.id}: the rested cell must end the wobble in the OPPOSITE ` +
+            "state to the one it started in - one toggle, net. An even " +
+            "number of boundary crossings returns it to rest while an arm " +
+            `count still looks right. Observed ${restHeld} -> ${afterWobble}`,
+        ).not.toBe(restHeld);
+
+        expect(
+          [acrossHeld, acrossNeighbour, backHeld, backNeighbour],
+          `${row.id}: crossing the line for real must move the arm ONCE each ` +
+            "way - the hysteresis is a held cell, not a dead zone. Observed " +
+            `across ${acrossHeld}/${acrossNeighbour}, back ` +
+            `${backHeld}/${backNeighbour}`,
+        ).toEqual([0, 1, 1, 0]);
+
+        expect(
+          host.errors,
+          `${row.id}: no handler raised - ${host.errors.join(" | ")}`,
+        ).toEqual([]);
+        finalState.set(row.id, [restHeld, afterWobble]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // SONAR'S FINAL STATE, LITERALLY. Its Setup writes glp(c,1,0) for all 81
+    // cells, so a cell at rest is phase 0 and an armed one is 255. The plan
+    // names SONAR because it is the entry no bench note asked for; the same
+    // pair holds for RADAR POINTS, whose callback SONAR's is reused by, and
+    // for STEPS, whose cell 44 is not one of its default-armed ones.
+    expect(
+      finalState.get("sonar"),
+      "SONAR'S CELL MUST BE ARMED WHEN THE FINGER LEAVES THE LINE, not merely " +
+        "toggled an odd number of times somewhere. It is dark at rest and it " +
+        "toggles, so 0 -> 255 is the whole claim",
+    ).toEqual([0, 255]);
+    expect(
+      [finalState.get("radar-points"), finalState.get("steps")],
+      "the other two dark-at-this-cell entries read the same way",
+    ).toEqual([
+      [0, 255],
+      [0, 255],
+    ]);
+
+    // ---------------------------------------------------------------------
+    // THE SWEEP IS WIRED, NOT MERELY PRESENT.
+    //
+    // SONAR carries this half, and the reason is arithmetic: its @PERIOD
+    // default is 70 ms against RADAR POINTS' 140, EUCLID's 110 and STEPS's
+    // 120, so 21 Timer calls are 147 ticks here and up to 294 elsewhere - the
+    // same proof at half the run. A DOWN with no UP is Q6.5 exactly: four of
+    // five contacts never sent their code 5 after a five-finger chord, and
+    // `Q`'s own expiry rules cannot reach a contact that never presses again.
+    // The observable is the LIBRARY's `H`, read through the host's global
+    // table, because a stale cell held for a session is invisible in the
+    // picture until the next press is measured against it.
+    // ---------------------------------------------------------------------
+    {
+      const entry = entryById("sonar");
+      const { host } = await open(entry);
+      try {
+        host.touchDown(0, BOUNDARY_X, BOUNDARY_Y);
+        host.tick();
+        host.touchMove(0, BOUNDARY_X + 1, BOUNDARY_Y);
+        host.tick();
+        const holding = host.globalSize("H");
+
+        // NINE TIMER CALLS AT 70 ms IS 63 TICKS, and the window is twenty, so
+        // nothing may be released yet. Without this half the assertion below
+        // would pass on a sweep with no window at all.
+        host.run(63);
+        const inside = host.globalSize("H");
+
+        // Twenty-one more calls: 147 ticks, plus the two the gesture spent.
+        host.run(160);
+        const after = host.globalSize("H");
+        const stamps = host.globalSize("T");
+
+        report.push(
+          `  sonar sweep: H ${holding} after the press, ${inside} after 9 ` +
+            `Timer calls, ${after} after 30 (T ${stamps})`,
+        );
+        expect(
+          [holding, inside, after, stamps],
+          "A CONTACT WHOSE LIFT WAS LOST IS RELEASED BY THE TIMER SWEEP AND " +
+            "BY NOTHING ELSE. Q's onset rules need a PRESS - the same id " +
+            "pressing again, or another contact landing on the held cell - so " +
+            "a contact that goes quiet and never presses again holds its cell " +
+            "for the rest of the session and every future press by that id is " +
+            "measured against it. X(s,20) in the Timer is the only path that " +
+            `reaches it. Observed H ${holding} -> ${inside} -> ${after}`,
+        ).toEqual([1, 1, 0, 0]);
+        expect(
+          host.errors,
+          `sonar: no handler raised - ${host.errors.join(" | ")}`,
+        ).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nTHE BOUNDARY FINGER, on the four sequencers (plan 12-08):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
 });
