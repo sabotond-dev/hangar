@@ -436,6 +436,32 @@ export class LuaHost {
     return Array.isArray(keys) ? (keys as string[]) : [];
   }
 
+  /**
+   * One NUMERIC field of the VM's `self` table, or undefined when it is absent
+   * or is not a number. Test-facing, and the sibling of `globalKeys()` above:
+   * `self` is a global like any other, and this is the read half of it.
+   *
+   * IT EXISTS BECAUSE A CONFIGURATION'S INTERNAL STATE IS SOMETIMES THE ONLY
+   * HONEST OBSERVABLE (plan 12-05). ARC's fix for "MIDI stops reliably but the
+   * visual on ZONA doesn't" has to prove TWO things about a stopped card under
+   * a wobbling finger: that the swirl is not re-armed, which the LED layers
+   * show, and that the drag GOES ON TRACKING so the resume is exact, which
+   * nothing outside the VM shows until the resume has already happened. The
+   * alternative was to infer `self.r` from the rate the resume writes, which
+   * is a derived quantity asserted in place of the thing itself.
+   *
+   * NUMBERS ONLY, deliberately. A general marshaller would hand a spec a Lua
+   * table across the wasmoon boundary and invite assertions about object
+   * identity that mean nothing on the other side of it.
+   */
+  selfNumber(field: string): number | undefined {
+    const value = this.engine.doStringSync(
+      `local v = self[${JSON.stringify(field)}] ` +
+        'if type(v) ~= "number" then return nil end return v',
+    ) as unknown;
+    return typeof value === "number" ? value : undefined;
+  }
+
   // -------------------------------------------------------------------------
   // The Grid API.
   //

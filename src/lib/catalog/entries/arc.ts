@@ -141,6 +141,35 @@
 // back slightly slower than it left. self.f = 4 at Setup and s.f = the value
 // actually written on every rate change, so F(s.f) restores what was there.
 //
+// A STOPPED ARC STOPPED ON THE WIRE AND DID NOT STOP ON THE PAD, AND THE RATE
+// BRANCH IS WHY (plan 12-05, from the bench: "MIDI stops reliably but the
+// visual on ZONA doesn't"). The stop tap sets s.s = 0 and writes F(0), and the
+// very next line of the same handler then runs for every live code: a MOVE
+// recomputes r = 1 + x*31//127 and, whenever that differs from s.r, re-arms
+// layer 2 at s.f. A STILL FINGER IS NOT STILL - probe A question 1, measured
+// on the user's own module, read a resting contact emitting a MOVE every
+// sample - and r is a 31-step map of x rather than a cell, so a wobble of four
+// raw units crosses an r boundary wherever on the pad the finger is sitting.
+// The swirl therefore came back while s.s stayed 0, and because the Timer's
+// phase step is s.r*s.s the CC did not: "MIDI stops" and "the visual doesn't"
+// are one line of code apart. THE PREVIEW COULD NOT SHOW IT, which is why it
+// survived 11-09.1 - a click produces a DOWN and an UP and no MOVE at all, so
+// nothing in a browser ever reached the branch.
+//
+// THE FIX IS "if s.s>0 then F(s.f)end" INSIDE THE RATE BRANCH, +18 characters,
+// Setup 523 -> 541 of 908 at the picker corner. s.d, s.r and s.f all go on
+// tracking the finger while the card is stopped, so the resume hands back the
+// rate the DRAG left rather than the rate the stop happened to freeze;
+// src/lib/sim/lua-smoke.spec.ts drives the wobble and asserts that exact
+// resume value. THE ALTERNATIVE WAS COSTED AND NOT TAKEN: "if s.s<1 then
+// return end" ahead of the rate branch is +25 and makes a stopped ARC ignore
+// drags outright, which loses the exact resume the extra seven characters were
+// meant to protect. AND IT IS NOT A JOB FOR THE TOUCH LIBRARY'S HYSTERESIS
+// (plan 12-07): that guard suppresses a MOVE that stays inside one CELL, and
+// this is not a cell question - cell 40 alone spans x 57..71, which is r 14 to
+// 18, five of the thirty-one rate steps. An in-cell wobble IS a real rate
+// change, so a cell-level guard would pass it straight through.
+//
 // THE KEEPER RE-ARM GAINED "or s.s<1", AND IT IS NOT DECORATION. The Timer's
 // keeper rides on "p<s.r", true exactly on the phase wrap - but a stopped card
 // has no wrap, so 65535 ticks (655 seconds) after a stop the LED engine would
@@ -188,9 +217,11 @@
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier: both fixed points of compressScript and both
 // accepted by checkSyntax. AT THE RGB444 PICKER CORNER, which is the one the
-// 908 gate reads, this entry is Setup 523 of 908 (385 free) and Timer 275 of
+// 908 gate reads, this entry is Setup 541 of 908 (367 free) and Timer 275 of
 // 908 (633 free). Plan 11-09.1 measured it at 390 / 262 before its work and
-// spent +133 on the Setup and +13 on the Timer.
+// spent +133 on the Setup and +13 on the Timer; plan 12-05 spent +18 more on
+// the Setup (523 -> 541) for the s.s gate on the rate branch, and nothing on
+// the Timer. At the DEFAULTS the same two events are 538 and 273.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those.
 //
 // THE CORNER QUOTED ABOVE IS THE RGB444 PICKER CORNER, WHICH IS THE ONE THE
@@ -209,7 +240,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end if(e==4 or e>8)and x*9//128+y*9//128*9==40 then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)F(s.f)end end gtt(0,20)";
+  "--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end if(e==4 or e>8)and x*9//128+y*9//128*9==40 then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)if s.s>0 then F(s.f)end end end gtt(0,20)";
 
 const TIMER =
   "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end";

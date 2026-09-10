@@ -717,6 +717,19 @@ function entryById(id: string): CatalogEntry {
 
 const consoleEntry = (): CatalogEntry => entryById("console");
 
+/**
+ * The phase a MUTED CONSOLE column paints its body at, on layer 2 alone.
+ *
+ * console.ts's P() writes `glp(a,2,8-r<h and 90 or 0)` in the muted branch: a
+ * dim body under a lit @MUTEC cap, and layer 1 forced to 0. It is RESTATED
+ * here rather than imported, because the entry ships one Lua string and not a
+ * table of constants - and it is held against that string by the assertion
+ * below, so a change to the dim level stops the test instead of quietly
+ * making its picture assertion vacuous.
+ */
+const MUTED_BODY_PHASE = 90;
+const MUTED_BODY_CALL = `glp(a,2,8-r<h and ${MUTED_BODY_PHASE} or 0)`;
+
 /** A knob's SELECTED value, as a number. Derived, never restated. */
 function knobValueOf(entry: CatalogEntry, knobId: string): number {
   const knob = entry.knobs.find((candidate) => candidate.id === knobId);
@@ -1464,12 +1477,22 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     expect(observed, "the sweep reached column 4").toContain(0);
   }, 120000);
 
-  it("leaves a muted CONSOLE column inert, and gives it back from the mute cap", async () => {
+  // THE REVERSAL, ON THE RECORD (plan 12-05). This title used to read "leaves
+  // a muted CONSOLE column inert" and stages 2 and 3 asserted exactly that:
+  // a muted sweep sent nothing AND stored nothing, so the unmute handed back
+  // the level the strip was muted at. That was 11-07's reading of the bench
+  // note "you should not be able to interact with the 'muted' faders". The
+  // user then said, in their own words: "you should be able to change the
+  // muted ones only don't send the midi from those." Interactive and SILENT,
+  // not inert. So the two stages are REWRITTEN rather than deleted - the
+  // muted sweep must still send nothing, and must now MOVE and REPAINT, and
+  // the unmute must carry the level the muted finger moved it to.
+  it("moves a muted CONSOLE column silently, and sends the moved level on unmute", async () => {
     const entry = consoleEntry();
     const cc = knobValueOf(entry, "cc");
     const column = 3;
     const controller = cc + column;
-    const { host } = await open(entry);
+    const { host, sim } = await open(entry);
     const report: string[] = [];
     try {
       const on = (n: number): number[] =>
@@ -1477,6 +1500,28 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
           .slice(n)
           .filter((m) => m.cmd === 176 && m.p1 === controller)
           .map((m) => m.p2);
+
+      // THE PICTURE, read off the sim rather than inferred from the wire -
+      // which is the whole point of the reversal, because the wire is now
+      // silent for the move this stage is about. A muted column paints its
+      // body on LAYER 2 ONLY, at phase 90 where `8-r < h` and 0 elsewhere
+      // (console.ts's P(): `elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)
+      // glp(a,2,8-r<h and 90 or 0)end`), so the count of 90s in rows 1..8 IS
+      // the stored level.
+      expect(
+        entry.source.kind === "lua" && entry.source.setup,
+        "console: the muted branch no longer paints its body with " +
+          `${MUTED_BODY_CALL}, so the phase this test reads is not the one ` +
+          "the entry writes",
+      ).toContain(MUTED_BODY_CALL);
+      const mutedBody = (): number[] => {
+        const out: number[] = [];
+        for (let row = 1; row <= 8; row += 1)
+          out.push(sim.layer(hwOfCell(row * 9 + column), 2).pha);
+        return out;
+      };
+      const litCount = (): number =>
+        mutedBody().filter((phase) => phase === MUTED_BODY_PHASE).length;
 
       // 1. The mute cap, tapped. Setup left every strip at level 4, so this
       //    sends a 0 and remembers the 4.
@@ -1488,13 +1533,24 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         muted,
         "console: tapping the mute cap must send the column's controller at 0",
       ).toEqual([0]);
+      // Non-vacuity for stage 2: the muted picture starts at the remembered 4.
+      const litAtMute = litCount();
+      expect(
+        litAtMute,
+        "console: a muted column must still show the level it was muted at, " +
+          "or the move in stage 2 has nothing to move away from",
+      ).toBe(4);
 
-      // 2. The whole fader body, swept, while the column is muted.
+      // 2. The whole fader body, swept, while the column is muted. The sweep
+      //    ends on row 1, which is h = 8 - 1 = 7 - the top of the travel, and
+      //    the furthest the picture can get from the 4 it was muted at.
       mark = host.midi.length;
       const whileMuted = sweepConsoleBody(host, column);
+      const litAfterMove = litCount();
       report.push(
         `swept while muted: ${whileMuted.length} sample(s) delivered, ` +
-          `${on(mark).length} message(s)`,
+          `${on(mark).length} message(s), body ${litAtMute} -> ` +
+          `${litAfterMove} cell(s) lit`,
       );
       expect(
         whileMuted.length,
@@ -1503,26 +1559,40 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       ).toBeGreaterThan(0);
       expect(
         on(mark),
-        "console: A MUTED FADER MUST DO NOTHING. The bench asked that a muted " +
-          "strip stop responding to touch, which REVERSES the shipped " +
-          "`s.m[c]=nil` - a fader you touch is a fader you want. The body is " +
-          "gated on `and not s.m[c]`; if that gate goes, this sweep sends " +
-          "eight messages and silently clears the mute half way through",
+        "console: A MUTED FADER MUST SEND NOTHING. The user's sentence is " +
+          "\"you should be able to change the muted ones only don't send the " +
+          'midi from those" - so only the gms is gated, `if not s.m[c]then ' +
+          "s:gms(...)end`. If that gate goes, this sweep sends eight messages " +
+          "from a strip the mixer was told to ignore",
       ).toEqual([]);
+      expect(
+        litAfterMove,
+        "console: A MUTED FADER MUST STILL MOVE AND REPAINT. This REVERSES " +
+          "11-07, which folded `and not s.m[c]` into the fader condition so a " +
+          "muted column stored nothing and painted nothing; the user's own " +
+          "correction is that the muted ones can be changed. The body is " +
+          `painted on layer 2 at phase ${MUTED_BODY_PHASE}, so a sweep to the ` +
+          `top of the travel lights seven of the eight body cells. Observed ` +
+          `[${mutedBody().join(", ")}]`,
+      ).toBe(7);
 
-      // 3. The mute cap again. It must give back the REMEMBERED level, which
-      //    is still 4 - proving step 2 stored nothing as well as sent nothing.
+      // 3. The mute cap again. It must now send the level the MUTED FINGER
+      //    moved it to - 7, not the 4 it was muted at - because the mute-row
+      //    branch still sends `m and 0 or s.v[c]*127//7` and s.v[c] is what
+      //    stage 2 stored. 7*127//7 is 127 exactly, which is also the proof
+      //    that the divisor is still 7.
       mark = host.midi.length;
       tapConsoleCell(host, column, 0);
       const restored = on(mark);
       report.push(`mute cap tapped again: ${restored.join(", ")}`);
       expect(
         restored,
-        "console: unmuting must re-send the level the strip was muted at. " +
-          "Setup leaves every strip at h = 4, which is 4*127//7 = 72. A " +
-          "different number here means the muted sweep wrote self.v[c] even " +
-          "though it sent nothing",
-      ).toEqual([Math.floor((4 * 127) / 7)]);
+        "console: unmuting must send the level the strip was MOVED to while " +
+          "muted, exactly once. Stage 2 drove it to h = 7, which is " +
+          "7*127//7 = 127. A 72 here is 11-07's inert reading back again - " +
+          "the muted sweep stored nothing and the unmute handed back the 4 " +
+          "the strip was muted at",
+      ).toEqual([Math.floor((7 * 127) / 7)]);
 
       // 4. And the fader answers again, so the mute is undoable rather than a
       //    one-way door. This half is the whole reason the cap is the only
@@ -2795,6 +2865,223 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       "\nARC stop/resume, plan 11-09.1:\n  " + report.join("\n  ") + "\n",
     );
     expect(report.length, "both tap shapes and the drag reported").toBe(3);
+  }, 120000);
+
+  it("keeps ARC stopped under a wobbling finger, still tracking, and resumes at the exact rate", async () => {
+    // THE BENCH NOTE: "MIDI stops reliably but the visual on ZONA doesn't."
+    //
+    // Both halves are true and they are one line of code apart. The stop tap
+    // sets s.s = 0 and writes F(0); the very next line of the same handler
+    // recomputes r = 1 + x*31//127 on EVERY live code and re-arms layer 2 at
+    // s.f whenever r changed. Probe A question 1, measured on the user's own
+    // module, read a resting contact emitting a MOVE every sample - so the
+    // first jitter MOVE after the stop put the swirl back while s.s stayed 0,
+    // and the Timer's phase step (s.h + s.r*s.s) held the CC still. Quiet
+    // wire, turning pad.
+    //
+    // THE PREVIEW COULD NOT SHOW IT, which is why 11-09.1's stop/resume test
+    // above is green and this one was needed: a click delivers a DOWN and an
+    // UP and no MOVE at all, so nothing in a browser ever reached the branch.
+    // The gesture below is therefore the one a browser cannot make, driven
+    // through the real Lua VM.
+    //
+    // THE WOBBLE STAYS INSIDE CELL 40, which is the whole point: r is a
+    // 31-step map of x rather than a cell, and cell 40 spans x 57..71, which
+    // is r 14 to 18. An in-cell wobble IS a real rate change, so no cell-level
+    // hysteresis - the touch library's included (plan 12-07) - can answer this.
+    const entry = entryById("arc");
+    const cc = knobValueOf(entry, "cc");
+    const cellOf = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    const rateOf = (r: number): number => Math.min(120, Math.max(1, r >> 1));
+    // Both points are inside cell 40 and land on DIFFERENT rate steps.
+    const STOP_X = 60;
+    const WOBBLE_X = 68;
+    const Y = 60;
+    const RESUME_AT = 65;
+    const STOP_R = 1 + Math.floor((STOP_X * 31) / 127);
+    const WOBBLE_R = 1 + Math.floor((WOBBLE_X * 31) / 127);
+    const report: string[] = [];
+
+    const { host, sim } = await open(entry);
+    try {
+      const rates = (): number[] => {
+        const out: number[] = [];
+        for (let cell = 0; cell < 81; cell += 1)
+          out.push(sim.layer(hwOfCell(cell), 2).fre);
+        return out;
+      };
+      const distinctRates = (): number[] => [...new Set(rates())].sort();
+      const emitted = (from: number): number[] =>
+        host.midi
+          .slice(from)
+          .filter((m) => m.p1 === cc)
+          .map((m) => m.p2);
+
+      // The probe's own arithmetic, checked before it is relied on.
+      for (const x of [STOP_X, WOBBLE_X, RESUME_AT])
+        expect(
+          cellOf(x, x === RESUME_AT ? RESUME_AT : Y),
+          `arc: the wobble must stay inside the centre cell; x=${x} is not`,
+        ).toBe(40);
+      expect(
+        WOBBLE_R,
+        "arc: the wobble must cross a rate step, or it tests nothing",
+      ).not.toBe(STOP_R);
+
+      // 0. RUNNING. Non-vacuity for everything below.
+      let from = host.midi.length;
+      host.run(100);
+      const running = emitted(from);
+      const runningRates = distinctRates();
+      expect(
+        new Set(running).size,
+        "arc: the controller must be moving before the stop, or the flat " +
+          "stretch below compares two still pictures",
+      ).toBeGreaterThan(1);
+      expect(
+        runningRates.every((rate) => rate > 0),
+        `arc: the swirl must be turning before the stop. Rates ` +
+          `[${runningRates.join(", ")}]`,
+      ).toBe(true);
+
+      // 1. THE STOP TAP, at cell 40. DOWN then UP, the shape a real finger
+      //    makes; the toggle rides the onset edge so the UP is a no-op.
+      host.touchDown(0, STOP_X, Y);
+      host.tick();
+      host.touchUp(0, STOP_X, Y);
+      host.tick();
+      const afterStop = distinctRates();
+      expect(
+        afterStop,
+        `arc: the stop tap must freeze the swirl. Rates [${afterStop.join(
+          ", ",
+        )}]`,
+      ).toEqual([0]);
+
+      // 2. THE WOBBLE. One MOVE, inside the same cell, on a different rate
+      //    step - exactly what a still finger produces at 100 Hz. THIS IS THE
+      //    ASSERTION THE FIX EXISTS FOR: unpatched, the rate branch calls
+      //    F(s.f) here and every one of the 81 cells comes back at
+      //    glim(17//2,1,120) = 8 while s.s is still 0.
+      host.touchMove(0, WOBBLE_X, Y);
+      host.tick();
+      const afterWobble = distinctRates();
+      report.push(
+        `stopped at x=${STOP_X} (r ${STOP_R}), wobbled to x=${WOBBLE_X} ` +
+          `(r ${WOBBLE_R}): swirl rates [${afterWobble.join(", ")}]`,
+      );
+      expect(
+        afterWobble,
+        "arc: A STOPPED ARC MUST STAY STOPPED UNDER A WOBBLING FINGER. The " +
+          'bench note is "MIDI stops reliably but the visual on ZONA ' +
+          "doesn't\". A still finger sends a MOVE every sample, and r is a " +
+          "31-step map of x, so the first wobble crosses a rate step and the " +
+          "unpatched rate branch re-arms layer 2 at " +
+          `glim(${WOBBLE_R}//2,1,120) = ${rateOf(WOBBLE_R)} while s.s is ` +
+          "still 0. The gate is `if s.s>0 then F(s.f)end`. Observed rates " +
+          `[${afterWobble.join(", ")}]`,
+      ).toEqual([0]);
+
+      // 3. THE DRAG STILL TRACKS, read out of the VM's own `self` rather than
+      //    inferred from what the resume happens to write. This is what the
+      //    +18 gate buys over the +25 alternative ("if s.s<1 then return end"
+      //    ahead of the branch), which would leave all three of these at the
+      //    values Setup gave them.
+      const trackedR = host.selfNumber("r");
+      const trackedF = host.selfNumber("f");
+      const trackedD = host.selfNumber("d");
+      const trackedS = host.selfNumber("s");
+      report.push(
+        `while stopped: self.s ${trackedS}, self.r ${trackedR}, ` +
+          `self.f ${trackedF}, self.d ${trackedD}`,
+      );
+      expect(
+        trackedS,
+        "arc: the card must still be stopped after the wobble",
+      ).toBe(0);
+      expect(
+        trackedR,
+        "arc: A STOPPED ARC MUST GO ON TRACKING THE DRAG, or the resume " +
+          "hands back the rate the stop froze rather than the rate the " +
+          `finger asked for. self.r must follow the wobble to ${WOBBLE_R}`,
+      ).toBe(WOBBLE_R);
+      expect(
+        trackedF,
+        "arc: self.f carries the rate the resume restores, so it must follow " +
+          "self.r while the card is stopped",
+      ).toBe(rateOf(WOBBLE_R));
+      expect(
+        trackedD,
+        "arc: the depth tracks while stopped too - s.d = 127 - y, and the " +
+          `wobble sat at y=${Y}`,
+      ).toBe(127 - Y);
+
+      host.touchUp(0, WOBBLE_X, Y);
+      host.tick();
+
+      // 4. AND IT STAYS STOPPED, for a whole second, on both observables.
+      from = host.midi.length;
+      host.run(100);
+      const held = emitted(from);
+      const heldRates = distinctRates();
+      report.push(
+        `held for 100 ticks: ${held.length} msg, ${new Set(held).size} ` +
+          `distinct, swirl rates [${heldRates.join(", ")}]`,
+      );
+      expect(
+        held.length,
+        "arc: a stopped ARC goes on sending, deliberately - a silent stop " +
+          "would be indistinguishable from a Timer that raised",
+      ).toBeGreaterThan(40);
+      expect(
+        new Set(held).size,
+        `arc: the stop must hold for the whole wait. Observed ` +
+          `${new Set(held).size} distinct controller value(s)`,
+      ).toBe(1);
+      expect(
+        heldRates,
+        `arc: the swirl must still be frozen a second later. Rates ` +
+          `[${heldRates.join(", ")}]`,
+      ).toEqual([0]);
+
+      // 5. THE EXACT RESUME. A second tap at cell 40 writes F(s.f), and s.f
+      //    is the rate the WOBBLE asked for - not the 4 Setup armed and not
+      //    the rate the stop froze.
+      host.touchDown(0, RESUME_AT, RESUME_AT);
+      host.tick();
+      host.touchUp(0, RESUME_AT, RESUME_AT);
+      host.tick();
+      const resumedRates = distinctRates();
+      report.push(
+        `resumed with a tap at cell 40: swirl rates ` +
+          `[${resumedRates.join(", ")}]`,
+      );
+      expect(
+        resumedRates,
+        "arc: THE RESUME MUST BE EXACT. The drag moved the rate to " +
+          `r=${WOBBLE_R} while the card was stopped, so the resume writes ` +
+          `glim(${WOBBLE_R}//2,1,120) = ${rateOf(WOBBLE_R)} - not the 4 ` +
+          "Setup armed the swirl at, and not the rate the stop froze. " +
+          `Observed [${resumedRates.join(", ")}]`,
+      ).toEqual([rateOf(WOBBLE_R)]);
+
+      from = host.midi.length;
+      host.run(100);
+      expect(
+        new Set(emitted(from)).size,
+        "arc: the controller must move again after the resume",
+      ).toBeGreaterThan(1);
+    } finally {
+      host.close();
+    }
+
+    process.stdout.write(
+      "\nARC under a wobbling finger, plan 12-05:\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+    expect(report.length, "every stage of the wobble probe ran").toBe(4);
   }, 120000);
 
   it("shows STAGE's live, lined-up and idle zones as THREE states", async () => {

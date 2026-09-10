@@ -59,18 +59,38 @@
 //   - self.m[c] is the mute latch. Row 0 toggles it, sends the column's
 //     controller at 0, and repaints the column. Untoggling re-sends the
 //     REMEMBERED level, which is still in self.v[c] - muting never touches it.
-//     A MUTED COLUMN IGNORES ITS FADER ENTIRELY, and that REVERSES a shipped
-//     decision. The fader body used to clear the mute (s.m[c]=nil) on the
-//     argument that moving a fader is an unambiguous request for that level;
-//     the bench asked for the opposite - "you should not be able to interact
-//     with the 'muted' faders" - so the body is now gated on `and not s.m[c]`
-//     and a muted column emits nothing and stores nothing. THE ONLY WAY BACK
-//     IS THE MUTE CAP, and it is reachable by construction: it is row 0 of the
-//     same column, the cell directly above the fader the finger is already on,
-//     and it is painted in @MUTEC on both layers while the mute is held, so it
-//     is the one cell in that column that says what to press. Folding the test
-//     into the existing condition rather than adding an early return cost
-//     -6 characters, because it drops the s.m[c]=nil the reversal removed.
+//     A MUTED COLUMN MOVES AND STAYS SILENT, AND THAT IS THE SECOND READING
+//     OF ONE BENCH SENTENCE - REVERSED ON THE RECORD, TWICE (plans 11-07 then
+//     12-05). Three shapes have shipped here and each one is a different
+//     answer to the same question, so all three are written down:
+//
+//       BEFORE 11-07 - the fader body CLEARED the mute (s.m[c]=nil), on the
+//       argument that moving a fader is an unambiguous request for that level.
+//       11-07 - the bench said "you should not be able to interact with the
+//       'muted' faders", so the body was folded into `and not s.m[c]` and a
+//       muted column emitted nothing AND STORED NOTHING. That fold cost -6
+//       characters, because it dropped the s.m[c]=nil it replaced.
+//       12-05 - THE USER'S OWN CORRECTION, verbatim: "you should be able to
+//       change the muted ones only don't send the midi from those." 11-07 read
+//       "do not interact" as INERT; the sentence above says the column is
+//       interactive and SILENT. So the store and the repaint are unconditional
+//       and only the gms is gated: `if h~=s.v[c]then s.v[c]=h if not s.m[c]
+//       then s:gms(...)end P(s,c)end`. +8 characters, 844 -> 852 at the picker
+//       corner, 56 free.
+//
+//     WHAT THE UNMUTE THEN SENDS IS THE LEVEL THE FINGER MOVED IT TO, and that
+//     falls out of the mute-row branch being untouched: it still sends
+//     `m and 0 or s.v[c]*127//7`, and s.v[c] is now whatever the muted drag
+//     stored. So a muted strip can be set up in silence and dropped in at the
+//     right level, which is what a mixer's mute is for. THE MUTE CAP IS STILL
+//     THE ONLY WAY BACK and it is still reachable by construction: it is row 0
+//     of the same column, the cell directly above the fader the finger is
+//     already on, and it is painted in @MUTEC on both layers while the mute is
+//     held, so it is the one cell in that column that says what to press.
+//     src/lib/sim/lua-smoke.spec.ts test 8 carries the reversal: it used to
+//     assert a muted column INERT and now asserts it moves, repaints, sends
+//     zero controller messages while muted, and sends exactly one carrying the
+//     moved level on unmute.
 //   - THE MUTE ROW ANSWERS A SWIPE, AND self.q[i] IS WHY IT CAN. The bench
 //     asked that the card "react to touch or swiping as well not just pushing".
 //     The fader body already did - the outer gate is
@@ -96,12 +116,16 @@
 //     time. Letting the onset through instead needs no contact-end branch at
 //     all. Costed both ways against the real minifier: this shape 844 at the
 //     worst knob position, 11-08's literal idiom 836. Eight characters for a
-//     mute row that answers every tap.
+//     mute row that answers every tap. (Both figures are as measured at 11-08;
+//     12-05's +8 on the fader branch moves the pair to 852 and 844 and leaves
+//     the eight-character difference between the two shapes exactly where it
+//     was.)
 //
 //     THE FADER PATH CLEARS THE GUARD (`s.q[i]=nil`), for the gesture the
 //     dedup would otherwise eat: slide off the cap into the strip and back onto
 //     the same cap, and without the clear the second visit is a repeat. Eleven
-//     characters, 844 against 833.
+//     characters, 844 against 833 as measured at 11-08; 852 against 841 after
+//     12-05's +8.
 //   - A repaint is ONE PASS over the column, every cell written exactly once,
 //     never erase-then-paint: firmware has no double buffer and a two-pass
 //     repaint can tear. The repaint is also GATED - a sample that lands on the
@@ -172,19 +196,21 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 821 characters, Timer 0, both fixed points
+// against the pinned minifier: Setup 829 characters, Timer 0, both fixed points
 // of compressScript and both accepted by checkSyntax.
 //
 // TWO CORNERS, AND THE BINDING ONE IS NOT THE PALETTE'S. The all-longest corner
-// over the five DECLARED palettes is 825 / 0; the all-longest corner a VISITOR
-// CAN ACTUALLY REACH is 844 / 0, leaving 64 free of 908, because D-06 lets the
+// over the five DECLARED palettes is 833 / 0; the all-longest corner a VISITOR
+// CAN ACTUALLY REACH is 852 / 0, leaving 56 free of 908, because D-06 lets the
 // colour picker write any of the 4,096 RGB444 literals and 255,255,255 is two
 // characters longer than the longest colour this card declares. THREE colour
 // tokens, occurring 3 + 2 + 2 times, is 19 of the 23 characters between the two
 // corners. src/lib/catalog/lua-entries.sweep.spec.ts gates the PICKER corner -
 // that is the number 908 is checked against - so it is the one this header
 // quotes and the one every margin in 11-07-SUMMARY.md is stated at. The
-// all-shortest corner is 798 / 0.
+// all-shortest corner is 806 / 0. All four figures re-measured in plan 12-05
+// rather than carried: 829 at the defaults, 806 all-shortest, 833 at the
+// declared-palette corner, 852 at the picker corner.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
@@ -195,7 +221,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.v={}self.m={}self.q={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local c=x*9//128 local r=y*9//128 if r==0 then if e==4 or e>8 or s.q[i]~=c then s.q[i]=c local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//7,0)P(s,c)end return end s.q[i]=nil local h=8-r if h~=s.v[c]and not s.m[c]then s.v[c]=h s:gms(@CH,176,@CC+c,h*127//7,0)P(s,c)end end";
+  "--[[@cb]]self.v={}self.m={}self.q={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local c=x*9//128 local r=y*9//128 if r==0 then if e==4 or e>8 or s.q[i]~=c then s.q[i]=c local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//7,0)P(s,c)end return end s.q[i]=nil local h=8-r if h~=s.v[c]then s.v[c]=h if not s.m[c]then s:gms(@CH,176,@CC+c,h*127//7,0)end P(s,c)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
