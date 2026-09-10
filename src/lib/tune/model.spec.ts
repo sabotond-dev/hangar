@@ -621,6 +621,126 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     tuner.destroy();
   });
 
+  it("a knob index lands a different pair on LUMEN and on NINE PADS - the two entries the bench said had not changed", async () => {
+    // THE DECIDING EVIDENCE FOR TWO BENCH REPORTS, and the reason plan 12-01
+    // runs before a line of the touch framework is written. LUMEN came back
+    // "seems like nothing changed" after the depth knob, NINE PADS came back
+    // "make a 16 pads cause nothing changed" after the 4x4 knob - the same
+    // shape of report on two entries, one Lua and one preset. Probe B on the
+    // user's own ZONA then settled that LUMEN's four depth values are four
+    // plainly distinct brightness steps on the desk (196 / 139 / 84 / 27, with
+    // 27 clearly lit against dark), so the LEDs render what they are sent.
+    // What was never tested is whether a knob index reaches the pair at all.
+    // This test asks that question of the tuner; install.e2e.ts asks it of the
+    // browser and of the module's RAM.
+    //
+    // REAL TIMERS, for test 6's reason and one more. LUMEN is a Lua entry:
+    // its landing waits on a fresh Lua 5.4 VM and arrives on the real clock,
+    // not down a microtask chain, so settle() reads configs.at(-1) BEFORE the
+    // landing and a fake clock does not move a promise. Both entries are
+    // therefore waited on with pause(), the way the Lua test above does it.
+    const CASES = [
+      { entryId: "lumen", knobId: "depth", a: 0, b: 3 },
+      { entryId: "ninepads", knobId: "grid", a: 0, b: 1 },
+    ] as const;
+    const landedLengths: string[] = [];
+
+    for (const { entryId, knobId, a, b } of CASES) {
+      const rec = recorder();
+      const tuner = await buildTuner({ entryId, ...rec });
+      const knob = tuner.knobs.find((each) => each.id === knobId);
+      expect(knob, `${entryId} has a ${knobId} knob`).toBeDefined();
+      for (const index of [a, b]) {
+        expect(
+          index,
+          `${entryId}'s ${knobId} has no index ${index}: its options are ${JSON.stringify(knob!.options)}`,
+        ).toBeLessThan(knob!.options.length);
+      }
+
+      // The default landing first, so the two tuned ones are measured against
+      // a tuner that is known to have published at all.
+      await pause(COMPILE_DEBOUNCE_MS + 400);
+      const atDefault = rec.configs.at(-1);
+      expect(
+        atDefault,
+        `${entryId} published no pair at its defaults`,
+      ).toBeDefined();
+
+      /**
+       * Move the knob and wait for the landing. THE WITHDRAWAL IS ASSERTED
+       * ONLY WHERE A MOVE ACTUALLY HAPPENS: set() returns early when the index
+       * is already where it is asked to go (model.ts, `if (next ===
+       * indices[knobId]) return`), and NINE PADS' first index IS its default,
+       * so its first step publishes nothing and there is nothing to withdraw.
+       * Asserting undefined unconditionally would read the previous landing
+       * and call the tuner broken for behaving correctly.
+       */
+      let at = knob!.default;
+      const landAt = async (index: number): Promise<ConfigStrings> => {
+        const moves = index !== at;
+        const before = rec.configs.length;
+        tuner.set(knobId, index);
+        if (moves) {
+          // D-17, on the same tick as the set and with no clock moved.
+          expect(
+            rec.configs,
+            `${entryId}: the ${knobId} move published nothing at all`,
+          ).toHaveLength(before + 1);
+          expect(
+            rec.configs.at(-1),
+            `${entryId}: the pair survived a ${knobId} move that made it stale`,
+          ).toBeUndefined();
+        }
+        at = index;
+        await pause(COMPILE_DEBOUNCE_MS + 400);
+        const landed = rec.configs.at(-1);
+        expect(
+          landed,
+          `${entryId}: ${knobId} index ${index} landed no pair`,
+        ).toBeDefined();
+        // The bytes are the meter's, for the vector that is on screen.
+        const view = settledViews(rec.views).at(-1);
+        expect(
+          landed!.setup.length,
+          `${entryId}: the landed Setup is not the length the meter settled on`,
+        ).toBe(view!.setup.used);
+        expect(landed!.timer.length).toBe(view!.timer.used);
+        return landed!;
+      };
+
+      const first = await landAt(a);
+      const second = await landAt(b);
+      landedLengths.push(
+        `${entryId} ${knobId} ${a}: setup ${first.setup.length} timer ${first.timer.length}`,
+        `${entryId} ${knobId} ${b}: setup ${second.setup.length} timer ${second.timer.length}`,
+      );
+
+      // THE ASSERTION THE WHOLE TEST IS FOR.
+      expect(
+        second.setup,
+        `${entryId}: ${knobId} index ${a} and index ${b} landed the SAME Setup - the knob does not reach the pair (both ${second.setup.length} characters)`,
+      ).not.toBe(first.setup);
+
+      if (entryId === "ninepads") {
+        // The lengths move too, so the difference is legible in a meter and
+        // not only in a diff. LUMEN's do NOT - @DEPTH is one character at
+        // every index, so 742 is 742 either way - and that is exactly why a
+        // reader must not take equal lengths for equal strings.
+        expect(
+          second.setup.length,
+          `NINE PADS at 16 pads costs the same as at 9 (${second.setup.length})`,
+        ).not.toBe(first.setup.length);
+      }
+
+      tuner.destroy();
+    }
+
+    // Quoted by 12-01-SUMMARY.md, and the reason this test prints at all: the
+    // four numbers are the evidence, and one of them (NINE PADS at 4x4)
+    // disagrees with presets.ts's declared 550 - reported, never reconciled.
+    console.log(`the knob-to-pair path:\n  ${landedLengths.join("\n  ")}`);
+  });
+
   it("TURN IT DOWN's back-off publishes undefined, then the resolved pair", async () => {
     // Through the over-budget door: dial at ladder.spec.ts's reserve, the only
     // pairing on the shelf that reaches both the block and a real ladder (tpad
