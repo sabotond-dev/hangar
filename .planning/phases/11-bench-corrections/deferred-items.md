@@ -38,6 +38,22 @@ Runs 1, 3 and 4 were 105 passed.
 
 **Suggested owner:** 11-16, alongside the other exact-count call sites.
 
+**CLOSED 2026-09-10 by plan 12-03**, at `e2e/install.e2e.ts`'s CLEAR title, in the
+same commit as the literal it guards (`df71d0b`). The literal moved from 2 to 3
+because CLEAR now writes three firmware defaults, and the wait landed first.
+
+**And the diagnosis was the other way round from the one recorded above.** This
+note read the failure as "a third write arriving rather than a second one not
+yet having gone out", because the observed value was HIGHER than expected. It
+is the same arithmetic seen from the other end: `configBefore` is read with no
+wait immediately after `tryOnPage`, which returns as soon as `PLAYING NOW` is
+on screen - and that caption is published by the store in the BROWSER, while
+the try-on's last frame may still be crossing the CDP hop to the Node fake that
+owns the counter. So the BASELINE was read one short and the delta came out one
+long. No third write of the old shape existed, and the fix is a wait on the
+COUNTER rather than on the panel: the counter is what the assertion reads, so
+the counter is what has to have settled.
+
 ---
 
 ## D-11-08.1-b — `wrangler dev` died mid-run, and eight tests reported it as their own failure
