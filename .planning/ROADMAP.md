@@ -34,6 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 10: Redesign** - The whole interface rebuilt around browsing by niche, a natural try/put-back/keep flow, a stylized colour picker and intelligent tuning, in the ZONA landing's CRT register (**sixteen plans in fifteen waves, all executed; the phase gate is green and its third task is a blocking human-verify checkpoint, unanswered** - quick 81 / 828, sweep 4 / 19, e2e 103, check 584 / 0 / 0, all measured against a fresh production build. `docs/INSTALL-RUNBOOK.md` row C's clear half needs a real ZONA and is the user's. Deployed to the gated preview at a17e926)
 - [x] **Phase 11: Bench Corrections** - Every configuration the user tested on hardware behaves as asked, is removed, or is deferred on the record; the catalog stops depending on another project to change its own contents (**19 of 19 plans executed 2026-09-09 to 2026-09-10**; catalog 36 -> 29, nine preset + twenty Lua; quick 84 / 869, sweep 4 19, e2e 86 titles / 105 runs, check 582; three requirements amended by name. **The checkpoint was answered by a second bench round on 2026-09-10** (`BENCH-2026-09-10.txt`): GHOST and POMODORO confirmed; ARC's MIDI stop confirmed and its visual not; EUCLID, STEPS, LUMEN and MORPH reported unfixed on hardware after fixes the simulator measured as correct; three more removals asked for; and one scope decision - a finger-to-LED interaction framework - which is Phase 12. Deployed to the gated preview at 9d435db.) (completed 2026-09-10)
 - [ ] **Phase 12: Touch Framework** - A finger-to-LED interaction framework that works on a real ZONA, as a Lua library in the module's system element that every hand-authored configuration calls; HANGAR learns to write, snapshot, restore and clear that element; the entries the second bench round reported unfixed are re-fitted; three more removals take the catalog to twenty-six (not yet planned)
+- [ ] **Phase 13: GUI Overhaul** - A total overhaul into a straightforward, modern web app in two parts, Playground and Sandbox, plus My configs, built from the user's two source documents as the Bible; no rounded corners anywhere; Sandbox v1 installs to the ZONA; Grifter + Inter (not yet planned; depends on Phase 12)
 
 ## Phase Details
 
@@ -435,6 +436,51 @@ good. SNAKE still deferred.
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 12 to break down)
+
+### Phase 13: GUI Overhaul
+
+**Goal:** A total overhaul of the interface into a straightforward, modern web app in two parts -
+**Playground** (discover and adapt ready-made configurations) and **Sandbox** (compose a custom
+surface from placed elements and install it) - plus **My configs**, built from two user-supplied
+source documents as the Bible and one standing override: **no rounded corners, anywhere, ever**.
+
+**The direction, in the user's words (2026-09-10):** *"Redesign lacked a lot of things. When I meant
+redesign I meant a total overhaul which creates a webapp that has a straightforward, modern GUI and
+UX. We are also going to separate the whole webapp into two parts: playground and sandbox. Rebuild
+the aesthetic and GUI using the content below for your primary sources. Keep what's necessary,
+remove the unimportant and add everything else that hasn't been added. Of course you can always come
+up with new ideas, but this should be your Bible when it comes to basics and always ask me if you
+are not 100% sure regarding something. The only thing that you need to consistently change from the
+aesthetic below is that never use rounded corners for anything, remember that."*
+
+**The Bible**, copied under `13-gui-overhaul/bible/`: `HANGAR-ZONA-GUI-design-specification.md`
+(506 lines: purpose, IA, screen inventory P01-H02, Playground, workspace, Sandbox, device and
+persistence model, preview and diagnostics, My configs and sharing, tokens, responsive, a11y,
+components, copy, priorities, validation plan, open decisions) and `HANGAR for ZONA.pdf` (five
+screens: intro, Playground gallery, Sandbox with a selected element, My configs, the Arc workspace).
+The wordmark is `hangar-logo-w.svg`, supplied by the user. Every GUI decision cites a spec section or
+a PDF page; where the spec is silent or unsure, the plan says so and asks.
+
+**Decisions taken 2026-09-10** (`13-CONTEXT.md`): Phase 12 runs first, because it makes the
+configurations behave on hardware and because the Sandbox needs its library to compile regions;
+Sandbox v1 must **build, preview and install** to the ZONA, which needs a region-to-Lua compiler that
+does not exist today; typography stays **Grifter + Inter** with Grifter's PERSONAL USE licence still
+to be resolved before the site goes public; **no `border-radius` above zero**, held by a gate.
+
+**Already resolved that the spec's section 19 leaves open:** transport is Web Serial, not Web MIDI;
+Apply is a RAM write (Phase 7's TRY ON DEVICE) and Store is a separate flash write (KEEP ON DEVICE),
+each on real acknowledgements; the device can be read back and compared (the snapshot); the
+protocol carries `PAGEACTIVE_PAGENUMBER` and `PAGECOUNT`, so a target page is a real control rather
+than read-only; the browser preview runs the configuration's actual Lua and is labelled as a
+simulation where it is one. The companion `HANGAR-ZONA-design-tokens.css` the spec names was not
+supplied; section 12's table carries every value.
+
+**Requirements**: TBD
+**Depends on:** Phase 12
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 13 to break down)
 
 ## Progress
 
