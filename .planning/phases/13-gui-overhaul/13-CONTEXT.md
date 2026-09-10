@@ -194,6 +194,32 @@ the plan asks.**
 | Q14 | The wordmark SVG is re-cropped and its fills become `currentColor`; the original stays untouched in `bible/` | One asset then serves header, focus state and print |
 | Q15 | New `BUILD-*` and `KEEP-*` requirement families for the Sandbox and persistence; existing rows amended | Claiming the Sandbox was always covered would be false |
 
+## D-15 [user] Six true circles are exempt, by file and line
+
+The plan-check found three `border-radius: 50%` declarations D-10 had not
+named: `Knob.svelte`'s dot rail (8×8, `:598`), slider thumb (12×12, `:653`) and
+home mark (2×2, `:674`) — genuine circles on square boxes, and the PDF draws the
+`Movement rate` slider with a round lime thumb and the Sandbox Knob as a circle.
+**The user extended D-10 to all six.** The rule is unchanged — true circles
+only, rounded rectangles never — and the gate counts **exactly six**, listed by
+file and line: `ColourPicker.svelte:829, :857, :872` and `Knob.svelte:598, :653,
+`:674`. A seventh `50%` anywhere fails the gate until it is added here by name.
+
+## D-16 [user] The action colour is the Bible's `#DCFF71`
+
+Not HANGAR's `#D6FF4E` from Phase 4. Every accent changes by a few points of hue
+and lightness; §12's contrast figures were computed against `#DCFF71` and hold.
+`IDENT-01`'s *"~#D6FF4E"* clause is amended by name at the gate.
+
+## D-17 [user] The type scale is the PDF's measured sizes: 36 / 30 / 17
+
+Page title, panel title, group title — measured off the PDF at 1440, about 20%
+above §12's written 28–32 / 20 / 14. D-14 Q9 had settled only the inspector
+width on PDF authority; the planner extended it to the type scale and, per D-01,
+asked rather than assumed. **The user chose the PDF's.** §12's figures are
+recorded as overridden by measurement, and `layout.ts`'s header (13-05's single
+source) carries the measured scale with this decision cited.
+
 ## What the spec leaves open that HANGAR has already settled
 
 Section 19 lists open technical decisions. Several are answered by earlier
