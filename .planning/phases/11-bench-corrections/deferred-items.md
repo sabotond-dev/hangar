@@ -110,4 +110,16 @@ LUMEN's row was corrected in this wave because this wave moved it. The other
 seventeen were left, deliberately, rather than re-measured under a plan that did
 not ask for it.
 
-**Suggested owner:** 11-16, alongside the entry-header corner sweep.
+**AMENDED BY PLAN 11-11, AND THE AMENDMENT MAKES THIS ITEM WORSE RATHER THAN
+SMALLER.** GHOST's row was moved to 475 / 418 because 11-11 re-authored the
+entry. It had read **305 / 333**, and 305 was **already wrong before 11-11
+touched anything**: plan 11-02 took GHOST's Setup from 305 to 320 with two
+touch-guard repairs and did not move this table. So the table is not merely
+"unchecked" — one of the two rows anybody has looked at was **demonstrably
+stale**, by an amount produced by a plan in this same phase. **Sixteen rows
+remain unchecked**, and the base rate for staleness among the checked ones is
+now one in two.
+
+**Suggested owner:** 11-16, alongside the entry-header corner sweep. The two are
+the same job done twice: an entry header quoting a wrong corner and this table
+quoting a wrong default are both a number nothing gates.
