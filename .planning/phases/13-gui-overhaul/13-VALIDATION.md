@@ -34,7 +34,7 @@ created: 2026-09-10
 | **Full suite** | the wave run plus `npm run build` and `npx playwright test --workers 3` |
 | **Count gate** | `… 2>&1 \| node scripts/check-counts.mjs <files> <tests>` — carried plus delta, never a literal total. **This phase is the first to hand it a negative delta**, which is why 13-01 proves it against one before any deletion lands |
 | **New dependencies** | **none.** `@intechstudio/grid-protocol` stays at the exact pin; `wasmoon` at `1.16.0`; no chart, no icon set, no component kit |
-| **Hardware** | **none, to any agent.** Four bench rows exist (D-07's slot probe, D-06's page switch, D-08's Knob, the Sandbox install); 13-02 hands over the first because a branch depends on it, and 13-20 hands over the rest |
+| **Hardware** | **none, to any agent.** **D-07's slot probe is already answered** on the user's ZONA (`PROBE-RESULTS-2026-09-10.md`, commit `493a21a`): the split architecture is on. Three rows remain - D-06's page switch, D-08's Knob and the Sandbox install - plus a **conditional fourth** if 13-02's checkpoint asks for the third slot. 13-20 hands them over |
 
 ---
 
@@ -123,6 +123,24 @@ Research Q12 recommends **defer to v2** because §11 never mentions them. **D-13
 and the plan therefore has to write the specification the Bible never wrote. **Every fork in that
 specification is a question**, not a planner's choice: 13-13 carries one `checkpoint:decision` with
 four forks - membership, delete-with-undo, the empty state, and the interaction with export.
+
+### D-2b. D-07's probe is ANSWERED, and the research still says it is not
+
+`13-RESEARCH.md` lists `self:tim()` under *"Unverified - needs the bench"* and its Q3 asks whether a
+plan may spend bench time proving the extra slots. **It was spent, and the answer is yes.** The research
+(`a61e74a`) predates the probe (`eaac143`) and its result (`493a21a`): the user ran it on 2026-09-10,
+cell 80 lit, and the recorded reading is that **an event body is a callable method on its element and
+the globals it defines persist**. So the touch Timer is a library slot HANGAR already writes, and the
+touch Setup pulls it in with an eleven-character call. **13-02 consumes that answer rather than asking
+it again**, and the research's rows are superseded by observation rather than corrected in place.
+
+**What the probe did not prove is equally load-bearing** and is quoted in 13-02 from the results' own
+words: `ele[1]:map()` was never tested; same-`self` was not distinguished from "it ran"; and the Timer
+was never armed, which matters because the Sandbox's Timer does work. **And the arithmetic the answer
+opens is the phase's remaining Sandbox question**: the runtime was costed at 861 with the Knob left
+explicitly undefined, D-08's rotary adds 150-200, and the proved slot also carries Phase 12's sweep
+call - so **the ceiling is a number of element kinds per surface**, and 13-02 measures it and asks
+whether a second ten-minute bench row for a third slot is worth taking.
 
 ### D-3. The research recommended a knob be a vertical fader; D-08 made it a rotary
 
@@ -269,7 +287,7 @@ delta"*), used deliberately for the first time since Phase 4.
 
 | Plan | Wave | Type | What it asks |
 |---|---|---|---|
-| **13-02** | 2 | `checkpoint:human-verify` | **D-07's slot probe.** Install one probe through `/dev/install/` and report whether `self:tim()` and `ele[1]:map()` execute another event's body. The answer decides the Sandbox's architecture at wave 14. **"Not yet" is an accepted answer** and does not stop waves 3-13; 13-14 then takes the fader-and-button branch, which needs no firmware question at all |
+| **13-02** | 2 | `checkpoint:decision` | **The third slot, and the action colour.** D-07's probe is already answered, so what is asked is whether Sandbox v1 spends a second ten-minute bench row on `ele[1]:map()` for a third 908 - with the measured ceiling in element kinds in front of the user - and which acid colour the eleven tokens are written against, before 13-03 writes them |
 | **13-08** | 8 | `checkpoint:decision` | **The address of a configuration**: `/c/<id>` kept, `/playground/<id>` with a hash-preserving forward, or both. Three costed options; the share codec, the OG target and 1,000 lines of tests follow the answer |
 | **13-13** | 13 | `checkpoint:decision` | **Collections' four forks** (D-13): may a configuration be in more than one; is delete undoable and for how long; what the empty state offers; and whether an export carries collection membership |
 | **13-18** | 18 | `checkpoint:decision` | **The strings with no §16 line and no PDF equivalent**, in one batch, each with the state it names and the fact it must carry. Roughly forty, accumulated in `13-COPY-NEW.md` by every plan before it |
@@ -285,7 +303,7 @@ names a per-file count.
 | Plan | Wave | files | tests | sweep | e2e | Notes |
 |---|---|---|---|---|---|---|
 | 13-01 | 1 | **+1** | **+2** | `4 19` | **+1 / +2** | `radius.spec.ts` created with 2 (source scan, built-CSS scan); one `@webkit` computed-style title. The negative-delta proof writes no test. The two new requirement families are minted here so no later plan claims a row that does not exist |
-| 13-02 | 2 | +0 | **+0** | `4 19` | +0 | The probe is a bench document and two Lua strings measured under the pinned minifier; **written out as +0** |
+| 13-02 | 2 | +0 | **+0** | `4 19` | +0 | One arithmetic document, six canonical measurements, one conditional runbook row; **written out as +0** |
 | 13-03 | 3 | +0 | **+5** | `4 19` | +0 | `identity.spec.ts` 7 → 11 (+4: eleven tokens and no twelfth, the contrast table, the boundary-versus-divider rule, the type scale); `font-assets.spec.ts` +1 (the wordmark asset) |
 | 13-04 | 4 | +0 | **−9** | `4 19` | **−4 / −8** | `aesthetic.spec.ts` 8 → 1 (**−7**, scan 8 survives in place); `instrument.spec.ts` 6 → 4 (**−2**, the lattice and halftone scans). e2e: five `@webkit` titles deleted (−5 / −10), one `@webkit` reduced-motion title re-homed (+1 / +2) |
 | 13-05 | 5 | **+1** | **+6** | `4 19` | +0 | `shell.spec.ts` created with 6 |
@@ -444,10 +462,10 @@ cannot fit is a finding, not a failure.**
 | String | Slot | Research's measurement | What this phase asks |
 |---|---|---|---|
 | Phase 12's touch library | system Setup (908) | **884** at the superseded sketch, **770 raw** at the revised one | **read the measured canonical cost from `12-07-SUMMARY.md`.** Not from the research, not from the plan |
-| `Z`, the generic Sandbox runtime | system mapmode (908) — **needs 13-02's answer** | **861** without a rotary Knob | re-measured at 13-15 with D-08's rotary added (+150-200 estimated, and the estimate is not carried) |
+| `Z`, the generic Sandbox runtime | **touch Timer (908), beside the sweep call — PROVED** | **861** with the Knob left explicitly undefined | re-measured **per kind** at 13-02 and in full at 13-15 with D-08's rotary added. **861 + 150-200 + the sweep exceeds 908**, which is why the ceiling is a number of kinds and why the third slot is a question |
 | touch Setup: `ele[1]:map()` + `G` + `M` + `Y()` + the callback | touch Setup (908) | **366** at four elements, **811** at sixteen | re-measured at 13-14 for 1, 4, 8, 12 and 16 elements, each figure recorded |
 | touch Timer | touch Timer (908) | **19** | unchanged; the sweep window is the caller's, per 12-07 |
-| **The fallback branch** (13-02 answers "no") | touch Setup only | **697** for four vertical faders, dead-branch eliminated | fits today with no firmware question and no bench row. XY pad and Knob deferred with the characters they would have cost |
+| **The inline contingency** (a small surface, no split) | touch Setup only | **697** for four vertical faders, dead-branch eliminated | retained as a measured comparison rather than as a branch: if an inlined two-kind runtime beats the split for a small surface, 13-14 records the pair and says which it chose |
 
 ---
 
@@ -478,8 +496,8 @@ cannot fit is a finding, not a failure.**
 | 13-01-02 | 01 | 1 | IDENT-01 | unit + build | `radius.spec.ts` 2: the source scan with the declared allowlist (grows → red, stale row → red, unlisted file → red), and the built-CSS scan | **Wave 0 gap — the file does not exist** | pending |
 | 13-01-03 | 01 | 1 | IDENT-01 | e2e | one `@webkit` computed-style sweep over every route: no radius above zero, and every `50%` element measured square | exists | pending |
 | 13-01-04 | 01 | 1 | BUILD-*, KEEP-* | docs | the two new requirement families minted with fourteen rows, so no later plan claims a row that does not exist | exists | pending |
-| 13-02-01 | 02 | 2 | CONT-02 | unit-free, measured | two probe strings written and measured under the pinned minifier, both branches of the Sandbox architecture costed and written down before the answer arrives | created here | pending |
-| 13-02-02 | 02 | 2 | — | **checkpoint:human-verify** | the slot probe handed over; "not yet" accepted; the answer recorded verbatim for 13-14 | n/a | pending |
+| 13-02-01 | 02 | 2 | BUILD-03, CONT-02 | measured, no test | the answered probe turned into a four-slot budget and **six canonical per-kind runtime figures**, each double-measured; the two-slot ceiling stated in element kinds; the conditional third-slot bench row drafted | created here | pending |
+| 13-02-02 | 02 | 2 | — | **checkpoint:decision** | the third slot, with the measured ceiling in front of the user; and the action colour, before 13-03 writes eleven tokens | n/a | pending |
 | 13-03-01 | 03 | 3 | IDENT-01 | unit | `identity.spec.ts` rewritten: eleven tokens and no twelfth; every pair's computed ratio against the table; the divider's failure recorded as decorative-only with the boundary rule gated | exists | pending |
 | 13-03-02 | 03 | 3 | IDENT-01 | unit | the type scale, two tiers of display, tabular numerals, the Grifter licence token; `font-assets.spec.ts` +1 for the wordmark asset | exists | pending |
 | 13-03-03 | 03 | 3 | IDENT-01 | unit + build | the wordmark re-cropped to its ink box with six fills as `currentColor`, `width`/`height` stripped, **the original untouched in `bible/`** proved by sha256 | exists | pending |
@@ -537,8 +555,12 @@ tooling proof, one hardware answer and one licence.
 - [ ] **The two new requirement families**, minted before any plan claims a row → **13-01-04**
 - [ ] `.planning/phases/13-gui-overhaul/13-COPY-NEW.md` — the ledger every screen plan appends to and
       13-18 empties → **13-01-04**
-- [ ] **D-07's slot probe**, taken at the bench, deciding the Sandbox's architecture → **13-02-02**,
-      consumed at **13-14**. **"Not yet" is an answer** and the fallback branch is fully planned
+- [x] **D-07's slot probe** - **answered on hardware 2026-09-10**, cell 80, the split architecture is on
+- [ ] **The two-slot ceiling in element kinds**, measured from six canonical per-kind figures →
+      **13-02-01**, consumed at **13-14** and **13-15**
+- [ ] **Whether a third slot is bought** with a second ten-minute bench row on `ele[1]:map()` →
+      **13-02-02**. Its two extra risks - the page-next default it overwrites, and what HANGAR addresses
+      the system element as since 12-02 - are written into the row before it is offered
 - [ ] `src/lib/store/local.ts` and its five stores → **13-06-01**
 - [ ] `src/lib/device/page-target.ts` and the two new descriptors → **13-12-01**
 - [ ] `src/lib/sandbox/{model,geometry,emit,runtime,cost}.ts` → **13-14**, **13-15**
