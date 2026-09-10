@@ -3,9 +3,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  ELEMENT_SYSTEM,
+  ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
   FrameScanner,
+  SYSTEM_DEFAULT_SETUP,
   TERMINATOR,
   TOUCH_EVENTS,
   ZONA_HWCFG,
@@ -464,6 +467,94 @@ describe("the scripted ZONA", () => {
       0, 1, 2,
     ]);
     for (const module of rig) expect(module.flash).toEqual(module.configs);
+  });
+
+  it("the system element's RAM is kept apart from the touch element's, and every report echoes the element it was asked about", () => {
+    // Phase 12, plan 02. 12-RESEARCH's Pitfall 1: "the fake ZONA conflates
+    // elements". A responder that ignored ELEMENTNUMBER would answer a fetch
+    // of 255 with the touch element's Setup and let a write to 255 overwrite
+    // it - so the library plan would look correct in node and destroy the
+    // pad on the desk.
+    const state = zonaState();
+    const answer = zonaResponder(state);
+    const LIBRARY = "--[[@cb]]function Q()return 1 end";
+    const PAD = "--[[@cb]]print(9)";
+
+    const toSystem = ask(
+      answer,
+      sendConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, LIBRARY, ELEMENT_SYSTEM),
+    );
+    expect(toSystem.replies[0][0].class_instr).toBe("ACKNOWLEDGE");
+    const toTouch = ask(
+      answer,
+      sendConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, PAD),
+    );
+    expect(toTouch.replies[0][0].class_instr).toBe("ACKNOWLEDGE");
+
+    // TWO RAMS, APART. Same page, same event number, different elements.
+    expect(state.system?.[EVENT_SETUP], "the system element's RAM").toBe(
+      LIBRARY,
+    );
+    expect(state.configs[EVENT_SETUP], "the touch element's RAM").toBe(PAD);
+    expect(state.configs[EVENT_TIMER], "untouched by either").toBe(
+      TIMER_CONFIG,
+    );
+
+    // AND EACH REPORT ECHOES ITS OWN ELEMENT, which is what makes the fetch
+    // filter in descriptors.ts match instead of the request timing out.
+    const readBack = (element: number) => {
+      const answered = ask(
+        answer,
+        fetchConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, element),
+      );
+      expect(answered.replies, "exactly one report").toHaveLength(1);
+      const [report] = answered.replies[0];
+      expect(report.class_name).toBe("CONFIG");
+      expect(report.class_instr).toBe("REPORT");
+      expect(
+        Number(report.class_parameters.ELEMENTNUMBER),
+        `the report for element ${element}`,
+      ).toBe(element);
+      return String(report.class_parameters.ACTIONSTRING);
+    };
+    expect(readBack(ELEMENT_SYSTEM)).toBe(LIBRARY);
+    expect(readBack(ELEMENT_TOUCH)).toBe(PAD);
+
+    // A FACTORY MODULE - no `system` key at all - answers the package's own
+    // 24-character page-init default, not an empty string. Read from the
+    // package here too: this file never types the string.
+    const factory = zonaState();
+    expect(factory.system, "absent means factory").toBeUndefined();
+    const fresh = ask(
+      zonaResponder(factory),
+      fetchConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, ELEMENT_SYSTEM),
+    );
+    const factoryAnswer = String(
+      fresh.replies[0][0].class_parameters.ACTIONSTRING,
+    );
+    expect(factoryAnswer).toBe(SYSTEM_DEFAULT_SETUP);
+    expect([...factoryAnswer].length).toBe(24);
+
+    // Both maps survive a store, and both come back from a power cycle. A
+    // library written but never stored is lost exactly as a pad is.
+    ask(answer, storePage());
+    expect(state.systemFlash?.[EVENT_SETUP]).toBe(LIBRARY);
+    expect(state.flash?.[EVENT_SETUP]).toBe(PAD);
+    ask(
+      answer,
+      sendConfig(
+        0,
+        0,
+        ACTIVE_PAGE,
+        EVENT_SETUP,
+        "--[[@cb]]Q=nil",
+        ELEMENT_SYSTEM,
+      ),
+    );
+    expect(state.system?.[EVENT_SETUP]).toBe("--[[@cb]]Q=nil");
+    powerCycle(state);
+    expect(state.system?.[EVENT_SETUP], "flash is RAM again").toBe(LIBRARY);
+    expect(state.configs[EVENT_SETUP], "and the pad came back too").toBe(PAD);
   });
 
   it("a serial-number fetch is answered only when it is addressed", () => {

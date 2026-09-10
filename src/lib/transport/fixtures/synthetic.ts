@@ -28,8 +28,12 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { grid } from "@intechstudio/grid-protocol";
 import {
+  ELEMENT_SYSTEM,
   ELEMENT_TOUCH,
+  EVENT_SETUP,
   PROTOCOL_VERSION,
+  SYSTEM_DEFAULT_SETUP,
+  SYSTEM_EVENTS,
   type DecodedClass,
 } from "$lib/protocol";
 
@@ -179,6 +183,15 @@ export function configReportFrame(opts: {
   page: number;
   event: number;
   config: string;
+  /**
+   * The element the report is ABOUT, echoed back exactly as the module echoes
+   * it (grid_decode.c:1337-1338 maps the system element back to 255 before it
+   * builds the REPORT). Optional and defaulting to the touch element, so every
+   * fixture literal written before Phase 12 is unchanged; the responder below
+   * passes the element it was asked about, which is what lets a fetch of 255
+   * be answered instead of timing out against its own filter.
+   */
+  element?: number;
 }): number[] {
   return seal(
     inbound(
@@ -191,7 +204,7 @@ export function configReportFrame(opts: {
           VERSIONMINOR: PROTOCOL_VERSION.MINOR,
           VERSIONPATCH: PROTOCOL_VERSION.PATCH,
           PAGENUMBER: opts.page,
-          ELEMENTNUMBER: ELEMENT_TOUCH,
+          ELEMENTNUMBER: opts.element ?? ELEMENT_TOUCH,
           EVENTTYPE: opts.event,
           ACTIONLENGTH: opts.config.length,
           ACTIONSTRING: opts.config,
@@ -295,12 +308,33 @@ export function serialNumberReportFrame(
   );
 }
 
+/**
+ * THE TWO ELEMENTS ARE HELD IN TWO MAPS, EACH KEYED BY EVENT NUMBER, and that
+ * is a deliberate choice against the obvious one.
+ *
+ * 12-RESEARCH proposed a single map keyed `${element}/${event}`. It is the
+ * tidier shape and it is not the one taken. `configs` keyed by event number is
+ * what the `moduleState` FACTORY in e2e/install.e2e.ts and every state literal
+ * in synthetic.spec.ts already pass, and re-keying them would be an edit at
+ * every one of those call sites - in a file 12-03 also edits, with an edit list
+ * already twenty-two numeric sites and eleven step-line arrays long. So
+ * `configs` stays exactly as it was and `system` arrives BESIDE it, with
+ * `systemFlash` beside `flash` for the same reason: install.spec.ts asserts
+ * `state.flash` with `toEqual` against a two-key object, and a flash map that
+ * had grown a system key would have moved that assertion for no gain.
+ */
 export interface ZonaState {
   sx: number;
   sy: number;
   activePage: number;
-  /** RAM. What a fetch returns and what a write replaces. */
+  /** RAM, the TOUCH element's. What a fetch returns and what a write replaces. */
   configs: Record<number, string>;
+  /**
+   * RAM, the SYSTEM element's (255) - the page-init slot the shared library
+   * lives in. Absent means a factory module: it is materialised on first use
+   * as the package's own default, never a literal.
+   */
+  system?: Record<number, string>;
   /**
    * Flash. What a store copies configs into and what powerCycle restores.
    * Optional so every existing literal keeps working: it is allocated as a
@@ -308,6 +342,8 @@ export interface ZonaState {
    * write, the first store, or the first power cycle, whichever comes first.
    */
   flash?: Record<number, string>;
+  /** The same, for the system element. Allocated on the same three occasions. */
+  systemFlash?: Record<number, string>;
   /** WORD0..WORD3. Undefined means the module does not answer a SERIALNUMBER/FETCH at all. */
   serial?: readonly [number, number, number, number];
 }
@@ -317,13 +353,39 @@ const flashOf = (state: ZonaState): Record<number, string> =>
   (state.flash ??= { ...state.configs });
 
 /**
- * What a power cycle does: RAM becomes flash. Pure, in place. A module that
- * was written to but never stored comes back with what it had before the
- * write, which is the whole reason PUT BACK exists and the fact runbook row D
- * checks on hardware.
+ * The system element's RAM, allocated on first need as what a factory module
+ * holds there: the package's own 24-character page-init default, READ from the
+ * pin through SYSTEM_DEFAULT_SETUP and never typed here (D-20's rule).
+ */
+const systemOf = (state: ZonaState): Record<number, string> =>
+  (state.system ??= { [EVENT_SETUP]: SYSTEM_DEFAULT_SETUP });
+
+/** The system element's flash, on the same three occasions as the touch one's. */
+const systemFlashOf = (state: ZonaState): Record<number, string> =>
+  (state.systemFlash ??= { ...systemOf(state) });
+
+/**
+ * What one element's RAM answers for one event. The system element answers the
+ * package's own default for an event nobody has written - which is what
+ * firmware does, and which is why a fetch of 255/4 or 255/6 would be answered
+ * here even though nothing in HANGAR asks for either.
+ */
+const ramRead = (state: ZonaState, element: number, event: number): string => {
+  if (element !== ELEMENT_SYSTEM) return state.configs[event] ?? "";
+  const held = systemOf(state)[event];
+  if (held !== undefined) return held;
+  return SYSTEM_EVENTS.find((e) => e.value === event)?.defaultConfig ?? "";
+};
+
+/**
+ * What a power cycle does: RAM becomes flash, for BOTH elements. Pure, in
+ * place. A module that was written to but never stored comes back with what it
+ * had before the write, which is the whole reason PUT BACK exists and the fact
+ * runbook row D checks on hardware.
  */
 export function powerCycle(state: ZonaState): void {
   state.configs = { ...flashOf(state) };
+  state.system = { ...systemFlashOf(state) };
 }
 
 /** A module addressed by name, or by the global address. */
@@ -351,6 +413,11 @@ export function zonaResponder(
     const { class_name, class_instr, class_parameters } = outbound;
     const event = Number(class_parameters.EVENTTYPE);
     const page = Number(class_parameters.PAGENUMBER);
+    // THE ELEMENT THE REQUEST NAMES, routed on and echoed back. An absent
+    // field decodes as undefined and coerces to NaN, which is neither element
+    // and would be answered from `configs` - so it is defaulted to the touch
+    // element explicitly rather than left to a coercion.
+    const element = Number(class_parameters.ELEMENTNUMBER ?? ELEMENT_TOUCH);
     const me = isMe(outbound, state);
     const meOrGlobal = me || isGlobal(outbound);
 
@@ -359,9 +426,16 @@ export function zonaResponder(
       // string rather than an error (grid_ui.c:464-501), which is exactly the
       // shape D-09's write refusal exists to catch.
       const config =
-        page === state.activePage ? (state.configs[event] ?? "") : "";
+        page === state.activePage ? ramRead(state, element, event) : "";
       return [
-        configReportFrame({ sx: state.sx, sy: state.sy, page, event, config }),
+        configReportFrame({
+          sx: state.sx,
+          sy: state.sy,
+          page,
+          event,
+          config,
+          element,
+        }),
       ];
     }
     if (class_name === "CONFIG" && class_instr === "EXECUTE" && me) {
@@ -379,8 +453,17 @@ export function zonaResponder(
         ];
       }
       // RAM and flash are about to diverge: fix flash first if it never was.
-      flashOf(state);
-      state.configs[event] = String(class_parameters.ACTIONSTRING ?? "");
+      // The two elements' RAMs are SEPARATE, so a write to 255 can never
+      // overwrite the touch Setup - the conflation 12-RESEARCH's Pitfall 1
+      // names, and the one this branch exists to make impossible.
+      const written = String(class_parameters.ACTIONSTRING ?? "");
+      if (element === ELEMENT_SYSTEM) {
+        systemFlashOf(state);
+        systemOf(state)[event] = written;
+      } else {
+        flashOf(state);
+        state.configs[event] = written;
+      }
       return [
         configAckFrame({ sx: state.sx, sy: state.sy, lastheader: requestId }),
       ];
@@ -392,6 +475,8 @@ export function zonaResponder(
       // re-fetch proof depends on.
       state.flash = { ...state.configs };
       state.configs = { ...state.flash };
+      state.systemFlash = { ...systemOf(state) };
+      state.system = { ...state.systemFlash };
       return [
         pagestoreAckFrame({
           sx: state.sx,

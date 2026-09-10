@@ -61,6 +61,7 @@
 import type { Page } from "@playwright/test";
 import {
   type DecodedClass,
+  ELEMENT_TOUCH,
   EVENT_SETUP,
   TERMINATOR,
   ZONA_HWCFG,
@@ -112,7 +113,16 @@ export interface ZonaScript {
 export interface ExposedZona {
   /** Outbound frames seen, decoded, by class - the SAFE-01 count. */
   seen(class_name: string, class_instr: string): number;
-  /** The module's RAM, flash and page. The same object the test passed in; edit it to change what the module holds. */
+  /**
+   * The module's RAM, flash and page. The same object the test passed in; edit
+   * it to change what the module holds.
+   *
+   * `ZonaState` is IMPORTED from src/lib/transport/fixtures/synthetic.ts, not
+   * re-declared here, so Phase 12's system-element maps (`system`,
+   * `systemFlash`) arrived on this handle with no edit to this file. A test
+   * that wants a non-factory library sets `state.system` and the same
+   * responder answers it.
+   */
   state: ZonaState;
   /** One heartbeat frame (hex, terminated) from the module's address and current page, for beat(). */
   heartbeatHex(): string;
@@ -191,7 +201,15 @@ export async function installZona(
       stored &&
       isConfig &&
       cls.class_instr === "FETCH" &&
-      Number(cls.class_parameters.EVENTTYPE) === EVENT_SETUP
+      Number(cls.class_parameters.EVENTTYPE) === EVENT_SETUP &&
+      // THE TOUCH ELEMENT'S SETUP, NAMED (Phase 12, plan 02). The fault is
+      // "the module reports back a Setup that is not the one it holds", and
+      // once the system element is also fetched at event 0 this condition
+      // would otherwise fire on that fetch too - and answer it with a report
+      // echoing element 0, which the system fetch's own filter would refuse,
+      // turning a mismatch into a timeout. Behaviour today is unchanged:
+      // nothing above the transport fetches 255 until 12-03.
+      Number(cls.class_parameters.ELEMENTNUMBER) === ELEMENT_TOUCH
     ) {
       replies = [
         configReportFrame({
@@ -199,6 +217,7 @@ export async function installZona(
           sy: state.sy,
           page: Number(cls.class_parameters.PAGENUMBER),
           event: EVENT_SETUP,
+          element: ELEMENT_TOUCH,
           config: MISMATCH_SETUP,
         }),
       ];
