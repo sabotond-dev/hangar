@@ -243,6 +243,48 @@ cycle restores the utility button.
 superseded by 13-15's VM-measured runtime; if that lands lower than the ceiling
 chosen here, 13-15 asks again.
 
+## D-19 [user] HANGAR can do anything the Editor can — the new standing rule
+
+Given 2026-09-10, on being told that HANGAR refuses to write the system
+element's fourth slot by a constant 12-02 wrote with a reason:
+
+> *"Overwrite this rule. Hangar can do anything the Editor can, this is the new
+> rule."*
+
+**This is project-wide and it outranks every HANGAR-invented capability limit.**
+Grid Editor is the reference: if the Editor can address an element, an event, a
+page or a command, HANGAR may too. Specifically retired:
+
+- **12-02's refusal to write 255/4 and 255/6** (the system element's utility and
+  timer events). The constant, its header reason (*"a web page must not silently
+  change what a physical button does"*) and the assertion that those events never
+  appear in a frame are **superseded**. The Sandbox install writes 255/4 like any
+  other event. Phase 12 is mid-execution and no Phase 12 plan needs the slot, so
+  the code change lands where it is first needed — **13-17** — and 12-12's gate
+  must not restate the refusal as a virtue. Until 13-17, the constant's header is
+  wrong and says so is the next reader's warning: it is a *pending removal*, not
+  a rule.
+- Any future "HANGAR does not do X" where the Editor does X. A plan that wants
+  to refuse a capability the Editor has must cite this decision and ask.
+
+**What the rule does NOT retire, and why — stated so nobody strips these by
+analogy:**
+
+- **HANGAR's safety *features*.** Snapshot before write, PUT BACK, ACK before
+  "done", nothing written without a click, RAM before flash. None of these
+  limits what HANGAR can do; each adds something the Editor does not have. PUT
+  BACK now also restores 255/4's default after a Sandbox install, because the
+  snapshot covers what HANGAR wrote.
+- **The Bible's own UX rules.** §9's destination review — a named confirmation
+  before the first apply and before every destination change — is the spec's,
+  not HANGAR's, and the user asked for the spec. It is the one place the Bible is
+  *stricter* than the Editor. **It stays unless the user says otherwise**, and it
+  is flagged here as exactly that so the user can strike it in one word.
+
+**Consequence for D-06's envelope:** the *capability* to switch pages was never
+in question after this rule; the envelope's click, review, ACK gate, per-page
+snapshot and bench row are safety features and the spec's review, and stand.
+
 ## What the spec leaves open that HANGAR has already settled
 
 Section 19 lists open technical decisions. Several are answered by earlier
