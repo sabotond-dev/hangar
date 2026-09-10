@@ -362,12 +362,43 @@ function rgbAt(frame: Uint8Array, cell: number): string {
 }
 
 /**
- * The sixteen cells MORPH's four macro quads occupy, in the entry's own
- * arithmetic: k = {0,7,63,70} and each quad is base + d%2 + d//2*9.
+ * The cells MORPH's four macro readouts occupy, DERIVED FROM THE ENTRY.
+ *
+ * It used to be four typed numbers and a 2x2 walk, matching the entry's
+ * `self.k={0,7,63,70}` and `base + d%2 + d//2*9`. Plan 12-09 widened the blocks
+ * to 3x3 on the bench's "bigger corner regions where only one channel is sent",
+ * which took the count from sixteen to thirty-six and turned the typed copy
+ * into a silent under-count: the residue probe reported fifteen legitimate
+ * macro readouts as frozen residue. So both halves - the four bases and the
+ * block's side - are read out of the entry's own Setup, exactly as the
+ * corner-tap test reads them, and the next geometry change moves this with it.
  */
-const MORPH_MACROS: readonly number[] = [0, 7, 63, 70].flatMap((base) =>
-  [0, 1, 2, 3].map((d) => base + (d % 2) + Math.floor(d / 2) * 9),
-);
+const MORPH_MACROS: readonly number[] = (() => {
+  const entry = CATALOG.find((candidate) => candidate.id === "morph");
+  const setup =
+    typeof entry !== "undefined" && entry.source.kind === "lua"
+      ? entry.source.setup
+      : "";
+  const bases = /self\.k=\{([^}]*)\}/.exec(setup);
+  const side = /for d=0,\d+ do local a=glag\(0,self\.k\[j\+1\]\+d%(\d+)/.exec(
+    setup,
+  );
+  if (bases === null || side === null)
+    throw new Error(
+      "morph: self.k and the corner paint loop are not where this probe " +
+        "reads them, so the residue allowance below cannot be derived",
+    );
+  const n = Number(side[1]);
+  return bases[1]
+    .split(",")
+    .map(Number)
+    .flatMap((base) =>
+      Array.from(
+        { length: n * n },
+        (_, d) => base + (d % n) + Math.floor(d / n) * 9,
+      ),
+    );
+})();
 
 /**
  * CONSOLE's fader column 1, between its default level and the tapped one.
@@ -387,13 +418,19 @@ const RESIDUE_ALLOWANCES: readonly ResidueAllowance[] = [
     entry: "morph",
     cells: MORPH_MACROS,
     reason:
-      "MORPH is an XY macro controller and these sixteen cells ARE its four " +
-      "macro readouts - Setup paints them at phase 0 and every touch writes " +
-      "the value it just sent to them. A touched MORPH is supposed to show " +
-      "four non-zero macros, and no coordinate exists that returns all four " +
-      "to zero (the four products of x, y, 127-x and 127-y cannot all vanish " +
-      "at once), so this cannot be double-tapped away. The comet trail on " +
-      "layer 2 is NOT allowed here and is exactly what the probe watches.",
+      "MORPH is an XY macro controller and these cells ARE its four macro " +
+      "readouts - four blocks whose size the entry declares, thirty-six cells " +
+      "since plan 12-09 widened them from sixteen. Setup paints them at phase " +
+      "0 and every touch writes the value it just sent to them. A touched " +
+      "MORPH is supposed to show four non-zero macros, and no coordinate " +
+      "exists that returns all four to zero (the four products of x, y, 127-x " +
+      "and 127-y cannot all vanish at once), so this cannot be double-tapped " +
+      "away. THE PRICE OF THE WIDER BLOCKS IS STATED RATHER THAN LEFT: this " +
+      "allowance is per CELL and not per layer, so the comet trail is excused " +
+      "wherever it lands inside a corner block - nine cells a corner rather " +
+      "than four. The trail lands on phase 0 by construction (the class-A " +
+      "idiom, and decay-idiom.spec.ts is where that is gated), so the " +
+      "forty-five cells still under this probe are what watch it here.",
   },
   {
     entry: "console",
@@ -2364,13 +2401,58 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     expect(kDecl, "morph: self.k must be declared in the Setup").not.toBe(null);
     const K = (kDecl as RegExpExecArray)[1].split(",").map(Number);
     expect(K.length, "morph: four corner blocks").toBe(4);
-    // The 2x2 block, in the entry's own words: cells k + d%2 + d//2*9.
+    // THE BLOCK IS 3x3 FROM PLAN 12-09 AND ITS SIDE IS DERIVED, NOT TYPED. The
+    // Lua walks `k + d%N + d//N*9` over `d = 0, N*N-1`, so N is read off the
+    // entry's own paint loop; the bench asked for "bigger corner areas where
+    // only one channel is sent" and this is the number that answers it.
+    const sideDecl =
+      /for d=0,(\d+) do local a=glag\(0,self\.k\[j\+1\]\+d%(\d+)/.exec(setup);
+    expect(
+      sideDecl,
+      "morph: the Setup paint loop must declare the corner block's geometry",
+    ).not.toBe(null);
+    const SIDE = Number((sideDecl as RegExpExecArray)[2]);
+    expect(
+      [SIDE, Number((sideDecl as RegExpExecArray)[1])],
+      "morph: the block is SIDE x SIDE and the loop runs d = 0 .. SIDE*SIDE-1",
+    ).toEqual([SIDE, SIDE * SIDE - 1]);
+    expect(
+      SIDE,
+      "morph: THE CORNER BLOCKS ARE 3x3 (plan 12-09). The bench asked for " +
+        "bigger regions where only one channel is sent; a 2x2 block is four " +
+        "cells of eighty-one and a finger aimed at a corner misses it",
+    ).toBe(3);
     const blockOf = (k: number): number[] =>
-      [0, 1, 2, 3].map((d) => k + (d % 2) + Math.floor(d / 2) * 9);
+      Array.from(
+        { length: SIDE * SIDE },
+        (_, d) => k + (d % SIDE) + Math.floor(d / SIDE) * 9,
+      );
     const cellOf = (x: number, y: number): number =>
       Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    // THE DEAD MARGIN, READ OFF THE ENTRY (plan 12-09). The bench asked that
+    // "the zero point should not sit only in the extreme corner", so the raw
+    // axis is remapped before the weights: raw 24 reads 0 and raw 103 reads
+    // 127, and everything outside saturates. Both constants come out of the
+    // Setup, so moving the margin reddens this test instead of escaping it.
+    const marginDecl = /x=glim\(\(x-(\d+)\)\*127\/\/(\d+),0,127\)/.exec(setup);
+    expect(
+      marginDecl,
+      "morph: the Setup must remap the raw axis before the weights",
+    ).not.toBe(null);
+    const MARGIN = Number((marginDecl as RegExpExecArray)[1]);
+    const SPAN = Number((marginDecl as RegExpExecArray)[2]);
+    expect(
+      [MARGIN, SPAN, MARGIN + SPAN],
+      "morph: the mapping runs from raw MARGIN to raw MARGIN+SPAN, and the " +
+        "top end has to be inside the seven-bit axis",
+    ).toEqual([24, 79, 103]);
+    /** The entry's own remap: Lua's `//` floors, including on a negative. */
+    const mapped = (v: number): number =>
+      Math.min(127, Math.max(0, Math.floor(((v - MARGIN) * 127) / SPAN)));
     /** The bilinear weights the entry computes, in the entry's own order. */
-    const weightsAt = (x: number, y: number): number[] => {
+    const weightsAt = (rawX: number, rawY: number): number[] => {
+      const x = mapped(rawX);
+      const y = mapped(rawY);
       const u = 127 - x;
       const v = 127 - y;
       return [
@@ -2380,19 +2462,21 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         Math.floor((x * y) / 127),
       ];
     };
-    /** A point in the middle of corner j's 2x2 block. */
+    /**
+     * The cell of corner j's block that sits NEAREST THE PAD CENTRE, and the
+     * raw point at its centre.
+     *
+     * It used to be the middle of the 2x2 block. With a 3x3 block AND a dead
+     * margin the middle is inside the saturated region, where three weights are
+     * arithmetically 0 and a one-message result would be the old behaviour
+     * wearing the new one's clothes - so the probe moves to the block's INNER
+     * cell, which is both where all four weights are non-zero and where a
+     * finger aimed at a corner from the middle of the pad actually lands.
+     */
     const aimAt = (k: number): [number, number] => {
-      const column = (c: number): number[] => {
-        const out: number[] = [];
-        for (let t = 0; t <= 127; t += 1)
-          if (Math.floor((t * 9) / 128) === c) out.push(t);
-        return out;
-      };
-      const cx = k % 9;
-      const cy = Math.floor(k / 9);
-      const xs = [...column(cx), ...column(cx + 1)];
-      const ys = [...column(cy), ...column(cy + 1)];
-      return [xs[Math.floor(xs.length / 2)], ys[Math.floor(ys.length / 2)]];
+      const inner = (start: number): number =>
+        start === 0 ? SIDE - 1 : start + 0;
+      return [cellCentre(inner(k % 9)), cellCentre(inner(Math.floor(k / 9)))];
     };
     const report: string[] = [];
 
@@ -2412,7 +2496,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       expect(
         blockOf(K[j]),
         `morph: the probe for corner ${j + 1} must be inside that corner's ` +
-          "own 2x2 block, derived from self.k",
+          `own ${SIDE}x${SIDE} block, derived from self.k`,
       ).toContain(cellOf(x, y));
 
       for (const mode of ["slow", "fast"] as const) {
@@ -2501,32 +2585,40 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       }
     }
 
-    // 4. THE CONTINUOUS MORPH IS UNMOVED, AND IT IS ASSERTED AGAINST A LITERAL
-    //    CAPTURED BEFORE THE CHANGE rather than against a count. 11-08 shipped
-    //    a first swipe shape whose output was indistinguishable from the bug
-    //    it was fixing, and a message count would have gone green on it. This
-    //    stroke starts at the centre cell - so its onset is NOT in a corner -
-    //    and runs the diagonal into the bottom-right block, so it also proves
-    //    that a MOVE sample crossing a corner still morphs.
-    const DIAGONAL_BEFORE = [
-      "16:31 17:31 18:31 19:32 16:30 19:33 16:29 19:34 16:28",
-      "19:35 16:27 19:36 16:26 19:37 16:25 19:38 16:24 19:39",
-      "16:23 19:40 16:22 19:41 17:30 18:30 19:43 16:21 19:44",
-      "16:20 19:45 16:19 19:46 16:18 19:47 17:29 18:29 19:49",
-      "16:17 19:50 16:16 19:51 16:15 19:52 17:28 18:28 19:54",
-      "16:14 19:55 16:13 19:56 17:27 18:27 19:58 16:12 19:59",
-      "16:11 19:60 17:26 18:26 19:62 16:10 19:63 17:25 18:25",
-      "19:65 16:9 19:66 17:24 18:24 19:68 16:8 19:69 17:23",
-      "18:23 19:71 16:7 19:72 17:22 18:22 19:74 16:6 19:75",
-      "17:21 18:21 19:77 16:5 19:78 17:20 18:20 19:80 16:4",
-      "19:81 17:19 18:19 19:83 17:18 18:18 19:85 16:3 19:86",
-      "17:17 18:17 19:88 17:16 18:16 19:90 16:2 19:91 17:15",
-      "18:15 19:93 17:14 18:14 19:95 17:13 18:13 19:97 16:1",
-      "19:98 17:12 18:12 19:100 17:11 18:11 19:102 17:10 18:10",
-      "19:104 16:0 19:105 17:9 18:9 19:107 17:8 18:8 19:109",
-      "17:7 18:7 19:111 17:6 18:6 19:113 17:5 18:5 19:115",
-      "17:4 18:4 19:117 17:3 18:3 19:119 17:2 18:2 19:121",
-      "17:1 18:1 19:123 17:0 18:0 19:125 19:127",
+    // 4. THE CONTINUOUS MORPH IS PINNED TO A LITERAL rather than to a count.
+    //    11-08 shipped a first swipe shape whose output was indistinguishable
+    //    from the bug it was fixing, and a message count would have gone green
+    //    on it. This stroke starts at the centre cell - so its onset is NOT in
+    //    a corner - and runs the diagonal into the bottom-right block, so it
+    //    also proves that a MOVE sample crossing a corner still morphs.
+    //
+    //    THE LITERAL WAS RE-CAPTURED IN PLAN 12-09 AND THE REASON IS THE POINT.
+    //    It read "captured BEFORE the change" - the entry as 11-08 left it -
+    //    and 12-09's dead margin DELIBERATELY moves this sequence: the raw axis
+    //    is remapped so that raw 24 reads 0 and raw 103 reads 127, which is the
+    //    bench's "the zero point should not sit only in the extreme corner".
+    //    A literal that survived that would mean the margin had not landed. So
+    //    it is re-captured against the entry as 12-09 leaves it, and the clause
+    //    below keeps the ORIGINAL question answerable by a literal that has
+    //    moved: all four corners must still speak across the stroke, which is
+    //    exactly what a corner branch reaching MOVE samples would destroy.
+    //    120 messages here against 158 before, because the saturated ends of
+    //    both axes suppress the corners that are pinned at 0 and 127.
+    const DIAGONAL_MORPH = [
+      "16:31 17:31 18:31 19:32 16:30 19:33 16:28 19:35 16:26",
+      "19:37 16:25 19:38 16:23 19:40 16:22 19:41 16:21 17:30",
+      "18:30 19:44 16:19 19:46 16:18 19:47 16:17 17:29 18:29",
+      "19:50 16:16 19:51 16:15 17:28 18:28 19:54 16:13 19:56",
+      "17:27 18:27 19:58 16:11 19:60 16:10 17:26 18:26 19:63",
+      "17:25 18:25 19:65 16:9 17:24 18:24 19:68 16:8 19:69",
+      "16:7 17:23 18:23 19:72 16:6 17:22 18:22 19:75 17:21",
+      "18:21 19:77 16:5 17:20 18:20 19:80 16:4 19:81 17:18",
+      "18:18 19:85 16:3 17:17 18:17 19:88 17:16 18:16 19:90",
+      "16:2 17:15 18:15 19:93 17:14 18:14 19:95 16:1 17:13",
+      "18:13 19:98 17:11 18:11 19:102 17:10 18:10 19:104 16:0",
+      "17:9 18:9 19:107 17:8 18:8 19:109 17:6 18:6 19:113",
+      "17:4 18:4 19:117 17:3 18:3 19:119 17:1 18:1 19:123",
+      "17:0 18:0 19:127",
     ]
       .join(" ")
       .split(" ");
@@ -2548,16 +2640,26 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         const seq = host.midi.map((m) => `${m.p1}:${m.p2}`);
         report.push(
           `diagonal from the centre cell: ${seq.length} message(s), ` +
-            `${DIAGONAL_BEFORE.length} captured before the change`,
+            `${DIAGONAL_MORPH.length} pinned`,
         );
+        // THE CLAUSE THE LITERAL EXISTS FOR, STATED SO IT SURVIVES A RE-CAPTURE.
+        // A corner branch that reached MOVE samples would let ONE corner speak
+        // for the whole stroke; all four have to.
+        expect(
+          [...new Set(host.midi.map((m) => m.p1))].sort((a, b) => a - b),
+          "morph: ALL FOUR CORNERS MUST SPEAK ACROSS A CONTINUOUS STROKE. The " +
+            "corner-tap branch is gated on the onset edge and this stroke's " +
+            "onset is the centre cell, so a branch that reached MOVE samples " +
+            "would truncate this to one controller",
+        ).toEqual([0, 1, 2, 3].map((j) => base + j + 1));
         expect(
           seq.join(" "),
-          "morph: THE CONTINUOUS MORPH MUST BE BYTE-IDENTICAL. This is the " +
-            "sequence a diagonal stroke from the centre emitted BEFORE the " +
-            "corner-tap branch existed, captured against the entry as 11-08 " +
-            "left it and committed as a literal. A corner branch that reached " +
-            "MOVE samples would truncate it here",
-        ).toBe(DIAGONAL_BEFORE.join(" "));
+          "morph: THE CONTINUOUS MORPH MUST BE BYTE-IDENTICAL to the sequence " +
+            "committed as a literal above, re-captured at plan 12-09 against " +
+            "the dead margin. Every value here is a bilinear weight of the " +
+            "REMAPPED axis, so a margin that moved - or a corner branch that " +
+            "reached a MOVE - shows up as a diff rather than as a count",
+        ).toBe(DIAGONAL_MORPH.join(" "));
       } finally {
         host.close();
       }
@@ -2570,6 +2672,236 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       report.length,
       "four corners times three probes, plus the stroke",
     ).toBe(13);
+  }, 120000);
+
+  it("keeps MORPH's weights moving inside a cell, holds its trail on ONE cell, and saturates inside the margin", async () => {
+    // THE BENCH NOTE THIS ANSWERS, VERBATIM: "MORPH: kozepen random vilagitas,
+    // ne csak teljesen a sarokban legyen 0 pont, legyen nagyobb tere a
+    // mappolasnak ahol. tehat a sarkokban legyenek nagyobbak a teruletek ahol
+    // csak egy ch-t kuld ki" - random lighting in the middle; the zero point
+    // should not be only in the exact corner; bigger corner regions where only
+    // one channel is sent.
+    //
+    // THIS IS ALSO WHERE 12-RESEARCH'S CALL SHAPE IS CORRECTED ON THE RECORD.
+    // The research writes the caller as
+    //
+    //     if i>0 then return end local c=Q(s,i,e,x,y)if not c then return end
+    //
+    // and that shape WOULD FREEZE THIS CARD. `Q` returns nil when the cell has
+    // not changed, and MORPH's whole output is a bilinear blend of the RAW
+    // position - four weights that must be recomputed and re-sent on every
+    // sample inside a cell, because a cell is 14 raw units wide and a finger
+    // travelling across one moves every macro it owns. Returning on the nil
+    // would send four messages on the first sample of each cell and NOTHING for
+    // the fourteen units after it. So MORPH keeps its own end test, calls `Q`
+    // for the TRAIL CELL ALONE, and sends its weights regardless. Stage 1 is
+    // the assertion that says so, and 12-09's negative check shipped the
+    // research's shape and read the frozen count off it.
+    const entry = entryById("morph");
+    const base = knobValueOf(entry, "ccBase");
+    const setup = entry.source.kind === "lua" ? entry.source.setup : "";
+    const marginDecl = /x=glim\(\(x-(\d+)\)\*127\/\/(\d+),0,127\)/.exec(setup);
+    expect(
+      marginDecl,
+      "morph: the Setup must remap the raw axis before the weights",
+    ).not.toBe(null);
+    const MARGIN = Number((marginDecl as RegExpExecArray)[1]);
+    const SPAN = Number((marginDecl as RegExpExecArray)[2]);
+    /** The entry's own remap, clamped exactly as its glim clamps. */
+    const mapped = (v: number): number =>
+      Math.min(127, Math.max(0, Math.floor(((v - MARGIN) * 127) / SPAN)));
+    const weightsAt = (rawX: number, rawY: number): number[] => {
+      const x = mapped(rawX);
+      const y = mapped(rawY);
+      return [
+        Math.floor(((127 - x) * (127 - y)) / 127),
+        Math.floor((x * (127 - y)) / 127),
+        Math.floor(((127 - x) * y) / 127),
+        Math.floor((x * y) / 127),
+      ];
+    };
+    const naiveCell = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    const report: string[] = [];
+
+    // -----------------------------------------------------------------------
+    // 1. THE WEIGHTS MOVE INSIDE A CELL. Four samples, all inside cell 40 under
+    //    the naive read AND under the hysteresis, so `Q` returns a cell on the
+    //    DOWN and nil on all three MOVEs.
+    // -----------------------------------------------------------------------
+    const WOBBLE_X = [60, 61, 60, 61];
+    const WOBBLE_Y = 60;
+    {
+      expect(
+        WOBBLE_X.map((x) => naiveCell(x, WOBBLE_Y)),
+        "morph: every sample of the in-cell wobble must be the SAME cell, or " +
+          "this stage is measuring a cell change rather than a frozen weight",
+      ).toEqual([40, 40, 40, 40]);
+      // NON-VACUITY: the mapped position really moves, so there is a weight to
+      // freeze. A wobble that mapped to one point would prove nothing.
+      const seen = WOBBLE_X.map((x) => weightsAt(x, WOBBLE_Y).join("/"));
+      expect(
+        new Set(seen).size,
+        `morph: the wobble must move a weight - observed ${seen.join(" ")}`,
+      ).toBeGreaterThan(1);
+
+      const { host } = await open(entry);
+      try {
+        const perSample: number[] = [];
+        let mark = 0;
+        host.touchDown(0, WOBBLE_X[0], WOBBLE_Y);
+        host.tick();
+        perSample.push(host.midi.length - mark);
+        mark = host.midi.length;
+        for (let k = 1; k < WOBBLE_X.length; k += 1) {
+          host.touchMove(0, WOBBLE_X[k], WOBBLE_Y);
+          host.tick();
+          perSample.push(host.midi.length - mark);
+          mark = host.midi.length;
+        }
+        report.push(
+          `  wobble inside cell 40 (x ${WOBBLE_X.join(",")} at y ${WOBBLE_Y}): ` +
+            `${perSample.join(" + ")} = ${host.midi.length} message(s); ` +
+            `weights ${seen.join(" -> ")}`,
+        );
+        expect(
+          perSample.slice(1).every((n) => n > 0),
+          "morph: THE WEIGHTS MUST MOVE INSIDE A CELL. `Q` returns nil for " +
+            "every one of these MOVEs, so the research's " +
+            "`if not c then return end` would leave the card sending on the " +
+            "DOWN and nothing afterwards - a macro pad that only answers the " +
+            `first pixel of each cell. Observed ${perSample.join(", ")} ` +
+            "message(s) per sample",
+        ).toBe(true);
+        expect(
+          host.midi.length,
+          "morph: and the total has to be more than the first sample's, which " +
+            "is the number the frozen shape produces",
+        ).toBeGreaterThan(perSample[0]);
+        // AND IT IS THE RIGHT VALUES, not merely a count: every message
+        // carries the bilinear weight of the REMAPPED position.
+        const last = weightsAt(WOBBLE_X[WOBBLE_X.length - 1], WOBBLE_Y);
+        for (let j = 0; j < 4; j += 1) {
+          const values = host.midi
+            .filter((m) => m.p1 === base + j + 1)
+            .map((m) => m.p2);
+          expect(
+            values[values.length - 1],
+            `morph: corner ${j + 1}'s last word must be its weight at the ` +
+              `last sample. Observed ${values.join(", ")}`,
+          ).toBe(last[j]);
+        }
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. THE TRAIL HOLDS ONE CELL. This is "random lighting in the middle":
+    //    the comet used to be re-armed at a cell computed naively on every
+    //    sample, so a finger resting on the line between two cells lit BOTH,
+    //    alternating at 100 Hz. The trail cell is now `Q`'s, and `Q` returns a
+    //    cell only when the cell changed - which is why this is the ONE thing
+    //    MORPH does take from the library's return value.
+    // -----------------------------------------------------------------------
+    {
+      const TRAIL_X = [71, 72, 71, 72, 73, 72];
+      const naive = TRAIL_X.map((x) => naiveCell(x, WOBBLE_Y));
+      expect(
+        [...new Set(naive)].sort((a, b) => a - b),
+        "morph: the trail probe must be a real boundary wobble - the naive " +
+          "read has to cross - or holding one cell proves nothing",
+      ).toEqual([40, 41]);
+
+      const { host, sim } = await open(entry);
+      try {
+        host.touchDown(0, TRAIL_X[0], WOBBLE_Y);
+        host.tick();
+        for (let k = 1; k < TRAIL_X.length; k += 1) {
+          host.touchMove(0, TRAIL_X[k], WOBBLE_Y);
+          host.tick();
+        }
+        const lit: number[] = [];
+        for (let cell = 0; cell < 81; cell += 1)
+          if (sim.layer(hwOfCell(cell), 2).pha !== 0) lit.push(cell);
+        report.push(
+          `  trail after the boundary wobble (x ${TRAIL_X.join(",")}): lit ` +
+            `cell(s) ${lit.join(", ")}; the naive read lights ` +
+            `${[...new Set(naive)].join(" and ")}`,
+        );
+        expect(
+          lit,
+          "morph: A WOBBLING FINGER MUST LIGHT ONE TRAIL CELL. The naive cell " +
+            "this card computed until plan 12-09 flips on a one-unit wobble " +
+            "(PROBE-RESULTS-2026-09-10.md Q2), so the comet was re-armed on " +
+            "two cells alternately and the middle of the pad flickered. `Q`'s " +
+            `hysteresis holds one. Observed ${lit.join(", ")}`,
+        ).toEqual([naive[0]]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. THE MARGIN. "The zero point should not sit only in the extreme
+    //    corner": raw 0..24 reads 0 and raw 103..127 reads 127 on both axes, so
+    //    a finger a cell and a half in from a corner is already at full scale.
+    // -----------------------------------------------------------------------
+    {
+      expect(
+        [mapped(0), mapped(MARGIN), mapped(MARGIN + SPAN), mapped(127)],
+        "morph: the remap saturates at both ends of the raw axis",
+      ).toEqual([0, 0, 127, 127]);
+      // A CELL AND A HALF, STATED AS CELLS RATHER THAN AS RAW UNITS: the whole
+      // of cells 0 and 1 on each axis is inside the dead margin, and a cell is
+      // 128/9 = 14.22 raw units, so the margin is 24/14.22 = 1.7 cells.
+      expect(
+        [mapped(cellCentre(0)), mapped(cellCentre(1)), mapped(cellCentre(7))],
+        "morph: the centres of the first two cells already read 0 and the " +
+          "centre of cell 7 already reads 127 - the corner regions are AREAS, " +
+          "not the one extreme pixel the bench complained about",
+      ).toEqual([0, 0, 127]);
+
+      const AIM: [number, number] = [10, 10];
+      const w = weightsAt(...AIM);
+      const unMargined = Math.floor(((127 - 10) * (127 - 10)) / 127);
+      expect(
+        w,
+        `morph: at (${AIM.join(",")}) corner 1 must read a FULL 127 and the ` +
+          `other three exactly 0. Without the margin it reads ${unMargined}`,
+      ).toEqual([127, 0, 0, 0]);
+
+      const { host } = await open(entry);
+      try {
+        host.touchDown(0, AIM[0], AIM[1]);
+        host.tick();
+        const sent = host.midi.map((m) => `cc ${m.p1}: ${m.p2}`);
+        report.push(
+          `  press at (${AIM.join(",")}): ${sent.join(", ")} - un-margined ` +
+            `corner 1 would read ${unMargined}`,
+        );
+        expect(
+          sent,
+          "morph: ONE MESSAGE, AT FULL SCALE. Cell 0 is inside corner 1's " +
+            "block so only corner 1 may speak, and the margin is what makes " +
+            "the value it speaks a 127 rather than something short of it. The " +
+            "other three are arithmetically 0 and self.p starts at 0, so they " +
+            "say nothing at all",
+        ).toEqual([`cc ${base + 1}: 127`]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nMORPH, the corners widened and the trail held (plan 12-09):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length, "all three stages of the MORPH probe ran").toBe(3);
   }, 120000);
 
   it("moves ARC's heart and ARC's controller together, at three depths", async () => {

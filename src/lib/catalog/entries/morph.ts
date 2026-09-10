@@ -8,9 +8,9 @@
 // mapping four consecutive CCs is the easiest MIDI-learn job there is.
 //
 // EACH CORNER'S BRIGHTNESS IS ITS OWN WEIGHT, so the mix is readable across a
-// room. The four 2x2 blocks get four distinct hues out of one arithmetic
-// expression - 255-j*spread, j*spread, 128 - which is why four coloured corners
-// cost the budget almost nothing. @SPREAD APPEARS TWICE in that expression and
+// room. The four 3x3 corner blocks - 2x2 until plan 12-09 - get four distinct
+// hues out of one arithmetic expression, 255-j*spread, j*spread, 128, which is
+// why four coloured corners cost the budget almost nothing. @SPREAD APPEARS TWICE in that expression and
 // both sites must be substituted, or the four corners stop being four hues.
 //
 // MORPH HAS NO TIMER, AND THAT IS THE RIGHT ANSWER RATHER THAN AN OMISSION.
@@ -82,9 +82,9 @@
 // COSTED, and the reason belongs here rather than only in a plan. The richest
 // option was an assignment MODE - a latch, a selection gesture and a
 // single-corner emit - and it named THE GESTURE as the expensive part. That
-// expense is gone: self.k already declares four 2x2 corner blocks, so THE
-// CORNER TAP IS THE SELECTION. No latch, no mode, no new gesture, nothing to
-// exit.
+// expense is gone: self.k already declares four corner blocks - 2x2 then, 3x3
+// since plan 12-09 - so THE CORNER TAP IS THE SELECTION. No latch, no mode, no
+// new gesture, nothing to exit.
 //
 // WHY IT MATTERS, AND IT IS THE SAME COMPLAINT AS THE SUPPRESSION CLAUSE. In a
 // DAW, MIDI-learn binds whichever message arrives first. With four CCs
@@ -102,7 +102,7 @@
 // host before any change:
 //
 //   press on the exact extreme pixel (0,0)          1 message
-//   press on the CENTRE of the 2x2 corner block     4 messages
+//   press on the CENTRE of the corner block (2x2)   4 messages
 //   the same, arriving after a stroke elsewhere     4 messages
 //
 // A finger aimed at a corner lands in the BLOCK, not on the one pixel where
@@ -110,7 +110,12 @@
 // all four leave. So the gap is real at the point a hand reaches, and
 // lua-smoke.spec.ts pins its probes to points where all four weights are
 // non-zero, so a one-message result can never be the old behaviour wearing the
-// new one's clothes.
+// new one's clothes. ALL THREE FIGURES ABOVE ARE 11-09.1'S, ON THE 2x2 BLOCKS
+// AND WITHOUT THE MARGIN, and plan 12-09 moved both: (14,14) is now inside the
+// dead margin and reads 127/0/0/0, so the test's aiming point moved to the
+// block's INNER cell - (35,35) for corner 1, weights 95/14/14/2 - which is
+// where all four are non-zero AND where a hand reaching from the middle of the
+// pad lands. The non-vacuity clause is unchanged; only the point is.
 //
 // THE DISCRIMINATION IS THE ONSET EDGE, "e==4 or e>8", and it is the SAME edge
 // arc.ts takes in the same plan - one idiom in the catalogue for telling a
@@ -131,10 +136,10 @@
 // would be unreliable in the one situation it exists for.
 //
 // THE CORNER BLOCKS ARE DERIVED FROM self.k, NOT TYPED. The Lua walks
-// s.k[j] + d%2 + d//2*9 for d = 0..3, the same expression the Setup paint loop
+// s.k[j] + d%3 + d//3*9 for d = 0..8, the same expression the Setup paint loop
 // and the send loop already use, so moving a corner moves all three together.
-// lua-smoke.spec.ts reads self.k out of the entry's own source for the same
-// reason.
+// lua-smoke.spec.ts reads self.k AND the block's side out of the entry's own
+// source for the same reason.
 //
 // 11-08'S SUPPRESSION IS NOT BYPASSED, RE-KEYED OR RESET. A corner tap updates
 // s.p FOR THAT CORNER ONLY. The other three keep their old entries on purpose:
@@ -151,11 +156,86 @@
 // THE CELL INDEX IS NOW A LOCAL, WHICH PAID FOR PART OF THE FEATURE. The comet
 // at the end of the handler recomputed x*9//128+y*9//128*9; the corner test
 // needs the same value, so it is bound once as `c` and used twice - 18
-// characters back.
+// characters back. Plan 12-09 replaced that arithmetic with `Q(s,i,e,x,y)`;
+// see the section immediately below.
 //
-// COST: Setup 579 -> 710 of 908 at the RGB444 picker corner, 198 free. Timer
-// still the empty string, and NO KEEPER WAS ADDED - see the capitalised note
-// above, which stands.
+// COST: Setup 579 -> 710 of 908 at the RGB444 picker corner (plan 11-09.1),
+// then 710 -> 772 in plan 12-09, 136 free. Timer still the empty string, and NO
+// KEEPER WAS ADDED - see the capitalised note above, which stands.
+//
+// ---------------------------------------------------------------------------
+// BIGGER CORNERS, A DEAD MARGIN, AND THE TRAIL CELL FROM THE LIBRARY (12-09)
+// ---------------------------------------------------------------------------
+//
+// THE BENCH NOTE, VERBATIM: "MORPH: kozepen random vilagitas, ne csak teljesen
+// a sarokban legyen 0 pont, legyen nagyobb tere a mappolasnak ahol. tehat a
+// sarkokban legyenek nagyobbak a teruletek ahol csak egy ch-t kuld ki" -
+// random lighting in the middle; the zero point should not be only in the exact
+// corner; bigger corner regions where only one channel is sent. Three clauses,
+// three edits, each measured on its own at the RGB444 picker corner.
+//
+// 1. THE CORNER BLOCKS ARE 3x3, AT +0 CHARACTERS (710 -> 710). self.k moves
+//    from {0,7,63,70} to {0,6,54,60} and the walk from `d%2+d//2*9` over
+//    d = 0..3 to `d%3+d//3*9` over d = 0..8, at all three sites. Both literals
+//    are the same length, so the whole clause is free: nine cells of eighty-one
+//    per corner instead of four, which is the "bigger regions where only one
+//    channel is sent" the note asks for. THE CORNER TAP IS STILL THE SELECTION
+//    and nothing about the mechanism above changes - only how big a target it
+//    is. A finger aimed at a corner from the middle of the pad lands on the
+//    block's INNER cell, which is now a real cell rather than a pixel away from
+//    the edge, and lua-smoke.spec.ts aims there for exactly that reason.
+//
+// 2. A DEAD MARGIN, AT +56 (710 -> 766). "The zero point should not sit ONLY in
+//    the exact corner." The raw axis is remapped before the weights:
+//
+//        x=glim((x-24)*127//79,0,127)  y=glim((y-24)*127//79,0,127)
+//
+//    so raw 0..24 reads 0, raw 24..103 spans 0..127, and raw 103..127 reads
+//    127. Twenty-four raw units is 1.7 cells - a cell is 128/9 = 14.22 - so the
+//    whole of cells 0 and 1 on each axis is already saturated and a finger a
+//    cell and a half in from a corner reads a FULL 127 on that macro and an
+//    exact 0 on the others. Before this, (10,10) read corner 1 at 107 and only
+//    the literal pixel (0,0) read 127. THE MARGIN RUNS ON THE RAW x AND y AFTER
+//    `Q`, deliberately: the trail cell is where the FINGER is, not where the
+//    mapping says it is, so the light under your hand stays under your hand.
+//
+// 3. THE TRAIL CELL COMES FROM `Q`, AT +6 (766 -> 772) - and this is the
+//    "random lighting in the middle". The comet was re-armed at a cell computed
+//    as x*9//128+y*9//128*9 on EVERY sample, and PROBE-RESULTS-2026-09-10.md Q2
+//    measured a motionless finger sending 71, 72, 71, 71, 71 - one raw unit of
+//    wobble, and 71*9//128 = 4 against 72*9//128 = 5. So a finger resting on a
+//    cell line re-armed two cells alternately at 100 Hz, which is what the
+//    middle of this pad looked like. `Q`'s per-axis hysteresis holds one cell,
+//    and it returns that cell only when the cell CHANGED, so the comet is armed
+//    once per cell entered.
+//
+// WHY MORPH DOES NOT RETURN ON `Q`'S NIL, AND WHY THE RESEARCH IS WRONG HERE.
+// 12-RESEARCH writes the caller as
+//
+//     if i>0 then return end local c=Q(s,i,e,x,y)if not c then return end
+//
+// and that shape WOULD FREEZE THIS CARD. `Q` returns nil when the cell has not
+// changed; MORPH's output is a bilinear blend of the RAW position, and a cell is
+// fourteen raw units wide, so every macro it owns keeps moving all the way
+// across one. Measured, as 12-09's negative check, by shipping that exact line:
+// a four-sample wobble inside one cell sent 4 messages instead of 16 - four on
+// the DOWN and NOTHING on the three MOVEs. So MORPH keeps its own end test
+// first, calls `Q` for the trail cell ALONE, sends its weights regardless, and
+// paints the comet only when `Q` returned a cell. (The wrong shape also costs
+// 25 characters MORE, at 797, because the guard is not free.)
+//
+// TWO CONSEQUENCES OF CALLING `Q` FROM BEHIND MORPH'S OWN END TEST, both stated
+// rather than discovered. `Q` is reached only on live codes here, so its expiry
+// path never runs for this card: a contact that goes quiet keeps its entry in
+// the library's `H` until the next onset, which `Q` expires first - and MORPH
+// has no Timer, so there is no `X` to sweep it. NOTHING IS HELD, so a stale
+// entry costs nothing: the card sends CCs, never notes. And because this card
+// returns for i > 0, the only contact the library ever tracks for it is 0.
+//
+// `D` IS NOT USED, AND THAT IS THE LIBRARY'S OWN ARITHMETIC RATHER THAN A
+// PREFERENCE. `D(n,l,w)` derives its timeout as `w//6` from a byte, so it
+// covers at most 42 ticks; @DECAY reaches 126. The inline pair below is the one
+// decay-idiom.spec.ts already reads, and it stays.
 //
 // A CORNER SPEAKS ONLY WHEN THAT CORNER MOVED. self.p={0,0,0,0} holds the last
 // value sent for each of the four macros and the send is guarded on
@@ -221,12 +301,14 @@
 // THE STRING BELOW IS A TEMPLATE OVER CANONICAL LUA. Rendered at the defaults
 // by renderLua it is byte-identical to the canonical text measured against the
 // pinned minifier: a fixed point of compressScript and accepted by
-// checkSyntax. THE CORNER THE 908 GATE READS IS 710, leaving 198 free, and it
+// checkSyntax. THE CORNER THE 908 GATE READS IS 772, leaving 136 free, and it
 // is the RGB444 PICKER corner (D-06) rather than the all-longest corner of the
 // declared palettes - the two coincide here only because @TRAILC already
 // declares 255,255,255, and plan 11-07 measured them 21 characters apart on
-// CONSOLE. It was 579 before plan 11-09.1's corner tap, and re-measured rather
-// than inherited.
+// CONSOLE. At the defaults it is 768. It was 579 before plan 11-09.1's corner
+// tap and 710 before plan 12-09's three edits, and every figure is re-measured
+// rather than inherited: 710 after the 3x3 corners (+0), 766 after the margin
+// (+56), 772 after the library call (+6).
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -236,7 +318,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,7,63,70}self.p={0,0,0,0}for j=0,3 do for d=0,3 do local a=glag(0,self.k[j+1]+d%2+d//2*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local c=x*9//128+y*9//128*9 local q=0 if e==4 or e>8 then for j=1,4 do for d=0,3 do if c==s.k[j]+d%2+d//2*9 then q=j end end end end local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,3 do glp(glag(0,b+d%2+d//2*9),1,z*2)end end local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end";
+  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local c=Q(s,i,e,x,y)local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end";
 
 // THE TIMER IS THE EMPTY STRING, WRITTEN INLINE. See the header: MORPH has no
 // Timer EVENT, and a named constant holding nothing would only invite someone
