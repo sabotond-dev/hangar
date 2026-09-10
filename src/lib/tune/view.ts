@@ -321,7 +321,13 @@ export function wordFor(
   return undefined;
 }
 
-/** The kinds a word row is even offered to. Everything else is a rail. */
+/**
+ * The kinds a word row is offered to BY NAME, because they have a table.
+ *
+ * Not the only route to a word row since plan 12-05: a knob of any kind whose
+ * values are at most two integers gets one too, labelled by the integers
+ * themselves. See `widgetFor`.
+ */
 const WORD_KINDS: readonly KnobKindName[] = [
   "direction",
   "mode",
@@ -354,7 +360,42 @@ const WORD_KINDS: readonly KnobKindName[] = [
  * It was a per-configuration test - exactly what X-05 forbids - and at 4,096
  * options it would have walked the whole lattice on every render to conclude
  * what the kind already says.
+ *
+ * THE TWO-INTEGER RULE (plan 12-05), AND IT IS KIND-BLIND ON PURPOSE. NINE
+ * PADS' `Pads` knob has exactly two values, `9` and `16`, and its kind is
+ * `count`, which has no word table - so it rendered as a two-dot rail, fifth in
+ * a five-knob rack, with `9` right-aligned beside it. A TWO-POSITION RAIL IS
+ * THE LEAST LEGIBLE CONTROL ON THE PANEL: two dots over an invisible range
+ * input do not read as a choice, and the user's bench note for that card is
+ * "make a 16 pads cause nothing changed" - a report about a control nobody saw,
+ * because 12-01 had already proved the knob reaches the module's RAM. So a
+ * knob with at most two INTEGER values renders as words.
+ *
+ * KIND-BLIND RATHER THAN "ADMIT `count` TO WORD_KINDS", and the reason is that
+ * the alternative cannot state its own rule. Admitting `count` would need a
+ * `wordFor("count", literal)` branch that returns the literal - a second
+ * spelling of what `integerReadout` already does - and it would leave a
+ * two-valued `size` or `amount` knob a rail for no reason anybody could write
+ * down. Chosen by `n` and by whether a label exists at all, which is the same
+ * pair of questions the WORD_KINDS branch above asks.
+ *
+ * WHY IT TESTS THE VALUES AND WHY THAT IS NOT WHAT X-05 FORBIDS. The two-value
+ * knobs that ship are AURORA's `direction`, STARFIELD's `edge`, NINE PADS'
+ * `grid` and DIAL's `mode`; `edge` is `feel` with the values "soft" and "hard",
+ * and `feel` has no table, so a rule keyed on `n` ALONE would render it as a
+ * word row reading "1 of 2" and "2 of 2" - strictly worse than the rail it
+ * replaced. The integer test is the same question the branch above asks with
+ * `wordFor`: IS THERE A LABEL. What X-05 forbids is a rule whose answer depends
+ * on which colours a card happens to declare, over 4,096 of them; this reads at
+ * most two strings and asks whether they are numbers.
+ *
+ * The labels come from `model.ts`'s `valueView`, which already falls through
+ * `wordFor` to `integerReadout` and hands back the literal - so `Pads` shows
+ * `9` and `16`, raw, the way X-08 requires of every integer this panel prints.
  */
+/** Two. Above this an integer knob is a rail, where position carries meaning. */
+export const INTEGER_WORD_ROW_MAX = 2;
+
 export function widgetFor(
   kind: KnobKindName,
   values: readonly string[],
@@ -365,6 +406,13 @@ export function widgetFor(
     return fits && values.every((v) => wordFor(kind, v) !== undefined)
       ? "words"
       : "rail";
+  }
+  if (
+    values.length > 0 &&
+    values.length <= INTEGER_WORD_ROW_MAX &&
+    values.every((v) => INTEGER.test(v))
+  ) {
+    return "words";
   }
   return "rail";
 }

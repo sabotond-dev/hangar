@@ -206,13 +206,22 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
   },
 
   // -------------------------------------------------------------------------
-  // NINE PADS: "make it selectable to 4x4".
+  // NINE PADS: "make it selectable to 4x4", then "make a 16 pads cause nothing
+  // changed".
   //
-  // The DEFAULT does not move, so there is no `state` row here and the card's
-  // frames are unmoved. What diverges is `knobs`, BOTOR's declaration of which
-  // kinds a card offers, because HANGAR adds a fifth. The knob itself lives in
-  // src/lib/tune/knobs.preset.ts and knobs.preset.spec.ts holds the two sides
-  // against each other by deduped kind set.
+  // TWO PLANS AND TWO ANSWERS TO ONE ASK. 11-06 added the fifth knob and left
+  // the default where it was, so `knobs` diverged and `state` did not. The user
+  // asked again in the imperative, and 12-05 moved the default - so this block
+  // now carries a `state` row, which makes `stateDiverges("ninepads")` TRUE and
+  // hands the frames gate its expected disagreement with golden-frames.json.
+  // The picture really does move: sixteen zones of four cells against nine of
+  // nine, and src/lib/catalog/frames.json is regenerated in the same commit.
+  //
+  // WHAT 12-01 SETTLED FIRST, so this is a presentation change and not a
+  // repair: the knob-to-wire path is green at the tuner AND at the module's
+  // RAM. The user's "nothing changed" is a two-option `count` knob rendered as
+  // a two-dot rail, fifth in a five-knob rack. 12-05's other half is view.ts's
+  // widget rule.
   {
     preset: "ninepads",
     path: "knobs.length",
@@ -232,6 +241,38 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
       'The kind the new Pads knob exposes. "count" is an existing member of the vendored KnobKind union - PINWHEEL\'s arms knob already uses it - so this adds a knob and never a vocabulary. The two positions cost 580 and 550 of 908 setup at 158 timer, so the REQUESTED option is the cheaper one; the sweep costs the whole widened cross-product and reports nothing over budget.',
     plan: "11-06",
     dated: "2026-09-09",
+  },
+  {
+    preset: "ninepads",
+    path: "state.sends.grid",
+    hangar: "4x4",
+    vendored: "3x3",
+    reason:
+      'The user asked twice. 11-06 read "make it selectable to 4x4" as a knob and left the card shipping at 3x3; the bench came back with "make a 16 pads cause nothing changed", and 12-01 then proved the knob reaches the module\'s RAM - so what was left was the default itself. The card ships at sixteen zones of four cells. The shape character does not move, because a default index is not a resize: six knobs summing to 4,127 option values either side, so every stamp minted before this plan still decodes restored at the index it carries.',
+    plan: "12-05",
+    dated: "2026-09-10",
+  },
+  {
+    preset: "ninepads",
+    path: "cost.setup",
+    hangar: 550,
+    vendored: 580,
+    reason:
+      'The measured price of the row above, and it is a SAVING - 4x4 is the cheaper position, because sixteen zones of four cells need less arithmetic than nine zones of nine. 550 of 908 at the shipped knob positions and 640 at the worst of the reachable cross-product, 268 free. THE 550-VERSUS-556 DISAGREEMENT IS SETTLED HERE BY MEASUREMENT: both figures are right and they measure different states. 550 is cost(compile(state)) on the SHIPPED card, which still carries preset: "ninepads" and therefore the twelve-character #z.pninepads marker; 556 is what 12-01\'s tuner landed, and a tuner landing has been through withChange, which deletes preset and turns the marker into an eighteen-character field dump. Measured at both grids: shipped 580 / 550, tuned 586 / 556, +6 in both directions. No compiler constant moved and nothing was mis-transcribed.',
+    plan: "12-05",
+    dated: "2026-09-10",
+  },
+  {
+    preset: "ninepads",
+    path: "sentence",
+    hangar:
+      "Sixteen drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
+    vendored:
+      "Nine drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
+    reason:
+      'The shipped sentence counts the pads, and the row above changed how many there are. One word, at 91 of the 110 characters a card fits. THE NAME IS DELIBERATELY NOT TOUCHED: "Nine pads" is the card\'s name and its id, every stamp, fixture and OG file is keyed by it, and the knob still offers nine as its other position - so the card opens at sixteen and says so, and going back to nine is one click. The quiet line moves with it in listing.ts and front-door.ts, which is not a preset field for this card and therefore has no row of its own.',
+    plan: "12-05",
+    dated: "2026-09-10",
   },
 
   // -------------------------------------------------------------------------

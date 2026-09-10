@@ -181,12 +181,20 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "ninepads",
+    // THE NAME STAYS "NINE PADS" AND THE SENTENCE SAYS SIXTEEN (plan 12-05).
+    // The card now SHIPS at 4x4, at the user's second asking ("make a 16 pads
+    // cause nothing changed"), and a sentence that describes what the visitor
+    // will see has to move with it. The NAME does not: it is the card's name,
+    // it is the id every stamp, fixture and OG file is keyed by, and the knob
+    // still offers nine as its other position. A card called "Nine pads" that
+    // opens at sixteen and can be put back to nine in one click is legible;
+    // renaming the id is a catalog-membership change and this plan makes none.
     name: "Nine pads",
     description:
-      "Nine drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
+      "Sixteen drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
     motion: "static",
     quiet:
-      "This one is an instrument rather than a light show. The nine zones stay lit and wait for a finger.",
+      "This one is an instrument rather than a light show. The sixteen zones stay lit and wait for a finger.",
     tags: ["play", "playable", "readable"],
     featured: true,
     restsBlack: false,

@@ -241,7 +241,7 @@ export const PRESETS: readonly PadPreset[] = [
   preset(
     "ninepads",
     "Nine pads",
-    "Nine drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
+    "Sixteen drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
     "instruments",
     // "count" IS THE FIFTH, ADDED BY PLAN 11-06. The user's bench note is
     // "make it selectable to 4x4", and `sends.grid` already accepted "4x4" -
@@ -256,16 +256,47 @@ export const PRESETS: readonly PadPreset[] = [
       d.touch.kind = "none";
       d.enabled.touch = false;
       d.sends.kind = "zones";
-      // The DEFAULT does not move. "selectable" is a knob, not a different
-      // card, and the requested option is the CHEAPER one: 4x4 compiles to
-      // 550 against 3x3's 580, because sixteen zones of four cells need less
-      // arithmetic than nine zones of nine. A request that reduces a budget
-      // is rare enough to write down.
-      d.sends.grid = "3x3";
+      // THE DEFAULT MOVES, AND 12-05 IS THE PLAN THAT MOVED IT. 11-06 read
+      // "make it selectable to 4x4" as a knob and left the card shipping at
+      // 3x3; the user came back with "make a 16 pads cause nothing changed",
+      // which is the same ask twice and the second time in the imperative.
+      //
+      // WHAT 12-01 SETTLED, READ FROM ITS SUMMARY RATHER THAN ASSUMED. The
+      // knob-to-wire path is GREEN at both levels: the tuner lands a different
+      // pair for grid index 0 and 1 (580 and 556 characters, different bytes),
+      // and a rail turned in a browser puts the TUNED Setup in the module's
+      // own RAM through TRY ON DEVICE. No seam was found and nothing was
+      // fixed there. So the user's report is not a wiring bug - it is that
+      // `grid` is a two-option `count` knob, and a two-dot rail fifth in a
+      // five-knob rack is the least legible control on the panel. Nobody read
+      // it as a control. 12-05 answers that in two halves: the default moves
+      // here, and view.ts's widget rule gives a two-valued integer knob a word
+      // row so the next person can see it.
+      //
+      // 550 AGAINST 556, SETTLED BY MEASUREMENT AND NOT BY CHOICE. Both are
+      // right and they measure DIFFERENT STATES. 550 is `cost(compile(state))`
+      // on the SHIPPED card, which still carries `preset: "ninepads"`, so its
+      // marker is the twelve-character `#z.pninepads`. 556 is what 12-01's
+      // tuner landed, and a tuner landing has been through `withChange`, which
+      // deletes `preset` - so the marker becomes an eighteen-character field
+      // dump and the Setup gains exactly six characters. Measured both ways at
+      // both grids: shipped 580 / 550, tuned 586 / 556, +6 in both directions.
+      // Nothing was mis-transcribed and no compiler constant moved; the two
+      // figures were never the same measurement. The number below is the
+      // shipped one, because that is what presets.spec.ts test 4 re-measures.
+      //
+      // THE SHAPE CHARACTER DOES NOT MOVE. A default index is not a resize:
+      // `shapeOf` sums knob count and option counts, and this card is still six
+      // knobs summing to 4,127 values either side. Every NINE PADS stamp minted
+      // before this plan still decodes `restored` at the index it was minted
+      // with, and a stamp minted at grid index 0 now restores 3x3 on a card
+      // that defaults to 4x4 - which is correct, because a stamp carries a
+      // position and not a difference from a default.
+      d.sends.grid = "4x4";
       d.sends.showGrid = true;
       d.sends.fingers = "each";
     },
-    { setup: 580, timer: 158 },
+    { setup: 550, timer: 158 },
   ),
   preset(
     "faders",

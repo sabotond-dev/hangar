@@ -182,11 +182,11 @@ export const FRONT_DOOR: readonly FrontDoorEntry[] = [
     id: "ninepads",
     name: "Nine pads",
     description:
-      "Nine drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
+      "Sixteen drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
     motion: "static",
     // Authored here: the shelf preset carries no quiet line of its own.
     quiet:
-      "This one is an instrument rather than a light show. The nine zones stay lit and wait for a finger.",
+      "This one is an instrument rather than a light show. The sixteen zones stay lit and wait for a finger.",
   },
   {
     id: "starfield",

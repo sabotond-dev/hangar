@@ -403,10 +403,21 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
     if (!grid) throw new Error("ninepads has no grid knob");
     expect(grid.label, "reads as the number of pads").toBe("Pads");
     expect(grid.options, "nine pads or sixteen").toEqual(["9", "16"]);
+    // THE DEFAULT MOVED IN PLAN 12-05, and this assertion moved with it. It
+    // used to read "the card still SHIPS at 3x3; selectable, not moved" - the
+    // 11-06 reading of "make it selectable to 4x4". The user asked a second
+    // time, in the imperative: "make a 16 pads cause nothing changed". 12-01
+    // then measured the knob-to-wire path GREEN at both levels, so the report
+    // was never about the wiring; it was about a two-dot rail nobody read as a
+    // control, and about the card opening at nine. Both halves are answered:
+    // the default is index 1 here, and view.ts renders a two-valued integer
+    // knob as a word row. INDEX 0 IS STILL 3x3 AND STILL REACHABLE - the two
+    // assertions below prove it - so this is a default that moved and not an
+    // option that was taken away.
     expect(
       grid.default,
-      "the card still SHIPS at 3x3; selectable, not moved",
-    ).toBe(0);
+      "the card SHIPS at 4x4 from plan 12-05, at the user's second asking",
+    ).toBe(1);
 
     // Both positions reach the field, and both reach it as the compiler reads
     // it: the zone divisor in the emitted Lua is the proof, not the state.

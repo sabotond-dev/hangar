@@ -52,8 +52,15 @@ const SOURCE = readFileSync(
   "utf8",
 );
 
-/** `11-06`. Narrow on purpose; see the failure message in test 2. */
-const PLAN_ID = /^11-[0-9]{2}$/;
+/**
+ * `11-06`, and from plan 12-05 also `12-05`. Narrow on purpose; see the failure
+ * message in test 2, which asks to be widened DELIBERATELY, in the plan that
+ * needs it, rather than loosened in confusion. This is that widening: 12-05
+ * moves NINE PADS' shipped grid to 4x4 at the user's second asking, which is
+ * the first phase-12 divergence. The shape is still a phase and a plan number,
+ * not `[0-9]{2}-[0-9]{2}` - a phase 13 row will have to come back here too.
+ */
+const PLAN_ID = /^1[12]-[0-9]{2}$/;
 const ISO_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 /** The eight the plan names. Held as a floor, never as the whole list. */

@@ -18,9 +18,10 @@ import {
 import { CATALOG, KNOB_KINDS, byId } from "../catalog";
 // The lattice size, read rather than restated: a spec that hard-codes 4,096
 // would keep passing on the day the step rule moves.
-import { COLOUR_LATTICE_SIZE } from "./knobs.preset";
+import { COLOUR_LATTICE_SIZE, presetKnobs } from "./knobs.preset";
 import {
   EVENT_BUDGET,
+  INTEGER_WORD_ROW_MAX,
   KNOB_KIND_NAMES,
   SCALE_WORDS,
   hueName,
@@ -122,6 +123,16 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     // table rather than as a handful of spot checks that a twelfth kind could
     // slip past. Each kind is handed a value set that its own table cannot
     // name, so a kind that stopped consulting its values shows up here.
+    //
+    // PLAN 12-05 MOVES A SECOND ROW, AND IT IS `feel`. The two-integer rule is
+    // KIND-BLIND, so any kind handed at most two integer values now gets a word
+    // row - and `feel`'s fixture below is `["0", "1"]`, which is two integers.
+    // The row is moved rather than the fixture, because that is exactly what
+    // the table is for: it shows the reach of the new rule instead of hiding
+    // it behind a value set chosen to avoid it. The coverage the row used to
+    // carry - "a kind with no table falls through to a rail" - is re-asserted
+    // below against STARFIELD's REAL `edge` knob, whose two values are "soft"
+    // and "hard" and are therefore still unnameable.
     const UNNAMEABLE: Readonly<Record<KnobKindName, readonly string[]>> = {
       colour: ["0,200,255", "255,90,0"],
       speed: ["240", "180", "110"],
@@ -141,7 +152,7 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     );
     expect(
       mapping,
-      "a kind's widget moved. `colour` is the picker BY KIND ALONE (X-05 / X-06 as plan 10-10 amends them); every other kind still consults its values and falls through to a rail when it cannot name them",
+      "a kind's widget moved. `colour` is the picker BY KIND ALONE (X-05 / X-06 as plan 10-10 amends them); a knob of ANY kind whose values are at most two integers is a word row (plan 12-05); every other kind still consults its values and falls through to a rail when it cannot name them",
     ).toEqual({
       colour: "colour",
       speed: "rail",
@@ -149,7 +160,8 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
       size: "rail",
       count: "rail",
       note: "rail",
-      feel: "rail",
+      // Two integers, and the rule is kind-blind. See the paragraph above.
+      feel: "words",
       amount: "rail",
       mode: "rail",
       bend: "rail",
@@ -218,6 +230,92 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
       Object.values(mapping),
       "widgetFor still returns a swatch row for some kind - the picker owns that skin now",
     ).not.toContain("swatch");
+  });
+
+  it("gives a two-valued integer knob a word row, and leaves PINWHEEL's arms a rail", () => {
+    // THE BENCH NOTE THIS ANSWERS is NINE PADS' "make a 16 pads cause nothing
+    // changed", and 12-01 is what makes it a WIDGET question rather than a
+    // wiring one: the knob reaches the tuner's pair AND the module's own RAM,
+    // measured at both levels. What the user could not find was the control.
+    // `grid` is a `count` knob with the two values `9` and `16`, and before
+    // this rule that rendered as two dots over an invisible range input,
+    // fifth in a five-knob rack.
+    //
+    // THE SHIPPED CARDS COME FIRST, DELIBERATELY. A raised ceiling should be
+    // reported as "PINWHEEL's arms stopped being a rail", which is a sentence
+    // about the panel, rather than as "a constant is not 2", which is a
+    // sentence about this file - so the three real knobs are asserted before
+    // the constant and before the synthetic kinds.
+    //
+    // NINE PADS' knob as the card really declares it, read out of the
+    // descriptor rather than pasted, so a later re-cut of its options is
+    // caught here rather than only on screen.
+    const grid = presetKnobs("ninepads").find((knob) => knob.id === "grid");
+    expect(grid, "ninepads still declares a grid knob").toBeDefined();
+    expect(grid!.options, "its two values are the pad counts").toEqual([
+      "9",
+      "16",
+    ]);
+    expect(
+      widgetFor(grid!.kind, grid!.options),
+      "NINE PADS' Pads knob is a word row",
+    ).toBe("words");
+    expect(
+      grid!.default,
+      "and the card ships at 4x4, which is index 1 (plan 12-05)",
+    ).toBe(1);
+
+    // THE OTHER SIDE OF THE RULE, and both halves of it.
+    //
+    // 1. THREE integer values is still a rail. PINWHEEL's `arms` is the
+    //    shipped knob that proves it - same `count` kind, three values - and a
+    //    ceiling raised to three would turn it into a word row.
+    const arms = presetKnobs("pinwheel").find((knob) => knob.id === "arms");
+    expect(arms, "pinwheel still declares an arms knob").toBeDefined();
+    expect(
+      arms!.options.length,
+      "arms has three values, which is what makes it the control case",
+    ).toBe(3);
+    expect(
+      arms!.options.every((v) => /^-?[0-9]+$/.test(v)),
+      "and all three are integers, so only the CEILING keeps it a rail",
+    ).toBe(true);
+    expect(
+      widgetFor(arms!.kind, arms!.options),
+      "PINWHEEL'S ARMS MUST STAY A RAIL. Same `count` kind as NINE PADS' Pads " +
+        "and all three values integers, so the only thing between it and a " +
+        "word row is INTEGER_WORD_ROW_MAX. Above two, position carries " +
+        "meaning and a row of three pills does not: one arm, two arms, three " +
+        "arms is an ORDER, and a rail is what shows an order",
+    ).toBe("rail");
+
+    // 2. TWO values that are NOT integers is still a rail, and this is why the
+    //    rule reads the values at all. STARFIELD's `edge` is `feel` with the
+    //    values "soft" and "hard"; `feel` has no word table, so an n-only rule
+    //    would have rendered it as a word row labelled "1 of 2" and "2 of 2" -
+    //    strictly worse than the rail it replaced.
+    const edge = presetKnobs("starfield").find((knob) => knob.id === "edge");
+    expect(edge, "starfield still declares an edge knob").toBeDefined();
+    expect(edge!.options.length, "edge has exactly two values").toBe(2);
+    expect(
+      widgetFor(edge!.kind, edge!.options),
+      "STARFIELD's edge is still a rail - two values, but no label for either",
+    ).toBe("rail");
+    expect(
+      edge!.options.every((v) => /^-?[0-9]+$/.test(v)),
+      "edge's values are words, not integers",
+    ).toBe(false);
+
+    // AND THE RULE ITSELF, after the three cards it governs: the ceiling, and
+    // that it is chosen KIND-BLIND rather than by admitting `count` to
+    // WORD_KINDS - which is why it is stated against four kinds here.
+    expect(INTEGER_WORD_ROW_MAX, "the rule's ceiling is two").toBe(2);
+    for (const kind of ["count", "size", "amount", "speed"] as const) {
+      expect(
+        widgetFor(kind, ["9", "16"]),
+        `${kind}: two integer values must render as words`,
+      ).toBe("words");
+    }
   });
 
   it("skins a rail with dots at eight options and a track at nine", () => {

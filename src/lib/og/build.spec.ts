@@ -299,9 +299,19 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
         }
       }
       // The frame stroke is in every image whatever the pad is doing, so this
-      // is the one structural claim that holds for a fully lit pad as well -
-      // ninepads lights all 81 cells and therefore has no dot field at all.
-      // Without it the LED count below could pass on a buffer of noise.
+      // is the one structural claim that holds for a FULLY LIT pad as well -
+      // a pad with every cell alight has no dot field for the dot colour to
+      // appear in, and the stroke is still there. Without it the LED count
+      // below could pass on a buffer of noise.
+      //
+      // THE EXAMPLE THAT USED TO BE NAMED HERE WAS ninepads, AND IT STOPPED
+      // BEING ONE IN PLAN 12-05. That card shipped at 3x3, which tiles the
+      // whole pad as a nine-zone checkerboard - 162 lit bytes, no dark cells.
+      // It ships at 4x4 now, and four does not divide nine, so the compiler
+      // lights ONE marker cell per zone: sixteen dots and 32 lit bytes. The
+      // sentence is kept because the claim it justifies is still the right
+      // one; the card that made it concrete is simply no longer this card, and
+      // nothing in this file gated the sentence.
       expect(structure, `${file} carries the frame stroke`).toBeGreaterThan(0);
 
       const entry = byId(id);
