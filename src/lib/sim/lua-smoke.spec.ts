@@ -5355,4 +5355,324 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
   }, 120000);
+
+  // -------------------------------------------------------------------------
+  // RADAR POINTS (plan 11-14, the user's answer `new-entry`): SONAR's arming,
+  // SONAR's pending-list release and SONAR's decay pair, with ONE geometric
+  // change - the wave is a ring rolling out from the centre rather than an
+  // angle sweeping round it - and the pitch map that change forces. The
+  // assertions below are the ones that reddening proves something about:
+  // the plan's own negative check ("arm two points and disarm one; a test
+  // that only checks the armed one would pass on a card that cannot forget")
+  // and the geometry, which an angular sweep would fail by timing.
+  // -------------------------------------------------------------------------
+  it("rolls RADAR POINTS' ping out ring by ring, and a point taken away falls silent on the next pass", async () => {
+    const entry = entryById("radar-points");
+    const report: string[] = [];
+    const stepTicks = knobValueOf(entry, "sweep") / 10;
+    const root = knobValueOf(entry, "root");
+    const channel = knobValueOf(entry, "channel");
+    expect(
+      Number.isInteger(stepTicks),
+      "radar-points: the default ping period is a whole number of ticks",
+    ).toBe(true);
+
+    // THE SCALE IS A NAMED SET OF ANY LENGTH, and the eight directions WALK
+    // it, wrapping an octave: degree b%#t, plus 12 for every full pass. The
+    // view.spec.ts word-table gate is what forbids an eight-entry table made
+    // for eight directions; this test derives the pitch the walk produces.
+    const scaleKnob = entry.knobs.find((knob) => knob.id === "scale");
+    expect(scaleKnob, "radar-points: has a scale knob").toBeDefined();
+    if (typeof scaleKnob === "undefined") return;
+    const scale = scaleKnob.values[entry.defaults.scale ?? scaleKnob.default]
+      .split(",")
+      .map((s) => Number.parseInt(s, 10));
+    const degree = (b: number): number =>
+      scale[b % scale.length] + 12 * Math.floor(b / scale.length);
+
+    // The geometry, read off the Lua rather than trusted from its header:
+    // note-on 144 and note-off 128 both go through gms on the channel knob.
+    const rendered = renderLua(entry);
+    expect(
+      rendered.timer.includes(`:gms(${channel},144,`),
+      "radar-points: the Timer sends NOTE-ON, status 144, through gms",
+    ).toBe(true);
+    expect(
+      rendered.timer.includes(`:gms(${channel},128,`),
+      "radar-points: the Timer sends NOTE-OFF, status 128, through gms",
+    ).toBe(true);
+
+    // The compass bucket of a cell, as the Setup computes it: the vendored
+    // Pinwheel's angle expression, floored, offset by half a bucket so the
+    // eight directions sit in the MIDDLE of their buckets, then eight buckets.
+    // Ported here so the expected pitch is DERIVED and never pasted.
+    const bucketOf = (cell: number): number => {
+      const y = Math.floor(cell / 9) - 4;
+      const x = (cell % 9) - 4;
+      const a = Math.floor(Math.atan2(y, x) * 41) + 16;
+      return Math.floor((((a % 256) + 256) % 256) / 32);
+    };
+
+    // Three points on three DIFFERENT rings in three DIFFERENT directions, so
+    // ring order and pitch are both tellable apart on the wire.
+    const POINTS = [41, 24, 4].map((cell) => ({
+      cell,
+      ring: ringOf(cell),
+      pitch: root + degree(bucketOf(cell)),
+    }));
+    expect(
+      new Set(POINTS.map((p) => p.ring)).size,
+      "radar-points: the three probe points sit on three different rings",
+    ).toBe(3);
+    expect(
+      new Set(POINTS.map((p) => p.pitch)).size,
+      "radar-points: the three probe points carry three different pitches",
+    ).toBe(3);
+    // Ring 1 is the eight cells around the emitter, one per direction - the
+    // property the half-bucket offset was added for. Asserted on the ported
+    // arithmetic here and on the wire below.
+    const ringOne: number[] = [];
+    for (let cell = 0; cell < 81; cell += 1)
+      if (ringOf(cell) === 1) ringOne.push(bucketOf(cell));
+    expect(
+      [...ringOne].sort((a, b) => a - b),
+      "radar-points: ring 1 carries one cell per compass direction",
+    ).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+
+    const { host, sim } = await open(entry);
+    try {
+      type Ev = { tick: number; cmd: number; p1: number };
+      let events: Ev[] = [];
+      let seen = host.midi.length;
+      let tick = 0;
+      let ringOneLitAtFire = -1;
+      let ringFourLitAtFire = -1;
+      const litOnRing = (ring: number): number => {
+        let n = 0;
+        for (let cell = 0; cell < 81; cell += 1)
+          if (ringOf(cell) === ring && sim.layer(hwOfCell(cell), 2).pha > 0)
+            n += 1;
+        return n;
+      };
+      const run = (n: number): void => {
+        for (let i = 0; i < n; i += 1) {
+          host.tick();
+          tick += 1;
+          while (seen < host.midi.length) {
+            const m = host.midi[seen];
+            seen += 1;
+            events.push({ tick, cmd: m.cmd, p1: m.p1 });
+            // THE LIGHT, sampled at the moment ring 1 fires: every ring-1
+            // cell is lit on the wave layer and no ring-4 cell is. A wedge
+            // would light one or two of the eight; a whole-pad pulse would
+            // light ring 4 too.
+            if (
+              m.cmd === 144 &&
+              m.p1 === POINTS[0].pitch &&
+              ringOneLitAtFire < 0
+            ) {
+              ringOneLitAtFire = litOnRing(1);
+              ringFourLitAtFire = litOnRing(4);
+            }
+          }
+        }
+      };
+      // A PRESS AND A LIFT, which the preview delivers completely (touch.ts
+      // never emits code 9). Each press at a different coordinate inside the
+      // cell, so the host's change gate delivers every one.
+      const press = (cell: number, offset: number): void => {
+        const x = cellCentre(cell % 9) + offset;
+        const y = cellCentre(Math.floor(cell / 9));
+        host.touchDown(0, x, y);
+        run(1);
+        host.touchUp(0, x, y);
+        run(1);
+      };
+      const armed = (cell: number): boolean =>
+        sim.layer(hwOfCell(cell), 1).pha === 255;
+      const onsOf = (pitch: number): Ev[] =>
+        events.filter((e) => e.cmd === 144 && e.p1 === pitch);
+      // Every note-on paired to the note-off that follows it, as gaps in
+      // ticks; whatever is still open at the end AND DUE is returned too. A
+      // note started inside the last step of the window is not yet due - its
+      // release is the next fire - and reporting it as hung would redden a
+      // card behaving correctly, from a window phase the test does not
+      // control.
+      const release = (): { gaps: number[]; open: number[] } => {
+        const opened = new Map<number, number>();
+        const gaps: number[] = [];
+        for (const e of events) {
+          if (e.cmd === 144) {
+            opened.set(e.p1, e.tick);
+            continue;
+          }
+          if (e.cmd !== 128) continue;
+          const at = opened.get(e.p1);
+          if (typeof at === "undefined") continue;
+          gaps.push(e.tick - at);
+          opened.delete(e.p1);
+        }
+        const open = [...opened.entries()]
+          .filter(([, at]) => tick - at >= stepTicks)
+          .map(([pitch]) => pitch);
+        return { gaps, open };
+      };
+      // EXACTLY sixteen steps, whatever phase of the ping the window opens
+      // at: an eight-step period fires exactly twice in any sixteen-step
+      // span. A window one step wider held THREE fires of ring 1 on the first
+      // run of this test, from a phase the arming presses happened to leave.
+      const twoPings = 2 * 8 * stepTicks;
+
+      // 1. ARM THREE POINTS and see them lit on the arming layer.
+      for (const p of POINTS) press(p.cell, 0);
+      for (const p of POINTS) {
+        expect(
+          armed(p.cell),
+          `radar-points: a press did not arm cell ${p.cell}, so nothing ` +
+            "below proves anything",
+        ).toBe(true);
+      }
+      events = [];
+
+      // 2. TWO PINGS WITH ALL THREE ARMED.
+      run(twoPings);
+      const first = POINTS.map((p) => onsOf(p.pitch));
+      report.push(
+        `  three points armed, ${twoPings} ticks: ` +
+          POINTS.map(
+            (p, i) =>
+              `ring ${p.ring} pitch ${p.pitch} fired at ` +
+              first[i].map((e) => e.tick).join(","),
+          ).join("; "),
+      );
+      for (let i = 0; i < POINTS.length; i += 1) {
+        expect(
+          first[i].length,
+          `radar-points: ring ${POINTS[i].ring}'s point fired ` +
+            `${first[i].length} time(s) over two pings; two were expected`,
+        ).toBe(2);
+      }
+      // THE RING ORDER, ON THE WIRE. Ring 2's point sounds exactly one step
+      // after ring 1's and ring 4's exactly three steps after it. SONAR's
+      // angular sweep would place these three by DIRECTION instead, at three
+      // unrelated steps, so this is the assertion that says which card this
+      // is.
+      expect(
+        first[1][0].tick - first[0][0].tick,
+        "radar-points: A PING ROLLS OUT RING BY RING. Ring 2's point must " +
+          `sound exactly one step (${stepTicks} ticks) after ring 1's. ` +
+          `Observed ring 1 at ${first[0][0].tick}, ring 2 at ${first[1][0].tick}`,
+      ).toBe(stepTicks);
+      expect(
+        first[2][0].tick - first[0][0].tick,
+        "radar-points: A PING ROLLS OUT RING BY RING. Ring 4's point must " +
+          `sound exactly three steps (${3 * stepTicks} ticks) after ring 1's. ` +
+          `Observed ring 1 at ${first[0][0].tick}, ring 4 at ${first[2][0].tick}`,
+      ).toBe(3 * stepTicks);
+      // THE BOUNDARY. Eight steps to a ping: five rings and three steps in
+      // which the ring has left the pad and the Timer matches nothing. A
+      // `%5` that re-fired the centre straight after the edge is red here.
+      expect(
+        first[0][1].tick - first[0][0].tick,
+        "radar-points: ONE PING IS EIGHT STEPS - five rings out and three of " +
+          "quiet while the ring is past the edge. Ring 1's point must sound " +
+          `every ${8 * stepTicks} ticks. Observed ${first[0][0].tick} then ` +
+          `${first[0][1].tick}`,
+      ).toBe(8 * stepTicks);
+      // THE LIGHT, at the fire.
+      expect(
+        ringOneLitAtFire,
+        "radar-points: when ring 1 fires, ALL EIGHT of its cells are lit on " +
+          `the wave layer - it is a ring, not a wedge. Observed ${ringOneLitAtFire}`,
+      ).toBe(8);
+      expect(
+        ringFourLitAtFire,
+        "radar-points: when ring 1 fires, NO ring-4 cell is lit on the wave " +
+          `layer - it is a ring, not a pulse of the whole pad. Observed ` +
+          `${ringFourLitAtFire}`,
+      ).toBe(0);
+      // EVERY NOTE IS RELEASED ONE STEP LATER, SONAR's contract, reused.
+      const a = release();
+      expect(
+        a.gaps.length,
+        "radar-points: no release was paired to a note-on, so the gap " +
+          "assertion proves nothing",
+      ).toBeGreaterThan(0);
+      expect(
+        a.open,
+        "radar-points: EVERY NOTE THE PING STARTS MUST BE RELEASED. Left " +
+          "open at the end of two pings",
+      ).toEqual([]);
+      expect(
+        [...new Set(a.gaps)],
+        "radar-points: A NOTE IS EXACTLY ONE STEP LONG - the following fire " +
+          `releases it. Observed gaps ${[...new Set(a.gaps)].join(", ")}`,
+      ).toEqual([stepTicks]);
+
+      // 3. TAKE ONE POINT AWAY - the middle ring - and run two more pings.
+      //    This is the clause a happy-path test misses: a card that cannot
+      //    forget keeps sounding it.
+      press(POINTS[1].cell, 1);
+      expect(
+        armed(POINTS[1].cell),
+        `radar-points: the second press did not disarm cell ${POINTS[1].cell}`,
+      ).toBe(false);
+      events = [];
+      run(twoPings);
+      const after = POINTS.map((p) => onsOf(p.pitch).length);
+      report.push(
+        `  ring ${POINTS[1].ring} removed, ${twoPings} ticks: fired ` +
+          POINTS.map((p, i) => `ring ${p.ring} x${after[i]}`).join(", "),
+      );
+      expect(
+        after[1],
+        "radar-points: A POINT TAKEN AWAY FALLS SILENT ON THE NEXT PASS. " +
+          `Ring ${POINTS[1].ring}'s point was disarmed and still sounded ` +
+          `${after[1]} time(s) over two pings`,
+      ).toBe(0);
+      expect(
+        [after[0], after[2]],
+        "radar-points: the two points still armed keep sounding, twice each " +
+          "over two pings, while the removed one is silent",
+      ).toEqual([2, 2]);
+      const b = release();
+      expect(
+        b.open,
+        "radar-points: nothing is left open after the removal",
+      ).toEqual([]);
+
+      // 4. PUT IT BACK. "Add or remove" runs both ways.
+      press(POINTS[1].cell, 2);
+      expect(
+        armed(POINTS[1].cell),
+        `radar-points: the third press did not re-arm cell ${POINTS[1].cell}`,
+      ).toBe(true);
+      events = [];
+      run(twoPings);
+      const back = onsOf(POINTS[1].pitch).length;
+      report.push(
+        `  ring ${POINTS[1].ring} put back, ${twoPings} ticks: fired x${back}`,
+      );
+      expect(
+        back,
+        "radar-points: a point put back sounds again on the next pass",
+      ).toBe(2);
+
+      expect(
+        host.hid,
+        "radar-points: no HID call reached the host across the whole run",
+      ).toEqual([]);
+      expect(
+        host.errors,
+        `radar-points: no handler raised - ${host.errors.join(" | ")}`,
+      ).toEqual([]);
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nRADAR POINTS, plan 11-14 (the ring is the time, the direction the pitch):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
 });
