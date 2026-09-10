@@ -28,6 +28,7 @@ import { describe, expect, it } from "vitest";
 import { CELLS, PRESETS, compile } from "../../vendor/botor/_pad";
 import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
+import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, renderLua } from "./lua-pad-sim";
 
@@ -4722,6 +4723,634 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     }
     process.stdout.write(
       "\nSTRIP full scale and seven bits, plan 11-13:\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
+  // -------------------------------------------------------------------------
+  // WHEELS - A PITCH WHEEL AND A MOD WHEEL ON ONE PAD (plan 11-15)
+  //
+  // THE ASK: "add a pitch and modwheel configs, leftside a pitchwheel rightside
+  // a modwheel on the ZONA beautifully visualized on the module". The two
+  // wheels are NOT the same control, and these two tests are what makes that a
+  // fact rather than a layout:
+  //
+  //   - the pitch wheel SPRINGS HOME, on the wire as well as in the light, and
+  //     the last bend it emits is EXACTLY 8192. Anything less and a held note
+  //     stays bent after the finger is gone, which is the failure mode
+  //     WHEELS-REQUEST.md names by itself.
+  //   - the mod wheel HOLDS where it was left, and neither wheel appears on the
+  //     other's stream.
+  //
+  // EVERY BOUNDARY IS READ OFF THE ENTRY'S OWN LUA - the centre literal, the
+  // column split, the mod controller and the four spring rates - so a card
+  // re-cut onto different columns moves these tests with it rather than
+  // drifting past them.
+  // -------------------------------------------------------------------------
+
+  /** WHEELS' centre, its column split and its mod controller, from its Lua. */
+  const wheelsGeometry = (): {
+    entry: CatalogEntry;
+    centre: number;
+    split: number;
+    cc: number;
+    rates: number[];
+  } => {
+    const entry = entryById("wheels");
+    const source = entry.source;
+    if (source.kind !== "lua") throw new Error("wheels is not a lua entry");
+
+    // THE CENTRE IS READ, NOT ASSUMED, and it is read from the TIMER - the
+    // spring's own arithmetic - so a card that walked home to a different
+    // number moves this test with it rather than failing for the wrong reason.
+    const rest = /s\.b=(\d+)\+d/.exec(source.timer);
+    expect(
+      rest,
+      "wheels: the spring must land on an EXACT LITERAL, the way the joystick " +
+        "preset's compiled spring does - a scaled position cannot come home " +
+        "bit-perfect",
+    ).not.toBeNull();
+    const centre = Number((rest as RegExpExecArray)[1]);
+
+    // The onset column split: pitch below it, mod above it, the divider on it.
+    const lock = /if c<(\d+) then/.exec(source.setup);
+    expect(
+      lock,
+      "wheels: the onset must still split the pad by COLUMN, or the two " +
+        "wheels are one control",
+    ).not.toBeNull();
+    const split = Number((lock as RegExpExecArray)[1]);
+
+    // THE BEND STATUS IS READ OFF THE LUA. 224 is pitch bend; gmbs is a MOUSE
+    // BUTTON, and a card built on that reading would compile, fit, simulate,
+    // install and silently click.
+    expect(
+      /:gms\([^,]+,224,/.test(source.timer) &&
+        /:gms\([^,]+,224,/.test(source.setup),
+      "wheels: BOTH halves of the pitch wheel must send PITCH BEND, status " +
+        "224, through gms - the finger in the Setup and the spring in the " +
+        "Timer. The channel is a knob token here, not a digit, which is why " +
+        "this reads the argument slot rather than a literal",
+    ).toBe(true);
+
+    const rateKnob = entry.knobs.find((knob) => knob.id === "spring");
+    expect(rateKnob, "wheels: the spring-speed knob").toBeDefined();
+
+    return {
+      entry,
+      centre,
+      split,
+      cc: knobValueOf(entry, "cc"),
+      rates: (rateKnob as LuaKnob).values.map((value) =>
+        Number.parseInt(value, 10),
+      ),
+    };
+  };
+
+  /** One WHEELS host at a chosen spring-speed index. */
+  const openWheels = async (entry: CatalogEntry, spring: number) => {
+    const indices: Record<string, number> = {};
+    for (const knob of entry.knobs) indices[knob.id] = knob.default;
+    indices.spring = spring;
+    const { setup, timer } = renderLua(entry, indices);
+    const sim = new PadSim(blankPadState());
+    return await createLuaHost({ sim, setup, timer });
+  };
+
+  it("springs WHEELS' pitch home to exactly 8192, on the wire and in the light together", async () => {
+    const g = wheelsGeometry();
+    const report: string[] = [];
+
+    // ---------------------------------------------------------------------
+    // NO HID CALL SURVIVES ANY KNOB POSITION. gmbs, gmms and gks are the
+    // compiler's mouse and keyboard out-calls; gmbs in particular is a MOUSE
+    // BUTTON and not "bend send". A grep over the ENTRY FILE cannot prove
+    // this - its header discusses gmbs by name, and a plant landing in a
+    // comment is how 11-13 lost a negative check - so the assertion is over
+    // the RENDERED LUA at every value of every knob, and the behavioural half
+    // is below.
+    // ---------------------------------------------------------------------
+    const forbidden = ["gmbs", "gmms", "gks"];
+    let renderings = 0;
+    for (const knob of g.entry.knobs) {
+      for (let i = 0; i < knob.values.length; i += 1) {
+        const indices: Record<string, number> = {};
+        for (const each of g.entry.knobs) indices[each.id] = each.default;
+        indices[knob.id] = i;
+        const rendered = renderLua(g.entry, indices);
+        for (const event of ["setup", "timer"] as const) {
+          for (const name of forbidden) {
+            expect(
+              rendered[event].includes(name),
+              `wheels/${event} at ${knob.id}=${knob.values[i]}: "${name}" is ` +
+                "an HID out-call. Pitch bend is status 224 through gms; a " +
+                "configuration built on gmbs emits MOUSE CLICKS",
+            ).toBe(false);
+          }
+        }
+        renderings += 1;
+      }
+    }
+    expect(
+      renderings,
+      "wheels: the HID scan examined every declared knob value, so a clean " +
+        "result above is a measurement rather than an empty loop",
+    ).toBe(g.entry.knobs.reduce((n, knob) => n + knob.values.length, 0));
+    expect(g.split, "wheels: the pitch wheel owns the columns left of 4").toBe(
+      4,
+    );
+
+    for (let rate = 0; rate < g.rates.length; rate += 1) {
+      const host = await openWheels(g.entry, rate);
+      try {
+        const bright = (cell: number): number =>
+          host.frame[cell * 3] +
+          host.frame[cell * 3 + 1] +
+          host.frame[cell * 3 + 2];
+        const run = (n: number): void => {
+          for (let i = 0; i < n; i += 1) host.tick();
+        };
+        const snap = (): number[] => {
+          const out: number[] = [];
+          for (let n = 0; n < CELLS; n += 1) out.push(bright(n));
+          return out;
+        };
+        const bendOf = (m: HostMidi): number => m.p2 * 128 + m.p1;
+        const markerRow = (): number => {
+          let best = -1;
+          let peak = -1;
+          for (let r = 0; r < 9; r += 1) {
+            const v = bright(r * 9);
+            if (v > peak) {
+              peak = v;
+              best = r;
+            }
+          }
+          return best;
+        };
+
+        run(RESIDUE_WARMUP);
+        const boot = snap();
+        const bootMarker = markerRow();
+
+        // -----------------------------------------------------------------
+        // BOTH REST STATES ARE VISIBLE AT POWER-ON, and the pitch marker sits
+        // at the MIDDLE row. A card whose rest state is dark looks broken
+        // before it is touched, and a pitch wheel resting anywhere but centre
+        // is not a pitch wheel.
+        // -----------------------------------------------------------------
+        expect(
+          bootMarker,
+          "wheels: the pitch wheel rests at the MIDDLE row of its columns",
+        ).toBe(4);
+        expect(
+          Math.min(...boot),
+          "wheels: every cell is lit at power-on - both rails, the divider " +
+            "and the marker - so restsBlack is false and the card does not " +
+            "arrive as a black square",
+        ).toBeGreaterThan(0);
+
+        // THE DIVIDER IS A LINE, NOT MORE RAIL. Asserted as a RATIO and
+        // naming no colour, because all three hues are knobs a visitor can
+        // set to the same value (D-11-12-b, and 11-13's shape idiom).
+        const divider = bright(4 * 9 + 4);
+        const pitchRail = bright(0);
+        const modRail = bright(6);
+        expect(
+          divider,
+          "wheels: the divider must stand clear of BOTH rails, or the " +
+            `boundary is invisible. Observed divider ${divider}, pitch rail ` +
+            `${pitchRail}, mod rail ${modRail}`,
+        ).toBeGreaterThan(Math.max(pitchRail, modRail) * 2);
+
+        // -----------------------------------------------------------------
+        // THE DRIVE. Every step MOVES ITS COORDINATE, because the host's own
+        // change gate silently drops a repeated (event, x, y) per contact - a
+        // probe built out of identical samples would be defeated by the host
+        // rather than answered by the entry. That matters more here than
+        // anywhere else in this file: a spring that returns to ONE value is
+        // exactly the shape a change-gated probe cannot see.
+        // -----------------------------------------------------------------
+        const driveMark = host.midi.length;
+        host.touchDown(0, 200, 511);
+        host.tick();
+        for (let y = 510; y >= 0; y -= 1) {
+          host.touchMove(0, 200, y);
+          host.tick();
+        }
+        const driven = host.midi.slice(driveMark);
+        expect(
+          driven.length,
+          "wheels: driving the pitch wheel sent something at all",
+        ).toBeGreaterThan(0);
+        expect(
+          [...new Set(driven.map((m) => m.cmd))],
+          "wheels: THE PITCH WHEEL SENDS PITCH BEND AND NOTHING ELSE. " +
+            `Observed ${JSON.stringify([...new Set(driven.map((m) => m.cmd))])}`,
+        ).toEqual([224]);
+
+        // FOURTEEN BITS, AND THE VALUE IS FINER THAN THE DISPLAY. Nine rows
+        // of LEDs, and far more than nine values on the wire - the LEDs are
+        // the readout, not the quantiser.
+        const bends = driven.map(bendOf);
+        expect(
+          new Set(bends).size,
+          "wheels: the bend must resolve FAR more than the nine rows it " +
+            `draws. Observed ${new Set(bends).size} distinct values over ` +
+            `${driven.length} messages`,
+        ).toBeGreaterThan(400);
+        expect(
+          Math.max(...bends),
+          "wheels: the bend reaches the TOP of its fourteen-bit range",
+        ).toBe(16383);
+        for (const message of driven) {
+          expect(
+            message.p1 >= 0 && message.p1 <= 127,
+            `wheels: the bend's LOW byte is outside 0..127 (${message.p1})`,
+          ).toBe(true);
+          expect(
+            message.p2 >= 0 && message.p2 <= 127,
+            `wheels: the bend's HIGH byte is outside 0..127 (${message.p2})`,
+          ).toBe(true);
+        }
+        expect(
+          markerRow(),
+          "wheels: the marker followed the finger to the top row",
+        ).toBe(0);
+
+        // -----------------------------------------------------------------
+        // THE LIFT, AND THE SPRING. THIS IS THE TEST.
+        // -----------------------------------------------------------------
+        const springMark = host.midi.length;
+        host.touchUp(0, 200, 0);
+        host.tick();
+        expect(
+          host.timerArmed,
+          "wheels: a lift on the pitch wheel ARMS the spring. Setup does not " +
+            "arm the Timer, so nothing else could have",
+        ).toBe(true);
+
+        let ticks = 0;
+        while (host.timerArmed && ticks < 4000) {
+          host.tick();
+          ticks += 1;
+        }
+        expect(
+          host.timerArmed,
+          "wheels: THE TIMER STOPS WHEN THE SPRING LANDS. A card that " +
+            "re-arms for ever never releases its rAF slot",
+        ).toBe(false);
+
+        const spring = host.midi.slice(springMark);
+        expect(
+          spring.length,
+          "wheels: the spring emitted something at all",
+        ).toBeGreaterThan(0);
+        expect(
+          [...new Set(spring.map((m) => m.cmd))],
+          "wheels: the spring emits PITCH BEND and nothing else",
+        ).toEqual([224]);
+
+        // THE ONE ASSERTION THIS WHOLE ENTRY EXISTS FOR.
+        const landed = bendOf(spring[spring.length - 1]);
+        expect(
+          landed,
+          "wheels: THE LAST BEND THE SPRING EMITS MUST BE EXACTLY " +
+            `${g.centre}, not near it. Observed ${landed}, which is ` +
+            `${landed - g.centre} away - a held note is still bent by that ` +
+            "much after the finger has gone",
+        ).toBe(g.centre);
+
+        // AND THE LIGHT CAME HOME WITH IT, ASSERTED TOGETHER RATHER THAN ONE
+        // STANDING IN FOR THE OTHER. The frame is compared BYTE FOR BYTE
+        // against the boot frame, which also closes the one duplication in
+        // this card: the Timer carries its own copy of the pitch repaint,
+        // because a Timer body is a separate chunk and cannot see a Setup
+        // local (snake.ts ships the same duplication for the same reason). A
+        // Timer that repainted with a different rail phase, a different
+        // marker phase or a different row derivation is red HERE.
+        expect(
+          markerRow(),
+          "wheels: the pitch marker is back at the middle row",
+        ).toBe(bootMarker);
+        expect(
+          snap(),
+          "wheels: after the spring the WHOLE PAD is byte-identical to the " +
+            "frame Setup painted. The Timer's copy of the pitch repaint and " +
+            "Setup's original must agree exactly",
+        ).toEqual(boot);
+
+        // IT TRAVELS RATHER THAN SNAPPING. More than one step between the
+        // released value and the centre, at every spring speed.
+        expect(
+          spring.length,
+          `wheels: at rate ${g.rates[rate]} the spring must TRAVEL home ` +
+            "rather than jump there in one message",
+        ).toBeGreaterThan(1);
+
+        // AND IT STAYS STOPPED. Nothing further on the wire, ever.
+        const settled = host.midi.length;
+        run(500);
+        expect(
+          host.midi.length - settled,
+          "wheels: the spring is DONE. A Timer still walking would keep " +
+            "sending bends at a pad nobody is touching",
+        ).toBe(0);
+
+        expect(
+          host.hid,
+          "wheels: NOT ONE HID SEND across the whole drive. gmbs is a mouse " +
+            "button; a configuration that read it as 'bend send' would have " +
+            "clicked here",
+        ).toEqual([]);
+        expect(
+          host.errors,
+          `wheels: no handler raised - ${host.errors.join(" | ")}`,
+        ).toEqual([]);
+
+        report.push(
+          `  rate ${String(g.rates[rate]).padStart(4)}: drive ` +
+            `${driven.length} messages, ${new Set(bends).size} distinct ` +
+            `bends, max ${Math.max(...bends)}; spring ${spring.length} ` +
+            `messages over ${ticks} ticks, ending ` +
+            `${spring.slice(-3).map(bendOf).join(",")}; frame restored`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nWHEELS spring, plan 11-15 (the last bend is the centre literal):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
+
+  it("holds WHEELS' mod wheel across a lift, and lets neither wheel move the other", async () => {
+    const g = wheelsGeometry();
+    const spring = g.entry.knobs.find((knob) => knob.id === "spring");
+    const host = await openWheels(g.entry, (spring as LuaKnob).default);
+    const report: string[] = [];
+    try {
+      const bright = (cell: number): number =>
+        host.frame[cell * 3] +
+        host.frame[cell * 3 + 1] +
+        host.frame[cell * 3 + 2];
+      const run = (n: number): void => {
+        for (let i = 0; i < n; i += 1) host.tick();
+      };
+      const markerRow = (): number => {
+        let best = -1;
+        let peak = -1;
+        for (let r = 0; r < 9; r += 1) {
+          const v = bright(r * 9);
+          if (v > peak) {
+            peak = v;
+            best = r;
+          }
+        }
+        return best;
+      };
+      const modColumn = (): number[] => {
+        const out: number[] = [];
+        for (let r = 0; r < 9; r += 1) out.push(bright(r * 9 + 6));
+        return out;
+      };
+      const barHeight = (): number => {
+        const column = modColumn();
+        const rail = Math.min(...column);
+        return column.filter((v) => v > rail).length;
+      };
+      const drive = (
+        id: number,
+        from: readonly [number, number],
+        to: readonly [number, number],
+        steps: number,
+      ): readonly HostMidi[] => {
+        const mark = host.midi.length;
+        host.touchDown(id, from[0], from[1]);
+        host.tick();
+        for (let i = 1; i <= steps; i += 1) {
+          host.touchMove(
+            id,
+            Math.round(from[0] + ((to[0] - from[0]) * i) / steps),
+            Math.round(from[1] + ((to[1] - from[1]) * i) / steps),
+          );
+          host.tick();
+        }
+        return host.midi.slice(mark);
+      };
+      // A BOUNDED SETTLE, NEVER `while (host.timerArmed)`. A card whose
+      // spring failed to land would make an unbounded loop HANG, and a hang is
+      // not a red - it is a suite that never finishes and a reader who never
+      // learns why. Measured: a plant that walks the bend to 8190 instead of
+      // 8192 loops for ever, so this cap is the difference between a failing
+      // assertion and a wedged run.
+      const settle = (): void => {
+        let ticks = 0;
+        while (host.timerArmed && ticks < 4000) {
+          host.tick();
+          ticks += 1;
+        }
+        expect(
+          host.timerArmed,
+          "wheels: the spring SETTLED inside 4000 ticks. A spring that never " +
+            "lands leaves the Timer armed for ever",
+        ).toBe(false);
+      };
+
+      run(RESIDUE_WARMUP);
+
+      // -------------------------------------------------------------------
+      // THE MOD WHEEL RESTS AT ZERO AND SHOWS ITS RAIL. A fresh Setup leaves
+      // it at the bottom of its range, which is a bar of no rows over a rail
+      // that is still visible - not a black quarter of the pad.
+      // -------------------------------------------------------------------
+      expect(barHeight(), "wheels: the mod wheel rests at zero").toBe(0);
+      expect(
+        Math.min(...modColumn()),
+        "wheels: and its rail is VISIBLE at rest, so the control exists " +
+          "before it is touched",
+      ).toBeGreaterThan(0);
+
+      // -------------------------------------------------------------------
+      // DRIVEN TO THE TOP AND BACK, so BOTH ends of its range are on the wire
+      // in one direction or the other. The bottom end is not reachable in the
+      // first direction because a drive that STARTS at zero is already at the
+      // resting value and the entry's own change gate sends nothing - which
+      // is correct, and is why both directions are driven.
+      // -------------------------------------------------------------------
+      const up = drive(1, [800, 1023], [800, 0], 1023);
+      const down = drive(1, [800, 0], [800, 1023], 1023);
+      const modded = [...up, ...down];
+      expect(
+        modded.length,
+        "wheels: driving the mod wheel sent something at all",
+      ).toBeGreaterThan(0);
+      expect(
+        [...new Set(modded.map((m) => m.cmd))],
+        "wheels: THE MOD WHEEL SENDS CONTROL CHANGE AND NOTHING ELSE - no " +
+          "bend. Observed " +
+          JSON.stringify([...new Set(modded.map((m) => m.cmd))]),
+      ).toEqual([176]);
+      expect(
+        [...new Set(modded.map((m) => m.p1))],
+        `wheels: on controller ${g.cc} and no other`,
+      ).toEqual([g.cc]);
+      const values = modded.map((m) => m.p2);
+      expect(
+        Math.min(...values),
+        "wheels: THE MOD WHEEL REACHES ZERO. A control that cannot reach one " +
+          "end of its range is the defect CONSOLE shipped",
+      ).toBe(0);
+      expect(Math.max(...values), "wheels: and it reaches 127").toBe(127);
+      for (const value of values) {
+        expect(
+          value >= 0 && value <= 127,
+          `wheels: the mod wheel put ${value} on the wire, outside seven bits`,
+        ).toBe(true);
+      }
+
+      // -------------------------------------------------------------------
+      // AND NOW THE HALF THAT MAKES IT A MOD WHEEL RATHER THAN A SECOND PITCH
+      // WHEEL: IT HOLDS.
+      // -------------------------------------------------------------------
+      const held = drive(1, [800, 1023], [800, 300], 723);
+      expect(
+        held.length,
+        "wheels: the hold drive sent something",
+      ).toBeGreaterThan(0);
+      const restingValue = held[held.length - 1].p2;
+      const restingBar = barHeight();
+      expect(
+        restingBar,
+        "wheels: the mod bar is OPEN before the lift, or the assertion that " +
+          "it did not move is vacuous",
+      ).toBeGreaterThan(0);
+      const holdMark = host.midi.length;
+      host.touchUp(1, 800, 300);
+      host.tick();
+      run(SETTLE_TICKS + 500);
+      const afterLift = host.midi.length - holdMark;
+      const barAfterLift = barHeight();
+      expect(
+        host.midi.length - holdMark,
+        "wheels: LIFTING OFF THE MOD WHEEL SENDS NOTHING. It stays where it " +
+          "was left; only the pitch wheel has a spring",
+      ).toBe(0);
+      expect(
+        barHeight(),
+        `wheels: and its light did not move either - still ${restingBar} rows`,
+      ).toBe(restingBar);
+      expect(
+        host.timerArmed,
+        "wheels: a lift on the MOD wheel does not arm the spring at all",
+      ).toBe(false);
+
+      // -------------------------------------------------------------------
+      // INDEPENDENCE, BOTH WAYS. This is what makes it two wheels rather than
+      // an XY pad, which is the exact complaint STRIP drew.
+      // -------------------------------------------------------------------
+      const pitchOnly = drive(2, [100, 900], [100, 100], 800);
+      expect(
+        [...new Set(pitchOnly.map((m) => m.cmd))],
+        "wheels: MOVING PITCH EMITS NOTHING ON MOD'S STREAM. Observed " +
+          JSON.stringify([...new Set(pitchOnly.map((m) => m.cmd))]),
+      ).toEqual([224]);
+      expect(
+        barHeight(),
+        "wheels: and the mod bar did not move while pitch was driven",
+      ).toBe(restingBar);
+      host.touchUp(2, 100, 100);
+      host.tick();
+      settle();
+
+      const markBefore = markerRow();
+      const modOnly = drive(3, [900, 100], [900, 900], 800);
+      expect(
+        [...new Set(modOnly.map((m) => m.cmd))],
+        "wheels: MOVING MOD EMITS NO BEND. Observed " +
+          JSON.stringify([...new Set(modOnly.map((m) => m.cmd))]),
+      ).toEqual([176]);
+      expect(
+        markerRow(),
+        "wheels: and the pitch marker did not move while mod was driven",
+      ).toBe(markBefore);
+      host.touchUp(3, 900, 900);
+      host.tick();
+
+      // THE DIVIDER ANSWERS TO NOBODY. Nine columns do not halve, and column
+      // 4 belongs to neither wheel rather than being shared between them.
+      const onDivider = drive(4, [500, 900], [500, 100], 800);
+      expect(
+        onDivider.length,
+        "wheels: A CONTACT THAT BEGINS ON THE DIVIDER SENDS NOTHING. Sharing " +
+          "the middle column between the two wheels would make the boundary " +
+          `a lie. Observed ${onDivider.length} messages`,
+      ).toBe(0);
+      host.touchUp(4, 500, 100);
+      host.tick();
+
+      // THE ORIGIN LOCK, READ FROM THE PITCH SIDE: a finger that starts on
+      // pitch and is dragged the WHOLE WIDTH of the pad - across the divider
+      // and over every column the mod wheel owns - keeps bending and never
+      // touches the mod controller.
+      //
+      // THE BAR IS RE-READ HERE RATHER THAN COMPARED AGAINST `restingBar`,
+      // because the mod drive above deliberately moved it. Comparing against a
+      // stale capture would assert the wrong fact and would go red on a card
+      // that is behaving correctly.
+      const barBeforeCross = barHeight();
+      expect(
+        barBeforeCross,
+        "wheels: the mod bar is open before the crossing drag, or the " +
+          "assertion that it did not move is vacuous",
+      ).toBeGreaterThan(0);
+      const across = drive(5, [50, 500], [1000, 500], 950);
+      expect(
+        [...new Set(across.map((m) => m.cmd))],
+        "wheels: A GESTURE THAT STARTED ON PITCH STAYS ON PITCH. It crossed " +
+          "the divider and all four mod columns and sent " +
+          JSON.stringify([...new Set(across.map((m) => m.cmd))]),
+      ).toEqual([224]);
+      expect(
+        barHeight(),
+        "wheels: the mod bar did not move under a gesture that was not its " +
+          "own, even though the finger crossed its whole width",
+      ).toBe(barBeforeCross);
+      host.touchUp(5, 1000, 500);
+      host.tick();
+      settle();
+
+      expect(
+        host.hid,
+        "wheels: not one HID send across the whole session",
+      ).toEqual([]);
+      expect(
+        host.errors,
+        `wheels: no handler raised across six drives - ${host.errors.join(" | ")}`,
+      ).toEqual([]);
+
+      report.push(
+        `  mod up+down: ${modded.length} messages, controller ${g.cc}, ` +
+          `${Math.min(...values)}..${Math.max(...values)}, ` +
+          `${new Set(values).size} distinct`,
+        `  lifted at ${restingValue} with ${restingBar} rows lit: ` +
+          `${afterLift} messages afterwards, bar still ${barAfterLift}`,
+        `  pitch driven: ${pitchOnly.length} messages, cmd 224 only, bar ` +
+          `unmoved at ${restingBar}`,
+        `  mod driven: ${modOnly.length} messages, cmd 176 only, marker ` +
+          `unmoved at ${markBefore}`,
+        `  began on the divider: ${onDivider.length} messages`,
+        `  began on pitch, dragged the whole width: ${across.length} ` +
+          "messages, cmd 224 only",
+      );
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nWHEELS hold and independence, plan 11-15:\n" +
         report.join("\n") +
         "\n",
     );
