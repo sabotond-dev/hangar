@@ -333,3 +333,41 @@ None of these is a bug. Each is a class of failure this phase watched pass green
 | `D-11-12-b` amended four times (11-13, 11-15, 11-14 each added a narrow legibility claim) | — | Row B.1 | Row B.1 |
 | Install runbook row C — CLEAR's half | Phase 10 (10-13), still open | **OPEN**, no plan in this phase touched the device path | The user's bench |
 | **Tooling defect:** `gsd-tools state advance-plan` and `roadmap update-plan-progress` destroyed the plan's Status line in thirteen consecutive waves | thirteen consecutive waves, each reporting it | **OPEN.** Both commands were skipped by this gate on instruction; STATE.md and ROADMAP.md were not advanced by the tool | A fix in the state tool, outside this repository |
+
+---
+
+## D-11-16-a — `browse-webkit.e2e.ts:618` reads the pad once more, without a wait, right after its poll succeeds
+
+**Found:** plan 11-16, the post-commit gate run (run 2 of 3) at `--workers 3`, 1,651 MB free at start.
+
+```
+[webkit-phone] browse-webkit.e2e.ts:564 "a pad whose backing store dies gets its
+picture back where it sits @webkit"  (17.5s)
+
+  Error: ninepads is lit before anything is done to it
+  expect(received).toBeDefined()   Received: undefined
+    616 |       before,
+  > 618 |     ).toBeDefined();
+```
+
+**What the shape says.** Lines 604–613 `expect.poll` `litCells(page, "ninepads")` until it is a
+number above zero, with a 30 s timeout; line 615 then calls `litCells` **once more, un-waited**, and
+`countOf` turns any non-number (a `null` from a canvas that is momentarily not 9 wide or has no 2D
+context, or a string from `describeThrow`) into `undefined`. The poll saw a number; the very next
+read did not. That is the family `D-11-08.1-a` names — an exact read taken with no wait beside a
+poll that implies one — in 11-08.1's own title, which is the one title in the suite that exists to
+exercise a dropped backing store.
+
+**What it is not.** Nothing this gate committed reaches it: `git diff --stat 721e5fa HEAD -- e2e/
+src/` is four comment-only hunks. Run 1 on the same code passed 105 / 105 at 6.3 GB free; run 3,
+started immediately after run 2 at 2.2 GB free, passed 105 / 105 in 2.1 m. Once in three runs, at
+the lowest memory of the three, on the WebKit project.
+
+**Whether WebKit actually dropped the store is not known** — 11-08.1's named unknown stands. The
+test does not print what the second read returned, which is the first thing to change: `before`
+should be asserted with the raw value in its message, so the next occurrence says `null` or names a
+throw.
+
+**Suggested owner:** the next wave that touches `e2e/browse-webkit.e2e.ts` or `e2e/poll.ts`,
+together with `D-11-08.1-a`; the two want one idiom (read inside the poll and keep the value) rather
+than two fixes.
