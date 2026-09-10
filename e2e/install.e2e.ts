@@ -3,7 +3,7 @@
 // that does not exist - first through a probe that hides nothing, then on the
 // page a visitor actually opens.
 //
-// Thirteen tests in three blocks. THE FIRST SIX run against the install probe
+// Fourteen tests in three blocks. THE FIRST SIX run against the install probe
 // route, which renders the store's fields as plain text plus one thing no
 // component ever will: a TRACE of every phase the store has been in since
 // load, in order. A round trip through the scripted module takes tens of
@@ -51,7 +51,16 @@
 // wire is counted by class at the end and PAGESTORE/EXECUTE is zero, which is
 // A-26's RAM-only ruling as a number rather than an intention.
 //
-// THE TWELFTH AND THIRTEENTH are the degrade path, tagged for the phone
+// THE TWELFTH (plan 12-01) is the phase-12 question asked of the wire rather
+// than of the tuner: a rail turned on /c/lumen/ BEFORE the click, then the
+// fake ZONA's own RAM read back and compared against the depth literal
+// derived from lumen.ts's knob values. It is the only title in the file that
+// moves a knob between two writes, and it exists because two bench reports -
+// LUMEN's "seems like nothing changed" and NINE PADS' "make a 16 pads cause
+// nothing changed" - could not be answered without it. Untagged: it drives
+// Web Serial through the shim.
+//
+// THE THIRTEENTH AND FOURTEENTH are the degrade path, tagged for the phone
 // project: no shim, `Navigator.prototype.serial` deleted, and every install
 // control present, disabled and explained - PUT BACK absent, by decision
 // (Z-12), and CLEAR present-and-disabled beside it, by the opposite decision
@@ -98,12 +107,13 @@
 // the durable record one page writes is never the reason the next one reads
 // `ready`.
 //
-// TEN OF THE THIRTEEN TITLES ARE UNTAGGED: every one of them drives Web
+// ELEVEN OF THE FOURTEEN TITLES ARE UNTAGGED: every one of them drives Web
 // Serial, which the phone engine does not have. Three carry the tag
 // playwright.config.ts greps the phone project by, so they run on both:
-// thirteen titles, sixteen runs. 07-08 added six to the suite total on the
+// fourteen titles, seventeen runs. 07-08 added six to the suite total on the
 // desktop project alone; 07-12 adds four there and one on both, six more;
-// 10-13 adds two on both, four more.
+// 10-13 adds two on both, four more; 12-01 adds ONE on the desktop project
+// alone, so the source count and the run count each move by exactly one.
 //
 // AND ONE OF THE THREE TAGGED TITLES DRIVES WEB SERIAL, WHICH IS A DEPARTURE
 // FROM THE PARAGRAPH ABOVE - said plainly rather than left to be noticed. The
@@ -176,6 +186,10 @@ import {
   CAPTION_UNSUPPORTED,
   WRITE_LOCK_REASON,
 } from "../src/lib/device/session-copy";
+// The entry itself, so the depth literal this test looks for on the wire is
+// DERIVED from the knob's own values and never typed here. lumen.ts imports
+// only a type from the vendored compiler, so this costs the runner nothing.
+import { LUMEN } from "../src/lib/catalog/entries/lumen";
 import {
   EVENT_SETUP,
   EVENT_TIMER,
@@ -942,14 +956,18 @@ async function turnRail(
 }
 
 /**
- * The chosen /c/aurora/ with landed meters. The deep link may already be
+ * The chosen /c/<id>/ with landed meters. The deep link may already be
  * chosen; if not, Enter on the band chooses it (e2e/tuning.e2e.ts openPanel).
+ *
+ * `id` defaults to ENTRY, which is what every test before plan 12-01 wanted.
+ * The knob-to-wire title needs LUMEN's panel, so the entry is a parameter
+ * rather than a constant read from the module scope.
  */
-async function openPanel(page: Page): Promise<void> {
-  await page.goto(`/c/${ENTRY}/`);
+async function openPanel(page: Page, id: string = ENTRY): Promise<void> {
+  await page.goto(`/c/${id}/`);
   const band = page.getByTestId("coverflow");
   await expect(band).toBeVisible();
-  await waitForPicture(page, ENTRY);
+  await waitForPicture(page, id);
   if ((await page.getByTestId("chosen-panel").count()) === 0) {
     await expect(band).toHaveAttribute("data-ready", "true");
     await band.press("Enter");
@@ -998,12 +1016,13 @@ async function openReal(
   page: Page,
   state: ZonaState,
   script?: ZonaScript,
+  id: string = ENTRY,
 ): Promise<ExposedZona> {
   const zona = await installZona(page, state, script);
   await page.addInitScript(() => {
     window.__hangarSerial.grant();
   });
-  await openPanel(page);
+  await openPanel(page, id);
   expect(
     await page.evaluate(async () => ({
       hasSerial: "serial" in navigator,
@@ -1119,12 +1138,12 @@ async function connectOnPage(
 }
 
 /** One try-on on the real page, from ready or any settled state, to PLAYING NOW. */
-async function tryOnPage(page: Page): Promise<void> {
+async function tryOnPage(page: Page, name: string = ENTRY_NAME): Promise<void> {
   await primary(page).click();
   await expect(installState(page)).toContainText(SETTLED_CAPTION, {
     timeout: 10_000,
   });
-  await expect(installState(page)).toContainText(settledBody(ENTRY_NAME));
+  await expect(installState(page)).toContainText(settledBody(name));
 }
 
 /** Open the confirmation, commit it, and pace heartbeats until KEPT. */
@@ -1787,6 +1806,143 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // CONFIG/EXECUTE each, and A-26's RAM-only ruling is a counted zero
     // rather than an intention - a clear stores nothing.
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(6);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("a knob turned before the click is the pair the module receives - LUMEN's depth, on the real panel", async ({
+    page,
+  }) => {
+    // THE OTHER HALF OF PLAN 12-01'S QUESTION. model.spec.ts proves the TUNER
+    // lands a different pair for a different knob index; nothing until now
+    // proved that the pair TRY ON DEVICE puts on the wire is that one. The
+    // seam between them is four files - Coverflow's `onconfig={(config) =>
+    // (configStrings = config)}`, the {#key} remount, the reset effect that
+    // clears configStrings on a step, and TryOnDevice's $effect into
+    // install.observeConfig - and no title has ever turned a knob before the
+    // click. LUMEN is the entry the bench reported as "seems like nothing
+    // changed", so it is the one asked here.
+    //
+    // WHAT IS READ IS THE MODULE'S RAM, not the tuner's published pair:
+    // zona.state.configs[EVENT_SETUP] is the Setup the last CONFIG/EXECUTE
+    // wrote (synthetic.ts). Reading the panel would prove the panel.
+    //
+    // CHROMIUM ONLY, and deliberately untagged: this drives Web Serial through
+    // the shim, which the phone project's engine has no slot for. One source
+    // title, one run.
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(18), undefined, LUMEN.id);
+    await connectOnPage(page, zona);
+
+    // THE TWO LITERALS, DERIVED FROM lumen.ts AND NEVER TYPED HERE. The token
+    // sits in `local d=36-n//9*@DEPTH `, so the ten characters in front of it
+    // make each rendered value unique in a 742-character Setup - the bare
+    // digit would match a dozen places. The default is index 2 and one
+    // ArrowRight is index 3, the deepest ramp there is.
+    const depthKnob = LUMEN.knobs.find((knob) => knob.id === "depth");
+    expect(depthKnob, "LUMEN has a depth knob").toBeDefined();
+    expect(LUMEN.source.kind, "LUMEN is a hand-authored Lua entry").toBe("lua");
+    const template = LUMEN.source.kind === "lua" ? LUMEN.source.setup : "";
+    const tokenAt = template.indexOf(depthKnob!.token);
+    expect(
+      tokenAt,
+      `${depthKnob!.token} is in LUMEN's Setup template`,
+    ).toBeGreaterThan(10);
+    const lead = template.slice(tokenAt - 10, tokenAt);
+    const literalAt = (index: number): string =>
+      `${lead}${depthKnob!.values[index]}`;
+    const fromIndex = depthKnob!.default;
+    const toIndex = fromIndex + 1;
+    expect(
+      toIndex,
+      `depth index ${toIndex} is inside ${JSON.stringify(depthKnob!.values)}`,
+    ).toBeLessThan(depthKnob!.values.length);
+    expect(literalAt(toIndex)).not.toBe(literalAt(fromIndex));
+
+    // The precondition: the module holds the probe's own strings, so anything
+    // found there afterwards was put there by a click on this page.
+    expect(zona.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+
+    // CLICK ONE, at the defaults.
+    await tryOnPage(page, LUMEN.name);
+    await expect(keepControl(page)).toBeEnabled();
+    const atDefault = zona.state.configs[EVENT_SETUP];
+    expect(typeof atDefault, "the module's RAM holds a Setup string").toBe(
+      "string",
+    );
+    expect(atDefault.length).toBeGreaterThan(0);
+    expect(
+      atDefault.startsWith("--[[@cb]]"),
+      "the Setup the module received is the entry's own event-marked Lua",
+    ).toBe(true);
+
+    // THE RAIL, LOCATED BY THE KNOB IT BELONGS TO RATHER THAN COUNTED. The
+    // rack's range inputs are not one per knob in declaration order: LUMEN's
+    // cursor knob renders as a ColourPicker, which contributes THREE rails of
+    // its own and no Knob wrapper, so an index taken from the entry's knobs
+    // array would land on a colour channel. The index handed to turnRail is
+    // read out of the DOM, from the rail that sits inside `knob-depth`.
+    const railIndex = await page.evaluate(() => {
+      const found = [
+        ...document.querySelectorAll(
+          '[data-testid="knob-rack"] input[type="range"]',
+        ),
+      ];
+      return found.findIndex(
+        (rail) => rail.closest('[data-testid="knob-depth"]') !== null,
+      );
+    });
+    expect(
+      railIndex,
+      "the depth knob renders a rail in the rack",
+    ).toBeGreaterThanOrEqual(0);
+    await expect(rails(page).nth(railIndex)).toHaveValue(String(fromIndex));
+    await turnRail(page, railIndex, "ArrowRight");
+    await expect(rails(page).nth(railIndex)).toHaveValue(String(toIndex));
+
+    // The store SAW the move: the pair it holds is no longer the pair the
+    // module holds, so KEEP ON DEVICE goes out with the reason that names it.
+    // This is also the positive edge the second click is waited on against -
+    // PLAYING NOW is already on screen from click one, so a bare re-read of
+    // the caption would pass before the second write had happened at all
+    // (Phase 11 deferred item D-11-08.1-a).
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
+      KEEP_REASONS["knobs-moved"],
+    );
+
+    // CLICK TWO, with the knob turned.
+    await primary(page).click();
+    await expect(keepControl(page), "the second try-on landed").toBeEnabled({
+      timeout: 10_000,
+    });
+    await expect(installState(page)).toContainText(SETTLED_CAPTION);
+    await expect(installState(page)).toContainText(settledBody(LUMEN.name));
+    const tuned = zona.state.configs[EVENT_SETUP];
+
+    // THE VERDICT, in bytes.
+    expect(
+      tuned,
+      `the module received the same Setup at depth ${fromIndex} and at depth ${toIndex} - the knob does not reach the wire (both ${tuned.length} characters)`,
+    ).not.toBe(atDefault);
+    expect(
+      tuned.includes(literalAt(toIndex)),
+      `the module's RAM does not carry the turned depth (${literalAt(toIndex)})`,
+    ).toBe(true);
+    expect(
+      atDefault.includes(literalAt(fromIndex)),
+      `the first write did not carry the default depth (${literalAt(fromIndex)})`,
+    ).toBe(true);
+    expect(atDefault.includes(literalAt(toIndex))).toBe(false);
+    expect(tuned.includes(literalAt(fromIndex))).toBe(false);
+    console.log(
+      `LUMEN on the wire: depth ${fromIndex} -> ${atDefault.length} characters carrying "${literalAt(fromIndex)}", depth ${toIndex} -> ${tuned.length} characters carrying "${literalAt(toIndex)}", differing`,
+    );
+
+    // The wire, read only after the second settled state. Two clicks, two
+    // events each. 12-03 moves this literal to 6 when the system element
+    // lands, and its plan names this site.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(4);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(consoleErrors).toEqual([]);
   });
