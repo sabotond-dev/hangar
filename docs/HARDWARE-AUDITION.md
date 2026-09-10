@@ -72,7 +72,10 @@ space is also a budget change.
 
 ## The twenty, and what they cost — every hand-authored configuration in the catalog
 
-Measured at their default knob positions with the pinned minifier. The first seven come from
+Measured at their default knob positions with the pinned minifier, **every row re-measured at the
+Phase 11 gate on 2026-09-10 (plan 11-16) — see the dated paragraph just above the table for the nine
+rows that moved.** The history of the table's provenance is kept below it, because it is the history
+of how a table nothing gates went stale nine times in one phase. The first seven originally came from
 `08-06-SUMMARY.md`; STEPS was measured by `09-03-SUMMARY.md`, CONSOLE and STRIP by
 `09-05-SUMMARY.md`, LUMEN, STAGE and SHUTTLE by `09-06-SUMMARY.md`, CULL and FORGE by
 `09-07-SUMMARY.md`, SNAKE by `09-08-SUMMARY.md`, and QUADRANT and POMODORO by `09-09-SUMMARY.md`.
@@ -113,27 +116,39 @@ verbatim with one geometric change: the ring is the time and the direction is th
 are its two events at the DEFAULT knob positions; at the RGB444 picker corner it reads 579 / 281,
 with 329 free on the Setup, and that figure is in `11-14-SUMMARY.md`.
 
-**Every other row in this table is still its original wave's measurement, phase 11 has since changed
-the Lua of several of them, and none of them has been re-checked** — recorded as `D-11-10-b` in
-`deferred-items.md`.
+**EVERY ROW WAS RE-MEASURED AT THE PHASE 11 GATE, 2026-09-10 (plan 11-16), from the entry itself
+rather than from any SUMMARY** — `renderLua` at the defaults, costed as
+`max(text.length, measureLua(text))` after `padReady()`, the same arithmetic the 908 gate uses. **Nine
+of the twenty rows were wrong**, every one an entry whose Lua phase 11 changed without this table
+moving, and every one wrong in the same direction (the table read a smaller number than the
+entry costs): EUCLID 702 / 218 → **786 / 226** (11-02's decay re-cut, 11-08's swipe guard); CHORUS
+729 → **768** (11-02's computed bloom and its fast-tap guard); ARC 379 / 251 → **520 / 273** (11-02,
+11-09's amplitude, 11-09.1's stop and resume); LATTICE 615 → **623** (11-02's fast-tap guard); MORPH
+507 → **706** (11-02, 11-08's suppression, 11-09.1's corner tap); SONAR 432 → **558** (11-02, 11-08's
+guard and its always-lit centre — the row 11-14 found stale and left for the gate); STEPS 388 →
+**473** (11-08); CONSOLE 785 → **821** (11-07's three asks); STAGE 505 / 109 → **640 / 136** (11-09's
+third zone state). The other eleven rows agree with their entries to the character. `D-11-10-b`'s
+tally closes at **twenty rows examined, nine stale**, and its closing shape — `audition.spec.ts`
+gating these numbers rather than only this document's rows — is carried in `deferred-items.md`,
+because a gate that re-measures by hand once has proved exactly what the spec should do every run.
 The nine other measurements that used to sit here left with the nine configurations plan 11-01
 removed. The catalog holds nine more entries, and those nine are BOTOR's shelf presets rather than
 HANGAR's own Lua:
 
 | id             | name         | Setup | Timer            | knobs | dark at rest |
 | -------------- | ------------ | ----- | ---------------- | ----- | ------------ |
-| `euclid`       | EUCLID       | 702   | 218              | 6     | no           |
-| `chorus`       | CHORUS       | 729   | 173              | 6     | no           |
-| `arc`          | ARC          | 379   | 251              | 5     | no           |
+| `euclid`       | EUCLID       | 786   | 226              | 6     | no           |
+| `chorus`       | CHORUS       | 768   | 173              | 6     | no           |
+| `arc`          | ARC          | 520   | 273              | 5     | no           |
 | `ghost`        | GHOST        | 475   | 418              | 5     | yes          |
-| `lattice`      | LATTICE      | 615   | 171              | 6     | no           |
-| `morph`        | MORPH        | 507   | 0 — **no Timer** | 5     | yes          |
-| `sonar`        | SONAR        | 432   | 279              | 5     | no           |
-| `steps`        | STEPS        | 388   | 251              | 6     | no           |
-| `console`      | CONSOLE      | 785   | 0 — **no Timer** | 5     | no           |
+| `lattice`      | LATTICE      | 623   | 171              | 6     | no           |
+| `morph`        | MORPH        | 706   | 0 — **no Timer** | 5     | yes          |
+| `sonar`        | SONAR        | 558   | 279              | 5     | no           |
+| `steps`        | STEPS        | 473   | 251              | 6     | no           |
+| `console`      | CONSOLE      | 821   | 0 — **no Timer** | 5     | no           |
 | `strip`        | STRIP        | 857   | 0 — **no Timer** | 5     | no           |
 | `lumen`        | LUMEN        | 742   | 0 — **no Timer** | 4     | no           |
-| `stage`        | STAGE        | 505   | 109              | 4     | no           |
+| `stage`        | STAGE        | 640   | 136              | 4     | no           |
 | `shuttle`      | SHUTTLE      | 540   | 538              | 6     | no           |
 | `cull`         | CULL         | 564   | 0 — **no Timer** | 4     | no           |
 | `forge`        | FORGE        | 716   | 373              | 5     | no           |
@@ -259,7 +274,7 @@ None yet. This audition has not been run.
 
 ## A closing note on colour
 
-Every RGB triple in the eighteen configurations is a starting point chosen on a screen, not a
+Every RGB triple in the twenty configurations is a starting point chosen on a screen, not a
 measured result. One layer caps at 49.6 % and there is no gamma correction anywhere in the path, so a colour
 that reads well in the simulator can be muddy or blinding on a diffuser. Changing one is a knob-value
 edit in the entry file plus a `frames.json` regeneration — it touches no gate, no host and nothing
