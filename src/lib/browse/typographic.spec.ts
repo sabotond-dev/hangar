@@ -21,8 +21,18 @@ import { typographic } from "./typographic";
 const CURLY = "’";
 
 /**
- * GHOST's description as src/lib/catalog/entries/ghost.ts holds it TODAY, with
- * its ASCII apostrophe. A literal, not a read - see the file header.
+ * The sentence GHOST carried UNTIL PLAN 11-11 re-authored the entry, with its
+ * ASCII apostrophe. A literal, not a read - see the file header.
+ *
+ * THE ENTRY NO LONGER CARRIES IT. The redesign moved the description to name
+ * the erase key, and the apostrophe went out with the clause it sat in. This
+ * test is unweakened by that and the literal is why: the claim here is about
+ * the TRANSFORM, and a sample sentence that has stopped being shipped copy is
+ * still a sentence the transform has to get right. A version that read the
+ * catalog would have gone silently vacuous on the day the entry changed, which
+ * is the outcome the file header says these two literals exist to prevent. The
+ * constant keeps its name because renaming it would say the sentence moved
+ * rather than that the entry did.
  */
 const GHOST_TODAY =
   "Drag once and a ghost retraces your path forever, still sending, in a colour that is not your finger's.";

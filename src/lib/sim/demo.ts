@@ -167,24 +167,53 @@ function drag(
 }
 
 /**
- * GHOST: one drag that leaves a ghost, then a lift - and the ghost retraces on
- * its own, which is the entry's whole point.
+ * GHOST: a drag that leaves a ghost, the red corner that takes it back, and a
+ * second drag that replaces it.
  *
- * The lift at tick 76 is barely a third of the way into the period. Everything
- * after it is the configuration playing back what the finger did, with no
- * finger anywhere near the pad. MEASURED over a steady-state period: 14 cells
- * lit at every tick of the loop, minimum 14 and maximum 14, with the contact
- * released for five sixths of it.
+ * REWRITTEN WITH THE ENTRY IN PLAN 11-11. The card this path was authored
+ * against had no visible reset - its erase was a second finger - so the old
+ * path was one drag and a lift and nothing else. The redesign's whole answer to
+ * "resetting is not reliable" is a lit key on the pad, and a demonstration that
+ * never presses it demonstrates the half of the card the bench did not
+ * complain about.
+ *
+ * The three beats, and each one is a claim the entry makes:
+ *
+ *   ticks   8 -  76  a drag, recorded, with the comet following the finger
+ *   ticks  76 - 240  the ghost retraces it with no finger on the pad, and the
+ *                    erase key pulses in the bottom-right corner
+ *   ticks 240 - 244  a press on that corner. The pad goes black, and STAYS
+ *                    black for 56 ticks - the beat that shows the reset worked
+ *   ticks 300 - 352  a second, different drag, which REPLACES the first rather
+ *                    than being appended to it
+ *   ticks 352 - 600  the second ghost, looping, which is where the period ends
+ *
+ * THE PERIOD DOES NOT END ON THE RESET, AND THAT IS NOT AN AESTHETIC CHOICE.
+ * scripts/gen-og.mjs captures an entry with a demo path at the END of the path,
+ * not at OG_TICK, and its gate 2 fails an entirely dark frame for any entry not
+ * named in DARK_BY_CONSTRUCTION. A path that erased the pad last would ship a
+ * black social preview and turn that gate red. Ending on the second ghost shows
+ * the reset AND leaves the card on a lit, moving frame.
+ *
+ * The corner is (8, 8) in cell coordinates, which cellToCoord puts at 120 on a
+ * 127 axis, which the entry reads as 120*9//128 = 8 on both axes - screen cell
+ * 80. Derived from the entry's own arithmetic rather than assumed.
  */
 const GHOST_PATH: DemoPath = {
   id: "ghost",
-  gesture: "one drag that leaves a ghost, then a lift",
+  gesture: "a drag, the red corner that takes it back, and a second drag",
   periodTicks: 600,
   samples: [
     { tick: 8, pointer: 1, event: "down", x: 1, y: 7 },
     ...drag(1, [1, 7], [4, 2], 8, 8, 4),
     ...drag(1, [4, 2], [7, 6], 40, 8, 4),
     { tick: 76, pointer: 1, event: "up", x: 7, y: 6 },
+    { tick: 240, pointer: 1, event: "down", x: 8, y: 8 },
+    { tick: 244, pointer: 1, event: "up", x: 8, y: 8 },
+    { tick: 300, pointer: 1, event: "down", x: 7, y: 1 },
+    ...drag(1, [7, 1], [2, 4], 300, 6, 4),
+    ...drag(1, [2, 4], [6, 7], 324, 6, 4),
+    { tick: 352, pointer: 1, event: "up", x: 6, y: 7 },
   ],
 };
 

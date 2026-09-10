@@ -3817,4 +3817,208 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
   }, 120000);
+
+  it("records a GHOST path, replays it, and takes it back on the red corner - twice", async () => {
+    // THE BENCH NOTE THIS ANSWERS: "GHOST: doesn't work reliably, the LED
+    // colors the pad and resetting is not reliable, need to redesign this from
+    // scratch". Plan 11-11 re-authored the entry from a blank page; this is the
+    // one test that pins what the rewrite claims.
+    //
+    // THREE CLAIMS, AND THE THIRD IS THE ONE THE NOTE NAMES.
+    //
+    //   1. The round trip. A drag over three known cells is replayed by the
+    //      ghost as EXACTLY those three cells and no others, and the controller
+    //      stream replays exactly the three x coordinates the finger visited.
+    //      The picture and the wire, because a card that lit the right cells
+    //      while sending the wrong values would pass either one alone.
+    //   2. The reset leaves NO CELL LIT, sampled against the frame rather than
+    //      by eye - and sampled at +1 tick as well as after the settle, because
+    //      the defect this replaces was visible on the very next tick and gone
+    //      by the end of a long wait would not have been the complaint.
+    //   3. THE RESET WORKS TWICE IN A ROW. "Resetting is not reliable" is a
+    //      claim about the SECOND time, and a single-shot test cannot see it:
+    //      an erase that left one variable set would clear the first recording
+    //      and refuse the second while passing a one-round check.
+    //
+    // WHY +1 TICK IS THE INTERESTING SAMPLE, MEASURED RATHER THAN ARGUED. The
+    // card this replaces cleared with `glp(a,1,0)`, which sets the phase and
+    // touches neither the rate nor the timeout, and grid_led_tick does
+    // `pha += fre` on every tick a timeout is still running. A cell mid-decay
+    // at rate 250 set to phase 0 is at phase 250 on the next tick and then
+    // walks off a phase that is no longer the one the timeout was armed for.
+    // Planted on this entry's own shape with only the clear idiom swapped, that
+    // form leaves three cells lit at every one of the 120 ticks after the
+    // reset and never clears them - the old erase was CREATING the class-A
+    // freeze rather than undoing it, and it never touched layer 2 at all. The
+    // clear is now `glpfs(a,l,0,0,0)`: phase 0 AND rate 0.
+    //
+    // THE TWO RESET PRESSES ARE AT DIFFERENT PIXELS INSIDE ONE CELL, and that
+    // is not cosmetic. The host's enqueue is CHANGE-GATED per contact on
+    // (event, x, y), so a probe that pressed the same pixel twice would be
+    // measuring the HOST's dedup and reporting it as the entry's. Both points
+    // are asserted to land on cell 80 before either is used.
+    const entry = entryById("ghost");
+    const cc = knobValueOf(entry, "cc");
+    /** The entry's own cell arithmetic, from its Timer: x*9//128+y*9//128*9. */
+    const cellOf = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    /** The erase key, from the entry's own Setup: glag(0,80). */
+    const KEY_CELL = 80;
+    /** The three columns the demonstration drag visits, on one row. */
+    const PATH_COLUMNS = [1, 4, 7] as const;
+    const PATH_ROW = 3;
+    // One lap of a three-point recording is short; 200 ticks is many laps and
+    // is longer than the 42-tick decay, so the union below is a full picture of
+    // what the loop ever lights rather than a snapshot of one moment.
+    const LAP_TICKS = 200;
+    const report: string[] = [];
+
+    const { host, sim } = await open(entry);
+    try {
+      const run = (n: number): void => {
+        for (let i = 0; i < n; i += 1) host.tick();
+      };
+      const litNow = (): number[] => {
+        const out: number[] = [];
+        for (let cell = 0; cell < CELLS; cell += 1) {
+          if (litAt(host.frame, cell)) out.push(cell);
+        }
+        return out;
+      };
+
+      const pathX = PATH_COLUMNS.map((column) => cellCentre(column));
+      const pathY = cellCentre(PATH_ROW);
+      const pathCells = PATH_COLUMNS.map((column) => column + PATH_ROW * 9);
+      for (let i = 0; i < pathX.length; i += 1) {
+        expect(
+          cellOf(pathX[i], pathY),
+          "ghost: the drag must visit the cell this test names",
+        ).toBe(pathCells[i]);
+      }
+
+      for (const round of [1, 2] as const) {
+        run(RESIDUE_WARMUP);
+
+        // THE DRAG. A press, two moves, a lift - three cells, held long enough
+        // at each for the Timer to sample it more than once.
+        host.touchDown(0, pathX[0], pathY);
+        run(6);
+        host.touchMove(0, pathX[1], pathY);
+        run(6);
+        host.touchMove(0, pathX[2], pathY);
+        run(6);
+        host.touchUp(0, pathX[2], pathY);
+        run(20);
+
+        // 1. THE ROUND TRIP, in the picture and on the wire.
+        const midiFrom = host.midi.length;
+        const seen = new Set<number>();
+        for (let i = 0; i < LAP_TICKS; i += 1) {
+          run(1);
+          for (const cell of litNow()) seen.add(cell);
+        }
+        const replayed = [...seen].sort((a, b) => a - b);
+        expect(
+          replayed,
+          `ghost round ${round}: the ghost must retrace the cells the finger ` +
+            `visited and nothing else. The erase key at cell ${KEY_CELL} is ` +
+            "lit because there is a recording to erase, which is the state " +
+            "the card is in",
+        ).toEqual([...pathCells, KEY_CELL].sort((a, b) => a - b));
+
+        const replayedX = [
+          ...new Set(
+            host.midi
+              .slice(midiFrom)
+              .filter((message) => message.p1 === cc)
+              .map((message) => message.p2),
+          ),
+        ].sort((a, b) => a - b);
+        expect(
+          replayedX,
+          `ghost round ${round}: the replayed controller stream carries the ` +
+            "coordinates the finger was at, and no others - a loop that lit " +
+            "the right cells while sending stale values would pass the " +
+            "picture assertion alone",
+        ).toEqual([...pathX].sort((a, b) => a - b));
+
+        // 2 and 3. THE RESET, on the red corner, at a different pixel each
+        // round so the host's change gate cannot swallow the second one.
+        const keyPoint = 116 + round * 2;
+        expect(
+          cellOf(keyPoint, keyPoint),
+          `ghost round ${round}: the reset probe must press the erase key`,
+        ).toBe(KEY_CELL);
+        host.touchTap(0, keyPoint, keyPoint);
+
+        // +1 tick: the sample the old clear idiom failed. Then +2 and the full
+        // settle, so "no cell lit" is a state rather than a moment.
+        const after: { at: number; lit: number[] }[] = [];
+        run(1);
+        after.push({ at: 1, lit: litNow() });
+        run(1);
+        after.push({ at: 2, lit: litNow() });
+        run(SETTLE_TICKS - 2);
+        after.push({ at: SETTLE_TICKS, lit: litNow() });
+
+        for (const sample of after) {
+          expect(
+            sample.lit,
+            `ghost round ${round}: THE RESET MUST LEAVE NO CELL LIT. ` +
+              `${sample.lit.length} of ${CELLS} are still showing ` +
+              `${sample.at} tick(s) after the press on the erase key: ` +
+              sample.lit
+                .map(
+                  (cell) =>
+                    `cell ${cell} (col ${cell % 9}, row ${Math.floor(cell / 9)}` +
+                    `, hardware ${screenToHw(cell % 9, Math.floor(cell / 9))}) ` +
+                    `rendered ${rgbAt(host.frame, cell)}`,
+                )
+                .join("; "),
+          ).toEqual([]);
+        }
+
+        // And nothing is left driving a layer either, which is the difference
+        // between a dark pad and a cleared one: a black colour at a live phase
+        // renders identically and comes back the moment a colour is written.
+        const driven: string[] = [];
+        for (let cell = 0; cell < CELLS; cell += 1) {
+          const hw = screenToHw(cell % 9, Math.floor(cell / 9));
+          for (const layer of LAYERS) {
+            const record = sim.layer(hw, layer);
+            if (record.pha !== 0 || record.fre !== 0) {
+              driven.push(
+                `cell ${cell} layer ${layer} at phase ${record.pha} rate ${record.fre}`,
+              );
+            }
+          }
+        }
+        expect(
+          driven.join("; "),
+          `ghost round ${round}: after the reset every layer sits at phase 0 ` +
+            "with rate 0. A layer left walking is a cell that comes back",
+        ).toBe("");
+
+        report.push(
+          `  round ${round}: replayed ${JSON.stringify(replayed)} on ` +
+            `CC ${cc} values ${JSON.stringify(replayedX)}; after the reset ` +
+            after.map((s) => `+${s.at} -> ${s.lit.length} lit`).join(", "),
+        );
+      }
+
+      expect(
+        host.errors,
+        "ghost: no handler raised across two record-replay-reset rounds - " +
+          host.errors.join(" | "),
+      ).toEqual([]);
+    } finally {
+      host.close();
+    }
+
+    process.stdout.write(
+      "\nGHOST record, replay and reset, plan 11-11:\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
 });
