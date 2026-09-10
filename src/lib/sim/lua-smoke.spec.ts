@@ -522,17 +522,27 @@ async function parity(entry: CatalogEntry, fast: boolean): Promise<Sent> {
  * fails a row whose two lists have stopped differing.
  */
 const PARITY_ALLOWANCES: readonly { entry: string; reason: string }[] = [
-  {
-    entry: "shuttle",
-    reason:
-      "SHUTTLE is a jog wheel and its output is a function of CONTACT " +
-      "DURATION, not of the tap: holding a column runs the transport while " +
-      "the finger is down and its Timer emits a keystroke per tick. A " +
-      "coalesced press-and-lift has a duration of zero, so `(e==1 or e==4)` " +
-      "correctly evaluates the speed to 0 and nothing is sent. That is the " +
-      "right answer for a shuttle, and making the two agree would mean " +
-      "jogging the transport on a tap nobody held.",
-  },
+  // EMPTY SINCE PLAN 11-12, AND THE ROW THAT LEFT IT IS A RESULT RATHER THAN A
+  // TIDY-UP. It excused SHUTTLE, whose hold-to-scrub gesture read
+  // "(e==1 or e==4)" and therefore evaluated a coalesced press-and-lift to a
+  // speed of ZERO - a fast tap on that card sent nothing at all, and the row
+  // said so in as many words. The rewrite sets the speed on a press, a move and
+  // a tap alike and then LATCHES it, so the transport's output no longer
+  // depends on how long the contact lasted and the two runs emit the same
+  // keystrokes in the same order. Test 5 fails any row whose two lists have
+  // stopped differing, so the row could not be kept as a comment on history.
+  //
+  // MEASURED, NOT ASSUMED, AND THE CONDITION IS WORTH KNOWING: the slow run
+  // holds for PARITY_HOLD = 6 ticks longer than the fast one, and at the
+  // entry's defaults the Timer's period at the probe's column is
+  // 300//(1+3) = 75 ms = 7.5 ticks. Six ticks is less than one period, so the
+  // extra hold does not buy an extra keystroke. A default period short enough
+  // to fire twice inside six ticks would make the two runs differ again - by a
+  // count, not by a defect - and this is the sentence that says so.
+  //
+  // The type and the table stay for the reason KNOWN_VIOLATIONS stays empty in
+  // decay-idiom.spec.ts: a mechanism deleted the day it empties is a mechanism
+  // the next author has to reinvent.
 ];
 
 /**

@@ -677,32 +677,32 @@
     "shuttle": [
       {
         "tick": 0,
-        "sha256": "1cb3a43bd2896d332143de2a8fc55d6c5a9639863a07e563a700facd502a9da6",
-        "nonZeroBytes": 29,
+        "sha256": "e4b66e0b5b467f7ed19c8ce9be9284198a76950d09ab87a55fd6790fc33faf65",
+        "nonZeroBytes": 9,
         "animating": true
       },
       {
         "tick": 37,
-        "sha256": "cff22a649ec81c81e94da6262b4ca80e6e9f83674fb7847ea5d42667d7214ff0",
-        "nonZeroBytes": 28,
+        "sha256": "509e14f7745a90b09b8ec2bf438336a37ba2eb1f7d594d8da2a8b5f9c6f29895",
+        "nonZeroBytes": 57,
         "animating": true
       },
       {
         "tick": 101,
-        "sha256": "8e4ec0fb92c0f493b44e2805fd502f81c7e0919caa4a25ec339428a6bc2efa82",
-        "nonZeroBytes": 28,
+        "sha256": "f8d8490bc8f381935484a4436b19e10b4735309f6cb5c0a52c38a3442de83dd2",
+        "nonZeroBytes": 57,
         "animating": true
       },
       {
         "tick": 500,
-        "sha256": "c8b9ded01ada9b9b0502c82635f2a02338bebce181b5107c33353e87886f33b0",
-        "nonZeroBytes": 28,
+        "sha256": "a472c4244c366de9926122509e639dc1c73949a38c260ff611c3bc4f3cd74767",
+        "nonZeroBytes": 57,
         "animating": true
       },
       {
         "tick": 1009,
-        "sha256": "7b95de905cf6e46357c14e12c8b2d4c3717ee2016dffafe076ee093aead28715",
-        "nonZeroBytes": 29,
+        "sha256": "844d4e67e40591163fd71d35d3e30c3a9848333ddbe2b1099c95dfefa70c4302",
+        "nonZeroBytes": 57,
         "animating": true
       }
     ],

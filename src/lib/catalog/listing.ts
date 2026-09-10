@@ -379,7 +379,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "shuttle",
     name: "SHUTTLE",
     description:
-      "Scrub video with your finger, and the arc grows and spins faster the harder you push it.",
+      "Push right to run the video forward and left to run it back; it keeps going until you press the red row.",
     motion: "animated",
     tags: ["modulation", "expressive", "generative"],
     featured: false,
