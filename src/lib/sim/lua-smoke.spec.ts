@@ -4284,4 +4284,446 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
   }, 120000);
+
+  // -------------------------------------------------------------------------
+  // STRIP, RE-LAID-OUT AS TWO INDEPENDENT CONTROLS (plan 11-13)
+  //
+  // THE BENCH NOTE: "STRIP: this is just an XY pad, it should be two faders,
+  // one crossfader at the bottom and the big one, sending midi independently".
+  // The word that carries the work is INDEPENDENTLY, and it is the one part of
+  // that sentence that is exactly testable: drive one control and read the
+  // OTHER control's controller number.
+  //
+  // The old card combined both axes into one fourteen-bit value on a single
+  // controller, so there was no "other controller" to read. These two tests
+  // are what makes the split a fact rather than a layout.
+  //
+  // EVERY BOUNDARY IS READ OFF THE ENTRY'S OWN LUA - the row the origin lock
+  // splits on, the fader's divisor, the crossfader's shift and both controller
+  // numbers - so a card re-cut onto different rows moves these tests with it
+  // instead of drifting past them.
+  // -------------------------------------------------------------------------
+
+  /** STRIP's boundary, divisors and two controllers, parsed from its Lua. */
+  const stripGeometry = (): {
+    entry: CatalogEntry;
+    boundary: number;
+    shift: number;
+    fader: number;
+    cross: number;
+  } => {
+    const entry = entryById("strip");
+    const source = entry.source;
+    if (source.kind !== "lua") throw new Error("strip is not a lua entry");
+    const lock = /s\.o\[i\]=y>(\d+)/.exec(source.setup);
+    expect(
+      lock,
+      "strip: the onset must still lock a contact to ONE control by row - " +
+        "without it, a drag off the bottom of the fader jogs the crossfader",
+    ).not.toBeNull();
+    // THE NUMERATOR IS DELIBERATELY LEFT FREE. Pinning it here would make a
+    // fader that tops out short fail at THIS line, on the shape of its source,
+    // instead of at the full-scale assertion that exists to catch it - and a
+    // check that reddens on the wrong clause leaves its own clause untested.
+    // What the numerator has to be is measured on the wire, not read here.
+    const scale = /glim\(\((\d+)-y\)\*\d+\/\/(\d+),0,127\)/.exec(source.setup);
+    expect(
+      scale,
+      "strip: the fader must still scale, AND CLAMP, from the rows it owns",
+    ).not.toBeNull();
+    const shift = /local p=x\/\/(\d+)/.exec(source.setup);
+    expect(
+      shift,
+      "strip: the crossfader must still reduce the whole x axis by itself",
+    ).not.toBeNull();
+    const boundary = Number((lock as RegExpExecArray)[1]);
+    expect(
+      [
+        Number((scale as RegExpExecArray)[1]),
+        Number((scale as RegExpExecArray)[2]),
+      ],
+      "strip: THE BOUNDARY AND THE DIVISOR ARE THE SAME NUMBER. The fader's " +
+        "last row and the scale that maps that row to zero are one fact, and " +
+        "a divisor that has drifted off the boundary is exactly the defect " +
+        "CONSOLE shipped - a fader that cannot reach one end of its range",
+    ).toEqual([boundary, boundary]);
+    const first = knobValueOf(entry, "cc");
+    return {
+      entry,
+      boundary,
+      shift: Number((shift as RegExpExecArray)[1]),
+      fader: first,
+      cross: first + 1,
+    };
+  };
+
+  it("drives STRIP's two controls on their own controllers, and neither on the other's", async () => {
+    const g = stripGeometry();
+    const { host } = await open(g.entry);
+    const report: string[] = [];
+    try {
+      expect(
+        host.coordMax,
+        "strip: both axes are unlocked to ten bits, so every coordinate " +
+          "below is on the 0..1023 scale the entry actually reads",
+      ).toBe(1023);
+
+      const run = (n: number): void => {
+        for (let i = 0; i < n; i += 1) host.tick();
+      };
+      const bright = (cell: number): number =>
+        host.frame[cell * 3] +
+        host.frame[cell * 3 + 1] +
+        host.frame[cell * 3 + 2];
+      run(RESIDUE_WARMUP);
+
+      // ---------------------------------------------------------------------
+      // LEGIBILITY, ASSERTED RATHER THAN ASSUMED, AND WITHOUT NAMING A COLOUR.
+      //
+      // D-11-12-b: nothing in this repository asserts that a card is legible,
+      // and 11-12 proved it by giving forward and reverse one colour and
+      // watching the whole tree stay green. Two controls on one pad have the
+      // same failure available to them - they can read as ONE picture - and
+      // both of STRIP's hues are knobs a visitor can set to the same value.
+      //
+      // So the claim asserted here is about SHAPE, which no knob can flatten:
+      // the fader is a solid block of full rows growing from the bottom, and
+      // the crossfader is a line with exactly one cell brighter than its
+      // eight neighbours. A pad on which those two are the same picture fails
+      // this, whatever colours it was given.
+      // ---------------------------------------------------------------------
+      const rowBrightness: number[] = [];
+      for (let r = 0; r < 8; r += 1) {
+        const cells: number[] = [];
+        for (let c = 0; c < 9; c += 1) cells.push(bright(r * 9 + c));
+        expect(
+          new Set(cells).size,
+          `strip: fader row ${r} must be uniform across all nine columns - a ` +
+            "fader is a block, not a dot",
+        ).toBe(1);
+        rowBrightness.push(cells[0]);
+      }
+      const levels = [...new Set(rowBrightness)].sort((a, b) => a - b);
+      expect(
+        levels.length,
+        `strip: the fader draws exactly two states, lit and unlit. Observed ` +
+          `${JSON.stringify(rowBrightness)}`,
+      ).toBe(2);
+      const litRows = rowBrightness
+        .map((value, row) => (value === levels[1] ? row : -1))
+        .filter((row) => row >= 0);
+      expect(
+        litRows,
+        "strip: the lit rows form ONE run ending at the bottom row of the " +
+          `fader. Observed ${JSON.stringify(litRows)}`,
+      ).toEqual(
+        Array.from(
+          { length: litRows.length },
+          (_, i) => 7 - litRows.length + 1 + i,
+        ),
+      );
+
+      const crossRow: number[] = [];
+      for (let c = 0; c < 9; c += 1) crossRow.push(bright(72 + c));
+      const crossLevels = [...new Set(crossRow)].sort((a, b) => a - b);
+      expect(
+        crossLevels.length,
+        `strip: the crossfader draws a track AND a marker - two states on one ` +
+          `row. Observed ${JSON.stringify(crossRow)}`,
+      ).toBe(2);
+      expect(
+        crossRow.filter((value) => value === crossLevels[1]).length,
+        "strip: exactly ONE cell of the crossfader row is the marker",
+      ).toBe(1);
+      expect(
+        crossLevels[0],
+        "strip: the crossfader's track is VISIBLE at rest - a control whose " +
+          "unmarked cells are black is a single dot, and a dot is not a strip",
+      ).toBeGreaterThan(0);
+      expect(
+        crossLevels[1] / crossLevels[0],
+        "strip: the marker must stand well clear of its own track",
+      ).toBeGreaterThan(2);
+      report.push(
+        `  at rest: fader rows ${JSON.stringify(rowBrightness)}`,
+        `  at rest: crossfader row ${JSON.stringify(crossRow)}`,
+      );
+
+      // ---------------------------------------------------------------------
+      // THE FOUR DRIVES. Every one of them MOVES ITS COORDINATE ON EVERY STEP,
+      // because the host's own change gate silently drops a repeated
+      // (event, x, y) per contact - a probe built out of identical samples
+      // would be defeated by the host rather than answered by the entry.
+      // ---------------------------------------------------------------------
+      const drive = (
+        id: number,
+        from: readonly [number, number],
+        to: readonly [number, number],
+        steps: number,
+      ): readonly HostMidi[] => {
+        const mark = host.midi.length;
+        const at = (i: number): [number, number] => [
+          Math.round(from[0] + ((to[0] - from[0]) * i) / steps),
+          Math.round(from[1] + ((to[1] - from[1]) * i) / steps),
+        ];
+        host.touchDown(id, from[0], from[1]);
+        host.tick();
+        for (let i = 1; i <= steps; i += 1) {
+          const [x, y] = at(i);
+          host.touchMove(id, x, y);
+          host.tick();
+        }
+        host.touchUp(id, to[0], to[1]);
+        host.tick();
+        return host.midi.slice(mark);
+      };
+      const controllersIn = (sent: readonly HostMidi[]): number[] => [
+        ...new Set(sent.map((each) => each.p1)),
+      ];
+      const barHeight = (): number =>
+        rowBrightness
+          .map((_, r) => bright(r * 9))
+          .filter((v) => v === levels[1]).length;
+      const markerColumn = (): number => {
+        let best = -1;
+        let peak = -1;
+        for (let c = 0; c < 9; c += 1) {
+          const value = bright(72 + c);
+          if (value > peak) {
+            peak = value;
+            best = c;
+          }
+        }
+        return best;
+      };
+
+      // 1. THE CROSSFADER, driven across its whole row while the fader sits at
+      //    the height Setup left it.
+      const barBefore = barHeight();
+      expect(
+        barBefore,
+        "strip: the card arrives with the fader part-open, or the assertion " +
+          "below that it DID NOT MOVE is vacuous",
+      ).toBeGreaterThan(0);
+      const across = drive(1, [0, 1000], [1023, 1000], 1023);
+      expect(
+        across.length,
+        "strip: driving the crossfader sent something at all",
+      ).toBeGreaterThan(0);
+      expect(
+        controllersIn(across),
+        `strip: THE CROSSFADER SENDS ON ${g.cross} AND ON NOTHING ELSE. ` +
+          `Observed ${JSON.stringify(controllersIn(across))}`,
+      ).toEqual([g.cross]);
+      expect(
+        barHeight(),
+        "strip: the fader's bar did not move while the crossfader was driven",
+      ).toBe(barBefore);
+
+      // 2. A CONTACT THAT BEGINS ON THE CROSSFADER AND IS DRAGGED THE WHOLE
+      //    HEIGHT OF THE FADER. This is the origin lock read from below: the
+      //    finger crosses all eight fader rows and the fader must not move.
+      const upward = drive(3, [200, 1000], [900, 0], 400);
+      expect(
+        upward.length,
+        "strip: the upward drag sent something at all",
+      ).toBeGreaterThan(0);
+      expect(
+        controllersIn(upward),
+        "strip: A GESTURE THAT STARTED ON THE CROSSFADER STAYS ON THE " +
+          `CROSSFADER. It crossed all eight fader rows and sent only ` +
+          `${JSON.stringify(controllersIn(upward))}`,
+      ).toEqual([g.cross]);
+      expect(
+        barHeight(),
+        "strip: the fader's bar did not move under a gesture that was not its " +
+          "own, even though the finger travelled its entire length",
+      ).toBe(barBefore);
+
+      // 3. THE FADER, driven down the rows it owns.
+      const markBefore = markerColumn();
+      const down = drive(0, [500, 0], [500, g.boundary], g.boundary);
+      expect(
+        down.length,
+        "strip: driving the fader sent something at all",
+      ).toBeGreaterThan(0);
+      expect(
+        controllersIn(down),
+        `strip: THE FADER SENDS ON ${g.fader} AND ON NOTHING ELSE. Observed ` +
+          `${JSON.stringify(controllersIn(down))}`,
+      ).toEqual([g.fader]);
+      expect(
+        markerColumn(),
+        "strip: the crossfader's marker did not move while the fader was " +
+          "driven",
+      ).toBe(markBefore);
+
+      // 4. THE OVERSHOOT, which is the gesture the layout makes easy and the
+      //    lock exists for: the fader's zero end IS the crossfader's row, so a
+      //    finger that runs off the bottom of the fader lands on the other
+      //    control. x sweeps 300 -> 820 during it, so an unlocked card would
+      //    drag the crossfader most of the way across.
+      const past = drive(2, [300, g.boundary - 110], [820, 1023], 223);
+      expect(
+        past.length,
+        "strip: the overshoot sent something at all",
+      ).toBeGreaterThan(0);
+      expect(
+        controllersIn(past),
+        "strip: A GESTURE THAT STARTED ON THE FADER STAYS ON THE FADER. It " +
+          "ran off the bottom of the fader and across the crossfader row, " +
+          `sweeping x by 520 units, and sent ${JSON.stringify(controllersIn(past))}`,
+      ).toEqual([g.fader]);
+      expect(
+        markerColumn(),
+        "strip: THE CROSSFADER DID NOT MOVE while a finger ran across it",
+      ).toBe(markBefore);
+
+      expect(
+        host.errors,
+        `strip: no handler raised across four drives - ${host.errors.join(" | ")}`,
+      ).toEqual([]);
+      report.push(
+        `  crossfader driven: ${across.length} messages, controller ` +
+          `${JSON.stringify(controllersIn(across))}, fader bar unmoved at ${barBefore}`,
+        `  dragged up out of the crossfader: ${upward.length} messages, ` +
+          `controller ${JSON.stringify(controllersIn(upward))}`,
+        `  fader driven: ${down.length} messages, controller ` +
+          `${JSON.stringify(controllersIn(down))}, marker unmoved at column ${markBefore}`,
+        `  dragged off the bottom of the fader: ${past.length} messages, ` +
+          `controller ${JSON.stringify(controllersIn(past))}`,
+      );
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nSTRIP independence, plan 11-13:\n" + report.join("\n") + "\n",
+    );
+  }, 120000);
+
+  it("carries both of STRIP's controls from 0 to 127, and never outside seven bits", async () => {
+    const g = stripGeometry();
+    const { host } = await open(g.entry);
+    const report: string[] = [];
+    try {
+      const sweep = (
+        id: number,
+        axis: "x" | "y",
+        fixed: number,
+        last: number,
+      ): number[] => {
+        const mark = host.midi.length;
+        const point = (t: number): [number, number] =>
+          axis === "x" ? [t, fixed] : [fixed, t];
+        host.touchDown(id, ...point(0));
+        host.tick();
+        for (let t = 1; t <= last; t += 1) {
+          host.touchMove(id, ...point(t));
+          host.tick();
+        }
+        host.touchUp(id, ...point(last));
+        host.tick();
+        return host.midi.slice(mark).map((each) => each.p2);
+      };
+
+      // THE FADER'S TRAVEL IS THE ROWS IT OWNS, AND NOT THE WHOLE AXIS. That
+      // is the whole of the CONSOLE lesson: a control whose divisor comes from
+      // the axis rather than from its own share of it stops short of full
+      // scale, silently, at every position. CONSOLE's h*127//8 topped out at
+      // 111 of 127.
+      const fader = sweep(0, "y", 500, g.boundary);
+      const cross = sweep(1, "x", 1000, host.coordMax);
+
+      for (const [name, controller, values] of [
+        ["fader", g.fader, fader],
+        ["crossfader", g.cross, cross],
+      ] as const) {
+        const distinct = new Set(values);
+        expect(
+          values.length,
+          `strip ${name}: the sweep sent nothing at all, so nothing below ` +
+            "proves anything",
+        ).toBeGreaterThan(0);
+        // THE FOURTEEN-BIT LOSS, RECORDED AS AN ASSERTION RATHER THAN AS A
+        // COMMENT, AND ASSERTED FIRST. STRIP used to send one controller
+        // carrying 0..16383 on mode 1. Re-introducing that - or the vernier
+        // that fed it - is now a DELIBERATE edit to these four lines rather
+        // than a silent change of behaviour.
+        //
+        // IT IS FIRST BECAUSE OF WHAT IT LEAVES FOR THE CLAUSES BELOW. A
+        // control that emitted 0..255 would fail "reaches 127" too, and a
+        // check that reddens on the wrong clause leaves its own clause
+        // untested (11-10). Seven bits is the more fundamental claim, so it is
+        // the one that gets to fail.
+        for (const value of distinct) {
+          expect(
+            Number.isInteger(value) && value >= 0 && value <= 127,
+            `strip ${name}: every emitted value fits SEVEN BITS. This card ` +
+              "traded one fourteen-bit stream for two ordinary controllers, " +
+              `and ${value} is outside 0..127`,
+          ).toBe(true);
+        }
+        expect(
+          Math.max(...values),
+          `strip ${name}: A CONTROL MUST REACH THE TOP OF ITS RANGE. ` +
+            `Observed maximum ${Math.max(...values)} on controller ` +
+            `${controller} over ${values.length} messages`,
+        ).toBe(127);
+        expect(
+          Math.min(...values),
+          `strip ${name}: and the bottom of it. Observed minimum ` +
+            `${Math.min(...values)}`,
+        ).toBe(0);
+        expect(
+          distinct.size,
+          `strip ${name}: every one of the 128 codes of a seven-bit ` +
+            "controller is reachable across the travel. That is what the " +
+            "ten-bit unlock is still in this entry FOR: on a locked axis the " +
+            "fader owns 114 raw positions of 128 and could only ever send 114 " +
+            `of the codes. Observed ${distinct.size}`,
+        ).toBe(128);
+        report.push(
+          `  ${name.padEnd(10)} controller ${controller}: ${values.length} ` +
+            `messages, ${distinct.size} distinct, ${Math.min(...values)}..` +
+            `${Math.max(...values)}, all seven-bit`,
+        );
+      }
+
+      // AND THE OVERSHOOT, WHICH IS WHERE THE SEVEN-BIT CLAIM WAS ACTUALLY
+      // BROKEN. The origin lock means the fader branch can see coordinates
+      // past its own last row, and the first draft of the shipped layout put
+      // 15,14,...,0,-1,-2,...,-16 on the wire with nothing red anywhere. The
+      // clamp is what holds this line.
+      const over = sweep(2, "y", 300, host.coordMax);
+      expect(
+        over.length,
+        "strip: the overshoot sent something at all",
+      ).toBeGreaterThan(0);
+      expect(
+        Math.min(...over),
+        "strip: A CONTROL DRIVEN PAST ITS OWN LAST ROW MUST NOT GO NEGATIVE. " +
+          `Observed minimum ${Math.min(...over)} over ${over.length} messages`,
+      ).toBe(0);
+      expect(
+        Math.max(...over),
+        "strip: and it must not wrap upward either",
+      ).toBeLessThanOrEqual(127);
+      report.push(
+        `  overshoot   controller ${g.fader}: ${over.length} messages, ` +
+          `${Math.min(...over)}..${Math.max(...over)} (a pre-clamp draft ` +
+          "reached -16)",
+      );
+      expect(
+        host.errors,
+        `strip: no handler raised across three sweeps - ${host.errors.join(" | ")}`,
+      ).toEqual([]);
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nSTRIP full scale and seven bits, plan 11-13:\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
 });

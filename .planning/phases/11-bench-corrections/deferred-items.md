@@ -190,3 +190,60 @@ Row 18(b) of `docs/HARDWARE-AUDITION.md` is that row and it was added by 11-12.
 
 **Suggested owner:** 11-16, to decide between a gate and an acceptance that
 there cannot be one.
+
+**AMENDED by plan 11-13.** STRIP's independence test now asserts one legibility
+claim, and it is the first in the repository: at rest, the fader must draw a
+solid block of *uniform rows* growing from the bottom of its region, and the
+crossfader must draw a row with *exactly one* cell brighter than eight visible
+neighbours. **The claim is about SHAPE and it names no colour**, which is the
+only way it can survive two colour knobs a visitor may set to the same value.
+That is a narrow gate — it proves the two controls draw *different* pictures, it
+does not prove either picture is *readable* — so D-11-12-b stands. It is
+recorded here because it is a worked example of the shape such a gate could
+take, and because a future wave should widen it rather than reinvent it.
+
+---
+
+## D-11-13-a — the Lua host keeps ONE coordinate maximum for BOTH axes, and firmware does not
+
+**Found:** plan 11-13, task 01, deciding whether STRIP's ten-bit unlock survives.
+
+Firmware has two independent calls, `touch_x_max` and `touch_y_max`, and a
+configuration may legally unlock one axis and leave the other at its 0..127
+default. **HANGAR's preview cannot represent that.**
+`src/lib/sim/lua-host.ts:713-719` is a single `axisMax` handler behind both
+names, writing a single `_coordMax` field:
+
+```
+private axisMax(v: unknown): void {
+  this._coordMax = f2i(num(v)) > 127 ? 1023 : 127;
+}
+```
+
+— one field, set by whichever call arrives last, and `enqueue` clamps **both**
+`x` and `y` against it. The typed comment above it is honest about the narrowing
+(`127 | 1023` "because those are the only two values any compiled or
+hand-authored configuration uses") but it says nothing about the two axes being
+collapsed into one.
+
+**The consequence is a silent divergence, not an error.** An entry that wrote
+`self:tyma(1023)` alone would be driven in the browser with x running 0..1023
+and on the module with x running 0..127, so every `x*9//1024` in it would map
+the whole pad into the leftmost column on real hardware while looking perfect in
+the preview. Nothing raises, nothing goes red, and the entry would pass every
+gate in the tree.
+
+**STRIP dodged it by paying fifteen characters** — it unlocks both axes although
+only y needs it, so the simulator and the firmware agree. That is the right
+answer for one entry and it is not a fix.
+
+**Why no gate exists.** The check is cheap and catalog-wide: an entry whose Lua
+contains exactly one of `txma` / `tyma` is either wrong on hardware or wrong in
+the preview, and either way it should have to say which. The deeper fix is two
+fields in the host, which is perhaps ten lines including the `enqueue` clamp and
+the accessor, plus a decision about what `host.coordMax` means afterwards —
+`lua-smoke.spec.ts` reads it in several places and would need an axis argument.
+
+**Suggested owner:** 11-16, or the next wave that touches `lua-host.ts`.
+STRIP is the only entry in the catalog that unlocks either axis today, so
+nothing is currently broken by it.
