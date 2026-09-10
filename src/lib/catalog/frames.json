@@ -897,6 +897,38 @@
         "nonZeroBytes": 171,
         "animating": false
       }
+    ],
+    "radar-points": [
+      {
+        "tick": 0,
+        "sha256": "d296fe9d4be806c569fa97ac52d6a43066e657b736b1587b8782325570e3609a",
+        "nonZeroBytes": 3,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "8547f7f37437002f45126d7741bb2f17eeb7ce038f7972092b6ae87b259d2b31",
+        "nonZeroBytes": 27,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "1d1a741687673e013dbb99cd1465197d458e85e065e2d3e08ba2fd042e272e84",
+        "nonZeroBytes": 99,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "a6a9a48f4772a1394315e6a89afcdcbd792190d12ed42e984042306e61a7fad1",
+        "nonZeroBytes": 75,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "d296fe9d4be806c569fa97ac52d6a43066e657b736b1587b8782325570e3609a",
+        "nonZeroBytes": 3,
+        "animating": true
+      }
     ]
   }
 }

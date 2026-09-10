@@ -138,6 +138,10 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     id: "wheels",
     why: "Hand-authored Lua rather than a ported preset, and the ring is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. Beyond that, the front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
+  {
+    id: "radar-points",
+    why: "The hand-authored radar the user asked for, built as a second card under plan 11-14's answer new-entry so the RADAR preset at ring position 5 stays exactly as it is. It cannot take that position or an eighth-plus-one: front-door.spec.ts requires preview === 'padsim' of every row entry, and 11-14-HANDOVER.md measured that the rule is live for a reason its own comment does not give - Coverflow.svelte builds an engine for every ring entry, so a 'lua' row would put the 271 KB Lua VM on the front page's first paint, which e2e/tuning.e2e.ts forbids in words. Beyond that, the front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+  },
 ];
 
 /**

@@ -49,7 +49,7 @@ const doc = readFileSync(DOC_URL, "utf8");
 const flat = doc.replace(/\s+/g, " ");
 
 /** The number of rows the checklist has, and must keep having. */
-const ROW_COUNT = 24;
+const ROW_COUNT = 25;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -118,11 +118,20 @@ const ROWS = rows();
  * Split on "/" for the two shared rows, then take the leading upper-case run of
  * each part - which drops the lower-case `any` and survives a parenthetical
  * such as "MIRROR (optional)" without this function needing to know about it.
+ *
+ * A RUN MAY CONTAIN SINGLE SPACES SINCE PLAN 11-14: RADAR POINTS is the first
+ * hand-authored entry with a two-word name, and the one-word run claimed it as
+ * "RADAR", which no live entry is called (the preset is "Radar"), so the
+ * gate went red on a real row for a name it could not read. The widening
+ * admits `WORD WORD`, still stops at a parenthesis or a lower-case letter, and
+ * claims exactly the same names for every row that was here before it: the
+ * two-name rows are split on "/" first, and no single cell holds two names
+ * separated by a space.
  */
 function namesIn(config: string): string[] {
   return config
     .split("/")
-    .map((part) => /[A-Z][A-Z0-9]*/.exec(part.trim()))
+    .map((part) => /[A-Z][A-Z0-9]*(?: [A-Z][A-Z0-9]*)*/.exec(part.trim()))
     .filter((match): match is RegExpExecArray => match !== null)
     .map((match) => match[0]);
 }
@@ -184,7 +193,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-four numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-five numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",
@@ -198,7 +207,7 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
     expect(ROWS.length, "checklist rows").toBe(ROW_COUNT);
     expect(
       ROWS.map((row) => row.index),
-      "the rows are numbered 1 to 24, in order",
+      "the rows are numbered 1 to 25, in order",
     ).toEqual(Array.from({ length: ROW_COUNT }, (_, i) => i + 1));
 
     for (const row of ROWS) {

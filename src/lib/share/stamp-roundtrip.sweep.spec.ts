@@ -325,8 +325,15 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // THREE of them colour, so the hand-authored knob total goes 91 to 97,
     // `exempted` 29 to 32 and `guarded` 62 to 65. It still reconciles: 65 + 32
     // is 97. The member list is still "4 19".
+    //
+    // RE-COUNTED BY PLAN 11-14 (RADAR POINTS, under the user's answer
+    // `new-entry`), found the same way and not in that plan's file list
+    // either. SONAR's rack reused: FIVE knobs, ONE of them colour, so the
+    // hand-authored knob total goes 97 to 102, `exempted` 32 to 33 and
+    // `guarded` 65 to 69. It still reconciles: 69 + 33 is 102. The member
+    // list is still "4 19".
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(32);
+    expect(exempted, "the colour knobs, exempt by format").toBe(33);
 
     // PASS A. Every non-colour knob cross-producted, colour knobs at their
     // defaults, through the real encoder and the real decoder.

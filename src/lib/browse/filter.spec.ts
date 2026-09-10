@@ -160,12 +160,21 @@ const search = (query: string) =>
  * card whose whole gesture is something moving after the finger has gone.
  * `singletons` is still zero.
  *
+ * 11-14 (RADAR POINTS) moves it upwards by one entry again, under the
+ * user's answer `new-entry` - the RADAR preset stays and a hand-authored
+ * radar lands beside it. `entries` 28 to 29, `sequencing` 3 to 4, `generative`
+ * 12 to 13 and `playable` 8 to 9: the same three tags as SONAR, chosen because
+ * they are true of this card for the same reasons, and NOT re-chosen to spread
+ * the histogram, which D-03 forbids. No term touches the floor of 6 and
+ * `singletons` is still zero. Found the same way as the two above - by running
+ * the suite - and 11-14-PLAN.md does not name this file either.
+ *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
  * "The tag chips", quoted the row and its counts verbatim. 10-06 amended that
  * document by name rather than restating the new row there.
  */
 const RECORDED = {
-  entries: 28,
+  entries: 29,
   tags: 14,
   singletons: 0,
   /** Keyed by term, in FOR order then FEELS order - the toolbar's own order. */
@@ -173,15 +182,15 @@ const RECORDED = {
     modulation: 8,
     show: 5,
     mixing: 3,
-    sequencing: 3,
+    sequencing: 4,
     shortcuts: 3,
     keys: 2,
     pointing: 2,
     play: 2,
     readable: 11,
     expressive: 12,
-    playable: 8,
-    generative: 12,
+    playable: 9,
+    generative: 13,
     precise: 7,
     still: 6,
   } as Readonly<Record<string, number>>,

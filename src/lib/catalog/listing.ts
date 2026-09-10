@@ -475,6 +475,22 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "radar-points",
+    name: "RADAR POINTS",
+    description:
+      "Rings roll out from the centre and play the points you placed: the ring is the time, the direction the pitch.",
+    // ANIMATED, read off frames.json: Setup arms the Timer and the body
+    // re-arms unconditionally, which is the shape that actually classifies as
+    // animating (11-15). Plan 11-14, under the user's answer `new-entry` - the
+    // RADAR preset stays where it is and this hand-authored card carries the
+    // radar ask beside it.
+    motion: "animated",
+    tags: ["sequencing", "generative", "playable"],
+    featured: false,
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

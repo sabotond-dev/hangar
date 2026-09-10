@@ -537,7 +537,7 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     ).toBe(0);
   });
 
-  it("the selector is rendered only when an entry has more than one colour knob, and the shelf splits 12 / 7 / 4 / 5", () => {
+  it("the selector is rendered only when an entry has more than one colour knob, and the shelf splits 13 / 7 / 4 / 5", () => {
     // RECOUNTED FROM THE CATALOG, never from a literal list, because the split
     // is a fact about the shipped tree and a list is a copy of it that rots.
     const split = { none: 0, two: 0, three: 0, noPicker: 0 };
@@ -568,17 +568,22 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     // of the four worst cases the six-canvas colour-rail budget is measured
     // against, and it is the first entry to join that list since it was
     // written.
+    //
+    // RE-RECORDED BY PLAN 11-14, which added RADAR POINTS under the user's
+    // answer `new-entry` - SONAR's rack reused openly, so ONE colour knob, the
+    // ping colour. `none` 12 to 13 and the catalog 28 to 29; nothing else
+    // moved. Not in 11-14-PLAN.md's file list either; found the same way.
     expect(
       split,
-      "the colour-knob split moved. 12 entries render no selector (one colour knob), 7 render two options, 3 render three, and 5 have no picker at all",
-    ).toEqual({ none: 12, two: 7, three: 4, noPicker: 5 });
+      "the colour-knob split moved. 13 entries render no selector (one colour knob), 7 render two options, 4 render three, and 5 have no picker at all",
+    ).toEqual({ none: 13, two: 7, three: 4, noPicker: 5 });
     expect(
       three.sort(),
       "the three-colour entries are console, forge, strip and wheels - the worst case the six-canvas budget is measured against",
     ).toEqual(["console", "forge", "strip", "wheels"]);
     expect(
       CATALOG.length,
-      "the catalog is no longer 28 entries, so the split above is a different denominator",
+      "the catalog is no longer 29 entries, so the split above is a different denominator",
     ).toBe(split.none + split.two + split.three + split.noPicker);
 
     // THE PRESENCE RULE, IN BOTH DIRECTIONS, as a property of the source: the

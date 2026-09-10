@@ -20,6 +20,7 @@ import { MORPH } from "./entries/morph";
 import { POMODORO } from "./entries/pomodoro";
 import { PORTED } from "./entries/ported";
 import { QUADRANT } from "./entries/quadrant";
+import { RADAR_POINTS } from "./entries/radar-points";
 import { SHUTTLE } from "./entries/shuttle";
 import { SNAKE } from "./entries/snake";
 import { SONAR } from "./entries/sonar";
@@ -67,6 +68,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   QUADRANT,
   POMODORO,
   WHEELS,
+  RADAR_POINTS,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -88,6 +90,7 @@ export { SNAKE } from "./entries/snake";
 export { QUADRANT } from "./entries/quadrant";
 export { POMODORO } from "./entries/pomodoro";
 export { WHEELS } from "./entries/wheels";
+export { RADAR_POINTS } from "./entries/radar-points";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {
