@@ -128,3 +128,25 @@ growing the ring past eight.
 Answer with one of **`ring-seven`**, **`new-entry`**, **`fold-into-sonar`**,
 **`ring-eight-lua`**. The resuming agent should read this file as task 01's
 answer and must not re-run the option-(d) check.
+
+---
+
+## Answered 2026-09-10
+
+> **new-entry**
+
+The user chose to build the radar as a second card and leave the RADAR preset
+where it is. Consequences, from the branch table and the tree as it stands after
+11-15:
+
+- `T14` = **+1**. Phase total `BASE_TESTS + 41`.
+- Catalog **28 → 29**. Preset/Lua split **9 + 20**.
+- `static/og/` **28 → 29**. Audition rows **24 → 25**.
+- `front-door.ts` still changes: the new card is registered in
+  `EXCLUDED_FROM_ROW` with its reason, because `front-door.spec.ts` asserts
+  ring plus exclusions equals the catalog exactly.
+- A third overlapping card lands beside SONAR and RADAR, by the user's choice.
+  D-03 stands; nobody differentiates them to tidy the catalog.
+
+The plan's placeholder id `radar-points` is descriptive of the ask and not a
+D-03 differentiation. The user may rename it.
