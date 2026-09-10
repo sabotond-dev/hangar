@@ -35,10 +35,13 @@
 // of SONAR's decisions. TAKEN FROM sonar.ts VERBATIM, and named here so the
 // reuse is a statement rather than a resemblance:
 //
-//   - the arming callback, character for character: the blessed live filter
-//     `if e~=1 and e~=4 and e<9 then`, the per-contact last-cell guard s.q[i]
-//     that lets a swipe arm every cell it crosses once (11-08), and the
-//     `s.q[i]=e<9 and n` store that lets a fast tap escape it;
+//   - the arming callback, character for character: since plan 12-08 that is
+//     `local n=Q(s,i,e,x,y)if not n then return end`, the one call that
+//     replaced the blessed live filter, the per-contact last-cell guard and
+//     the fast-tap escape store - all three of which moved intact into
+//     src/lib/catalog/library.ts and gained hysteresis on the way. The reuse
+//     is still character for character, and both entries were re-fitted in the
+//     same plan for that reason;
 //   - the layer split: armed cells on layer 1 in a fixed pink, the wave on
 //     layer 2 in @SWEEPC, and the centre on layer 0 in @SWEEPC, always lit,
 //     because layer 0 is the one layer neither the wave nor a touch writes
@@ -141,17 +144,25 @@
 // after `padReady()`, at the corner lua-entries.sweep.spec.ts actually gates:
 //
 //                            Setup   free   Timer   free
-//   RGB444 picker corner       579    329     281    627
-//   at the defaults            579    329     279    629
-//   all-shortest declared      569    339     278    630
+//   RGB444 picker corner       489    419     288    620
+//   at the defaults            489    419     286    622
+//   all-shortest declared      471    437     285    623
+//
+// RE-MEASURED BY PLAN 12-08, which is when they moved: the three rows above
+// read 579 / 281, 579 / 279 and 569 / 278 while the cell guard was inlined
+// here. Handing it to the library's `Q` returned 90 characters to the Setup and
+// `X(s,20)` took 7 from the Timer.
 //
 // Both events are fixed points of compressScript at every corner and pass
-// checkSyntax. SONAR's 559 / 282 at the same corner is the reference the plan
+// checkSyntax. SONAR's 469 / 289 at the same corner is the reference the plan
 // named; this card is twenty over it on the Setup - the compass walk with its
 // octave wrap, the half-bucket offset, and a three-digit default period - and
-// one under on the Timer. The first sketch, indexing an eight-entry table
-// straight by direction, measured 560 / 281 and was withdrawn on the word
-// table rather than on cost.
+// one under on the Timer. THE GAP IS UNCHANGED BY 12-08 and that is a check
+// rather than a coincidence: both entries lost the same 90 characters and
+// gained the same 7, because they carried the same guard. The first sketch,
+// indexing an eight-entry table straight by direction, measured 560 / 281
+// against the pre-12-08 shape and was withdrawn on the word table rather than
+// on cost.
 //
 // ---------------------------------------------------------------------------
 // THE TRAPS THIS ENTRY CONTAINS
@@ -170,24 +181,81 @@
 //     re-arms every subsequent one.
 //   - THE DECAY PAIR IS 252 / 250 / 42. decay-idiom.spec.ts holds the
 //     arithmetic; 255 never lands on zero.
-//   - THE LIVE FILTER IS THE BLESSED SPELLING and touch-guard.spec.ts reads it.
+//   - THE LIVE FILTER IS NOT HERE ANY MORE. It is inside the library's `Q`,
+//     with the onset test and the dedup; touch-guard.spec.ts knows this body
+//     delegates and requires the call rather than excusing its absence.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP. Every channel of every @SWEEPC
 //     value is inside 0..255.
 //
+// ---------------------------------------------------------------------------
+// "NICE BUT NEEDS THE TOUCH DETECTION FRAMEWORK" - WHAT THE FRAMEWORK IS FOR
+// (plan 12-08, and the probe that decided it)
+// ---------------------------------------------------------------------------
+//
+// THE BOUNDARY BETWEEN TWO CELLS IS ONE UNIT WIDE. `71*9//128 = 4` and
+// `72*9//128 = 5`, and PROBE-RESULTS-2026-09-10.md Q2 recorded a MOTIONLESS
+// finger sending 71, 72, 71, 71, 71 at 100 Hz - so a finger anywhere near an
+// edge was read as alternating taps on two cells. On an entry that TOGGLES
+// (`s.v[n]=not s.v[n]`) that is worse than a double arm: an even number of
+// crossings leaves the cell exactly as it was, so a point placed on a line
+// could silently place and unplace itself. The bench note here is the one line
+// in the round that named the fix rather than the symptom.
+//
+// THE FIX IS HYSTERESIS AND IT LIVES IN THE LIBRARY. `Q(s,i,e,x,y)` holds a
+// contact's cell until the finger leaves it by ~3.9 raw units - a seven-value
+// overlap band, 68..74, on the probe's own boundary - and returns a cell only
+// when it changed. The end test, the onset test and the dedup are inside it, so
+// the whole guard here is `local n=Q(s,i,e,x,y)if not n then return end` and
+// `self.q={}` is gone. Re-testing `e` after the call would be doing the
+// library's job twice.
+//
+// PHASE 11 READ THE ROUND'S PRECISION COMPLAINTS AS FAST-TAP LOSS, AND THAT
+// READING WAS CORRECT FOR THE FIRMWARE AND WAS NOT THE COMPLAINT. Code 9 is a
+// real coalesced press-and-lift in the firmware source and the `e<9 and n`
+// store this entry inherited from SONAR was a real fix for it. But Q3 tapped
+// ten times as fast as a hand can and NOT ONE arrived as a 9. The fix stays -
+// it is `H[i]=e<9 and n` inside `Q` now - it is harmless, and it was never what
+// the user was reporting.
+//
+// AND A LOST LIFT IS REACHED BY `X`, NOT BY `Q` (Q6.5, Q7). `Q`'s expiry rules
+// need A PRESS - the same id pressing again, or another contact landing on the
+// held cell. Q6.5 recorded four of five contacts never sending their code 5
+// after a five-finger chord; a contact that goes quiet and is NEVER PRESSED
+// AGAIN holds its cell for the rest of the session and every future press by
+// that id is measured against it. Only the Timer-side sweep reaches it, so the
+// Timer calls `X(s,20)`, seven characters after the `local s=self` it already
+// opens with. TWENTY CALLS IS AN INTERVAL, NOT A DURATION: at @PERIOD's default
+// of 140 ms it is 2.8 s, and across the knob it runs 1.6 s (80 ms) to 5.6 s
+// (280 ms) - the longest window of the four entries re-fitted in 12-08, because
+// this is the slowest ping. It is a starting value the bench row in plan 12-12
+// may move, and it is safe to ship unbenched because this entry holds no note
+// PER CONTACT: the pending list s.z is keyed by the TIMER's own fire, not by a
+// finger, so an expiry forgets a stale cell and cannot cut a sounding note.
+//
+// WHAT THIS ENTRY DOES NOT TAKE FROM THE LIBRARY. NOT `R` - the release
+// convention is for entries that hold a note per contact, and s.z is not that;
+// `E` calls `R` only if the entry defined one, and none is defined here. NOT
+// `F` - a "light the finger's cell" helper DOES NOT EXIST: it shipped in the
+// planner's sketch with no caller and 12-07 dropped it, because an armed cell
+// toggling under the finger already is the feedback.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 579, Timer 279. THE LUA CARRIES NO
-// COMMENTS beyond the nine-character event marker, because compressScript does
-// not strip them.
+// against the pinned minifier: Setup 489, Timer 286; at the RGB444 picker
+// corner - the corner the 908 gate reads - 489 / 288, leaving 419 free on the
+// Setup and 620 on the Timer. Plan 12-08 moved both: -90 on the Setup where the
+// inlined guard left for the library, +7 on the Timer where `X(s,20)` arrived.
+// THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
+// compressScript does not strip them.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.a={}self.o={}self.v={}self.q={}local t={@SCALE}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=math.max(math.abs(n%9-4),math.abs(n//9-4))local b=(math.atan(n//9-4,n%9-4)*41//1+16)%256//32 self.o[n]=@ROOT+t[b%#t+1]+b//#t*12 end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local n=x*9//128+y*9//128*9 if s.q[i]==n then return end s.q[i]=e<9 and n s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
+  "--[[@cb]]self.a={}self.o={}self.v={}local t={@SCALE}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=math.max(math.abs(n%9-4),math.abs(n//9-4))local b=(math.atan(n//9-4,n%9-4)*41//1+16)%256//32 self.o[n]=@ROOT+t[b%#t+1]+b//#t*12 end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@PERIOD)local s=self local k=(s.k or 0)%8 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
+  "--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local k=(s.k or 0)%8 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 

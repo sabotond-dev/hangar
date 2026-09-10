@@ -23,16 +23,25 @@
 // ACCEPTING MOVE ALONE WOULD HAVE BEEN WORSE THAN THE COMPLAINT, and that is
 // what the guard is for. A MOVE arrives every 10 ms, so a finger resting inside
 // one cell would toggle that step back and forth at 100 Hz - measured
-// unguarded at 209 changes over 209 further samples. self.q[i] remembers the
-// CELL the contact last touched and swallows a repeat; the contact-end branch
-// clears it so a fresh press on the same cell is not eaten.
+// unguarded at 209 changes over 209 further samples. The dedup remembers the
+// CELL the contact last touched and swallows a repeat, and a contact end clears
+// it so a fresh press on the same cell is not eaten.
 //
-// THE GUARD IS KEYED ON THE PAD CELL, NOT THE RING POSITION, and it is stored
-// BEFORE the self.i[m] lookup rather than after. Both halves matter. self.i
-// maps a pad cell to d*32+t and is nil for the centre and the outermost square,
-// so a ring position is not a unique name for a place on the pad; and storing
-// it before the lookup means a finger that wanders off the ring and comes back
-// onto the SAME ring cell arms it again, because it genuinely crossed it twice.
+// THE DEDUP IS NO LONGER THIS ENTRY'S TO WRITE (plan 12-08). Everything in the
+// paragraph above is still exactly what happens; the code that does it is now
+// `Q(s,i,e,x,y)` in src/lib/catalog/library.ts, called as the first statement
+// of the callback, and both the 126-character inlined guard and the `self.q={}`
+// table it needed are gone. See the 12-08 paragraph below for the reason the
+// move was worth making, which is not the 90 characters it saves.
+//
+// THE KEY IS THE PAD CELL, NOT THE RING POSITION, and it is remembered BEFORE
+// the self.i[m] lookup rather than after. Both halves matter and both survive
+// the move to the library. self.i maps a pad cell to d*32+t and is nil for the
+// centre and the outermost square, so a ring position is not a unique name for
+// a place on the pad; and `Q` remembers the CELL, unconditionally, before this
+// callback has looked at self.i at all - so a finger that wanders off the ring
+// and comes back onto the SAME ring cell arms it again, because it genuinely
+// crossed it twice.
 //
 // WHAT THE REVERSAL COSTS, said plainly: a swipe that crosses a cell twice
 // toggles it twice. That is correct for a toggle and it is NOT what a paint
@@ -42,17 +51,56 @@
 // shipped as an interpretation. It is also cheaper: CONSOLE measured the
 // set-rather-than-toggle shape at 37 characters less than the dedup in 11-07.
 //
-// EVERY EVENT IS DEDUPED, AND THE FAST TAP ESCAPES BY STORING NOTHING. The
-// store is "s.q[i]=e<9 and m", not the bare "s.q[i]=m" plan 11-08 sketched,
-// and the eight characters that costs buy a real fix. Event code 9 is a whole
-// contact in ONE message with no lift after it, so the contact-end branch never
-// runs for a tap and under the bare store the SECOND fast tap on the same cell
-// would find s.q[i] still holding it and be swallowed. Measured on the bare
-// shape: three fast taps on one cell read 0 -> 255 -> 255 -> 255, a step that
-// can be armed from the pad and never disarmed. "e<9 and m" evaluates to
-// false for a tap, and false is never equal to a cell index, so the next tap
-// always lands. src/lib/catalog/touch-guard.spec.ts holds the event-code
-// convention the clear is written in.
+// ---------------------------------------------------------------------------
+// "STILL NOT PRECISE" WAS THE CELL BOUNDARY, AND THE LIBRARY IS THE ANSWER
+// (plan 12-08, and the probe that decided it)
+// ---------------------------------------------------------------------------
+//
+// THE BOUNDARY BETWEEN TWO CELLS IS ONE UNIT WIDE, and a still finger wobbles
+// one unit on every 10 ms sample. `71*9//128 = 4` and `72*9//128 = 5`, and
+// PROBE-RESULTS-2026-09-10.md Q2 recorded a motionless finger sending
+// 71, 72, 71, 71, 71 - so a finger anywhere near an edge was read as alternating
+// taps on TWO cells, and this entry's dedup dutifully toggled both. That is the
+// bench line "EUCLID: still not precise", and it is a measurement rather than
+// an interpretation.
+//
+// THE FIX IS HYSTERESIS AND IT LIVES IN THE LIBRARY. `Q` holds the cell a
+// contact is on until the finger leaves it by ~3.9 raw units - a seven-value
+// overlap band, 68..74, on the probe's own boundary - and returns a cell ONLY
+// when it changed. The callback's whole guard is now `local m=Q(s,i,e,x,y)if
+// not m then return end`: the end test, the onset test and the dedup are all
+// inside it, and re-testing `e` here would be doing the library's job twice.
+//
+// PHASE 11 READ THE SAME COMPLAINT AS FAST-TAP LOSS, AND THAT READING WAS
+// CORRECT FOR THE FIRMWARE AND WAS NOT THE COMPLAINT. Code 9 is a real
+// coalesced press-and-lift in the firmware source and 11-08's `e<9 and m` store
+// was a real fix for it - measured on the bare shape, three fast taps read
+// 0 -> 255 -> 255 -> 255. But Q3 tapped ten times as fast as a hand can and NOT
+// ONE arrived as a 9, so nothing a human does reaches that path. The fix stays
+// (it is inside `Q` now, as `H[i]=e<9 and n`), it is harmless, and it was never
+// what the user was reporting.
+//
+// AND A LOST LIFT IS REACHED BY `X`, NOT BY `Q` (Q6.5, Q7). `Q`'s own expiry
+// rules need A PRESS: a re-press by the same id, or another contact landing on
+// the held cell. Q6.5 recorded four of five contacts never sending their code 5
+// after a five-finger chord, and Q7 a palm leaving phantoms - a contact that
+// goes quiet and is NEVER PRESSED AGAIN holds its cell in the library's `H`
+// for the rest of the session, and every future press by that id is measured
+// against it. The only thing that reaches it is the Timer-side sweep, so the
+// Timer below calls `X(s,20)`: seven characters into a string with six hundred
+// free. TWENTY CALLS IS AN INTERVAL, NOT A DURATION - at @TEMPO's default of
+// 110 ms it is 2.2 s, and across the knob it runs 1.4 s (70 ms) to 4.8 s
+// (240 ms). It is a starting value; the bench row in plan 12-12 is what moves
+// it, and it is safe to ship unbenched here because this entry holds no note
+// per contact - an early expiry forgets a stale cell, it does not cut a note.
+//
+// WHAT THIS ENTRY DOES NOT TAKE FROM THE LIBRARY, so the next reader does not
+// add it. NOT `R`: the release convention exists for entries that hold a note
+// per contact, and this one holds nothing - `E` calls `R` only if the entry
+// defined one, and an expiry here has nothing to release. NOT `F`: a "light the
+// finger's cell" helper was in the planner's sketch and DOES NOT EXIST - it
+// shipped with no caller and 12-07 dropped it, because an armed cell toggling
+// under the finger already IS the feedback.
 //
 // MIDI SYNC IS NOT BUILT, AND IT IS NAMED HERE RATHER THAN DROPPED. The bench
 // asked to "MIDI sync the circles"; two gates are shut and the second does not
@@ -105,9 +153,10 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 786 characters, Timer 226, both fixed
+// against the pinned minifier: Setup 696 characters, Timer 233, both fixed
 // points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
-// GATE READS IS 790 / 230, leaving 118 free, and it is the RGB444 PICKER corner
+// GATE READS IS 700 / 237, leaving 208 free on the Setup and 671 on the Timer,
+// and it is the RGB444 PICKER corner
 // (D-06), not the all-longest corner of the declared palettes - since plan
 // 10-08 the sweep writes any colour a picker can, and for this entry the two
 // corners happen to coincide because @RINGC already declares 255,255,255. Plan
@@ -127,10 +176,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glc(a,2,@RINGC,1)glp(a,2,0)end self.c={}self.p={}self.i={}self.q={}local h={@PULSES}for d=1,3 do local n=d*8 local u={}local v={}for t=0,n-1 do local q=t//(d*2)local w=t%(d*2)local a,b if q==0 then a,b=d,w-d elseif q==1 then a,b=d-w,d elseif q==2 then a,b=-d,d-w else a,b=w-d,-d end local m=a+4+(b+4)*9 u[t]=m self.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end self.c[d]=u self.p[d]=v end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local m=x*9//128+y*9//128*9 if s.q[i]==m then return end s.q[i]=e<9 and m local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,s.c[d][t]),1,s.p[d][t]and 255 or 0)end gtt(0,@TEMPO)";
+  "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glc(a,2,@RINGC,1)glp(a,2,0)end self.c={}self.p={}self.i={}local h={@PULSES}for d=1,3 do local n=d*8 local u={}local v={}for t=0,n-1 do local q=t//(d*2)local w=t%(d*2)local a,b if q==0 then a,b=d,w-d elseif q==1 then a,b=d-w,d elseif q==2 then a,b=-d,d-w else a,b=w-d,-d end local m=a+4+(b+4)*9 u[t]=m self.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end self.c[d]=u self.p[d]=v end self.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,s.c[d][t]),1,s.p[d][t]and 255 or 0)end gtt(0,@TEMPO)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@TEMPO)local s=self local k=(s.k or 0)%24 s.k=k+1 for d=1,3 do local t=k%(d*8)local a=glag(0,s.c[d][t])glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,@NOTE+d*2,0,0)if s.p[d][t]then s:gms(@CH,144,@NOTE+d*2,100,0)end end";
+  "--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=(s.k or 0)%24 s.k=k+1 for d=1,3 do local t=k%(d*8)local a=glag(0,s.c[d][t])glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,@NOTE+d*2,0,0)if s.p[d][t]then s:gms(@CH,144,@NOTE+d*2,100,0)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -150,7 +199,10 @@ export const EUCLID: CatalogEntry = {
   // Six knobs - the cap (D-12) - each one literal token substitution over the
   // shared widget vocabulary the compiler-driven cards use (TUNE-01). The
   // default of every knob is the INDEX of the value that reproduces the
-  // canonical text, so renderLua at the defaults is the measured 702/226.
+  // canonical text, so renderLua at the defaults is the measured 696/233.
+  // (This line read 702/226 from plan 08-06 until plan 12-08 re-measured it;
+  // it was already two re-cuts stale, which is why the header quotes the
+  // corner the 908 gate actually reads beside it.)
   knobs: [
     {
       id: "tempo",

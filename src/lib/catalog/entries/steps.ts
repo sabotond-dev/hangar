@@ -67,30 +67,74 @@
 // ACCEPTING MOVE ALONE WOULD HAVE BEEN WORSE THAN THE COMPLAINT. A MOVE
 // arrives every 10 ms, so a finger resting inside one cell would arm and disarm
 // it at 100 Hz - measured unguarded at 209 changes over 209 further samples.
-// self.q[i] remembers the cell the contact last touched and swallows a repeat;
-// the contact-end branch clears it so a fresh press on the same cell is not
-// eaten.
+// The dedup remembers the cell the contact last touched and swallows a repeat,
+// and a contact end clears it so a fresh press on the same cell is not eaten.
 //
-// EVERY EVENT IS DEDUPED, AND THE FAST TAP ESCAPES BY STORING NOTHING. The
-// store is "s.q[i]=e<9 and a", not the bare "s.q[i]=a" plan 11-08 sketched,
-// and the eight characters that costs buy a real fix. Event code 9 is a whole
-// contact in ONE message with no lift after it, so the contact-end branch never
-// runs for a tap and under the bare store the SECOND fast tap on the same cell
-// would find s.q[i] still holding it and be swallowed. Measured on the bare
-// shape: three fast taps on one cell read 0 -> 255 -> 255 -> 255, a step that
-// can be armed from the pad and never disarmed. "e<9 and a" evaluates to
-// false for a tap, and false is never equal to a cell index, so the next tap
-// always lands. src/lib/catalog/touch-guard.spec.ts holds the event-code
-// convention the clear is written in.
+// THE DEDUP IS NO LONGER THIS ENTRY'S TO WRITE (plan 12-08). The behaviour above
+// is unchanged; the code is now `Q(s,i,e,x,y)` in src/lib/catalog/library.ts,
+// called as the callback's first statement, and the 146-character inlined guard
+// and its `self.q={}` table are gone.
 //
-// THE GUARD'S KEY IS THE 9x9 PAD CELL c+r*9, NOT THE 8x8 PATTERN INDEX c+r*8,
-// AND THAT IS THE ONE PLACE THIS ENTRY DIFFERS FROM ITS TWO SIBLINGS. The
-// pattern index is only defined for c <= 7 and r <= 7; extended over the whole
-// pad it ALIASES - c=8,r=0 and c=0,r=1 are both 8 - so a finger that swiped
-// down the dark ninth column and then crossed into cell (0,1) would find its
-// own stale key waiting and lose the arm. c+r*9 is unique over all 81 cells,
-// and it is the value glp already needs, so keying on it costs nothing and
-// saves the second expression.
+// THE KEY IS THE 9x9 PAD CELL c+r*9, NOT THE 8x8 PATTERN INDEX c+r*8, AND THAT
+// IS THE ONE PLACE THIS ENTRY DIFFERS FROM ITS THREE SIBLINGS. The pattern index
+// is only defined for c <= 7 and r <= 7; extended over the whole pad it ALIASES
+// - c=8,r=0 and c=0,r=1 are both 8 - so a finger that swiped down the dark ninth
+// column and then crossed into cell (0,1) would find its own stale key waiting
+// and lose the arm. c+r*9 is unique over all 81 cells, and it is the value glp
+// already needs.
+//
+// THAT SURVIVES THE MOVE, AND IT IS WHY THE 8x8 GUARD RUNS AFTER THE CALL
+// RATHER THAN BEFORE IT. `Q` hit-tests the 9x9 pad and returns a 9x9 cell, so
+// the hysteresis is measured in PAD cells - which is the only frame in which it
+// is meaningful, because the boundary being defended is a physical line on the
+// glass. `c` and `r` are then recomputed from the returned cell as `a%9` and
+// `a//9`, the ninth column and bottom row still return early, and the pattern
+// index c+r*8 is derived last. Putting the 8x8 test in front of `Q` would
+// silently make the ninth column a hole in the contact tracking.
+//
+// ---------------------------------------------------------------------------
+// "SAME AS THE OTHER SEQUENCERS" WAS THE CELL BOUNDARY (plan 12-08)
+// ---------------------------------------------------------------------------
+//
+// THE BOUNDARY BETWEEN TWO CELLS IS ONE UNIT WIDE. `71*9//128 = 4` and
+// `72*9//128 = 5`, and PROBE-RESULTS-2026-09-10.md Q2 recorded a MOTIONLESS
+// finger sending 71, 72, 71, 71, 71 at 100 Hz - so a finger near an edge was
+// read as alternating taps on two cells and this entry armed and disarmed both.
+// The bench line here is "STEPS: same as the other sequencers", against EUCLID's
+// "still not precise", and that is the mechanism behind all of them.
+//
+// THE FIX IS HYSTERESIS AND IT LIVES IN THE LIBRARY. `Q` holds a contact's cell
+// until the finger leaves it by ~3.9 raw units - a seven-value overlap band,
+// 68..74, on the probe's own boundary - and returns a cell only when it changed.
+// The end test, the onset test and the dedup are all inside it; re-testing `e`
+// here would be doing the library's job twice.
+//
+// PHASE 11 READ THIS COMPLAINT AS FAST-TAP LOSS, AND THAT READING WAS CORRECT
+// FOR THE FIRMWARE AND WAS NOT THE COMPLAINT. Code 9 is a real coalesced
+// press-and-lift in the firmware source and 11-08's `e<9 and a` store was a real
+// fix for it - measured on the bare shape, three fast taps read
+// 0 -> 255 -> 255 -> 255. But Q3 tapped ten times as fast as a hand can and NOT
+// ONE arrived as a 9. The fix stays (it is `H[i]=e<9 and n` inside `Q` now), it
+// is harmless, and it was never what the user was reporting.
+//
+// AND A LOST LIFT IS REACHED BY `X`, NOT BY `Q` (Q6.5, Q7). `Q`'s expiry rules
+// need A PRESS - a re-press by the same id, or another contact landing on the
+// held cell. Q6.5 recorded four of five contacts never sending their code 5
+// after a five-finger chord; a contact that goes quiet and is never pressed
+// again holds its cell for the rest of the session and every future press by
+// that id is measured against it. Only the Timer-side sweep reaches it, so the
+// Timer below calls `X(s,20)`. TWENTY CALLS IS AN INTERVAL, NOT A DURATION - at
+// @TEMPO's default of 120 ms it is 2.4 s, and across the knob it runs 1.2 s
+// (60 ms) to 4.0 s (200 ms). It is a starting value the bench row in plan 12-12
+// may move, and it is safe to ship unbenched because this entry holds no note
+// per contact: an early expiry forgets a stale cell, it does not cut a note.
+//
+// WHAT THIS ENTRY DOES NOT TAKE FROM THE LIBRARY. NOT `R` - the release
+// convention is for entries that hold a note per contact, and an expiry here
+// has nothing to release; `E` calls `R` only if the entry defined one. NOT `F` -
+// a "light the finger's cell" helper DOES NOT EXIST: it shipped in the planner's
+// sketch with no caller and 12-07 dropped it, because a cell toggling under the
+// finger already is the feedback.
 //
 // WHAT THE REVERSAL COSTS: a swipe that crosses a cell twice toggles it twice,
 // so dragging back over your own stroke erases it. That is correct for a toggle
@@ -112,11 +156,13 @@
 //     against it rather than guessed.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP. 260 renders as 4. Every channel of
 //     every @ARMC and @SWEEPC value is inside 0..255 by construction.
-//   - EVENT CODES. The guard admits MOVE - "e~=1 and e~=4 and e<9 then
-//     s.q[i]=nil return" - which is the LIVE spelling of the class-B
-//     convention, and e == 5 still appears nowhere: a handler that tested for
-//     it would leak on a fast tap, which arrives as code 9 with no separate
-//     lift. src/lib/catalog/touch-guard.spec.ts holds the convention.
+//   - EVENT CODES. This entry no longer reads one. `Q` carries the LIVE
+//     spelling of the class-B convention and the onset test, and `e` is passed
+//     straight through to it; e == 5 appears nowhere here and nowhere in the
+//     library, because a handler that tested for it would leak on a fast tap,
+//     which arrives as code 9 with no separate lift.
+//     src/lib/catalog/touch-guard.spec.ts holds the convention and knows this
+//     body delegates - see its non-vacuity arm.
 //   - glp IS NEVER CALLED WITH A NEGATIVE PHASE. glp(n,l,-1) does nothing on
 //     ZONA; every phase here is an explicit 0 or 255.
 //   - NO KEEPER IS WRITTEN ON LAYER 1 AT ALL, and that is deliberate. The
@@ -136,19 +182,28 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 473 characters, Timer 251, both fixed
+// against the pinned minifier: Setup 388 characters, Timer 258, both fixed
 // points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
-// GATE READS IS 479 / 253, leaving 429 free of 908 on the Setup and 655 on the
-// Timer, and the all-shortest corner a picker can reach is 466 / 250.
+// GATE READS IS 394 / 260, leaving 514 free of 908 on the Setup and 648 on the
+// Timer, and the all-shortest corner a picker can reach is 381 / 257. Plan
+// 12-08 moved all six of those numbers: -85 on the Setup where the inlined
+// guard left for the library, +7 on the Timer where `X(s,20)` arrived.
 //
 // THAT CORNER IS NOT THE ONE THIS HEADER USED TO QUOTE, and the correction is
 // plan 11-07's finding applied here. It read "391 / 253, leaving 517 free" -
 // the all-longest corner of the DECLARED PALETTES. Since plan 10-08 the sweep
 // writes any colour an RGB444 picker can (D-06), and @ARMC's longest declared
 // literal is the eight-character "30,30,30" against the picker's eleven, so the
-// binding corner was 394, not 391, and the entry had 514 free before this plan
+// binding corner was 394, not 391, and the entry had 514 free before that plan
 // rather than 517. Fifteen other hand-authored entries are still unchecked for
 // the same error; that is 11-16's row (f).
+//
+// THE 394 IN THAT PARAGRAPH AND THE 394 IN THE ONE ABOVE ARE A COINCIDENCE,
+// and it is called out because two identical numbers eleven lines apart look
+// like a copy. 11-07 measured 394 BEFORE 11-08 added the inlined swipe guard,
+// which took the corner to 479; 12-08 handed that guard to the library and it
+// came back to 394. The entry costs today what it cost two plans ago, having
+// gained a per-contact dedup, hysteresis and an expiry sweep in between.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // TWO SPACES WERE MEASURED OUT OF THE SETUP, not designed out. The readable
@@ -165,10 +220,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.p={}self.q={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local c=x*9//128 local r=y*9//128 local a=c+r*9 if s.q[i]==a then return end s.q[i]=e<9 and a if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)";
+  "--[[@cb]]self.p={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@TEMPO)local s=self local k=s.k%8 s.k=k+1 local q=(k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end";
+  "--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=s.k%8 s.k=k+1 local q=(k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 

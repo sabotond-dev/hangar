@@ -374,15 +374,56 @@ describe("the fast-tap guard", () => {
     // NON-VACUITY, derived rather than hard-coded: every entry that installs a
     // touch callback must have yielded at least one event-code chain. A walk
     // that read nothing would pass every assertion above by finding nothing.
+    //
+    // UNLESS IT DELEGATES THE EVENT-CODE TEST TO THE TOUCH LIBRARY, AND THAT IS
+    // NOT A SKIP (plan 12-08). EUCLID, STEPS, RADAR POINTS and SONAR used to
+    // open their callbacks with the LIVE spelling and then dedup on a cell they
+    // computed themselves; all four now open with `Q(s,i,e,x,y)` and carry no
+    // event-code comparison of their own, because the library's `Q` is where
+    // the end test and the onset test moved. A body in that shape is REQUIRED
+    // to carry the call - the assertion below is the same non-vacuity question
+    // asked of a different observable, not an exemption from it - and the
+    // library's own chains are gated where the library lives: `library.spec.ts`
+    // asserts ZERO "contact ended" sites in the string and exactly one onset
+    // written as the blessed spelling.
+    //
+    // WHY THIS IS NOT SPELLED FROM FRAGMENTS like every needle above: the
+    // fragment rule exists because this file's prose and failure messages
+    // necessarily contain the event-code text they FORBID, and a gate that
+    // matches its own source is a gate nobody can edit. This needle is text the
+    // entries are REQUIRED to contain, so a self-match would be a false GREEN
+    // on this file rather than a false red on an entry - and this file is not
+    // in the corpus either way.
+    const LIBRARY_CELL_CALL = "Q(s,i,e,x,y)";
+    let callbacks = 0;
+    let delegated = 0;
     for (const body of BODIES) {
       if (!body.text.includes(TOUCH_CB)) continue;
+      callbacks += 1;
+      if (body.chains.length > 0) continue;
+      delegated += 1;
       expect(
-        body.chains.length,
-        `${body.entry.id}.${body.event} installs a touch callback and the ` +
-          "scan found no event-code comparison in it - the walk is not reading " +
-          "what it claims to read",
-      ).toBeGreaterThan(0);
+        body.text,
+        `${body.entry.id}.${body.event} installs a touch callback, the scan ` +
+          "found no event-code comparison in it, and it does not call the " +
+          "touch library either - so either the walk is not reading what it " +
+          "claims to read, or an entry is acting on a raw event code with no " +
+          "guard at all",
+      ).toContain(LIBRARY_CELL_CALL);
     }
+    // BOUNDED FROM BOTH ENDS, AND NEITHER BOUND IS A CATALOG COUNT. At least
+    // one entry delegates, so the arm above is not dead code; at least one
+    // still carries its own chain, so a walk that had stopped reading could not
+    // hide by putting every body in the delegating arm. Waves 8 to 11 add
+    // callers of the library without moving either number, which is the point:
+    // a literal four here would be a count of the catalog wearing the costume
+    // of an invariant.
+    expect(
+      [delegated > 0, delegated < callbacks],
+      "some entries delegate the event-code test to the touch library and " +
+        `some still write it themselves - ${delegated} of ${callbacks} ` +
+        "touch-callback bodies delegate",
+    ).toEqual([true, true]);
     expect(
       examined,
       "the scan found 'contact ended' guards to check",

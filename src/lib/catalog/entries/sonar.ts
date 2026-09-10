@@ -48,21 +48,72 @@
 // ACCEPTING MOVE ALONE WOULD HAVE BEEN WORSE THAN THE COMPLAINT. A MOVE
 // arrives every 10 ms, so a finger resting inside one cell would arm and disarm
 // it at 100 Hz - measured unguarded at 209 changes over 209 further samples.
-// self.q[i] remembers the pad cell the contact last touched and swallows a
-// repeat; the contact-end branch clears it so a fresh press on the same cell is
-// not eaten.
+// The dedup remembers the pad cell the contact last touched and swallows a
+// repeat, and a contact end clears it so a fresh press on the same cell is not
+// eaten.
 //
-// EVERY EVENT IS DEDUPED, AND THE FAST TAP ESCAPES BY STORING NOTHING. The
-// store is "s.q[i]=e<9 and n", not the bare "s.q[i]=n" plan 11-08 sketched,
-// and the eight characters that costs buy a real fix. Event code 9 is a whole
-// contact in ONE message with no lift after it, so the contact-end branch never
-// runs for a tap and under the bare store the SECOND fast tap on the same cell
-// would find s.q[i] still holding it and be swallowed. Measured on the bare
-// shape: three fast taps on one cell read 0 -> 255 -> 255 -> 255, a step that
-// can be armed from the pad and never disarmed. "e<9 and n" evaluates to
-// false for a tap, and false is never equal to a cell index, so the next tap
-// always lands. src/lib/catalog/touch-guard.spec.ts holds the event-code
-// convention the clear is written in.
+// ---------------------------------------------------------------------------
+// THE DEDUP IS NO LONGER THIS ENTRY'S TO WRITE, AND SONAR WAS RE-FITTED WITH
+// THE THREE ENTRIES THE BENCH NAMED RATHER THAN BECAUSE IT WAS NAMED
+// (plan 12-08)
+// ---------------------------------------------------------------------------
+//
+// THIS ENTRY CARRIED EUCLID'S AND RADAR POINTS' INLINED GUARD CHARACTER FOR
+// CHARACTER, and the bench round that produced "EUCLID: still not precise",
+// "STEPS: same as the other sequencers" and "RADAR POINTS: needs the touch
+// detection framework" did not mention SONAR. The guard did not care: the same
+// 126 characters were here, doing the same thing, with the same defect. The
+// plan-check that found it re-fitted four entries instead of three. THE DEFECT
+// IS WORSE ON A TOGGLE THAN ON AN ARM, which is what this entry and RADAR
+// POINTS are: `s.v[n]=not s.v[n]` run an EVEN number of times leaves the cell
+// exactly as it was, so a boundary finger could arm a cell and silently disarm
+// it again while every count in a test looked right. The test that pins this
+// asserts the cell's FINAL STATE is on, not just that one arm happened.
+//
+// THE BOUNDARY BETWEEN TWO CELLS IS ONE UNIT WIDE. `71*9//128 = 4` and
+// `72*9//128 = 5`, and PROBE-RESULTS-2026-09-10.md Q2 recorded a MOTIONLESS
+// finger sending 71, 72, 71, 71, 71 - a one-unit wobble flips the cell, so a
+// finger anywhere near an edge is read as alternating taps on two cells.
+//
+// THE FIX IS HYSTERESIS AND IT LIVES IN THE LIBRARY. `Q(s,i,e,x,y)` in
+// src/lib/catalog/library.ts holds a contact's cell until the finger leaves it
+// by ~3.9 raw units - a seven-value overlap band, 68..74, on the probe's own
+// boundary - and returns a cell only when it changed. The end test, the onset
+// test and the dedup are all inside it, so this callback's whole guard is
+// `local n=Q(s,i,e,x,y)if not n then return end` and `self.q={}` is gone.
+// Re-testing `e` here would be doing the library's job twice.
+//
+// PHASE 11 READ "NOT PRECISE" AS FAST-TAP LOSS, AND THAT READING WAS CORRECT
+// FOR THE FIRMWARE AND WAS NOT THE COMPLAINT. Code 9 is a real coalesced
+// press-and-lift and 11-08's `e<9 and n` store was a real fix for it - measured
+// on the bare shape, three fast taps read 0 -> 255 -> 255 -> 255. But Q3 tapped
+// ten times as fast as a hand can and NOT ONE arrived as a 9. The fix stays (it
+// is `H[i]=e<9 and n` inside `Q` now), it is harmless, and it was never the
+// complaint.
+//
+// AND A LOST LIFT IS REACHED BY `X`, NOT BY `Q` (Q6.5, Q7). `Q`'s expiry rules
+// need A PRESS - the same id pressing again, or another contact landing on the
+// held cell. Q6.5 recorded four of five contacts never sending their code 5
+// after a five-finger chord, and Q7 a palm leaving phantoms; a contact that
+// goes quiet and is NEVER PRESSED AGAIN holds its cell for the rest of the
+// session and every future press by that id is measured against it. Only the
+// Timer-side sweep reaches it, so the Timer calls `X(s,20)` - seven characters
+// after the `local s=self` it already opens with, which is cheaper than the ten
+// `X(self,20)` would cost in front of that line. TWENTY CALLS IS AN INTERVAL,
+// NOT A DURATION: at @PERIOD's default of 70 ms it is 1.4 s, and across the
+// knob it runs 0.8 s (40 ms) to 3.2 s (160 ms) - the shortest window of the
+// four re-fitted entries, because this is the fastest sweep. It is a starting
+// value the bench row in plan 12-12 may move, and it is safe to ship unbenched
+// because this entry holds no note per contact: an early expiry forgets a stale
+// cell, it does not cut a note.
+//
+// WHAT THIS ENTRY DOES NOT TAKE FROM THE LIBRARY. NOT `R` - the release
+// convention is for entries holding a note per contact, and an expiry here has
+// nothing to release; `E` calls `R` only if the entry defined one. NOT `F` - a
+// "light the finger's cell" helper DOES NOT EXIST: it shipped in the planner's
+// sketch with no caller and 12-07 dropped it, because a cell toggling under the
+// finger already is the feedback. src/lib/catalog/touch-guard.spec.ts holds the
+// event-code convention and knows this body delegates.
 //
 // WHAT THE REVERSAL COSTS: a swipe that crosses a cell twice toggles it twice,
 // so dragging back over your own stroke erases it. That is correct for a toggle
@@ -150,9 +201,11 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 558 characters, Timer 279, both fixed
+// against the pinned minifier: Setup 468 characters, Timer 286, both fixed
 // points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
-// GATE READS IS 559 / 282, leaving 349 free, and it is the RGB444 PICKER corner
+// GATE READS IS 469 / 289, leaving 439 free on the Setup and 619 on the Timer
+// (plan 12-08: -90 on the Setup where the inlined guard left for the library,
+// +7 on the Timer where `X(s,20)` arrived), and it is the RGB444 PICKER corner
 // (D-06) rather than the all-longest corner of the declared palettes - the two
 // coincide here only because @SWEEPC already declares 255,255,255, and plan
 // 11-07 measured them 21 characters apart on CONSOLE. src/lib/catalog/
@@ -165,10 +218,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.a={}self.o={}self.v={}self.q={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then s.q[i]=nil return end local n=x*9//128+y*9//128*9 if s.q[i]==n then return end s.q[i]=e<9 and n s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
+  "--[[@cb]]self.a={}self.o={}self.v={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@PERIOD)local s=self local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
+  "--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
