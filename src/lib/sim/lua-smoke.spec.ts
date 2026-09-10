@@ -42,6 +42,7 @@ import { describe, expect, it } from "vitest";
 import { CELLS, PRESETS, compile } from "../../vendor/botor/_pad";
 import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
+import { TOUCH_LIBRARY } from "../catalog/library";
 import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, renderLua } from "./lua-pad-sim";
@@ -5383,4 +5384,433 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
   }, 120000);
+
+  // -------------------------------------------------------------------------
+  // THE TOUCH LIBRARY, IN A REAL LUA VM, THROUGH THE HOST'S `system` OPTION.
+  //
+  // These two drive `src/lib/catalog/library.ts` exactly as the module will run
+  // it: the library goes in as the SYSTEM Setup and the probe below is the
+  // touch Setup that calls it by name, which is the seam
+  // `PROBE-RESULTS-2026-09-10.md` decided and 12-02 put on the wire. The probe
+  // reports through MIDI because MIDI is the host's own ordered log: CC1
+  // carries whatever `Q` returned, CC2 carries a release through the `R`
+  // convention, and the absence of a CC1 IS the nil.
+  //
+  // Everything asserted here is measured in wasmoon. Nothing in this file is
+  // hardware-verified; 12-12 hands the bench its rows.
+  // -------------------------------------------------------------------------
+
+  /** The touch Setup under test: every return and every release, as MIDI. */
+  const LIBRARY_PROBE =
+    "--[[@cb]]R=function(s,i)s:gms(1,176,2,i,0)end " +
+    "self.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)" +
+    "if m then s:gms(0,176,1,m,0)end end gtt(0,10)";
+
+  /** The Timer that sweeps, with the caller's own window. */
+  const LIBRARY_SWEEP = "--[[@cb]]gtt(0,10)X(self,20)";
+
+  /** Cell returns, in call order. */
+  const cellsOf = (midi: readonly HostMidi[]): number[] =>
+    midi.filter((m) => m.p1 === 1).map((m) => m.p2);
+
+  /** Contacts released through `R`, in call order. */
+  const releasesOf = (midi: readonly HostMidi[]): number[] =>
+    midi.filter((m) => m.p1 === 2).map((m) => m.p2);
+
+  it("holds a finger on the line between two cells, and toggles once per cell crossed", async () => {
+    // PROBE RULE 1, ON THE PROBE'S OWN NUMBERS (Q2). The user's trace was
+    // 71, 72, 71, 71, 71 from a finger that was not moving, and `71*9//128 = 4`
+    // while `72*9//128 = 5` - so the naive read flips the cell on a one-unit
+    // wobble. That is what EUCLID, STEPS and RADAR POINTS reported as "not
+    // precise", and this is the test that says it cannot happen again.
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      setup: LIBRARY_PROBE,
+    });
+    const report: string[] = [];
+    try {
+      const move = (x: number, y: number): void => {
+        host.touchMove(0, x, y);
+        host.tick();
+      };
+
+      // 1. The research's nine samples, on a finger drifting across one
+      //    boundary. The naive reading toggles three times before it settles;
+      //    the hysteresis reading changes ONCE.
+      host.touchDown(0, 14, 3);
+      host.tick();
+      const drift = [15, 14, 15, 16, 15, 20, 24, 26, 30];
+      const held: number[] = [0];
+      const naive: number[] = [Math.floor((14 * 9) / 128)];
+      for (const x of drift) {
+        const before = host.midi.length;
+        move(x, 3);
+        const changed = cellsOf(host.midi).at(-1);
+        held.push(host.midi.length > before ? changed! : held[held.length - 1]);
+        naive.push(Math.floor((x * 9) / 128));
+      }
+      report.push(`  drift x: ${[14, ...drift].join(", ")}`);
+      report.push(`  naive:   ${naive.join(", ")}`);
+      report.push(`  library: ${held.join(", ")}`);
+      expect(
+        held,
+        "the drift is read as one clean crossing, not as a toggle",
+      ).toEqual([0, 0, 0, 0, 0, 0, 1, 1, 1, 1]);
+      // NOT the research's 0,0,0,0,1,1,1,1,1,2. That figure was measured
+      // against the research's +-9 window (`<9`); the probe raised the margin
+      // to 3, which makes the window +-10 (`<11`), and at 11 units the sample
+      // at x=16 is 9 from cell 0's centre of 7 and the sample at x=30 is 9 from
+      // cell 1's centre of 21 - both INSIDE the wider band. The sequence above
+      // is what a `<11` window has to produce, and it is one crossing where the
+      // naive column has four.
+      let naiveToggles = 0;
+      for (let k = 1; k < naive.length; k += 1) {
+        if (naive[k] !== naive[k - 1]) naiveToggles += 1;
+      }
+      let heldToggles = 0;
+      for (let k = 1; k < held.length; k += 1) {
+        if (held[k] !== held[k - 1]) heldToggles += 1;
+      }
+      expect(
+        [naiveToggles, heldToggles],
+        "the hysteresis has to remove crossings, not merely move them",
+      ).toEqual([4, 1]);
+
+      // 2. THE PROBE'S OWN 71/72 BOUNDARY, and the seven-value band.
+      const second = new PadSim(blankPadState());
+      const edge = await createLuaHost({
+        sim: second,
+        system: TOUCH_LIBRARY,
+        setup: LIBRARY_PROBE,
+      });
+      try {
+        const walk = [72, 71, 72, 73, 74, 75, 74, 68, 67];
+        edge.touchDown(0, 71, 64);
+        edge.tick();
+        const cells: number[] = [40];
+        for (const x of walk) {
+          const before = edge.midi.length;
+          edge.touchMove(0, x, 64);
+          edge.tick();
+          const changed = cellsOf(edge.midi).at(-1);
+          cells.push(
+            edge.midi.length > before ? changed! : cells[cells.length - 1],
+          );
+        }
+        const columns = cells.map((cell) => cell % 9);
+        report.push(`  edge x:  ${[71, ...walk].join(", ")}`);
+        report.push(`  column:  ${columns.join(", ")}`);
+        expect(
+          columns,
+          "a finger on the line between columns 4 and 5 is read as ONE column",
+        ).toEqual([4, 4, 4, 4, 4, 4, 5, 5, 5, 4]);
+
+        // THE BAND, WRITTEN OUT. Centres are 64 and 78; the window is 11, so
+        // from column 4 the values 68..74 hold and 75 switches, and from
+        // column 5 the same 68..74 hold and 67 switches back. SEVEN VALUES,
+        // and they are enumerated rather than described.
+        const band: number[] = [];
+        for (let x = 60; x <= 80; x += 1) {
+          const fromFour = Math.abs(x - 64) < 11;
+          const fromFive = Math.abs(x - 78) < 11;
+          if (fromFour && fromFive) band.push(x);
+        }
+        report.push(`  overlap: ${band.join(", ")} (${band.length} values)`);
+        expect(band, "the overlap is seven values, 68..74").toEqual([
+          68, 69, 70, 71, 72, 73, 74,
+        ]);
+
+        // The effective margin, as an observed number rather than a claim. The
+        // naive boundary sits at 128*5/9 = 71.11; the library switches at 75
+        // going up and at 67 coming down.
+        const boundary = (128 * 5) / 9;
+        const up = 75 - boundary;
+        const down = boundary - 67;
+        report.push(
+          `  margin:  ${up.toFixed(2)} up, ${down.toFixed(2)} down, ` +
+            "against a cell half-width of 7.11",
+        );
+        expect(
+          [Math.round(up * 100) / 100, Math.round(down * 100) / 100],
+          "the effective margin is ~3.9 raw units up and ~4.1 down, against " +
+            'the probe\'s "at least 2, 3 is the working figure"',
+        ).toEqual([3.89, 4.11]);
+        expect(edge.errors, edge.errors.join(" | ")).toEqual([]);
+      } finally {
+        edge.close();
+      }
+
+      // 3. `A`, THE USER'S OWN SNIPPET: one axis per moved axis, and a DOWN
+      //    primes without sending. Its single caller is LUMEN (12-11).
+      const third = new PadSim(blankPadState());
+      const axes = await createLuaHost({
+        sim: third,
+        system: TOUCH_LIBRARY,
+        setup:
+          "--[[@cb]]self.touch_cb=function(s,i,e,x,y)A(s,i,e,x,y,16,17,0)end",
+      });
+      try {
+        axes.touchDown(0, 10, 10);
+        axes.tick();
+        expect(axes.midi, "a DOWN primes the memory and sends nothing").toEqual(
+          [],
+        );
+        axes.touchMove(0, 11, 10);
+        axes.tick();
+        axes.touchMove(0, 11, 12);
+        axes.tick();
+        const sent = axes.midi.map((m) => [m.p1, m.p2]);
+        report.push(`  per-axis: ${JSON.stringify(sent)}`);
+        expect(
+          sent,
+          "x moved alone, then y moved alone, and 127-12 = 115 is the " +
+            "snippet's own inversion and not a bug",
+        ).toEqual([
+          [16, 11],
+          [17, 115],
+        ]);
+        expect(axes.errors, axes.errors.join(" | ")).toEqual([]);
+      } finally {
+        axes.close();
+      }
+
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nTHE TOUCH LIBRARY, hysteresis and per-axis sends (plan 12-07):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 60000);
+
+  it("never trusts a lift, on the same id or another: three presses release and a quiet contact releases", async () => {
+    // PROBE RULE 2 (Q6.5, Q7). Four of five contacts never sent their code 5
+    // after a five-finger chord, and an entry that sends note-on at press and
+    // note-off at release hangs a note exactly that way. All four expiry paths
+    // are driven here, and THE SAME-ID CASE GOES FIRST because it is the case
+    // the hardware normally takes: firmware assigns the lowest free contact id,
+    // so after a lost lift the next press is usually the same id.
+    const report: string[] = [];
+    const open = async (timer?: string) => {
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        setup: LIBRARY_PROBE,
+        timer,
+      });
+      return { sim, host };
+    };
+
+    // 1. SAME ID, SAME CELL, NO LIFT. This is the one the superseded sketch
+    //    got wrong: it expired OTHER contacts on an onset and never contact `i`
+    //    itself, so the hysteresis read the new press against the stale cell,
+    //    `n == h` fired, and Q RETURNED NIL - the press vanished and the cell
+    //    stayed dead until the finger moved elsewhere.
+    {
+      const { host } = await open();
+      try {
+        host.touchDown(0, 64, 64); // cell 40
+        host.tick();
+        host.touchMove(0, 65, 64); // inside the same cell: nil, no message
+        host.tick();
+        host.touchDown(0, 65, 64); // the lift never came; press again
+        host.tick();
+        report.push(
+          `  same id, same cell: returns ${JSON.stringify(cellsOf(host.midi))}, ` +
+            `releases ${JSON.stringify(releasesOf(host.midi))}`,
+        );
+        expect(
+          cellsOf(host.midi),
+          "THE RE-PRESS MUST RETURN ITS CELL. A release without a return is " +
+            "the defect this closes: the press was swallowed, not the release",
+        ).toEqual([40, 40]);
+        // `R` fires on EVERY onset, the first press included, because Q expires
+        // contact `i` unconditionally rather than paying nine characters to ask
+        // whether it held anything. An entry's `R` must therefore be
+        // idempotent, and `library.ts` section 3 says so where CHORUS will read
+        // it.
+        expect(
+          releasesOf(host.midi),
+          "every onset releases contact 0 through R",
+        ).toEqual([0, 0]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 2. SAME ID, A DIFFERENT CELL.
+    {
+      const { host } = await open();
+      try {
+        host.touchDown(0, 64, 64); // cell 40
+        host.tick();
+        host.touchDown(0, 78, 64); // cell 41, no lift in between
+        host.tick();
+        report.push(
+          `  same id, new cell:  returns ${JSON.stringify(cellsOf(host.midi))}, ` +
+            `releases ${JSON.stringify(releasesOf(host.midi))}`,
+        );
+        expect(
+          cellsOf(host.midi),
+          "the second press returns its own cell",
+        ).toEqual([40, 41]);
+        expect(releasesOf(host.midi), "contact 0 was released twice").toEqual([
+          0, 0,
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 3. CROSS CONTACT: a press on a cell another contact still holds means
+    //    that holder is a ghost too.
+    {
+      const { host } = await open();
+      try {
+        host.touchDown(0, 64, 64);
+        host.tick();
+        host.touchDown(1, 64, 64);
+        host.tick();
+        report.push(
+          `  cross contact:      returns ${JSON.stringify(cellsOf(host.midi))}, ` +
+            `releases ${JSON.stringify(releasesOf(host.midi))}`,
+        );
+        expect(
+          cellsOf(host.midi),
+          "contact 1 gets the cell contact 0 was squatting on",
+        ).toEqual([40, 40]);
+        expect(
+          releasesOf(host.midi),
+          "contact 1's own onset expiry first, then the stale contact 0 the " +
+            "cross-contact scan found on that cell",
+        ).toEqual([0, 1, 0]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 4. THE TIMER SWEEP, with the CALLER's window - `X(self,20)`, which is
+    //    CHORUS's 20-call watchdog at 100 ms. The library holds no window of
+    //    its own; see library.ts section 5 and the bench row 12-12 asks for.
+    {
+      const { host } = await open(LIBRARY_SWEEP);
+      try {
+        host.touchDown(0, 64, 64);
+        host.tick();
+        const afterPress = host.midi.length;
+        host.run(19);
+        expect(
+          host.midi.length,
+          "a contact inside the window is not swept",
+        ).toBe(afterPress);
+        host.tick();
+        report.push(
+          `  timer sweep:        releases ${JSON.stringify(releasesOf(host.midi))} ` +
+            "after 21 X(s,20) calls",
+        );
+        expect(
+          releasesOf(host.midi),
+          "the quiet contact is released through R once the window passes",
+        ).toEqual([0, 0]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 4b. AND A CONTACT THAT KEEPS REPORTING IS NOT RELEASED. Q stamps `T[i]=C`
+    //     on every live sample, including the ones whose cell did not change,
+    //     so a finger wobbling inside one cell stays alive. Without this half
+    //     the sweep would be a two-second kill switch on every held chord.
+    {
+      const { host } = await open(LIBRARY_SWEEP);
+      try {
+        host.touchDown(0, 64, 64);
+        host.tick();
+        for (let t = 0; t < 40; t += 1) {
+          // The input has to VARY: the host change-gates the FIFO per contact
+          // on (event, x, y), so a repeated identical MOVE would be dropped
+          // before it reached the VM and this probe would be measuring the
+          // gate rather than the library.
+          host.touchMove(0, 64 + (t % 2), 64);
+          host.tick();
+        }
+        report.push(
+          `  still reporting:    releases ${JSON.stringify(releasesOf(host.midi))} ` +
+            "over 40 sweeps",
+        );
+        expect(
+          releasesOf(host.midi),
+          "a contact that keeps reporting is released once, by its own onset, " +
+            "and never by the sweep",
+        ).toEqual([0]);
+        expect(cellsOf(host.midi), "the wobble never changes cell").toEqual([
+          40,
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 5. `D` LANDS ON PHASE 0. The class-A rule, parameterised: rate 250 is -6
+    //    on the byte ring, so w = 252 walks down in 42 ticks and freezes dark.
+    {
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        setup: "--[[@cb]]D(40,2,252)",
+      });
+      try {
+        const at = hwOfCell(40);
+        expect(
+          [
+            sim.layer(at, 2).pha,
+            sim.layer(at, 2).fre,
+            sim.layer(at, 2).timeout,
+          ],
+          "D wrote the decay the idiom describes",
+        ).toEqual([252, 250, 42]);
+        const walk: number[] = [];
+        for (let t = 0; t < 42; t += 1) {
+          host.tick();
+          walk.push(sim.layer(at, 2).pha);
+        }
+        report.push(
+          `  D(40,2,252):        ${walk[0]} -> ${walk[40]} -> ${walk[41]} in 42 ticks`,
+        );
+        expect(
+          walk[41],
+          "D freezes above 0, so the cell stays lit forever",
+        ).toBe(0);
+        expect(
+          sim.layer(at, 2).fre,
+          "the countdown did not stop the walk",
+        ).toBe(0);
+        host.run(20);
+        expect(
+          sim.layer(at, 2).pha,
+          "the frozen layer walked on past its landing",
+        ).toBe(0);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nTHE TOUCH LIBRARY, four expiry paths and the decay (plan 12-07):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 60000);
 });

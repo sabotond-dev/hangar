@@ -83,6 +83,23 @@ export type LuaHostOptions = {
   /** Canonical Setup Lua, event marker included. Run exactly once, at create. */
   setup: string;
   /**
+   * The SYSTEM element's Setup (element 255, event 0) - HANGAR's touch library
+   * for a hand-authored entry, absent for a preset.
+   *
+   * THE ORDER IS THE FIRMWARE'S, IN BOTH OF THE FIRMWARE'S OWN SENSES.
+   * `../grid-fw/common/src/lua/init.lua:46-50` runs `ele[#ele]:post_init_cb()`
+   * first and every other element afterwards, and on a ZONA `ele[#ele]` IS the
+   * system element - so on a page load the library exists before any touch
+   * Setup runs. `grid_decode.c:1283-1288` is the install-time half: a written
+   * body runs IMMEDIATELY, so the order there is HANGAR's WRITE order, which is
+   * why the install store writes 255/0 before 0/0 (plan 12-03). This host
+   * matches both by running `system` before `setup`.
+   *
+   * WHERE IT RUNS RELATIVE TO THE PRISTINE SNAPSHOT IS PITFALL 3 AND IT IS NOT
+   * COSMETIC - see `install()` and `restart()` below.
+   */
+  system?: string;
+  /**
    * Canonical Timer Lua, or undefined for an entry with no Timer event. An
    * empty string is a Timer that exists and does nothing, which is not the same
    * thing: firmware's gtt is a no-op until the Timer event holds at least one
@@ -268,6 +285,8 @@ export class LuaHost {
   private readonly engine: LuaEngine;
   /** Kept so restart() can re-run Setup without rebuilding the VM. */
   private setupSource = "";
+  /** Its twin: the system Setup, re-run on every restart for the same reason. */
+  private systemSource: string | undefined;
 
   /** The Setup-assigned self.touch_cb, reached through a Lua-side dispatcher. */
   private touchFn:
@@ -309,7 +328,7 @@ export class LuaHost {
     const engine = await factory.createEngine();
     const host = new LuaHost(opts.sim, engine);
     try {
-      await host.install(opts.setup, opts.timer);
+      await host.install(opts.setup, opts.timer, opts.system);
     } catch (error) {
       // A Setup that raises - a typo calling a function the host does not
       // register is exactly that - must not leak a VM. Nothing else in HANGAR
@@ -324,8 +343,10 @@ export class LuaHost {
   private async install(
     setup: string,
     timer: string | undefined,
+    system: string | undefined,
   ): Promise<void> {
     this.setupSource = setup;
+    this.systemSource = system;
     this.registerGlobals();
 
     // `self` is created in LUA, never marshalled in from JS. A configuration
@@ -354,6 +375,22 @@ export class LuaHost {
     // Everything in _G at THIS moment is the host's own furniture. Recorded
     // before Setup runs so restart() can tell the two apart.
     await this.engine.doString(PRISTINE_SNAPSHOT);
+
+    // THE SYSTEM SETUP RUNS AFTER THE SNAPSHOT AND BEFORE SETUP, AND BOTH
+    // HALVES OF THAT ARE PITFALL 3.
+    //
+    // Before Setup, because that is the firmware's order in both of its senses
+    // (see LuaHostOptions.system): a touch Setup that called the library before
+    // it existed would raise "attempt to call a nil value" on the first line
+    // that named it.
+    //
+    // After the snapshot, because the library's globals - its six functions and
+    // its four per-contact state tables - are NOT the host's furniture. Kept on
+    // the pristine side they would survive RESTART_WIPE, and a card remounted
+    // after a gesture would inherit the last mount's `H[i]`: a contact holding
+    // a cell nobody is touching, on a pad that just reset. Recorded outside it,
+    // they are wiped and rebuilt, which is what restart() below relies on.
+    if (typeof system === "string") await this.engine.doString(system);
 
     await this.engine.doString(setup);
 
@@ -417,6 +454,16 @@ export class LuaHost {
 
     this.guarded(() => {
       this.engine.doStringSync(RESTART_WIPE);
+      // The wipe has just removed the library along with everything else Setup
+      // and the gesture left behind, so it is rebuilt here - before Setup, as
+      // at install, and before the prelude because nothing in it names `self`
+      // (it takes the touch element as a parameter, `Q(s, ...)`, because the
+      // system element's own self carries no touch accessors -
+      // `grid_ui_system.c:9-15`). H, T, C and P come back EMPTY, which is the
+      // whole of Pitfall 3: a remounted card must not inherit a contact table.
+      if (typeof this.systemSource === "string") {
+        this.engine.doStringSync(this.systemSource);
+      }
       this.engine.doStringSync(SELF_PRELUDE);
       this.engine.doStringSync(this.setupSource);
       this.engine.doStringSync(TOUCH_DISPATCH);
@@ -434,6 +481,27 @@ export class LuaHost {
       "local t = {} for k in pairs(_G) do t[#t+1] = tostring(k) end return t",
     ) as unknown;
     return Array.isArray(keys) ? (keys as string[]) : [];
+  }
+
+  /**
+   * How many entries one GLOBAL TABLE holds, or undefined when that global is
+   * not a table. Test-facing, and the third of the three read hooks.
+   *
+   * IT EXISTS BECAUSE `globalKeys()` CANNOT SEE THIS (plan 12-07). The touch
+   * library's contract across a remount is not "H is still a global" - the wipe
+   * would leave that true either way if the library sat on the pristine side -
+   * it is "H IS EMPTY". A per-contact table that survived a restart is a
+   * contact holding a cell nobody is touching, and the only honest observable
+   * is its size. Counted with `pairs`, so a table keyed by contact id counts
+   * the same way the library's own loops walk it.
+   */
+  globalSize(name: string): number | undefined {
+    const value = this.engine.doStringSync(
+      `local t = _G[${JSON.stringify(name)}] ` +
+        'if type(t) ~= "table" then return nil end ' +
+        "local n = 0 for _ in pairs(t) do n = n + 1 end return n",
+    ) as unknown;
+    return typeof value === "number" ? value : undefined;
   }
 
   /**
