@@ -102,15 +102,28 @@ export function hostHeartbeat(
  * deliberately dropped: it existed only so sendToGrid could overwrite it for
  * NACK matching, and the positive-match loop skipped it (engine.store.ts:419).
  * HANGAR carries the id in GridRequest.correlateById instead.
+ *
+ * `element` IS THE LAST PARAMETER AND DEFAULTS TO THE TOUCH ELEMENT (Phase 12,
+ * plan 02). Trailing rather than beside `event` for one reason and it is the
+ * same reason in both functions: sendConfig's `config` already sits after
+ * `event`, so an element inserted there would silently retarget every existing
+ * five-argument call at a config string coerced to a number. One rule for both
+ * keeps a reader from having to remember which is which.
+ *
+ * It goes into the descriptor AND into the response filter. The filter is the
+ * half that matters: firmware maps 255 back to 255 on the REPORT
+ * (grid_decode.c:1337-1338), so a filter that always named the touch element
+ * would let a system fetch time out while its answer sat in the queue.
  */
 export function fetchConfig(
   sx: number,
   sy: number,
   page: number,
   event: number,
+  element: number = ELEMENT_TOUCH,
 ): GridRequest {
   return {
-    label: `fetch-${event}`,
+    label: `fetch-${element}-${event}`,
     descr: {
       brc_parameters: { DX: sx, DY: sy },
       class_name: "CONFIG",
@@ -120,7 +133,7 @@ export function fetchConfig(
         VERSIONMINOR: PROTOCOL_VERSION.MINOR,
         VERSIONPATCH: PROTOCOL_VERSION.PATCH,
         PAGENUMBER: page,
-        ELEMENTNUMBER: ELEMENT_TOUCH,
+        ELEMENTNUMBER: element,
         EVENTTYPE: event,
         ACTIONLENGTH: 0,
       },
@@ -131,7 +144,7 @@ export function fetchConfig(
       class_instr: "REPORT",
       class_parameters: {
         PAGENUMBER: page,
-        ELEMENTNUMBER: ELEMENT_TOUCH,
+        ELEMENTNUMBER: element,
         EVENTTYPE: event,
       },
     },
@@ -146,6 +159,11 @@ export function fetchConfig(
  * The acknowledgement is a six-byte class block, so every config field on it
  * decodes as undefined - the filter therefore names no class parameters and
  * correlates on the id firmware echoes instead.
+ *
+ * `element` is the LAST parameter and defaults to the touch element, for the
+ * reason written above fetchConfig. Firmware's budget is the same
+ * `scriptlength <= 909` for every element (grid_decode.c:1272), so the two
+ * refusals below are unchanged by it.
  */
 export function sendConfig(
   sx: number,
@@ -153,6 +171,7 @@ export function sendConfig(
   page: number,
   event: number,
   config: string,
+  element: number = ELEMENT_TOUCH,
 ): GridRequest {
   // The last pure point before the wire. Both refusals are D-09's, and the
   // length rule is the desktop's own (instructions.ts:166).
@@ -168,7 +187,7 @@ export function sendConfig(
     );
   }
   return {
-    label: `write-${event}`,
+    label: `write-${element}-${event}`,
     descr: {
       brc_parameters: { DX: sx, DY: sy },
       class_name: "CONFIG",
@@ -178,7 +197,7 @@ export function sendConfig(
         VERSIONMINOR: PROTOCOL_VERSION.MINOR,
         VERSIONPATCH: PROTOCOL_VERSION.PATCH,
         PAGENUMBER: page,
-        ELEMENTNUMBER: ELEMENT_TOUCH,
+        ELEMENTNUMBER: element,
         EVENTTYPE: event,
         // Computed from the same identifier in the same object literal so the
         // two cannot drift: firmware checks script[ACTIONLENGTH] === ETX and

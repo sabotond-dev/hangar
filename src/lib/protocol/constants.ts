@@ -6,6 +6,25 @@
 // retry bound, identify window - are policy, and the two the hardware run
 // settled were revised from the measurements in docs/SKELETON-RESULTS.md.
 //
+// TWO ELEMENTS ARE ADDRESSED, AND THREE OF THEIR FIVE EVENTS (Phase 12, plan
+// 02). The touch element (0) carries both of its events; the system element
+// (255) carries only its setup (0), because that slot runs first on every page
+// load - ../grid-fw/common/src/lua/init.lua:46-50 calls
+// `ele[#ele]:post_init_cb()` before the loop over every other element - which
+// is where a library of functions the touch configurations call by name has to
+// live.
+//
+// WHY EVENTS 4 AND 6 OF THE SYSTEM ELEMENT ARE NEVER WRITTEN AND NEVER
+// FETCHED. Event 4 is the module's physical utility button and its firmware
+// default is `gpl(gpn())` - load the page that page_next names, i.e. advance a
+// page (`gpn` is ../grid-fw/common/src/c/grid_protocol.h:354, `gpl` is :366
+// and lands in `l_grid_page_load`, ../grid-fw/common/src/c/grid_lua_api.c:1676-
+// 1714) - so writing that event changes what a button the visitor paid for
+// does, and fetching it would put it in a snapshot HANGAR then offers to write
+// back. Event 6 is a second timer whose default is `print("tick")`, which
+// nothing in HANGAR arms and which would only cost the module work if it were
+// ever written, so it is left exactly where firmware put it.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
   ElementType,
@@ -22,7 +41,7 @@ export { ZONA_USB } from "./usb";
 /** Identity is confirmed from the heartbeat's HWCFG, not from the USB filter. */
 export const ZONA_HWCFG = 161;
 
-/** One entry per event the touch element declares. */
+/** One entry per event an element declares. */
 export interface ElementEvent {
   defaultConfig: string;
   desc: string;
@@ -31,28 +50,63 @@ export interface ElementEvent {
 }
 
 export const ELEMENT_TOUCH = 0;
+/**
+ * The system element, addressed as 255 (Phase 12, plan 02).
+ *
+ * 255 is a wire value, not an index: CLASS_CONFIG_ELEMENTNUMBER is a two-hex-
+ * digit field, firmware maps 255 to `element_list_length - 1` on receipt
+ * (../grid-fw/common/src/c/grid_decode.c:1253-1256) and maps it back to 255 on
+ * the REPORT (:1337-1338), so a fetch filter naming 255 matches the answer.
+ * Nothing in the packet encoder changes for it - and the name of that function
+ * is deliberately not written here, because forbidden-instructions.spec.ts
+ * test 3 scans every shipped module for it and descriptors.ts is the only file
+ * allowed to match.
+ *
+ * Only its setup (0) is ever addressed. The header says why 4 and 6 are not.
+ */
+export const ELEMENT_SYSTEM = 255;
 export const EVENT_SETUP = EventTypeToNumber(EventType.SETUP);
 export const EVENT_TIMER = EventTypeToNumber(EventType.TIMER);
 export const TOUCH_EVENTS: ElementEvent[] = grid.get_element_events(
   ElementType.TOUCH,
 );
+/**
+ * Setup (0), utility (4) and timer (6). All three are READ from the package so
+ * a pin bump moves them here; only the first is ever put on the wire, and the
+ * header carries the utility-button reason for the other two.
+ */
+export const SYSTEM_EVENTS: ElementEvent[] = grid.get_element_events(
+  ElementType.SYSTEM,
+);
+
+/** The event tables HANGAR is allowed to read a default out of, by element. */
+const EVENTS_BY_ELEMENT = new Map<number, ElementEvent[]>([
+  [ELEMENT_TOUCH, TOUCH_EVENTS],
+  [ELEMENT_SYSTEM, SYSTEM_EVENTS],
+]);
 
 /**
- * One event's own default configuration, SELECTED BY EVENT NUMBER.
+ * One event's own default configuration, SELECTED BY ELEMENT AND EVENT NUMBER.
  *
- * Exported for constants.spec.ts, which asserts the throw: the two constants
- * below are the whole of its production use. The touch element declares its
- * events in whatever order the package builds them, and today that order
- * happens to be Setup then Timer - a coincidence, not a contract. So the
- * lookup is by `value` and a missing event THROWS AT MODULE LOAD with the
- * number in the message, rather than handing `undefined` to a write that would
- * then land on somebody's module.
+ * Exported for constants.spec.ts, which asserts both throws: the three
+ * constants below are the whole of its production use. An element declares its
+ * events in whatever order the package builds them, and today the touch
+ * element's order happens to be Setup then Timer - a coincidence, not a
+ * contract. So the lookup is by `value`, and a missing element or a missing
+ * event THROWS AT MODULE LOAD with the number in the message, rather than
+ * handing `undefined` to a write that would then land on somebody's module.
  */
-export function defaultFor(event: number): string {
-  const declared = TOUCH_EVENTS.find((e) => e.value === event);
+export function defaultFor(element: number, event: number): string {
+  const events = EVENTS_BY_ELEMENT.get(element);
+  if (!events) {
+    throw new Error(
+      `HANGAR addresses no element ${element}, so it has no default configuration to read`,
+    );
+  }
+  const declared = events.find((e) => e.value === event);
   if (!declared) {
     throw new Error(
-      `the touch element declares no event ${event}, so it has no default configuration to read`,
+      `element ${element} declares no event ${event}, so it has no default configuration to read`,
     );
   }
   return declared.defaultConfig;
@@ -64,13 +118,20 @@ export function defaultFor(event: number): string {
  * white base, and installs a `touch_cb` that lights the cells around a finger
  * by true Euclidean distance. The pad is NOT dead after a clear.
  */
-export const TOUCH_DEFAULT_SETUP = defaultFor(EVENT_SETUP);
+export const TOUCH_DEFAULT_SETUP = defaultFor(ELEMENT_TOUCH, EVENT_SETUP);
 /**
  * The firmware's own Timer for the touch element (A-48, D-20): a debug print.
  * The default Setup above starts no timer, so on a module that was not already
  * running one it never fires - and on one that was, it prints up the link.
  */
-export const TOUCH_DEFAULT_TIMER = defaultFor(EVENT_TIMER);
+export const TOUCH_DEFAULT_TIMER = defaultFor(ELEMENT_TOUCH, EVENT_TIMER);
+/**
+ * The firmware's own Setup for the SYSTEM element - 24 characters, and what a
+ * factory module's page-init slot holds before HANGAR writes a library into
+ * it. Read from the package like the two above (D-20's rule), never typed: the
+ * one literal of it in the tree is the test that pins the package's value.
+ */
+export const SYSTEM_DEFAULT_SETUP = defaultFor(ELEMENT_SYSTEM, EVENT_SETUP);
 
 export const PROTOCOL_VERSION = grid.getProperty("VERSION") as {
   MAJOR: number;

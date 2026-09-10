@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import {
+  ElementType,
   GridScript,
   ModuleType,
   grid,
@@ -8,11 +9,15 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   CONFIG_MAX,
+  ELEMENT_SYSTEM,
+  ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
   MODULE_HEARTBEAT_MS,
   PRINTABLE_ASCII,
   PROTOCOL_VERSION,
+  SYSTEM_DEFAULT_SETUP,
+  SYSTEM_EVENTS,
   TOUCH_DEFAULT_SETUP,
   TOUCH_DEFAULT_TIMER,
   TOUCH_EVENTS,
@@ -78,7 +83,63 @@ describe("protocol constants", () => {
       TOUCH_EVENTS.find((e) => e.value === event)?.defaultConfig;
     expect(TOUCH_DEFAULT_SETUP).toBe(byNumber(EVENT_SETUP));
     expect(TOUCH_DEFAULT_TIMER).toBe(byNumber(EVENT_TIMER));
-    expect(() => defaultFor(255)).toThrow(/no event 255/);
+    expect(() => defaultFor(ELEMENT_TOUCH, 255)).toThrow(/no event 255/);
+  });
+
+  it("carries the system element's three events and only its setup's default", () => {
+    // Phase 12, plan 02. The library that every touch configuration calls by
+    // name lives in the system element's setup, because that slot runs first
+    // on a page load (../grid-fw/common/src/lua/init.lua:46-50). HANGAR
+    // therefore has to be able to address element 255 - and to know what a
+    // factory module holds there before it writes over it.
+    expect(ELEMENT_SYSTEM).toBe(255);
+    expect(ELEMENT_TOUCH).toBe(0);
+
+    // Exactly setup (0), utility (4) and timer (6). A pin bump that added,
+    // dropped or renumbered one moves this line before it moves a module.
+    expect(SYSTEM_EVENTS.map((e) => e.value).sort((a, b) => a - b)).toEqual([
+      0, 4, 6,
+    ]);
+    expect(SYSTEM_EVENTS).toContainEqual(
+      expect.objectContaining({ desc: "setup", value: EVENT_SETUP }),
+    );
+    expect(SYSTEM_EVENTS).toContainEqual(
+      expect.objectContaining({ desc: "utility", value: 4 }),
+    );
+    expect(SYSTEM_EVENTS).toContainEqual(
+      expect.objectContaining({ desc: "timer", value: EVENT_TIMER }),
+    );
+
+    // READ FROM THE PACKAGE INSIDE THE TEST, not compared against a literal,
+    // so this cannot pass on a string somebody typed. 24 characters at the
+    // current pin.
+    const declared = grid
+      .get_element_events(ElementType.SYSTEM)
+      .find((e: { value: number }) => e.value === EVENT_SETUP)?.defaultConfig;
+    expect(SYSTEM_DEFAULT_SETUP).toBe(declared);
+    expect([...SYSTEM_DEFAULT_SETUP].length, "the system Setup default").toBe(
+      24,
+    );
+    expect(PRINTABLE_ASCII.test(SYSTEM_DEFAULT_SETUP)).toBe(true);
+    expect(SYSTEM_DEFAULT_SETUP.length).toBeLessThan(CONFIG_MAX);
+    // D-20's rule extended: the string is never typed in shipped code. This
+    // file is the one place its value appears, and it appears as a length and
+    // as a comparison against the package - never as a literal.
+    expect(source("./constants.ts")).not.toMatch(/page init/);
+
+    // Events 4 and 6 RESOLVE - firmware declares them and defaultFor will hand
+    // them over - and HANGAR still never asks. Nothing in the tree calls
+    // either; the header says why, and sequence.ts's writer repeats it.
+    expect(defaultFor(ELEMENT_SYSTEM, 4)).toBe("--[[@cb]]gpl(gpn())");
+    expect([...defaultFor(ELEMENT_SYSTEM, 6)].length).toBe(22);
+
+    // A missing ELEMENT throws with the element in the message, the same way a
+    // missing event does, and for the same reason: undefined must never reach
+    // a write.
+    expect(() => defaultFor(7, EVENT_SETUP)).toThrow(/no element 7/);
+    expect(() => defaultFor(ELEMENT_SYSTEM, 1)).toThrow(
+      /element 255 declares no event 1/,
+    );
   });
 
   it("holds both defaults canonical under the pinned minifier", () => {

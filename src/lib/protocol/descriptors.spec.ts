@@ -2,11 +2,13 @@ import { grid } from "@intechstudio/grid-protocol";
 import { describe, expect, it } from "vitest";
 import {
   CONFIG_MAX,
+  ELEMENT_SYSTEM,
   ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
   PRINTABLE_ASCII,
   PROTOCOL_VERSION,
+  SYSTEM_DEFAULT_SETUP,
   TIMEOUTS,
   TOUCH_EVENTS,
 } from "./constants";
@@ -20,7 +22,8 @@ import {
   storePage,
   type GridRequest,
 } from "./descriptors";
-import type { DecodedClass } from "./decode";
+import { decodeFrame, type DecodedClass } from "./decode";
+import { matchResponse } from "./match";
 
 /** 17 characters, the string the measured frame lengths below were taken with. */
 const SHORT_CONFIG = "--[[@cb]]print(1)";
@@ -71,6 +74,122 @@ describe("outbound descriptors", () => {
       EVENTTYPE: EVENT_TIMER,
       ACTIONLENGTH: 0,
     });
+  });
+
+  /**
+   * A CONFIG/REPORT as firmware would send one, built with the package's own
+   * encoder and decoded back into the class the queue would match. Built here
+   * rather than imported from src/lib/transport/fixtures/ so a protocol spec
+   * keeps no dependency on a layer above it.
+   *
+   * encode_packet forces SX and SY to zero and the decoder subtracts 127, so
+   * every class this returns decodes as arriving from -127, -127. The requests
+   * under test are addressed there for exactly that reason.
+   */
+  const configReport = (
+    page: number,
+    element: number,
+    event: number,
+    config: string,
+  ): DecodedClass => {
+    const encoded = grid.encode_packet({
+      brc_parameters: { DX: -127, DY: -127 },
+      class_name: "CONFIG",
+      class_instr: "REPORT",
+      class_parameters: {
+        VERSIONMAJOR: PROTOCOL_VERSION.MAJOR,
+        VERSIONMINOR: PROTOCOL_VERSION.MINOR,
+        VERSIONPATCH: PROTOCOL_VERSION.PATCH,
+        PAGENUMBER: page,
+        ELEMENTNUMBER: element,
+        EVENTTYPE: event,
+        ACTIONLENGTH: config.length,
+        ACTIONSTRING: config,
+      },
+    });
+    if (!encoded) throw new Error("encode_packet refused the report");
+    const decoded = decodeFrame([...(encoded.serial as number[])]);
+    if (!decoded.ok)
+      throw new Error(`report did not decode: ${decoded.reason}`);
+    return decoded.classes[0];
+  };
+
+  it("the system element travels as ff in both the descriptor and the filter", () => {
+    // Phase 12, plan 02. CLASS_CONFIG_ELEMENTNUMBER is a two-hex-digit field,
+    // so 255 is the literal pair `ff` on the wire; firmware maps it to
+    // `element_list_length - 1` on receipt (grid_decode.c:1253-1256) and back
+    // to 255 on the REPORT (:1337-1338). Nothing in encode_packet changes.
+    const write = sendConfig(
+      -127,
+      -127,
+      0,
+      EVENT_SETUP,
+      SYSTEM_DEFAULT_SETUP,
+      ELEMENT_SYSTEM,
+    );
+    expect(write.descr.class_parameters.ELEMENTNUMBER).toBe(ELEMENT_SYSTEM);
+    expect(write.label).toBe(`write-${ELEMENT_SYSTEM}-${EVENT_SETUP}`);
+
+    // The three fields are adjacent on the wire: PAGENUMBER, ELEMENTNUMBER,
+    // EVENTTYPE. With the version triple in front of them the run is unique in
+    // the frame, which is what makes this a byte assertion rather than a
+    // coincidence: `010505` then `00 ff 00`.
+    const ascii = (req: GridRequest) =>
+      String.fromCharCode(...encodeRequest(req).bytes);
+    expect(ascii(write)).toContain("010505" + "00" + "ff" + "00");
+    expect(
+      ascii(sendConfig(-127, -127, 0, EVENT_SETUP, SYSTEM_DEFAULT_SETUP)),
+      "the same descriptor with the default element writes 00",
+    ).toContain("010505" + "00" + "00" + "00");
+
+    // The round trip: a fetch of 255 encodes, decodes, and still names 255.
+    const fetch = fetchConfig(-127, -127, 0, EVENT_SETUP, ELEMENT_SYSTEM);
+    expect(fetch.label).toBe(`fetch-${ELEMENT_SYSTEM}-${EVENT_SETUP}`);
+    const bytes = [...encodeRequest(fetch).bytes].slice(0, -1);
+    const decoded = decodeFrame(bytes);
+    expect(
+      decoded.ok && decoded.classes[0].class_parameters.ELEMENTNUMBER,
+    ).toBe(ELEMENT_SYSTEM);
+
+    // AND THE FILTER, which is the half that decides whether the answer is
+    // ever delivered. Through match.ts, never by hand: a report echoing the
+    // touch element must not satisfy a fetch of the system element, or a
+    // system fetch would resolve on the first touch report to arrive.
+    const filter = fetch.filter;
+    if (!filter) throw new Error("a fetch declares a filter");
+    expect(filter.class_parameters?.ELEMENTNUMBER).toBe(ELEMENT_SYSTEM);
+    expect(
+      matchResponse(
+        configReport(0, ELEMENT_SYSTEM, EVENT_SETUP, SYSTEM_DEFAULT_SETUP),
+        filter,
+      ),
+      "the module answered about element 255",
+    ).toBe("ok");
+    expect(
+      matchResponse(
+        configReport(0, ELEMENT_TOUCH, EVENT_SETUP, SYSTEM_DEFAULT_SETUP),
+        filter,
+      ),
+      "and a touch report is not that answer",
+    ).toBe("no");
+
+    // The mirror, so the default cannot silently have become 255: a fetch with
+    // no element named matches the touch report and refuses the system one.
+    const touchFilter = fetchConfig(-127, -127, 0, EVENT_SETUP).filter;
+    if (!touchFilter) throw new Error("a fetch declares a filter");
+    expect(touchFilter.class_parameters?.ELEMENTNUMBER).toBe(ELEMENT_TOUCH);
+    expect(
+      matchResponse(
+        configReport(0, ELEMENT_TOUCH, EVENT_SETUP, SYSTEM_DEFAULT_SETUP),
+        touchFilter,
+      ),
+    ).toBe("ok");
+    expect(
+      matchResponse(
+        configReport(0, ELEMENT_SYSTEM, EVENT_SETUP, SYSTEM_DEFAULT_SETUP),
+        touchFilter,
+      ),
+    ).toBe("no");
   });
 
   it("a write carries an ACTIONLENGTH equal to the string it sends", () => {
