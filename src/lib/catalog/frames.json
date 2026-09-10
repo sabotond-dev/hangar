@@ -581,32 +581,32 @@
     "strip": [
       {
         "tick": 0,
-        "sha256": "755bc05481ca409ff94b798037ae65f933cbabf8fdab5825cc2ba4011dd735c4",
-        "nonZeroBytes": 163,
+        "sha256": "be22c58f150e2b13fcf072ad4e81266949a81213b632b327681909cb6b2ca07a",
+        "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 37,
-        "sha256": "755bc05481ca409ff94b798037ae65f933cbabf8fdab5825cc2ba4011dd735c4",
-        "nonZeroBytes": 163,
+        "sha256": "be22c58f150e2b13fcf072ad4e81266949a81213b632b327681909cb6b2ca07a",
+        "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 101,
-        "sha256": "755bc05481ca409ff94b798037ae65f933cbabf8fdab5825cc2ba4011dd735c4",
-        "nonZeroBytes": 163,
+        "sha256": "be22c58f150e2b13fcf072ad4e81266949a81213b632b327681909cb6b2ca07a",
+        "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 500,
-        "sha256": "755bc05481ca409ff94b798037ae65f933cbabf8fdab5825cc2ba4011dd735c4",
-        "nonZeroBytes": 163,
+        "sha256": "be22c58f150e2b13fcf072ad4e81266949a81213b632b327681909cb6b2ca07a",
+        "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 1009,
-        "sha256": "755bc05481ca409ff94b798037ae65f933cbabf8fdab5825cc2ba4011dd735c4",
-        "nonZeroBytes": 163,
+        "sha256": "be22c58f150e2b13fcf072ad4e81266949a81213b632b327681909cb6b2ca07a",
+        "nonZeroBytes": 171,
         "animating": false
       }
     ],

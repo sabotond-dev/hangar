@@ -342,10 +342,10 @@ export const LISTING: readonly ListingEntry[] = [
     id: "strip",
     name: "STRIP",
     description:
-      "The whole pad is one long fader, with a fine row along the bottom for the last few numbers.",
+      "Slide up the pad for the big fader and along the bottom for the crossfader; each sends its own controller.",
     motion: "static",
     quiet:
-      "The bar rests at the number you last sent; nothing here moves on its own.",
+      "The bar and the crossfader rest where you left them; nothing here moves on its own.",
     tags: ["mixing", "precise", "still"],
     featured: false,
     restsBlack: false,
