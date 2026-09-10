@@ -45,9 +45,13 @@
      thing that runs inside the click's activation window. The session's own
      header explains why that is load-bearing.
 
-  The pair TRY ON DEVICE writes comes from two textareas on this page, so the
-  probe needs no tuner and no formatter: the strings are short, printable and
-  different from anything a scripted module holds at connect. The two static
+  The THREE strings TRY ON DEVICE writes come from three textareas on this page,
+  so the probe needs no tuner and no formatter: the strings are short, printable
+  and different from anything a scripted module holds at connect. The third one -
+  install-system, added by plan 12-03 - is the SYSTEM element s page-init slot
+  (255/0), and it goes on the wire FIRST. It is the sure route for pasting an
+  arbitrary page init at a module, which is what 12-RESEARCH s touch probe
+  needed and what the shipped panel deliberately never offers. The two static
   specifiers below are on the permitted list of the chunk guard
   (src/lib/config-shape.spec.ts test 13): the session, and the install store
   whose own three specifiers are two zero-import modules and the session.
@@ -63,10 +67,25 @@
   /** The name TRY ON DEVICE announces. A test asserting the settled sentence spells the same word. */
   const NAME = "Probe";
 
+  /**
+   * THE PAGE INIT, AND THE ONE LITERAL ON THIS PAGE THAT IS THE HONEST CHOICE.
+   *
+   * Everywhere else in HANGAR a firmware default is READ FROM THE PINNED
+   * PACKAGE and never typed (D-20 s rule; constants.ts). Here it is typed,
+   * because this page exists to paste ARBITRARY strings at a module: this is a
+   * starting value a visitor overwrites, not a claim about what the firmware
+   * ships. Reading the real default would also mean naming $lib/protocol from
+   * a route file that deliberately names exactly two specifiers.
+   */
+  let system = $state("--[[@cb]]--[[page init]]");
   let setup = $state("--[[@cb]]print(3)");
   let timer = $state("--[[@cb]]print(4)");
-  /** What the two RAM clicks and observeConfig read: the textareas, verbatim. */
-  const pair = () => ({ setup, timer });
+  /**
+   * What the RAM clicks and observeConfig read: the textareas, verbatim, in
+   * WRITE ORDER. Still called pair() - the name is what every button below
+   * already says, and it is three strings now.
+   */
+  const pair = () => ({ system, setup, timer });
 
   /**
    * THE TRACE. Every phase the store has been in since load, appended from an
@@ -93,7 +112,8 @@
     const s = install.snapshot;
     if (!s) return "none";
     const kind = install.snapshotDurable ? "durable" : "session";
-    return `${kind} ${s.setup.length} ${s.timer.length}`;
+    // Three lengths, in write order: the page init, then the pair.
+    return `${kind} ${s.system.length} ${s.setup.length} ${s.timer.length}`;
   });
 
   /**
@@ -184,6 +204,12 @@
 </dl>
 
 <p>
+  <!-- In write order: the page init first, as writeAll sends it. -->
+  <label>
+    Page init
+    <textarea data-testid="install-system" bind:value={system} rows="2"
+    ></textarea>
+  </label>
   <label>
     Setup
     <textarea data-testid="install-setup" bind:value={setup} rows="2"

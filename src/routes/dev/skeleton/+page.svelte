@@ -27,7 +27,7 @@
   type Transport = typeof import("$lib/transport");
   type Identity = import("$lib/transport").Identity;
   type IdentifyState = import("$lib/transport").IdentifyState;
-  type FetchedPair = import("$lib/transport").FetchedPair;
+  type FetchedSet = import("$lib/transport").FetchedSet;
   type CaptureStep = import("$lib/transport").CaptureStep;
   type CaptureRecorder = import("$lib/transport").CaptureRecorder;
   type RequestQueue = import("$lib/transport").RequestQueue;
@@ -48,8 +48,8 @@
   );
   let portOpen = $state(false);
   let identity: Identity | null = $state(null);
-  let before: FetchedPair | null = $state(null);
-  let after: FetchedPair | null = $state(null);
+  let before: FetchedSet | null = $state(null);
+  let after: FetchedSet | null = $state(null);
   let writeRefusal: string | null = $state(null);
   let writesAcknowledged = $state(false);
   let byteIdentical: boolean | undefined = $state(undefined);
@@ -353,16 +353,20 @@
 
   const doFetch = () =>
     run("fetch", async () => {
-      before = await T!.fetchBoth(queue!, identity!);
+      before = await T!.fetchAll(queue!, identity!);
       after = null;
       byteIdentical = undefined;
       writesAcknowledged = false;
       // D-09: the write buttons stay disabled unless both fetched strings are
       // trustworthy, and the page names the event and the reason.
-      const guard = P!.canWriteBack([before.setup, before.timer]);
+      const guard = P!.canWriteBack([
+        before.system,
+        before.setup,
+        before.timer,
+      ]);
       writeRefusal = guard.ok ? null : guard.reason;
       status = guard.ok
-        ? `fetched Setup ${before.setup.actionString?.length} and Timer ${before.timer.actionString?.length} characters`
+        ? `fetched page init ${before.system.actionString?.length}, Setup ${before.setup.actionString?.length} and Timer ${before.timer.actionString?.length} characters`
         : `write back refused: ${guard.reason}`;
     });
 
@@ -371,7 +375,7 @@
       try {
         await T!.writeBack(queue!, identity!, before!);
         writesAcknowledged = true;
-        status = "both write-backs acknowledged in RAM";
+        status = "all three write-backs acknowledged in RAM";
       } finally {
         // The same mandatory rule runNoOpCycle holds in its own finally: a
         // successful config write leaves the module unable to change page
@@ -382,10 +386,11 @@
 
   const doRefetch = () =>
     run("re-fetch", async () => {
-      const fresh = await T!.fetchBoth(queue!, identity!, "refetch");
+      const fresh = await T!.fetchAll(queue!, identity!, "refetch");
       after = fresh;
       const first = before!;
       byteIdentical =
+        first.system.actionString === fresh.system.actionString &&
         first.setup.actionString === fresh.setup.actionString &&
         first.timer.actionString === fresh.timer.actionString;
       recorder!.setResults({
@@ -396,7 +401,7 @@
         byteIdentical,
       });
       status = byteIdentical
-        ? "re-fetched: both strings are byte-identical to what was fetched"
+        ? "re-fetched: all three strings are byte-identical to what was fetched"
         : "re-fetched: the strings differ - read the two panels below";
     });
 

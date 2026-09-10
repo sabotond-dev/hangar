@@ -9,13 +9,12 @@
 // testing; it wires a transport and a queue to these and renders what they
 // report.
 //
-// TWO PAIRS OF FUNCTIONS, ON PURPOSE, FOR ONE PLAN'S LENGTH. fetchAll and
-// writeAll cover three events; fetchBoth and writeBoth cover the two touch
-// events only and are what the install store still calls. They are adapters
-// over the same per-event primitives, NOT calls into the three-event pair with
-// a string discarded, so they still put exactly two frames on the wire and
-// every count-pinned spec above this file is still green at two. 12-03 moves
-// the store and retires them.
+// ONE FETCHER AND ONE WRITER, EACH OVER THREE EVENTS. 12-02 shipped fetchAll
+// and writeAll beside two-event adapters, so that nothing above the transport
+// moved inside that plan; 12-03 moved the store, the tuner, the probe page,
+// both e2e files and the runbooks in ONE plan, and the adapters are gone with
+// their promise kept. Nothing here counts two any more, and sequence.spec.ts
+// asserts the removal by name rather than leaving it to a reader's memory.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { grid } from "@intechstudio/grid-protocol";
@@ -78,16 +77,11 @@ export interface IdentifyState {
 }
 
 export interface CycleResult {
-  before: { setup: FetchedEvent; timer: FetchedEvent };
-  after: { setup: FetchedEvent; timer: FetchedEvent };
+  before: FetchedSet;
+  after: FetchedSet;
   byteIdentical: boolean;
   /** True once the closing HEARTBEAT TYPE 255 has been sent, in either arm. */
   pageChangeRestored: boolean;
-}
-
-export interface FetchedPair {
-  setup: FetchedEvent;
-  timer: FetchedEvent;
 }
 
 export interface BurstResult {
@@ -232,11 +226,10 @@ const fetched = (
 };
 
 /**
- * ONE FETCH, ONE STEP ID, ONE FetchedEvent - the primitive every fetcher below
- * is built from, so `fetchBoth` is genuinely a subset of `fetchAll` rather than
- * `fetchAll` with a string thrown away. That distinction is the whole reason
- * this helper exists: calling fetchAll and discarding the system string would
- * put a third frame on the wire and move every count above this file.
+ * ONE FETCH, ONE STEP ID, ONE FetchedEvent - the primitive the fetcher below is
+ * built from. It stayed after 12-03 removed the two-event adapters it was
+ * written to keep honest, because the alternative is three near-identical
+ * request-and-label blocks inside one function.
  */
 async function fetchOne(
   q: RequestQueue,
@@ -253,7 +246,7 @@ async function fetchOne(
   return fetched(cls, event, label);
 }
 
-/** One write, one step id. The counterpart of fetchOne, and for the same reason. */
+/** One write, one step id. The counterpart of fetchOne. */
 async function writeOne(
   q: RequestQueue,
   target: WriteTarget,
@@ -268,23 +261,43 @@ async function writeOne(
   );
 }
 
+/** All three strings a module holds for HANGAR: system setup, touch Setup, touch Timer. */
+export interface FetchedSet {
+  system: FetchedEvent;
+  setup: FetchedEvent;
+  timer: FetchedEvent;
+}
+
 /**
- * Read both TOUCH events back off the module, one request at a time.
+ * Read all THREE back: the system element's setup (255/0) and both touch
+ * events. THE ONE FETCHER since 12-03.
  *
- * SINCE PHASE 12 THIS IS AN ADAPTER, not the whole fetcher: `fetchAll` below
- * reads three. It stays because the install store, `install.spec.ts`,
- * `session.e2e.ts` and `install.e2e.ts` all count two, and 12-03 moves them in
- * one plan rather than this one moving them by accident.
+ * FETCH ORDER IS FREE - firmware answers each request on its own and no fetch
+ * runs anything - but it is written system-first anyway so a capture's steps[]
+ * reads in the same order as the write below, and a reader comparing a fetch
+ * trace with a write trace is not comparing two different orderings.
  *
- * `stage` picks the pinned step ids the run reports under: the cycle fetches
- * once before the write-back and once after it, and plan 05's gate reads those
- * four ids to tell the two apart.
+ * Events 4 and 6 of element 255 are NOT fetched. See constants.ts's header:
+ * event 4 is the module's physical utility button, and HANGAR does not
+ * snapshot what it will never write back.
+ *
+ * `stage` picks the pinned step ids the run reports under: the cycle and the
+ * store proof fetch once before the write and once after it, and plan 05's
+ * gate reads those six ids to tell the two apart.
  */
-export async function fetchBoth(
+export async function fetchAll(
   q: RequestQueue,
   id: Identity,
   stage: "fetch" | "refetch" = "fetch",
-): Promise<FetchedPair> {
+): Promise<FetchedSet> {
+  const system = await fetchOne(
+    q,
+    id,
+    EVENT_SETUP,
+    ELEMENT_SYSTEM,
+    "System",
+    stage === "fetch" ? "fetch-system" : "refetch-system",
+  );
   const setup = await fetchOne(
     q,
     id,
@@ -301,57 +314,18 @@ export async function fetchBoth(
     "Timer",
     stage === "fetch" ? "fetch-timer" : "refetch-timer",
   );
-  return { setup, timer };
-}
-
-/** All three strings a module holds for HANGAR: system setup, touch Setup, touch Timer. */
-export interface FetchedSet extends FetchedPair {
-  system: FetchedEvent;
-}
-
-/**
- * Read all THREE back: the system element's setup (255/0) and both touch
- * events.
- *
- * FETCH ORDER IS FREE - firmware answers each request on its own and no fetch
- * runs anything - but it is written system-first anyway so a capture's steps[]
- * reads in the same order as the write below, and a reader comparing a fetch
- * trace with a write trace is not comparing two different orderings.
- *
- * Events 4 and 6 of element 255 are NOT fetched. See constants.ts's header:
- * event 4 is the module's physical utility button, and HANGAR does not
- * snapshot what it will never write back.
- */
-export async function fetchAll(
-  q: RequestQueue,
-  id: Identity,
-  stage: "fetch" | "refetch" = "fetch",
-): Promise<FetchedSet> {
-  const system = await fetchOne(
-    q,
-    id,
-    EVENT_SETUP,
-    ELEMENT_SYSTEM,
-    "System",
-    stage === "fetch" ? "fetch-system" : "refetch-system",
-  );
-  const { setup, timer } = await fetchBoth(q, id, stage);
   return { system, setup, timer };
-}
-
-/** The two strings a write puts on the wire. Verbatim - never compressed here. */
-export interface EventStrings {
-  setup: string;
-  timer: string;
 }
 
 /**
  * The three strings a full write puts on the wire. Verbatim, never compressed
  * here. `system` is the page-init slot the shared library lives in; the other
- * two are the touch element's, unchanged in meaning from `EventStrings`.
+ * two are the touch element's.
  */
-export interface ConfigSet extends EventStrings {
+export interface ConfigSet {
   system: string;
+  setup: string;
+  timer: string;
 }
 
 /** Where a write goes: the ZONA's own address and its REPORTED active page (D-10). */
@@ -368,41 +342,16 @@ export const targetOf = (id: Identity): WriteTarget => ({
 });
 
 /**
- * Write both TOUCH events into the module's RAM, in the field-tested order.
- *
- * TIMER (6) FIRST, THEN SETUP (0). _pad.ts:3908-3913 (vendored, cited by
- * filename only - never imported here) gives the reason and it is not
- * stylistic: gtt is a no-op until the Timer event holds at least one stored
- * action, and Setup runs immediately in the live VM - so a Setup-first write
- * arms a timer that does not exist yet and the pad simply sits still. It is
- * also why the BOTOR mixed-state incident left the Timer landed and the Setup
- * missing rather than the reverse. Sequential, one acknowledgement at a time,
- * each under its own pinned step id, so a half-landed write names which half
- * landed.
- *
- * SINCE PHASE 12 THIS IS AN ADAPTER over the same per-event primitive that
- * `writeAll` uses, and it PUTS EXACTLY TWO FRAMES ON THE WIRE. It is not
- * `writeAll` with the system string dropped - that would send a third frame
- * and move every count above this file. It stays until 12-03 moves the store,
- * `install.spec.ts`, `session.e2e.ts` and `install.e2e.ts` together.
- *
- * ONE WRITER FOR THREE CLICKS. TRY ON DEVICE, PUT BACK and the skeleton's
- * write-back all come through here; writeBack below is a two-line adapter.
- * The strings go on the wire VERBATIM - never compressed here (07-RESEARCH,
- * the D-10 measurement: cost().used === setupLua.length with reserve 0/0).
- */
-export async function writeBoth(
-  q: RequestQueue,
-  target: WriteTarget,
-  s: EventStrings,
-): Promise<void> {
-  await writeOne(q, target, EVENT_TIMER, ELEMENT_TOUCH, s.timer, "write-timer");
-  await writeOne(q, target, EVENT_SETUP, ELEMENT_TOUCH, s.setup, "write-setup");
-}
-
-/**
  * Write all three into the module's RAM: SYSTEM SETUP, THEN TOUCH TIMER, THEN
  * TOUCH SETUP. This order and no other, and the two reasons are independent.
+ *
+ * THE ONE WRITER FOR FOUR CLICKS. TRY ON DEVICE, PUT BACK, CLEAR and the
+ * skeleton's write-back all come through here; writeBack below is a two-line
+ * adapter. The strings go on the wire VERBATIM - never compressed here
+ * (07-RESEARCH, the D-10 measurement: cost().used === setupLua.length with
+ * reserve 0/0). THE ORDER IS NOT THE CALLER'S TO GET WRONG: it lives in this
+ * function, so a caller that hands the set over with its keys in another
+ * order changes nothing at all, and sequence.spec.ts asserts that.
  *
  * REASON ONE, THE NEW ONE (Phase 12). A written body is registered AND RUN
  * IMMEDIATELY, in write order: ../grid-fw/common/src/c/grid_decode.c:1286-1287
@@ -418,16 +367,23 @@ export async function writeBoth(
  * on hardware that an event body is callable from another event's body and
  * that its globals persist.
  *
- * REASON TWO, THE OLD ONE. Timer before Setup, for the reason written above
- * `writeBoth`: gtt is a no-op until the Timer event holds a stored action.
- * Unchanged, and unaffected by the first write.
+ * REASON TWO, THE OLD ONE. Timer (6) before Setup (0). _pad.ts:3908-3913
+ * (vendored, cited by filename only - never imported here) gives the reason
+ * and it is not stylistic: gtt is a no-op until the Timer event holds at least
+ * one stored action, and Setup runs immediately in the live VM - so a
+ * Setup-first write arms a timer that does not exist yet and the pad simply
+ * sits still. It is also why the BOTOR mixed-state incident left the Timer
+ * landed and the Setup missing rather than the reverse. Unchanged by Phase 12,
+ * and unaffected by the first write.
  *
  * EVENTS 4 AND 6 OF ELEMENT 255 ARE NEVER WRITTEN. Three writes per install,
  * not five. constants.ts's header carries the reason: event 4 is the module's
  * physical utility button, event 6 a second timer nothing arms.
  *
- * Sequential and aborting on the first failure, like `writeBoth`: "the system
- * setup did not land but the touch Setup did" cannot occur.
+ * Sequential, one acknowledgement at a time, each under its own pinned step
+ * id, and aborting on the first failure - so a half-landed write names which
+ * halves landed, and "the system setup did not land but the touch Setup did"
+ * cannot occur.
  */
 export async function writeAll(
   q: RequestQueue,
@@ -442,16 +398,18 @@ export async function writeAll(
     s.system,
     "write-system",
   );
-  await writeBoth(q, target, s);
+  await writeOne(q, target, EVENT_TIMER, ELEMENT_TOUCH, s.timer, "write-timer");
+  await writeOne(q, target, EVENT_SETUP, ELEMENT_TOUCH, s.setup, "write-setup");
 }
 
-/** Phase 2's caller, unchanged in behaviour, now an adapter over writeBoth. */
+/** Phase 2's caller, unchanged in behaviour, now an adapter over writeAll. */
 export async function writeBack(
   q: RequestQueue,
   id: Identity,
-  f: FetchedPair,
+  f: FetchedSet,
 ): Promise<void> {
-  await writeBoth(q, targetOf(id), {
+  await writeAll(q, targetOf(id), {
+    system: f.system.actionString ?? "",
     setup: f.setup.actionString ?? "",
     timer: f.timer.actionString ?? "",
   });
@@ -533,17 +491,19 @@ export async function runNoOpCycle(
 ): Promise<CycleResult> {
   let cycle: CycleResult | undefined;
   try {
-    const before = await fetchBoth(q, id);
+    const before = await fetchAll(q, id);
     // D-09: a write is only provably a no-op when the string it writes back is
-    // one the module really handed over.
-    const guard = canWriteBack([before.setup, before.timer]);
+    // one the module really handed over. THREE strings since 12-03: the system
+    // element's setup is written back too, so it is guarded too.
+    const guard = canWriteBack([before.system, before.setup, before.timer]);
     if (!guard.ok) throw new Error(guard.reason);
     await writeBack(q, id, before);
-    const after = await fetchBoth(q, id, "refetch");
+    const after = await fetchAll(q, id, "refetch");
     cycle = {
       before,
       after,
       byteIdentical:
+        before.system.actionString === after.system.actionString &&
         before.setup.actionString === after.setup.actionString &&
         before.timer.actionString === after.timer.actionString,
       pageChangeRestored: false,

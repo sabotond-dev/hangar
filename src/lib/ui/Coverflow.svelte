@@ -212,8 +212,9 @@
    * writes is what the meters measured (07-CONTEXT D-10, D-17). Two strings,
    * so rule 3 above is not violated.
    */
-  let configStrings: { setup: string; timer: string } | undefined =
-    $state(undefined);
+  let configStrings:
+    | { system: string; setup: string; timer: string }
+    | undefined = $state(undefined);
   /** The share payload, precomputed by the model so COPY LINK never awaits. */
   let shareStamp: string | undefined = $state(undefined);
   /** How the URL landed, and the entry it landed on. Both settled at mount. */

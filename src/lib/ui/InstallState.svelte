@@ -182,8 +182,8 @@
         {:else if shown === "partial"}
           <FailureBlock
             block={partialBlock(
-              install.landed ?? "Timer",
-              install.failed ?? "Setup",
+              install.landed ?? "The page init and the Timer",
+              install.failed ?? "the Setup",
             )}
           />
         {:else if shown === "lost"}

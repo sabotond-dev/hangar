@@ -46,10 +46,9 @@ export const STEP_IDS = [
   // Phase 7 (07-01): the module's own key, fetched before the snapshot.
   "fetch-serial",
   // Phase 12 (12-02): the system element's setup - the page-init slot the
-  // library lives in. The three `-system` ids are ADDED beside the four touch
-  // ids, never in place of them: fetchBoth and writeBoth stay two-event
-  // adapters until 12-03 moves the store, and every count-pinned spec above
-  // this file is still green at two.
+  // library lives in. The three `-system` ids were ADDED beside the four touch
+  // ids, never in place of them, and the four touch ids are byte-unchanged:
+  // 12-03 then moved the store onto all six fetch and write ids at once.
   "fetch-system",
   "fetch-setup",
   "fetch-timer",

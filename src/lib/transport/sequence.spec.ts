@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ELEMENT_SYSTEM,
@@ -25,7 +26,6 @@ import { NackError, RequestQueue } from "./queue";
 import {
   absorbFrame,
   fetchAll,
-  fetchBoth,
   fetchModuleKey,
   identify,
   newIdentifyState,
@@ -35,10 +35,11 @@ import {
   targetOf,
   writeAll,
   writeBack,
-  writeBoth,
   type Identity,
   type IdentifyState,
 } from "./sequence";
+/** The whole module, for the removal assertion: an export list is read as a record. */
+import * as sequence from "./sequence";
 
 const SETUP_CONFIG = "--[[@cb]]print(1)";
 const TIMER_CONFIG = "--[[@cb]]print(2)";
@@ -205,35 +206,49 @@ describe("the no-op cycle", () => {
     ]);
   });
 
-  it("the fetch returns both events with their strings and their own latencies", async () => {
+  it("the fetch returns all three events with their strings and their own latencies", async () => {
     const { queue, steps, id } = rig();
 
-    const fetched = await fetchBoth(queue, id);
+    const fetched = await fetchAll(queue, id);
+    expect(fetched.system.actionString).toBe(SYSTEM_DEFAULT_SETUP);
     expect(fetched.setup.actionString).toBe(SETUP_CONFIG);
     expect(fetched.timer.actionString).toBe(TIMER_CONFIG);
+    expect(fetched.system.actionLength).toBe(SYSTEM_DEFAULT_SETUP.length);
     expect(fetched.setup.actionLength).toBe(SETUP_CONFIG.length);
     expect(fetched.timer.actionLength).toBe(TIMER_CONFIG.length);
 
-    expect(steps.map((s) => s.id)).toEqual(["fetch-setup", "fetch-timer"]);
+    expect(steps.map((s) => s.id)).toEqual([
+      "fetch-system",
+      "fetch-setup",
+      "fetch-timer",
+    ]);
     for (const step of steps) {
       expect(typeof step.latencyMs, `${step.id} timed itself`).toBe("number");
     }
   });
 
-  it("the write-back sends Timer before Setup", async () => {
+  it("the write-back sends the page init, then Timer, then Setup", async () => {
     const { transport, queue, id } = rig();
 
-    const fetched = await fetchBoth(queue, id);
+    const fetched = await fetchAll(queue, id);
     await writeBack(queue, id, fetched);
 
     const writes = flat(transport).filter(
       (c) => c.class_name === "CONFIG" && c.class_instr === "EXECUTE",
     );
-    expect(writes).toHaveLength(2);
-    // D-11, and the reason the BOTOR mixed-state incident left the Timer
-    // landed and the Setup missing rather than the reverse.
-    expect(Number(writes[0].class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
-    expect(Number(writes[1].class_parameters.EVENTTYPE)).toBe(EVENT_SETUP);
+    expect(writes).toHaveLength(3);
+    // D-11 plus Phase 12's reason one: the element AND the event together, so
+    // 255/0 cannot be read as 0/0 by an assertion that only looks at events.
+    expect(
+      writes.map((c) => [
+        Number(c.class_parameters.ELEMENTNUMBER),
+        Number(c.class_parameters.EVENTTYPE),
+      ]),
+    ).toEqual([
+      [ELEMENT_SYSTEM, EVENT_SETUP],
+      [ELEMENT_TOUCH, EVENT_TIMER],
+      [ELEMENT_TOUCH, EVENT_SETUP],
+    ]);
   });
 
   it("the cycle's final outbound frame is a heartbeat carrying type 255", async () => {
@@ -323,26 +338,40 @@ describe("the no-op cycle", () => {
     expect(identify(state)?.activePage).toBe(ACTIVE_PAGE);
   });
 
-  it("writeBoth sends two strings Timer first, verbatim, and writeBack is its adapter", async () => {
+  it("writeAll sends three strings verbatim, and writeBack is its adapter", async () => {
     const { transport, queue, id } = rig();
-    const strings = { setup: "--[[@cb]]print(9)", timer: "--[[@cb]]print(8)" };
+    const strings = {
+      system: "--[[@cb]]function Q()return 7 end",
+      setup: "--[[@cb]]print(9)",
+      timer: "--[[@cb]]print(8)",
+    };
 
-    await writeBoth(queue, targetOf(id), strings);
+    await writeAll(queue, targetOf(id), strings);
 
     const writes = configWrites(transport);
-    expect(writes).toHaveLength(2);
-    // Timer (6) first, then Setup (0): _pad.ts:3908-3913's reason, and the
-    // order Phase 2 proved six times on hardware.
-    expect(Number(writes[0].class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
-    expect(Number(writes[1].class_parameters.EVENTTYPE)).toBe(EVENT_SETUP);
+    expect(writes).toHaveLength(3);
+    // The page init (255/0) first, then Timer (6), then Setup (0):
+    // grid_decode.c:1286-1287's reason and _pad.ts:3908-3913's, in that order.
+    expect(Number(writes[0].class_parameters.ELEMENTNUMBER)).toBe(
+      ELEMENT_SYSTEM,
+    );
+    expect(Number(writes[0].class_parameters.EVENTTYPE)).toBe(EVENT_SETUP);
+    expect(Number(writes[1].class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
+    expect(Number(writes[2].class_parameters.EVENTTYPE)).toBe(EVENT_SETUP);
     // Verbatim, character for character, with the length firmware checks
     // against the ETX computed from the same string.
-    expect(String(writes[0].class_parameters.ACTIONSTRING)).toBe(strings.timer);
+    expect(String(writes[0].class_parameters.ACTIONSTRING)).toBe(
+      strings.system,
+    );
     expect(Number(writes[0].class_parameters.ACTIONLENGTH)).toBe(
+      strings.system.length,
+    );
+    expect(String(writes[1].class_parameters.ACTIONSTRING)).toBe(strings.timer);
+    expect(Number(writes[1].class_parameters.ACTIONLENGTH)).toBe(
       strings.timer.length,
     );
-    expect(String(writes[1].class_parameters.ACTIONSTRING)).toBe(strings.setup);
-    expect(Number(writes[1].class_parameters.ACTIONLENGTH)).toBe(
+    expect(String(writes[2].class_parameters.ACTIONSTRING)).toBe(strings.setup);
+    expect(Number(writes[2].class_parameters.ACTIONLENGTH)).toBe(
       strings.setup.length,
     );
     for (const w of writes) {
@@ -351,22 +380,45 @@ describe("the no-op cycle", () => {
       );
     }
 
+    // THE ORDER IS NOT THE CALLER'S TO GET WRONG. The same three strings
+    // handed over with the keys in the WRONG order - Setup first - produce the
+    // same three frames in the same order, because writeAll owns it. This is
+    // the negative check 12-03 ran, kept as an assertion so nobody has to run
+    // it again to find out.
+    const swapped = rig();
+    await writeAll(swapped.queue, targetOf(swapped.id), {
+      setup: strings.setup,
+      system: strings.system,
+      timer: strings.timer,
+    });
+    expect(
+      configWrites(swapped.transport).map((c) => [
+        Number(c.class_parameters.ELEMENTNUMBER),
+        Number(c.class_parameters.EVENTTYPE),
+      ]),
+    ).toEqual([
+      [ELEMENT_SYSTEM, EVENT_SETUP],
+      [ELEMENT_TOUCH, EVENT_TIMER],
+      [ELEMENT_TOUCH, EVENT_SETUP],
+    ]);
+
     // The adapter changes nothing Phase 2 proved: what was fetched is what
     // goes back, in the same order.
     const back = rig();
-    const fetched = await fetchBoth(back.queue, back.id);
+    const fetched = await fetchAll(back.queue, back.id);
     await writeBack(back.queue, back.id, fetched);
     const returned = configWrites(back.transport);
     expect(returned.map((c) => Number(c.class_parameters.EVENTTYPE))).toEqual([
+      EVENT_SETUP,
       EVENT_TIMER,
       EVENT_SETUP,
     ]);
     expect(
       returned.map((c) => String(c.class_parameters.ACTIONSTRING)),
-    ).toEqual([TIMER_CONFIG, SETUP_CONFIG]);
+    ).toEqual([SYSTEM_DEFAULT_SETUP, TIMER_CONFIG, SETUP_CONFIG]);
   });
 
-  it("writeAll sends system, Timer, Setup in that order and no other, and the two-event adapters still send two", async () => {
+  it("writeAll sends system, Timer, Setup in that order and no other, and the two-event adapters are gone", async () => {
     // Phase 12, plan 02. THE ORDER IS THE POINT. grid_decode.c:1286-1287
     // registers a written body and runs it IMMEDIATELY, in write order, so at
     // install time the initialisation order is HANGAR's: a touch Setup that
@@ -448,45 +500,60 @@ describe("the no-op cycle", () => {
       (await fetchAll(factory.queue, factory.id)).system.actionString,
     ).toBe(SYSTEM_DEFAULT_SETUP);
 
-    // THE ADAPTERS' PROMISE, asserted here so it cannot be broken silently:
-    // writeBoth still puts exactly TWO frames on the wire and fetchBoth still
-    // issues exactly TWO. Every count-pinned spec above this file - the
-    // install store's, session.e2e.ts's, install.e2e.ts's - rests on it until
-    // 12-03 moves them together.
-    const two = rig();
-    await writeBoth(two.queue, targetOf(two.id), {
-      setup: set.setup,
-      timer: set.timer,
-    });
-    expect(configWrites(two.transport), "two, not three").toHaveLength(2);
-    expect(two.steps.map((s) => s.id)).toEqual(["write-timer", "write-setup"]);
-
-    const pair = rig();
-    await fetchBoth(pair.queue, pair.id);
-    expect(
-      flat(pair.transport).filter(
-        (c) => c.class_name === "CONFIG" && c.class_instr === "FETCH",
-      ),
-      "two fetches, not three",
-    ).toHaveLength(2);
-    expect(pair.steps.map((s) => s.id)).toEqual(["fetch-setup", "fetch-timer"]);
+    // THE ADAPTERS ARE GONE, asserted rather than remembered. 12-02 kept
+    // `fetchBoth` and `writeBoth` as two-event adapters for one plan's length,
+    // with the promise that 12-03 would move the store and retire them; this
+    // assertion is that promise kept, and it is where a reader of the two
+    // SUMMARYs finds out. A module's exports are read as a record, so a
+    // re-introduction under either name fails here rather than in whatever
+    // count it would silently halve.
+    const exported = Object.keys(sequence);
+    expect(exported, "the module was actually read").toContain("writeAll");
+    expect(exported, "the module was actually read").toContain("fetchAll");
+    for (const gone of ["fetchBoth", "writeBoth"]) {
+      expect(exported, `${gone} is back`).not.toContain(gone);
+    }
+    // `EventStrings` was a TYPE, so it never appears in the exports record and
+    // the check above cannot see it. The comment-stripped source can - and the
+    // strip is what keeps this file's own prose about the removal legal.
+    const source = readFileSync(
+      new URL("./sequence.ts", import.meta.url),
+      "utf8",
+    )
+      .replace(/^[ ]*[/][/].*$/gm, "")
+      .replace(/[/][*][^]*?[*][/]/g, "");
+    expect(source.length, "the source was actually read").toBeGreaterThan(4000);
+    expect(source, "non-vacuity: the writer is there").toContain(
+      "export async function writeAll",
+    );
+    for (const gone of ["fetchBoth", "writeBoth", "EventStrings"]) {
+      expect(source.includes(gone), `sequence.ts still names ${gone}`).toBe(
+        false,
+      );
+    }
   });
 
   it("a write to a page the module is not on is refused, and the refusal is not retried", async () => {
     const { transport, queue, steps, id } = rig();
-    const strings = { setup: "--[[@cb]]print(9)", timer: "--[[@cb]]print(8)" };
+    const strings = {
+      system: "--[[@cb]]function Q()return 7 end",
+      setup: "--[[@cb]]print(9)",
+      timer: "--[[@cb]]print(8)",
+    };
 
     // grid_decode.c:1272, `currentpage`: a NACK, once, and no second write.
+    // The refused write is now the FIRST one - the page init - and the abort
+    // is proved over BOTH unreached legs rather than only the last.
     const elsewhere = { ...targetOf(id), page: ACTIVE_PAGE + 1 };
-    await expect(writeBoth(queue, elsewhere, strings)).rejects.toBeInstanceOf(
+    await expect(writeAll(queue, elsewhere, strings)).rejects.toBeInstanceOf(
       NackError,
     );
     expect(steps.map((s) => [s.id, s.outcome, s.attempts])).toEqual([
-      ["write-timer", "nack", 1],
+      ["write-system", "nack", 1],
     ]);
     expect(
       configWrites(transport),
-      "the Setup was never attempted",
+      "the Timer and the Setup were never attempted",
     ).toHaveLength(1);
 
     // The module's key: 32 hex characters when the module has a serial...

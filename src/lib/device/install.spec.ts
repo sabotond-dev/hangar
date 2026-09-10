@@ -16,9 +16,12 @@
 // NO AGENT WRITES TO A DEVICE. Every byte this file sends lands in
 // FakeTransport.writes, through the store's one RequestQueue, and every one of
 // them is attributable to a named click below (D-11): connect and the snapshot
-// write zero CONFIG/EXECUTE, TRY ON DEVICE writes two, PUT BACK writes two and
-// - after a keep - one PAGESTORE/EXECUTE, KEEP ON DEVICE writes one
-// PAGESTORE/EXECUTE. Nothing here opens a port.
+// write zero CONFIG/EXECUTE, TRY ON DEVICE writes THREE, PUT BACK writes three
+// and - after a keep - one PAGESTORE/EXECUTE, CLEAR writes three, KEEP ON
+// DEVICE writes one PAGESTORE/EXECUTE. Nothing here opens a port. The third of
+// the three is the SYSTEM element (255/0), added by 12-03; it goes FIRST on
+// every RAM leg and it is fetched first in every snapshot and every re-fetch
+// round.
 //
 // THE TEE. FakeTransport has no public rx injection - only fromCapture and the
 // responder - so the session is handed a tee: an object implementing
@@ -67,9 +70,12 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DESKTOP_PRE_SEND_DELAY_MS,
+  ELEMENT_SYSTEM,
+  ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
   RETRY_ATTEMPTS,
+  SYSTEM_DEFAULT_SETUP,
   TERMINATOR,
   TIMEOUTS,
   TOUCH_DEFAULT_SETUP,
@@ -122,6 +128,7 @@ import {
 import { DeviceSession, type SerialLike } from "./session.svelte";
 import {
   SNAPSHOT_KEY,
+  SNAPSHOT_KEY_V2,
   type SnapshotStore,
   persistIfAbsent,
   rememberLast,
@@ -136,10 +143,24 @@ const ACTIVE_PAGE = 2;
 /** What the module holds when the visitor connects: the strings the snapshot must copy. */
 const MODULE_SETUP = "--[[@cb]]print(1)";
 const MODULE_TIMER = "--[[@cb]]print(2)";
-/** The module's original, as a pair. */
-const ORIGINAL: ConfigStrings = { setup: MODULE_SETUP, timer: MODULE_TIMER };
-/** The tuner's pair, different from the module's in both events. */
+/**
+ * What the module holds in its SYSTEM element (255/0) at connect. DELIBERATELY
+ * NOT the package default: the module's page init, the tuner's and the
+ * firmware's are three DIFFERENT strings in this file, so every assertion below
+ * distinguishes a put-back from a clear from a try-on on the third slot as well
+ * as on the pair. A module that had never been written would answer
+ * SYSTEM_DEFAULT_SETUP here, and the clear test is where that string appears.
+ */
+const MODULE_SYSTEM = "--[[@cb]]function M()return 1 end";
+/** The module's original, as the three strings HANGAR copies. */
+const ORIGINAL: ConfigStrings = {
+  system: MODULE_SYSTEM,
+  setup: MODULE_SETUP,
+  timer: MODULE_TIMER,
+};
+/** The tuner's three strings, different from the module's in all three. */
 const PAIR: ConfigStrings = {
+  system: "--[[@cb]]function T()return 3 end",
   setup: "--[[@cb]]print(3)",
   timer: "--[[@cb]]print(4)",
 };
@@ -426,6 +447,9 @@ async function connected(opts: ConnectOptions = {}) {
     sy: 0,
     activePage: ACTIVE_PAGE,
     configs: { [EVENT_SETUP]: MODULE_SETUP, [EVENT_TIMER]: MODULE_TIMER },
+    // The module has been written before: its page init is its own, not the
+    // package default, so a put-back and a clear are told apart on this slot.
+    system: { [EVENT_SETUP]: MODULE_SYSTEM },
     serial: SERIAL,
     ...opts.state,
   };
@@ -570,28 +594,47 @@ async function triedOn(rig: Rig, name = "Aurora"): Promise<void> {
 const outcomes = (steps: readonly CaptureStep[]) =>
   steps.map((s) => [s.id, s.outcome]);
 
-/** The one page entry under the key, or undefined. */
+/** The one page entry under the v2 key - the only key this version writes. */
 function pageEntry(storage: ReturnType<typeof mapStorage>, page: number) {
-  const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY) ?? "{}") as {
+  const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY_V2) ?? "{}") as {
     modules?: Record<string, { pages: Record<string, unknown> }>;
   };
   return parsed.modules?.[expectedKey()]?.pages[String(page)];
 }
 
-/** The class name, instruction and the parameters an assertion reads, for one outbound frame. */
+/**
+ * The class name, instruction and the parameters an assertion reads, for one
+ * outbound frame.
+ *
+ * THE ELEMENT IS IN HERE SINCE 12-03, and it has to be: the system element's
+ * setup and the touch element's Setup are BOTH event 0, so a shape that read
+ * only EVENTTYPE would let 255/0 pass for 0/0 and the write order would be
+ * unassertable at exactly the place it matters.
+ */
 const shape = (classes: DecodedClass[]) =>
   classes.map((c) => ({
     cls: `${c.class_name}/${c.class_instr}`,
+    element: c.class_parameters.ELEMENTNUMBER,
     event: c.class_parameters.EVENTTYPE,
     action: c.class_parameters.ACTIONSTRING,
     type: c.class_parameters.TYPE,
   }));
 
-/** The RAM leg's wire shape: Timer, then Setup, then the restore heartbeat. */
+/** The RAM leg's wire shape: the page init, then Timer, then Setup, then the restore heartbeat. */
 const ramLegFrames = (strings: ConfigStrings) => [
   [
     {
       cls: "CONFIG/EXECUTE",
+      element: ELEMENT_SYSTEM,
+      event: EVENT_SETUP,
+      action: strings.system,
+      type: undefined,
+    },
+  ],
+  [
+    {
+      cls: "CONFIG/EXECUTE",
+      element: ELEMENT_TOUCH,
       event: EVENT_TIMER,
       action: strings.timer,
       type: undefined,
@@ -600,6 +643,7 @@ const ramLegFrames = (strings: ConfigStrings) => [
   [
     {
       cls: "CONFIG/EXECUTE",
+      element: ELEMENT_TOUCH,
       event: EVENT_SETUP,
       action: strings.setup,
       type: undefined,
@@ -608,6 +652,7 @@ const ramLegFrames = (strings: ConfigStrings) => [
   [
     {
       cls: "HEARTBEAT/EXECUTE",
+      element: undefined,
       event: undefined,
       action: undefined,
       type: 255,
@@ -616,17 +661,24 @@ const ramLegFrames = (strings: ConfigStrings) => [
 ];
 
 /**
- * Three `nth` drops of one acknowledgement class, for acknowledgements 2, 3
- * and 4 - one fault object per attempt, each with its own counter, LISTED
- * DESCENDING (see the header): dropped() returns at the first due fault, so
- * listed ascending the nth 2 drop starves nth 3 and nth 4 of acknowledgement
- * 2, acknowledgement 3 finds nobody due and lands, and the trace ends
- * `settled`. A single `nth: 2` cannot produce the trace either: the request id
- * is minted per attempt, so attempt 2's acknowledgement carries a fresh id and
- * lands.
+ * Three `nth` drops of one acknowledgement class, for three CONSECUTIVE
+ * acknowledgements starting at `first` - one fault object per attempt, each
+ * with its own counter, LISTED DESCENDING (see the header): dropped() returns
+ * at the first due fault, so listed ascending the lowest drop starves the
+ * other two of that acknowledgement, the next one finds nobody due and lands,
+ * and the trace ends `settled`. A single `nth` cannot produce the trace
+ * either: the request id is minted per attempt, so attempt 2's acknowledgement
+ * carries a fresh id and lands.
+ *
+ * `first` MOVED IN 12-03 AND THE NUMBER IS DERIVED, NOT COPIED. A RAM leg is
+ * three writes now, so the acknowledgement that carries the LAST event's first
+ * attempt is the third, not the second: to leave the page init and the Timer
+ * landed and lose the Setup's three attempts, the drops are 3, 4 and 5. A
+ * PAGESTORE leg is still one write per attempt, so its callers still start at
+ * 1 or 2. The caller states which and why at each site.
  */
-const dropAcks234 = (class_name: string): Fault[] =>
-  [4, 3, 2].map((nth) => ({
+const dropThreeAcksFrom = (class_name: string, first: number): Fault[] =>
+  [first + 2, first + 1, first].map((nth) => ({
     kind: "drop" as const,
     match: { class_name, class_instr: "ACKNOWLEDGE" },
     nth,
@@ -669,15 +721,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // else was asked of the module.
     expect(store.steps.map((s) => s.id)).toEqual([
       "fetch-serial",
+      "fetch-system",
       "fetch-setup",
       "fetch-timer",
     ]);
-    expect(store.steps.map((s) => s.outcome)).toEqual(["ok", "ok", "ok"]);
+    expect(store.steps.map((s) => s.outcome)).toEqual(["ok", "ok", "ok", "ok"]);
 
-    expect(store.snapshot).toEqual({
-      setup: MODULE_SETUP,
-      timer: MODULE_TIMER,
-    });
+    expect(store.snapshot).toEqual(ORIGINAL);
+    expect(store.snapshotFromV1, "a fresh record is v2").toBe(false);
     expect(store.snapshotPage).toBe(ACTIVE_PAGE);
     const key = expectedKey();
     expect(store.moduleId).toMatch(/^[0-9a-f]{32}$/);
@@ -688,7 +739,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.rememberedModule).toBe(true);
 
     // The record: one module, one page, the module's own strings, and `last`.
-    const raw = storage.map.get(SNAPSHOT_KEY);
+    expect(
+      storage.map.get(SNAPSHOT_KEY),
+      "nothing here writes the v1 key",
+    ).toBeUndefined();
+    const raw = storage.map.get(SNAPSHOT_KEY_V2);
     expect(raw, "the record was written").toBeDefined();
     const parsed = JSON.parse(raw ?? "{}") as {
       last?: string;
@@ -699,6 +754,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       String(ACTIVE_PAGE),
     ]);
     expect(parsed.modules[key].pages[String(ACTIVE_PAGE)]).toMatchObject({
+      system: MODULE_SYSTEM,
       setup: MODULE_SETUP,
       timer: MODULE_TIMER,
     });
@@ -732,16 +788,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toBeGreaterThanOrEqual(bound);
     expect(store.steps.map((s) => s.id)).toEqual([
       "fetch-serial",
+      "fetch-system",
       "fetch-setup",
       "fetch-timer",
     ]);
 
     // Ready all the same: the in-memory half is the rail.
     expect(store.phase).toBe("ready");
-    expect(store.snapshot, "PUT BACK would still work").toEqual({
-      setup: MODULE_SETUP,
-      timer: MODULE_TIMER,
-    });
+    expect(store.snapshot, "PUT BACK would still work").toEqual(ORIGINAL);
     expect(store.snapshotDurable).toBe(false);
     expect(store.moduleId).toBeUndefined();
     expect(store.rememberedModule).toBe(false);
@@ -779,23 +833,20 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(
       store.steps.map((s) => s.id),
       "the click read the module again",
-    ).toEqual(["fetch-serial", "fetch-setup", "fetch-timer"]);
+    ).toEqual(["fetch-serial", "fetch-system", "fetch-setup", "fetch-timer"]);
 
     // Fix the module - it is on the page its heartbeat reported - and retry.
     state.activePage = ACTIVE_PAGE;
     await drive(store.retrySnapshot());
     expect(store.phase).toBe("ready");
-    expect(store.snapshot).toEqual({
-      setup: MODULE_SETUP,
-      timer: MODULE_TIMER,
-    });
+    expect(store.snapshot).toEqual(ORIGINAL);
     expect(store.snapshotPage).toBe(ACTIVE_PAGE);
     expect(store.moduleId).toBe(expectedKey());
     expect(storage.map.size, "the retry persisted the copy").toBe(1);
     expect(writesOf("CONFIG", "EXECUTE"), "the retry is a read").toBe(0);
   });
 
-  it("nothing is written without a click, and TRY ON DEVICE writes exactly two, Timer first, verbatim", async () => {
+  it("nothing is written without a click, and TRY ON DEVICE writes exactly three, the page init first, verbatim", async () => {
     // FOUR CLICKS SINCE PLAN 10-12, and this assertion did not change - which
     // is the finding rather than an omission (G-06, and A-53 correcting the
     // spec text that said otherwise). The count is BY CLASS, and CLEAR writes
@@ -815,17 +866,18 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     await drive(store.tryOnDevice(PAIR, "Aurora"));
 
-    // Exactly two config writes, Timer (6) then Setup (0), the strings
-    // character for character, then exactly one restore heartbeat - the last
-    // three frames on the wire, in that order.
-    expect(writesOf("CONFIG", "EXECUTE")).toBe(2);
+    // Exactly three config writes - 255/0, then 0/6, then 0/0 - the strings
+    // character for character, then exactly one restore heartbeat: the last
+    // FOUR frames on the wire, in that order.
+    expect(writesOf("CONFIG", "EXECUTE")).toBe(3);
     expect(writesOf("HEARTBEAT", "EXECUTE")).toBe(1);
     const frames = written(fake);
-    expect(frames.length - framesBefore, "frames the click produced").toBe(3);
-    expect(frames.slice(-3).map(shape)).toEqual(ramLegFrames(PAIR));
+    expect(frames.length - framesBefore, "frames the click produced").toBe(4);
+    expect(frames.slice(-4).map(shape)).toEqual(ramLegFrames(PAIR));
 
     // Settled means both ACKs AND the restore went out (SAFE-07).
     expect(store.steps.map((s) => [s.id, s.outcome])).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
@@ -839,6 +891,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.name).toBe("Aurora");
     expect(state.configs[EVENT_SETUP], "the fake's RAM").toBe(PAIR.setup);
     expect(state.configs[EVENT_TIMER]).toBe(PAIR.timer);
+    expect(
+      state.system?.[EVENT_SETUP],
+      "the fake's SECOND RAM - the page-init slot, apart from the pad's",
+    ).toBe(PAIR.system);
 
     // The header lock closed over the leg and released with it.
     expect(locks).toEqual([true, false]);
@@ -847,14 +903,21 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(session.speech).toBe(liveSettled("Aurora"));
 
     // A knob move onto different strings disarms; onto the same strings, not.
-    store.observeConfig({ setup: PAIR.setup, timer: MODULE_TIMER });
+    store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
     expect(store.armed).toBe(false);
+    // And on the THIRD string too: a system string that is not what landed
+    // disarms exactly as a moved knob does. 12-07 is where it can differ by
+    // entry; the rule is asserted here, before there is a way to reach it.
+    store.observeConfig({ ...PAIR, system: MODULE_SYSTEM });
+    expect(store.armed, "a different page init is not what is playing").toBe(
+      false,
+    );
     store.observeConfig({ ...PAIR });
     expect(store.armed).toBe(true);
     expect(
       writesOf("CONFIG", "EXECUTE"),
       "a knob move after the click wrote",
-    ).toBe(2);
+    ).toBe(3);
   });
 
   it("PUT BACK writes the snapshot's strings the same way and lands restored", async () => {
@@ -867,15 +930,16 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     await drive(store.putBack());
 
-    // The SNAPSHOT's strings, not the pair, in the same order, one restore.
+    // The SNAPSHOT's strings, not the tuner's, in the same order, one
+    // restore. All THREE go back: the page init the module had at connect is
+    // written over the one the try-on left.
     const frames = written(fake);
-    expect(frames.length - framesBefore).toBe(3);
-    expect(frames.slice(-3).map(shape)).toEqual(
-      ramLegFrames({ setup: MODULE_SETUP, timer: MODULE_TIMER }),
-    );
-    expect(writesOf("CONFIG", "EXECUTE"), "two clicks, four writes").toBe(4);
+    expect(frames.length - framesBefore).toBe(4);
+    expect(frames.slice(-4).map(shape)).toEqual(ramLegFrames(ORIGINAL));
+    expect(writesOf("CONFIG", "EXECUTE"), "two clicks, six writes").toBe(6);
     expect(writesOf("HEARTBEAT", "EXECUTE"), "one restore per leg").toBe(2);
     expect(store.steps.map((s) => [s.id, s.outcome])).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
@@ -886,23 +950,23 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.armed).toBe(false);
     expect(store.lastWritten).toBeUndefined();
     expect(store.name).toBeUndefined();
-    expect(store.snapshot, "the way back is still there").toEqual({
-      setup: MODULE_SETUP,
-      timer: MODULE_TIMER,
-    });
+    expect(store.snapshot, "the way back is still there").toEqual(ORIGINAL);
     expect(session.writeLock).toBe(false);
     await after(500);
     expect(session.speech).toBe(LIVE_RESTORED);
 
-    // The module's RAM is what it was when the visitor connected.
+    // The module's RAM is what it was when the visitor connected - on both
+    // elements.
     expect(state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
     expect(state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
+    expect(state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
   });
 
   it("an existing record wins and is never overwritten", async () => {
     // A record from an earlier visit, holding strings DIFFERENT from what the
     // module holds now - the shape a re-connect after TRY ON DEVICE produces.
     const RECORD: ConfigStrings = {
+      system: "--[[@cb]]function R()return 7 end",
       setup: "--[[@cb]]print(7)",
       timer: "--[[@cb]]print(8)",
     };
@@ -913,7 +977,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       persistIfAbsent(storage.store, key, ACTIVE_PAGE, RECORD, TAKEN_AT),
     ).toBe("written");
     const entryOf = () => {
-      const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY) ?? "{}") as {
+      const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY_V2) ?? "{}") as {
         modules: Record<string, { pages: Record<string, unknown> }>;
       };
       return parsed.modules[key].pages[String(ACTIVE_PAGE)];
@@ -926,10 +990,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.snapshot, "the record's strings, not the module's").toEqual(
       RECORD,
     );
-    expect(store.snapshot).not.toEqual({
-      setup: MODULE_SETUP,
-      timer: MODULE_TIMER,
-    });
+    expect(store.snapshot).not.toEqual(ORIGINAL);
+    expect(store.snapshotFromV1, "a v2 record read as v2").toBe(false);
     expect(store.snapshotDurable).toBe(true);
     expect(entryOf(), "the entry was touched (takenAt included)").toEqual(
       before,
@@ -938,10 +1000,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // PUT BACK writes the record's strings.
     await drive(store.putBack());
     expect(store.phase).toBe("restored");
-    expect(written(fake).slice(-3).map(shape)).toEqual(ramLegFrames(RECORD));
-    expect(writesOf("CONFIG", "EXECUTE")).toBe(2);
+    expect(written(fake).slice(-4).map(shape)).toEqual(ramLegFrames(RECORD));
+    expect(writesOf("CONFIG", "EXECUTE")).toBe(3);
     expect(state.configs[EVENT_SETUP]).toBe(RECORD.setup);
     expect(state.configs[EVENT_TIMER]).toBe(RECORD.timer);
+    expect(state.system?.[EVENT_SETUP]).toBe(RECORD.system);
     expect(entryOf(), "PUT BACK touched the record").toEqual(before);
   });
 
@@ -950,7 +1013,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("ready");
     const framesBefore = fake.writes.length;
     const stepsBefore = store.steps;
-    expect(stepsBefore).toHaveLength(3);
+    expect(stepsBefore, "the serial and the three fetches").toHaveLength(4);
 
     // Measuring: the tuner has withdrawn the pair (D-17). The write count is
     // asserted FIRST, so a store that proceeds on undefined is reported as
@@ -962,13 +1025,17 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("ready");
     // Over budget: 909 is one past the module's limit, refused here before
     // sendConfig's own RangeError could ever be reached (TUNE-05, D-10).
-    await drive(store.tryOnDevice({ setup: "a".repeat(909), timer: "" }, "x"));
+    await drive(
+      store.tryOnDevice({ ...PAIR, setup: "a".repeat(909), timer: "" }, "x"),
+    );
     expect(
       fake.writes.length,
       "an over-budget Setup reached the transport",
     ).toBe(framesBefore);
     expect(store.phase).toBe("ready");
-    await drive(store.tryOnDevice({ setup: "", timer: "a".repeat(909) }, "x"));
+    await drive(
+      store.tryOnDevice({ ...PAIR, setup: "", timer: "a".repeat(909) }, "x"),
+    );
     expect(
       fake.writes.length,
       "an over-budget Timer reached the transport",
@@ -976,7 +1043,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("ready");
     // The queue was not touched: the steps are still the snapshot's own array.
     expect(store.steps, "an action started").toBe(stepsBefore);
-    expect(store.steps).toHaveLength(3);
+    expect(store.steps).toHaveLength(4);
     expect(store.lastWritten).toBeUndefined();
     expect(store.armed).toBe(false);
     expect(session.writeLock).toBe(false);
@@ -1066,6 +1133,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(writesOf("PAGESTORE", "EXECUTE")).toBe(1);
     expect(outcomes(store.steps)).toEqual([
       ["store", "ok"],
+      ["refetch-system", "ok"],
       ["refetch-setup", "ok"],
       ["refetch-timer", "ok"],
     ]);
@@ -1096,6 +1164,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       [EVENT_SETUP]: PAIR.setup,
       [EVENT_TIMER]: PAIR.timer,
     });
+    expect(
+      state.systemFlash,
+      "and the SECOND flash holds the page init - one store, both elements",
+    ).toEqual({ [EVENT_SETUP]: PAIR.system });
     expect(locks).toEqual([true, false]);
     expect(session.writeLock).toBe(false);
     await after(500);
@@ -1115,10 +1187,18 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       // never settles, unreachable on healthy hardware.
       wrap: (inner) => (outbound, requestId) => {
         const p = outbound.class_parameters;
+        // THE ELEMENT IS PART OF THE CONDITION, and it has to be since 12-03:
+        // the system element's setup is event 0 as well, so a fault matched on
+        // the event alone would answer the system re-fetch with a report
+        // echoing element 0 - which the system fetch's own filter refuses, so
+        // the leg would TIME OUT rather than mismatch, in a test written to
+        // prove mismatch handling. e2e/fake-zona.ts scopes its own
+        // mismatchRefetch fault the same way and for the same reason (12-02).
         if (
           stored &&
           outbound.class_name === "CONFIG" &&
           outbound.class_instr === "FETCH" &&
+          Number(p.ELEMENTNUMBER) === ELEMENT_TOUCH &&
           Number(p.EVENTTYPE) === EVENT_SETUP
         ) {
           return [
@@ -1128,6 +1208,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
               page: Number(p.PAGENUMBER),
               event: EVENT_SETUP,
               config: "--[[@cb]]print(9)",
+              element: ELEMENT_TOUCH,
             }),
           ];
         }
@@ -1144,13 +1225,16 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     store.openConfirm();
     await throughStore(rig, store.keepOnDevice());
 
-    // Exactly three rounds, each of both events, a backoff after each.
+    // Exactly three rounds, each of all three events, a backoff after each.
     expect(outcomes(store.steps)).toEqual([
       ["store", "ok"],
+      ["refetch-system", "ok"],
       ["refetch-setup", "ok"],
       ["refetch-timer", "ok"],
+      ["refetch-system", "ok"],
       ["refetch-setup", "ok"],
       ["refetch-timer", "ok"],
+      ["refetch-system", "ok"],
       ["refetch-setup", "ok"],
       ["refetch-timer", "ok"],
     ]);
@@ -1233,19 +1317,24 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     // The RAM leg with the SNAPSHOT's strings, its restore, then one
     // PAGESTORE/EXECUTE, then the re-fetch of both.
+    // The RAM leg is FOUR frames now (three writes and the restore), then one
+    // PAGESTORE/EXECUTE, then the re-fetch of all three: eight in all.
     const frames = written(fake).slice(framesBefore).map(shape);
-    expect(frames).toHaveLength(6);
-    expect(frames.slice(0, 3)).toEqual(ramLegFrames(ORIGINAL));
-    expect(frames[3][0].cls).toBe("PAGESTORE/EXECUTE");
-    expect(frames.slice(4).map((f) => f[0].cls)).toEqual([
+    expect(frames).toHaveLength(8);
+    expect(frames.slice(0, 4)).toEqual(ramLegFrames(ORIGINAL));
+    expect(frames[4][0].cls).toBe("PAGESTORE/EXECUTE");
+    expect(frames.slice(5).map((f) => f[0].cls)).toEqual([
+      "CONFIG/FETCH",
       "CONFIG/FETCH",
       "CONFIG/FETCH",
     ]);
     expect(outcomes(store.steps)).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
       ["store", "ok"],
+      ["refetch-system", "ok"],
       ["refetch-setup", "ok"],
       ["refetch-timer", "ok"],
     ]);
@@ -1265,15 +1354,21 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       [EVENT_SETUP]: MODULE_SETUP,
       [EVENT_TIMER]: MODULE_TIMER,
     });
+    expect(state.systemFlash, "and so does the second flash").toEqual({
+      [EVENT_SETUP]: MODULE_SYSTEM,
+    });
     await after(500);
     expect(session.speech).toBe(LIVE_RESTORED);
     expect(spoken.filter((s) => s === LIVE_RESTORED)).toHaveLength(1);
 
     // Part two: a fresh rig whose flash never confirms the put-back's store.
-    // Faults are fixed at construction: the keep takes acknowledgement 1, and
-    // the put-back's three attempts are acknowledgements 2, 3 and 4 - listed
-    // DESCENDING, see dropAcks234 and the header.
-    const second = await connected({ faults: dropAcks234("PAGESTORE") });
+    // Faults are fixed at construction, and a STORE leg is one write per
+    // attempt - so this one is unmoved by 12-03: the keep takes
+    // acknowledgement 1, and the put-back's three attempts are 2, 3 and 4,
+    // listed DESCENDING (see dropThreeAcksFrom and the header).
+    const second = await connected({
+      faults: dropThreeAcksFrom("PAGESTORE", 2),
+    });
     await triedOn(second);
     second.store.openConfirm();
     await throughStore(second, second.store.keepOnDevice());
@@ -1284,6 +1379,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     expect(second.writesOf("PAGESTORE", "EXECUTE"), "1 + 3 attempts").toBe(4);
     expect(outcomes(second.store.steps)).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
@@ -1312,23 +1408,27 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toBe(false);
   });
 
-  it("one landed script is partial, and it names the halves", async () => {
-    // Acknowledgement 1 (Timer) lands; 2, 3 and 4 (Setup's three attempts)
-    // are dropped - listed DESCENDING, see dropAcks234 and the header.
-    const rig = await connected({ faults: dropAcks234("CONFIG") });
+  it("one landed script is partial, and it names what landed", async () => {
+    // A RAM LEG IS THREE WRITES SINCE 12-03, so the drop list moved and the
+    // number is derived rather than copied: acknowledgement 1 is the page
+    // init and 2 is the Timer - both land - and 3, 4 and 5 are the Setup's
+    // three attempts, dropped, listed DESCENDING (dropThreeAcksFrom, header).
+    const rig = await connected({ faults: dropThreeAcksFrom("CONFIG", 3) });
     const { store, state, session, writesOf } = rig;
     store.observeConfig(PAIR);
     await drive(store.tryOnDevice(PAIR, "Aurora"));
 
     expect(outcomes(store.steps)).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "timeout"],
       ["restore-page-change", "sent"],
     ]);
-    expect(store.steps[1].attempts).toBe(RETRY_ATTEMPTS);
-    expect(writesOf("CONFIG", "EXECUTE"), "Timer once, Setup three times").toBe(
-      4,
-    );
+    expect(store.steps[2].attempts).toBe(RETRY_ATTEMPTS);
+    expect(
+      writesOf("CONFIG", "EXECUTE"),
+      "the page init once, the Timer once, the Setup three times",
+    ).toBe(5);
     // The restore went out exactly once, after the failed step.
     const restores = store.steps.filter((s) => s.id === "restore-page-change");
     expect(restores).toHaveLength(1);
@@ -1337,23 +1437,29 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
 
     expect(store.phase).toBe("partial");
-    expect(store.landed).toBe("Timer");
-    expect(store.failed).toBe("Setup");
+    expect(store.landed).toBe("The page init and the Timer");
+    expect(store.failed).toBe("the Setup");
     expect(store.cause).toBe("timeout");
     expect(store.keepReason(true)).toBe("after-partial");
     expect(store.armed, "never armed from partial").toBe(false);
     expect(store.putBackState()).toBe("enabled");
     expect(store.lastWritten, "nothing counts as written").toBeUndefined();
-    expect(state.configs[EVENT_TIMER], "the half that landed").toBe(PAIR.timer);
+    expect(state.configs[EVENT_TIMER], "the Timer landed").toBe(PAIR.timer);
+    expect(state.system?.[EVENT_SETUP], "and so did the page init").toBe(
+      PAIR.system,
+    );
     expect(session.writeLock).toBe(false);
     await after(500);
     expect(session.speech).toBe(
-      announceTitle(partialBlock("Timer", "Setup").title),
+      announceTitle(
+        partialBlock("The page init and the Timer", "the Setup").title,
+      ),
     );
 
-    // The same pair again: acknowledgements 5 and 6 are past every fault.
+    // The same set again: acknowledgements 6, 7 and 8 are past every fault.
     await drive(store.tryOnDevice(PAIR, "Aurora"));
     expect(outcomes(store.steps)).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
@@ -1361,17 +1467,20 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("settled");
     expect(store.landed).toBeUndefined();
     expect(store.failed).toBeUndefined();
-    expect(writesOf("CONFIG", "EXECUTE")).toBe(6);
+    expect(writesOf("CONFIG", "EXECUTE"), "5 + 3").toBe(8);
   });
 
   it("none landed is nothing-landed - by refusal with one attempt, by timeout with three, and the timeout escalates the pacing", async () => {
-    // Part one: the module refuses the Timer write. One attempt, no Setup
-    // write, one restore, and no escalation - a refusal is not congestion.
+    // Part one: the module refuses the FIRST write, which since 12-03 is the
+    // page init (255/0) rather than the Timer - so the refusal is matched on
+    // the ELEMENT, and nothing at all is attempted after it. One attempt, no
+    // Timer and no Setup write, one restore, and no escalation - a refusal is
+    // not congestion.
     const refused = await connected({
       wrap: (inner) => (outbound, requestId) =>
         outbound.class_name === "CONFIG" &&
         outbound.class_instr === "EXECUTE" &&
-        Number(outbound.class_parameters.EVENTTYPE) === EVENT_TIMER
+        Number(outbound.class_parameters.ELEMENTNUMBER) === ELEMENT_SYSTEM
           ? [configNackFrame({ sx: 0, sy: 0, lastheader: requestId })]
           : inner(outbound, requestId),
     });
@@ -1379,7 +1488,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await drive(refused.store.tryOnDevice(PAIR, "Aurora"));
 
     expect(outcomes(refused.store.steps)).toEqual([
-      ["write-timer", "nack"],
+      ["write-system", "nack"],
       ["restore-page-change", "sent"],
     ]);
     expect(refused.store.steps[0].attempts).toBe(1);
@@ -1393,13 +1502,18 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(refused.state.configs[EVENT_TIMER], "nothing changed").toBe(
       MODULE_TIMER,
     );
+    expect(
+      refused.state.system?.[EVENT_SETUP],
+      "and the page init the refusal was aimed at is untouched",
+    ).toBe(MODULE_SYSTEM);
     await after(500);
     expect(refused.session.speech).toBe(
       announceTitle(nothingLandedBlock("try").title),
     );
 
     // Part two: every acknowledgement arrives later than executeMs, so the
-    // Timer write times out three times with no NACK anywhere.
+    // FIRST write - the page init - times out three times with no NACK
+    // anywhere, and the Timer and the Setup are never attempted.
     const slow = await connected({
       faults: [
         {
@@ -1415,7 +1529,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await drive(slow.store.tryOnDevice(PAIR, "Aurora"));
 
     expect(outcomes(slow.store.steps)).toEqual([
-      ["write-timer", "timeout"],
+      ["write-system", "timeout"],
       ["restore-page-change", "sent"],
     ]);
     expect(slow.store.steps[0].attempts).toBe(RETRY_ATTEMPTS);
@@ -1434,7 +1548,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     const nextWrite = slow.fake.writes.length;
     const callAt = clock.t;
     await drive(slow.store.tryOnDevice(PAIR, "Aurora"));
-    const step = slow.store.steps.find((s) => s.id === "write-timer");
+    const step = slow.store.steps.find((s) => s.id === "write-system");
     expect(step?.sentAt).toBeDefined();
     const leftAt = slow.writeAt()[nextWrite];
     expect(leftAt - callAt).toBeGreaterThanOrEqual(DESKTOP_PRE_SEND_DELAY_MS);
@@ -1445,14 +1559,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
   });
 
   it("an unplug mid-write is lost, the session keeps quiet, and a reconnect finds the record", async () => {
-    // Three fetches at connect; the fourth frame is the first CONFIG/EXECUTE,
-    // and the port dies under it.
+    // FOUR reads at connect since 12-03 - the serial and three fetches - so
+    // the fifth frame is the first CONFIG/EXECUTE, and the port dies under it.
     const rig = await connected({
-      faults: [{ kind: "disconnect", afterTxFrames: 4 }],
+      faults: [{ kind: "disconnect", afterTxFrames: 5 }],
     });
     const { store, session, storage } = rig;
     expect(rig.fake.writes, "the fault sits on the first write").toHaveLength(
-      3,
+      4,
     );
     const spoken = record(session, "speech");
     const entryBefore = pageEntry(storage, ACTIVE_PAGE);
@@ -1463,7 +1577,9 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     expect(store.phase).toBe("lost");
     expect(store.cause).toBe("aborted");
-    expect(store.steps[0].id).toBe("write-timer");
+    expect(store.steps[0].id, "the page init is the first write").toBe(
+      "write-system",
+    );
     expect(store.steps[0].outcome).toBe("aborted");
     expect(session.phase).toBe("unplugged-while-connected");
     expect(session.writeLock, "released with the leg").toBe(false);
@@ -1548,7 +1664,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await triedOn(first);
     first.store.openConfirm();
     expect(first.store.confirmOpen).toBe(true);
-    first.store.observeConfig({ setup: PAIR.setup, timer: MODULE_TIMER });
+    first.store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
     expect(first.store.confirmOpen, "closed by the knob move").toBe(false);
     expect(first.store.armed).toBe(false);
     expect(first.store.keepReason(true)).toBe("knobs-moved");
@@ -1732,18 +1848,25 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toEqual(["CONFIG/EXECUTE", "HEARTBEAT/EXECUTE"]);
     expect(writesOf("PAGESTORE", "EXECUTE"), "a clear stored to flash").toBe(0);
 
-    // Two CONFIG/EXECUTE carrying the two defaults VERBATIM, Timer first,
-    // then the one restore heartbeat - the same three frames every RAM leg
-    // produces, through the same one writer.
-    expect(frames.length - framesBefore, "frames the click produced").toBe(3);
-    expect(frames.slice(-3).map(shape)).toEqual(
-      ramLegFrames({ setup: TOUCH_DEFAULT_SETUP, timer: TOUCH_DEFAULT_TIMER }),
+    // THREE CONFIG/EXECUTE carrying the three defaults VERBATIM, the page
+    // init first, then the one restore heartbeat - the same four frames every
+    // RAM leg produces, through the same one writer. The page init is reset
+    // TOO (12-03, option A): D-21's line says "the current page", and since
+    // this phase HANGAR writes both of that page's elements.
+    expect(frames.length - framesBefore, "frames the click produced").toBe(4);
+    expect(frames.slice(-4).map(shape)).toEqual(
+      ramLegFrames({
+        system: SYSTEM_DEFAULT_SETUP,
+        setup: TOUCH_DEFAULT_SETUP,
+        timer: TOUCH_DEFAULT_TIMER,
+      }),
     );
-    expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(2);
+    expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(3);
 
     // SAFE-07: `cleared` is both acknowledgements and the restore, never a
     // resolved writer promise.
     expect(outcomes(store.steps)).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
@@ -1756,6 +1879,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       TOUCH_DEFAULT_SETUP,
     );
     expect(state.configs[EVENT_TIMER]).toBe(TOUCH_DEFAULT_TIMER);
+    expect(
+      state.system?.[EVENT_SETUP],
+      "and the page init is the firmware's own again, not HANGAR's library and not the module's",
+    ).toBe(SYSTEM_DEFAULT_SETUP);
+    expect(SYSTEM_DEFAULT_SETUP).not.toBe(MODULE_SYSTEM);
 
     // Nothing of the visitor's and nothing of HANGAR's is playing, so there is
     // nothing to arm and nothing to keep; the way back is untouched.
@@ -1779,7 +1907,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.clearEnabled(true)).toBe(true);
     await drive(store.clearToDefault());
     expect(store.phase).toBe("cleared");
-    expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(4);
+    expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(6);
     store.observeConfig(PAIR);
     await drive(store.tryOnDevice(PAIR, "Aurora"));
     expect(store.phase).toBe("settled");
@@ -1787,32 +1915,39 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
   });
 
   it("a clear whose second acknowledgement never comes is partial, never cleared", async () => {
-    // Acknowledgement 1 (Timer) lands; 2, 3 and 4 (Setup's three attempts) are
-    // dropped. SAFE-07's distinction, on the fourth click: the promise the
-    // click returned RESOLVES, and the phase is still not `cleared`.
-    const rig = await connected({ faults: dropAcks234("CONFIG") });
+    // Acknowledgements 1 (the page init) and 2 (the Timer) land; 3, 4 and 5
+    // (the Setup's three attempts) are dropped - the same derivation as the
+    // try-on above. SAFE-07's distinction, on the fourth click: the promise
+    // the click returned RESOLVES, and the phase is still not `cleared`.
+    const rig = await connected({ faults: dropThreeAcksFrom("CONFIG", 3) });
     const { store, state, session } = rig;
 
     await drive(store.clearToDefault());
 
     expect(outcomes(store.steps)).toEqual([
+      ["write-system", "ok"],
       ["write-timer", "ok"],
       ["write-setup", "timeout"],
       ["restore-page-change", "sent"],
     ]);
-    expect(store.phase, "one acknowledgement is not two").toBe("partial");
+    expect(store.phase, "two acknowledgements are not three").toBe("partial");
     expect(store.action).toBe("clear");
-    expect(store.landed).toBe("Timer");
-    expect(store.failed).toBe("Setup");
+    expect(store.landed).toBe("The page init and the Timer");
+    expect(store.failed).toBe("the Setup");
     expect(store.cause).toBe("timeout");
     // A-28: the three failure states are reused rather than invented, so the
     // half-landed clear says exactly what the half-landed try-on says.
     await after(500);
     expect(session.speech).toBe(
-      announceTitle(partialBlock("Timer", "Setup").title),
+      announceTitle(
+        partialBlock("The page init and the Timer", "the Setup").title,
+      ),
     );
-    expect(state.configs[EVENT_TIMER], "the half that landed").toBe(
+    expect(state.configs[EVENT_TIMER], "the Timer landed").toBe(
       TOUCH_DEFAULT_TIMER,
+    );
+    expect(state.system?.[EVENT_SETUP], "and so did the page init").toBe(
+      SYSTEM_DEFAULT_SETUP,
     );
     // The fault drops the ACKNOWLEDGE, not the write, so the scripted module's
     // own RAM took the Setup too - and HANGAR cannot know that. Saying
@@ -1943,6 +2078,188 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         false,
       );
       expect(store.clearReason(true)).toBe("no-snapshot");
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // The third string (12-03): the order on the wire, and the three-way
+  // classifier.
+
+  it("three strings go out in the one order on every leg that writes, and the store proof reads three per round", async () => {
+    // THE ORDER IS THE POINT and it is asserted by ELEMENT AND EVENT TOGETHER,
+    // never by event alone: 255/0 and 0/0 are the same event number, so a
+    // by-event assertion would let the page init pass for the touch Setup at
+    // exactly the site where the order matters. grid_decode.c:1286-1287 runs a
+    // written body immediately, in write order, so a touch Setup that called a
+    // library the page init had not yet defined would raise a call of a nil
+    // value once, on the desk, and install no touch callback at all.
+    const rig = await connected();
+    const { store, state, fake, writesOf } = rig;
+
+    const configOrder = () =>
+      written(fake)
+        .flat()
+        .filter((c) => c.class_name === "CONFIG" && c.class_instr === "EXECUTE")
+        .map((c) => [
+          Number(c.class_parameters.ELEMENTNUMBER),
+          Number(c.class_parameters.EVENTTYPE),
+          String(c.class_parameters.ACTIONSTRING),
+        ]);
+
+    // TRY ON DEVICE: the tuner's three, 255/0 first.
+    store.observeConfig(PAIR);
+    await drive(store.tryOnDevice(PAIR, "Aurora"));
+    expect(store.phase).toBe("settled");
+    expect(configOrder()).toEqual([
+      [ELEMENT_SYSTEM, EVENT_SETUP, PAIR.system],
+      [ELEMENT_TOUCH, EVENT_TIMER, PAIR.timer],
+      [ELEMENT_TOUCH, EVENT_SETUP, PAIR.setup],
+    ]);
+    expect(store.lastWritten).toEqual(PAIR);
+
+    // CLEAR: the same order, the FIRMWARE'S OWN three, read through the pin
+    // and never from install-copy.ts. Both elements are reset, which is what
+    // keeps D-21's 41-character line literally true of every element HANGAR
+    // has ever written.
+    const beforeClear = writesOf("CONFIG", "EXECUTE");
+    await drive(store.clearToDefault());
+    expect(store.phase).toBe("cleared");
+    expect(configOrder().slice(beforeClear)).toEqual([
+      [ELEMENT_SYSTEM, EVENT_SETUP, SYSTEM_DEFAULT_SETUP],
+      [ELEMENT_TOUCH, EVENT_TIMER, TOUCH_DEFAULT_TIMER],
+      [ELEMENT_TOUCH, EVENT_SETUP, TOUCH_DEFAULT_SETUP],
+    ]);
+    // Three DIFFERENT strings have been in the system slot in this one test:
+    // the module's own at connect, the tuner's after the try-on, the
+    // firmware's after the clear. Nothing above can pass by coincidence.
+    const three = [MODULE_SYSTEM, PAIR.system, SYSTEM_DEFAULT_SETUP];
+    expect(new Set(three).size, "three distinct page inits").toBe(3);
+    expect(state.system?.[EVENT_SETUP]).toBe(SYSTEM_DEFAULT_SETUP);
+
+    // AN ENTRY WITH NO PAGE INIT OF ITS OWN. The tuner publishes the EMPTY
+    // STRING for it, because no module under src/lib/tune/ may know a firmware
+    // default (ladder.spec.ts:275), and this store substitutes its own in ONE
+    // place - so the empty string can never reach the wire, and `armed` is
+    // computed over the SUBSTITUTED value or it would never arm at all.
+    const none: ConfigStrings = { ...PAIR, system: "" };
+    const beforeNone = writesOf("CONFIG", "EXECUTE");
+    store.observeConfig(none);
+    await drive(store.tryOnDevice(none, "Aurora"));
+    expect(store.phase).toBe("settled");
+    expect(configOrder().slice(beforeNone)[0]).toEqual([
+      ELEMENT_SYSTEM,
+      EVENT_SETUP,
+      SYSTEM_DEFAULT_SETUP,
+    ]);
+    expect(
+      store.armed,
+      "the module holds what the screen shows, through the substitution",
+    ).toBe(true);
+    expect(store.lastWritten?.system).toBe(SYSTEM_DEFAULT_SETUP);
+
+    // THE STORE PROOF, after a KEEP, fetches THREE per round and compares
+    // three. One round, three re-fetches, in the fetcher's own order.
+    await triedOn(rig);
+    store.openConfirm();
+    await throughStore(rig, store.keepOnDevice());
+    expect(store.phase).toBe("kept");
+    expect(store.refetchRounds).toBe(1);
+    expect(
+      store.steps.filter((s) => s.id.startsWith("refetch")).map((s) => s.id),
+    ).toEqual(["refetch-system", "refetch-setup", "refetch-timer"]);
+  });
+
+  it("a partial names which of the three landed, and the partial that cannot happen does not", async () => {
+    // THE WRITER IS SEQUENTIAL AND ABORTS ON THE FIRST FAILURE, in the order
+    // system, Timer, Setup - so exactly three outcomes exist and this test
+    // walks all three by refusing a different write in each. The fourth
+    // conceivable state, "the Setup landed and the page init did not"
+    // (12-RESEARCH Pitfall 6), is UNREACHABLE with this writer, and the
+    // classifier's comment says so; the assertion at the end is the one a
+    // reader looking for that state will find.
+    const refuseNth = async (nth: number) => {
+      let seen = 0;
+      const rig = await connected({
+        wrap: (inner) => (outbound, requestId) => {
+          const isWrite =
+            outbound.class_name === "CONFIG" &&
+            outbound.class_instr === "EXECUTE";
+          if (isWrite && ++seen === nth) {
+            return [configNackFrame({ sx: 0, sy: 0, lastheader: requestId })];
+          }
+          return inner(outbound, requestId);
+        },
+      });
+      rig.store.observeConfig(PAIR);
+      await drive(rig.store.tryOnDevice(PAIR, "Aurora"));
+      return rig;
+    };
+
+    // 1. The Setup refused after two OKs: the page init and the Timer landed.
+    const lastRefused = await refuseNth(3);
+    expect(lastRefused.store.phase).toBe("partial");
+    expect(lastRefused.store.cause).toBe("nack");
+    expect(lastRefused.store.landed).toBe("The page init and the Timer");
+    expect(lastRefused.store.failed).toBe("the Setup");
+    expect(outcomes(lastRefused.store.steps)).toEqual([
+      ["write-system", "ok"],
+      ["write-timer", "ok"],
+      ["write-setup", "nack"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(lastRefused.state.system?.[EVENT_SETUP]).toBe(PAIR.system);
+    expect(lastRefused.state.configs[EVENT_TIMER]).toBe(PAIR.timer);
+    expect(
+      lastRefused.state.configs[EVENT_SETUP],
+      "the refused Setup never reached the module",
+    ).toBe(MODULE_SETUP);
+    await after(500);
+    expect(lastRefused.session.speech).toBe(
+      announceTitle(
+        partialBlock("The page init and the Timer", "the Setup").title,
+      ),
+    );
+
+    // 2. The Timer refused after one OK: the page init landed, and only it.
+    const timerRefused = await refuseNth(2);
+    expect(timerRefused.store.phase).toBe("partial");
+    expect(timerRefused.store.landed).toBe("The page init");
+    expect(timerRefused.store.failed).toBe("the Timer and the Setup");
+    expect(outcomes(timerRefused.store.steps)).toEqual([
+      ["write-system", "ok"],
+      ["write-timer", "nack"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(timerRefused.state.system?.[EVENT_SETUP]).toBe(PAIR.system);
+    expect(timerRefused.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
+    expect(timerRefused.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+
+    // 3. The page init refused: NOTHING landed, and the two touch writes were
+    // never attempted. This is the row that makes the unreachable partial
+    // unreachable - the write that would have to fail first is the one that
+    // goes first.
+    const systemRefused = await refuseNth(1);
+    expect(systemRefused.store.phase).toBe("nothing-landed");
+    expect(systemRefused.store.landed).toBeUndefined();
+    expect(systemRefused.store.failed).toBeUndefined();
+    expect(outcomes(systemRefused.store.steps)).toEqual([
+      ["write-system", "nack"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(systemRefused.writesOf("CONFIG", "EXECUTE")).toBe(1);
+    expect(systemRefused.state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
+    expect(systemRefused.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+
+    // The unreachable state, asserted as unreachable over all three runs: no
+    // module ends holding the TUNER's Setup while its page init is not the
+    // tuner's.
+    for (const rig of [lastRefused, timerRefused, systemRefused]) {
+      const setupLanded = rig.state.configs[EVENT_SETUP] === PAIR.setup;
+      const systemLanded = rig.state.system?.[EVENT_SETUP] === PAIR.system;
+      expect(
+        setupLanded && !systemLanded,
+        "a touch Setup landed against a page init that did not - the writer cannot produce this",
+      ).toBe(false);
     }
   });
 });

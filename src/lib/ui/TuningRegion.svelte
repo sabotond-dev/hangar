@@ -263,7 +263,9 @@
      * the install store, which writes it verbatim - never a re-compile at
      * click time.
      */
-    onconfig?: (config: { setup: string; timer: string } | undefined) => void;
+    onconfig?: (
+      config: { system: string; setup: string; timer: string } | undefined,
+    ) => void;
     /**
      * The colour picker's result pad, for whoever owns the page's SimHost.
      *

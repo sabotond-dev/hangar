@@ -128,6 +128,94 @@ const AMENDED_BY_MEASUREMENT: readonly {
   },
 ];
 
+/**
+ * AMENDED BECAUSE A THIRD SCRIPT MADE THE CONTRACT'S SENTENCE UNTRUE (12-03).
+ *
+ * The contracts were written when an install was two scripts. Since 12-03 it
+ * is three: the SYSTEM element's page-init slot goes on the wire ahead of the
+ * touch element's Setup and Timer, is copied at connect, is put back by PUT
+ * BACK and is reset by CLEAR. Four sentences named a count or a scope that the
+ * third script falsified, and only those four moved - everything else in the
+ * contracts is still true of the touch element and is shipped byte for byte.
+ *
+ * ASSERTED FROM BOTH SIDES, exactly as AMENDED_BY_MEASUREMENT is. Test 2
+ * requires the CONTRACT's form to be in an approved contract, so the row being
+ * amended is real and still says what it says; requires the SHIPPED form to be
+ * the one the module really produces under that name; and, where the
+ * amendment is an INSERTION, requires that deleting the inserted words from
+ * the shipped string gives the contract's string back character for character
+ * - so an amendment cannot quietly rewrite the rest of a sentence under cover
+ * of adding a clause. The two rewritten rows (partial's detail, which cannot
+ * be an insertion because "half ... and half" is a two-part claim, and its
+ * first step, which said "both") are required to NAME the page init instead.
+ *
+ * Deleting a row makes test 2 red on the shipped string; faking one makes it
+ * red on the contract's.
+ */
+const PAGE_INIT_CLAUSE = "and the page’s own init script";
+const AMENDED_BY_THE_THIRD_SCRIPT: readonly {
+  name: string;
+  contract: string;
+  shipped: string;
+  /** The inserted words, or undefined when the sentence was rewritten rather than extended. */
+  addition?: string;
+  /** What a REWRITTEN sentence has to say instead, so the rewrite is about the third script. */
+  names?: string;
+}[] = [
+  {
+    name: "SNAPSHOTTING_BODY",
+    contract:
+      "Taking a copy of the Setup and Timer scripts already on your ZONA’s touch element.",
+    shipped:
+      "Taking a copy of the Setup and Timer scripts already on your ZONA’s touch element, and the page’s own init script.",
+    addition: `, ${PAGE_INIT_CLAUSE}`,
+  },
+  {
+    name: "identifiedBody",
+    contract:
+      "Firmware {major}.{minor}.{patch}, active page {n}. Its own Setup and Timer are saved here, so PUT BACK can undo anything you try.",
+    shipped:
+      "Firmware {major}.{minor}.{patch}, active page {n}. Its own Setup and Timer are saved here, and the page’s own init script, so PUT BACK can undo anything you try.",
+    addition: `, ${PAGE_INIT_CLAUSE}`,
+  },
+  {
+    name: "CONFIRM_REPLACES",
+    contract:
+      "This replaces the Setup and Timer scripts on your ZONA’s touch element, and it survives a power cycle.",
+    shipped:
+      "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init script, and it survives a power cycle.",
+    addition: ` ${PAGE_INIT_CLAUSE}`,
+  },
+  {
+    name: "partialBlock.detail",
+    contract:
+      "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
+    shipped:
+      "The page init and the Timer reached your ZONA and the Setup did not. What is on the module now is part of this configuration and part of your own.",
+    names: "page init",
+  },
+  {
+    name: "partialBlock(page init only).detail",
+    contract:
+      "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
+    shipped:
+      "The page init reached your ZONA and the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
+    names: "page init",
+  },
+  {
+    name: "partialBlock.steps[0]",
+    contract: "Click TRY ON DEVICE to send both again",
+    shipped: "Click TRY ON DEVICE to send all three again",
+    names: "all three",
+  },
+  {
+    name: "partialBlock(page init only).steps[0]",
+    contract: "Click TRY ON DEVICE to send both again",
+    shipped: "Click TRY ON DEVICE to send all three again",
+    names: "all three",
+  },
+];
+
 /** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
 const strip = (text: string) =>
   text
@@ -165,7 +253,7 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   unconfirmedBlock: [NAME],
   restoredUnconfirmedBlock: [],
   nothingLandedBlock: ["try"],
-  partialBlock: ["Timer", "Setup"],
+  partialBlock: ["The page init and the Timer", "the Setup"],
   lostBlock: [false, HEADER_LABEL],
   snapshotFailedBlock: [],
   moduleList: [["EN16", "BU16", "PO16"]],
@@ -183,7 +271,10 @@ const OTHER_BRANCHES: readonly [string, unknown][] = [
   ["nothingLandedBlock(put-back)", nothingLandedBlock("put-back")],
   ["lostBlock(store leg)", lostBlock(true, "TRY ON DEVICE")],
   ["confirmRig(several)", confirmRig(["EN16", "BU16"])],
-  ["partialBlock(Setup, Timer)", partialBlock("Setup", "Timer")],
+  [
+    "partialBlock(page init only)",
+    partialBlock("The page init", "the Timer and the Setup"),
+  ],
 ];
 
 /**
@@ -256,7 +347,7 @@ const failureBlocks = (): readonly [string, InstallBlock][] => [
   ["unconfirmedBlock", unconfirmedBlock(NAME)],
   ["restoredUnconfirmedBlock", restoredUnconfirmedBlock()],
   ["nothingLandedBlock", nothingLandedBlock("try")],
-  ["partialBlock", partialBlock("Timer", "Setup")],
+  ["partialBlock", partialBlock("The page init and the Timer", "the Setup")],
   ["lostBlock", lostBlock(false, HEADER_LABEL)],
   ["snapshotFailedBlock", snapshotFailedBlock()],
 ];
@@ -321,7 +412,43 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
         `${name}'s contract form is not over its cap, so there was nothing to amend - delete the row`,
       ).toBeGreaterThan(cap);
     }
-    const amended = new Set(AMENDED_BY_MEASUREMENT.map((a) => a.name));
+    // The third script's amendments, asserted the same way: the contract row
+    // is real, the shipped string is the one the module produces under that
+    // name, and an INSERTION is exactly an insertion - delete the clause and
+    // the contract's sentence comes back, character for character.
+    const shippedByName = new Map(
+      long.map(({ name, text }) => [name, templated(text)]),
+    );
+    for (const row of AMENDED_BY_THE_THIRD_SCRIPT) {
+      expect(
+        inAContract(row.contract),
+        `${row.name}'s CONTRACT form is in neither approved contract - the amendment names a row that does not exist`,
+      ).toBe(true);
+      expect(
+        shippedByName.get(row.name),
+        `${row.name} does not ship the string this row says it ships`,
+      ).toBe(row.shipped);
+      if (row.addition === undefined) {
+        expect(
+          row.shipped,
+          `${row.name} was rewritten rather than extended, so it has to name what made the contract's sentence untrue`,
+        ).toContain(row.names ?? "");
+        expect(
+          row.names,
+          `${row.name} is a rewrite with nothing declared for it to say`,
+        ).toBeDefined();
+      } else {
+        expect(
+          row.shipped.split(row.addition).join(""),
+          `${row.name}'s amendment is not an insertion - something other than the added clause moved`,
+        ).toBe(row.contract);
+      }
+    }
+
+    const amended = new Set([
+      ...AMENDED_BY_MEASUREMENT.map((a) => a.name),
+      ...AMENDED_BY_THE_THIRD_SCRIPT.map((a) => a.name),
+    ]);
 
     const misses = long
       .filter(
@@ -337,7 +464,7 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
         "nothingLandedBlock(put-back).detail",
         "lostBlock(store leg).detail",
         "confirmRig(several)",
-        "partialBlock(Setup, Timer).detail",
+        "partialBlock(page init only).detail",
       ]),
     );
   });
@@ -795,14 +922,23 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       "Z-11: not said on a store leg",
     ).toBe(false);
 
+    // The two partials the ONE writer can produce, and no third: the unions
+    // are closed, so a pairing the writer cannot reach is a type error here
+    // rather than a sentence somebody has to notice.
     expect(
-      partialBlock("Timer", "Setup").detail.startsWith(
-        "Timer reached your ZONA and Setup did not",
+      partialBlock(
+        "The page init and the Timer",
+        "the Setup",
+      ).detail.startsWith(
+        "The page init and the Timer reached your ZONA and the Setup did not",
       ),
     ).toBe(true);
     expect(
-      partialBlock("Setup", "Timer").detail.startsWith(
-        "Setup reached your ZONA and Timer did not",
+      partialBlock(
+        "The page init",
+        "the Timer and the Setup",
+      ).detail.startsWith(
+        "The page init reached your ZONA and the Timer and the Setup did not",
       ),
     ).toBe(true);
 

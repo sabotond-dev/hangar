@@ -33,8 +33,10 @@
 // the window.
 //
 // NO AGENT WRITES TO A DEVICE. Every write in this file lands in
-// FakeTransport.writes, through the same RequestQueue and writeBoth the real
-// panel will use, and nothing here opens a port.
+// FakeTransport.writes, through the same RequestQueue and writeAll the real
+// panel will use, and nothing here opens a port. SINCE 12-03 THAT IS THREE
+// FRAMES, not two: the page-init slot goes on the wire ahead of the pair, and
+// this file pins the pair's bytes, not the count.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
@@ -70,8 +72,8 @@ import { FakeTransport } from "../transport/fake";
 import { zonaResponder, type ZonaState } from "../transport/fixtures/synthetic";
 import { RequestQueue } from "../transport/queue";
 import {
-  writeBoth,
-  type EventStrings,
+  writeAll,
+  type ConfigSet,
   type WriteTarget,
 } from "../transport/sequence";
 
@@ -217,7 +219,7 @@ const configWrites = (transport: FakeTransport): DecodedClass[] =>
 // The store's decision, in the shape the install store will use (07-10).
 
 type WriteDecision =
-  | { ok: true; strings: EventStrings }
+  | { ok: true; strings: ConfigSet }
   | { ok: false; reason: "measuring" | "over-budget" };
 
 /**
@@ -234,7 +236,14 @@ function stringsOrRefuse(config: ConfigStrings | undefined): WriteDecision {
   ) {
     return { ok: false, reason: "over-budget" };
   }
-  return { ok: true, strings: { setup: config.setup, timer: config.timer } };
+  return {
+    ok: true,
+    strings: {
+      system: config.system,
+      setup: config.setup,
+      timer: config.timer,
+    },
+  };
 }
 
 describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
@@ -355,7 +364,18 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         expect(
           landed.config,
           `${entry.id}: the published pair is not renderLua's text`,
-        ).toEqual(rendered);
+        ).toEqual({ system: "", ...rendered });
+        // AND THE PAGE INIT IS THE EMPTY STRING FOR EVERY ENTRY IN THIS PHASE
+        // (12-03), which is the tuner saying "this entry has no page init of
+        // its own" - not a firmware default, which no module under
+        // src/lib/tune/ may know (ladder.spec.ts:275). The install store
+        // substitutes SYSTEM_DEFAULT_SETUP for it in one place before any
+        // write, so the empty string never reaches the wire. 12-07 is where
+        // this stops being empty for a Lua entry.
+        expect(
+          landed.config.system,
+          `${entry.id}: the tuner invented a page init`,
+        ).toBe("");
         for (const event of ["setup", "timer"] as const) {
           const text = landed.config[event];
           // The meter the tuner showed is the string's length, empty included.
@@ -391,12 +411,13 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
     try {
       const { config } = landed;
       const { transport, queue } = rig();
-      await writeBoth(queue, TARGET, config);
+      await writeAll(queue, TARGET, config);
 
       const writes = configWrites(transport);
-      expect(writes, "two CONFIG/EXECUTE frames").toHaveLength(2);
-      // Timer first, then Setup - the order writeBoth owns.
-      const [timer, setup] = writes;
+      expect(writes, "three CONFIG/EXECUTE frames").toHaveLength(3);
+      // The page init, then Timer, then Setup - the order writeAll owns.
+      const [system, timer, setup] = writes;
+      expect(String(system.class_parameters.ACTIONSTRING)).toBe(config.system);
       expect(Number(timer.class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
       expect(String(timer.class_parameters.ACTIONSTRING)).toBe(config.timer);
       expect(Number(timer.class_parameters.ACTIONLENGTH)).toBe(
@@ -458,15 +479,16 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
     const midWindow = stringsOrRefuse(configs.at(-1));
     expect(midWindow.ok).toBe(false);
     if (!midWindow.ok) expect(midWindow.reason).toBe("measuring");
-    if (midWindow.ok) await writeBoth(queue, TARGET, midWindow.strings);
+    if (midWindow.ok) await writeAll(queue, TARGET, midWindow.strings);
 
     const tooLong = stringsOrRefuse({
+      system: "",
       setup: "-".repeat(EVENT_BUDGET + 1),
       timer: "",
     });
     expect(tooLong.ok).toBe(false);
     if (!tooLong.ok) expect(tooLong.reason).toBe("over-budget");
-    if (tooLong.ok) await writeBoth(queue, TARGET, tooLong.strings);
+    if (tooLong.ok) await writeAll(queue, TARGET, tooLong.strings);
 
     expect(transport.writes, "a refusal reached the transport").toHaveLength(0);
 

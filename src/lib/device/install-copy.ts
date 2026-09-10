@@ -98,6 +98,23 @@
 export type EventWord = "Setup" | "Timer";
 
 /**
+ * WHAT LANDED, AND WHAT DID NOT, AS THE PARTIAL BLOCK INTERPOLATES THEM.
+ *
+ * Two CLOSED unions rather than one open string, because the pairings encode a
+ * fact about the writer: since 12-03 a RAM leg writes THREE events - the page
+ * init (255/0), then the touch Timer, then the touch Setup - sequentially,
+ * aborting on the first failure. So exactly two partials exist, they are the
+ * two rows below, and "the Setup landed but the page init did not" is not
+ * expressible here because the writer cannot produce it. `landed` is
+ * sentence-initial and capitalised; `failed` sits mid-sentence and is not.
+ *
+ *   The page init                | the Timer and the Setup
+ *   The page init and the Timer  | the Setup
+ */
+export type LandedWords = "The page init" | "The page init and the Timer";
+export type FailedWords = "the Timer and the Setup" | "the Setup";
+
+/**
  * A failure-shaped block for region 3: a title, a detail, the steps in order.
  * The same shape as session-copy.ts's SessionBlock, declared here rather than
  * imported (see the header); the title is required here because every one of
@@ -196,7 +213,7 @@ export const HONESTY_INCAPABLE =
 
 export const SNAPSHOTTING_CAPTION = "READING ZONA";
 export const SNAPSHOTTING_BODY =
-  "Taking a copy of the Setup and Timer scripts already on your ZONA’s touch element.";
+  "Taking a copy of the Setup and Timer scripts already on your ZONA’s touch element, and the page’s own init script.";
 
 /** Phase 4's caption, unchanged. */
 export const IDENTIFIED_CAPTION = "ZONA IDENTIFIED";
@@ -206,7 +223,7 @@ export function identifiedBody(
   fw: { major: number; minor: number; patch: number },
   page: number,
 ): string {
-  return `Firmware ${fw.major}.${fw.minor}.${fw.patch}, active page ${page}. Its own Setup and Timer are saved here, so PUT BACK can undo anything you try.`;
+  return `Firmware ${fw.major}.${fw.minor}.${fw.patch}, active page ${page}. Its own Setup and Timer are saved here, and the page’s own init script, so PUT BACK can undo anything you try.`;
 }
 
 /**
@@ -338,17 +355,24 @@ export function nothingLandedBlock(after: "try" | "put-back"): InstallBlock {
 }
 
 /**
- * I7, SAFE-07's named case. The two words arrive already capitalised, as
- * $lib/tune/copy established, so this module imports nothing for them.
+ * I7, SAFE-07's named case. The two LISTS arrive already cased, as
+ * $lib/tune/copy established for the single words this replaced, so this
+ * module imports nothing for them and authors no grammar.
+ *
+ * AMENDED IN 12-03, because a RAM leg writes three events and "Timer reached
+ * your ZONA and Setup did not" could no longer say which three-way split had
+ * happened. The steps say "all three" for the same reason. The TITLE is
+ * unchanged - `PARTIAL_TITLE` is what the panel and the live region read, and
+ * it never named a count.
  */
 export function partialBlock(
-  landed: EventWord,
-  failed: EventWord,
+  landed: LandedWords,
+  failed: FailedWords,
 ): InstallBlock {
   return {
     title: PARTIAL_TITLE,
-    detail: `${landed} reached your ZONA and ${failed} did not. What is on the module now is half this configuration and half your own.`,
-    steps: ["Click TRY ON DEVICE to send both again", STEP_OR_PUT_BACK],
+    detail: `${landed} reached your ZONA and ${failed} did not. What is on the module now is part of this configuration and part of your own.`,
+    steps: ["Click TRY ON DEVICE to send all three again", STEP_OR_PUT_BACK],
   };
 }
 
@@ -391,7 +415,7 @@ export const CONFIRM_CAPTION = "PERMANENT";
 
 /** The one string on the site allowed to name the touch element, because SAFE-05 requires exactly that. */
 export const CONFIRM_REPLACES =
-  "This replaces the Setup and Timer scripts on your ZONA’s touch element, and it survives a power cycle.";
+  "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init script, and it survives a power cycle.";
 
 /** Names PUT BACK, which is in the cell directly above. */
 export const CONFIRM_WAY_BACK =

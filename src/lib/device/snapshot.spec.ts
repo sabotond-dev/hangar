@@ -19,12 +19,13 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   SNAPSHOT_KEY,
+  SNAPSHOT_KEY_V2,
   hasSnapshotFor,
   lastModuleId,
   persistIfAbsent,
   readSnapshot,
   rememberLast,
-  type EventPair,
+  type ConfigTriple,
   type SnapshotStore,
 } from "./snapshot";
 
@@ -82,15 +83,37 @@ const MODULE_A = "123456789abcdef00000000000000000";
 const MODULE_B = "fffffff0000000010000000000000000";
 const MODULE_C = "00000000000000000000000000000001";
 
-const ORIGINAL: EventPair = {
+const ORIGINAL: ConfigTriple = {
+  system: "--[[@cb]]function M()return 1 end",
   setup: "--[[@cb]]print(1)",
   timer: "--[[@cb]]print(2)",
 };
-const HANGARS: EventPair = {
+const HANGARS: ConfigTriple = {
+  system: "--[[@cb]]function H()return 9 end",
   setup: "--[[@cb]]glr(1,1,1)",
   timer: "--[[@cb]]glr(2,2,2)",
 };
 const TAKEN = "2026-09-05T12:00:00.000Z";
+
+/**
+ * THE PAGE INIT THE CALLER PASSES IN when a record has none. Deliberately a
+ * string this FILE owns rather than the package constant the install store
+ * really passes: a v1 read has to come back with the CALLER s string, and a
+ * package constant here could pass by coinciding with something the module
+ * already held. snapshot.ts imports nothing, so it can never reach the
+ * package - which is the whole reason the parameter exists.
+ */
+const PASSED_DEFAULT = "--[[@cb]]--[[caller default]]";
+
+/** readSnapshot with the caller s default folded in, and the entry as a plain triple. */
+const readAt = (
+  store: SnapshotStore | undefined,
+  moduleId: string,
+  page: number,
+) => readSnapshot(store, moduleId, page, PASSED_DEFAULT);
+
+/** What readAt returns for a record this version wrote. */
+const entry = (set: ConfigTriple, fromV1 = false) => ({ ...set, fromV1 });
 
 describe("the module's original, as a record (src/lib/device/snapshot.ts)", () => {
   it("imports nothing at all, and names no window", () => {
@@ -143,7 +166,7 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
   it("a record round-trips through persistIfAbsent and readSnapshot, with its timestamp", () => {
     const { map, store } = fakeStore();
     expect(
-      readSnapshot(store, MODULE_A, 0),
+      readAt(store, MODULE_A, 0),
       "nothing was recorded yet",
     ).toBeUndefined();
     expect(hasSnapshotFor(store, MODULE_A), "nothing was recorded yet").toBe(
@@ -154,21 +177,25 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
       "written",
     );
 
-    expect(readSnapshot(store, MODULE_A, 0)).toEqual(ORIGINAL);
+    expect(readAt(store, MODULE_A, 0)).toEqual(entry(ORIGINAL));
     expect(hasSnapshotFor(store, MODULE_A)).toBe(true);
 
     expect(map.size, "exactly one key was written").toBe(1);
-    expect([...map.keys()]).toEqual([SNAPSHOT_KEY]);
-    expect(SNAPSHOT_KEY, "the key is versioned in its name").toBe(
+    expect([...map.keys()], "and it is the v2 key").toEqual([SNAPSHOT_KEY_V2]);
+    expect(SNAPSHOT_KEY_V2, "the key is versioned in its name").toBe(
+      "hangar.snapshot.v2",
+    );
+    expect(SNAPSHOT_KEY, "and the older one is still named, for reading").toBe(
       "hangar.snapshot.v1",
     );
 
-    const stored = JSON.parse(map.get(SNAPSHOT_KEY) ?? "null") as {
+    const stored = JSON.parse(map.get(SNAPSHOT_KEY_V2) ?? "null") as {
       v: number;
       modules: Record<string, { pages: Record<string, unknown> }>;
     };
-    expect(stored.v, "the body is versioned too").toBe(1);
+    expect(stored.v, "the body is versioned too").toBe(2);
     expect(stored.modules[MODULE_A].pages["0"]).toEqual({
+      system: ORIGINAL.system,
       setup: ORIGINAL.setup,
       timer: ORIGINAL.timer,
       takenAt: TAKEN,
@@ -180,7 +207,7 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
     expect(persistIfAbsent(store, MODULE_A, 0, ORIGINAL, TAKEN)).toBe(
       "written",
     );
-    const before = map.get(SNAPSHOT_KEY);
+    const before = map.get(SNAPSHOT_KEY_V2);
 
     // The re-connect after a TRY ON DEVICE: the fetch now returns HANGAR's own
     // configuration, and persisting it would destroy the only original.
@@ -189,15 +216,15 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
       persistIfAbsent(store, MODULE_A, 0, HANGARS, later),
       "the second persist must decline",
     ).toBe("kept");
-    expect(
-      readSnapshot(store, MODULE_A, 0),
-      "the original was overwritten",
-    ).toEqual(ORIGINAL);
-    expect(map.get(SNAPSHOT_KEY), "the raw record changed under a kept").toBe(
-      before,
+    expect(readAt(store, MODULE_A, 0), "the original was overwritten").toEqual(
+      entry(ORIGINAL),
     );
+    expect(
+      map.get(SNAPSHOT_KEY_V2),
+      "the raw record changed under a kept",
+    ).toBe(before);
 
-    const stored = JSON.parse(map.get(SNAPSHOT_KEY) ?? "null") as {
+    const stored = JSON.parse(map.get(SNAPSHOT_KEY_V2) ?? "null") as {
       modules: Record<string, { pages: Record<string, { takenAt: string }> }>;
     };
     expect(stored.modules[MODULE_A].pages["0"].takenAt, "takenAt moved").toBe(
@@ -206,16 +233,16 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
 
     // Idempotent: a third identical persist is also a kept, not a write.
     expect(persistIfAbsent(store, MODULE_A, 0, ORIGINAL, later)).toBe("kept");
-    expect(map.get(SNAPSHOT_KEY)).toBe(before);
+    expect(map.get(SNAPSHOT_KEY_V2)).toBe(before);
   });
 
   it("a second module and a second page each get their own entry", () => {
     const { store } = fakeStore();
     const pairs = {
-      a0: { setup: "a0s", timer: "a0t" },
-      a3: { setup: "a3s", timer: "a3t" },
-      b0: { setup: "b0s", timer: "b0t" },
-      b3: { setup: "b3s", timer: "b3t" },
+      a0: { system: "a0y", setup: "a0s", timer: "a0t" },
+      a3: { system: "a3y", setup: "a3s", timer: "a3t" },
+      b0: { system: "b0y", setup: "b0s", timer: "b0t" },
+      b3: { system: "b3y", setup: "b3s", timer: "b3t" },
     } as const;
 
     expect(persistIfAbsent(store, MODULE_A, 0, pairs.a0, TAKEN)).toBe(
@@ -232,29 +259,29 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
     );
 
     // Four entries, none shadowing another.
-    expect(readSnapshot(store, MODULE_A, 0)).toEqual(pairs.a0);
-    expect(readSnapshot(store, MODULE_A, 3)).toEqual(pairs.a3);
-    expect(readSnapshot(store, MODULE_B, 0)).toEqual(pairs.b0);
-    expect(readSnapshot(store, MODULE_B, 3)).toEqual(pairs.b3);
+    expect(readAt(store, MODULE_A, 0)).toEqual(entry(pairs.a0));
+    expect(readAt(store, MODULE_A, 3)).toEqual(entry(pairs.a3));
+    expect(readAt(store, MODULE_B, 0)).toEqual(entry(pairs.b0));
+    expect(readAt(store, MODULE_B, 3)).toEqual(entry(pairs.b3));
 
     // A page never snapshotted is absent even when its neighbours exist -
     // Pitfall 4: page 3's original is never handed out for page 1.
-    expect(readSnapshot(store, MODULE_A, 1)).toBeUndefined();
-    expect(readSnapshot(store, MODULE_B, 1)).toBeUndefined();
+    expect(readAt(store, MODULE_A, 1)).toBeUndefined();
+    expect(readAt(store, MODULE_B, 1)).toBeUndefined();
 
     expect(hasSnapshotFor(store, MODULE_A)).toBe(true);
     expect(hasSnapshotFor(store, MODULE_B)).toBe(true);
     expect(hasSnapshotFor(store, MODULE_C), "a third module has none").toBe(
       false,
     );
-    expect(readSnapshot(store, MODULE_C, 0)).toBeUndefined();
+    expect(readAt(store, MODULE_C, 0)).toBeUndefined();
   });
 
   it("a throwing store and an undefined store degrade without throwing", () => {
     // Every method throws: Safari private mode, or a browser that refuses
     // storage for this site.
-    expect(() => readSnapshot(HOSTILE_STORE, MODULE_A, 0)).not.toThrow();
-    expect(readSnapshot(HOSTILE_STORE, MODULE_A, 0)).toBeUndefined();
+    expect(() => readAt(HOSTILE_STORE, MODULE_A, 0)).not.toThrow();
+    expect(readAt(HOSTILE_STORE, MODULE_A, 0)).toBeUndefined();
     expect(() =>
       persistIfAbsent(HOSTILE_STORE, MODULE_A, 0, ORIGINAL, TAKEN),
     ).not.toThrow();
@@ -278,10 +305,10 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
     );
     expect(map.size, "a refused write left nothing behind").toBe(0);
     expect(() => rememberLast(full, MODULE_A)).not.toThrow();
-    expect(readSnapshot(full, MODULE_A, 0)).toBeUndefined();
+    expect(readAt(full, MODULE_A, 0)).toBeUndefined();
 
     // No store at all: the prerendered page.
-    expect(readSnapshot(undefined, MODULE_A, 0)).toBeUndefined();
+    expect(readAt(undefined, MODULE_A, 0)).toBeUndefined();
     expect(persistIfAbsent(undefined, MODULE_A, 0, ORIGINAL, TAKEN)).toBe(
       "unavailable",
     );
@@ -324,11 +351,11 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
 
     for (const { what, raw } of broken) {
       const { store } = fakeStore();
-      store.setItem(SNAPSHOT_KEY, raw);
+      store.setItem(SNAPSHOT_KEY_V2, raw);
 
-      let got: EventPair | undefined;
+      let got: ReturnType<typeof readAt>;
       expect(() => {
-        got = readSnapshot(store, MODULE_A, 0);
+        got = readAt(store, MODULE_A, 0);
       }, `${what}: a broken record threw`).not.toThrow();
       expect(
         got,
@@ -346,9 +373,9 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
         `${what}: a persist on a broken record did not write`,
       ).toBe("written");
       expect(
-        readSnapshot(store, MODULE_A, 0),
+        readAt(store, MODULE_A, 0),
         `${what}: the replacement did not read back`,
-      ).toEqual(ORIGINAL);
+      ).toEqual(entry(ORIGINAL));
       expect(hasSnapshotFor(store, MODULE_A)).toBe(true);
     }
 
@@ -356,23 +383,21 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
     // beside it, and does not stop the module counting as snapshotted.
     const { store } = fakeStore();
     store.setItem(
-      SNAPSHOT_KEY,
-      `{"v":1,"modules":{"${MODULE_A}":{"pages":{"0":{"setup":7},"3":{"setup":"s3","timer":"t3","takenAt":"${TAKEN}"}}}}}`,
+      SNAPSHOT_KEY_V2,
+      `{"v":2,"modules":{"${MODULE_A}":{"pages":{"0":{"setup":7},"3":{"system":"y3","setup":"s3","timer":"t3","takenAt":"${TAKEN}"}}}}}`,
     );
-    expect(readSnapshot(store, MODULE_A, 0)).toBeUndefined();
-    expect(readSnapshot(store, MODULE_A, 3)).toEqual({
-      setup: "s3",
-      timer: "t3",
-    });
+    expect(readAt(store, MODULE_A, 0)).toBeUndefined();
+    expect(readAt(store, MODULE_A, 3)).toEqual(
+      entry({ system: "y3", setup: "s3", timer: "t3" }),
+    );
     expect(hasSnapshotFor(store, MODULE_A)).toBe(true);
     // And the replacement of page 0 leaves page 3 exactly where it was.
     expect(persistIfAbsent(store, MODULE_A, 0, ORIGINAL, TAKEN)).toBe(
       "written",
     );
-    expect(readSnapshot(store, MODULE_A, 3)).toEqual({
-      setup: "s3",
-      timer: "t3",
-    });
+    expect(readAt(store, MODULE_A, 3)).toEqual(
+      entry({ system: "y3", setup: "s3", timer: "t3" }),
+    );
   });
 
   it("rememberLast and lastModuleId round-trip, and a store with no record has no last", () => {
@@ -387,8 +412,8 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
     persistIfAbsent(store, MODULE_A, 0, ORIGINAL, TAKEN);
     rememberLast(store, MODULE_B);
     expect(lastModuleId(store)).toBe(MODULE_B);
-    expect(readSnapshot(store, MODULE_A, 0), "the entry survived").toEqual(
-      ORIGINAL,
+    expect(readAt(store, MODULE_A, 0), "the entry survived").toEqual(
+      entry(ORIGINAL),
     );
     expect(
       hasSnapshotFor(store, MODULE_B),
@@ -398,7 +423,7 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
     // A record with a `last` that is not a string has no last, and is otherwise
     // read normally.
     const { store: odd } = fakeStore();
-    odd.setItem(SNAPSHOT_KEY, '{"v":1,"last":7,"modules":{}}');
+    odd.setItem(SNAPSHOT_KEY_V2, '{"v":2,"last":7,"modules":{}}');
     expect(lastModuleId(odd)).toBeUndefined();
 
     // A record with no `last` at all: the ordinary case after a persist alone.
@@ -409,5 +434,86 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
     // And on a throwing store it neither throws nor remembers.
     expect(() => rememberLast(HOSTILE_STORE, MODULE_A)).not.toThrow();
     expect(lastModuleId(HOSTILE_STORE)).toBeUndefined();
+  });
+
+  it("a v1 record is read with the caller's default page init, is never overwritten, and a v2 entry missing one is absent", () => {
+    // THE RECORD PHASE 7 LEFT, and what this version does with it (12-03).
+    const { map, store } = fakeStore();
+    const v1 = `{"v":1,"last":"${MODULE_A}","modules":{"${MODULE_A}":{"pages":{"0":{"setup":"${ORIGINAL.setup}","timer":"${ORIGINAL.timer}","takenAt":"${TAKEN}"}}}}}`;
+    store.setItem(SNAPSHOT_KEY, v1);
+
+    // READ, with the CALLER's default standing in for the page init the record
+    // never had - and `fromV1` saying so, rather than the substitution being
+    // silent. It is not a guess: no version of HANGAR before this phase ever
+    // wrote element 255, so the only page init a module with a v1 record can
+    // have met is its factory one.
+    const read = readAt(store, MODULE_A, 0);
+    expect(read).toEqual({
+      system: PASSED_DEFAULT,
+      setup: ORIGINAL.setup,
+      timer: ORIGINAL.timer,
+      fromV1: true,
+    });
+    expect(read?.fromV1, "the substitution is surfaced, never silent").toBe(
+      true,
+    );
+    // A different caller default lands a different string: the value really
+    // comes from the parameter, and snapshot.ts has no way to invent one -
+    // it imports nothing at all (test 1).
+    expect(readSnapshot(store, MODULE_A, 0, "OTHER")?.system).toBe("OTHER");
+    expect(hasSnapshotFor(store, MODULE_A), "a v1 entry counts").toBe(true);
+    expect(lastModuleId(store), "and so does its `last`").toBe(MODULE_A);
+
+    // RULE 3, ACROSS THE VERSION BOUNDARY: a v1 entry for this page is the
+    // visitor's only original, so a v2 entry beside it is DECLINED. Writing
+    // one would not destroy the v1 record - but readSnapshot reads v2 first,
+    // so it would SHADOW it, which is the same loss with a longer name.
+    expect(
+      persistIfAbsent(store, MODULE_A, 0, HANGARS, "2026-09-10T12:00:00.000Z"),
+      "a v2 entry was written over a v1 original",
+    ).toBe("kept");
+    expect(readAt(store, MODULE_A, 0)?.setup, "the original still reads").toBe(
+      ORIGINAL.setup,
+    );
+
+    // RULE 4: the v1 record is byte-unchanged and still there. A record left
+    // by a schema this version does not own is not this version's to touch.
+    expect(map.get(SNAPSHOT_KEY), "the v1 record moved").toBe(v1);
+
+    // A page the v1 record does NOT have is written under v2, beside it, and
+    // read back as a v2 entry - so the older record blocks nothing but its
+    // own page.
+    expect(persistIfAbsent(store, MODULE_A, 3, HANGARS, TAKEN)).toBe("written");
+    expect(readAt(store, MODULE_A, 3)).toEqual(entry(HANGARS));
+    expect(map.get(SNAPSHOT_KEY), "still byte-unchanged").toBe(v1);
+
+    // V2 WINS WHERE BOTH EXIST. A second browser record, same module, same
+    // page, under both keys: the newer one is what a read returns.
+    const { store: both } = fakeStore();
+    both.setItem(SNAPSHOT_KEY, v1);
+    both.setItem(
+      SNAPSHOT_KEY_V2,
+      `{"v":2,"modules":{"${MODULE_A}":{"pages":{"0":{"system":"${HANGARS.system}","setup":"${HANGARS.setup}","timer":"${HANGARS.timer}","takenAt":"${TAKEN}"}}}}}`,
+    );
+    expect(readAt(both, MODULE_A, 0)).toEqual(entry(HANGARS));
+
+    // AND A V2 ENTRY MISSING `system` IS ABSENT, NOT HALF-READ. This is the
+    // negative check: a two-string entry under the v2 key is not a v2 entry,
+    // and handing back a set with an undefined page init would put that on
+    // the wire on the one click that exists to undo every other one. With no
+    // v1 record beside it, the read is `undefined`.
+    const { store: half } = fakeStore();
+    half.setItem(
+      SNAPSHOT_KEY_V2,
+      `{"v":2,"modules":{"${MODULE_A}":{"pages":{"0":{"setup":"s","timer":"t","takenAt":"${TAKEN}"}}}}}`,
+    );
+    expect(
+      readAt(half, MODULE_A, 0),
+      "a half-read entry reached the caller",
+    ).toBeUndefined();
+    expect(hasSnapshotFor(half, MODULE_A)).toBe(false);
+    // And it is replaced, not kept: it was never a copy of anything.
+    expect(persistIfAbsent(half, MODULE_A, 0, ORIGINAL, TAKEN)).toBe("written");
+    expect(readAt(half, MODULE_A, 0)).toEqual(entry(ORIGINAL));
   });
 });
