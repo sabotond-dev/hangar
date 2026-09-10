@@ -319,8 +319,14 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // the sweep as untouched at "4 19". The member list and the test count are
     // indeed unchanged; two literals inside one of the tests were not.
     // Reported in 11-01-SUMMARY.md rather than quietly absorbed.
+    //
+    // RE-COUNTED BY PLAN 11-15, and it is not in that plan's file list either -
+    // found the same way, by running the sweep. WHEELS declares SIX knobs,
+    // THREE of them colour, so the hand-authored knob total goes 91 to 97,
+    // `exempted` 29 to 32 and `guarded` 62 to 65. It still reconciles: 65 + 32
+    // is 97. The member list is still "4 19".
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(29);
+    expect(exempted, "the colour knobs, exempt by format").toBe(32);
 
     // PASS A. Every non-colour knob cross-producted, colour knobs at their
     // defaults, through the real encoder and the real decoder.

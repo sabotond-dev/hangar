@@ -6,7 +6,7 @@ Phase 8 authored seven configurations for HANGAR — EUCLID, CHORUS, ARC, GHOST,
 SONAR — and Phase 9 added twenty more, closing at QUADRANT and POMODORO. Phase 11 then removed nine
 of the twenty-seven on the user's own bench report — HOLD, KEYS, LEARN, SWITCH, ETCH, GRIDLOCK,
 LIFE, SLAM and TABLE. **This document covers every hand-authored configuration still in the catalog:
-eighteen of them.**
+nineteen of them.** Plan 11-15 added the nineteenth, WHEELS, on the user’s request.
 Everything a machine can check about them is already green: each one is stored in canonical
 compressed form, fits both 908-character budgets at its defaults and across its entire knob
 cross-product, runs in a real Lua 5.4 VM driving the firmware-faithful LED engine without error, and
@@ -16,8 +16,8 @@ This document is the list of things a machine cannot check. Perceived polyrhythm
 codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brightness after the
 divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
 real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
-left alone for fifteen minutes. Twenty-three rows, each with the reason it belongs to a bench and
-not to a test suite. **Five of the twenty-three are the ones where a green test is not evidence**,
+left alone for fifteen minutes. Twenty-four rows, each with the reason it belongs to a bench and
+not to a test suite. **Five of the twenty-four are the ones where a green test is not evidence**,
 and they are pulled together in their own section below so that a person with an hour rather than an
 afternoon knows where to start. It was thirty-two rows and six of them until plan 11-01 removed nine
 configurations; the sixth was HOLD's latch, which left with HOLD.
@@ -46,7 +46,7 @@ vendored.
 4. **MORPH, CONSOLE, STRIP, LUMEN, CULL and QUADRANT are Setup only** — none of the six has a Timer
    at all, the Timer event of each is the empty string, and they are the six cards that start from
    the Setup alone. They are the exceptions that prove the rule above.
-5. **Have somewhere to write twenty-three lines.** The results go back into this document under a
+5. **Have somewhere to write twenty-four lines.** The results go back into this document under a
    dated `Results` heading; see [What to record](#what-to-record).
 
 ## Getting the exact text
@@ -58,7 +58,7 @@ AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
 ```
 
 It writes `.tmp-audition/<id>.setup.lua` for every hand-authored configuration and
-`.tmp-audition/<id>.timer.lua` for every one that has a Timer — eighteen Setup files and twelve
+`.tmp-audition/<id>.timer.lua` for every one that has a Timer — nineteen Setup files and thirteen
 Timer files — rendered at that configuration's default knob positions, and prints each file's character
 count beside the 908-character budget. `.tmp-audition/` is gitignored; the command commits nothing
 and, unlike the repository's other env-guarded writers, it does not fail the run.
@@ -69,7 +69,7 @@ what the dump writes. Retyping a line of it by hand is how a one-character diffe
 of confusion — and because every configuration is stored in canonical compressed form, one stray
 space is also a budget change.
 
-## The eighteen, and what they cost — every hand-authored configuration in the catalog
+## The nineteen, and what they cost — every hand-authored configuration in the catalog
 
 Measured at their default knob positions with the pinned minifier. The first seven come from
 `08-06-SUMMARY.md`; STEPS was measured by `09-03-SUMMARY.md`, CONSOLE and STRIP by
@@ -98,6 +98,13 @@ inside 908 with the repaint in touch_cb. **Its old row, 663 / 201, was CORRECT f
 carried it** — the third row of this table examined in three waves, and the first found accurate.
 Two of three stale is still the honest reading of what the rest of the table is worth.
 
+**WHEELS is NEW rather than re-measured, and its row is the first in this table written by the wave
+that authored the entry.** Plan 11-15 added it on the user's request for a pitch and mod wheel pair;
+882 / 338 are its two events at the DEFAULT knob positions, which is what this table records. Its
+margin at the RGB444 picker corner — the corner the 908 gate reads — is **13 characters on the
+Setup**, the tightest in the catalog, and that number is in `11-15-SUMMARY.md` rather than here
+because this table is a defaults table.
+
 **Every other row in this table is still its original wave's measurement, phase 11 has since changed
 the Lua of several of them, and none of them has been re-checked** — recorded as `D-11-10-b` in
 `deferred-items.md`.
@@ -125,6 +132,7 @@ HANGAR's own Lua:
 | `snake`    | SNAKE    | 581   | 870              | 5     | no           |
 | `quadrant` | QUADRANT | 835   | 0 — **no Timer** | 4     | no           |
 | `pomodoro` | POMODORO | 733   | 647              | 5     | no           |
+| `wheels`   | WHEELS   | 882   | 338              | 6     | no           |
 
 **MORPH, CONSOLE, STRIP, LUMEN, CULL and QUADRANT are Setup only, and that is legitimate rather
 than an omission.** MORPH animates only under a finger, with a per-touch decay that firmware runs
@@ -186,7 +194,7 @@ a **number in an entry file**. The first is a note in the results below, the sec
 
 ## The checklist
 
-Twenty-three rows, in order. Each names why it cannot be simulated, so no row is busywork. The five
+Twenty-four rows, in order. Each names why it cannot be simulated, so no row is busywork. The five
 above are 14, 17, 18, 20 and 23.
 
 | #   | Config            | What to check                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Why it cannot be simulated                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -214,6 +222,7 @@ above are 14, 17, 18, 20 and 23.
 | 21  | **SNAKE**         | Play a full game. Does the snake turn where you meant it to, or does the turn arrive a beat late? Then take your finger off and watch it play itself.                                                                                                                                                                                                                                                                                                                                                                                                                           | One touch sample per 10 ms cycle across all contacts, plus a display that appears 0 to 10 ms after the write on a different core — the felt latency of a steer is exactly what a deterministic simulator cannot report.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | 22  | **QUADRANT**      | Stand back two metres. Can you name each quadrant by its fill alone, with the colours ignored? Then hit each one without looking, ten times each, and count the misses that landed on the dark cross.                                                                                                                                                                                                                                                                                                                                                                           | The claim is about perception at a distance through a physical diffuser, and whether a target is hittable without looking is a question about hands. A pixel comparison says the four fills differ; it cannot say a person can tell them apart, and it cannot say a finger lands where its owner meant it to.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 23  | **POMODORO**      | Start it and leave the module alone for the full interval. **Does the inner breathe still move at the end, and does the ring reach zero at the right time?** Note how far behind a wall clock it finishes.                                                                                                                                                                                                                                                                                                                                                                      | The 655 s `glt` ceiling: the animation freezes when the countdown expires and only a re-issued rate restarts it. The re-issue is checked in a browser over 160,000 simulated ticks and has never run on hardware, where the Timer fires on the next 100 Hz cycle after its countdown and drifts under load over 1500 of them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 24  | **WHEELS**        | **(a) THE ONE THING ONLY A SYNTHESISER CAN SETTLE.** Hold a note, bend it to the top of the pad, and let go — twenty times, fast and slow, and once by lifting while your finger slides sideways off the wheel. **Does the note come back to true pitch, exactly, every time, or does it sit a hair flat?** **(b)** Watch the return at each of the four spring speeds: does it read as travel, or as a jump? **(c)** Hand the module to somebody who has not seen it and ask them what the two halves are, and where the boundary is.                                          | A held note going out of tune is a thing you HEAR, and nothing in this repository listens: there is no synthesiser behind the simulator, so "the last logged bend is 8192" is a claim about a log and not about a note. Whether the spring reads as travel is a judgement about motion at 20 ms a step on real LEDs, and whether a stranger sees two controls and a divider rather than one confused picture is the legibility question D-11-12-b says nothing in the tree can ask.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ## What to record
 

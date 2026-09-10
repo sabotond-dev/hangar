@@ -455,6 +455,26 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "lua",
   },
+  {
+    id: "wheels",
+    name: "WHEELS",
+    description:
+      "Pitch on the left springs home the moment you let go; the mod wheel on the right stays where you left it.",
+    // STATIC, AND IT IS READ OFF frames.json RATHER THAN DECLARED. This entry
+    // stores a Timer, and the received wisdom is that a stored Timer makes a
+    // card `animated` whatever its picture is doing. That is true only of an
+    // entry whose SETUP arms it and whose Timer re-arms unconditionally; this
+    // one does neither - the spring is armed by a lift and stops itself when it
+    // lands - so the fixture reports `animating` false at all five sampled
+    // ticks. FORGE is the shipped precedent for exactly that shape.
+    motion: "static",
+    quiet:
+      "Both wheels sit lit and still: the pitch marker at the centre row, the mod bar wherever you left it.",
+    tags: ["modulation", "expressive", "precise"],
+    featured: false,
+    restsBlack: false,
+    preview: "lua",
+  },
 ];
 
 /**

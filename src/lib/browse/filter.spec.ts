@@ -147,19 +147,30 @@ const search = (query: string) =>
  *
  * THIS FILE IS NOT IN 11-01-PLAN.md'S BLAST-RADIUS TABLE. It was found by
  * running the suite, and the omission is reported in 11-01-SUMMARY.md rather
- * than quietly absorbed.
+ * than quietly absorbed. 11-15 found it the same way, and 11-15-PLAN.md does
+ * not name it either.
+ *
+ * 11-15 (the wheels) is the first wave since 11-01 to move these numbers and
+ * the first ever to move them UPWARDS BY ONE ENTRY. `entries` 27 to 28,
+ * `modulation` 7 to 8 - a pitch and mod wheel pair is the modulation section of
+ * a keyboard - `expressive` 11 to 12 and `precise` 6 to 7. THE `precise` MOVE
+ * LIFTS THAT TERM OFF THE FLOOR facets.spec.ts asserts, which is a consequence
+ * of a tag chosen for being true and never a reason it was chosen: `still` is
+ * the tag that would have left the floor alone and it is simply not true of a
+ * card whose whole gesture is something moving after the finger has gone.
+ * `singletons` is still zero.
  *
  * This block has a reader outside the repository's source: 05.1-UI-SPEC.md,
  * "The tag chips", quoted the row and its counts verbatim. 10-06 amended that
  * document by name rather than restating the new row there.
  */
 const RECORDED = {
-  entries: 27,
+  entries: 28,
   tags: 14,
   singletons: 0,
   /** Keyed by term, in FOR order then FEELS order - the toolbar's own order. */
   counts: {
-    modulation: 7,
+    modulation: 8,
     show: 5,
     mixing: 3,
     sequencing: 3,
@@ -168,10 +179,10 @@ const RECORDED = {
     pointing: 2,
     play: 2,
     readable: 11,
-    expressive: 11,
+    expressive: 12,
     playable: 8,
     generative: 12,
-    precise: 6,
+    precise: 7,
     still: 6,
   } as Readonly<Record<string, number>>,
 } as const;

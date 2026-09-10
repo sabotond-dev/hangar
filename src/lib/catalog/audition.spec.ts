@@ -49,7 +49,7 @@ const doc = readFileSync(DOC_URL, "utf8");
 const flat = doc.replace(/\s+/g, " ");
 
 /** The number of rows the checklist has, and must keep having. */
-const ROW_COUNT = 23;
+const ROW_COUNT = 24;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -184,7 +184,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-three numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-four numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",
@@ -198,7 +198,7 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
     expect(ROWS.length, "checklist rows").toBe(ROW_COUNT);
     expect(
       ROWS.map((row) => row.index),
-      "the rows are numbered 1 to 23, in order",
+      "the rows are numbered 1 to 24, in order",
     ).toEqual(Array.from({ length: ROW_COUNT }, (_, i) => i + 1));
 
     for (const row of ROWS) {

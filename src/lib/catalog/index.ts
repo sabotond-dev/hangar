@@ -26,6 +26,7 @@ import { SONAR } from "./entries/sonar";
 import { STAGE } from "./entries/stage";
 import { STRIP } from "./entries/strip";
 import { STEPS } from "./entries/steps";
+import { WHEELS } from "./entries/wheels";
 import type { CatalogEntry } from "./types";
 
 export {
@@ -65,6 +66,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   SNAKE,
   QUADRANT,
   POMODORO,
+  WHEELS,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -85,6 +87,7 @@ export { FORGE } from "./entries/forge";
 export { SNAKE } from "./entries/snake";
 export { QUADRANT } from "./entries/quadrant";
 export { POMODORO } from "./entries/pomodoro";
+export { WHEELS } from "./entries/wheels";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {

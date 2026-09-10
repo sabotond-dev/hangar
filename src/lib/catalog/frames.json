@@ -865,6 +865,38 @@
         "nonZeroBytes": 156,
         "animating": true
       }
+    ],
+    "wheels": [
+      {
+        "tick": 0,
+        "sha256": "dcbb05d7507aec17d9cf3317653a8931962f5a40840bb076ba2879fe9aea8daa",
+        "nonZeroBytes": 171,
+        "animating": false
+      },
+      {
+        "tick": 37,
+        "sha256": "dcbb05d7507aec17d9cf3317653a8931962f5a40840bb076ba2879fe9aea8daa",
+        "nonZeroBytes": 171,
+        "animating": false
+      },
+      {
+        "tick": 101,
+        "sha256": "dcbb05d7507aec17d9cf3317653a8931962f5a40840bb076ba2879fe9aea8daa",
+        "nonZeroBytes": 171,
+        "animating": false
+      },
+      {
+        "tick": 500,
+        "sha256": "dcbb05d7507aec17d9cf3317653a8931962f5a40840bb076ba2879fe9aea8daa",
+        "nonZeroBytes": 171,
+        "animating": false
+      },
+      {
+        "tick": 1009,
+        "sha256": "dcbb05d7507aec17d9cf3317653a8931962f5a40840bb076ba2879fe9aea8daa",
+        "nonZeroBytes": 171,
+        "animating": false
+      }
     ]
   }
 }

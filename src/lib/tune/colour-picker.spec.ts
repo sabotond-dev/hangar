@@ -537,7 +537,7 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     ).toBe(0);
   });
 
-  it("the selector is rendered only when an entry has more than one colour knob, and the shelf splits 12 / 7 / 3 / 5", () => {
+  it("the selector is rendered only when an entry has more than one colour knob, and the shelf splits 12 / 7 / 4 / 5", () => {
     // RECOUNTED FROM THE CATALOG, never from a literal list, because the split
     // is a fact about the shipped tree and a list is a copy of it that rots.
     const split = { none: 0, two: 0, three: 0, noPicker: 0 };
@@ -559,18 +559,26 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     // strip all survived, and so did both entries with no colour knob.
     //
     // THIS FILE IS NOT IN 11-01-PLAN.md'S BLAST-RADIUS TABLE. Found by running
-    // the suite; reported in 11-01-SUMMARY.md rather than quietly absorbed.
+    // the suite; reported in 11-01-SUMMARY.md rather than quietly absorbed. It
+    // is not in 11-15-PLAN.md's either, and it was found the same way.
+    //
+    // RE-RECORDED BY PLAN 11-15, which added WHEELS - a pitch wheel, a mod
+    // wheel and the divider between them, so THREE colour knobs. `three` 3 to
+    // 4 and the catalog 27 to 28; nothing else moved. WHEELS is therefore one
+    // of the four worst cases the six-canvas colour-rail budget is measured
+    // against, and it is the first entry to join that list since it was
+    // written.
     expect(
       split,
       "the colour-knob split moved. 12 entries render no selector (one colour knob), 7 render two options, 3 render three, and 5 have no picker at all",
-    ).toEqual({ none: 12, two: 7, three: 3, noPicker: 5 });
+    ).toEqual({ none: 12, two: 7, three: 4, noPicker: 5 });
     expect(
       three.sort(),
-      "the three-colour entries are console, forge and strip - the worst case the six-canvas budget is measured against",
-    ).toEqual(["console", "forge", "strip"]);
+      "the three-colour entries are console, forge, strip and wheels - the worst case the six-canvas budget is measured against",
+    ).toEqual(["console", "forge", "strip", "wheels"]);
     expect(
       CATALOG.length,
-      "the catalog is no longer 27 entries, so the split above is a different denominator",
+      "the catalog is no longer 28 entries, so the split above is a different denominator",
     ).toBe(split.none + split.two + split.three + split.noPicker);
 
     // THE PRESENCE RULE, IN BOTH DIRECTIONS, as a property of the source: the
