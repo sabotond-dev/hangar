@@ -123,3 +123,70 @@ now one in two.
 **Suggested owner:** 11-16, alongside the entry-header corner sweep. The two are
 the same job done twice: an entry header quoting a wrong corner and this table
 quoting a wrong default are both a number nothing gates.
+
+**AMENDED AGAIN BY PLAN 11-12.** SHUTTLE's row moved from 663 / 201 to
+540 / 538, and unlike GHOST's it was **accurate for the entry that carried it**
+— checked against the pre-rewrite file before it was replaced. Three rows have
+now been examined across three waves and **one of the three was stale**.
+**Fifteen rows remain unchecked.**
+
+---
+
+## D-11-12-a — nothing catches a Timer that re-arms itself with a period of zero
+
+**Found:** plan 11-12, task 01, running the negative check the plan asked for.
+
+`gtt(0, 0)` is a no-op in firmware and in `lua-host.ts:679-683` alike — a Timer
+that re-arms with a period of zero does not run fast, it **stops permanently**,
+with no error, no raise and nothing in the picture to say so. SHUTTLE carries a
+`math.max(..., 20)//1` floor **because this exact thing happened to it once**,
+and the floor is the only thing standing between the catalog and a silent stop.
+
+**Measured, not supposed.** The floor was removed from `shuttle.ts` and the
+period driven to zero at every knob value. The Timer fired once, stopped, and
+the pad went on showing a speed it was no longer sending — a fast tap in the
+other direction changed nothing at all. **Every gate stayed green**: 105 server
+tests, six sweep tests, `frames.spec.ts` included. The fixture could not see it
+because SHUTTLE's resting picture is the same whether the Timer repaints it or
+not, and no other test drives a Timer entry long enough to notice it stop.
+
+**Why no gate exists.** The failure is dynamic and entry-specific: a static scan
+would have to prove a period expression is non-zero over every knob value, which
+is exactly the arithmetic `decay-idiom.spec.ts` already does for phases and
+could plausibly do for `gtt` — every `gtt` in a Timer whose argument resolves
+statically must resolve above zero, and one that does not must be floored. That
+is a real, cheap, catalog-wide clause and nobody has written it. **Nine of the
+eighteen hand-authored entries store a Timer.**
+
+**Suggested owner:** 11-16, or the next wave that touches `decay-idiom.spec.ts`.
+
+---
+
+## D-11-12-b — no gate asserts that a card is legible, and regenerating the fixture hides it
+
+**Found:** plan 11-12, task 02, running the second negative check.
+
+The bench note behind the whole of 11-12 was *"SHUTTLE: don't understand how it
+works"*. The rewrite's entire answer is legibility — direction as colour and
+position, zero as a painted mark, the stop as a red row — and **not one of those
+claims is checkable by anything in this repository.**
+
+**Measured.** SHUTTLE's forward and reverse palettes were made identical, which
+produces a pad on which the direction of travel cannot be read at all. The only
+thing that reddened was `frames.spec.ts`, on a **pixel hash** — a change
+detector, not a legibility gate. Regenerating `frames.json`, which is what an
+author does when a picture legitimately moves, made the whole tree green again:
+23 files, 133 tests, plus the six sweep tests. **An illegible card is fully
+green and indistinguishable from a legible one.**
+
+This is the same shape as 11-11's finding that no test asserts what a demo path
+DEPICTS, and it is the more general statement of it: every gate in the catalog
+reads well-formedness, budget, arithmetic and change. None reads meaning.
+
+**It is not obvious this SHOULD be gated** — that is why it is a deferred item
+and not a bug. The honest answer may be that legibility belongs on a bench and
+nowhere else, in which case the deliverable is the bench row rather than a test.
+Row 18(b) of `docs/HARDWARE-AUDITION.md` is that row and it was added by 11-12.
+
+**Suggested owner:** 11-16, to decide between a gate and an acceptance that
+there cannot be one.

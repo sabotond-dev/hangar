@@ -4031,4 +4031,257 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
   }, 120000);
+
+  it("runs SHUTTLE faster the further out you push, and stops it on the red row", async () => {
+    // THE BENCH NOTE THIS ANSWERS: "SHUTTLE: don't understand how it works,
+    // rework". D-04 read that as a verdict on the BEHAVIOUR, and plan 11-12
+    // re-authored the entry from a blank page: the ring became a bar on the
+    // axis the finger actually pushes, the transport LATCHES, and the stop is
+    // the whole bottom row painted red.
+    //
+    // THREE CLAIMS, AND THE THIRD IS THE ONE THE OLD FILE ARGUED COULD NOT BE
+    // MADE.
+    //
+    //   1. SPEED RISES WITH DISTANCE FROM CENTRE, in both directions, asserted
+    //      as a MONOTONIC RELATION over the nine columns rather than against
+    //      nine literals - so a re-tuned period moves the numbers and not the
+    //      test. The centre column sends nothing, and each side sends its own
+    //      key: a probe that only counted messages would pass a card that ran
+    //      the video backwards on both halves.
+    //   2. THE STOP GESTURE STOPS IT. Not "sends less" - sends NOTHING, over a
+    //      settle longer than the slowest period, with the bar back to its
+    //      track and the red row dark.
+    //   3. EVERY GESTURE HERE IS A FAST TAP. touchTap is the only path in the
+    //      simulator that produces the coalesced code-9 message, and the old
+    //      entry evaluated it to a speed of zero and did nothing at all. The
+    //      whole probe is built out of taps, so claim 1 is also the assertion
+    //      that a tap SETS a speed and claim 2 is the assertion that a tap
+    //      CLEARS one. That pair is the machine form of the second reason
+    //      shuttle.ts gave for refusing to latch - "a DOWNUP arrives with no
+    //      lift behind it, so a tap that set a speed could never be cleared by
+    //      the same gesture that set it" - and it is the reason the redesign
+    //      put the exit on a cell instead of on the lift.
+    //
+    // EVERY COORDINATE AND EVERY BOUNDARY IS READ OFF THE ENTRY'S OWN LUA.
+    // The bar's cell range, the stop row's cell range and both key codes are
+    // parsed or derived here, so a card re-cut onto different rows moves this
+    // test with it instead of silently drifting past it.
+    const entry = entryById("shuttle");
+    const source = entry.source;
+    if (source.kind !== "lua") throw new Error("shuttle is not a lua entry");
+
+    const barRange = /for n=(\d+),(\d+) do local d=n%9-4/.exec(source.timer);
+    expect(
+      barRange,
+      "shuttle: the Timer still paints a bar over a cell run",
+    ).not.toBeNull();
+    const [barFrom, barTo] = [
+      Number((barRange as RegExpExecArray)[1]),
+      Number((barRange as RegExpExecArray)[2]),
+    ];
+    const stopRange = /for n=(\d+),(\d+) do local a=glag\(0,n\)glc\(a,1,q/.exec(
+      source.timer,
+    );
+    expect(
+      stopRange,
+      "shuttle: the Timer still paints a stop row",
+    ).not.toBeNull();
+    const [stopFrom, stopTo] = [
+      Number((stopRange as RegExpExecArray)[1]),
+      Number((stopRange as RegExpExecArray)[2]),
+    ];
+    const forwardKey = knobValueOf(entry, "forward");
+    const backwardKey = knobValueOf(entry, "backward");
+    const slowestPeriod = knobValueOf(entry, "period");
+
+    /** The row the bar occupies that a probe may safely push on. */
+    const BAR_ROW = Math.floor(barFrom / 9) + 1;
+    /** The row the stop lives on, from the entry's own cell run. */
+    const STOP_ROW = Math.floor(stopFrom / 9);
+    expect(STOP_ROW, "the stop row is one whole row").toBe(
+      Math.floor(stopTo / 9),
+    );
+
+    // Long enough that the slowest speed fires several times: the slowest
+    // period is @BASEP milliseconds at 10 ms a tick, and speed 1 divides it by
+    // two.
+    const WINDOW = slowestPeriod;
+    const report: string[] = [];
+
+    const { host } = await open(entry);
+    try {
+      const run = (n: number): void => {
+        for (let i = 0; i < n; i += 1) host.tick();
+      };
+      const brightness = (cell: number): number =>
+        host.frame[cell * 3] +
+        host.frame[cell * 3 + 1] +
+        host.frame[cell * 3 + 2];
+
+      // THE REFERENCE PICTURE, TAKEN BEFORE ANY FINGER. "Lit" is defined
+      // against the card's own resting track rather than against a literal
+      // colour, so the assertion survives a re-tuned palette and a re-tuned
+      // track. The centre column is excluded from it because the zero mark
+      // BREATHES - it is brighter and dimmer than its own average by design,
+      // and comparing a breathing cell against one sample of itself would
+      // report the breath as a speed.
+      run(RESIDUE_WARMUP);
+      const atRest: number[] = [];
+      for (let cell = barFrom; cell <= barTo; cell += 1)
+        atRest[cell] = brightness(cell);
+      const markLitAtRest = brightness(barFrom + 4 + 9) > 0;
+
+      const stopRowLit = (): number[] => {
+        const out: number[] = [];
+        for (let cell = stopFrom; cell <= stopTo; cell += 1)
+          if (litAt(host.frame, cell)) out.push(cell);
+        return out;
+      };
+      /** Bar cells brighter than the untouched card leaves them. */
+      const pushedOut = (): number[] => {
+        const out: number[] = [];
+        for (let cell = barFrom; cell <= barTo; cell += 1) {
+          if (cell % 9 === 4) continue;
+          if (brightness(cell) > atRest[cell] * 2) out.push((cell % 9) - 4);
+        }
+        return [...new Set(out)].sort((a, b) => a - b);
+      };
+
+      expect(
+        markLitAtRest,
+        "shuttle: the zero mark is lit with nobody touching the pad, or a " +
+          "visitor cannot see where zero is",
+      ).toBe(true);
+      expect(
+        stopRowLit(),
+        "shuttle: the stop row is DARK while there is nothing to stop - a key " +
+          "that is always there is a key that sometimes does nothing",
+      ).toEqual([]);
+
+      const presses: number[] = [];
+      const codes: (number | undefined)[] = [];
+      for (let column = 0; column < 9; column += 1) {
+        // 3. A FAST TAP, every time. This is the only gesture the probe makes.
+        host.touchTap(0, cellCentre(column), cellCentre(BAR_ROW));
+        run(4);
+        const from = host.hid.length;
+        run(WINDOW);
+        const sent = host.hid.slice(from);
+        presses.push(sent.length);
+        codes.push(
+          sent.length === 0
+            ? undefined
+            : [...new Set(sent.map((each) => each.args[3]))].length === 1
+              ? sent[0].args[3]
+              : -1,
+        );
+
+        const out = pushedOut();
+        const distance = column - 4;
+        const expected =
+          distance === 0
+            ? []
+            : Array.from({ length: Math.abs(distance) }, (_, j) =>
+                distance > 0 ? j + 1 : -(j + 1),
+              ).sort((a, b) => a - b);
+        expect(
+          out,
+          `shuttle column ${column}: THE BAR MUST SHOW THE SPEED ON THE SIDE ` +
+            "THE FINGER PUSHED, one cell per unit. Distances lit, measured " +
+            `from the centre column: ${JSON.stringify(out)}`,
+        ).toEqual(expected);
+        expect(
+          stopRowLit().length,
+          `shuttle column ${column}: the stop row is lit exactly when there ` +
+            "is a transport to stop",
+        ).toBe(distance === 0 ? 0 : stopTo - stopFrom + 1);
+
+        // 2. THE STOP, and it is a fast tap on the red row. Given a settle
+        // longer than the slowest period, "stopped" means nothing at all.
+        const stopFromIndex = host.hid.length;
+        host.touchTap(0, cellCentre(column), cellCentre(STOP_ROW));
+        run(WINDOW);
+        const after = host.hid.length - stopFromIndex;
+        expect(
+          after,
+          `shuttle column ${column}: THE RED ROW MUST STOP THE TRANSPORT. ` +
+            `${after} keystroke(s) arrived in the ${WINDOW} ticks after the ` +
+            "tap on it, and the slowest period this card can carry is " +
+            `${slowestPeriod} ticks`,
+        ).toBe(0);
+        expect(
+          pushedOut(),
+          `shuttle column ${column}: after the stop the bar is back to its ` +
+            "track, with no cell brighter than an untouched card leaves it",
+        ).toEqual([]);
+        expect(
+          stopRowLit(),
+          `shuttle column ${column}: after the stop the red row goes dark ` +
+            "again, so the pad never carries a key with nothing behind it",
+        ).toEqual([]);
+      }
+
+      // 1. MONOTONIC, AS A RELATION AND NEVER AS LITERALS. Strictly, on both
+      // sides, and nothing at the centre.
+      expect(presses[4], "shuttle: the centre column is zero").toBe(0);
+      for (let column = 0; column < 4; column += 1) {
+        expect(
+          presses[column],
+          `shuttle: pushing to column ${column} must run the transport ` +
+            `strictly faster than column ${column + 1} - ` +
+            JSON.stringify(presses),
+        ).toBeGreaterThan(presses[column + 1]);
+        expect(
+          codes[column],
+          `shuttle: everything left of centre sends the BACKWARD key`,
+        ).toBe(backwardKey);
+      }
+      for (let column = 8; column > 4; column -= 1) {
+        expect(
+          presses[column],
+          `shuttle: pushing to column ${column} must run the transport ` +
+            `strictly faster than column ${column - 1} - ` +
+            JSON.stringify(presses),
+        ).toBeGreaterThan(presses[column - 1]);
+        expect(
+          codes[column],
+          `shuttle: everything right of centre sends the FORWARD key`,
+        ).toBe(forwardKey);
+      }
+      // NON-VACUITY. Nine columns of zero would satisfy every "stopped"
+      // assertion above and prove nothing at all.
+      expect(
+        presses.reduce((a, b) => a + b, 0),
+        "shuttle: the probe made the transport run at all",
+      ).toBeGreaterThan(0);
+      expect(
+        forwardKey === backwardKey,
+        "shuttle: the two directions send different keys, or the code " +
+          "assertions above are vacuous",
+      ).toBe(false);
+      expect(
+        host.errors,
+        "shuttle: no handler raised across nine pushes and nine stops - " +
+          host.errors.join(" | "),
+      ).toEqual([]);
+
+      report.push(
+        "  presses per column in a " +
+          WINDOW +
+          "-tick window: " +
+          JSON.stringify(presses),
+        "  key code per column: " + JSON.stringify(codes),
+        "  every gesture was a coalesced fast tap (code 9); the red row " +
+          "stopped all nine",
+      );
+    } finally {
+      host.close();
+    }
+
+    process.stdout.write(
+      "\nSHUTTLE push, latch and stop, plan 11-12:\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
 });
