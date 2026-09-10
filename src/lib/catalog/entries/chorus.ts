@@ -43,36 +43,81 @@
 // fixed 0.64 s and could show two or three ripples at a high rate. That is the
 // fix, not a side effect: the third ripple was the one that never went out.
 //
-// THE TIMER IS A PER-CONTACT CHORD WATCHDOG, not an animator. Touch enqueue is
-// change-gated per contact, so a finger held perfectly still emits no further
-// events and a note-off driven only by the touch callback could hang a track.
-// The Timer counts 100 ms ticks since the last event on each contact and lets
-// the chord go after twenty of them. That is also the honest limit worth
-// knowing: hold a chord dead still for two seconds and it releases.
+// ---------------------------------------------------------------------------
+// ONE CHORD AT A TIME, AND THE PADS ARE EXCLUSIVE (plan 12-09)
+// ---------------------------------------------------------------------------
+//
+// THE BENCH NOTE, VERBATIM: "CHORUS: egyszerre csak egy akkordot tudjon
+// kuldeni, exkluzivak legyenek a padok" - it should only be able to send one
+// chord at a time, the pads should be exclusive.
+//
+// It used to hold a chord PER CONTACT: self.z[i] was the pad contact i had and
+// self.t[i] its own watchdog counter, so two fingers on two pads sounded six
+// notes and five fingers sounded fifteen. The shape is now a SINGLE VOICE:
+//
+//   s.z  the pad that is sounding, or nil
+//   s.c  the contact that owns it, or nil
+//
+// A press on a different pad releases the sounding chord and starts the new
+// one, IN THAT ORDER, so the receiver never hears two triads overlap. A press
+// on the pad already sounding re-owns it (s.c = i) and re-triggers nothing,
+// which is what makes a slide between pads legato and a second finger on the
+// same pad harmless.
+//
+// R IS THE LIBRARY'S RELEASE CONVENTION AND E REACHES IT ON THREE PATHS.
+// src/lib/catalog/library.ts section 3: an entry that holds notes sets
+// `R=function(s,i)` in its own Setup, and the library's `E` calls it on an end
+// code, on a stale press by another contact, and on the Timer sweep - plus, per
+// 12-07's finding, on EVERY onset, including a contact's first press. So R IS
+// WRITTEN IDEMPOTENT: it returns unless s.c is the contact being expired, and a
+// note-off for a chord that was never on can never leave. An R that sent an
+// unconditional note-off would fire on every first press.
+//
+// THE PRIVATE WATCHDOG IS GONE AND X(self,20) IS ALL THAT IS LEFT OF IT. The
+// old Timer walked s.z, counted 100 ms ticks per contact and released after
+// twenty; the library's sweep does exactly that for every caller, so the Timer
+// shrank from 174 characters to 29. THE WINDOW IS UNCHANGED: twenty calls at
+// gtt(0,100) is two seconds, the same figure the private watchdog carried, and
+// it stays the honest limit worth knowing - hold a chord dead still for two
+// seconds and it releases. The window is the CALLER'S argument by the library's
+// own contract (library.ts section 5), and the bench row in 12-12 is what moves
+// it, because only a desk can say whether a real finger goes quiet.
+//
+// A PAD BOUNDARY IS A CELL BOUNDARY, WHICH IS WHY THE HYSTERESIS COMES FREE.
+// A pad is 3x3 cells - z = n%9//3 + n//9//3*3 - so every boundary between two
+// pads is also a boundary between two cells, and `Q`'s per-axis hysteresis
+// (+-10 raw units around a cell centre, an effective margin of ~3.9) is
+// therefore ZONE hysteresis for this card at no extra cost. A finger resting on
+// the line between two pads holds one chord instead of retriggering both, which
+// is the same defect PROBE-RESULTS-2026-09-10.md Q2 measured on the sequencers.
 //
 // The other honest limit belongs in the card copy: a new press REPLACES the
 // bloom rather than stacking it, because layer 2 is one field and the second
 // burst overwrites the first. Sliding between pads is legato by construction.
 //
-// THE GUARD IS "e==3 or e>=5 and e<9", AND THE UPPER BOUND IS THE POINT
-// (plan 11-02, class B). Firmware coalesces a sub-cycle press-and-lift into ONE
-// message with event code 9 - a down AND an up, no separate DOWN and no
-// separate UP. It used to write "e>=5" bare, so a fast tap was read as a
-// lift, z was cleared before the chord was built, and a quick stab at a pad
-// sent NOTHING - 0 MIDI messages against 6 on a slow press. A tap now sounds
-// the triad and the Timer's two-second watchdog releases it, because a
-// coalesced tap brings no lift of its own.
-// src/lib/catalog/touch-guard.spec.ts holds the convention and gates it; the
-// event table itself lives in src/vendor/botor/pad-sim.ts:228-241 and in
-// zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated. +8
-// characters.
+// THE ENTRY CARRIES NO EVENT-CODE GUARD OF ITS OWN ANY MORE, and that is a
+// DELEGATION rather than a removal. It used to write "e==3 or e>=5 and e<9" -
+// class B, plan 11-02, +8 characters - because firmware coalesces a sub-cycle
+// press-and-lift into ONE message with code 9 and a bare "e>=5" read that fast
+// tap as a lift, so a quick stab at a pad sent NOTHING (0 MIDI messages against
+// 6 on a slow press). The library's `Q` is where that test now lives, spelled
+// once for every caller, and src/lib/catalog/touch-guard.spec.ts REQUIRES a
+// body with no chain of its own to carry `Q(s,i,e,x,y)` - a requirement, not an
+// exemption. The event table itself lives in src/vendor/botor/pad-sim.ts:228-241
+// and in zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated.
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 768 characters, Timer 173, both fixed
+// against the pinned minifier: Setup 793 characters, Timer 29, both fixed
 // points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 771 / 174, against a budget of 908 an
-// event. src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
+// corner of the six-knob cross-product is 796 / 29, against a budget of 908 an
+// event - 112 free in Setup and 879 in the Timer.
+// MEASURED BEFORE AND AFTER AT THE RGB444 PICKER CORNER (plan 12-09):
+// Setup 771 -> 796 (+25), Timer 174 -> 29 (-145), the pair 945 -> 825 (-120).
+// The Setup grows because R and the library call are new text and the two
+// per-contact tables it removes are only eighteen characters; the Timer is
+// where the library pays for itself.
+// src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them and they would be charged to the budget.
@@ -81,10 +126,9 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.z={}self.t={}self.touch_cb=function(s,i,e,x,y)s.t[i]=0 local z=x*3//128+y*3//128*3 if e==3 or e>=5 and e<9 then z=nil end local o=s.z[i]if o==z then return end if o then for j=1,3 do s:gms(@CH,128,s.h[o][j],0,0)end end if z then for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end end s.z[i]=z end gtt(0,100)";
+  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.h[s.z][j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if not n then return end local z=n%9//3+n//9//3*3 if z==s.z then s.c=i return end if s.z then R(s,s.c)end for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end s.z=z s.c=i end gtt(0,100)";
 
-const TIMER =
-  "--[[@cb]]gtt(0,100)local s=self for i,z in pairs(s.z)do local t=(s.t[i]or 0)+1 s.t[i]=t if t>20 then for j=1,3 do s:gms(@CH,128,s.h[z][j],0,0)end s.z[i]=nil s.t[i]=nil end end";
+const TIMER = "--[[@cb]]gtt(0,100)X(self,20)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -207,10 +251,12 @@ export const CHORUS: CatalogEntry = {
       token: "@CH",
       // ZERO-BASED, and it is the FIRST argument. The recipe book pins the
       // signature as self:gms(ch, cmd, p1, p2, mode) at
-      // zona-docs/docs/ZONA_RECIPES.md:1058. This token appears TWICE in Setup
-      // - the note-off that releases the previous chord and the note-on that
-      // starts the new one - and once in the Timer's watchdog release, so the
-      // three can never drift onto different channels.
+      // zona-docs/docs/ZONA_RECIPES.md:1058. This token appears TWICE, both in
+      // Setup - the note-off inside R and the note-on in the callback - so the
+      // two can never drift onto different channels. IT USED TO APPEAR A THIRD
+      // TIME, in the Timer's private watchdog release; that release is now the
+      // library's `X` calling R, so the channel is named in one file and the
+      // Timer carries no MIDI at all.
       values: [
         "0",
         "1",

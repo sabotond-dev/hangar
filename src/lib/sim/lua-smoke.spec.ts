@@ -1478,6 +1478,80 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       ).toBe(8);
     }
 
+    // -----------------------------------------------------------------------
+    // THE BOUNDARY FINGER, ADDED IN PLAN 12-09 - one fader, not two.
+    //
+    // CONSOLE now takes its cell from the touch library's `Q`, so the
+    // per-column hysteresis the four sequencers got in 12-08 arrives here as
+    // well, and this is the assertion that says what it buys a MIXER: a finger
+    // that runs down the line between two columns drives ONE strip. Without it
+    // a fader placed on the seam alternates between two controllers on a
+    // one-unit wobble - PROBE-RESULTS-2026-09-10.md Q2 - and a mixer receives
+    // two half-moved faders instead of one moved one.
+    //
+    // 56 AND 57 ARE THE SEAM, DERIVED: 56*9//128 = 3 and 57*9//128 = 4, so the
+    // naive read this card used to do flips on every sample of the trace below.
+    // -----------------------------------------------------------------------
+    {
+      const naive = (v: number): number => Math.floor((v * 9) / 128);
+      const SEAM = [56, 57];
+      expect(
+        SEAM.map(naive),
+        "the seam must really be a seam under the naive read, or the stage " +
+          "below is a finger sitting inside one column",
+      ).toEqual([3, 4]);
+
+      const { host } = await open(entry);
+      try {
+        // Down on the seam, then every body row with x alternating across it.
+        host.touchDown(0, SEAM[0], cellCentre(8));
+        host.tick();
+        let step = 1;
+        for (let row = 7; row >= 1; row -= 1) {
+          host.touchMove(0, SEAM[step % 2], cellCentre(row));
+          host.tick();
+          step += 1;
+        }
+        host.touchUp(0, SEAM[step % 2], cellCentre(1));
+        host.tick();
+
+        const perController = new Map<number, number[]>();
+        for (const m of host.midi) {
+          if (m.cmd !== 176) continue;
+          perController.set(m.p1, [...(perController.get(m.p1) ?? []), m.p2]);
+        }
+        const columns = [...perController.keys()]
+          .map((p1) => p1 - cc)
+          .sort((a, b) => a - b);
+        report.push(
+          `seam between columns 3 and 4 (x ${SEAM.join("/")}): driven ` +
+            `column(s) ${columns.join(", ")} - ` +
+            [...perController.entries()]
+              .map(([p1, values]) => `cc ${p1}: ${values.join(",")}`)
+              .join("; "),
+        );
+        expect(
+          columns,
+          "console: A FADER FINGER ON THE LINE BETWEEN TWO COLUMNS MUST DRIVE " +
+            "ONE FADER. The naive read this card used to do flips between " +
+            "columns 3 and 4 on a one-unit wobble, so a strip on the seam sent " +
+            "half its travel to each of two controllers. `Q`'s per-axis " +
+            `hysteresis is what holds it. Observed columns ${columns.join(", ")}`,
+        ).toEqual([3]);
+        expect(
+          perController.get(cc + 3),
+          "console: and it must still reach the top of its travel while it " +
+            "does - a held column that cannot get to 127 is a different bug",
+        ).toContain(127);
+        expect(
+          host.errors,
+          `console: no handler raised - ${host.errors.join(" | ")}`,
+        ).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
     process.stdout.write(
       "\nCONSOLE column sweep, one value per body cell:\n  " +
         report.join("\n  ") +
@@ -1647,8 +1721,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         counts,
         "console: A SWIPE ACROSS THE MUTE ROW MUST CHANGE EACH CROSSED COLUMN " +
           "EXACTLY ONCE. All nine, because the row spans the pad; once each, " +
-          "because self.q[i] remembers the last mute cell this contact " +
-          "toggled and the branch reads `e==4 or e>8 or s.q[i]~=c`",
+          "because the branch fires on `Q`'s CHANGE SIGNAL - the library " +
+          "returns the cell only when the cell changed, which is exactly what " +
+          "the per-contact self.q[i] this entry carried until plan 12-09 was",
       ).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8].map((c) => `${c}:1`));
 
       // 6. THE RESTING FINGER, and this is the whole reason the guard exists.
@@ -1674,11 +1749,12 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       expect(
         restChanges,
         `console: A FINGER RESTING IN ONE MUTE CELL MUST CHANGE IT ONCE. ` +
-          `${resting} samples arrived; without the self.q[i] guard the mute ` +
-          "toggles on every one of them, which at the firmware's rate is a " +
-          "strip flickering at 100 Hz under a still finger. That is why the " +
-          "mute row was onset-gated before this plan, and the guard is what " +
-          "buys the swipe without buying the flicker",
+          `${resting} samples arrived; with a bare cell computed on every ` +
+          "sample the mute toggles on every one of them, which at the " +
+          "firmware's rate is a strip flickering at 100 Hz under a still " +
+          "finger. That is why the mute row was onset-gated before plan 11-07, " +
+          "why 11-07 bought the swipe with self.q[i], and why plan 12-09 could " +
+          "hand both to `Q` - it returns the cell only when the cell changed",
       ).toBe(1);
     } finally {
       host.close();
@@ -6114,5 +6190,322 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         report.join("\n") +
         "\n",
     );
+  }, 120000);
+
+  // -------------------------------------------------------------------------
+  // CHORUS SOUNDS ONE CHORD AT A TIME (plan 12-09)
+  //
+  // THE BENCH NOTE, VERBATIM: "CHORUS: egyszerre csak egy akkordot tudjon
+  // kuldeni, exkluzivak legyenek a padok" - one chord at a time, the pads
+  // exclusive. It used to hold a chord PER CONTACT, so two fingers sounded six
+  // notes and five sounded fifteen.
+  //
+  // THIS IS THE LIBRARY'S ONE `R` CALLER, and the test drives all three of the
+  // paths `E` reaches it on that matter to a note: a second finger on another
+  // pad, a lift, and - the one no other entry in this phase can show - a
+  // contact that goes QUIET and is released by the Timer's sweep. That is
+  // PROBE-RESULTS-2026-09-10.md Q6.5 with a note attached to it: four of five
+  // contacts never sent their code 5 after a five-finger chord, and a card that
+  // sends note-on at press and note-off at release hangs a chord exactly that
+  // way.
+  //
+  // THE SOUNDING COUNT IS TRACKED AFTER EVERY MESSAGE, not after every step,
+  // because the claim is about an overlap that would exist for three messages
+  // in the middle of one sample if the release came after the note-ons rather
+  // than before them.
+  // -------------------------------------------------------------------------
+
+  /** The pad a screen cell belongs to, in the entry's own arithmetic. */
+  const padOfCell = (cell: number): number =>
+    Math.floor((cell % 9) / 3) + Math.floor(Math.floor(cell / 9) / 3) * 3;
+
+  it("sounds ONE CHORUS chord at a time, and releases a chord whose finger went quiet", async () => {
+    const entry = entryById("chorus");
+    const key = knobValueOf(entry, "key");
+    const velocity = knobValueOf(entry, "velocity");
+    const scaleKnob = entry.knobs.find((knob) => knob.id === "scale");
+    if (typeof scaleKnob === "undefined")
+      throw new Error("chorus has no scale");
+    const scale = scaleKnob.values[
+      entry.defaults[scaleKnob.id] ?? scaleKnob.default
+    ]
+      .split(",")
+      .map(Number);
+    /** The triad the entry bakes for pad z: degrees z, z+2 and z+4. */
+    const triadOf = (z: number): number[] =>
+      [0, 1, 2].map((j) => {
+        const d = z + j * 2;
+        return key + scale[d % 7] + Math.floor(d / 7) * 12;
+      });
+    /** The centre of pad z, in raw coordinates - the entry's own u, v. */
+    const aimAtPad = (z: number): [number, number] => [
+      cellCentre((z % 3) * 3 + 1),
+      cellCentre(Math.floor(z / 3) * 3 + 1),
+    ];
+
+    const PAD_A = 4;
+    const PAD_B = 5;
+    const [xa, ya] = aimAtPad(PAD_A);
+    const [xb, yb] = aimAtPad(PAD_B);
+    // DERIVED, NOT PASTED: the two aiming points really are in the two pads,
+    // and they are different pads, or every assertion below is about one pad.
+    expect(
+      [
+        padOfCell(Math.floor((xa * 9) / 128) + Math.floor((ya * 9) / 128) * 9),
+        padOfCell(Math.floor((xb * 9) / 128) + Math.floor((yb * 9) / 128) * 9),
+      ],
+      "the two probe points must be the centres of pads 4 and 5",
+    ).toEqual([PAD_A, PAD_B]);
+
+    const report: string[] = [];
+
+    /** A voice tracker that reads the peak after every single message. */
+    const tracker = (host: { midi: readonly HostMidi[] }) => {
+      const sounding = new Set<number>();
+      let seen = 0;
+      let peak = 0;
+      return {
+        get sounding() {
+          return [...sounding].sort((a, b) => a - b);
+        },
+        get peak() {
+          return peak;
+        },
+        /** Everything since the last drain, as `cmd:pitch` strings. */
+        drain(): string[] {
+          const fresh = host.midi.slice(seen);
+          seen = host.midi.length;
+          const out: string[] = [];
+          for (const m of fresh) {
+            out.push(`${m.cmd}:${m.p1}`);
+            if (m.cmd === 144) {
+              sounding.add(m.p1);
+              peak = Math.max(peak, sounding.size);
+            } else if (m.cmd === 128) sounding.delete(m.p1);
+          }
+          return out;
+        },
+      };
+    };
+
+    // -----------------------------------------------------------------------
+    // 1. THE EXCLUSIVE PADS: a press, a second finger, and a lift that is not
+    //    the owner's.
+    // -----------------------------------------------------------------------
+    {
+      const { host } = await open(entry);
+      const voices = tracker(host);
+      try {
+        // 1a. FINGER 0 ON PAD 4. Three note-ons and NOTHING ELSE, and the
+        //     "nothing else" is the idempotence of `R`: 12-07 measured that `Q`
+        //     expires contact `i` on EVERY onset without asking whether it held
+        //     anything, so `R` is called on a contact's FIRST press. An `R`
+        //     that sent an unconditional note-off would put three note-offs in
+        //     front of these three note-ons, for a chord that was never on.
+        host.touchDown(0, xa, ya);
+        host.tick();
+        const first = voices.drain();
+        report.push(
+          `  finger 0 on pad ${PAD_A}: ${first.join(" ")} - sounding ` +
+            `${voices.sounding.join(",")}`,
+        );
+        expect(
+          first,
+          "chorus: A FIRST PRESS MUST SEND THREE NOTE-ONS AND NOTHING ELSE. " +
+            "`Q` expires contact 0 before it computes the cell, so `R` runs on " +
+            "this press too; an `R` that did not ask whether it holds anything " +
+            `would emit a note-off for a chord that never sounded. Observed ${first.join(" ")}`,
+        ).toEqual(triadOf(PAD_A).map((n) => `144:${n}`));
+        expect(voices.sounding, "pad 4's triad is sounding").toEqual(
+          [...triadOf(PAD_A)].sort((a, b) => a - b),
+        );
+        expect(
+          host.midi.every((m) => m.p2 === velocity || m.cmd === 128),
+          "chorus: the note-ons carry the velocity knob's value",
+        ).toBe(true);
+
+        // 1b. FINGER 1 ON PAD 5, WITH FINGER 0 STILL DOWN. Three note-offs for
+        //     pad 4 THEN three note-ons for pad 5, IN THAT ORDER.
+        host.touchDown(1, xb, yb);
+        host.tick();
+        const second = voices.drain();
+        report.push(
+          `  finger 1 on pad ${PAD_B}, finger 0 still down: ` +
+            `${second.join(" ")} - sounding ${voices.sounding.join(",")}`,
+        );
+        expect(
+          second,
+          "chorus: ONE CHORD AT A TIME, THE PADS EXCLUSIVE. A second finger on " +
+            "another pad must release the sounding chord and then start the " +
+            "new one, in that order - six messages, three off then three on. " +
+            "Per contact, which is what this card used to do, it is six notes " +
+            `sounding at once. Observed ${second.join(" ")}`,
+        ).toEqual([
+          ...triadOf(PAD_A).map((n) => `128:${n}`),
+          ...triadOf(PAD_B).map((n) => `144:${n}`),
+        ]);
+        expect(voices.sounding, "only pad 5's triad is left").toEqual(
+          [...triadOf(PAD_B)].sort((a, b) => a - b),
+        );
+
+        // 1c. FINGER 0 LIFTS, AND IT IS NOT THE OWNER. `Q` expires contact 0,
+        //     `E` calls `R(s,0)`, and `s.c` is 1 - so nothing leaves. This is
+        //     the second half of idempotence: a release for a contact that
+        //     holds nothing must be silent.
+        host.touchUp(0, xa, ya);
+        host.tick();
+        const third = voices.drain();
+        report.push(
+          `  finger 0 lifts (not the owner): ${third.join(" ") || "(nothing)"}` +
+            ` - sounding ${voices.sounding.join(",")}`,
+        );
+        expect(
+          third,
+          "chorus: THE LIFT OF A FINGER THAT DOES NOT OWN THE CHORD MUST BE " +
+            "SILENT. `R` returns unless `s.c` is the contact being expired; " +
+            "without that test this lift would cut pad 5's chord dead",
+        ).toEqual([]);
+        expect(
+          voices.peak,
+          "chorus: NEVER MORE THAN THREE NOTES SOUNDING. Counted after every " +
+            "single message, not after every step, so a release that arrived " +
+            "AFTER the new note-ons would be caught here",
+        ).toBe(3);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. THE CONTACT THAT GOES QUIET, released by the library's sweep and by
+    //    nothing else. THE WINDOW IS THE CALLER'S: `X(self,20)` counts CHORUS's
+    //    OWN Timer calls, and CHORUS fires at gtt(0,100), so twenty calls is
+    //    two seconds - the same figure its private per-contact watchdog carried
+    //    before plan 12-09 replaced it.
+    // -----------------------------------------------------------------------
+    const TIMER_MS = 100;
+    const TICK_MS = 10;
+    const timerTicks = TIMER_MS / TICK_MS;
+    {
+      const { host } = await open(entry);
+      const voices = tracker(host);
+      try {
+        // THE TICK IS COUNTED EXPLICITLY, because the number this stage
+        // reports is a DATE and an off-by-one in the bookkeeping would move it.
+        let ticks = 0;
+        host.touchDown(0, xa, ya);
+        host.tick();
+        ticks += 1;
+        voices.drain();
+        expect(
+          voices.sounding.length,
+          "chorus: the chord never sounded, so its release proves nothing",
+        ).toBe(3);
+
+        // NINETEEN TIMER CALLS IS INSIDE THE WINDOW. Without this reading the
+        // assertion below would pass on a sweep with no window at all. The
+        // host's msClock starts at 0 and Setup's gtt(0,100) sets the first
+        // deadline at 100 ms, so Timer call k lands on tick 10k.
+        host.run(19 * timerTicks - ticks);
+        ticks = 19 * timerTicks;
+        const inside = voices.drain();
+        expect(
+          inside,
+          "chorus: A CHORD INSIDE THE WINDOW MUST STILL BE SOUNDING. " +
+            `Observed ${inside.join(" ")} after 19 Timer calls`,
+        ).toEqual([]);
+
+        // Then one tick at a time, so the release is DATED rather than merely
+        // observed to have happened somewhere in a long run.
+        let releasedAt = -1;
+        while (ticks < 40 * timerTicks) {
+          host.tick();
+          ticks += 1;
+          if (host.midi.length > 3) {
+            releasedAt = ticks;
+            break;
+          }
+        }
+        const swept = voices.drain();
+        const calls = releasedAt / timerTicks;
+        report.push(
+          `  finger 1 goes quiet: released on tick ${releasedAt} = Timer call ` +
+            `${calls} at ${TIMER_MS} ms = ${(calls * TIMER_MS) / 1000} s ` +
+            `- ${swept.join(" ")}`,
+        );
+        expect(
+          swept,
+          "chorus: A CHORD WHOSE FINGER WENT QUIET MUST BE RELEASED BY THE " +
+            "TIMER. The firmware's change gate drops repeats, so a perfectly " +
+            "still finger sends nothing at all, and Q6.5 measured four of five " +
+            "contacts never sending their code 5 - `X(self,20)` plus `R` is " +
+            `the only path that reaches either. Observed ${swept.join(" ")}`,
+        ).toEqual(triadOf(PAD_A).map((n) => `128:${n}`));
+        expect(voices.sounding, "nothing is left sounding").toEqual([]);
+        expect(
+          [releasedAt, calls],
+          "chorus: THE WINDOW IS TWENTY OF CHORUS'S OWN TIMER CALLS and the " +
+            "release lands on the twenty-first, because `X` expires a stamp " +
+            "older than n calls rather than n-or-older. The DOWN is on tick 1 " +
+            `and the stamp reads C = 0, so at gtt(0,${TIMER_MS}) the sweep ` +
+            "reaches it on tick 210 - 2.1 s of wall time against a two-second " +
+            `window. Observed tick ${releasedAt}, Timer call ${calls}`,
+        ).toEqual([21 * timerTicks, 21]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. AND A FINGER THAT KEEPS REPORTING IS NOT RELEASED. `Q` stamps `T[i]`
+    //    on every live sample, including the ones whose cell did not change, so
+    //    only genuine silence expires a contact. Without this half the sweep
+    //    would be a two-second kill switch on every held chord, which is the
+    //    risk library.ts section 5 names and 12-12 hands to the bench.
+    // -----------------------------------------------------------------------
+    {
+      const { host } = await open(entry);
+      const voices = tracker(host);
+      try {
+        host.touchDown(0, xa, ya);
+        host.tick();
+        voices.drain();
+        // The input has to VARY: the host change-gates its FIFO per contact on
+        // (event, x, y), so a repeated identical MOVE would be dropped before
+        // the VM saw it and this probe would be measuring the gate.
+        for (let call = 0; call < 40; call += 1) {
+          host.touchMove(0, xa + (call % 2), ya);
+          host.run(timerTicks);
+        }
+        const held = voices.drain();
+        report.push(
+          `  finger held on pad ${PAD_A}, 40 Timer calls of wobble: ` +
+            `${held.join(" ") || "(nothing)"} - sounding ` +
+            `${voices.sounding.join(",")}`,
+        );
+        expect(
+          held,
+          "chorus: A CHORD UNDER A FINGER THAT KEEPS REPORTING MUST NOT BE " +
+            "SWEPT. Forty Timer calls is twice the window; the wobble stays " +
+            `inside one pad, so nothing re-triggers either. Observed ${held.join(" ")}`,
+        ).toEqual([]);
+        expect(
+          voices.sounding,
+          "chorus: the same triad is still sounding after four seconds",
+        ).toEqual([...triadOf(PAD_A)].sort((a, b) => a - b));
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nCHORUS, one chord at a time (plan 12-09):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length, "every stage of the chord probe ran").toBe(5);
   }, 120000);
 });

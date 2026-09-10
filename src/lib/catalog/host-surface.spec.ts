@@ -654,7 +654,19 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     // scanner that looked only at the six characters in front of the `=` would
     // report that as a global assignment, so `localsIn` - the same function
     // every other test in this file resolves locals with - is what decides.
+    //
+    // THE LIST SCANNED IS `LIBRARY_GLOBALS`, NOT `LIBRARY_NAMES`, AND THE
+    // DIFFERENCE IS THE WHOLE POINT OF THE CONVENTION (plan 12-09). A
+    // convention is a name the library CALLS and does not DEFINE, so an entry
+    // assigning it is the mechanism working, not a card overwriting library
+    // state: CHORUS opens its Setup with `R=function(s,i)` and the library's
+    // `E` finds it there. Scanning `LIBRARY_NAMES` here would have made the
+    // first correct caller of the convention the first failure of this gate.
+    // The two arms below keep the teeth: the definitions are still refused
+    // outright, and the convention is asserted to be assigned by AT LEAST ONE
+    // entry and only ever as a FUNCTION - so `R=4` in a card is still caught.
     const shadows: string[] = [];
+    const conventions: string[] = [];
     for (const entry of luaEntries()) {
       const rendered = renderLua(entry);
       for (const event of EVENTS) {
@@ -662,9 +674,18 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
         const locals = localsIn(text);
         for (const m of text.matchAll(/(^|[^A-Za-z0-9_.:])([A-Z])\s*=[^=]/g)) {
           if (locals.has(m[2])) continue;
-          if (LIBRARY_NAMES.includes(m[2])) {
+          if (LIBRARY_GLOBALS.includes(m[2])) {
             shadows.push(`${entry.id}/${event} assigns a global ${m[2]}`);
+            continue;
           }
+          if (!LIBRARY_CONVENTIONS.includes(m[2])) continue;
+          conventions.push(`${entry.id}/${event} assigns ${m[2]}`);
+          const opens = m.index + m[0].length - 1;
+          expect(
+            text.slice(opens, opens + "function".length),
+            `${entry.id}/${event} assigns the library convention ${m[2]} to ` +
+              "something that is not a function, and the library CALLS it",
+          ).toBe("function");
         }
       }
     }
@@ -673,5 +694,13 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
       "an entry assigns a single-capital GLOBAL that the touch library owns, " +
         "so the library's own state is overwritten by a card",
     ).toBe("");
+    // NON-VACUITY, bounded from below only, so waves 10 and 11 can add a second
+    // note-holding caller without moving a number here.
+    expect(
+      conventions.length,
+      "no entry defines the library's release convention, so the arm above " +
+        `never ran - the library's ${LIBRARY_CONVENTIONS.join(", ")} is called ` +
+        "by `E` on every expiry path and nothing answers it",
+    ).toBeGreaterThan(0);
   });
 });
