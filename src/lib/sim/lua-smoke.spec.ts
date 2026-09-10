@@ -1,12 +1,20 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// Thirteen tests, and the count never moves WITH THE CATALOG - each loops over
-// the Lua entries internally and names the entry in its message, so waves 5 and
-// 6 add configurations without touching a number here. A test that pins ONE
-// entry's answer to ONE bench note is the exception the last four plans have
-// each spent once, and it is named in its own title. The budget, canonical form and
-// subset questions belong to src/lib/catalog/lua-entries.sweep.spec.ts; this file asks
-// the only question a static analysis cannot: does it work.
+// TWENTY-FIVE tests, and the count never moves WITH THE CATALOG - each of the
+// catalog-wide ones loops over the Lua entries internally and names the entry
+// in its message, so a wave that adds a configuration touches no number here.
+// A test that pins ONE entry's answer to ONE bench note is the exception, and
+// it is named in its own title: phase 11 spent it in thirteen plans, taking
+// this file from 3 tests to 25 (11-02 +2, 11-04 +1, 11-07 +4, 11-08 +2,
+// 11-09 +2, 11-09.1 +2, 11-09.2 +1, 11-10 +1, 11-11 +1, 11-12 +1, 11-13 +2,
+// 11-14 +1, 11-15 +2). This header read "Thirteen tests" from 11-09's first
+// commit (c9a621a, when the file briefly held thirteen) until the 11-16 gate,
+// through eight waves that each left it for the gate to correct rather than
+// make one stale count look checked; 11-16 counted the file from the runner's
+// own report rather than from this sentence. The
+// budget, canonical form and subset questions belong to
+// src/lib/catalog/lua-entries.sweep.spec.ts; this file asks the only question
+// a static analysis cannot: does it work.
 //
 // Every entry is put through the SAME scripted gesture, so the gate is uniform:
 // a drag (a press followed by six moves along a diagonal, two ticks apart), a

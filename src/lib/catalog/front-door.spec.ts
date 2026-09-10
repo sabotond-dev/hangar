@@ -108,8 +108,20 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
         entry?.description,
         `${row.id}: description matches the catalog`,
       ).toBe(row.description);
-      // "lua" entries have no simulator engine until plan 08-03 lands one, so
-      // they stay out of the row rather than rendering as a hole.
+      // THIS RULE IS LIVE, AND NOT FOR THE REASON IT WAS WRITTEN FOR. It was
+      // written when "lua" entries had no simulator engine (plan 08-03 landed
+      // one two phases ago), and it stayed load-bearing because it picked up
+      // a second purpose in Phase 10: Coverflow.svelte calls createEngine for
+      // every ring entry unconditionally, so a "lua" row dynamic-imports the
+      // 271,581-byte Lua VM on the front page's first paint, and
+      // e2e/tuning.e2e.ts asserts for "/" that a browsing visitor downloads
+      // no WebAssembly at all. Plan 11-14 measured it (11-14-HANDOVER.md) by
+      // planting SONAR at ring position 5: this assertion, the golden-frames
+      // record and the vendored-shelf resolution all go red - and the last
+      // two pass BY ID, so a hand-authored card keeping a preset's id would
+      // sail past them while deriveMotion read the preset's frames. The
+      // comment above this line said only the first, stale, reason from
+      // Phase 8 until the 11-16 gate; the rule itself was never wrong.
       expect(entry?.preview, `${row.id}: an engine exists for it`).toBe(
         "padsim",
       );

@@ -145,9 +145,20 @@
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier: Setup 581 characters, Timer 870, both fixed
-// points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the five-knob cross-product is 581 / 872, leaving 327 free of 908
-// on the Setup and 36 on the Timer, and the all-shortest is 581 / 870.
+// points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
+// GATE READS IS 585 / 880, leaving 323 free of 908 on the Setup and TWENTY-EIGHT
+// on the Timer, and it is the RGB444 PICKER corner (D-06): both colour knobs
+// declare nine-character values, and since plan 10-08 the sweep writes any
+// colour a picker can, including the eleven-character 255,255,255 - two more
+// characters at each of the Setup's two token sites and the Timer's four, which
+// is exactly the +4 and the +8. The all-longest corner of
+// the DECLARED palettes is 581 / 872, and that is the figure this header quoted
+// - "36 free on the Timer" - until plan 11-16's gate swept every header for
+// plan 11-07's finding and found this one the eighth quoting a corner the gate
+// does not read, in the optimistic direction. The all-shortest corner a picker
+// can reach is 581 / 870. The user deferred SNAKE's bench note ("not right
+// now"); with 28 free at the corner that counts rather than 36, "one note per
+// movement" fits even less than 11-VALIDATION.md's arithmetic said.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
