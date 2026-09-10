@@ -23,6 +23,7 @@
 import { describe, expect, it } from "vitest";
 import { CELLS, DEFAULT_PAD_STATE, GRID } from "../../vendor/botor/_pad";
 import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
+import { LIBRARY_GLOBALS, TOUCH_LIBRARY } from "../catalog/library";
 import {
   createLuaHost,
   HOST_GLOBALS,
@@ -385,5 +386,89 @@ describe("the Lua host", () => {
     ).toBe(16);
     expect(inTheVm, "gmss did not reach the VM").toContain("gmss");
     probe.close();
+  });
+
+  it("runs the system Setup before Setup, and rebuilds it empty on every restart", async () => {
+    // PITFALL 3, AND IT IS THE WHOLE REASON THE SYSTEM SETUP RUNS AFTER THE
+    // PRISTINE SNAPSHOT. The touch library's globals are per-contact STATE -
+    // `H` is the cell each contact holds - so a card remounted after a gesture
+    // must not inherit them. Kept on the pristine side they would survive
+    // RESTART_WIPE and the new mount would open holding a cell nobody is
+    // touching.
+    //
+    // The probe Setup below is what proves the ORDER rather than merely the
+    // presence: it reads `Q` at its own first line and raises if it is not a
+    // function, so a host that ran the system Setup afterwards would reject in
+    // createLuaHost instead of reaching an assertion.
+    const host = await createLuaHost({
+      sim: blank(),
+      system: TOUCH_LIBRARY,
+      setup:
+        '--[[@cb]]if type(Q)~="function" then error("Q is "..type(Q)) end ' +
+        "self.touch_cb=function(s,i,e,x,y)s.n=Q(s,i,e,x,y)or -1 end",
+    });
+    try {
+      expect(host.errors, "the touch Setup could not see the library").toEqual(
+        [],
+      );
+      const keys = host.globalKeys();
+      for (const name of LIBRARY_GLOBALS) {
+        expect(keys, `${name} is not in _G after install`).toContain(name);
+      }
+
+      // A gesture fills the contact tables.
+      host.touchDown(0, 64, 64);
+      host.tick();
+      expect(host.selfNumber("n"), "the callback did not see cell 40").toBe(40);
+      expect(
+        [host.globalSize("H"), host.globalSize("T"), host.globalSize("P")],
+        "a press must leave a contact in H and a stamp in T",
+      ).toEqual([1, 1, 0]);
+
+      // And a restart rebuilds them EMPTY.
+      host.restart();
+      expect(host.errors, "the restart raised").toEqual([]);
+      const after = host.globalKeys();
+      for (const name of LIBRARY_GLOBALS) {
+        expect(after, `${name} is missing after restart`).toContain(name);
+      }
+      expect(
+        [host.globalSize("H"), host.globalSize("T"), host.globalSize("P")],
+        "a remounted card inherited a contact table from the last mount",
+      ).toEqual([0, 0, 0]);
+      // `O` is deliberately absent: it belonged to the light layer `F`, which
+      // was dropped in 12-07 for having no caller. Asserting it here would be
+      // asserting about a name the library does not define.
+      expect(
+        host.globalSize("O"),
+        "an O table appeared, so the dropped light layer came back unannounced",
+      ).toBeUndefined();
+      host.close();
+    } catch (error) {
+      host.close();
+      throw error;
+    }
+
+    // WITHOUT `system`, THE KEY SET IS WHAT IT WAS. The option is additive: a
+    // preset-backed host is byte-identical to a pre-12-07 one.
+    const bare = await createLuaHost({
+      sim: blank(),
+      setup: "--[[@cb]]gtt(0,100)",
+    });
+    try {
+      const keys = bare.globalKeys();
+      for (const name of LIBRARY_GLOBALS) {
+        expect(
+          keys,
+          `${name} reached a host that was given no system Setup`,
+        ).not.toContain(name);
+      }
+      expect(
+        bare.globalSize("H"),
+        "H exists on a host with no system Setup",
+      ).toBeUndefined();
+    } finally {
+      bare.close();
+    }
   });
 });

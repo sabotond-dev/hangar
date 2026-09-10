@@ -127,6 +127,11 @@ async function smoke(entry: CatalogEntry): Promise<SmokeRun> {
   const sim = new PadSim(blankPadState());
   const host = await createLuaHost({
     sim,
+    // Exactly what createLuaPadSim hands a hand-authored entry (12-07): the
+    // touch library as the system Setup. No entry calls it yet, so nothing here
+    // moves - but from 12-08 on an entry that called `Q` without it would raise
+    // "attempt to call a nil value" in this gate rather than in a card.
+    system: TOUCH_LIBRARY,
     setup,
     timer: timer.trim() === "" ? undefined : timer,
   });
@@ -438,6 +443,7 @@ async function open(entry: CatalogEntry, rendering: Rendering = "defaults") {
   const sim = new PadSim(blankPadState());
   const host = await createLuaHost({
     sim,
+    system: TOUCH_LIBRARY,
     setup,
     timer: timer.trim() === "" ? undefined : timer,
   });
@@ -576,6 +582,11 @@ async function presetParity(id: string, fast: boolean): Promise<Sent> {
   if (!preset) throw new Error(`no preset ${id}`);
   const built = compile(preset.state);
   const sim = new PadSim(blankPadState());
+  // NO `system` HERE, AND THAT IS THE POINT (12-07). A preset is compiled from a
+  // PadState and calls nothing HANGAR wrote, so it does not need the touch
+  // library and must not be measured with it: the install path gives a preset
+  // the firmware's own page init, so a preview that ran one over the library
+  // would be previewing a module state no visitor can reach.
   const host = await createLuaHost({
     sim,
     setup: built.setupLua,
@@ -3360,6 +3371,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const sim = new PadSim(blankPadState());
       const host = await createLuaHost({
         sim,
+        system: TOUCH_LIBRARY,
         setup,
         timer: timer.trim() === "" ? undefined : timer,
       });
@@ -3613,6 +3625,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     const sim = new PadSim(blankPadState());
     const host = await createLuaHost({
       sim,
+      system: TOUCH_LIBRARY,
       setup,
       timer: timer.trim() === "" ? undefined : timer,
     });
@@ -4523,7 +4536,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     indices.spring = spring;
     const { setup, timer } = renderLua(entry, indices);
     const sim = new PadSim(blankPadState());
-    return await createLuaHost({ sim, setup, timer });
+    return await createLuaHost({ sim, system: TOUCH_LIBRARY, setup, timer });
   };
 
   it("springs WHEELS' pitch home to exactly 8192, on the wire and in the light together", async () => {

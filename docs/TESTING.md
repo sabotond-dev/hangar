@@ -410,6 +410,7 @@ ones.
 | `src/lib/sim/lua-smoke.spec.ts`        | 3     | 0.93 s | the end-to-end shape: every hand-authored entry boots a VM, runs a scripted gesture, and sends MIDI or HID                                                  |
 | `src/lib/fidelity/lua-parity.spec.ts`  | 5     | 0.98 s | the nine shelf presets rendered twice - once by the vendored simulator, once by real Lua - and asserted equal                                               |
 | `src/lib/sim/lazy.spec.ts`             | 3     | 0.30 s | the fast half of D-14: the catalog reaches no engine, `engine.ts` reaches the Lua wrapper only dynamically, one module names the VM                         |
+| `src/lib/catalog/library.spec.ts`      | 3     | 0.62 s | the touch library (12-07): its canonical cost under the pinned minifier, its naming, and its own Lua past both class gates                                  |
 
 **The catalog gate that is not in that table is not in the quick run.**
 `src/lib/catalog/lua-entries.sweep.spec.ts` — the CONT-02 gate on every hand-authored entry:
@@ -851,6 +852,13 @@ way back offered for every failure. It added **four** `server` spec files, grew 
 widened two shipped gates without growing them, and extended `e2e/install.e2e.ts` from six titles to
 eleven. Every count below was observed on 2026-09-05 at the phase gate by running the files on their
 own.
+
+SINCE PLAN 12-07 EVERY INSTALL WRITES THREE STRINGS, NOT TWO, AND THE THIRD DIFFERS BY ENTRY.
+12-02 put element 255 event 0 on the wire and 12-03 put it in the install store; 12-07 filled it in:
+a hand-authored entry lands HANGAR's touch library (`src/lib/catalog/library.ts`, 769 of 908) and a
+preset lands the firmware's own page init, substituted from the empty string in one place,
+`install.svelte.ts`'s `#pageInit`. Plan 12-12 rewrites every count in this document; 12-07 added the
+row above and this paragraph.
 
 | File                                              | Tests   | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |

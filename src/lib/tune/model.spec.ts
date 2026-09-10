@@ -27,6 +27,7 @@ import {
   EVENT_BUDGET,
 } from "../../vendor/botor/_pad";
 import { byId, type CatalogEntry } from "../catalog";
+import { TOUCH_LIBRARY } from "../catalog/library";
 import { compileState, costOf, padReady } from "../pad";
 import type { SimEngine } from "../sim/engine";
 import {
@@ -487,6 +488,66 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     ).toHaveLength(0);
 
     tuner.destroy();
+  });
+
+  it("lands the touch library for a Lua entry and the caller's page init for a preset", async () => {
+    // THE THIRD STRING, AND THE PLAN WHERE IT FIRST DIFFERS BY ENTRY (12-07).
+    // 12-03 opened `system` and landed the same value for everything; the
+    // library exists now, so a hand-authored entry has to land it - from 12-08
+    // its Setup calls `Q` by name and a module whose page init did not carry
+    // the library would raise on the first finger.
+    //
+    // Real timers: EUCLID's route builds a real Lua VM, and the debounce is not
+    // what is being measured.
+    const lua = recorder();
+    const luaTuner = await buildTuner({ entryId: "euclid", ...lua });
+    await pause(80);
+    const landedLua = lua.configs.at(-1);
+    expect(landedLua, "the Lua entry never landed a pair").toBeDefined();
+    expect(
+      landedLua!.system,
+      "a Lua entry must land the touch library as its page init",
+    ).toBe(TOUCH_LIBRARY);
+    luaTuner.destroy();
+
+    // A PRESET LANDS WHAT THE CALLER GAVE, which is the empty string here -
+    // deliberately, and NOT the firmware default. `ladder.spec.ts:275` refuses
+    // `lib/protocol` to every file under `src/lib/tune/`, so a firmware default
+    // cannot be named on this side of the line at all; `install.svelte.ts`'s
+    // `#pageInit` substitutes `SYSTEM_DEFAULT_SETUP` for the empty string in
+    // ONE place before any write, and 12-03's install.spec.ts proves that half.
+    const preset = recorder();
+    const presetTuner = await buildTuner({ entryId: "aurora", ...preset });
+    await settle();
+    const landedPreset = preset.configs.at(-1);
+    expect(landedPreset, "the preset never landed a pair").toBeDefined();
+    expect(
+      landedPreset!.system,
+      "a preset landed a page init of its own, so a preset TRY would write " +
+        "HANGAR's library at a module that does not run it",
+    ).toBe("");
+    expect(
+      landedPreset!.system,
+      "the two routes landed the same string",
+    ).not.toBe(landedLua!.system);
+    presetTuner.destroy();
+
+    // AND AN EXPLICIT systemSetup STILL WINS ON BOTH ROUTES: /dev/install/'s
+    // third textarea is the site's only route for pasting an arbitrary page
+    // init at a module, and 12-03 built it to be exactly that.
+    const pasted = "--[[@cb]]-- pasted";
+    const override = recorder();
+    const overrideTuner = await buildTuner({
+      entryId: "euclid",
+      systemSetup: pasted,
+      ...override,
+    });
+    await pause(80);
+    expect(
+      override.configs.at(-1)?.system,
+      "an explicit page init was overwritten by the library",
+    ).toBe(pasted);
+    overrideTuner.destroy();
   });
 
   it("destroy cancels a pending measurement and leaves no timer behind", async () => {

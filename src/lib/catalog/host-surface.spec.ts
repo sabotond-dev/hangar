@@ -37,12 +37,35 @@ import {
 } from "../sim/lua-host";
 import { renderLua } from "../sim/lua-pad-sim";
 import { CATALOG, type CatalogEntry, type LuaKnob } from "./index";
+import { LIBRARY_CONVENTIONS, LIBRARY_GLOBALS, TOUCH_LIBRARY } from "./library";
 
 const EVENTS = ["setup", "timer"] as const;
 type EventName = (typeof EVENTS)[number];
 
 const GLOBALS: readonly string[] = HOST_GLOBALS;
 const SELF_METHODS: readonly string[] = HOST_SELF_METHODS;
+
+/**
+ * THE SECOND SURFACE, ADDED BY PLAN 12-07: the touch library's own globals.
+ *
+ * From 12-08 on a hand-authored entry calls `Q(s,i,e,x,y)` and `X(s,20)` by
+ * name, and those names are not the HOST's - they are written into the system
+ * element's Setup, which `init.lua:46-50` runs before any touch Setup and which
+ * `createLuaPadSim` and `LuaHost`'s `system` option now put in front of every
+ * hand-authored preview. A classifier that knew only `HOST_GLOBALS` would
+ * refuse every one of those call sites.
+ *
+ * BOTH HALVES ARE IMPORTED AND NEITHER IS RETYPED. `LIBRARY_GLOBALS` is DERIVED
+ * from the library source at module load, so a function renamed there moves
+ * this gate with it; `LIBRARY_CONVENTIONS` is the one name the library CALLS
+ * and does not define - `R`, the entry's release function, which an entry
+ * ASSIGNS rather than calls. Test 6 asserts the admitted list really is those
+ * two arrays and not a copy that could drift.
+ */
+const LIBRARY_NAMES: readonly string[] = [
+  ...LIBRARY_GLOBALS,
+  ...LIBRARY_CONVENTIONS,
+];
 
 /**
  * The numeric library calls whose result is identical across Lua 5.3, 5.4 and
@@ -234,6 +257,9 @@ function resolveCalls(text: string): Resolved[] {
     }
     if (GLOBALS.includes(site.name)) {
       return { ...site, ok: true, why: "a registered bare global" };
+    }
+    if (LIBRARY_NAMES.includes(site.name)) {
+      return { ...site, ok: true, why: "a touch-library global" };
     }
     if (LUA_BASE.includes(site.name)) {
       return { ...site, ok: true, why: "a permitted Lua base call" };
@@ -541,5 +567,111 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
       bareGms.ok,
       "the classifier accepted a bare gms while gmss was being added",
     ).toBe(false);
+  });
+
+  it("resolves the touch library itself, and it reaches exactly four host names", () => {
+    // THE LIBRARY IS SCANNED BY THE SAME CLASSIFIER AS EVERY ENTRY. It is Lua
+    // that HANGAR wrote and that a ZONA runs, so an unresolvable call in it
+    // would raise on the pad exactly as one in an entry would - and it would do
+    // it in the SYSTEM element's Setup, where no card is on screen to show it.
+    //
+    // TWENTY SITES, AND SIX OF THEM ARE DEFINITIONS. The scanner's shape is the
+    // vendored one - every identifier immediately followed by `(` - so
+    // `function W(v,p)` yields `W` exactly as `W(x,...)` does. That is not a
+    // flaw here: a definition whose name is not admitted is as much a finding
+    // as a call whose name is not, and it is how a seventh library function
+    // would announce itself in this gate.
+    const calls = resolveCalls(TOUCH_LIBRARY);
+    expect(calls.length, "the scan found no call sites in the library").toBe(
+      20,
+    );
+    for (const call of calls) {
+      expect(
+        call.ok,
+        `the touch library at index ${call.index}: "${call.name}" is ${call.why}`,
+      ).toBe(true);
+    }
+
+    // THE RESOLVED HOST SET EQUALS FOUR NAMES, and `equals` rather than
+    // `contains` is the whole value of this assertion: it is what catches a
+    // function creeping back into the library with a dependency nobody costed.
+    // `glp` left with `F` in 12-07 and `math.abs` was never in either sketch.
+    const bare = [
+      ...new Set(
+        calls
+          .filter((call) => call.why === "a registered bare global")
+          .map((call) => call.name),
+      ),
+    ].sort();
+    const methods = [
+      ...new Set(
+        calls
+          .filter((call) => call.prefix === ":")
+          .map((call) => `self:${call.name}`),
+      ),
+    ].sort();
+    expect(
+      [...bare, ...methods],
+      "the library reaches a host name nobody costed, or stopped reaching one",
+    ).toEqual(["glag", "glpfs", "glt", "self:gms"]);
+    expect(
+      bare,
+      "glp is back in the library, and it left with the dropped light layer",
+    ).not.toContain("glp");
+
+    // THE ADMITTED LIST IS THE DERIVED ONE. Both halves are imported, so this
+    // asserts the identity rather than a copy: `LIBRARY_GLOBALS` comes out of
+    // the library source by regular expression at module load, and
+    // `LIBRARY_CONVENTIONS` is the single name the library calls without
+    // defining.
+    expect(
+      LIBRARY_NAMES,
+      "the admitted list drifted from the derived one",
+    ).toEqual([...LIBRARY_GLOBALS, ...LIBRARY_CONVENTIONS]);
+    expect(LIBRARY_GLOBALS.length, "the library defines ten globals").toBe(10);
+    for (const name of LIBRARY_NAMES) {
+      const [site] = resolveCalls(`${name}(0)`);
+      expect(site.ok, `${name}() does not resolve after admission`).toBe(true);
+    }
+    // And a single capital that is NOT the library's is still refused, so the
+    // admission widened the gate by exactly ten names and one convention.
+    const [stranger] = resolveCalls("Z(0)");
+    expect(
+      stranger.ok,
+      "any single capital now resolves, so the admission is a hole",
+    ).toBe(false);
+
+    // NO ENTRY MAY SHADOW A LIBRARY GLOBAL. Every single-capital helper in the
+    // shipped catalog is a `local function` or a `local` table - CULL's `M` and
+    // `C`, LUMEN's `H`, QUADRANT's `C` and `M`, CONSOLE's and SNAKE's `P` - and
+    // a local shadows nothing outside its own event body, so the library's `H`
+    // and `P` are safe. A GLOBAL assignment would not be: it would overwrite a
+    // per-contact table the library reads on the next finger.
+    //
+    // A RE-ASSIGNMENT TO A NAME THE SAME EVENT ALREADY DECLARED `local` IS NOT
+    // A GLOBAL WRITE, and QUADRANT is the case that proves it: it opens
+    // `local C={@HUE}` and then writes `C={255,0,0,...}` inside a branch. A
+    // scanner that looked only at the six characters in front of the `=` would
+    // report that as a global assignment, so `localsIn` - the same function
+    // every other test in this file resolves locals with - is what decides.
+    const shadows: string[] = [];
+    for (const entry of luaEntries()) {
+      const rendered = renderLua(entry);
+      for (const event of EVENTS) {
+        const text = rendered[event];
+        const locals = localsIn(text);
+        for (const m of text.matchAll(/(^|[^A-Za-z0-9_.:])([A-Z])\s*=[^=]/g)) {
+          if (locals.has(m[2])) continue;
+          if (LIBRARY_NAMES.includes(m[2])) {
+            shadows.push(`${entry.id}/${event} assigns a global ${m[2]}`);
+          }
+        }
+      }
+    }
+    expect(
+      shadows.join("; "),
+      "an entry assigns a single-capital GLOBAL that the touch library owns, " +
+        "so the library's own state is overwritten by a card",
+    ).toBe("");
   });
 });

@@ -51,6 +51,7 @@ import {
 } from "$lib/protocol";
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
 import { CATALOG, type CatalogEntry } from "../catalog";
+import { TOUCH_LIBRARY } from "../catalog/library";
 import {
   compileState,
   costOf,
@@ -364,18 +365,31 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         expect(
           landed.config,
           `${entry.id}: the published pair is not renderLua's text`,
-        ).toEqual({ system: "", ...rendered });
-        // AND THE PAGE INIT IS THE EMPTY STRING FOR EVERY ENTRY IN THIS PHASE
-        // (12-03), which is the tuner saying "this entry has no page init of
-        // its own" - not a firmware default, which no module under
-        // src/lib/tune/ may know (ladder.spec.ts:275). The install store
-        // substitutes SYSTEM_DEFAULT_SETUP for it in one place before any
-        // write, so the empty string never reaches the wire. 12-07 is where
-        // this stops being empty for a Lua entry.
+        ).toEqual({ system: TOUCH_LIBRARY, ...rendered });
+        // AND THE PAGE INIT IS THE TOUCH LIBRARY, VERBATIM (12-07). It was the
+        // empty string for every entry from 12-03 until the library existed -
+        // the tuner saying "this entry has no page init of its own", which the
+        // install store substituted SYSTEM_DEFAULT_SETUP for in one place
+        // before any write. A hand-authored entry HAS one now, because from
+        // 12-08 its Setup calls the library by name, so the substitution stops
+        // firing for these entries and the string below is what reaches 255/0.
+        //
+        // The preset half of the rule is unchanged and is asserted in the test
+        // above: a preset still publishes the empty string, because a firmware
+        // default is a wire fact and no module under src/lib/tune/ may know one
+        // (ladder.spec.ts:275).
         expect(
           landed.config.system,
-          `${entry.id}: the tuner invented a page init`,
-        ).toBe("");
+          `${entry.id}: the page init is not the touch library, verbatim`,
+        ).toBe(TOUCH_LIBRARY);
+        // Verbatim means measured: the library is canonical under the pinned
+        // minifier, so its length IS its cost and nothing on this path
+        // recompresses it. library.spec.ts owns the budget; this owns the
+        // identity of the string that reaches the wire.
+        expect(
+          landed.config.system.length,
+          `${entry.id}: the page init is not its own minified form`,
+        ).toBe(await measureLua(landed.config.system));
         for (const event of ["setup", "timer"] as const) {
           const text = landed.config[event];
           // The meter the tuner showed is the string's length, empty included.

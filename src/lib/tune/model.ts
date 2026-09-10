@@ -206,12 +206,19 @@ export type Tuner = {
  * it is published beside the pair so that the install store has one wire shape
  * for every entry: a preset TRY after a Lua TRY then leaves the module holding
  * what the screen shows, rather than a preset pair sitting on top of the
- * previous entry's library. In this plan it is `SYSTEM_DEFAULT_SETUP` for
- * every entry - the firmware's own 24-character page init, read from the
- * pinned package and never typed - so the write is a no-op on a factory module
- * and an erasure of a previous entry's library on any other. 12-07 makes it
- * the touch library for `preview === "lua"` entries, and that is the plan that
- * adds the test where the value first differs by entry.
+ * previous entry's library.
+ *
+ * SINCE 12-07 ITS VALUE DIFFERS BY ENTRY, and this is the type that carries the
+ * difference. A hand-authored entry lands `TOUCH_LIBRARY`
+ * (`src/lib/catalog/library.ts`), because from 12-08 on its Setup calls that
+ * library by name and a module without it would raise on the first finger. A
+ * preset lands whatever `systemSetup` said, which is the EMPTY STRING when the
+ * caller named none - NOT the firmware default, because this module may not
+ * know one: `src/lib/tune/ladder.spec.ts:275` refuses `lib/protocol` to every
+ * file under `src/lib/tune/`, and a firmware default is a wire fact. The
+ * substitution to `SYSTEM_DEFAULT_SETUP` happens in exactly one place on the
+ * other side of that line, `install.svelte.ts`'s `#pageInit`, and 12-03's
+ * install.spec.ts is where it is proved.
  *
  * It is NOT part of the 908 budget either: the two meters measure the touch
  * element's two events, which are what the visitor's knobs move.
@@ -254,8 +261,12 @@ export type TunerOptions = {
    * resolves the protocol module lazily inside an action, substitutes its own
    * `SYSTEM_DEFAULT_SETUP` for an empty string before any write, in ONE place.
    *
-   * 12-07 fills this in per entry for `preview === "lua"` entries, and the
-   * substitution stops firing for them on that day.
+   * SINCE 12-07 THE LUA ROUTE NO LONGER NEEDS THIS OPTION and no longer
+   * publishes the empty string: `measureLuaRoute` lands the touch library for
+   * every hand-authored entry, so the substitution above stops firing for them.
+   * The option stays, and it still WINS where it is given, because
+   * `/dev/install/`'s third textarea is the site's only route for pasting an
+   * arbitrary page init at a module and 12-03 built it to be exactly that.
    */
   systemSetup?: string;
   /**
@@ -783,6 +794,16 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   async function measureLuaRoute(mine: number): Promise<void> {
     // Dynamic, never static. See the module comment.
     const { renderLua } = await import("../sim/lua-pad-sim");
+    // THE PAGE INIT A HAND-AUTHORED ENTRY WANTS IS THE TOUCH LIBRARY (12-07),
+    // and this is the landing where `system` first differs by entry. The preset
+    // route below publishes `system` unchanged - see the note on
+    // `TunerOptions.systemSetup` for why that is the empty string here and not
+    // the firmware default, and where the substitution happens instead.
+    //
+    // Lazily imported for the same discipline as `renderLua` above, and
+    // memoised by the module system, so the catalog's first paint carries none
+    // of it.
+    const { TOUCH_LIBRARY } = await import("../catalog/library");
     const lua = renderLua(entry, indices);
     // An empty Timer is a TRUE measurement of zero, not a dead meter: MORPH
     // ships one, and 0 / 908 tells the visitor something real.
@@ -790,7 +811,14 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const timer = lua.timer === "" ? 0 : await measureLua(lua.timer);
     if (stale(mine)) return;
     // renderLua already produced exactly the wire text.
-    land(setup, timer, { system, setup: lua.setup, timer: lua.timer });
+    land(setup, timer, {
+      // An explicit `systemSetup` still wins: /dev/install/'s third textarea is
+      // the site's only route for pasting an arbitrary page init at a module,
+      // and 12-03 built it to be exactly that.
+      system: system === "" ? TOUCH_LIBRARY : system,
+      setup: lua.setup,
+      timer: lua.timer,
+    });
   }
 
   async function run(rebuild: boolean): Promise<void> {

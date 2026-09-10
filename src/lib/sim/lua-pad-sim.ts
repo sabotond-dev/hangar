@@ -21,6 +21,7 @@ import {
   type PadState,
 } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
+import { TOUCH_LIBRARY } from "../catalog/library";
 import type { CatalogEntry, LuaKnob } from "../catalog/types";
 import { SimEngineError, type SimEngine } from "./engine";
 import { createLuaHost, type LuaHost } from "./lua-host";
@@ -203,6 +204,13 @@ export class LuaPadSim implements SimEngine {
  * stores nothing there must not be able to arm a timer at all. LuaHost draws
  * that distinction on `undefined` versus `""`, and this is where the catalog's
  * always-a-string shape is mapped onto it.
+ *
+ * THE TOUCH LIBRARY GOES IN AS THE SYSTEM SETUP (plan 12-07), for every entry
+ * this function builds - which is exactly the hand-authored ones, because a
+ * preset is a compiled PadState and never comes through here. That is the same
+ * split the install path takes: `landLua` publishes the library and the preset
+ * landing publishes the firmware's own page init. The preview can therefore
+ * call the library by name, which every re-fit from 12-08 on depends on.
  */
 export async function createLuaPadSim(
   entry: CatalogEntry,
@@ -211,6 +219,7 @@ export async function createLuaPadSim(
   const { setup, timer } = renderLua(entry, knobs);
   const host = await createLuaHost({
     sim: new PadSim(blankPadState()),
+    system: TOUCH_LIBRARY,
     setup,
     timer: timer.trim() === "" ? undefined : timer,
   });
