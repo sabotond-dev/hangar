@@ -54,15 +54,16 @@
   WHY THE INSTALL STORE IS READ HERE AT ALL, ON A PAGE ABOUT THE SESSION.
   src/routes/+layout.svelte starts it site-wide, so it has ALWAYS been live on
   this route; it was merely invisible. And its phase is the only signal on this
-  page that IMPLIES the snapshot's three round trips have finished.
+  page that IMPLIES the snapshot's round trips have finished.
   session.svelte.ts sets `phase = "connected"` and only THEN fires the
   connection event; install.svelte.ts receives it and calls `void #attach(...)`,
   fire-and-forget by design; #snapshot issues one SERIALNUMBER/FETCH and then
-  fetchBoth, which sequence.ts runs strictly sequentially. So `connected` in the
-  DOM means three round trips are ABOUT TO START. e2e/session.e2e.ts's
-  onlyReads asserted exact totals against that, and the observed "expected 4,
-  received 3" was the middle of fetchBoth on the second connect. `install-phase`
-  leaving `snapshotting` is the causal signal that was missing.
+  fetchAll, which sequence.ts runs strictly sequentially - THREE fetches since
+  12-03, so FOUR round trips are ABOUT TO START when `connected` reaches the
+  DOM. e2e/session.e2e.ts's onlyReads asserted exact totals against that, and
+  the observed "expected 4, received 3" was the middle of those fetches on the
+  second connect. `install-phase` leaving `snapshotting` is the causal signal
+  that was missing.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->

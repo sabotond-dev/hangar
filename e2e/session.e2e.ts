@@ -267,11 +267,12 @@ const answering = (page: Page): Promise<ExposedZona> =>
  * `phase = "connected"` and only THEN fires the connection event;
  * install.svelte.ts's #onConnection receives it and calls `void #attach(...)`,
  * fire-and-forget by design; #attach's #snapshot issues one SERIALNUMBER/FETCH
- * and then fetchBoth, which sequence.ts runs as two awaits IN SERIES rather
- * than a Promise.all. So `connected` in the DOM means three protocol round
+ * and then fetchAll, which sequence.ts runs as THREE awaits IN SERIES rather
+ * than a Promise.all. So `connected` in the DOM means FOUR protocol round
  * trips are ABOUT TO START, each a full page-to-Node CDP hop. The observed
- * failure - expected 4, received 3, at a `connects: 2` call site - is exactly
- * the middle of fetchBoth on the second connect. IT REPRODUCES AT --workers=1
+ * failure was "expected 4, received 3" at a `connects: 2` call site, in the
+ * middle of the fetches on the second connect; re-derived for the third
+ * string it would be expected 6, received 5. IT REPRODUCES AT --workers=1
  * TOO, just rarely enough that nobody has seen it; more workers only move the
  * odds.
  *
@@ -292,7 +293,7 @@ const answering = (page: Page): Promise<ExposedZona> =>
  *
  *   1. The fetch counters are polled to their totals FIRST, at every call site.
  *      The timer fetch is the last chunk #snapshot issues, so CONFIG/FETCH
- *      reaching 2 * connects IS "the reads are answered". This is the
+ *      reaching 3 * connects IS "the reads are answered". This is the
  *      diagnosis's own cheap form and it needs nothing from the page.
  *   2. WHERE the row is published, the store is then required to have LEFT
  *      `snapshotting`. Step 1 makes that sound rather than racy: by then both
@@ -311,10 +312,10 @@ async function onlyReads(
 ): Promise<void> {
   await expect
     .poll(() => zona.seen("CONFIG", "FETCH"), {
-      message: `both config reads of all ${connects} snapshot(s) have been answered - the timer fetch is the last chunk #snapshot issues`,
+      message: `all three config reads - the page init, the Setup and the Timer - of all ${connects} snapshot(s) have been answered; the timer fetch is the last chunk #snapshot issues`,
       timeout: 30_000,
     })
-    .toBe(2 * connects);
+    .toBe(3 * connects);
   await expect
     .poll(() => zona.seen("SERIALNUMBER", "FETCH"), {
       message: `the module named itself once per connect`,
@@ -334,8 +335,11 @@ async function onlyReads(
   expect(zona.seen("PAGESTORE", "EXECUTE"), "flash stores").toBe(0);
   expect(zona.seen("HEARTBEAT", "EXECUTE"), "host heartbeats").toBe(0);
   expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(connects);
-  expect(zona.seen("CONFIG", "FETCH")).toBe(2 * connects);
-  expect(await writes(page), "chunks, every one a read").toBe(3 * connects);
+  expect(zona.seen("CONFIG", "FETCH")).toBe(3 * connects);
+  // FOUR chunks per connect, not three - and this one is a WRITE count, so no
+  // grep for `2 *` would have found it. One SERIALNUMBER/FETCH plus three
+  // CONFIG/FETCH, and every one of them is a read.
+  expect(await writes(page), "chunks, every one a read").toBe(4 * connects);
 }
 
 /**
@@ -884,7 +888,8 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await openCount(page, 0)).toBe(oldOpensBefore);
     expect(await openCount(page, 1)).toBe(1);
 
-    // Two connects, two snapshots, six reads, zero writes.
+    // Two connects, two snapshots, EIGHT reads, zero writes: each snapshot is
+    // one SERIALNUMBER/FETCH and three CONFIG/FETCH since 12-03.
     await onlyReads(page, zona, 2);
     expect(consoleErrors).toEqual([]);
   });
