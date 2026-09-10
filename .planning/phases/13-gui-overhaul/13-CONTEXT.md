@@ -220,6 +220,29 @@ asked rather than assumed. **The user chose the PDF's.** §12's figures are
 recorded as overridden by measurement, and `layout.ts`'s header (13-05's single
 source) carries the measured scale with this decision cited.
 
+## D-18 [user] The third slot gets its bench row
+
+13-02's one remaining question, answered before the plan runs. The Sandbox
+runtime was costed at about 861 **before** D-08's rotary Knob (+150–200), and
+the Timer slot also carries Phase 12's expiry sweep; a surface mixing all four
+element kinds comes to roughly 1,030–1,080 against 889 usable. **The PDF's own
+page-3 surface — a 2×6 Fader, an XY pad, a Button and a Knob — does not fit in
+two slots and does fit in three.** Offered: ship on two (at the risk of reversing
+D-08 and deferring the XY pad, neither an executor's call), take the second
+probe, or write the row and defer. **The user chose the second probe.**
+
+**The probe is `SLOT-PROBE-2.md`**: the system element's fourth event (255/4,
+the slot the firmware names for the utility button and defaults to page-next)
+defines a global; the touch Setup calls it through `ele[#ele]` on the first tap
+and lights one of three cells. **HANGAR never writes 255/4 by design** (12-02's
+constants say why), so the probe's system half goes in through **Grid Editor**,
+not `/dev/install/`; the touch half can use either. Nothing is stored — a power
+cycle restores the utility button.
+
+**Every figure the decision rested on descends from an unrun sketch** and is
+superseded by 13-15's VM-measured runtime; if that lands lower than the ceiling
+chosen here, 13-15 asks again.
+
 ## What the spec leaves open that HANGAR has already settled
 
 Section 19 lists open technical decisions. Several are answered by earlier
