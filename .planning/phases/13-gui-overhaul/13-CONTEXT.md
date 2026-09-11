@@ -285,6 +285,29 @@ analogy:**
 in question after this rule; the envelope's click, review, ACK gate, per-page
 snapshot and bench row are safety features and the spec's review, and stand.
 
+## D-20 [user] A configuration lives at /playground/<id>, and /c/<id> is dropped - move-clean
+
+Given 2026-09-11, answering 13-08 checkpoint (measured before asking: 21 call sites in src/,
+52 in e2e/, one line of stamp.spec.ts; static/og/ filenames are ids, not routes):
+
+> *"move-clean"*
+
+One address, the spec's. No forwarding page, no flash on shared links, and every /c/ link is
+dead - acceptable because the site has never been public (SHARE-03's own amendment) and no real
+link exists. 13-08 executes it; the share codec, the OG target and the stamp tests move with it. The
+twelve dead internal links already recorded become the same kind, and 13-20 counts them once.
+
+## D-21 [user] The inspector keeps its 380 floor; the 2x2 numeric grid reflows below 454 - reflow
+
+Given 2026-09-11, answering 13-05's finding (the PDF's two 190px fields plus a 22px gutter
+inside 26px insets need 454; the frame gives 438 at 1440 and reaches 454 only from ~1494):
+
+> *"reflow"*
+
+The floor stays as layout.ts has it; the grid is two columns when the inspector body is 454 or
+wider and one column below, and nothing else in the inspector changes shape. 13-09 builds it; the
+breakpoint is written once in layout.ts beside the other numbers, not in a component.
+
 ## What the spec leaves open that HANGAR has already settled
 
 Section 19 lists open technical decisions. Several are answered by earlier
