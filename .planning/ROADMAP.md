@@ -454,10 +454,18 @@ agent on Fable 5.1 (the user's instruction for Phase 13 extends to this insertio
 **Requirements**: TBD at planning (CONT-02, CONT-03, PREV-01 and the Phase 12 qualifiers are the
 starting set)
 **Depends on:** Phase 12 (gate landed, bench pending); ordered before Phase 13 plan 13-14
-**Plans:** 0 plans
+**Plans:** 9 plans in two bands and a gate
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 12.1 to break down)
+- [ ] 12.1-01: calibration.ts from Probe C, the probe documented, 255/6 recorded as answered (Band 1)
+- [ ] 12.1-02: the library on two slots (255/0 782, 255/6 683), host systemTimer, the surface gate (Band 1)
+- [ ] 12.1-03: EUCLID, STEPS, RADAR POINTS, SONAR, ARC re-fitted on G and the calibrated Q (Band 1)
+- [ ] 12.1-04: CHORUS, MORPH, CONSOLE, LUMEN, TRACKPAD re-fitted (Band 1)
+- [ ] 12.1-05: the simulator forward map, frames.json regenerated, OG re-rendered (Band 1)
+- [ ] 12.1-06: the fourth string on the wire - constants, the ordered slot list, four writes and fetches (Band 2, after 13-12)
+- [ ] 12.1-07: TRY / PUT BACK / CLEAR over four strings, the classifier, the snapshot key (Band 2)
+- [ ] 12.1-08: the KEEP sentence, wire-pin over both strings, the fourth textarea, the fake, runbook rows I and J (Band 2, before 13-14)
+- [ ] 12.1-09: the gate - re-measured, nine-term chains, requirements amended, the bench rows (checkpoint)
 
 ### Phase 13: GUI Overhaul
 
