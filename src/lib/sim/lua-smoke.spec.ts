@@ -1,7 +1,11 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// TWENTY-THREE tests since plan 12-10 (TRACKPAD's, the last in the file), and
-// the count never moves WITH THE CATALOG - each of the
+// TWENTY-NINE tests since plan 12-10 (TRACKPAD's, the last in the file) -
+// counted from the runner's own report at the 12-12 gate, which found this
+// line reading TWENTY-THREE: 12-10 added its one to 12-04's 22 and skipped the
+// six between them (12-05 +1, 12-07 +2, 12-08 +1, 12-09 +2), so 22 + 1 + 6 =
+// 29 and the header was wrong by six for two plans. The count never moves
+// WITH THE CATALOG - each of the
 // catalog-wide ones loops over the Lua entries internally and names the entry
 // in its message, so a wave that adds a configuration touches no number here.
 // A test that pins ONE entry's answer to ONE bench note is the exception, and

@@ -24,7 +24,10 @@
 //   A THIRTEENTH REMOVAL MAY BREAK A FEELS RULE, AND WHICH ONE DEPENDS ENTIRELY
 //   ON THE CARD. `still` is back at EXACTLY 6 by re-homing, which is the floor
 //   `facets.spec.ts` asserts ("below six it is not a filter"), so removing any
-//   one of JOYSTICK, FADERS, TPAD, MORPH, STRIP or LUMEN goes red at once.
+//   one of JOYSTICK, FADERS, TRACKPAD, MORPH, STRIP or LUMEN goes red at once
+//   (TRACKPAD carries the tpad preset's three tags since plan 12-10 folded the
+//   preset into a hand-authored card; this line named TPAD until the 12-12
+//   gate recounted every term from LISTING - still 6, precise 7).
 //   `precise` is at 7 and has one to spare; the other four FEELS terms have
 //   two or more to spare. On the FOR side `shortcuts` and `pointing` sit at
 //   two, so removing either of their carriers retires a term the way `keys`

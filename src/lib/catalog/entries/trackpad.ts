@@ -86,8 +86,16 @@
 // the Timer, the two events read:
 //
 //   Setup   903 of 908 at EVERY knob state - no knob token is in it -  5 free
-//   Timer   488 of 908 at the picker corner (`false`, `255,255,255`, 7, 42)
-//           486 at the defaults                                       420 free
+//   Timer   490 of 908 at the picker corner (`false`, `255,255,255`, any
+//           reach, any fade)  488 at the defaults                     418 free
+//
+// THE TWO TIMER FIGURES ABOVE WERE 488 AND 486 FROM THIS FILE'S FIRST COMMIT
+// UNTIL THE 12-12 GATE, two short on both. The gate re-measured the Timer at
+// all eighteen (flash, reach, fade) states with the colour at 255,255,255:
+// every `true` state reads 489 and every `false` state 490, so reach and fade
+// move nothing and the corner is any `false` state. 12-10's SUMMARY and the
+// audition table's 486 carried the short figures; the audition row is
+// corrected, the SUMMARY is a record and is pointed at rather than edited.
 //
 // Both are fixed points of `compressScript` and both pass `checkSyntax`. The
 // price is a lag of at most one Timer period - 20 ms, two firmware ticks -
