@@ -24,3 +24,38 @@ entry needs comes from those weights. This is Phase 12.1. It lands before 13-14 
 compiler would otherwise inherit the cell model). 13-07..13-13 do not depend on it.
 
 Rows 2-12 of the gate's bench were not run this round.
+
+## Probe C, run 1 (11:43:50 - 11:44:31), CC20 = x, CC21 = y, CC22 = target
+
+| target | cell | x | y |
+|---|---|---|---|
+| 1 | 36 | 1 | 61 |
+| 2 | 37 | 13 | 63 |
+| 3 | 38 | 29 | 61 |
+| 4 | 39 | 46 | 62 |
+| 5 | 40 | 64 | 68 |
+| 6 | 41 | 85 | 66 |
+| 7 | 42 | 100 | 62 |
+| 8 | 43 | 120 | 64 |
+| 9 | 44 | 126 | 60 |
+| 10 | 4 | 127 | 68 | <- not a row-0 reading: x is the right edge; a re-tap after a dropped lift at target 9. Discarded. |
+| 11 | 13 | 65 | 12 |
+| 12 | 22 | 65 | 26 |
+| 13 | 31 | 66 | 48 |
+| 14 | 49 | 65 | 83 |
+| 15 | 58 | 66 | 97 |
+| 16 | 67 | 65 | 115 |
+| 17 | 76 | 67 | 126 |
+| 18 | 0 | 1 | 0 |
+| 19 | 8 | 127 | 0 |
+| 20 | 72 | 0 | 127 |
+| 21 | 80 | 127 | 126 |
+
+Derived (orchestrator, to be checked by the planner):
+KX = 1, 13, 29, 46, 64, 85, 100, 120, 126   (steps 12, 16, 17, 18, 21, 15, 20, 6)
+KY = [0], 12, 26, 48, 68, 83, 97, 115, 126   (KY[0] from corners 18 and 19, both y = 0; steps -, 14, 22, 20, 15, 14, 18, 11)
+The sensor saturates inside the outer LED on the high side of both axes (LED 7 -> LED 8 is 6 units
+in x, 11 in y) and is nearly linear elsewhere at ~17 per LED. Corners agree with the knots within
+2 units: separable. The user's "row 2 / column 8 lights the corner" follows: x = 120 under the
+naive 128/9 map is cell 8.
+Hand/flatness not reported. A second pass would give target 10 directly.
