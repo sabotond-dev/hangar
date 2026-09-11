@@ -306,3 +306,68 @@ rows below are what HANGAR had to write. They live in `src/lib/tune/inspector-co
 | `monitorCount(n)` | same | landed by 13-10 for 13-18 | the count beside a value on a row that stands for a run of alike messages inside the 100 ms window | how many messages the row folded; empty on a lone message so a lone row carries no `x1` | _x{n}_ | none - section 10 says "aggregate or limit high-rate messages" and gives no form |
 | `MONITOR_EMPTY` | same | landed by 13-10 for 13-18 | the expanded log with no row in it | that nothing has been sent since the monitor opened, and what to do to see something | _Nothing sent yet. Play the surface and what it sends shows here._ | none |
 | `MONITOR_PAUSED` | same | landed by 13-10 for 13-18 | the expanded log while paused | that what the surface sends now is not shown and will not be replayed on resume - the honest statement of the pause semantics shipped | _Paused. What the surface sends now is not shown until you resume._ | none |
+
+## From 13-11: the device band's rows - none - and the questions D-01 sends to the batch
+
+Added 2026-09-11 by plan 13-11 (the device band re-skinned and re-homed). **This plan changed no
+string and wrote none.** Every word the header's control, the footer's `Device actions` panel, the
+context bar's device clause and the install blocks render is Phase 6's, Phase 7's or Phase 10's,
+verbatim from `session-copy.ts` and `install-copy.ts`: `NO ZONA`, `CONNECT ZONA`, `CONNECTING…`,
+`ZONA · fw {fw} · page {n}`, `Not in this browser`, `Needs HTTPS`, `ZONA detected`, `ZONA unplugged`,
+`Did not connect`, `DISCONNECT ZONA`, `FORGET THIS ZONA`, the revoke explanation, the lock's reason,
+the two snapshot lines, `READING ZONA`, `ZONA IDENTIFIED`, `WRITING…`, `PLAYING NOW`, `RESTORED`,
+`KEPT`, `FACTORY DEFAULT` and the seven failure titles. The screenshots in 13-11-SUMMARY.md show
+Phase 10's words in the Bible's places; they are not the final copy. Taken verbatim from the PDF and
+**not** ledgered, as 13-05 did for `Help & shortcuts` and `Preview without hardware`: `Device actions`
+(the footer's second label, PDF pages 2-5) and `Page {n}` (the context bar's destination label while a
+ZONA is connected, the PDF's `Page 1` as the module reports it; 13-12 turns it into the Target select).
+
+The rows 13-18 has to write for this band, so the batch sees them in one place - **none landed**:
+
+| State | Where it renders since 13-11 | Today's words (Phase 10) | Bible line? |
+| --- | --- | --- | --- |
+| S1 not connected, at rest / hovered | the header's control | `NO ZONA` / `CONNECT ZONA` | PDF page 1: _Connect ZONA_ |
+| S4 connected | the header's control | `ZONA · fw 1.5.5 · page 3` | PDF pages 2-5: _ZONA connected_ (the identity moves to Device actions) |
+| S0a / S0b | the header's control's caption | `Not in this browser` / `Needs HTTPS` | section 9: _Device connection unavailable here_ - ONE line for two facts; HANGAR keeps two |
+| S2 detected | the caption | `ZONA detected` | none |
+| S6 failed | the caption | `Did not connect` | section 9: _Device access blocked_ (for the denied cause only) |
+| ready | the bar's device clause | `ZONA IDENTIFIED` | section 9: _ZONA connected_ |
+| writing | the bar's device clause | `WRITING…` | section 9: _Applying to Page N…_ / _Storing on Page N…_ (the leg is not read by the bar) |
+| settled | the bar's device clause; the block | `PLAYING NOW` | section 16: _Applied to Page 2. Store on ZONA to keep it after power-off._ |
+| kept | the bar's device clause; the block | `KEPT` | section 16: _Stored on ZONA · Page 2_ |
+| unconfirmed / kept-mismatch / partial / nothing-landed | the bar's device clause; four blocks | four titles (see 13-11-SUMMARY.md) | section 16 offers ONE line; **four are needed and they stay four** |
+| restored / restored-unconfirmed / cleared / snapshot-failed | the bar's device clause; four blocks | `RESTORED`, `Put back for now, not after a power cycle`, `FACTORY DEFAULT`, `Nothing to put back yet` | **none - the spec has no row**; write four in the register |
+| lost | the bar's device clause; the block | `The ZONA was unplugged mid-write` | section 9: _Disconnected · draft retained_ |
+| the draft clause | the bar's first clause | **not wired** (13-13) | section 16: _Draft saved locally_, _Changes not applied_ |
+
+Questions for the user, from 13-11 (D-01):
+
+1. **Reset active device page under Device actions.** Section 9 puts it there with a confirmation
+   naming the page (section 16: _Reset Page 2 to its firmware default? Your browser draft will
+   remain available._). Phase 10's A-45 shipped the same write as `CLEAR`, in the install column,
+   WITHOUT a confirmation, and `device-ui.spec.ts` test 13 holds that KEEP ON DEVICE's is the site's
+   only confirmation. 13-11 built no second control: the sentence is 13-18's, the page it names is
+   13-12's target, and two gates on one write on one page is an incoherence, not a design. Which
+   rule stands - the Bible's D06 confirmation (then A-45 is retired by name and the reset moves into
+   Device actions when 13-12 moves the column), or A-45's one click (then the Bible's row is amended)?
+2. **The header's control in S0a / S0b.** The plan asked for it "present and disabled with a reason".
+   It ships present and ENABLED: a summary whose caption is the reason in short and whose one click
+   opens the reason in full (CONN-02's two messages), exactly as Phase 6 built it and as
+   `session.e2e.ts` asserts ("present, enabled, aria-expanded"). A disabled summary could not open
+   the reason. Keep this, or make the control inert and put the full reason somewhere always visible?
+3. **The header's box is 44px tall, the PDF's 37.** Section 14's 44px target and the site's rule on
+   every control (`device-ui.spec.ts` test 3) win by 7px. Accept, or draw the border on a 37px inner
+   box inside a 44px hit area?
+4. **The install column stays under the surface until 13-12.** 13-09's question, decided here from
+   the PDF: page 5 has no column because its `Apply to ZONA` is in the context bar, and until 13-12
+   builds that control hiding the column would take the only write control off the only page that has
+   one. For one wave a state caption reads twice on the workspace (the bar's clause and the block).
+5. **Two openers, one panel, in the footer.** The header's summary and the footer's label open the
+   same `Device actions` panel beneath the footer's line; a header click on a full-height page scrolls
+   the panel into view. The alternative - a floating drawer under the header as Phase 6 had it, with
+   the footer's label opening it up there - was not chosen because the PDF puts the pair in the
+   footer and `Help & shortcuts` already opens there. Say if the header's click should open in place.
+6. **The status zone's dot colour by device tone**: the action colour for a confirmed state, full ink
+   for the six uncertain and failure titles, quiet for idle and busy. The PDF draws one grey dot
+   before _Draft saved locally_; the tone rule is HANGAR's reading of section 9's "never one generic
+   indicator". Keep the three tones, or the PDF's one?

@@ -172,18 +172,14 @@ export interface AllowlistRow {
  * NamePlate.svelte's one deleted with their files; FOUR IN THREE after 13-10
  * task 1 on the same day: BudgetMeter.svelte's three (the track, the fill,
  * the ghost) squared with the meters' re-home into the inspector; TWO IN TWO
- * after 13-10 task 2: MixTwo.svelte's two deleted with the file (D-12). Rows
- * are removed by the plan named, never edited to a smaller number by anyone
- * else.
+ * after 13-10 task 2: MixTwo.svelte's two deleted with the file (D-12); ONE IN
+ * ONE after 13-11's first commit on the same day: KeepConfirm.svelte's one
+ * (the block's 10px, squared). Rows are removed by the plan named, never
+ * edited to a smaller number by anyone else.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
   {
     file: "src/lib/ui/DeviceDetails.svelte",
-    declarations: 1,
-    clearedBy: "13-11",
-  },
-  {
-    file: "src/lib/ui/KeepConfirm.svelte",
     declarations: 1,
     clearedBy: "13-11",
   },

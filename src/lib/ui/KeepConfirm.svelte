@@ -173,8 +173,9 @@
 <style>
   /*
     The block: a hairline, the black ground, 16px inside, 8px between its
-    children. No shadow, no glow, no backdrop, no fill (07-UI-SPEC). The fade
-    is opacity alone and never height.
+    children. No shadow, no glow, no backdrop, no fill (07-UI-SPEC), and no
+    corner (D-01; the 10px went in 13-11 and the allowlist row with it). The
+    fade is opacity alone and never height.
   */
   .keep-confirm {
     display: flex;
@@ -184,7 +185,6 @@
     inline-size: 100%;
     padding: 16px;
     border: 1px solid var(--color-boundary);
-    border-radius: 10px;
     background: var(--color-workspace);
     animation: fade-in 160ms linear;
   }

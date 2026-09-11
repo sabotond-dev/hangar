@@ -64,6 +64,60 @@
   The 2000 ms line beneath any block is the store's `slow`, a setTimeout on
   the store and never a timer here (Z-09).
 
+  THE SPEC'S TWELVE STATES AGAINST THESE FIFTEEN PHASES, ROW BY ROW (plan
+  13-11; Bible section 9 "Proposed state machine"). The Bible's table has
+  twelve visible labels; the install store declares fifteen phases; and the
+  mapping is a LABELLING EXERCISE plus four rows the spec never had, not a
+  redesign. Beside each branch below a comment names the spec row it serves.
+  Read together:
+
+    spec row               HANGAR phase(s)                verdict
+    No connection          the session's S1, not a phase  the header's control
+    Permission needed /    the session's, not a phase     the header's control
+    denied
+    Unsupported env.       the session's capability       the header's control,
+                                                          TWO captions, finer
+                                                          than the spec's one
+    Ready                  ready                          exists
+    Draft differs          the tuner's dirty flag         lives in the bar's
+                                                          DRAFT clause (13-13)
+    Applying               writing (+ the slow line)      exists
+    Applied temporarily    settled                        exists
+    Storing                writing, leg = store           exists
+    Stored                 kept                           exists
+    Transfer uncertain     FOUR phases: unconfirmed,      HANGAR is finer than
+                           kept-mismatch, partial,        the spec. FOUR bodies,
+                           nothing-landed                 never collapsed
+    Disconnected           lost                           exists
+    -                      restored                       no spec row: the
+    -                      restored-unconfirmed           safety rail. They
+    -                      cleared                        stay, and they are
+    -                      snapshot-failed                named as such
+    -                      snapshotting, idle             before Ready; nothing
+
+  WHY THE FOUR UNCERTAIN PHASES KEEP FOUR BODIES. Section 16 offers one line
+  for "Unknown transfer result". These four are four MEASURED outcomes: the
+  RAM landed and the store did not confirm (unconfirmed - KEEP ON DEVICE is
+  live and may be sent again); the store was acknowledged and the read-back
+  differs (kept-mismatch); some of the three strings landed and some did not
+  (partial - the classifier names which); nothing landed (nothing-landed -
+  what was playing is still playing). Each names a different next click.
+  Four outcomes told apart is strictly more honest than one sentence, and
+  device-ui.spec.ts test 15 fails if any two of the four render one body.
+  13-18 writes the four new lines; it may not merge them.
+
+  WHERE THIS COMPONENT RENDERS SINCE 13-11, AND WHERE IT DOES NOT. Still in
+  region 3 of the workspace's install column, under the surface, until 13-12
+  builds Apply to ZONA in the context bar. The bar's STATUS ZONE now renders
+  the same phase as one clause (ContextBar.svelte, device-clause.ts, the
+  same captions and titles), so for one wave a caption reads in two places
+  on the workspace; the blocks' bodies render here alone. Section 5's D03
+  (applied, not stored), D04 (stored), D05 (transfer failure) and D06 (reset)
+  are these blocks; they are NOT re-homed as modal dialogs in 13-11, because
+  Phase 7 ruled the install surfaces are never modal (KeepConfirm.svelte's
+  header; device-ui.spec.ts test 8) and a state that arrives on its own
+  cannot take the page. D02, the apply review, does not exist and is 13-12's.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -142,9 +196,11 @@
           <p class="caption">{RESTORED_CAPTION}</p>
           <p class="body">{RESTORED_BODY}</p>
         {:else if shown === "snapshotting"}
+          <!-- spec: before Ready (no row) - the snapshot is taken first -->
           <p class="caption">{SNAPSHOTTING_CAPTION}</p>
           <p class="body">{SNAPSHOTTING_BODY}</p>
         {:else if shown === "ready"}
+          <!-- spec: Ready -->
           {#if identity}
             <p class="caption">{IDENTIFIED_CAPTION}</p>
             <p class="body">
@@ -152,34 +208,43 @@
             </p>
           {/if}
         {:else if shown === "settled"}
+          <!-- spec: Applied temporarily (D03) -->
           <p class="caption">{SETTLED_CAPTION}</p>
           <p class="body">{settledBody(shownName)}</p>
         {:else if shown === "restored"}
+          <!-- spec: NO ROW - PUT BACK's outcome; the safety rail -->
           <p class="caption">{RESTORED_CAPTION}</p>
           <p class="body">{RESTORED_BODY}</p>
           {#if install.leg === "store"}
             <p class="body quiet">{RESTORED_STORED_LINE}</p>
           {/if}
         {:else if shown === "kept"}
+          <!-- spec: Stored (D04) -->
           <p class="caption">{KEPT_CAPTION}</p>
           <p class="body">{keptBody(shownName)}</p>
           <p class="body quiet">{KEPT_PROOF_LINE}</p>
         {:else if shown === "cleared"}
+          <!-- spec: NO ROW - the firmware default playing (D06's outcome); the safety rail -->
           <p class="caption">{CLEARED_CAPTION}</p>
           <p class="body">{CLEARED_BODY}</p>
         {:else if shown === "kept-mismatch"}
+          <!-- spec: Transfer uncertain, body 2 of 4 (D05) -->
           <FailureBlock block={keptMismatchBlock()} />
         {:else if shown === "unconfirmed"}
+          <!-- spec: Transfer uncertain, body 1 of 4 (D05) -->
           <FailureBlock block={unconfirmedBlock(shownName)} />
         {:else if shown === "restored-unconfirmed"}
+          <!-- spec: NO ROW - PUT BACK's store did not confirm; the safety rail -->
           <FailureBlock block={restoredUnconfirmedBlock()} />
         {:else if shown === "nothing-landed"}
+          <!-- spec: Transfer uncertain, body 4 of 4 (D05) -->
           <FailureBlock
             block={nothingLandedBlock(
               install.action === "try" ? "try" : "put-back",
             )}
           />
         {:else if shown === "partial"}
+          <!-- spec: Transfer uncertain, body 3 of 4 (D05) -->
           <FailureBlock
             block={partialBlock(
               install.landed ?? "The page init and the Timer",
@@ -187,8 +252,10 @@
             )}
           />
         {:else if shown === "lost"}
+          <!-- spec: Disconnected -->
           <FailureBlock block={lostBlock(install.leg === "store", label)} />
         {:else if shown === "snapshot-failed"}
+          <!-- spec: NO ROW - nothing copied, so nothing is written; the safety rail -->
           <FailureBlock block={snapshotFailedBlock()} />
         {/if}
       </div>
