@@ -261,8 +261,9 @@ write.
 | `SAVED_COPY` | same | landed by 13-09 for 13-18 | the two Save copy buttons for 2 s after a copy was written | that a NAMED COPY was written to the library (library.ts permits _Saved copy_ on a copy and forbids _Saved_ on a draft or the device) | _Saved copy_ | none - the PDF draws the button at rest only |
 | `copyName(name)` | same | landed by 13-09 for 13-18 | the name a saved copy is given, before 13-13's rename | that it is a copy of this entry and not the entry | _{name} copy_ | none |
 | the mode switch's group name | same (`aria-label` on the radiogroup) | landed by 13-09 for 13-18 | the `Configure` / `Play` radiogroup, which the PDF draws with no caption | that the two segments are one choice | _Mode_ | none |
+| `POPOVER_CLOSE` | `src/lib/tune/inspector-copy.ts` (read by `Swatch.svelte`) | landed by 13-09 for 13-18 | the colour popover's visible close button, beside Escape and the backdrop click | that it closes the popover and hands focus back to `Edit color`; a modal with no visible way out fails a touch visitor | _Close_ | none - the PDF draws no popover |
 
-**From 13-09, seven rows landed and six questions recorded (D-01: ask rather than guess).**
+**From 13-09, eight rows landed and six questions recorded (D-01: ask rather than guess).**
 
 1. **Per-entry inspector headlines.** The PDF's _Shape the / movement._ is ARC's; HANGAR renders it
    above every entry. If the batch wants a headline per entry, that is twenty-seven lines of copy in

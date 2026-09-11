@@ -343,8 +343,27 @@ test("no element on any route computes a corner radius above zero, and every 50%
       await expect(page.getByTestId("chosen-panel")).toBeVisible();
       const inspector = page.getByTestId("shell-inspector");
       await expect(inspector.getByTestId("knob-rack").first()).toBeVisible();
+      // THE VIEW MUST HAVE LANDED BEFORE THE SWATCH IS LOOKED FOR. The
+      // Behavior rack renders (with its empty line) before the tuner's first
+      // view arrives, and the Appearance section - the swatch and its
+      // popover - exists only once it has; a count of Edit color taken at
+      // "first rack visible" read zero once under three workers and skipped
+      // the click, and the closed popover's thumb then read hidden
+      // (2026-09-11, both engines). So a knob ROW is waited for first, and
+      // the popover is opened and its open attribute waited for.
+      await expect(
+        inspector
+          .locator('[data-testid^="knob-"]:not([data-testid="knob-rack"])')
+          .first(),
+      ).toBeVisible();
       const editColor = inspector.getByTestId("edit-color");
-      if ((await editColor.count()) > 0) await editColor.first().click();
+      if ((await editColor.count()) > 0) {
+        await editColor.first().click();
+        await expect(page.getByTestId("colour-popover")).toHaveAttribute(
+          "open",
+          "",
+        );
+      }
       // The precondition is the circles themselves, not the rack: a sweep
       // that runs before the last rail mounts measures fewer than it should
       // (observed once in chromium, the 16-value knob's thumb missing).

@@ -78,12 +78,11 @@
    * (13-07): a header with the wordmark, a secondary link and the
    * connection slot, and nothing else above the page. UNFILLED - no route
    * has called fillShell() - renders the announcer, the page and the
-   * footer, because `/playground/[id]` still draws a header of its own
-   * until 13-09 rewrites it (13-VALIDATION.md D-5; / and /playground/ fill
-   * the shell since 13-07 and 13-08),
-   * and a second header above it would be a visible defect on the live
-   * site. 13-09 removes the unfilled branch when the last of the three
-   * fills the shell.
+   * footer. Every visitor-facing route fills the shell since 13-09 (/,
+   * /playground/, /playground/[id]); the unfilled branch stays for the
+   * seven bench instruments under /dev/, which draw their own chrome and
+   * fill nothing, so 13-09 kept it rather than putting a header on the
+   * bench.
    *
    * THE FRAME'S NUMBERS ARE layout.ts's, SET AS CUSTOM PROPERTIES BELOW and
    * read by the rules in the style block; no number is written in the stylesheet.

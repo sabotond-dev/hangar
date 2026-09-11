@@ -61,6 +61,7 @@ const repo = (rel: string) =>
 const PICKER = "src/lib/ui/ColourPicker.svelte";
 const KNOB = "src/lib/ui/Knob.svelte";
 const RACK = "src/lib/ui/KnobRack.svelte";
+const SWATCH = "src/lib/ui/Swatch.svelte";
 
 /** The house comment stripper: line, block and markup. */
 const stripComments = (source: string) =>
@@ -674,9 +675,15 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
       rack,
       "the rack does not gather the colour knobs, so it is still drawing one row each",
     ).toContain('knobs.filter((k) => k.widget === "colour")');
+    // Since 13-09 the rack renders the SWATCH block once, and the swatch block
+    // renders the picker once, inside its popover (Bible section 7).
     expect(
-      occurrences(rack, "<ColourPicker"),
-      "the rack renders more than one picker",
+      occurrences(rack, "<Swatch"),
+      "the rack renders more than one swatch block",
+    ).toBe(1);
+    expect(
+      occurrences(code(SWATCH), "<ColourPicker"),
+      "the swatch block renders more than one picker",
     ).toBe(1);
     expect(
       rack,

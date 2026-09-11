@@ -208,8 +208,11 @@ file and line: `ColourPicker.svelte:829, :857, :872` and `Knob.svelte:598, :653,
 **Amended 2026-09-11 by plan 13-09 (lines only; the six circles are the same
 six).** `Knob.svelte`'s three moved to `:730` (the dot), `:785` (the thumb)
 and `:807` (the home mark) when the select branch, the changed-field marker
-and the per-field reset landed above them (task 1). `src/lib/ui/radius-allowlist.ts`'s
-`CIRCLES` carries the same numbers; the gate still counts exactly six.
+and the per-field reset landed above them (task 1); `ColourPicker.svelte`'s
+three moved to `:840` (the tick), `:867` (the thumb) and `:882` (the home
+mark) when its six non-circle radii were cleared and the popover's prop
+landed above them (task 2). `src/lib/ui/radius-allowlist.ts`'s `CIRCLES`
+carries the same six numbers; the gate still counts exactly six.
 
 ## D-16 [user] The action colour is the Bible's `#DCFF71`
 

@@ -19,9 +19,16 @@
 // are adjacent on the ring" lost its subject and was deleted by name; the
 // motion-derivation test and the restsBlack test survive, re-aimed at the
 // hero as well as the list ("the hero must not be a dark pad" is the same
-// rule with one member). The two opening-window tests are NOT touched: the
-// ring is still mounted on /playground/{id}/ until 13-09, and 13-09 deletes them with
-// the coverflow and src/lib/coverflow/slots.ts.
+// rule with one member).
+//
+// AMENDMENT (plan 13-09, 2026-09-11): FIVE TESTS, FROM SEVEN. The coverflow
+// left the tree with the workspace (PDF page 5), and the two opening-window
+// tests - "no dark pad is in the opening window" and "the three largest pads
+// at the opening all move" - lost their subject with it and were deleted by
+// name, with the windowAt helper only they used. FRONT_DOOR is a MEMBERSHIP
+// list now: the hero is derived from it and the workspace's rail reads it as
+// the nearby set for a cold arrival; its order is the rail's order and
+// nothing asserts a ring property of it.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
@@ -75,19 +82,6 @@ function deriveMotion(id: string): PreviewMotion {
   if (records.some((record) => record.animating)) return "animated";
   if (records.some((record) => record.nonZeroBytes > 0)) return "static";
   return "dark";
-}
-
-/**
- * The opening window, computed with plain arithmetic rather than by importing
- * src/lib/coverflow/slots.ts, so this gate does not depend on the module the
- * sibling task writes. Signed ring offsets, left to right.
- */
-function windowAt(centre: number, radius: number, count: number): number[] {
-  const out: number[] = [];
-  for (let offset = -radius; offset <= radius; offset += 1) {
-    out.push((((centre + offset) % count) + count) % count);
-  }
-  return out;
 }
 
 // Deliberately backslash-free: inside a shell-quoted node -e a backslash is
@@ -269,32 +263,11 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
     ).toBe("padsim");
   });
 
-  it("no dark pad is in the opening window", () => {
-    const opening = windowAt(0, 3, FRONT_DOOR.length);
-    expect(opening.length, "the opening window is seven slots wide").toBe(7);
-    for (const index of opening) {
-      expect(
-        FRONT_DOOR[index].motion,
-        `${FRONT_DOOR[index].id} is dark and would open as a black square`,
-      ).not.toBe("dark");
-    }
-  });
-
-  it("the three largest pads at the opening all move", () => {
-    const centre = windowAt(0, 1, FRONT_DOOR.length);
-    expect(centre.length, "the hero and its two neighbours").toBe(3);
-    for (const index of centre) {
-      expect(
-        FRONT_DOOR[index].motion,
-        `${FRONT_DOOR[index].id} sits at the opening and does not move`,
-      ).toBe("animated");
-    }
-  });
-
   // "no two quiet pads are adjacent on the ring" stood here until 13-07
-  // deleted it by name (D-09, 2026-09-11): the intro has one surface, so a
-  // rule about neighbours has no subject. The two window tests above keep
-  // theirs until 13-09.
+  // deleted it by name (D-09, 2026-09-11), and "no dark pad is in the
+  // opening window" and "the three largest pads at the opening all move"
+  // stood here until 13-09 deleted them by name the same day: the ring the
+  // coverflow rendered is gone, and the membership has no window.
 
   it("the module stays out of the compiler's chunk, and the quiet copy is the shelf's own", () => {
     const source = strip(readFileSync(SOURCE_PATH, "utf8"));

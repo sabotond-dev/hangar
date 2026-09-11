@@ -11,21 +11,35 @@
  * destination zone over as snippets without the shell learning what is in
  * them.
  *
- * THREE SHAPES, AND THE THIRD DIES WITH THE OLD ROUTES. `variant: "app"` is
- * the frame the PDF draws on pages 2 to 5 (header with nav, context bar,
- * rail, centre, inspector, footer). `variant: "intro"` is page 1's exception
- * (a header with the wordmark, a secondary link and the connection slot, no
- * nav, no context bar, no rail, no inspector). When NO route has filled the
- * shell the layout renders the announcer, the page and the footer and
- * nothing more - which is what `/playground/[id]` (the workspace, at /playground/[id]
- * until 13-08 moved it under D-20) needs until 13-09 rewrites it, because it
- * still draws a header of its own (13-VALIDATION.md D-5), and a second
- * header above it would be a visible defect on the live site. / (13-07) and
- * /playground/ (13-08) fill the shell; once the workspace does too the
- * unfilled shape has no caller, and 13-09 removes it.
+ * THREE SHAPES, AND THE THIRD IS THE BENCH'S. `variant: "app"` is the frame
+ * the PDF draws on pages 2 to 5 (header with nav, context bar, rail, centre,
+ * inspector, footer). `variant: "intro"` is page 1's exception (a header
+ * with the wordmark, a secondary link and the connection slot, no nav, no
+ * context bar, no rail, no inspector). When NO route has filled the shell
+ * the layout renders the announcer, the page and the footer and nothing
+ * more. Every visitor-facing route fills the shell since 13-09 (/ at 13-07,
+ * /playground/ at 13-08, /playground/[id] at 13-09); the unfilled shape
+ * stays for the seven instruments under /dev/, which are bench pages with
+ * their own chrome and fill nothing - so 13-09 kept the branch it was to
+ * remove, and says so here rather than putting a header on the bench.
  *
- * $state.raw rather than $state: the fill is replaced whole, never mutated
- * a field at a time, and a deep proxy over snippet functions buys nothing.
+ * THE FILL IS ONE $state.raw VARIABLE BEHIND A GETTER, NOT A PROPERTY ON A
+ * RAW OBJECT - A DEFECT FOUND AND FIXED ON 2026-09-11 (plan 13-09). From
+ * 13-05 to 13-09 `shell` was `$state.raw({ fill })` and fillShell() wrote
+ * `shell.fill = fill`. A property write on a raw-state OBJECT is not
+ * tracked - only reassigning the variable is - so the layout's $derived
+ * never re-read the fill and no route's snippets reached the frame: on a
+ * served build the gallery's rail, the intro's Quick guide and the
+ * workspace's rail and inspector were all absent, while the prerendered
+ * DATA fill (variant, section, breadcrumb, status) drew the frame around
+ * them, which is why every earlier e2e title stayed green. The fill is now
+ * a module-level $state.raw VARIABLE, reassigned whole, read and written
+ * through `shell.fill`'s getter and setter so every caller and
+ * shell.spec.ts keep their shape and the cleanup's === guard still holds
+ * (raw state proxies nothing, so the object read back is the object
+ * written). Raw rather than deep, for the reason 13-05 gave: the fill is
+ * replaced whole, never mutated a field at a time, and a deep proxy over
+ * snippet functions buys nothing.
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
@@ -84,9 +98,17 @@ export interface ShellFill {
   deviceActions?: Snippet;
 }
 
-export const shell = $state.raw<{ fill: ShellFill | undefined }>({
-  fill: undefined,
-});
+let current = $state.raw<ShellFill | undefined>(undefined);
+
+/** The one fill, reactive through the raw-state variable behind it. */
+export const shell = {
+  get fill(): ShellFill | undefined {
+    return current;
+  },
+  set fill(next: ShellFill | undefined) {
+    current = next;
+  },
+};
 
 /**
  * Fill the shell for the life of the caller's effect. Returns the cleanup

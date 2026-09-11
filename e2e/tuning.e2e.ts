@@ -462,6 +462,16 @@ test.describe("turning a knob", () => {
     // moved, so RESET ALL would be proved to leave it alone rather than to put
     // it back.
     await turnColourRail(page);
+    // THE POPOVER GIVES FOCUS BACK (13-09, Bible section 14). The colour rail
+    // lives in the swatch's <dialog> since 13-09; Escape is the platform's
+    // cancel, and the link that opened it must hold focus afterwards - the
+    // one behaviour a source scan cannot prove, so it is pressed here.
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("colour-popover")).not.toHaveAttribute(
+      "open",
+      "",
+    );
+    await expect(page.getByTestId("edit-color").first()).toBeFocused();
     const turned = await knobIndices(page);
     expect(turned, "two knobs and the colour really moved").not.toEqual(home);
     await expect(resetAll, "a moved knob enables RESET ALL").toBeEnabled();
@@ -807,7 +817,7 @@ async function meterPct(page: Page, event: "setup" | "timer"): Promise<number> {
 async function openProbe(page: Page): Promise<void> {
   await page.goto(PROBE);
   await expect(page.getByTestId("tuning-region")).toBeVisible();
-  await expect(page.getByTestId("knob-rack")).toBeVisible();
+  await expect(page.getByTestId("knob-rack").first()).toBeVisible();
   await settled(page);
   await expect(
     page.getByTestId("probe-cost"),

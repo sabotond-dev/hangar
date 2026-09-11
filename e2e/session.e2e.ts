@@ -1405,7 +1405,7 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
       "true",
     );
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
-    await expect(page.getByTestId("knob-rack")).toBeVisible();
+    await expect(page.getByTestId("knob-rack").first()).toBeVisible();
     await settled(page);
 
     // Precondition: the three regions as they stand, and the recorder on.

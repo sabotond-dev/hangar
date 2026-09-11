@@ -62,10 +62,18 @@
   uses and all three of them belong to a meter or a message; a knob is never red,
   and an unaffordable colour is absent rather than alarming.
 
+  INSIDE A POPOVER SINCE 13-09 (Bible section 7, PDF page 5). Swatch.svelte
+  draws the swatch rows and opens this block in a <dialog> on a row's Edit
+  color, handing over `selectedId`; nothing in the lattice, the rails, the
+  marks or the budget arithmetic moved with it, and 13-09-SUMMARY.md pastes
+  the diffstat. The six non-circle radii this file carried went the same day
+  (D-01); the tick, the thumb and the home mark are true circles on square
+  boxes and keep border-radius: 50% (D-10, D-15).
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import {
     COLOUR_CAPTION,
@@ -102,7 +110,14 @@
     onhold,
     onforecast,
     onresult,
+    selectedId,
   }: {
+    /**
+     * The knob to open on (13-09): the swatch row whose Edit color opened the
+     * popover. Read once, at init - the popover mounts this picker once and
+     * the selector inside it is the visitor's from then on.
+     */
+    selectedId?: string;
     /** The configuration the result pad runs. Structural, never a catalog import. */
     entry: { id: string; name: string };
     /** Every colour knob this panel declares, in rack order. Never empty. */
@@ -158,7 +173,7 @@
    * knob turn does) does not move the selection, and a knob that disappears
    * falls back to the first rather than to nothing.
    */
-  let chosen = $state<string | undefined>(undefined);
+  let chosen = $state<string | undefined>(untrack(() => selectedId));
 
   const selected = $derived(
     knobs.find((knob) => knob.id === chosen) ?? knobs[0],
@@ -651,7 +666,6 @@
     min-block-size: 44px;
     padding: 0;
     border: 0;
-    border-radius: 6px;
     background: transparent;
     font-family: inherit;
     font-size: 12px;
@@ -685,7 +699,6 @@
     inline-size: 88px;
     block-size: 88px;
     border: 1px solid var(--color-divider);
-    border-radius: 2px;
   }
 
   .rails,
@@ -746,7 +759,6 @@
   .rail:has(:focus-visible) {
     outline: 2px solid var(--color-action);
     outline-offset: 4px;
-    border-radius: 2px;
   }
 
   /* The real control. Invisible; everything painted below is decoration. */
@@ -784,7 +796,6 @@
     flex: 1 1 0;
     min-inline-size: 0;
     block-size: 16px;
-    border-radius: 2px;
     background: var(--color-workspace);
   }
 
@@ -836,7 +847,6 @@
     inset-block-start: 30px;
     inset-inline-start: 0;
     block-size: 4px;
-    border-radius: 2px;
   }
 
   .track-line {
@@ -875,7 +885,7 @@
 
   .home.bar {
     inline-size: 12px;
-    border-radius: 1px;
+    border-radius: 0;
     background: var(--color-boundary);
   }
 

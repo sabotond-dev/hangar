@@ -22,43 +22,19 @@
  * instrument.spec.ts scan 6 now holds that vocabulary absent from every
  * stylesheet and component on every run.
  *
- * WHAT THIS FILE GATES NOW - TWO SCANS, BOTH WITH A LIVE SUBJECT.
+ * WHAT THIS FILE GATES NOW - ONE SCAN, WITH A LIVE SUBJECT.
  *
- * Scan 4 was here in Wave 0 because it was the only one of the seven that
- * could be true on a tree with no CRT, and it is the one that survives a tree
- * with no CRT for the same reason: its subject is Coverflow.svelte's own 3D
- * context, which stays ungrouped, and its band, which keeps its clip and its
- * mask. Nothing in it names the CRT. It stays until 13-09 deletes the
- * coverflow (13-VALIDATION D-5), and the plan that deletes the component
- * deletes this scan by name in the same commit.
+ * Scan 4 survived 13-04 because its subject was Coverflow.svelte's own 3D
+ * context and band rather than the CRT; on 2026-09-11 plan 13-09 deleted the
+ * coverflow with the workspace (PDF page 5, 13-VALIDATION D-5) and deleted
+ * the scan by name in the same commit - "scan 4: Coverflow.svelte's 3D
+ * context stays ungrouped and its band keeps its clip and its mask" - with
+ * the rightmost-compound and property-name helpers only it used.
  *
  * Scan 8 is the unlit cell (10-UI-SPEC A-58, A-59): the dot is still there,
  * the wash is the token rather than a colour, the fraction is capped, and the
  * pad that lights nothing is still declared dark. It is about the pad and not
  * about the texture, which is why it stays in place and the file survives.
- *
- * SCAN 4 ASSERTS BOTH DIRECTIONS, AND THE SECOND DIRECTION IS THE ONE THE
- * SPEC'S OWN FIRST PASS HAD BACKWARDS. `.band`'s `overflow: clip` and its edge
- * `mask-image` are not tolerated, they are REQUIRED: they are the clip and the
- * fade the row is built on, and a scan that only forbade would go green on a
- * tidy-up that deleted them.
- *
- * TWO IMPLEMENTATION RULES HERE ARE LOAD-BEARING, and `Coverflow.svelte:1013`
- * is why. That rule is
- * `.stage.measured .slot { transition: transform ..., opacity ..., filter ... }`.
- * Its selector CONTAINS the string `.stage` and its body CONTAINS the
- * substrings `filter` and `opacity`, yet it is entirely legal: its rightmost
- * compound is `.slot`, and the only property it declares is `transition`.
- * So this scan
- *
- *   1. matches a rule on the RIGHTMOST COMPOUND of its selector - `.stage`,
- *      `.stage.measured`, `.stage:hover` - and never on a selector that merely
- *      contains the string; and
- *   2. matches a declaration on its PROPERTY NAME, the token left of the first
- *      colon, and never on a body substring.
- *
- * A substring implementation of either half turns this gate red on a legal
- * rule, which is precisely what V-01 exists to prevent.
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
@@ -76,7 +52,6 @@ import { DARK_BY_CONSTRUCTION, demoPathFor } from "../sim/demo";
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
 
-const COVERFLOW = "src/lib/ui/Coverflow.svelte";
 const PAD_FRAME = "src/lib/ui/PadFrame.svelte";
 
 /**
@@ -184,161 +159,9 @@ function parseRules(css: string, into: Rule[] = []): Rule[] {
   return into;
 }
 
-/**
- * The rightmost compound of every selector in a group. `.stage.measured .slot`
- * yields `.slot`; `.band.chosen` yields `.band.chosen`.
- */
-function rightmostCompounds(selector: string): string[] {
-  return splitTop(selector, ",")
-    .map((one) => one.trim())
-    .filter(Boolean)
-    .map((one) => {
-      const parts = one.split(/[\s>+~]+/).filter(Boolean);
-      return parts[parts.length - 1] ?? "";
-    });
-}
-
-/** Does the rightmost compound carry this class, as a whole class name? */
-function targets(rule: Rule, className: string): boolean {
-  const pattern = new RegExp(`\\.${className}(?![\\w-])`);
-  return rightmostCompounds(rule.selector).some((compound) =>
-    pattern.test(compound),
-  );
-}
-
-const source = read(COVERFLOW);
-const stripped = strip(source);
-const styleBlock = /<style>([^]*)<\/style>/.exec(stripped)?.[1] ?? "";
-const template = stripped.replace(/<style>[^]*<\/style>/, "");
-const rules = parseRules(styleBlock);
-const declarationCount = rules.reduce(
-  (total, rule) => total + rule.declarations.length,
-  0,
-);
-
-/**
- * §8.2's grouping set, by property name. `opacity` and `contain` are checked
- * by value below, because `opacity: 1` and `contain: layout` are harmless and
- * only `opacity` below 1 and `contain: paint` group.
- *
- * `mask` and `-webkit-mask-image` are here as spellings of `mask-image`, not
- * as an additional prohibition: the same grouping behaviour arrives under any
- * of the three names.
- */
-const FORBIDDEN_ON_STAGE = [
-  "filter",
-  "mix-blend-mode",
-  "mask-image",
-  "mask",
-  "-webkit-mask-image",
-];
-
 /** A written-out colour: a hex, or any colour function. Never a var(). */
 const COLOUR_LITERAL =
   /#[0-9a-fA-F]{3,8}|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/;
-
-describe("IDENT-01 aesthetic source scans (10-UI-SPEC §8.7)", () => {
-  it("scan 4: Coverflow.svelte's 3D context stays ungrouped and its band keeps its clip and its mask", () => {
-    // ---- Non-vacuity, before a single claim about what was found. ----
-    expect(
-      rules.length,
-      `the <style> block parsed into ${rules.length} rules`,
-    ).toBeGreaterThan(10);
-    expect(
-      declarationCount,
-      `those rules carry ${declarationCount} declarations`,
-    ).toBeGreaterThan(25);
-    for (const className of ["band", "stage", "slot"]) {
-      expect(
-        rules.some((rule) => rule.selector.includes(`.${className}`)),
-        `the parse found rules mentioning .${className} in ${COVERFLOW}`,
-      ).toBe(true);
-    }
-
-    const stageRules = rules.filter((rule) => targets(rule, "stage"));
-    const bandRules = rules.filter((rule) => targets(rule, "band"));
-    // Without these two the loops below would be vacuously green on a file
-    // whose selectors had all been renamed.
-    expect(
-      stageRules.map((rule) => rule.selector),
-      "at least one rule's rightmost compound is .stage, so the ABSENT half has something to check",
-    ).not.toEqual([]);
-    expect(
-      bandRules.map((rule) => rule.selector),
-      "at least one rule's rightmost compound is .band, so the PRESENT half has something to check",
-    ).not.toEqual([]);
-
-    // ---- ABSENT: no grouping property on the 3D context itself. ----
-    // A grouping property on .stage forces transform-style: flat on its
-    // descendants, which collapses the coverflow ladder into a row of equal
-    // squares. This direction is ADDED-something-forbidden.
-    for (const rule of stageRules) {
-      for (const declaration of rule.declarations) {
-        expect(
-          FORBIDDEN_ON_STAGE.includes(declaration.property),
-          `SOMETHING WAS ADDED: ${COVERFLOW} declares "${declaration.property}" on "${rule.selector}", ` +
-            "whose rightmost compound is the 3D context. It is a grouping property and it flattens " +
-            "every slot inside the ladder (04-CONTEXT D-16, 10-UI-SPEC §8.2). No CRT layer goes here.",
-        ).toBe(false);
-
-        if (declaration.property === "opacity") {
-          const value = Number.parseFloat(declaration.value);
-          expect(
-            Number.isFinite(value) && value < 1,
-            `SOMETHING WAS ADDED: ${COVERFLOW} declares "opacity: ${declaration.value}" on ` +
-              `"${rule.selector}". An opacity below 1 groups, and grouping flattens the ladder.`,
-          ).toBe(false);
-        }
-
-        if (declaration.property === "contain") {
-          expect(
-            declaration.value.includes("paint"),
-            `SOMETHING WAS ADDED: ${COVERFLOW} declares "contain: ${declaration.value}" on ` +
-              `"${rule.selector}". contain: paint groups, and grouping flattens the ladder.`,
-          ).toBe(false);
-        }
-      }
-    }
-
-    // ---- PRESENT: the band still clips and still fades at its edges. ----
-    // This direction is DELETED-something-load-bearing, and it is the one the
-    // spec's own first pass had backwards.
-    const bandDeclarations = bandRules.flatMap((rule) => rule.declarations);
-    const overflow = bandDeclarations.find(
-      (declaration) => declaration.property === "overflow",
-    );
-    expect(
-      overflow?.value,
-      `SOMETHING WAS DELETED: ${COVERFLOW}'s .band no longer declares "overflow: clip". ` +
-        "It is the clip the row is built on, and it is on .band rather than on .stage precisely " +
-        "so it does not group the 3D context.",
-    ).toBe("clip");
-    expect(
-      bandDeclarations.some(
-        (declaration) => declaration.property === "mask-image",
-      ),
-      `SOMETHING WAS DELETED: ${COVERFLOW}'s .band no longer declares "mask-image". ` +
-        "It is the four-stop edge fade the row is built on; a tidy-up that removed it would " +
-        "leave a forbid-only scan green.",
-    ).toBe(true);
-
-    // ---- PRESENT: the slot's recede, which lives in the markup. ----
-    // These are inline style attributes at Coverflow.svelte:841-846, not
-    // <style> rules, so the template text is what is scanned. A slot is a leaf
-    // of the 3D tree - it has no 3D children to flatten - and the recede
-    // depends on both of them.
-    expect(
-      template.includes("filter: brightness("),
-      `SOMETHING WAS DELETED: ${COVERFLOW}'s slot no longer carries an inline ` +
-        '"filter: brightness(" - the one filter permitted anywhere near a pad, and half of the recede.',
-    ).toBe(true);
-    expect(
-      /opacity:\s*\{/.test(template),
-      `SOMETHING WAS DELETED: ${COVERFLOW}'s slot no longer carries an inline "opacity:" - ` +
-        "the other half of the recede.",
-    ).toBe(true);
-  });
-});
 
 describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", () => {
   it("scan 8: the unlit cell is drawn as a cell, in the token, and the pad that lights nothing is still dark", () => {

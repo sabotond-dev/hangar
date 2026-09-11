@@ -73,17 +73,18 @@ const repo = (rel: string) =>
 const UI_DIR = "src/lib/ui";
 
 /**
- * The nine tuning components. A literal list is unavoidable - the directory
+ * The ten tuning components. A literal list is unavoidable - the directory
  * also holds Phase 4's components, which these rules do not all bind - so its
  * length is asserted and every name is checked against the directory listing.
- * A rename, a deletion or a TENTH component added without being listed is then
- * a visible omission rather than a silent gap.
+ * A rename, a deletion or an ELEVENTH component added without being listed
+ * is then a visible omission rather than a silent gap.
  *
- * The eighth is plan 10-10's ColourPicker.svelte and the ninth is 10-11's
- * MixTwo.svelte, and adding each here is not bookkeeping: a component omitted
- * from a hand-declared list passes every walk in this file silently, which
- * would have left them outside the compiler guard, the scroll prohibition, the
- * 44px floor and the accent census at once.
+ * The eighth is plan 10-10's ColourPicker.svelte, the ninth is 10-11's
+ * MixTwo.svelte and the tenth is 13-09's Swatch.svelte (the popover the
+ * picker lives in), and adding each here is not bookkeeping: a component
+ * omitted from a hand-declared list passes every walk in this file silently,
+ * which would have left them outside the compiler guard, the scroll
+ * prohibition, the 44px floor and the accent census at once.
  *
  * THIS IS THE HAND-DECLARED WALK MixTwo.svelte BELONGS TO, AND IT BELONGS TO
  * NO OTHER. device-ui.spec.ts's DEVICE_COMPONENTS is the six device components
@@ -99,6 +100,7 @@ const TUNING_COMPONENTS: readonly string[] = [
   "KnobRack.svelte",
   "MixTwo.svelte",
   "StampNotice.svelte",
+  "Swatch.svelte",
   "TuningRegion.svelte",
 ];
 
@@ -173,7 +175,7 @@ describe("the tuning UI's structural rules", () => {
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(TUNING_COMPONENTS.length, "nine components were listed").toBe(9);
+    expect(TUNING_COMPONENTS.length, "ten components were listed").toBe(10);
     expect(
       TUNING_COMPONENTS.filter((name) => !present.has(name)),
       "a listed tuning component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -255,7 +257,7 @@ describe("the tuning UI's structural rules", () => {
 
     expect(
       declarations,
-      "the nine components' code was actually read",
+      "the ten components' code was actually read",
     ).toBeGreaterThan(100);
     expect(
       offenders,
@@ -485,6 +487,59 @@ describe("the tuning UI's structural rules", () => {
       knob,
       "Knob.svelte builds the signed delta itself instead of rendering the one copy.ts wrote",
     ).not.toContain("forecastDelta(");
+
+    // -----------------------------------------------------------------------
+    // THE SWATCH'S POPOVER (13-09, Bible section 7 and 14). It rides here
+    // because what it must do is what this test is about - a control, its
+    // floor, and the platform behaviour the control relies on. A <dialog>
+    // opened with showModal(): the platform traps focus and handles Escape,
+    // so neither is re-implemented; the two things it does not do are
+    // asserted as code - the backdrop click closes, and focus returns to the
+    // link that opened it on close, whichever way it closed. The behaviour is
+    // pressed in e2e/tuning.e2e.ts (Escape, then the link is focused).
+    const swatch = code(componentPath("Swatch.svelte"));
+    expect(swatch, "the popover is not a <dialog>").toContain("<dialog");
+    expect(
+      swatch,
+      "the popover is not opened with showModal(), so nothing traps focus and the background is not inert",
+    ).toContain("showModal()");
+    expect(
+      swatch,
+      "the popover has no accessible name - it must be labelled by the knob's own label",
+    ).toContain("aria-labelledby={titleId}");
+    expect(
+      swatch,
+      "a click on the backdrop does not close the popover",
+    ).toContain("if (event.target === dialog) close();");
+    const closed = swatch.slice(
+      swatch.indexOf("function onClosed"),
+      swatch.indexOf("}", swatch.indexOf("function onClosed")),
+    );
+    expect(
+      closed,
+      "focus does not return to the link that opened the popover when it closes (section 14)",
+    ).toContain("trigger?.focus()");
+    expect(swatch, "onclose is not wired to the focus return").toContain(
+      "onclose={onClosed}",
+    );
+    for (const selector of [".edit", ".close"]) {
+      const rule = rulesOf(swatch).find((r) => r.selector.trim() === selector);
+      expect(
+        rule,
+        `Swatch.svelte no longer has a ${selector} rule`,
+      ).toBeDefined();
+      for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+        expect(
+          rule?.body,
+          `${selector} does not declare ${axis} - Phase 4's touch floor is both axes per control`,
+        ).toContain(axis);
+      }
+    }
+    // The square is the PDF's 34 x 34 and square-cornered (D-01).
+    const square = rulesOf(swatch).find((r) => r.selector.trim() === ".square");
+    expect(square?.body).toContain("inline-size: 34px");
+    expect(square?.body).toContain("block-size: 34px");
+    expect(square?.body).not.toContain("border-radius");
   });
 
   it("SURPRISE ME is a real disabled button when every knob is held, and its reason is 53 characters", () => {
@@ -588,18 +643,24 @@ describe("the tuning UI's structural rules", () => {
       // accent on that would not have been a ninth entry.
       "MixTwo.svelte": 0,
       "StampNotice.svelte": 0,
+      // THE TENTH (13-09), ONE DECLARATION: the popover's Close button takes
+      // the action colour on its border on hover - entry 4's family, the
+      // focus and hover treatment every control on the site shares - and the
+      // swatch square is the stored RGB444 value, never a token. The Edit
+      // color link and the hex are quiet ink.
+      "Swatch.svelte": 1,
       "TuningRegion.svelte": 1,
     });
     expect(
       total,
-      "the accent declaration count across the nine tuning components is no longer twenty-one",
-    ).toBe(21);
+      "the accent declaration count across the ten tuning components is no longer twenty-two",
+    ).toBe(22);
 
     // Non-vacuity: the walk really read files with accent in them.
     expect(
       Object.values(census).filter((n) => n > 0).length,
-      "the census found accent in fewer files than the six that carry it",
-    ).toBe(6);
+      "the census found accent in fewer files than the seven that carry it",
+    ).toBe(7);
 
     // AND THE PICKER SPENT NONE OF IT ON THE THINGS THAT WOULD HAVE BEEN A
     // NINTH ENTRY. The cheap-step tick is --color-boundary, the unaffordable

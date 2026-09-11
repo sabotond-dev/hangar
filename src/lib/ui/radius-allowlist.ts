@@ -89,21 +89,24 @@ export interface Circle {
  * an amendment to 13-CONTEXT.md D-15 and is dated there first.
  */
 export const CIRCLES: readonly Circle[] = [
+  // ColourPicker.svelte's three moved from :829 / :857 / :872 to :840 / :867
+  // / :882 on 2026-09-11 when 13-09 cleared its six non-circle radii and put
+  // the popover's prop above them; D-15 is amended with the same numbers.
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 829,
+    line: 840,
     what: "the tick, a 2px round mark on the cheap steps",
     box: "2x2",
   },
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 857,
+    line: 867,
     what: "the rail thumb",
     box: "12x12",
   },
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 872,
+    line: 882,
     what: "the home mark",
     box: "2x2",
   },
@@ -162,28 +165,14 @@ export interface AllowlistRow {
  * .svelte's one (the action buttons' 6px), Knob.svelte's five (the
  * track, the held bar, the swatch option, the swatch, the lock - its three
  * circles stay, now at :730 / :785 / :807) and CopyLink.svelte's one (the
- * fallback field's 2px) cleared with the inspector. Rows are removed by
- * the plan named, never edited to a smaller number by anyone else.
+ * fallback field's 2px) cleared with the inspector; SEVEN IN FOUR after
+ * 13-09 task 2 on the same day: ColourPicker.svelte's six (the lock, the
+ * result, the focus ring, the detent, the track, the held bar - its three
+ * circles stay, now at :840 / :867 / :882), ChosenPanel.svelte's two and
+ * NamePlate.svelte's one deleted with their files. Rows are removed by the
+ * plan named, never edited to a smaller number by anyone else.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
-  {
-    file: "src/lib/ui/ColourPicker.svelte",
-    declarations: 6,
-    clearedBy: "13-09",
-    circles: 3,
-    circleLines: [829, 857, 872],
-    note: "tick, rail thumb, home mark - three 50% survive under D-10 and D-15; the six non-circle declarations (:654, :688, :749, :787, :839, :878) are cleared.",
-  },
-  {
-    file: "src/lib/ui/ChosenPanel.svelte",
-    declarations: 2,
-    clearedBy: "13-09 (deleted)",
-  },
-  {
-    file: "src/lib/ui/NamePlate.svelte",
-    declarations: 1,
-    clearedBy: "13-09 (deleted)",
-  },
   {
     file: "src/lib/ui/BudgetMeter.svelte",
     declarations: 3,

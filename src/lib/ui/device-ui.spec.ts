@@ -139,6 +139,8 @@ const stripComments = (source: string) =>
 const raw = (rel: string) => readFileSync(repo(rel), "utf8");
 const code = (rel: string) => stripComments(raw(rel));
 const componentPath = (name: string) => `${UI_DIR}/${name}`;
+/** The workspace route, where the chosen panel's column and the Escape rules live since 13-09. */
+const WORKSPACE = "src/routes/playground/[id]/+page.svelte";
 const occurrences = (text: string, needle: string) =>
   text.split(needle).length - 1;
 
@@ -922,8 +924,11 @@ describe("the device UI's structural rules", () => {
     );
 
     // ONE COLUMN, PUT BACK FIRST. The row's rule declares the column, and the
-    // panel mounts PutBack before KeepOnDevice in DOM order.
-    const panel = code(componentPath("ChosenPanel.svelte"));
+    // panel mounts PutBack before KeepOnDevice in DOM order. SINCE 13-09 THE
+    // PANEL IS THE WORKSPACE ROUTE'S OWN MARKUP: ChosenPanel.svelte dissolved
+    // into src/routes/playground/[id]/+page.svelte with the coverflow, and the
+    // column, its caption, its one hairline and its order moved there whole.
+    const panel = code(WORKSPACE);
     const row = rulesOf(panel)
       .filter((r) => r.selector.includes(".install-row"))
       .map((r) => r.body)
@@ -952,24 +957,47 @@ describe("the device UI's structural rules", () => {
     // the Bare tier it was separating, so the file declares exactly one
     // border-block-start, the .rule's.
     const clearAt = panel.indexOf("<Clear ");
-    const shareAt = panel.indexOf("{@render share");
     expect(clearAt, "the panel mounts Clear").toBeGreaterThan(-1);
-    expect(shareAt, "the panel renders the share snippet").toBeGreaterThan(-1);
     expect(
-      keepAt < clearAt && confirmAt < clearAt && clearAt < shareAt,
-      "the column is PUT BACK, KEEP ON DEVICE (or its confirmation), CLEAR, COPY LINK - CLEAR sits after the control it is quietest beside and before the one that is not an install control at all",
+      keepAt < clearAt && confirmAt < clearAt,
+      "the column is PUT BACK, KEEP ON DEVICE (or its confirmation), CLEAR - CLEAR sits after the control it is quietest beside",
     ).toBe(true);
+    // THE SHARE CONTROL LEFT THE COLUMN AT 13-09: it is the inspector's
+    // pinned pair (PDF page 5's Share snapshot), rendered by the route's
+    // actions snippet and never inside the install row - it was never an
+    // install control, and the Bible puts it where the tuner's actions are.
+    const column = panel.slice(
+      panel.indexOf('class="install-row"'),
+      panel.indexOf("</section>", panel.indexOf('class="install-row"')),
+    );
+    expect(column, "the install row was found").toContain("<Clear ");
+    expect(
+      column,
+      "the share control is back inside the install column",
+    ).not.toContain("<CopyLink");
+    const actions = panel.slice(
+      panel.indexOf("{#snippet actions()}"),
+      panel.indexOf("{/snippet}", panel.indexOf("{#snippet actions()}")),
+    );
+    expect(
+      actions,
+      "the inspector's pinned pair no longer carries the share control",
+    ).toContain("<CopyLink");
     expect(panel, "the panel carries the NEXT caption").toContain(
       'data-testid="next-caption"',
     );
     expect(
       occurrences(panel, "border-block-start"),
-      "ChosenPanel declares a border-block-start other than the one hairline Phase 7 gave region 6 - A-46 retired the second hairline with the Bare tier, and D-04's sequence is carried by a caption, an order and an enablement rather than by a rule",
+      "the workspace declares a border-block-start other than the one hairline Phase 7 gave region 6 - A-46 retired the second hairline with the Bare tier, and D-04's sequence is carried by a caption, an order and an enablement rather than by a rule",
     ).toBe(1);
+    // Region 4's 152px reservation went with the chosen panel (13-09): the
+    // tuning region is the shell's inspector now, which scrolls its own body
+    // beside the surface rather than beneath the primary control, so nothing
+    // above it can move and there is nothing to reserve.
     expect(
       panel,
-      "region 4's reservation moved - it is Phase 4's floor and this plan is not allowed to touch it",
-    ).toContain("min-block-size: 152px");
+      "the workspace still reserves the chosen panel's 152px - the inspector scrolls its own body and reserves nothing",
+    ).not.toContain("min-block-size: 152px");
 
     // SAFE-02 SURVIVES D-04: THE TWO WEIGHTS ARE NOT EQUALISED. This is the
     // regression D-04 makes attractive - "one natural sequence" read as "three
@@ -1067,17 +1095,21 @@ describe("the device UI's structural rules", () => {
       "the nothing-landed form is still selected by action === \"put-back\" - a clear would then fall through to the TRY form by omission, whose detail says the visitor's own scripts are still running. The selector mirrors the store's own #classify (A-28): try is the exception, everything else takes the put-back form",
     ).toContain('install.action === "try" ? "try" : "put-back"');
 
-    // ESCAPE'S TWO RULES, IN ORDER, ON THE HANDLER ALONE. The handler is
-    // sliced from its key test to the next un-choose, because the file's
-    // first pushState is choose()'s and comes BEFORE the handler - a
-    // whole-file "confirmOpen before pushState" would be red on correct code.
-    const coverflow = code(componentPath("Coverflow.svelte"));
+    // ESCAPE'S TWO RULES, IN ORDER, ON THE HANDLER ALONE. Since 13-09 the
+    // handler is the workspace route's (Coverflow.svelte left the tree with
+    // the un-choose it guarded): while the store is writing Escape does
+    // nothing, and while the confirmation is open it closes the block. There
+    // is no panel to un-choose any more, so the handler ends there and pushes
+    // no history entry.
+    const workspace = code(WORKSPACE);
     const keyTest = 'event.key !== "Escape"';
-    const from = coverflow.indexOf(keyTest);
+    const from = workspace.indexOf(keyTest);
     expect(from, "the Escape handler was found").toBeGreaterThan(-1);
-    const to = coverflow.indexOf("unchoose()", from);
-    expect(to, "the handler still un-chooses").toBeGreaterThan(from);
-    const handler = coverflow.slice(from, to);
+    const to = workspace.indexOf("dismissConfirm()", from);
+    expect(to, "the handler still closes the confirmation").toBeGreaterThan(
+      from,
+    );
+    const handler = workspace.slice(from, to);
     const writingAt = handler.indexOf('install.phase === "writing"');
     const confirmGuardAt = handler.indexOf("install.confirmOpen");
     expect(
@@ -1086,18 +1118,16 @@ describe("the device UI's structural rules", () => {
     ).toBeGreaterThan(-1);
     expect(
       confirmGuardAt,
-      "Escape closes the confirmation before it un-chooses (Z-10)",
+      "Escape closes the confirmation only after the writing guard (Z-10)",
     ).toBeGreaterThan(writingAt);
     expect(
       occurrences(handler, "pushState"),
       "the Escape handler pushes no history entry",
     ).toBe(0);
-    // Non-vacuity for the slice: the file DOES push state, before the handler,
-    // which is why the whole-file ordering check would be wrong.
     expect(
-      coverflow.indexOf("pushState("),
-      "choose()'s pushState precedes the Escape handler - if it does not, the slice above is no longer load-bearing",
-    ).toBeLessThan(from);
+      occurrences(workspace, "pushState("),
+      "the workspace pushes history - there is no chosen state to push since 13-09",
+    ).toBe(0);
   });
 
   it("the header locks under a write, says where the copy is, and the announcer is untouched", () => {

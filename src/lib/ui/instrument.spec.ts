@@ -83,7 +83,6 @@ const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
 
 const UI_DIR = "src/lib/ui";
 const APP_CSS = "src/app.css";
-const FRONT_DOOR = "src/lib/ui/FrontDoor.svelte";
 
 /** aesthetic.spec.ts's stripper, verbatim in behaviour and backslash-free. */
 const strip = (text: string) =>
@@ -238,32 +237,22 @@ const INSTRUMENT_VOCABULARY: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /**
- * Front-door-only components, and the two are not the same kind of thing, so
- * they are listed with their reasons rather than as one array of names.
- *
- * FrontDoor.svelte OWNS the register line - it is the file whose root class the
- * line is drawn at. Coverflow.svelte is the ceremonial shelf and this phase
- * promises in writing not to touch it, so it is excluded from a walk that would
- * have to be able to demand an edit to it. Splash.svelte, the arrival
- * ceremony, was the third row until 13-07 deleted the file with the glyph
- * field (D-09); the walk is a subtraction from the directory, so a deleted
- * file needs no row.
+ * Front-door-only components: NONE since 13-09. FrontDoor.svelte (the file
+ * whose root class .front-door was the register line) and Coverflow.svelte
+ * (the ceremonial shelf phase 10 promised not to touch) were the two rows
+ * until 13-09 deleted both with the workspace; Splash.svelte was a third
+ * until 13-07 deleted it with the glyph field (D-09); ScreenToggle.svelte
+ * was exempt until 13-04 deleted it with the CRT. The walk is a subtraction
+ * from the directory, so a deleted file needs no row - and with no row left
+ * every component on disk is walked. The list and the totality check stay,
+ * so a later plan that needs to declare a file out does it here, by name and
+ * with a reason, rather than by editing the walk.
  */
-const FRONT_DOOR_ONLY: ReadonlyArray<readonly [string, string]> = [
-  [
-    "FrontDoor.svelte",
-    "it is the file whose root class .front-door IS the register line; it carried the CRT shell until 13-04 deleted it",
-  ],
-  [
-    "Coverflow.svelte",
-    "the ceremonial shelf, and phase 10 promises in writing that it is byte-untouched - a walk that could demand an edit to it would be a walk that could break that promise",
-  ],
-];
+const FRONT_DOOR_ONLY: ReadonlyArray<readonly [string, string]> = [];
 
 /**
- * The excluded set is the front-door-only list and nothing else. ScreenToggle
- * .svelte was declared exempt here - it named the CRT vocabulary and rendered
- * in every footer - until 13-04 deleted it with the CRT (D-09).
+ * The excluded set is the front-door-only list and nothing else - empty
+ * since 13-09.
  */
 const excluded = new Set(FRONT_DOOR_ONLY.map(([name]) => name));
 
@@ -375,25 +364,19 @@ const QUIET: ReadonlyArray<readonly [string, string, string]> = [
 const STRADDLES: readonly [string, string, string] = [
   "FacetRow.svelte",
   "link",
-  "the FOR row's link mode renders on the front door and on no other route (FrontDoor.svelte mounts it with an href), so its members stay in the front-door register; since 13-08 the checkbox mode's chips draw the Bible's rectangle themselves rather than wearing the pill, and neither member may wear it",
+  "the FOR row's link mode rendered on the front door until 13-09 deleted FrontDoor.svelte, and no route mounts it since; its members stay in the front-door register all the same, and since 13-08 the checkbox mode's chips draw the Bible's rectangle themselves rather than wearing the pill, so neither member may wear it",
 ];
 
 describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
-  it("scan 1: the register line holds from the instrument side - the pill is authored once, in src/app.css, and never inside FrontDoor.svelte or under .front-door", () => {
-    const frontDoor = code(FRONT_DOOR);
-    expect(
-      openingTags(templateOf(frontDoor)).some((tag) =>
-        classesOf(tag).includes("front-door"),
-      ),
-      "FrontDoor.svelte no longer applies the class .front-door to anything - the register line is drawn at that class",
-    ).toBe(true);
-
-    // ---- THE OTHER SIDE OF THE LINE WENT WITH THE CRT (13-04, D-09). Until
-    // then this scan also held Layer S to a .front-door selector, Layers R and
-    // T to this file, and Layer G as the one declared exception on every
-    // route. There is no CRT layer left to scope, so the line is held from the
-    // instrument side alone: no instrument rule is AUTHORED inside
-    // FrontDoor.svelte or under a .front-door selector, anywhere in src/.
+  it("scan 1: the register line holds from the instrument side - the pill is authored once, in src/app.css, and never under a .front-door selector", () => {
+    // ---- THE FRONT DOOR ITSELF WENT AT 13-09. FrontDoor.svelte, whose root
+    // class .front-door was the register line, left the tree with the
+    // coverflow when /playground/{id}/ became the workspace; the CRT side of
+    // the line went at 13-04 (D-09). What is left to hold is the instrument
+    // side: the pill is authored once, in src/app.css, and no instrument rule
+    // is scoped under a .front-door selector anywhere in src/ - which is the
+    // spelling that would put the register on a hero shell without any file
+    // owning it.
     //
     // The floor first: every word of the vocabulary is really in the tree, so a
     // renamed shape cannot leave this half checking an empty search.
@@ -434,17 +417,8 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       ).toEqual([APP_CSS]);
     }
 
-    // (a) FrontDoor.svelte authors none of it, and names none of it.
-    for (const [word] of INSTRUMENT_VOCABULARY) {
-      expect(
-        frontDoor.includes(word),
-        `FrontDoor.svelte names "${word}". The instrument register's rules are authored OUTSIDE the front door's own file (D-16, A-37), and an instrument shape declared here would move the line in one file and not in the other.`,
-      ).toBe(false);
-    }
-
-    // (b) And nowhere in src/ is an instrument rule scoped under .front-door -
-    // which is the spelling that would put the register on the hero shell
-    // without ever editing FrontDoor.svelte.
+    // And nowhere in src/ is an instrument rule scoped under .front-door -
+    // the spelling that would put the register on a hero shell.
     const scoped: string[] = [];
     for (const file of files) {
       for (const rule of rulesOf(styleOf(file, code(file)))) {
@@ -720,16 +694,8 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       "the caption element carries a digit or a dash - the retired furniture came back inside the group's accessible name",
     ).toBe(false);
 
-    // ---- THE FRONT DOOR's LINK ROW NEVER HAD AN INDEX, AND STILL HAS NONE.
-    const frontDoor = code(FRONT_DOOR);
-    expect(
-      frontDoor.includes("<FacetRow"),
-      "FrontDoor.svelte no longer mounts a FacetRow - the link-mode half of this scan has no subject (13-09 retires the page; until then it is here)",
-    ).toBe(true);
-    expect(
-      /index=/.test(frontDoor),
-      "FrontDoor.svelte hands its FOR row an index. 10.2 and A-23 forbid step numerals in the device flow, and the form is retired everywhere since 13-08.",
-    ).toBe(false);
+    // ---- THE FRONT DOOR'S LINK ROW WENT WITH THE FRONT DOOR (13-09); the
+    // device components are what is left to hold free of the index form.
     const numbered: string[] = [];
     for (const name of [
       "Clear.svelte",
@@ -737,7 +703,6 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       "PutBack.svelte",
       "KeepConfirm.svelte",
       "TryOnDevice.svelte",
-      "ChosenPanel.svelte",
       "DeviceSlot.svelte",
       "DeviceNote.svelte",
     ]) {

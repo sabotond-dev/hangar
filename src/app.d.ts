@@ -11,15 +11,11 @@ declare global {
     // interface Error {}
     // interface Locals {}
     // interface PageData {}
-    interface PageState {
-      /**
-       * Set by src/lib/ui/Coverflow.svelte through a shallow pushState when
-       * the centre pad is chosen. It lives in the history entry rather than
-       * in a component boolean so that the browser Back button and Escape are
-       * one gesture rather than two implementations of it (D-09, W-16).
-       */
-      chosen?: boolean;
-    }
+    // PageState carried `chosen` from Phase 4 to 13-09 - the coverflow's
+    // shallow pushState when the centre pad was chosen. The workspace has no
+    // chosen state, so the interface is empty and stays declared for the
+    // next route that needs one.
+    // interface PageState {}
     // interface Platform {}
   }
 }

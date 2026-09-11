@@ -59,7 +59,7 @@
   import { EMPTY_RACK } from "$lib/tune/copy";
   import type { ColourBudget, KnobView } from "$lib/tune/view";
   import Knob from "./Knob.svelte";
-  import ColourPicker from "./ColourPicker.svelte";
+  import Swatch from "./Swatch.svelte";
 
   let {
     entry,
@@ -148,7 +148,7 @@
     {#each knobs as row (row.id)}
       {#if row.widget === "colour"}
         {#if row.id === pickerAt}
-          <ColourPicker
+          <Swatch
             {entry}
             {held}
             {budget}

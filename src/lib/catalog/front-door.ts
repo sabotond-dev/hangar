@@ -13,13 +13,13 @@
 // opening, from which the hero is derived. EXCLUDED_FROM_ROW and its reasons
 // survive with it, because the partition is still what the spec asserts.
 //
-// THE RING'S ADJACENCY RULE LOST ITS SUBJECT ON 2026-09-11 and its test was
-// deleted by name that day ("no two quiet pads are adjacent on the ring").
-// The ring ORDER below and src/lib/coverflow/slots.ts are deliberately NOT
-// removed here: Coverflow.svelte is still mounted on /playground/{id}/ until 13-09
-// makes that route the workspace, and its two opening-window tests keep
-// their subject until then. 13-09 deletes the ring order's meaning, the
-// slots module and those two tests together with the coverflow.
+// THE RING WENT ON 2026-09-11, IN TWO STEPS. 13-07 deleted the adjacency
+// test by name ("no two quiet pads are adjacent on the ring") when / became
+// the intro; 13-09 deleted Coverflow.svelte, src/lib/coverflow/slots.ts and
+// the two opening-window tests when /playground/{id}/ became the workspace.
+// The ORDER below is now the order the workspace's rail lists the members
+// in for a cold arrival (a visitor who came from the gallery sees the view
+// they left instead) and nothing asserts a ring property of it.
 //
 // WHY THIS FILE RESTATES `name` AND `description` INSTEAD OF READING THEM.
 // The obvious implementation is `byId(id).name`. It is wrong here.
@@ -156,11 +156,10 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
 ];
 
 /**
- * The membership list, still in the ring order the coverflow on /playground/{id}/
- * reads until 13-09 (see the header). Index 0 is that ring's opening centre
- * and the ring wraps, so index 7 is the first step LEFT from the opening. The
- * intro's hero is derived from this list by heroOf() below - the first member
- * that is not dark - so today it is index 0 by consequence, not by decree.
+ * The membership list, in the order the workspace's rail lists it (13-09)
+ * and the order the coverflow once rang it. The intro's hero is derived
+ * from this list by heroOf() below - the first member that is not dark - so
+ * today it is index 0 by consequence, not by decree.
  *
  * | index | id        | motion   | why it sits here                                    |
  * |-------|-----------|----------|-----------------------------------------------------|
@@ -173,22 +172,14 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
  * | 6     | faders    | static   |                                                      |
  * | 7     | dial      | animated | first step LEFT, so the wrap neighbour moves         |
  *
- * WHAT THIS ORDER ACHIEVES, AND WHAT IT DELIBERATELY DOES NOT.
- * D-20 asks for an opening window that is motion-only. With eight entries and a
- * radius of three the window is seven of the eight, so a motion-only window is
- * arithmetically impossible while three of the eight are honestly still - and
- * faking their motion is forbidden. What this order achieves instead, and what
- * the spec asserts, is the strongest property that IS reachable:
- *
- *   - no dark pad is in the opening window (the one dark card, TRACKPAD since
- *     plan 12-10 and the tpad preset before it, is excluded from the row);
- *   - the three largest pads at the opening - offsets -1, 0 and +1, which are
- *     dial, aurora and pinwheel - all move;
- *   - the three quiet pads land on 2, 4 and 6, so no two of them are ever side
- *     by side on the ring, including across the wrap.
- *
- * The weaker property is deliberate, not sloppy. A visitor never sees two dead
- * squares together, and the pads nearest the eye are always in motion.
+ * WHAT THIS ORDER ACHIEVED, AS HISTORY. Phase 4's D-20 asked for an
+ * opening window that was motion-only, which eight entries with three still
+ * ones cannot give; the order put the three quiet pads on 2, 4 and 6 so no
+ * two were side by side and the three largest at the opening all moved.
+ * The ring is gone (13-07, 13-09) and none of that is asserted now; the
+ * order is kept as the rail's order rather than re-derived, because
+ * nothing in the Bible says what a rail's order should be and the hero
+ * derivation reads index 0.
  */
 export const FRONT_DOOR: readonly FrontDoorEntry[] = [
   {

@@ -55,6 +55,8 @@ export const RESET_SETTINGS = "Reset settings";
 
 /** The swatch row's link. PDF page 5, verbatim. */
 export const EDIT_COLOR = "Edit color";
+/** The popover's visible close. HANGAR's own (the PDF draws no popover) - ledgered. */
+export const POPOVER_CLOSE = "Close";
 
 /** The pinned pair at the inspector's foot. PDF page 5, verbatim. */
 export const SAVE_COPY = "Save copy";
