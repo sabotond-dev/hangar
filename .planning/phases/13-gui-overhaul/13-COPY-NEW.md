@@ -56,6 +56,7 @@ caps are superseded and retired by name at 13-18.
 | `NOTHING_LANDED_TITLE` | `src/lib/device/install-copy.ts` | seeded by 13-01 for 13-18 | neither event landed | the device is as it was; nothing to put back | _(not proposed here)_ | the same one §16 row |
 | `RESTORED_UNCONFIRMED_TITLE` | `src/lib/device/install-copy.ts` | seeded by 13-01 for 13-18 | PUT BACK was sent and its ACK never arrived | the snapshot is still held; the device may or may not be restored; do not assume either | _(not proposed here)_ | the same one §16 row |
 | `SNAPSHOT_FAILED_TITLE` | `src/lib/device/install-copy.ts` | seeded by 13-01 for 13-18 | the pre-write snapshot could not be taken | nothing was written; no install is offered until a snapshot exists, because PUT BACK would have nothing to restore | _(not proposed here)_ | the same one §16 row |
+| the open-failure `default` branch, beside `port-busy` (CONN-04) | `src/lib/transport/transport.ts:150` (`port-busy`) and `:190` (`default`) | filed by 13-02 for 13-18 | a port this browser opened once is refused on a second open because **another HANGAR tab** still holds it — observed on the user's desk during the slot probe (`PROBE-RESULTS-2026-09-10.md`, first section): session phase `unknown`, *"The port would not open"*, while the install store read `ready` with a landed snapshot | nothing was written and the store's refusal was right; **another tab of this site may be holding the ZONA**, and the way back is to close it, re-plug, reload and connect once — `port-busy` today names Grid Editor and its tray icon and never a second HANGAR tab | the probe's own sentence, offered for the batch: _Another tab may be holding your ZONA._ | none — §16 has no line for a port held by another tab |
 
 **A count the plan got wrong, recorded rather than reconciled:** 13-01-PLAN.md seeds "seven" and
 names **eight** symbols — `RESTORED_CAPTION`, `SAFE_NOTE`'s successor, and the six titles §16's single
@@ -66,3 +67,12 @@ line for, and the two others have no §16 line at all.
 
 None from 13-01: this plan authored no string a visitor can read. Its test failure messages, its
 `app.css` comment and its docs paragraph are contributor-facing and are written in the register anyway.
+
+**From 13-02, one question for 13-18 rather than an answer:** the probe's second open landed in the
+`default` branch (title _The port would not open_), not in `port-busy` (CONN-04's block, which names
+Grid Editor). So either the browser reports a port held by another tab of the same site with a
+different error than a port held by another program, or the classifier missed it. **Which raw message
+the browser gave was not recorded.** 13-18 decides whether `port-busy`'s detail gains a second culprit
+(_a second HANGAR tab_) beside Grid Editor, or the `default` branch gains the sentence above, or both —
+and whether that needs the raw message reproduced first. This plan authored no string a visitor can
+read; the row above proposes the probe's own words and lands nothing.
