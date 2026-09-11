@@ -59,3 +59,9 @@ in x, 11 in y) and is nearly linear elsewhere at ~17 per LED. Corners agree with
 2 units: separable. The user's "row 2 / column 8 lights the corner" follows: x = 120 under the
 naive 128/9 map is cell 8.
 Hand/flatness not reported. A second pass would give target 10 directly.
+
+## Decision, 2026-09-11
+
+Asked "Use 255/6 (the system Timer) as the library's second slot? It means HANGAR writes a fourth
+string to the module and PUT BACK restores it", the user answered: "yes". Phase 12.1 builds the
+library across 255/0 and 255/6. The KEEP-once-during-the-bench question is still open.
