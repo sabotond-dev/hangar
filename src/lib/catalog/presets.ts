@@ -198,6 +198,41 @@ export const PRESETS: readonly PadPreset[] = [
       // animating - but that reverses the "dark field" decision above without
       // being asked to, so it is costed for the user's next bench pass rather
       // than taken here.
+      //
+      // ASKED AND ANSWERED AT PLAN 12-06'S CHECKPOINT, 2026-09-11. The six
+      // options were re-measured at the RGB444 picker corner - the worst of
+      // the 540 reachable non-colour knob states at the dearest of the 4,096
+      // lattice colours, which is how reachability.sweep.spec.ts costs a card
+      // - and put to the user with the front-door consequence of each:
+      //
+      //   option          Setup at the corner   what it moves
+      //   trail (comet)   488                   the dot and the centre go;
+      //                                         restsBlack; leaves the row
+      //   shimmer         614                   motion -> animated
+      //   wave            634                   motion -> animated
+      //   swirl           653                   motion -> animated
+      //   ripple          664                   motion -> animated
+      //   as-is           551                   nothing
+      //
+      // The 543 in the paragraph above and in `cost` below is this preset
+      // state at its defaults; 551 is the corner (the tuned state costs four
+      // more than the preset state because withChange deletes `preset`, see
+      // src/lib/tune/state.ts), and every look layer also moves the Timer
+      // 24 -> 55. The answer, verbatim:
+      //
+      //   "as is, selectable tuning options under Trackpad"
+      //
+      // The first half is this card's. JOYSTICK stays exactly as 11-06 left
+      // it, and the "more led animation, trail or something" half of the
+      // 2026-09-09 bench note is a NAMED NON-DELIVERY with the reason on the
+      // record: every option that adds motion either takes the parked dot and
+      // the power-on centre away (the trail) or reverses the dark-field
+      // decision above and re-points the one colour knob from the stick to a
+      // background wash (the four look layers - colourTargetFor returns
+      // "look" once a look is enabled), and the user chose neither. The
+      // second half is TRACKPAD's and is handed to plan 12-10 by name;
+      // nothing here acts on it. Re-measured 2026-09-11 at 551 of 908 at the
+      // corner, 357 free, Timer 24; nothing regenerated.
       d.look.kind = "none";
       d.enabled.look = false;
       d.touch.kind = "glow";

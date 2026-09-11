@@ -130,3 +130,41 @@ that is the standing property that lets it go stale — so the risk is a reader,
 908 | 302 / 908 |`.
 
 **Owner:** plan 12-12, with the other three.
+
+---
+
+## 5. JOYSTICK's "more led animation" is a named non-delivery, by the user's answer, and three rows record it
+
+**Found by:** plan 12-06, at its blocking checkpoint, answered 2026-09-11.
+
+The checkpoint put six costed options in front of the user (trail 488, shimmer 614, wave 634, swirl
+653, ripple 664, as-is 551 - every figure at the RGB444 picker corner, re-measured by 12-06's
+handover and reproduced by task 02 at 551 on both the dearest pin `102,102,102` and `255,255,255`,
+540 non-colour states each). The answer, verbatim:
+
+> **"as is, selectable tuning options under Trackpad"**
+
+The first half is JOYSTICK's. Nothing in `presets.ts` moves except the comment that records the
+table and the answer; `frames.json`, `golden-frames.json`, `front-door.ts` and the OG image are
+untouched and proved untouched (regenerated and byte-identical). The second half is TRACKPAD's and is
+12-10's; see 12-06-SUMMARY's hand-off.
+
+**Three rows for 12-12, which owns the files they sit in:**
+
+1. **`.planning/phases/11-bench-corrections/deferred-items.md` C.3 "JOYSTICK's trail"** - the row
+   12-12's plan already marks *answered (12-06, verbatim)*. The closing sentence is: answered
+   **as-is** on 2026-09-11; the trail and the four look layers are costed in JOYSTICK's comment in
+   `src/lib/catalog/presets.ts` and none was taken; the "more led animation, trail or something"
+   half of the 2026-09-09 note is a named non-delivery with the reason (the trail takes the parked
+   dot and the power-on centre; a look layer reverses the dark-field decision and re-points the one
+   colour knob from the stick to the background wash).
+2. **`docs/HARDWARE-AUDITION.md` has no JOYSTICK row.** 12-06's handover found it; adding one is
+   `+1` against 12-06's declared audition `+0`, so 12-06 did not add it. If the bench is to confirm
+   the as-is answer on the module, 12-12 adds the row with the expectation sentence "the centre
+   cell lit from power-on, one dot following the finger, parked on the centre on lift, no trail".
+3. **`docs/TESTING.md`'s cost table, joystick row** - 12-06 did not measure it and did not edit the
+   table (item 4 above records the phase's handling). The corner figure to check it against is 551
+   / Timer 24 / 357 free; the defaults figure is 543 for the preset state and 547 for a tuned state
+   (`withChange` deletes `preset`, `src/lib/tune/state.ts:11`).
+
+**Owner:** plan 12-12.
