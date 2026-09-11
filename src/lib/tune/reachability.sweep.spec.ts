@@ -189,7 +189,15 @@ beforeAll(async () => {
 describe("reachability sweep: no visitor can produce an over-budget state", () => {
   it("costs every HANGAR knob state on all nine presets in two passes and ladders the scoped few", async () => {
     const entries = racked();
-    expect(entries.length, "the nine compiler-driven racks").toBe(9);
+    // EIGHT since plan 12-10: the `tpad` preset is on the shelf but not in
+    // the catalog (the hand-authored TRACKPAD replaced it as the card), and
+    // the racks are read off catalog cards. Its 512 states leave Pass A,
+    // which the run prints at 20,270 with Pass B's 24,576 untouched - 44,846
+    // in all, above the 40,000 floor below. It was the tightest card here at
+    // 907 of 908 and it had no colour knob, so no margin this sweep guards
+    // moves with it; the preset itself is still costed byte-exact by
+    // presets.spec.ts test 4.
+    expect(entries.length, "the eight compiler-driven racks").toBe(8);
 
     // The two expectations, derived from `racked()` INDEPENDENTLY of the loops
     // below. That independence is the whole of the non-vacuity guard: drop a
@@ -475,9 +483,10 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
       `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 271`,
     ).toBe(271);
 
-    // And the ladder, on the scoped set: nine worst-cost states, zero
-    // over-budget ones, and not one step to offer between them.
-    expect(laddered.length, "the scoped ladder set").toBe(over.length + 9);
+    // And the ladder, on the scoped set: eight worst-cost states since plan
+    // 12-10 (one per carded preset; tpad's was the ninth), zero over-budget
+    // ones, and not one step to offer between them.
+    expect(laddered.length, "the scoped ladder set").toBe(over.length + 8);
     for (const each of laddered) {
       expect(each.fits, `${each.label}: fit() refused a fitting state`).toBe(
         true,

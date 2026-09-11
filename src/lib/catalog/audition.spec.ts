@@ -54,8 +54,12 @@ const flat = doc.replace(/\s+/g, " ");
  * 25 -> 22 at plan 12-04: the LATTICE row, the SHUTTLE row and the FORGE row
  * left with their entries, and the shared CHORUS / LATTICE row kept its
  * surviving name rather than leaving.
+ *
+ * 22 -> 23 at plan 12-10: TRACKPAD's row. The tpad preset it replaced never
+ * had one - the checklist audits hand-authored configurations - so this is an
+ * addition and not an amendment.
  */
-const ROW_COUNT = 22;
+const ROW_COUNT = 23;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -199,7 +203,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-two numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-three numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",

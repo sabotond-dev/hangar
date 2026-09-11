@@ -70,6 +70,7 @@ import { describe, expect, it } from "vitest";
 // lives is DARK_BY_CONSTRUCTION - so the scan reads the module instead of
 // quoting it, and a plan that ever "fixed" a dark card by deleting its entry
 // turns this file red as well as the three that already hold it.
+import { byId } from "../catalog";
 import { DARK_BY_CONSTRUCTION, demoPathFor } from "../sim/demo";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -419,21 +420,39 @@ describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", ()
       ).toBe(false);
     }
 
-    // ---- AND IT IS STILL AN ABSENCE OF LIGHT RATHER THAN A LIGHT. Read from
-    // the module, not quoted: the entry this amendment was written for is
-    // still declared dark, and it is still given no gesture to light it.
-    const dark = DARK_BY_CONSTRUCTION.find((entry) => entry.id === "tpad");
+    // ---- AND IT IS STILL AN ABSENCE OF LIGHT RATHER THAN A LIGHT. This
+    // block used to read tpad out of DARK_BY_CONSTRUCTION and assert it was
+    // still declared dark and still given no gesture, because A-58 changes
+    // how an UNLIT cell is PAINTED and nothing else, and the two ways that
+    // entry could have stopped being dark were both wrong: the configuration
+    // altered (10-UI-SPEC 9.3 rejects it by name) or a gate retired to make a
+    // card look better.
+    //
+    // PLAN 12-10 TOOK THE THIRD WAY, WHICH demo.ts NAMED AS THE ONLY HONEST
+    // ONE: the ENTRY left. The user's answer at 12-06 ("selectable tuning
+    // options under Trackpad") replaced the tpad preset with the hand-authored
+    // TRACKPAD, whose flash is a Lua look and not a paint rule, and whose
+    // gesture is a real demonstration path. So what this block holds now is
+    // that the exemption left WITH the card and not instead of it: tpad is in
+    // no catalog, no listing and no exemption list, and no card is exempt
+    // from lighting under A-58's rule without being named here with a reason.
     expect(
-      dark,
-      "tpad is no longer in DARK_BY_CONSTRUCTION. A-58 changes how an UNLIT cell is PAINTED and nothing else; if the entry has stopped being declared dark then either the configuration was altered - which 10-UI-SPEC 9.3 rejects by name, because it changes what the pad does on somebody's hardware - or a gate was retired to make a card look better",
-    ).toBeDefined();
+      byId("tpad"),
+      "tpad is back in the catalog. If it is, it is dark by construction again and needs its DARK_BY_CONSTRUCTION row with the 0 of 81 measurement back too",
+    ).toBeUndefined();
     expect(
-      (dark as { why: string }).why,
-      "tpad's DARK_BY_CONSTRUCTION reason no longer carries the measurement. It is 0 of 81 lit over a drag, a two-finger scroll, taps and 2,000 idle ticks, and that number is the whole reason the card's own sentence is allowed to say what it says",
-    ).toContain("0 of 81");
+      DARK_BY_CONSTRUCTION.find((entry) => entry.id === "tpad"),
+      "tpad is named in DARK_BY_CONSTRUCTION but is not a catalog card - a stale exemption reads like coverage",
+    ).toBeUndefined();
     expect(
       demoPathFor("tpad"),
-      "tpad has been given a demonstration gesture. It has no LED layer to light - look.kind and touch.kind are both none and both disabled - so a path there would be a gesture that demonstrates nothing, and the honest card is the one that says so in its own words",
+      "tpad has a demonstration gesture and is not a catalog card",
     ).toBeUndefined();
+    for (const excused of DARK_BY_CONSTRUCTION) {
+      expect(
+        excused.why,
+        `${excused.id}: an entry exempt from lighting must carry the measurement that says no gesture can light it`,
+      ).toMatch(/[0-9]+ of 81/);
+    }
   });
 });

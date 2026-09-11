@@ -157,7 +157,12 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
       [],
     );
 
-    expect(excludedIds, "tpad is on the exclusion list").toContain("tpad");
+    // `trackpad` since plan 12-10: the hand-authored TRACKPAD replaced the
+    // tpad preset as the catalog's one trackpad card, and it is the one dark
+    // card, so it is the one this line has always been about.
+    expect(excludedIds, "trackpad is on the exclusion list").toContain(
+      "trackpad",
+    );
 
     for (const excluded of EXCLUDED_FROM_ROW) {
       expect(

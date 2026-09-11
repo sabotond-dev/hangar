@@ -59,8 +59,11 @@ export type FrontDoorEntry = {
  */
 export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
   {
-    id: "tpad",
-    why: "It writes no LEDs at all, so it is a black square. It stays in the catalog; the front door is not where it belongs until a look gives it lights.",
+    // This slot was `tpad` until plan 12-10: "it writes no LEDs at all, so it
+    // is a black square". The hand-authored TRACKPAD replaced it as the card
+    // and inherits the exclusion for the reason every Lua entry carries.
+    id: "trackpad",
+    why: "Hand-authored Lua rather than a ported preset, and the ring is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. It replaced the tpad preset as the trackpad card under plan 12-10; the front door is a curated row and it joins it deliberately or not at all.",
   },
   {
     id: "euclid",
@@ -154,7 +157,8 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
  * faking their motion is forbidden. What this order achieves instead, and what
  * the spec asserts, is the strongest property that IS reachable:
  *
- *   - no dark pad is in the opening window (tpad is excluded from the row);
+ *   - no dark pad is in the opening window (the one dark card, TRACKPAD since
+ *     plan 12-10 and the tpad preset before it, is excluded from the row);
  *   - the three largest pads at the opening - offsets -1, 0 and +1, which are
  *     dial, aurora and pinwheel - all move;
  *   - the three quiet pads land on 2, 4 and 6, so no two of them are ever side

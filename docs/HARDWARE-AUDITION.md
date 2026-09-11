@@ -8,7 +8,7 @@ of the twenty-seven on the user's own bench report — HOLD, KEYS, LEARN, SWITCH
 LIFE, SLAM and TABLE — and added two, WHEELS (plan 11-15) and RADAR POINTS (plan 11-14), both on
 the user’s request. Phase 12 then removed three more on the second bench round — LATTICE, FORGE and
 SHUTTLE (plan 12-04) — and SHUTTLE went even though plan 11-12 had rebuilt it from a blank page.
-**This document covers every hand-authored configuration still in the catalog: seventeen of them.**
+**This document covers every hand-authored configuration still in the catalog: eighteen of them.**
 Everything a machine can check about them is already green: each one is stored in canonical
 compressed form, fits both 908-character budgets at its defaults and across its entire knob
 cross-product, runs in a real Lua 5.4 VM driving the firmware-faithful LED engine without error, and
@@ -18,8 +18,8 @@ This document is the list of things a machine cannot check. Perceived polyrhythm
 codes, `glf`'s rate-only behaviour on physical hardware, LED diffusion and brightness after the
 divide-by-512 with no gamma correction anywhere in the WS2812 path, timer drift under load, whether a
 real finger is ever motionless enough to trip a 2 s watchdog, and whether anything strobes when it is
-left alone for fifteen minutes. Twenty-two rows, each with the reason it belongs to a bench and
-not to a test suite. **Three of the twenty-two are the ones where a green test is not evidence**,
+left alone for fifteen minutes. Twenty-three rows, each with the reason it belongs to a bench and
+not to a test suite. **Three of the twenty-three are the ones where a green test is not evidence**,
 and they are pulled together in their own section below so that a person with an hour rather than an
 afternoon knows where to start. It was thirty-two rows and six of them until plan 11-01 removed nine
 configurations; the sixth was HOLD's latch, which left with HOLD. It was twenty-five rows and five
@@ -51,7 +51,7 @@ vendored.
 4. **MORPH, CONSOLE, STRIP, LUMEN, CULL and QUADRANT are Setup only** — none of the six has a Timer
    at all, the Timer event of each is the empty string, and they are the six cards that start from
    the Setup alone. They are the exceptions that prove the rule above.
-5. **Have somewhere to write twenty-two lines.** The results go back into this document under a
+5. **Have somewhere to write twenty-three lines.** The results go back into this document under a
    dated `Results` heading; see [What to record](#what-to-record).
 
 ## Getting the exact text
@@ -63,7 +63,7 @@ AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
 ```
 
 It writes `.tmp-audition/<id>.setup.lua` for every hand-authored configuration and
-`.tmp-audition/<id>.timer.lua` for every one that has a Timer — seventeen Setup files and eleven
+`.tmp-audition/<id>.timer.lua` for every one that has a Timer — eighteen Setup files and twelve
 Timer files — rendered at that configuration's default knob positions, and prints each file's character
 count beside the 908-character budget. `.tmp-audition/` is gitignored; the command commits nothing
 and, unlike the repository's other env-guarded writers, it does not fail the run.
@@ -74,7 +74,7 @@ what the dump writes. Retyping a line of it by hand is how a one-character diffe
 of confusion — and because every configuration is stored in canonical compressed form, one stray
 space is also a budget change.
 
-## The seventeen, and what they cost — every hand-authored configuration in the catalog
+## The eighteen, and what they cost — every hand-authored configuration in the catalog
 
 Measured at their default knob positions with the pinned minifier, **every row re-measured at the
 Phase 11 gate on 2026-09-10 (plan 11-16) — see the dated paragraph just above the table for the nine
@@ -123,6 +123,17 @@ this hand-authored card carries the radar ask beside it and beside SONAR, whose 
 verbatim with one geometric change: the ring is the time and the direction is the pitch. 579 / 279
 are its two events at the DEFAULT knob positions; at the RGB444 picker corner it reads 579 / 281,
 with 329 free on the Setup, and that figure is in `11-14-SUMMARY.md`.
+
+**TRACKPAD is NEW at plan 12-10, the third row written by the wave that authored its entry, and
+it is the one row in this table whose Setup does not move with a knob.** The user's answer at
+12-06 - "selectable tuning options under Trackpad" - replaced the `tpad` preset with a
+hand-authored card that carries the vendored trackpad recipe's every gesture byte for byte and
+paints the bench's edge flash FROM THE TIMER, because the recipe is 893 of 908 and no Setup-side
+flash fit (1113 with everything kept, 942 with everything cut that is not a gesture). So 903 / 486
+are its two events at the defaults, the Setup is 903 at EVERY knob state (no knob token is in it)
+and the Timer is 488 at the RGB444 picker corner, 420 free; both figures are in `12-10-SUMMARY.md`.
+The `tpad` preset stays on HANGAR's shelf as the compiler's over-budget fixture and is no longer a
+card, so it has no row here and never had one.
 
 **EVERY ROW WAS RE-MEASURED AT THE PHASE 11 GATE, 2026-09-10 (plan 11-16), from the entry itself
 rather than from any SUMMARY** — `renderLua` at the defaults, costed as
@@ -191,6 +202,7 @@ Lua:
 | `pomodoro`     | POMODORO     | 733   | 647              | 5     | no           |
 | `wheels`       | WHEELS       | 882   | 338              | 6     | no           |
 | `radar-points` | RADAR POINTS | 489   | 286              | 5     | no           |
+| `trackpad`     | TRACKPAD     | 903   | 486              | 4     | yes          |
 
 **MORPH, CONSOLE, STRIP, LUMEN, CULL and QUADRANT are Setup only, and that is legitimate rather
 than an omission.** MORPH animates only under a finger, with a per-touch decay that firmware runs
@@ -203,9 +215,11 @@ whole claim is that you can find it without looking.
 None of the six has anything for a Timer to advance. Store nothing into event 6 for any of them;
 row 1's install-order rule below does not apply to a configuration that has no Timer at all.
 
-GHOST and MORPH being dark at rest is a declared fact about them, not a fault: GHOST has nothing to
-show until you draw a gesture for it to replay, and MORPH's corners light under a finger. It was
-three until plan 11-01 removed ETCH. If either of the two looks black on arrival, that is correct.
+GHOST, MORPH and TRACKPAD being dark at rest is a declared fact about them, not a fault: GHOST has
+nothing to show until you draw a gesture for it to replay, MORPH's corners light under a finger,
+and TRACKPAD's edges flash only while a finger moves. It was three until plan 11-01 removed ETCH,
+two from then until plan 12-10 added TRACKPAD. If any of the three looks black on arrival, that is
+correct.
 **GHOST's bottom-right corner lights RED once there is a recording, and that is the erase key rather
 than a stuck cell** — press it and the recording is gone. It is dark whenever there is nothing to
 erase, which is why the card still arrives black.
@@ -248,8 +262,8 @@ a **number in an entry file**. The first is a note in the results below, the sec
 
 ## The checklist
 
-Twenty-two rows, in order. Each names why it cannot be simulated, so no row is busywork. The three
-above are 13, 16 and 20.
+Twenty-three rows, in order. Each names why it cannot be simulated, so no row is busywork. The
+three above are 13, 16 and 20.
 
 | #   | Config            | What to check                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Why it cannot be simulated                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | --- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -275,6 +289,7 @@ above are 13, 16 and 20.
 | 20  | **POMODORO**      | Start it and leave the module alone for the full interval. **Does the inner breathe still move at the end, and does the ring reach zero at the right time?** Note how far behind a wall clock it finishes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | The 655 s `glt` ceiling: the animation freezes when the countdown expires and only a re-issued rate restarts it. The re-issue is checked in a browser over 160,000 simulated ticks and has never run on hardware, where the Timer fires on the next 100 Hz cycle after its countdown and drifts under load over 1500 of them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 21  | **WHEELS**        | **(a) THE ONE THING ONLY A SYNTHESISER CAN SETTLE.** Hold a note, bend it to the top of the pad, and let go — twenty times, fast and slow, and once by lifting while your finger slides sideways off the wheel. **Does the note come back to true pitch, exactly, every time, or does it sit a hair flat?** **(b)** Watch the return at each of the four spring speeds: does it read as travel, or as a jump? **(c)** Hand the module to somebody who has not seen it and ask them what the two halves are, and where the boundary is.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | A held note going out of tune is a thing you HEAR, and nothing in this repository listens: there is no synthesiser behind the simulator, so "the last logged bend is 8192" is a claim about a log and not about a note. Whether the spring reads as travel is a judgement about motion at 20 ms a step on real LEDs, and whether a stranger sees two controls and a divider rather than one confused picture is the legibility question D-11-12-b says nothing in the tree can ask.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | 22  | **RADAR POINTS**  | **(a)** Place three points on three different rings — one next to the emitter, one two out, one on the edge — and hold a synth patch with a fast attack. Do the three notes arrive inner first, one per step, and is there a rest of three steps before the next ping? **(b) REMOVE ONE WHILE IT IS RUNNING.** Tap the middle point off between two pings: is it silent on the very next ping, with the other two still sounding, and did the note it was holding come off? Then put it back and confirm it returns on the next ping. **(c)** At the default speed, stand back: does the light read as ONE RING ROLLING OUT, or as the whole pad flashing? Try the slowest and fastest ping speeds too. **(d) THE BOUNDARY FINGER (plan 12-08), which is the bench line "needs the touch detection framework".** Rest a finger on the line between two cells for five seconds: **one point is placed and it stays placed** - no flicker, no second point, and the cell is still armed when you lift. RADAR POINTS toggles, so an even number of boundary crossings would place a point and take it away again while looking like nothing happened; read the final state, not the motion. | _Why it cannot be simulated:_ the note-off is proved against a LOG, not against a note — there is no synthesiser behind the simulator, so “released one step later” says nothing about whether a 140 ms note is even audible on the patch you play it into. Whether five rings 140 ms apart with a 420 ms trail read as an expanding ring rather than a flash is a judgement about LED diffusion and real brightness after the divide-by-512, and whether a stranger sees points on a compass is the legibility question D-11-12-b says nothing in the tree can ask.                                                                                                                                                                                                                                                                                                                                                                                          |
+| 23  | **TRACKPAD**      | **(a) THE EDGE FLASH, which is the bench line "still no animation" answered under "selectable tuning options under Trackpad".** Move one finger slowly to the right, then up, then left, then down: does the edge you are moving TOWARD light up, centred on your finger, and fade to black in under half a second after you stop? **(b)** Rest a finger dead still for five seconds: nothing should flash. If an edge flickers while you hold still, note which one and how often. **(c)** Everything the old Trackpad did: one finger moves the pointer, two fingers scroll, a tap clicks, two fingers tapping right-click. Do all four behave exactly as before, and does none of the four flash? **(d)** Set Edge flash to `false` and repeat (a): a plain trackpad, nothing lit.                                                                                                                                                                                                                                                                                                                                                                                                    | _Why it cannot be simulated:_ the flash is painted from the Timer, so on the module it trails the finger by up to 20 ms; whether that reads as "the edge follows me" or "the edge is late" is a judgement only a hand on the pad can make. The dead band is one raw unit at ten bits and probe Q1 measured a resting finger wobbling by exactly that much, so whether a real finger's rest is quieter than the simulator's is the bench's question, not the VM's. And the gestures are the hardware-tested recipe's while the flash is not: nothing about it is hardware-verified.                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## What to record
 
@@ -301,7 +316,7 @@ None yet. This audition has not been run.
 
 ## A closing note on colour
 
-Every RGB triple in the seventeen configurations is a starting point chosen on a screen, not a
+Every RGB triple in the eighteen configurations is a starting point chosen on a screen, not a
 measured result. One layer caps at 49.6 % and there is no gamma correction anywhere in the path, so a colour
 that reads well in the simulator can be muddy or blinding on a diffuser. Changing one is a knob-value
 edit in the entry file plus a `frames.json` regeneration — it touches no gate, no host and nothing

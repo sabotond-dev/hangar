@@ -225,26 +225,12 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: false,
     preview: "padsim",
   },
-  {
-    id: "tpad",
-    name: "Trackpad",
-    description:
-      "One finger moves the pointer, two fingers scroll, a tap clicks and two fingers tapping right-click.",
-    motion: "dark",
-    // THE ONE ENTRY A FINGER CANNOT HELP, and it gets its own sentence rather
-    // than the shared one because the shared one would be false: nothing is
-    // playing a finger for this card. src/vendor/botor/_pad.ts's tpad draft
-    // enables no LED layer at all, so no gesture lights a cell - measured at 0
-    // of 81 over a drag, a two-finger scroll, taps and 2,000 idle ticks. See
-    // DARK_BY_CONSTRUCTION in src/lib/sim/demo.ts, and front-door.ts's own
-    // exclusion reason, which has said the same thing since Phase 4.
-    quiet:
-      "Trackpad writes no lights at all: it is a pointer for your computer, and there is nothing here to light.",
-    tags: ["pointing", "precise", "still"],
-    featured: false,
-    restsBlack: true,
-    preview: "padsim",
-  },
+  // THE `tpad` ROW LEFT HERE AT PLAN 12-10. It was the one entry a finger
+  // could not help - the vendored draft enables no LED layer - and it carried
+  // its own sentence for that reason. The user's answer at 12-06, "selectable
+  // tuning options under Trackpad", made the hand-authored TRACKPAD the one
+  // trackpad card (the last row below, in CATALOG order); the preset stays on
+  // the shelf as the compiler's over-budget fixture and is listed nowhere.
   {
     id: "euclid",
     name: "EUCLID",
@@ -474,6 +460,26 @@ export const LISTING: readonly ListingEntry[] = [
     tags: ["sequencing", "generative", "playable"],
     featured: false,
     restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "trackpad",
+    name: "TRACKPAD",
+    description:
+      "One finger moves the pointer, two fingers scroll, a tap clicks, and the edge you move toward lights up.",
+    // DARK, read off frames.json: nothing is lit until a finger moves, and the
+    // flash decays to exact black through the library's D. So it is a
+    // demonstration card like GHOST and MORPH - src/lib/sim/demo.ts drives a
+    // drag around the pad so the picture shows an edge lit - and it carries
+    // the shared note for the same reason they do. Plan 12-10, replacing the
+    // `tpad` preset as the one trackpad card; the three tags are the preset's,
+    // unchanged, so the FEELS histogram moves by zero and `still` keeps its
+    // sixth carrier honestly (facets.ts: nothing moves on its own).
+    motion: "dark",
+    quiet: DEMO_TOUCH_NOTE,
+    tags: ["pointing", "precise", "still"],
+    featured: false,
+    restsBlack: true,
     preview: "lua",
   },
 ];

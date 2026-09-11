@@ -204,7 +204,13 @@ function roundTrip(
 describe("stamp round-trip sweep: every knob position either route can reach", () => {
   it("round-trips every compiler-driven entry, in two passes", () => {
     const entries = tunable("padsim");
-    expect(entries.length, "there are compiler-driven entries").toBe(9);
+    // EIGHT since plan 12-10: the `tpad` preset is on the shelf but not in
+    // the catalog - the hand-authored TRACKPAD replaced it as the card. Its
+    // stamps were format p (the vendored encoder over the PadState) and never
+    // an index vector, so no captured link's decode moves; what leaves this
+    // pass is its 512-state cross-product, found the same way as every
+    // re-count in this file - by running the sweep.
+    expect(entries.length, "there are compiler-driven entries").toBe(8);
 
     const expectedA = entries.reduce(
       (n, entry) => n + sizeOf(nonColour(stampKnobs(entry))),
@@ -343,8 +349,15 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // 58 + 27 is 85. The floor of 50 still guards - it has eight to spare - so
     // it is NOT re-chosen, which is the whole point of its being a floor. The
     // member list is still "4 19".
+    //
+    // RE-COUNTED BY PLAN 12-10, upwards by one entry, and found the same way
+    // again. TRACKPAD replaced the tpad preset as the card: FOUR knobs, ONE of
+    // them colour (the edge flash's), so the hand-authored knob total goes 85
+    // to 89, `exempted` 27 to 28 and `guarded` 58 to 61. It still reconciles:
+    // 61 + 28 is 89. The floor of 50 still guards with eleven to spare. The
+    // member list is still "4 19".
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(27);
+    expect(exempted, "the colour knobs, exempt by format").toBe(28);
 
     // PASS A. Every non-colour knob cross-producted, colour knobs at their
     // defaults, through the real encoder and the real decoder.

@@ -168,3 +168,45 @@ untouched and proved untouched (regenerated and byte-identical). The second half
    (`withChange` deletes `preset`, `src/lib/tune/state.ts:11`).
 
 **Owner:** plan 12-12.
+
+---
+
+## 6. TRACKPAD replaced the `tpad` preset as the card, and seven things fall to 12-12 or later
+
+**Found by:** plan 12-10, 2026-09-11, acting on the user's "selectable tuning options under Trackpad".
+
+The fold was measured before it was built: the vendored trackpad recipe is 893 of 908 under HANGAR's
+marker, every Setup-side flash is over (1113 with everything kept, 942 with the drain, the hold-off,
+the finger-centring and the on/off knob all cut), so the flash is painted from the Timer (Setup 903
+at every knob state, Timer 488 at the picker corner). The card is `trackpad` / TRACKPAD; the `tpad`
+preset stays on the shelf, unlisted, as the compiler's over-budget fixture. What that leaves:
+
+1. **`/c/tpad/` is a dead address** - the fourth this phase, after the three 12-04 removed. The OG
+   image `static/og/tpad.png` no longer builds (gitignored either way) and `frames.json` has no
+   `tpad` row; `golden-frames.json` keeps its `tpad` row because it regenerates from the VENDORED
+   shelf. 12-12 records the dead link where it records the other three.
+2. **CONT-01's wording says "the nine ... are in the catalog"**; eight are, and the ninth is on the
+   shelf and held by `presets.spec.ts` exactly as before. 12-12 amends the requirement's clause
+   (`.planning/REQUIREMENTS.md` is not 12-10's to edit).
+3. **The decay gate is blind to a `D(` call, measured on this card.** `decay-idiom.spec.ts` was run
+   on a mutant Timer carrying `D(...,1,250)` and stayed green; `library.spec.ts` proves `D`'s
+   arithmetic for every multiple of six, and `lua-smoke.spec.ts`'s TRACKPAD test reads the VM to 0.
+   12-07 recorded the same for the sketch. A gate clause that resolves `D(n,l,w)` would ALSO have
+   to accept a `w` that depends on a loop variable (`@T*(16-k*k)//16*6`), which its evaluator
+   refuses today - so the honest clause is "a `D(` call whose `w` is `<expr>*6`", asserted by text.
+   12-12 decides whether the gate gains it or the smoke test stays the proof.
+4. **`docs/TESTING.md`'s cost table** has no TRACKPAD row and a `tpad` row that is now a shelf
+   fixture's; the figures are Setup 903 (every knob state), Timer 488 corner / 486 defaults.
+5. **Three `touch-guard.spec.ts` rows** for the recipe's guards (`e==3 or e>=5`, `e>4`,
+   `e==4 or e>7`), each right because of the pass around it. The plan asserted "no new row"; that
+   was GLIDE's plan, and GLIDE had no tap. 12-12's gate counts four rows, not one.
+6. **Stale comments naming Trackpad's old sentence** in files 12-10 did not touch, all prose and
+   none load-bearing: `src/lib/ui/PadFrame.svelte:129-133`, `src/lib/ui/CatalogCard.svelte:183-185`,
+   `src/routes/c/[id]/+page.ts:10,34`, `src/routes/c/[id]/+page.svelte:63`,
+   `e2e/browse.e2e.ts:624-629,678-681`, `src/lib/sim/host.spec.ts:384`, `src/lib/catalog/types.ts:86`.
+   Phase 13 owns the UI files' next rewrite; the e2e assertion behind the comment holds at 0 === 0.
+7. **`front-door.spec.ts`'s "the excluded entry is excluded because it is dark"** still derives
+   `tpad`'s motion from the vendored golden fixture and asserts it dark - true of the preset, no
+   longer about any catalog card. Green and untouched; 13-07 dismantles the file.
+
+**Owner:** plan 12-12 for 1-5; Phase 13 for 6-7.

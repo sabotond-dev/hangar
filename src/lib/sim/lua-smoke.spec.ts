@@ -1,6 +1,7 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// TWENTY-TWO tests, and the count never moves WITH THE CATALOG - each of the
+// TWENTY-THREE tests since plan 12-10 (TRACKPAD's, the last in the file), and
+// the count never moves WITH THE CATALOG - each of the
 // catalog-wide ones loops over the Lua entries internally and names the entry
 // in its message, so a wave that adds a configuration touches no number here.
 // A test that pins ONE entry's answer to ONE bench note is the exception, and
@@ -7116,5 +7117,466 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length, "every stage of the chord probe ran").toBe(5);
+  }, 120000);
+
+  // -------------------------------------------------------------------------
+  // TRACKPAD (plan 12-10): the vendored trackpad recipe kept whole, and the
+  // edge flash painted from the Timer.
+  //
+  // Every gesture the tpad preset had is driven here and read off the wire,
+  // because the fold replaced that preset with this card and the promise was
+  // that nothing is lost: the pointer's relative motion, two-finger scroll,
+  // tap-to-click, the fast tap that arrives as one code 9, right-click on
+  // two, and the Timer's release of the button. Then the flash: the edge the
+  // finger moves toward, centred on the finger's other coordinate, the
+  // rounded profile the knobs can reach, every cell walking to phase 0 inside
+  // D's 42-tick ceiling, and nothing lit for a scroll, a tap or a resting
+  // finger. Last, the knob's off state is the plain trackpad.
+  //
+  // THE DECAY GATE CANNOT SEE THIS CARD, and this test is where its phase-0
+  // guarantee lives instead: decay-idiom.spec.ts reads literal glpfs pairs,
+  // and every write here goes through the library's `D(`. So the twelve
+  // brightnesses the knobs can reach are computed below from the same formula
+  // the Lua carries, asserted multiples of six inside 6..252, and then the VM
+  // is read down to black.
+  // -------------------------------------------------------------------------
+  it("keeps every trackpad gesture and flashes the edge the finger moves toward, to phase 0, from the Timer", async () => {
+    const entry = CATALOG.find((e) => e.id === "trackpad");
+    if (!entry || entry.source.kind !== "lua") {
+      throw new Error("TRACKPAD is not a Lua entry in the catalog");
+    }
+    const report: string[] = [];
+
+    // ---- THE TWELVE, from the formula the Timer carries, by text.
+    const FORMULA = "@T*(16-k*k)//16*6";
+    expect(
+      entry.source.timer.includes(FORMULA),
+      "trackpad: the Timer's brightness formula is the one this test mirrors",
+    ).toBe(true);
+    const fadeKnob = entry.knobs.find((k) => k.id === "fade");
+    const reachKnob = entry.knobs.find((k) => k.id === "reach");
+    expect(fadeKnob, "the fade knob").toBeDefined();
+    expect(reachKnob, "the reach knob").toBeDefined();
+    const brightness = (t: number, k: number): number =>
+      Math.floor((t * (16 - k * k)) / 16) * 6;
+    const twelve: number[] = [];
+    for (const t of fadeKnob!.values.map(Number)) {
+      const widest = Math.max(...reachKnob!.values.map(Number));
+      for (let k = 0; k <= Math.floor(widest / 2); k += 1) {
+        const w = brightness(t, k);
+        expect(
+          w % 6,
+          `trackpad: w=${w} at fade ${t}, k=${k} is a multiple of six`,
+        ).toBe(0);
+        expect(
+          w,
+          `trackpad: w at fade ${t}, k=${k} is inside D's ceiling`,
+        ).toBeLessThanOrEqual(252);
+        expect(
+          w,
+          `trackpad: w at fade ${t}, k=${k} is a real brightness`,
+        ).toBeGreaterThanOrEqual(6);
+        twelve.push(w);
+      }
+    }
+    expect(twelve.length, "three fades times four offsets").toBe(12);
+    report.push(`  the twelve: ${twelve.join(" ")}`);
+
+    type Opened = Awaited<ReturnType<typeof open>>;
+    const openWith = async (
+      indices: Record<string, number> | undefined,
+    ): Promise<Opened> => {
+      const { setup, timer } = renderLua(entry, indices);
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        setup,
+        timer,
+      });
+      return { host, sim };
+    };
+
+    const phaseOf = (sim: PadSim, cell: number): number =>
+      sim.layer(screenToHw(cell % 9, Math.floor(cell / 9)), 1).pha;
+    const rateOf = (sim: PadSim, cell: number): number =>
+      sim.layer(screenToHw(cell % 9, Math.floor(cell / 9)), 1).fre;
+    const litCells = (frame: Uint8Array): number[] => {
+      const out: number[] = [];
+      for (let n = 0; n < CELLS; n += 1) {
+        if (frame[n * 3] || frame[n * 3 + 1] || frame[n * 3 + 2]) out.push(n);
+      }
+      return out;
+    };
+    const hidOf = (
+      hid: readonly HostHid[],
+      call: HostHid["call"],
+      first: number,
+    ): number[] =>
+      hid
+        .filter((h) => h.call === call && h.args[0] === first)
+        .map((h) => h.args[1]);
+
+    /**
+     * Drag one contact from (x, y) by (dx, dy) per sample, `steps` samples two
+     * ticks apart, and return the tick of the first sample at which layer 1
+     * lit anywhere, or -1.
+     */
+    const dragAndWatch = (
+      opened: Opened,
+      id: number,
+      from: readonly [number, number],
+      delta: readonly [number, number],
+      steps: number,
+    ): { firstLit: number; snapshot: number[]; ticksToDark: number } => {
+      const { host, sim } = opened;
+      let [x, y] = from;
+      let firstLit = -1;
+      let snapshot: number[] = [];
+      const step = (n: number): void => {
+        for (let i = 0; i < n; i += 1) {
+          host.tick();
+          if (firstLit === -1) {
+            const lit = litCells(host.frame);
+            if (lit.length > 0) {
+              firstLit = host.tickCount;
+              snapshot = Array.from({ length: CELLS }, (_, c) =>
+                phaseOf(sim, c),
+              );
+            }
+          }
+        }
+      };
+      for (let i = 0; i < steps; i += 1) {
+        x += delta[0];
+        y += delta[1];
+        host.touchMove(id, x, y);
+        step(2);
+      }
+      // The last sample is dispatched; let the Timer paint it, then count
+      // ticks until the pad is black again.
+      step(2);
+      let ticksToDark = 0;
+      while (litCells(host.frame).length > 0 && ticksToDark < 200) {
+        host.tick();
+        ticksToDark += 1;
+      }
+      return { firstLit, snapshot, ticksToDark };
+    };
+
+    const cell = (col: number, row: number): number => row * 9 + col;
+
+    // ======================================================================
+    // 1. A rightward drag: the right column, centred on the finger's row.
+    // ======================================================================
+    const a = await openWith(undefined);
+    try {
+      const { host, sim } = a;
+      expect(host.coordMax, "trackpad: both axes unlocked to ten bits").toBe(
+        1023,
+      );
+      host.run(4);
+      expect(litCells(host.frame), "trackpad: black at rest").toEqual([]);
+
+      host.touchDown(0, 200, 511);
+      host.run(2);
+      const hidBefore = host.hid.length;
+      const right = dragAndWatch(a, 0, [200, 511], [40, 0], 8);
+      expect(
+        right.firstLit,
+        "trackpad: a rightward drag lit something",
+      ).not.toBe(-1);
+      // 511 * 9 // 1024 = 4: rows 2..6 of column 8, at the defaults (5 cells,
+      // fade 42): centre 252, then 234, then 186 - each read one tick after
+      // the Timer wrote it, so minus six.
+      const expectRight = new Map<number, number>([
+        [cell(8, 4), 246],
+        [cell(8, 3), 228],
+        [cell(8, 5), 228],
+        [cell(8, 2), 180],
+        [cell(8, 6), 180],
+      ]);
+      for (let c = 0; c < CELLS; c += 1) {
+        expect(
+          right.snapshot[c],
+          `trackpad: cell ${c} (col ${c % 9}, row ${Math.floor(c / 9)}) at the first lit tick`,
+        ).toBe(expectRight.get(c) ?? 0);
+      }
+      report.push(
+        `  right drag: first lit at tick ${right.firstLit}; column 8 rows 2..6 = ` +
+          `${[2, 3, 4, 5, 6].map((r) => right.snapshot[cell(8, r)]).join(" ")}; ` +
+          `column 0 = ${[0, 4, 8].map((r) => right.snapshot[cell(0, r)]).join(" ")}; ` +
+          `dark again ${right.ticksToDark} ticks after the last paint`,
+      );
+      expect(
+        right.ticksToDark,
+        "trackpad: every flashed cell reaches black inside D's 42-tick ceiling",
+      ).toBeLessThanOrEqual(42);
+      for (let c = 0; c < CELLS; c += 1) {
+        expect(
+          phaseOf(sim, c),
+          `trackpad: cell ${c} phase after the fade`,
+        ).toBe(0);
+        expect(rateOf(sim, c), `trackpad: cell ${c} rate after the fade`).toBe(
+          0,
+        );
+      }
+
+      // The wire: every pointer delta positive on x, zero on y, after the
+      // four-sample hold-off.
+      const sinceA = host.hid.slice(hidBefore);
+      const xs = hidOf(sinceA, "gmms", 1);
+      const ys = hidOf(sinceA, "gmms", 2);
+      expect(xs.length, "trackpad: the drag sent pointer x").toBeGreaterThan(0);
+      expect(
+        xs.every((v) => v > 0 && v <= 63),
+        `trackpad: every x delta positive and inside +-63: ${xs.join(" ")}`,
+      ).toBe(true);
+      expect(
+        ys.every((v) => v === 0),
+        `trackpad: no y motion on a horizontal drag: ${ys.join(" ")}`,
+      ).toBe(true);
+      // MEASURED, NOT ASSUMED: `s.j=4` on the onset, decremented once per
+      // handler CALL - the down's own dispatch takes it to 3, and the next
+      // three moves take it to 0 - so the hold-off swallows THREE moves and
+      // the fourth is the first the pointer sees. The test first expected
+      // four and the VM said five of eight were sent.
+      expect(
+        xs.length,
+        "trackpad: the hold-off swallowed the first three moves of eight",
+      ).toBe(8 - 3);
+      report.push(`  right drag wire: x ${xs.join(" ")}, y ${ys.join(" ")}`);
+
+      // ==================================================================
+      // 2. An upward drag from where the finger is: the top row, centred
+      //    on the finger's column, and the bottom row dark.
+      // ==================================================================
+      const hidBeforeUp = host.hid.length;
+      const up = dragAndWatch(a, 0, [520, 511], [0, -40], 8);
+      expect(up.firstLit, "trackpad: an upward drag lit something").not.toBe(
+        -1,
+      );
+      // 520 * 9 // 1024 = 4: columns 2..6 of row 0.
+      const expectUp = new Map<number, number>([
+        [cell(4, 0), 246],
+        [cell(3, 0), 228],
+        [cell(5, 0), 228],
+        [cell(2, 0), 180],
+        [cell(6, 0), 180],
+      ]);
+      for (let c = 0; c < CELLS; c += 1) {
+        expect(
+          up.snapshot[c],
+          `trackpad: cell ${c} at the first lit tick of the upward drag`,
+        ).toBe(expectUp.get(c) ?? 0);
+      }
+      const ups = hidOf(host.hid.slice(hidBeforeUp), "gmms", 2);
+      expect(
+        ups.length > 0 && ups.every((v) => v < 0),
+        `trackpad: every y delta negative on an upward drag: ${ups.join(" ")}`,
+      ).toBe(true);
+      report.push(
+        `  up drag: row 0 cols 2..6 = ${[2, 3, 4, 5, 6].map((c) => up.snapshot[cell(c, 0)]).join(" ")}; wire y ${ups.join(" ")}`,
+      );
+
+      // ==================================================================
+      // 3. The lift after a drag is not a tap: no click.
+      // ==================================================================
+      const clicksBeforeLift = hidOf(host.hid, "gmbs", 1).length;
+      host.touchUp(0, 520, 191);
+      host.run(4);
+      expect(
+        hidOf(host.hid, "gmbs", 1).length,
+        "trackpad: a drag's lift sends no click",
+      ).toBe(clicksBeforeLift);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+
+      // ==================================================================
+      // 4. A tap clicks, flashes nothing, and the Timer releases the button
+      //    four calls later.
+      // ==================================================================
+      host.run(60); // more than 25 Timer calls: the next touch is a fresh gesture
+      const hidBeforeTap = host.hid.length;
+      host.touchDown(1, 600, 600);
+      host.run(2);
+      host.touchUp(1, 600, 600);
+      host.run(2);
+      const afterTap = host.hid.slice(hidBeforeTap);
+      const press = afterTap.findIndex(
+        (h) => h.call === "gmbs" && h.args[0] === 1 && h.args[1] === 1,
+      );
+      expect(press, "trackpad: a tap presses button 1").toBeGreaterThanOrEqual(
+        0,
+      );
+      expect(
+        litCells(host.frame),
+        "trackpad: a tap has no motion, so it flashes nothing",
+      ).toEqual([]);
+      host.run(8);
+      const release = host.hid
+        .slice(hidBeforeTap)
+        .findIndex(
+          (h) => h.call === "gmbs" && h.args[0] === 3 && h.args[1] === 0,
+        );
+      expect(
+        release,
+        "trackpad: the Timer released the button within four calls",
+      ).toBeGreaterThan(press);
+      report.push(`  tap: press at hid ${press}, release at hid ${release}`);
+
+      // ==================================================================
+      // 5. A hardware fast tap - one code 9 - clicks too. This is the case the
+      //    three touch-guard rows exist for.
+      // ==================================================================
+      host.run(60);
+      const hidBeforeFast = host.hid.length;
+      host.touchTap(1, 300, 300);
+      host.run(2);
+      expect(
+        hidOf(host.hid.slice(hidBeforeFast), "gmbs", 1),
+        "trackpad: a fast tap (code 9) presses button 1",
+      ).toEqual([1]);
+      host.run(10);
+
+      // ==================================================================
+      // 6. Two fingers down and up together: button 2, the right click.
+      // ==================================================================
+      host.run(60);
+      const hidBeforeRight = host.hid.length;
+      host.touchDown(0, 300, 300);
+      host.run(2);
+      host.touchDown(1, 500, 300);
+      host.run(2);
+      host.touchUp(0, 300, 300);
+      host.run(2);
+      host.touchUp(1, 500, 300);
+      host.run(2);
+      expect(
+        hidOf(host.hid.slice(hidBeforeRight), "gmbs", 2),
+        "trackpad: two fingers tapping press button 2",
+      ).toEqual([1]);
+      expect(
+        hidOf(host.hid.slice(hidBeforeRight), "gmbs", 1),
+        "trackpad: and not button 1",
+      ).toEqual([]);
+      host.run(10);
+
+      // ==================================================================
+      // 7. Two fingers moving down: scroll notches, no pointer, no flash,
+      //    and the lift is not a click.
+      // ==================================================================
+      host.run(60);
+      const hidBeforeScroll = host.hid.length;
+      host.touchDown(0, 300, 300);
+      host.run(2);
+      host.touchDown(1, 500, 300);
+      host.run(2);
+      let y0 = 300;
+      let litDuringScroll = 0;
+      for (let i = 0; i < 10; i += 1) {
+        y0 += 30;
+        host.touchMove(0, 300, y0);
+        host.run(2);
+        host.touchMove(1, 500, y0);
+        host.run(2);
+        litDuringScroll = Math.max(
+          litDuringScroll,
+          litCells(host.frame).length,
+        );
+      }
+      const scroll = host.hid.slice(hidBeforeScroll);
+      const notches = hidOf(scroll, "gmms", 3);
+      expect(
+        notches.length > 0 && notches.every((v) => v < 0),
+        `trackpad: a downward two-finger drag scrolls, inverted as the recipe has it: ${notches.join(" ")}`,
+      ).toBe(true);
+      expect(
+        hidOf(scroll, "gmms", 1).length + hidOf(scroll, "gmms", 2).length,
+        "trackpad: two fingers move the pointer not at all",
+      ).toBe(0);
+      expect(litDuringScroll, "trackpad: a scroll flashes nothing").toBe(0);
+      const clicksBeforeScrollLift =
+        hidOf(host.hid, "gmbs", 1).length + hidOf(host.hid, "gmbs", 2).length;
+      host.touchUp(0, 300, y0);
+      host.run(2);
+      host.touchUp(1, 500, y0);
+      host.run(2);
+      expect(
+        hidOf(host.hid, "gmbs", 1).length + hidOf(host.hid, "gmbs", 2).length,
+        "trackpad: a scroll's lift is not a click",
+      ).toBe(clicksBeforeScrollLift);
+      report.push(`  scroll: notches ${notches.join(" ")}`);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      a.host.close();
+    }
+
+    // ======================================================================
+    // 8. The knobs: seven cells, the short fade, and OFF.
+    // ======================================================================
+    const wide = await openWith({ flash: 0, colour: 0, reach: 2, fade: 2 });
+    try {
+      wide.host.run(4);
+      wide.host.touchDown(0, 200, 511);
+      wide.host.run(2);
+      const r = dragAndWatch(wide, 0, [200, 511], [40, 0], 8);
+      expect(r.firstLit, "trackpad: seven cells lit something").not.toBe(-1);
+      // fade 21: 126 114 90 54 (the header's third line of the twelve), each
+      // minus six for the tick that read it; rows 1..7 of column 8.
+      const expectWide = new Map<number, number>([
+        [cell(8, 4), 120],
+        [cell(8, 3), 108],
+        [cell(8, 5), 108],
+        [cell(8, 2), 84],
+        [cell(8, 6), 84],
+        [cell(8, 1), 48],
+        [cell(8, 7), 48],
+      ]);
+      for (let c = 0; c < CELLS; c += 1) {
+        expect(
+          r.snapshot[c],
+          `trackpad: cell ${c} at the first lit tick, seven cells and fade 21`,
+        ).toBe(expectWide.get(c) ?? 0);
+      }
+      expect(
+        r.ticksToDark,
+        "trackpad: the short fade reaches black inside 21 ticks",
+      ).toBeLessThanOrEqual(21);
+      report.push(
+        `  seven cells, fade 21: column 8 rows 0..8 = ${Array.from({ length: 9 }, (_, row) => r.snapshot[cell(8, row)]).join(" ")}; dark after ${r.ticksToDark}`,
+      );
+      expect(wide.host.errors, wide.host.errors.join(" | ")).toEqual([]);
+    } finally {
+      wide.host.close();
+    }
+
+    const off = await openWith({ flash: 1, colour: 0, reach: 1, fade: 0 });
+    try {
+      off.host.run(4);
+      off.host.touchDown(0, 200, 511);
+      off.host.run(2);
+      const hidBefore = off.host.hid.length;
+      const r = dragAndWatch(off, 0, [200, 511], [40, 0], 8);
+      expect(
+        r.firstLit,
+        "trackpad: with the flash off nothing lights - the plain trackpad",
+      ).toBe(-1);
+      const xs = hidOf(off.host.hid.slice(hidBefore), "gmms", 1);
+      expect(
+        xs.length > 0 && xs.every((v) => v > 0),
+        `trackpad: and the pointer still moves: ${xs.join(" ")}`,
+      ).toBe(true);
+      expect(off.host.errors, off.host.errors.join(" | ")).toEqual([]);
+      report.push(`  flash off: nothing lit, pointer x ${xs.join(" ")}`);
+    } finally {
+      off.host.close();
+    }
+
+    process.stdout.write(
+      "\nTRACKPAD, every gesture and the edge flash (plan 12-10):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length, "every stage of the trackpad probe ran").toBe(8);
   }, 120000);
 });

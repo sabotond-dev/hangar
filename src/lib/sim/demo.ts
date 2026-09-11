@@ -3,13 +3,15 @@
 //
 // D-09 is the user's instruction that no pad thumbnail stays dark. The evidence
 // that decides how it is met is src/lib/catalog/frames.json: three entries -
-// tpad, ghost and morph - record nonZeroBytes 0 at every one of the five
+// ghost, morph and trackpad - record nonZeroBytes 0 at every one of the five
 // sampled ticks, so there is no representative motion frame to fall back on.
 // The choice was therefore "change what three pads do on somebody's hardware"
 // or "supply a finger", and 10-UI-SPEC 9.3 rules:
 //
 // IT WAS FOUR UNTIL PLAN 11-01. ETCH was the fourth, and the bench asked for it
 // to be removed, so its path went with it. GHOST and MORPH are untouched.
+// TRACKPAD arrived at plan 12-10 in place of the tpad preset, which was the
+// dark entry no finger could help; see DARK_BY_CONSTRUCTION below.
 //
 //   Every card paints. A configuration that paints nothing until it is touched
 //   is given a finger, not a light. HANGAR supplies the gesture; the firmware
@@ -39,9 +41,15 @@
 // 1023 one; converting at the centre is what keeps a sample off a cell boundary,
 // where a rounding difference would land the finger one column over.
 //
-// WHY tpad IS NOT HERE, MEASURED RATHER THAN ASSUMED. See DARK_BY_CONSTRUCTION
-// below: three of the four dark entries light up under a finger and one cannot,
-// because its configuration enables no LED layer at all.
+// WHY tpad WAS NOT HERE, AND WHY IT IS NOT ANYWHERE NOW. Until plan 12-10 the
+// Trackpad preset was the one dark entry a finger could not help, because its
+// configuration enabled no LED layer at all; DARK_BY_CONSTRUCTION below named
+// it with the measurement. The user's answer at 12-06 - "selectable tuning
+// options under Trackpad" - replaced that preset with the hand-authored
+// TRACKPAD, whose edge flash is a real light, so the card now has a path here
+// (TRACKPAD_PATH) and the exemption list is EMPTY. It stays declared, because
+// scripts/gen-og.mjs and e2e/browse.e2e.ts read it, and because the next
+// entry that genuinely cannot be lit goes there with its measurement.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { TouchSampler } from "./touch";
@@ -240,53 +248,103 @@ const MORPH_PATH: DemoPath = {
 };
 
 /**
+ * TRACKPAD: a drag around the pad, so every edge gets its turn, ending with a
+ * rightward run and a lift.
+ *
+ * The card's edge flash is painted from the entry's Timer for the dominant
+ * axis of the finger's net motion, centred on the finger's other coordinate,
+ * and it decays to black in 42 ticks (the fade knob's default). So the path
+ * is four runs - right, up, left, down - and a fifth run right that ends at
+ * tick 158, seventeen ticks before the period. scripts/gen-og.mjs captures
+ * the frame at the END of the period, and that far after the last paint the
+ * right column is still around phase 160 of 252: a lit edge in the picture,
+ * not a black square. The lift at tick 164 carries far more than 120 units
+ * of travel, so it is a drag's end and not a tap: no click is sent.
+ *
+ * TWO THINGS ABOUT THIS PATH WERE MEASURED AGAINST THE RECIPE, NOT ASSUMED,
+ * because the first draft of it shipped a black picture:
+ *
+ *   1. THE SEGMENTS ARE CONTIGUOUS - six ticks apart, never more. The recipe
+ *      forgets a held contact after 25 Timer calls of silence (250 ms, its
+ *      `s.q>25` idle reset) and re-registers the next sample as a NEW contact
+ *      with a fresh four-call hold-off, which swallows the next three moves.
+ *      A path that paused 48 ticks between runs therefore had its short runs
+ *      swallowed whole: the trace showed the first, third and fourth runs
+ *      lighting and the second and fifth not. That is the recipe's behaviour
+ *      on hardware too - a finger that rests a quarter of a second and moves
+ *      again loses its first three samples - and it is not this file's to
+ *      change.
+ *   2. ONE WHOLE CELL PER SAMPLE. `drag` rounds to integer cells, so a
+ *      half-cell step lands on the same cell twice and the host's change gate
+ *      drops the repeat; a run with three distinct moves sent nothing under
+ *      the hold-off. A whole cell is 114 units on the ten-bit axes, inside the
+ *      pointer's +-63 clamp only after clamping, and far above the entry's
+ *      dead band of one unit.
+ */
+const TRACKPAD_PATH: DemoPath = {
+  id: "trackpad",
+  gesture: "a drag right, up, left and down around the pad, then right again",
+  periodTicks: 176,
+  samples: [
+    { tick: 8, pointer: 1, event: "down", x: 1, y: 4 },
+    ...drag(1, [1, 4], [7, 4], 8, 6, 6),
+    ...drag(1, [7, 4], [7, 1], 44, 3, 6),
+    ...drag(1, [7, 1], [2, 1], 62, 5, 6),
+    ...drag(1, [2, 1], [2, 7], 92, 6, 6),
+    ...drag(1, [2, 7], [7, 7], 128, 5, 6),
+    { tick: 164, pointer: 1, event: "up", x: 7, y: 7 },
+  ],
+};
+
+/**
  * Every authored path, keyed by catalog id.
  *
- * TWO, not three, since plan 11-01 removed ETCH from the catalog. See
- * DARK_BY_CONSTRUCTION for the one entry that is dark and gets no finger.
+ * THREE since plan 12-10: TRACKPAD joined GHOST and MORPH when the
+ * hand-authored card replaced the tpad preset. It was two from plan 11-01,
+ * which removed ETCH, until then.
  */
 export const DEMO_PATHS: Readonly<Record<string, DemoPath>> = {
   ghost: GHOST_PATH,
   morph: MORPH_PATH,
+  trackpad: TRACKPAD_PATH,
 };
 
 /**
  * The dark entries a finger cannot help, with the reason each one is here.
  *
- * 10-UI-SPEC 9.3 groups all four dark entries as configurations "that paint
- * nothing UNTIL THEY ARE TOUCHED". That is true of three of them and false of
- * Trackpad, and the difference is not a matter of authoring a better gesture:
+ * EMPTY SINCE PLAN 12-10, AND STILL DECLARED. 10-UI-SPEC 9.3 groups the dark
+ * entries as configurations "that paint nothing UNTIL THEY ARE TOUCHED". That
+ * was true of three of them and false of the Trackpad preset, and the
+ * difference was not a matter of authoring a better gesture:
  *
  *   MEASURED on 2026-09-08 against the shipped engine, over a one-finger drag,
  *   a two-finger scroll, a single tap, a two-finger tap and 2,000 idle ticks:
- *   tpad lights ZERO of 81 cells at every tick of every one of them.
+ *   tpad lit ZERO of 81 cells at every tick of every one of them.
  *
- * The reason is in the preset itself. src/vendor/botor/_pad.ts's tpad draft
+ * The reason was in the preset itself: src/vendor/botor/_pad.ts's tpad draft
  * sets look.kind = "none", touch.kind = "none" and enabled = { look: false,
- * touch: false, sends: true }: Trackpad is a pointer, it sends, and it has no
- * LED layer to light. src/lib/catalog/front-door.ts:62-63 has said so since the
- * front-door row was drawn - "It writes no LEDs at all, so it is a black square
- * ... until a look gives it lights."
+ * touch: false, sends: true } - a pointer that sends and has no LED layer to
+ * light. The only way to put a picture on THAT card was to give the
+ * configuration a look it did not have, which is 10-UI-SPEC 9.3's option (a),
+ * which that table REJECTS by name because it changes what the pad does on
+ * somebody's hardware; so the card stayed dark and said so in its own words.
  *
- * So the only way to put a picture on that card is to give the configuration a
- * look it does not have, which is 10-UI-SPEC 9.3's option (a), which that table
- * REJECTS by name: it changes what the pad does on somebody's hardware. Between
- * "every card paints" and "the firmware supplies every lit pixel", the ruling
- * itself says which is superior - motion is never faked - so this card stays
- * dark and says so in its own sentence rather than being lit by HANGAR.
+ * Plan 12-10 did not take option (a). Under the user's answer at 12-06 the
+ * preset LEFT THE CATALOG (it stays on the shelf, unlisted, as the compiler's
+ * over-budget fixture) and the hand-authored TRACKPAD replaced it, carrying
+ * the recipe's every gesture plus an edge flash that is a real Lua look and a
+ * tune option. That card lights under a finger, so it has TRACKPAD_PATH above
+ * and no row here. Removing the ENTRY is the one way a row may leave this list
+ * without turning scripts/gen-og.mjs's non-dark gate red - the same way plan
+ * 11-01's ETCH left DEMO_PATHS - and it is the way this row left.
  *
  * This list is not a convenience. It is what gates read: scripts/gen-og.mjs
  * exempts an entry from its non-dark gate ONLY if it is named here, so removing
- * a demo path from ghost or morph turns that gate red instead of quietly
- * re-exempting the entry. Removing the ENTRY as well - which is what plan 11-01
- * did to ETCH - is the one way a path may leave without turning it red.
+ * a demo path from ghost, morph or trackpad turns that gate red instead of
+ * quietly re-exempting the entry. The next entry that genuinely cannot be lit
+ * goes here with its measurement, as tpad's row carried "0 of 81".
  */
-export const DARK_BY_CONSTRUCTION: readonly { id: string; why: string }[] = [
-  {
-    id: "tpad",
-    why: "The Trackpad draft enables no LED layer at all - look.kind and touch.kind are both none and both disabled - so no gesture can light a cell. Measured at 0 of 81 lit over a drag, a two-finger scroll, taps and 2,000 idle ticks.",
-  },
-];
+export const DARK_BY_CONSTRUCTION: readonly { id: string; why: string }[] = [];
 
 /** The path for an entry, or undefined. The one lookup a component needs. */
 export function demoPathFor(id: string): DemoPath | undefined {

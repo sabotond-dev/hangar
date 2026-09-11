@@ -19,6 +19,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { byId } from "../catalog";
 import {
   cellToCoord,
   DARK_BY_CONSTRUCTION,
@@ -61,10 +62,28 @@ describe("the demonstration finger (src/lib/sim/demo.ts)", () => {
 
     // The two lists answer the same question - what does a dark entry show -
     // and an id in both would mean the two answers disagree about one card.
+    //
+    // THE EXCEPTION LIST IS EMPTY SINCE PLAN 12-10, AND THE NON-VACUITY GUARD
+    // MOVED WITH ITS MEMBER. It used to assert the list was non-empty, because
+    // its one member - the tpad preset, the dark card no finger could help -
+    // was the thing the loop below was written to check. That card left the
+    // catalog when the hand-authored TRACKPAD replaced it (a real edge flash
+    // and a path in DEMO_PATHS), and demo.ts says removing the entry is the
+    // one way a row may leave. So what is asserted now is that the list is
+    // empty FOR THAT REASON - tpad is in no catalog and has no path - and
+    // that every card whose picture needs a finger has one: the paths are
+    // three, and the loop below still runs over whatever the list holds the
+    // day an entry that genuinely cannot be lit arrives.
     expect(
       DARK_BY_CONSTRUCTION.length,
-      "the exception list names its member rather than being empty",
-    ).toBeGreaterThan(0);
+      "the exception list is empty because its one member, the tpad preset, left the catalog at plan 12-10; a new member needs its measurement",
+    ).toBe(0);
+    expect(byId("tpad"), "tpad is not a catalog card").toBeUndefined();
+    expect(demoPathFor("tpad"), "tpad has no path either").toBeUndefined();
+    expect(
+      Object.keys(DEMO_PATHS).sort(),
+      "the three demonstration cards: ghost, morph and trackpad",
+    ).toEqual(["ghost", "morph", "trackpad"]);
     for (const dark of DARK_BY_CONSTRUCTION) {
       expect(
         demoPathFor(dark.id),

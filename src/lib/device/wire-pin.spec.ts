@@ -346,9 +346,15 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         `presets: ${presets}   mismatches: ${mismatches}`,
       ].join("\n"),
     );
-    expect(presets, "the nine shelf presets at least").toBeGreaterThanOrEqual(
-      9,
-    );
+    // EIGHT since plan 12-10: the `tpad` preset is on the shelf but not in the
+    // catalog - the hand-authored TRACKPAD replaced it as the card - so the
+    // walk over compiler-driven CATALOG entries visits eight. The ninth is
+    // still pinned byte for byte by presets.spec.ts test 4 against the
+    // compiler, which is the same arithmetic this floor guards.
+    expect(
+      presets,
+      "the eight carded shelf presets at least",
+    ).toBeGreaterThanOrEqual(8);
     expect(mismatches).toBe(0);
   }, 30_000);
 
