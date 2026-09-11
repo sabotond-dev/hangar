@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { onMount } from "svelte";
+  import { page } from "$app/state";
   import favicon from "$lib/assets/favicon.svg";
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
@@ -23,9 +24,30 @@
     RAIL_W,
     SURFACE_MAX,
   } from "$lib/ui/shell/layout";
-  import { shell } from "$lib/ui/shell/shell.svelte";
+  import {
+    shell,
+    shellFromData,
+    type ShellFill,
+  } from "$lib/ui/shell/shell.svelte";
 
   let { children } = $props();
+
+  /**
+   * The shape a route DECLARED as data (plan 13-07), read only while no
+   * effect has filled the shell. On the server this is the only fill there
+   * can be - see shellFromData - and it is what puts the intro's header in
+   * the prerendered document. `page` is bound to the current request and
+   * throws outside one; the one place the layout renders outside a request
+   * is src/lib/ui/shell.spec.ts's render(), where there is no declared
+   * shape either, so the throw reads as "none".
+   */
+  function declared(): ShellFill | undefined {
+    try {
+      return shellFromData(page.data);
+    } catch {
+      return undefined;
+    }
+  }
 
   /**
    * The device session is started HERE, once, for the whole site (D-05), and
@@ -86,7 +108,7 @@
    * are excluded because their label row is the target, as
    * MotionControl.svelte already declares.
    */
-  const fill = $derived(shell.fill);
+  const fill = $derived(shell.fill ?? declared());
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>

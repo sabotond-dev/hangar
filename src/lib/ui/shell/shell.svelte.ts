@@ -97,3 +97,26 @@ export function fillShell(fill: ShellFill): () => void {
     if (shell.fill === fill) shell.fill = undefined;
   };
 }
+
+/**
+ * THE SERVER'S HALF OF THE FILL (plan 13-07). fillShell() runs from an
+ * effect, and an effect never runs on the server - while the layout's
+ * `{#if fill}` is evaluated before the page's script runs at all, because
+ * the page renders as the layout's children. So a route that wants its
+ * frame in the PRERENDERED document declares the shape as data from its
+ * +page.ts (`{ shell: { variant, section? } }`), and the layout reads it
+ * here when no effect has filled the shell yet. Snippets cannot travel as
+ * data; they arrive with the effect, and the frame does not move when they
+ * do. Anything that is not a declared shape reads as no shape: the layout
+ * then renders the unfilled form it always did.
+ */
+export function shellFromData(data: unknown): ShellFill | undefined {
+  if (typeof data !== "object" || data === null) return undefined;
+  const declared = (data as { shell?: unknown }).shell;
+  if (typeof declared !== "object" || declared === null) return undefined;
+  const variant = (declared as { variant?: unknown }).variant;
+  if (variant !== "intro" && variant !== "app") return undefined;
+  const section = (declared as { section?: unknown }).section;
+  const known = SECTIONS.find((item) => item.id === section);
+  return { variant, section: known?.id };
+}

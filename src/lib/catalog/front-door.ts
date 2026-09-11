@@ -243,3 +243,32 @@ export const FRONT_DOOR: readonly FrontDoorEntry[] = [
 export function frontDoorIndex(id: string): number {
   return FRONT_DOOR.findIndex((entry) => entry.id === id);
 }
+
+/**
+ * THE HERO (plan 13-07, 13-CONTEXT.md D-09 and D-14 Q2, 2026-09-11). The
+ * intro at / renders ONE live surface, and this is the entry it runs.
+ *
+ * DERIVED, NOT DECLARED. The hero is the first member of FRONT_DOOR, in the
+ * list's own order, whose motion is not "dark" - the same rule the ring's
+ * opening window carried ("no dark pad opens as a black square"), reduced to
+ * one member. `restsBlack` lives on the catalog entry and this module may not
+ * import the catalog; front-door.spec.ts holds `restsBlack` equal to
+ * `motion === "dark"` for every recorded entry and holds the hero against the
+ * golden frames directly, so the two readings cannot disagree.
+ *
+ * If every member rested black there would be no hero, and the throw below is
+ * deliberate: the plan stops on it rather than opening the site on a black
+ * square. It cannot throw on today's list (aurora is animated) and the spec
+ * proves the derivation on a row that would.
+ */
+export function heroOf(row: readonly FrontDoorEntry[]): FrontDoorEntry {
+  const hero = row.find((entry) => entry.motion !== "dark");
+  if (hero === undefined) {
+    throw new Error(
+      "every front-door member rests black: there is no hero to open with",
+    );
+  }
+  return hero;
+}
+
+export const FRONT_DOOR_HERO: FrontDoorEntry = heroOf(FRONT_DOOR);
