@@ -123,3 +123,25 @@ mark's ledgered label, then the text `FOR ZONA`). The questions, for 13-18 and t
    §14 asks that the motion control exist and be reachable, not that it be always visible. If the
    user wants the checkbox on the face of the footer on every page, the disclosure opens by default
    or goes; either is one line. The control itself is unchanged and its two strings stay 13-04's rows.
+
+**From 13-06, no string landed and four questions recorded (D-01: ask rather than guess).** The
+stores are data: `src/lib/store/` invents no string a visitor can read, no name default was needed
+(a record's `name` is required and the caller supplies it), and the words each store may be shown
+under are the Bible's own - `Draft`, `Draft saved locally`, `Resume draft`, `Save copy`, `Saved` on
+a copy only, `Favorites`, `Recently used`. The questions, for 13-08, 13-13 and the user:
+
+1. **The favorites drop count has a number and no sentence.** `readFavorites` returns how many
+   starred ids the catalog no longer carries (twelve entries have been removed across Phases 11
+   and 12, so this is a real case). Whether the gallery says _Two favorites are no longer in the
+   catalog._ or simply shows the shorter list is 13-08's call; the sentence, if wanted, is invented
+   and has no Bible line, so it is asked here and not written.
+2. **Twelve kept, six shown.** The PDF's rail shows `Recently used 06`; the store keeps twelve so
+   the seventh open does not forget the first. If the rail should show the kept count rather than
+   the PDF's six, `RECENT_SHOWN` is one number.
+3. **The motion key's stored shape is 13-04's bare word** (`animated` / `still`), not the plan's
+   `{ ambient: boolean }` sketch, because the behaviour was not allowed to move. If a JSON body is
+   wanted for uniformity it is a `.v2` beside the `.v1` and a re-run of the tagged reduced-motion
+   title; nothing else in the ledger depends on it.
+4. **Starring writes the pruned list.** A read never writes, but the next star or unstar persists
+   the favorites minus the dropped ids. If the dropped ids should be kept until the visitor is
+   told, the prune moves out of `setFavorite`; it is one line either way.

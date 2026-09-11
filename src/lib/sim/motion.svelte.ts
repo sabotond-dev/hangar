@@ -26,13 +26,19 @@
 // dependencies through its constructor precisely so a source like this one
 // can be injected without a change to the loop.
 //
-// THE GUARD IS ScreenToggle.svelte's, COPIED RATHER THAN THE COMPONENT. A
-// browser configured to refuse storage can throw on the PROPERTY ACCESS and
-// not only on use (07-RESEARCH pitfall 9, src/lib/device/snapshot.ts), so
-// every touch of it sits inside a try of its own and every failure degrades
-// to "no preference recorded". A missing courtesy may never be the reason a
-// visitor has no page. 13-06 folds this key into the store module beside the
-// other KEEP-* keys; until then it lives here with its version in its name.
+// THE KEY, THE TWO WORDS AND THE GUARD LIVE IN src/lib/store/ SINCE 13-06.
+// 13-04 wrote them here with ScreenToggle.svelte's guard copied line for
+// line; 13-06 folded the key into schema.ts beside the KEEP-* keys and the
+// read and the write into store/motion.ts over store/local.ts, so a browser
+// configured to refuse storage - which can throw on the PROPERTY ACCESS and
+// not only on use (07-RESEARCH pitfall 9) - is handled in one place for
+// every store. What stays here is what needs the browser: storage() reads
+// the global inside a try of its own and hands it in, because the store
+// modules take the store as an argument and never name it. The stored value
+// is the same bare word it was (`animated` / `still`, never JSON), the
+// default is the same, and the additive rule below is unchanged; the tagged
+// reduced-motion title in e2e/browse.e2e.ts writes the key by hand and is
+// the proof the fold moved nothing.
 //
 // READ ONCE AT MODULE SCOPE, NEVER SUBSCRIBED TO. The recorded choice is
 // picked up before hydration so a visitor who chose still never watches the
@@ -42,15 +48,18 @@
 // own contract, carried here unchanged.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import {
+  MOTION_CHOICES,
+  MOTION_KEY,
+  readMotion,
+  writeMotion,
+  type MotionChoice,
+} from "../store/motion";
 import type { HostDeps } from "./host";
 
-/** One key, versioned in its name so a `.v2` can sit beside it. */
-export const MOTION_KEY = "hangar.motion.v1";
-
-export type MotionChoice = "animated" | "still";
-
-/** The two recorded values. `animated` is the default. */
-export const MOTION_CHOICES: readonly MotionChoice[] = ["animated", "still"];
+// Re-exported so the names 13-04 published still resolve from here.
+export { MOTION_CHOICES, MOTION_KEY };
+export type { MotionChoice };
 
 /**
  * The control's two strings, in D-05's register and ledgered in
@@ -63,9 +72,10 @@ export const MOTION_EXPLANATION =
   "Cards hold one frame instead of animating. A pad still answers your finger, and your system’s reduced-motion setting always wins.";
 
 /**
- * The store, or undefined. The property ACCESS is inside the try, not just
- * the call: 07-RESEARCH pitfall 9, and the same shape src/lib/device/
- * snapshot.ts and the retired ScreenToggle.svelte used.
+ * The store, or undefined. The property ACCESS of the global is inside the
+ * try, not just the call: 07-RESEARCH pitfall 9. This is the only line in
+ * the motion path that names the browser store; the store modules take it
+ * as an argument.
  */
 function storage(): Storage | undefined {
   try {
@@ -76,28 +86,12 @@ function storage(): Storage | undefined {
 }
 
 /** The recorded choice, or undefined for anything that is not one of the two. */
-function recorded(): MotionChoice | undefined {
-  const store = storage();
-  if (store === undefined) return undefined;
-  let raw: string | null;
-  try {
-    raw = store.getItem(MOTION_KEY);
-  } catch {
-    return undefined;
-  }
-  return MOTION_CHOICES.find((choice) => choice === raw);
-}
+const recorded = (): MotionChoice | undefined => readMotion(storage());
 
-/** Never throws. A full quota or a refusing store loses the preference and nothing else. */
-function remember(choice: MotionChoice): void {
-  const store = storage();
-  if (store === undefined) return;
-  try {
-    store.setItem(MOTION_KEY, choice);
-  } catch {
-    /* A preference that could not be written is still the live preference. */
-  }
-}
+/** Never throws. A preference that could not be written is still the live preference. */
+const remember = (choice: MotionChoice): void => {
+  writeMotion(storage(), choice);
+};
 
 /**
  * The live choice, shared. `const` and a property rather than an exported

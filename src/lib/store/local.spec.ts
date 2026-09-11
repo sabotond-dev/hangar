@@ -16,8 +16,14 @@
 // reader falling back to the v1 key (5); a reader that deletes what it cannot
 // parse (2); a cap or a dedupe dropped from recent (6); an edit moving
 // createdAt (7); favorites showing a shorter list without saying so (8); a
-// saved copy overwritten from its source, or the intro flag written on a
-// refusing store (9).
+// saved copy overwritten from its source (9); the intro flag reported seen
+// on a refusing store, or the motion word moved by the fold (10).
+//
+// TEN, NOT SEVEN. The plan asked for seven and allowed an eighth for the
+// favorites drop rule. Three subjects had no honest home in the seven: the
+// drop rule (8), the library's never-overwrite rule (9) and the two flags
+// (10). Folding them into 7 to hold a number is the dishonesty the counting
+// rule exists to prevent, so the term is +10 and the SUMMARY says so.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
@@ -45,7 +51,41 @@ import {
   isEnvelope,
   isStoredRecord,
   storeKey,
+  type Draft,
+  type SavedCopy,
+  type Surface,
 } from "./schema";
+import {
+  draftIdFor,
+  newestDraft,
+  readDraft,
+  readDrafts,
+  removeDraft,
+  writeDraft,
+} from "./drafts";
+import {
+  deleteCopy,
+  duplicateCopy,
+  readCopy,
+  readLibrary,
+  renameCopy,
+  saveCopy,
+} from "./library";
+import {
+  isFavorite,
+  readFavorites,
+  setFavorite,
+  toggleFavorite,
+} from "./favorites";
+import {
+  RECENT_CAP,
+  RECENT_SHOWN,
+  listRecent,
+  recentCount,
+  touchRecent,
+} from "./recent";
+import { hasSeenIntro, markIntroSeen, readIntro } from "./intro";
+import { MOTION_CHOICES, readMotion, writeMotion } from "./motion";
 
 const here = (file: string) => fileURLToPath(new URL(file, import.meta.url));
 
@@ -391,5 +431,598 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
     store.setItem(v2Key, v2);
     expect(readJson(store, v1Key, isEnvelope)).toEqual(JSON.parse(v1));
     expect(asked).toEqual([v1Key]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The five stores over the primitive.
+
+const T0 = "2026-09-11T10:00:00.000Z";
+const T1 = "2026-09-11T10:05:00.000Z";
+const T2 = "2026-09-11T10:12:00.000Z";
+
+/** A Playground draft: an entry and one index per knob. */
+const ARC_DRAFT: Draft = {
+  schema: 1,
+  kind: "playground",
+  id: draftIdFor("playground", "arc"),
+  name: "Arc",
+  createdAt: T0,
+  editedAt: T0,
+  source: "arc",
+  knobIndices: [3, 0, 7, 2, 1],
+};
+
+/**
+ * THE PDF's PAGE-3 SURFACE (13-CONTEXT D-18): a 2x6 Fader, an XY pad, a
+ * Button and a Knob. Region names are fixture data, not copy.
+ */
+const PAGE3: Surface = {
+  id: "surface-page3",
+  name: "Custom surface",
+  regions: [
+    {
+      id: "r1",
+      name: "Filter",
+      kind: "fader",
+      col: 0,
+      row: 0,
+      w: 2,
+      h: 6,
+      cc: 74,
+      channel: 1,
+      colour: [13, 15, 4],
+    },
+    {
+      id: "r2",
+      name: "Space",
+      kind: "xy",
+      col: 3,
+      row: 0,
+      w: 4,
+      h: 4,
+      cc: 16,
+      cc2: 17,
+      channel: 1,
+      colour: [4, 12, 15],
+    },
+    {
+      id: "r3",
+      name: "Hold",
+      kind: "button",
+      col: 3,
+      row: 5,
+      w: 2,
+      h: 2,
+      cc: 64,
+      channel: 1,
+      colour: [15, 5, 3],
+      latch: true,
+    },
+    {
+      id: "r4",
+      name: "Rate",
+      kind: "knob",
+      col: 6,
+      row: 5,
+      w: 3,
+      h: 3,
+      cc: 1,
+      channel: 1,
+      colour: [15, 15, 15],
+    },
+  ],
+};
+
+const PAGE3_DRAFT: Draft = {
+  schema: 1,
+  kind: "sandbox",
+  id: draftIdFor("sandbox", PAGE3.id),
+  name: PAGE3.name,
+  createdAt: T0,
+  editedAt: T0,
+  source: PAGE3.id,
+  surface: PAGE3,
+};
+
+/** The twelve ids Phases 11 and 12 removed (11-01, 12-04). */
+const REMOVED = [
+  "hold",
+  "keys",
+  "learn",
+  "switch",
+  "etch",
+  "gridlock",
+  "life",
+  "slam",
+  "table",
+  "lattice",
+  "forge",
+  "shuttle",
+];
+const KNOWN = new Set(["arc", "euclid", "chorus", "ghost", "morph", "sonar"]);
+const isKnown = (id: string): boolean => KNOWN.has(id);
+
+describe("the five stores (src/lib/store/*.ts)", () => {
+  it("6. recent caps at twelve, dedupes by id, and six is what a caller asking for six gets", () => {
+    expect(RECENT_CAP, "kept").toBe(12);
+    expect(RECENT_SHOWN, "shown").toBe(6);
+
+    const { map, store } = fakeStore();
+    expect(listRecent(store)).toEqual([]);
+    expect(recentCount(store)).toBe(0);
+
+    // Thirteen opens: the first one falls off, the twelve newest remain.
+    for (let n = 1; n <= 13; n += 1) {
+      const at = `2026-09-11T10:${String(n).padStart(2, "0")}:00.000Z`;
+      expect(touchRecent(store, `e${n}`, at)).toBe(true);
+    }
+    expect(recentCount(store), "capped at twelve").toBe(12);
+    const all = listRecent(store, RECENT_CAP);
+    expect(all.map((item) => item.id)).toEqual([
+      "e13",
+      "e12",
+      "e11",
+      "e10",
+      "e9",
+      "e8",
+      "e7",
+      "e6",
+      "e5",
+      "e4",
+      "e3",
+      "e2",
+    ]);
+    expect(
+      all.map((item) => item.id),
+      "the oldest is gone",
+    ).not.toContain("e1");
+
+    // Six is what the rail gets: the six newest, in order.
+    expect(listRecent(store).map((item) => item.id)).toEqual([
+      "e13",
+      "e12",
+      "e11",
+      "e10",
+      "e9",
+      "e8",
+    ]);
+    expect(listRecent(store, 6)).toEqual(listRecent(store));
+
+    // Dedupe: reopening e5 moves it to the front, keeps the count at twelve,
+    // and carries its new moment.
+    expect(touchRecent(store, "e5", T2)).toBe(true);
+    expect(recentCount(store)).toBe(12);
+    expect(listRecent(store)[0]).toEqual({ id: "e5", at: T2 });
+    expect(
+      listRecent(store, RECENT_CAP).filter((item) => item.id === "e5"),
+    ).toHaveLength(1);
+
+    // Asking for more than is kept gets what is kept; asking for nothing gets nothing.
+    expect(listRecent(store, 100)).toHaveLength(12);
+    expect(listRecent(store, 0)).toEqual([]);
+
+    // The body carries its version and the key is the named one.
+    expect([...map.keys()]).toEqual([RECENT_KEY]);
+    expect(JSON.parse(map.get(RECENT_KEY) ?? "null").schema).toBe(1);
+
+    // A malformed item hides no neighbour.
+    map.set(
+      RECENT_KEY,
+      '{"schema":1,"items":[{"id":"x","at":"t"},{"id":7},"junk",{"id":"y","at":"u"}]}',
+    );
+    expect(listRecent(store).map((item) => item.id)).toEqual(["x", "y"]);
+
+    // Refusing stores: nothing listed, the touch reported, nothing thrown.
+    expect(listRecent(HOSTILE_STORE)).toEqual([]);
+    expect(listRecent(ACCESS_THROWS)).toEqual([]);
+    expect(touchRecent(HOSTILE_STORE, "e1", T0)).toBe(false);
+    expect(touchRecent(undefined, "e1", T0)).toBe(false);
+  });
+
+  it("7. a draft round-trips: write, read, edit, read, remove, read - editedAt moving and createdAt not - and another kind's draft survives", () => {
+    const { map, store } = fakeStore();
+    expect(readDraft(store, ARC_DRAFT.id)).toBeUndefined();
+    expect(newestDraft(store)).toBeUndefined();
+
+    // WRITE at T0, READ.
+    expect(writeDraft(store, ARC_DRAFT, T0)).toBe(true);
+    const first = readDraft(store, ARC_DRAFT.id);
+    expect(first).toEqual(ARC_DRAFT);
+    expect([...map.keys()]).toEqual([DRAFTS_KEY]);
+    expect(
+      JSON.parse(map.get(DRAFTS_KEY) ?? "null").schema,
+      "the envelope carries its version",
+    ).toBe(1);
+    expect(
+      first?.schema,
+      "and so does the record, for the day it is exported",
+    ).toBe(1);
+
+    // A second kind beside it.
+    expect(writeDraft(store, PAGE3_DRAFT, T0)).toBe(true);
+    expect(Object.keys(readDrafts(store)).sort()).toEqual(
+      [ARC_DRAFT.id, PAGE3_DRAFT.id].sort(),
+    );
+
+    // EDIT at T1 - the caller hands a stale createdAt on purpose, and the
+    // store keeps the original.
+    const edited: Draft = {
+      ...ARC_DRAFT,
+      knobIndices: [3, 0, 7, 2, 4],
+      createdAt: T2,
+    };
+    expect(writeDraft(store, edited, T1)).toBe(true);
+    const second = readDraft(store, ARC_DRAFT.id);
+    expect(
+      second?.kind === "playground" ? second.knobIndices : undefined,
+    ).toEqual([3, 0, 7, 2, 4]);
+    expect(second?.editedAt, "editedAt moved").toBe(T1);
+    expect(second?.createdAt, "createdAt did not").toBe(T0);
+    expect(newestDraft(store)?.id, "the edited one is newest").toBe(
+      ARC_DRAFT.id,
+    );
+    expect(
+      readDraft(store, PAGE3_DRAFT.id),
+      "the other kind's draft is untouched",
+    ).toEqual(PAGE3_DRAFT);
+
+    // REMOVE, READ: only the one id goes.
+    expect(removeDraft(store, ARC_DRAFT.id)).toBe(true);
+    expect(readDraft(store, ARC_DRAFT.id)).toBeUndefined();
+    expect(
+      readDraft(store, PAGE3_DRAFT.id),
+      "removing one kind's draft never deletes another's",
+    ).toEqual(PAGE3_DRAFT);
+    expect(newestDraft(store)?.id).toBe(PAGE3_DRAFT.id);
+    expect(
+      removeDraft(store, "never-there"),
+      "removing what is not there is a success",
+    ).toBe(true);
+
+    // ONE DRAFT PER SOURCE: the id is a function of kind and source.
+    expect(draftIdFor("playground", "arc")).toBe("playground:arc");
+    expect(draftIdFor("sandbox", "arc")).not.toBe(
+      draftIdFor("playground", "arc"),
+    );
+
+    // AN ENTRY THIS VERSION CANNOT READ SURVIVES A WRITE BESIDE IT, and is
+    // not handed out.
+    map.set(
+      DRAFTS_KEY,
+      `{"schema":1,"drafts":{"future:x":{"schema":3,"shape":"unknown"},"${PAGE3_DRAFT.id}":${JSON.stringify(PAGE3_DRAFT)}}}`,
+    );
+    expect(Object.keys(readDrafts(store))).toEqual([PAGE3_DRAFT.id]);
+    expect(writeDraft(store, ARC_DRAFT, T2)).toBe(true);
+    expect(
+      JSON.parse(map.get(DRAFTS_KEY) ?? "null").drafts["future:x"],
+    ).toEqual({
+      schema: 3,
+      shape: "unknown",
+    });
+
+    // A REFUSED READ DECLINES THE WRITE rather than writing blind over every draft.
+    const refusingRead: LocalStore = {
+      ...store,
+      getItem: HOSTILE_STORE.getItem,
+    };
+    const before = map.get(DRAFTS_KEY);
+    expect(writeDraft(refusingRead, ARC_DRAFT, T2)).toBe(false);
+    expect(removeDraft(refusingRead, ARC_DRAFT.id)).toBe(false);
+    expect(map.get(DRAFTS_KEY), "nothing was written blind").toBe(before);
+    // A corrupt envelope is replaced whole: nothing in it was ever a draft.
+    map.set(DRAFTS_KEY, "not json");
+    expect(readDrafts(store)).toEqual({});
+    expect(writeDraft(store, ARC_DRAFT, T2)).toBe(true);
+    expect(readDraft(store, ARC_DRAFT.id)?.editedAt).toBe(T2);
+
+    // Every function degrades on a refusing store.
+    expect(readDrafts(HOSTILE_STORE)).toEqual({});
+    expect(readDrafts(ACCESS_THROWS)).toEqual({});
+    expect(newestDraft(undefined)).toBeUndefined();
+    expect(writeDraft(undefined, ARC_DRAFT, T0)).toBe(false);
+    const { store: full } = fullStore();
+    expect(writeDraft(full, ARC_DRAFT, T0), "a full quota is reported").toBe(
+      false,
+    );
+
+    // SIZE, MEASURED. No thumbnail is stored anywhere: a Playground draft
+    // and the PDF's four-element surface are both a fraction of a kilobyte,
+    // which is why localStorage holds thousands and IndexedDB is a
+    // documented escape hatch and not a dependency.
+    const playgroundBytes = JSON.stringify(ARC_DRAFT).length;
+    const surfaceBytes = JSON.stringify(PAGE3_DRAFT).length;
+    console.log(
+      `13-06 measured: playground draft ${playgroundBytes} bytes; page-3 four-element surface draft ${surfaceBytes} bytes`,
+    );
+    expect(playgroundBytes).toBeLessThan(256);
+    expect(surfaceBytes).toBeLessThan(1024);
+  });
+
+  it("8. favorites drop an id the catalog no longer carries on read, and the drop is counted", () => {
+    const { map, store } = fakeStore();
+    expect(readFavorites(store, isKnown)).toEqual({ ids: [], dropped: 0 });
+
+    expect(setFavorite(store, "arc", true, isKnown)).toBe(true);
+    expect(setFavorite(store, "ghost", true, isKnown)).toBe(true);
+    expect(setFavorite(store, "euclid", true, isKnown)).toBe(true);
+    expect(
+      readFavorites(store, isKnown),
+      "order-stable, in the order made",
+    ).toEqual({
+      ids: ["arc", "ghost", "euclid"],
+      dropped: 0,
+    });
+    expect(isFavorite(store, "ghost")).toBe(true);
+    expect(isFavorite(store, "sonar")).toBe(false);
+    expect([...map.keys()]).toEqual([FAVORITES_KEY]);
+    expect(
+      JSON.parse(map.get(FAVORITES_KEY) ?? "null").schema,
+      "the envelope carries its version",
+    ).toBe(1);
+
+    // THE REAL CASE: a visitor starred `forge` before 12-04 removed it and
+    // `keys` before 11-01 did. The list is shorter by two AND SAYS SO.
+    map.set(
+      FAVORITES_KEY,
+      JSON.stringify({
+        schema: 1,
+        ids: ["arc", "forge", "ghost", "keys", "euclid"],
+      }),
+    );
+    const raw = map.get(FAVORITES_KEY);
+    const read = readFavorites(store, isKnown);
+    expect(read.ids).toEqual(["arc", "ghost", "euclid"]);
+    expect(
+      read.dropped,
+      "a shorter list without a count is the coy state D-05 forbids",
+    ).toBe(2);
+    expect(map.get(FAVORITES_KEY), "reading never writes").toBe(raw);
+
+    // Against every one of the twelve removed ids: all dropped, all counted.
+    map.set(
+      FAVORITES_KEY,
+      JSON.stringify({ schema: 1, ids: [...REMOVED, "arc"] }),
+    );
+    const swept = readFavorites(store, isKnown);
+    expect(swept).toEqual({ ids: ["arc"], dropped: REMOVED.length });
+    expect(swept.dropped).toBe(12);
+
+    // The next change persists the pruned list; unstar removes in place.
+    expect(setFavorite(store, "sonar", true, isKnown)).toBe(true);
+    expect(JSON.parse(map.get(FAVORITES_KEY) ?? "null").ids).toEqual([
+      "arc",
+      "sonar",
+    ]);
+    expect(toggleFavorite(store, "arc", isKnown)).toBe(false);
+    expect(readFavorites(store, isKnown).ids).toEqual(["sonar"]);
+    expect(toggleFavorite(store, "arc", isKnown)).toBe(true);
+    expect(readFavorites(store, isKnown).ids).toEqual(["sonar", "arc"]);
+
+    // An id the catalog does not carry cannot be starred.
+    expect(setFavorite(store, "forge", true, isKnown)).toBe(false);
+    expect(readFavorites(store, isKnown).ids).toEqual(["sonar", "arc"]);
+
+    // Refusing stores: an empty list with nothing dropped, the write reported.
+    expect(readFavorites(HOSTILE_STORE, isKnown)).toEqual({
+      ids: [],
+      dropped: 0,
+    });
+    expect(readFavorites(ACCESS_THROWS, isKnown)).toEqual({
+      ids: [],
+      dropped: 0,
+    });
+    expect(isFavorite(HOSTILE_STORE, "arc")).toBe(false);
+    expect(setFavorite(HOSTILE_STORE, "arc", true, isKnown)).toBe(false);
+    expect(toggleFavorite(undefined, "arc", isKnown)).toBeUndefined();
+  });
+
+  it("9. a saved copy is created and never overwritten from its source; rename moves editedAt, duplicate is new, delete is one id", () => {
+    const { map, store } = fakeStore();
+    const copy: SavedCopy = {
+      ...ARC_DRAFT,
+      id: "copy-1",
+      name: "Arc - slow bloom",
+    };
+    expect(readLibrary(store)).toEqual({});
+
+    expect(saveCopy(store, copy)).toBe("written");
+    expect(readCopy(store, "copy-1")).toEqual(copy);
+    expect([...map.keys()]).toEqual([LIBRARY_KEY]);
+    expect(JSON.parse(map.get(LIBRARY_KEY) ?? "null").schema).toBe(1);
+
+    // NEVER OVERWRITTEN: saving again under the same id - the source moved
+    // on, the copy did not - is kept, byte for byte.
+    const before = map.get(LIBRARY_KEY);
+    const changed: SavedCopy = {
+      ...copy,
+      knobIndices: [0, 0, 0, 0, 0],
+      editedAt: T2,
+    };
+    expect(
+      saveCopy(store, changed),
+      "a copy was overwritten from its source",
+    ).toBe("kept");
+    expect(map.get(LIBRARY_KEY)).toBe(before);
+    expect(readCopy(store, "copy-1")).toEqual(copy);
+
+    // RENAME: the name and editedAt move, createdAt does not, the indices do not.
+    expect(renameCopy(store, "copy-1", "Arc - faster", T1)).toBe("written");
+    const renamed = readCopy(store, "copy-1");
+    expect(renamed?.name).toBe("Arc - faster");
+    expect(renamed?.editedAt).toBe(T1);
+    expect(renamed?.createdAt).toBe(T0);
+    expect(
+      renamed?.kind === "playground" ? renamed.knobIndices : undefined,
+    ).toEqual(copy.knobIndices);
+    expect(renameCopy(store, "nope", "x", T1)).toBe("absent");
+
+    // DUPLICATE: a new copy at T2, the source untouched; an existing target is kept.
+    expect(duplicateCopy(store, "copy-1", "copy-2", "Arc - copy", T2)).toBe(
+      "written",
+    );
+    const dup = readCopy(store, "copy-2");
+    expect(dup?.createdAt).toBe(T2);
+    expect(dup?.editedAt).toBe(T2);
+    expect(dup?.name).toBe("Arc - copy");
+    expect(dup?.source).toBe("arc");
+    expect(readCopy(store, "copy-1")).toEqual(renamed);
+    expect(duplicateCopy(store, "copy-1", "copy-2", "again", T2)).toBe("kept");
+    expect(duplicateCopy(store, "nope", "copy-3", "x", T2)).toBe("absent");
+
+    // A sandbox copy beside the playground ones.
+    const surfaceCopy: SavedCopy = { ...PAGE3_DRAFT, id: "copy-s" };
+    expect(saveCopy(store, surfaceCopy)).toBe("written");
+    expect(Object.keys(readLibrary(store)).sort()).toEqual([
+      "copy-1",
+      "copy-2",
+      "copy-s",
+    ]);
+
+    // DELETE: one id, nothing else.
+    expect(deleteCopy(store, "copy-2")).toBe("written");
+    expect(Object.keys(readLibrary(store)).sort()).toEqual([
+      "copy-1",
+      "copy-s",
+    ]);
+    expect(deleteCopy(store, "copy-2")).toBe("absent");
+
+    // Three words for three objects: nothing in the two record stores names
+    // the third. The install store keeps "Stored on ZONA"; a scan of the
+    // stripped sources finds no generic "Saved" offered as a status, no
+    // Svelte, no catalog, and the reserved key named in schema.ts only.
+    for (const file of [
+      "drafts.ts",
+      "library.ts",
+      "favorites.ts",
+      "recent.ts",
+      "intro.ts",
+      "motion.ts",
+      "local.ts",
+      "schema.ts",
+    ]) {
+      const code = strip(readFileSync(here(`./${file}`), "utf8"));
+      expect(code.includes('"Saved"'), `${file} offers a generic Saved`).toBe(
+        false,
+      );
+      expect(
+        code.includes("Stored on ZONA"),
+        `${file} names device state`,
+      ).toBe(false);
+      expect(
+        code.includes("collections"),
+        `${file} reads or writes the reserved key`,
+      ).toBe(file === "schema.ts");
+      expect(code.includes("svelte"), `${file} imports Svelte`).toBe(false);
+      expect(code.includes("catalog"), `${file} imports the catalog`).toBe(
+        false,
+      );
+    }
+
+    // Refusing stores: every outcome is "refused", nothing thrown.
+    expect(saveCopy(HOSTILE_STORE, copy)).toBe("refused");
+    expect(saveCopy(ACCESS_THROWS, copy)).toBe("refused");
+    expect(renameCopy(HOSTILE_STORE, "copy-1", "x", T1)).toBe("refused");
+    expect(duplicateCopy(undefined, "copy-1", "copy-9", "x", T1)).toBe(
+      "refused",
+    );
+    expect(deleteCopy(HOSTILE_STORE, "copy-1")).toBe("refused");
+    expect(readLibrary(ACCESS_THROWS)).toEqual({});
+    const { store: full } = fullStore();
+    expect(saveCopy(full, copy), "a full quota is reported, not thrown").toBe(
+      "refused",
+    );
+  });
+
+  it("10. the intro flag is written once and a refusing browser sees the intro every time; the motion word is 13-04's, unchanged", () => {
+    const { map, store } = fakeStore();
+    expect(hasSeenIntro(store)).toBe(false);
+    expect(readIntro(store)).toBeUndefined();
+
+    expect(markIntroSeen(store, T0)).toBe(true);
+    expect(hasSeenIntro(store)).toBe(true);
+    expect(readIntro(store)).toEqual({ schema: 1, seen: true, at: T0 });
+    expect([...map.keys()]).toEqual([INTRO_KEY]);
+
+    // Once: a second mark keeps the first moment and reports success.
+    expect(markIntroSeen(store, T1)).toBe(true);
+    expect(readIntro(store)?.at, "the first visit's moment is kept").toBe(T0);
+
+    // THE SAFE DIRECTION. A refusing, throwing or full store never reports
+    // "seen", so that visitor gets the intro on every visit rather than a
+    // resume card for a draft that was never made.
+    expect(hasSeenIntro(HOSTILE_STORE)).toBe(false);
+    expect(hasSeenIntro(ACCESS_THROWS)).toBe(false);
+    expect(hasSeenIntro(undefined)).toBe(false);
+    expect(markIntroSeen(HOSTILE_STORE, T0)).toBe(false);
+    expect(markIntroSeen(ACCESS_THROWS, T0)).toBe(false);
+    const { store: full } = fullStore();
+    expect(markIntroSeen(full, T0)).toBe(false);
+    expect(
+      hasSeenIntro(full),
+      "a mark that could not be written is not seen",
+    ).toBe(false);
+    // A flag from a later schema, or a malformed one, is not seen either.
+    for (const raw of [
+      '{"schema":2,"seen":true,"at":"t"}',
+      '{"schema":1,"seen":false,"at":"t"}',
+      '{"seen":true}',
+      "junk",
+    ]) {
+      const { store: odd } = fakeStore();
+      odd.setItem(INTRO_KEY, raw);
+      expect(hasSeenIntro(odd), raw).toBe(false);
+    }
+
+    // THE MOTION WORD. 13-04 stored the bare word and e2e/browse.e2e.ts
+    // writes it by hand; the fold into store/motion.ts must not move it.
+    expect(MOTION_CHOICES).toEqual(["animated", "still"]);
+    const { map: m, store: motion } = fakeStore();
+    expect(
+      readMotion(motion),
+      "absent means the default, decided by the caller",
+    ).toBeUndefined();
+    expect(writeMotion(motion, "still")).toBe(true);
+    expect(m.get(MOTION_KEY), "the bare word, not JSON").toBe("still");
+    expect(readMotion(motion)).toBe("still");
+    m.set(MOTION_KEY, "animated");
+    expect(readMotion(motion)).toBe("animated");
+    m.set(MOTION_KEY, '"still"');
+    expect(
+      readMotion(motion),
+      "a JSON string is not one of the two words",
+    ).toBeUndefined();
+    m.set(MOTION_KEY, "off");
+    expect(readMotion(motion)).toBeUndefined();
+    expect(readMotion(HOSTILE_STORE)).toBeUndefined();
+    expect(readMotion(ACCESS_THROWS)).toBeUndefined();
+    expect(writeMotion(HOSTILE_STORE, "still")).toBe(false);
+    expect(writeMotion(undefined, "still")).toBe(false);
+
+    // The Svelte module reads through this one and no longer spells the key
+    // or the guard itself: one key, one place.
+    const svelteSide = strip(
+      readFileSync(here("../sim/motion.svelte.ts"), "utf8"),
+    );
+    expect(
+      svelteSide.includes('"hangar.motion.v1"'),
+      "the key is spelled twice",
+    ).toBe(false);
+    expect(
+      svelteSide.includes("getItem"),
+      "the Svelte side still carries its own read guard",
+    ).toBe(false);
+    expect(
+      svelteSide.includes("setItem"),
+      "the Svelte side still carries its own write guard",
+    ).toBe(false);
+    expect(
+      svelteSide.includes("readMotion(") && svelteSide.includes("writeMotion("),
+      "the Svelte side reads and writes through store/motion.ts",
+    ).toBe(true);
+    expect(
+      svelteSide.includes('|| motion.choice === "still"'),
+      "the additive OR is where 13-04 left it",
+    ).toBe(true);
   });
 });
