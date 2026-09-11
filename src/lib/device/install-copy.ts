@@ -112,18 +112,25 @@ export type EventWord = "Setup" | "Timer";
  *   The page init and the Timer  | the Setup
  *
  * SINCE 12.1-07 A RAM LEG WRITES FOUR - the system timer (255/6) goes first
- * of all - so a third partial exists, the first row below, and it is the ONE
- * row this plan adds: the store's classifier reads which of four landed off
- * sequence.ts's SLOTS and needs a pairing for the new prefix. The two older
- * rows are unchanged and still name what they always did; the sentences that
- * name all four in write order are 12.1-08's (13-18 rewrites this file).
+ * of all - so a third partial exists, the first row below: the store's
+ * classifier reads which of four landed off sequence.ts's SLOTS and needs a
+ * pairing for the new prefix. 12.1-07 added that one row and left the two
+ * older rows understating what landed by one slot; SINCE 12.1-08 EVERY ROW
+ * NAMES ALL FOUR IN WRITE ORDER - the landed prefix on the left, the rest on
+ * the right, and reading a row left to right is reading SLOTS top to bottom.
+ * These are LITERALS, not built from SLOTS[].label (this module imports
+ * nothing and authors no grammar); the store publishes the labels separately
+ * as landedSlots / failedSlots. 13-18 rewrites this file under 13-CONTEXT
+ * D-05 and must carry the four-string fact.
  *
- *   The system timer             | the page init, the Timer and the Setup
+ *   The system timer                              | the page init, the Timer and the Setup
+ *   The system timer and the page init            | the Timer and the Setup
+ *   The system timer, the page init and the Timer | the Setup
  */
 export type LandedWords =
   | "The system timer"
-  | "The page init"
-  | "The page init and the Timer";
+  | "The system timer and the page init"
+  | "The system timer, the page init and the Timer";
 export type FailedWords =
   | "the page init, the Timer and the Setup"
   | "the Timer and the Setup"
@@ -392,9 +399,11 @@ export function nothingLandedBlock(after: "try" | "put-back"): InstallBlock {
  *
  * AMENDED IN 12-03, because a RAM leg writes three events and "Timer reached
  * your ZONA and Setup did not" could no longer say which three-way split had
- * happened. The steps say "all three" for the same reason. The TITLE is
- * unchanged - `PARTIAL_TITLE` is what the panel and the live region read, and
- * it never named a count.
+ * happened. AMENDED AGAIN IN 12.1-08, because a RAM leg writes four (the
+ * system timer first) and the step says "all four" for the same reason; the
+ * words themselves are the unions above. The TITLE is unchanged -
+ * `PARTIAL_TITLE` is what the panel and the live region read, and it never
+ * named a count.
  */
 export function partialBlock(
   landed: LandedWords,
@@ -403,7 +412,7 @@ export function partialBlock(
   return {
     title: PARTIAL_TITLE,
     detail: `${landed} reached your ZONA and ${failed} did not. What is on the module now is part of this configuration and part of your own.`,
-    steps: ["Click TRY ON DEVICE to send all three again", STEP_OR_PUT_BACK],
+    steps: ["Click TRY ON DEVICE to send all four again", STEP_OR_PUT_BACK],
   };
 }
 
@@ -444,9 +453,15 @@ export function snapshotFailedBlock(): InstallBlock {
 /** Micro, uppercase, at full ink: the site's one caption at full strength. */
 export const CONFIRM_CAPTION = "PERMANENT";
 
-/** The one string on the site allowed to name the touch element, because SAFE-05 requires exactly that. */
+/**
+ * The one string on the site allowed to name the touch element, because
+ * SAFE-05 requires exactly that. SINCE 12.1-08 IT NAMES FOUR SCRIPTS: a KEEP
+ * stores the page's own timer (255/6) beside its init (255/0) and the touch
+ * element's pair, and a sentence that named three was untrue by omission.
+ * Held from both sides by install-copy.spec.ts's AMENDED_BY_THE_FOURTH_SCRIPT.
+ */
 export const CONFIRM_REPLACES =
-  "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init script, and it survives a power cycle.";
+  "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init and timer scripts, and it survives a power cycle.";
 
 /** Names PUT BACK, which is in the cell directly above. */
 export const CONFIRM_WAY_BACK =

@@ -1563,7 +1563,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
 
     expect(store.phase).toBe("partial");
-    expect(store.landed).toBe("The page init and the Timer");
+    expect(store.landed).toBe("The system timer, the page init and the Timer");
     expect(store.failed).toBe("the Setup");
     expect(store.landedSlots, "the labels, off SLOTS").toEqual([
       "System timer",
@@ -1587,7 +1587,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await after(500);
     expect(session.speech).toBe(
       announceTitle(
-        partialBlock("The page init and the Timer", "the Setup").title,
+        partialBlock(
+          "The system timer, the page init and the Timer",
+          "the Setup",
+        ).title,
       ),
     );
 
@@ -2086,7 +2089,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ]);
     expect(store.phase, "three acknowledgements are not four").toBe("partial");
     expect(store.action).toBe("clear");
-    expect(store.landed).toBe("The page init and the Timer");
+    expect(store.landed).toBe("The system timer, the page init and the Timer");
     expect(store.failed).toBe("the Setup");
     expect(store.cause).toBe("timeout");
     // A-28: the three failure states are reused rather than invented, so the
@@ -2094,7 +2097,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await after(500);
     expect(session.speech).toBe(
       announceTitle(
-        partialBlock("The page init and the Timer", "the Setup").title,
+        partialBlock(
+          "The system timer, the page init and the Timer",
+          "the Setup",
+        ).title,
       ),
     );
     expect(state.configs[EVENT_TIMER], "the Timer landed").toBe(
@@ -2381,7 +2387,9 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     const lastRefused = await refuseNth(4);
     expect(lastRefused.store.phase).toBe("partial");
     expect(lastRefused.store.cause).toBe("nack");
-    expect(lastRefused.store.landed).toBe("The page init and the Timer");
+    expect(lastRefused.store.landed).toBe(
+      "The system timer, the page init and the Timer",
+    );
     expect(lastRefused.store.failed).toBe("the Setup");
     expect(lastRefused.store.landedSlots).toEqual(labels.slice(0, 3));
     expect(lastRefused.store.failedSlots).toEqual(labels.slice(3));
@@ -2402,14 +2410,19 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await after(500);
     expect(lastRefused.session.speech).toBe(
       announceTitle(
-        partialBlock("The page init and the Timer", "the Setup").title,
+        partialBlock(
+          "The system timer, the page init and the Timer",
+          "the Setup",
+        ).title,
       ),
     );
 
     // 2. The Timer refused after two OKs: the two system slots landed.
     const timerRefused = await refuseNth(3);
     expect(timerRefused.store.phase).toBe("partial");
-    expect(timerRefused.store.landed).toBe("The page init");
+    expect(timerRefused.store.landed).toBe(
+      "The system timer and the page init",
+    );
     expect(timerRefused.store.failed).toBe("the Timer and the Setup");
     expect(timerRefused.store.landedSlots).toEqual(labels.slice(0, 2));
     expect(timerRefused.store.failedSlots).toEqual(labels.slice(2));
@@ -2592,7 +2605,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(third.store.phase).toBe("partial");
     expect(third.store.landedSlots).toEqual(["System timer", "System"]);
     expect(third.store.failedSlots).toEqual(["Timer", "Setup"]);
-    expect(third.store.landed).toBe("The page init");
+    expect(third.store.landed).toBe("The system timer and the page init");
     expect(third.store.failed).toBe("the Timer and the Setup");
 
     // 13-12'S STATES ARE UNTOUCHED: WRITABLE_PHASES is byte-identical to the

@@ -133,7 +133,10 @@ export function deviceClause(phase: InstallPhase): string | undefined {
     case "kept-mismatch":
       return keptMismatchBlock().title;
     case "partial":
-      return partialBlock("The page init", "the Timer and the Setup").title;
+      return partialBlock(
+        "The system timer and the page init",
+        "the Timer and the Setup",
+      ).title;
     case "nothing-landed":
       return nothingLandedBlock("try").title;
     case "restored-unconfirmed":

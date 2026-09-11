@@ -34,14 +34,20 @@
 //
 // NO AGENT WRITES TO A DEVICE. Every write in this file lands in
 // FakeTransport.writes, through the same RequestQueue and writeAll the real
-// panel will use, and nothing here opens a port. SINCE 12-03 THAT IS THREE
-// FRAMES, not two: the page-init slot goes on the wire ahead of the pair, and
-// this file pins the pair's bytes, not the count.
+// panel will use, and nothing here opens a port. SINCE 12.1-07 THAT IS FOUR
+// FRAMES, not three (12-03) or two: the system timer slot (255/6) goes on the
+// wire first of all, then the page init (255/0), then the pair - SLOTS' order
+// in sequence.ts - and since 12.1-08 this file pins all four: the two library
+// strings TOUCH_LIBRARY_TIMER and TOUCH_LIBRARY reach 255/6 and 255/0
+// verbatim for a Lua entry (test 2 pins what the tuner publishes, test 3 what
+// the wire carries), and the pair's bytes as before.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
+  ELEMENT_SYSTEM,
+  ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
   FrameScanner,
@@ -240,8 +246,8 @@ function stringsOrRefuse(config: ConfigStrings | undefined): WriteDecision {
   return {
     ok: true,
     strings: {
-      // The fourth key (12.1-07): the minimum that makes this file type-check
-      // against the four-key ConfigSet; 12.1-08 pins its bytes on the wire.
+      // The fourth key (12.1-07), first in SLOTS; its bytes are pinned on the
+      // wire in test 3 (12.1-08).
       systemTimer: config.systemTimer,
       system: config.system,
       setup: config.setup,
@@ -375,36 +381,51 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
           landed.config,
           `${entry.id}: the published pair is not renderLua's text`,
         ).toEqual({
-          // The fourth string (12.1-07): the minimum that keeps this pin green;
-          // 12.1-08 pins both library strings on the wire.
           systemTimer: TOUCH_LIBRARY_TIMER,
           system: TOUCH_LIBRARY,
           ...rendered,
         });
-        // AND THE PAGE INIT IS THE TOUCH LIBRARY, VERBATIM (12-07). It was the
-        // empty string for every entry from 12-03 until the library existed -
-        // the tuner saying "this entry has no page init of its own", which the
-        // install store substituted SYSTEM_DEFAULT_SETUP for in one place
-        // before any write. A hand-authored entry HAS one now, because from
-        // 12-08 its Setup calls the library by name, so the substitution stops
-        // firing for these entries and the string below is what reaches 255/0.
+        // AND THE PAGE INIT IS THE TOUCH LIBRARY, VERBATIM (12-07), AND THE
+        // PAGE TIMER IS ITS SECOND HALF, VERBATIM (12.1-08). The page init was
+        // the empty string for every entry from 12-03 until the library
+        // existed - the tuner saying "this entry has no page init of its own",
+        // which the install store substituted SYSTEM_DEFAULT_SETUP for in one
+        // place before any write. A hand-authored entry HAS one now, because
+        // from 12-08 its Setup calls the library by name, so the substitution
+        // stops firing for these entries and the string below is what reaches
+        // 255/0. Since 12.1-02 the library is in two halves - 255/0 defines G
+        // and calls self:tim(); 255/6 defines the rest - and since 12.1-07 the
+        // tuner publishes both, so TOUCH_LIBRARY_TIMER is what reaches 255/6
+        // and the store's #pageTimer substitution stops firing the same way.
         //
         // The preset half of the rule is unchanged and is asserted in the test
-        // above: a preset still publishes the empty string, because a firmware
-        // default is a wire fact and no module under src/lib/tune/ may know one
-        // (ladder.spec.ts:275).
+        // above: a preset still publishes the empty string in both system
+        // slots, because a firmware default is a wire fact and no module under
+        // src/lib/tune/ may know one (ladder.spec.ts:275).
         expect(
           landed.config.system,
           `${entry.id}: the page init is not the touch library, verbatim`,
         ).toBe(TOUCH_LIBRARY);
-        // Verbatim means measured: the library is canonical under the pinned
-        // minifier, so its length IS its cost and nothing on this path
-        // recompresses it. library.spec.ts owns the budget; this owns the
-        // identity of the string that reaches the wire.
+        expect(
+          landed.config.systemTimer,
+          `${entry.id}: the page timer is not the library's second half, verbatim`,
+        ).toBe(TOUCH_LIBRARY_TIMER);
+        expect(
+          landed.config.systemTimer,
+          `${entry.id}: the two halves of the library are one string`,
+        ).not.toBe(landed.config.system);
+        // Verbatim means measured: each half of the library is canonical under
+        // the pinned minifier, so its length IS its cost and nothing on this
+        // path recompresses it. library.spec.ts owns the budgets; this owns
+        // the identity of the strings that reach the wire.
         expect(
           landed.config.system.length,
           `${entry.id}: the page init is not its own minified form`,
         ).toBe(await measureLua(landed.config.system));
+        expect(
+          landed.config.systemTimer.length,
+          `${entry.id}: the page timer is not its own minified form`,
+        ).toBe(await measureLua(landed.config.systemTimer));
         for (const event of ["setup", "timer"] as const) {
           const text = landed.config[event];
           // The meter the tuner showed is the string's length, empty included.
@@ -443,12 +464,38 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
       await writeAll(queue, TARGET, config);
 
       const writes = configWrites(transport);
-      // FOUR since 12.1-07 (SLOTS: 255/6 first); the first frame's bytes are
-      // 12.1-08's pin, so it is skipped here and not asserted.
+      // FOUR since 12.1-07 (SLOTS: 255/6 first), all four pinned since
+      // 12.1-08: the system timer, then the page init, then Timer, then Setup
+      // - the order writeAll owns, read off the wire by element and event.
       expect(writes, "four CONFIG/EXECUTE frames").toHaveLength(4);
-      // The page init, then Timer, then Setup - the order writeAll owns.
-      const [, system, timer, setup] = writes;
+      const [systemTimer, system, timer, setup] = writes;
+      expect(
+        writes.map((c) => [
+          Number(c.class_parameters.ELEMENTNUMBER),
+          Number(c.class_parameters.EVENTTYPE),
+        ]),
+        "the four frames are not SLOTS' order",
+      ).toEqual([
+        [ELEMENT_SYSTEM, EVENT_TIMER],
+        [ELEMENT_SYSTEM, EVENT_SETUP],
+        [ELEMENT_TOUCH, EVENT_TIMER],
+        [ELEMENT_TOUCH, EVENT_SETUP],
+      ]);
+      // A preset publishes the empty string in both system slots (test 1),
+      // and the empty string is what this rig puts on the wire: writeAll does
+      // not substitute - the install store does, in one place, before it
+      // calls writeAll (install.spec.ts). The Lua landing below is where the
+      // library's bytes are pinned.
+      expect(String(systemTimer.class_parameters.ACTIONSTRING)).toBe(
+        config.systemTimer,
+      );
+      expect(Number(systemTimer.class_parameters.ACTIONLENGTH)).toBe(
+        config.systemTimer.length,
+      );
       expect(String(system.class_parameters.ACTIONSTRING)).toBe(config.system);
+      expect(Number(system.class_parameters.ACTIONLENGTH)).toBe(
+        config.system.length,
+      );
       expect(Number(timer.class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
       expect(String(timer.class_parameters.ACTIONSTRING)).toBe(config.timer);
       expect(Number(timer.class_parameters.ACTIONLENGTH)).toBe(
@@ -473,7 +520,57 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
     } finally {
       release(landed);
     }
-  });
+
+    // THE LIBRARY ON THE WIRE (12.1-08): for a Lua entry the two exported
+    // strings reach 255/6 and 255/0 byte for byte, in that order, ahead of
+    // the rendered pair. Test 2 pins the published strings to the exports;
+    // this pins the frames to the published strings, so the exports ARE the
+    // bytes - which is what the runbook's four-strings row reads off a module.
+    const lua = await landing("euclid");
+    try {
+      const { config } = lua;
+      const { transport, queue } = rig();
+      await writeAll(queue, TARGET, config);
+      const writes = configWrites(transport);
+      expect(writes, "four CONFIG/EXECUTE frames for a Lua entry").toHaveLength(
+        4,
+      );
+      const [systemTimer, system] = writes;
+      expect(Number(systemTimer.class_parameters.ELEMENTNUMBER)).toBe(
+        ELEMENT_SYSTEM,
+      );
+      expect(Number(systemTimer.class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
+      expect(
+        String(systemTimer.class_parameters.ACTIONSTRING),
+        "255/6 is not TOUCH_LIBRARY_TIMER, verbatim",
+      ).toBe(TOUCH_LIBRARY_TIMER);
+      expect(Number(systemTimer.class_parameters.ACTIONLENGTH)).toBe(
+        TOUCH_LIBRARY_TIMER.length,
+      );
+      expect(Number(system.class_parameters.ELEMENTNUMBER)).toBe(
+        ELEMENT_SYSTEM,
+      );
+      expect(Number(system.class_parameters.EVENTTYPE)).toBe(EVENT_SETUP);
+      expect(
+        String(system.class_parameters.ACTIONSTRING),
+        "255/0 is not TOUCH_LIBRARY, verbatim",
+      ).toBe(TOUCH_LIBRARY);
+      expect(Number(system.class_parameters.ACTIONLENGTH)).toBe(
+        TOUCH_LIBRARY.length,
+      );
+      // And the same negative as above, on each half: the minifier's form of
+      // a canonical string is the string itself, so nothing on the way to
+      // the wire could have shortened it without breaking the identity.
+      expect(GridScript.compressScript(TOUCH_LIBRARY_TIMER)).toBe(
+        String(systemTimer.class_parameters.ACTIONSTRING),
+      );
+      expect(GridScript.compressScript(TOUCH_LIBRARY)).toBe(
+        String(system.class_parameters.ACTIONSTRING),
+      );
+    } finally {
+      release(lua);
+    }
+  }, 30_000);
 
   it("the pair is undefined while measuring, and no write can be built from undefined", async () => {
     vi.useFakeTimers();

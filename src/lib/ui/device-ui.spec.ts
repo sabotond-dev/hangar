@@ -1740,7 +1740,7 @@ describe("the device UI's structural rules", () => {
     const titles = [
       unconfirmedBlock("x").title,
       keptMismatchBlock().title,
-      partialBlock("The page init", "the Setup").title,
+      partialBlock("The system timer and the page init", "the Setup").title,
       nothingLandedBlock("try").title,
     ];
     expect(
@@ -1797,7 +1797,7 @@ describe("the device UI's structural rules", () => {
     expect(deviceOnly).not.toContain(" · ");
     expect(deviceOnly).toContain('data-tone="uncertain"');
     expect(deviceOnly).toContain(
-      partialBlock("The page init", "the Setup").title,
+      partialBlock("The system timer and the page init", "the Setup").title,
     );
     const neither = render(ContextBar, {
       props: {

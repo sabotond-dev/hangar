@@ -1603,12 +1603,13 @@ export class InstallStore {
       landedCount++;
     }
     if (landedCount > 0) {
+      // Every row names the landed prefix in write order (12.1-08).
       const landed: LandedWords =
         landedCount === 1
           ? "The system timer"
           : landedCount === 2
-            ? "The page init"
-            : "The page init and the Timer";
+            ? "The system timer and the page init"
+            : "The system timer, the page init and the Timer";
       const failed: FailedWords =
         landedCount === 1
           ? "the page init, the Timer and the Setup"
