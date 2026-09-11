@@ -1,18 +1,22 @@
-// The touch library's three gates: what it costs, what it is called, and what
-// it is allowed to say.
+// The touch library's five gates: what each slot costs, what the library is
+// called, what it is allowed to say, which side of the split each thing lives
+// on, and that the knots on the wire are the measured ones.
 //
 // A SERVER SPEC, BY CHOICE, AND THE SWEEP'S MEMBER LIST DOES NOT MOVE. The
 // sweep project exists for the load-sensitive measurement - 1,331 knob
-// combinations through the WASM minifier - and this file measures ONE string
-// once. Putting it in the sweep would mean the library's cost was checked per
-// wave instead of per run, on a string every re-fit in this phase calls. So it
-// runs in `server`, `npm run test:sweep` stays at `4 19`, and this paragraph is
-// the record that the choice was made rather than overlooked.
+// combinations through the WASM minifier - and this file measures TWO strings
+// once each. Putting it in the sweep would mean the library's cost was checked
+// per wave instead of per run, on strings every re-fit in the phase calls. So
+// it runs in `server`, `npm run test:sweep` stays at `4 19`, and this paragraph
+// is the record that the choice was made rather than overlooked.
 //
-// THREE TESTS, AND THE COUNT DOES NOT MOVE WITH THE LIBRARY. Each one loops
-// over the parts or the call sites internally and names what it found, so a
-// seventh function - which must arrive with its caller named, see
-// `library.ts` section 3 - moves no number here.
+// FIVE TESTS SINCE PLAN 12.1-02 (three since 12-07), AND THE COUNT DOES NOT
+// MOVE WITH THE LIBRARY. Each one loops over the parts or the call sites
+// internally and names what it found, so an eleventh function - which must
+// arrive with its caller named, see `library.ts` section 5 - moves no number
+// here. The two added are the split rule (test 4) and the knots' provenance
+// (test 5), both of which exist only because there are two strings and a
+// measured table.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
@@ -20,37 +24,26 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
 import { padReady } from "../pad";
 import { HOST_GLOBALS, HOST_SELF_METHODS } from "../sim/lua-host";
+import { KX, KY, renderKnots } from "./calibration";
 import {
   LIBRARY_CONVENTIONS,
   LIBRARY_GLOBALS,
   LIBRARY_PARTS,
   LIBRARY_VERSION,
   TOUCH_LIBRARY,
+  TOUCH_LIBRARY_TIMER,
+  type LibrarySlot,
 } from "./library";
 
 /**
- * The planning figures this file replaces, kept so a green run still prints the
- * arithmetic rather than only its result.
- *
- * `SUPERSEDED_RAW` is the sketch that carried `F`: eight segments and seven
- * joins, 884 raw, which the pinned minifier read as 885 - one longer, differing
- * only in the joins, which is exactly why a canonical fixed point has to be
- * taken before either number means anything.
+ * The figures this file replaces, kept so a green run still prints the
+ * arithmetic rather than only its result: 12-07's one-slot library, and the
+ * 255/6 with a `G` that relied on a pre-coloured layer - the figure the user
+ * was shown when the second slot was put to them (12.1-CONTEXT D-03), before
+ * D-11 put the colour in `G`.
  */
-const SUPERSEDED_RAW = 884;
-const SUPERSEDED_COST = 885;
-
-/** The superseded sketch's parts, for the before column. See `library.ts`. */
-const SUPERSEDED_PARTS: Readonly<Record<string, number>> = {
-  "header and tables": 9 + 23,
-  W: 109,
-  E: 60,
-  Q: 261,
-  X: 74,
-  A: 150,
-  F: 123,
-  D: 68,
-};
+const ONE_SLOT_12_07 = 769;
+const PRE_COLOURED_TIMER = 683;
 
 /** Assembled at run time, never written out - `touch-guard.spec.ts`'s rule. */
 const F = (...parts: string[]): string => parts.join("");
@@ -63,6 +56,15 @@ const LT = "<";
 const AND = F("an", "d");
 const OR = F("o", "r");
 
+/** The two strings by slot, in the order the module is written. */
+const SLOTS: readonly { readonly slot: LibrarySlot; readonly lua: string }[] = [
+  { slot: 6, lua: TOUCH_LIBRARY_TIMER },
+  { slot: 0, lua: TOUCH_LIBRARY },
+];
+
+/** The two knot names - the only names longer than one capital. */
+const TWO_CAPITALS: readonly string[] = ["KX", "KY"];
+
 /**
  * Every firmware Lua global, from the six files `12-RESEARCH.md` §3b checked.
  *
@@ -70,10 +72,12 @@ const OR = F("o", "r");
  * and a spec that reached across it would be green here and red anywhere else,
  * so the list is transcribed once with its provenance:
  * `../grid-fw/common/src/lua/{init,events,mapsat,simplecolor,simplemidi,autovalue}.lua`,
- * read on 2026-09-10. The point of the list is its SHAPE, and the shape is the
- * whole licence for single-capital names: the shortest firmware global is
- * `EFN` at three characters (`grid_ui.c:370-383` sets it around every event
- * body), and not one of them is a single capital.
+ * read on 2026-09-10, and grepped again on 2026-09-11 (plan 12.1-02) for
+ * `KX`, `KY`, `function U`, `function G`, `function V`, `function N` - zero
+ * matches. The point of the list is its SHAPE, and the shape is the whole
+ * licence for capital names: the shortest firmware global is `EFN` at three
+ * characters (`grid_ui.c:370-383` sets it around every event body), and not
+ * one of them is one or two capitals.
  */
 const FIRMWARE_GLOBALS: readonly string[] = [
   "EFN",
@@ -136,11 +140,41 @@ function callArgs(text: string, name: string): string[] | null {
   return null;
 }
 
-/** The body of one named library function, braces and all. */
+/** The body of one named library part, braces and all. */
 function bodyOf(name: string): string {
   const part = LIBRARY_PARTS.find((p) => p.name === name);
   if (!part) throw new Error(`the library has no part named ${name}`);
   return part.lua;
+}
+
+/** The parts of one slot, in order. */
+function partsOf(slot: LibrarySlot): string[] {
+  return LIBRARY_PARTS.filter((p) => p.slot === slot).map((p) => p.lua);
+}
+
+/** How many times `needle` occurs in `text`. */
+function count(text: string, needle: string): number {
+  return text.split(needle).length - 1;
+}
+
+/**
+ * Where a name is DEFINED: `function NAME(` in any part, or `NAME=` in a
+ * header part. `L=l` inside `G` and `B[i]=n` are assignments to state the
+ * header created, not definitions, and this is what keeps them apart.
+ */
+function definitionSlots(name: string): LibrarySlot[] {
+  const out: LibrarySlot[] = [];
+  for (const part of LIBRARY_PARTS) {
+    const isHeader =
+      part.name === "header and tables" || part.name === "the map";
+    const re = isHeader
+      ? new RegExp(`\\b${name}=`, "g")
+      : new RegExp(`\\bfunction\\s+${name}\\s*\\(`, "g");
+    for (let n = [...part.lua.matchAll(re)].length; n > 0; n -= 1) {
+      out.push(part.slot);
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,111 +187,115 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     await padReady();
   });
 
-  it("1. costs what it says, and is its own fixed point", () => {
-    const raw = LIBRARY_PARTS.map((p) => p.lua);
-    const uniform = raw.join(" ");
-    const partSum = raw.reduce((n, p) => n + p.length, 0);
+  it("1. costs what it says on both slots, and each is its own fixed point", () => {
+    const costs: Record<LibrarySlot, number> = { 0: 0, 6: 0 };
+    for (const { slot, lua } of SLOTS) {
+      const raw = partsOf(slot);
+      const uniform = raw.join(" ");
+      const partSum = raw.reduce((n, p) => n + p.length, 0);
 
-    // THE PLANNING ARITHMETIC, ASSERTED RATHER THAN COPIED. Seven segments
-    // joined with six single spaces is the raw source length the plan carries;
-    // if the parts do not sum to it, one of them is mistyped.
-    expect(
-      partSum + raw.length - 1,
-      "the parts do not sum to the raw source",
-    ).toBe(uniform.length);
+      // THE PARTS ARITHMETIC, ASSERTED RATHER THAN COPIED. N segments joined
+      // with N-1 single spaces is the raw source length; if the parts do not
+      // sum to it, one of them is mistyped.
+      expect(
+        partSum + raw.length - 1,
+        `255/${slot}: the parts do not sum to the raw source`,
+      ).toBe(uniform.length);
 
-    // And the delta against the superseded sketch, part by part, so the 770 is
-    // derived from the change and not from the plan's paragraph.
-    const now: Record<string, number> = {};
-    for (const part of LIBRARY_PARTS) now[part.name] = part.lua.length;
-    const before = Object.values(SUPERSEDED_PARTS).reduce((a, b) => a + b, 0);
-    expect(
-      before + Object.keys(SUPERSEDED_PARTS).length - 1,
-      "the superseded parts do not sum to its recorded raw length",
-    ).toBe(SUPERSEDED_RAW);
+      // CANONICAL, AND THE ONE EDIT THE MINIFIER MAKES IS NAMED. On each slot
+      // the uniform join is exactly one character longer than the shipped
+      // string: the space before `function U` (after the map's `}`) on 255/0,
+      // the space before `function V` (after the marker's `]]`) on 255/6.
+      // Asserting compressScript(uniform) === shipped is what makes the join
+      // a measurement rather than a claim.
+      expect(
+        GridScript.compressScript(uniform),
+        `255/${slot}: the uniform join no longer compresses to the shipped ` +
+          "string, so the canonical form moved and the shipped join has to " +
+          "be re-derived",
+      ).toBe(lua);
+      expect(
+        uniform.length - lua.length,
+        `255/${slot}: the minifier drops exactly one separator from the ` +
+          "uniform join",
+      ).toBe(1);
+      expect(
+        GridScript.compressScript(lua),
+        `255/${slot}: the shipped string is not a fixed point of the ` +
+          "minifier, so cost() would charge the raw length and the budget " +
+          "meter would be lying",
+      ).toBe(lua);
 
-    const delta =
-      now["Q"] -
-      SUPERSEDED_PARTS["Q"] +
-      (now["E"] - SUPERSEDED_PARTS["E"]) +
-      (now["header and tables"] - SUPERSEDED_PARTS["header and tables"]) -
-      SUPERSEDED_PARTS["F"] -
-      1;
-    expect(
-      SUPERSEDED_RAW + delta,
-      "the per-part delta does not land on the raw source length",
-    ).toBe(uniform.length);
+      const cost = Math.max(lua.length, GridScript.compressScript(lua).length);
+      costs[slot] = cost;
+      console.log(
+        `255/${slot} costs ${cost} of ${EVENT_BUDGET}, ` +
+          `${EVENT_BUDGET - cost} free - against ${uniform.length} raw. ` +
+          "Parts: " +
+          LIBRARY_PARTS.filter((p) => p.slot === slot)
+            .map((p) => `${p.name} ${p.lua.length}`)
+            .join(", "),
+      );
+      expect(
+        cost,
+        `255/${slot}: ${cost} characters, ${EVENT_BUDGET - cost} free`,
+      ).toBeLessThanOrEqual(EVENT_BUDGET);
 
-    // CANONICAL, AND THE ONE EDIT THE MINIFIER MAKES IS NAMED. The uniform join
-    // is one character longer than the shipped string: the space between `P={}`
-    // and `function W` is the only separator the minifier can drop, so
-    // TOUCH_LIBRARY is built with the head concatenated and the six functions
-    // joined. Asserting compressScript(uniform) === TOUCH_LIBRARY is what makes
-    // that a measurement rather than a claim.
-    expect(
-      GridScript.compressScript(uniform),
-      "the uniform join no longer compresses to the shipped string, so the " +
-        "canonical form moved and the shipped join has to be re-derived",
-    ).toBe(TOUCH_LIBRARY);
-    expect(
-      GridScript.compressScript(TOUCH_LIBRARY),
-      "the shipped library is not a fixed point of the minifier, so cost() " +
-        "would charge the raw length and the budget meter would be lying",
-    ).toBe(TOUCH_LIBRARY);
+      // THE VERSION IS NOT IN THE LUA, and the way to assert that is to assert
+      // each string carries no comment at all beyond the event marker: a
+      // version stamp would have to be one, and a comment costs real
+      // characters out of 908 because the minifier does not strip them.
+      expect(
+        count(lua, "--"),
+        `255/${slot}: the string carries a comment beyond its event marker; ` +
+          "the minifier does not strip comments, so it is paying for it",
+      ).toBe(1);
+      expect(
+        lua.indexOf("--"),
+        `255/${slot}: the event marker is not the head of the string`,
+      ).toBe(0);
+    }
 
-    const cost = Math.max(
-      TOUCH_LIBRARY.length,
-      GridScript.compressScript(TOUCH_LIBRARY).length,
-    );
+    // The figures beside the record, so a green run prints them together:
+    // 255/0 is longer than 12-07's one-slot library (the map and `U` joined
+    // it, `A` and `D` left) and 255/6 is longer than the pre-coloured shape
+    // by exactly what `glc(a,l,r,g,b,1)` and the three colour parameters cost.
     console.log(
-      `the touch library costs ${cost} of ${EVENT_BUDGET}, ` +
-        `${EVENT_BUDGET - cost} free - against ${uniform.length} raw and the ` +
-        `superseded ${SUPERSEDED_COST} (${SUPERSEDED_RAW} raw). Parts: ` +
-        LIBRARY_PARTS.map((p) => `${p.name} ${p.lua.length}`).join(", "),
+      `the library: 255/0 ${costs[0]} + 255/6 ${costs[6]} = ` +
+        `${costs[0] + costs[6]}; 12-07's one slot read ${ONE_SLOT_12_07}, ` +
+        `the pre-coloured 255/6 read ${PRE_COLOURED_TIMER}`,
     );
     expect(
-      cost,
-      `${cost} characters, ${EVENT_BUDGET - cost} free`,
-    ).toBeLessThanOrEqual(EVENT_BUDGET);
-    expect(
-      cost,
-      "the library got shorter than the superseded sketch",
-    ).toBeLessThan(SUPERSEDED_COST);
+      costs[6],
+      "the colour in G (D-11) costs more than the pre-coloured shape, by " +
+        "construction; a 255/6 no longer than 683 has lost the glc",
+    ).toBeGreaterThan(PRE_COLOURED_TIMER);
     expect(
       LIBRARY_VERSION,
       "the library version is a TypeScript constant",
     ).toBe("1");
-    // THE VERSION IS NOT IN THE LUA, and the way to assert that is to assert
-    // the library carries no comment at all beyond the event marker: a version
-    // stamp would have to be one, and a comment costs real characters out of
-    // 908 because the minifier does not strip them.
-    expect(
-      [...TOUCH_LIBRARY.matchAll(/--/g)].length,
-      "the library carries a comment beyond its event marker; the minifier " +
-        "does not strip comments, so it is paying for it out of 908",
-    ).toBe(1);
-    expect(
-      TOUCH_LIBRARY.indexOf("--"),
-      "the event marker is not the head of the string",
-    ).toBe(0);
   });
 
-  it("2. names every global with one capital, defines every one it lists, and collides with nothing", () => {
-    // NO `local function`. Firmware wraps each stored event body in its own
-    // function (`grid_ui.c:370-383`), so a local defined in the system Setup is
-    // invisible to every touch Setup that would call it - the library would
-    // load clean and then raise "attempt to call a nil value" on the first
-    // finger.
-    expect(
-      TOUCH_LIBRARY.includes(F("local", " ", "function")),
-      "the library declares a local function, which no touch Setup can see",
-    ).toBe(false);
+  it("2. names every global with one capital except KX and KY, defines each in exactly one slot, and collides with nothing", () => {
+    // NO `local function`, IN EITHER STRING. Firmware wraps each stored event
+    // body in its own function (`grid_ui.c:370-383`), so a local defined in
+    // the system Setup or Timer is invisible to every touch Setup that would
+    // call it - the library would load clean and then raise "attempt to call a
+    // nil value" on the first finger.
+    for (const { slot, lua } of SLOTS) {
+      expect(
+        lua.includes(F("local", " ", "function")),
+        `255/${slot} declares a local function, which no touch Setup can see`,
+      ).toBe(false);
+    }
 
-    // Every definition is a single capital, and the scan is over the string.
-    const defined = [
-      ...TOUCH_LIBRARY.matchAll(/\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)/g),
-    ].map((m) => m[1]);
-    expect(defined.length, "the scan found no function definitions").toBe(6);
+    // Every definition is a single capital, and the scan is over the strings.
+    const defined = SLOTS.flatMap(({ lua }) =>
+      [...lua.matchAll(/\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)/g)].map(
+        (m) => m[1],
+      ),
+    );
+    expect(defined.length, "the scan found ten function definitions").toBe(10);
     for (const name of defined) {
       expect(
         /^[A-Z]$/.test(name),
@@ -265,34 +303,65 @@ describe("the touch library (CONT-02, PREV-01)", () => {
       ).toBe(true);
     }
 
-    // The derived list is the definitions plus the state tables, and it is
-    // DERIVED - host-surface.spec.ts admits it without a second copy.
+    // The derived list is the definitions plus the state names, and it is
+    // DERIVED - host-surface.spec.ts admits it without a second copy. EXACTLY
+    // TWO NAMES ARE TWO CAPITALS, the knot tables, and they are named here so
+    // a third two-letter name is a finding rather than a pattern.
     for (const name of defined) {
       expect(LIBRARY_GLOBALS, `${name} is defined but not derived`).toContain(
         name,
       );
     }
+    const twoCapitals: string[] = [];
     for (const name of LIBRARY_GLOBALS) {
+      if (/^[A-Z]$/.test(name)) continue;
       expect(
-        new RegExp(`\\b${name}\\s*[=(]`).test(TOUCH_LIBRARY),
-        `${name} is in LIBRARY_GLOBALS and is defined nowhere in the string`,
+        /^[A-Z]{2}$/.test(name),
+        `${name} is neither one capital nor two`,
       ).toBe(true);
-      expect(/^[A-Z]$/.test(name), `${name} is not a single capital`).toBe(
-        true,
-      );
+      twoCapitals.push(name);
     }
-    expect(LIBRARY_GLOBALS.length, "six functions and four state tables").toBe(
-      10,
-    );
+    expect(
+      twoCapitals.sort(),
+      "the two-capital names are exactly the two knot tables",
+    ).toEqual([...TWO_CAPITALS].sort());
+    expect(
+      LIBRARY_GLOBALS.length,
+      "ten functions and eight state names across the two strings",
+    ).toBe(18);
 
-    // EVERY SINGLE-CAPITAL CALL SITE IS ACCOUNTED FOR. The library calls one
-    // name it does not define - `R`, the entry's release convention - and this
-    // is where a seventh function or a second convention would have to declare
-    // itself instead of arriving unannounced.
+    // EVERY NAME IS DEFINED IN EXACTLY ONE SLOT. A name defined in both would
+    // be one string overwriting the other's on every page load; a name defined
+    // in neither would be in the derived list by a regex accident.
+    const bySlot: Record<LibrarySlot, string[]> = { 0: [], 6: [] };
+    for (const name of LIBRARY_GLOBALS) {
+      const slots = definitionSlots(name);
+      expect(
+        slots,
+        `${name} is in LIBRARY_GLOBALS and is defined in ${slots.length} ` +
+          "places rather than one",
+      ).toHaveLength(1);
+      bySlot[slots[0]].push(name);
+    }
+    console.log(
+      `255/0 defines ${bySlot[0].join(" ")}; 255/6 defines ${bySlot[6].join(" ")}`,
+    );
+    expect(bySlot[0].length + bySlot[6].length).toBe(LIBRARY_GLOBALS.length);
+    expect(
+      bySlot[6].every((name) => /^[A-Z]$/.test(name)),
+      "the map and its two-letter names live in 255/0 only",
+    ).toBe(true);
+
+    // EVERY CAPITAL CALL SITE IN EITHER STRING IS ACCOUNTED FOR. The library
+    // calls one name it does not define - `R`, the entry's release convention -
+    // and this is where an eleventh function or a second convention would
+    // have to declare itself instead of arriving unannounced.
     const called = [
       ...new Set(
-        [...TOUCH_LIBRARY.matchAll(/(^|[^A-Za-z0-9_.:])([A-Z])\(/g)].map(
-          (m) => m[2],
+        SLOTS.flatMap(({ lua }) =>
+          [...lua.matchAll(/(^|[^A-Za-z0-9_.:])([A-Z]{1,2})\(/g)].map(
+            (m) => m[2],
+          ),
         ),
       ),
     ].sort();
@@ -328,29 +397,34 @@ describe("the touch library (CONT-02, PREV-01)", () => {
         `${name} collides with a registered or firmware name`,
       ).not.toContain(name);
     }
-    // And the shape that licenses single capitals in the first place.
+    // And the shape that licenses one- and two-capital names in the first
+    // place.
     for (const name of FIRMWARE_GLOBALS) {
       expect(
         name.length,
-        `${name} is a single-capital firmware global, so the library's naming ` +
-          "rule has lost its licence",
-      ).toBeGreaterThan(1);
+        `${name} is a one- or two-capital firmware global, so the library's ` +
+          "naming rule has lost its licence",
+      ).toBeGreaterThan(2);
     }
   });
 
-  it("3. passes the pinned syntax check and both class gates", () => {
-    expect(
-      GridScript.checkSyntax(TOUCH_LIBRARY),
-      "the pinned checker refuses the library",
-    ).toBe(true);
+  it("3. passes the pinned syntax check and both class gates, on both strings", () => {
+    for (const { slot, lua } of SLOTS) {
+      expect(
+        GridScript.checkSyntax(lua),
+        `255/${slot}: the pinned checker refuses the string`,
+      ).toBe(true);
+    }
 
     // -----------------------------------------------------------------------
-    // THE CLASS-B GATE, over the string rather than over the catalog.
+    // THE CLASS-B GATE, over the strings rather than over the catalog.
     // `touch-guard.spec.ts` scans hand-authored ENTRIES; the library is not one,
     // so its own Lua would go unchecked by the file whose rule it has to obey.
     // The needles are assembled from fragments, exactly as that file assembles
-    // its own.
+    // its own. Both strings are scanned as one text: `G` in 255/6 carries the
+    // same live-test negation `Q` in 255/0 does.
     // -----------------------------------------------------------------------
+    const both = SLOTS.map(({ lua }) => lua).join("\n");
 
     // "this contact ended" is `e>=5 and e<9`. The library does not write one:
     // its end test is the negation of the live test, `e~=1 and e~=4 and e<9`,
@@ -358,12 +432,12 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     // Asserting ZERO sites is the honest reading, and it fails the moment an
     // unescaped one is added.
     const ended = [
-      ...TOUCH_LIBRARY.matchAll(
+      ...both.matchAll(
         new RegExp(F(V, "\\s*(", GE, "|", GT, ")\\s*([0-9]+)"), "g"),
       ),
     ].filter((m) => (m[1] === GE ? m[2] === "5" : m[2] === "4"));
     for (const site of ended) {
-      const after = TOUCH_LIBRARY.slice(site.index + site[0].length);
+      const after = both.slice(site.index + site[0].length);
       expect(
         new RegExp(F("^\\s*", AND, "\\s*", V, "\\s*", LT, "\\s*9")).test(after),
         F(
@@ -390,13 +464,11 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     // "this contact started" must admit the fast tap. The library writes it
     // once, in Q's `local o=`, and it is the onset every entry inherits.
     const started = [
-      ...TOUCH_LIBRARY.matchAll(
+      ...both.matchAll(
         new RegExp(F(V, EQ, "4\\s*", OR, "\\s*", V, GT, "8"), "g"),
       ),
     ];
-    const bareFour = [
-      ...TOUCH_LIBRARY.matchAll(new RegExp(F(V, EQ, "4"), "g")),
-    ];
+    const bareFour = [...both.matchAll(new RegExp(F(V, EQ, "4"), "g"))];
     expect(
       started.length,
       F(
@@ -411,19 +483,38 @@ describe("the touch library (CONT-02, PREV-01)", () => {
         "8`, and the library must write it that way where it decides an onset",
       ),
     ).toBe(1);
-    // Every `e==4` in the string is either that onset or part of the live test
+    // Every `e==4` in the strings is that one onset; the live test is written
     // `e~=1 and e~=4`, which is a membership question where excluding 9 is
-    // correct. Two sites, and no third.
+    // correct, and it appears TWICE - in `Q` and in `G`.
     expect(
       bareFour.length,
       "an unaccounted `" + F(V, EQ, "4") + "` appeared in the library",
     ).toBe(1);
+    const live = F(
+      V,
+      "~",
+      "=1 ",
+      AND,
+      " ",
+      V,
+      "~",
+      "=4 ",
+      AND,
+      " ",
+      V,
+      LT,
+      "9",
+    );
     expect(
-      TOUCH_LIBRARY.includes(
-        F(V, "~", "=1 ", AND, " ", V, "~", "=4 ", AND, " ", V, LT, "9"),
-      ),
-      "the live test lost its shape, so the end path no longer escapes 9",
-    ).toBe(true);
+      count(bodyOf("Q"), live),
+      "Q's live test lost its shape, so the end path no longer escapes 9",
+    ).toBe(1);
+    expect(
+      count(bodyOf("G"), live),
+      "G's end test is not the same negation Q uses, so the finger and the " +
+        "cell would disagree about which codes end a contact",
+    ).toBe(1);
+    expect(count(both, live), "the live test appears exactly twice").toBe(2);
 
     // -----------------------------------------------------------------------
     // THE CLASS-A GATE, and WHICH OF THE TWO ROUTES IT TAKES AND WHY.
@@ -440,9 +531,12 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     // depth-aware argument split, the same cell-and-layer match - and the
     // ARITHMETIC IS THEN ASSERTED DIRECTLY, over every value `w` can take. That
     // is the route this file takes, and it is stated here rather than left as
-    // "by construction".
+    // "by construction". `D` moved to 255/6 unchanged; the gate moved with it.
     // -----------------------------------------------------------------------
     const decay = bodyOf("D");
+    expect(TOUCH_LIBRARY_TIMER.includes(decay), "D is no longer in 255/6").toBe(
+      true,
+    );
     const glpfs = callArgs(decay, "glpfs");
     const glt = callArgs(decay, "glt");
     expect(glpfs, "D no longer writes a glpfs").not.toBeNull();
@@ -489,5 +583,108 @@ describe("the touch library (CONT-02, PREV-01)", () => {
       "a w that is not a multiple of six lands on 0 anyway, so the multiple " +
         "rule is meaningless and this gate proves nothing",
     ).not.toBe(0);
+  });
+
+  it("4. keeps state and the map in 255/0 and every LED write and send in 255/6, joined by exactly one self:tim()", () => {
+    // THE SPLIT RULE (`library.ts` section 2): 255/0 holds state and the map,
+    // 255/6 the painters and the senders. A change to the finger's look never
+    // touches the string that holds the knots, and the string that holds the
+    // knots never writes an LED or sends a message. Each half is asserted from
+    // both sides - absent here, present there - so an empty string could not
+    // pass either.
+    for (const name of ["glp(", "glc(", "gms("]) {
+      expect(
+        count(TOUCH_LIBRARY, name),
+        `255/0 writes an LED or sends a message (${name}); that belongs in 255/6`,
+      ).toBe(0);
+      expect(
+        count(TOUCH_LIBRARY_TIMER, name),
+        `255/6 no longer carries ${name}, so a painter or a sender left it`,
+      ).toBeGreaterThan(0);
+    }
+    for (const name of ["KX=", "KY="]) {
+      expect(count(TOUCH_LIBRARY, name), `${name} is missing from 255/0`).toBe(
+        1,
+      );
+      expect(
+        count(TOUCH_LIBRARY_TIMER, name),
+        `${name} appears in 255/6, so the map is defined twice`,
+      ).toBe(0);
+    }
+
+    // THE JOIN IS ONE CALL, EXACTLY ONCE, AND ONLY IN 255/0. Twice would run
+    // the Timer body twice on every page load; in 255/6 it would recurse.
+    expect(
+      count(TOUCH_LIBRARY, "self:tim()"),
+      "255/0 must call self:tim() exactly once - it is what defines the " +
+        "255/6 half on a page load",
+    ).toBe(1);
+    expect(
+      count(TOUCH_LIBRARY_TIMER, "self:tim()"),
+      "255/6 calls self:tim(), which is itself",
+    ).toBe(0);
+    expect(
+      TOUCH_LIBRARY.endsWith("self:tim()"),
+      "the call is the last thing in 255/0, after every definition it needs",
+    ).toBe(true);
+
+    // The parts' slots agree with the strings they are built into.
+    for (const part of LIBRARY_PARTS) {
+      const home = part.slot === 0 ? TOUCH_LIBRARY : TOUCH_LIBRARY_TIMER;
+      expect(
+        home.includes(part.lua),
+        `${part.name} is declared for 255/${part.slot} and is not in that string`,
+      ).toBe(true);
+    }
+    expect(
+      LIBRARY_PARTS.filter((p) => p.slot === 0).length,
+      "255/0 has eight parts: header, map, five functions, the call",
+    ).toBe(8);
+    expect(
+      LIBRARY_PARTS.filter((p) => p.slot === 6).length,
+      "255/6 has six parts: marker and five functions",
+    ).toBe(6);
+  });
+
+  it("5. puts calibration.ts's knots on the wire verbatim, once", () => {
+    // THE MAP IS RENDERED, NOT TYPED. `renderKnots()` is the one literal a
+    // test may hold (calibration.spec.ts test 2), because it is what goes on
+    // the wire; here it is asserted to be IN the wire string exactly once, and
+    // to be the library's own map part, so a knot edited in the table moves in
+    // 255/0 by derivation and a knot edited by hand in the string is caught.
+    const knots = renderKnots();
+    expect(
+      count(TOUCH_LIBRARY, knots),
+      "the rendered knots are in 255/0 once",
+    ).toBe(1);
+    expect(bodyOf("the map"), "the map part is renderKnots()").toBe(knots);
+    expect(
+      count(TOUCH_LIBRARY_TIMER, "KX={"),
+      "255/6 carries a knot table",
+    ).toBe(0);
+
+    // And the literal parses back to the two arrays, so what the Lua will
+    // index as `k[1]..k[9]` is what calibration.ts holds as `K[0]..K[8]`.
+    const m = /^KX=\{([0-9,]+)\}KY=\{([0-9,]+)\}$/.exec(knots);
+    expect(
+      m,
+      "the rendered knots have the shape KX={...}KY={...}",
+    ).not.toBeNull();
+    expect(m![1].split(",").map(Number)).toEqual([...KX]);
+    expect(m![2].split(",").map(Number)).toEqual([...KY]);
+    expect(knots.includes(" "), "the map carries a space on the wire").toBe(
+      false,
+    );
+
+    // `U` reads exactly nine knots: `k[1]` and `k[9]` are its clamp and
+    // `i=1,8` its walk. A table of another length would clamp to nil.
+    const u = bodyOf("U");
+    expect(
+      u.includes("k[1],k[9]"),
+      "U clamps to the first and ninth knot",
+    ).toBe(true);
+    expect(u.includes("for i=1,8 do"), "U walks eight segments").toBe(true);
+    expect(KX.length, "nine knots in x").toBe(9);
+    expect(KY.length, "nine knots in y").toBe(9);
   });
 });
