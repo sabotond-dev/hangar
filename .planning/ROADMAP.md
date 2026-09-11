@@ -451,8 +451,9 @@ entry that draws a finger (EUCLID, STEPS, RADAR POINTS, SONAR, CHORUS, MORPH, CO
 TRACKPAD's flash) is re-fitted and re-measured against 908. Must land before 13-14, the Sandbox
 compiler, which would otherwise inherit the cell model; 13-07..13-13 do not depend on it. Every
 agent on Fable 5.1 (the user's instruction for Phase 13 extends to this insertion).
-**Requirements**: TBD at planning (CONT-02, CONT-03, PREV-01 and the Phase 12 qualifiers are the
-starting set)
+**Requirements**: CONT-02, CONT-03, PREV-01, PREV-02, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-07
+(12.1-CONTEXT D-25; the gate amends SAFE-03, SAFE-05, SAFE-07, PREV-02, CONT-02, SAFE-04, PREV-01 by
+name and dated; CAT-04 stays unticked)
 **Depends on:** Phase 12 (gate landed, bench pending); ordered before Phase 13 plan 13-14
 **Plans:** 9 plans in two bands and a gate
 
