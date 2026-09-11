@@ -444,7 +444,7 @@
     const rect = canvas.getBoundingClientRect();
     return {
       x: mapAxis(event.clientX - rect.left, rect.width, engine.coordMax),
-      y: mapAxis(event.clientY - rect.top, rect.height, engine.coordMax),
+      y: mapAxis(event.clientY - rect.top, rect.height, engine.coordMax, "y"),
     };
   }
 
