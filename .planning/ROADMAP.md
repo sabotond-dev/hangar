@@ -455,7 +455,7 @@ agent on Fable 5.1 (the user's instruction for Phase 13 extends to this insertio
 (12.1-CONTEXT D-25; the gate amends SAFE-03, SAFE-05, SAFE-07, PREV-02, CONT-02, SAFE-04, PREV-01 by
 name and dated; CAT-04 stays unticked)
 **Depends on:** Phase 12 (gate landed, bench pending); ordered before Phase 13 plan 13-14
-**Plans:** 9 plans in two bands and a gate
+**Plans:** 11 plans in two bands and a gate
 
 Plans:
 - [ ] 12.1-01: calibration.ts from Probe C, the probe documented, 255/6 recorded as answered (Band 1)
@@ -466,7 +466,9 @@ Plans:
 - [ ] 12.1-06: the fourth string on the wire - constants, the ordered slot list, four writes and fetches (Band 2, after 13-12)
 - [ ] 12.1-07: TRY / PUT BACK / CLEAR over four strings, the classifier, the snapshot key (Band 2)
 - [ ] 12.1-08: the KEEP sentence, wire-pin over both strings, the fourth textarea, the fake, runbook rows I and J (Band 2, before 13-14)
-- [ ] 12.1-09: the gate - re-measured, nine-term chains, requirements amended, the bench rows (checkpoint)
+- [ ] 12.1-08a: GHOST onto the gradient - N and G, its own colour, ghost.png re-rendered, audition row 27 (Band 1, runs now)
+- [ ] 12.1-08b: the eight presets onto the gradient - the compiler emits K/G through the library, the preset landing publishes both strings, manifest rows on _pad.ts and pad-sim.ts (Band 2, checkpoint: mirror / compiler-only / stop)
+- [ ] 12.1-09: the gate - re-measured, eleven-term chains, requirements amended, the bench rows (checkpoint)
 
 ### Phase 13: GUI Overhaul
 
