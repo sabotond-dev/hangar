@@ -240,7 +240,7 @@
     is focusable without one.
   */
   .option:has(:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
     border-radius: 6px;
   }
@@ -262,6 +262,6 @@
 
   .option.selected .word,
   .option.selected:hover .word {
-    color: var(--color-accent);
+    color: var(--color-action);
   }
 </style>

@@ -579,7 +579,7 @@
     line-height: 1.2;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-action);
   }
 
   /*

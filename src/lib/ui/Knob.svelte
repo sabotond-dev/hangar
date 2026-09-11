@@ -35,18 +35,18 @@
   Phase 4 binds Escape to un-choosing the panel, and a knob that swallowed it
   would break the panel's only way out.
 
-  --color-over appears nowhere in this file. The ninth token is scoped to three
+  --color-error-ink appears nowhere in this file. The ninth token is scoped to three
   uses and all three of them are a meter's or a message's (05-UI-SPEC X-01); a
   knob is never red.
 
   THE LOCK, AND ITS SECOND CHANNEL (10-UI-SPEC 11.5, T1). Every row ends in a
   real <button aria-pressed> whose LABEL changes HOLD -> HELD, so the state is
   in the accessible name and not only in the pressed state. The second,
-  non-colour channel is the default marker: a 2px --color-line-soft dot at the
-  default position when the knob is free, a 2px --color-line bar spanning the
+  non-colour channel is the default marker: a 2px --color-divider dot at the
+  default position when the knob is free, a 2px --color-boundary bar spanning the
   SELECTED option when it is held. NO ACCENT IS SPENT ON EITHER, and none may
   be - 10-UI-SPEC 7.2's reserved list stays at eight, and tune-ui.spec.ts
-  counts this file's --color-accent declarations to keep it there.
+  counts this file's --color-action declarations to keep it there.
 
   THE FORECAST (10-UI-SPEC 11.3, T2). Hovering or focusing an option asks the
   region what that choice WOULD cost and shows the answer twice: a signed
@@ -564,7 +564,7 @@
   }
 
   .rail:has(:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
     border-radius: inherit;
   }
@@ -596,12 +596,12 @@
     inline-size: 8px;
     block-size: 8px;
     border-radius: 50%;
-    background: var(--color-line);
+    background: var(--color-boundary);
     transition: background-color 140ms ease-out;
   }
 
   .dot.selected {
-    background: var(--color-accent);
+    background: var(--color-action);
     transition:
       background-color 140ms ease-out,
       transform 140ms ease-out;
@@ -609,13 +609,13 @@
 
   /*
     FINDING, recorded in 05-08-SUMMARY.md: the spec's hover target for an
-    unselected dot is "--color-accent at 40% opacity", which composites to
-    rgb(214 255 78 / 0.4) - exactly --color-line, the rest state. The
+    unselected dot is "--color-action at 40% opacity", which composites to
+    rgb(214 255 78 / 0.4) - exactly --color-boundary, the rest state. The
     declaration is shipped as the contract words it rather than inventing a
     colour outside the two-colour ladder to make it visible.
   */
   .rail:hover .dot:not(.selected) {
-    background: var(--color-accent);
+    background: var(--color-action);
     opacity: 0.4;
   }
 
@@ -637,11 +637,11 @@
 
   .track-line {
     inline-size: 100%;
-    background: var(--color-line-soft);
+    background: var(--color-divider);
   }
 
   .track-fill {
-    background: var(--color-accent);
+    background: var(--color-action);
     transition: inline-size 120ms ease-out;
   }
 
@@ -651,12 +651,12 @@
     inline-size: 12px;
     block-size: 12px;
     border-radius: 50%;
-    background: var(--color-accent);
+    background: var(--color-action);
     transition: inset-inline-start 120ms ease-out;
   }
 
   /*
-    Where home is: a 2px --color-line-soft dot, 4px below the option at the
+    Where home is: a 2px --color-divider dot, 4px below the option at the
     default index. Decorative at 1.58:1 because its meaning is carried by
     RESET ALL, a labelled control on the same screen.
 
@@ -672,7 +672,7 @@
     inline-size: 2px;
     block-size: 2px;
     border-radius: 50%;
-    background: var(--color-line-soft);
+    background: var(--color-divider);
   }
 
   .home-dot {
@@ -686,10 +686,10 @@
 
   /*
     HELD: the same 2px marker, moved to the SELECTED option and widened into a
-    bar spanning it, in --color-line rather than --color-line-soft.
+    bar spanning it, in --color-boundary rather than --color-divider.
 
     This is the lock's second channel and it is deliberately not a colour from
-    the reserved list: --color-line is the structural rung at 3.31:1, one step
+    the reserved list: --color-boundary is the structural rung at 3.31:1, one step
     up from the soft one the free marker uses, so the change reads as shape
     plus weight rather than as "selected" (10-UI-SPEC 7.2 keeps the accent list
     at eight, and the accent census in tune-ui.spec.ts is what holds it there).
@@ -699,7 +699,7 @@
   */
   .home.bar {
     border-radius: 1px;
-    background: var(--color-line);
+    background: var(--color-boundary);
   }
 
   .rail .home.bar {
@@ -738,7 +738,7 @@
     fill and the 24px inline padding, applied by the class:pill directive in the
     markup above, which is conditional for a reason: a swatch option is a colour
     under glass rather than a word, it has carried zero inline padding since
-    Phase 5 so the swatch fills the box, and putting a 1px --color-line outline
+    Phase 5 so the swatch fills the box, and putting a 1px --color-boundary outline
     around a colour sample would put a second edge on a thing whose whole job is
     to show one. The word row's own 6px radius goes with the change; the swatch
     row keeps it below.
@@ -767,7 +767,7 @@
     this component is focusable without a visible ring.
   */
   .option:has(:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -785,7 +785,7 @@
   }
 
   .option.selected .word {
-    color: var(--color-accent);
+    color: var(--color-action);
   }
 
   .option:active {
@@ -804,7 +804,7 @@
     same reason: +9 and +10 must not shift the option under the pointer.
 
     --color-ink, not accent: the reserved list stays at eight, and a forecast
-    is information rather than a selection. There is no --color-over branch
+    is information rather than a selection. There is no --color-error-ink branch
     either; an option that would cross 908 is disabled and cannot be hovered,
     so X-01 stays at three.
 
@@ -854,17 +854,17 @@
   .swatch {
     inline-size: 28px;
     block-size: 28px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 2px;
     transition: border-color 140ms ease-out;
   }
 
   .option:hover .swatch {
-    border-color: var(--color-accent);
+    border-color: var(--color-action);
   }
 
   .option.selected .swatch {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 2px;
   }
 

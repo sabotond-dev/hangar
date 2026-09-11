@@ -51,17 +51,17 @@
   deletes one of those three declarations the block silently becomes 56.8px:
   the declarations are the arithmetic.
 
-  --color-over lives here and in BudgetMessage.svelte, and nowhere else on the
+  --color-error-ink lives here and in BudgetMessage.svelte, and nowhere else on the
   site. Two of X-01's three permitted uses are in this file: the offending
   meter's bar fill with its 2px outline, and that meter's numerals and
   percentage. It is never a button, never a border elsewhere, never a knob.
 
   THE GHOST IS THE THIRD THING IN THE BAR AND IT SPENDS NOTHING (TUNE-02, T2).
   A hovered or focused knob option publishes what it WOULD cost, and the bar
-  draws the difference in --color-line-soft - the track's own token, at 0 ms,
-  behind nothing and in front of nothing. It adds no --color-over branch: an
+  draws the difference in --color-divider - the track's own token, at 0 ms,
+  behind nothing and in front of nothing. It adds no --color-error-ink branch: an
   option that would cross 908 is already disabled and cannot be hovered, so
-  this file's three var(--color-over) declarations are untouched and X-01 is
+  this file's three var(--color-error-ink) declarations are untouched and X-01 is
   still at three uses. It adds no accent either: the reserved list stays at
   eight.
 
@@ -144,8 +144,8 @@
    * accent fill always ends where the ghost begins:
    *
    *   [0, min)    the accent fill, exactly as it always was
-   *   [min, max)  the ghost, --color-line-soft OVER the track's own
-   *               --color-line-soft, which composites to 0.36 alpha against
+   *   [min, max)  the ghost, --color-divider OVER the track's own
+   *               --color-divider, which composites to 0.36 alpha against
    *               the track's 0.2 - a real difference, drawn in the material
    *               of the bar rather than in a colour of its own
    *   [max, 100]  the empty track
@@ -279,7 +279,7 @@
 
   /* X-01 use 2 of 3. A warning is never dimmed, so .over wins over .quiet. */
   .over {
-    color: var(--color-over);
+    color: var(--color-error-ink);
   }
 
   /* 4px under the row, then an 8px bar at the full content width. */
@@ -288,14 +288,14 @@
     margin-block-start: 4px;
     block-size: 8px;
     border-radius: 2px;
-    background: var(--color-line-soft);
+    background: var(--color-divider);
   }
 
   /*
-    THE GHOST (TUNE-02, T2). --color-line-soft, the same token the empty track
+    THE GHOST (TUNE-02, T2). --color-divider, the same token the empty track
     already is, so the forecast is drawn in the material of the bar rather than
     in a colour of its own: NO ACCENT IS SPENT and X-01's alarm red is not
-    touched, which is what keeps the reserved list at eight and --color-over at
+    touched, which is what keeps the reserved list at eight and --color-error-ink at
     exactly three.
 
     transition: none, AND IT IS NOT AN OVERSIGHT. 10-UI-SPEC 14 lists the ghost
@@ -304,7 +304,7 @@
     real value rather than as a forecast. The fill beside it keeps its 120 ms
     for the opposite reason - it is a measurement landing, not a pointer.
 
-    NO --color-over BRANCH LIVES HERE, and a reader looking for the fourth use
+    NO --color-error-ink BRANCH LIVES HERE, and a reader looking for the fourth use
     of the alarm red will not find it. An option that would take the event over
     908 is already `disabled`, so it cannot be hovered and an unaffordable
     forecast cannot be drawn at all.
@@ -314,7 +314,7 @@
     inset-block: 0;
     display: block;
     border-radius: 2px;
-    background: var(--color-line-soft);
+    background: var(--color-divider);
     transition: none;
   }
 
@@ -324,7 +324,7 @@
     still visibly a full bar rather than a solid block.
   */
   .track.over {
-    outline: 2px solid var(--color-over);
+    outline: 2px solid var(--color-error-ink);
     outline-offset: 2px;
   }
 
@@ -332,7 +332,7 @@
     display: block;
     block-size: 100%;
     border-radius: 2px;
-    background: var(--color-accent);
+    background: var(--color-action);
     transition: inline-size 120ms ease-out;
   }
 
@@ -354,7 +354,7 @@
     collapses to 1.56:1 (05-UI-SPEC X-02, X-03).
   */
   .fill.over {
-    background: var(--color-over);
+    background: var(--color-error-ink);
   }
 
   /* The fill glides when a measurement lands; instant when motion is reduced. */

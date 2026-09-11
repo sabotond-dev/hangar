@@ -892,7 +892,7 @@
     flex: 1 1 auto;
     min-block-size: 44px;
     padding-inline: 16px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 6px;
     background: transparent;
     font-family: inherit;
@@ -907,7 +907,7 @@
   }
 
   .action:hover:not(:disabled) {
-    border-color: var(--color-accent);
+    border-color: var(--color-action);
   }
 
   /*
@@ -916,7 +916,7 @@
     and here the cause is the rack directly above with every marker at home.
   */
   .action:disabled {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 

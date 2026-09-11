@@ -308,7 +308,7 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     expect(
       source,
       "the picker names the alarm red, which would be X-01's fourth use",
-    ).not.toContain("--color-over");
+    ).not.toContain("--color-error-ink");
   });
 
   it("the cheap-step ticks are derived from the literal, and share the default marker's shape", () => {
@@ -379,12 +379,12 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     ).toEqual(geometry(home?.body ?? ""));
     expect(
       tick?.body,
-      "the tick is not --color-line, so it is either invisible or on a token it has no claim to",
-    ).toContain("var(--color-line)");
+      "the tick is not --color-boundary, so it is either invisible or on a token it has no claim to",
+    ).toContain("var(--color-boundary)");
     expect(
       tick?.body,
       "the tick spends accent - the reserved list stays at eight and a tick is information, not a selection",
-    ).not.toContain("--color-accent");
+    ).not.toContain("--color-action");
   });
 
   it("the unaffordable guard fires on a synthetic near-wall entry and is measured at zero on the shelf", () => {
@@ -459,12 +459,12 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     ).toBeDefined();
     expect(
       rule?.body,
-      "an excluded detent is not painted in --color-ground",
-    ).toContain("var(--color-ground)");
+      "an excluded detent is not painted in --color-workspace",
+    ).toContain("var(--color-workspace)");
     expect(
       rule?.body,
-      "an excluded detent has no 1px --color-line-soft hairline, so it reads as a hole rather than as a position",
-    ).toMatch(/1px var[(]--color-line-soft[)]/);
+      "an excluded detent has no 1px --color-divider hairline, so it reads as a hole rather than as a position",
+    ).toMatch(/1px var[(]--color-divider[)]/);
     expect(
       picker,
       "the exclusion is announced only in the paint - it needs the visually-hidden sentence, which is what makes it audible",

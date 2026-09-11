@@ -37,9 +37,14 @@ const FRAME_RIGHT = 841;
 const FRAME_BOTTOM = 556;
 
 const BLACK = [0, 0, 0];
-/** The UI spec's two flattened hexes, as channels. */
-const UI_SPEC_LINE_SOFT = [0x2b, 0x33, 0x10];
-const UI_SPEC_LINE = [0x56, 0x66, 0x1f];
+/**
+ * The two flattened hexes, as channels: the D-16 accent #dcff71 at 0.2 and at
+ * 0.4 over black, round(channel * alpha). Under the nine-token ladder these
+ * were 05-UI-SPEC's #2b3310 and #56661f from #d6ff4e; 13-03 moved the accent
+ * to the Bible's and recomputed both.
+ */
+const UI_SPEC_LINE_SOFT = [0x2c, 0x33, 0x17];
+const UI_SPEC_LINE = [0x58, 0x66, 0x2d];
 
 const APP_CSS = new URL("../../app.css", import.meta.url);
 
@@ -73,16 +78,6 @@ function blockOrigin(n: number): [number, number] {
   const col = n % 9;
   const row = (n - col) / 9;
   return [FACE_LEFT + col * CELL + GUTTER, FACE_TOP + row * CELL + GUTTER];
-}
-
-/** The alpha declared for a token in `src/app.css`, as a number. */
-function alphaOf(token: string): number {
-  const css = readFileSync(APP_CSS, "utf8");
-  const declared = new RegExp(`${token}:[^;]*[/][ ]*([0-9.]+)[ ]*[)]`).exec(
-    css,
-  );
-  if (declared === null) throw new Error(`no ${token} in src/app.css`);
-  return Number.parseFloat(declared[1]);
 }
 
 describe("the OG pad renderer", () => {
@@ -139,8 +134,8 @@ describe("the OG pad renderer", () => {
   it("paints unlit cells as one flattened dot and the frame as one stroke", () => {
     // Both structural colours are computed from the accent's channels and an
     // alpha - round(channel * alpha) over black - and both must equal the
-    // numbers 05-UI-SPEC records. Neither hex appears in render.ts.
-    expect(ACCENT_RGB).toEqual([0xd6, 0xff, 0x4e]);
+    // numbers above. Neither hex appears in render.ts.
+    expect(ACCENT_RGB).toEqual([0xdc, 0xff, 0x71]);
     expect(flattenOnBlack(ACCENT_RGB, LINE_SOFT_ALPHA)).toEqual(
       UI_SPEC_LINE_SOFT,
     );
@@ -148,11 +143,14 @@ describe("the OG pad renderer", () => {
     expect(UNLIT_DOT_RGB).toEqual(UI_SPEC_LINE_SOFT);
     expect(FRAME_RGB).toEqual(UI_SPEC_LINE);
 
-    // And the ladder itself: the accent and the two alphas are src/app.css's,
-    // so the image cannot drift from the site's own identity.
-    expect(readFileSync(APP_CSS, "utf8")).toContain("--color-accent: #d6ff4e;");
-    expect(alphaOf("--color-line-soft")).toBe(LINE_SOFT_ALPHA);
-    expect(alphaOf("--color-line")).toBe(LINE_ALPHA);
+    // And the accent itself is src/app.css's --color-action (D-16), so the
+    // image cannot drift from the site's own identity. The two alphas were
+    // --color-line-soft's and --color-line's under the nine-token ladder; since
+    // 13-03 those lines are opaque graphites and the alphas are this image's
+    // own constants until 13-07 re-derives it (see render.ts).
+    expect(readFileSync(APP_CSS, "utf8")).toContain("--color-action: #dcff71;");
+    expect(LINE_SOFT_ALPHA).toBe(0.2);
+    expect(LINE_ALPHA).toBe(0.4);
 
     const px = renderOgPixels(new Uint8Array(243));
     // A 6px dot centred in the 52px cell: the cell's centre is the dot, and

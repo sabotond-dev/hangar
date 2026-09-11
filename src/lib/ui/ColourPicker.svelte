@@ -29,7 +29,7 @@
   every other pad on the page.
 
   NOTHING NEW IS INVENTED. The three rails are 05-UI-SPEC's detent-track skin -
-  a 4px --color-line-soft track filled to the index in --color-accent, a 12px
+  a 4px --color-divider track filled to the index in --color-action, a 12px
   accent thumb, one <input type="range"> at opacity 0 over the paint, filling the
   44px box, with a real <label for>. The knob selector is Phase 5's word row, its
   third use after SORT and SCREEN. No new widget, no new keyboard model and no
@@ -58,7 +58,7 @@
   reserved list stays at eight - every accent declaration below is either the
   focus ring (entry 4) or the selected value of a knob (entry 8).
 
-  --color-over appears nowhere in this file. The ninth token is scoped to three
+  --color-error-ink appears nowhere in this file. The ninth token is scoped to three
   uses and all three of them belong to a meter or a message; a knob is never red,
   and an unaffordable colour is absent rather than alarming.
 
@@ -570,13 +570,13 @@
     the accent and the text on it has to be the one colour that is not.
   */
   .option.selected {
-    border-color: var(--color-accent);
-    background: var(--color-accent);
+    border-color: var(--color-action);
+    background: var(--color-action);
   }
 
   /* The radio is visually hidden, so Phase 4's ring is drawn on the option. */
   .option:has(:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -596,7 +596,7 @@
 
   .option.selected .word,
   .option.selected:hover .word {
-    color: var(--color-ground);
+    color: var(--color-workspace);
   }
 
   /*
@@ -637,7 +637,7 @@
   }
 
   .join {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
   }
 
   /*
@@ -684,7 +684,7 @@
     flex: 0 0 auto;
     inline-size: 88px;
     block-size: 88px;
-    border: 1px solid var(--color-line-soft);
+    border: 1px solid var(--color-divider);
     border-radius: 2px;
   }
 
@@ -744,7 +744,7 @@
   }
 
   .rail:has(:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
     border-radius: 2px;
   }
@@ -785,11 +785,11 @@
     min-inline-size: 0;
     block-size: 16px;
     border-radius: 2px;
-    background: var(--color-ground);
+    background: var(--color-workspace);
   }
 
   .detent.selected {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 1px;
   }
 
@@ -800,8 +800,8 @@
     exactly as wide as an included one.
   */
   .detent.unaffordable {
-    background: var(--color-ground);
-    box-shadow: inset 0 0 0 1px var(--color-line-soft);
+    background: var(--color-workspace);
+    box-shadow: inset 0 0 0 1px var(--color-divider);
   }
 
   .ticks {
@@ -827,7 +827,7 @@
     inline-size: 2px;
     block-size: 2px;
     border-radius: 50%;
-    background: var(--color-line);
+    background: var(--color-boundary);
   }
 
   .track-line,
@@ -841,11 +841,11 @@
 
   .track-line {
     inline-size: 100%;
-    background: var(--color-line-soft);
+    background: var(--color-divider);
   }
 
   .track-fill {
-    background: var(--color-accent);
+    background: var(--color-action);
     transition: inline-size 120ms ease-out;
   }
 
@@ -855,13 +855,13 @@
     inline-size: 12px;
     block-size: 12px;
     border-radius: 50%;
-    background: var(--color-accent);
+    background: var(--color-action);
     transition: inset-inline-start 120ms ease-out;
   }
 
   /*
     Where the card ships, and the lock's second channel: a 2px soft dot when
-    the knob is free, a --color-line bar over the selected step when it is
+    the knob is free, a --color-boundary bar over the selected step when it is
     held. Knob.svelte's rule, verbatim, and no accent is spent on either.
   */
   .home {
@@ -870,13 +870,13 @@
     inline-size: 2px;
     block-size: 2px;
     border-radius: 50%;
-    background: var(--color-line-soft);
+    background: var(--color-divider);
   }
 
   .home.bar {
     inline-size: 12px;
     border-radius: 1px;
-    background: var(--color-line);
+    background: var(--color-boundary);
   }
 
   /* Phase 4's hover lift becomes a colour change only. */

@@ -288,7 +288,7 @@ describe("the browse screen's structural rules", () => {
 
   it("the browse screen uses the lime ladder and nothing else", () => {
     // X-01 scopes the ninth token to the over-budget state of a 908-character
-    // meter. No meter exists on a browse screen, so --color-over appears nowhere
+    // meter. No meter exists on a browse screen, so --color-error-ink appears nowhere
     // here, and identity.spec.ts stays at 6 tests and is untouched.
     //
     // The hex rule is the second half: every colour on this screen comes from a
@@ -296,7 +296,7 @@ describe("the browse screen's structural rules", () => {
     // hand, and both are the same regression. The lookahead is not decoration -
     // without it `{#each` reads as the hex #eac, and three shipped components
     // would be permanently red for a Svelte block opener.
-    const TOKEN = "--color-over";
+    const TOKEN = "--color-error-ink";
     const HEX = /#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])/g;
 
     const files = browseFiles();

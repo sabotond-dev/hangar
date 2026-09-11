@@ -41,7 +41,7 @@
   or four lines in a 286px card. A `…` on this site means "this is still
   happening", never "there is more".
 
-  NOTHING HERE IS AN ALARM. `--color-over` is Phase 5's over-budget colour, it is
+  NOTHING HERE IS AN ALARM. `--color-error-ink` is Phase 5's over-budget colour, it is
   scoped to three uses inside a 908-character meter, and no meter exists on a
   browse screen. An empty band on an unfeatured card, a resting-dark pad and an
   unavailable entry are all quiet prose on the inherited alpha ladder
@@ -259,7 +259,7 @@
     flex-direction: column;
     list-style: none;
     cursor: pointer;
-    background-color: var(--color-ground);
+    background-color: var(--color-workspace);
   }
 
   /* Micro: 12px / 600 / 1.2 / 0.18em, uppercase. 14.4px inside a 16px band. */
@@ -284,12 +284,12 @@
   /*
     PadFrame's root, reached through :global because the component exposes no
     hover prop and its `hero` flag is the wrong lever - hero also adds the lime
-    bloom, and no browse card glows. Rest is --color-line-soft (the side-pad
-    treatment: a card is not a hero); hover and focus lift it to --color-line.
+    bloom, and no browse card glows. Rest is --color-divider (the side-pad
+    treatment: a card is not a hero); hover and focus lift it to --color-boundary.
   */
   .card:hover .pad-wrap > :global(.pad),
   .card:has(.name:focus-visible) .pad-wrap > :global(.pad) {
-    border-color: var(--color-line);
+    border-color: var(--color-boundary);
   }
 
   /*
@@ -306,14 +306,14 @@
     pointer-events: none;
   }
 
-  /* Phase 4's plate: 44px, 6px radius, --color-line, Heading 20px / 600. */
+  /* Phase 4's plate: 44px, 6px radius, --color-boundary, Heading 20px / 600. */
   .name {
     display: grid;
     place-items: center;
     min-block-size: 44px;
     inline-size: 100%;
     padding-inline: 16px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 6px;
     background: transparent;
     font-size: 20px;
@@ -335,11 +335,11 @@
   }
 
   .card:hover .name {
-    border-color: var(--color-accent);
+    border-color: var(--color-action);
   }
 
   .name.unavailable {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
   }
 
   /*
@@ -352,7 +352,7 @@
   }
 
   .card:has(.name:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
     border-radius: 10px;
   }
@@ -368,8 +368,8 @@
   }
 
   /*
-    Information, not controls, and visibly so: --color-line-soft against the
-    toolbar's --color-line, and 24.4px of height against its 44px.
+    Information, not controls, and visibly so: --color-divider against the
+    toolbar's --color-boundary, and 24.4px of height against its 44px.
   */
   .tags {
     display: flex;
@@ -410,7 +410,7 @@
     one of them carries a number the columns must not move on the day it
     arrives rather than on the day somebody notices.
 
-    NO DIVIDER, NO BORDER, NO ZEBRA AND NO NEW --color-line USE (19.1d). The
+    NO DIVIDER, NO BORDER, NO ZEBRA AND NO NEW --color-boundary USE (19.1d). The
     column alignment carries the row. The block sits above the tag row on the
     ink ladder's quiet rung and is separated from it by space alone.
   */
@@ -430,14 +430,14 @@
 
   /* The separator, at the soft rung so the fields read before it does. */
   .plus {
-    color: var(--color-line-soft);
+    color: var(--color-divider);
   }
 
   /* Micro (title): 12px / 600 / 1.2 / 0.01em, sentence case, verbatim. */
   .tag {
     display: inline-block;
     padding: 4px 8px;
-    border: 1px solid var(--color-line-soft);
+    border: 1px solid var(--color-divider);
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;

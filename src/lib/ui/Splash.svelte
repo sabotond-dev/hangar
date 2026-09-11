@@ -281,7 +281,7 @@
     z-index: 50;
     display: grid;
     place-items: center;
-    background: var(--color-ground);
+    background: var(--color-workspace);
 
     --in-ms: 240ms;
     --out-ms: 700ms;
@@ -348,7 +348,7 @@
   .plate {
     position: relative;
     padding: 32px;
-    background: var(--color-ground);
+    background: var(--color-workspace);
     transform-origin: 0 0;
     transition:
       transform var(--out-ms) var(--out-ease),
@@ -363,7 +363,7 @@
     line-height: 1.2;
     letter-spacing: 0.5em;
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-action);
     /* The tracking adds a trailing space; this takes it back off. */
     margin-inline-end: -0.5em;
   }

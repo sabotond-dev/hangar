@@ -640,7 +640,7 @@ export function colourRail(
  * The highest level a rail's `<input type="range">` may reach.
  *
  * ABSENT AS A COLOUR, PRESENT AS A POSITION. An unaffordable detent is still
- * painted - in `--color-ground` behind a 1px `--color-line-soft` hairline - so
+ * painted - in `--color-workspace` behind a 1px `--color-divider` hairline - so
  * the rail keeps its shape and a visitor can see that the space continues; the
  * control's own `max` is what stops there, which is what makes the exclusion
  * real rather than decorative and what makes the platform announce it.

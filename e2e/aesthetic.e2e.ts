@@ -689,7 +689,7 @@ test.describe("the CRT treatment, asserted at the compositor", () => {
     ).toBeGreaterThan(0);
     expect(
       alpha,
-      `the unlit cell's wash is ${alpha}, at or above --color-line-soft's own 0.2. A-58 caps it BELOW the dot that sits in the same cell, so an unlit cell on the one card that can never light is exactly as strong as an unlit cell on every other card. "The same strength the other cards' unlit cells have" is the constraint, and out-shining them fails it`,
+      `the unlit cell's wash is ${alpha}, at or above --color-divider's own 0.2. A-58 caps it BELOW the dot that sits in the same cell, so an unlit cell on the one card that can never light is exactly as strong as an unlit cell on every other card. "The same strength the other cards' unlit cells have" is the constraint, and out-shining them fails it`,
     ).toBeLessThan(0.2);
 
     // ---- AND IT IS STILL DARK. The wash is CSS BEHIND the canvas; the canvas

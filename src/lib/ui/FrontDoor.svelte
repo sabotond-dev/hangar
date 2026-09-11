@@ -417,7 +417,7 @@
     line-height: 1.2;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-action);
     transition: opacity var(--arrive-ms) cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 

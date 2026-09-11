@@ -32,7 +32,7 @@
   nothing beneath it moves afterwards. There is no appearance transition here
   for that reason: nothing to fade in from, because it was already there.
 
-  No --color-over appears in this file. The token is scoped to X-01's three
+  No --color-error-ink appears in this file. The token is scoped to X-01's three
   uses, all of them in BudgetMeter.svelte and BudgetMessage.svelte, and an
   unreadable link is not an alarm - it is a fact stated plainly.
 
@@ -91,7 +91,7 @@
   /* Body role at full strength, with the 2px structural left rule. */
   .line {
     margin: 0;
-    border-inline-start: 2px solid var(--color-line);
+    border-inline-start: 2px solid var(--color-boundary);
     padding-inline-start: 12px;
     font-size: 16px;
     font-weight: 400;

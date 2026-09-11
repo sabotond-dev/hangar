@@ -144,7 +144,7 @@
     inline-size: fit-content;
     margin-inline: auto;
     block-size: 44px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 6px;
     background: transparent;
     transition: border-color 160ms ease-out;
@@ -156,7 +156,7 @@
     the buttons out of it.
   */
   .plate:has(button:hover) {
-    border-color: var(--color-accent);
+    border-color: var(--color-action);
   }
 
   .arrow,
@@ -176,7 +176,7 @@
     place-items: center;
     min-inline-size: 44px;
     min-block-size: 44px;
-    color: var(--color-accent);
+    color: var(--color-action);
   }
 
   /* Heading role: 20px / 600 / 0.01em, mixed case. The only heading on the row. */
@@ -196,7 +196,7 @@
   }
 
   .name:disabled {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 

@@ -307,13 +307,13 @@ const GROUND_EXCEPTIONS: ReadonlyArray<
   [
     "src/lib/ui/CatalogCard.svelte",
     ".card",
-    "var(--color-ground)",
+    "var(--color-workspace)",
     "a card is four levels below a lattice root, so the ground rule cannot reach its description, its name plate or its metadata row. This declaration is the other half of the grid's exception: without it, leaving the grid transparent means the lattice paints over thirty-six descriptions instead of between thirty-six cards",
   ],
   [
     "src/lib/ui/BrowseGrid.svelte",
     ".empty",
-    "var(--color-ground)",
+    "var(--color-workspace)",
     "the empty state renders INSTEAD OF the card wall inside that same transparent grid, so the one screen where the page has nothing to show would be the one screen where the field lands on three lines of prose with nothing in front of it",
   ],
 ];
@@ -688,8 +688,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     ).toBeDefined();
     const shared = new Map(declarationsOf(pill?.body ?? ""));
     for (const [property, value] of [
-      ["border-radius", "999px"],
-      ["border", "1px solid var(--color-line)"],
+      ["border", "1px solid var(--color-boundary)"],
       ["background", "transparent"],
       ["padding-inline", "24px"],
       ["min-block-size", "44px"],
@@ -697,7 +696,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     ] as const) {
       expect(
         shared.get(property),
-        `src/app.css's .pill declares ${property} as ${JSON.stringify(shared.get(property))} rather than ${value}. 19.1b: a degenerate 999px radius resolves to half the block size and cannot drift; at the 44px floor that is a 22px cap per end, so 24px of inline padding clears the curve by 2px and a one-character label still sits on the flat.`,
+        `src/app.css's .pill declares ${property} as ${JSON.stringify(shared.get(property))} rather than ${value}. 19.1b as amended by 13-03 under D-10: the shape is a rectangle with no radius (the 999px went on 2026-09-11 and radius.spec.ts holds the file at zero), a 1px boundary-token border, a transparent fill, 24px of inline padding and the 44px floor on both axes.`,
       ).toBe(value);
     }
 
@@ -898,13 +897,13 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     // ---- MONOCHROME. Every colour is a var(), the accent is absent, and the
     // one hex is the mask's - where a colour is opacity rather than paint.
     expect(
-      declared.get("background-image")?.includes("var(--color-accent)"),
-      "the lattice paints in the accent. 10-UI-SPEC 7.2's reserved list is EIGHT entries and a decorative field is none of them - a ninth use is exactly what --color-line-soft was declared decorative-only to avoid",
+      declared.get("background-image")?.includes("var(--color-action)"),
+      "the lattice paints in the accent. 10-UI-SPEC 7.2's reserved list is EIGHT entries and a decorative field is none of them - a ninth use is exactly what --color-divider was declared decorative-only to avoid",
     ).toBe(false);
-    for (const token of ["var(--color-line-soft)", "var(--color-line)"]) {
+    for (const token of ["var(--color-divider)", "var(--color-boundary)"]) {
       expect(
         declared.get("background-image"),
-        `the lattice no longer paints with ${token} - the field is the soft token at 0.2 and the one distinguished cross is --color-line at 0.4, which is A-40's first channel`,
+        `the lattice no longer paints with ${token} - the field is the soft token at 0.2 and the one distinguished cross is --color-boundary at 0.4, which is A-40's first channel`,
       ).toContain(token);
     }
     expect(
@@ -1257,7 +1256,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       "the metadata block's gap is not 0 8px, so the plus does not carry one space either side (19.1c)",
     ).toBe("0 8px");
 
-    // ---- 19.1d: NO DIVIDER, NO BORDER, NO ZEBRA, NO NEW --color-line USE was
+    // ---- 19.1d: NO DIVIDER, NO BORDER, NO ZEBRA, NO NEW --color-boundary USE was
     // added to make a row read. Column alignment carries it.
     for (const rule of [
       meta,
@@ -1268,7 +1267,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       for (const [property] of declarationsOf(rule?.body ?? "")) {
         expect(
           property.startsWith("border"),
-          `the metadata block declares "${property}". 19.1d: column alignment carries the row, and no divider, border, zebra or new --color-line use is added to make one read. The two hairlines in region 6 stay because they were already structural and A-23 depends on the second one; this block adds none.`,
+          `the metadata block declares "${property}". 19.1d: column alignment carries the row, and no divider, border, zebra or new --color-boundary use is added to make one read. The two hairlines in region 6 stay because they were already structural and A-23 depends on the second one; this block adds none.`,
         ).toBe(false);
       }
     }
@@ -1322,8 +1321,8 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     ).toEqual(["background-color"]);
     expect(
       declared.get("background-color"),
-      "the ground rule paints something other than var(--color-ground). It must be the ground token and not a literal: identity.spec.ts reads THIS FILE for colours, and 10-04 proved twice that a colour it cannot parse is a colour no gate on this site has",
-    ).toBe("var(--color-ground)");
+      "the ground rule paints something other than var(--color-workspace). It must be the ground token and not a literal: identity.spec.ts reads THIS FILE for colours, and 10-04 proved twice that a colour it cannot parse is a colour no gate on this site has",
+    ).toBe("var(--color-workspace)");
 
     // ---- `:where()` IS LOAD-BEARING AND ITS ABSENCE IS INVISIBLE TO EVERY
     // OTHER ASSERTION HERE. It zeroes the compound, so the selector weighs

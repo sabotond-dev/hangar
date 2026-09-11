@@ -276,11 +276,11 @@ describe("the device UI's structural rules", () => {
   it("no device component names a new colour", () => {
     // Every colour on this chrome comes from one of the nine tokens, so a hex
     // literal is either a tenth colour or a token spelled by hand, and both are
-    // the same regression. --color-over is the alarm red, which belongs to a
+    // the same regression. --color-error-ink is the alarm red, which belongs to a
     // budget meter that does not exist here (06-08 deferred item 6: no shipped
     // spec scanned these files for a hex until now). The lookahead is not
     // decoration - without it `{#each` reads as the hex #eac.
-    const TOKEN = "--color-over";
+    const TOKEN = "--color-error-ink";
     const HEX = /#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])/g;
 
     expect(
@@ -977,7 +977,7 @@ describe("the device UI's structural rules", () => {
     // DEVICE there is one more control that would be dragged up with it. So
     // the accent fill is asserted site-wide over every interactive class in
     // src/lib/ui: exactly one component wears it, and it is the primary.
-    const ACCENT_FILL = "background: var(--color-accent)";
+    const ACCENT_FILL = "background: var(--color-action)";
     const filled: string[] = [];
     let interactiveRulesRead = 0;
     for (const name of readdirSync(repo(UI_DIR))

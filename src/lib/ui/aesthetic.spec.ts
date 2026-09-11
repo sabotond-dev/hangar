@@ -1069,13 +1069,13 @@ describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", ()
     expect(
       declared.get("background-image"),
       "the unlit cell's DOT is gone. A-58 adds a wash BESIDE the dot field, it does not replace it - a wash alone paints 81 flat squares and loses the mark that says a lamp lives in each of them",
-    ).toContain("var(--color-line-soft)");
+    ).toContain("var(--color-divider)");
 
     // ---- THE WASH, AND IT IS THE TOKEN RATHER THAN A COLOUR. ----
     const wash = declared.get("background-color");
     expect(
       wash,
-      `${PAD_FRAME}'s .dots declares no background-color. Without it the cell STRUCTURE on an all-unlit face is invisible: Layer 3's gutter grid is painted in --color-ground, and a black grid divides nothing when the cells behind it are also black. Measured: Trackpad's card rendered as one rectangle beside eight cards that read as pads`,
+      `${PAD_FRAME}'s .dots declares no background-color. Without it the cell STRUCTURE on an all-unlit face is invisible: Layer 3's gutter grid is painted in --color-workspace, and a black grid divides nothing when the cells behind it are also black. Measured: Trackpad's card rendered as one rectangle beside eight cards that read as pads`,
     ).toBeDefined();
     const value = wash ?? "";
     expect(
@@ -1084,8 +1084,8 @@ describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", ()
     ).toBe(false);
     expect(
       value,
-      `the unlit cell's wash does not name --color-line-soft: "${value}". It is the same token the dot in the same cell is painted with, at a fraction of it, which is what makes "the same strength every other card's unlit cells have" a fact about one value rather than a comparison somebody has to remember to make`,
-    ).toContain("var(--color-line-soft)");
+      `the unlit cell's wash does not name --color-divider: "${value}". It is the same token the dot in the same cell is painted with, at a fraction of it, which is what makes "the same strength every other card's unlit cells have" a fact about one value rather than a comparison somebody has to remember to make`,
+    ).toContain("var(--color-divider)");
 
     // ---- NO TENTH TOKEN. The value names exactly one custom property. ----
     const named = [...value.matchAll(/var\((--[a-z-]+)/g)].map(
@@ -1093,8 +1093,8 @@ describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", ()
     );
     expect(
       named,
-      `the unlit cell's wash names ${named.join(", ")}. It may name exactly one custom property and it must be --color-line-soft: identity.spec.ts goes red on a TENTH --color-* token, and a wash that reached for a new one would have cost the ladder its ninth rung for a decoration`,
-    ).toEqual(["--color-line-soft"]);
+      `the unlit cell's wash names ${named.join(", ")}. It may name exactly one custom property and it must be --color-divider: identity.spec.ts goes red on a TENTH --color-* token, and a wash that reached for a new one would have cost the ladder its ninth rung for a decoration`,
+    ).toEqual(["--color-divider"]);
 
     // ---- THE CAP, AND IT IS THE CONSTRAINT RATHER THAN A PREFERENCE. The dot
     // is the token at its full 0.2. A wash at or above that would make the one
@@ -1103,12 +1103,12 @@ describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", ()
     const percentage = /([0-9]+(?:\.[0-9]+)?)%/.exec(value);
     expect(
       percentage,
-      `the unlit cell's wash carries no percentage to read: "${value}". A-58 fixes it as a FRACTION of --color-line-soft so the cap below is a number a scan can check, rather than an intention`,
+      `the unlit cell's wash carries no percentage to read: "${value}". A-58 fixes it as a FRACTION of --color-divider so the cap below is a number a scan can check, rather than an intention`,
     ).not.toBeNull();
     const share = Number((percentage as RegExpExecArray)[1]);
     expect(
       share,
-      `the unlit cell's wash is ${share}% of --color-line-soft. A-58 caps it at 50: the dot in the same cell is that token at FULL strength, and a wash at or above half would stop the dot being the brightest mark in an unlit cell. "The cell structure at the same strength the other cards' unlit cells have" is the constraint the ruling set, and out-shining them fails it in the other direction`,
+      `the unlit cell's wash is ${share}% of --color-divider. A-58 caps it at 50: the dot in the same cell is that token at FULL strength, and a wash at or above half would stop the dot being the brightest mark in an unlit cell. "The cell structure at the same strength the other cards' unlit cells have" is the constraint the ruling set, and out-shining them fails it in the other direction`,
     ).toBeLessThanOrEqual(50);
     expect(
       share,

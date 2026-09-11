@@ -202,13 +202,13 @@
   }
 
   .control:hover:not(:disabled) {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+    border-color: var(--color-action);
+    color: var(--color-action);
   }
 
   /* Disabled: the label to the dim rung, the border unchanged, a real attribute. */
   .control:disabled {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 

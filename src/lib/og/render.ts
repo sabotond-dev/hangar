@@ -60,27 +60,37 @@ export const FRAME_RADIUS_PX = 12;
 export const FRAME_STROKE_PX = 2;
 
 /**
- * `--color-accent` from `src/app.css`, as channels.
+ * `--color-action` from `src/app.css`, as channels.
  *
  * The channels rather than the hex, because the two structural colours below
  * are arithmetic on them and a hex would have to be re-derived by hand every
  * time somebody read this file. `render.spec.ts` holds this against the token
  * in `src/app.css`, so the two cannot disagree.
  */
-export const ACCENT_RGB = [0xd6, 0xff, 0x4e] as const;
+export const ACCENT_RGB = [0xdc, 0xff, 0x71] as const;
 
-/** `--color-line-soft`'s alpha: the decorative dot field. */
+/**
+ * The two flattening alphas are THIS IMAGE'S OWN since 13-03. Under the
+ * nine-token ladder they were `--color-line-soft`'s 0.2 and `--color-line`'s
+ * 0.4, read back from `src/app.css` by `render.spec.ts`; the eleven-token
+ * palette (13-03, D-16) makes the divider and the boundary opaque graphites,
+ * so there is no alpha left to read. The accent above still IS the site's
+ * (`--color-action`, `#dcff71`), and the spec holds it against the file. 13-07
+ * re-derives the whole image from the eleven tokens; until then the picture
+ * is the Phase 5 composition in the D-16 accent.
+ */
+/** The decorative dot field's alpha. */
 export const LINE_SOFT_ALPHA = 0.2;
-/** `--color-line`'s alpha: functional borders, which the frame is. */
+/** The frame's alpha: a functional border. */
 export const LINE_ALPHA = 0.4;
 
 /**
  * A translucent identity colour, composited onto the true-black ground.
  *
  * `round(channel * alpha)`, which is what a browser does when it paints
- * `rgb(214 255 78 / 0.2)` over `#000000` and is the whole of the maths. The
- * results are the UI spec's two hexes, and `render.spec.ts` asserts that -
- * neither hex is typed anywhere in this file.
+ * `rgb(220 255 113 / 0.2)` over `#000000` and is the whole of the maths. The
+ * results are the two hexes `render.spec.ts` asserts - neither is typed
+ * anywhere in this file.
  */
 export function flattenOnBlack(
   rgb: readonly number[],
@@ -93,9 +103,9 @@ export function flattenOnBlack(
   ];
 }
 
-/** The dot in an unlit cell. `--color-line-soft` flattened. */
+/** The dot in an unlit cell: the accent at LINE_SOFT_ALPHA, flattened. */
 export const UNLIT_DOT_RGB = flattenOnBlack(ACCENT_RGB, LINE_SOFT_ALPHA);
-/** The rounded frame around the face. `--color-line` flattened. */
+/** The rounded frame around the face: the accent at LINE_ALPHA, flattened. */
 export const FRAME_RGB = flattenOnBlack(ACCENT_RGB, LINE_ALPHA);
 
 /** Both blocks are centred on the canvas, which is what puts them at 600, 315. */

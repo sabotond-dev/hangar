@@ -6,7 +6,7 @@
   mount a simulator to say "connected": this is the pad recipe's first layer at
   24px - the same radial-gradient dot field at an 11.111% pitch that
   PadSpinner.svelte declares at 32px - with zero, one or five cells lit in
-  --color-accent over unlit dots in --color-line-soft.
+  --color-action over unlit dots in --color-divider.
 
     dark         81 dots, nothing lit           S0, S1, S5, S6, S7
     detected     one cell, top-left, static     S2
@@ -96,7 +96,7 @@
     block-size: 100%;
     background-image: radial-gradient(
       circle at 50% 50%,
-      var(--color-line-soft) 0 6%,
+      var(--color-divider) 0 6%,
       transparent 6.5%
     );
     background-size: 11.111% 11.111%;
@@ -111,7 +111,7 @@
     block-size: 11.111%;
     background-image: radial-gradient(
       circle at 50% 50%,
-      var(--color-accent) 0 34%,
+      var(--color-action) 0 34%,
       transparent 38%
     );
   }

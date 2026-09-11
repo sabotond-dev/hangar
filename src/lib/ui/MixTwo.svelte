@@ -335,7 +335,7 @@
 
   /*
     SECONDARY TIER, AND THE PILL IS ITS SHAPE (§10.3 as amended by A-41).
-    Fully rounded, 1px --color-line, transparent fill, 24px inline padding -
+    Fully rounded, 1px --color-boundary, transparent fill, 24px inline padding -
     at the 44px block floor the radius resolves to 22px per end, so 24px clears
     the curve by 2px. Bordered, NEVER filled: a filled pill here is Primary's,
     and there is one Primary control per panel and it is TRY ON DEVICE.
@@ -364,9 +364,14 @@
     border-color: var(--color-ink-quiet);
   }
 
+  /* 13-03: the disabled border is --color-boundary, not the divider - the
+     divider fails 3:1 and identity.spec.ts test 5 forbids it on a control. The
+     softened-border channel this state used to carry is gone; its label is
+     already the quiet rung. This component was never mounted and 13-10
+     deletes it (D-12). */
   .mix-two:disabled {
-    color: var(--color-ink-dim);
-    border-color: var(--color-line-soft);
+    color: var(--color-ink-quiet);
+    border-color: var(--color-boundary);
     cursor: default;
   }
 
@@ -420,7 +425,7 @@
     min-block-size: 44px;
     inline-size: 100%;
     padding-inline: 8px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 6px;
     background: transparent;
     color: var(--color-ink);
@@ -450,7 +455,10 @@
     min-inline-size: 44px;
     min-block-size: 44px;
     padding: 0;
-    border: 1px solid var(--color-line-soft);
+    /* 13-03: a button is bounded by --color-boundary (identity.spec.ts test 5);
+       the hover below therefore no longer lifts the border. 13-10 deletes this
+       file (D-12). */
+    border: 1px solid var(--color-boundary);
     border-radius: 2px;
     background: transparent;
     cursor: pointer;
@@ -458,7 +466,7 @@
   }
 
   .child:hover {
-    border-color: var(--color-line);
+    border-color: var(--color-boundary);
   }
 
   @keyframes mix-arrive {

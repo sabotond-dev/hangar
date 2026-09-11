@@ -37,10 +37,12 @@
 // THE ALLOWLIST CAN ONLY SHRINK, AND 13-20 ASSERTS IT IS EMPTY. On 2026-09-11
 // the tree carried 41 border-radius declarations (the planner's 43 counted two
 // comment lines, app.css:391 and Knob.svelte:25), in src/app.css and fifteen
-// components. Two are `inherit` and exempt - the focus ring at app.css:292 and
-// Knob.svelte:569, both of which inherit from a box that will be zero - six are
-// the circles, and the remaining THIRTY-THREE are the debt below, one row per
-// file with the plan that clears it. The shape is presets.spec.ts's
+// components. Two are `inherit` and exempt - the focus ring in app.css (:292
+// before 13-01, :428 since 13-03) and Knob.svelte:569, both of which inherit
+// from a box that will be zero - six are the circles, and the remaining
+// THIRTY-THREE were the debt below, one row per file with the plan that clears
+// it. 13-03 cleared the first row the same day (the pill, see below), so the
+// debt is THIRTY-TWO in fifteen files. The shape is presets.spec.ts's
 // INTENDED_DIVERGENCE and vendored-diff.spec.ts's manifest rows: a declared
 // exception with an owner, and a gate that fails when the list grows, when a
 // row over-counts, when a row goes stale, or when a file with no row carries a
@@ -48,9 +50,11 @@
 // commit; the empty list at 13-20 is this phase's proof of D-01, not a promise
 // in a document.
 //
-// THE PILL IS NOT A ROW'S EXCUSE. app.css:421's `border-radius: 999px` is a
-// rounded rectangle under D-10 and is REMOVED by 13-03, not re-skinned. Its
-// row below is the debt until then.
+// THE PILL WAS NOT A ROW'S EXCUSE. app.css's pill radius (999px, at :421 on
+// the tree the plan read and :442 after 13-01's header) was a rounded
+// rectangle under D-10 and was REMOVED by 13-03 on 2026-09-11, not re-skinned;
+// its row was cleared in the same commit. src/app.css now carries no
+// border-radius above zero and has no row.
 //
 // ZERO, 0px, inherit, initial AND unset ARE NOT DECLARATIONS FOR THIS PURPOSE.
 // `inherit` from a zero is zero, and the two focus rings inherit from whatever
@@ -142,16 +146,11 @@ export interface AllowlistRow {
 }
 
 /**
- * The debt on 2026-09-11, thirty-three declarations in sixteen files. Rows are
- * removed by the plan named, never edited to a smaller number by anyone else.
+ * The debt on 2026-09-11: thirty-three declarations in sixteen files as 13-01
+ * left it, thirty-two in fifteen after 13-03 removed the pill. Rows are removed
+ * by the plan named, never edited to a smaller number by anyone else.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
-  {
-    file: "src/app.css",
-    declarations: 1,
-    clearedBy: "13-03",
-    note: ":421 the pill, 999px - removed by 13-03, not re-skinned. :292 is inherit and exempt.",
-  },
   {
     file: "src/lib/ui/PadFrame.svelte",
     declarations: 2,

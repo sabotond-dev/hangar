@@ -234,7 +234,7 @@
     max-inline-size: 420px;
     margin-inline: auto;
     padding: 24px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 10px;
     animation: arrive 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
@@ -260,7 +260,7 @@
   .reserved {
     margin-block-start: 24px;
     padding: 16px;
-    border: 1px dashed var(--color-line-soft);
+    border: 1px dashed var(--color-divider);
     border-radius: 10px;
     min-block-size: 152px;
   }
@@ -274,7 +274,7 @@
   .rule {
     margin-block: 24px;
     border: 0;
-    border-block-start: 1px solid var(--color-line-soft);
+    border-block-start: 1px solid var(--color-divider);
   }
 
   /*

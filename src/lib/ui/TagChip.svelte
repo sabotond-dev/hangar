@@ -104,7 +104,7 @@
     control on this site is focusable without a visible ring.
   */
   .chip:has(:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -129,16 +129,16 @@
 
   .chip.active .text,
   .chip.active:hover .text {
-    color: var(--color-accent);
+    color: var(--color-action);
   }
 
   .chip.disabled {
-    border-color: var(--color-line-soft);
+    border-color: var(--color-divider);
     cursor: not-allowed;
   }
 
   .chip.disabled .text {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
   }
 
   @media (prefers-reduced-motion: reduce) {

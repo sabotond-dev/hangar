@@ -9,7 +9,7 @@
 // EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
 // Four of these components explain in prose exactly which token, specifier or
 // declaration they are forbidden to use - Knob.svelte, StampNotice.svelte and
-// CopyLink.svelte each say "--color-over appears nowhere in this file", and
+// CopyLink.svelte each say "--color-error-ink appears nowhere in this file", and
 // TuningRegion.svelte names both the compile surface and setInterval in its
 // header. A scan over raw source would go red on correct code, and the natural
 // fix for that - deleting the paragraph - would delete the documentation that
@@ -359,7 +359,7 @@ describe("the tuning UI's structural rules", () => {
     }
 
     // THE SECOND CHANNEL, AND THE COLOUR IT IS NOT. The held marker is a
-    // --color-line bar; the free one is the --color-line-soft dot it always
+    // --color-boundary bar; the free one is the --color-divider dot it always
     // was. Neither is accent - 10-UI-SPEC 7.2's reserved list stays at eight,
     // and the census that holds the whole rack to it is the test below.
     const barRules = rulesOf(knob).filter((rule) =>
@@ -372,21 +372,21 @@ describe("the tuning UI's structural rules", () => {
     expect(
       barRules.map((rule) => rule.selector).join(" | "),
       "the held marker paints in accent - that is a ninth entry on the reserved list, and the whole point of the two-channel design is that it is not taken",
-    ).not.toContain("--color-accent");
+    ).not.toContain("--color-action");
     for (const rule of barRules) {
       expect(
         rule.body,
         `${rule.selector} paints the held marker in accent`,
-      ).not.toContain("--color-accent");
+      ).not.toContain("--color-action");
     }
     expect(
       barRules.map((rule) => rule.body).join(""),
-      "the held marker is not --color-line, so it is either invisible or on a token it has no claim to",
-    ).toContain("var(--color-line)");
+      "the held marker is not --color-boundary, so it is either invisible or on a token it has no claim to",
+    ).toContain("var(--color-boundary)");
     expect(
       rulesOf(knob).find((rule) => rule.selector.trim() === ".home")?.body,
       "the FREE marker stopped being the soft dot, so the two states no longer differ by weight",
-    ).toContain("var(--color-line-soft)");
+    ).toContain("var(--color-divider)");
 
     // -----------------------------------------------------------------------
     // T2's forecast delta, which rides here for the same reason the lock does:
@@ -411,11 +411,11 @@ describe("the tuning UI's structural rules", () => {
     expect(
       deltaRule?.body,
       "the delta paints in accent - a forecast is information, not a selection, and the reserved list stays at eight",
-    ).not.toContain("--color-accent");
+    ).not.toContain("--color-action");
     expect(
       deltaRule?.body,
       "the delta paints in the alarm red, which would be X-01's fourth use",
-    ).not.toContain("--color-over");
+    ).not.toContain("--color-error-ink");
     // ABSOLUTE, so it costs no layout: a delta that took part in the flex row
     // would widen its option and reflow the rack under the pointer.
     expect(
@@ -527,14 +527,14 @@ describe("the tuning UI's structural rules", () => {
 
     const census: Record<string, number> = {};
     for (const name of TUNING_COMPONENTS) {
-      census[name] = occurrences(code(componentPath(name)), "--color-accent");
+      census[name] = occurrences(code(componentPath(name)), "--color-action");
     }
     const total = Object.values(census).reduce((sum, n) => sum + n, 0);
 
     // Per file, so a move is named rather than merely counted.
     expect(
       census,
-      `the accent census moved. The reserved list is these eight and nothing else: ${RESERVED.join("; ")}. A held knob's marker is --color-line, the forecast delta is --color-ink and the ghost fill is --color-line-soft - none of them is entitled to the ninth`,
+      `the accent census moved. The reserved list is these eight and nothing else: ${RESERVED.join("; ")}. A held knob's marker is --color-boundary, the forecast delta is --color-ink and the ghost fill is --color-divider - none of them is entitled to the ninth`,
     ).toEqual({
       "BudgetMessage.svelte": 2,
       "BudgetMeter.svelte": 1,
@@ -544,7 +544,7 @@ describe("the tuning UI's structural rules", () => {
       "KnobRack.svelte": 0,
       // A NINTH COMPONENT THAT MOVES THE CENSUS BY ZERO (plan 10-11). MIX TWO
       // is Secondary tier, so its pill is an OUTLINE and never a fill; its
-      // results are bordered in --color-line-soft; and its focus ring is
+      // results are bordered in --color-divider; and its focus ring is
       // app.css's :focus-visible, which belongs to every control on the site
       // and is declared in no component. There was nothing here to spend
       // accent on that would not have been a ninth entry.
@@ -564,8 +564,8 @@ describe("the tuning UI's structural rules", () => {
     ).toBe(6);
 
     // AND THE PICKER SPENT NONE OF IT ON THE THINGS THAT WOULD HAVE BEEN A
-    // NINTH ENTRY. The cheap-step tick is --color-line, the unaffordable
-    // detent is --color-ground behind a --color-line-soft hairline, and the
+    // NINTH ENTRY. The cheap-step tick is --color-boundary, the unaffordable
+    // detent is --color-workspace behind a --color-divider hairline, and the
     // default marker is the soft dot it always was. Named individually,
     // because the total above would absorb a swap between two of them.
     const picker = code(componentPath("ColourPicker.svelte"));
@@ -573,7 +573,7 @@ describe("the tuning UI's structural rules", () => {
       expect(
         rulesOf(picker).find((rule) => rule.selector.trim() === selector)?.body,
         `${selector} paints in accent, which is a ninth entry on the reserved list`,
-      ).not.toContain("--color-accent");
+      ).not.toContain("--color-action");
     }
   });
 
@@ -584,7 +584,7 @@ describe("the tuning UI's structural rules", () => {
     // USES - the first two uses live in BudgetMeter.svelte and the third in
     // BudgetMessage.svelte, so two here and three in the UI spec are the same
     // fact counted differently, and neither number contradicts the other.
-    const TOKEN = "--color-over";
+    const TOKEN = "--color-error-ink";
     const files = uiFiles().filter((file) => file.endsWith(".svelte"));
     const carriers = files.filter((file) => code(file).includes(TOKEN));
 
@@ -626,7 +626,7 @@ describe("the tuning UI's structural rules", () => {
 
     // -----------------------------------------------------------------------
     // T2's ghost fill, asserted HERE because the thing it must not do is add a
-    // fourth --color-over use. The carrier list above already says the token
+    // fourth --color-error-ink use. The carrier list above already says the token
     // did not spread; these say the new thing inside one of the carriers did
     // not take it either, and that it does not animate.
     const meter = code(componentPath("BudgetMeter.svelte"));
@@ -639,16 +639,16 @@ describe("the tuning UI's structural rules", () => {
     ).toBeDefined();
     expect(
       ghost?.body,
-      "the ghost is not --color-line-soft, so it is either invisible or on a token it has no claim to",
-    ).toContain("var(--color-line-soft)");
+      "the ghost is not --color-divider, so it is either invisible or on a token it has no claim to",
+    ).toContain("var(--color-divider)");
     expect(
       ghost?.body,
       "the ghost paints in the alarm red - that is X-01's fourth use, and an unaffordable option is disabled and cannot be hovered anyway",
-    ).not.toContain("--color-over");
+    ).not.toContain("--color-error-ink");
     expect(
       ghost?.body,
       "the ghost spends accent, which would be a ninth entry on the reserved list",
-    ).not.toContain("--color-accent");
+    ).not.toContain("--color-action");
     // 10-UI-SPEC 14 lists the ghost at 0 ms DELIBERATELY: it tracks a pointer,
     // and a fill that eased in would arrive after the pointer had moved on and
     // would read as the real value rather than as a forecast.
@@ -934,8 +934,7 @@ describe("the tuning UI's structural rules", () => {
       "src/app.css no longer declares a .pill rule - §19.1b's shape is the one place the site says what a control looks like",
     ).toBeDefined();
     for (const declaration of [
-      "border-radius: 999px",
-      "border: 1px solid var(--color-line)",
+      "border: 1px solid var(--color-boundary)",
       "background: transparent",
       "padding-inline: 24px",
       "min-inline-size: 44px",
@@ -943,7 +942,7 @@ describe("the tuning UI's structural rules", () => {
     ]) {
       expect(
         shared?.body,
-        `src/app.css's .pill does not declare "${declaration}" - §19.1b's pill is a fully-rounded 1px outline with a transparent fill and 24px of inline padding, and §10.3 puts MIX TWO in Secondary`,
+        `src/app.css's .pill does not declare "${declaration}" - §19.1b's pill, since 13-03 a RECTANGLE under D-10 (no radius), is a 1px boundary outline with a transparent fill and 24px of inline padding, and §10.3 puts MIX TWO in Secondary`,
       ).toContain(declaration);
     }
     expect(
@@ -1021,7 +1020,7 @@ describe("the tuning UI's structural rules", () => {
     // ---- AND THE TWO TOKENS THIS FILE MAY NOT SPEND. A-44 makes the
     // --font-mono list SEVEN with six spent, and the seventh is reserved for
     // §19.1c's metadata block; nothing here is a number that moves under a
-    // pointer. --color-over is X-01's three uses, all of them a meter or a
+    // pointer. --color-error-ink is X-01's three uses, all of them a meter or a
     // message.
     expect(
       mix,
@@ -1030,7 +1029,7 @@ describe("the tuning UI's structural rules", () => {
     expect(
       mix,
       "MixTwo.svelte reaches for the alarm red. X-01 scopes it to three uses and all three belong to a meter or a message",
-    ).not.toContain("--color-over");
+    ).not.toContain("--color-error-ink");
   });
 
   it("MIX TWO's four results are the last four canvases in the budget: six on the worst entry, not eight", () => {

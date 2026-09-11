@@ -470,7 +470,7 @@
     inline-size: 100%;
     min-block-size: 44px;
     border: 1px solid transparent;
-    background: var(--color-accent);
+    background: var(--color-action);
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
@@ -486,7 +486,7 @@
 
   .primary:hover:not(:disabled) {
     filter: brightness(1.12);
-    box-shadow: 0 0 24px var(--color-glow);
+    box-shadow: 0 0 24px var(--action-bloom);
   }
 
   .primary:active:not(:disabled) {
@@ -508,8 +508,8 @@
   */
   .primary:disabled {
     background: transparent;
-    border-color: var(--color-line);
-    color: var(--color-ink-dim);
+    border-color: var(--color-boundary);
+    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 
@@ -607,7 +607,7 @@
 
   /* Phase 4's ring, on the programmatic focus target too. */
   .status:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -644,11 +644,11 @@
   }
 
   .disconnect:hover:not(:disabled) {
-    color: var(--color-accent);
+    color: var(--color-action);
   }
 
   .disconnect:disabled {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 </style>

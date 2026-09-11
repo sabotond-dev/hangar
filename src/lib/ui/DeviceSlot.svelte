@@ -426,7 +426,7 @@
   }
 
   .label[data-tone="dim"] {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
   }
 
   .label[data-tone="ink"] {

@@ -41,7 +41,7 @@
   it. svelte/transition's fade animates opacity and nothing else by
   construction, at 160ms linear, and collapses to 0ms under reduced motion.
 
-  X-01 use 3 of 3 lives here: the 2px --color-over left rule on the over-budget
+  X-01 use 3 of 3 lives here: the 2px --color-error-ink left rule on the over-budget
   block. The SENTENCE stays --color-ink - red is a marker beside the text, never
   the text itself - and no button in this file is red, bordered red, or filled.
 
@@ -125,13 +125,13 @@
 
   /* 2px left rule, 12px of inline padding. The rule's colour says which. */
   .block {
-    border-inline-start: 2px solid var(--color-line);
+    border-inline-start: 2px solid var(--color-boundary);
     padding-inline-start: 12px;
   }
 
   /* X-01 use 3 of 3, and the only red in this file. */
   .block.over {
-    border-inline-start-color: var(--color-over);
+    border-inline-start-color: var(--color-error-ink);
   }
 
   /* Body role at full strength: the line naming the knob is the point. */
@@ -181,8 +181,8 @@
   }
 
   .back-off:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+    border-color: var(--color-action);
+    color: var(--color-action);
   }
 
   .explain {

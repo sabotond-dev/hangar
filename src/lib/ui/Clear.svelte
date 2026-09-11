@@ -216,7 +216,7 @@
 
   /* Disabled: the label to the dim rung, a real attribute. */
   .control:disabled {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 

@@ -183,14 +183,14 @@
     gap: 8px;
     inline-size: 100%;
     padding: 16px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 10px;
-    background: var(--color-ground);
+    background: var(--color-workspace);
     animation: fade-in 160ms linear;
   }
 
   .keep-confirm:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -267,8 +267,8 @@
   }
 
   .secondary:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+    border-color: var(--color-action);
+    color: var(--color-action);
   }
 
   /*

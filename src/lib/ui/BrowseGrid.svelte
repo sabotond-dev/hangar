@@ -507,7 +507,7 @@
     flex-direction: column;
     gap: 8px;
     text-align: start;
-    background-color: var(--color-ground);
+    background-color: var(--color-workspace);
   }
 
   /* Micro (title): 12px / 600 / 1.2 / 0.01em, sentence case. */

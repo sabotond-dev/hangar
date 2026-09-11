@@ -52,7 +52,7 @@
   stays: it names two keys the visitor is about to press, which is a next step,
   and R-11's audit rule never retires one of those.
 
-  No --color-over appears in this file. The token is scoped to X-01's three
+  No --color-error-ink appears in this file. The token is scoped to X-01's three
   uses, all of them in BudgetMeter.svelte and BudgetMessage.svelte.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -208,7 +208,7 @@
 
   .control:hover,
   .control.confirmed {
-    border-color: var(--color-accent);
+    border-color: var(--color-action);
   }
 
   /* Body role, quiet. 8px below the control: the button-to-reason gap. */
@@ -230,7 +230,7 @@
     min-block-size: 44px;
     margin-block-start: 8px;
     padding-inline: 12px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 2px;
     background: transparent;
     font-family: var(--font-mono);

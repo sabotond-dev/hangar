@@ -45,8 +45,10 @@
 // string carries a rounded utility. 13-20 asserts the list is empty, and that
 // assertion - not a sentence in a document - is the phase's proof of D-01.
 //
-// app.css:421's pill (999px) is a rounded rectangle under D-10 and is removed
-// by 13-03; it is a row until then, never an exception.
+// app.css's pill (999px, :421 on the tree the plan read) was a rounded rectangle
+// under D-10 and was removed by 13-03 on 2026-09-11, its row cleared in the same
+// commit; it was a row until then, never an exception, and src/app.css now has
+// no row because it carries no radius above zero.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";

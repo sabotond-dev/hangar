@@ -372,14 +372,14 @@
     inline-size: calc(100vw - 48px);
     max-inline-size: 360px;
     padding: 16px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 10px;
-    background: var(--color-ground);
+    background: var(--color-workspace);
     text-align: start;
   }
 
   .device-details:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -431,7 +431,7 @@
   }
 
   .action:disabled {
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 
@@ -463,7 +463,7 @@
   }
 
   .summary:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 

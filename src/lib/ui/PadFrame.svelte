@@ -13,7 +13,7 @@
   AND IT IS HALF A DIAGNOSIS, CORRECTED HERE BY MEASUREMENT (10-UI-SPEC A-58,
   D-22). The dots are there and TRACKPAD WAS STILL A BLACK SQUARE. The cell
   STRUCTURE on a pad face is drawn by Layer 3, the gutter grid, and Layer 3 is
-  painted in --color-ground: a black grid divides nothing when the cells behind
+  painted in --color-workspace: a black grid divides nothing when the cells behind
   it are also black. Every other card gets its structure for free from its LIT
   cells; the one configuration that lights none of them therefore got none, and
   eighty-one lamps collapsed into one rectangle that read as a card which had
@@ -90,14 +90,14 @@
     position: relative;
     inline-size: 100%;
     block-size: 100%;
-    border: 1px solid var(--color-line-soft);
+    border: 1px solid var(--color-divider);
     border-radius: 10px;
-    background: var(--color-ground);
+    background: var(--color-workspace);
   }
 
   .pad.hero {
-    border-color: var(--color-line);
-    box-shadow: 0 0 40px var(--color-glow);
+    border-color: var(--color-boundary);
+    box-shadow: 0 0 40px var(--action-bloom);
   }
 
   .dots,
@@ -128,11 +128,14 @@
     with no CSS at all, so that image is still black. The card's own sentence -
     "Trackpad writes no lights at all" - is unchanged and remains accurate.
 
-    THE STRENGTH IS A QUARTER OF THE DOT'S, AND THE CAP IS THE RULE. The dot is
-    --color-line-soft at its full 0.2; the wash is the same token at 25%, so
-    0.05 - strictly dimmer at every pixel, which keeps the dot the brightest
-    mark in an unlit cell and keeps this card's unlit cells at exactly the
-    strength every other card's have.
+    THE STRENGTH IS A FRACTION OF THE DOT'S, AND THE CAP IS THE RULE. The dot is
+    --color-divider at full strength; the wash is the same token at 15% - it
+    was 25% while the token was lime at 0.2 alpha, and 13-03's eleven-token
+    palette made the divider an opaque graphite, so 25% of it would have been
+    a 0.25 alpha and e2e/aesthetic.e2e.ts holds the wash under 0.2. 15% keeps
+    it strictly dimmer at every pixel, which keeps the dot the brightest mark
+    in an unlit cell and keeps this card's unlit cells at exactly the strength
+    every other card's have. 13-04 re-skins this frame.
 
     color-mix RATHER THAN A LITERAL, A NEW TOKEN OR A PSEUDO-ELEMENT. A literal
     rgba() here would be a colour no gate on this site can see: identity.spec.ts
@@ -144,14 +147,10 @@
     reads a var() and the ladder is still nine with three hexes.
   */
   .dots {
-    background-color: color-mix(
-      in srgb,
-      var(--color-line-soft) 25%,
-      transparent
-    );
+    background-color: color-mix(in srgb, var(--color-divider) 15%, transparent);
     background-image: radial-gradient(
       circle at 50% 50%,
-      var(--color-line-soft) 0 6%,
+      var(--color-divider) 0 6%,
       transparent 6.5%
     );
     background-size: 11.111% 11.111%;
@@ -171,12 +170,12 @@
     background-image:
       repeating-linear-gradient(
         to right,
-        var(--color-ground) 0 0.9%,
+        var(--color-workspace) 0 0.9%,
         transparent 0.9% 11.111%
       ),
       repeating-linear-gradient(
         to bottom,
-        var(--color-ground) 0 0.9%,
+        var(--color-workspace) 0 0.9%,
         transparent 0.9% 11.111%
       );
     background-position: -0.45% -0.45%;

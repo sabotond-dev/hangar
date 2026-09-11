@@ -175,7 +175,7 @@
     line-height: 1.2;
     letter-spacing: 0.18em;
     font-variant-numeric: tabular-nums;
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
   }
 
   /* A real U+2014 in its own element, at the same rung as the index. */
@@ -183,7 +183,7 @@
     font-size: 12px;
     font-weight: 600;
     line-height: 1.2;
-    color: var(--color-ink-dim);
+    color: var(--color-ink-quiet);
   }
 
   /* Micro: 12px / 600 / 1.2 / 0.18em, uppercase, quiet. */
@@ -221,7 +221,7 @@
     min-inline-size: 44px;
     min-block-size: 44px;
     padding-inline: 12px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 6px;
     background: transparent;
     text-decoration: none;
@@ -233,7 +233,7 @@
 
   /* Phase 4's ring, on the anchor itself. Nothing here focuses without one. */
   .link:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -248,7 +248,7 @@
   }
 
   .link:hover {
-    border-color: var(--color-accent);
+    border-color: var(--color-action);
   }
 
   .link:hover .text {

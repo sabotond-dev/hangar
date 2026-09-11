@@ -485,7 +485,7 @@
     inline-size: 100%;
     min-block-size: 44px;
     padding-inline: 16px 64px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-boundary);
     border-radius: 6px;
     background: transparent;
     font-family: inherit;
@@ -555,7 +555,7 @@
     same relocation Knob.svelte makes. No control here is focusable without one.
   */
   .option:has(:focus-visible) {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-action);
     outline-offset: 4px;
   }
 
@@ -576,7 +576,7 @@
 
   .option.selected .word,
   .option.selected:hover .word {
-    color: var(--color-accent);
+    color: var(--color-action);
   }
 
   /*
@@ -622,7 +622,7 @@
   }
 
   .clear-filters:hover {
-    border-color: var(--color-accent);
+    border-color: var(--color-action);
   }
 
   /*

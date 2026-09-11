@@ -78,7 +78,7 @@
     flex: none;
     background-image: radial-gradient(
       circle at 50% 50%,
-      var(--color-line-soft) 0 6%,
+      var(--color-divider) 0 6%,
       transparent 6.5%
     );
     background-size: 11.111% 11.111%;
@@ -98,7 +98,7 @@
     block-size: 11.111%;
     background-image: radial-gradient(
       circle at 50% 50%,
-      var(--color-accent) 0 34%,
+      var(--color-action) 0 34%,
       transparent 38%
     );
   }
