@@ -1,6 +1,7 @@
-// The touch library's five gates: what each slot costs, what the library is
+// The touch library's six gates: what each slot costs, what the library is
 // called, what it is allowed to say, which side of the split each thing lives
-// on, and that the knots on the wire are the measured ones.
+// on, that the knots on the wire are the measured ones, and (since 12.1-08b)
+// that K lands on 0, N sits with the map and G kept its picture.
 //
 // A SERVER SPEC, BY CHOICE, AND THE SWEEP'S MEMBER LIST DOES NOT MOVE. The
 // sweep project exists for the load-sensitive measurement - 1,331 knob
@@ -10,21 +11,30 @@
 // it runs in `server`, `npm run test:sweep` stays at `4 19`, and this paragraph
 // is the record that the choice was made rather than overlooked.
 //
-// FIVE TESTS SINCE PLAN 12.1-02 (three since 12-07), AND THE COUNT DOES NOT
-// MOVE WITH THE LIBRARY. Each one loops over the parts or the call sites
-// internally and names what it found, so an eleventh function - which must
-// arrive with its caller named, see `library.ts` section 5 - moves no number
-// here. The two added are the split rule (test 4) and the knots' provenance
-// (test 5), both of which exist only because there are two strings and a
-// measured table.
+// SIX TESTS SINCE PLAN 12.1-08b (five since 12.1-02, three since 12-07), AND
+// THE COUNT DOES NOT MOVE WITH THE LIBRARY. Each one loops over the parts or
+// the call sites internally and names what it found, so a fourteenth function
+// - which must arrive with its caller named, see `library.ts` section 5 -
+// moves no number here. 12.1-02 added the split rule (test 4) and the knots'
+// provenance (test 5), both of which exist only because there are two strings
+// and a measured table; 12.1-08b added test 6 for the revision that gave the
+// presets the gradient: `K`'s stamps land on 0 (driven through the real
+// host), `N` is in the map's slot, and `G` through `Z` and `Y` draws exactly
+// what 12.1-03's `G` drew.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
 import { beforeAll, describe, expect, it } from "vitest";
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
+import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
 import { padReady } from "../pad";
-import { HOST_GLOBALS, HOST_SELF_METHODS } from "../sim/lua-host";
-import { KX, KY, renderKnots } from "./calibration";
+import {
+  createLuaHost,
+  HOST_GLOBALS,
+  HOST_SELF_METHODS,
+} from "../sim/lua-host";
+import { blankPadState } from "../sim/lua-pad-sim";
+import { calibratedAxis, KX, KY, LED_STEP, renderKnots } from "./calibration";
 import {
   LIBRARY_CONVENTIONS,
   LIBRARY_GLOBALS,
@@ -295,7 +305,9 @@ describe("the touch library (CONT-02, PREV-01)", () => {
         (m) => m[1],
       ),
     );
-    expect(defined.length, "the scan found ten function definitions").toBe(10);
+    expect(defined.length, "the scan found thirteen function definitions").toBe(
+      13,
+    );
     for (const name of defined) {
       expect(
         /^[A-Z]$/.test(name),
@@ -327,8 +339,8 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     ).toEqual([...TWO_CAPITALS].sort());
     expect(
       LIBRARY_GLOBALS.length,
-      "ten functions and eight state names across the two strings",
-    ).toBe(18);
+      "thirteen functions and eight state names across the two strings",
+    ).toBe(21);
 
     // EVERY NAME IS DEFINED IN EXACTLY ONE SLOT. A name defined in both would
     // be one string overwriting the other's on every page load; a name defined
@@ -640,12 +652,12 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     }
     expect(
       LIBRARY_PARTS.filter((p) => p.slot === 0).length,
-      "255/0 has eight parts: header, map, five functions, the call",
-    ).toBe(8);
+      "255/0 has nine parts: header, map, six functions, the call",
+    ).toBe(9);
     expect(
       LIBRARY_PARTS.filter((p) => p.slot === 6).length,
-      "255/6 has six parts: marker and five functions",
-    ).toBe(6);
+      "255/6 has eight parts: marker and seven functions",
+    ).toBe(8);
   });
 
   it("5. puts calibration.ts's knots on the wire verbatim, once", () => {
@@ -689,4 +701,279 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     expect(KX.length, "nine knots in x").toBe(9);
     expect(KY.length, "nine knots in y").toBe(9);
   });
+
+  it("6. lands every K stamp on phase 0 from a start that is a multiple of 6, keeps N in the map's slot, and draws through Z and Y exactly what 12.1-03's G drew", async () => {
+    // PLAN 12.1-08b (12.1-CONTEXT D-26 item 2, D-27). Three claims about the
+    // revision that gave the eight preset cards the gradient, each driven
+    // through the real host over both library strings rather than read off
+    // the text.
+
+    // 1. THE SLOTS. `N` is the map - no LED write, no send - and 255/6 could
+    //    not hold `K` beside it (934, 26 over), so it lives in 255/0 now;
+    //    `Z`, `Y` and `K` are painters and live in 255/6. Test 2 asserts each
+    //    name is defined exactly once; this is WHERE.
+    expect(definitionSlots("N"), "N is defined in the map's slot").toEqual([0]);
+    for (const name of ["Z", "Y", "K"]) {
+      expect(definitionSlots(name), `${name} is defined in 255/6`).toEqual([6]);
+    }
+    expect(bodyOf("N"), "N's text did not move with its slot").toBe(
+      "function N(x,y)return(U(x,KX)+32)//64+(U(y,KY)+32)//64*9 end",
+    );
+
+    // 2. THE STAMP. `K(x,y,l,w)` starts each of the block's four cells at
+    //    `w*weight//4096` quantised DOWN to a multiple of 6 and hands it to
+    //    `D` (rate 250), so every cell walks to exactly 0 - both Phase 11
+    //    gates. Driven at the 81 LED centres, the eight midpoints along row 4
+    //    and the eight along column 4, the centre of four and the four raw
+    //    corners; after each stamp one tick is run and the layer read back,
+    //    then sixty ticks drain it and every layer-1 cell must read 0.
+    //
+    //    After exactly one tick a stamped cell reads pha = start - 6 (mod 256)
+    //    and timeout = start/6 - 1 with fre still 250, so the start is
+    //    (pha + 6) & 255 - except a start of 6, whose one tick lands it on 0
+    //    with fre zeroed, indistinguishable from an untouched cell and
+    //    asserted as such.
+    const hwOf = (cell: number): number =>
+      screenToHw(cell % 9, Math.floor(cell / 9));
+    const W = 252;
+    const expectedStamp = (x: number, y: number): Record<number, number> => {
+      const u = calibratedAxis(x, "x");
+      const v = calibratedAxis(y, "y");
+      const c = Math.min(Math.floor(u / LED_STEP), 7);
+      const q = Math.min(Math.floor(v / LED_STEP), 7);
+      const f = u - c * LED_STEP;
+      const h = v - q * LED_STEP;
+      const out: Record<number, number> = {};
+      for (let d = 0; d < 4; d += 1) {
+        const weight =
+          (d % 2 > 0 ? f : LED_STEP - f) *
+          (Math.floor(d / 2) > 0 ? h : LED_STEP - h);
+        const z = Math.floor(Math.floor((W * weight) / 4096) / 6) * 6;
+        if (z > 0) out[c + q * 9 + (d % 2) + Math.floor(d / 2) * 9] = z;
+      }
+      return out;
+    };
+    const points: { x: number; y: number; label: string }[] = [];
+    for (let r = 0; r < 9; r += 1) {
+      for (let c = 0; c < 9; c += 1) {
+        points.push({ x: KX[c], y: KY[r], label: `LED (${c},${r})` });
+      }
+    }
+    for (let c = 0; c < 8; c += 1) {
+      points.push({
+        x: Math.floor((KX[c] + KX[c + 1]) / 2),
+        y: KY[4],
+        label: `midway between LED ${c} and ${c + 1} in x, row 4`,
+      });
+    }
+    for (let r = 0; r < 8; r += 1) {
+      points.push({
+        x: KX[4],
+        y: Math.floor((KY[r] + KY[r + 1]) / 2),
+        label: `midway between LED ${r} and ${r + 1} in y, column 4`,
+      });
+    }
+    points.push({
+      x: Math.floor((KX[4] + KX[5]) / 2),
+      y: Math.floor((KY[4] + KY[5]) / 2),
+      label: "the centre of four",
+    });
+    for (const [x, y] of [
+      [0, 0],
+      [127, 0],
+      [0, 127],
+      [127, 127],
+    ]) {
+      points.push({ x, y, label: `raw corner (${x},${y})` });
+    }
+
+    const stampSim = new PadSim(blankPadState());
+    const stampHost = await createLuaHost({
+      sim: stampSim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: "--[[@cb]]self.touch_cb=function(s,i,e,x,y)K(x,y,1,252)end",
+    });
+    let stamps = 0;
+    let multiCell = 0;
+    const report: string[] = [];
+    try {
+      expect(stampHost.errors, "the library raised on load").toEqual([]);
+      for (const point of points) {
+        stampHost.touchDown(0, point.x, point.y);
+        stampHost.run(1);
+        const expected = expectedStamp(point.x, point.y);
+        const observed: Record<number, number> = {};
+        for (let cell = 0; cell < 81; cell += 1) {
+          const layer = stampSim.layer(hwOf(cell), 1);
+          if (layer.fre === 0 && layer.timeout === 0) {
+            expect(
+              layer.pha,
+              `${point.label}: cell ${cell} is frozen above 0 on layer 1`,
+            ).toBe(0);
+            continue;
+          }
+          const start = (layer.pha + 6) & 255;
+          expect(
+            start % 6,
+            `${point.label}: cell ${cell} started at ${start}, not a multiple of 6`,
+          ).toBe(0);
+          expect(
+            layer.timeout + 1,
+            `${point.label}: cell ${cell}'s timeout is not start/6`,
+          ).toBe(start / 6);
+          expect(
+            (layer.pha + layer.fre * layer.timeout) & 255,
+            `${point.label}: cell ${cell} will freeze above 0`,
+          ).toBe(0);
+          observed[cell] = start;
+          stamps += 1;
+        }
+        // The TS twin, minus the starts of 6 that one tick already retired.
+        const visible = Object.fromEntries(
+          Object.entries(expected).filter(([, z]) => z !== 6),
+        );
+        expect(
+          observed,
+          `${point.label}: the stamped cells and starts are not the twin's`,
+        ).toEqual(visible);
+        for (const [cell, z] of Object.entries(expected)) {
+          if (z !== 6) continue;
+          const layer = stampSim.layer(hwOf(Number(cell)), 1);
+          expect(
+            [layer.pha, layer.fre, layer.timeout],
+            `${point.label}: a start of 6 at cell ${cell} did not land on 0 in one tick`,
+          ).toEqual([0, 0, 0]);
+        }
+        if (Object.keys(expected).length > 1) multiCell += 1;
+        report.push(
+          `  ${point.label.padEnd(44)} ${
+            Object.entries(expected)
+              .map(([cell, z]) => `${cell}=${z}/t${z / 6}`)
+              .join(" ") || "(nothing)"
+          }`,
+        );
+        // The drain: every stamp lands on 0, observed rather than derived.
+        stampHost.run(60);
+        for (let cell = 0; cell < 81; cell += 1) {
+          const layer = stampSim.layer(hwOf(cell), 1);
+          expect(
+            [layer.pha, layer.fre, layer.timeout],
+            `${point.label}: cell ${cell} did not land on 0 after the decay`,
+          ).toEqual([0, 0, 0]);
+        }
+      }
+      expect(stampHost.errors, stampHost.errors.join(" | ")).toEqual([]);
+    } finally {
+      stampHost.close();
+    }
+    expect(
+      stamps,
+      "K stamped nothing, so nothing above was checked",
+    ).toBeGreaterThan(points.length);
+    expect(
+      multiCell,
+      "no point stamped more than one cell - the weights are not being read",
+    ).toBeGreaterThan(16);
+    // The bench case (12.1-CONTEXT D-02): a finger on LED (7,1), which the
+    // naive divisor read as cell 8, stamps cell 16 alone at the full start.
+    expect(expectedStamp(KX[7], KY[1]), "LED (7,1) is cell 16 to K").toEqual({
+      16: W,
+    });
+
+    // 3. THE IDENTITY. `G` goes through `Z` and `Y` since this revision and
+    //    its output must not have moved: the 12.1-03 text is held here as a
+    //    literal - the ONE literal copy of a library function outside
+    //    library.ts, for this comparison only - and both forms are driven over
+    //    the raw plane every 7 units on both axes, layer 0 compared cell by
+    //    cell after every sample (phase and colour), 361 points.
+    const G_12_1_03 =
+      "function G(s,i,e,x,y,l,r,g,b)L=l local o=B[i]if o then V(o)end " +
+      "if e~=1 and e~=4 then B[i]=nil return end " +
+      "local u,w=U(x,KX),U(y,KY)local c,q=glim(u//64,0,7),glim(w//64,0,7)" +
+      "local f,h=u-c*64,w-q*64 local n=c+q*9 for d=0,3 do local p,t=d%2,d//2 " +
+      "local a=glag(0,n+p+t*9)glc(a,l,r,g,b,1)" +
+      "glp(a,l,255*(p>0 and f or 64-f)*(t>0 and h or 64-h)//4096)end B[i]=n end";
+    expect(G_12_1_03.length, "the 12.1-03 G measured 352").toBe(352);
+    expect(
+      bodyOf("G"),
+      "G is the 12.1-03 text, so this compares nothing",
+    ).not.toBe(G_12_1_03);
+    expect(bodyOf("G").length, "G through Z and Y measures 221").toBe(221);
+    expect(count(TOUCH_LIBRARY_TIMER, bodyOf("G")), "G is in 255/6 once").toBe(
+      1,
+    );
+    const pristineTimer = TOUCH_LIBRARY_TIMER.replace(bodyOf("G"), G_12_1_03);
+    const fingerSetup =
+      "--[[@cb]]self.touch_cb=function(s,i,e,x,y)G(s,i,e,x,y,0,255,187,0)end";
+    const revised = new PadSim(blankPadState());
+    const pristine = new PadSim(blankPadState());
+    const revisedHost = await createLuaHost({
+      sim: revised,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: fingerSetup,
+    });
+    const pristineHost = await createLuaHost({
+      sim: pristine,
+      system: TOUCH_LIBRARY,
+      systemTimer: pristineTimer,
+      setup: fingerSetup,
+    });
+    let compared = 0;
+    let litSamples = 0;
+    try {
+      let first = true;
+      for (let x = 0; x <= 127; x += 7) {
+        for (let y = 0; y <= 127; y += 7) {
+          for (const host of [revisedHost, pristineHost]) {
+            if (first) host.touchDown(0, x, y);
+            else host.touchMove(0, x, y);
+            host.run(1);
+          }
+          first = false;
+          let lit = 0;
+          for (let cell = 0; cell < 81; cell += 1) {
+            const a = revised.layer(hwOf(cell), 0);
+            const b = pristine.layer(hwOf(cell), 0);
+            expect(
+              [a.pha, ...a.max],
+              `G through Z and Y differs from 12.1-03's G at (${x},${y}), cell ${cell}`,
+            ).toEqual([b.pha, ...b.max]);
+            if (a.pha !== 0) lit += 1;
+            compared += 1;
+          }
+          if (lit > 0) litSamples += 1;
+        }
+      }
+      for (const host of [revisedHost, pristineHost]) {
+        host.touchUp(0, 127, 127);
+        host.run(1);
+      }
+      for (let cell = 0; cell < 81; cell += 1) {
+        expect(revised.layer(hwOf(cell), 0).pha, "dark after the lift").toBe(0);
+        expect(pristine.layer(hwOf(cell), 0).pha, "dark after the lift").toBe(
+          0,
+        );
+      }
+      expect(revisedHost.errors, revisedHost.errors.join(" | ")).toEqual([]);
+      expect(pristineHost.errors, pristineHost.errors.join(" | ")).toEqual([]);
+    } finally {
+      revisedHost.close();
+      pristineHost.close();
+    }
+    expect(compared, "361 points x 81 cells").toBe(19 * 19 * 81);
+    expect(
+      litSamples,
+      "no sample lit anything, so the identity compared two dark pads",
+    ).toBe(19 * 19);
+
+    console.log(
+      "K on the measured knots (start/timeout per cell, from the TS twin, " +
+        `${stamps} stamps observed across ${points.length} points):\n` +
+        report.join("\n") +
+        `\nG through Z and Y against 12.1-03's G: ${compared} records equal ` +
+        `over ${19 * 19} samples`,
+    );
+  }, 60000);
 });

@@ -1,11 +1,15 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// THIRTY-SEVEN tests since plan 12.1-08a, which appended one to the gradient
+// THIRTY-EIGHT tests since plan 12.1-08b, which appended one to the gradient
+// block: K, the decaying bilinear stamp the eight preset cards take through
+// the vendored compiler - the twin's starts at the five readings, a
+// zero-weight neighbour's trail left alone, the colour set only when handed,
+// and G's picture unchanged through Z and Y.
+// THIRTY-SEVEN since plan 12.1-08a, which appended one to the gradient
 // block: GHOST under N and G - the erase key at LED (8,8) and not at LED
 // (7,7), where the naive divisor read cell 80 and a finger on a playing loop
 // erased it; the comet, the gradient and the ghost on the LED's own cell at
-// all 81 centres; the midpoint pair; the code-9 tap. (Plan 12.1-08b adds one
-// more for `K`, the decaying stamp the presets take.)
+// all 81 centres; the midpoint pair; the code-9 tap.
 // THIRTY-SIX since plan 12.1-04, which appended two to the gradient
 // block: CHORUS, CONSOLE, MORPH and LUMEN under G at nine LED centres and a
 // midpoint in their own colours (MORPH's lift and second finger, LUMEN's A
@@ -9397,6 +9401,273 @@ describe("the gradient (12.1)", () => {
     }
     process.stdout.write(
       "\nGHOST UNDER N AND G (plan 12.1-08a):\n" + report.join("\n") + "\n",
+    );
+  }, 120000);
+
+  it("stamps K's decaying finger on the measured knots at the twin's starts, leaves a zero-weight neighbour's own decay alone, colours the four cells only when handed a colour, and keeps G's picture across the revision", async () => {
+    // PLAN 12.1-08b (12.1-CONTEXT D-26 item 2, D-27). `K(x,y,l,w,r,g,b)` is
+    // the decaying bilinear stamp the vendored compiler emits for the comet
+    // presets (`K(x,y,1,252)`) and PINWHEEL (`K(x,y,1,252,255-i*60,i*60,128)`)
+    // when a state carries `touchLibrary`. Four claims, every expected cell
+    // and start computed from KX / KY through calibratedAxis and never
+    // typed:
+    //
+    //   1. THE STAMP IS THE TWIN'S. Dead on LED (4,4) one cell at 252 over 42
+    //      ticks; midway between LED 4 and LED 5 in x two cells at 132/22 and
+    //      114/19; the centre of four cells at 72/12, 60/10, 60/10, 48/8; the
+    //      raw corner (127,127) cell 80 alone; and the bench case - a finger
+    //      dead on LED (7,1) at (120,12), which the naive divisor read as cell
+    //      8 - cell 16 alone at 252. Each start a multiple of 6 with timeout
+    //      start/6, read back after one tick.
+    //   2. A ZERO-WEIGHT CELL IS NOT WRITTEN. A stamp dead on LED (6,4) is
+    //      decaying at cell 42; a second finger dead on LED (5,4) stamps cell
+    //      41 at 252 and its block's other three cells (42, 50, 51) at weight
+    //      0 - and cell 42 keeps its own phase and its own countdown. Without
+    //      `if z>0` the second finger would write D(42,1,0) and cut the first
+    //      finger's trail dead.
+    //   3. THE COLOUR. A stamp handed (255,0,0) sets the four cells' stops to
+    //      glcStops(255,0,0,true); a stamp handed none leaves the stops where
+    //      they were (blank here; the comet's init loop colours them on the
+    //      module).
+    //   4. G ACROSS THE REVISION. `G` now runs through `Z` and `Y`; at the 81
+    //      LED centres and the midpoint its layer-0 picture is still exactly
+    //      the TS twin 12.1-02 wrote against the inline form.
+    const naiveCellOf = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    const W = 252;
+    /** The stamp's cells and quantised starts, from the table - `K`'s twin. */
+    const expectedStamp = (x: number, y: number): Record<number, number> => {
+      const u = calibratedAxis(x, "x");
+      const v = calibratedAxis(y, "y");
+      const c = Math.min(Math.floor(u / LED_STEP), 7);
+      const q = Math.min(Math.floor(v / LED_STEP), 7);
+      const f = u - c * LED_STEP;
+      const h = v - q * LED_STEP;
+      const out: Record<number, number> = {};
+      for (let d = 0; d < 4; d += 1) {
+        const weight =
+          (d % 2 > 0 ? f : LED_STEP - f) *
+          (Math.floor(d / 2) > 0 ? h : LED_STEP - h);
+        const z = Math.floor(Math.floor((W * weight) / 4096) / 6) * 6;
+        if (z > 0) out[c + q * 9 + (d % 2) + Math.floor(d / 2) * 9] = z;
+      }
+      return out;
+    };
+    /** Layer 1 read back one tick after a stamp: cell -> [start, timeout at write]. */
+    const stampsOn = (sim: PadSim): Record<number, [number, number]> => {
+      const out: Record<number, [number, number]> = {};
+      for (let cell = 0; cell < 81; cell += 1) {
+        const L = sim.layer(hwOfCell(cell), 1);
+        if (L.fre === 0 && L.timeout === 0) continue;
+        out[cell] = [(L.pha + 6) & 255, L.timeout + 1];
+      }
+      return out;
+    };
+    const twinAsRead = (
+      expected: Record<number, number>,
+    ): Record<number, [number, number]> =>
+      Object.fromEntries(
+        Object.entries(expected)
+          .filter(([, z]) => z !== 6)
+          .map(([cell, z]) => [cell, [z, z / 6]]),
+      );
+    const report: string[] = [];
+
+    // Contact 0 stamps without a colour, contact 1 with red; G draws the
+    // live finger on layer 0 for claim 4.
+    const SETUP =
+      "--[[@cb]]self.touch_cb=function(s,i,e,x,y)" +
+      "if i==0 then K(x,y,1,252)else K(x,y,1,252,255,0,0)end " +
+      "G(s,i,e,x,y,0,255,255,255)end";
+    const { host, sim } = await openGradient(false, SETUP);
+    try {
+      expect(host.errors, `the library raised: ${host.errors}`).toEqual([]);
+      const drain = (): void => {
+        host.run(60);
+        for (let cell = 0; cell < 81; cell += 1) {
+          const L = sim.layer(hwOfCell(cell), 1);
+          expect(
+            [L.pha, L.fre, L.timeout],
+            `cell ${cell} did not land on 0 after the decay`,
+          ).toEqual([0, 0, 0]);
+        }
+      };
+
+      // 1. THE STAMP IS THE TWIN'S, at the five readings.
+      const midX = Math.floor((KX[4] + KX[5]) / 2);
+      const midY = Math.floor((KY[4] + KY[5]) / 2);
+      const readings: { x: number; y: number; label: string }[] = [
+        { x: KX[4], y: KY[4], label: "dead on LED (4,4)" },
+        { x: midX, y: KY[4], label: "midway between LED 4 and 5 in x" },
+        { x: midX, y: midY, label: "the centre of four" },
+        { x: 127, y: 127, label: "the raw corner (127,127)" },
+        { x: KX[7], y: KY[1], label: "the bench case, dead on LED (7,1)" },
+      ];
+      for (const reading of readings) {
+        host.touchDown(0, reading.x, reading.y);
+        host.run(1);
+        const expected = expectedStamp(reading.x, reading.y);
+        const got = stampsOn(sim);
+        expect(
+          got,
+          `K ${reading.label} at (${reading.x},${reading.y}): not the twin's cells and starts`,
+        ).toEqual(twinAsRead(expected));
+        for (const [cell, [start, timeout]] of Object.entries(got)) {
+          expect(start % 6, `cell ${cell}'s start is not a multiple of 6`).toBe(
+            0,
+          );
+          expect(timeout, `cell ${cell}'s timeout is not start/6`).toBe(
+            start / 6,
+          );
+        }
+        report.push(
+          `  ${reading.label.padEnd(36)} (${String(reading.x).padStart(3)},${String(reading.y).padStart(3)}): ` +
+            Object.entries(expected)
+              .map(([cell, z]) => `${cell}=${z}/t${z / 6}`)
+              .join(" ") +
+            `   (naive comet: cell ${naiveCellOf(reading.x, reading.y)}=252/t42)`,
+        );
+        host.touchUp(0, reading.x, reading.y);
+        drain();
+      }
+      expect(
+        Object.keys(expectedStamp(KX[4], KY[4])),
+        "dead on an LED is one cell",
+      ).toEqual(["40"]);
+      expect(expectedStamp(KX[4], KY[4])[40], "at the full start").toBe(W);
+      expect(
+        Object.keys(expectedStamp(midX, KY[4])),
+        "the midpoint is a pair",
+      ).toHaveLength(2);
+      expect(
+        Object.keys(expectedStamp(midX, midY)),
+        "the centre of four is four",
+      ).toHaveLength(4);
+      expect(expectedStamp(KX[7], KY[1]), "LED (7,1) is cell 16 to K").toEqual({
+        16: W,
+      });
+      expect(
+        naiveCellOf(KX[7], KY[1]),
+        "the naive divisor read LED (7,1) as cell 8 - the defect",
+      ).toBe(8);
+
+      // 2. A ZERO-WEIGHT CELL IS NOT WRITTEN.
+      host.touchDown(0, KX[6], KY[4]);
+      host.run(1);
+      expect(stampsOn(sim), "the first finger stamps cell 42 alone").toEqual({
+        42: [W, 42],
+      });
+      host.run(10);
+      const trailing = sim.layer(hwOfCell(42), 1);
+      expect(
+        [trailing.pha, trailing.timeout],
+        "cell 42 is eleven steps into its decay",
+      ).toEqual([W - 6 * 11, 42 - 11]);
+      host.touchDown(1, KX[5], KY[4]);
+      host.run(1);
+      const second = expectedStamp(KX[5], KY[4]);
+      expect(second, "the second finger's block is cell 41 alone").toEqual({
+        41: W,
+      });
+      const after = sim.layer(hwOfCell(42), 1);
+      expect(
+        [after.pha, after.fre, after.timeout],
+        "cell 42 - weight 0 under the second finger - lost its own decay: " +
+          "K wrote a zero stamp over a neighbour's trail",
+      ).toEqual([W - 6 * 12, 250, 42 - 12]);
+      expect(sim.layer(hwOfCell(41), 1).pha, "cell 41 stamped at 252").toBe(
+        (W + 250) & 255,
+      );
+      for (const cell of [50, 51]) {
+        const L = sim.layer(hwOfCell(cell), 1);
+        expect(
+          [L.pha, L.fre, L.timeout],
+          `cell ${cell}, weight 0, was written`,
+        ).toEqual([0, 0, 0]);
+      }
+      report.push(
+        `  a finger dead on LED (5,4) beside a trail at cell 42: cell 42 kept phase ${after.pha}/t${after.timeout}, cells 50 and 51 untouched`,
+      );
+      host.touchUp(0, KX[6], KY[4]);
+      host.touchUp(1, KX[5], KY[4]);
+      drain();
+
+      // 3. THE COLOUR. Contact 1 is handed red; contact 0 nothing.
+      const red = glcStops(255, 0, 0, true);
+      host.touchDown(1, midX, midY);
+      host.run(1);
+      const four = Object.keys(expectedStamp(midX, midY)).map(Number);
+      expect(four, "the centre of four is four cells").toHaveLength(4);
+      for (const cell of four) {
+        const L = sim.layer(hwOfCell(cell), 1);
+        expect(
+          { min: [...L.min], mid: [...L.mid], max: [...L.max] },
+          `cell ${cell}'s stops are not glcStops(255,0,0,true)`,
+        ).toEqual(red);
+      }
+      host.touchUp(1, midX, midY);
+      drain();
+      host.touchDown(0, KX[2], KY[2]);
+      host.run(1);
+      expect(stampsOn(sim), "contact 0 stamps cell 20").toEqual({
+        20: [W, 42],
+      });
+      const plain = sim.layer(hwOfCell(20), 1);
+      expect(
+        { min: [...plain.min], mid: [...plain.mid], max: [...plain.max] },
+        "a stamp handed no colour changed the cell's stops",
+      ).toEqual({ min: [0, 0, 0], mid: [0, 0, 0], max: [0, 0, 0] });
+      // And the red cells kept their stops through the drain - a colour is
+      // a keeper, the phase is what decays.
+      for (const cell of four) {
+        expect([...sim.layer(hwOfCell(cell), 1).max]).toEqual(red.max);
+      }
+      host.touchUp(0, KX[2], KY[2]);
+      drain();
+      report.push(
+        `  K with (255,0,0) at the centre of four: cells ${four.join(" ")} at stops ${JSON.stringify(red)}; K without a colour at cell 20: stops untouched`,
+      );
+
+      // 4. G ACROSS THE REVISION: the live finger on layer 0 at all 81 LED
+      //    centres and the midpoint is the TS twin's picture.
+      let checked = 0;
+      for (let r = 0; r < 9; r += 1) {
+        for (let c = 0; c < 9; c += 1) {
+          host.touchDown(0, KX[c], KY[r]);
+          host.run(1);
+          expect(
+            litOnLayer0(sim),
+            `G through Z and Y at LED (${c},${r}) is not the twin's picture`,
+          ).toEqual(litOf(expectedFinger(KX[c], KY[r]).phases));
+          expect(litOnLayer0(sim), "one cell at 255").toEqual({
+            [c + r * 9]: 255,
+          });
+          host.touchUp(0, KX[c], KY[r]);
+          host.run(1);
+          expect(litOnLayer0(sim), "dark after the lift").toEqual({});
+          checked += 1;
+          host.run(60);
+        }
+      }
+      host.touchDown(0, midX, KY[4]);
+      host.run(1);
+      expect(
+        litOnLayer0(sim),
+        "G through Z and Y at the midpoint is not the twin's pair",
+      ).toEqual(litOf(expectedFinger(midX, KY[4]).phases));
+      expect(Object.keys(litOnLayer0(sim)), "a pair").toHaveLength(2);
+      host.touchUp(0, midX, KY[4]);
+      host.run(1);
+      expect(checked, "81 LED centres").toBe(81);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      report.push(
+        "  G through Z and Y: the twin's picture at all 81 LED centres and the midpoint, dark after every lift",
+      );
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nK ON THE MEASURED KNOTS (plan 12.1-08b):\n" + report.join("\n") + "\n",
     );
   }, 120000);
 });

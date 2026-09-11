@@ -580,13 +580,15 @@ describe("the Lua host", () => {
     try {
       expect(host.errors, "the install raised without systemTimer").toEqual([]);
       const keys = host.globalKeys();
-      for (const name of ["G", "V", "N", "A", "D"]) {
+      // The 255/6 names since 12.1-08b: `N` moved to 255/0 with the map
+      // (library.ts section 2), and `Z`, `Y`, `K` joined the painters.
+      for (const name of ["G", "V", "Z", "Y", "K", "A", "D"]) {
         expect(
           keys,
           `${name} reached a host that was given no system Timer`,
         ).not.toContain(name);
       }
-      for (const name of ["U", "W", "E", "Q", "X", "KX", "KY"]) {
+      for (const name of ["U", "W", "E", "Q", "X", "N", "KX", "KY"]) {
         expect(keys, `${name} is missing from a host given 255/0`).toContain(
           name,
         );

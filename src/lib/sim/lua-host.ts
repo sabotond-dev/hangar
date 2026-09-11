@@ -102,7 +102,8 @@ export type LuaHostOptions = {
   /**
    * The SYSTEM element's Timer (element 255, event 6) - the second half of
    * HANGAR's touch library since phase 12.1: the painters and the senders
-   * (`V G N A D`), while `system` holds state and the map (`U W E Q X`).
+   * (`V G Z Y K A D` since 12.1-08b), while `system` holds state and the map
+   * (`U W E Q X N`).
    *
    * THE ORDER IS THE MODULE'S. On the module 255/6 is written FIRST, because a
    * written body runs at once (`grid_decode.c:1286-1287`) and 255/0 closes with

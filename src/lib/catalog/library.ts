@@ -1,8 +1,9 @@
-// THE TOUCH LIBRARY: two strings, ten functions, one convention. The first is
-// written into the system element's Setup (element 255, event 0) and holds the
-// state and the map; the second into the system element's Timer (element 255,
-// event 6) and holds the painters and the senders. Every hand-authored entry's
-// touch Setup calls both halves by name.
+// THE TOUCH LIBRARY: two strings, thirteen functions, one convention. The first
+// is written into the system element's Setup (element 255, event 0) and holds
+// the state and the map; the second into the system element's Timer (element
+// 255, event 6) and holds the painters and the senders. Every hand-authored
+// entry's touch Setup calls both halves by name, and since 12.1-08b so does
+// every preset card's compiled Setup (section 5, `K`, `G` and `N`).
 //
 // ---------------------------------------------------------------------------
 // 1. WHY IT LIVES IN THE SYSTEM ELEMENT, WITH THE FIRMWARE LINES
@@ -55,15 +56,30 @@
 // module and PUT BACK restores it" - and answered "yes"
 // (`BENCH-2026-09-11.txt`, recorded as 12.1-CONTEXT D-03). So:
 //
-//   255/0  system Setup   marker, `H T C P B L`, `KX`, `KY`, `U W E Q X`,
-//                         `self:tim()`                       781, 127 free
-//   255/6  system Timer   marker, `V G N A D`                 705, 203 free
+//   255/0  system Setup   marker, `H T C P B L`, `KX`, `KY`, `U W E Q X N`,
+//                         `self:tim()`                       842, 66 free
+//   255/6  system Timer   marker, `V G Z Y K A D`             873, 35 free
 //
 // (The research and the plans carried 782 and 714: those are the raw lengths
 // of a `W` and an `N` written `return (` - one space each that the minifier
 // removes - and `cost = max(raw, compressed)` charged the raw. The shipped
 // strings are the fixed points, one character shorter on each side. 255/6
-// then read 713 until 12.1-03 took ` and e<9` out of `G` - section 5.)
+// then read 713 until 12.1-03 took ` and e<9` out of `G` - section 5 - and
+// 12.1-02 / 12.1-03 shipped 781 + 705.)
+//
+// THE 12.1-08b REVISION (12.1-CONTEXT D-26 item 2, D-27): the eight preset
+// cards take the gradient too, and what they need is a DECAYING stamp - the
+// comet on AURORA, STARFIELD, RADAR and DIAL and the per-finger trail on
+// PINWHEEL are stateless fades, not a live block `V` clears. That is `K`,
+// and `K` needs the block origin and the corner weights `G` computed inline,
+// so both were factored into `Z` and `Y` and `G` re-written through them
+// (identical output at every sampled point, library.spec.ts test 6; 352 ->
+// 221). Then 255/6 could not hold `K` beside `N`: `V G Z Y K N A D` measures
+// 934, 26 over. `N` IS THE MAP - the nearest calibrated cell, no LED write
+// and no send - so it belongs on the 255/0 side of the split rule below in
+// any case, and it moved there: 255/0 781 -> 842 (66 free), 255/6 705 -> 873
+// (35 free). Moving `D` to 255/0 instead was measured at 891 / 850 and not
+// taken: `D` writes LEDs, and the split rule says which side it lives on.
 //
 // THE RULE THAT DECIDES WHICH SIDE A THING LIVES ON: 255/0 holds STATE and THE
 // MAP, 255/6 holds THE PAINTERS AND THE SENDERS. A change to how the finger
@@ -73,8 +89,8 @@
 // `KX=` and `KY=` appear in 255/0 only.
 //
 // THE JOIN IS ONE CALL. 255/0 ends with `self:tim()`, which runs the 255/6
-// body as the system element's own Timer method, so the ten functions are all
-// defined by the time the system Setup returns. That is why 255/6 is written
+// body as the system element's own Timer method, so the thirteen functions are
+// all defined by the time the system Setup returns. That is why 255/6 is written
 // FIRST: `grid_decode.c:1286-1287` registers a written body and runs it at
 // once, and a 255/0 written before its `tim` method existed would raise
 // "attempt to call a nil value (method 'tim')" on the desk. The install order
@@ -173,7 +189,12 @@
 //      would be: the user's specification (12.1-CONTEXT D-01) is that a finger
 //      between two LEDs lights both dimly and a finger in the middle of four
 //      lights all four, so what ships is not `F` - `G` is a different
-//      primitive with a different contract - and `F` stays dropped.
+//      primitive with a different contract - and `F` stays dropped. Since
+//      12.1-08a GHOST is `G`'s ninth caller, and since 12.1-08b the vendored
+//      compiler emits `G` for JOYSTICK's glow and `K` - the DECAYING stamp,
+//      the same four cells at the same weights but fading through `D` - for
+//      the comets and PINWHEEL's per-finger trail, so the eight preset cards
+//      draw the finger the way the user specified as well.
 //   6. Nothing is built on code 9 (Q3). The onset edge `(e==4 or e>8)` stays
 //      and `H[i]=e<9 and n` keeps the research's harmless handling of a 9;
 //      nothing depends on the `e>8` half. Q3 measured ten taps as fast as a
@@ -187,9 +208,9 @@
 // 5. THE CONTRACT, FUNCTION BY FUNCTION, WITH EACH ONE'S CALLER
 // ---------------------------------------------------------------------------
 //
-// A function with no caller is not shipped. Each of the ten below names the
-// plan that calls it, and `library.spec.ts` is where the cost of shipping one
-// is measured. The unit `U` returns is a 64th of an LED pitch: LED `n` sits at
+// A function with no caller is not shipped. Each of the thirteen below names
+// the plan that calls it, and `library.spec.ts` is where the cost of shipping
+// one is measured. The unit `U` returns is a 64th of an LED pitch: LED `n` sits at
 // `n*64`, the axis runs 0..512, and every cell and every weight in this file is
 // integer arithmetic in that unit - firmware Lua is 5.4 with integers and `glp`
 // wants an integer phase, so there is no float anywhere for it to reject.
@@ -204,8 +225,8 @@
 //   KX) == n*64` exactly. `calibratedAxis()` in `calibration.ts` is its
 //   TypeScript twin with the same floor division, and `lua-smoke.spec.ts`
 //   drives the two against each other for every value on both axes. Called
-//   by `Q` (twice), `G` (twice), `N` (twice) and TRACKPAD's Timer (12.1-04,
-//   its two flash centres).
+//   by `Q` (twice), `Z` (twice, for `G` and `K`), `N` (twice) and TRACKPAD's
+//   Timer (12.1-04, its two flash centres).
 //
 // `W(u, p)` - ONE-AXIS HYSTERESIS IN CALIBRATED SPACE. If the contact held
 //   LED `p` on this axis, keep it while `u` is within 45/64 of a pitch of `p`'s
@@ -236,6 +257,18 @@
 //   CALLER'S, not a library constant - see section 8. Callers: EUCLID, STEPS,
 //   RADAR POINTS and SONAR (12-08), CHORUS (12-09) - five.
 //
+// `N(x, y)` - THE NEAREST CALIBRATED CELL, no hysteresis and no state, for a
+//   press-time lookup: `(U(x,KX)+32)//64 + (U(y,KY)+32)//64*9`. IN 255/0
+//   SINCE 12.1-08b, because it is the map and not a painter (section 2).
+//   Callers: ARC's stop tap (12.1-03, `N(x,y)==40`); GHOST twice (12.1-08a -
+//   the erase key `N(x,y)==80` in its Setup and the comet / ghost cell in its
+//   Timer); the vendored compiler's zone and fader emission for a state that
+//   carries `touchLibrary` (12.1-08b - NINE PADS' `local n=N(x,y)` ahead of
+//   the LED-side zone rule, FOUR FADERS' `local f=N(x,y)%9*4//9`;
+//   `src/vendor/botor/_pad.ts` `zoneStatements` and `sendsPaint`'s fader
+//   branch, each a declared manifest row); and 13-15's region lookup, named
+//   in advance.
+//
 // 255/6 - the painters and the senders:
 //
 // `V(n)` - CLEAR THE 2x2 BLOCK whose origin is cell `n`, on layer `L` (the
@@ -248,25 +281,58 @@
 //   `Q`'s live test: a 9 is a press AND a lift in one message, so `Q` returns
 //   its cell for the toggle but there is no finger left to draw, and a 9
 //   drawn would stay lit until the sweep; 12.1-03, from the residue gate, -8
-//   characters), takes `u = U(x,KX)`, `w = U(y,KY)`, the
-//   block origin `c + q*9` with `c = glim(u//64,0,7)` and `q = glim(w//64,0,7)`,
-//   the fractions `f = u - c*64` and `h = w - q*64` (0..63, or 64 at the far
-//   end of the last segment - the ninth LED is reached as the SECOND column of
-//   the eighth block, so no index leaves 0..8 and no cell is written twice),
-//   and lights the four cells `n, n+1, n+9, n+10` at phases
-//   `255*(64-f)*(64-h)//4096`, `255*f*(64-h)//4096`, `255*(64-f)*h//4096` and
-//   `255*f*h//4096` - SETTING THE COLOUR ON EACH CELL FIRST (section 3).
+//   characters), takes the block origin and the two fractions from `Z(x,y)`
+//   (below - until 12.1-08b the same arithmetic was inline here) and lights
+//   the four cells `n, n+1, n+9, n+10` at phases `255*Y(f,h,d)//4096` for
+//   `d = 0..3` - SETTING THE COLOUR ON EACH CELL FIRST (section 3).
 //   Remembers the block in `B[i]` and the layer in `L`. The weights are LINEAR
 //   on purpose (12.1-CONTEXT D-12): the firmware's phase-to-output curve is
 //   already convex, so half weight lands on about 25 % duty, which the eye
 //   reads as roughly 55-60 %; a square-law variant was costed and is not the
-//   default. Callers, each named: EUCLID, STEPS, RADAR POINTS, SONAR
-//   (12.1-03), CHORUS, MORPH, CONSOLE, LUMEN (12.1-04) - eight.
+//   default. THE CONTRACT DID NOT MOVE WITH THE REVISION: library.spec.ts
+//   test 6 holds the 12.1-03 text as a literal and drives both forms over
+//   the raw plane every 7 units, 361 points, zero differences. Callers, each
+//   named: EUCLID, STEPS, RADAR POINTS, SONAR (12.1-03), CHORUS, MORPH,
+//   CONSOLE, LUMEN (12.1-04), GHOST (12.1-08a) - nine hand-authored - and the
+//   vendored compiler's `glow` emission for a state that carries
+//   `touchLibrary` (12.1-08b, JOYSTICK: `G(s,i,e,x,y,1,r,g,b)` on layer 1 in
+//   the touch colour, the parked dot doused first; `_pad.ts` `touchPaint`
+//   case "glow", a declared manifest row).
 //
-// `N(x, y)` - THE NEAREST CALIBRATED CELL, no hysteresis and no state, for a
-//   press-time lookup: `(U(x,KX)+32)//64 + (U(y,KY)+32)//64*9`. Callers: ARC's
-//   stop tap (12.1-03, `N(x,y)==40`) and 13-15's region lookup, named in
-//   advance.
+// `Z(x, y)` - THE BLOCK. `u = U(x,KX)`, `v = U(y,KY)`, the origin `c + q*9`
+//   with `c = glim(u//64,0,7)` and `q = glim(v//64,0,7)`, and the fractions
+//   `u - c*64` and `v - q*64` (0..63, or 64 at the far end of the last
+//   segment - the ninth LED is reached as the SECOND column of the eighth
+//   block, so no index leaves 0..8 and no cell is written twice). Three
+//   return values. FACTORED OUT OF `G` IN 12.1-08b because `K` needs the same
+//   three numbers and 255/6 could not hold two copies. Callers: `G` and `K`.
+//
+// `Y(f, h, d)` - ONE CORNER'S WEIGHT, 0..4096: corner `d` (0..3) of the block
+//   is `d%2` columns and `d//2` rows from the origin, so its weight is
+//   `(64-f or f) * (64-h or h)`. The linear weights, in one place. Callers:
+//   `G` and `K`.
+//
+// `K(x, y, l, w, r, g, b)` - THE DECAYING BILINEAR STAMP (12.1-08b). The same
+//   four cells as `G` at the same weights, but each is a one-shot fade through
+//   `D` rather than a live block: cell `d` starts at `w*Y(f,h,d)//4096`
+//   QUANTISED DOWN TO A MULTIPLE OF 6 (`//6*6`), so with `D`'s rate 250 every
+//   one of the four walks to exactly 0 and freezes dark - both Phase 11 gates,
+//   per cell, by construction. A cell whose quantised start is 0 is NOT
+//   WRITTEN (`if z>0`): a decaying trail beside a finger resting dead on a
+//   neighbouring LED keeps its own phase instead of being stamped to 0. The
+//   colour is set on a cell only when `r` is handed (`if r then glc(...)`),
+//   because the comet's layer-1 colour is set once for all 81 cells at Setup
+//   and PINWHEEL's per-finger hue is not. `w` is the start the caller would
+//   have handed `glpfs` - the compiler emits 252 (`(256-250)*42`, its house
+//   pair for `trailMs` 420) - and it is a byte, so `K` shares `D`'s 42-tick
+//   ceiling. Stateless: no `B[i]`, no end test, a 9 stamps like a 4 (as the
+//   naive comet did). Callers, five, all in the vendored compiler for a state
+//   that carries `touchLibrary` (declared manifest rows, 12.1-08b): the
+//   `comet` emission `K(x,y,1,252)` on AURORA, STARFIELD, RADAR and DIAL, and
+//   the `perFinger` emission `K(x,y,1,252,255-i*60,i*60,128)` on PINWHEEL.
+//   Emitted only when the state's `trailMs` resolves to rate 250 - every
+//   reachable HANGAR state, `presets.spec.ts` asserts the 420 on all nine -
+//   and the naive comet otherwise.
 //
 // `A(s, i, e, x, y, c, d, h)` - PER-AXIS SEND-ON-CHANGE, per contact, and it is
 //   the user's own bench snippet. On live codes (`e<4`) it sends CC `c` = x
@@ -283,8 +349,10 @@
 //   dark. This is `decay-idiom.spec.ts`'s class-A rule, parameterised.
 //   `w` IS A BYTE, SO `D` COVERS TIMEOUTS OF AT MOST 42 TICKS (w = 252). An
 //   entry whose decay knob reaches beyond that - MORPH's `@DECAY` runs 21..126 -
-//   keeps the inline idiom that gate already reads. ONE CALLER: TRACKPAD
-//   (12-10), from its Timer, with every `w` a multiple of six by construction.
+//   keeps the inline idiom that gate already reads. Callers: TRACKPAD
+//   (12-10), from its Timer, with every `w` a multiple of six by construction;
+//   and `K` (12.1-08b), four times per stamp, with every start quantised to a
+//   multiple of six before the call.
 //
 // `R` - A CONVENTION, NOT A FUNCTION THIS LIBRARY DEFINES. An entry that holds
 //   notes, or paints something on layer 0 that a block clear could take away,
@@ -373,20 +441,22 @@
 // 9. THE COST
 // ---------------------------------------------------------------------------
 //
-// 255/0: 781 of 908, 127 free. 255/6: 705 of 908, 203 free. Both measured under
+// 255/0: 842 of 908, 66 free. 255/6: 873 of 908, 35 free. Both measured under
 // the pinned `GridScript.compressScript` after `padReady()`, and each a fixed
-// point of it. The parts of 255/0 are 32 + 65 + 126 + 86 + 88 + 294 + 74 + 10
-// with seven single-space joins (782 uniform), and the minifier's one edit is
-// the space between the map's closing `}` and `function U`; the parts of 255/6
-// are 9 + 62 + 352 + 60 + 150 + 68 with five joins (706 uniform; 12.1-02
+// point of it. The parts of 255/0 are 32 + 65 + 126 + 86 + 88 + 294 + 74 + 60
+// + 10 with eight single-space joins (843 uniform), and the minifier's one
+// edit is the space between the map's closing `}` and `function U`; the parts
+// of 255/6 are 9 + 62 + 221 + 111 + 70 + 176 + 150 + 68 with seven joins (874
+// uniform), and its one edit is the space between the marker's `]]` and
+// `function V`. That is why each string is built with its head concatenated
+// and its functions space-joined, and no other way. The figures before
+// 12.1-08b: 781 + 705, with 255/0 at 32 + 65 + 126 + 86 + 88 + 294 + 74 + 10
+// (782 uniform) and 255/6 at 9 + 62 + 352 + 60 + 150 + 68 (706 uniform; 12.1-02
 // shipped `G` at 360 and 255/6 at 713 before 12.1-03 dropped the eight
-// characters of ` and e<9` from `G`'s end test - section 5), and its one
-// edit is the space between the marker's `]]` and `function V`. That is why
-// each string is built with its head concatenated and its functions
-// space-joined, and no other way. 12-07's one-slot library read 769; a 255/6
-// with a pre-coloured `G` read 683 (682 canonical, by the same `return (`
-// space); the one-slot variants are in section 2. `library.spec.ts` measures
-// all of it rather than trusting this paragraph.
+// characters of ` and e<9` from `G`'s end test - section 5). 12-07's one-slot
+// library read 769; a 255/6 with a pre-coloured `G` read 683 (682 canonical,
+// by the same `return (` space); the one-slot variants are in section 2.
+// `library.spec.ts` measures all of it rather than trusting this paragraph.
 //
 // ---------------------------------------------------------------------------
 // 10. THE NAMES
@@ -401,8 +471,10 @@
 // each is paid for six times in the whole library. `../grid-fw/common/src/lua/
 // *.lua` was grepped for `KX`, `KY`, `function U`, `function G`, `function V`
 // and `function N` by the planner, by the plan-check and again by plan
-// 12.1-02 on 2026-09-11: zero matches. The one firmware global that is close
-// to a single capital is `EFN`, which is three.
+// 12.1-02 on 2026-09-11: zero matches; and for `function Z`, `function Y`,
+// `function K` and the three as assignments by plan 12.1-08b on the same day,
+// across all fourteen files in that directory: zero matches. The one firmware
+// global that is close to a single capital is `EFN`, which is three.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { renderKnots } from "./calibration";
@@ -456,22 +528,48 @@ const X =
 /** The one call that joins the two slots. */
 const CALL = "self:tim()";
 
+// `return(` with no space: that is the minifier's own fixed point, and the
+// research's `return (` was one character the minifier removed - 12.1-02
+// measured 713 canonical where the research carried 714 as max(raw, compressed).
+// IN 255/0 SINCE 12.1-08b: it is the map, and 255/6 could not hold it beside
+// `K` (section 2).
+const N = "function N(x,y)return(U(x,KX)+32)//64+(U(y,KY)+32)//64*9 end";
+
 const V = "function V(n)for d=0,3 do glp(glag(0,n+d%2+d//2*9),L,0)end end";
+
+// The block origin and the two fractions, factored out of `G` (12.1-08b) so
+// `K` can share them: `c+q*9`, `u-c*64`, `v-q*64` - exactly what `G` computed
+// inline until this revision, with the same clamp of the origin to 0..7.
+const Z =
+  "function Z(x,y)local u,v=U(x,KX),U(y,KY)" +
+  "local c,q=glim(u//64,0,7),glim(v//64,0,7)return c+q*9,u-c*64,v-q*64 end";
+
+// One corner's weight, 0..4096: corner `d` of the block is `d%2` columns and
+// `d//2` rows from the origin, so its weight is `f` or `64-f` times `h` or
+// `64-h`. The linear weights of D-12, unchanged in value from `G`'s inline form.
+const Y =
+  "function Y(f,h,d)return(d%2>0 and f or 64-f)*(d//2>0 and h or 64-h)end";
 
 const G =
   "function G(s,i,e,x,y,l,r,g,b)L=l local o=B[i]if o then V(o)end " +
   // NOT the live test's `e~=1 and e~=4 and e<9`: a 9 is a press AND a lift in
   // one message, so there is no finger left to draw (12.1-03, section 5).
   "if e~=1 and e~=4 then B[i]=nil return end " +
-  "local u,w=U(x,KX),U(y,KY)local c,q=glim(u//64,0,7),glim(w//64,0,7)" +
-  "local f,h=u-c*64,w-q*64 local n=c+q*9 for d=0,3 do local p,t=d%2,d//2 " +
-  "local a=glag(0,n+p+t*9)glc(a,l,r,g,b,1)" +
-  "glp(a,l,255*(p>0 and f or 64-f)*(t>0 and h or 64-h)//4096)end B[i]=n end";
+  // Through `Z` and `Y` since 12.1-08b: identical output at every point
+  // (library.spec.ts test 6 holds the 12.1-03 form as a literal and drives
+  // both), 131 characters cheaper, and the room is what `K` fits into.
+  "local n,f,h=Z(x,y)for d=0,3 do local a=glag(0,n+d%2+d//2*9)" +
+  "glc(a,l,r,g,b,1)glp(a,l,255*Y(f,h,d)//4096)end B[i]=n end";
 
-// `return(` with no space: that is the minifier's own fixed point, and the
-// research's `return (` was one character the minifier removed - 12.1-02
-// measured 713 canonical where the research carried 714 as max(raw, compressed).
-const N = "function N(x,y)return(U(x,KX)+32)//64+(U(y,KY)+32)//64*9 end";
+// The decaying bilinear stamp (12.1-08b): the four cells around the finger,
+// each started at `w` scaled by its weight, QUANTISED DOWN TO A MULTIPLE OF 6
+// (`//6*6`) so `D`'s walk lands every one of them on exactly 0; a cell whose
+// quantised start is 0 is not written at all, so a trail is not eaten by a
+// finger resting on a neighbour; the colour is set only when one is handed.
+const K =
+  "function K(x,y,l,w,r,g,b)local n,f,h=Z(x,y)for d=0,3 do " +
+  "local z=w*Y(f,h,d)//4096//6*6 if z>0 then local m=n+d%2+d//2*9 " +
+  "if r then glc(glag(0,m),l,r,g,b,1)end D(m,l,z)end end end";
 
 const A =
   "function A(s,i,e,x,y,c,d,h)local p=P[i]or{}if e<4 then " +
@@ -506,11 +604,14 @@ export const LIBRARY_PARTS: readonly {
   { name: "E", lua: E, slot: 0 },
   { name: "Q", lua: Q, slot: 0 },
   { name: "X", lua: X, slot: 0 },
+  { name: "N", lua: N, slot: 0 },
   { name: "the call", lua: CALL, slot: 0 },
   { name: "marker", lua: MARKER, slot: 6 },
   { name: "V", lua: V, slot: 6 },
   { name: "G", lua: G, slot: 6 },
-  { name: "N", lua: N, slot: 6 },
+  { name: "Z", lua: Z, slot: 6 },
+  { name: "Y", lua: Y, slot: 6 },
+  { name: "K", lua: K, slot: 6 },
   { name: "A", lua: A, slot: 6 },
   { name: "D", lua: D, slot: 6 },
 ];
@@ -527,21 +628,21 @@ export const LIBRARY_PARTS: readonly {
  * `end self` - is two names that would otherwise run together. So the head and
  * the map are joined with the one space they need, the map and the functions
  * are concatenated, and the functions and the call are joined with single
- * spaces. Joining all eight parts uniformly gives 782 raw, which compresses to
+ * spaces. Joining all nine parts uniformly gives 843 raw, which compresses to
  * exactly this string - asserted in `library.spec.ts`, not assumed.
  */
 export const TOUCH_LIBRARY =
-  HEAD + " " + MAP + [U, W, E, Q, X].join(" ") + " " + CALL;
+  HEAD + " " + MAP + [U, W, E, Q, X, N].join(" ") + " " + CALL;
 
 /**
  * The string written to element 255, event 6 - the painters and the senders.
  * Canonical on the same rule: the marker is a block comment and `]]` needs no
- * separator before `function V`, so the marker is concatenated and the five
+ * separator before `function V`, so the marker is concatenated and the seven
  * functions are space-joined. Written to the module BEFORE `TOUCH_LIBRARY`,
  * whose closing `self:tim()` runs this body as the system element's Timer
  * method (section 2).
  */
-export const TOUCH_LIBRARY_TIMER = MARKER + [V, G, N, A, D].join(" ");
+export const TOUCH_LIBRARY_TIMER = MARKER + [V, G, Z, Y, K, A, D].join(" ");
 
 /**
  * The library's own version, IN TYPESCRIPT AND NOT IN THE LUA, because a
@@ -561,6 +662,12 @@ export const TOUCH_LIBRARY_TIMER = MARKER + [V, G, N, A, D].join(" ");
  * (`H T C P W E Q X A D`) is still defined by this one. Nothing left `_G`, so
  * a live module written over with both strings holds no stale name, and the
  * rule above says an addition or a change does not bump.
+ *
+ * AND STILL "1" AFTER 12.1-08b, for the same reason: this revision ADDED `Z`,
+ * `Y` and `K`, CHANGED `G` (through `Z` and `Y`, identical output) and
+ * MOVED `N` from 255/6 to 255/0 - a name that is defined by the pair either
+ * way, so a live module written over with both strings still holds every
+ * name it held before, defined once. Nothing left `_G`.
  */
 export const LIBRARY_VERSION = "1";
 
@@ -569,7 +676,8 @@ export const LIBRARY_VERSION = "1";
  * source at module load and never typed out.
  *
  * Two patterns, because the library defines two kinds of name: `function Q(`
- * for the ten functions and `C=0` / `H={}` / `KX={` for the eight state names.
+ * for the thirteen functions and `C=0` / `H={}` / `KX={` for the eight state
+ * names.
  * One or two capitals, because the two knot tables are the library's only
  * two-letter names (section 10). A function renamed in a string above moves
  * this list with it, which is what lets `host-surface.spec.ts` admit the

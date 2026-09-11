@@ -610,19 +610,21 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
       "tim",
     );
 
-    // FORTY SITES, AND TEN OF THEM ARE DEFINITIONS - eighteen in 255/0 and
-    // twenty-two in 255/6. The scanner's shape is the vendored one - every
-    // identifier immediately followed by `(` - so `function W(u,p)` yields `W`
-    // exactly as `W(x,...)` does. That is not a flaw here: a definition whose
-    // name is not admitted is as much a finding as a call whose name is not,
-    // and it is how an eleventh library function would announce itself in
-    // this gate.
+    // FIFTY SITES, AND THIRTEEN OF THEM ARE DEFINITIONS - twenty-one in 255/0
+    // and twenty-nine in 255/6 (12.1-08b: `N` and its three sites moved to
+    // 255/0; `Z` brought five, `Y` one, `K` six, and `G` through `Z` and `Y`
+    // has seven where it had nine - forty before that plan). The scanner's
+    // shape is the vendored one - every identifier immediately followed by
+    // `(` - so `function W(u,p)` yields `W` exactly as `W(x,...)` does. That
+    // is not a flaw here: a definition whose name is not admitted is as much
+    // a finding as a call whose name is not, and it is how a fourteenth
+    // library function would announce itself in this gate.
     const calls = [
       ...resolveCalls(TOUCH_LIBRARY.replace(timCall, "")),
       ...resolveCalls(TOUCH_LIBRARY_TIMER),
     ];
     expect(calls.length, "the scan found no call sites in the library").toBe(
-      40,
+      50,
     );
     for (const call of calls) {
       expect(
@@ -658,8 +660,11 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     // since 12.1-02 WITH ITS CALLERS NAMED: `G` writes the four phases of the
     // bilinear finger with it and `V` clears them; `glc` came with `G` (D-11,
     // the colour re-asserted on every call because layer 0 is the alert
-    // layer); `glim` came with `U` (the clamp to the outer knots) and `G` (the
-    // clamp of the block origin to 0..7).
+    // layer) and since 12.1-08b `K` sets a stamp's colour with it when handed
+    // one; `glim` came with `U` (the clamp to the outer knots) and `G` (the
+    // clamp of the block origin to 0..7), which `Z` carries since 12.1-08b;
+    // `glpfs` and `glt` are `D`'s (12-10, TRACKPAD) and since 12.1-08b `K`
+    // reaches them through `D` - the resolved host set is the same seven.
     expect(
       bare,
       "glp left the library again, so G and V have lost the finger",
@@ -683,16 +688,17 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     ).toEqual([...LIBRARY_GLOBALS, ...LIBRARY_CONVENTIONS]);
     expect(
       LIBRARY_GLOBALS.length,
-      "the library defines eighteen globals across its two strings",
-    ).toBe(18);
+      "the library defines twenty-one globals across its two strings",
+    ).toBe(21);
     for (const name of LIBRARY_NAMES) {
       const [site] = resolveCalls(`${name}(0)`);
       expect(site.ok, `${name}() does not resolve after admission`).toBe(true);
     }
     // And a capital that is NOT the library's - one letter or two - is still
-    // refused, so the admission widened the gate by exactly eighteen names
-    // and one convention.
-    for (const name of ["Z", "ZZ", "KZ"]) {
+    // refused, so the admission widened the gate by exactly twenty-one names
+    // and one convention. (`Z` was the stranger here until 12.1-08b made it
+    // the library's block function; `J` is not a name any string defines.)
+    for (const name of ["J", "JJ", "KZ"]) {
       const [stranger] = resolveCalls(`${name}(0)`);
       expect(stranger.ok, `${name}( resolves, so the admission is a hole`).toBe(
         false,
