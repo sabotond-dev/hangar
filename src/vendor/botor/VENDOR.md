@@ -170,6 +170,17 @@ Six files are vendored at `a0fb69d5`: the compiler (`_pad.ts`), the simulator (`
 loop (`pad-sim-host.ts`) and their three test suites. Measured under HANGAR's own toolchain:
 `pad.test.js` 176 tests, `pad-sim.test.js` 96, `pad-invariants.test.js` 9.
 
+2026-09-11, plan 12.1-08b (12.1-CONTEXT D-26 item 2, D-27 "mirror"): sixteen `intendedDivergence` rows
+added - eight on `_pad.ts` (the `PadState.touchLibrary` field, `clonePadState`, the `libraryOn` /
+`libraryXY` helpers, the comet, per-finger and glow cases of `touchPaint`, `zoneStatements`, the fader
+branch of `sendsPaint`) and eight on `pad-sim.ts` (the `libraryBlocks` store and its reset, the same
+three `touchPaint` cases, the mirror helpers, `touchZone`, `fadersBody`) - so a state that carries
+HANGAR's touch-library knots emits calls into the library (`N`, `K`, `G`) and the simulator mirrors
+the same measured map. Every state without the field, the vendored `PRESETS` included, compiles and
+simulates byte-identically to before; `pad-sim.ts`'s `ledTick` is untouched (the sha256 of its
+extract is equal before and after, recorded in `12.1-08b-SUMMARY.md`); the three test suites are
+unedited and at the counts above. The manifest reads 6 files, 38 rows.
+
 The Vitest suite is split into two projects (D-10 fired: the whole run was 39.9 s and
 `pad-invariants.test.js` was 38.6 s of it, because its sweep is 4,860 labelled states):
 

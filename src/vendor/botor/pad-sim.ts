@@ -289,6 +289,9 @@ export class PadSim {
 
   // Compiled per-contact state, named after the Lua fields.
   private glowCell: number | null = null; // s.l, a logical index
+  // HANGAR divergence, plan 12.1-08b: the library's B[i] - the block G last
+  // drew for each contact - for a state that carries touchLibrary.
+  private libraryBlocks = new Map<number, number>();
   private firstFinger: number | null = null; // s.f
   private zoneNotes = new Map<number, number>(); // s.n
   private zoneAge = new Map<number, number>(); // s.p
@@ -373,6 +376,7 @@ export class PadSim {
     this.watchdog = false;
     this.keeperCounter = 0;
     this.glowCell = null;
+    this.libraryBlocks.clear();
     this.firstFinger = null;
     this.zoneNotes.clear();
     this.zoneAge.clear();
@@ -985,6 +989,12 @@ export class PadSim {
         return;
 
       case "comet":
+        // HANGAR divergence, plan 12.1-08b: the library's K, mirrored -
+        // see libraryStamp below and the comet case in _pad.ts.
+        if (this.libraryOn() && s.touch.brush !== 2 && decay.rate === 250) {
+          this.libraryStamp(sm, 1, (256 - decay.rate) * decay.ticks);
+          return;
+        }
         // No gate: every sample paints, including UP, exactly as
         // compiled. Firmware fades each cell independently so
         // multi-touch is correct for free.
@@ -1002,6 +1012,16 @@ export class PadSim {
         const A = this.sc(255);
         const B = this.sc(60);
         const C = this.sc(128);
+        // HANGAR divergence, plan 12.1-08b: the library's K with the
+        // contact's hue, mirrored - see libraryStamp below.
+        if (this.libraryOn() && s.touch.brush !== 2 && decay.rate === 250) {
+          this.libraryStamp(sm, 1, (256 - decay.rate) * decay.ticks, [
+            A - sm.i * B,
+            sm.i * B,
+            C,
+          ]);
+          return;
+        }
         this.paintCells(sm, (h) => {
           this.glc(h, 1, A - sm.i * B, sm.i * B, C, true);
           this.glpfs(h, 1, (256 - decay.rate) * decay.ticks, decay.rate, 0);
@@ -1035,6 +1055,18 @@ export class PadSim {
       }
 
       case "glow": {
+        // HANGAR divergence, plan 12.1-08b: the library's G on layer 1 in
+        // the touch colour, per contact, the parked dot doused first -
+        // see libraryFinger below and the glow case in _pad.ts.
+        if (this.libraryOn()) {
+          if (this.glowCell !== null) {
+            this.glp(this.hwOf(this.glowCell), 1, 0);
+            this.glowCell = null;
+          }
+          const c = this.scaleRgb(s.touch.colour);
+          this.libraryFinger(sm, 1, c.r, c.g, c.b);
+          return;
+        }
         // One slot (s.l): clear the old cell, then track or forget. No
         // timeout, static phases, so a held motionless finger stays lit
         // here where the comet's dot fades.
@@ -1090,6 +1122,124 @@ export class PadSim {
     const n =
       Math.floor((sm.x * 9) / d) + Math.floor((sm.y * 9) / d) * GRID;
     paint(this.hwOf(n));
+  }
+
+  // -------------------------------------------------------------------------
+  // HANGAR divergence, plan 12.1-08b (see src/lib/fidelity/upstream-manifest.json).
+  // The touch library's map and stamps, mirrored for a state that carries
+  // touchLibrary: the compiled handler then calls N, K and G on the module
+  // (libraryOn in _pad.ts) and the preview has to draw what the module
+  // draws. Nothing below is reached for a state without the field, and the
+  // knots come from the state - a vendored file imports nothing from
+  // src/lib/, so the library's U is transcribed here, not imported.
+
+  private libraryOn(): boolean {
+    return typeof this._state.touchLibrary !== "undefined";
+  }
+
+  // The library's U: raw 0..127 through the nine-knot table to 0..512 (LED
+  // n at n*64), with the Lua's clamp to the outer knots and floor division.
+  // The same arithmetic as src/lib/catalog/calibration.ts's calibratedAxis.
+  private calibrated(v: number, axis: "x" | "y"): number {
+    const lib = this._state.touchLibrary;
+    const k = axis === "x" ? lib?.kx : lib?.ky;
+    if (typeof k === "undefined" || k.length !== 9) return 0;
+    const c = Math.min(Math.max(Math.trunc(v), k[0]), k[8]);
+    for (let n = 0; n < 8; n++) {
+      if (c < k[n + 1]) {
+        return n * 64 + Math.floor(((c - k[n]) * 64) / (k[n + 1] - k[n]));
+      }
+    }
+    return 512;
+  }
+
+  // The raw pair the library reads: a widened axis brought back to 0..127
+  // first, as the emitted x//8,y//8 does.
+  private libraryRaw(sm: Sample): [number, number] {
+    return this.axisDivisor() === 1024
+      ? [Math.floor(sm.x / 8), Math.floor(sm.y / 8)]
+      : [sm.x, sm.y];
+  }
+
+  // N(x,y): the nearest calibrated cell.
+  private libraryCell(sm: Sample): number {
+    const [x, y] = this.libraryRaw(sm);
+    return (
+      Math.floor((this.calibrated(x, "x") + 32) / 64) +
+      Math.floor((this.calibrated(y, "y") + 32) / 64) * GRID
+    );
+  }
+
+  // Z(x,y): the block origin (clamped to 0..7 on each axis) and the two
+  // fractions in 64ths of a pitch.
+  private libraryBlock(sm: Sample): { n: number; f: number; h: number } {
+    const [x, y] = this.libraryRaw(sm);
+    const u = this.calibrated(x, "x");
+    const v = this.calibrated(y, "y");
+    const c = Math.min(Math.max(Math.floor(u / 64), 0), 7);
+    const q = Math.min(Math.max(Math.floor(v / 64), 0), 7);
+    return { n: c + q * GRID, f: u - c * 64, h: v - q * 64 };
+  }
+
+  // Y(f,h,d): corner d's weight, 0..4096.
+  private libraryWeight(f: number, h: number, d: number): number {
+    return (d % 2 > 0 ? f : 64 - f) * (Math.floor(d / 2) > 0 ? h : 64 - h);
+  }
+
+  // K(x,y,l,w[,r,g,b]) through D: each of the four cells starts at
+  // w*weight//4096 quantised down to a multiple of 6 and decays at rate
+  // 250 over start/6 ticks, so it lands on exactly 0; a cell whose start
+  // quantises to 0 is not written; the colour is set only when handed.
+  private libraryStamp(
+    sm: Sample,
+    layer: number,
+    w: number,
+    colour?: [number, number, number],
+  ): void {
+    const { n, f, h } = this.libraryBlock(sm);
+    for (let d = 0; d < 4; d++) {
+      const z =
+        Math.floor(Math.floor((w * this.libraryWeight(f, h, d)) / 4096) / 6) *
+        6;
+      if (z <= 0) continue;
+      const hw = this.hwOf(n + (d % 2) + Math.floor(d / 2) * GRID);
+      if (typeof colour !== "undefined") {
+        this.glc(hw, layer, colour[0], colour[1], colour[2], true);
+      }
+      this.glpfs(hw, layer, z, 250, 0);
+      this.glt(hw, layer, Math.floor(z / 6));
+    }
+  }
+
+  // G(s,i,e,x,y,l,r,g,b): the contact's previous block cleared through V,
+  // then - on a MOVE or a DOWN only; a 9 is a press and a lift in one
+  // message with no finger left to draw - the four cells coloured and lit
+  // at 255*weight//4096, the block remembered per contact.
+  private libraryFinger(
+    sm: Sample,
+    layer: number,
+    r: number,
+    g: number,
+    b: number,
+  ): void {
+    const previous = this.libraryBlocks.get(sm.i);
+    if (typeof previous !== "undefined") {
+      for (let d = 0; d < 4; d++) {
+        const hw = this.hwOf(previous + (d % 2) + Math.floor(d / 2) * GRID);
+        this.glp(hw, layer, 0);
+      }
+    }
+    if (sm.e !== EVT_MOVE && sm.e !== EVT_DOWN) {
+      this.libraryBlocks.delete(sm.i);
+      return;
+    }
+    const { n, f, h } = this.libraryBlock(sm);
+    for (let d = 0; d < 4; d++) {
+      const hw = this.hwOf(n + (d % 2) + Math.floor(d / 2) * GRID);
+      this.glc(hw, layer, r, g, b, true);
+      this.glp(hw, layer, Math.floor((255 * this.libraryWeight(f, h, d)) / 4096));
+    }
+    this.libraryBlocks.set(sm.i, n);
   }
 
   // -------------------------------------------------------------------------
@@ -1250,6 +1400,20 @@ export class PadSim {
     const s = this._state.sends;
     const g = this.gridDiv();
     const d = this.axisDivisor();
+    // HANGAR divergence, plan 12.1-08b: with the library on the module the
+    // zone is the LED under the finger through the LED-side rule, an
+    // inverted axis inverting the index - mirroring zoneStatements.
+    if (this.libraryOn()) {
+      const n = this.libraryCell(sm);
+      const zx = this.ledZoneTerm(s.invertX ? 8 - (n % GRID) : n % GRID);
+      const zy = this.ledZoneTerm(
+        s.invertY ? 8 - Math.floor(n / GRID) : Math.floor(n / GRID),
+      );
+      if (s.order === "snake") {
+        return zy % 2 === 1 ? zy * g + (g - 1) - zx : zy * g + zx;
+      }
+      return s.order === "columns" ? zy + zx * g : zx + zy * g;
+    }
     const zx = Math.floor((this.axisValue(sm, "x") * g) / d);
     const zy = Math.floor((this.axisValue(sm, "y") * g) / d);
     if (s.order === "snake") {
@@ -1363,7 +1527,18 @@ export class PadSim {
     const ch = s.channel - 1;
     const count = s.faders === 3 ? 3 : 4;
     const d = this.axisDivisor();
-    const f = Math.floor((this.axisValue(sm, "x") * count) / d);
+    // HANGAR divergence, plan 12.1-08b: with the library on the module the
+    // fader is the one under the LED column the finger is on, mirroring
+    // the emitted N(x,y)%9*n//9; the level stays the raw sensor value.
+    const f = this.libraryOn()
+      ? Math.floor(
+          ((s.invertX
+            ? 8 - (this.libraryCell(sm) % GRID)
+            : this.libraryCell(sm) % GRID) *
+            count) /
+            GRID,
+        )
+      : Math.floor((this.axisValue(sm, "x") * count) / d);
     const v = s.invertY ? sm.y : 127 - sm.y;
     // A solo guards only the MIDI, exactly like the compiled if f==N
     // wrapper: the LED picture below stays live for every fader.

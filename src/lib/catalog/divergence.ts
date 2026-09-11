@@ -34,9 +34,15 @@
 // cannot be written ahead of the change they describe and cannot rot into an
 // amnesty for a change that was reverted or that a re-sync brought upstream.
 //
-// This module imports NOTHING. It is pure data, read only by specs.
+// This module imports ONE THING, and it is data: the two knot tables from
+// calibration.ts, because since plan 12.1-08b the nine states carry them as
+// `state.touchLibrary` and a row has to hold the value it declares. Typing
+// the eighteen numbers here would be the second copy 12.1-CONTEXT D-02
+// forbids ("no number is typed twice"). It is still pure data, read only by
+// specs, and it imports nothing that runs.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { KX, KY } from "./calibration";
 
 /**
  * A deliberate difference between HANGAR's declared preset and the vendored one
@@ -68,7 +74,42 @@ export interface PresetDivergence {
  * is a change made to what the user asked for and measured through the vendored
  * compiler, awaiting their bench to confirm it.
  */
+const TOUCH_LIBRARY_REASON =
+  "PLAN 12.1-08b (12.1-CONTEXT D-26 item 2, answered by the user on 2026-09-11; D-27 \"mirror\"): the eight preset cards take the gradient. The gradient reaches a preset ONLY through a state that says the library is on the module: with this field set the vendored compiler emits calls into HANGAR's touch library - K(x,y,1,252) for the comet, K(...,r,g,b) for the per-finger trail, G(...) for the glow, N(x,y) for the zones and the faders - through the measured sensor map (KX / KY from calibration.ts, Probe C, 2026-09-11), and the vendored simulator mirrors the same map, both under declared rows in src/lib/fidelity/upstream-manifest.json. The vendored shelf carries no such field and compiles byte-identically to upstream, which is why preset-baseline.json did not move. The tuner's landing publishes both library strings for a preset because of this field (src/lib/tune/model.ts). Nothing here is hardware-verified: docs/HARDWARE-AUDITION.md row 28 is the bench's.";
+
+/** The nine ids, in the shelf's order, for the field rows below. */
+const NINE = [
+  "aurora",
+  "pinwheel",
+  "starfield",
+  "radar",
+  "joystick",
+  "ninepads",
+  "faders",
+  "dial",
+  "tpad",
+] as const;
+
 export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
+  // -------------------------------------------------------------------------
+  // ALL NINE: the touch library's knots on the state (12.1-08b).
+  //
+  // One row per preset, generated from the list rather than written nine
+  // times, because the nine rows are the same fact: HANGAR's state carries
+  // the field and the vendored one does not. tpad is on the shelf and not in
+  // the catalog (12-10), and its trackpad recipe reaches no library call, so
+  // the field is inert on it - carried anyway, because presets.spec.ts diffs
+  // all nine and the rule is "every card lands the library".
+  ...NINE.map((preset) => ({
+    preset,
+    path: "state.touchLibrary",
+    hangar: { kx: KX, ky: KY },
+    vendored: undefined,
+    reason: TOUCH_LIBRARY_REASON,
+    plan: "12.1-08b",
+    dated: "2026-09-11",
+  })),
+
   // -------------------------------------------------------------------------
   // AURORA, PINWHEEL, STARFIELD: "send MIDI".
   //
@@ -101,10 +142,10 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
   {
     preset: "aurora",
     path: "cost.setup",
-    hangar: 415,
+    hangar: 361,
     vendored: 250,
     reason:
-      "The measured price of the two rows above, and it is a row rather than a silent edit because presets.spec.ts test 4 re-measures all nine byte-exact against the compiler. 415 of 908 at the shipped knob positions and 429 at the WORST of the 19,502 reachable ones the sweep costs, so 479 characters stay free where it matters. The worst figure is stated because it is the one that can go over, and because plan 11-04 found four rows of upstream-manifest.json labelling 908 minus the DEFAULT as a worst-position figure.",
+      "The measured price of the two rows above, and it is a row rather than a silent edit because presets.spec.ts test 4 re-measures all nine byte-exact against the compiler. 415 of 908 at the shipped knob positions and 429 at the WORST of the 19,502 reachable ones the sweep costs, so 479 characters stay free where it matters. The worst figure is stated because it is the one that can go over, and because plan 11-04 found four rows of upstream-manifest.json labelling 908 minus the DEFAULT as a worst-position figure. SINCE 12.1-08b: 361 - the naive comet (66 characters) became K(x,y,1,252) (12) under the touchLibrary row, -54, knob-independent; the sweep's worst reachable figure is in 12.1-08b-SUMMARY.md.",
     plan: "11-06",
     dated: "2026-09-09",
   },
@@ -143,10 +184,10 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
   {
     preset: "pinwheel",
     path: "cost.setup",
-    hangar: 477,
+    hangar: 413,
     vendored: 312,
     reason:
-      "The measured price of the two rows above. 477 of 908 at the shipped knob positions and 486 at the worst reachable one, 422 free. The largest of the three xy additions, because the swirl look already carries the most arithmetic of the three.",
+      "The measured price of the two rows above. 477 of 908 at the shipped knob positions and 486 at the worst reachable one, 422 free. The largest of the three xy additions, because the swirl look already carries the most arithmetic of the three. SINCE 12.1-08b: 413 - the per-finger cell, colour and decay became K(x,y,1,252,255-i*60,i*60,128) under the touchLibrary row, -64, knob-independent.",
     plan: "11-06",
     dated: "2026-09-09",
   },
@@ -185,10 +226,10 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
   {
     preset: "starfield",
     path: "cost.setup",
-    hangar: 403,
+    hangar: 349,
     vendored: 238,
     reason:
-      "The measured price of the two rows above. 403 of 908 at the shipped knob positions and 422 at the worst reachable one, 486 free. The cheapest of the three, because the shimmer look is the cheapest of the three looks.",
+      "The measured price of the two rows above. 403 of 908 at the shipped knob positions and 422 at the worst reachable one, 486 free. The cheapest of the three, because the shimmer look is the cheapest of the three looks. SINCE 12.1-08b: 349 - the naive comet became K(x,y,1,252) under the touchLibrary row, -54, knob-independent.",
     plan: "11-06",
     dated: "2026-09-09",
   },
@@ -255,10 +296,10 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
   {
     preset: "ninepads",
     path: "cost.setup",
-    hangar: 550,
+    hangar: 565,
     vendored: 580,
     reason:
-      'The measured price of the row above, and it is a SAVING - 4x4 is the cheaper position, because sixteen zones of four cells need less arithmetic than nine zones of nine. 550 of 908 at the shipped knob positions and 640 at the worst of the reachable cross-product, 268 free. THE 550-VERSUS-556 DISAGREEMENT IS SETTLED HERE BY MEASUREMENT: both figures are right and they measure different states. 550 is cost(compile(state)) on the SHIPPED card, which still carries preset: "ninepads" and therefore the twelve-character #z.pninepads marker; 556 is what 12-01\'s tuner landed, and a tuner landing has been through withChange, which deletes preset and turns the marker into an eighteen-character field dump. Measured at both grids: shipped 580 / 550, tuned 586 / 556, +6 in both directions. No compiler constant moved and nothing was mis-transcribed.',
+      'The measured price of the row above, and it is a SAVING - 4x4 is the cheaper position, because sixteen zones of four cells need less arithmetic than nine zones of nine. 550 of 908 at the shipped knob positions and 640 at the worst of the reachable cross-product, 268 free. THE 550-VERSUS-556 DISAGREEMENT IS SETTLED HERE BY MEASUREMENT: both figures are right and they measure different states. 550 is cost(compile(state)) on the SHIPPED card, which still carries preset: "ninepads" and therefore the twelve-character #z.pninepads marker; 556 is what 12-01\'s tuner landed, and a tuner landing has been through withChange, which deletes preset and turns the marker into an eighteen-character field dump. Measured at both grids: shipped 580 / 550, tuned 586 / 556, +6 in both directions. No compiler constant moved and nothing was mis-transcribed. SINCE 12.1-08b: 565 - the zone is read off the LED under the finger, local n=N(x,y)local z=n%9*4//9+n//9*4//9*4 for local z=x*4//128+y*4//128*4, under the touchLibrary row, +15, knob-independent (the count knob moves the grid, not the shape); still 15 under the vendored 580.',
     plan: "12-05",
     dated: "2026-09-10",
   },
@@ -294,10 +335,10 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
   {
     preset: "joystick",
     path: "cost.setup",
-    hangar: 543,
+    hangar: 491,
     vendored: 542,
     reason:
-      "The measured price of the row above: one character, because the parked CC literal goes from 0 to 64. 543 of 908 at the shipped knob positions and 551 at the worst reachable one, 357 free. invertY was deliberately NOT flipped alongside it - that would save 4 more and reverse a second decision nobody asked about.",
+      "The measured price of the row above: one character, because the parked CC literal goes from 0 to 64. 543 of 908 at the shipped knob positions and 551 at the worst reachable one, 357 free. invertY was deliberately NOT flipped alongside it - that would save 4 more and reverse a second decision nobody asked about. SINCE 12.1-08b: 491 - the glow block became if s.l then glp(glag(0,s.l),1,0)s.l=nil end G(s,i,e,x,y,1,255,187,0) under the touchLibrary row, -52 (the planner's substitution read 492 as max(raw, compressed) over a space the emitter's joiner never writes; the compiler's own canonical figure is 491), knob-independent; the re-park unchanged.",
     plan: "11-06",
     dated: "2026-09-09",
   },
@@ -312,6 +353,43 @@ export const INTENDED_DIVERGENCE: readonly PresetDivergence[] = [
       "The shipped quiet line says the mod amount falls to zero on lift, which the springTo row above made untrue. front-door.spec.ts asserts this string byte-equal against the preset and listing.spec.ts asserts it against the catalog, so it moves in all three files or in none.",
     plan: "11-06",
     dated: "2026-09-09",
+  },
+
+  // -------------------------------------------------------------------------
+  // RADAR, FOUR FADERS, DIAL: the gradient's price alone (12.1-08b).
+  //
+  // Three cards whose only divergence from the vendored shelf is the
+  // touchLibrary field and what it costs. The other five cost rows above
+  // carry their 12.1-08b figure inside a row an earlier plan opened.
+  {
+    preset: "radar",
+    path: "cost.setup",
+    hangar: 391,
+    vendored: 445,
+    reason:
+      "The measured price of the touchLibrary row: the naive comet became K(x,y,1,252), -54, knob-independent (the colour knobs render into the init loop, not the touch paint). 391 of 908 at the shipped knob positions; the sweep's worst reachable figure is in 12.1-08b-SUMMARY.md.",
+    plan: "12.1-08b",
+    dated: "2026-09-11",
+  },
+  {
+    preset: "faders",
+    path: "cost.setup",
+    hangar: 525,
+    vendored: 520,
+    reason:
+      "The measured price of the touchLibrary row: the fader under the finger is read off the LED column, local f=N(x,y)%9*4//9 for local f=x*4//128, +5, knob-independent. The level v=127-y stays the raw sensor value (12.1-CONTEXT D-14 extended: what a DAW receives is not changed silently); the calibrated form is costed in deferred-items.md and row 28(d) of docs/HARDWARE-AUDITION.md asks the user. 525 of 908 at the shipped knob positions.",
+    plan: "12.1-08b",
+    dated: "2026-09-11",
+  },
+  {
+    preset: "dial",
+    path: "cost.setup",
+    hangar: 592,
+    vendored: 646,
+    reason:
+      "The measured price of the touchLibrary row: the naive comet became K(x,y,1,252), -54, knob-independent; the dial's angle stays raw (D-14). 592 of 908 at the shipped knob positions, the most expensive of the eight and 316 free.",
+    plan: "12.1-08b",
+    dated: "2026-09-11",
   },
 ];
 

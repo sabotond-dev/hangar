@@ -45,6 +45,20 @@
 // the vendored shelf, so a change here that reached for one would have to be
 // declared in writing first.
 //
+// THE NINE CARRY THE TOUCH LIBRARY'S KNOTS SINCE PLAN 12.1-08b (12.1-CONTEXT
+// D-26 item 2, D-27). `state.touchLibrary = { kx: KX, ky: KY }` on every one,
+// from calibration.ts and never typed here, is what makes the vendored
+// compiler emit calls into HANGAR's touch library - `K(x,y,1,252)` for the
+// comets, `K(...,r,g,b)` for PINWHEEL, `G(...)` for JOYSTICK's glow, `N(x,y)`
+// for NINE PADS' zones and FOUR FADERS' rails - and the vendored simulator
+// mirror the same measured map, so the eight cards draw a finger where the
+// LEDs are and as a gradient. The field is a declared manifest divergence in
+// both vendored files, a declared row per preset in divergence.ts here, and
+// it is what the tuner's landing answers by publishing both library strings
+// for a preset (src/lib/tune/model.ts). The vendored `PRESETS` carry no such
+// field and compile byte-identically to upstream, which is what keeps
+// preset-baseline.json still.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
   defaultState,
@@ -53,6 +67,7 @@ import {
   type PadPreset,
   type PadState,
 } from "../../vendor/botor/_pad";
+import { KX, KY } from "./calibration";
 
 export type { KnobKind, PadPreset, PadState };
 
@@ -78,6 +93,11 @@ function preset(
   const state = defaultState();
   change(state);
   state.preset = id;
+  // The library's knots, on every card, BEFORE normalise: clonePadState
+  // carries the field (a declared divergence, 12.1-08b), so the normalised
+  // state below still holds it, and presets.spec.ts diffs it against the
+  // vendored shelf's absence under its own declared row.
+  state.touchLibrary = { kx: KX, ky: KY };
   return {
     id,
     name,
@@ -109,7 +129,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.kind = "xy";
       d.sends.fingers = "first";
     },
-    { setup: 415, timer: 55 },
+    { setup: 361, timer: 55 },
   ),
   preset(
     "pinwheel",
@@ -127,7 +147,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.kind = "xy";
       d.sends.fingers = "first";
     },
-    { setup: 477, timer: 55 },
+    { setup: 413, timer: 55 },
   ),
   preset(
     "starfield",
@@ -146,7 +166,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.kind = "xy";
       d.sends.fingers = "first";
     },
-    { setup: 403, timer: 55 },
+    { setup: 349, timer: 55 },
   ),
   preset(
     "radar",
@@ -161,7 +181,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.kind = "xy";
       d.sends.fingers = "first";
     },
-    { setup: 445, timer: 55 },
+    { setup: 391, timer: 55 },
   ),
   preset(
     "joystick",
@@ -267,7 +287,7 @@ export const PRESETS: readonly PadPreset[] = [
       // not changing something nobody asked to change.
       d.sends.invertY = true;
     },
-    { setup: 543, timer: 24 },
+    { setup: 491, timer: 24 },
     {
       quiet:
         "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that returns to the middle on lift.",
@@ -331,7 +351,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.showGrid = true;
       d.sends.fingers = "each";
     },
-    { setup: 550, timer: 158 },
+    { setup: 565, timer: 158 },
   ),
   preset(
     "faders",
@@ -350,7 +370,7 @@ export const PRESETS: readonly PadPreset[] = [
       d.sends.showGrid = true;
       d.sends.phase = "held";
     },
-    { setup: 520, timer: 24 },
+    { setup: 525, timer: 24 },
   ),
   preset(
     "dial",
@@ -374,7 +394,7 @@ export const PRESETS: readonly PadPreset[] = [
       // Brings fingers "first" and hiRes off through normalise.
       d.sends.kind = "dial";
     },
-    { setup: 646, timer: 55 },
+    { setup: 592, timer: 55 },
     {
       quiet:
         "Clockwise raises, counter-clockwise lowers. The middle of the pad stays quiet.",

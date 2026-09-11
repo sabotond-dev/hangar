@@ -302,14 +302,17 @@ describe("vendored BOTOR files (D-04, D-02)", () => {
         `${where}: reason must be a sentence saying what behaviour changed and why. Got: ${JSON.stringify(row.reason)}`,
       ).toBeGreaterThan(20);
 
-      // Narrow on purpose: every divergence this table can hold today was
-      // chosen inside phase 11. A later phase that adds one WIDENS this regex
-      // deliberately, in its own plan, rather than inheriting a pattern loose
-      // enough that a typo passes.
+      // Narrow on purpose: every divergence this table could hold was chosen
+      // inside phase 11 until plan 12.1-08b. A later phase that adds one
+      // WIDENS this regex deliberately, in its own plan, rather than
+      // inheriting a pattern loose enough that a typo passes. This is that
+      // widening, by name and not by pattern: 12.1-08b's sixteen rows on
+      // _pad.ts and pad-sim.ts (the touch handler emitting into HANGAR's
+      // library and the simulator's mirror; 12.1-CONTEXT D-26 item 2, D-27).
       expect(
         row.plan,
-        `${where}: plan must name the plan that chose this divergence, as "11-NN". Got: ${JSON.stringify(row.plan)}`,
-      ).toMatch(/^11-[0-9]{2}$/);
+        `${where}: plan must name the plan that chose this divergence, as "11-NN" or "12.1-08b". Got: ${JSON.stringify(row.plan)}`,
+      ).toMatch(/^11-[0-9]{2}$|^12.1-08b$/);
 
       expect(
         row.dated,

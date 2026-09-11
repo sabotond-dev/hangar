@@ -353,6 +353,14 @@ export type PadState = {
   // never mistake a solo leftover for the user's configuration; withChange,
   // fit and the ledger strip it before measuring.
   soloStream?: PadStreamId;
+  // HANGAR divergence, plan 12.1-08b (see src/lib/fidelity/upstream-manifest.json).
+  // When set, the module this state is written to carries HANGAR's touch
+  // library in 255/0 and 255/6 (U, N, G, K in scope) and the touch handler
+  // emits calls into it through the measured sensor map; the simulator
+  // mirrors the same map with these knots. Absent (every BOTOR state, every
+  // vendored preset): byte-identical output to upstream. Not encoded by
+  // encodeStamp; carried by clonePadState and so by normalisePadState.
+  touchLibrary?: { readonly kx: readonly number[]; readonly ky: readonly number[] };
 };
 
 // Structural stream ids: kind plus index, so they stay stable across
@@ -699,6 +707,11 @@ export function clonePadState(s: PadState): PadState {
     ...(typeof s.preset !== "undefined" ? { preset: s.preset } : {}),
     ...(typeof s.soloStream !== "undefined"
       ? { soloStream: s.soloStream }
+      : {}),
+    // HANGAR divergence, plan 12.1-08b: the library's knots travel with the
+    // state, so a tuned or normalised copy still emits the calibrated calls.
+    ...(typeof s.touchLibrary !== "undefined"
+      ? { touchLibrary: { kx: [...s.touchLibrary.kx], ky: [...s.touchLibrary.ky] } }
       : {}),
   };
 }
@@ -1172,6 +1185,20 @@ function cellExpr(d: number): string {
   return `x*9//${d}+y*9//${d}*9`;
 }
 
+// HANGAR divergence, plan 12.1-08b (see src/lib/fidelity/upstream-manifest.json).
+// A state that carries `touchLibrary` is written to a module whose system
+// element holds HANGAR's touch library, and its handler reaches the LEDs
+// through the library's measured map instead of `x*9//d`: `N(x,y)` is the
+// nearest calibrated LED, `K` the decaying bilinear stamp, `G` the live one.
+// The library reads raw 0..127, so a widened axis is brought back first.
+function libraryOn(s: PadState): boolean {
+  return typeof s.touchLibrary !== "undefined";
+}
+
+function libraryXY(s: PadState): string {
+  return axisDivisor(s) === 1024 ? "x//8,y//8" : "x,y";
+}
+
 function touchLoop(s: PadState): ArmLoop | undefined {
   // Per-finger sets its stops on every paint and disturb writes into the
   // Look's own layer, so neither needs an init and neither pays for one.
@@ -1217,6 +1244,14 @@ function touchPaint(s: PadState): string {
       return "";
 
     case "comet":
+      // HANGAR divergence, plan 12.1-08b: with the library on the module and
+      // the house decay (rate 250, D's), the stamp is the library's K - the
+      // 2x2 block around the calibrated position, each cell's start weighted
+      // by distance and quantised to a multiple of 6 so every one lands on
+      // 0. The wide brush and any other rate keep the naive cell below.
+      if (libraryOn(s) && s.touch.brush !== 2 && decay.rate === 250) {
+        return `K(${libraryXY(s)},1,${(256 - decay.rate) * decay.ticks})`;
+      }
       // Stateless: no previous-cell tracking, no clear pass, no release
       // handling, no stuck pixels, and multi-touch correct for free
       // because each contact writes its own cells and firmware fades all
@@ -1237,6 +1272,14 @@ function touchPaint(s: PadState): string {
       const A = scaleChannel(255, pct);
       const B = scaleChannel(60, pct);
       const C = scaleChannel(128, pct);
+      // HANGAR divergence, plan 12.1-08b: the same K as the comet's, handed
+      // the contact's closed-form hue so the four cells take its colour.
+      if (libraryOn(s) && s.touch.brush !== 2 && decay.rate === 250) {
+        return wrapIf(
+          LIVE,
+          `K(${libraryXY(s)},1,${(256 - decay.rate) * decay.ticks},${A}-i*${B},i*${B},${C})`,
+        );
+      }
       return wrapIf(
         LIVE,
         paintCells(s, (a) => [
@@ -1269,6 +1312,17 @@ function touchPaint(s: PadState): string {
     }
 
     case "glow":
+      // HANGAR divergence, plan 12.1-08b: with the library on the module the
+      // live dot is G's bilinear block on layer 1 in the touch colour, per
+      // contact; the parked dot the spring re-park leaves in s.l is doused
+      // on any sample first, exactly as the naive form douses it, and the
+      // re-park in sendsPaint runs after G on an end code, unchanged.
+      if (libraryOn(s)) {
+        return J(
+          "if s.l then glp(glag(0,s.l),1,0)s.l=nil end",
+          `G(s,i,e,${libraryXY(s)},1,${rgb(s.touch.colour, briPct(s))})`,
+        );
+      }
       // One slot, so two contacts fight over it and the dot jumps between
       // them. Kept only because a held motionless finger stays lit here
       // and fades on the comet, since enqueue is change-gated per contact.
@@ -1752,6 +1806,27 @@ function gridDiv(s: PadState): number {
 function zoneStatements(s: PadState): string {
   const g = gridDiv(s);
   const d = axisDivisor(s);
+  // HANGAR divergence, plan 12.1-08b: with the library on the module the
+  // zone is read off the LED under the finger - `N(x,y)`, the nearest
+  // calibrated cell - through the LED-side zone rule (ledZoneTerm), so the
+  // touch and the picture agree by construction at every finger position,
+  // not only at the nine LED centres. An inverted axis inverts the column
+  // or row index (8-c), never the raw value.
+  if (libraryOn(s)) {
+    const zx = ledZoneTerm(s.sends.invertX ? "(8-n%9)" : "n%9", g);
+    const zy = ledZoneTerm(s.sends.invertY ? "(8-n//9)" : "n//9", g);
+    const n = `local n=N(${libraryXY(s)})`;
+    if (s.sends.order === "snake") {
+      return J(
+        n,
+        `local zx,zy=${zx},${zy}`,
+        `local z=zy%2==1 and zy*${g}+${g - 1}-zx or zy*${g}+zx`,
+      );
+    }
+    const first = s.sends.order === "columns" ? zy : zx;
+    const second = s.sends.order === "columns" ? zx : zy;
+    return J(n, `local z=${first}+${second}*${g}`);
+  }
   const xt = axisTerm(s, "x");
   const yt = axisTerm(s, "y");
   const px = s.sends.invertX ? `(${xt})` : xt;
@@ -2179,7 +2254,19 @@ function sendsPaint(s: PadState, plan: LayerPlan): string {
     // handler only listens for MOVE and DOWN.
     const n = faderCount(s);
     const xt = axisTerm(s, "x");
-    const fx = s.sends.invertX ? `(${xt})*${n}//${d}` : `${xt}*${n}//${d}`;
+    // HANGAR divergence, plan 12.1-08b: with the library on the module the
+    // fader is the one under the LED column the finger is on - `N(x,y)%9`
+    // through the LED-side rule `c*n//9` the rails and blocks are drawn
+    // with - so a finger on a rail moves that fader at every position. The
+    // level `v` stays the raw sensor value (12.1-CONTEXT D-14): what a DAW
+    // receives is not changed silently.
+    const fx = libraryOn(s)
+      ? s.sends.invertX
+        ? `(8-N(${libraryXY(s)})%9)*${n}//9`
+        : `N(${libraryXY(s)})%9*${n}//9`
+      : s.sends.invertX
+        ? `(${xt})*${n}//${d}`
+        : `${xt}*${n}//${d}`;
     const value = s.sends.invertY ? "y" : "127-y";
     // A solo guards ONLY the gms: a finger near a rail boundary crossing
     // into the neighbour column is exactly the accident being removed, but

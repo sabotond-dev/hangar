@@ -475,13 +475,26 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // .planning/phases/12-touch-framework/deferred-items.md. Nothing is at
     // risk either way - 640 of 908 is 268 free - so this is a reporting
     // weakness on one card and not a hole in the guard.
+    //
+    // 271 -> 260 IN PLAN 12.1-08b (12.1-CONTEXT D-26 item 2): the nine states
+    // carry the touch library's knots and the compiler reads NINE PADS' zone
+    // off the LED under the finger - `local n=N(x,y)local z=...` through the
+    // LED-side zone rule. The needle costs +15 at the shipped 4x4 (565 at the
+    // defaults, declared in presets.ts) and +11 at the 3x3 the count knob
+    // reaches (`n%9//3+n//9//3*3` against `x*3//128+y*3//128*3`), and the
+    // sweep's dearest NINE PADS state is the 3x3 one: 637 -> 648, 260 free.
+    // The true worst (255,255,255 at 3x3, 640 before) is 651, 257 free, by
+    // the same arithmetic. The other seven moved by their knob-independent
+    // deltas: AURORA -54, PINWHEEL -64, STARFIELD -54, RADAR -54, JOYSTICK -52,
+    // FOUR FADERS +5, DIAL -54. The literal moves as this comment said it
+    // would, and the reason is beside it.
     expect(dearestBearing.entry, "the dearest colour-bearing preset").toBe(
       "ninepads",
     );
     expect(
       EVENT_BUDGET - dearestBearing.worst.used,
-      `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 271`,
-    ).toBe(271);
+      `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 260`,
+    ).toBe(260);
 
     // And the ladder, on the scoped set: eight worst-cost states since plan
     // 12-10 (one per carded preset; tpad's was the ninth), zero over-budget

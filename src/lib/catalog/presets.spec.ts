@@ -36,6 +36,7 @@ import {
   type PadPreset,
 } from "../../vendor/botor/_pad";
 import { padReady } from "../pad/ready";
+import { KX, KY } from "./calibration";
 // THE TABLE MOVED OUT OF THIS FILE IN PLAN 11-06, AND ONLY THE TABLE.
 // catalog.spec.ts and frames.spec.ts both hold a HANGAR value against a
 // VENDORED one too - names and sentences in the first, golden frames in the
@@ -59,8 +60,12 @@ const SOURCE = readFileSync(
  * moves NINE PADS' shipped grid to 4x4 at the user's second asking, which is
  * the first phase-12 divergence. The shape is still a phase and a plan number,
  * not `[0-9]{2}-[0-9]{2}` - a phase 13 row will have to come back here too.
+ *
+ * Widened a second time by plan 12.1-08b, by name and not by pattern: the
+ * nine `state.touchLibrary` rows and three cost rows are its, and the
+ * inserted phase's plan id carries a dot the earlier shape could not admit.
  */
-const PLAN_ID = /^1[12]-[0-9]{2}$/;
+const PLAN_ID = /^1[12]-[0-9]{2}$|^12.1-08b$/;
 const ISO_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 /** The eight the plan names. Held as a floor, never as the whole list. */
@@ -186,6 +191,22 @@ describe("HANGAR's nine against the vendored nine (src/lib/catalog/presets.ts)",
           `repairs the decay at its source, delete this line in the plan that ` +
           `does it.`,
       ).toBe(false);
+
+      // PLAN 12.1-08b'S PREMISE, AS A GATE: the compiler emits the library's
+      // K only when the state's trailMs resolves to the house rate 250, and
+      // the planner's claim that this holds at every reachable knob state
+      // rests on trailMs being no knob and 420 on all nine. Asserted inside
+      // the walk, so the suite total is unmoved.
+      expect(
+        hangar.state.touch.trailMs,
+        `${hangar.id}: trailMs moved off 420, so the comet may no longer ` +
+          `resolve to rate 250 and K would not be emitted for it`,
+      ).toBe(420);
+      // And the field itself, on all nine, from calibration.ts.
+      expect(
+        hangar.state.touchLibrary,
+        `${hangar.id}: the state does not carry the touch library's knots`,
+      ).toEqual({ kx: [...KX], ky: [...KY] });
 
       const vendored = vendoredById(hangar.id);
       expect(
