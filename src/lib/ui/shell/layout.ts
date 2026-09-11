@@ -98,6 +98,25 @@ export const NUMERIC_FIELD_W = 190;
 export const NUMERIC_GUTTER = 22;
 export const NUMERIC_GRID_W = NUMERIC_FIELD_W * 2 + NUMERIC_GUTTER;
 
+/** The inspector's inset on PDF page 3, measured at 26 each side. */
+export const INSPECTOR_INSET = 26;
+
+/**
+ * THE GRID FITS FROM 454, AND THE PLAN'S FLOOR IS 380 - A FINDING, NOT A
+ * FIX (13-05, 2026-09-11). 402 plus two 26px insets is 454: the PDF's 456
+ * holds the grid with 2px to spare, which is the arithmetic D-14 Q9 rested
+ * on and shell.spec.ts test 5 asserts. But the plan's clamp floor of 380
+ * does not hold it (380 - 52 = 328), and neither does the fraction at the
+ * 1440 breakpoint (0.304 x 1440 = 438, less 52 = 386): the two-column grid
+ * fits only from about 1494px of viewport (454 / 0.304). Below that the
+ * grid must reflow to one column or its fields must narrow - which is the
+ * inspector's schema renderer's (13-09) to do, and the user's to know - or
+ * the floor must rise to 454, which makes the wide inspector all but fixed.
+ * Recorded here and asserted as a known shortfall in test 5 rather than
+ * decided silently (D-01).
+ */
+export const GRID_FITS_INSPECTOR = NUMERIC_GRID_W + INSPECTOR_INSET * 2;
+
 /** Section 7: "a practical maximum around 600px" for the surface. */
 export const SURFACE_MAX = 600;
 

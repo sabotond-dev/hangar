@@ -8,6 +8,21 @@
   import ContextBar from "$lib/ui/shell/ContextBar.svelte";
   import Footer from "$lib/ui/shell/Footer.svelte";
   import Header from "$lib/ui/shell/Header.svelte";
+  import {
+    CENTRE_PAD,
+    COARSE_TARGET,
+    CONTEXT_H,
+    FOOTER_H,
+    HEADER_H,
+    INSPECTOR_COMPACT_MAX,
+    INSPECTOR_COMPACT_MIN,
+    INSPECTOR_FR,
+    INSPECTOR_MAX,
+    INSPECTOR_MIN,
+    RAIL_COMPACT_W,
+    RAIL_W,
+    SURFACE_MAX,
+  } from "$lib/ui/shell/layout";
   import { shell } from "$lib/ui/shell/shell.svelte";
 
   let { children } = $props();
@@ -46,6 +61,30 @@
    * and a second header above it would be a visible defect on the live
    * site. 13-09 removes the unfilled branch when the last of the three
    * fills the shell.
+   *
+   * THE FRAME'S NUMBERS ARE layout.ts's, SET AS CUSTOM PROPERTIES BELOW and
+   * read by the rules in the style block; no number is written in the stylesheet.
+   * The three breakpoints are the one exception CSS forces: a media query
+   * cannot read a custom property, so section 13's 1440 / 1024 / 768 appear
+   * in the queries as literals, and shell.spec.ts test 5 holds each of them
+   * equal to BREAKPOINTS. The inspector is the PDF's fraction of the
+   * viewport clamped to its band (D-14 Q9); the rail is fixed per band.
+   *
+   * THE FRAME IS THE VIEWPORT'S HEIGHT in the wide and compact bands, so the
+   * rail and the inspector scroll their own bodies while the surface and the
+   * context bar's primary action stay put (section 7). In the stacked and
+   * narrow bands the side regions leave the row - the rail above the centre,
+   * the inspector below it, section 13's "below the surface" - and the page
+   * flows. The rail's collapse control at 768-1023 and the drawer and bottom
+   * sheet below 768 are controls with labels the Bible does not give; the
+   * frame stacks the regions honestly and the plan that first renders a rail
+   * at those widths (13-08) asks for the words.
+   *
+   * TOUCH TARGETS ARE KEYED TO POINTER CAPABILITY, NEVER TO WIDTH (section
+   * 13): under (pointer: coarse) every control inside the shell resolves
+   * COARSE_TARGET on both axes, whatever the viewport. Checkboxes and radios
+   * are excluded because their label row is the target, as
+   * MotionControl.svelte already declares.
    */
   const fill = $derived(shell.fill);
 </script>
@@ -64,47 +103,196 @@
 -->
 <SessionAnnouncer />
 
-{#if fill === undefined}
-  {@render children()}
-{:else}
-  <div class="shell" data-testid="shell" data-variant={fill.variant}>
-    <Header
-      variant={fill.variant}
-      section={fill.section}
-      secondary={fill.secondary}
-      connection={fill.connection}
-    />
-    {#if fill.variant === "app"}
-      <ContextBar
-        breadcrumb={fill.breadcrumb}
-        status={fill.status}
-        destination={fill.destination}
+<div
+  class="site"
+  style:--coarse-target="{COARSE_TARGET}px"
+  style:--header-h="{HEADER_H}px"
+  style:--context-h="{CONTEXT_H}px"
+  style:--footer-h="{FOOTER_H}px"
+>
+  {#if fill === undefined}
+    {@render children()}
+  {:else}
+    <div class="shell" data-testid="shell" data-variant={fill.variant}>
+      <Header
+        variant={fill.variant}
+        section={fill.section}
+        secondary={fill.secondary}
+        connection={fill.connection}
       />
-    {/if}
-    <main class="centre">
-      {@render children()}
-    </main>
-  </div>
-{/if}
+      {#if fill.variant === "app"}
+        <ContextBar
+          breadcrumb={fill.breadcrumb}
+          status={fill.status}
+          destination={fill.destination}
+        />
+        <div
+          class="frame"
+          class:no-inspector={!fill.inspector}
+          data-testid="shell-frame"
+          style:--rail-w="{RAIL_W}px"
+          style:--rail-compact-w="{RAIL_COMPACT_W}px"
+          style:--inspector-fr={INSPECTOR_FR}
+          style:--inspector-min="{INSPECTOR_MIN}px"
+          style:--inspector-max="{INSPECTOR_MAX}px"
+          style:--inspector-compact-min="{INSPECTOR_COMPACT_MIN}px"
+          style:--inspector-compact-max="{INSPECTOR_COMPACT_MAX}px"
+          style:--surface-max="{SURFACE_MAX}px"
+          style:--centre-pad="{CENTRE_PAD}px"
+        >
+          <div class="rail-col" data-testid="shell-rail-column">
+            {#if fill.rail}{@render fill.rail()}{/if}
+          </div>
+          <main class="centre">
+            {@render children()}
+          </main>
+          {#if fill.inspector}
+            <div class="inspector-col" data-testid="shell-inspector-column">
+              {@render fill.inspector()}
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <main class="centre intro">
+          {@render children()}
+        </main>
+      {/if}
+    </div>
+  {/if}
 
-<!--
-  GPLv3 section 6(d) — "clear directions next to the object code". The block
-  lives in Footer.svelte since 13-05, verbatim (the five lines are held
-  against git by src/lib/ui/shell.spec.ts test 4), and the footer is mounted
-  here, in the persistent layout, so it is on every page that ships the
-  bundle - filled shell or not - and not on an About page. The motion control
-  13-04 parked in this file's own footer went with it, under Help & shortcuts.
--->
-<Footer deviceActions={fill?.deviceActions} />
+  <!--
+    GPLv3 section 6(d) — "clear directions next to the object code". The block
+    lives in Footer.svelte since 13-05, verbatim (the five lines are held
+    against git by src/lib/ui/shell.spec.ts test 4), and the footer is mounted
+    here, in the persistent layout, so it is on every page that ships the
+    bundle - filled shell or not - and not on an About page. The motion control
+    13-04 parked in this file's own footer went with it, under Help & shortcuts.
+  -->
+  <Footer deviceActions={fill?.deviceActions} />
+</div>
 
 <style>
+  /* No box of its own: the custom properties inherit through it and the
+     old routes' layout is untouched by the wrapper. */
+  .site {
+    display: contents;
+  }
+
   .shell {
     display: flex;
     flex-direction: column;
   }
 
-  .centre {
-    flex: 1 1 auto;
+  /*
+    The frame, wide band: rail | centre | inspector. The inspector is the
+    PDF's fraction of the viewport, clamped; the rail is fixed; the centre is
+    the remainder, and the whole row is the viewport less the header, the
+    context bar and the footer, so each column scrolls its own body.
+  */
+  .frame {
+    --inspector-w: clamp(
+      var(--inspector-min),
+      calc(var(--inspector-fr) * 100vw),
+      var(--inspector-max)
+    );
+    display: grid;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--inspector-w);
+    block-size: calc(
+      100dvh - var(--header-h) - var(--context-h) - var(--footer-h)
+    );
     min-block-size: 0;
+  }
+
+  .frame.no-inspector {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  }
+
+  .rail-col {
+    min-block-size: 0;
+    overflow: hidden;
+    background: var(--color-panel);
+    border-inline-end: 1px solid var(--color-divider);
+  }
+
+  /* The centre scrolls its own body; the surface inside it is capped. */
+  .centre {
+    min-block-size: 0;
+    overflow-y: auto;
+    padding: var(--centre-pad);
+  }
+
+  .centre.intro {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .inspector-col {
+    min-block-size: 0;
+    overflow: hidden;
+    background: var(--color-panel);
+    border-inline-start: 1px solid var(--color-divider);
+  }
+
+  /* Compact band (section 13's 1024-1439): the 200 rail and the 268-300 inspector. */
+  @media (max-width: 1439.98px) {
+    .frame {
+      --rail-w: var(--rail-compact-w);
+      --inspector-min: var(--inspector-compact-min);
+      --inspector-max: var(--inspector-compact-max);
+    }
+  }
+
+  /* Stacked band (768-1023): the side regions leave the row, the page flows. */
+  @media (max-width: 1023.98px) {
+    .frame,
+    .frame.no-inspector {
+      grid-template-columns: minmax(0, 1fr);
+      block-size: auto;
+    }
+
+    .rail-col {
+      border-inline-end: 0;
+      border-block-end: 1px solid var(--color-divider);
+    }
+
+    .inspector-col {
+      border-inline-start: 0;
+      border-block-start: 1px solid var(--color-divider);
+    }
+
+    .centre {
+      overflow: visible;
+    }
+  }
+
+  /* Narrow band (below 768): the same stack, tighter. */
+  @media (max-width: 767.98px) {
+    .centre {
+      padding-inline: 16px;
+    }
+  }
+
+  /*
+    Section 13: pointer capability sizes targets, never the viewport. Every
+    control inside the shell - the frame, the header, the footer, and
+    whatever a route renders in a slot - is at least the coarse target on
+    both axes under a coarse pointer, at any width.
+  */
+  @media (pointer: coarse) {
+    .site
+      :global(
+        :is(
+          a,
+          button,
+          select,
+          textarea,
+          summary,
+          [role="button"],
+          input:not([type="checkbox"]):not([type="radio"])
+        )
+      ) {
+      min-block-size: var(--coarse-target);
+      min-inline-size: var(--coarse-target);
+    }
   }
 </style>
