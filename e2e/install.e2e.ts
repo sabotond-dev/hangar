@@ -17,7 +17,7 @@
 // file-level union is asserted; each test asserts the states it owns and
 // 07-08-SUMMARY.md tabulates the fourteen against the six.
 //
-// THE NEXT FOUR (plan 07-12) run on /c/aurora/ against the production build,
+// THE NEXT FOUR (plan 07-12) run on /playground/aurora/ against the production build,
 // with the same shim and the same Node responder, and prove the things a
 // visitor meets that the probe cannot show: the panel's busy label and its
 // aria-busy, the header lock engaging and releasing, the confirmation
@@ -53,7 +53,7 @@
 // A-26's RAM-only ruling as a number rather than an intention.
 //
 // THE TWELFTH (plan 12-01) is the phase-12 question asked of the wire rather
-// than of the tuner: a rail turned on /c/lumen/ BEFORE the click, then the
+// than of the tuner: a rail turned on /playground/lumen/ BEFORE the click, then the
 // fake ZONA's own RAM read back and compared against the depth literal
 // derived from lumen.ts's knob values. It is the only title in the file that
 // moves a knob between two writes, and it exists because two bench reports -
@@ -937,7 +937,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
 });
 
 // ---------------------------------------------------------------------------
-// The real page (plan 07-12). Everything below opens /c/aurora/ and drives the
+// The real page (plan 07-12). Everything below opens /playground/aurora/ and drives the
 // shipped panel, header and live region through the same shim and the same
 // Node responder as the probe walks above.
 
@@ -1037,7 +1037,7 @@ async function turnRail(
 }
 
 /**
- * The chosen /c/<id>/ with landed meters. The deep link may already be
+ * The chosen /playground/<id>/ with landed meters. The deep link may already be
  * chosen; if not, Enter on the band chooses it (e2e/tuning.e2e.ts openPanel).
  *
  * `id` defaults to ENTRY, which is what every test before plan 12-01 wanted.
@@ -1045,7 +1045,7 @@ async function turnRail(
  * rather than a constant read from the module scope.
  */
 async function openPanel(page: Page, id: string = ENTRY): Promise<void> {
-  await page.goto(`/c/${id}/`);
+  await page.goto(`/playground/${id}/`);
   const band = page.getByTestId("coverflow");
   await expect(band).toBeVisible();
   await waitForPicture(page, id);
@@ -1367,7 +1367,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // disclosure can open once the panel is gone. Still inside the window.
     await page.evaluate(() => history.back());
     await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
-    await expect(page).toHaveURL(/\/c\/aurora\/$/);
+    await expect(page).toHaveURL(/\/playground\/aurora\/$/);
     await page.getByTestId("device-slot").click();
     const disconnect = page.getByTestId("details-disconnect");
     const forget = page.getByTestId("details-forget");
@@ -2075,7 +2075,7 @@ test.describe("the install controls on the engine that can never install", () =>
     page,
   }, testInfo) => {
     const consoleErrors = collectErrors(page);
-    await page.goto(`/c/${ENTRY}/`);
+    await page.goto(`/playground/${ENTRY}/`);
     // Precondition, asserted: this page cannot talk to hardware at all.
     expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
 
@@ -2174,7 +2174,7 @@ test.describe("the install controls on the engine that can never install", () =>
     // DEGR-02 for the fourth click (plan 10-13). This is the branch a large
     // share of visitors hit and the one no manual tester remembers to check.
     const consoleErrors = collectErrors(page);
-    await page.goto(`/c/${ENTRY}/`);
+    await page.goto(`/playground/${ENTRY}/`);
     expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
 
     const slot = page.getByTestId("device-slot");

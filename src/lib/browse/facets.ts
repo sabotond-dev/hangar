@@ -59,7 +59,7 @@
 // for the same measured reason: a runtime import of $lib/catalog here would
 // drag entries/ported.ts, the vendored compiler and @intechstudio/grid-protocol
 // - a 131,101-byte chunk, measured in 04-RESEARCH's Bundle facts - onto the
-// first paint of /browse/ (D-12). /browse/ is prerendered and the thirteen
+// first paint of /playground/ (D-12). /playground/ is prerendered and the thirteen
 // terms have to be in its HTML at first paint, so they cannot arrive behind a
 // chunk.
 //

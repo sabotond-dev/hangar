@@ -18,7 +18,7 @@
 //
 // THE CONSEQUENCE, stated so nobody files it as a bug later: STEPPING TO
 // ANOTHER ENTRY DROPS THE STAMP, because `Coverflow.svelte`'s `syncAddress()`
-// replaces the URL with `resolve("/c/[id]", ...)`, which has no fragment. That
+// replaces the URL with `resolve("/playground/[id]", ...)`, which has no fragment. That
 // is correct. A different entry is a different configuration.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -42,7 +42,7 @@ export const STAMP_PREFIX = "z.";
  * The link a visitor copies.
  *
  * The trailing slash is canonical: `trailingSlash = "always"` in
- * `src/routes/+layout.ts`, so `/c/aurora/` is the real address and the
+ * `src/routes/+layout.ts`, so `/playground/aurora/` is the real address and the
  * slash-less form Kit's `resolve()` returns is not what a shared link carries.
  *
  * `undefined` means the defaults, and the defaults get NO fragment - a URL with
@@ -52,5 +52,5 @@ export const STAMP_PREFIX = "z.";
 export function shareUrl(id: string, stamp: string | undefined): string {
   const fragment =
     typeof stamp === "undefined" ? "" : `#${STAMP_PREFIX}${stamp}`;
-  return `${SITE_ORIGIN}/c/${id}/${fragment}`;
+  return `${SITE_ORIGIN}/playground/${id}/${fragment}`;
 }

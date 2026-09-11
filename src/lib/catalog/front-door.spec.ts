@@ -20,7 +20,7 @@
 // motion-derivation test and the restsBlack test survive, re-aimed at the
 // hero as well as the list ("the hero must not be a dark pad" is the same
 // rule with one member). The two opening-window tests are NOT touched: the
-// ring is still mounted on /c/{id}/ until 13-09, and 13-09 deletes them with
+// ring is still mounted on /playground/{id}/ until 13-09, and 13-09 deletes them with
 // the coverflow and src/lib/coverflow/slots.ts.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.

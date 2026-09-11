@@ -162,3 +162,5 @@ them.
 
 The results belong in a dated `## Results` heading in a results document beside this one, in the
 shape of `docs/SKELETON-RESULTS.md`, or as a reply to the checkpoint that presented this checklist.
+
+**2026-09-11, plan 13-08 (13-CONTEXT D-20, move-clean).** `/browse/` is `/playground/` and every `/c/<id>/` is `/playground/<id>/`; the old addresses no longer serve. On `/playground/` the header is the shell's (13-05) and its connection slot is reserved and empty until 13-11, so the device slot the paragraph above describes is on `/` (from 13-11) and on `/playground/<id>/` only for now.

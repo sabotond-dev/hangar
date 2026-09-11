@@ -46,7 +46,7 @@
 // register() took the 2D context once and cached it, and paint() wrote through
 // that cached context forever. So when an engine dropped a pad's backing store -
 // which is what WebKit does on a memory-constrained device with 27 canvas layers
-// on /browse/, each scaled up by image-rendering: pixelated - HANGAR never
+// on /playground/, each scaled up by image-rendering: pixelated - HANGAR never
 // noticed and never recovered. The visitor got permanently black pads, and iOS
 // can never install (DEGR-01), so the shelf IS the entire product for them.
 // .planning/research/PITFALLS.md:465 predicted it and nobody acted on it.

@@ -14,7 +14,7 @@
 // from payload character to knob VALUE, on a knob that has been resized.
 //
 // TEST 5 IS THE ONE THAT MATTERS. `decodeStamp("pdial")` succeeds on its own,
-// so nothing in the vendored codec stops `/c/aurora/#z.pdial` from rendering
+// so nothing in the vendored codec stops `/playground/aurora/#z.pdial` from rendering
 // Dial's configuration under Aurora's name plate - precisely the "subtly wrong
 // one" SHARE-03 forbids. The entry-consistency check is the whole guard, it is
 // one line, and its negative check (delete the line, watch Dial appear under

@@ -31,7 +31,7 @@
   `Import config` to My configs, where the PDF's page 4 keeps import. None of
   the three routes exists yet - 13-08, 13-10 and 13-12 land them - so
   vite.config.ts names the three paths for the prerender crawler until they
-  do. A Playground draft resolves through Kit's own `resolve("/c/[id]")`, the
+  do. A Playground draft resolves through Kit's own `resolve("/playground/[id]")`, the
   address helper CatalogCard.svelte uses today, so 13-08's move to
   /playground/<id> (D-20) carries this line with every other call site.
 
@@ -74,7 +74,7 @@
   /** Where the draft lives: a Playground draft at its entry's address, a Sandbox draft in the Sandbox. */
   const resumeHref = $derived(
     card.kind === "resume" && card.draft.kind === "playground"
-      ? resolve("/c/[id]", { id: card.draft.source })
+      ? resolve("/playground/[id]", { id: card.draft.source })
       : sandbox,
   );
 </script>

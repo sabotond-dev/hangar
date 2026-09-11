@@ -23,8 +23,12 @@ const code = (file: string) => text(file).replace(/^\s*\/\/.*$/gm, "");
  */
 const FRONT_DOOR_PAGES = [
   "src/routes/+page.svelte",
-  "src/routes/c/[id]/+page.svelte",
-  "src/routes/c/[id]/+page.ts",
+  "src/routes/playground/[id]/+page.svelte",
+  "src/routes/playground/[id]/+page.ts",
+  // Plan 13-08: the gallery's load, which declares the shell's shape as data
+  // and imports a type and nothing else. Walked so a later import there is
+  // held to the same line as the page beside it.
+  "src/routes/playground/+page.ts",
   // Phase 6 (plan 06-05): the layout renders on every route including `/`,
   // and it is where the device session is started and the one session live
   // region is mounted (06-09) - the file most likely to hold the session's own
@@ -33,7 +37,7 @@ const FRONT_DOOR_PAGES = [
 ];
 const UI_DIR = "src/lib/ui";
 /** Plan 05.1-08's page, and the pure modules it and its toolbar are built on. */
-const BROWSE_PAGE = "src/routes/browse/+page.svelte";
+const BROWSE_PAGE = "src/routes/playground/+page.svelte";
 const BROWSE_DIR = "src/lib/browse";
 /** Anything that would drag @intechstudio/grid-protocol onto the first paint. */
 const COMPILER_MARKERS = [
@@ -67,7 +71,7 @@ const COMPILER_MARKERS = [
 
   AMENDMENT (Phase 7, plan 07-08). The install store is reachable from the
   first paint: the root layout starts it beside the session (07-08) and the
-  install panel on `/c/{id}/` binds it (07-10). Its three static specifiers
+  install panel on `/playground/{id}/` binds it (07-10). Its three static specifiers
   are two zero-import modules (install-copy, snapshot) and the session, and
   all three are under the `lib/device` marker, so the allow-list gains exactly
   those three paths - never a prefix - and the walk follows all three and
@@ -337,7 +341,7 @@ describe("build configuration shape", () => {
     // exempts an `await import(...)` from the compile-surface rule below: Vite
     // emits a dynamic import as its own chunk, which is the whole point.
     //
-    // AMENDMENT (plan 05.1-08), in two parts. The walk gained /browse/ and the
+    // AMENDMENT (plan 05.1-08), in two parts. The walk gained /playground/ and the
     // pure modules under src/lib/browse/, and the file gained the
     // COMPILE_SURFACE rule declared at the top - see the block there for what
     // COMPILER_MARKERS could not see and why two catalog specifiers are
@@ -558,7 +562,7 @@ describe("build configuration shape", () => {
     //
     // AMENDMENT (D-07, plan 05.1-05), in two parts.
     //
-    // FIRST: build/c/euclid/index.html joins the list. It is a page that did not
+    // FIRST: build/playground/euclid/index.html joins the list. It is a page that did not
     // exist before D-07 and it is the one that proves the widening did not make
     // the deep-link route heavy: aurora is a ROW entry, so its page is the one
     // Phase 4 already shipped, while euclid is an OFF-ROW entry whose page reads
@@ -568,7 +572,7 @@ describe("build configuration shape", () => {
     // ask only whether the page's HTML NAMED a carrying chunk, and that is not
     // the same question as whether the page pulls it. MEASURED on 2026-09-04
     // with this plan's own negative check: a static
-    // `import { CATALOG } from "$lib/catalog"` in src/routes/c/[id]/+page.svelte
+    // `import { CATALOG } from "$lib/catalog"` in src/routes/playground/[id]/+page.svelte
     // put the 131,101-byte protocol chunk in the page's static graph -
     // node 3 -> C4ys7kig.js -> BFIKf6sX.js -> C1rLf53t.js, every edge a real
     // `import ... from` - and this test STAYED GREEN, because Kit's <head>
@@ -583,12 +587,12 @@ describe("build configuration shape", () => {
     //
     // Nothing else in this file moves in plan 05.1-05, and the test count stays
     // 14. TEST 13 IS DELIBERATELY NOT TOUCHED HERE: it is widened in plan
-    // 05.1-08 together with the /browse/ page whose absence makes the widening
+    // 05.1-08 together with the /playground/ page whose absence makes the widening
     // necessary, because widening it twice in two waves is two chances to
-    // disagree about what the rule is. build/browse/index.html joins the list
+    // disagree about what the rule is. build/playground/index.html joins the list
     // below there, with the page.
     //
-    // AMENDMENT (plan 05.1-08). build/browse/index.html is now in the list, and
+    // AMENDMENT (plan 05.1-08). build/playground/index.html is now in the list, and
     // it is the entry that matters most: without it a 131 KB regression on the
     // one page in the site whose entire job is to list sixteen names ships with
     // every guard green. Test 13's source scan goes red first and needs no
@@ -622,9 +626,9 @@ describe("build configuration shape", () => {
 
     for (const page of [
       "build/index.html",
-      "build/browse/index.html",
-      "build/c/aurora/index.html",
-      "build/c/euclid/index.html",
+      "build/playground/index.html",
+      "build/playground/aurora/index.html",
+      "build/playground/euclid/index.html",
     ]) {
       const html = text(page);
       const queue = [

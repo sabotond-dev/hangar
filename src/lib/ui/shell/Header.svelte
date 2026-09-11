@@ -126,4 +126,20 @@
     min-inline-size: var(--connection-w);
     min-block-size: var(--connection-h);
   }
+
+  /*
+    Section 13's narrow band: the band wraps rather than overflowing. The
+    app shape's first phone render was the gallery (plan 13-08), where
+    e2e/browse-webkit.e2e.ts measures the document for sideways scroll at
+    375px; the wordmark, the nav and the reserved connection box do not fit
+    on one line there, so they flow onto rows. The width rule is a layout
+    rule and stays keyed to width; targets stay keyed to pointer.
+  */
+  @media (max-width: 767.98px) {
+    .header {
+      flex-wrap: wrap;
+      gap: 8px 24px;
+      padding-block: 8px;
+    }
+  }
 </style>

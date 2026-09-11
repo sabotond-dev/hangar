@@ -60,7 +60,7 @@
 // `import type` included - and the string is a property of the pinned protocol
 // package. install.svelte.ts already resolves that package lazily inside an
 // action, so it passes the string in; the alternative would be a fourth static
-// specifier on the first paint of `/c/{id}/` for a 24-character constant.
+// specifier on the first paint of `/playground/{id}/` for a 24-character constant.
 //
 // THE STORE IS AN ARGUMENT AND THIS MODULE IMPORTS NOTHING. Zero specifiers,
 // `import type` included, for the reason src/lib/browse/return.ts gives: the

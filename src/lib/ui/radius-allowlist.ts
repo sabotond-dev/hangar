@@ -150,25 +150,14 @@ export interface AllowlistRow {
  * left it, thirty-two in fifteen after 13-03 removed the pill, twenty-eight
  * in thirteen after 13-04 on the same day: PadFrame's two cleared (the frame's
  * 10px removed under D-01, and Layer S's 4px deleted with the CRT under D-09)
- * and ScreenToggle.svelte deleted with its two (D-09). Rows are removed by the
- * plan named, never edited to a smaller number by anyone else.
+ * and ScreenToggle.svelte deleted with its two (D-09); twenty-three in ten
+ * after 13-08 on the same day: BrowseToolbar.svelte's one (the field's 6px),
+ * CatalogCard.svelte's three (the plate, the focus ring, the tag chips) and
+ * FacetRow.svelte's one (the link member) cleared with the gallery's
+ * re-skin. Rows are removed by the plan named, never edited to a smaller
+ * number by anyone else.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
-  {
-    file: "src/lib/ui/BrowseToolbar.svelte",
-    declarations: 1,
-    clearedBy: "13-08",
-  },
-  {
-    file: "src/lib/ui/CatalogCard.svelte",
-    declarations: 3,
-    clearedBy: "13-08",
-  },
-  {
-    file: "src/lib/ui/FacetRow.svelte",
-    declarations: 1,
-    clearedBy: "13-08",
-  },
   {
     file: "src/lib/ui/TuningRegion.svelte",
     declarations: 1,

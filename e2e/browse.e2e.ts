@@ -63,7 +63,7 @@ import {
 import { guarded } from "./poll";
 
 /** trailingSlash: "always" (src/routes/+layout.ts). Never without the slash. */
-const BROWSE = "/browse/";
+const BROWSE = "/playground/";
 
 const GRID = '[data-testid="browse-grid"]';
 const CARDS = `${GRID} > li`;
@@ -255,7 +255,7 @@ test.describe("the browse screen, with nothing plugged in", () => {
     const ids = await renderedIds(page);
     expect([...ids].sort()).toEqual([...LISTING.map((e) => e.id)].sort());
 
-    // Its OWN description, and at least one tag, read out of the rendered DOM
+    // Its OWN description, and its category and tag line, read out of the rendered DOM
     // rather than out of the module that produced it.
     const cards = await page.evaluate(() =>
       Array.from(
@@ -264,7 +264,7 @@ test.describe("the browse screen, with nothing plugged in", () => {
         const id = (li.getAttribute("data-testid") ?? "").slice("card-".length);
         const description =
           li.querySelector(`#card-description-${id}`)?.textContent ?? "";
-        const tags = Array.from(li.querySelectorAll("ul li")).map(
+        const tags = Array.from(li.querySelectorAll(".line .term")).map(
           (tag) => tag.textContent?.trim() ?? "",
         );
         return { id, description: description.trim(), tags };
@@ -279,8 +279,8 @@ test.describe("the browse screen, with nothing plugged in", () => {
       ).toBeGreaterThan(0);
       expect(
         card.tags.filter((tag) => tag.length > 0).length,
-        `${card.id} carries at least one tag`,
-      ).toBeGreaterThan(0);
+        `${card.id} carries one category and one tag (13-08: tags[0] through FOR_LABELS, tags[1] as itself)`,
+      ).toBe(2);
     }
 
     // No two configurations share a sentence. One real description per card is
@@ -298,22 +298,20 @@ test.describe("the browse screen, with nothing plugged in", () => {
     await coldGoto(page, BROWSE);
     await waitForCards(page, LISTING.length);
 
-    const sortGroup = page.getByTestId("browse-sort");
-    const option = (word: string) => sortGroup.getByText(word, { exact: true });
-    const radio = (value: string) =>
-      sortGroup.locator(`input[value="${value}"]`);
+    // The sort is a <select> since 13-08 (PDF: SORT BY over Featured).
+    const sortSelect = page.getByTestId("browse-sort");
 
-    // FEATURED is where a plain /browse/ opens, so the opening order is the
+    // FEATURED is where a plain /playground/ opens, so the opening order is the
     // first thing asserted and the address carries no sort key at all.
-    await expect(radio("featured")).toBeChecked();
+    await expect(sortSelect).toHaveValue("featured");
     await expectOrder(page, orderOf("featured"));
 
     // NAME. Deterministic in full: sort.spec.ts pins the comparator against
     // literal ids in node, so what is proven here is that the DOM renders it.
-    await option("NAME").click();
-    await expect(radio("name")).toBeChecked();
+    await sortSelect.selectOption("name");
+    await expect(sortSelect).toHaveValue("name");
     await expectOrder(page, orderOf("name"));
-    await expect(page).toHaveURL(/\/browse\/\?sort=name$/);
+    await expect(page).toHaveURL(/\/playground\/\?sort=name$/);
 
     // A THIRD ARM STOOD HERE - NEWEST - AND D-11 RETIRED IT.
     //
@@ -332,12 +330,12 @@ test.describe("the browse screen, with nothing plugged in", () => {
     // FEATURED again to prove the default drops its key from the address.
     // sort.spec.ts holds what is left of the retirement in node.
 
-    // Back to FEATURED, which is the DEFAULT: a plain /browse/ is canonical, so
+    // Back to FEATURED, which is the DEFAULT: a plain /playground/ is canonical, so
     // the address must lose its sort key rather than gain ?sort=featured.
-    await option("FEATURED").click();
-    await expect(radio("featured")).toBeChecked();
+    await sortSelect.selectOption("featured");
+    await expect(sortSelect).toHaveValue("featured");
     await expectOrder(page, orderOf("featured"));
-    await expect(page).toHaveURL(/\/browse\/$/);
+    await expect(page).toHaveURL(/\/playground\/$/);
   });
 
   test("searching and tag chips narrow the grid, and CLEAR FILTERS brings it back", async ({
@@ -348,7 +346,7 @@ test.describe("the browse screen, with nothing plugged in", () => {
 
     const total = LISTING.length;
     const field = page.getByTestId("browse-search");
-    const sortGroup = page.getByTestId("browse-sort");
+    const sortSelect = page.getByTestId("browse-sort");
     const chip = (tag: string) => page.getByTestId(`tag-${tag}`);
     const chipBox = (tag: string) => chip(tag).locator("input");
 
@@ -384,135 +382,115 @@ test.describe("the browse screen, with nothing plugged in", () => {
     await expect(page.locator(CARDS)).toHaveCount(total);
     await expect(field).toBeFocused();
 
-    // TWO CHIPS IN ONE ROW, COMBINING WITH OR (A-19).
-    //
-    // THIS PARAGRAPH IS AN AMENDMENT, NOT A REWRITE OF HISTORY. It used to
-    // read: "playable is carried by four entries and generative by three; their
-    // intersection is one, which is the whole reason the chips intersect rather
-    // than union (05.1-UI-SPEC W-04)." Both halves of that are now false. The
-    // counts were right about the fifty-five-term vocabulary and D-10 re-cut
-    // it - playable is carried by 13 of 36 today and generative by 13 - and
-    // W-04's AND is superseded by A-19: OR within a facet, AND across the two.
-    //
-    // W-04 was RIGHT about the data it was written against. With 32 of the 41
-    // tags then shipped sitting on exactly one configuration, a union would
-    // have made a second chip ADD one card, which reads as a bug. Under the
-    // closed sixteen the argument inverts: FOR gives every configuration
-    // exactly one term, so a second FOR chip under a pure AND would return zero
-    // and disable itself for ever, and a row whose second click is always dead
-    // is not a row.
-    //
-    // playable and generative are BOTH FEELS terms, so pressing both is a
-    // UNION - 21 of 36, against playable's 13 - and the guard below is the old
-    // one pointing the other way: non-vacuous in the same manner, opposite in
-    // direction.
-    const withTag = (tag: string) =>
-      LISTING.filter((entry) => entry.tags.includes(tag)).map((e) => e.id);
-    const playable = sortListing(
-      LISTING.filter((entry) => entry.tags.includes("playable")),
+    // TWO CHIPS IN ONE ROW, COMBINING WITH OR (A-19). Since 13-08 the one
+    // row on the page is the FOR facet (D-11 dropped FEELS; its terms live
+    // on the card), so both chips are FOR terms and the union is the honest
+    // proof: FOR gives every configuration exactly one term, so under a
+    // pure AND the second chip would return zero and disable itself for
+    // ever. The expected sets are COMPUTED by the shipped filter.
+    const forA = "show";
+    const forB = "play";
+    const withA = sortListing(
+      filterListing(LISTING, "", { for: [forA], feels: [] }),
       "featured",
     ).map((entry) => entry.id);
-    expect(playable.length, "playable is a real chip").toBeGreaterThan(1);
+    expect(withA.length, `${forA} is a real chip`).toBeGreaterThan(1);
 
-    await chip("playable").click();
-    await expect(chipBox("playable")).toBeChecked();
-    await expect(page.locator(CARDS)).toHaveCount(playable.length);
-    expect(await renderedIds(page)).toEqual(playable);
-    await expectCount(page, playable.length, total);
+    await chip(forA).click();
+    await expect(chipBox(forA)).toBeChecked();
+    await expect(page.locator(CARDS)).toHaveCount(withA.length);
+    expect(await renderedIds(page)).toEqual(withA);
+    await expectCount(page, withA.length, total);
 
     const union = sortListing(
-      LISTING.filter(
-        (entry) =>
-          entry.tags.includes("playable") || entry.tags.includes("generative"),
-      ),
+      filterListing(LISTING, "", { for: [forA, forB], feels: [] }),
       "featured",
     ).map((entry) => entry.id);
     expect(
       union.length,
       "the union is larger than either chip alone",
-    ).toBeGreaterThan(playable.length);
+    ).toBeGreaterThan(withA.length);
     expect(
       union.length,
       "and the union is not simply the whole shelf, or the assertion above says nothing",
     ).toBeLessThan(LISTING.length);
-    await chip("generative").click();
-    await expect(chipBox("generative")).toBeChecked();
+    await chip(forB).click();
+    await expect(chipBox(forB)).toBeChecked();
     await expect(page.locator(CARDS)).toHaveCount(union.length);
     expect(await renderedIds(page)).toEqual(union);
     await expectCount(page, union.length, total);
 
-    // AND A THIRD CHIP IN THE OTHER ROW, COMBINING WITH AND. Without this the
-    // walk proves OR and never proves the AND half, which is the whole of
-    // CAT-03's amendment. modulation is chosen because it is one of the FOR
-    // terms those two FEELS chips do NOT empty: mixing, shortcuts and pointing
-    // all render disabled here, so pressing one of them would do nothing and
-    // the assertion would pass on the union's own count.
-    const across = union.filter((id) => withTag("modulation").includes(id));
+    // AND THE QUERY, COMBINING WITH AND. The FEELS row is gone, so the
+    // cross-facet AND of CAT-03's amendment is proved through the field: a
+    // typed word narrows the union rather than widening it, and does not
+    // empty it.
+    const across = sortListing(
+      filterListing(LISTING, "pad", { for: [forA, forB], feels: [] }),
+      "featured",
+    ).map((entry) => entry.id);
     expect(
       across.length,
-      "the cross-facet press narrows the union rather than widening it",
+      "the typed word narrows the union rather than widening it",
     ).toBeLessThan(union.length);
     expect(
       across.length,
       "and it does not empty the grid, or the AND half would be vacuous",
     ).toBeGreaterThan(0);
-    await chip("modulation").click();
-    await expect(chipBox("modulation")).toBeChecked();
+    await field.fill("pad");
     await expect(page.locator(CARDS)).toHaveCount(across.length);
     expect(await renderedIds(page)).toEqual(across);
     await expectCount(page, across.length, total);
-    await chip("modulation").click();
-    await expect(chipBox("modulation")).not.toBeChecked();
-    await expect(page.locator(CARDS)).toHaveCount(union.length);
 
     // A CHIP THAT WOULD RETURN NOTHING IS A REAL disabled ATTRIBUTE, never
-    // aria-disabled alone and never a bare number beside the word.
-    //
-    // THE RULE SURVIVED THE INVERSION AND ITS SELECTOR MOVED. disabledTags()'s
-    // question narrowed with the semantics - a chip is dead only when it would
-    // return zero given the OTHER row's active set - which makes it RARE rather
-    // than common, and this is one of the cases where it still fires: with
-    // playable and generative active, three of the ten FOR terms land on zero
-    // entries. The selector is the two facet rows because the single
-    // browse-tags group retired with the count-derived row it wrapped.
-    const disabled = page.locator(
-      '[data-testid="facet-for"] input:disabled, [data-testid="facet-feels"] input:disabled',
-    );
+    // aria-disabled alone and never a bare number beside the word: given
+    // the typed word, a FOR term with no carrier among the matches is dead,
+    // and an ACTIVE chip is never dead - it can only be removed.
+    const disabled = page.locator('[data-testid="facet-for"] input:disabled');
     expect(
       await disabled.count(),
       "at least one chip cannot change the grid and says so",
     ).toBeGreaterThan(0);
-    // And it is the OTHER row that is dead, not this one: a chip beside an
-    // active sibling can only widen the result, so nothing in FEELS is off.
-    expect(
-      await page.locator('[data-testid="facet-feels"] input:disabled').count(),
-      "a chip in the same row as an active one was disabled, which the OR rule makes impossible",
-    ).toBe(0);
+    await expect(chipBox(forA)).toBeEnabled();
+    await expect(chipBox(forB)).toBeEnabled();
+    await field.fill("");
+    await expect(page.locator(CARDS)).toHaveCount(union.length);
 
-    // CLEAR FILTERS. The query and every tag, and the address back to the bare
-    // canonical form.
+    // THE `All` CHIP CLEARS THE ROW, and reads pressed only when the row is
+    // clear. It is a button, not a checkbox: pressing it is an action.
+    const all = page.getByTestId("tag-all");
+    await expect(all).toHaveAttribute("aria-pressed", "false");
+    await all.click();
+    await expect(all).toHaveAttribute("aria-pressed", "true");
+    await expect(chipBox(forA)).not.toBeChecked();
+    await expect(chipBox(forB)).not.toBeChecked();
+    await expect(page.locator(CARDS)).toHaveCount(total);
+
+    // Clear filters. The query and every chip, and the address back to the
+    // bare canonical form.
+    await chip(forA).click();
+    await field.fill("pad");
     await page.getByTestId("browse-clear-filters").click();
     await expect(page.locator(CARDS)).toHaveCount(total);
-    await expect(chipBox("playable")).not.toBeChecked();
-    await expect(chipBox("generative")).not.toBeChecked();
+    await expect(chipBox(forA)).not.toBeChecked();
+    await expect(field).toHaveValue("");
     await expectCount(page, total, total);
-    await expect(page).toHaveURL(/\/browse\/$/);
-    await expect(sortGroup.locator('input[value="featured"]')).toBeChecked();
+    await expect(page).toHaveURL(/\/playground\/$/);
+    await expect(sortSelect).toHaveValue("featured");
 
     // AND THE SORT IS NOT A FILTER. The assertion above is true but vacuous
     // while the sort sits on its default, so it is made again from a sort the
-    // visitor chose: CLEAR FILTERS must leave ?sort=name standing, because
+    // visitor chose: Clear filters must leave ?sort=name standing, because
     // resetting a view preference would undo something nobody asked to undo.
-    await sortGroup.getByText("NAME", { exact: true }).click();
-    await expect(sortGroup.locator('input[value="name"]')).toBeChecked();
-    await expect(page).toHaveURL(/\/browse\/\?sort=name$/);
+    await sortSelect.selectOption("name");
+    await expect(sortSelect).toHaveValue("name");
+    await expect(page).toHaveURL(/\/playground\/\?sort=name$/);
 
-    await chip("playable").click();
-    await expect(page.locator(CARDS)).toHaveCount(playable.length);
+    await chip(forA).click();
+    await expect(page.locator(CARDS)).toHaveCount(withA.length);
     await page.getByTestId("browse-clear-filters").click();
     await expect(page.locator(CARDS)).toHaveCount(total);
-    await expect(page).toHaveURL(/\/browse\/\?sort=name$/);
-    await expect(sortGroup.locator('input[value="name"]')).toBeChecked();
+    await expect(page).toHaveURL(/\/playground\/\?sort=name$/);
+    await expect(sortSelect).toHaveValue("name");
     expect(await renderedIds(page)).toEqual(orderOf("name"));
   });
 });
@@ -534,28 +512,29 @@ test.describe("arriving on a browse screen somebody else composed", () => {
     // cannot reach it - which is exactly why it is the right place to prove
     // that a shared ?tag= link still lands on the right shelf on the FIRST
     // PAINT, before any correction could have been applied.
-    await coldGoto(page, "/browse/?sort=name&tag=playable");
+    await coldGoto(page, "/playground/?sort=name&tag=colour");
 
-    const playable = sortListing(
-      LISTING.filter((entry) => entry.tags.includes("playable")),
+    // `colour` is a MAPPED legacy term (LEGACY_TAG_MAP: colour -> show, a
+    // FOR term), so the read path turns it into the `show` chip - the one
+    // row the page renders since 13-08. (It read ?tag=playable, a FEELS
+    // term, until then; a FEELS term still filters from the address but
+    // has no chip to be asserted checked.)
+    const shown = sortListing(
+      LISTING.filter((entry) => entry.tags.includes("show")),
       "name",
     ).map((entry) => entry.id);
-    expect(playable.length, "playable is a real chip").toBeGreaterThan(1);
-    expect(playable.length).toBeLessThan(LISTING.length);
+    expect(shown.length, "show is a real chip").toBeGreaterThan(1);
+    expect(shown.length).toBeLessThan(LISTING.length);
 
     // ASSERTED BEFORE ANY INTERACTION. Nothing below clicks, types or presses
     // anything: a page that painted the whole shelf and then corrected itself
     // would satisfy an assertion made after a chip press and fail this one.
     await expect(page.getByTestId("browse-grid")).toBeVisible();
-    await expect(page.locator(CARDS)).toHaveCount(playable.length);
-    expect(await renderedIds(page)).toEqual(playable);
-    await expect(
-      page.getByTestId("browse-sort").locator('input[value="name"]'),
-    ).toBeChecked();
-    await expect(
-      page.getByTestId("tag-playable").locator("input"),
-    ).toBeChecked();
-    await expectCount(page, playable.length, LISTING.length);
+    await expect(page.locator(CARDS)).toHaveCount(shown.length);
+    expect(await renderedIds(page)).toEqual(shown);
+    await expect(page.getByTestId("browse-sort")).toHaveValue("name");
+    await expect(page.getByTestId("tag-show").locator("input")).toBeChecked();
+    await expectCount(page, shown.length, LISTING.length);
 
     // THE THIRD WAY THE COUNT IS SAID IS BY SAYING NOTHING. 05.1-UI-SPEC.md's
     // Accessibility Contract: on first load the live region is silent, because
@@ -569,7 +548,7 @@ test.describe("arriving on a browse screen somebody else composed", () => {
     // The locator is HANGAR's own region by its test id. Kit inserts its own
     // svelte-announcer live region into every page, so a browser-side count of
     // aria-live elements would read two and prove nothing about this one.
-    await coldGoto(page, "/browse/?q=aurora");
+    await coldGoto(page, "/playground/?q=aurora");
     await expect(page.getByTestId("browse-grid")).toBeVisible();
     await expect(page.locator(CARDS)).toHaveCount(1);
     await expectCount(page, 1, LISTING.length);
@@ -707,6 +686,18 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
           // returns four ids per card that no canvas will ever answer to -
           // measured: it demanded name-lattice, name-lumen, name-morph and
           // name-ninepads and timed out on a page that was perfectly healthy.
+          // AND INSIDE THE CENTRE COLUMN's CLIP (13-08): the gallery sits on
+          // the shell's frame, whose centre scrolls its own body in the wide
+          // and compact bands, so a card can be inside the viewport's
+          // rectangle and still clipped by the column - which is exactly
+          // what IntersectionObserver sees and a bare viewport check does
+          // not. Below 1024 the page flows and the clip is the viewport.
+          const centre = document.querySelector('[data-testid="shell-centre"]');
+          const clip =
+            centre instanceof HTMLElement &&
+            getComputedStyle(centre).overflowY === "auto"
+              ? centre.getBoundingClientRect()
+              : null;
           for (const el of Array.from(
             document.querySelectorAll('[data-testid="browse-grid"] > li'),
           )) {
@@ -715,7 +706,9 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
               box.bottom > 0 &&
               box.top < window.innerHeight &&
               box.right > 0 &&
-              box.left < window.innerWidth;
+              box.left < window.innerWidth &&
+              (clip === null ||
+                (box.bottom > clip.top && box.top < clip.bottom));
             if (!onScreen) continue;
             required.add(
               (el.getAttribute("data-testid") ?? "").slice("card-".length),
@@ -1067,14 +1060,14 @@ test.describe("the wall is really running, and it is measured rather than gated"
   }) => {
     const seen = watchWasm(page);
 
-    // THE QUERY IS LOAD-BEARING AND IT IS NOT A BARE /browse/. D-06 asks for
-    // "a cold /browse/ with no Lua card in view fetches no WebAssembly", but
+    // THE QUERY IS LOAD-BEARING AND IT IS NOT A BARE /playground/. D-06 asks for
+    // "a cold /playground/ with no Lua card in view fetches no WebAssembly", but
     // with the default Featured sort the first screenful holds several Lua
-    // cards, so a genuine cold /browse/ at the top of the page WILL fetch the
+    // cards, so a genuine cold /playground/ at the top of the page WILL fetch the
     // VM - correctly, and immediately. The honest claim is that a visitor who
     // never brings a Lua card into view never downloads the VM, and the honest
     // test is a filtered load. "aurora" leaves exactly one card in the grid and
-    // that card is declared padsim. Do not "simplify" this to a bare /browse/:
+    // that card is declared padsim. Do not "simplify" this to a bare /playground/:
     // it goes red for a good reason, which the negative check below observed.
     const matched = LISTING.filter((entry) =>
       [entry.name, entry.description, ...entry.tags]
@@ -1088,7 +1081,7 @@ test.describe("the wall is really running, and it is measured rather than gated"
     );
     const soloId = matched[0].id;
 
-    await coldGoto(page, "/browse/?q=aurora");
+    await coldGoto(page, "/playground/?q=aurora");
     await expect(page.getByTestId("browse-grid")).toBeVisible();
     await expect(page.locator(CARDS)).toHaveCount(1);
     await waitForPicture(page, soloId);
@@ -1105,7 +1098,7 @@ test.describe("the wall is really running, and it is measured rather than gated"
     // point: Vite's preload helper inserts modulepreload links for a DYNAMIC
     // import's dependencies too, so by the time the grid has built an engine
     // the document carries links a first paint never saw. The bytes the Worker
-    // serves for /browse/ are what the browser fetches before it can paint, and
+    // serves for /playground/ are what the browser fetches before it can paint, and
     // they are race-free.
     const chunkDir = fileURLToPath(
       new URL("../build/_app/immutable/chunks", import.meta.url),
@@ -1132,13 +1125,13 @@ test.describe("the wall is really running, and it is measured rather than gated"
     ];
     expect(
       declared.length,
-      "/browse/ names the modules it loads",
+      "/playground/ names the modules it loads",
     ).toBeGreaterThan(0);
     expect(
       declared.filter((rel) =>
         carriers.includes(rel.slice(rel.lastIndexOf("/") + 1)),
       ),
-      "/browse/ names the protocol chunk in the graph it paints from",
+      "/playground/ names the protocol chunk in the graph it paints from",
     ).toEqual([]);
 
     // The other side of the same claim, so the assertion above is not vacuous:
@@ -1193,12 +1186,12 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
   }) => {
     const consoleErrors = collectErrors(page);
 
-    const playable = sortListing(
-      LISTING.filter((entry) => entry.tags.includes("playable")),
+    const shown = sortListing(
+      LISTING.filter((entry) => entry.tags.includes("show")),
       "featured",
     ).map((entry) => entry.id);
-    expect(playable.length).toBeGreaterThan(1);
-    expect(playable.length).toBeLessThan(LISTING.length);
+    expect(shown.length).toBeGreaterThan(1);
+    expect(shown.length).toBeLessThan(LISTING.length);
 
     // THE JOURNEY IS THE ASSERTION, AND THE CHIP PRESS IS THE PART THAT
     // MATTERS. A Back into an address the document was LOADED with was already
@@ -1208,36 +1201,35 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
     // `page.url.href` - the page store's url, which replaceState itself never
     // updates - into the history entry, so the entry remembers the address the
     // document was entered with and Back hands the page a url one visit stale.
-    // Arriving on a bare /browse/ and pressing a chip is exactly that, and it
+    // Arriving on a bare /playground/ and pressing a chip is exactly that, and it
     // is also what a visitor does.
     await coldGoto(page, BROWSE);
     await waitForCards(page, LISTING.length);
 
-    await page.getByTestId("tag-playable").click();
-    await expect(page.locator(CARDS)).toHaveCount(playable.length);
+    await page.getByTestId("tag-show").click();
+    await expect(page.locator(CARDS)).toHaveCount(shown.length);
     // Let the 500 ms projection land, so the address really is the composed one
-    // rather than one beforeNavigate is about to flush. It is ?feels= since
-    // A-20: playable is a FEELS term, and serialiseBrowseQuery never writes the
+    // rather than one beforeNavigate is about to flush. It is ?for= since
+    // 13-08: show is a FOR term on the one row the page renders, and
+    // serialiseBrowseQuery never writes the
     // legacy ?tag= parameter again.
-    await expect(page).toHaveURL(/\/browse\/\?feels=playable$/);
+    await expect(page).toHaveURL(/\/playground\/\?for=show$/);
 
-    await page.getByTestId(`card-name-${playable[0]}`).click();
-    await expect(page).toHaveURL(new RegExp(`/c/${playable[0]}/$`));
+    await page.getByTestId(`card-name-${shown[0]}`).click();
+    await expect(page).toHaveURL(new RegExp(`/playground/${shown[0]}/$`));
     await expect(page.getByTestId("coverflow")).toBeVisible();
 
     // THE ADDRESS BAR AND THE SCREEN MUST AGREE. Before the fix this read
     // sixteen cards and no active chip while the address still said
-    // ?feels=playable - the screen and the address bar contradicting each
+    // ?for=show - the screen and the address bar contradicting each
     // other, on a link the visitor could then copy and send to somebody.
     await page.goBack();
-    await expect(page).toHaveURL(/\/browse\/\?feels=playable$/);
+    await expect(page).toHaveURL(/\/playground\/\?for=show$/);
     await expect(page.getByTestId("browse-grid")).toBeVisible();
-    await expect(page.locator(CARDS)).toHaveCount(playable.length);
-    expect(await renderedIds(page)).toEqual(playable);
-    await expect(
-      page.getByTestId("tag-playable").locator("input"),
-    ).toBeChecked();
-    await expectCount(page, playable.length, LISTING.length);
+    await expect(page.locator(CARDS)).toHaveCount(shown.length);
+    expect(await renderedIds(page)).toEqual(shown);
+    await expect(page.getByTestId("tag-show").locator("input")).toBeChecked();
+    await expectCount(page, shown.length, LISTING.length);
 
     // AND THE OTHER DIRECTION, WHICH IS THE ONE THAT WAS NEVER BROKEN: a Back
     // into an address the document was loaded with. It is asserted because a
@@ -1247,21 +1239,19 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
     // THE goto BELOW KEEPS ?tag= AND THAT IS DELIBERATE - DO NOT "FIX" IT.
     // It is the one legacy address left in the suite, and leaving it is what
     // turns this leg into G-10's migration proof: the visit is ENTERED on
-    // ?tag=playable, the read path maps the retired word to its FEELS chip, the
+    // ?tag=colour, the read path maps the retired word to its FOR chip (show), the
     // page canonicalises the address once on arrival, and the assertion after
-    // the Back is ?feels=playable. Entered as one thing, re-written as another,
+    // the Back is ?for=show. Entered as one thing, re-written as another,
     // with the same shelf on the screen throughout. Change the goto and the
     // migration stops being tested at all.
-    await coldGoto(page, "/browse/?tag=playable");
-    await expect(page.locator(CARDS)).toHaveCount(playable.length);
-    await page.getByTestId(`card-name-${playable[0]}`).click();
+    await coldGoto(page, "/playground/?tag=colour");
+    await expect(page.locator(CARDS)).toHaveCount(shown.length);
+    await page.getByTestId(`card-name-${shown[0]}`).click();
     await expect(page.getByTestId("coverflow")).toBeVisible();
     await page.goBack();
-    await expect(page).toHaveURL(/\/browse\/\?feels=playable$/);
-    await expect(page.locator(CARDS)).toHaveCount(playable.length);
-    await expect(
-      page.getByTestId("tag-playable").locator("input"),
-    ).toBeChecked();
+    await expect(page).toHaveURL(/\/playground\/\?for=show$/);
+    await expect(page.locator(CARDS)).toHaveCount(shown.length);
+    await expect(page.getByTestId("tag-show").locator("input")).toBeChecked();
 
     expect(consoleErrors).toEqual([]);
   });
@@ -1319,34 +1309,41 @@ test.describe("the catalog with no pointer at all", () => {
     );
 
     // ROVING TABINDEX, WHICH IS THE WHOLE OF W-07. Exactly one card is tabbable
-    // at a time; the other fifteen carry -1.
+    // at a time - its link and, since 13-08, its favorite star - and every
+    // other card carries -1 on both.
     await expect(
       page.locator(`${GRID} [tabindex="0"]`),
-      "exactly one card in the grid is tabbable",
-    ).toHaveCount(1);
+      "exactly one card in the grid is tabbable: its link and its star",
+    ).toHaveCount(2);
     await expect(page.locator(`${GRID} [tabindex="-1"]`)).toHaveCount(
-      LISTING.length - 1,
+      (LISTING.length - 1) * 2,
     );
     expect(
       (await focus()).testId,
       "Tab lands on the roving card, which on arrival is the first one",
     ).toBe(cardAt(featured, 0));
 
-    // ONE TAB STOP, MEASURED. The next Tab must leave the wall entirely rather
-    // than step to the second card - seventeen presses to cross a shelf is the
+    // ONE CARD PER CROSSING, MEASURED. The next Tab lands on the same card's
+    // star, and the one after that must leave the wall entirely rather than
+    // step to the second card - seventeen presses to cross a shelf is the
     // failure roving tabindex exists to prevent.
+    await page.keyboard.press("Tab");
+    expect(
+      (await focus()).testId,
+      "the second Tab is the roving card's own star",
+    ).toBe(`card-favorite-${featured[0]}`);
     await page.keyboard.press("Tab");
     const beyond = await focus();
     expect(
       beyond.inGrid,
-      `one Tab crosses the whole wall: focus moved to ${beyond.tag} ${beyond.testId}`,
+      `two Tabs cross the whole wall: focus moved to ${beyond.tag} ${beyond.testId}`,
     ).toBe(false);
+    await page.keyboard.press("Shift+Tab");
     await page.keyboard.press("Shift+Tab");
     expect(
       (await focus()).testId,
-      "and Shift+Tab comes back to the same roving card",
+      "and Shift+Tab twice comes back to the same roving card",
     ).toBe(cardAt(featured, 0));
-
     // THE COLUMN COUNT IS READ OFF THE LIVE LAYOUT, never assumed. A hard-coded
     // 4 would pass at 1280x720 and mislead at every other width, and the parse
     // is the shipped one - columnsFromTemplate is pinned in node by
@@ -1394,7 +1391,7 @@ test.describe("the catalog with no pointer at all", () => {
     // Enter has NO handler: the anchor is followed natively, which is what
     // keeps middle-click and open-in-new-tab working too.
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(new RegExp(`/c/${featured[last]}/$`));
+    await expect(page).toHaveURL(new RegExp(`/playground/${featured[last]}/$`));
     await expect(page.getByTestId("coverflow")).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
@@ -1413,12 +1410,11 @@ test.describe("browse, open a configuration, and come back", () => {
 
     const QUERY = "pad";
     /*
-      A FEELS TERM SINCE D-10, AND THE PARAMETER IT WRITES CHANGED WITH IT.
-      `playable` survived the re-cut as itself, so this constant did not have to
-      move; what moved is that it is now a member of a declared facet, it is
-      pressed in the FEELS row, and the address it composes is ?feels=playable.
+      A FOR TERM SINCE 13-08: the FEELS row is gone (D-11), the one row on
+      the page is the FOR facet, and the address it composes is ?for=show.
+      (It was `playable`, a FEELS term, from D-10 until then.)
     */
-    const TAG = "playable";
+    const TAG = "show";
 
     await coldGoto(page, BROWSE);
     await waitForCards(page, LISTING.length);
@@ -1437,7 +1433,7 @@ test.describe("browse, open a configuration, and come back", () => {
       place the new arity is exercised end to end from a browser.
     */
     const expectedIds = sortListing(
-      filterListing(LISTING, QUERY, { for: [], feels: [TAG] }),
+      filterListing(LISTING, QUERY, { for: [TAG], feels: [] }),
       "name",
     ).map((entry) => entry.id);
     expect(
@@ -1446,9 +1442,9 @@ test.describe("browse, open a configuration, and come back", () => {
     ).toBeGreaterThan(1);
     expect(expectedIds.length).toBeLessThan(LISTING.length);
 
-    const sortGroup = page.getByTestId("browse-sort");
-    await sortGroup.getByText("NAME", { exact: true }).click();
-    await expect(sortGroup.locator('input[value="name"]')).toBeChecked();
+    const sortSelect = page.getByTestId("browse-sort");
+    await sortSelect.selectOption("name");
+    await expect(sortSelect).toHaveValue("name");
 
     await page.getByTestId("browse-search").fill(QUERY);
     await page.getByTestId(`tag-${TAG}`).click();
@@ -1460,17 +1456,41 @@ test.describe("browse, open a configuration, and come back", () => {
     // and not one that is about to change under it.
     await expect(page).toHaveURL(/sort=name/);
     await expect(page).toHaveURL(new RegExp(`q=${QUERY}`));
-    await expect(page).toHaveURL(new RegExp(`feels=${TAG}`));
+    await expect(page).toHaveURL(new RegExp(`for=${TAG}`));
     const address = page.url();
 
     // THE OFFSET IS A NUMBER, RECORDED AND THEN ASSERTED AGAINST. "The page
     // looks right" is not an assertion. The greater-than-zero check is the
     // precondition: restoring a scroll offset of 0 would prove nothing.
+    // THE SCROLLER IS THE SHELL's CENTRE COLUMN since 13-08 put the gallery
+    // on the frame: in the wide and compact bands the centre scrolls its own
+    // body and the window does not move; below 1024 the page flows and the
+    // window scrolls. The same reader the page uses, so the test and the
+    // page cannot disagree about which offset was recorded.
+    const readScroll = () =>
+      page.evaluate(() => {
+        const main = document.querySelector('[data-testid="shell-centre"]');
+        const centre =
+          main instanceof HTMLElement &&
+          getComputedStyle(main).overflowY === "auto" &&
+          main.scrollHeight > main.clientHeight
+            ? main
+            : null;
+        return Math.round(centre ? centre.scrollTop : window.scrollY);
+      });
     await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight);
+      const main = document.querySelector('[data-testid="shell-centre"]');
+      const centre =
+        main instanceof HTMLElement &&
+        getComputedStyle(main).overflowY === "auto" &&
+        main.scrollHeight > main.clientHeight
+          ? main
+          : null;
+      if (centre) centre.scrollTop = centre.scrollHeight;
+      else window.scrollTo(0, document.body.scrollHeight);
     });
     await page.waitForTimeout(200);
-    const scrolledTo = await page.evaluate(() => Math.round(window.scrollY));
+    const scrolledTo = await readScroll();
     expect(
       scrolledTo,
       "the recorded view is really scrolled, so restoring it means something",
@@ -1478,7 +1498,7 @@ test.describe("browse, open a configuration, and come back", () => {
 
     const opened = expectedIds[expectedIds.length - 1];
     await page.getByTestId(`card-name-${opened}`).click();
-    await expect(page).toHaveURL(new RegExp(`/c/${opened}/$`));
+    await expect(page).toHaveURL(new RegExp(`/playground/${opened}/$`));
     await expect(page.getByTestId("coverflow")).toBeVisible();
 
     // ONE SLOT, TWO LABELS (W-01, D-19). A visitor who came from browse gets
@@ -1492,9 +1512,7 @@ test.describe("browse, open a configuration, and come back", () => {
     await expect(page.getByTestId("browse-grid")).toBeVisible();
     await expect(page.locator(CARDS)).toHaveCount(expectedIds.length);
     expect(await renderedIds(page)).toEqual(expectedIds);
-    await expect(
-      page.getByTestId("browse-sort").locator('input[value="name"]'),
-    ).toBeChecked();
+    await expect(page.getByTestId("browse-sort")).toHaveValue("name");
     await expect(page.getByTestId("browse-search")).toHaveValue(QUERY);
     await expect(page.getByTestId(`tag-${TAG}`).locator("input")).toBeChecked();
 
@@ -1502,9 +1520,9 @@ test.describe("browse, open a configuration, and come back", () => {
     await expect
       .poll(
         guarded(async () => {
-          restoredTo = await page.evaluate(() => Math.round(window.scrollY));
+          restoredTo = await readScroll();
           return Math.abs(restoredTo - scrolledTo) <= SCROLL_TOLERANCE_PX;
-        }, "window.scrollY after the Back navigation"),
+        }, "the scroll offset after the Back navigation"),
         {
           message: `the browse view came back at the offset it left, within ${SCROLL_TOLERANCE_PX}px`,
           timeout: 10_000,
@@ -1512,7 +1530,7 @@ test.describe("browse, open a configuration, and come back", () => {
       )
       .toBe(true);
     console.log(
-      `browse round trip: scrollY ${scrolledTo} before, ${restoredTo} after ` +
+      `browse round trip: scroll offset ${scrolledTo} before, ${restoredTo} after ` +
         `(tolerance ${SCROLL_TOLERANCE_PX}px)`,
     );
 
@@ -1520,13 +1538,13 @@ test.describe("browse, open a configuration, and come back", () => {
     // than glossed. The return is a `goto` with `{ noScroll: true }` and
     // deliberately NOT `{ replaceState: true }`: 05.1-09 measured that
     // replaceState takes Kit's shallow popstate branch on this exact journey and
-    // leaves the address bar reading /c/<id>/ while the browse screen is still
+    // leaves the address bar reading /playground/<id>/ while the browse screen is still
     // on the page. So the round trip costs one history entry, and one Back lands
     // on the configuration the visitor opened. The phase's deferred-items.md
     // item 2 records that 05.1-UI-SPEC.md's sentence asking for replaceState is
     // the thing that is wrong here, not the shipped control.
     await page.goBack();
-    await expect(page).toHaveURL(new RegExp(`/c/${opened}/$`));
+    await expect(page).toHaveURL(new RegExp(`/playground/${opened}/$`));
     expect(
       await page.getByTestId("browse").count(),
       "the browse screen is off the page after one Back",
@@ -1538,7 +1556,7 @@ test.describe("browse, open a configuration, and come back", () => {
     // shared store would make the assertion below pass for the wrong reason.
     const fresh = await context.newPage();
     try {
-      await fresh.goto("/c/euclid/");
+      await fresh.goto("/playground/euclid/");
       await expect(fresh.getByTestId("coverflow")).toBeVisible();
       expect(
         await fresh.evaluate(() => window.sessionStorage.length),
@@ -1565,13 +1583,13 @@ test.describe("the engine hazard this phase created, in a browser", () => {
     // THE ONE PAGE WHERE THE HAZARD IS VISIBLE. `buildTuner`'s `destroy()` used
     // to call `closeEngine(engine)` unconditionally, and that was harmless only
     // while every Lua entry stayed out of FRONT_DOOR. Plan 05.1-05 made
-    // /c/euclid/ real, where the row is EUCLID ALONE - so un-choosing would have
+    // /playground/euclid/ real, where the row is EUCLID ALONE - so un-choosing would have
     // closed the VM behind the only pad on the page and blanked it. 05.1-04
     // fixed it (`if (engine !== published)`) and pinned it in node; this is the
     // same property where a visitor would have met it.
     const ID = "euclid";
 
-    await coldGoto(page, `/c/${ID}/`);
+    await coldGoto(page, `/playground/${ID}/`);
     await expect(page.getByTestId("coverflow")).toBeVisible();
     await expect(
       page.locator('[data-testid^="pad-canvas-"]'),

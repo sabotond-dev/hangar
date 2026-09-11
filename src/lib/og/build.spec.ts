@@ -25,7 +25,7 @@ import { FRAME_RGB, OG_HEIGHT, OG_WIDTH, UNLIT_DOT_RGB } from "./render";
 // eight had none and therefore no <head> to carry an og:image. D-07 made the
 // CATALOG the routed set - sixteen pages - and `ROUTED` in
 // src/lib/catalog/listing.ts is now the single name for it, read by this file,
-// by src/routes/c/[id]/+page.ts, by scripts/gen-og.mjs and by
+// by src/routes/playground/[id]/+page.ts, by scripts/gen-og.mjs and by
 // e2e/artifacts.e2e.ts.
 //
 // Widening `entries()` WITHOUT widening these two is the failure this amendment
@@ -175,7 +175,7 @@ function assertCompleteHead(
   // MEASURED, and it is why this assertion exists at all. SvelteKit's crawler
   // does carry og:image in CRAWLABLE_META_NAME_ATTRS, and a RELATIVE bad path
   // really does fail the build - observed as
-  // `Error: 404 /og/nope.png (linked from /c/aurora/)`. But an ABSOLUTE og:image
+  // `Error: 404 /og/nope.png (linked from /playground/aurora/)`. But an ABSOLUTE og:image
   // is a different origin from the prerender base, so the crawler never follows
   // it, and the same bad path spelled absolutely builds green. An absolute URL
   // is not optional (a crawler resolves nothing relative), so the build cannot
@@ -337,14 +337,14 @@ describe("the OG images and the heads that point at them (SHARE-04)", () => {
       return;
     }
     for (const entry of ROUTED) {
-      const file = join(BUILD, "c", entry.id, "index.html");
+      const file = join(BUILD, "playground", entry.id, "index.html");
       expect(existsSync(file), `${entry.id} has a prerendered page`).toBe(true);
       const html = readFileSync(file, "utf8");
       assertCompleteHead(
         html,
-        `/c/${entry.id}/`,
+        `/playground/${entry.id}/`,
         `${SITE_ORIGIN}/og/${entry.id}.png`,
-        `${SITE_ORIGIN}/c/${entry.id}/`,
+        `${SITE_ORIGIN}/playground/${entry.id}/`,
       );
       expect(meta(html, "og:title"), entry.id).toBe(`${entry.name} — HANGAR`);
       expect(meta(html, "og:description"), entry.id).toBe(entry.description);

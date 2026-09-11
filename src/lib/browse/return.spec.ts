@@ -77,7 +77,7 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
     // ?sort=newest and A-20 retired the written ?tag=. A round trip proved
     // against an address the serialiser can no longer emit is weaker evidence
     // than one proved against an address it does.
-    const record = { href: "/browse/?sort=name&for=drums", scrollY: 1847 };
+    const record = { href: "/playground/?sort=name&for=drums", scrollY: 1847 };
 
     expect(readBrowseReturn(store), "nothing was recorded yet").toBeUndefined();
 
@@ -97,11 +97,11 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
 
     // A plain scroll offset of zero is a real recorded position - the visitor
     // was at the top - and must not read as "nothing recorded".
-    writeBrowseReturn(store, { href: "/browse/", scrollY: 0 });
+    writeBrowseReturn(store, { href: "/playground/", scrollY: 0 });
     expect(
       readBrowseReturn(store),
       "a scroll offset of zero read as no record at all",
-    ).toEqual({ href: "/browse/", scrollY: 0 });
+    ).toEqual({ href: "/playground/", scrollY: 0 });
     expect(map.size, "the second write replaced the first").toBe(1);
 
     // The href carries its whole query string, encoding included: this is what
@@ -110,7 +110,7 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
     // A-20; it used to name `gestural` and `generative` under one `tag`, and
     // D-10 retired the first of those words entirely.
     const encoded = {
-      href: "/browse/?q=caf%C3%A9+noir&for=drums&feels=generative",
+      href: "/playground/?q=caf%C3%A9+noir&for=drums&feels=generative",
       scrollY: 12.5,
     };
     writeBrowseReturn(store, encoded);
@@ -125,23 +125,23 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
 
     const broken: readonly { readonly what: string; readonly raw: string }[] = [
       { what: "not JSON at all", raw: "not json" },
-      { what: "a truncated object", raw: '{"href":"/browse/",' },
+      { what: "a truncated object", raw: '{"href":"/playground/",' },
       { what: "JSON null", raw: "null" },
-      { what: "a JSON string", raw: '"/browse/"' },
+      { what: "a JSON string", raw: '"/playground/"' },
       { what: "a JSON number", raw: "1847" },
-      { what: "an array", raw: '["/browse/",1847]' },
-      { what: "no scrollY at all", raw: '{"href":"/browse/"}' },
+      { what: "an array", raw: '["/playground/",1847]' },
+      { what: "no scrollY at all", raw: '{"href":"/playground/"}' },
       { what: "no href at all", raw: '{"scrollY":1847}' },
       { what: "a numeric href", raw: '{"href":7,"scrollY":1847}' },
       { what: "an empty href", raw: '{"href":"","scrollY":1847}' },
       {
         what: "a scrollY as text",
-        raw: '{"href":"/browse/","scrollY":"1847"}',
+        raw: '{"href":"/playground/","scrollY":"1847"}',
       },
-      { what: "a null scrollY", raw: '{"href":"/browse/","scrollY":null}' },
+      { what: "a null scrollY", raw: '{"href":"/playground/","scrollY":null}' },
       {
         what: "a non-finite scrollY",
-        raw: '{"href":"/browse/","scrollY":1e999}',
+        raw: '{"href":"/playground/","scrollY":1e999}',
       },
     ];
 
@@ -166,7 +166,7 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
 
     // A NaN written through the typed API round-trips as JSON null and is
     // rejected on the way back out, so the bad value can never reach a scroll.
-    writeBrowseReturn(store, { href: "/browse/", scrollY: Number.NaN });
+    writeBrowseReturn(store, { href: "/playground/", scrollY: Number.NaN });
     expect(
       readBrowseReturn(store),
       "a NaN offset came back as a record",
@@ -175,7 +175,8 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
     // A store that throws on every call is a real browser state (Safari private
     // mode, a storage over quota). None of the three may propagate it.
     expect(
-      () => writeBrowseReturn(HOSTILE_STORE, { href: "/browse/", scrollY: 1 }),
+      () =>
+        writeBrowseReturn(HOSTILE_STORE, { href: "/playground/", scrollY: 1 }),
       "a refusing store threw out of writeBrowseReturn",
     ).not.toThrow();
     expect(
@@ -195,7 +196,7 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
   it("clears the record, and a read after a clear offers no way back", () => {
     const { map, store } = fakeStore();
     map.set("hangar:something-else", "left alone");
-    writeBrowseReturn(store, { href: "/browse/?sort=name", scrollY: 640 });
+    writeBrowseReturn(store, { href: "/playground/?sort=name", scrollY: 640 });
     expect(readBrowseReturn(store), "the record was written").toBeDefined();
 
     clearBrowseReturn(store);
@@ -228,7 +229,7 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
       "no store must read as no record",
     ).toBeUndefined();
     expect(
-      () => writeBrowseReturn(undefined, { href: "/browse/", scrollY: 42 }),
+      () => writeBrowseReturn(undefined, { href: "/playground/", scrollY: 42 }),
       "writing with no store threw during prerender",
     ).not.toThrow();
     expect(

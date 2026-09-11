@@ -114,7 +114,7 @@
     /** True while the splash covers the header row on `/`. Carries the wordmark's
         `.covered` treatment verbatim - the same value DeviceNote takes, from the
         same place, so the two cannot rise at different times. False everywhere
-        else; there is no splash on `/c/{id}/` or `/browse/`. */
+        else; there is no splash on `/playground/{id}/` or `/playground/`. */
     covered?: boolean;
     /** True exactly when a chosen panel is open and rendering the session's prose
         (Y-11). The disclosure NEVER opens while it is true, and closes itself if

@@ -2,14 +2,14 @@
   The header's one right-hand slot: BROWSE ALL, or BACK TO BROWSE.
 
   One control with two labels, in one place on the screen (D-19, W-01). It is
-  rendered by FrontDoor.svelte, so / and every /c/{id}/ get the identical slot
+  rendered by FrontDoor.svelte, so / and every /playground/{id}/ get the identical slot
   and the two routes cannot drift apart. It never moves when a visitor chooses,
   it is header chrome rather than panel content, and it cannot be confused with
   an install control.
 
   THREE RULES, AND EACH OF THEM IS A DECISION.
 
-  1. IT RENDERS NOTHING ON /browse/, and the decision is made from
+  1. IT RENDERS NOTHING ON /playground/, and the decision is made from
      `page.url.pathname` ALONE. `page.url.search` and `page.url.searchParams`
      are the two properties a reflex would reach for, and both of them THROW on
      a prerendered route: Kit's respond.js and load_data.js call
@@ -47,7 +47,7 @@
   THE STORE IS FETCHED THROUGH A FUNCTION, NOT CACHED. A property access on
   window.sessionStorage can itself throw in a browser configured to refuse
   storage, before any of return.ts's own try/catch blocks get a chance - so the
-  guard is here, exactly as /browse/ does it.
+  guard is here, exactly as /playground/ does it.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -77,12 +77,12 @@
 
   /** The one route on which this slot is not offered, and the only one it
       ever navigates to. */
-  const BROWSE_PATH = "/browse/";
+  const BROWSE_PATH = "/playground/";
 
   /**
    * How the recorded view is re-entered.
    *
-   * `noScroll` because /browse/ restores its own recorded offset on mount and a
+   * `noScroll` because /playground/ restores its own recorded offset on mount and a
    * scroll-to-top from Kit would fight it.
    *
    * AND NOT `replaceState`, WHICH WAS TRIED AND MEASURED. 05.1-UI-SPEC.md asks
@@ -100,12 +100,12 @@
    * and renders nothing new.
    *
    * Coverflow.choose()'s `pushState` is what lines the two indices up. Observed
-   * on a served production build with `replaceState: true`: browse to /c/ghost/,
+   * on a served production build with `replaceState: true`: browse to /playground/ghost/,
    * tap the pad, press the control, then press the browser's Back - the address
-   * bar reads /c/ghost/ while the browse screen is still on the page
+   * bar reads /playground/ghost/ while the browse screen is still on the page
    * (`[data-testid="browse"]` present, `[data-testid="front-door"]` absent,
    * still true five seconds later). Without it, the same Back lands on the
-   * chosen /c/ghost/ correctly.
+   * chosen /playground/ghost/ correctly.
    *
    * The price is one history entry per round trip. An address bar that lies
    * about what is on the screen is worth more than that.
@@ -118,7 +118,7 @@
    */
   let recorded: BrowseReturn | undefined = $state(undefined);
 
-  /** The session store, or undefined. /browse/ guards it the same way. */
+  /** The session store, or undefined. /playground/ guards it the same way. */
   function returnStore(): ReturnStore | undefined {
     try {
       return window.sessionStorage;
@@ -131,8 +131,11 @@
     recorded = readBrowseReturn(returnStore());
   });
 
-  /** Pathname only. Rule 1 in the header says why it is pathname only. */
-  const onBrowse = $derived(page.url.pathname.startsWith(BROWSE_PATH));
+  /** Pathname only, and EXACT: every workspace lives under the same prefix
+      since 13-08 (/playground/<id>/), so a startsWith would hide this slot on
+      the very pages it exists for. Rule 1 in the header says why it is
+      pathname only. */
+  const onBrowse = $derived(page.url.pathname === BROWSE_PATH);
 
   /**
    * Go where the visitor was. An address, not a count of history entries.
@@ -143,13 +146,13 @@
    * rule accepts a resolve() call or a value whose type IS ResolvedPathname,
    * and `record.href` is a plain string read out of JSON, so it can never be
    * the second. Two statements rather than one ternary argument, because the
-   * rule reads the call expression it is handed - the same shape /browse/ uses
+   * rule reads the call expression it is handed - the same shape /playground/ uses
    * for its own address writes.
    *
    * It is also the safety half. Only the recorded QUERY is carried across; the
    * path is this component's own literal. A record poisoned by anything else in
    * the origin therefore cannot send a visitor to an address of its choosing -
-   * the worst it can do is put a nonsense query on /browse/, which the page
+   * the worst it can do is put a nonsense query on /playground/, which the page
    * already parses defensively (W-12).
    *
    * `void` rather than `await`: nothing here waits on the navigation, and an
@@ -162,7 +165,7 @@
     const mark = target.href.indexOf("?");
     const search = mark === -1 ? "" : target.href.slice(mark + 1);
     if (search === "") void goto(resolve(BROWSE_PATH), RETURN_OPTIONS);
-    else void goto(resolve(`/browse/?${search}`), RETURN_OPTIONS);
+    else void goto(resolve(`/playground/?${search}`), RETURN_OPTIONS);
   }
 </script>
 
@@ -176,7 +179,7 @@
     <a
       class="browse-link"
       class:covered
-      href={resolve("/browse/")}
+      href={resolve("/playground/")}
       data-testid="browse-link">{BROWSE_ALL}</a
     >
   {:else}

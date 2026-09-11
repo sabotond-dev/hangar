@@ -18,7 +18,7 @@
 // matching the vendored bytes.
 //
 // NOT applied to the meta and og:description tags in
-// src/routes/c/[id]/+page.svelte. Those stay byte-equal to their source and
+// src/routes/playground/[id]/+page.svelte. Those stay byte-equal to their source and
 // e2e/first-experience.e2e.ts reads them.
 //
 // NOTHING COMPILED CHANGES. Descriptions are metadata, never Lua, so the 908

@@ -333,7 +333,7 @@ test.describe("turning a knob", () => {
     // ------------------------------------------------------------------
     // The knob turn itself, under reduced motion. See the header for why.
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
     expect(
       await page.evaluate(
         () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -382,7 +382,7 @@ test.describe("turning a knob", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
 
     const setupBefore = await meterText(page, "setup");
     const timerBefore = await meterText(page, "timer");
@@ -420,7 +420,7 @@ test.describe("turning a knob", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
 
     const resetAll = page.getByTestId("reset-all");
     await expect(resetAll).toHaveText(RESET_ALL);
@@ -472,7 +472,7 @@ test.describe("turning a knob", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
 
     const surprise = page.getByTestId("surprise-me");
     await expect(surprise).toHaveText(SURPRISE_ME);
@@ -522,7 +522,7 @@ test.describe("sharing what the visitor made", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
 
     const copy = page.getByTestId("copy-link");
     await expect(copy, "the control arrives as COPY LINK").toHaveText(
@@ -541,7 +541,7 @@ test.describe("sharing what the visitor made", () => {
 
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     // Composed through the real shareUrl, twice. The first form pins the
-    // origin, the /c/<id>/ path and the trailing slash; the second pins the
+    // origin, the /playground/<id>/ path and the trailing slash; the second pins the
     // whole string including the `z.` fragment prefix, given the payload the
     // page put there. Test 6 then opens exactly this URL and gets the knobs
     // back, which is what makes the pair a round trip rather than a tautology.
@@ -569,7 +569,7 @@ test.describe("sharing what the visitor made", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
 
     await turnRail(page, 0);
     await turnRail(page, 1);
@@ -582,12 +582,12 @@ test.describe("sharing what the visitor made", () => {
     const parsed = new URL(link);
     const address = `${parsed.pathname}${parsed.hash}`;
     expect(address, "the link carries a stamp for this configuration").toBe(
-      `/c/${ENTRY}/#z.${link.split("#z.")[1]}`,
+      `/playground/${ENTRY}/#z.${link.split("#z.")[1]}`,
     );
 
     /*
       A REAL DOCUMENT LOAD, VIA about:blank, AND IT IS NOT CEREMONY. The page
-      is already at /c/aurora/, so page.goto of /c/aurora/#z... is a
+      is already at /playground/aurora/, so page.goto of /playground/aurora/#z... is a
       FRAGMENT-ONLY navigation: the browser keeps the document, Coverflow
       never remounts, and the landing - which runs once, in onMount - never
       happens at all. Observed on this file's first run as a stamp notice that
@@ -625,13 +625,13 @@ test.describe("sharing what the visitor made", () => {
     // The defaults, read from a clean arrival, so the comparison below is
     // against what this configuration actually ships as rather than against a
     // list of numbers transcribed into this file.
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
     const defaults = await knobIndices(page);
     expect(defaults.length, "the rack rendered its knobs").toBeGreaterThan(1);
 
     // A cold arrival, for the reason spelled out in the test above.
     await page.goto("about:blank");
-    await page.goto(`/c/${ENTRY}/${FOREIGN_STAMP}`);
+    await page.goto(`/playground/${ENTRY}/${FOREIGN_STAMP}`);
     await expect(page.getByTestId("coverflow")).toBeVisible();
     await expect(
       page.getByTestId("chosen-panel"),
@@ -678,7 +678,7 @@ test.describe("a browser with no clipboard API", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    await openPanel(page, `/c/${ENTRY}/`);
+    await openPanel(page, `/playground/${ENTRY}/`);
 
     expect(
       await page.evaluate(() => "clipboard" in navigator),

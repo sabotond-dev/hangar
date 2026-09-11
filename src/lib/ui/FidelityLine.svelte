@@ -26,7 +26,7 @@
   end-to-end suite - so it was a script-block constant from the start; Phase 2
   moved its falsifiable heartbeat definition out of markup for the same reason
   (02-05-SUMMARY.md). Plan 05.1-08 then lifted it one level further, into
-  ./fidelity-line.ts, because /browse/ states the same claim beneath its grid
+  ./fidelity-line.ts, because /playground/ states the same claim beneath its grid
   (05.1-UI-SPEC.md W-13) and a sentence the site says twice is a sentence that
   can drift. Nothing else about this component moved.
 

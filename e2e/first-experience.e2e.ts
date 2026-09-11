@@ -17,7 +17,7 @@
 // two samples); that the honesty of the classification holds in the other
 // direction on a configuration's own page (a pad the catalog calls static
 // provably does not change); that reduced motion stills the hero and, on the
-// shelf that survives on /c/{id}/ until 13-09, makes stepping instant; that a
+// shelf that survives on /playground/{id}/ until 13-09, makes stepping instant; that a
 // browser with no Web Serial still gets the workspace's controls, present and
 // disabled with the reason; that every routed configuration is a real file
 // with its own description while an off-row page is a row of one; and that a
@@ -46,7 +46,7 @@
 // deferred item 8).
 //
 // WHERE THE SHELF LIVES NOW. The coverflow, the name plate and the chosen panel
-// are mounted on /c/{id}/ until 13-09 makes that route the workspace
+// are mounted on /playground/{id}/ until 13-09 makes that route the workspace
 // (13-VALIDATION D-5), so the three surviving titles about a row open a
 // configuration's page rather than /. 13-09 re-aims or deletes them with the
 // coverflow; 13-08 moves the address to /playground/<id> (D-20).
@@ -201,7 +201,9 @@ test.describe("the intro, with no hardware attached", () => {
     await expect(page.getByTestId("start-sandbox")).toBeVisible();
     // The card is one link and points at the draft's own address, through
     // the same helper every card on the site uses (13-08 moves it with D-20).
-    expect(await resume.getAttribute("href")).toMatch(/\/c\/aurora\/?$/);
+    expect(await resume.getAttribute("href")).toMatch(
+      /\/playground\/aurora\/?$/,
+    );
 
     // NEVER REDIRECTED. The reload is the one arrival; after the page has
     // settled there has been no other, the address is still /, and the hero
@@ -229,7 +231,7 @@ test.describe("a configuration's page, with no hardware attached", () => {
     // ninepads is declared `static` in src/lib/catalog/front-door.ts, derived
     // from golden-frames.json by front-door.spec.ts. Its own page opens the
     // shelf centred on it (13-09 makes this the workspace).
-    await page.goto("/c/ninepads/");
+    await page.goto("/playground/ninepads/");
     await waitForShelf(page);
     await expect(page.getByTestId("coverflow")).toHaveAttribute(
       "aria-activedescendant",
@@ -270,7 +272,7 @@ test.describe("a configuration's page on a browser that cannot install", () => {
     const consoleErrors = collectErrors(page);
     // The intro's connection slot is 13-11's; the controls that degrade live
     // in the chosen panel on a configuration's page.
-    await page.goto(`/c/${HERO}/`);
+    await page.goto(`/playground/${HERO}/`);
 
     // Precondition, asserted. A degrade test that does not verify its own
     // precondition passes for the wrong reason.
@@ -355,8 +357,8 @@ test.describe("a visitor who asked for less motion", () => {
       "reduced motion holds one frame; 400ms of wall clock must not move it",
     ).toBe(first);
 
-    // STEPPING, on the shelf that survives on /c/{id}/ until 13-09.
-    await page.goto(`/c/${FRONT_DOOR[0].id}/`);
+    // STEPPING, on the shelf that survives on /playground/{id}/ until 13-09.
+    await page.goto(`/playground/${FRONT_DOOR[0].id}/`);
     await waitForShelf(page);
     const band = page.getByTestId("coverflow");
     await expect(band).toHaveAttribute("data-ready", "true");
@@ -383,15 +385,18 @@ test.describe("every configuration's page", () => {
     const descriptions = new Map<string, string>();
 
     for (const entry of ROUTED) {
-      const response = await request.get(`/c/${entry.id}/`);
-      expect(response.status(), `/c/${entry.id}/ is served`).toBe(200);
+      const response = await request.get(`/playground/${entry.id}/`);
+      expect(response.status(), `/playground/${entry.id}/ is served`).toBe(200);
       const body = await response.text();
       const match = /<meta name="description" content="([^"]*)"/.exec(body);
-      expect(match, `/c/${entry.id}/ carries a description`).not.toBeNull();
+      expect(
+        match,
+        `/playground/${entry.id}/ carries a description`,
+      ).not.toBeNull();
       const description = (match as RegExpExecArray)[1];
       expect(
         description.length,
-        `/c/${entry.id}/'s description is not empty`,
+        `/playground/${entry.id}/'s description is not empty`,
       ).toBeGreaterThan(0);
       descriptions.set(entry.id, description);
     }
@@ -413,7 +418,7 @@ test.describe("every configuration's page", () => {
     // AN OFF-ROW PAGE IS A ROW OF ONE. euclid is in the catalog and not in the
     // row, so its page must be about euclid rather than about the shelf: one
     // pad, and a name plate with no arrows to a row it is not in.
-    await page.goto("/c/euclid/");
+    await page.goto("/playground/euclid/");
     await expect(page.getByTestId("coverflow")).toBeVisible();
     const soloPads = page.locator('[data-testid^="pad-canvas-"]');
     await expect(soloPads, "an off-row page shows one pad").toHaveCount(1);
@@ -429,7 +434,7 @@ test.describe("every configuration's page", () => {
     // arrows, and one step left from the opening centre wrapping onto the
     // ring's LAST entry - which is what proves the whole row is still there
     // rather than only the pads that happen to be in the visible window.
-    await page.goto("/c/aurora/");
+    await page.goto("/playground/aurora/");
     const band = page.getByTestId("coverflow");
     await expect(band).toBeVisible();
     await expect(
@@ -454,18 +459,18 @@ test.describe("every configuration's page", () => {
     );
 
     // And an address nobody has heard of is still not a dead end: the static
-    // host serves the fallback with a 404, the client router matches /c/[id],
+    // host serves the fallback with a 404, the client router matches /playground/[id],
     // and the shelf comes up centred on its first entry with a line saying so.
     // Since D-07 every catalog id resolves, so the unknown id is a genuinely
     // unknown one rather than a deliberately excluded entry.
     const unknown = "no-such-configuration";
-    const missing = await request.get(`/c/${unknown}/`);
+    const missing = await request.get(`/playground/${unknown}/`);
     expect(
       missing.status(),
-      `/c/${unknown}/ is not a page and the static host says so`,
+      `/playground/${unknown}/ is not a page and the static host says so`,
     ).toBe(404);
 
-    await page.goto(`/c/${unknown}/`);
+    await page.goto(`/playground/${unknown}/`);
     await expect(page.getByTestId("coverflow")).toBeVisible();
     await expect(page.getByTestId("coverflow")).toHaveAttribute(
       "aria-activedescendant",

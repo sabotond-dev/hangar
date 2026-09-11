@@ -739,7 +739,12 @@ describe("the shell: one frame, six regions, one set of numbers (src/lib/ui/shel
                   title: "ON THIS SURFACE",
                   rows: [
                     { id: "filter", label: "Filter", meta: "Fader" },
-                    { id: "arc", label: "Arc", index: 1, href: "/c/arc/" },
+                    {
+                      id: "arc",
+                      label: "Arc",
+                      index: 1,
+                      href: "/playground/arc/",
+                    },
                   ],
                 },
               ],

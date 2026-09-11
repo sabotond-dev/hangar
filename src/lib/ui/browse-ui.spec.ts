@@ -1,11 +1,23 @@
-// The structural gate over the browse screen: the four components, the route,
-// and the six pure modules underneath them.
+// The structural gate over the gallery: the components, the route, and the
+// pure modules underneath them.
 //
-// These are the promises 05.1-UI-SPEC.md makes about colour, contrast,
-// semantics and honesty, as gates rather than as sentences in a document. Every
-// one of them is a property of the SOURCE rather than of a rendered tree, so all
-// six run in well under a second and none of them needs a browser. The e2e suite
-// proves the behaviour; this proves the shape, and it proves it on every commit.
+// NINE SINCE PLAN 13-08 (six before it). These are the promises the Bible's
+// page 2 and the earlier specifications make about colour, semantics and
+// honesty, as gates rather than as sentences in a document. Most are
+// properties of the SOURCE and run in well under a second; tests 8 and 9
+// render the card with svelte/server, which the vitest server project can do
+// (13-05 proved it), because "one accessible link name" is a property of the
+// rendered tree and not of a regex. The e2e suite proves the behaviour; this
+// proves the shape, on every commit.
+//
+// WHAT 13-08 DID TO THE SIX. Four survive with their subjects re-aimed at the
+// new chrome (1, 2, 4, 5); test 3 - "the browse screen uses the lime ladder
+// and nothing else" - is REWRITTEN against 13-03's eleven tokens, its name
+// changed and its count not; test 6 survives as written. Three are new: the
+// rail derived from FOR_TERMS with the count printed and exactly one facet
+// row on the page (7); the card's one category, one tag, one sentence and
+// one accessible link name (8); the favorite star's round trip through the
+// store with the dropped-id case counted (9).
 //
 // EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
 // BrowseToolbar.svelte's header contains the sentence "No like count, no view
@@ -22,14 +34,17 @@
 // same: a future rule scanning the repository for a forbidden word must not have
 // to carry an exclusion for the file that forbids it.
 //
-// The stripper, the specifier habit and the non-vacuity discipline are
-// src/lib/config-shape.spec.ts's and src/lib/ui/tune-ui.spec.ts's, copied rather
-// than reinvented.
-//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
+import { FOR_TERMS } from "$lib/browse/facets";
+import { FOR_LABELS } from "$lib/browse/labels";
+import { madeForRows, railSections } from "$lib/browse/rail";
+import { LISTING, listingById, type ListingEntry } from "$lib/catalog/listing";
+import { readFavorites, toggleFavorite } from "$lib/store/favorites";
+import CatalogCard from "./CatalogCard.svelte";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -38,22 +53,19 @@ const CARD = "src/lib/ui/CatalogCard.svelte";
 const GRID = "src/lib/ui/BrowseGrid.svelte";
 const TOOLBAR = "src/lib/ui/BrowseToolbar.svelte";
 const CHIP = "src/lib/ui/TagChip.svelte";
-/** One captioned facet row, in either of its two modes. It arrives in 10-07. */
+/** One captioned facet row, in either of its two modes. */
 const FACET = "src/lib/ui/FacetRow.svelte";
-/** The header's one right-hand slot. It arrives in plan 05.1-09. */
+/** The workspace header's one right-hand slot, until 13-09. */
 const LINK = "src/lib/ui/BrowseLink.svelte";
-const PAGE = "src/routes/browse/+page.svelte";
+const PAGE = "src/routes/playground/+page.svelte";
 const BROWSE_DIR = "src/lib/browse";
+/** 13-03's palette, the one file identity.spec.ts reads the eleven from. */
+const APP_CSS = "src/app.css";
 
 /**
- * Everything the browse screen is made of.
- *
- * BrowseLink.svelte did not exist when this file was written and is SKIPPED
- * rather than asserted, so this file landed in wave 8 and covered wave 9's
- * component the day it appeared with no edit. FacetRow.svelte joined the same
- * way in 10-07. The floor below is what stops that skip from hollowing the
- * whole file out: every test asserts the walk found at least four files before
- * it asserts anything about them.
+ * Everything the gallery is made of. Components that may not exist are
+ * SKIPPED rather than asserted, and the floor below is what stops that skip
+ * from hollowing the whole file out.
  */
 const FLOOR = 4;
 
@@ -81,8 +93,8 @@ const code = (rel: string) => stripComments(raw(rel));
 
 /**
  * A style block split into rules. Crude on purpose, and copied from
- * tune-ui.spec.ts: a real CSS parser would be a dependency, and every selector
- * in these files is a plain class, element or descendant selector on one line.
+ * tune-ui.spec.ts: every selector in these files is a plain class, element or
+ * descendant selector on one line.
  */
 function rulesOf(source: string): { selector: string; body: string }[] {
   const start = source.indexOf("<style>");
@@ -120,26 +132,63 @@ const words = (template: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-/**
- * How many `{#if}` and `{#each}` blocks are open at a point in the markup.
- *
- * Zero means the markup there is rendered unconditionally, which is a thing test
- * 6 has to assert rather than assume.
- */
+/** How many `{#if}` and `{#each}` blocks are open at a point in the markup. */
 function blockDepth(source: string, needle: string): number {
   const before = source.slice(0, source.indexOf(needle));
   const count = (token: string) => before.split(token).length - 1;
   return count("{#if") - count("{/if}") + (count("{#each") - count("{/each}"));
 }
 
-describe("the browse screen's structural rules", () => {
-  it("no popularity metric is shown or faked anywhere on the browse screen", () => {
-    // CAT-02 and 05.1-CONTEXT D-02 both require it, and 05.1-UI-SPEC.md's
-    // Copywriting Contract enforces it by name: no popularity word appears
-    // anywhere, and no bare number beside a tag that could be read as one. W-04's
-    // disabled-chip rule exists partly so no such number ever needs to be
-    // printed - a chip that would empty the grid is a real disabled checkbox
-    // instead of a chip wearing a count.
+/** A store over a Map, the shape 13-06's specs use. */
+function mapStore(): Storage {
+  const map = new Map<string, string>();
+  return {
+    get length() {
+      return map.size;
+    },
+    clear: () => map.clear(),
+    key: (i: number) => [...map.keys()][i] ?? null,
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      map.set(k, String(v));
+    },
+    removeItem: (k: string) => {
+      map.delete(k);
+    },
+  };
+}
+
+/** A fixture entry whose three tags are distinguishable words. */
+const FIXTURE: ListingEntry = {
+  id: "fixture",
+  name: "FIXTURE",
+  description: "One sentence, and only one, about this configuration.",
+  motion: "animated",
+  tags: ["modulation", "readable", "precise"],
+  featured: false,
+  restsBlack: false,
+  preview: "padsim",
+};
+
+/** Render the card with the props the grid gives it. */
+const renderCard = (favorite: boolean, entry: ListingEntry = FIXTURE) =>
+  render(CatalogCard, {
+    props: {
+      entry,
+      tabbable: true,
+      favorite,
+      onready: () => {},
+      onfocus: () => {},
+      onfavorite: () => {},
+    },
+  }).body;
+
+describe("the gallery's structural rules", () => {
+  it("no popularity metric is shown or faked anywhere on the gallery", () => {
+    // CAT-02 and 05.1-CONTEXT D-02 both require it: no popularity word appears
+    // anywhere, and no bare number beside a tag that could be read as one. The
+    // sort became a <select> at 13-08 and its two options are still Featured
+    // and Name - a curation flag and the alphabet, nothing counted.
     //
     // ASSEMBLED FROM FRAGMENTS, so this file does not contain the words it
     // forbids and a future rule could scan it with no exclusion.
@@ -162,9 +211,8 @@ describe("the browse screen's structural rules", () => {
       FLOOR,
     );
 
-    // The detector's own gate. A stripper or a matcher that had quietly stopped
-    // working would report a clean screen for a screen full of rankings, so it
-    // is shown a source that DOES carry each word and must find every one.
+    // The detector's own gate: shown a source that DOES carry each word, it
+    // must find every one.
     expect(
       hits(FORBIDDEN.join(" ")),
       "the detector no longer recognises its own needles",
@@ -184,11 +232,11 @@ describe("the browse screen's structural rules", () => {
 
   it("every browse control declares the 44px floor", () => {
     // Phase 4's accessibility contract, and the LIST IS DERIVED from the
-    // presence of a control rather than written down - tune-ui.spec.ts test 3's
-    // technique - so a file that grows its first button later cannot slip past a
-    // hard-coded array nobody remembered to update. An anchor counts: a card's
-    // whole target is the card, and the page's wordmark is a real link.
-    const CONTROL = /<(button|input|a)[\s>]/;
+    // presence of a control rather than written down, so a file that grows its
+    // first button later cannot slip past a hard-coded array. An anchor
+    // counts: a card's whole target is the card. A select counts since 13-08:
+    // the sort is one.
+    const CONTROL = /<(button|input|select|a)[\s>]/;
     const withControls: string[] = [];
     const withoutControls: string[] = [];
     const missingFloor: string[] = [];
@@ -208,11 +256,9 @@ describe("the browse screen's structural rules", () => {
       if (!source.includes("min-block-size: 44px")) missingFloor.push(file);
     }
 
-    // Non-vacuity in both directions: the derivation found controls, AND it
-    // discriminated rather than classing everything it was handed as one.
     expect(
       withControls.length,
-      "files rendering a button, an input or a link were found",
+      "files rendering a button, an input, a select or a link were found",
     ).toBeGreaterThanOrEqual(3);
     expect(
       withoutControls.length,
@@ -224,11 +270,9 @@ describe("the browse screen's structural rules", () => {
     ).toEqual([]);
 
     // AND THE SAME FLOOR ON THE INLINE AXIS, BY SELECTOR, for the two files
-    // whose members are one short word wide. A file-level substring check is
-    // enough to catch a component that forgot the floor entirely; it is not
-    // enough to catch one control among several losing it, and a facet row's
-    // members read `play`, `show` and `still`. This is the derivation
-    // device-ui.spec.ts:278-306 uses, and it names the class it found short.
+    // whose members are one short word wide: a chip reading `play` is under
+    // the finger on both axes. `sr-only` is the visually-hidden checkbox,
+    // the deliberate opposite of a box, and is the one exclusion.
     const NARROW = [FACET, CHIP].filter((rel) => existsSync(repo(rel)));
     expect(
       NARROW.length,
@@ -239,23 +283,7 @@ describe("the browse screen's structural rules", () => {
     for (const file of NARROW) {
       const source = code(file);
       const rules = rulesOf(source);
-      // `sr-only` is excluded, and it was the one exclusion: it is the
-      // visually-hidden class, the deliberate OPPOSITE of a box. TagChip and
-      // the sort row both hide the real control and draw the 44px box and
-      // Phase 4's focus ring on the <label> around it - the relocation
-      // Knob.svelte makes - so demanding a floor on the hidden element would
-      // demand the one thing that would undo the relocation.
-      //
-      // `pill` JOINS IT IN 10-13.1 AND FOR A DIFFERENT REASON. It is
-      // 10-UI-SPEC 19.1b's shared control shape, declared once in src/app.css
-      // rather than in any component, so a walk over a component's own rules
-      // cannot find a floor for it and demanding one would demand something
-      // that cannot be true. The load-bearing half is untouched: the control's
-      // OWN class - `.chip`, `.link` - still has to declare both axes here, so
-      // deleting the pill tomorrow leaves every chip reachable by thumb.
-      // src/lib/ui/instrument.spec.ts scan 2 holds the pill's own floor, as an
-      // EFFECTIVE value over a directory-derived walk.
-      const NOT_A_BOX = ["sr-only", "pill"];
+      const NOT_A_BOX = ["sr-only"];
       const classes = new Set(
         [...source.matchAll(/<(a|button|input|label)[^>]*/g)]
           .flatMap((tag) =>
@@ -286,18 +314,30 @@ describe("the browse screen's structural rules", () => {
     ).toEqual([]);
   });
 
-  it("the browse screen uses the lime ladder and nothing else", () => {
-    // X-01 scopes the ninth token to the over-budget state of a 908-character
-    // meter. No meter exists on a browse screen, so --color-error-ink appears nowhere
-    // here, and identity.spec.ts stays at 6 tests and is untouched.
-    //
-    // The hex rule is the second half: every colour on this screen comes from a
-    // token, so a literal is either a tenth colour or a token spelled out by
-    // hand, and both are the same regression. The lookahead is not decoration -
-    // without it `{#each` reads as the hex #eac, and three shipped components
-    // would be permanently red for a Svelte block opener.
-    const TOKEN = "--color-error-ink";
+  it("the gallery uses the eleven tokens and nothing else", () => {
+    // REWRITTEN AT 13-08 against 13-03's palette (it read "the lime ladder and
+    // nothing else" until then; the ladder is gone). Three halves. Every
+    // var(--color-*) a browse file names is one of the eleven src/app.css
+    // declares - the eleven are READ from the file, never listed here, so the
+    // day identity.spec.ts admits a twelfth this test follows it. No raw
+    // colour: a hex literal or an rgb() is either a twelfth colour or a token
+    // spelled out by hand, and both are the same regression (Phase 5's lime
+    // tint on the active chip was exactly that until 13-08 removed it). And
+    // the error ink appears nowhere: it is scoped to a 908-character meter,
+    // and no meter exists on this screen.
+    const tokens = [
+      ...new Set(
+        [...raw(APP_CSS).matchAll(/^\s*(--color-[a-z-]+)\s*:/gm)].map(
+          (m) => m[1],
+        ),
+      ),
+    ];
+    expect(tokens.length, "src/app.css declares the eleven").toBe(11);
+    expect(tokens).toContain("--color-error-ink");
+
     const HEX = /#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])/g;
+    const RGB = /\brgba?\(/g;
+    const USED = /var\((--color-[a-z-]+)\)/g;
 
     const files = browseFiles();
     expect(files.length, "browse files were walked").toBeGreaterThanOrEqual(
@@ -311,11 +351,23 @@ describe("the browse screen's structural rules", () => {
 
     const offenders: string[] = [];
     let read = 0;
+    let named = 0;
     for (const file of files) {
       const source = code(file);
       read += source.length;
-      if (source.includes(TOKEN)) offenders.push(`${file} -> ${TOKEN}`);
+      for (const match of source.matchAll(USED)) {
+        named += 1;
+        if (!tokens.includes(match[1])) {
+          offenders.push(`${file} -> ${match[1]} is not one of the eleven`);
+        }
+        if (match[1] === "--color-error-ink") {
+          offenders.push(`${file} -> the error ink, which belongs to a meter`);
+        }
+      }
       for (const match of source.matchAll(HEX)) {
+        offenders.push(`${file} -> ${match[0]}`);
+      }
+      for (const match of source.matchAll(RGB)) {
         offenders.push(`${file} -> ${match[0]}`);
       }
     }
@@ -324,17 +376,19 @@ describe("the browse screen's structural rules", () => {
       2000,
     );
     expect(
+      named,
+      "the browse files name tokens at all - a scan that found none is blind",
+    ).toBeGreaterThan(20);
+    expect(
       offenders,
-      "the browse screen names the alarm red or a raw colour - every colour here comes from one of the nine tokens, and the ninth belongs to a meter that does not exist on this page",
+      "the gallery names a colour that is not one of 13-03's eleven tokens, a raw hex or rgb(), or the error ink that belongs to a meter this page does not have",
     ).toEqual([]);
   });
 
   it("the search field is at the iOS zoom floor", () => {
     // 16px is not a taste. iOS Safari zooms the viewport when a text input
-    // smaller than 16px takes focus, and a browse screen whose search field
-    // zooms the page on the first keystroke is a browse screen a phone visitor
-    // fights. It is the second and last text input on the site; 05-UI-SPEC made
-    // the same declaration for the copy fallback field.
+    // smaller than 16px takes focus, and a gallery whose search field zooms
+    // the page on the first keystroke is one a phone visitor fights.
     const source = code(TOOLBAR);
     expect(source.length, "the toolbar was read").toBeGreaterThan(1000);
 
@@ -353,15 +407,14 @@ describe("the browse screen's structural rules", () => {
 
   it("the grid is a list of links, not a listbox and not a grid", () => {
     // W-07. A listbox SELECTS a centred value and a grid NAVIGATES a table; a
-    // wall of sixteen destinations does neither. Both roles REPLACE the link
-    // role, and with it a screen reader's links list - which is how a non-sighted
-    // visitor surveys a page of sixteen - plus middle-click and open-in-new-tab.
-    // Phase 4 was right to make the coverflow a listbox; this is the opposite
-    // component and it wants the opposite semantics.
+    // wall of destinations does neither. Both roles REPLACE the link role, and
+    // with it a screen reader's links list, middle-click and open-in-new-tab.
+    // The sort left the radiogroup for a <select> at 13-08, so the roles the
+    // screen legitimately carries are the list and the facet's group.
     const REFUSED = ["listbox", "option", "grid", "gridcell"].map(
       (name) => `role="${name}"`,
     );
-    const KEPT = ['role="list"', 'role="radiogroup"', 'role="group"'];
+    const KEPT = ['role="list"', 'role="group"'];
 
     const files = browseFiles();
     expect(files.length, "browse files were walked").toBeGreaterThanOrEqual(
@@ -371,11 +424,9 @@ describe("the browse screen's structural rules", () => {
     const sources = files.map(code);
     const joined = sources.join("\n");
 
-    // Non-vacuity: the matcher can see the roles these components DO carry, so
-    // an empty offender list below is a fact rather than a broken scan.
     expect(
       KEPT.filter((role) => joined.includes(role)),
-      "none of the roles the browse screen legitimately carries was found - this scan is blind",
+      "none of the roles the gallery legitimately carries was found - this scan is blind",
     ).toEqual(KEPT);
 
     const offenders: string[] = [];
@@ -389,13 +440,8 @@ describe("the browse screen's structural rules", () => {
       "a browse file declares a role that replaces the link role - the shareability of a card rests on it being a real anchor",
     ).toEqual([]);
 
-    // AND EVERY GROUP THIS SCREEN DECLARES CARRIES A NAME. A role="group" with
-    // no accessible name is a container a screen reader announces as "group"
-    // and nothing else, which is worse than no role at all: it adds a boundary
-    // and withholds the word that would make the boundary mean something. The
-    // toolbar renders two facet rows on one page, so the ids must also DIFFER -
-    // an aria-labelledby pointing at the other facet's caption would announce
-    // FEELS's members as FOR's.
+    // AND THE GROUP THIS SCREEN DECLARES CARRIES A NAME, derived from the
+    // facet's own name so a second row could never share it.
     if (existsSync(repo(FACET))) {
       const facet = code(FACET);
       const group = openTagOf(facet, 'role="group"');
@@ -405,7 +451,7 @@ describe("the browse screen's structural rules", () => {
       ).toContain("aria-labelledby");
       expect(
         group,
-        "the facet row's group is not labelled by an id derived from the facet's own name, so the two rows on /browse/ would share one caption",
+        "the facet row's group is not labelled by an id derived from the facet's own name",
       ).toContain("aria-labelledby={captionId}");
       expect(
         facet,
@@ -413,7 +459,7 @@ describe("the browse screen's structural rules", () => {
       ).toContain("id={captionId}");
       expect(
         facet.includes("facet-${name}-caption"),
-        "the caption id is no longer derived from the facet's name - one page renders both rows and two elements may not share an id",
+        "the caption id is no longer derived from the facet's name",
       ).toBe(true);
     }
 
@@ -431,28 +477,15 @@ describe("the browse screen's structural rules", () => {
 
   it("the count is said three ways, and only one of them is a live region", () => {
     // 05.1-UI-SPEC.md's Accessibility Contract, "Count, spoken two ways", plus
-    // the live region row. Three elements doing three jobs:
-    //
-    //   1. the VISIBLE line, which updates instantly and is aria-hidden
-    //   2. the always-present hidden EXPANSION, which is what a visitor landing
-    //      on a shared, already-filtered address reads - a link like
-    //      /browse/?q=ghost fires no change event, so the live region has
-    //      nothing to say on arrival and this sentence is the only thing telling
-    //      them they are looking at one of sixteen
-    //   3. the LIVE REGION, which speaks once per settled change
-    //
-    // The expansion is the half of this test that is easy to leave out and the
-    // half a visitor is most likely to need, so it is asserted structurally:
-    // it exists, it is at block depth zero (never inside an {#if}), it carries
-    // neither aria-live nor aria-hidden, and its words are pinned.
+    // the live region row. Three elements doing three jobs: the VISIBLE line,
+    // instant and aria-hidden; the always-present hidden EXPANSION, which is
+    // what a visitor landing on a shared, already-filtered address reads; the
+    // LIVE REGION, which speaks once per settled change.
     //
     // SCOPED TO src/ ON PURPOSE. Every hydrated SvelteKit page carries a SECOND
-    // aria-live element that is not ours: Kit's own #svelte-announcer, rendered
-    // by @sveltejs/kit/src/core/sync/write_root.js:177. It is generated, it is
-    // not in this repository's sources, and it is invisible to a source scan -
-    // which is why "exactly one" is a safe claim HERE and would be a false one
-    // in a browser. Any DOM-level assertion of the same rule must exclude that
-    // element by id rather than count elements.
+    // aria-live element that is not ours (Kit's #svelte-announcer), invisible
+    // to a source scan - which is why "exactly one" is a safe claim HERE and
+    // would be a false one in a browser.
     const files = browseFiles();
     expect(files.length, "browse files were walked").toBeGreaterThanOrEqual(
       FLOOR,
@@ -465,11 +498,6 @@ describe("the browse screen's structural rules", () => {
       regions += found;
       if (found > 0) carriers.push(file);
     }
-    // THE THREE ELEMENTS ARE ASSERTED BEFORE THE GLOBAL COUNT, and the order is
-    // deliberate: Vitest aborts a test at its first failed assertion, so putting
-    // the count first would answer every one of this test's mutations with the
-    // same sentence. Element first, then the count, means the message names what
-    // actually moved.
     const toolbar = code(TOOLBAR);
 
     // 1. The visible line: seen, and hidden from the accessibility tree.
@@ -496,7 +524,7 @@ describe("the browse screen's structural rules", () => {
     const expansion = openTagOf(toolbar, expansionId);
     expect(
       expansion.includes("aria-live"),
-      "the count expansion has become a live region - it would then speak on every settled change alongside the real one, which is two voices saying the same number",
+      "the count expansion has become a live region - two voices saying the same number",
     ).toBe(false);
     expect(
       expansion.includes("aria-hidden"),
@@ -519,7 +547,262 @@ describe("the browse screen's structural rules", () => {
     ).toContain('aria-atomic="true"');
     expect(
       `${regions} in ${carriers.join(", ")}`,
-      "the browse screen carries something other than exactly one aria-live region in exactly one file - two regions interrupt each other, and none leaves a filter change silent",
+      "the gallery carries something other than exactly one aria-live region in exactly one file",
     ).toBe(`1 in ${TOOLBAR}`);
+  });
+
+  it("the MADE FOR rows equal FOR_TERMS member for member, in order, through FOR_LABELS - the count printed, never typed - and there is exactly one facet row on the page", () => {
+    // 13-CONTEXT D-11 chose HANGAR's own FOR terms for the rail, "honest to
+    // the catalog", and named eight; plan 12-04 then retired `keys`
+    // (13-VALIDATION D-4). The decision's reason is satisfied only by
+    // DERIVING the rows from the vocabulary and asserting the count as
+    // observed - so this test compares member for member and prints what it
+    // found, and asserts neither seven nor eight.
+    const rows = madeForRows();
+    expect(
+      rows.map((row) => row.term),
+      "the MADE FOR rows are FOR_TERMS, member for member, in the vocabulary's own order",
+    ).toEqual([...FOR_TERMS]);
+    expect(
+      rows.map((row) => row.label),
+      "every MADE FOR row is labelled through FOR_LABELS - the same record the chip row reads, so a chip and its rail row cannot carry two unrelated strings",
+    ).toEqual(FOR_TERMS.map((term) => FOR_LABELS[term]));
+    for (const row of rows) {
+      expect(row.count, `${row.id} carries no count: the PDF shows none`).toBe(
+        undefined,
+      );
+      expect(
+        row.label,
+        `${row.id}'s label is not an upper-cased identifier (D-05)`,
+      ).not.toBe(row.term.toUpperCase());
+    }
+    expect(
+      Object.keys(FOR_LABELS).sort(),
+      "FOR_LABELS is keyed by exactly the vocabulary",
+    ).toEqual([...FOR_TERMS].sort());
+
+    // The whole rail: the three library rows with counts, a second section
+    // that IS the derived rows.
+    const sections = railSections({ all: 26, favorites: 8, recent: 6 });
+    expect(sections.map((s) => s.title)).toEqual(["YOUR LIBRARY", "MADE FOR"]);
+    expect(sections[0].rows.map((r) => [r.label, r.count])).toEqual([
+      ["All configs", 26],
+      ["Favorites", 8],
+      ["Recently used", 6],
+    ]);
+    expect(sections[1].rows).toEqual(rows);
+
+    // THE PAGE RENDERS THE DERIVATION AND TYPES NO LITERAL. A source scan of
+    // the route and the rail module: railSections is called, and no array
+    // literal in either names a FOR term as a string - the vocabulary is
+    // named once, in facets.ts.
+    const page = code(PAGE);
+    expect(
+      page.includes("railSections("),
+      "the page no longer derives its rail through railSections()",
+    ).toBe(true);
+    const railModule = code("src/lib/browse/rail.ts");
+    expect(
+      railModule.includes("FOR_TERMS.map("),
+      "rail.ts no longer maps FOR_TERMS - the rows are typed somewhere",
+    ).toBe(true);
+    for (const source of [page, railModule]) {
+      for (const term of FOR_TERMS) {
+        expect(
+          new RegExp(`["'\`]${term}["'\`]`).test(source),
+          `the FOR term "${term}" is written as a literal in the page or the rail module - the rail is DERIVED, never typed`,
+        ).toBe(false);
+      }
+    }
+
+    // EXACTLY ONE FACET ROW ON THE PAGE (D-11: the FEELS row is gone; the
+    // PDF has no Character filter). The toolbar mounts FacetRow once, for the
+    // FOR facet, through FOR_TERMS and FOR_LABELS; nothing mounts FEELS_TERMS
+    // or FACETS as a row.
+    const toolbar = code(TOOLBAR);
+    expect(
+      [...toolbar.matchAll(/<FacetRow\b/g)].length,
+      "the toolbar renders something other than exactly one facet row - the FEELS row was dropped by D-11 and its terms live on the card",
+    ).toBe(1);
+    expect(
+      toolbar.includes("terms={FOR_TERMS}"),
+      "the row is the FOR facet",
+    ).toBe(true);
+    expect(
+      toolbar.includes("labels={FOR_LABELS}"),
+      "the chip row reads FOR_LABELS - the same record as the rail",
+    ).toBe(true);
+    expect(
+      [...toolbar.matchAll(/\bFEELS_TERMS\b|\bFACETS\b/g)].length,
+      "the toolbar names the FEELS vocabulary or the FACETS pair - a second row is one {#each} away",
+    ).toBe(0);
+    expect(
+      [...page.matchAll(/<FacetRow\b/g)].length,
+      "the page mounts a facet row of its own beside the toolbar's",
+    ).toBe(0);
+
+    console.log(
+      `13-08 MADE FOR: ${rows.length} rows derived from FOR_TERMS (${rows.map((r) => `${r.term} -> ${r.label}`).join(", ")}); D-11 said eight, 12-04 retired keys`,
+    );
+  });
+
+  it("a card shows one category and one tag from tags[0] and tags[1], tags[2] nowhere, one sentence from description, and exactly one accessible link name", () => {
+    const body = renderCard(false);
+
+    // ONE CATEGORY, THROUGH FOR_LABELS; ONE TAG, THE FIRST FEELS TERM AS
+    // ITSELF; THE THIRD TAG NOWHERE. The fixture's three are distinguishable
+    // words, so an absent one is an absent one.
+    expect(body, "the category is tags[0] through FOR_LABELS").toContain(
+      `>${FOR_LABELS.modulation}<`,
+    );
+    expect(body, "the tag is tags[1]").toContain(">readable<");
+    expect(
+      body,
+      "tags[2] is not shown - a decision, not an omission",
+    ).not.toContain("precise");
+    expect(
+      body,
+      "the third tag's upper-cased form is not shown either",
+    ).not.toContain("PRECISE");
+
+    // ONE SENTENCE, FROM description, ONCE.
+    expect(
+      body.split(FIXTURE.description).length - 1,
+      "the description appears exactly once",
+    ).toBe(1);
+
+    // EXACTLY ONE LINK, WITH EXACTLY ONE ACCESSIBLE NAME - the entry's name.
+    // The Explore box is aria-hidden; the star is a button whose name is not
+    // the entry's name alone; nothing else in the card is an anchor.
+    const anchors = [...body.matchAll(/<a\b[^>]*>/g)].map((m) => m[0]);
+    expect(anchors, "exactly one anchor in the rendered card").toHaveLength(1);
+    expect(anchors[0]).toContain(`aria-label="${FIXTURE.name}"`);
+    expect(anchors[0]).toContain('href="/playground/fixture"');
+    expect(anchors[0]).toContain('aria-describedby="card-description-fixture"');
+
+    const explore = /<span class="explore[^"]*"[^>]*>/.exec(body)?.[0] ?? "";
+    expect(explore, "the Explore box is rendered").not.toBe("");
+    expect(
+      explore,
+      "the Explore box is not aria-hidden - a screen reader would hear a second control for the one destination",
+    ).toContain('aria-hidden="true"');
+    expect(body).toContain("Explore");
+
+    // The whole card is the link: the overlay is declared on the anchor.
+    const card = code(CARD);
+    expect(
+      card.includes(".name::after") && card.includes("inset: 0"),
+      "the anchor's overlay is gone - the whole card is no longer the link",
+    ).toBe(true);
+    // And nothing inside the card is a second anchor even under the
+    // unavailable branch: the source has one <a and its name is the label.
+    expect([...card.matchAll(/<a[\s>]/g)].length).toBe(1);
+    expect(openTagOf(card, 'class="name"')).toContain("aria-label={label}");
+
+    // The names a screen reader could hear on the card: one link name (the
+    // entry's), one button name (the star's), and no other - PadCanvas's own
+    // "{name}, live pad simulation" sits inside the aria-hidden wrapper test 5
+    // holds, so it is discounted here by its suffix and not by position.
+    const labels = [...body.matchAll(/aria-label="([^"]*)"/g)]
+      .map((m) => m[1])
+      .filter((name) => !name.endsWith(", live pad simulation"));
+    expect(labels, "one link name and one star name, nothing else").toEqual([
+      FIXTURE.name,
+      `Add ${FIXTURE.name} to your favorites`,
+    ]);
+  });
+
+  it("the favorite star round-trips through the store, reflects a preset state on mount, and an id the catalog no longer carries is dropped with the drop counted", () => {
+    // THE STORE, AGAINST THE LIVE CATALOG's VALIDATOR. The thirteen ids
+    // Phases 11 and 12 removed (nine from 11-01, three from 12-04, tpad from
+    // 12-10) are real drop cases; seeded beside one live id, the read returns
+    // the one and counts the thirteen.
+    const known = (id: string) => listingById(id) !== undefined;
+    const removed = [
+      "hold",
+      "keys",
+      "learn",
+      "switch",
+      "etch",
+      "gridlock",
+      "life",
+      "slam",
+      "table",
+      "lattice",
+      "forge",
+      "shuttle",
+      "tpad",
+    ];
+    for (const id of removed) {
+      expect(known(id), `${id} is really gone from the catalog`).toBe(false);
+    }
+    const live = LISTING[0].id;
+    const store = mapStore();
+    store.setItem(
+      "hangar.favorites.v1",
+      JSON.stringify({ schema: 1, ids: [live, ...removed] }),
+    );
+    const read = readFavorites(store, known);
+    expect(read.ids, "the live id survives the read").toEqual([live]);
+    expect(read.dropped, "the removed ids are dropped and counted").toBe(
+      removed.length,
+    );
+    console.log(
+      `13-08 favorites: ${read.dropped} of ${removed.length + 1} seeded ids dropped against the live catalog of ${LISTING.length}`,
+    );
+
+    // THE ROUND TRIP: star, read, unstar, read - through the page's own calls.
+    const fresh = mapStore();
+    expect(readFavorites(fresh, known).ids).toEqual([]);
+    expect(toggleFavorite(fresh, live, known), "starred").toBe(true);
+    expect(readFavorites(fresh, known).ids).toEqual([live]);
+    expect(toggleFavorite(fresh, live, known), "unstarred").toBe(false);
+    expect(readFavorites(fresh, known).ids).toEqual([]);
+    expect(
+      toggleFavorite(fresh, "tpad", known),
+      "an id the catalog no longer carries cannot be starred",
+    ).toBe(undefined);
+
+    // THE PAGE WIRES THE STORE WITH THE CATALOG's VALIDATOR, reading in
+    // onMount and never at module scope.
+    const page = code(PAGE);
+    expect(page.includes("readFavorites(local(), known)")).toBe(true);
+    expect(page.includes("toggleFavorite(local(), id, known)")).toBe(true);
+    expect(page.includes("listingById(id) !== undefined")).toBe(true);
+    const mountAt = page.indexOf("onMount(() => {");
+    const mountBody = page.slice(mountAt, page.indexOf("});", mountAt));
+    expect(mountAt, "the page has an onMount").toBeGreaterThan(0);
+    expect(
+      mountBody.includes("readLibrary();"),
+      "the store is read inside onMount, not at module scope",
+    ).toBe(true);
+    expect(
+      page
+        .slice(0, page.indexOf("function readLibrary"))
+        .includes("readLibrary();"),
+      "nothing before the function's own definition calls it at init",
+    ).toBe(false);
+
+    // THE STAR REFLECTS A PRESET STATE ON MOUNT, with its two names.
+    const off = renderCard(false);
+    const on = renderCard(true);
+    expect(off).toContain('data-favorite="false"');
+    expect(off).toContain(`aria-label="Add ${FIXTURE.name} to your favorites"`);
+    expect(off).toContain(">☆<");
+    expect(on).toContain('data-favorite="true"');
+    expect(on).toContain(
+      `aria-label="Remove ${FIXTURE.name} from your favorites"`,
+    );
+    expect(on).toContain(">★<");
+    // It is a button, it is not inside the anchor, and it roves with the card.
+    const star = openTagOf(code(CARD), 'class="star"');
+    expect(star.startsWith("<button")).toBe(true);
+    expect(star).toContain('type="button"');
+    expect(star).toContain("tabindex={tabbable ? 0 : -1}");
+    const source = code(CARD);
+    expect(
+      source.indexOf('class="star"') > source.indexOf("</a"),
+      "the star is a sibling after the anchor, never its child",
+    ).toBe(true);
   });
 });

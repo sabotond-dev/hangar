@@ -8,7 +8,7 @@ import { ROUTED } from "../src/lib/catalog/listing";
 // eight catalog entries had no page, so no <head> asked for their picture.
 // D-07 made the catalog the routed set, and `ROUTED` in
 // src/lib/catalog/listing.ts is the one declaration of it, read here, by
-// src/routes/c/[id]/+page.ts, by scripts/gen-og.mjs and by
+// src/routes/playground/[id]/+page.ts, by scripts/gen-og.mjs and by
 // src/lib/og/build.spec.ts. Left on FRONT_DOOR this test would have gone on
 // passing over eight images while eight NEW pages served an og:image that
 // 404s - the same blindness src/lib/og/build.spec.ts's header records, only

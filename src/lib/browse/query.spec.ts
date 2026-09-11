@@ -102,7 +102,7 @@ const STATES: readonly {
 ];
 
 describe("the browse query string (src/lib/browse/query.ts)", () => {
-  it("serialises the default query to nothing at all, so /browse/ is the canonical address", () => {
+  it("serialises the default query to nothing at all, so /playground/ is the canonical address", () => {
     expect(
       DEFAULT_QUERY,
       "the default is FEATURED, no query, no chips",
@@ -118,7 +118,7 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
     ).toBe("");
 
     // The same address written three other ways is still the default state, so
-    // a bare /browse/, a stray ?, and an explicitly-default link all agree.
+    // a bare /playground/, a stray ?, and an explicitly-default link all agree.
     for (const search of ["", "?", "sort=featured", "?sort=featured&q="]) {
       expect(parse(search), `"${search}" is the default state`).toEqual(
         DEFAULT_QUERY,

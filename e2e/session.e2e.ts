@@ -25,8 +25,8 @@
 // lesson against the meters) and by the prerendered document itself, which
 // already ships a slot and a note.
 //
-// THE WALK IS A CLIENT-ROUTER WALK. Test 11 crosses / -> /browse/ -> /c/{id}/
-// -> /browse/ -> / by CLICKING the site's own links, never by goto. D-05's
+// THE WALK IS A CLIENT-ROUTER WALK. Test 11 crosses / -> /playground/ -> /playground/{id}/
+// -> /playground/ -> / by CLICKING the site's own links, never by goto. D-05's
 // claim is that one connection survives a move between routes because Kit's
 // client router keeps the module graph - and the open port - alive; a goto is
 // a fresh document and would prove the opposite of what the test is named for.
@@ -153,7 +153,7 @@ const PROBE = "/dev/session/";
 
 /**
  * The configuration the shipped-chrome tests open. It is the front door's
- * opening centre, so /c/aurora/ lands with no splash on the same row / shows,
+ * opening centre, so /playground/aurora/ lands with no splash on the same row / shows,
  * and its first rail is the one e2e/tuning.e2e.ts turns.
  */
 const ENTRY = "aurora";
@@ -286,7 +286,7 @@ const answering = (page: Page): Promise<ExposedZona> =>
  * TWO WAITS, BECAUSE THREE OF THE SEVEN CALL SITES ARE NOT ON THE PROBE.
  * `install-phase` is published by /dev/install/ and - since plan 11-08.1 - by
  * /dev/session/. Four call sites load PROBE; the other three load "/" and
- * "/c/{id}/", where the shipped chrome renders no such row, and a bare
+ * "/playground/{id}/", where the shipped chrome renders no such row, and a bare
  * `expect(getByTestId("install-phase")).not.toHaveText(...)` PASSES IMMEDIATELY
  * against an element that does not exist. That would have been a vacuous wait
  * on exactly the sites nobody was watching, so:
@@ -431,7 +431,7 @@ const pathOf = (page: Page) => new URL(page.url()).pathname;
  * swallowed by its window-level skip listener rather than reaching the
  * control (deferred item 8's two records of exactly that race). The splash
  * is gone with the intro (D-09), / no longer renders the shelf, and the
- * three header tests below open on /c/{id}/, where the shipped header with
+ * three header tests below open on /playground/{id}/, where the shipped header with
  * its device slot lives until 13-09 and 13-11 rebuild it; the splash count
  * stays as a zero that can only be trivially true.
  */
@@ -487,7 +487,7 @@ const LIVE_REGIONS = ["session-live", "tuning-live", "browse-live"] as const;
 
 /**
  * Start recording every text change in each live region that exists on the
- * page. A region absent from the route (the browse toolbar's, on /c/{id}/)
+ * page. A region absent from the route (the browse toolbar's, on /playground/{id}/)
  * gets an empty record and nothing to observe; its absence is itself read by
  * liveTexts below as null.
  */
@@ -960,9 +960,9 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     const consoleErrors = collectErrors(page);
     const zona = await answering(page);
     await grantBeforeLoad(page);
-    // The shipped header lives on /c/{id}/ since 13-07 made / the intro; the
+    // The shipped header lives on /playground/{id}/ since 13-07 made / the intro; the
     // intro's connection slot is 13-11's.
-    await page.goto(`/c/${ENTRY}/`);
+    await page.goto(`/playground/${ENTRY}/`);
 
     // Precondition: the shim is installed and the grant is what the browser
     // would list, so the header has something to offer.
@@ -1054,9 +1054,9 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await grantBeforeLoad(page);
     // Since 13-07 the walk STARTS on a configuration rather than on /: the
     // intro carries no device slot until 13-11 fills the shell's connection
-    // slot, so the header a visitor connects from is /c/{id}/'s. The walk
+    // slot, so the header a visitor connects from is /playground/{id}/'s. The walk
     // still ends on / and proves the connection survives arriving there.
-    await page.goto(`/c/${ENTRY}/`);
+    await page.goto(`/playground/${ENTRY}/`);
     expect(
       await page.evaluate(async () => ({
         hasSerial: "serial" in navigator,
@@ -1064,7 +1064,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
       })),
     ).toEqual({ hasSerial: true, listed: 1 });
     await waitForFrontDoor(page);
-    expect(pathOf(page)).toBe(`/c/${ENTRY}/`);
+    expect(pathOf(page)).toBe(`/playground/${ENTRY}/`);
 
     // Precondition: a live, identified session made from the header.
     await connectFromHeader(page);
@@ -1092,28 +1092,47 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
       expect(await openCount(page, 0)).toBe(1);
     };
 
+    /**
+     * The gallery's half of the same claim. /playground/ is on the shell
+     * since 13-08, whose connection slot is reserved for 13-11 and renders
+     * nothing yet - so on the two gallery hops the assertion is the half
+     * that needs no slot: the route, the same document, the same one open,
+     * and not one request. 13-11 restores the slot reads here.
+     */
+    const sameDocumentOn = async (route: RegExp): Promise<void> => {
+      expect(pathOf(page)).toMatch(route);
+      expect(
+        await page.evaluate(() => window.__hangarWalk),
+        `the same document on ${pathOf(page)}`,
+      ).toBe(STAMP);
+      expect(await requests(page)).toBe(0);
+      expect(await openCount(page, 0)).toBe(1);
+    };
+
     // THE WALK, by the site's own links and nothing else - no goto between
-    // these four hops. /c/aurora/ -> BROWSE ALL -> /browse/ -> a card ->
-    // /c/aurora/ -> BACK TO BROWSE -> /browse/ -> the wordmark link -> /.
-    // (On /c/{id}/ the wordmark is a heading, not a link; the one link home
-    // is the browse page's wordmark, so the way back runs through it.)
+    // these four hops. /playground/aurora/ -> BROWSE ALL -> /playground/ -> a card ->
+    // /playground/aurora/ -> BACK TO BROWSE -> /playground/ -> the wordmark link -> /.
+    // (On /playground/{id}/ the wordmark is a heading, not a link; the one link home
+    // is the gallery's shell wordmark since 13-08, so the way back runs through it.
+    // The gallery has no device slot until 13-11 fills the shell's connection
+    // slot, so its two hops assert the document and not the slot.)
     await page.getByTestId("browse-link").click();
     await expect(page.getByTestId("browse-grid")).toBeVisible();
-    await stillConnected(/^\/browse\/$/);
+    await sameDocumentOn(/^\/playground\/$/);
 
     await page.getByTestId(`card-name-${ENTRY}`).click();
     await expect(page.getByTestId("front-door")).toBeVisible();
     await expect(page.getByTestId("coverflow")).toBeVisible();
-    await stillConnected(new RegExp(`^/c/${ENTRY}/?$`));
+    await stillConnected(new RegExp(`^/playground/${ENTRY}/?$`));
 
     await page.getByTestId("browse-link").click();
     await expect(page.getByTestId("browse-grid")).toBeVisible();
-    await stillConnected(/^\/browse\/$/);
+    await sameDocumentOn(/^\/playground\/$/);
 
     // The last hop lands on the intro (13-07), which has no device slot
     // until 13-11, so what is asserted there is the half that does not need
     // one: the same document, the same one open, and not one request.
-    await page.getByTestId("header-wordmark").click();
+    await page.getByTestId("shell-wordmark").click();
     await expect(page.getByTestId("intro")).toBeVisible();
     expect(pathOf(page)).toBe("/");
     expect(
@@ -1136,7 +1155,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await expect(page.getByTestId("intro")).toBeVisible();
     expect(await page.evaluate(() => window.__hangarWalk)).toBeUndefined();
     expect(await openCount(page, 0)).toBe(0);
-    await page.goto(`/c/${ENTRY}/`);
+    await page.goto(`/playground/${ENTRY}/`);
     const control = slot(page);
     await expect(control).toHaveAttribute("data-hydrated", "true");
     await expect(control).toHaveAttribute("data-slot", "S2");
@@ -1162,7 +1181,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
       window.__hangarSerial.busy(0);
     });
     // A deep link: no splash, so nothing covers the header or eats a key.
-    await page.goto(`/c/${ENTRY}/`);
+    await page.goto(`/playground/${ENTRY}/`);
 
     // Precondition: the shim, the grant, and the offer on the header.
     expect(
@@ -1245,8 +1264,8 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
     page,
   }, testInfo) => {
     const consoleErrors = collectErrors(page);
-    // The shipped header lives on /c/{id}/ since 13-07 made / the intro.
-    await page.goto(`/c/${ENTRY}/`);
+    // The shipped header lives on /playground/{id}/ since 13-07 made / the intro.
+    await page.goto(`/playground/${ENTRY}/`);
 
     // Precondition, asserted.
     expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
@@ -1363,7 +1382,7 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     await grantBeforeLoad(page);
     // A deep link: the panel with its knobs is on this route, the tuning
     // region with it, and there is no splash to hold the session's speech.
-    await page.goto(`/c/${ENTRY}/`);
+    await page.goto(`/playground/${ENTRY}/`);
     expect(
       await page.evaluate(async () => ({
         hasSerial: "serial" in navigator,

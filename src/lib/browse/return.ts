@@ -1,8 +1,8 @@
 // The way back: one record, under one key, holding where the visitor was.
 //
-// W-20 and D-08 in three functions. `/browse/` writes this immediately before it
-// navigates to a `/c/<id>/` route; the detail page reads it to decide whether its
-// header slot says BACK TO BROWSE or BROWSE ALL; `/browse/` consumes it on
+// W-20 and D-08 in three functions. `/playground/` writes this immediately before it
+// navigates to a `/playground/<id>/` route; the detail page reads it to decide whether its
+// header slot says BACK TO BROWSE or BROWSE ALL; `/playground/` consumes it on
 // arrival.
 //
 // FOUR RULES THE PAGE RELIES ON. They are decisions, not implementation details.
@@ -17,7 +17,7 @@
 //     The browse address is projected on a 500 ms trailing timer (see
 //     `./query.ts`), so a card clicked 200 ms after a chip toggle would record a
 //     view that is one toggle stale. Composing the href out of the live state at
-//     the moment of leaving - `"/browse/?" + serialiseBrowseQuery(state)` -
+//     the moment of leaving - `"/playground/?" + serialiseBrowseQuery(state)` -
 //     removes that race instead of racing it. The href is therefore an
 //     ARGUMENT here: this module never reads an address of its own.
 //
@@ -32,14 +32,14 @@
 //     to make in wave 9, and neither of them is `history.back()`, which stays
 //     reserved for the browser's own Back button.
 //
-//  4. THE RECORD IS CONSUMED ON ARRIVAL AT `/browse/`. Kit's own back-button
+//  4. THE RECORD IS CONSUMED ON ARRIVAL AT `/playground/`. Kit's own back-button
 //     restoration already targets the offset this record holds, so the two
 //     cannot disagree; the record exists for the FORWARD hop, which gets no
 //     restoration at all. It survives a reload of the detail page - the way back
 //     is still there, which is a virtue - and the detail page clears it when the
 //     visitor leaves for anything that is not browse.
 //
-// THE STORE IS AN ARGUMENT AND THIS MODULE IMPORTS NOTHING. `/browse/` is
+// THE STORE IS AN ARGUMENT AND THIS MODULE IMPORTS NOTHING. `/playground/` is
 // prerendered, so the component that calls these functions renders on a server
 // where no storage of any kind exists; every function is a no-op on `undefined`
 // rather than making each caller remember a guard. That is the same injection
@@ -55,7 +55,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
-/** Where the visitor was on `/browse/`, and how far down it. */
+/** Where the visitor was on `/playground/`, and how far down it. */
 export type BrowseReturn = {
   /** The full browse URL including its query string. */
   readonly href: string;
@@ -147,7 +147,7 @@ export function writeBrowseReturn(
 /**
  * Forget the way back.
  *
- * Called on arrival at `/browse/` once the record has been consumed, and by the
+ * Called on arrival at `/playground/` once the record has been consumed, and by the
  * detail page when the visitor leaves for anything that is not browse. Clearing
  * something that was never written is a no-op, so no caller has to check first.
  */

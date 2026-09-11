@@ -32,7 +32,7 @@
 
   The intro's header mounts this mark since 13-07, which deleted the splash
   and its tracked text wordmark; FrontDoor.svelte's tracked Grifter text
-  wordmark stays on /c/{id}/ until 13-09 deletes it.
+  wordmark stays on /playground/{id}/ until 13-09 deletes it.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->

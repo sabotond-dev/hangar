@@ -38,7 +38,8 @@
  * row WAS the routed set: `/c/euclid/` did not exist, so it had no <head> to carry
  * an og:image and needed no picture. D-07 made the catalog the routed set - sixteen
  * pages, not eight - and `ROUTED` in `src/lib/catalog/listing.ts` is the single name
- * for it. Four files need that set: `src/routes/c/[id]/+page.ts` generates the
+ * for it. Four files need that set: `src/routes/playground/[id]/+page.ts` (at
+ * `src/routes/c/[id]/` until 13-08 moved the route under D-20) generates the
  * pages, this script renders one image per page, `src/lib/og/build.spec.ts` asserts
  * each page's og:image resolves under `build/`, and `e2e/artifacts.e2e.ts` asserts
  * the deployed site serves it. Widen one alone and eight pages ship an og:image that

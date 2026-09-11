@@ -157,10 +157,10 @@ async function waitForFrontDoor(page: Page): Promise<void> {
 
 /**
  * Open the configuration and choose the centre pad, from the keyboard. On
- * /c/{id}/ since 13-07: / is the intro and renders no shelf and no panel.
+ * /playground/{id}/ since 13-07: / is the intro and renders no shelf and no panel.
  */
 async function choose(page: Page): Promise<void> {
-  await page.goto(`/c/${ENTRY}/`);
+  await page.goto(`/playground/${ENTRY}/`);
   await waitForFrontDoor(page);
   await waitForPicture(page, ENTRY);
   if ((await page.getByTestId("chosen-panel").count()) === 0) {

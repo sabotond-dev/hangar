@@ -261,7 +261,7 @@ describe("the browse facets (src/lib/browse/facets.ts)", () => {
     // front-door.spec.ts's idiom, one notch tighter: no import declaration at
     // all, not even an erased one. That is what forces matchesFacets to take
     // its entry structurally instead of reaching for ListingEntry - and it is
-    // what keeps the sixteen terms in /browse/'s prerendered HTML at first
+    // what keeps the sixteen terms in /playground/'s prerendered HTML at first
     // paint instead of behind the 131,101-byte compiler chunk (D-12).
     const importLines = stripped.match(/^[ ]*import[ ].*$/gm) ?? [];
     expect(

@@ -106,7 +106,8 @@
   let {
     entries,
     total = entries.length,
-    emptyReason,
+    favorites = [],
+    onfavorite,
     onreorder,
   }: {
     /** Already sorted and filtered by the page. This component never sorts. */
@@ -118,15 +119,17 @@
      * nothing reads as an empty shelf.
      */
     total?: number;
-    /**
-     * The by-condition sentence for an empty result, supplied by the page -
-     * which is the only place that knows whether a query, a set of tags or both
-     * produced the miss.
-     */
-    emptyReason?: string;
+    /** The starred ids, read by the page from the favorites store (13-08). */
+    favorites?: readonly string[];
+    /** A card's star was pressed; the page flips the store. */
+    onfavorite?: (id: string) => void;
     /** Optional hook so the page can flush its address after a reorder. */
     onreorder?: () => void;
   } = $props();
+
+  /* Section 16's row for no results, verbatim (plan 13-08). */
+  const NO_RESULTS =
+    "No configurations found. Try a different search or clear your filters.";
 
   const RESIZE_DEBOUNCE_MS = 200;
 
@@ -427,15 +430,8 @@
         not something you did.
       </p>
     {:else}
-      <p class="empty-title">Nothing here matches</p>
-      {#if emptyReason !== undefined}
-        <p class="empty-body">{emptyReason}</p>
-      {/if}
-      <!-- CLEAR FILTERS is named because it is on the screen: the toolbar is
-           still above this block. -->
-      <p class="empty-next">
-        CLEAR FILTERS brings back all {total} configurations.
-      </p>
+      <!-- The filter miss: section 16's one line, and nothing else (13-08). -->
+      <p class="empty-body">{NO_RESULTS}</p>
     {/if}
   </div>
 {:else}
@@ -473,6 +469,8 @@
         tabbable={index === rovingIndex}
         pending={entry.preview === "lua" && building.includes(entry.id)}
         unavailable={unavailable.includes(entry.id)}
+        favorite={favorites.includes(entry.id)}
+        {onfavorite}
         onready={collect}
         onfocus={() => {
           rovingIndex = index;
@@ -486,7 +484,8 @@
 <style>
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    /* The PDF's three columns at 390 with a 24 gutter; auto-fill keeps the wall honest at every width. */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 24px;
     align-items: start;
     margin: 0;
@@ -520,18 +519,13 @@
   }
 
   /* Body: 16px / 400 / 1.5. An empty result is the filter working, so the
-     next-step line is quiet prose and nothing here is an alarm. */
-  .empty-body,
-  .empty-next {
+     line is quiet prose and nothing here is an alarm. */
+  .empty-body {
     margin: 0;
     max-inline-size: 62ch;
     font-size: 16px;
     font-weight: 400;
     line-height: 1.5;
     color: var(--color-ink);
-  }
-
-  .empty-next {
-    color: var(--color-ink-quiet);
   }
 </style>

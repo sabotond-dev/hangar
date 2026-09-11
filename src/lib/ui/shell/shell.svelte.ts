@@ -17,12 +17,12 @@
  * (a header with the wordmark, a secondary link and the connection slot, no
  * nav, no context bar, no rail, no inspector). When NO route has filled the
  * shell the layout renders the announcer, the page and the footer and
- * nothing more - which is what `/`, `/c/[id]` and `/browse/` need until
- * 13-07 and 13-09 rewrite them, because each still draws a header of its
- * own (13-VALIDATION.md D-5), and a second header above it would be a
- * visible defect on the live site. Once the last of the three is rewritten
- * every route fills the shell and the unfilled shape has no caller; 13-09
- * removes it.
+ * nothing more - which is what `/playground/[id]` (the workspace, at /playground/[id]
+ * until 13-08 moved it under D-20) needs until 13-09 rewrites it, because it
+ * still draws a header of its own (13-VALIDATION.md D-5), and a second
+ * header above it would be a visible defect on the live site. / (13-07) and
+ * /playground/ (13-08) fill the shell; once the workspace does too the
+ * unfilled shape has no caller, and 13-09 removes it.
  *
  * $state.raw rather than $state: the fill is replaced whole, never mutated
  * a field at a time, and a deep proxy over snippet functions buys nothing.
@@ -30,6 +30,7 @@
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
 import type { Snippet } from "svelte";
+import { resolve } from "$app/paths";
 import type { ResolvedPathname } from "$app/types";
 
 /** The three sections of the primary nav (Bible section 4). */
@@ -44,14 +45,15 @@ export interface NavItem {
 
 /**
  * The nav's three destinations, section 4's routes with the site's trailing
- * slash. The literal pathnames are typed ResolvedPathname rather than built
- * with resolve() because none of the three routes exists yet - 13-08 lands
- * /playground/, 13-10 /sandbox/ and 13-12 /my-configs/ - and resolve() is
- * typed against the routes on disk. The plan that lands each route swaps
- * its literal for a resolve() call in the same commit.
+ * slash. /playground/ is a resolve() call since 13-08 landed the route; the
+ * other two literal pathnames are typed ResolvedPathname rather than built
+ * with resolve() because those routes do not exist yet - 13-10 lands
+ * /sandbox/ and 13-12 /my-configs/ - and resolve() is typed against the
+ * routes on disk. The plan that lands each route swaps its literal for a
+ * resolve() call in the same commit.
  */
 export const SECTIONS: readonly NavItem[] = [
-  { id: "playground", label: "PLAYGROUND", href: "/playground/" },
+  { id: "playground", label: "PLAYGROUND", href: resolve("/playground/") },
   { id: "sandbox", label: "SANDBOX", href: "/sandbox/" },
   { id: "my-configs", label: "MY CONFIGS", href: "/my-configs/" },
 ];
@@ -104,11 +106,13 @@ export function fillShell(fill: ShellFill): () => void {
  * `{#if fill}` is evaluated before the page's script runs at all, because
  * the page renders as the layout's children. So a route that wants its
  * frame in the PRERENDERED document declares the shape as data from its
- * +page.ts (`{ shell: { variant, section? } }`), and the layout reads it
- * here when no effect has filled the shell yet. Snippets cannot travel as
- * data; they arrive with the effect, and the frame does not move when they
- * do. Anything that is not a declared shape reads as no shape: the layout
- * then renders the unfilled form it always did.
+ * +page.ts (`{ shell: { variant, section?, breadcrumb?, status? } }`), and
+ * the layout reads it here when no effect has filled the shell yet. Strings
+ * travel as data - the breadcrumb and a sentence status, so the prerendered
+ * context bar carries its words (13-08); snippets cannot, and arrive with
+ * the effect, and the frame does not move when they do. Anything that is not
+ * a declared shape reads as no shape: the layout then renders the unfilled
+ * form it always did.
  */
 export function shellFromData(data: unknown): ShellFill | undefined {
   if (typeof data !== "object" || data === null) return undefined;
@@ -118,5 +122,16 @@ export function shellFromData(data: unknown): ShellFill | undefined {
   if (variant !== "intro" && variant !== "app") return undefined;
   const section = (declared as { section?: unknown }).section;
   const known = SECTIONS.find((item) => item.id === section);
-  return { variant, section: known?.id };
+  const crumbs = (declared as { breadcrumb?: unknown }).breadcrumb;
+  const breadcrumb =
+    Array.isArray(crumbs) && crumbs.every((c) => typeof c === "string")
+      ? (crumbs as string[])
+      : undefined;
+  const status = (declared as { status?: unknown }).status;
+  return {
+    variant,
+    section: known?.id,
+    breadcrumb,
+    status: typeof status === "string" ? status : undefined,
+  };
 }

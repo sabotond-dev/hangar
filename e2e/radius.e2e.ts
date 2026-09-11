@@ -14,7 +14,7 @@
 // (layer A) and the built stylesheet (layer B). Neither can see the
 // user-agent stylesheet: WebKit draws <input type="search">, <select> and
 // their kin with a 5px radius of their own (measured below), and the site has
-// a real search field on /browse/. And neither can measure a box: D-10 permits the
+// a real search field on /playground/. And neither can measure a box: D-10 permits the
 // literal 50% on a TRUE CIRCLE and forbids it on a rounded rectangle, and
 // "a 50% radius on a non-square element is a pill wearing a circle's clothes"
 // is a statement about width and height, which only getBoundingClientRect
@@ -83,15 +83,15 @@ const DEV_ROUTES = readdirSync("src/routes/dev")
  * hand-authored palette and mounts a swatch Knob instead), so AURORA carries
  * them. Knob's slider thumb (:653) needs a knob with nine or more values, so
  * ARC's 16-value amount knob carries it; its dot rail (:598) and home mark
- * (:674) are on every rack. A cold /c/<id>/ shows the coverflow only; the
+ * (:674) are on every rack. A cold /playground/<id>/ shows the coverflow only; the
  * panel is opened with the same Enter that e2e/tuning.e2e.ts presses, so the
  * circles are in the DOM when they are measured. Zero circles measured would
  * be a vacuous square arm, and it was, on this title's first run.
  */
 const WORKSPACE_ENTRIES = ["aurora", "arc"];
-const WORKSPACES = WORKSPACE_ENTRIES.map((id) => `/c/${id}/`);
+const WORKSPACES = WORKSPACE_ENTRIES.map((id) => `/playground/${id}/`);
 
-const ROUTES = ["/", "/browse/", ...WORKSPACES, ...DEV_ROUTES];
+const ROUTES = ["/", "/playground/", ...WORKSPACES, ...DEV_ROUTES];
 
 /** The six, as the sweep labels them: the owning control and the class. */
 const SIX_CIRCLES = [

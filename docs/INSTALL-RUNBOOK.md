@@ -240,3 +240,5 @@ If a row leaves the module running something you did not want, in this order:
 
 The results belong in a dated `## Results` heading in a results document beside this one, in the shape
 of `docs/SKELETON-RESULTS.md`, or as a reply to the checkpoint that presented this checklist.
+
+**2026-09-11, plan 13-08 (13-CONTEXT D-20, move-clean).** Every `/c/<id>/` address above now reads `/playground/<id>/` - the rows were written against `/c/aurora/`, which is `/playground/aurora/` since this plan and no longer serves. Nothing else in the rows moved; the page's chrome is 13-09's.

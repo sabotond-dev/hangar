@@ -17,7 +17,7 @@
 // One `import type` and nothing else. A runtime import of $lib/catalog here
 // would drag entries/ported.ts, the vendored compiler and
 // @intechstudio/grid-protocol (131,101 bytes, measured in 04-RESEARCH) onto the
-// first paint of /browse/ (D-12). filter.spec.ts scans this file.
+// first paint of /playground/ (D-12). filter.spec.ts scans this file.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { ListingEntry } from "$lib/catalog/listing";

@@ -1,5 +1,5 @@
 <!--
-  The front door: the composition /c/{id}/ renders until 13-09.
+  The front door: the composition /playground/{id}/ renders until 13-09.
 
   Wordmark, headline, row. Choosing and the panel arrived in plan 04-08 and
   the deep-link route in 04-09.
@@ -12,7 +12,7 @@
   Splash.svelte and glyph-field.ts were deleted in the same commit. The
   header wordmark is at full strength from the first frame and the three
   header children take `covered`'s default of false. This component and the
-  coverflow it mounts go at 13-09 (13-VALIDATION D-5), when /c/{id}/ becomes
+  coverflow it mounts go at 13-09 (13-VALIDATION D-5), when /playground/{id}/ becomes
   the workspace.
 
   The wordmark is the page's only level-1 heading, and it is one deliberately:
@@ -79,7 +79,7 @@
   composition half of D-09 and go at 13-07 and 13-09 (13-VALIDATION D-5).
 
   AMENDMENT (Phase 10, plan 10-07, A-22 and 10-UI-SPEC 9.1). THE `FOR` LINK
-  ROW. The ten workflow terms render here as LINKS, one `/browse/?for={term}`
+  ROW. The ten workflow terms render here as LINKS, one `/playground/?for={term}`
   each, so the front door becomes the entry to browse instead of its rival. A
   link rather than a checkbox is what keeps this page PRERENDERED, keeps its
   `<head>` intact and keeps it import-free: FacetRow.svelte in link mode needs
@@ -117,7 +117,7 @@
     /**
      * The ring, forwarded verbatim to Coverflow and read by nothing here.
      * Left undefined by /, which is what makes Coverflow fall to its own
-     * FRONT_DOOR default; /c/{id}/ passes a ONE-ENTRY row for an off-row
+     * FRONT_DOOR default; /playground/{id}/ passes a ONE-ENTRY row for an off-row
      * configuration (D-07, plan 05.1-05) and FRONT_DOOR for a row entry, so a
      * signed-off route is byte-for-byte what Phase 4 shipped.
      */
@@ -187,7 +187,7 @@
 
   <!--
     THE `FOR` ROW (A-22). Ten destinations, not ten controls: pressing one takes
-    you to /browse/ already filtered, which is what makes this page the entry to
+    you to /playground/ already filtered, which is what makes this page the entry to
     the catalog rather than a rival to it. The caption is FACETS' own, so the
     ten words and their order are one declaration shared with the toolbar.
   -->
@@ -196,7 +196,7 @@
       name="for"
       caption="FOR"
       terms={FOR_TERMS}
-      href={(term) => resolve(`/browse/?for=${term}`)}
+      href={(term) => resolve(`/playground/?for=${term}`)}
     />
   </div>
 </section>

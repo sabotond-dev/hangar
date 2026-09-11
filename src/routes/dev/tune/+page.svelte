@@ -47,7 +47,7 @@
      reachable knob cross-product - 512 states - spans Setup 902 to 907, so a
      small reserve straddles 908 instead of drowning it. And because
      EXCLUDED_FROM_ROW carries it (it writes no LEDs, so it is a black square),
-     there is no /c/tpad/ page: mounting the region for it needs a probe, which
+     there is no /playground/tpad/ page: mounting the region for it needs a probe, which
      is precisely why the probe can mount it without touching the front door.
 
      SINCE PLAN 12-10 IT IS NOT A CATALOG CARD AT ALL. The hand-authored

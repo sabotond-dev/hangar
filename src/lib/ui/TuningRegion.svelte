@@ -12,7 +12,7 @@
   src/lib/config-shape.spec.ts test 13 walks every non-spec file under
   src/lib/ui/ and fails on a `from` specifier naming the vendored tree, the
   protocol package or the compile surface; test 14 asserts the built
-  build/index.html and build/c/aurora/index.html reference no chunk carrying the
+  build/index.html and build/playground/aurora/index.html reference no chunk carrying the
   package. Coverflow.svelte reaches the simulator the same way, in its own
   onMount, and this is a copy of that shape rather than a new one. The types the
   region holds are therefore declared STRUCTURALLY below - the

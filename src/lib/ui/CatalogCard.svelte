@@ -1,58 +1,84 @@
 <!--
-  The card: the pad IS the card.
+  The card: PDF page 2's six elements (plan 13-08).
 
-  One configuration, rendered as its running pad, its name, its sentence, its
-  feel and its Featured mark. Same four-layer pad recipe as the front door, same
-  prohibitions, same dot field, same 6px inset inside the 10px radius - nothing
-  about the pad's construction changes here (05.1-UI-SPEC Screen 2c).
+  A square live preview, the name with a favorite star at the card's right
+  edge, ONE category and ONE tag on an 11px uppercase line, one sentence, and
+  a full-width outlined `Explore` action. Nothing else: Phase 10's FEATURED
+  band, its three-tag row and its monospaced metadata block (id + engine +
+  motion) are gone with the Bible. `featured` keeps its field and LOSES ITS
+  MARK - it is a sort, not a badge, and the PDF draws none.
 
-  EXACTLY ONE LINK. The plate's anchor carries
-  `::after { position: absolute; inset: 0 }` over a `position: relative` card, so
-  a click anywhere on the card follows the link while the accessibility tree
-  contains ONE link and the tab order gains ONE stop. That is what makes
-  BrowseGrid's roving tabindex possible, and it is why this card's tag chips are
-  spans rather than controls: sixty-four extra tab stops inside the grid would
-  destroy the one-stop-per-card rule the arrow keys depend on (W-06).
+  THE WHOLE CARD IS THE LINK, AND THE `Explore` BUTTON IS INSIDE IT. The name
+  anchor carries `::after { position: absolute; inset: 0 }` over a
+  `position: relative` card, so a click anywhere on the card - the preview,
+  the sentence, the Explore box - follows the link, while the accessibility
+  tree contains ONE link and the tab order gains ONE stop for it. `Explore` is
+  a <span aria-hidden="true"> styled as the PDF's outlined button: it is the
+  visible affordance and it is not a second control, because a second anchor
+  would put two entries in a screen reader's links list for one destination
+  and a <button> inside a link is invalid markup. THE ONE ACCESSIBLE NAME IS
+  THE ANCHOR's aria-label - the configuration's name (or `{name} — unavailable`)
+  - and its description is the anchor's aria-describedby target. browse-ui
+  .spec.ts test 8 counts exactly one anchor and holds the Explore element
+  hidden; the whole-card link is stronger for a keyboard than a button inside
+  it, which is why the link is the card and not the box (05.1-UI-SPEC W-06).
 
-  IT IS AN ANCHOR AND NOT A LISTBOX OPTION. Neither `role="option"` nor
-  `role="gridcell"` appears anywhere in this file, and both are refused for the
-  same reason: they REPLACE the link role, and with it a screen reader's links
-  list, middle-click, and open-in-new-tab. A browse card is a link to a real
-  prerendered address; that is the whole shareability story (05.1-UI-SPEC
-  Screen 3).
+  THE STAR IS A REAL BUTTON WITH TWO ACCESSIBLE NAMES, both HANGAR's and both
+  ledgered for 13-18: `Add {name} to your favorites` when the star is
+  outlined, `Remove {name} from your favorites` when it is filled in the action
+  colour. It writes through src/lib/store/favorites.ts from the page that owns
+  the store; the card is handed `favorite` and reports `onfavorite`. It is a
+  SIBLING of the anchor, not a child, so a click on it never follows the link,
+  and it sits above the anchor's overlay (`z-index: 1`) so it can be clicked
+  at all. IT ROVES WITH THE CARD: the star carries the same tabindex as the
+  anchor, so the roving card exposes two stops - its link, then its star - and
+  every other card exposes none. Tab crosses the wall in two presses instead
+  of one, and the arrow keys still move by card (BrowseGrid.svelte).
+
+  ONE CATEGORY AND ONE TAG, AND THE THIRD TAG IS NOT SHOWN - a decision, not
+  an omission. Every entry carries exactly three terms (one FOR, two FEELS;
+  src/lib/browse/facets.ts). The PDF's line is `MODULATION · FLOWING`: the
+  FOR term through FOR_LABELS (src/lib/browse/labels.ts, provisional until
+  13-18, the same record the rail and the chip row read) and the FIRST FEELS
+  term as its identifier, both upper-cased by the micro role's CSS. tags[2]
+  appears nowhere on the card; the second FEELS term is still a filter in the
+  address and still on the entry.
+
+  THE SENTENCE IS `description` (13-CONTEXT D-14 Q11c): the card has room for
+  one, and `quiet` - the resting-black honesty line - moves to the workspace
+  as helper text (13-09). listing.spec.ts still requires a quiet line for
+  every entry whose motion is not self-evident; the requirement did not move.
+
+  THE NAME IS RENDERED AS THE CATALOG DECLARES IT - uppercase until 13-19
+  applies D-14 Q11b. The card does not case it.
 
   THE PAD WRAPPER IS aria-hidden. PadCanvas's `role="img"` and its
-  "{name}, live pad simulation" label are right on the front door, where the pad
-  is the thing. Inside a named link they would announce the configuration's name
-  a second time on every one of sixteen cards (W-17), so the picture is
-  decorative WITHIN a named link and the anchor carries the name.
+  "{name}, live pad simulation" label are right on the intro's hero, where the
+  pad is the thing. Inside a named link they would announce the name a second
+  time on every card, so the picture is decorative WITHIN a named link.
 
-  A CARD IS A PICTURE, NOT AN INSTRUMENT (W-15). No pointer handler is installed
-  anywhere in this file, so no touch reaches any card's engine at any width under
-  any pointer: a pointerdown on a card is the beginning of a click that opens the
-  detail view, and delivering it to the simulator as well would make the card's
-  most common gesture ambiguous. The cursor is `pointer` and NEVER `crosshair` -
-  the word appears in this sentence and in no declaration, which is why every
-  structural scan over this file strips comments first. The instrument is the
-  detail view, where the hero already plays.
+  A CARD IS A PICTURE, NOT AN INSTRUMENT (W-15). No pointer handler is
+  installed anywhere in this file, so no touch reaches any card's engine: a
+  pointerdown on a card is the beginning of a click that opens the workspace.
+  The cursor is `pointer` and NEVER `crosshair` - the word appears in this
+  sentence and in no declaration, which is why every structural scan over this
+  file strips comments first.
 
   THE DESCRIPTION IS NEVER CLAMPED. No `text-overflow`, no line clamp and no
-  ellipsis: the longest shipped sentence is 110 characters and it wraps to three
-  or four lines in a 286px card. A `…` on this site means "this is still
-  happening", never "there is more".
+  ellipsis: a `…` on this site means "this is still happening", never "there
+  is more".
 
-  NOTHING HERE IS AN ALARM. `--color-error-ink` is Phase 5's over-budget colour, it is
-  scoped to three uses inside a 908-character meter, and no meter exists on a
-  browse screen. An empty band on an unfeatured card, a resting-dark pad and an
-  unavailable entry are all quiet prose on the inherited alpha ladder
-  (Pitfall 13).
+  NO RADIUS ANYWHERE (D-01). The plate's 6px, the focus ring's 10px and the
+  tag chips' 6px went with this rewrite and the allowlist row went with them.
+  Every colour is one of the eleven tokens.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import type { ListingEntry } from "$lib/catalog/listing";
+  import { forLabel } from "$lib/browse/labels";
   import { typographic } from "$lib/browse/typographic";
+  import type { ListingEntry } from "$lib/catalog/listing";
   import { type DemoPath, demoPathFor } from "$lib/sim/demo";
   import PadCanvas from "./PadCanvas.svelte";
   import PadFrame from "./PadFrame.svelte";
@@ -63,8 +89,10 @@
     tabbable,
     pending = false,
     unavailable = false,
+    favorite = false,
     onready,
     onfocus,
+    onfavorite,
   }: {
     entry: ListingEntry;
     /** True for exactly one card in the grid: the roving one. */
@@ -73,36 +101,35 @@
      * The grid has not finished building this card's engine yet. True only
      * between mount and the first frame of a Lua-sourced card, whose VM is a
      * ~271 KB WebAssembly fetch on first intersection (D-06). A card is NEVER an
-     * unexplained black pad: it is painting, or it is spinning, or it carries
-     * the resting-dark note, or it reads unavailable.
+     * unexplained black pad: it is painting, or it is spinning, or it reads
+     * unavailable.
      */
     pending?: boolean;
     /**
      * The grid could not build an engine for this entry, or its lazy import
-     * failed. Two causes, one state: the frame and the dot field render with no
-     * canvas and the plate reads "{name} - unavailable". THE LINK STAYS A LINK -
-     * the detail page can still explain, and one broken entry never blanks the
-     * wall.
+     * failed. Two causes, one state: the frame renders with no canvas and the
+     * name reads "{name} — unavailable". THE LINK STAYS A LINK - the workspace
+     * can still explain, and one broken entry never blanks the wall.
      */
     unavailable?: boolean;
+    /** Whether the visitor has starred this entry (the page reads the store). */
+    favorite?: boolean;
     /**
      * Hands the canvas to the grid's SimHost, with this entry's demonstration
-     * gesture if it has one.
-     *
-     * THE THIRD ARGUMENT IS WHY THIS COMPONENT IS THE ONE THAT LOOKS IT UP.
-     * D-09 gives a configuration that paints nothing until it is touched a
-     * finger rather than a light, and the flag reaches the host as
-     * register()'s fourth argument (10-VALIDATION V-04). PadFrame.svelte does
-     * not carry it: that component holds no engine, issues no draw call and
-     * declares `entry: { id: string }` precisely so svelte/no-unused-props
-     * stays green, so a `demo` prop on it would be an unused prop and a lint
-     * failure. The card is the only surface that mounts a dark entry, so the
-     * lookup is here and the grid simply forwards what it is handed.
+     * gesture if it has one. The card is the one surface that mounts a dark
+     * entry, so the lookup is here and the grid forwards what it is handed
+     * (10-VALIDATION V-04).
      */
     onready: (id: string, el: HTMLCanvasElement, demo?: DemoPath) => void;
-    /** The card took focus; the grid moves its roving index here. */
+    /** The card took focus (its link or its star); the grid moves its roving index here. */
     onfocus: () => void;
+    /** The star was pressed. The page flips the store and hands `favorite` back. */
+    onfavorite?: (id: string) => void;
   } = $props();
+
+  /* The PDF's verbatim action word, and the arrow it draws beside it. */
+  const EXPLORE = "Explore";
+  const ARROW = "↗";
 
   /** The copy contract's broken-entry name, with a real em dash (U+2014). */
   const label = $derived(
@@ -113,9 +140,24 @@
   const descriptionId = $derived(`card-description-${entry.id}`);
 
   /**
+   * The star's two accessible names. HANGAR's, in the register (sentence
+   * case, second person, the verb first), ledgered in 13-COPY-NEW.md for
+   * 13-18. Two names rather than one name plus aria-pressed, because the
+   * plan asked for the state to be in the words a screen reader hears.
+   */
+  const starName = $derived(
+    favorite
+      ? `Remove ${entry.name} from your favorites`
+      : `Add ${entry.name} to your favorites`,
+  );
+
+  /** The PDF's line: the category through FOR_LABELS, the first FEELS term as itself. */
+  const category = $derived(forLabel(entry.tags[0] ?? ""));
+  const feel = $derived(entry.tags[1] ?? "");
+
+  /**
    * PadCanvas's onready shape is unchanged - (id, canvas) - and this closure is
-   * what adds the third argument on the way past. Keeping the child's signature
-   * as it was means the coverflow's use of the same component is untouched.
+   * what adds the third argument on the way past.
    */
   const handleReady = (id: string, el: HTMLCanvasElement): void => {
     onready(id, el, demoPathFor(id));
@@ -123,17 +165,6 @@
 </script>
 
 <li class="card" data-testid="card-{entry.id}">
-  <!--
-    The 16px band is RESERVED ON EVERY CARD and holds the word on the eight
-    featured ones. That reservation is what keeps sixteen pads aligned across a
-    row whichever of them are featured. It is --color-ink and deliberately NOT
-    accent: accent means "this is the live value" on this site, and a curation
-    flag is not a value (W-05).
-  -->
-  <p class="featured">
-    {#if entry.featured}FEATURED{/if}
-  </p>
-
   <div class="pad-wrap" aria-hidden="true">
     <PadFrame {entry}>
       {#if !unavailable}
@@ -145,138 +176,87 @@
     </PadFrame>
   </div>
 
-  <!--
-    The plate is Phase 4's box without its arrows, authored here as an ANCHOR.
-    NamePlate.svelte's name is a <button> that chooses a row entry, and a card
-    navigates instead of choosing - so this card restates the plate's four
-    declarations rather than widening a shipped component that four other call
-    sites depend on. Every measurement below is NamePlate's own.
+  <div class="head">
+    <!--
+      THE ONE LINK. Its aria-label is the card's one accessible name; the
+      overlay pseudo-element makes the whole card its target. No `Enter` and
+      no `Space` handler exists on it, here or in BrowseGrid: Enter follows a
+      link natively and hijacking it is the fastest way to break middle-click
+      and open-in-new-tab.
+    -->
+    <a
+      class="name"
+      class:unavailable
+      href={resolve("/playground/[id]", { id: entry.id })}
+      data-testid="card-name-{entry.id}"
+      tabindex={tabbable ? 0 : -1}
+      aria-label={label}
+      aria-describedby={descriptionId}
+      {onfocus}>{label}</a
+    >
+    <button
+      class="star"
+      class:on={favorite}
+      type="button"
+      data-testid="card-favorite-{entry.id}"
+      data-favorite={favorite ? "true" : "false"}
+      tabindex={tabbable ? 0 : -1}
+      aria-label={starName}
+      onclick={() => onfavorite?.(entry.id)}
+      {onfocus}>{favorite ? "★" : "☆"}</button
+    >
+  </div>
 
-    No `Enter` and no `Space` handler exists on it, here or in BrowseGrid: Enter
-    follows a link natively and hijacking it is the fastest way to break
-    middle-click and open-in-new-tab.
-  -->
-  <a
-    class="name"
-    class:unavailable
-    href={resolve("/c/[id]", { id: entry.id })}
-    data-testid="card-name-{entry.id}"
-    tabindex={tabbable ? 0 : -1}
-    aria-label={label}
-    aria-describedby={descriptionId}
-    {onfocus}>{label}</a
-  >
+  <p class="line type-micro">
+    <span class="term">{category}</span>
+    <span class="dot" aria-hidden="true">·</span>
+    <span class="term">{feel}</span>
+  </p>
 
   <!--
-    THE DISPLAY TRANSFORM, at its second and last render site. Radar's sentence
-    is vendored copy that may never be edited (05.1-UI-SPEC, Data corrections),
-    so the card shows a typographic apostrophe while listing.ts, front-door.ts
-    and the route's meta tags stay byte-equal to the vendored bytes. It is NOT
-    applied to the name, and NOT to `quiet`, which is HANGAR's own copy and is
-    already authored with U+2019.
+    THE DISPLAY TRANSFORM, at its render site. Radar's sentence is vendored
+    copy that may never be edited (05.1-UI-SPEC, Data corrections), so the
+    card shows a typographic apostrophe while listing.ts and the route's meta
+    tags stay byte-equal to the vendored bytes.
   -->
   <p class="description" id={descriptionId}>
     {typographic(entry.description)}
   </p>
 
-  <!--
-    One string, one source. `quiet` is DEMO_TOUCH_NOTE for the three restsBlack
-    entries that carry a demonstration gesture, and Trackpad's own sentence for
-    the fourth, which has no LED layer for a gesture to light. restsBlack is a
-    recorded fact asserted against frames.json in both directions. Typing any of
-    those sentences in here would be a second source for it.
-
-    THE LINE IS NOT DECORATION AFTER D-09, IT IS THE HONESTY. A card that
-    appears to animate on its own, when the pad in fact needs a finger, makes a
-    claim about somebody's hardware that is not true. The pad is showing what a
-    real finger would make it do, and this sentence is where it says so.
-  -->
-  {#if entry.restsBlack && entry.quiet !== undefined}
-    <p class="quiet">{entry.quiet}</p>
-  {/if}
-
-  <!--
-    THE METADATA BLOCK (19.1c, D-15 reference A). Three machine facts about this
-    configuration, + separated with one space either side, column-aligned, in
-    the mono stack at --color-ink-quiet: the catalog id, which is also this
-    card's address; the engine that renders its preview; and what the pad does
-    with nobody touching it. All three are read off the entry - no derivation,
-    no second source, and no specifier that reaches the compiler.
-
-    IT IS aria-hidden, AND THAT IS NOT A SHORTCUT. The anchor above already
-    carries the entry's name as its accessible name and its description as its
-    describedby target, and this block restates the id - which is the name in
-    lower case - the engine and the motion. Announced, it would be the same card
-    read a second time in machine words, on every one of thirty-six cards. It is
-    a register mark for the eye.
-
-    THE + IS U+002B WITH ONE SPACE EITHER SIDE and it is 13.0's second added
-    character, beside U+2212. It is markup furniture rather than copy: no string
-    in any copy module carries it, so the enumerations in
-    src/lib/catalog/copy.spec.ts and src/lib/tune/copy.spec.ts are unchanged -
-    which is stated here rather than left as a silence.
-  -->
-  <p class="meta" aria-hidden="true">
-    <span class="field">{entry.id}</span>
-    <span class="plus">+</span>
-    <span class="field">{entry.preview}</span>
-    <span class="plus">+</span>
-    <span class="field">{entry.motion}</span>
-  </p>
-
-  <ul class="tags" role="list">
-    {#each entry.tags as tag (tag)}
-      <li><span class="tag">{tag}</span></li>
-    {/each}
-  </ul>
+  <!-- The visible affordance, decorative for assistive technology: the link above is the control. -->
+  <span class="explore" aria-hidden="true"
+    >{EXPLORE} <span class="arrow">{ARROW}</span></span
+  >
 </li>
 
 <style>
   /*
-    A flex column, and the tag row's `margin-block-start: auto` is what makes a
-    row of cards line up: every card ends at the same line, so every pad in the
-    row starts at the same line whatever the descriptions do.
-  */
-  /*
-    THE CARD PAINTS THE WORKSPACE ITSELF. It used to be one of A-56's three
-    exceptions to a ground rule that painted the registration field between
-    the cards; the field and the rule went at 13-04 (D-09), and the declaration
-    stays because the card's ground is a fact 13-08's re-skin should read here
-    rather than inherit.
+    A flex column; the Explore box's `margin-block-start: auto` is what makes
+    a row of cards line up: every card ends at the same line whatever the
+    descriptions do. The card paints the workspace itself, as it has since
+    13-04 removed the registration field.
   */
   .card {
     position: relative;
     display: flex;
     flex-direction: column;
+    gap: 8px;
     list-style: none;
     cursor: pointer;
     background-color: var(--color-workspace);
   }
 
-  /* Micro: 12px / 600 / 1.2 / 0.18em, uppercase. 14.4px inside a 16px band. */
-  .featured {
-    block-size: 16px;
-    margin: 0 0 8px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ink);
-  }
-
-  /* The pad is square and as wide as the card. Never smaller than 260px. */
+  /* The preview is square and as wide as the card: the PDF's 390 x 390. */
   .pad-wrap {
     aspect-ratio: 1;
     inline-size: 100%;
-    margin-block-end: 16px;
+    margin-block-end: 8px;
   }
 
   /*
     PadFrame's root, reached through :global because the component exposes no
-    hover prop and its `hero` flag is the wrong lever - hero also adds the lime
-    bloom, and no browse card glows. Rest is --color-divider (the side-pad
-    treatment: a card is not a hero); hover and focus lift it to --color-boundary.
+    hover prop and its `hero` flag is the wrong lever - hero also adds the
+    bloom, and no card glows. Hover and focus lift the frame's boundary.
   */
   .card:hover .pad-wrap > :global(.pad),
   .card:has(.name:focus-visible) .pad-wrap > :global(.pad) {
@@ -297,25 +277,25 @@
     pointer-events: none;
   }
 
-  /* Phase 4's plate: 44px, 6px radius, --color-boundary, Heading 20px / 600. */
+  /* The name at the left, the star at the right edge, on one line. */
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* The PDF's ~24px name in the display face. The catalog's own case, uncased here. */
   .name {
-    display: grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
     min-block-size: 44px;
-    inline-size: 100%;
-    padding-inline: 16px;
-    border: 1px solid var(--color-boundary);
-    border-radius: 6px;
-    background: transparent;
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.01em;
-    text-align: center;
-    text-wrap: balance;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
     text-decoration: none;
     color: var(--color-ink);
-    transition: border-color 160ms ease-out;
   }
 
   /* The overlay. One link, one tab stop, and the whole card is clickable. */
@@ -325,18 +305,13 @@
     inset: 0;
   }
 
-  .card:hover .name {
-    border-color: var(--color-action);
-  }
-
   .name.unavailable {
     color: var(--color-ink-quiet);
   }
 
   /*
-    The ring is RELOCATED, never removed: drawn on the card at the 10px radius
-    so what a visitor sees matches the clickable area rather than a 44px plate
-    inside it (05.1-UI-SPEC, Accessibility Contract).
+    The ring is drawn on the card rather than on the 44px plate inside it, so
+    what a visitor sees matches the clickable area. No radius on it (D-01).
   */
   .name:focus-visible {
     outline: none;
@@ -345,95 +320,98 @@
   .card:has(.name:focus-visible) {
     outline: 2px solid var(--color-action);
     outline-offset: 4px;
-    border-radius: 10px;
   }
 
-  /* Body: 16px / 400 / 1.5. Quiet is COLOUR, never a smaller size. */
-  .description,
-  .quiet {
-    margin: 8px 0 0;
-    font-size: 16px;
+  /*
+    The star: a 44px box above the overlay so it can be pressed, borderless
+    and unfilled at rest, the action colour when set. A square, no radius.
+  */
+  .star {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    appearance: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 20px;
+    line-height: 1;
+    color: var(--color-ink-quiet);
+    cursor: pointer;
+    transition: color 140ms ease-out;
+  }
+
+  .star:hover {
+    color: var(--color-ink);
+  }
+
+  .star.on,
+  .star.on:hover {
+    color: var(--color-action);
+  }
+
+  .star:focus-visible {
+    outline: 2px solid var(--color-action);
+    outline-offset: 2px;
+  }
+
+  /* MODULATION · FLOWING: the micro role (11px, tracked, uppercase), quiet. */
+  .line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 6px;
+    margin: 0;
+    color: var(--color-ink-quiet);
+  }
+
+  /* The PDF's ~14px sentence, quiet. Never clamped. */
+  .description {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 14px;
     font-weight: 400;
     line-height: 1.5;
     color: var(--color-ink-quiet);
   }
 
   /*
-    Information, not controls, and visibly so: --color-divider against the
-    toolbar's --color-boundary, and 24.4px of height against its 44px.
+    The PDF's full-width outlined `Explore ↗`. A rectangle at the site's
+    44px floor beneath the PDF's 38; the boundary token at rest, the action
+    colour on hover because the whole card is the target it belongs to.
   */
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin: auto 0 0;
-    padding: 16px 0 0;
-    list-style: none;
-  }
-
-  /*
-    THE SEVENTH --font-mono USE ON THE SITE, AND A-44 REQUIRES THE ARGUMENT TO
-    BE MADE OUT LOUD RATHER THAN INHERITED. ColourPicker.svelte's own comment
-    spent the sixth and said in as many words that a seventh needs its case
-    made again, so here it is.
-
-    THE SIX BEFORE IT: BudgetMeter.svelte's two numeric columns, CopyLink.svelte's
-    link field, DeviceSlot.svelte's firmware numerals and Knob.svelte's integer
-    readout are Phase 5's four; Knob.svelte's forecast delta is 11.3's fifth;
-    ColourPicker.svelte's RGB triple is 10-10's sixth.
-
-    THE FIFTH AND THE SIXTH QUALIFY ON ONE HALF OF W-03's RULE AND THIS ONE
-    QUALIFIES ON THE OTHER. Theirs is "a number that changes as a pointer moves
-    and must not jitter horizontally" - and that argument does NOT describe this
-    block, which is static from the moment the card mounts and never changes at
-    all. Ours is the other half: MACHINE TEXT WHOSE COLUMNS MUST HOLD. Thirty-six
-    of these blocks stack in a grid, three fields each, separated by a character
-    that is only legible AS a separator when it lands in the same place on every
-    card. In a proportional face the pair
-    arc + padsim + animated and starfield + padsim + animated put their plus signs at two unrelated
-    offsets and the block reads as three cards' worth of noise; in a fixed
-    advance the fields are columns and the wall reads as a table. That is
-    reference A's device exactly, and it is a property of the STACK rather than
-    of any one card - which is why no single-card argument would have reached it.
-
-    tabular-nums is declared with no digit in the block today, and that is
-    deliberate rather than cargo: the fields are catalog tokens now, and the day
-    one of them carries a number the columns must not move on the day it
-    arrives rather than on the day somebody notices.
-
-    NO DIVIDER, NO BORDER, NO ZEBRA AND NO NEW --color-boundary USE (19.1d). The
-    column alignment carries the row. The block sits above the tag row on the
-    ink ladder's quiet rung and is separated from it by space alone.
-  */
-  .meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 8px;
-    margin: 8px 0 0;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 1.4;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-ink-quiet);
-  }
-
-  /* The separator, at the soft rung so the fields read before it does. */
-  .plus {
-    color: var(--color-divider);
-  }
-
-  /* Micro (title): 12px / 600 / 1.2 / 0.01em, sentence case, verbatim. */
-  .tag {
-    display: inline-block;
-    padding: 4px 8px;
-    border: 1px solid var(--color-divider);
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
+  .explore {
+    display: grid;
+    place-items: center;
+    margin-block-start: auto;
+    min-block-size: 44px;
+    padding-inline: 16px;
+    border: 1px solid var(--color-boundary);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 500;
     line-height: 1.2;
-    letter-spacing: 0.01em;
-    color: var(--color-ink-quiet);
+    color: var(--color-ink);
+    transition: border-color 140ms ease-out;
+  }
+
+  .card:hover .explore {
+    border-color: var(--color-action);
+  }
+
+  .arrow {
+    color: var(--color-action);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .star,
+    .explore {
+      transition: none;
+    }
   }
 </style>

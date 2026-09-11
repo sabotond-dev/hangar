@@ -1,4 +1,4 @@
-// The browse address: `/browse/?sort=name&q=ghost&for=drums&feels=generative`.
+// The browse address: `/playground/?sort=name&q=ghost&for=drums&feels=generative`.
 //
 // Two pure functions and a default. The page that uses them arrives in wave 8;
 // this is the half that can be tested in node, and D-16 is mostly a statement
@@ -14,7 +14,7 @@
 //     prerendering, and `utils/url.js:174-188` then defines `search` and
 //     `searchParams` as properties that THROW
 //     ("Cannot access url.searchParams on a page with prerendering enabled").
-//     `/browse/` is prerendered, so the page reads the address only behind a
+//     `/playground/` is prerendered, so the page reads the address only behind a
 //     `browser` guard, at component-init scope, and hands the result here. This
 //     module only ever sees a `URLSearchParams` somebody already had, which is
 //     also why it takes one rather than a URL or a string.
@@ -32,7 +32,7 @@
 //     sixteen Back presses. It is the same rule Phase 4's coverflow follows when
 //     it steps the row, and it is the reason rule 2 has no shallow history entry
 //     to disagree with. The page calls it from `$app/navigation`, composing
-//     `resolve("/browse/?" + serialiseBrowseQuery(...))` - `resolve()` accepts a
+//     `resolve("/playground/?" + serialiseBrowseQuery(...))` - `resolve()` accepts a
 //     pathname carrying a search string, so the call is lint-clean under
 //     `svelte/no-navigation-without-resolve` with no suppression and no cast.
 //
@@ -42,7 +42,7 @@
 // ruling W-12 makes for the two new parameters.
 //
 // IT IMPORTS ONE THING. No catalog, no `$app`, nothing under the vendor tree,
-// nothing that reaches the compile surface: `/browse/` is a prerendered page
+// nothing that reaches the compile surface: `/playground/` is a prerendered page
 // whose whole job is to list sixteen names, and a runtime edge from here to
 // `$lib/catalog/index` would drag the 131,101-byte protocol chunk onto its first
 // paint (D-12). The facet vocabulary AND the legacy table therefore arrive as
@@ -80,7 +80,7 @@ export type BrowseVocabulary = {
 };
 
 /**
- * The state a plain `/browse/` opens in. Frozen: it is handed straight back as
+ * The state a plain `/playground/` opens in. Frozen: it is handed straight back as
  * the seed on the server and on any address with nothing in it, so a caller
  * that mutated it would move the default for every later reader.
  */
@@ -197,7 +197,7 @@ export function parseBrowseQuery(
 /**
  * Write a browse view into an address, WITHOUT the leading `?`.
  *
- * The empty string for the default query, so a plain `/browse/` is the
+ * The empty string for the default query, so a plain `/playground/` is the
  * canonical entry and clearing every filter returns to it rather than leaving
  * `?sort=featured&q=` behind. The caller writes `?` only when this is non-empty.
  *

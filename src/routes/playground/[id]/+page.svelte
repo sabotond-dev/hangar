@@ -1,5 +1,7 @@
 <!--
-  /c/{id}/ - the same front door, opened on one configuration.
+  /playground/{id}/ - the same front door, opened on one configuration.
+  (At /c/{id}/ from Phase 5 until plan 13-08 moved it here under 13-CONTEXT
+  D-20, move-clean, content otherwise untouched; 13-09 rebuilds it in place.)
 
   It renders the very same FrontDoor component as /, so the two routes cannot
   drift apart, with two differences that are the whole point of the route:
@@ -17,17 +19,17 @@
   shelf plus a line saying so rather than a dead end.
 
   AMENDMENT (wave 9, D-08). The header slot itself is FrontDoor.svelte's, not
-  this route's, which is what keeps / and /c/{id}/ from drifting apart. What
+  this route's, which is what keeps / and /playground/{id}/ from drifting apart. What
   this route owns is the record's END OF LIFE: a browse return is written by
-  /browse/ on the way in and consumed by /browse/ on the way back, and if the
+  /playground/ on the way in and consumed by /playground/ on the way back, and if the
   visitor leaves for anywhere else it has to be forgotten here.
 
   THE RULE HAS TWO DELIBERATE EXCEPTIONS, and both of them are the point:
 
-    - /browse/ itself, because that is the record being USED, and /browse/'s own
+    - /playground/ itself, because that is the record being USED, and /playground/'s own
       onMount is what consumes it. Clearing it on the way out would delete the
       scroll offset a beat before the page that restores it asks for it.
-    - another /c/ route, because a visitor who came from browse and then stepped
+    - another /playground/<id>/ route, because a visitor who came from browse and then stepped
       or followed a link to a second configuration still came from browse. The
       way back is still true.
 
@@ -42,9 +44,9 @@
   callback in onMount and DELETES IT IN THE TEARDOWN - and the teardown runs
   while the new page renders, which is before client.js:2042 walks
   after_navigate_callbacks. A callback registered here therefore fires for a hop
-  from /c/euclid/ to /c/aurora/, where the component survives, and NEVER for the
+  from /playground/euclid/ to /playground/aurora/, where the component survives, and NEVER for the
   one departure it exists for. Observed on a served production build: with the
-  afterNavigate form, a history.go(-2) from /c/euclid/ past browse to the front
+  afterNavigate form, a history.go(-2) from /playground/euclid/ past browse to the front
   door left the record in place and the front door's slot then read BACK TO
   BROWSE - a way back to a view that had already been left. beforeNavigate fires
   while this component is still mounted, so it fires.
@@ -62,7 +64,7 @@
   entries and it read them out of FRONT_DOOR. It now exists for all sixteen and
   reads LISTING, so the seven hand-authored Lua configurations and Trackpad are
   reachable for the first time. A ROW entry still gets Phase 4's eight-pad ring,
-  byte for byte - /c/aurora/ does not move. An OFF-ROW entry gets a ONE-ENTRY
+  byte for byte - /playground/aurora/ does not move. An OFF-ROW entry gets a ONE-ENTRY
   ring, which src/lib/coverflow/slots.ts already handles (plan 05.1-04), so its
   page is about that configuration rather than about the shelf. Widening the
   ring to sixteen would change a signed-off route for no requirement (D-04).
@@ -105,10 +107,11 @@
   const OG_IMAGE_HEIGHT = "630";
   const TWITTER_CARD = "summary_large_image";
 
-  /* The two prefixes the record survives a departure to. Pathnames only - this
-     route is prerendered too, and page.url.search throws while it is. */
-  const DETAIL_PREFIX = "/c/";
-  const BROWSE_PATH = "/browse/";
+  /* The one prefix the record survives a departure to - the gallery and every
+     workspace live under it since 13-08 moved both here (D-20, move-clean).
+     Pathname only - this route is prerendered too, and page.url.search throws
+     while it is. */
+  const PLAYGROUND_PREFIX = "/playground/";
 
   /** undefined when the address names nothing in the catalog. */
   const listed = $derived(data.index === -1 ? undefined : LISTING[data.index]);
@@ -121,7 +124,7 @@
     The ring this page opens on.
 
     A row entry keeps Phase 4's eight-pad ring exactly as it shipped - no
-    behaviour on /c/aurora/ moves. A non-row entry gets a ONE-ENTRY ring, which
+    behaviour on /playground/aurora/ moves. A non-row entry gets a ONE-ENTRY ring, which
     src/lib/coverflow/slots.ts already handles (05.1-04): visibleWindow is [0],
     stepping is inert and the name plate renders no arrows. An address nobody
     has heard of falls to the shelf, which is the same picture / shows.
@@ -140,12 +143,14 @@
   const OPENING = FRONT_DOOR[0];
   const ogEntry = $derived(listed ?? OPENING);
   const ogUrl = $derived(
-    listed === undefined ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}/c/${listed.id}/`,
+    listed === undefined
+      ? `${SITE_ORIGIN}/`
+      : `${SITE_ORIGIN}/playground/${listed.id}/`,
   );
   const ogImage = $derived(`${SITE_ORIGIN}/og/${ogEntry.id}.png`);
   const ogImageAlt = $derived(ogAlt(ogEntry.name));
 
-  /** The session store, or undefined. /browse/ guards it exactly this way: a
+  /** The session store, or undefined. /playground/ guards it exactly this way: a
       property access on window.sessionStorage can itself throw in a browser
       configured to refuse storage, before return.ts's own try/catch gets a
       chance. */
@@ -162,14 +167,14 @@
      this is beforeNavigate rather than afterNavigate, and for what was observed
      when it was the other way round.
 
-     There is no check that the navigation is FROM /c/ - this callback only
+     There is no check that the navigation is FROM /playground/ - this callback only
      exists while this route's component is mounted, so it cannot fire anywhere
      else. */
   beforeNavigate((navigation) => {
     if (navigation.willUnload) return;
     const to = navigation.to?.url.pathname ?? "";
     if (to === "") return;
-    if (to.startsWith(DETAIL_PREFIX) || to.startsWith(BROWSE_PATH)) return;
+    if (to.startsWith(PLAYGROUND_PREFIX)) return;
     clearBrowseReturn(store());
   });
 </script>

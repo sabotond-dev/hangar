@@ -17,7 +17,7 @@
 // onConnection(), announce() and writeLock.
 //
 // WHY EXACTLY THREE STATIC `from` SPECIFIERS, AND WHICH THREE. The install
-// panel is on the first paint of `/c/{id}/`, and this store is reachable from
+// panel is on the first paint of `/playground/{id}/`, and this store is reachable from
 // it, so whatever this file names statically is on the cold load. Phase 4's
 // chunk guard (src/lib/config-shape.spec.ts test 13) matches specifier TEXT,
 // and install.spec.ts test 8 counts them:

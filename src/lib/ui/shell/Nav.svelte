@@ -91,6 +91,14 @@
     border-block-end: var(--nav-underline) solid var(--color-action);
   }
 
+  /* Section 13's narrow band: three items wrap on a phone rather than overflow (13-08). */
+  @media (max-width: 767.98px) {
+    .items {
+      flex-wrap: wrap;
+      gap: 0 24px;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .item {
       transition: none;

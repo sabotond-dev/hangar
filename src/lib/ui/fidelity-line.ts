@@ -2,7 +2,7 @@
 //
 // 44 characters since plan 10-03, 231 before it, and asserted
 // character-for-character, so two copies of it is one copy too many. It lived
-// inside FidelityLine.svelte until plan 05.1-08 put /browse/ on the screen - a second
+// inside FidelityLine.svelte until plan 05.1-08 put /playground/ on the screen - a second
 // page that has to state the same thing beneath its grid (05.1-UI-SPEC.md W-13)
 // - and a claim the site makes twice is a claim that can drift.
 //
@@ -40,6 +40,6 @@
  * It stays unconditional wherever it appears - a fidelity claim that only
  * turned up beside the pads that flatter it would not be one - and it still
  * appears in both of its two places, the coverflow's FidelityLine.svelte and
- * /browse/'s line beneath the grid.
+ * /playground/'s line beneath the grid.
  */
 export const FIDELITY_LINE = "Every pad here runs the firmware’s own code.";

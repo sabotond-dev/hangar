@@ -270,9 +270,9 @@ describe("the intro (src/lib/ui/intro.spec.ts)", () => {
     expect(back).toContain(RESUME_EYEBROW);
     expect(back).toContain(resumeLine(DRAFT.name, "12 minutes ago"));
     expect(back, "the card points at the draft's own address").toMatch(
-      /data-testid="start-resume"[^>]*|href="[^"]*\/c\/aurora[^"]*"[^>]*data-testid="start-resume"/,
+      /data-testid="start-resume"[^>]*|href="[^"]*\/playground\/aurora[^"]*"[^>]*data-testid="start-resume"/,
     );
-    expect(back).toMatch(/href="[^"]*\/c\/aurora\/?"/);
+    expect(back).toMatch(/href="[^"]*\/playground\/aurora\/?"/);
     // The second card is the same in both branches.
     expect(back).toContain('data-testid="start-sandbox"');
     expect(first).toContain('data-testid="start-sandbox"');

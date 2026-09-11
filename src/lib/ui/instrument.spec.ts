@@ -35,7 +35,7 @@
  * "the front-door register is everything inside .front-door; the instrument
  * register is everything that is not". As a statement about the rendered tree
  * that is false against what already ships, and provably so: src/routes/+page.svelte
- * and src/routes/c/[id]/+page.svelte both mount FrontDoor.svelte, whose root IS
+ * and src/routes/playground/[id]/+page.svelte both mount FrontDoor.svelte, whose root IS
  * .front-door, and FrontDoor.svelte mounts Coverflow.svelte, which mounts
  * ChosenPanel.svelte, TryOnDevice.svelte, CopyLink.svelte and
  * TuningRegion.svelte. So the panels, the tuning region and the whole device
@@ -288,17 +288,17 @@ const instrumentFiles = (): string[] =>
 /**
  * EVERY --font-mono USE ON THE SITE, BY FILE AND BY THE RULE THAT DECLARES IT.
  *
- * SEVEN, NOT SIX, AND THE NUMBER IS THE RULE (A-44). 5.2 said "six, and the
- * list is asserted" and was written before 10-10 shipped; 19.1c then called the
- * metadata block the sixth, which double-counted the picker's RGB triple. A-44
- * settles it at seven and requires the seventh's argument to be made OUT LOUD
- * rather than inherited, which CatalogCard.svelte's own comment does: the fifth
- * and the sixth qualify on W-03's "a number that changes as a pointer moves",
- * and the seventh qualifies on the other half - machine text whose columns must
- * hold - because it is static and never jitters at all.
+ * SIX SINCE PLAN 13-08, SEVEN BEFORE IT, AND THE NUMBER IS THE RULE (A-44).
+ * 5.2 said "six, and the list is asserted" and was written before 10-10
+ * shipped; 19.1c then called the metadata block the sixth, which
+ * double-counted the picker's RGB triple. A-44 settled it at seven and
+ * required the seventh's argument to be made OUT LOUD - CatalogCard.svelte's
+ * metadata block, machine text whose columns must hold. 13-08 rewrote the
+ * card to the Bible's page 2, which has no such block, so the seventh use
+ * left with it and the list is six again across five files.
  *
- * The list is what is asserted, not the count alone: a seventh use somewhere
- * else would keep the count right and still be a defect.
+ * The list is what is asserted, not the count alone: a use somewhere else
+ * would keep the count right and still be a defect.
  */
 const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
   ["BudgetMeter.svelte", "Phase 5", "the two numeric columns"],
@@ -310,11 +310,10 @@ const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
     "the integer readout, and the forecast delta",
   ],
   ["ColourPicker.svelte", "10-10", "the RGB triple - the sixth"],
-  ["CatalogCard.svelte", "10-13.1, 19.1c", "the metadata block - the seventh"],
 ];
 
-/** Seven uses across six files: Knob.svelte carries two of them. */
-const MONO_COUNT = 7;
+/** Six uses across five files: Knob.svelte carries two of them. */
+const MONO_COUNT = 6;
 
 const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   [
@@ -332,18 +331,16 @@ const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   ["BudgetMessage.svelte", "back-off", "Secondary - TURN IT DOWN"],
   ["MixTwo.svelte", "mix-two", "Secondary"],
   [
-    "BrowseToolbar.svelte",
-    "clear-filters",
-    "Secondary - a browse control, named here because 10.3's row is the device panel's five",
-  ],
-  [
     "Knob.svelte",
     "option",
     "word row - the WORD widget only; the swatch row is not a word",
   ],
   ["ColourPicker.svelte", "option", "word row - the knob selector"],
-  ["BrowseToolbar.svelte", "option", "word row - SORT"],
-  ["TagChip.svelte", "chip", "word row - the facet chips"],
+  // THREE ROWS LEFT AT 13-08 with the gallery's re-skin to the Bible's page
+  // 2: BrowseToolbar.svelte's SORT word row became a <select>, its Clear
+  // filters an outlined rectangle authored in its own rule, and
+  // TagChip.svelte draws the PDF's chip rectangle itself. The pill is the
+  // instrument register's shape; the gallery is no longer on it.
 ];
 
 /**
@@ -370,7 +367,7 @@ const QUIET: ReadonlyArray<readonly [string, string, string]> = [
  * so the omission is a ruling.
  *
  * FacetRow.svelte straddles the register line, which is the sharpest single
- * demonstration that the line is a class rather than a file list: on /browse/ it
+ * demonstration that the line is a class rather than a file list: on /playground/ it
  * renders TagChip.svelte, which is pilled, and on / it renders its own .link
  * members, which are not, because that row paints on the front door and nowhere
  * else.
@@ -378,7 +375,7 @@ const QUIET: ReadonlyArray<readonly [string, string, string]> = [
 const STRADDLES: readonly [string, string, string] = [
   "FacetRow.svelte",
   "link",
-  "the FOR row's link mode renders on the front door and on no other route (FrontDoor.svelte mounts it with an href), so its members stay in the front-door register while the same component's checkbox mode renders pilled chips on /browse/",
+  "the FOR row's link mode renders on the front door and on no other route (FrontDoor.svelte mounts it with an href), so its members stay in the front-door register; since 13-08 the checkbox mode's chips draw the Bible's rectangle themselves rather than wearing the pill, and neither member may wear it",
 ];
 
 describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
@@ -638,7 +635,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     const straddleSource = code(`${UI_DIR}/${straddler}`);
     expect(
       instrumentFiles().includes(straddler),
-      `${straddler} is not in the derived walk, and it must be: it renders pilled chips on /browse/`,
+      `${straddler} is not in the derived walk, and it must be: it renders the gallery's chips on /playground/`,
     ).toBe(true);
     for (const tag of openingTags(templateOf(straddleSource))) {
       const classes = classesOf(tag);
@@ -650,7 +647,14 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     }
   });
 
-  it("scan 5: the index form is furniture beside untouched strings, mono is a list of seven, and no row gained a rule", () => {
+  it("scan 5: the index form is retired with the Bible, mono is a list of six, and no row gained a rule", () => {
+    // ---- A-42's INDEX FORM IS RETIRED (plan 13-08, 13-CONTEXT D-01/D-05).
+    // 19.1f put a two-digit index and an em dash beside each facet caption on
+    // the gallery (`01 — FOR`). The Bible's page 2 draws one `Use` row with
+    // no ordinal, and the FEELS row is gone (D-11), so the form has no
+    // subject left. This scan used to hold the form's shape; it now holds
+    // the form ABSENT everywhere the old rule said it might appear, and the
+    // caption declarations unchanged in the file that owns them.
     const facet = code("src/lib/ui/FacetRow.svelte");
     const facetTemplate = templateOf(facet);
     const facetRules = rulesOf(styleOf("src/lib/ui/FacetRow.svelte", facet));
@@ -660,25 +664,33 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       facetRules.length,
       `FacetRow.svelte parsed into ${facetRules.length} rules`,
     ).toBeGreaterThan(4);
-    for (const cls of ["index", "dash", "caption"]) {
+    expect(
+      facetRules.some((rule) => rule.selector === ".caption"),
+      "FacetRow.svelte has no .caption rule - the row was renamed away and this scan is checking nothing",
+    ).toBe(true);
+    for (const cls of ["index", "dash"]) {
       expect(
         facetRules.some((rule) => rule.selector === `.${cls}`),
-        `FacetRow.svelte has no .${cls} rule - the index form was renamed away and this scan is checking nothing`,
-      ).toBe(true);
+        `FacetRow.svelte still declares a .${cls} rule - the index form was retired at 13-08 with the Bible's page 2, which has no ordinal beside its Use row`,
+      ).toBe(false);
     }
+    expect(
+      /<span class="index"|class="dash"/.test(facetTemplate),
+      "FacetRow.svelte still renders the index or the dash",
+    ).toBe(false);
+    expect(
+      facet.includes("index?: string"),
+      "FacetRow.svelte still takes an index prop",
+    ).toBe(false);
+    const toolbar = code("src/lib/ui/BrowseToolbar.svelte");
+    expect(
+      /index=/.test(toolbar),
+      "BrowseToolbar.svelte still hands its facet row an index",
+    ).toBe(false);
 
-    // ---- THE INDEX AND THE DASH ARE SIBLINGS, NEVER INSIDE THE STRING.
-    // `01 - FOR` written as one literal is a copy RETIREMENT, and 3.1's audit
-    // is closed at ten by A-30's rule: furniture beside a pinned string costs
-    // no amendment, a rewritten literal costs a named one with its spec
-    // rewritten. That is the whole reason A-42 exists.
-    const EM_DASH = String.fromCharCode(8212);
-
-    // THE CAPTION LITERALS ARE READ AT THEIR SOURCE, WHICH IS NOT THIS
-    // COMPONENT. FacetRow.svelte renders {caption}; the strings themselves are
-    // src/lib/browse/facets.ts's, one declaration shared with the front door's
-    // row, and that is where `01 - FOR` as one literal would be written. A scan
-    // that only read the markup would find an expression and report nothing.
+    // THE CAPTION LITERALS ARE UNCHANGED AT THEIR SOURCE. FACETS in
+    // src/lib/browse/facets.ts still declares the two captions the front door
+    // reads, byte for byte, with no furniture folded into either.
     const captions = [
       ...code("src/lib/browse/facets.ts").matchAll(/caption:\s*"([^"]*)"/g),
     ].map((match) => match[1]);
@@ -694,64 +706,29 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       ] as const) {
         expect(
           needle.test(caption),
-          `the facet caption ${JSON.stringify(caption)} carries ${what}. 19.1f's form is THREE ELEMENTS - a two-digit index, a real em dash in its own element, and THE CAPTION BYTE FOR BYTE UNCHANGED. Folding the index into the string is a copy RETIREMENT: 3.1's audit is closed at ten by A-30's rule, so a rewritten literal costs a named amendment with its spec rewritten, where furniture beside a pinned string costs nothing. That is the whole reason A-42 exists. It would also put the furniture inside the group's accessible name, so a screen reader would read the register mark before the facet.`,
+          `the facet caption ${JSON.stringify(caption)} carries ${what} - furniture folded into a pinned string`,
         ).toBe(false);
       }
     }
-
     const captionText = textBetween(facetTemplate, '<span class="caption"');
     expect(
       captionText,
       "FacetRow.svelte's caption element could not be read - the markup moved and the assertions below prove nothing",
     ).not.toBe("");
-    for (const [what, needle] of [
-      ["a digit", /[0-9]/],
-      ["a U+2014 EM DASH", /—/],
-      ["a U+002D HYPHEN-MINUS", /-/],
-    ] as const) {
-      expect(
-        needle.test(captionText),
-        `the caption element carries ${what}. 19.1f's form is THREE ELEMENTS - a two-digit index, a real em dash in its own element, and the caption byte-unchanged. Folding any of them into the string retires a pinned literal, and it also puts them inside the group's accessible name, so a screen reader would say the furniture before the facet.`,
-      ).toBe(false);
-    }
     expect(
-      facetTemplate.includes(`>${EM_DASH}<`),
-      "the em dash is not a real U+2014 alone in its own element - a hyphen standing in for a dash is 13.0's own prohibition, and a dash inside another element is not a sibling",
-    ).toBe(true);
+      /[0-9—-]/.test(captionText),
+      "the caption element carries a digit or a dash - the retired furniture came back inside the group's accessible name",
+    ).toBe(false);
 
-    // The index is TWO DIGITS and it is formatted where it is known, not here.
-    expect(
-      facet.includes("index?: string"),
-      "FacetRow.svelte's index is not an already-formatted string - a number prop would put the padding in this component, where the ordinal is not known",
-    ).toBe(true);
-    const toolbar = code("src/lib/ui/BrowseToolbar.svelte");
-    const indexed = /index=[{]String\(at [+] 1\)[.]padStart\(2, "0"\)[}]/.test(
-      toolbar,
-    );
-    expect(
-      indexed,
-      "BrowseToolbar.svelte no longer hands its facet rows a two-digit index derived from their position",
-    ).toBe(true);
-    for (const value of ["01", "02"]) {
-      expect(
-        value,
-        `the index ${value} is not two digits - 19.1f's form is a TWO-DIGIT index`,
-      ).toMatch(/^[0-9]{2}$/);
-    }
-
-    // ---- ON /browse/'s TWO FACET ROWS AND ON NOTHING ELSE (A-42).
-    // The front door mounts the same component in link mode with NO index, and
-    // no device component renders the form at all: 10.2 and A-23 forbid step
-    // numerals in the device flow, and on the chosen panel the regions ARE the
-    // sequence, so an index there would read as the instruction A-23 rules out.
+    // ---- THE FRONT DOOR's LINK ROW NEVER HAD AN INDEX, AND STILL HAS NONE.
     const frontDoor = code(FRONT_DOOR);
     expect(
       frontDoor.includes("<FacetRow"),
-      "FrontDoor.svelte no longer mounts a FacetRow, so the half of A-42 that says the form is on /browse/ and nowhere else has nothing to discriminate against",
+      "FrontDoor.svelte no longer mounts a FacetRow - the link-mode half of this scan has no subject (13-09 retires the page; until then it is here)",
     ).toBe(true);
     expect(
       /index=/.test(frontDoor),
-      "FrontDoor.svelte hands its FOR row an index. A-42 puts the form on /browse/'s two facet rows and on nothing else, and the front door's row is a set of destinations on a ceremonial page rather than a filter on a working one.",
+      "FrontDoor.svelte hands its FOR row an index. 10.2 and A-23 forbid step numerals in the device flow, and the form is retired everywhere since 13-08.",
     ).toBe(false);
     const numbered: string[] = [];
     for (const name of [
@@ -773,7 +750,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       "a device component renders the index form. 10.2 and A-23 forbid step numerals in the device flow: on the chosen panel the regions ARE the device sequence, so numbering them would read as an instruction rather than as a register mark.",
     ).toEqual([]);
 
-    // ---- --font-mono IS A LIST OF SEVEN, AND THE LIST IS THE ASSERTION.
+    // ---- --font-mono IS A LIST OF SIX, AND THE LIST IS THE ASSERTION.
     const carriers: string[] = [];
     let declarations = 0;
     for (const name of uiComponents()) {
@@ -786,7 +763,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     }
     expect(
       declarations,
-      `${declarations} rules across src/lib/ui/ declare var(--font-mono) and A-44 settles the count at ${MONO_COUNT}. 5.2's "six, and the list is asserted" was written before 10-10 spent the sixth on the picker's RGB triple; 19.1c then called the metadata block the sixth as well, which double-counted it. Seven is the number and the LIST below is what holds it - a seventh use somewhere else keeps the count right and is still a defect.`,
+      `${declarations} rules across src/lib/ui/ declare var(--font-mono) and A-44 settles the count at ${MONO_COUNT} since 13-08 retired the card's metadata block (seven before it). The LIST below is what holds it - a use somewhere else keeps the count right and is still a defect.`,
     ).toBe(MONO_COUNT);
     expect(
       carriers.sort(),
@@ -797,52 +774,28 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
         .sort(),
     );
 
-    // The seventh's own rule, by the properties 19.1c specifies.
+    // The card's metadata block is GONE with the Bible (13-08): no .meta
+    // rule, no mono use, no separator - the PDF's card carries one category,
+    // one tag, one sentence and Explore, and CatalogCard.svelte says so.
     const card = code("src/lib/ui/CatalogCard.svelte");
-    const meta = rulesOf(styleOf("src/lib/ui/CatalogCard.svelte", card)).find(
-      (rule) => rule.selector === ".meta",
-    );
     expect(
-      meta,
-      "CatalogCard.svelte no longer has a .meta rule - 19.1c's metadata block was renamed and the seventh mono use is somewhere this scan is not looking",
-    ).toBeDefined();
-    const metaDeclared = new Map(declarationsOf(meta?.body ?? ""));
-    for (const [property, value] of [
-      ["font-family", "var(--font-mono)"],
-      ["font-variant-numeric", "tabular-nums"],
-      ["color", "var(--color-ink-quiet)"],
-    ] as const) {
-      expect(
-        metaDeclared.get(property),
-        `the metadata block declares ${property} as ${JSON.stringify(metaDeclared.get(property))} rather than ${value} (19.1c)`,
-      ).toBe(value);
-    }
-    // U+002B WITH ONE SPACE EITHER SIDE, and the spaces are the gap rather than
-    // characters in a string - a separator element with a flex gap either side.
+      rulesOf(styleOf("src/lib/ui/CatalogCard.svelte", card)).find(
+        (rule) => rule.selector === ".meta",
+      ),
+      "CatalogCard.svelte still declares a .meta rule - 19.1c's metadata block was retired by 13-08 with the Bible's page 2",
+    ).toBeUndefined();
     expect(
-      /<span class="plus">[+]<\/span>/.test(templateOf(card)),
-      "the metadata separator is not a bare U+002B in its own element (19.1c). Inside a field it would be part of the text; as a sibling with a gap either side it is the one space the amendment asks for, on both sides, at every wrap.",
-    ).toBe(true);
-    expect(
-      metaDeclared.get("gap"),
-      "the metadata block's gap is not 0 8px, so the plus does not carry one space either side (19.1c)",
-    ).toBe("0 8px");
+      /<span class="plus">/.test(templateOf(card)),
+      "the metadata separator is still rendered on the card",
+    ).toBe(false);
 
-    // ---- 19.1d: NO DIVIDER, NO BORDER, NO ZEBRA, NO NEW --color-boundary USE was
-    // added to make a row read. Column alignment carries it.
-    for (const rule of [
-      meta,
-      ...rulesOf(styleOf("src/lib/ui/CatalogCard.svelte", card)).filter(
+    // ---- 19.1d went with the block: no .plus and no .field rule remains.
+    expect(
+      rulesOf(styleOf("src/lib/ui/CatalogCard.svelte", card)).filter(
         (r) => r.selector === ".plus" || r.selector === ".field",
       ),
-    ]) {
-      for (const [property] of declarationsOf(rule?.body ?? "")) {
-        expect(
-          property.startsWith("border"),
-          `the metadata block declares "${property}". 19.1d: column alignment carries the row, and no divider, border, zebra or new --color-boundary use is added to make one read. The two hairlines in region 6 stay because they were already structural and A-23 depends on the second one; this block adds none.`,
-        ).toBe(false);
-      }
-    }
+      "the metadata block's field rules are still declared on the card",
+    ).toEqual([]);
 
     // ---- THE CARD GRID IS NOT REPLACED, AND THE REFUSAL IS ASSERTED.
     // Reference C's dense tabular listing is a layout this plan explicitly does

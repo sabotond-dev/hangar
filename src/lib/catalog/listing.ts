@@ -485,11 +485,11 @@ export const LISTING: readonly ListingEntry[] = [
 ];
 
 /**
- * The entries that have an address - the ones with a real /c/<id>/ page.
+ * The entries that have an address - the ones with a real /playground/<id>/ page.
  *
  * Today that is every listed entry, and the point of the name is not the value
  * but the SINGLE DECLARATION. Four files need this set and each of them used to
- * decide it for itself: src/routes/c/[id]/+page.ts generates the pages,
+ * decide it for itself: src/routes/playground/[id]/+page.ts generates the pages,
  * scripts/gen-og.mjs renders one image per page, src/lib/og/build.spec.ts
  * asserts each page's og:image resolves, and e2e/artifacts.e2e.ts asserts the
  * deployed site serves it. Widen one of the four alone and the site ships pages

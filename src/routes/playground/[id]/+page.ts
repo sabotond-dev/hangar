@@ -3,7 +3,7 @@
 // `entries()` is what makes this a real prerendered page rather than a route
 // that only exists once JavaScript has run. vite.config.ts's
 // `prerender.entries: ["*"]` expands only routes with no required dynamic
-// parameter, so without this export the crawler would never visit /c/anything
+// parameter, so without this export the crawler would never visit /playground/anything
 // and adapter-static would emit no file.
 //
 // AMENDMENT (D-07, plan 05.1-05). This used to generate one page per FRONT_DOOR

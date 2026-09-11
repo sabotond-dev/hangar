@@ -573,7 +573,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // OWNERSHIP TRANSFERS AT onpreview (05.1-CONTEXT D-18). The consumer swaps
     // the engine into SimHost synchronously inside that callback and paints it
     // from there on, so an engine the tuner has published is not the tuner's to
-    // close. On /c/euclid/ the row is EUCLID ALONE, so before this rule the
+    // close. On /playground/euclid/ the row is EUCLID ALONE, so before this rule the
     // panel's own close button closed the Lua VM behind the only pad on the
     // page and blanked it. This is the node half of the proof; plan 05.1-11's
     // e2e is the browser half.

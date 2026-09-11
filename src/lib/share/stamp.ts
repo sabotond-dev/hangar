@@ -1,4 +1,4 @@
-// The stamp: the envelope `/c/<id>#z.<format><payload>`, HANGAR's own format
+// The stamp: the envelope `/playground/<id>#z.<format><payload>`, HANGAR's own format
 // letter for the Lua route, the entry-consistency check and the three landings.
 //
 // THE ENVELOPE. `STAMP_PREFIX` is `z.` and `STAMP_ALPHABET` is base THIRTY-TWO,
@@ -496,7 +496,7 @@ function decodeCompiler(entry: CatalogEntry, payload: string): Landing {
     rebuilt = applyKnob(rebuilt, knob, position);
   }
   // THE WHOLE GUARD. A stamp this entry's knobs cannot produce is not this
-  // entry's stamp. Deleting this line makes `/c/aurora/#z.pdial` render Dial.
+  // entry's stamp. Deleting this line makes `/playground/aurora/#z.pdial` render Dial.
   if (encodeStamp(rebuilt) !== payload) return UNREADABLE;
   return { kind: "restored", indices };
 }

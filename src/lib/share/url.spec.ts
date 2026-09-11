@@ -31,11 +31,11 @@ const stripComments = (source: string) =>
 describe("the share URL", () => {
   it("is the canonical trailing-slash path, with no fragment at the defaults", () => {
     // SHARE-01: a URL with no fragment IS the base configuration. And
-    // trailingSlash = "always" (src/routes/+layout.ts) makes /c/aurora/ the
+    // trailingSlash = "always" (src/routes/+layout.ts) makes /playground/aurora/ the
     // canonical path - resolve()'s slash-less form is not what a shared link
     // should carry.
     expect(shareUrl("aurora", undefined)).toBe(
-      "https://hangar.sabotond.workers.dev/c/aurora/",
+      "https://hangar.sabotond.workers.dev/playground/aurora/",
     );
     expect(shareUrl("aurora", undefined)).not.toContain("#");
     expect(shareUrl("aurora", undefined)).not.toContain("?");
@@ -45,7 +45,7 @@ describe("the share URL", () => {
   it("puts a stamp in the hash, exactly once, and never in the query string", () => {
     const url = shareUrl("aurora", "at7ghh1pv8j00");
     expect(url).toBe(
-      "https://hangar.sabotond.workers.dev/c/aurora/#z.at7ghh1pv8j00",
+      "https://hangar.sabotond.workers.dev/playground/aurora/#z.at7ghh1pv8j00",
     );
     expect(url.split("#"), "exactly one fragment separator").toHaveLength(2);
     // D-12: the hash, never the query string.
@@ -53,7 +53,7 @@ describe("the share URL", () => {
     expect(url.slice(url.indexOf("#") + 1)).toBe("z.at7ghh1pv8j00");
     // A Lua entry's format-x payload rides the same envelope.
     expect(shareUrl("euclid", "x5a1b2c3d")).toBe(
-      "https://hangar.sabotond.workers.dev/c/euclid/#z.x5a1b2c3d",
+      "https://hangar.sabotond.workers.dev/playground/euclid/#z.x5a1b2c3d",
     );
   });
 

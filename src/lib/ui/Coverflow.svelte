@@ -97,7 +97,7 @@
   }: {
     /**
      * The ring. Defaults to the front-door row, so / and every row entry's page
-     * are byte-for-byte what Phase 4 signed off. An off-row /c/{id}/ passes a
+     * are byte-for-byte what Phase 4 signed off. An off-row /playground/{id}/ passes a
      * ONE-ENTRY row: src/lib/coverflow/slots.ts is well defined at count 1 -
      * visibleWindow(c, r, 1) is [0], step(0, +/-1, 1) is 0, slotOffset(0, 0, 1)
      * is 0 - so a solo pad renders as the hero and stepping is inert. Widening
@@ -323,9 +323,9 @@
    * resolve() from $app/paths is what makes this line lint-clean:
    * svelte/no-navigation-without-resolve accepts an empty string or a resolve()
    * call as the first argument to replaceState, so NO suppression is needed
-   * here and none may be added. It resolves to /c/{id} without the trailing
+   * here and none may be added. It resolves to /playground/{id} without the trailing
    * slash that trailingSlash: "always" emits; the static host redirects
-   * /c/aurora to /c/aurora/ on a reload, and building a concatenated string the
+   * /playground/aurora to /playground/aurora/ on a reload, and building a concatenated string the
    * rule cannot type-check would be the worse trade.
    *
    * The current page state is carried through rather than reset to {}: stepping
@@ -337,7 +337,7 @@
    */
   function syncAddress(): void {
     if (!mounted) return;
-    replaceState(resolve("/c/[id]", { id: heroId() }), page.state);
+    replaceState(resolve("/playground/[id]", { id: heroId() }), page.state);
   }
 
   function stepBy(delta: number): void {
@@ -755,7 +755,7 @@
     landedId = id;
     landing = result;
     /*
-      A STAMPED LINK AUTO-CHOOSES; A BARE /c/<id> STILL LANDS UN-CHOSEN, exactly
+      A STAMPED LINK AUTO-CHOOSES; A BARE /playground/<id> STILL LANDS UN-CHOSEN, exactly
       as Phase 4 ships it. X-18: the whole content of a tuned link is what
       somebody moved, and the knobs are the only evidence of it - landing one on
       a closed panel would show the tuning and hide the tuner. The two landings

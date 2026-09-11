@@ -16,7 +16,7 @@
 // THE RING'S ADJACENCY RULE LOST ITS SUBJECT ON 2026-09-11 and its test was
 // deleted by name that day ("no two quiet pads are adjacent on the ring").
 // The ring ORDER below and src/lib/coverflow/slots.ts are deliberately NOT
-// removed here: Coverflow.svelte is still mounted on /c/{id}/ until 13-09
+// removed here: Coverflow.svelte is still mounted on /playground/{id}/ until 13-09
 // makes that route the workspace, and its two opening-window tests keep
 // their subject until then. 13-09 deletes the ring order's meaning, the
 // slots module and those two tests together with the coverflow.
@@ -156,7 +156,7 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
 ];
 
 /**
- * The membership list, still in the ring order the coverflow on /c/{id}/
+ * The membership list, still in the ring order the coverflow on /playground/{id}/
  * reads until 13-09 (see the header). Index 0 is that ring's opening centre
  * and the ring wraps, so index 7 is the first step LEFT from the opening. The
  * intro's hero is derived from this list by heroOf() below - the first member

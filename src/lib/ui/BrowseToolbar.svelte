@@ -1,111 +1,75 @@
 <!--
-  The browse toolbar: one search landmark holding the field, the sort, the two
-  facet rows, the clear control, the count and the page's only live region.
+  The gallery toolbar: PDF page 2's search row, sort select and one `Use`
+  chip row with the count at its right, plus the page's only live region.
 
-  EVERY WIDGET IN HERE IS ONE THE SITE ALREADY SHIPS. The sort control is Phase
-  5's word row verbatim: a role="radiogroup" over real <input type="radio"> in
-  <label>s, one tab stop, arrows that move AND select, 4px gaps, a 44px box with
-  12px inline padding. The site has one way of saying "this is the live value"
-  and reusing it costs no new pattern, no new accent use and no new keyboard
-  model. The only difference from a knob's row is the case: FEATURED and NAME
-  are uppercase because they are one-word page-control labels, and that is what
-  tells a visitor that NAME reorders the page while Major names a scale.
+  REWRITTEN FOR THE BIBLE BY PLAN 13-08; THE MACHINERY UNDERNEATH IS 10-07's.
+  The state, the address, the return record and the filter live in the page
+  and the pure modules under $lib/browse; this component renders controls and
+  reports presses. What changed is the chrome, and each change has a decision
+  behind it:
 
-  THE ROW IS TWO WORDS SINCE D-11, AND TWO IS HONEST. NEWEST went because
-  addedAt held three distinct values across thirty-six entries with twenty
-  sharing one, so the order produced a twenty-deep block in name order and
-  called it a ranking. A third order was considered (MOTION, animated first)
-  and refused as redundant: the FEELS row's `generative` and `still` answer
-  that question as a filter, which is the better shape.
+    - ONE FACET ROW, NOT TWO (13-CONTEXT D-11; the PDF has no Character
+      filter). The FEELS row is gone from the screen; the six FEELS terms
+      survive as card metadata. FacetRow.svelte renders ONCE here, and
+      browse-ui.spec.ts test 7 counts it. A FEELS term can still arrive in
+      the address (`?feels=` since A-20, or a mapped legacy `?tag=`) and it
+      still filters - the count line says the truth and `Clear filters`
+      clears it - but no chip is rendered for it. Stated, not hidden.
+    - THE SORT IS A <select> (PDF: `SORT BY` over `Featured`). CAT-02 is
+      unchanged in substance: Featured and Name, driven by BROWSE_SORTS, no
+      popularity metric, nothing faked. The words are the sort's own table,
+      exhaustive over BrowseSort, so a third order is a type error before it
+      is a missing option.
+    - THE CHIP ROW OPENS WITH `All` and continues with one chip per FOR term,
+      through the same FOR_LABELS record the rail reads, so a chip and its
+      rail row cannot carry two unrelated strings. If the row is too wide it
+      WRAPS rather than truncating (section 6: the actual matching count and
+      a way to clear each filter).
+    - THE COUNT SITS AT THE ROW's RIGHT END, as the PDF draws it.
+    - THE FIELD HAS THE PDF's PLACEHOLDER AND A REAL <label for>. The label
+      (`SEARCH CONFIGURATIONS`, 11px uppercase) stays visible while the
+      placeholder vanishes under typing, so the field is never nameless.
+      16px, because iOS Safari zooms the viewport when a text input smaller
+      than 16px takes focus.
 
-  THE OPTIONS ARE DRIVEN BY BROWSE_SORTS, never by literals in the markup,
-  so the control cannot offer an order the comparators do not implement. The
-  words come from a table keyed by BrowseSort, which is exhaustive over the type:
-  a third sort added to $lib/browse/sort makes this file a type error rather
-  than a control silently missing an option.
-
-  THE FIELD HAS A REAL <label for> AND NO PLACEHOLDER. A placeholder would say
-  the same word as the label and then vanish at the moment it was needed - while
-  a visitor is typing, which is exactly when a reminder of what the field does is
-  worth something. It is 16px because iOS Safari zooms the viewport when a text
-  input smaller than 16px takes focus; it is the second and last text input on
-  the site, and 05-UI-SPEC made the same declaration for the copy fallback field.
-
-  FILTERING IS SYNCHRONOUS ON EVERY KEYSTROKE. Sixteen entries cost nothing to
-  re-filter and a debounce there makes the grid feel broken - observed, with the
-  keystroke and the grid a character out of step. Only the announcement and the
-  address write are debounced, on one 500ms trailing timer.
+  FILTERING IS SYNCHRONOUS ON EVERY KEYSTROKE. Twenty-six entries cost nothing
+  to re-filter and a debounce there makes the grid feel broken - observed,
+  with the keystroke and the grid a character out of step. Only the
+  announcement and the address write are debounced, on one 500ms trailing
+  timer.
 
   ESCAPE IS BOUND ON THE FIELD, NEVER ON THE WINDOW. Phase 4 binds Escape to
   un-choosing the panel on a different route, and scoping this one to the field
-  is what keeps the two from ever colliding. Pressed anywhere else on the browse
-  page it does nothing at all.
+  is what keeps the two from ever colliding.
 
-  THE CHIPS COMBINE OR WITHIN A ROW AND AND ACROSS THE TWO (A-19), AND A CHIP
-  THAT WOULD RETURN NOTHING IS STILL A REAL disabled CHECKBOX. The first rule is
-  REQUIRED rather than conventional: FOR gives every configuration exactly one
-  term, so under a pure AND the second FOR chip would return zero and disable
-  itself for ever, and a row whose second click is always dead is not a row.
-  05.1-UI-SPEC W-04 said AND and was right about the data it was written
-  against - 32 of the 41 tags then shipped sat on exactly one configuration, so
-  a union would have made a second chip ADD one card. D-10 re-cut the vocabulary
-  and the argument inverted with it. disabledTags() closes the remaining gap
-  without printing a number on a chip, and TagChip.svelte carries the reason
-  beside the attribute.
-
-  THE STANDING ROWS ARE THE FACET MEMBERS, DECLARED, NEVER DERIVED (G-09).
-  FOR_TERMS then FEELS_TERMS, carried here as FACETS so the caption, the order
-  and the membership come from ONE declaration in $lib/browse/facets. The row
-  used to be "every tag two or more configurations carry", computed from
-  `entries` through chipTags(); that function is deleted and so is the branch
-  that needed it.
-
-  AND THE OUTSIDER CHIP RETIRED WITH THE DERIVATION. It rendered an active tag
-  that was not one of the standing chips after them, which is what made a shared
-  /browse/?tag=looper link removable rather than a filter with no visible
-  control. Nothing can produce an outsider now: the vocabulary is closed at
-  sixteen, so every active member is already in a standing row, and an unmapped
-  legacy value lands in the SEARCH FIELD instead of as a chip (G-10). The
-  outsider's job passed to the field's own CLEAR.
-
-  "MORE TAGS" WAS NEVER BUILT AND STILL IS NOT, and A-20 rules on it rather than
-  leaving it as an absence: sixteen chips in two labelled rows fit above the
-  grid at every width, so there is no disclosure and there never was one.
-  05.1-UI-SPEC W-19 proposed one; 05.1-CONTEXT D-15 beat it, and the closed
-  vocabulary removed the problem it was proposed for.
-
-  THE DISABLED SET IS DERIVED HERE, per row, through disabledTags() - which is
-  pure and pinned in node by filter.spec.ts, so nothing untestable moved into a
-  component. Its question narrowed with the semantics: a chip is dead only when
-  it would return zero given the OTHER row's active set, which makes it rare.
+  THE CHIPS COMBINE OR WITHIN THE ROW (A-19), AND A CHIP THAT WOULD RETURN
+  NOTHING IS STILL A REAL disabled CHECKBOX. The OR is REQUIRED rather than
+  conventional: FOR gives every configuration exactly one term, so under a pure
+  AND the second chip would return zero and disable itself for ever.
+  disabledTags() closes the remaining gap without printing a number on a chip:
+  given the query, a term that would empty the grid is disabled.
 
   THE COUNT IS THREE ELEMENTS DOING THREE JOBS, which is Phase 5's meter pattern
-  applied to a number. The visible line updates instantly and is aria-hidden. An
-  always-present visually-hidden expansion sits beside it in the DOM, is never a
-  live region, and is never behind a "has anything changed" flag: a visitor who
-  opens /browse/?q=ghost has fired no change event, so the live region has
+  applied to a number. The visible line updates instantly and is aria-hidden.
+  An always-present visually-hidden expansion sits beside it, is never a live
+  region, and is never behind a "has anything changed" flag: a visitor who
+  opens /playground/?q=ghost has fired no change event, so the live region has
   nothing to say, and that sentence is the only thing telling them they are
-  looking at four of sixteen rather than at the whole catalog. The live region is
-  the third thing, and it speaks once per settled change.
+  looking at four of twenty-six rather than at the whole catalog. The live
+  region is the third thing, and it speaks once per settled change.
 
   ONE LIVE REGION, AND IT CANNOT CHATTER. Exactly one visually-hidden
   aria-live="polite" aria-atomic="true" element, fired from a 500ms trailing
   timer - never per keystroke, never per tick, never per paint, never on scroll
   and never on an intersection. It is a setTimeout on the state and there is no
-  setInterval in this file, which is a prohibition a raw grep cannot check and a
-  comment-stripped scan can. Measured, by recording every write to the region:
-  typing g-h-o-s-t at 60ms produces ONE utterance through the timer and THREE
-  with the same write moved into the keystroke handler - three rather than five
-  because the last two characters leave the count at 1, so the sentence is
-  unchanged and the DOM is never written. A screen reader would be interrupted
-  mid-word twice for nothing.
+  setInterval in this file. The empty-result sentence it speaks is section 16's
+  own line, verbatim.
 
   FOCUS IS NEVER ORPHANED. Two controls here can vanish while holding focus, and
-  both move focus deliberately: the field's CLEAR returns it to the field, and
-  CLEAR FILTERS - which removes itself the moment it works - hands it to the
-  field too. CLEAR FILTERS clears the query and every tag and does NOT touch the
-  sort: a sort is a view preference, not a filter, and resetting it would undo
-  something the visitor did not ask to undo.
+  both move focus deliberately: the field's `Clear` returns it to the field, and
+  `Clear filters` - which removes itself the moment it works - hands it to the
+  field too. `Clear filters` clears the query, every chip and the library view,
+  and does NOT touch the sort: a sort is a view preference, not a filter.
 
   NO POPULARITY METRIC IS SHOWN OR FAKED. No like count, no view count, no
   "trending", no "most", no rank, and no bare number beside a tag that could be
@@ -113,10 +77,10 @@
   markup below it, which is why every structural scan over this file strips
   comments first.
 
-  The ninth token - Phase 5's over-budget alarm - appears nowhere on a browse
-  screen. It is scoped to the over-budget state of a 908-character meter, and no
-  meter exists here. Nothing on this page is monospaced either: the count changes
-  on a filter change rather than on a tick, so there is nothing to jitter.
+  NO RADIUS ANYWHERE (D-01): the field's 6px went with this rewrite and the
+  allowlist row with it; the select and the field declare zero explicitly
+  because the user-agent stylesheet would otherwise round them, and
+  e2e/radius.e2e.ts measures the computed value in both engines.
 
   It imports from $lib/browse and, for one erased type, from $lib/catalog/listing.
   Never $lib/catalog's index, never the compile surface: this toolbar takes its
@@ -126,8 +90,9 @@
 -->
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { FACETS, type FacetName } from "$lib/browse/facets";
+  import { FOR_TERMS, type FacetName } from "$lib/browse/facets";
   import { disabledTags, type ActiveFacets } from "$lib/browse/filter";
+  import { FOR_LABELS } from "$lib/browse/labels";
   import { BROWSE_SORTS, type BrowseSort } from "$lib/browse/sort";
   import type { ListingEntry } from "$lib/catalog/listing";
   import FacetRow from "./FacetRow.svelte";
@@ -137,6 +102,7 @@
     sort,
     q,
     active,
+    narrowed = false,
     showing,
     total,
     onsort,
@@ -150,6 +116,8 @@
     q: string;
     /** The active chips, one list per facet, each in activation order. */
     active: ActiveFacets;
+    /** Something outside this toolbar narrows the grid too (the rail's library view). */
+    narrowed?: boolean;
     /** How many configurations are showing, after filtering. */
     showing: number;
     /** The size of the unfiltered catalog. */
@@ -160,23 +128,27 @@
     onclear: () => void;
   } = $props();
 
-  /**
-   * The two page-control labels, verbatim from the copy contract.
-   *
-   * A Record keyed by BrowseSort rather than an array beside BROWSE_SORTS: the
-   * order comes from the module and the words come from a table the type system
-   * keeps exhaustive, so neither can silently fall out of step with the other.
-   * NEWEST left both tables in 10-07 (D-11) and left them as a TYPE ERROR
-   * first - which is the whole reason they are keyed by BrowseSort.
-   */
-  const SORT_LABELS: Readonly<Record<BrowseSort, string>> = {
-    featured: "FEATURED",
-    name: "NAME",
-  };
+  /* The PDF's strings, verbatim. */
+  const SEARCH_LABEL = "SEARCH CONFIGURATIONS";
+  const SEARCH_PLACEHOLDER = "Search names, gestures, and tags…";
+  const SORT_LABEL = "SORT BY";
+  const USE = "Use";
+  const ALL = "All";
+
+  /* HANGAR's, in the register, ledgered for 13-18. */
+  const CLEAR = "Clear";
+  const CLEAR_NAME = "Clear the search";
+  const CLEAR_FILTERS = "Clear filters";
+
+  /* Section 16's row for no results, verbatim. */
+  const NO_RESULTS =
+    "No configurations found. Try a different search or clear your filters.";
 
   /**
-   * The same two words in the case the live region says them in. A sentence
-   * is not a button label, so `Sorted by Featured.` never shouts.
+   * The sort's words, keyed by BrowseSort so the type system keeps the table
+   * exhaustive: a third order added to $lib/browse/sort is a type error here
+   * before it is an option silently missing from the select. `Featured` is
+   * the PDF's own value; `Name` is HANGAR's second order, sentence case.
    */
   const SORT_WORDS: Readonly<Record<BrowseSort, string>> = {
     featured: "Featured",
@@ -188,25 +160,17 @@
 
   /* One toolbar per page, so the wiring ids are constants rather than derived. */
   const FIELD_ID = "browse-search-field";
-  const SORT_CAPTION_ID = "browse-sort-caption";
+  const SORT_ID = "browse-sort-field";
 
-  /**
-   * The two rows and, per row, the members that would return nothing given the
-   * query and the OTHER row's active set. With nothing active and nothing typed
-   * both are empty by construction, so there is no special case for the opening
-   * state - and under the narrowed predicate a member is never dead merely
-   * because a sibling in its own row is on.
-   */
-  const rows = $derived(
-    FACETS.map((facet) => ({
-      facet,
-      blocked: disabledTags(entries, q, active, facet.name, facet.terms),
-    })),
-  );
+  /** The FOR members that would return nothing given the query. */
+  const blocked = $derived(disabledTags(entries, q, active, "for", FOR_TERMS));
 
-  /** CLEAR FILTERS exists only while there is a filter for it to clear. */
+  /** `Clear filters` exists only while there is a filter for it to clear. */
   const filtering = $derived(
-    q.length > 0 || active.for.length > 0 || active.feels.length > 0,
+    narrowed ||
+      q.length > 0 ||
+      active.for.length > 0 ||
+      active.feels.length > 0,
   );
 
   /** The one thing this component speaks. Everything else is said in the DOM. */
@@ -224,11 +188,9 @@
   let sortMoved = false;
 
   /**
-   * The field element, for the two places focus is moved deliberately: its own
-   * CLEAR, which removes itself, and CLEAR FILTERS, which does the same.
-   *
-   * A plain local rather than $state, the same as Coverflow.svelte's stage: the
-   * binding sits outside every {#if} in this file, and nothing renders from it.
+   * The field element, for the two places focus is moved deliberately. A
+   * plain local rather than $state: the binding sits outside every {#if} in
+   * this file, and nothing renders from it.
    */
   let field: HTMLInputElement | undefined;
 
@@ -238,11 +200,9 @@
   }
 
   /**
-   * Escape clears the query and keeps focus in the field.
-   *
-   * preventDefault because Chromium's own Escape handling on type="search"
-   * empties the element's value without telling this component about it, which
-   * would leave the field and the grid disagreeing about what was typed.
+   * Escape clears the query and keeps focus in the field. preventDefault
+   * because Chromium's own Escape handling on type="search" empties the
+   * element's value without telling this component about it.
    */
   function fieldKeys(event: KeyboardEvent): void {
     if (event.key !== "Escape") return;
@@ -250,13 +210,18 @@
     onquery("");
   }
 
-  /**
-   * The query and every tag, and never the sort. Focus goes to the field
-   * because this button removes itself the moment it works.
-   */
+  /** The query, every chip and the library view, and never the sort. */
   function clearFilters(): void {
     onclear();
     field?.focus();
+  }
+
+  /** The select's value, typed through the sort's own list rather than cast. */
+  function sortChanged(event: Event & { currentTarget: HTMLSelectElement }) {
+    const next = BROWSE_SORTS.find(
+      (option) => option === event.currentTarget.value,
+    );
+    if (next !== undefined) onsort(next);
   }
 
   // ---------------------------------------------------------------------------
@@ -272,7 +237,7 @@
       count instead of the count as it was at the first keystroke.
     */
     if (showing === 0) {
-      announcement = `No configurations match. CLEAR FILTERS brings back all ${total}.`;
+      announcement = NO_RESULTS;
       return;
     }
     const count = `${showing} of ${total} configurations.`;
@@ -280,13 +245,14 @@
   }
 
   /*
-    The one place the region is fed. It watches the sort, the query and the tags
-    - never `showing`, which is a consequence of them - and on the FIRST pass it
-    only remembers, because a visitor who has just arrived has changed nothing
-    and the hidden expansion has already told them where they are.
+    The one place the region is fed. It watches the sort, the query, the tags
+    and the library view - never `showing`, which is a consequence of them -
+    and on the FIRST pass it only remembers, because a visitor who has just
+    arrived has changed nothing and the hidden expansion has already told them
+    where they are.
   */
   $effect(() => {
-    const signature = `${sort}|${q}|${active.for.join(" ")}|${active.feels.join(" ")}`;
+    const signature = `${sort}|${q}|${active.for.join(" ")}|${active.feels.join(" ")}|${narrowed}`;
     if (spokenFor === undefined) {
       spokenFor = signature;
       spokenSort = sort;
@@ -301,8 +267,8 @@
   });
 
   onDestroy(() => {
-    // The house guard, in the form this component can state it: no effect runs
-    // on the server, so there is never a timer to clear after a server render.
+    // No effect runs on the server, so there is never a timer to clear after
+    // a server render.
     if (voiceTimer === undefined) return;
     clearTimeout(voiceTimer);
     voiceTimer = undefined;
@@ -310,124 +276,106 @@
 </script>
 
 <search class="toolbar" data-testid="browse-toolbar">
-  <div class="band">
-    <label class="caption" for={FIELD_ID}>SEARCH</label>
-
-    <div class="field">
-      <input
-        bind:this={field}
-        id={FIELD_ID}
-        data-testid="browse-search"
-        type="search"
-        enterkeyhint="search"
-        autocomplete="off"
-        spellcheck="false"
-        value={q}
-        oninput={(event) => onquery(event.currentTarget.value)}
-        onkeydown={fieldKeys}
-      />
-
-      <!--
-        CLEAR renders only while there is something to clear, so it is one of the
-        two controls on this screen that can vanish while holding focus. It hands
-        focus back to the field, which is where the visitor was.
-
-        The visible word stays CLEAR; the accessible name is "Clear the search",
-        because CLEAR on its own does not say what it clears once a screen reader
-        has moved past the SEARCH label.
-      -->
-      {#if q.length > 0}
-        <button
-          class="clear"
-          type="button"
-          data-testid="browse-search-clear"
-          aria-label="Clear the search"
-          onclick={clearQuery}
-        >
-          CLEAR
-        </button>
-      {/if}
+  <!-- The PDF's search row: the field, wide; the sort, at its right. -->
+  <div class="row">
+    <div class="search">
+      <label class="caption type-micro" for={FIELD_ID}>{SEARCH_LABEL}</label>
+      <div class="field">
+        <input
+          bind:this={field}
+          id={FIELD_ID}
+          data-testid="browse-search"
+          type="search"
+          enterkeyhint="search"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder={SEARCH_PLACEHOLDER}
+          value={q}
+          oninput={(event) => onquery(event.currentTarget.value)}
+          onkeydown={fieldKeys}
+        />
+        <!--
+          `Clear` renders only while there is something to clear, so it is one
+          of the two controls on this screen that can vanish while holding
+          focus. It hands focus back to the field, which is where the visitor
+          was. Its accessible name says what it clears.
+        -->
+        {#if q.length > 0}
+          <button
+            class="clear"
+            type="button"
+            data-testid="browse-search-clear"
+            aria-label={CLEAR_NAME}
+            onclick={clearQuery}
+          >
+            {CLEAR}
+          </button>
+        {/if}
+      </div>
     </div>
-  </div>
 
-  <div class="band">
-    <span class="caption" id={SORT_CAPTION_ID}>SORT</span>
-
-    <div
-      class="options"
-      data-testid="browse-sort"
-      role="radiogroup"
-      aria-labelledby={SORT_CAPTION_ID}
-    >
-      {#each BROWSE_SORTS as option (option)}
-        <label class="option pill" class:selected={option === sort}>
-          <input
-            class="sr-only"
-            type="radio"
-            name="sort"
-            value={option}
-            checked={option === sort}
-            onchange={() => onsort(option)}
-          />
-          <span class="word">{SORT_LABELS[option]}</span>
-        </label>
-      {/each}
+    <div class="sort">
+      <label class="caption type-micro" for={SORT_ID}>{SORT_LABEL}</label>
+      <div class="select-wrap">
+        <select
+          id={SORT_ID}
+          data-testid="browse-sort"
+          value={sort}
+          onchange={sortChanged}
+        >
+          {#each BROWSE_SORTS as option (option)}
+            <option value={option}>{SORT_WORDS[option]}</option>
+          {/each}
+        </select>
+      </div>
     </div>
   </div>
 
   <!--
-    TWO ROWS, FOR THEN FEELS, EACH ITS OWN LABELLED GROUP. The rows come from
-    FACETS, so their order, their captions and their membership are one
-    declaration in $lib/browse/facets rather than three things in this file that
-    can drift apart. There is no third row and no disclosure beneath them.
-
-    CLEAR FILTERS sits beside the rows rather than inside either: it is not a
-    term, and a button announced as part of a group labelled FOR would be one
-    more thing for a screen reader to sort out at the end of ten.
+    ONE ROW: `Use`, then `All`, then one chip per FOR term through FOR_LABELS,
+    and the count at the row's right end. It wraps; nothing here scrolls
+    sideways at any width.
   -->
-  {#each rows as row, at (row.facet.name)}
-    <div class="band">
-      <FacetRow
-        name={row.facet.name}
-        caption={row.facet.caption}
-        index={String(at + 1).padStart(2, "0")}
-        terms={row.facet.terms}
-        active={active[row.facet.name]}
-        blocked={row.blocked}
-        ontoggle={(term) => onfacet(row.facet.name, term)}
-      />
-    </div>
-  {/each}
+  <div class="row use">
+    <FacetRow
+      name="for"
+      caption={USE}
+      terms={FOR_TERMS}
+      labels={FOR_LABELS}
+      active={active.for}
+      {blocked}
+      all={{ label: ALL, onclear: () => onclear() }}
+      ontoggle={(term) => onfacet("for", term)}
+    />
+
+    <!--
+      Two of the count's three elements. The visible line is seen and hidden
+      from the accessibility tree; the expansion beside it is read and is
+      ALWAYS in the DOM, whether or not anything has changed. It carries
+      neither aria-live nor aria-hidden, and it is not inside an {#if}.
+    -->
+    <p class="count">
+      <span data-testid="browse-count" aria-hidden="true"
+        >{showing} of {total} configurations.</span
+      >
+      <span class="sr-only" data-testid="browse-count-expansion"
+        >Showing {showing} of {total} configurations.</span
+      >
+    </p>
+  </div>
 
   {#if filtering}
-    <div class="band clear-band">
+    <div class="row">
       <button
-        class="clear-filters pill"
+        class="clear-filters"
         type="button"
         data-testid="browse-clear-filters"
         onclick={clearFilters}
       >
-        CLEAR FILTERS
+        {CLEAR_FILTERS}
       </button>
     </div>
   {/if}
-
-  <!--
-    Two of the count's three elements. The visible line is seen and hidden from
-    the accessibility tree; the expansion beside it is read and is ALWAYS in the
-    DOM, whether or not anything has changed - it is the only thing that tells a
-    visitor arriving on a shared, already-filtered address how much of the
-    catalog they are looking at. It carries neither aria-live nor aria-hidden,
-    and it is not inside an {#if}.
-  -->
-  <p class="count">
-    <span data-testid="browse-count" aria-hidden="true"
-      >{showing} of {total} configurations.</span
-    >
-    <span class="sr-only" data-testid="browse-count-expansion"
-      >Showing {showing} of {total} configurations.</span
-    >
-  </p>
 
   <!-- The third element, and the page's only live region. -->
   <p
@@ -441,82 +389,87 @@
 </search>
 
 <style>
-  /*
-    Stacked bands, 16px apart - SEARCH, SORT, FOR, FEELS, and CLEAR FILTERS when
-    there is a filter to clear. Every band is label-over-control at every width:
-    Phase 5's rule that a word row always stacks, so its options get the full
-    content width to wrap into. Sixteen chips in two labelled rows fit above the
-    grid at every width, which is what makes A-20's "no disclosure" a fact about
-    layout rather than a preference.
-  */
   .toolbar {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .band + .band {
-    margin-block-start: 16px;
+  /* The PDF's rows: the field wide, the sort at the right; the chips left, the count right. */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px 24px;
   }
 
-  /* Micro: 12px / 600 / 1.2 / 0.18em, uppercase, quiet. 4px above its control. */
+  .search {
+    flex: 1 1 320px;
+    min-inline-size: 0;
+  }
+
+  .sort {
+    flex: 0 1 300px;
+  }
+
   .caption {
     display: block;
-    margin-block-end: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    margin-block-end: 8px;
     color: var(--color-ink-quiet);
   }
 
-  /* The positioning context for CLEAR, capped at the 480px field width. */
+  /* The positioning context for Clear. */
   .field {
     position: relative;
-    max-inline-size: 480px;
   }
 
   /*
-    Body 16px, and the 16px is the iOS zoom floor rather than a taste: a smaller
-    field zooms the viewport of every visitor on an iPhone the moment it takes
-    focus. The 64px of trailing padding reserves room for CLEAR so typed text
-    never runs under it.
+    Body 16px, and the 16px is the iOS zoom floor rather than a taste. The
+    trailing padding reserves room for Clear so typed text never runs under
+    it. A rectangle: the user-agent's search-field shape is refused.
   */
   .field input {
+    box-sizing: border-box;
     inline-size: 100%;
     min-block-size: 44px;
-    padding-inline: 16px 64px;
+    padding-inline: 16px 80px;
     border: 1px solid var(--color-boundary);
-    border-radius: 6px;
+    border-radius: 0;
+    appearance: none;
     background: transparent;
-    font-family: inherit;
+    font-family: var(--font-sans);
     font-size: 16px;
     font-weight: 400;
     line-height: 1.5;
     color: var(--color-ink);
   }
 
-  /* CLEAR is the only clear control on the field; the native one is removed. */
+  .field input::placeholder {
+    color: var(--color-ink-quiet);
+    opacity: 1;
+  }
+
+  /* Clear is the only clear control on the field; the native one is removed. */
   .field input::-webkit-search-cancel-button {
     display: none;
   }
 
+  /* Quiet: borderless, no fill, the ink on hover. */
   .clear {
     position: absolute;
     inset-block-start: 0;
     inset-inline-end: 0;
     display: grid;
     place-items: center;
-    inline-size: 44px;
+    min-inline-size: 44px;
     min-block-size: 44px;
-    padding: 0;
+    padding-inline: 12px;
     border: 0;
     background: transparent;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
     color: var(--color-ink-quiet);
     cursor: pointer;
     transition: color 160ms ease-out;
@@ -526,96 +479,74 @@
     color: var(--color-ink);
   }
 
-  /* Phase 5's word row: wraps, never scrolls, 4px gaps, a 44px floor. */
-  .options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-    min-block-size: 44px;
+  /* The select: a rectangle with a chevron drawn in the ink, never an image. */
+  .select-wrap {
+    position: relative;
   }
 
-  /*
-    SORT's word row takes the pill (10-UI-SPEC 19.1b): src/app.css carries the
-    border, the radius, the fill and the 24px inline padding, and the class on
-    the label above applies them. The 44px floor stays here, on both axes,
-    because it is this control's own.
-  */
-  .option {
-    position: relative;
+  .select-wrap::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: 18px;
+    inset-block-start: 50%;
+    inline-size: 8px;
+    block-size: 8px;
+    border-inline-end: 1px solid var(--color-ink-quiet);
+    border-block-end: 1px solid var(--color-ink-quiet);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  .sort select {
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    padding-inline: 16px 44px;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    appearance: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .sort select option {
+    background: var(--color-panel);
+    color: var(--color-ink);
+  }
+
+  .row.use {
+    align-items: center;
+  }
+
+  /* The count, right-aligned on the chip row, ~14px quiet as the PDF draws it. */
+  .count {
+    margin: 0 0 0 auto;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-ink-quiet);
+  }
+
+  /* Secondary: an outlined rectangle at the floor. */
+  .clear-filters {
     display: grid;
     place-items: center;
     min-inline-size: 44px;
     min-block-size: 44px;
-    cursor: pointer;
-  }
-
-  /*
-    The radio is visually hidden, so Phase 4's ring is drawn on the option - the
-    same relocation Knob.svelte makes. No control here is focusable without one.
-  */
-  .option:has(:focus-visible) {
-    outline: 2px solid var(--color-action);
-    outline-offset: 4px;
-  }
-
-  /* Micro: the selected option is accent under reserved-list entry 8. */
-  .word {
-    font-size: 12px;
-    font-weight: 600;
+    padding-inline: 16px;
+    border: 1px solid var(--color-boundary);
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ink-quiet);
-    transition: color 140ms ease-out;
-  }
-
-  .option:hover .word {
-    color: var(--color-ink);
-  }
-
-  .option.selected .word,
-  .option.selected:hover .word {
-    color: var(--color-action);
-  }
-
-  /*
-    CLEAR FILTERS is its own band beneath the two facet rows rather than a
-    trailing item inside one, which is the approved sketch's shape now that
-    there are two rows to trail: appended to FEELS it would read as a seventh
-    FEELS chip. Nothing here scrolls sideways at any width - every row wraps,
-    and overflow is never set on either axis.
-  */
-  .clear-band {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  /*
-    Phase 4's secondary button: a bordered box, Micro label, accent on hover -
-    and a bordered box is what the Secondary tier IS, so A-41's pill applies
-    here as surely as it does to PUT BACK or MIX TWO. 10-UI-SPEC 10.3's
-    Secondary row is the DEVICE panel's five controls by name and does not
-    reach a browse control, so this one is named in instrument.spec.ts scan 2's
-    own Secondary list with that reason: the amendment binds the TIER, and this
-    file's own comment has called this control Secondary since Phase 5. Leaving
-    it a 6px box directly under two rows of pills would have been the drift the
-    shared rule exists to stop, on the one surface this wave repaints.
-
-    The 44px INLINE floor arrives with the pill; this rule only ever had the
-    block one.
-  */
-  .clear-filters {
-    display: grid;
-    place-items: center;
-    min-block-size: 44px;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
     color: var(--color-ink);
     cursor: pointer;
     transition: border-color 140ms ease-out;
@@ -625,23 +556,9 @@
     border-color: var(--color-action);
   }
 
-  /*
-    Body, quiet, 16px above the chips. Quicksand and not monospaced: the count
-    changes on a filter change rather than on a tick, so there is nothing to
-    jitter and no fifth use of the mono stack to justify.
-  */
-  .count {
-    margin: 16px 0 0;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--color-ink-quiet);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .clear,
-    .clear-filters,
-    .word {
+    .clear-filters {
       transition: none;
     }
   }

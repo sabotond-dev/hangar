@@ -52,7 +52,7 @@ import { LISTING } from "../src/lib/catalog/listing";
 import { guarded } from "./poll";
 
 /** trailingSlash: "always" (src/routes/+layout.ts). Never without the slash. */
-const BROWSE = "/browse/";
+const BROWSE = "/playground/";
 
 const GRID = '[data-testid="browse-grid"]';
 const CARDS = `${GRID} > li`;
@@ -425,13 +425,8 @@ test.describe("the shelf on a phone engine", () => {
     );
 
     // THE SORT, which is what moves the <li> in the DOM.
-    await page
-      .getByTestId("browse-sort")
-      .getByText("NAME", { exact: true })
-      .click();
-    await expect(
-      page.getByTestId("browse-sort").locator('input[value="name"]'),
-    ).toBeChecked();
+    await page.getByTestId("browse-sort").selectOption("name");
+    await expect(page.getByTestId("browse-sort")).toHaveValue("name");
     await expect
       .poll(
         guarded(() => renderedIds(page), "the rendered card order"),
