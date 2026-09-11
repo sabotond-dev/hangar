@@ -35,18 +35,21 @@
 // of SONAR's decisions. TAKEN FROM sonar.ts VERBATIM, and named here so the
 // reuse is a statement rather than a resemblance:
 //
-//   - the arming callback, character for character: since plan 12-08 that is
-//     `local n=Q(s,i,e,x,y)if not n then return end`, the one call that
-//     replaced the blessed live filter, the per-contact last-cell guard and
-//     the fast-tap escape store - all three of which moved intact into
-//     src/lib/catalog/library.ts and gained hysteresis on the way. The reuse
-//     is still character for character, and both entries were re-fitted in the
-//     same plan for that reason;
+//   - the arming callback, character for character: since plan 12.1-03 that
+//     is `local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return
+//     end` - `Q`, the one call that replaced the blessed live filter, the
+//     per-contact last-cell guard and the fast-tap escape store (all three of
+//     which moved intact into src/lib/catalog/library.ts in 12-08 and gained
+//     hysteresis on the way), then `G` drawing the finger, then `R` re-lighting
+//     the centre. The reuse is still character for character, and both
+//     entries were re-fitted in the same plan each time for that reason;
+//   - the `R` at the head of the Setup, character for character (the 12.1-03
+//     paragraph below);
 //   - the layer split: armed cells on layer 1 in a fixed pink, the wave on
-//     layer 2 in @SWEEPC, and the centre on layer 0 in @SWEEPC, always lit,
-//     because layer 0 is the one layer neither the wave nor a touch writes
-//     (11-08's measured reason, and it is even more apt here - the centre is
-//     the emitter);
+//     layer 2 in @SWEEPC, and the centre on layer 0 in @SWEEPC, always lit.
+//     Until 12.1 layer 0 was the one layer neither the wave nor a touch wrote
+//     (11-08's measured reason); since 12.1-03 the finger is drawn there too,
+//     and the centre survives it because `R` re-lights it (below);
 //   - the pending list s.z: every note the Timer starts goes into it and the
 //     FOLLOWING fire releases the whole list before it plays anything, so a
 //     note is exactly one step long and nothing can hang;
@@ -144,25 +147,29 @@
 // after `padReady()`, at the corner lua-entries.sweep.spec.ts actually gates:
 //
 //                            Setup   free   Timer   free
-//   RGB444 picker corner       489    419     288    620
-//   at the defaults            489    419     286    622
-//   all-shortest declared      471    437     285    623
+//   RGB444 picker corner       592    316     288    620
+//   at the defaults            592    316     286    622
 //
-// RE-MEASURED BY PLAN 12-08, which is when they moved: the three rows above
-// read 579 / 281, 579 / 279 and 569 / 278 while the cell guard was inlined
-// here. Handing it to the library's `Q` returned 90 characters to the Setup and
-// `X(s,20)` took 7 from the Timer.
+// RE-MEASURED BY PLAN 12.1-03 in this tree under the pinned compressScript,
+// which is when the Setup last moved: +103 for the `R` definition at the head
+// (71 with its trailing space at the corner), the `G` call (26) and the `R`
+// call (6) - 489 / 419 and 489 / 419 on the two rows before it. Plan 12-08
+// had measured 489 / 419, 489 / 419 and (all-shortest declared) 471 / 437,
+// having handed the inlined cell guard to the library's `Q` for -90 on the
+// Setup and taken +7 on the Timer for `X(s,20)`; before 12-08 the rows read
+// 579 / 281, 579 / 279 and 569 / 278.
 //
 // Both events are fixed points of compressScript at every corner and pass
-// checkSyntax. SONAR's 469 / 289 at the same corner is the reference the plan
+// checkSyntax. SONAR's 572 / 289 at the same corner is the reference the plan
 // named; this card is twenty over it on the Setup - the compass walk with its
 // octave wrap, the half-bucket offset, and a three-digit default period - and
-// one under on the Timer. THE GAP IS UNCHANGED BY 12-08 and that is a check
-// rather than a coincidence: both entries lost the same 90 characters and
-// gained the same 7, because they carried the same guard. The first sketch,
-// indexing an eight-entry table straight by direction, measured 560 / 281
-// against the pre-12-08 shape and was withdrawn on the word table rather than
-// on cost.
+// one under on the Timer. THE GAP IS UNCHANGED BY 12-08 AND BY 12.1-03, and
+// that is a check rather than a coincidence: both entries lost the same 90
+// characters and gained the same 7 in 12-08, and gained the same 103 in
+// 12.1-03, because they carry the same guard, the same `R` and the same
+// finger. The first sketch, indexing an eight-entry table straight by
+// direction, measured 560 / 281 against the pre-12-08 shape and was withdrawn
+// on the word table rather than on cost.
 //
 // ---------------------------------------------------------------------------
 // THE TRAPS THIS ENTRY CONTAINS
@@ -202,12 +209,65 @@
 // in the round that named the fix rather than the symptom.
 //
 // THE FIX IS HYSTERESIS AND IT LIVES IN THE LIBRARY. `Q(s,i,e,x,y)` holds a
-// contact's cell until the finger leaves it by ~3.9 raw units - a seven-value
-// overlap band, 68..74, on the probe's own boundary - and returns a cell only
-// when it changed. The end test, the onset test and the dedup are inside it, so
-// the whole guard here is `local n=Q(s,i,e,x,y)if not n then return end` and
+// contact's cell until the finger leaves it by 45/64 of the local LED pitch
+// (since 12.1 the band is a fraction of the pitch, not a width; 12.1-CONTEXT
+// D-18) and returns a cell only when it changed. The end test, the onset test
+// and the dedup are inside it, so the whole guard here is `local
+// n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return end` and
 // `self.q={}` is gone. Re-testing `e` after the call would be doing the
 // library's job twice.
+//
+// ---------------------------------------------------------------------------
+// THE FINGER IS DRAWN WHERE IT IS, AND THE CENTRE SURVIVES IT ON EVERY PATH
+// (plan 12.1-03; 12.1-CONTEXT D-11, D-13, D-15)
+// ---------------------------------------------------------------------------
+//
+// `G(s,i,e,x,y,0,@SWEEPC)` after `Q`: the library's bilinear finger on LAYER
+// 0 in the sweep's own colour - the entry's colour where it has one (D-13),
+// a literal in the string rather than a new knob. Dead on an LED that LED
+// alone at peak; between two both dimly; in the middle of four all four. And
+// since 12.1 the cell `Q` returns IS the LED under the finger, because `Q`
+// and `G` both read the MEASURED sensor map (calibration.ts) through `U`, so
+// the point placed and the light agree by construction - the bench case (row
+// 1, column 7 zero-based) places cell 16 where the naive divisor lit the
+// corner. That is what "needs the touch detection framework" asked for.
+//
+// `Q` FIRST, THEN `G` (12.1-02's finding): on an onset `Q` expires the contact
+// itself, which reaches `E` and clears the block in `B[i]` through `V`. With
+// `G` written first that is the block `G` just drew, and a still finger reads
+// dark until its first MOVE; `Q` first clears the STALE block and `G` draws
+// the fresh one. Same characters either way.
+//
+// THE CENTRE DOT IS ON LAYER 0 TOO, AND `G` AND `V` NOW WRITE THAT LAYER. A
+// finger passing over cell 40 puts it in `G`'s 2x2 block - at a weight that
+// can be 0 - and every clear of that block through `V` writes phase 0 to it:
+// under `G` in this callback, and on EVERY EXPIRY through `E` (the Timer's
+// `X(s,20)` sweep of a contact that went quiet, a lost-lift re-press by the
+// same id, another contact landing on the held cell), where the plan-check
+// found the re-light missing. So this entry defines the library's release
+// convention, `R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,
+// 255)end`, at the head of the Setup, and `E` calls it AFTER `V` on every
+// expiry path while the callback calls it after `G`. It is idempotent, as `R`
+// must be (library.ts section 5: `Q` calls `E` on a contact's FIRST press
+// too), and it RE-COLOURS as well as re-lights, so an alert cannot take the
+// marker's colour either. The init-loop `local h=glag(0,40)glc(h,0,@SWEEPC,1)
+// glp(h,0,255)` stays as it was: it is the rest picture, and `R` is what puts
+// it back. lua-smoke.spec.ts drives both expiry paths over cell 40 and
+// asserts 40 at 255 in @SWEEPC after each.
+//
+// LAYER 0 IS THE FIRMWARE'S ALERT LAYER (grid_led.h:7), and that is why
+// neither the finger nor the marker is coloured once and left: grid_alert_all_
+// set rewrites layer 0's colour on every LED on a CONFIG write, on page-discard
+// completion, on a refused page change, on a TX overflow and at boot. `G`
+// re-asserts @SWEEPC on each of its four cells on every call and `R` on cell
+// 40 on every expiry and after every `G`, so the exposure is one flash and a
+// tint that heals on the next sample - audition row 25(j) asks the bench to
+// see it. There is no floor: `glc(...,1)` forces the layer's minimum to 0, so
+// a cell `V` clears is dark and the dark pad is as dark as it was.
+//
+// COST: +103 on the Setup, 489 -> 592 at the picker corner (the `R`
+// definition 71 with its trailing space, the `G` call 26, the `R` call 6),
+// nothing on the Timer; the map itself cost this entry nothing.
 //
 // PHASE 11 READ THE ROUND'S PRECISION COMPLAINTS AS FAST-TAP LOSS, AND THAT
 // READING WAS CORRECT FOR THE FIRMWARE AND WAS NOT THE COMPLAINT. Code 9 is a
@@ -232,19 +292,25 @@
 // PER CONTACT: the pending list s.z is keyed by the TIMER's own fire, not by a
 // finger, so an expiry forgets a stale cell and cannot cut a sounding note.
 //
-// WHAT THIS ENTRY DOES NOT TAKE FROM THE LIBRARY. NOT `R` - the release
-// convention is for entries that hold a note per contact, and s.z is not that;
-// `E` calls `R` only if the entry defined one, and none is defined here. NOT
-// `F` - a "light the finger's cell" helper DOES NOT EXIST: it shipped in the
-// planner's sketch with no caller and 12-07 dropped it, because an armed cell
-// toggling under the finger already is the feedback.
+// WHAT THIS ENTRY TAKES FROM THE LIBRARY BESIDES `Q` AND `X`, AND WHAT IT
+// DOES NOT. IT DEFINES `R` SINCE 12.1-03 - not for a note (s.z is keyed by the
+// Timer's fire, so an expiry never cuts one) but for the centre marker on
+// layer 0, which every block clear can take away (the 12.1-03 paragraph
+// above); 12-08's "NOT `R`" stood while nothing but the init loop wrote layer
+// 0. NOT `F` - a "light the finger's cell" helper DOES NOT EXIST: it shipped
+// in the planner's sketch with no caller and 12-07 dropped it. Its job is
+// `G`'s since 12.1-03: until then an armed cell toggling under the finger was
+// the only feedback, and the bench said it was not enough.
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 489, Timer 286; at the RGB444 picker
-// corner - the corner the 908 gate reads - 489 / 288, leaving 419 free on the
-// Setup and 620 on the Timer. Plan 12-08 moved both: -90 on the Setup where the
-// inlined guard left for the library, +7 on the Timer where `X(s,20)` arrived.
+// against the pinned minifier: Setup 592, Timer 286; at the RGB444 picker
+// corner - the corner the 908 gate reads - 592 / 288, leaving 316 free on the
+// Setup and 620 on the Timer. Plan 12.1-03 moved the Setup by +103 (`R`, the
+// `G` call and the `R` call; 489 before it), re-measured in this tree under
+// the pinned compressScript; plan 12-08 had moved both: -90 on the Setup where
+// the inlined guard left for the library, +7 on the Timer where `X(s,20)`
+// arrived.
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them.
 //
@@ -252,7 +318,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.a={}self.o={}self.v={}local t={@SCALE}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=math.max(math.abs(n%9-4),math.abs(n//9-4))local b=(math.atan(n//9-4,n%9-4)*41//1+16)%256//32 self.o[n]=@ROOT+t[b%#t+1]+b//#t*12 end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
+  "--[[@cb]]R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,255)end self.a={}self.o={}self.v={}local t={@SCALE}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=math.max(math.abs(n%9-4),math.abs(n//9-4))local b=(math.atan(n//9-4,n%9-4)*41//1+16)%256//32 self.o[n]=@ROOT+t[b%#t+1]+b//#t*12 end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
 
 const TIMER =
   "--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local k=(s.k or 0)%8 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";

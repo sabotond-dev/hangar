@@ -104,10 +104,36 @@
 // "still not precise", and that is the mechanism behind all of them.
 //
 // THE FIX IS HYSTERESIS AND IT LIVES IN THE LIBRARY. `Q` holds a contact's cell
-// until the finger leaves it by ~3.9 raw units - a seven-value overlap band,
-// 68..74, on the probe's own boundary - and returns a cell only when it changed.
-// The end test, the onset test and the dedup are all inside it; re-testing `e`
-// here would be doing the library's job twice.
+// until the finger leaves it by 45/64 of the local LED pitch (since 12.1 the
+// band is a fraction of the pitch, not a width; 12.1-CONTEXT D-18) and returns
+// a cell only when it changed. The end test, the onset test and the dedup are
+// all inside it; re-testing `e` here would be doing the library's job twice.
+// The callback opens `local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a
+// then return end` - `Q` first, then `G`, then the 8x8 guard.
+//
+// THE FINGER IS DRAWN WHERE IT IS, IN WHITE, ON LAYER 0 (plan 12.1-03;
+// 12.1-CONTEXT D-11, D-13). `G` is the library's bilinear finger: dead on an
+// LED that LED alone at peak, between two both dimly, in the middle of four
+// all four - and since 12.1 the cell `Q` returns is the LED under the finger,
+// because `Q` and `G` both read the MEASURED sensor map (calibration.ts)
+// through `U`, so the arm and the light agree by construction; the bench case
+// (row 1, column 7 zero-based - the user's "row 2 column 8") arms cell 16
+// where the naive divisor lit the corner. White is a literal, not a knob
+// (D-13). No init-loop colouring: `G` re-asserts the colour on each of its
+// four cells on EVERY call, because layer 0 is the firmware's ALERT layer
+// (grid_led.h:7) and grid_alert_all_set rewrites its colour on every LED on a
+// CONFIG write, on page-discard completion, on a refused page change, on a TX
+// overflow and at boot - a finger coloured once at init would stay grey,
+// purple or blue until the Setup re-ran; this one is wrong for one sample and
+// heals on the next. There is no floor: `glc(...,1)` forces the layer's
+// minimum to 0, so the ninth column and the bottom row are exactly as dark as
+// before under no finger. `Q` BEFORE `G` IS A FINDING (12.1-02): `Q`'s onset
+// self-expiry reaches `E`, which clears the block in `B[i]` through `V` -
+// written after `G` that is the block `G` just drew, and a still finger reads
+// dark until its first MOVE. +26 on the Setup, 394 -> 420 at the picker
+// corner; lua-smoke.spec.ts presses all 81 LED centres and asserts each
+// lights its own cell alone. Whether the sweeping column still reads as one
+// bar under the gradient is audition row 25's question.
 //
 // PHASE 11 READ THIS COMPLAINT AS FAST-TAP LOSS, AND THAT READING WAS CORRECT
 // FOR THE FIRMWARE AND WAS NOT THE COMPLAINT. Code 9 is a real coalesced
@@ -130,11 +156,12 @@
 // per contact: an early expiry forgets a stale cell, it does not cut a note.
 //
 // WHAT THIS ENTRY DOES NOT TAKE FROM THE LIBRARY. NOT `R` - the release
-// convention is for entries that hold a note per contact, and an expiry here
-// has nothing to release; `E` calls `R` only if the entry defined one. NOT `F` -
-// a "light the finger's cell" helper DOES NOT EXIST: it shipped in the planner's
-// sketch with no caller and 12-07 dropped it, because a cell toggling under the
-// finger already is the feedback.
+// convention is for entries that hold a note per contact or paint layer 0
+// outside `G`, and this one does neither; `E` calls `R` only if the entry
+// defined one. NOT `F` - a "light the finger's cell" helper DOES NOT EXIST: it
+// shipped in the planner's sketch with no caller and 12-07 dropped it. Its job
+// is `G`'s since 12.1-03: until then a cell toggling under the finger was the
+// only feedback, and the bench said it was not enough.
 //
 // WHAT THE REVERSAL COSTS: a swipe that crosses a cell twice toggles it twice,
 // so dragging back over your own stroke erases it. That is correct for a toggle
@@ -148,7 +175,9 @@
 //
 // THE TRAPS THIS ENTRY CONTAINS.
 //
-//   - F2Ieq on both coordinate divisions. x*9//128 and y*9//128 are floored; a
+//   - F2Ieq on every coordinate division. The cell arithmetic is the
+//     library's since 12-08 (`Q`, `U`, `W`, `G` all floor with `//`), and the
+//     two divisions left here, `a%9` and `a//9`, are integer on an integer; a
 //     fractional argument to a firmware call becomes 0, silently.
 //   - THE NOTE RANGE IS EIGHT WIDE. Row r plays @NOTE + r, so @NOTE + 7 must
 //     stay under 128 for every value of the knob. The largest is 60, and
@@ -182,12 +211,15 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 388 characters, Timer 258, both fixed
+// against the pinned minifier: Setup 414 characters, Timer 258, both fixed
 // points of compressScript and both accepted by checkSyntax. THE CORNER THE 908
-// GATE READS IS 394 / 260, leaving 514 free of 908 on the Setup and 648 on the
-// Timer, and the all-shortest corner a picker can reach is 381 / 257. Plan
-// 12-08 moved all six of those numbers: -85 on the Setup where the inlined
-// guard left for the library, +7 on the Timer where `X(s,20)` arrived.
+// GATE READS IS 420 / 260, leaving 488 free of 908 on the Setup and 648 on the
+// Timer, and the all-shortest corner a picker can reach is 407 / 257. Plan
+// 12.1-03 moved the three Setup figures by +26 for the `G` call (388 / 394 /
+// 381 before it), re-measured in this tree under the pinned compressScript,
+// and the Timer not at all. Plan 12-08 had moved all six before that: -85 on
+// the Setup where the inlined guard left for the library, +7 on the Timer
+// where `X(s,20)` arrived.
 //
 // THAT CORNER IS NOT THE ONE THIS HEADER USED TO QUOTE, and the correction is
 // plan 11-07's finding applied here. It read "391 / 253, leaving 517 free" -
@@ -198,12 +230,13 @@
 // rather than 517. Fifteen other hand-authored entries are still unchecked for
 // the same error; that is 11-16's row (f).
 //
-// THE 394 IN THAT PARAGRAPH AND THE 394 IN THE ONE ABOVE ARE A COINCIDENCE,
+// THE 394 IN THAT PARAGRAPH AND THE 394 IN THE ONE ABOVE WERE A COINCIDENCE,
 // and it is called out because two identical numbers eleven lines apart look
 // like a copy. 11-07 measured 394 BEFORE 11-08 added the inlined swipe guard,
 // which took the corner to 479; 12-08 handed that guard to the library and it
-// came back to 394. The entry costs today what it cost two plans ago, having
-// gained a per-contact dedup, hysteresis and an expiry sweep in between.
+// came back to 394, so for two plans the entry cost what it had cost before,
+// having gained a per-contact dedup, hysteresis and an expiry sweep in
+// between; 12.1-03's `G` call took it to 420.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // TWO SPACES WERE MEASURED OUT OF THE SETUP, not designed out. The readable
@@ -220,7 +253,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.p={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)";
+  "--[[@cb]]self.p={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)";
 
 const TIMER =
   "--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=s.k%8 s.k=k+1 local q=(k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end";

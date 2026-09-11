@@ -97,13 +97,15 @@
 // LEAVES IS NAMED. Three gestures were costed:
 //
 //   (a) CHOSEN - cell 40, one cell test on the onset edge. A press there is
-//       aimed at the middle of a shape the card already draws. THE HOLE: raw
-//       x and y in 57..71 map to it, so a press STARTING in cell 40 can no
-//       longer set rate 14..18 (of 1..32) at depth 56..70 (of 0..127) - the
-//       middle of both ranges. It is halved by the onset gating: a finger that
-//       presses anywhere else and DRAGS through the centre still sets both,
-//       because a MOVE sample never reaches the toggle. lua-smoke.spec.ts
-//       asserts exactly that.
+//       aimed at the middle of a shape the card already draws. THE HOLE: the
+//       raw points whose nearest calibrated LED is (4,4) map to it - x in
+//       55..74 and y in 58..75 on the measured knots (since 12.1-03, below;
+//       under the naive divisor it was x and y in 57..71) - so a press
+//       STARTING in cell 40 can no longer set rate 14..19 (of 1..32) at depth
+//       52..69 (of 0..127) - the middle of both ranges. It is halved by the
+//       onset gating: a finger that presses anywhere else and DRAGS through
+//       the centre still sets both, because a MOVE sample never reaches the
+//       toggle. lua-smoke.spec.ts asserts exactly that.
 //   (b) REJECTED - the whole 3x3 heart, a nine-times bigger target and a
 //       nine-times bigger hole: rate 11..21 and depth 42..84 unreachable from
 //       a press starting there, which is precisely where a user aiming for
@@ -166,8 +168,9 @@
 // drags outright, which loses the exact resume the extra seven characters were
 // meant to protect. AND IT IS NOT A JOB FOR THE TOUCH LIBRARY'S HYSTERESIS
 // (plan 12-07): that guard suppresses a MOVE that stays inside one CELL, and
-// this is not a cell question - cell 40 alone spans x 57..71, which is r 14 to
-// 18, five of the thirty-one rate steps. An in-cell wobble IS a real rate
+// this is not a cell question - cell 40 alone spans x 55..74 on the measured
+// map (57..71 under the naive divisor it had then), which is r 14 to 19, six
+// of the thirty-one rate steps. An in-cell wobble IS a real rate
 // change, so a cell-level guard would pass it straight through.
 //
 // THE KEEPER RE-ARM GAINED "or s.s<1", AND IT IS NOT DECORATION. The Timer's
@@ -193,6 +196,25 @@
 // controller is a constant 64 by design, and 11-09's amplitude test asserts
 // that ARC still sends there.
 //
+// THE STOP TAP TESTS THE CALIBRATED CENTRE THROUGH `N`, AND THE NAIVE DIVISOR
+// IS GONE FROM THIS ENTRY (plan 12.1-03; 12.1-CONTEXT D-11). The test was
+// `x*9//128+y*9//128*9==40`, which puts cell 40 at raw 57..71 on both axes
+// while the LED at (4,4) reads (64, 68) on the user's module and its
+// neighbours are 18 to 21 raw units away (calibration.ts, Probe C): a third
+// of a cell off, like every naive cell on the pad. It is now `N(x,y)==40` -
+// the library's nearest calibrated cell, `(U(x,KX)+32)//64+(U(y,KY)+32)//64*
+// 9`, with no hysteresis and no state, which is the right shape for a
+// press-time lookup on an onset edge (a hysteresis needs a held cell to
+// hold, and an onset holds nothing yet). ARC is `N`'s one caller today and
+// the reason it ships; 13-15's region lookup is the named second. The
+// thirteen characters returned (541 -> 528 at the picker corner) are the
+// first re-fit in 12.1 that got CHEAPER. A press at x = 56, y = 68 - one unit
+// past the midpoint between LED 3 and LED 4 - is column 3 to the naive
+// divisor and LED 4 to `N`, and lua-smoke.spec.ts asserts it stops the swirl.
+// ARC draws no finger: it is a drag surface whose picture IS the data, not a
+// cell instrument, so `G` has nothing to say here (D-11 names the eight
+// callers, and this is not one).
+//
 // THE ONSET EDGE IS "e==4 or e>8" AND IT IS CITED, NOT DERIVED. It is the
 // house spelling for "this contact STARTED", stage.ts ships it, and
 // src/lib/catalog/touch-guard.spec.ts is where the convention lives; the event
@@ -217,12 +239,15 @@
 // defaults by renderLua they are byte-identical to the canonical text measured
 // against the pinned minifier: both fixed points of compressScript and both
 // accepted by checkSyntax. AT THE RGB444 PICKER CORNER, which is the one the
-// 908 gate reads, this entry is Setup 541 of 908 (367 free) and Timer 275 of
-// 908 (633 free). Plan 11-09.1 measured it at 390 / 262 before its work and
+// 908 gate reads, this entry is Setup 528 of 908 (380 free) and Timer 275 of
+// 908 (633 free), re-measured in this tree under the pinned compressScript by
+// plan 12.1-03. Plan 11-09.1 measured it at 390 / 262 before its work and
 // spent +133 on the Setup and +13 on the Timer; plan 12-05 spent +18 more on
 // the Setup (523 -> 541) for the s.s gate on the rate branch, and nothing on
-// the Timer. At the DEFAULTS the same two events are 538 and 273.
-// src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those.
+// the Timer; plan 12.1-03 returned 13 on the Setup (541 -> 528) for
+// `N(x,y)==40`, and nothing on the Timer. At the DEFAULTS the same two events
+// are 525 and 273. src/lib/catalog/lua-entries.sweep.spec.ts asserts every
+// one of those.
 //
 // THE CORNER QUOTED ABOVE IS THE RGB444 PICKER CORNER, WHICH IS THE ONE THE
 // 908 GATE READS, and it was re-measured rather than inherited (plans 11-09
@@ -240,7 +265,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end if(e==4 or e>8)and x*9//128+y*9//128*9==40 then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)if s.s>0 then F(s.f)end end end gtt(0,20)";
+  "--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end if(e==4 or e>8)and N(x,y)==40 then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)if s.s>0 then F(s.f)end end end gtt(0,20)";
 
 const TIMER =
   "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end";
