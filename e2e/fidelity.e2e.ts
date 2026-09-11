@@ -27,10 +27,21 @@
 // RADAR - tried here first - is not: it failed at "expected 438, received 445".
 // DIAL is untouched by 11-04 and by 11-06 alike, at 646 / 55 on both sides.
 //
+// AMENDED BY PLAN 12.1-09 (2026-09-12), AND THE FIRST AXIS IS ASSERTED THE
+// OTHER WAY ROUND. Plan 12.1-08b put `state.touchLibrary` on all nine of
+// HANGAR's presets, so since then EVERY HANGAR card declares a state
+// divergence and no preset HANGAR owns shares a state with this fixture; the
+// stateDiverges(probed) === false assertion above was red on the tree from
+// 12.1-08b's commit (dbfb3e7), and 12.1-08b did not run this suite. The probe
+// now compiles BOTOR's own DIAL state - the vendored PRESETS array - through
+// $lib/pad's compileState and reports `shelf: "vendored"`, so the two sides
+// share the state by construction; this file asserts that field instead of
+// consulting divergence.ts. The second axis (the fixture predating 11-04) is
+// unchanged: DIAL is still the one preset clean on it.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { stateDiverges } from "../src/lib/catalog/divergence";
 
 const baseline = JSON.parse(
   readFileSync(
@@ -74,16 +85,17 @@ test.describe("the Lua formatter WASM resolves from the production build", () =>
     ).toBe("string");
     const probed: string = out.preset;
     expect(
-      stateDiverges(probed),
-      `the WASM probe compiles "${probed}" through $lib/pad, which resolves to ` +
-        `HANGAR's own nine, and HANGAR declares a state divergence for that ` +
-        `card in src/lib/catalog/divergence.ts. The lengths below would then ` +
-        `disagree with preset-baseline.json for a CATALOG reason and this test ` +
-        `would read as a broken WASM build. Point ` +
-        `src/routes/dev/fidelity/+page.svelte at a preset HANGAR does not ` +
-        `diverge on - the fixture is BOTOR's compiler's output and only means ` +
-        `something over a state both sides share.`,
-    ).toBe(false);
+      out.shelf,
+      `the WASM probe compiled "${probed}" from the ${JSON.stringify(out.shelf)} ` +
+        `shelf. Since plan 12.1-08b every one of HANGAR's nine carries ` +
+        `state.touchLibrary (a declared divergence in ` +
+        `src/lib/catalog/divergence.ts), so the lengths below would disagree ` +
+        `with preset-baseline.json for a CATALOG reason if the probe compiled ` +
+        `HANGAR's state, and this test would read as a broken WASM build. The ` +
+        `fixture is BOTOR's compiler's output over BOTOR's states; ` +
+        `src/routes/dev/fidelity/+page.svelte must compile the vendored ` +
+        `shelf's own state.`,
+    ).toBe("vendored");
     const fixture = baseline.presets[probed];
     expect(
       fixture,
@@ -91,6 +103,7 @@ test.describe("the Lua formatter WASM resolves from the production build", () =>
     ).toBeDefined();
     expect(out).toEqual({
       preset: probed,
+      shelf: "vendored",
       setupRawLength: fixture.setupRawLength,
       timerRawLength: fixture.timerRawLength,
       setupCompressedLength: fixture.setupCompressedLength,

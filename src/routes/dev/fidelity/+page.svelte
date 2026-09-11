@@ -24,7 +24,7 @@
 
   onMount(async () => {
     try {
-      const { compilePreset, costOf, measureLua } = await import("$lib/pad");
+      const { compileState, costOf, measureLua } = await import("$lib/pad");
       // DIAL AND NOT AURORA SINCE PLAN 11-06, AND THE SECOND CHOICE RATHER
       // THAN THE FIRST. compilePreset resolves through $lib/pad, which plan
       // 11-05 pointed at HANGAR's own nine, and e2e/fidelity.e2e.ts holds the
@@ -49,10 +49,27 @@
       //
       // DIAL is clean on both: untouched by 11-04 and untouched by 11-06, at
       // 646 / 55 on the fixture and on the compiler alike.
-      const built = await compilePreset("dial");
+      //
+      // THE STATE IS THE VENDORED SHELF'S SINCE PLAN 12.1-09 (2026-09-12).
+      // Plan 12.1-08b put `state.touchLibrary` - the measured knots - on all
+      // nine of HANGAR's presets, so every HANGAR card now diverges from
+      // BOTOR's state by declaration (src/lib/catalog/divergence.ts) and DIAL
+      // compiles to 592 through HANGAR's shelf against the fixture's 646. The
+      // fixture is BOTOR's compiler's output over BOTOR's states, so the probe
+      // compiles BOTOR's own DIAL state - the vendored PRESETS array, which
+      // plan 11-05 kept exported for exactly the fidelity fixtures - and still
+      // does it through $lib/pad's compileState, so the FOUND-05 gate is the
+      // one the browser build exercises. The `shelf` field says which state
+      // was compiled; e2e/fidelity.e2e.ts asserts it. compilePreset is no
+      // longer used here because it resolves to HANGAR's nine.
+      const { PRESETS: vendored } = await import("../../../vendor/botor/_pad");
+      const dial = vendored.find((p) => p.id === "dial");
+      if (!dial) throw new Error("the vendored shelf has no dial");
+      const built = await compileState(dial.state);
       const c = await costOf(built);
       out = JSON.stringify({
         preset: "dial",
+        shelf: "vendored",
         setupRawLength: built.setupLua.length,
         timerRawLength: built.timerLua.length,
         setupCompressedLength: await measureLua(built.setupLua),

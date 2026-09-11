@@ -1925,6 +1925,596 @@ same tree, **thirty-four**, with no vendored byte moved. The library, the third 
 re-fit are HANGAR's own files; `firmware-oracle.spec.ts` is byte-unedited since Phase 3 and green in
 every run above.
 
+## Phase 12.1's suites, measured at the gate
+
+**Every count below was observed on 2026-09-12 at the Phase 12.1 gate (plan 12.1-09)**, on the tree
+at `c305657` (clean apart from the user's three untracked root files), against a fresh production
+build, from three `vitest run --project server` runs whose per-file totals were read out of the
+runner's JSON reporter, one sweep, and the Playwright suite twice in five file chunks on fresh
+detached servers. `.planning/phases/12.1-gradient-touch/12.1-VALIDATION.md` carried a projected
+delta table, a per-file table and a nine-term chain from planning time, and a dated section
+(2026-09-11, D-26) that made the chain eleven terms; the tables here are the observations that
+replace them, and every disagreement is named in "Where the planner was wrong" below rather than
+corrected quietly. **Nothing in this section is hardware-verified**: no agent in Phase 12.1 connected
+to a ZONA, wrote to one or deployed. Probe C of 2026-09-11 was the user's, the sensor map the whole
+phase runs on is a measurement of that one unit, and every claim about touch below is subordinate to
+the twenty-eight audition rows and the eleven runbook rows that are still the user's.
+
+**This section is appended, and nothing above it is reflowed.** Phase 13 ran six more waves in the
+same tree while Phase 12.1 was open (13-08 to 13-13, interleaved between 12.1's eleven plans), and
+its own gate (13-20) appends beside this one. Where an earlier section of this document now states a
+stale count, the correction is listed by line under "Corrections to earlier sections, by line" and
+the line itself is left standing.
+
+### The tree this gate measured is shared, and the offset is stated once
+
+Phase 12.1's chains below run from the block observed at `91ab755` in **eleven** terms and end at
+**89 files / 926 tests / 78 e2e titles / 94 runs**. The tree at `c305657` reads **90 / 936 (+1 todo)
+/ 80 / 96**. The difference is Phase 13's, observed by name from each `13-NN-SUMMARY.md` and
+rebuilt from the runner's per-file JSON against a textual count of the same files at `91ab755`:
+
+| Plan  | files  | tests                                    | e2e titles | e2e runs | Where                                                                                                                                 |
+| ----- | ------ | ---------------------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 13-08 | +0     | +3                                       | +0         | +0       | `src/lib/ui/browse-ui.spec.ts` 6 to 9                                                                                                 |
+| 13-09 | −1     | **−9 by its parts, −11 as stated**       | +0         | +0       | `slots.spec.ts` deleted (−8), `front-door.spec.ts` 7 to 5, `aesthetic.spec.ts` 2 to 1, `tune-ui.spec.ts` 9 to 11                      |
+| 13-10 | −1     | −1                                       | +0         | +0       | `mix.spec.ts` deleted (−2), `surprise.spec.ts` 5 to 6, `tune-ui.spec.ts` −2 +2                                                        |
+| 13-11 | +0     | +3                                       | +0         | +0       | `device-ui.spec.ts` 13 to 16                                                                                                          |
+| 13-13 | +2     | +8                                       | +1         | +1       | `src/lib/store/transfer.spec.ts` (4), `collections.spec.ts` (4); `e2e/library.e2e.ts` (one chromium title)                            |
+| 13-12 | +1     | +6                                       | +1         | +1       | `src/lib/device/page-target.spec.ts` (4), `descriptors.spec.ts` 13 to 14, `device-ui.spec.ts` 16 to 17; `e2e/install.e2e.ts` 14 to 15 |
+| sum   | **+1** | **+10 by the files, +8 by the SUMMARYs** | **+2**     | **+2**   | 89 + 1 = 90; 926 + 10 = 936; 78 + 2 = 80; 94 + 2 = 96                                                                                 |
+
+**The two ends meet on every row, and the tests row meets only through a named document defect.**
+Summing the six Phase 13 SUMMARYs' stated terms gives `+3 − 11 − 1 + 3 + 8 + 6 = +8`, and
+`901 + 25 + 8 = 934`, two short of the observed 936. The per-file diff between `91ab755` and
+`c305657` (every changed spec listed above and in the 12.1 table below; the four `it.each` files -
+`golden-frames`, `preset-baseline`, `vendored-diff`, `format-parity` - unchanged at 11 / 20 / 15 / 3
+either end) sums to `+35 = 25 + 10`, and 13-09's own COUNTS line lists its parts as `+2 −8 −1 −2 =
+−9`. Its stated `−11` was measured as `910 → 899` against 12.1-01's close, and 12.1-01 had observed
+**906** at its start where 13-08 had left **904** - two of 13-09's in-flight `tune-ui.spec.ts` tests
+were already on disk uncommitted and inside 12.1-01's baseline, so 13-09's ladder figure counts them
+once inside the 910 it started from and once more in its −11. The term is **−9**; the sentence in
+`13-09-SUMMARY.md` that reads −11 is 13-20's to reconcile and is named here, not edited. Catalog,
+OG images, audition rows, runbook rows (13-12's one row is inside the eleven) and the sweep's `4 19`
+carry a Phase 13 offset of zero. `svelte-check` is provenance: 608 at `91ab755`, **627** at this gate,
+the +19 being Phase 13's +17 (13-08 +4, 13-09 −4, 13-10 −1, 13-11 +4, 13-13 +11, 13-12 +3) plus
+12.1-01's +2 (`calibration.ts`, `calibration.spec.ts`), which is 608 + 17 + 2 = 627 exactly. 13-20 rebuilds Phase 13's
+own totals; this section states the offset and does not own it.
+
+### The one file this phase created, and the two the gate does not count
+
+| File                                  | Tests | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/catalog/calibration.spec.ts` | **4** | the measured tables and their provenance (nine knots per axis, strictly increasing, the four corners within 2 of the product, `MEASURED` true, `runs: 1`, target 10 named as discarded); the rendered Lua literal `KX={1,13,29,46,64,85,100,120,126}KY={0,12,26,48,68,83,97,115,126}`; the forward map `sensorAt` at knots, midpoints and edges, hi-res x8; the TS twin of the Lua `U` integer, monotone and inverse at every LED (12.1-01) |
+| `src/lib/catalog/calibration.ts`      | —     | not a spec: the one place the map lives, imports nothing, which `svelte-check` counts (+1 with its spec) and `check-counts.mjs` does not                                                                                                                                                                                                                                                                                                    |
+
+`docs/CALIBRATION-PROBE.md` (the 483-character paste, re-measured canonical at 12.1-01) and
+`.planning/phases/12.1-gradient-touch/deferred-items.md` (started by 12.1-08a, extended by 12.1-08b
+and this gate) are the other two created files, and they are documents.
+
+### The files this phase touched without creating
+
+Observed from the green run's JSON; the `12.1-VALIDATION.md` per-file row beside each (its dated
+D-26 section where it moved a row), and every row agrees.
+
+| File                                                                                                    | Tests                         | Moved by                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `12.1-VALIDATION.md` said   |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `src/lib/sim/lua-smoke.spec.ts`                                                                         | 29 → **38**                   | 12.1-02 +3 (`G`'s cases on the measured knots, `E` and `X` clearing a block, `Q`'s band as a function of the table and the bench case), 12.1-03 +2 (the four sequencers at all 81 LED centres; ARC's stop through `N`), 12.1-04 +2 (the four tight Setups in their own colours; TRACKPAD's flash centre), 12.1-08a +1 (GHOST's key at LED (8,8) and not (7,7)), 12.1-08b +1 (`K` on the measured knots); the header count moved five times and reads THIRTY-EIGHT | 29 → 32 → 34 → 36 → 37 → 38 |
+| `src/lib/catalog/library.spec.ts`                                                                       | 3 → **6**                     | 12.1-02 +2 (both slots' costs and fixed points; the split rule), 12.1-08b +1 (`K`'s stamps every one a multiple of 6 landing on 0; `N` in the map's slot; `G` identical through `Z` and `Y`)                                                                                                                                                                                                                                                                      | 3 → 5 → 6                   |
+| `src/lib/sim/lua-host.spec.ts`                                                                          | 11 → **13**                   | 12.1-02 (the pair runs 255/6 as `self.tim` before 255/0 and again on restart; a host without `systemTimer` has no `G` and says so); 12.1-08b moved the two slots' name lists inside (+0)                                                                                                                                                                                                                                                                          | +2                          |
+| `src/lib/sim/touch.spec.ts`                                                                             | 8 → **9**                     | 12.1-05 (the `y` axis and hi-res through the knots; the first test rewritten in place)                                                                                                                                                                                                                                                                                                                                                                            | +1                          |
+| `src/lib/protocol/constants.spec.ts`                                                                    | 8 → **9**                     | 12.1-06 (the 255/6 default pinned against the package with no literal of it in `constants.ts`)                                                                                                                                                                                                                                                                                                                                                                    | +1                          |
+| `src/lib/transport/sequence.spec.ts`                                                                    | 12 → **13**                   | 12.1-06 (`SLOTS` as the single source; 255/4 never; 255/6 once and first; twenty-four key orders; the fixture round trip for four)                                                                                                                                                                                                                                                                                                                                | +1                          |
+| `src/lib/tune/model.spec.ts`                                                                            | 12 → **13**                   | 12.1-07 (+1: both halves for a Lua entry); 12.1-08b inverted two preset tests in place (+0)                                                                                                                                                                                                                                                                                                                                                                       | +1                          |
+| `src/lib/device/install.spec.ts`                                                                        | 23 → **24**                   | 12.1-07 (CLEAR four defaults and PUT BACK four originals in `SLOTS` order, the classifier on the first and third write); 12.1-08 and 12.1-08b moved assertions inside (+0)                                                                                                                                                                                                                                                                                        | +1                          |
+| `src/lib/device/snapshot.spec.ts`                                                                       | 8 → **9**                     | 12.1-07 (a v2 record read with the caller's default and `fromV2`, never overwritten; v3 round-trips four)                                                                                                                                                                                                                                                                                                                                                         | +1                          |
+| `src/lib/fidelity/lua-parity.spec.ts`                                                                   | 5 → **6**                     | 12.1-08b (the eight HANGAR presets under a finger, the compiler's Lua beside the library in wasmoon against a live `PadSim`, 36,936 records)                                                                                                                                                                                                                                                                                                                      | +1 (D-26)                   |
+| `src/lib/catalog/host-surface.spec.ts`                                                                  | **6** unchanged               | 12.1-02 (eighteen globals over both strings, `glp` / `glc` / `glim` admitted with their callers, `self:tim()` refused by the classifier), 12.1-08b (fifty sites, twenty-one names)                                                                                                                                                                                                                                                                                | unchanged                   |
+| `src/lib/catalog/audition.spec.ts`                                                                      | **4** unchanged               | `ROW_COUNT` 23 → 24 (12.1-01) → 25 (12.1-03) → 26 (12.1-04) → 27 (12.1-08a) → 28 (12.1-08b)                                                                                                                                                                                                                                                                                                                                                                       | unchanged                   |
+| `src/lib/device/wire-pin.spec.ts`                                                                       | **4** unchanged               | 12.1-07 (four frames, the first unasserted), 12.1-08 (both exports pinned to the wire), 12.1-08b (AURORA's two system frames pinned to the exports)                                                                                                                                                                                                                                                                                                               | unchanged                   |
+| `src/lib/device/install-copy.spec.ts`                                                                   | **6** unchanged               | 12.1-08 (`AMENDED_BY_THE_FOURTH_SCRIPT`; the four names in write order over three partials)                                                                                                                                                                                                                                                                                                                                                                       | unchanged                   |
+| `src/lib/device/page-target.spec.ts`                                                                    | **4** unchanged (13-12's)     | 12.1-07 (one key, `systemTimer: P.SYSTEM_DEFAULT_TIMER`)                                                                                                                                                                                                                                                                                                                                                                                                          | —                           |
+| `src/lib/sim/demo.spec.ts`                                                                              | **2** unchanged               | 12.1-05 (`cellToCoord` against `KX` / `KY`; the import surface admits exactly one runtime specifier)                                                                                                                                                                                                                                                                                                                                                              | unchanged                   |
+| `src/lib/sim/host.spec.ts`                                                                              | **21** unchanged              | 12.1-05 (three `cellToCoord` calls given their axis)                                                                                                                                                                                                                                                                                                                                                                                                              | —                           |
+| `src/lib/catalog/presets.spec.ts`                                                                       | **4** unchanged               | 12.1-08b (plan-id regex widened by name; `trailMs === 420` and the field asserted on all nine inside the walk)                                                                                                                                                                                                                                                                                                                                                    | —                           |
+| `src/lib/fidelity/vendored-diff.spec.ts`                                                                | **15** unchanged              | 12.1-08b (plan-id regex `^11-[0-9]{2}$\|^12\.1-08b$`)                                                                                                                                                                                                                                                                                                                                                                                                             | —                           |
+| `src/lib/catalog/frames.spec.ts`                                                                        | **5** unchanged               | the fixture regenerated by 12.1-05 and 12.1-08a and byte-identical both times; proved unmoved by 12.1-03, 12.1-04 and 12.1-08b                                                                                                                                                                                                                                                                                                                                    | —                           |
+| `src/lib/tune/ladder.spec.ts`, `surprise.spec.ts`, `knobs.preset.spec.ts`, `reachability.sweep.spec.ts` | 5 / 6 / 7 / (sweep) unchanged | 12.1-08b (DIAL's reserve 300 → 354 in three specs; the calibrated zone needle; the NINE PADS margin literal 271 → 260 with the reason)                                                                                                                                                                                                                                                                                                                            | —                           |
+
+The vendored suites in the quick run: `tests/pad.test.js` **176** and `tests/pad-sim.test.js`
+**96**, unchanged and unedited through the one phase that edited the two files they test;
+`tests/pad-invariants.test.js` **9** in the sweep, unchanged.
+
+### The standing gates, re-read at the gate rather than assumed
+
+`src/lib/fidelity/firmware-oracle.spec.ts` **7 + 1 todo**, green in all three quick runs and
+**byte-unedited since `b3a554d` (Phase 3)** - `git diff --quiet b3a554d HEAD` exits 0 - through a
+phase that edited the vendored compiler and simulator for the first time since 11-04, under sixteen
+declared rows, and left `ledTick` (`pad-sim.ts:893-900`) at the same sha256 `3640e585…` 12.1-08b
+recorded either side of its edit. `src/lib/fidelity/preset-baseline.json` `187c31fc…`,
+`golden-frames.json` `bf54f15c…` and `src/lib/catalog/frames.json` `9f9cd666…` byte-unchanged by
+`sha256sum -c` against 12.1-08b's record (and 12.1-05's / 12.1-08a's for the third).
+`lua-parity.spec.ts` **6**; `golden-frames.spec.ts` **11**; `preset-baseline.spec.ts` **20**;
+`vendored-diff.spec.ts` **15** at 6 files / **38** rows; `decay-idiom.spec.ts` **3**,
+`KNOWN_VIOLATIONS` still empty and **blind to a `D(` call and now to a `K(` call** (below);
+`protocol-pin.spec.ts` **5**, `forbidden-instructions.spec.ts` **5**, green and byte-unchanged (255/6 is a
+`CONFIG` class the eight-builder gate already admits, 12.1-06); `format-parity.spec.ts` **3**;
+`paint.spec.ts` **5**; `lazy.spec.ts` **3**; `licence-notices.spec.ts` **7**; `ready.spec.ts` **6**;
+`touch-guard.spec.ts` **3**; `host-surface.spec.ts` **6**.
+
+### e2e
+
+| File                  | Titles                       | What moved                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/install.e2e.ts`  | **15** (14 → 15 was 13-12's) | 12.1-08: every count of three inside the titles became four - `CONFIG/FETCH` 4 per connect, six frames per connect, four acknowledged writes per RAM leg in `SLOTS` order, the refetch round four, the partial six not seven, the unplug at the seventh frame decoding as 255/6, CLEAR four defaults; `MODULE_SYSTEM_TIMER` in the fixture; +0 titles |
+| `e2e/session.e2e.ts`  | **14**                       | 12.1-08: `onlyReads` polls `4 * connects` in `SLOTS` order and the Setup fetch is the last config chunk; five comments; +0 titles                                                                                                                                                                                                                     |
+| `e2e/fidelity.e2e.ts` | **2**                        | **this gate (Rule 1)**: the probe compiles the VENDORED shelf's DIAL and reports `shelf: "vendored"`, asserted instead of `stateDiverges(probed) === false`, which had been red since 12.1-08b's commit (below); +0 titles                                                                                                                            |
+
+Per file at the gate: `artifacts` 3, `browse-webkit` 4, `browse` 12, `catalog` 2, `fidelity` 2,
+`first-experience` 5, `install` 15, `library` 1, `radius` 1, `session` 14, `skeleton` 2, `smoke` 4,
+`tuning-webkit` 5, `tuning` 10 - `cat e2e/*.e2e.ts | grep -c "test("` reads **80**.
+`npx playwright test --list` reads **96 tests in 14 files** = 80 chromium + 16 `@webkit` titles run a
+second time by `webkit-phone`. Phase 12.1's own e2e chain is 78 → 78 / 94 → 94 (eleven zeros,
+written out); Phase 13's +2 / +2 (13-13's library title, 13-12's install title) takes the tree to
+80 / 96.
+
+**Two plans ran the suite, as the validation document scheduled**: 12.1-08 (96 twice, in chunks)
+and this gate (below). Every other plan proved `+0 / +0` with `grep -c "test("`; 12.1-08b did so
+and **did not run the suite**, and the red it left in `fidelity.e2e.ts` is the reason a declared
+zero on titles is not a proof about the run.
+
+### The gate's runs, with the memory beside each
+
+The machine had **0.2 GB of 16 GB available** when the gate started (the user's desktop with a
+browser, editor sessions and a chat client open; no stale runner, no stale `wrangler` - checked
+before the first command) and between 0.17 and 1.49 GB at the start of each command. Every reading
+below is one reading; the transients are named, not averaged away.
+
+| Command                                                                   | Available at start                  | Result                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run build` (1)                                                       | 0.23 GB                             | clean, **33 s wall**; `gen-og.mjs` **26** images, **154,136 B**, every one sha256-identical to the render on disk before it (12.1-08b's), `ghost.png` 5,234 B; `postbuild` archived the source at `c305657` (2,024 KB)                                                                                                                                 |
+| `npm run check`                                                           | 0.24 GB                             | **627 files, 0 errors, 0 warnings**, 14 s                                                                                                                                                                                                                                                                                                              |
+| `npm run lint`                                                            | 0.63 GB                             | clean (prettier + eslint), 28 s                                                                                                                                                                                                                                                                                                                        |
+| `npx vitest run --project server` (1, default workers)                    | 1.0 GB                              | **3 failed, 933 passed, 1 todo** - all three in `install.spec.ts`, all three `timed out waiting for identification`: "the snapshot is taken at connect, in order, before ready", "a serial that is not answered degrades to a session-only snapshot", "an empty fetched string is snapshot-failed, and everything stays disabled"; 39 s                |
+| `… --maxWorkers=2 --reporter=json` (2)                                    | 0.26 GB                             | **90 files / 936 passed / 1 todo**; `check-counts.mjs 90 936` matches; 49 s; the per-file table above is this run's JSON                                                                                                                                                                                                                               |
+| `… --maxWorkers=2` (3)                                                    | 0.41 GB                             | **90 / 936 / 1 todo**; `check-counts.mjs 90 936` matches; 45 s                                                                                                                                                                                                                                                                                         |
+| `install.spec.ts` alone                                                   | 0.74 GB                             | **24 passed** in 5 s                                                                                                                                                                                                                                                                                                                                   |
+| `npm run test:sweep`                                                      | 0.28 GB                             | **4 files / 19 tests**, **104 s wall**; `check-counts.mjs 4 19` matches                                                                                                                                                                                                                                                                                |
+| `npm run build` (2, after the fidelity fix)                               | 0.47 GB                             | clean, 17 s; the same 26 images, byte-identical                                                                                                                                                                                                                                                                                                        |
+| e2e run 1, chunk 1 (`install`, `session`)                                 | 0.25 GB                             | 34 runs: **33 passed, 1 red** - `[webkit-phone] install.e2e.ts:1902` "@webkit CLEAR sends on the click with no confirmation…": `CONFIG/EXECUTE` delta **6 for 4** (two writes retried under three workers; 12.1-08 saw the same title read 13 for 12 the same way); 1.6 m                                                                              |
+| e2e run 1, chunk 2 (`browse`, `browse-webkit`)                            | 1.0 GB                              | **the spawned wrangler died mid-chunk** (the known empty `ERROR` block in its log; `net::ERR_CONNECTION_REFUSED` on four `page.goto`), 13 passed + 8 failed - **not the suite**; 1.4 m                                                                                                                                                                 |
+| e2e run 1, chunk 3 (`tuning`, `tuning-webkit`)                            | 0.38 GB                             | 20 runs: **19 passed, 1 red** - `[chromium] tuning.e2e.ts:550` "COPY LINK confirms in its own state and copies the link": "the change went through the debounced recompile" read `false`; 1.2 m                                                                                                                                                        |
+| e2e run 1, chunk 4 (`catalog`, `fidelity`, `first-experience`, `library`) | 0.78 GB                             | 10 runs: **9 passed, 1 red, and the red was REAL** - `[chromium] fidelity.e2e.ts:43` "the hidden probe compiles a shelf preset in a real browser against build/": `stateDiverges("dial")` true (named below); 16.7 s                                                                                                                                   |
+| e2e run 1, chunk 5 (`artifacts`, `radius`, `skeleton`, `smoke`)           | 1.26 GB                             | **11 passed**, 19.1 s                                                                                                                                                                                                                                                                                                                                  |
+| chunk 4 whole on the fixed build, attempt 1                               | 0.35 GB                             | wrangler died again (`ERROR`, `ERR_CONNECTION_REFUSED`), 10 failed - not counted                                                                                                                                                                                                                                                                       |
+| chunk 4 whole on the fixed build, attempt 2                               | 0.59 GB                             | **10 passed**, 15.6 s                                                                                                                                                                                                                                                                                                                                  |
+| chunk 2 whole, rerun                                                      | 0.17 GB                             | 21 runs: **19 passed, 2 red** - `[webkit-phone] browse-webkit.e2e.ts:357` "a still configuration stays lit after a sort" (`scrollIntoViewIfNeeded` at the 30 s test timeout) and `[webkit-phone] browse.e2e.ts:842` "@webkit reduced motion snaps a normal entry…" (one console error, `wasm streaming compile failed: TypeError: Load failed`); 1.2 m |
+| the four red titles alone, `--workers 1`                                  | 0.95 GB                             | **7 passed** in 27.1 s (`install:1902`, `browse:842` and `browse-webkit:357` in both projects, `tuning:550` in chromium)                                                                                                                                                                                                                               |
+| e2e run 2, five chunks on the fixed build                                 | 0.86 / 0.84 / 0.83 / 1.49 / 1.13 GB | **34 + 21 + 20 + 10 + 11 = 96 passed**, no red, no rerun, no `ProxyController` line; 1.5 m + 43 s + 49 s + 19 s + 26 s                                                                                                                                                                                                                                 |
+
+`test-results/` removed after every Playwright run; nothing was committed while a suite ran
+(`artifacts.e2e.ts` reads `HEAD`); every server stopped through PowerShell and answered `HTTP 000`
+after its chunk (12.1-08's `e2e-chunks-1208.sh`, copied to this gate's scratch directory; `scripts/`
+still has no chunk runner).
+
+**The quick suite's transient, named as before.** `install.spec.ts`'s `until()` advances a fake
+clock 4,000 steps of 5 ms yielding to the macrotask queue between steps; "identification" waits on
+a real `import()` of the protocol module. Under default workers at this little memory the import
+did not resolve in time on three titles in one run of three; `--maxWorkers=2` cleared it on both
+following runs, exactly as 12.1-07, 12.1-08 and 12.1-08b found, and the file passed 24 / 24 alone.
+`config-shape.spec.ts`'s preload timeout did not appear in any run.
+
+**The e2e transients, named.** Three of the four titles red in run 1 or the rerun are the machine at
+a fiftieth of its memory - a retried write counted twice, a debounced recompile that had not landed
+when the assertion read it, a WebKit `scrollIntoViewIfNeeded` past 30 s, a WebKit streaming-compile
+console error - and each was green alone at `--workers 1` and green in run 2 whole. The spawned
+wrangler died twice mid-chunk (the 13-07 finding; the chunk method exists because of it), and both
+dead chunks were rerun whole rather than read. **Not seen at this gate**: `session.e2e.ts`'s
+"a granted ZONA is offered on load and one click connects it with no picker" (`D-12-12-a`), green in
+both runs, as at 12.1-08 and 13-12; the `webkit-phone` tail's `Could not connect to server`;
+`install.e2e.ts`'s hydration signature.
+
+**The one real red, and what the gate did about it (Rule 1).** `e2e/fidelity.e2e.ts:43` asserted
+`stateDiverges(probed) === false` for the preset the hidden `/dev/fidelity/` probe compiles (DIAL),
+so that a catalog divergence could never read as a broken WASM build. Plan 12.1-08b put
+`state.touchLibrary` - the measured knots - on all nine of HANGAR's presets, declared in
+`divergence.ts` as it must be, so since commit `dbfb3e7` every HANGAR card diverges from BOTOR's
+state and no preset the probe could compile through HANGAR's shelf shares a state with
+`preset-baseline.json` (DIAL now compiles to 592 through HANGAR's shelf against the fixture's 646).
+12.1-08b proved its e2e zero by `grep -c "test("` and did not run the suite, so the title has been
+red on the tree since that commit. The gate's fix is the one the test's own message asks for, read
+after 12.1-08b: the probe compiles **BOTOR's own DIAL state** (the vendored `PRESETS` array, which
+11-05 kept exported for exactly the fidelity fixtures) through `$lib/pad`'s `compileState`, so the
+FOUND-05 gate is still the one exercised, and reports `shelf: "vendored"`; the test asserts that
+field instead of consulting `divergence.ts`, and its header says why, dated. `src/routes/dev/fidelity/+page.svelte`
++19 / −2, `e2e/fidelity.e2e.ts` +24 / −11, no title added, `grep -c "test("` still 2 and 80,
+`config-shape.spec.ts`'s probe-route scan still green (the page names no sibling probe). Chunk 4 on
+the rebuilt tree: 10 passed, twice (run 1's rerun and run 2). **Neither file is in the gate's file
+list; the edit is a Rule 1 fix of a red the phase caused and never ran, and the term is still
+`+0 / +0`.**
+
+### The phase total, written as a chain - eleven terms, every zero written out
+
+**Nothing below is a transcribed total.** The carried block is the one observed at `91ab755` on
+2026-09-11 before any 12.1 plan: **88 files / 901 tests (+1 todo) / 78 e2e titles / 94 runs /
+catalog 26 (8 + 18) / `static/og/` 26 files / audition 23 / runbook 8 (A-H) / the library 769 of 908
+in 255/0 / the manifest 6 files, 22 rows / sweep `4 19`**. Every plan carried `PREV_*` plus a delta
+against what it observed; this gate is the one plan that asserts against the block, in PLAN order
+with the wave order beside it once: **`01 02 03 04 05 | 08a | 06 07 08 | 08b | 09`** (08a shares
+wave 6 with 06; 08b is wave 9; the gate wave 10 - the two D-26 plans joined after Band 1 closed).
+The order the plans actually EXECUTED in was `01 02 03 04 05 08a 06 07 08 08b 09` with 13-08..13-13
+landing between them, and every chain below is unmoved by that.
+
+```
+                 01   02   03   04   05  08a   06   07   08  08b   09
+tests    901     +4   +7   +2   +2   +1   +1   +2   +3   +0   +3   +0   = 926
+files     88     +1   +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   =  89
+e2e ttl   78     +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   =  78
+e2e runs  94     +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   =  94
+catalog   26     +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   =  26, 8 + 18
+og        26     +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   +0   =  26 (re-rendered at 05, 08a; ghost.png moved twice)
+audition  23     +1   +0   +1   +1   +0   +1   +0   +0   +0   +1   +0   =  28
+runbook    8     +0   +0   +0   +0   +0   +0   +0   +0   +2   +0   +0   =  10 by 12.1 alone; 11 with 13-12's row I
+manifest  22      -    -    -    -    -    -    -    -    -  +16    -   =  38 rows, 6 files
+255/0    769      -  781    -    -    -    -    -    -    -  842    -   =  842 / 66
+255/6      -      -  713  705    -    -    -    -    -    -  873    -   =  873 / 35  (713 -> 705 at 03: the code-9 fix)
+sweep   4 19      -    -    -    -    -    -    -    -    -    -    -   =  4 19
+```
+
+**Twelve rows, eleven terms each, the count of terms asserted at eleven on every row and the eleven
+column headers asserted to be the eleven plan numbers** - counted, not described. There are eleven
+`12.1-*-PLAN.md` files; the chain block in `12.1-VALIDATION.md`'s dated D-26 section has eleven plan
+columns; this block has eleven. Every statement of the form `<number> terms` / `<number> plans` /
+`<number>-term` was grepped in `12.1-VALIDATION.md`, in plan 12.1-09 and in this section, and the
+rule the plan's own amendment sets was applied: every such statement **below** a dated D-26 line
+reads eleven (`12.1-VALIDATION.md:537, :573, :592, :711, :728`; `12.1-09-PLAN.md:393, :414, :433`;
+this section), and every such statement **above** one reads nine and is superseded, listed here by
+line and not corrected in place: `12.1-VALIDATION.md:80, :82 (twice), :102, :421, :422, :504`;
+`12.1-09-PLAN.md:19, :31, :39, :43, :114, :147, :212, :252, :359, :371, :384`. (`12.1-09-PLAN.md:41`'s
+"twelve-term" is 12-12's chain and right; `:141`'s and `12.1-VALIDATION.md:256`'s / `:276`'s
+"13 plans" are Phase 13's plans and not a term count.) `4+7+2+2+1+1+2+3+0+3+0 = 25`;
+`1 + 0 × 10 = 1`. The per-file table above rebuilds the 25 from the other end:
+`9 + 3 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 = 21` moved inside existing files plus `calibration.spec.ts`'s
+4 = **25**, and the two ends agree. **Every term checked against its plan's own count line**: the
+observed `PREV_TESTS` ladder in the SUMMARYs is 906 → 910 (01), 899 → 906 (02), 905 → 907 (03),
+907 → 909 (04), 912 → 913 (05), 927 → 928 (08a), 928 → 930 (06), 930 → 933 (07), 933 → 933 (08),
+933 → 936 (08b), and every step is its plan's term on the baseline it observed. **No term disagrees
+with `12.1-VALIDATION.md`'s delta table or its D-26 section.**
+
+**The library row is the one row the projection got wrong twice, and both are named.** The
+validation document's carry-forward block (`:74`) and its chain (`:98`) say `782 / 126 + 714 / 194`;
+12.1-02 shipped **781 + 713** because those were `max(raw, compressed)` figures of a `W` and an `N`
+written `return (` and the shipped strings are the minifier's fixed points, one character shorter
+each; 12.1-03's code-9 fix took 255/6 to **705**; 12.1-08b's `Z`, `Y`, `K` and the move of `N` to
+255/0 took the pair to **842 / 66 + 873 / 35**, which is what the D-26 section (`:588, :612`) says
+and what this gate measured. The audition row's `+3` at `:72` is `+5` since D-26 (`:611`); the
+manifest row exists only in the D-26 block; both are in the dated section and not defects.
+
+### The 12.1 offset, stated once for 13-20
+
+Read from this gate's chain and from the per-file JSON, so 13-20 reconciles Phase 13's own chain
+from both ends exactly as 12-12 stated Phase 13's six-wave offset for Phase 12: **tests +25, files
++1, e2e +0 / +0, `svelte-check` +2 (`calibration.ts`, `calibration.spec.ts`), catalog +0, OG +0
+(re-rendered at 12.1-05 and 12.1-08a, `ghost.png` 5,234 → 5,197 → 5,234 B, the other 25
+byte-identical throughout), audition +5 (rows 24-28), runbook +2 (rows J and K, after 13-12's I),
+the manifest +16 `intendedDivergence` rows on two vendored files (22 → 38; `_pad.ts` 10 → 18,
+`pad-sim.ts` 6 → 14), the library 769 in one slot → 842 + 873 in two, the snapshot key
+`hangar.snapshot.v2` → `v3`, and every count of three on the wire → four.** 12.1's plans observed
+Phase 13's terms landing between theirs and every SUMMARY names which; the one place the two
+phases' ladders disagree by two (13-09's stated −11 against its parts' −9) is named above and is
+13-20's.
+
+### The cost, observed against what was projected
+
+| Thing                           | Projected / carried                                                                            | **Observed 2026-09-12**                                                                                                                     | Verdict                                                                                                                       |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `npm run test:sweep` wall       | 100 s (12-12); 175 s (12.1-02), 178 / 108 s (12.1-03), 106 / 126 s (12.1-04), 104 s (12.1-08a) | **104 s** at 0.28 GB free                                                                                                                   | the spread is the machine                                                                                                     |
+| `npm run build`                 | 19 s (12-12); 12 / 18 s (12.1-05); 17 s (12.1-08b)                                             | **33 s** then **17 s**                                                                                                                      | the first at 0.23 GB free                                                                                                     |
+| e2e, five chunks                | 96 twice at 12.1-08 (34 + 21 + 20 + 10 + 11)                                                   | **96** = 34 + 21 + 20 + 10 + 11 in run 2                                                                                                    | exact; two dead servers and four load reds in run 1, named above                                                              |
+| `static/og/`                    | 154,136 B / 26 (12.1-08a)                                                                      | **154,136 B / 26**, every image byte-identical                                                                                              | `ghost.png` back at its 12-12 size since 12.1-08a                                                                             |
+| `reachability.sweep.spec.ts`    | 44,846 (12-12); "44,078" (12.1-08b-SUMMARY)                                                    | **20,270 + 24,576 = 44,846 in 96.6 s**; laddered 8; over budget 0; Pass B colours excluded 0                                                | 12.1-08b's "44,078" is a transcription in its SUMMARY; the sweep printed 44,846 there too (its worst-position table is exact) |
+| the presets' worst positions    | 375 / 422 / 368 / 404 / 501 / 648 / 529 / 653 (12.1-08b)                                       | **375 / 422 / 368 / 404 / 501 / 648 / 529 / 653**                                                                                           | exact; NINE PADS' true worst is still 651 / 257 (the 3x3 position the two-pass sweep reports at 648 / 260)                    |
+| `stamp-roundtrip.sweep.spec.ts` | 44,846 and 157,106 (12-12)                                                                     | **44,846** vectors on the compiler route; the Lua route per entry unmoved (EUCLID 20,160 + 4,096 … GHOST 320 + 8,192, format w, payload 11) | no knob's value count moved in this phase (every re-fit was a needle on the literal), so no stamp moved                       |
+| `lua-entries.sweep.spec.ts`     | 1,140 / 2,280 over 18 (12-12)                                                                  | **1,140 / 2,280 over 18**                                                                                                                   | exact                                                                                                                         |
+| the kind cross-product          | 1,296, worst 906 at TRACKPAD                                                                   | **1,296 in 2.9 s, worst 906 of 908** at `none/none/trackpad/hi=false/grid=false`                                                            | exact, unmoved by three phases                                                                                                |
+| `svelte-check`                  | 608 (`91ab755`); 627 (12.1-06 onward)                                                          | **627** in 14 s                                                                                                                             | 608 + 2 (12.1) + 17 (Phase 13)                                                                                                |
+| the library                     | 782 / 714 (the plan); 781 / 713 → 781 / 705 (shipped); 842 / 873 (D-26)                        | **842 / 66 + 873 / 35**, both fixed points, `checkSyntax` true, the uniform joins (843 / 874) compressing to exactly the shipped strings    | as 12.1-08b shipped it                                                                                                        |
+
+### The picker-corner re-measurement, replacing the projection
+
+Every hand-authored entry measured at the gate at three corners with the arithmetic the 908 gate
+uses - `max(text.length, measureLua(text))` after `padReady()`, at the defaults, at the RGB444
+picker corner (every knob at its longest declared value with every colour knob at `255,255,255`,
+the corner `lua-entries.sweep.spec.ts` gates) and at the all-shortest corner - with each entry
+header's quoted picker figure checked against it. Setup and Timer are separate 908 budgets and are
+listed separately. The eleven rows this phase re-fitted are in bold.
+
+| Entry                     | Setup: defaults | picker              | free    | shortest | Timer: defaults | picker  | free   | shortest | Header agrees                         | What the phase did                                                                                                         |
+| ------------------------- | --------------- | ------------------- | ------- | -------- | --------------- | ------- | ------ | -------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **trackpad**              | 903             | **903**             | **5**   | 903      | 508             | **510** | 398    | 503      | yes                                   | 12.1-04: both flash centres through the map, +20 in the Timer; the Setup sha256-identical                                  |
+| wheels                    | 882             | 895                 | 13      | 862      | 338             | 343     | 565    | 338      | yes                                   | untouched; re-read                                                                                                         |
+| strip                     | 857             | 875                 | 33      | 835      | 0               | 0       | 908    | 0        | yes                                   | untouched; re-read                                                                                                         |
+| quadrant                  | 835             | 838                 | 70      | 835      | 0               | 0       | 908    | 0        | yes                                   | untouched; re-read                                                                                                         |
+| **chorus**                | 819             | **822**             | **86**  | 812      | 29              | 29      | 879    | 29       | yes                                   | 12.1-04: `G` in white after `Q`, +26; the tightest re-fit                                                                  |
+| **morph**                 | 810             | **814**             | **94**  | 798      | 0               | 0       | 908    | 0        | yes                                   | 12.1-04: `Q` and `G` in front of the end test, in `@TRAILC`, +42                                                           |
+| **console**               | 784             | **807**             | **101** | 761      | 0               | 0       | 908    | 0        | yes                                   | 12.1-04: `G` in white, +26                                                                                                 |
+| pomodoro                  | 733             | 743                 | 165     | 716      | 647             | 659     | 249    | 627      | yes                                   | untouched; re-read                                                                                                         |
+| **lumen**                 | 730             | **733**             | **175** | 712      | 0               | 0       | 908    | 0        | yes                                   | 12.1-04: `G` in `@CURSORC`, +26; `A` byte-identical to 12-11                                                               |
+| **euclid**                | 722             | **726**             | **182** | 717      | 233             | 237     | 671    | 232      | yes                                   | 12.1-03: `G` in white after `Q`, +26                                                                                       |
+| stage                     | 640             | 653                 | 255     | 630      | 136             | 136     | 772    | 136      | yes                                   | untouched; re-read                                                                                                         |
+| snake                     | 581             | 585                 | 323     | 573      | 870             | 880     | 28     | 854      | yes                                   | deferred by the user; untouched                                                                                            |
+| cull                      | 564             | 565                 | 343     | 564      | 0               | 0       | 908    | 0        | yes                                   | untouched; re-read                                                                                                         |
+| **radar-points**          | 592             | **592**             | **316** | 562      | 286             | 288     | 620    | 285      | yes                                   | 12.1-03: `R` defined, `G` in `@SWEEPC`, `R` after `G`, +103                                                                |
+| **sonar**                 | 571             | **572**             | **336** | 546      | 286             | 289     | 619    | 286      | yes                                   | 12.1-03: as RADAR POINTS, +103                                                                                             |
+| **arc**                   | 525             | **528**             | **380** | 515      | 273             | 275     | 633    | 272      | yes                                   | 12.1-03: the stop test `N(x,y)==40`, −13 - the one re-fit that got cheaper                                                 |
+| **ghost**                 | 486             | **491**             | **417** | 473      | 405             | **409** | 499    | 404      | yes                                   | 12.1-08a: `N` at the key and the comet cell, `G` in `@RECC` after the id gate; +13 / −13                                   |
+| **steps**                 | 414             | **420**             | **488** | 407      | 258             | 260     | 648    | 257      | yes                                   | 12.1-03: `G` in white after `Q`, +26                                                                                       |
+| **the library, 255/0**    | —               | **842**             | **66**  | —        | —               | —       | —      | —        | yes (`library.ts`, `library.spec.ts`) | 12.1-02: `H T C P B L`, the map, `U W E Q X`, `self:tim()`; 12.1-08b: `N` moved in                                         |
+| **the library, 255/6**    | —               | —                   | —       | —        | —               | **873** | **35** | —        | yes                                   | 12.1-02: `V G N A D`; 12.1-03: `G`'s code-9 end test (−8); 12.1-08b: `Z`, `Y`, `K`, `G` through `Z` and `Y`, `N` moved out |
+| aurora (preset)           | 361 / 55        | —                   | 547     | —        | —               | —       | —      | —        | `presets.ts` 361                      | 12.1-08b: `K(x,y,1,252)` at the comet, 415 → 361                                                                           |
+| pinwheel (preset)         | 413 / 55        | —                   | 495     | —        | —               | —       | —      | —        | `presets.ts` 413                      | 12.1-08b: `K(x,y,1,252,255-i*60,i*60,128)`, 477 → 413                                                                      |
+| starfield (preset)        | 349 / 55        | —                   | 559     | —        | —               | —       | —      | —        | `presets.ts` 349                      | 12.1-08b: `K`, 403 → 349                                                                                                   |
+| radar (preset)            | 391 / 55        | —                   | 517     | —        | —               | —       | —      | —        | `presets.ts` 391                      | 12.1-08b: `K`, 445 → 391                                                                                                   |
+| joystick (preset)         | 491 / 24        | —                   | 417     | —        | —               | —       | —      | —        | `presets.ts` 491                      | 12.1-08b: the parked dot doused then `G(s,i,e,x,y,1,255,187,0)`, 543 → 491                                                 |
+| ninepads (preset)         | 565 / 158       | 648 swept; 651 true | 343     | —        | —               | —       | —      | —        | `presets.ts` 565                      | 12.1-08b: `local n=N(x,y)` through the LED-side zone rule, 550 → 565 (+11 at 3x3)                                          |
+| faders (preset)           | 525 / 24        | —                   | 383     | —        | —               | —       | —      | —        | `presets.ts` 525                      | 12.1-08b: `N(x,y)%9*4//9` at the rails, the level raw (D-14), 520 → 525                                                    |
+| dial (preset)             | 592 / 55        | —                   | 316     | —        | —               | —       | —      | —        | `presets.ts` 592                      | 12.1-08b: `K`, 646 → 592; the angle raw                                                                                    |
+| tpad (preset, shelf only) | 902 / 146       | 907 (11-16)         | 6       | —        | —               | —       | —      | —        | `presets.ts` 902                      | untouched; carries the field, reaches no site                                                                              |
+
+Every hand-authored string and both library strings measured are fixed points of `compressScript`
+and `checkSyntax` true at every corner (the compiler's emitted preset Lua is not a fixed point - the
+marker's trailing space, as at every gate since Phase 3 - and is costed at its raw length, which is
+what `presets.spec.ts` test 4 pins). **Every header agreed at this gate** - eighteen entries, eleven
+of them re-fitted this phase, and every one's quoted picker figure is the figure measured; the two
+library headers agree; the nine `presets.ts` declared costs agree. TRACKPAD's Setup at 903 / 5 is
+still the tightest card, then WHEELS 895 / 13, STRIP 875 / 33, CHORUS 822 / 86; CHORUS, MORPH and
+CONSOLE - the three cards 12.1-04 re-fitted under the 890 line - sit at 86 / 94 / 101 free.
+
+**The library's two rows**: 255/0 is **842** raw, 842 under `compressScript`, 842 under
+`measureLua`, a fixed point, **66 free**; the uniform nine-part join is 843 and compresses to exactly
+the shipped string. Parts: header and tables 32, the map 65, `U` 126, `W` 86, `E` 88, `Q` 294, `X`
+74, `N` 60, the call 10. 255/6 is **873 / 873 / 873**, a fixed point, **35 free**; the uniform
+eight-part join is 874. Parts: marker 9, `V` 62, `G` 221, `Z` 111, `Y` 70, `K` 176, `A` 150, `D` 68.
+`LIBRARY_GLOBALS` is twenty-one names derived from both strings: `A B C D E G H K KX KY L N P Q T U V
+W X Y Z`. **Fourteen functions and one convention, every one with a caller, read from the rendered
+entries and the compiler's emitted Lua at the gate**: `Q` is called by EUCLID, STEPS, RADAR POINTS,
+SONAR, CHORUS, CONSOLE, MORPH and LUMEN (eight, in their Setups); `G` by those eight and GHOST (nine
+Setups) and by the compiler for JOYSTICK's glow; `X` by EUCLID, STEPS, RADAR POINTS, SONAR and
+CHORUS (five Timers); `N` by ARC (the stop test) and GHOST (the key in its Setup, the comet cell in
+its Timer) and by the compiler for NINE PADS' zones and FOUR FADERS' rails; `K` by the compiler
+alone - AURORA, STARFIELD, RADAR and DIAL (`K(x,y,1,252)`) and PINWHEEL
+(`K(x,y,1,252,255-i*60,i*60,128)`), asserted at the gate on the emitted Setups and pinned by
+`knobs.preset.spec.ts` and `wire-pin.spec.ts` test 1; `U` by TRACKPAD's Timer directly and by `Q`,
+`Z` and `N` inside the library; `A` by LUMEN alone; `D` by TRACKPAD's Timer directly and by `K`;
+`R` is defined by CHORUS, RADAR POINTS and SONAR and called by the library's `E`; `W` by `Q`, `E` by
+`Q` and `X`, `V` by `G` and `E`, `Z` by `G` and `K`, `Y` by `G` and `K`, none of the five by any entry
+directly, which is what a library-internal helper is. **No function shipped without a caller.**
+Four entries still define a local under a library name - STRIP's `local function X(s)`, LUMEN's
+and WHEELS' `local function D`, STAGE's `local function R(z)` - and one under a name that is the
+library's since 12.1-08b, STAGE's `local function Z`; every one shadows only inside its own event
+body, which is what `host-surface.spec.ts` resolves locals for (the harness's caller scan reports
+them under those names and they are excluded above by reading the entry).
+
+### The four-write install shape, as shipped
+
+Since 12.1-06 every write HANGAR makes is four strings, in one order, from one list: `SLOTS` in
+`sequence.ts` - **element 255 event 6** (the system element's Timer, the library's second half:
+`V G Z Y K A D`) first, because a written body runs at once and 255/0's closing `self:tim()` needs
+the method registered; then **element 255 event 0** (the system setup: the state, the measured
+knots, `U W E Q X N` and the call); then **element 0 event 6** and **element 0 event 0**, under the
+step ids `write-system-timer`, `write-system`, `write-timer`, `write-setup`. `fetchAll` iterates
+the same list under `fetch-system-timer`, `fetch-system`, `fetch-timer`, `fetch-setup` - the fetch
+order IS the write order since 12.1-06, where 12-03's read system, setup, timer - and the snapshot
+holds four strings under `hangar.snapshot.v3` (12.1-07) with a v2 record read as `systemTimer =
+default` under `fromV2` and a v1 record as both defaults under `fromV1`, never overwritten and never
+shadowed. The classifier walks the landed prefix of `SLOTS` and publishes `landedSlots` /
+`failedSlots` beside three closed word pairings that name all four in write order (12.1-07, 12.1-08);
+"a later slot landed and an earlier one did not" cannot occur with a sequential writer that aborts
+on failure, and `install.spec.ts` asserts it on the list over four refusal cases. `CLEAR` writes four
+firmware defaults, the 255/6 one read from the package (`--[[@cb]]print("tick")`, 22 characters,
+never typed in `constants.ts`); since 12.1-08b a preset lands the library's two halves like every
+other card, so the store's `#pageInit` / `#pageTimer` substitution is `CLEAR`'s alone. The 255/4 slot
+is still nobody's - 13-17's pending removal under D-19, one row in `SLOTS` when it lands. Rows J and
+K of `docs/INSTALL-RUNBOOK.md` are where the four-write order and the page-load half of the
+two-slot mechanism would be seen, and they are the user's.
+
+### The fixtures, the vendored diff and the manifest's rows
+
+`git diff --quiet HEAD -- src/vendor/` exits 0 at this gate, and **the run of consecutive waves with
+no vendored byte moved ended at 12.1-08b** (thirty-four at 12-12, then 13-07..13-13, 12.1-01..08 and
+08a beside them, then the one edit): `_pad.ts` and `pad-sim.ts` moved by **sixteen** declared
+`intendedDivergence` rows, eight each, every one `plan: "12.1-08b"`, `dated: "2026-09-11"`, with
+its reason, generated from `git diff -U2` with two context lines as the anchor and verified to occur
+exactly once on both sides before the reason was attached. `upstream-manifest.json` carries **38**
+rows on **6** files: `_pad.ts` 18 (10 + 8), `pad-sim.ts` 14 (6 + 8), `tests/pad.test.js` 1,
+`tests/pad-sim.test.js` 5, `pad-sim-host.ts` 0, `tests/pad-invariants.test.js` 0; `vendored-diff.spec.ts`
+(15) reconstructs both pristine sha256 through the rows and 11-04's deltas and is green in all
+three quick runs; its plan-id regex admits `12.1-08b` by name. The phase walk is proved untouched by
+the hash of its extract, not by assertion: `ledTick` at `pad-sim.ts:893-900` hashes to
+`3640e585…`, the value 12.1-08b recorded before and after its edit. The three fidelity fixtures are
+byte-unchanged by `sha256sum -c` (`preset-baseline.json` `187c31fc…`, `golden-frames.json`
+`bf54f15c…`, `frames.json` `9f9cd666…`); `firmware-oracle.spec.ts` and `firmware-oracle.ts`
+(`fe69dd51…`, `2a7865c3…`) and `src/vendor/botor/tests/` are unedited; `pad.test.js` 176 and
+`pad-sim.test.js` 96 green. The vendored headers' `Modified for HANGAR:` lines were left at 11-04's
+wording, which names the manifest as the authority (12.1-08b's question 2, carried in
+`deferred-items.md`).
+
+### Corrections to earlier sections, by line - listed, not reflowed
+
+- `:45` (the "How to run it" table): `test:quick` **90 files, 936 passed + 1 todo** at this gate
+  (Phase 12.1's chain 89 / 926 plus Phase 13's +1 / +10); `:52`'s arithmetic sum is therefore
+  **94 / 955**, still arithmetic and not an observation.
+- `:598` (the sweep table's `lua-entries` row): **1,140 combinations over eighteen**, unmoved since
+  12-12; the eleven re-fits were needles on the literal and no knob's value count moved.
+- `:885` (`sequence.spec.ts`): **13** tests; `writeAll` is the one writer over FOUR events since
+  12.1-06, iterating `SLOTS`; the row is Phase 10's and is left as history.
+- `:1172` (`lua-smoke.spec.ts`): **38** at this gate, the file's own header saying so.
+- `:1512` (`sequence.spec.ts` in Phase 12's table): 12 → **13** (12.1-06).
+- `:1495` (`library.spec.ts` at 3 with "the uniform 770 join"): **6** at this gate, over two
+  strings.
+- `:1508` (`lua-smoke.spec.ts` 25 → 29): 29 → **38** across five 12.1 plans.
+- `:1539-1544` (the standing gates): `lua-parity.spec.ts` **6**; `vendored-diff.spec.ts` 15 at 6
+  files / **38** rows; `decay-idiom.spec.ts` still 3, blind to `D(` **and to `K(`**.
+- `:1553-1557` (Phase 12's e2e per file): `first-experience` **5** (13-07), `install` **15**
+  (13-12), `library` **1** (13-13), fourteen files; **80 / 96** at this gate.
+- `:1714` (the library's row at 769 / 139): two strings, **842 / 66 + 873 / 35**.
+- `:1728-1742` ("six functions and one convention", `769`, the seven parts, `F` gone): fourteen
+  functions across two strings, the parts above; the sentence about `F` still holds.
+- `:1744-1760` ("The three-write install shape, as shipped"): FOUR since 12.1-06, the section above;
+  `hangar.snapshot.v2` → `v3` since 12.1-07; "the classifier reads three step ids" → walks the
+  landed prefix of `SLOTS`.
+- `:1895-1906` (the decay gate blind to `D(`): now also blind to `K(`, which stamps through `D`
+  from the library and from the compiler's emitted comet; recorded in "The gate holes" below.
+- `:1920-1926` (the manifest at 22 rows, "thirty-four consecutive waves with no vendored byte
+  moved"): **38** rows since 12.1-08b, and the run ended there, deliberately and under declared rows.
+- `:2061` (13-08's appended paragraph, "Unit: 88 files / 904 tests"): 88 / 904 was 13-08's observed
+  count on 2026-09-11 and is history; **90 / 936** at this gate.
+- `docs/SESSION-RUNBOOK.md:14` still reads 724 / 13 / 77 for the three suites (Phase 6's figures);
+  the gate's are 936 / 19 / 80. Named here as 12-12 named it, and not edited (Phase 13's
+  append-only band).
+
+### Where the planner was wrong, named rather than corrected
+
+Every row `12.1-VALIDATION.md`, `12.1-RESEARCH.md`, `12.1-PLAN-CHECK.md`, a plan of this phase or
+its brief got wrong is named here, the way 12-12 did, in the order the plan's own list asks for and
+then as found.
+
+1. **The check-counts literals in every plan assume `88 / 901` and were allowed to move.** 12.1-01's
+   `89 905` ran at 89 910; 12.1-02's brief said 88 / 910 and the tree read 88 / 906; 12.1-03's said
+   906 and the tree read 907; 12.1-05's said 909 and the tree read 912; 12.1-08a's said 89 / 921 and
+   the tree read 90 / 927; this gate's `<observed files> <observed tests>` ran at **90 936**. Every
+   one is Phase 13's concurrent terms, as the validation document said in advance.
+2. **Plan 06's "expect errors here until plan 07" were four, not "exactly the four-key mismatch in
+   `install.svelte.ts`, `wire-pin.spec.ts`, `model.ts`"**: `model.ts` had none (its `ConfigStrings`
+   never reaches `ConfigSet` directly) and 13-12's `page-target.spec.ts` had one. 12.1-06 named
+   it; 12.1-07 closed all four.
+3. **The research's seven-value hold band (69..75, "the same width 12-07 measured")** is eight
+   values (71..78) between LED 4 and 5, three (122..124) on the outer x segment and six (35..40)
+   between LED 2 and 3 on the measured knots - a fraction of the pitch, not a width (D-18,
+   `12.1-VALIDATION.md` R-2); 12.1-02's smoke test asserts the formula and printed those bands.
+4. **The `(116, 15)` bench case** is a hypothesis-knot figure; the measured bench case is
+   `(120, 12)` = `(KX[7], KY[1])`, cell 16 under `N` where the naive divisor reads **8** (the corner
+   the user saw), not the research's 17.
+5. **`wire-pin.spec.ts` and `tune/model.ts` "free now"** (research F.2) moved in Band 2 (12.1-07,
+   12.1-08) and again at 12.1-08b, not in Band 1 (R-7).
+6. **`docs/CALIBRATION-PROBE.md` and `docs/TOUCH-PROBE.md`** did not exist when the research named
+   them; the first was written by 12.1-01, the second never existed and nothing in the tree needs it.
+7. **"A reduced gradient with no expiry clear"** (the brief's no-branch) is research variant H at
+   1,043, still 135 over; the honest one-slot branch is calibration without the gradient at 882, and
+   12.1-01 recorded it as the branch not taken (D-03 answered `two-slots`).
+8. **The snapshot key named `v3` in the research** was right by the rule ("the next version after
+   whatever 13-12 leaves") and not by the name: 13-12 added no key, so 12.1-07 named `v3` after
+   reading `13-12-SUMMARY.md`, as D-22 required.
+9. **782 / 714 and the per-part 87 / 61 for `W` / `N`** (the research, the plan, `12.1-CONTEXT.md`
+   D-03 and D-11, `12.1-VALIDATION.md:74, :98`): 781 / 713 shipped, one character under on each
+   side - the minifier removes the `return (` space and the shipped string is the fixed point
+   (12.1-02 deviation 1); then 705 after the code-9 fix (12.1-03 deviation 1); then 842 / 873
+   (12.1-08b). The research's pre-coloured "683" is 682 canonical by the same character.
+10. **The callback order `G(...)local m=Q(...)`** in the research, plan 02's test Setup, plan 03's
+    `must_haves` artifact and plan 04's MORPH shape: `Q` first, then `G`, then `R`, then the entry's
+    early return - `G` before `Q` is wiped by `Q`'s onset `E` on the press that drew it, measured in
+    the VM by 12.1-02 and again by 12.1-04's negative check (a press lit nothing).
+11. **`G`'s end test as "the blessed spelling `e~=1 and e~=4 and e<9`"** (the plan-check): that
+    spelling is `Q`'s; `G` draws nothing on a code 9 (`e~=1 and e~=4`), found by the residue gate on
+    EUCLID's cell 20 at phase 134 (12.1-03 deviation 1).
+12. **"`frames.spec.ts` is red for the re-fitted entries until plan 05" and its `--exclude`
+    command** (plans 03, 04, 05): green throughout - the fixture samples an untouched run with no
+    finger and no re-fit has a floor - and a vitest project config's `exclude` overrides the CLI
+    flag, so the exclusion had no effect when run once anyway. "The ten re-fits move (a coloured dark
+    layer raises the resting bytes by the floor)" was wrong on both counts: `frames.json` came back
+    byte-identical at 12.1-05, 12.1-08a and 12.1-08b.
+13. **Plan 05's "GHOST and any demo-driven card whose gesture goes through `cellToCoord` moves"**:
+    GHOST's OG moved (5,234 → 5,197) because it was the one demo card still on `x*9//128`; MORPH's
+    and TRACKPAD's did not, for frame-level reasons. Plan 08a's "adds the layer-0 gradient to the
+    demo frame": the OG is captured after the lift, so `G` adds nothing and the picture is the
+    pre-12.1-05 one again (5,234 B).
+14. **`Coverflow.svelte:519-520`** (D-21, R-8, plan 08's third file): 13-09 deleted the file; the
+    second `mapAxis` site is the workspace route's `+page.svelte:447` (436 when 12.1-05 wrote its
+    sentence; 13-11 and 12.1-07 added lines above it).
+15. **The runbook rows lettered I and J in plan 08's first draft** collided with 13-12's row I; the
+    plan-check caught it and the rows are **J and K**, read from `13-12-SUMMARY.md`. The runbook
+    total is **eleven**, not the ten `12.1-VALIDATION.md:97` writes for 12.1 alone (its "11 with
+    13-12's row" is right).
+16. **Plan 08's needle table missed a count of three** (the CLEAR test's tail at 9, found by the
+    first chunk run and moved to 12) **and said "the timer fetch is still the last chunk"** - the
+    Setup fetch is, in `SLOTS` order (12.1-08 deviations 2, 3).
+17. **Plan 08b's "JOYSTICK 543 → 492"** is 491 through the compiler (the harness read
+    `max(raw, compressed)` over a space the joiner never writes); **its "the deltas are
+    knob-independent"** holds for seven and not NINE PADS (+15 at 4x4, +11 at 3x3); **its
+    "`reachability.sweep.spec.ts`: table moves, assertion unchanged"** moved one literal (271 → 260);
+    **its "eslint still runs on them"** is not the tree's configuration; **its SUMMARY's "44,078
+    states"** is 44,846 (the sweep's own print, here and there).
+18. **Plan 08b did not run the e2e suite and left `fidelity.e2e.ts` red** from `dbfb3e7` (above,
+    Rule 1 at this gate); `12.1-VALIDATION.md`'s D-26 section scheduled it "+0, `grep -c`", which
+    proves a title count and not a run. Named as this gate's own hole in the validation plan.
+19. **This gate's plan**: the negative check "move `ROW_COUNT` to 27 … red naming 26" is written for
+    a tree at 26; the tree is at 28, so it was run as 28 → 29, red naming 28. "The manifest's 6
+    `files` rows and 22 `intendedDivergence` rows unchanged" is 22 + 16 since 12.1-08b, as the
+    plan's own amendment says. Task 02's "at most the eight re-aligned rows deleted" counts the
+    criterion lines and not the coverage rows the same task says to extend: fifteen lines move
+    (seven criteria, eight coverage rows). The amendments are dated **2026-09-12**, the day the gate
+    ran, not the plan's 2026-09-11 (12-12's deviation 6, the same rule), so the plan's verify grep
+    `"amended 2026-09-11 by plan 12.1-09"` reads 0 and the dated form reads 7. `docs/CALIBRATION-PROBE.md`
+    in task 03's `<files>` is not edited by a checkpoint. The plan's chain block and every prose
+    "nine" above its amendment are superseded, listed above.
+20. **13-09's stated term −11 against its parts' −9** (above): the one place the two phases'
+    ladders do not meet by two, caused by 12.1-01's baseline absorbing two of 13-09's uncommitted
+    tests; 13-20's.
+21. **`12.1-CONTEXT.md` D-11 and D-03 quote 255/6 at 714 / 683**, `12.1-02-SUMMARY.md` at 713, and
+    the research at 683: planning records, pointed at and not edited; the tree is 873.
+22. **12.1-08a's "the observed baseline 89 / 921"** was 90 / 927 with 13-12's +1 / +6 on disk, and
+    its N1 negative check came back green until the 37th test gained a second-finger clause - a
+    missing clause, recorded there and here.
+23. **12.1-07's SUMMARY says `model.spec.ts` 13 → 14**; the file was **12 → 13** (12 at `91ab755`
+    and at `98e3868`, its own start; 13 at `ab2ee64` and at this gate, by `git show` and by the
+    runner's JSON). The term `+1` is right and the absolute figures are one high - the plan-check
+    ("`model.spec` 12 -> 13") and `12.1-VALIDATION.md`'s per-file row (`+1`) had it right.
+
+### The two negative checks
+
+1. **`audition.spec.ts`'s `ROW_COUNT`, 28 → 29** in a scratch copy written over the tree (the plan
+   said 27 → the tree is 28): **red**, one test, `checklist rows: expected 28 to be 29`, 3 passed.
+   Restored from the scratch copy, sha256 `2b5c3781…` both sides, `git diff --quiet` exit 0.
+2. **One `intendedDivergence` row's `reason` emptied** (`tests/pad.test.js`'s one row, the
+   occurrence counted at exactly one before the write): `vendored-diff.spec.ts` **red** on "every
+   intended divergence is justified", naming the file and the field -
+   `src/vendor/botor/tests/pad.test.js: intended divergence "    expect(lua).toContain(…": reason
+must be a sentence saying what behaviour changed and why. Got: ""` - 14 of 15 green. Restored,
+   sha256 `dae35d39…` both sides - **not 12-12's `8853783d…`**, because 12.1-08b's sixteen rows are
+   in the file since `dbfb3e7`; `git diff --quiet` exit 0.
+
+A third, from task 02: the requirements script run against a scratch copy with one id misspelled
+(`CAT-O4`) refuses on the occurrence count (`expected exactly one line, found 0`) and writes
+nothing - the copy is byte-identical afterwards.
+
+### The gate holes, recorded
+
+- **`decay-idiom.spec.ts` is blind to a `D(` call and, since 12.1-08b, to a `K(` call.** `K` stamps
+  each of its four cells through `D` with a start quantised to a multiple of 6, from the library
+  (255/6) and from the compiler's emitted comet (AURORA, STARFIELD, RADAR, DIAL, PINWHEEL); the gate
+  reads literal `glpfs` / `glt` pairs and sees neither. What proves the stamps land is
+  `library.spec.ts` test 6 (121 stamps at 102 points, every one observed at 0 after sixty ticks),
+  `lua-smoke.spec.ts` 38 and `lua-parity.spec.ts` 6. The honest clause is still textual and more
+  than one assertion; carried in `deferred-items.md` section A, not half-built here.
+- **The escaped-quote lesson (12.1-06 deviation 3).** A literal planted double-quoted in a
+  TypeScript source arrives with escaped inner quotes, and both a `grep` for the raw text and a
+  plain `includes()` read past it - a negative check came back green for a reason that was about
+  the check. `constants.spec.ts` now strips backslashes before its `includes` and forbids the one
+  non-Lua word of the body on its own. Any future source-scan assertion for a quoted literal must
+  do the same or say why not.
+- **A negative check that comes back green is a missing clause, not a pass** (12.1-08a's N1: `G`
+  before the id gate reddened nothing until a second-finger clause existed; 12.1-05's old-fixture
+  check was vacuous because the fixture had not moved and was replaced by a tripwire).
+- **A declared e2e zero is a count of titles, not a run** (12.1-08b, above). The validation plan
+  scheduled the suite in two plans of eleven; a plan that changes what a preset compiles to, or any
+  state an e2e fixture compares against, must run the chunk that reads it.
+- **The audition table's cost cells are still gated by nothing.** Eleven rows moved this phase and
+  every one was carried by the plan that moved it; the gate re-measured all eighteen and found them
+  right, which is the first time since the table existed that a gate found no stale row. The
+  closing shape - `audition.spec.ts` reading `renderLua` - is still not built (12-12's note, carried).
+- **`check-counts.mjs` has no direction and misreports a red run** (12-04, 12-12), unchanged.
+- **The presets' emitted Lua is not a fixed point** of the minifier (the marker's trailing space)
+  and is costed raw; `presets.spec.ts` pins the raw figure, and no gate asserts the compressed one.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

@@ -193,6 +193,27 @@ at three corners per entry with the library's row beside it, is in `docs/TESTING
 12's suites, measured at the gate". The closing shape - `audition.spec.ts` asserting these numbers
 against `renderLua` - is still not built, and twelve stale rows in three phases is its argument.
 
+**EVERY ROW WAS RE-MEASURED AGAIN AT THE PHASE 12.1 GATE, 2026-09-12 (plan 12.1-09), from the
+entry itself** - `renderLua` at the defaults and at the sweep's picker corner, costed as
+`max(text.length, measureLua(text))` after `padReady()`, every string a fixed point of
+`compressScript` and `checkSyntax` true. **Eleven rows moved this phase, and for the first time in
+the table's history every one was carried by the plan that moved it and the gate found no stale
+row**: the eleven re-fits onto the touch library's gradient, in the order they landed - EUCLID
+696 -> **722**, STEPS 388 -> **414**, RADAR POINTS 489 -> **592**, SONAR 468 -> **571** and ARC 538 ->
+**525** (plan 12.1-03: `G` after `Q` on the four sequencers, `R` defined on the two sweeps, ARC's stop
+test through `N` - the one re-fit that got cheaper); CHORUS 793 -> **819**, MORPH 768 -> **810**,
+CONSOLE 758 -> **784** and LUMEN 704 -> **730** (plan 12.1-04: `G` in white, in `@TRAILC`, in white
+and in `@CURSORC`); TRACKPAD's Timer 488 -> **508** at the defaults and 490 -> 510 at the picker corner
+(plan 12.1-04: both flash centres through the measured map, the Setup sha256-identical at 903);
+GHOST 475 / 418 -> **486 / 405** (plan 12.1-08a: `N` at the erase key and the comet cell, `G` in
+`@RECC`). The other seven rows agree with their entries to the character, as they did at the two
+gates before. The gate's full table, at three corners per entry with the library's two rows and
+the eight preset cards beside it, is in `docs/TESTING.md` under "Phase 12.1's suites, measured at
+the gate". The closing shape - `audition.spec.ts` asserting these numbers against `renderLua` - is
+still not built; a phase in which eleven rows moved and none went stale is the counter-argument,
+and twelve stale rows in three phases before it is still the argument. Rows 24 to 28 are the
+phase's and, like the twenty-three before them, the user's and unanswered.
+
 The nine other measurements that used to sit here left with the nine configurations plan 11-01
 removed, and three more — LATTICE 623 / 171, SHUTTLE 540 / 538 and FORGE 716 / 373 — left with the
 three plan 12-04 removed on the second bench round. All three were accurate at the 11-16 gate when
@@ -202,24 +223,24 @@ Lua:
 
 | id             | name         | Setup | Timer            | knobs | dark at rest |
 | -------------- | ------------ | ----- | ---------------- | ----- | ------------ |
-| `euclid`       | EUCLID       | 696   | 233              | 6     | no           |
-| `chorus`       | CHORUS       | 793   | 29               | 6     | no           |
-| `arc`          | ARC          | 538   | 273              | 5     | no           |
-| `ghost`        | GHOST        | 475   | 418              | 5     | yes          |
-| `morph`        | MORPH        | 768   | 0 — **no Timer** | 5     | yes          |
-| `sonar`        | SONAR        | 468   | 286              | 5     | no           |
-| `steps`        | STEPS        | 388   | 258              | 6     | no           |
-| `console`      | CONSOLE      | 758   | 0 — **no Timer** | 5     | no           |
+| `euclid`       | EUCLID       | 722   | 233              | 6     | no           |
+| `chorus`       | CHORUS       | 819   | 29               | 6     | no           |
+| `arc`          | ARC          | 525   | 273              | 5     | no           |
+| `ghost`        | GHOST        | 486   | 405              | 5     | yes          |
+| `morph`        | MORPH        | 810   | 0 — **no Timer** | 5     | yes          |
+| `sonar`        | SONAR        | 571   | 286              | 5     | no           |
+| `steps`        | STEPS        | 414   | 258              | 6     | no           |
+| `console`      | CONSOLE      | 784   | 0 — **no Timer** | 5     | no           |
 | `strip`        | STRIP        | 857   | 0 — **no Timer** | 5     | no           |
-| `lumen`        | LUMEN        | 704   | 0 — **no Timer** | 4     | no           |
+| `lumen`        | LUMEN        | 730   | 0 — **no Timer** | 4     | no           |
 | `stage`        | STAGE        | 640   | 136              | 4     | no           |
 | `cull`         | CULL         | 564   | 0 — **no Timer** | 4     | no           |
 | `snake`        | SNAKE        | 581   | 870              | 5     | no           |
 | `quadrant`     | QUADRANT     | 835   | 0 — **no Timer** | 4     | no           |
 | `pomodoro`     | POMODORO     | 733   | 647              | 5     | no           |
 | `wheels`       | WHEELS       | 882   | 338              | 6     | no           |
-| `radar-points` | RADAR POINTS | 489   | 286              | 5     | no           |
-| `trackpad`     | TRACKPAD     | 903   | 488              | 4     | yes          |
+| `radar-points` | RADAR POINTS | 592   | 286              | 5     | no           |
+| `trackpad`     | TRACKPAD     | 903   | 508              | 4     | yes          |
 
 **MORPH, CONSOLE, STRIP, LUMEN, CULL and QUADRANT are Setup only, and that is legitimate rather
 than an omission.** MORPH animates only under a finger, with a per-touch decay that firmware runs
