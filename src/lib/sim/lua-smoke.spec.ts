@@ -1,6 +1,12 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// THIRTY-SIX tests since plan 12.1-04, which appended two to the gradient
+// THIRTY-SEVEN tests since plan 12.1-08a, which appended one to the gradient
+// block: GHOST under N and G - the erase key at LED (8,8) and not at LED
+// (7,7), where the naive divisor read cell 80 and a finger on a playing loop
+// erased it; the comet, the gradient and the ghost on the LED's own cell at
+// all 81 centres; the midpoint pair; the code-9 tap. (Plan 12.1-08b adds one
+// more for `K`, the decaying stamp the presets take.)
+// THIRTY-SIX since plan 12.1-04, which appended two to the gradient
 // block: CHORUS, CONSOLE, MORPH and LUMEN under G at nine LED centres and a
 // midpoint in their own colours (MORPH's lift and second finger, LUMEN's A
 // byte-identical to 12-11), and TRACKPAD's flash centre through the map.
@@ -9046,4 +9052,351 @@ describe("the gradient (12.1)", () => {
         "\n",
     );
   }, 60000);
+
+  it("draws GHOST's live finger as the gradient in @RECC, lights the comet and the ghost on the LED through N, and erases on LED (8,8) but records on LED (7,7) where the naive divisor read cell 80", async () => {
+    // PLAN 12.1-08a (12.1-CONTEXT D-26 item 1). GHOST's two cell sites moved
+    // from `x*9//128+y*9//128*9` to the library's `N(x,y)` - the erase key in
+    // the Setup's callback and the comet / ghost cell in the Timer - and the
+    // callback gained `G(s,i,e,x,y,0,@RECC)` after the id gate. Four claims,
+    // every expected cell computed from KX / KY and never typed:
+    //
+    //   1. THE KEY IS LED (8,8) AND NOTHING ELSE. With a recording present a
+    //      press at (KX[8], KY[8]) erases; a press at (KX[7], KY[7]) - which
+    //      the naive divisor read as cell 80, so a finger on LED (7,7) erased
+    //      a playing loop - starts a new recording instead. The naive reading
+    //      is computed beside the calibrated one and printed.
+    //   2. THE COMET CELL IS THE LED. A press dead on every one of the 81 LED
+    //      centres, one Timer tick: layer 1 holds exactly the pressed LED's
+    //      cell (the comet, rate 250) and the red key at 80 (the pulse, which
+    //      the Timer arms on the first tick after an onset because s.n > 0).
+    //   3. THE GRADIENT. At the same centres layer 0 holds that cell at 255 in
+    //      the rendered @RECC and nothing else; the midpoint between LED 4 and
+    //      LED 5 lights exactly two cells at the TS twin's weights; a lift
+    //      leaves layer 0 dark; a code-9 tap records one point and lights no
+    //      gradient (G returns on a 9; 12.1-03).
+    //   4. NOTHING ELSE MOVED. After a lift the ghost walks the recorded points
+    //      on layer 2 at N of each stored raw pair - the same cells the comet
+    //      lit - and the key pulses while s.n > 0.
+    const entry = entryById("ghost");
+    const recc = knobValueOf(entry, "recordColour");
+    const colour = fingerColourOf(entry);
+    expect(
+      colour.join(","),
+      "ghost: G's colour is the rendered @RECC, the recording colour knob",
+    ).toBe(entry.knobs[0].values[recc]);
+    const naiveCellOf = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    const litOnLayer = (sim: PadSim, layer: 1 | 2): Record<number, number> => {
+      const out: Record<number, number> = {};
+      for (let cell = 0; cell < 81; cell += 1) {
+        const p = sim.layer(hwOfCell(cell), layer).pha;
+        if (p !== 0) out[cell] = p;
+      }
+      return out;
+    };
+    const KEY = 80;
+    const report: string[] = [];
+
+    const { host, sim } = await open(entry);
+    try {
+      const recorded = (): number => host.selfNumber("n") ?? -1;
+      expect(host.errors, `ghost: the Setup raised: ${host.errors}`).toEqual(
+        [],
+      );
+      host.run(RESIDUE_WARMUP);
+      expect(litOnLayer0(sim), "ghost: layer 0 is dark at rest").toEqual({});
+
+      // 1. THE KEY. A recording of several points, then the two presses.
+      const record = (c: number, r: number, ticks: number): void => {
+        host.touchDown(0, KX[c], KY[r]);
+        host.run(ticks);
+        host.touchUp(0, KX[c], KY[r]);
+        host.run(2);
+      };
+      record(2, 2, 20);
+      const before = recorded();
+      expect(
+        before,
+        "ghost: the first recording holds several points",
+      ).toBeGreaterThan(2);
+
+      host.touchDown(0, KX[8], KY[8]);
+      host.tick();
+      expect(
+        calibratedCell(KX[8], KY[8]),
+        "the corner knot is cell 80 to N",
+      ).toBe(KEY);
+      expect(recorded(), "ghost: a press on LED (8,8) erases (s.n == 0)").toBe(
+        0,
+      );
+      expect(
+        armVector(sim, 1),
+        "ghost: layer 1 is all phase 0 after the erase",
+      ).toEqual(new Array(81).fill(0));
+      expect(
+        armVector(sim, 2),
+        "ghost: layer 2 is all phase 0 after the erase",
+      ).toEqual(new Array(81).fill(0));
+      expect(
+        litOnLayer0(sim),
+        "ghost: the erasing finger itself is drawn on LED (8,8) while down",
+      ).toEqual({ [KEY]: 255 });
+      host.touchUp(0, KX[8], KY[8]);
+      host.run(2);
+      expect(
+        litOnLayer0(sim),
+        "ghost: layer 0 dark after the erase lift",
+      ).toEqual({});
+      expect(recorded(), "ghost: still nothing recorded after the lift").toBe(
+        0,
+      );
+
+      record(2, 2, 20);
+      expect(
+        recorded(),
+        "ghost: the second recording holds several points",
+      ).toBeGreaterThan(2);
+      const naive77 = naiveCellOf(KX[7], KY[7]);
+      const calibrated77 = calibratedCell(KX[7], KY[7]);
+      expect(
+        naive77,
+        `the naive divisor reads LED (7,7) at (${KX[7]},${KY[7]}) as the key - the defect`,
+      ).toBe(KEY);
+      expect(calibrated77, "N reads LED (7,7) as cell 70").toBe(7 + 7 * 9);
+      host.touchDown(0, KX[7], KY[7]);
+      host.tick();
+      const after77 = recorded();
+      expect(
+        after77,
+        "ghost: a press on LED (7,7) must NOT erase - a new recording starts",
+      ).toBeGreaterThan(0);
+      expect(
+        after77,
+        "ghost: the press on LED (7,7) REPLACED the recording rather than appending",
+      ).toBeLessThanOrEqual(2);
+      host.run(2);
+      expect(
+        litOnLayer(sim, 1)[calibrated77],
+        "ghost: the comet of the LED (7,7) press is on cell 70",
+      ).toBeGreaterThan(0);
+      expect(
+        litOnLayer(sim, 1)[KEY],
+        "ghost: cell 80 is the key's pulse while s.n > 0 - and nothing erased",
+      ).toBeGreaterThan(0);
+      host.touchUp(0, KX[7], KY[7]);
+      host.run(2);
+      report.push(
+        `  LED (8,8) at (${KX[8]},${KY[8]}): N -> cell ${calibratedCell(KX[8], KY[8])}, ` +
+          `naive -> cell ${naiveCellOf(KX[8], KY[8])}; pressed with ${before} points recorded -> s.n 0`,
+      );
+      report.push(
+        `  LED (7,7) at (${KX[7]},${KY[7]}): N -> cell ${calibrated77}, ` +
+          `naive -> cell ${naive77} (THE FIXED DEFECT: the old test erased here); ` +
+          `pressed with a recording present -> s.n ${after77}, a new recording`,
+      );
+
+      // 2 + 3 + 4. ALL 81 LED CENTRES: the gradient on layer 0, the comet on
+      //    layer 1, the ghost on layer 2 after the lift.
+      let differ = 0;
+      const identity: string[] = [];
+      for (let r = 0; r < 9; r += 1) {
+        let row = "";
+        for (let c = 0; c < 9; c += 1) {
+          const cell = c + r * 9;
+          const x = KX[c];
+          const y = KY[r];
+          if (naiveCellOf(x, y) !== cell) differ += 1;
+          expect(calibratedCell(x, y), `N of the knot (${c},${r})`).toBe(cell);
+          if (cell === KEY) {
+            // The previous centre left a recording, so this press IS the
+            // erase - the card's own rule ("a new drag cannot be started in
+            // the corner without erasing first"). Erase, lift, then press
+            // again on an empty pad, where the corner is an ordinary cell.
+            host.touchDown(0, x, y);
+            host.tick();
+            expect(
+              recorded(),
+              "ghost: the corner press with a recording present erases",
+            ).toBe(0);
+            host.touchUp(0, x, y);
+            host.run(3);
+          }
+          host.touchDown(0, x, y);
+          host.run(3);
+          const got0 = litOnLayer0(sim);
+          expect(
+            got0,
+            `ghost: a press dead on LED (${c},${r}) at (${x},${y}) lights exactly its own cell at 255 on layer 0`,
+          ).toEqual({ [cell]: 255 });
+          expect(got0, "and that is the TS twin's picture").toEqual(
+            litOf(expectedFinger(x, y).phases),
+          );
+          expect(
+            colour0(sim, cell),
+            `ghost: layer 0 at cell ${cell} is in @RECC`,
+          ).toEqual(colour);
+          const got1 = litOnLayer(sim, 1);
+          expect(
+            Object.keys(got1)
+              .map(Number)
+              .sort((a, b) => a - b),
+            `ghost: layer 1 under a press on LED (${c},${r}) is the comet at ${cell} and the key at 80`,
+          ).toEqual([...new Set([cell, KEY])].sort((a, b) => a - b));
+          expect(
+            sim.layer(hwOfCell(cell), 1).fre,
+            `ghost: the comet at ${cell} decays at the house rate`,
+          ).toBe(250);
+          row += got0[cell] === 255 && got1[cell] > 0 ? "#" : ".";
+          host.touchUp(0, x, y);
+          host.run(3);
+          expect(
+            litOnLayer0(sim),
+            `ghost: layer 0 is dark after the lift from LED (${c},${r})`,
+          ).toEqual({});
+          const got2 = litOnLayer(sim, 2);
+          expect(
+            Object.keys(got2).map(Number),
+            `ghost: the ghost replays the LED (${c},${r}) point on layer 2 at N of the stored raw pair`,
+          ).toEqual([cell]);
+        }
+        identity.push(row);
+      }
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      expect(
+        identity.join(""),
+        "ghost: some LED centre did not light its own cell on both layers",
+      ).toBe("#".repeat(81));
+      expect(
+        differ,
+        "the naive divisor must disagree with N on at least one LED centre, or this test proves nothing",
+      ).toBeGreaterThan(0);
+      report.push(
+        `  81 LED centres: gradient at 255 on layer 0, comet on layer 1 and ghost on layer 2 all on the LED's own cell; ` +
+          `the naive divisor puts ${differ} of the 81 centres on a different cell`,
+      );
+      for (const row of identity) report.push(`    ${row}`);
+
+      // 3b. THE MIDPOINT between LED 4 and LED 5 in x on row 4.
+      const midX = KX[4] + Math.floor((KX[5] - KX[4]) / 2);
+      host.touchDown(0, midX, KY[4]);
+      host.run(3);
+      const pair = litOf(expectedFinger(midX, KY[4]).phases);
+      expect(Object.keys(pair), "the midpoint is a pair").toHaveLength(2);
+      const midGot = litOnLayer0(sim);
+      expect(
+        Object.keys(midGot),
+        "ghost: the midpoint press lights exactly two layer-0 cells",
+      ).toHaveLength(2);
+      expect(
+        midGot,
+        "ghost: the midpoint pair at the TS twin's weights",
+      ).toEqual(pair);
+      host.touchUp(0, midX, KY[4]);
+      host.run(3);
+      expect(litOnLayer0(sim), "ghost: dark after the midpoint lift").toEqual(
+        {},
+      );
+      report.push(
+        `  midpoint x=${midX} on row 4: layer 0 = ${JSON.stringify(midGot)} (cells 40 and 41 at the bilinear weights)`,
+      );
+
+      // 3c. A CODE-9 TAP on LED (2,2): one point recorded, no gradient, the
+      //     ghost replays it on layer 2.
+      host.touchTap(0, KX[2], KY[2]);
+      host.tick();
+      expect(recorded(), "ghost: a fast tap records exactly one point").toBe(1);
+      expect(
+        litOnLayer0(sim),
+        "ghost: a code-9 tap draws no gradient (G returns on a 9)",
+      ).toEqual({});
+      host.run(3);
+      expect(litOnLayer0(sim), "ghost: still dark after the tap").toEqual({});
+      expect(
+        Object.keys(litOnLayer(sim, 2)).map(Number),
+        "ghost: the tapped point replays on layer 2 at its LED",
+      ).toEqual([2 + 2 * 9]);
+
+      // 3d. A SECOND FINGER draws nothing and records nothing. GHOST is
+      //     single-pointer (`if i>0 then return end`, the library's rule 4 at
+      //     entry level) and G sits AFTER that gate: with contact 0 down on
+      //     LED (3,3), contact 1 on LED (5,5) leaves layer 0 holding contact
+      //     0's cell alone and the recording untouched. G before the gate
+      //     would draw every contact - this clause is what turns red then.
+      host.touchDown(0, KX[3], KY[3]);
+      host.run(3);
+      const soloCount = recorded();
+      expect(
+        litOnLayer0(sim),
+        "ghost: contact 0 on LED (3,3) is the one gradient",
+      ).toEqual({ [3 + 3 * 9]: 255 });
+      host.touchDown(1, KX[5], KY[5]);
+      host.tick();
+      expect(
+        litOnLayer0(sim),
+        "ghost: a second finger on LED (5,5) draws no gradient - G is behind the id gate",
+      ).toEqual({ [3 + 3 * 9]: 255 });
+      host.touchUp(1, KX[5], KY[5]);
+      host.tick();
+      expect(
+        litOnLayer0(sim),
+        "ghost: the second finger's lift clears nothing of the first's",
+      ).toEqual({ [3 + 3 * 9]: 255 });
+      expect(
+        recorded(),
+        "ghost: the second finger did not restart the recording",
+      ).toBeGreaterThanOrEqual(soloCount);
+      host.touchUp(0, KX[3], KY[3]);
+      host.run(3);
+      expect(
+        litOnLayer0(sim),
+        "ghost: dark after the first finger's lift",
+      ).toEqual({});
+      report.push(
+        `  a second finger on LED (5,5) under contact 0 on LED (3,3): layer 0 held cell ${3 + 3 * 9} alone; s.n ${soloCount} -> ${recorded()}`,
+      );
+
+      // 4. A DRAG over three LEDs, lifted: the ghost's union over 200 ticks is
+      //    exactly those three cells through N - where the naive divisor put
+      //    LED (1,3) in column 0.
+      const columns = [1, 4, 7];
+      const row = 3;
+      host.touchDown(0, KX[columns[0]], KY[row]);
+      host.run(6);
+      host.touchMove(0, KX[columns[1]], KY[row]);
+      host.run(6);
+      host.touchMove(0, KX[columns[2]], KY[row]);
+      host.run(6);
+      host.touchUp(0, KX[columns[2]], KY[row]);
+      host.run(2);
+      const seen = new Set<number>();
+      let keyPulsed = false;
+      for (let t = 0; t < 200; t += 1) {
+        host.tick();
+        for (const cell of Object.keys(litOnLayer(sim, 2)).map(Number))
+          seen.add(cell);
+        if (litOnLayer(sim, 1)[KEY] > 0) keyPulsed = true;
+      }
+      const wanted = columns.map((c) => calibratedCell(KX[c], KY[row]));
+      const naiveWanted = columns.map((c) => naiveCellOf(KX[c], KY[row]));
+      expect(
+        [...seen].sort((a, b) => a - b),
+        "ghost: the replay walks exactly the three LEDs the drag visited",
+      ).toEqual(wanted);
+      expect(keyPulsed, "ghost: the red key pulses while s.n > 0").toBe(true);
+      expect(
+        naiveWanted,
+        "the naive divisor puts at least one of the three on another cell",
+      ).not.toEqual(wanted);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      report.push(
+        `  a drag over LEDs (${columns.join("|")},${row}): the ghost replays cells ${wanted.join(" ")} ` +
+          `(the naive divisor would have lit ${naiveWanted.join(" ")}); the key pulsed`,
+      );
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nGHOST UNDER N AND G (plan 12.1-08a):\n" + report.join("\n") + "\n",
+    );
+  }, 120000);
 });

@@ -76,8 +76,17 @@ const flat = doc.replace(/\s+/g, " ");
  * user expects) and D-17's beside TRACKPAD (is the flash centred on the
  * finger's row). Five names in the Config cell, wider again than the column,
  * so prettier re-padded every row a second time; no row's text moved.
+ *
+ * 26 -> 27 at plan 12.1-08a (2026-09-11; 12.1-CONTEXT D-26 item 1): GHOST
+ * under the gradient and the calibrated key (row 27, GHOST), four clauses
+ * (a)-(d) - the comet's head under the fingertip, the ghost on the LEDs
+ * crossed, LED (7,7) recording where the naive divisor erased, and (d) the
+ * design question left to the user: should a paused drag keep recording, or
+ * should a lost lift end the loop after three seconds (the Q + R + X(s,150)
+ * shape, costed at 530 / 417 and not taken). One name in the Config cell, so
+ * prettier re-padded row 27 alone; every other line is byte-identical.
  */
-const ROW_COUNT = 26;
+const ROW_COUNT = 27;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -221,7 +230,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-six numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-seven numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",
