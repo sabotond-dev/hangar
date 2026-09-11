@@ -57,12 +57,13 @@
 //
 //   255/0  system Setup   marker, `H T C P B L`, `KX`, `KY`, `U W E Q X`,
 //                         `self:tim()`                       781, 127 free
-//   255/6  system Timer   marker, `V G N A D`                 713, 195 free
+//   255/6  system Timer   marker, `V G N A D`                 705, 203 free
 //
 // (The research and the plans carried 782 and 714: those are the raw lengths
 // of a `W` and an `N` written `return (` - one space each that the minifier
 // removes - and `cost = max(raw, compressed)` charged the raw. The shipped
-// strings are the fixed points, one character shorter on each side.)
+// strings are the fixed points, one character shorter on each side. 255/6
+// then read 713 until 12.1-03 took ` and e<9` out of `G` - section 5.)
 //
 // THE RULE THAT DECIDES WHICH SIDE A THING LIVES ON: 255/0 holds STATE and THE
 // MAP, 255/6 holds THE PAINTERS AND THE SENDERS. A change to how the finger
@@ -177,7 +178,10 @@
 //      and `H[i]=e<9 and n` keeps the research's harmless handling of a 9;
 //      nothing depends on the `e>8` half. Q3 measured ten taps as fast as a
 //      hand can make them and NOT ONE arrived as a 9 - every one was 4, at
-//      least one 1, then 5.
+//      least one 1, then 5. BUT NOTHING MAY BE LEFT LIT BY ONE EITHER: `G`
+//      treats a 9 as an end for the drawing (section 5), because the residue
+//      gate in lua-smoke.spec.ts synthesises one and a block that stayed lit
+//      after it was the first red of 12.1-03.
 //
 // ---------------------------------------------------------------------------
 // 5. THE CONTRACT, FUNCTION BY FUNCTION, WITH EACH ONE'S CALLER
@@ -240,7 +244,11 @@
 //
 // `G(s, i, e, x, y, l, r, g, b)` - THE BILINEAR FINGER. Touch element, contact,
 //   code, raw x, raw y, layer, colour. Clears the contact's previous block;
-//   then, unless `e` is an end code, takes `u = U(x,KX)`, `w = U(y,KY)`, the
+//   then, unless `e` is anything but a MOVE or a DOWN (`e~=1 and e~=4` - NOT
+//   `Q`'s live test: a 9 is a press AND a lift in one message, so `Q` returns
+//   its cell for the toggle but there is no finger left to draw, and a 9
+//   drawn would stay lit until the sweep; 12.1-03, from the residue gate, -8
+//   characters), takes `u = U(x,KX)`, `w = U(y,KY)`, the
 //   block origin `c + q*9` with `c = glim(u//64,0,7)` and `q = glim(w//64,0,7)`,
 //   the fractions `f = u - c*64` and `h = w - q*64` (0..63, or 64 at the far
 //   end of the last segment - the ninth LED is reached as the SECOND column of
@@ -365,12 +373,14 @@
 // 9. THE COST
 // ---------------------------------------------------------------------------
 //
-// 255/0: 781 of 908, 127 free. 255/6: 713 of 908, 195 free. Both measured under
+// 255/0: 781 of 908, 127 free. 255/6: 705 of 908, 203 free. Both measured under
 // the pinned `GridScript.compressScript` after `padReady()`, and each a fixed
 // point of it. The parts of 255/0 are 32 + 65 + 126 + 86 + 88 + 294 + 74 + 10
 // with seven single-space joins (782 uniform), and the minifier's one edit is
 // the space between the map's closing `}` and `function U`; the parts of 255/6
-// are 9 + 62 + 360 + 60 + 150 + 68 with five joins (714 uniform), and its one
+// are 9 + 62 + 352 + 60 + 150 + 68 with five joins (706 uniform; 12.1-02
+// shipped `G` at 360 and 255/6 at 713 before 12.1-03 dropped the eight
+// characters of ` and e<9` from `G`'s end test - section 5), and its one
 // edit is the space between the marker's `]]` and `function V`. That is why
 // each string is built with its head concatenated and its functions
 // space-joined, and no other way. 12-07's one-slot library read 769; a 255/6
@@ -450,7 +460,9 @@ const V = "function V(n)for d=0,3 do glp(glag(0,n+d%2+d//2*9),L,0)end end";
 
 const G =
   "function G(s,i,e,x,y,l,r,g,b)L=l local o=B[i]if o then V(o)end " +
-  "if e~=1 and e~=4 and e<9 then B[i]=nil return end " +
+  // NOT the live test's `e~=1 and e~=4 and e<9`: a 9 is a press AND a lift in
+  // one message, so there is no finger left to draw (12.1-03, section 5).
+  "if e~=1 and e~=4 then B[i]=nil return end " +
   "local u,w=U(x,KX),U(y,KY)local c,q=glim(u//64,0,7),glim(w//64,0,7)" +
   "local f,h=u-c*64,w-q*64 local n=c+q*9 for d=0,3 do local p,t=d%2,d//2 " +
   "local a=glag(0,n+p+t*9)glc(a,l,r,g,b,1)" +

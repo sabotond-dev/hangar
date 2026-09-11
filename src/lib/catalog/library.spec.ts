@@ -421,8 +421,9 @@ describe("the touch library (CONT-02, PREV-01)", () => {
     // `touch-guard.spec.ts` scans hand-authored ENTRIES; the library is not one,
     // so its own Lua would go unchecked by the file whose rule it has to obey.
     // The needles are assembled from fragments, exactly as that file assembles
-    // its own. Both strings are scanned as one text: `G` in 255/6 carries the
-    // same live-test negation `Q` in 255/0 does.
+    // its own. Both strings are scanned as one text: `Q` in 255/0 carries the
+    // live test, and `G` in 255/6 its deliberate variant without `and e<9`
+    // (below).
     // -----------------------------------------------------------------------
     const both = SLOTS.map(({ lua }) => lua).join("\n");
 
@@ -484,37 +485,38 @@ describe("the touch library (CONT-02, PREV-01)", () => {
       ),
     ).toBe(1);
     // Every `e==4` in the strings is that one onset; the live test is written
-    // `e~=1 and e~=4`, which is a membership question where excluding 9 is
-    // correct, and it appears TWICE - in `Q` and in `G`.
+    // `e~=1 and e~=4 and e<9` and it appears ONCE, in `Q`: a 9 carries a
+    // press, so `Q` must return its cell for the toggle.
     expect(
       bareFour.length,
       "an unaccounted `" + F(V, EQ, "4") + "` appeared in the library",
     ).toBe(1);
-    const live = F(
-      V,
-      "~",
-      "=1 ",
-      AND,
-      " ",
-      V,
-      "~",
-      "=4 ",
-      AND,
-      " ",
-      V,
-      LT,
-      "9",
-    );
+    const notMoveOrDown = F(V, "~", "=1 ", AND, " ", V, "~", "=4");
+    const live = F(notMoveOrDown, " ", AND, " ", V, LT, "9");
     expect(
       count(bodyOf("Q"), live),
       "Q's live test lost its shape, so the end path no longer escapes 9",
     ).toBe(1);
+    // `G` DELIBERATELY DOES NOT WRITE THE LIVE TEST (12.1-03, from the residue
+    // gate in lua-smoke.spec.ts). Its question is not "does this contact
+    // contribute a cell" but "is there a finger to draw", and a 9 is a press
+    // AND a lift in one message: drawing it would leave the finger's block
+    // lit with nobody touching the pad until the Timer's sweep expired the
+    // contact - measured at phase 134 on EUCLID's cell 20, 200 ticks after a
+    // synthesised fast tap. So `G`'s end test is `e~=1 and e~=4` with NO
+    // `and e<9`: a 9 clears the contact's previous block and draws nothing.
+    // The two functions are meant to disagree about a 9, and this asserts it.
+    expect(
+      count(bodyOf("G"), F(notMoveOrDown, " then B[i]=nil return end")),
+      "G's end test must be `e~=1 and e~=4` with no `and e<9`: a coalesced " +
+        "press-and-lift has no finger left to draw",
+    ).toBe(1);
     expect(
       count(bodyOf("G"), live),
-      "G's end test is not the same negation Q uses, so the finger and the " +
-        "cell would disagree about which codes end a contact",
-    ).toBe(1);
-    expect(count(both, live), "the live test appears exactly twice").toBe(2);
+      "G took the live test back, so a fast tap leaves its block lit until " +
+        "the sweep",
+    ).toBe(0);
+    expect(count(both, live), "the live test appears exactly once").toBe(1);
 
     // -----------------------------------------------------------------------
     // THE CLASS-A GATE, and WHICH OF THE TWO ROUTES IT TAKES AND WHY.
