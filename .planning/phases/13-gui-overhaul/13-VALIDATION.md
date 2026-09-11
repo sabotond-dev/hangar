@@ -751,3 +751,36 @@ tooling proof, one hardware answer and one licence.
 - [ ] `.planning/phases/13-gui-overhaul/deferred-items.md` → **13-20-02**
 - [ ] **Grifter's licence** (PERSONAL USE in the name table) — not an agent's to resolve; the swap
       token exists and 13-03 keeps it to two lines. Recorded, not closed
+
+---
+
+## Phase 12.1 hand-off (2026-09-11)
+
+Appended 2026-09-11 under the orchestrator's permission after the Phase 12.1 plan-check; **no line above
+was edited or reflowed.** Phase 12.1 (gradient touch; `.planning/phases/12.1-gradient-touch/`,
+`12.1-CONTEXT.md` D-01..D-25, `12.1-VALIDATION.md`) was inserted after Phase 12 on 2026-09-11. What it
+changes for this phase:
+
+- **Concurrency.** 12.1 Band 1 (plans 01-05: `calibration.ts`, the two-slot library, the host's
+  `systemTimer`, ten entry re-fits, `touch.ts` / `demo.ts`, `frames.json`, `static/og/`, three audition
+  rows) writes no file 13-08..13-13 writes and runs beside them under the observed-baseline rule. 12.1
+  Band 2 (plans 06-08: `constants.ts`, `sequence.ts` with an ordered `SLOTS` list, `install.svelte.ts`,
+  `snapshot.ts`, `tune/model.ts`, `install-copy.ts`, `wire-pin.spec.ts`, `/dev/install/`, `fake-zona.ts`,
+  `install.e2e.ts`, `session.e2e.ts`, two runbook rows, `HeroSurface.svelte:137`) **starts after
+  `13-12-SUMMARY.md` exists and must land before 13-14 is dispatched**; 12.1-09 is the gate.
+- **13-14**: the library is `U W E Q X` (255/0, `TOUCH_LIBRARY`, 782) + `V G N A D` (255/6,
+  `TOUCH_LIBRARY_TIMER`, 714); test 5's set equality reads `12.1-02-SUMMARY.md`; the cell is `N(x,y)`.
+- **13-15**: `N(x,y)` for the cell, `U(y,KY)` in 64ths for the fader value, `G(s,i,e,x,y,l,r,g,b)` for the
+  finger light, both strings into `createLuaHost`.
+- **13-17**: five-row slot list under the third slot (255/4 the fifth row of `SLOTS`); the stop-and-ask
+  fires at five, four being the base case; classifier, snapshot, PUT BACK, CLEAR and the e2e enumeration
+  all at four.
+- **13-18**: the KEEP confirmation carries four scripts (`AMENDED_BY_THE_FOURTH_SCRIPT`); the four-fact
+  trace has a fifth.
+- **13-20**: the 12.1 offset stated once at 12.1-09 - tests +21, files +1, e2e +0/+0, audition +3,
+  runbook +2 (eleven rows with 13-12's), OG re-rendered - added on every row of the reconciliation.
+- **13-09**: `Coverflow.svelte:520` gets `, "y"` on its `mapAxis` line only if the file survives.
+- **13-10**: `ConfigStrings.system` and `.systemTimer` are two unmetered constants; the meter's fixed line
+  is this phase's question.
+- The same section is appended to `13-14`, `13-15`, `13-17`, `13-18` and `13-20-PLAN.md`; the checkpoint
+  table above ("Five checkpoint tasks") is unchanged - 12.1's one checkpoint is 12.1-09's.
