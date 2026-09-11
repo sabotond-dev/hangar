@@ -1,0 +1,99 @@
+/**
+ * THE BRIDGE BETWEEN A ROUTE AND THE SHELL (plan 13-05).
+ *
+ * The shell is mounted ONCE, in src/routes/+layout.svelte, and knows nothing
+ * about configurations: it renders named slots. A SvelteKit layout cannot
+ * take snippets from the page it wraps - the page is the layout's children
+ * and nothing else - so the slots are filled through this module. A route
+ * calls fillShell() from an effect and gets back the function that empties
+ * it; the layout reads `shell` and renders what it finds. Snippets are
+ * values in Svelte 5, so a route can hand its rail, its inspector and its
+ * destination zone over as snippets without the shell learning what is in
+ * them.
+ *
+ * THREE SHAPES, AND THE THIRD DIES WITH THE OLD ROUTES. `variant: "app"` is
+ * the frame the PDF draws on pages 2 to 5 (header with nav, context bar,
+ * rail, centre, inspector, footer). `variant: "intro"` is page 1's exception
+ * (a header with the wordmark, a secondary link and the connection slot, no
+ * nav, no context bar, no rail, no inspector). When NO route has filled the
+ * shell the layout renders the announcer, the page and the footer and
+ * nothing more - which is what `/`, `/c/[id]` and `/browse/` need until
+ * 13-07 and 13-09 rewrite them, because each still draws a header of its
+ * own (13-VALIDATION.md D-5), and a second header above it would be a
+ * visible defect on the live site. Once the last of the three is rewritten
+ * every route fills the shell and the unfilled shape has no caller; 13-09
+ * removes it.
+ *
+ * $state.raw rather than $state: the fill is replaced whole, never mutated
+ * a field at a time, and a deep proxy over snippet functions buys nothing.
+ *
+ * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+ */
+import type { Snippet } from "svelte";
+import type { ResolvedPathname } from "$app/types";
+
+/** The three sections of the primary nav (Bible section 4). */
+export type Section = "playground" | "sandbox" | "my-configs";
+
+export interface NavItem {
+  id: Section;
+  /** The PDF's own label, uppercase because it is a short navigation label (D-05). */
+  label: string;
+  href: ResolvedPathname;
+}
+
+/**
+ * The nav's three destinations, section 4's routes with the site's trailing
+ * slash. The literal pathnames are typed ResolvedPathname rather than built
+ * with resolve() because none of the three routes exists yet - 13-08 lands
+ * /playground/, 13-10 /sandbox/ and 13-12 /my-configs/ - and resolve() is
+ * typed against the routes on disk. The plan that lands each route swaps
+ * its literal for a resolve() call in the same commit.
+ */
+export const SECTIONS: readonly NavItem[] = [
+  { id: "playground", label: "PLAYGROUND", href: "/playground/" },
+  { id: "sandbox", label: "SANDBOX", href: "/sandbox/" },
+  { id: "my-configs", label: "MY CONFIGS", href: "/my-configs/" },
+];
+
+export interface ShellFill {
+  variant: "intro" | "app";
+  /** Which nav item is current. Unused by the intro. */
+  section?: Section;
+  /** The context bar's left zone, as the PDF writes it: ["PLAYGROUND", "CONFIGURATIONS"]. */
+  breadcrumb?: readonly string[];
+  /** The context bar's centre zone: a sentence, or a snippet for the dotted draft line. */
+  status?: string | Snippet;
+  /**
+   * The context bar's right zone. When absent the bar renders the PDF's
+   * sentence "Preview without hardware" (pages 2 and 4) - the zone is a
+   * destination or a sentence, never empty.
+   */
+  destination?: Snippet;
+  /** The left rail. Absent on the intro; the app frame draws an empty column without it. */
+  rail?: Snippet;
+  /** The right inspector. Absent on page 2 and page 4, where the centre takes its width. */
+  inspector?: Snippet;
+  /** The intro header's secondary link (page 1's Quick guide). 13-07's. */
+  secondary?: Snippet;
+  /** The connection control. Reserved: 13-11 fills it from slotStateOf and capabilityOf. */
+  connection?: Snippet;
+  /** The footer's Device actions. Reserved: 13-11 fills it. */
+  deviceActions?: Snippet;
+}
+
+export const shell = $state.raw<{ fill: ShellFill | undefined }>({
+  fill: undefined,
+});
+
+/**
+ * Fill the shell for the life of the caller's effect. Returns the cleanup
+ * that empties it, and empties only if the fill is still the caller's own,
+ * so two routes crossing during navigation cannot blank each other.
+ */
+export function fillShell(fill: ShellFill): () => void {
+  shell.fill = fill;
+  return () => {
+    if (shell.fill === fill) shell.fill = undefined;
+  };
+}

@@ -87,13 +87,24 @@ const code = (rel: string) => stripComments(raw(rel));
 
 const componentPath = (name: string) => `${UI_DIR}/${name}`;
 
-/** Every non-spec file under src/lib/ui/, in a stable order. */
-const uiFiles = (): string[] =>
-  readdirSync(repo(UI_DIR))
-    .map(String)
-    .filter((name) => !name.endsWith(".spec.ts"))
-    .sort()
-    .map(componentPath);
+/**
+ * Every non-spec file under src/lib/ui/, in a stable order, SUBDIRECTORIES
+ * INCLUDED: the rule this feeds is the directory's, and since 13-05 the
+ * directory has a shell/ beneath it. A flat listing read "shell" as a file
+ * and threw EISDIR on 2026-09-11; the walk is what the rule always meant.
+ */
+const uiFiles = (): string[] => {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(repo(dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(rel);
+      else if (!entry.name.endsWith(".spec.ts")) out.push(rel);
+    }
+  };
+  walk(UI_DIR);
+  return out.sort();
+};
 
 const occurrences = (text: string, needle: string) =>
   text.split(needle).length - 1;

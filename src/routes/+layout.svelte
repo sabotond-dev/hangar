@@ -4,8 +4,11 @@
   import favicon from "$lib/assets/favicon.svg";
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
-  import MotionControl from "$lib/ui/MotionControl.svelte";
   import SessionAnnouncer from "$lib/ui/SessionAnnouncer.svelte";
+  import ContextBar from "$lib/ui/shell/ContextBar.svelte";
+  import Footer from "$lib/ui/shell/Footer.svelte";
+  import Header from "$lib/ui/shell/Header.svelte";
+  import { shell } from "$lib/ui/shell/shell.svelte";
 
   let { children } = $props();
 
@@ -28,6 +31,23 @@
     // route, before any panel mounts (D-03). Idempotent, like the session's.
     install.start();
   });
+
+  /**
+   * THE SHELL (plan 13-05). Mounted once, here, and filled by the route
+   * through src/lib/ui/shell/shell.svelte.ts: the layout reads the fill and
+   * renders the frame's named slots; it knows nothing about configurations.
+   * Three shapes. "app" is the PDF's pages 2-5 (header with nav, context
+   * bar, rail, centre, inspector, footer). "intro" is page 1's exception
+   * (13-07): a header with the wordmark, a secondary link and the
+   * connection slot, and nothing else above the page. UNFILLED - no route
+   * has called fillShell() - renders the announcer, the page and the
+   * footer, because `/`, `/c/[id]` and `/browse/` still draw a header of
+   * their own until 13-07 and 13-09 rewrite them (13-VALIDATION.md D-5),
+   * and a second header above it would be a visible defect on the live
+   * site. 13-09 removes the unfilled branch when the last of the three
+   * fills the shell.
+   */
+  const fill = $derived(shell.fill);
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
@@ -37,42 +57,54 @@
   and browse regions in the document, and that document order plus the store's
   trailing timer is the whole of "the session speaks first"; there is no
   cross-region scheduler. See SessionAnnouncer.svelte.
+
+  13-05 put the shell AROUND this line rather than moving it: the announcer is
+  the first element in the document on every route, ahead of the header, and
+  the shell's regions follow it. Nothing about its order changed.
 -->
 <SessionAnnouncer />
-{@render children()}
+
+{#if fill === undefined}
+  {@render children()}
+{:else}
+  <div class="shell" data-testid="shell" data-variant={fill.variant}>
+    <Header
+      variant={fill.variant}
+      section={fill.section}
+      secondary={fill.secondary}
+      connection={fill.connection}
+    />
+    {#if fill.variant === "app"}
+      <ContextBar
+        breadcrumb={fill.breadcrumb}
+        status={fill.status}
+        destination={fill.destination}
+      />
+    {/if}
+    <main class="centre">
+      {@render children()}
+    </main>
+  </div>
+{/if}
 
 <!--
-  GPLv3 section 6(d) — "clear directions next to the object code". This lives in
-  the persistent layout, so it is on every page that ships the bundle, not on an
-  About page. The SHA is rendered in full so the smoke test can read it and
-  derive the archive URL, which is why __BUILD_DIRTY__ is a separate constant:
-  concatenating "-dirty" onto the SHA would point the link at an archive that
-  never exists. Styling is deliberately minimal — the design system is Phase 4.
-  rel="external" on the three links is not decoration: none of these targets is
-  a SvelteKit route. LICENSE, THIRD-PARTY.md and the source archive are plain
-  files that scripts/postbuild.mjs writes into build/, so the client router must
-  not try to handle them — which is also what satisfies
-  svelte/no-navigation-without-resolve without weakening the rule.
+  GPLv3 section 6(d) — "clear directions next to the object code". The block
+  lives in Footer.svelte since 13-05, verbatim (the five lines are held
+  against git by src/lib/ui/shell.spec.ts test 4), and the footer is mounted
+  here, in the persistent layout, so it is on every page that ships the
+  bundle - filled shell or not - and not on an About page. The motion control
+  13-04 parked in this file's own footer went with it, under Help & shortcuts.
 -->
-<footer
-  class="mt-16 flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-6 text-xs [&_a]:underline [&_a]:underline-offset-2"
->
-  <a href="/LICENSE" rel="external">GPLv3</a>
-  <a href="/THIRD-PARTY.md" rel="external">Third-party notices</a>
-  <a href="/source-{__COMMIT_SHA__}.tar.gz" rel="external" download>Source</a>
-  <code data-testid="commit-sha">{__COMMIT_SHA__}</code>
-  {#if __BUILD_DIRTY__}<span>(built from uncommitted changes)</span>{/if}
-  <!--
-    THE MOTION CONTROL, where the SCREEN switch used to be (13-04, D-09). The
-    CRT and its switch are gone; the switch's one real purpose - a visible,
-    non-OS control that stops the ambient previews (Bible §14) - survives as
-    this checkbox. It is last in the footer so it is last in the tab order, and
-    it imports nothing heavy: the preference module settles the recorded
-    choice before hydration paints, so a visitor who chose still never watches
-    the wall start moving and stop. 13-05 BUILDS THE FOOTER the PDF draws on
-    every shell page (Help & shortcuts · Device actions) and moves this block
-    under Help & shortcuts without changing it; until then it lives here, in
-    the layout that already carries the GPLv3 links for the same reason.
-  -->
-  <MotionControl />
-</footer>
+<Footer deviceActions={fill?.deviceActions} />
+
+<style>
+  .shell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .centre {
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+</style>

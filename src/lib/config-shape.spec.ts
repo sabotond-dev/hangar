@@ -354,10 +354,23 @@ describe("build configuration shape", () => {
     const files = [
       ...FRONT_DOOR_PAGES,
       BROWSE_PAGE,
-      ...readdirSync(root(UI_DIR))
-        .map(String)
-        .filter((name) => !name.endsWith(".spec.ts"))
-        .map((name) => `${UI_DIR}/${name}`),
+      // The whole of src/lib/ui/, subdirectories included: since 13-05 the
+      // layout imports the shell's components from src/lib/ui/shell/, so
+      // they are roots of the front door's static import graph like every
+      // component beside them. A flat listing read the directory as a file
+      // and threw EISDIR on 2026-09-11.
+      ...((): string[] => {
+        const out: string[] = [];
+        const walk = (dir: string) => {
+          for (const entry of readdirSync(root(dir), { withFileTypes: true })) {
+            const rel = `${dir}/${entry.name}`;
+            if (entry.isDirectory()) walk(rel);
+            else if (!entry.name.endsWith(".spec.ts")) out.push(rel);
+          }
+        };
+        walk(UI_DIR);
+        return out;
+      })(),
       ...readdirSync(root(BROWSE_DIR))
         .map(String)
         .filter((name) => name.endsWith(".ts") && !name.endsWith(".spec.ts"))

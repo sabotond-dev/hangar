@@ -101,3 +101,25 @@ system asks for less motion, so previews are already still._) that swaps in for 
 The Bible has no line for either; 13-04 chose two strings and the rule stated once, and asks whether
 the third is wanted. The storage key is `hangar.motion.v1` with the values `animated` and `still`;
 13-06 folds it into the store module.
+
+**From 13-05, no string landed and three questions recorded (D-01: ask rather than guess).** The
+shell's every visible string is the PDF's verbatim and is not ledgered: `PLAYGROUND` / `SANDBOX` /
+`MY CONFIGS`, `FOR ZONA`, the breadcrumb forms, _Preview without hardware_, `HANGAR / by intech
+studio`, `Help & shortcuts`, `Device actions`. No aria-label was invented: the context bar is a section
+named by its own breadcrumb, the rail and the inspector are named by their first title and their
+headline, and the wordmark link's name is the plain pair the two pieces spell (_HANGAR_ from the
+mark's ledgered label, then the text `FOR ZONA`). The questions, for 13-18 and the user:
+
+1. **The wordmark link's accessible name** - 13-03's question one stands. The shell uses the plain
+   pair (a screen reader hears _HANGAR_, then _FOR ZONA_, as the two things the PDF draws) and sets
+   no aria-label; if the pair should read as one phrase, 13-18 decides the phrase.
+2. **`Device actions` is absent until 13-11 fills its slot**, not shown dead. A footer label that does
+   nothing is the coy state D-05 forbids, so the pair reads `Help & shortcuts` alone until the control
+   exists and gains its middle dot and its second label with it. If the user would rather see the
+   PDF's full line from today, the label needs a destination or a sentence, and that sentence is
+   invented - so it is asked here rather than written.
+3. **`Help & shortcuts` is a disclosure, closed by default, and the motion control is under it** - one
+   click away rather than on the footer's face as 13-04 left it. The PDF's footer is one quiet line;
+   §14 asks that the motion control exist and be reachable, not that it be always visible. If the
+   user wants the checkbox on the face of the footer on every page, the disclosure opens by default
+   or goes; either is one line. The control itself is unchanged and its two strings stay 13-04's rows.
