@@ -31,20 +31,33 @@
   a catalog entry has no structure to lock, which is the Sandbox's rule at
   13-16. 13-20 decides the requirement's tick.
 
-  THE CONNECTION CONTROL IS ANOTHER PLAN'S. The shell's connection slot is
-  13-11's; until then this route hands the shipped DeviceSlot into it,
-  provisionally, so the header keeps a control and the session suite keeps
-  its subject - with `panelOwnsProse` false, because the panel is always on
-  this page and a drawer that could never open would be a control that does
-  nothing. THE MONITOR IS ON LUA ENTRIES ONLY (13-10, D-14 Q4b): the bar
+  THE CONNECTION CONTROL IS THE SHELL'S (13-11). The layout mounts
+  ConnectionControl.svelte in the header and DeviceActions.svelte in the
+  footer on every page; this route hands neither over any more (13-09's
+  provisional DeviceSlot snippet is gone). WHAT THIS ROUTE HANDS THE CONTEXT
+  BAR (13-11): the device's clause, `device: install.phase`, so the bar's
+  status zone reads the install store's fifteen phases through
+  ContextBar.svelte's own mapping (section 9's device-state object); the
+  draft's clause is 13-13's wiring and 13-18's words and is not set here.
+  The fill is re-made when the phase moves - the snippets in it are the same
+  functions, so the rail and the inspector are not re-created. THE
+  DESTINATION ZONE renders the module's REPORTED active page as a label
+  while a ZONA is connected, and the PDF's sentence otherwise: the Target
+  select, the destination review (Bible section 9, D02) and Apply to ZONA
+  are 13-12's, and this label is the read-only shape the research named,
+  kept for exactly one wave so two plans do not build one control.
+  THE MONITOR IS ON LUA ENTRIES ONLY (13-10, D-14 Q4b): the bar
   under the surface renders the log the Lua host keeps, read through the
   live engine on every sample, and is ABSENT - not present and empty - on
   the nine preset-backed entries, whose vendored simulator keeps no log.
   MidiMonitor.svelte's header carries the three limits. The install column
   (TRY ON DEVICE,
   PUT BACK, KEEP ON DEVICE, CLEAR) is Phase 7's and is rendered here, under
-  the surface, until 13-11 moves Apply to ZONA into the context bar; its
-  Escape rules (Z-10) are kept on the window.
+  the surface, until 13-12 builds Apply to ZONA and the page target in the
+  context bar (13-11 decided to keep it shown rather than hide it: the PDF's
+  page 5 has no column because its Apply lives in the bar, and until that
+  control exists hiding the column would take the only write control off the
+  only page that has it); its Escape rules (Z-10) are kept on the window.
 
   THE STAMP LANDING (SHARE-01, SHARE-03, D-13) runs after the engine is
   built and BEFORE the inspector mounts: the tuner builds in its own onMount
@@ -95,6 +108,7 @@
   import { FRONT_DOOR } from "$lib/catalog/front-door";
   import { LISTING, listingById } from "$lib/catalog/listing";
   import { install } from "$lib/device/install.svelte";
+  import { session } from "$lib/device/session.svelte";
   // Every specifier here is safe under config-shape.spec.ts test 13: none names
   // the vendored tree, the protocol package nor the compile surface. The image
   // renderer is deliberately NOT imported - it is node-only - so 1200 and 630
@@ -126,7 +140,6 @@
   import BrowseLink from "$lib/ui/BrowseLink.svelte";
   import Clear from "$lib/ui/Clear.svelte";
   import CopyLink from "$lib/ui/CopyLink.svelte";
-  import DeviceSlot from "$lib/ui/DeviceSlot.svelte";
   import FidelityLine from "$lib/ui/FidelityLine.svelte";
   import KeepConfirm from "$lib/ui/KeepConfirm.svelte";
   import KeepOnDevice from "$lib/ui/KeepOnDevice.svelte";
@@ -534,18 +547,24 @@
     clearBrowseReturn(store());
   });
 
+  /* The module's reported active page, for the destination zone's label
+     (13-11; the targeted page is 13-12's). Undefined without a session. */
+  const reportedPage = $derived(session.identity?.activePage);
+
   /* The shell, filled for the life of this page (13-05's bridge). The rail,
-     the inspector and the connection control are snippets and arrive with
-     this effect; the breadcrumb travelled as data so the prerendered document
-     already carries it. */
+     the inspector and the destination are snippets and arrive with this
+     effect; the breadcrumb travelled as data so the prerendered document
+     already carries it. `device` is the install store's phase, read here so
+     the effect re-fills when it moves (see the header). */
   $effect(() =>
     fillShell({
       variant: "app",
       section: "playground",
       breadcrumb: data.shell.breadcrumb,
+      device: install.phase,
+      destination: reportedPage === undefined ? undefined : destination,
       rail,
       inspector,
-      connection,
     }),
   );
 </script>
@@ -566,9 +585,17 @@
   <meta name="twitter:card" content={TWITTER_CARD} />
 </svelte:head>
 
-<!-- The shell's connection slot, provisionally the shipped control (13-11 rebuilds it). -->
-{#snippet connection()}
-  <DeviceSlot panelOwnsProse={false} />
+<!--
+  The context bar's destination zone while a ZONA is connected: the REPORTED
+  active page as a label (13-11). 13-12 replaces this with the Target select,
+  section 9's destination review and Apply to ZONA; without a session the
+  bar renders its own "Preview without hardware". The word is the PDF's
+  ("Page 1"), rendered as the module reports it.
+-->
+{#snippet destination()}
+  <span class="destination-page" data-testid="destination-page"
+    >Page <span class="destination-number">{reportedPage}</span></span
+  >
 {/snippet}
 
 <!-- PDF page 5's rail: CONFIGURATIONS, the way back, the numbered rows, Save a copy. -->
@@ -960,6 +987,21 @@
 
   .pinned-save:hover:not(:disabled) {
     border-color: var(--color-action);
+  }
+
+  /* The destination zone's reported-page label (13-11): the bar's quiet
+     13px line, the digit tabular so a page change does not jitter. 13-12
+     replaces this with the Target select and Apply to ZONA. */
+  .destination-page {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-ink-quiet);
+  }
+
+  .destination-number {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
   }
 
   /* The inspector's pinned pair member: the same outlined box, in its half. */

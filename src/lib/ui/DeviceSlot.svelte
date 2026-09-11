@@ -1,28 +1,33 @@
 <!--
-  The header's device slot: one control that reads the session in nine states
-  (06-UI-SPEC, The nine slot states; Y-02, Y-03, Y-10, Y-18, Y-19, Y-22).
+  The header's connection control: one control that reads the session in nine
+  states (06-UI-SPEC, The nine slot states; Y-02, Y-03, Y-10, Y-18, Y-19,
+  Y-22). Re-skinned by plan 13-11 to the PDF's bordered box and re-homed into
+  the shell's header through ConnectionControl.svelte; every state, every
+  label, every accessible name and every rule below is Phase 6's, unchanged.
 
   ONE RULE PRODUCES THE CONTRACT. The slot is a plain BUTTON whenever a click
   does something - S1, S2, S6 and S7 all connect - and a SUMMARY (a button
-  that carries aria-expanded and toggles the drawer) whenever it does not -
-  S0a, S0b, S4, S5. S3 is disabled and busy. A control that both acts and
+  that carries aria-expanded and toggles the disclosure) whenever it does not
+  - S0a, S0b, S4, S5. S3 is disabled and busy. A control that both acts and
   expands announces a lie in one of its two jobs, so the two are never the
   same element in the same state, and the copy for the acting states lives
-  inline in the header note (DeviceNote.svelte) rather than behind a summary
-  the state cannot open. aria-expanded therefore appears in EXACTLY the four
-  summary states, derived from the closed list EXPANDS below and from nothing
-  else. Everything else the slot renders is decided by slotStateOf(phase):
-  this file holds no list of session phases of its own, not even for
-  `starting`, so the table session-copy.spec.ts tests is the only table.
+  inline rather than behind a summary the state cannot open. aria-expanded
+  therefore appears in EXACTLY the four summary states, derived from the
+  closed list EXPANDS below and from nothing else. Everything else the slot
+  renders is decided by slotStateOf(phase): this file holds no list of
+  session phases of its own, not even for `starting`, so the table
+  session-copy.spec.ts tests is the only table.
 
   THE TWO 14px LINE BOXES. The caption and the label each sit in a 14px FIXED
   line box (Y-10) where everything else on the site keeps the type role's 1.2
   ratio. 1.2 at 12px computes to 14.4px, which gives 28.8px for two lines and a
   half-pixel asymmetry inside a 44px box that shifts by state - and THE HEADER
   ROW'S HEIGHT MUST NOT DEPEND ON WHICH SESSION STATE IS SHOWING. Two 14px
-  boxes are 28px, centred in the 44px interactive floor, with the 24px
-  DeviceMark 8px to their left: the box is 44px in every one of the nine
-  states, so no transition moves the page.
+  boxes are 28px, centred in the 44px interactive floor, with the 8px dot
+  (DeviceMark) 10px to their left: the box is 44px in every one of the nine
+  states, so no transition moves the page. The PDF measures the box at 37px;
+  the 44px floor is the site's rule on every control (section 14's target,
+  device-ui.spec.ts test 3) and wins by 7px, recorded in 13-11's summary.
 
   THE ACCESSIBLE NAME IS THE LABEL, NEVER THE CAPTION. The caption line is
   aria-hidden and reaches the control through aria-describedby on a
@@ -41,9 +46,19 @@
   THE DISCLOSURE, not because the button gained a second role: CONN-04's
   six-step recovery is worthless behind a second click. So S6 is a plain
   button with no aria-expanded, `armed` below remembers that the click was
-  made here, and the effect opens the drawer when S6 arrives while it is set.
-  A failure raised from the chosen panel's own control is not armed and opens
-  nothing here - the panel renders the block itself (Y-11).
+  made here, and the effect opens the disclosure when S6 arrives while it is
+  set, moving focus into the recovery (DeviceDetails.svelte).
+
+  THE DISCLOSURE'S OPEN STATE LIVES IN device-drawer.svelte.ts SINCE 13-11.
+  Phase 6 kept `open` here and mounted DeviceDetails beneath this button,
+  anchored to the header's corner. The Bible puts the disclosure's content in
+  the footer as `Device actions` (section 9; PDF pages 2-5), so the panel is
+  now mounted ONCE, by DeviceActions.svelte, and has TWO openers - this
+  summary and the footer's label - which cannot share a local. The closing
+  rules are still written HERE and nowhere else: a transition into a state
+  with no disclosure closes it, and a panel taking the prose closes it
+  (Y-11). The summary names the panel in aria-controls; DeviceDetails uses the
+  same attribute to tell an opener's click from a click outside.
 
   THE MULTI-MODULE TAIL COLLAPSES IN CSS, NOT IN JAVASCRIPT (D-08, Y-19). When
   the identity carries other modules the S4 label ends with a trailing span
@@ -69,19 +84,12 @@
   unconditionally, silently makes both of those waits satisfiable by a
   document that has not read the capability.
 
-  THE SLOT OWNS THE DRAWER'S OPEN STATE. `open` lives here and DeviceDetails
-  renders it, so there is one source of truth for "is the drawer open".
-  `panelOwnsProse` is threaded straight through and used for exactly one
-  thing: the drawer is never opened while it is true, and closes if it is open
-  when it becomes true. That is the same signal DeviceNote takes, from the
-  same per-route expression, so the note and the drawer cannot disagree about
-  whether a panel is open.
-
   Every string comes from session-copy; none is retyped here. The two static
-  specifiers below are the chunk guard's permitted paths
+  device specifiers below are the chunk guard's permitted paths
   (config-shape.spec.ts test 13): the session and its import-free copy module
   are free of the protocol package, which is what lets a header component name
-  them on the first paint of /.
+  them on the first paint of /. The drawer module is a sibling under
+  src/lib/ui/ and imports nothing.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -104,22 +112,16 @@
     moduleTail,
     slotStateOf,
   } from "$lib/device/session-copy";
+  import { PANEL_ID, drawer } from "./device-drawer.svelte";
   import DeviceMark from "./DeviceMark.svelte";
-  import DeviceDetails from "./DeviceDetails.svelte";
 
   let {
-    covered = false,
     panelOwnsProse = false,
   }: {
-    /** True while the splash covers the header row on `/`. Carries the wordmark's
-        `.covered` treatment verbatim - the same value DeviceNote takes, from the
-        same place, so the two cannot rise at different times. False everywhere
-        else; there is no splash on `/playground/{id}/` or `/playground/`. */
-    covered?: boolean;
     /** True exactly when a chosen panel is open and rendering the session's prose
         (Y-11). The disclosure NEVER opens while it is true, and closes itself if
-        it is already open when it becomes true. Passed straight through to
-        DeviceDetails and used nowhere else in this component. */
+        it is already open when it becomes true. False on every route since
+        13-09, where the workspace's panel is always on the page. */
     panelOwnsProse?: boolean;
   } = $props();
 
@@ -137,11 +139,8 @@
     hydrated = true;
   });
 
-  /** The drawer's open state. Owned here; DeviceDetails is its only renderer. */
-  let open = $state(false);
-
-  /** The button itself, handed to the drawer as the element focus returns to
-      when the drawer opened with nothing focused - the S6 road, where S3's
+  /** The button itself, registered as the element focus returns to when the
+      disclosure closes with nothing else focused - the S6 road, where S3's
       `disabled` has just blurred this control (DeviceDetails, `opener`). */
   let control = $state<HTMLButtonElement | null>(null);
 
@@ -150,7 +149,7 @@
   const EXPANDS: readonly SlotState[] = ["S0a", "S0b", "S4", "S5"];
 
   /** The five states that have a disclosure at all: the four summaries, plus
-      S6, whose drawer is opened by the failure rather than by the button. */
+      S6, whose disclosure is opened by the failure rather than by the button. */
   const DISCLOSES: readonly SlotState[] = [...EXPANDS, "S6"];
 
   const slot = $derived(slotStateOf(session.phase));
@@ -159,21 +158,25 @@
 
   /**
    * True from a connecting click made HERE until the attempt settles. Read by
-   * the effect below, which opens the drawer only for a failure this slot's
-   * own click produced. Deliberately not reactive: the effect already re-runs
-   * on the slot state, and the flag is a fact about the last click, not a
-   * value anything renders.
+   * the effect below, which opens the disclosure only for a failure this
+   * slot's own click produced. Deliberately not reactive: the effect already
+   * re-runs on the slot state, and the flag is a fact about the last click,
+   * not a value anything renders.
    */
   let armed = false;
 
   $effect(() => {
     // A transition into a state with no disclosure closes it - S1, S2 and S7
     // by the spec's table, and S3 because it is only ever reached from a
-    // click, and a drawer that survived S3 would pop open on the connected
-    // identity unasked. A panel taking the prose closes it too (Y-11).
-    if (panelOwnsProse || !DISCLOSES.includes(slot)) open = false;
-    // The arriving failure opens the drawer, and only for a header click.
-    if (slot === "S6" && armed && !panelOwnsProse) open = true;
+    // click, and a disclosure that survived S3 would pop open on the
+    // connected identity unasked. A panel taking the prose closes it too
+    // (Y-11).
+    if (panelOwnsProse || !DISCLOSES.includes(slot)) drawer.open = false;
+    // The arriving failure opens the disclosure, and only for a header click.
+    if (slot === "S6" && armed && !panelOwnsProse) {
+      drawer.opener = control;
+      drawer.open = true;
+    }
     if (slot !== "S3") armed = false;
   });
 
@@ -260,7 +263,8 @@
     if (isSummary) {
       // Refuses to open while a panel owns the prose - one of the two guards
       // on that signal; DeviceDetails is the other.
-      open = !open && !panelOwnsProse;
+      drawer.opener = control;
+      drawer.open = !drawer.open && !panelOwnsProse;
       return;
     }
     armed = true;
@@ -270,122 +274,101 @@
   }
 </script>
 
-<div class="device-chrome">
-  <button
-    class="device-slot"
-    class:covered
-    type="button"
-    data-testid="device-slot"
-    data-slot={slot}
-    data-hydrated={hydrated ? "true" : undefined}
-    aria-describedby={descId}
-    aria-expanded={isSummary ? open : undefined}
-    aria-busy={isBusy ? "true" : undefined}
-    disabled={isBusy}
-    bind:this={control}
-    onclick={handleClick}
-  >
-    <DeviceMark shape={markShape} />
-    <span class="lines">
-      <span class="caption" data-testid="device-slot-caption" aria-hidden="true"
-        >{caption}</span
-      >
-      <span
-        class="label"
-        data-testid="device-slot-label"
-        data-kind={labelKind}
-        data-tone={labelTone}
-      >
-        {#if labelKind === "swap"}
-          <span class="swap">
-            <span class="rest" aria-hidden="true">{NO_ZONA_LABEL}</span>
-            <span class="hover">{CONNECT_LABEL}</span>
-          </span>
-        {:else if labelKind === "identity"}
-          <!-- The spaces are non-breaking entities, not source whitespace:
-               Svelte trims whitespace that touches an element boundary, so a
-               plain space between these spans would vanish and leave
-               "ZONA·fw...". The middle dots are bare "·" in aria-hidden spans
-               and every space the eye and the accessible name need lives in a
-               word span, so with the dots removed the name is
-               "ZONA fw {fw} page {page}" and never a run of "middle dot"s. A
-               {" "} would do the same but the lint rule bans it. -->
-          <span class="word">ZONA&nbsp;</span><span
-            class="sep"
-            aria-hidden="true">·</span
-          ><span class="word">&nbsp;fw&nbsp;</span><span class="mono">{fw}</span
-          ><span class="word">&nbsp;</span><span class="sep" aria-hidden="true"
-            >·</span
-          ><span class="word">&nbsp;page&nbsp;</span><span class="mono"
-            >{page}</span
-          >{#if tail}<span class="tail"
-              ><span class="word">&nbsp;</span><span
-                class="sep"
-                aria-hidden="true">·</span
-              ><span class="word">&nbsp;</span>{tail}</span
-            >{/if}
-        {:else}
-          {labelText}
-        {/if}
-      </span>
+<button
+  class="device-slot"
+  type="button"
+  data-testid="device-slot"
+  data-slot={slot}
+  data-hydrated={hydrated ? "true" : undefined}
+  aria-describedby={descId}
+  aria-expanded={isSummary ? drawer.open : undefined}
+  aria-controls={isSummary ? PANEL_ID : undefined}
+  aria-busy={isBusy ? "true" : undefined}
+  disabled={isBusy}
+  bind:this={control}
+  onclick={handleClick}
+>
+  <DeviceMark shape={markShape} />
+  <span class="lines">
+    <span class="caption" data-testid="device-slot-caption" aria-hidden="true"
+      >{caption}</span
+    >
+    <span
+      class="label"
+      data-testid="device-slot-label"
+      data-kind={labelKind}
+      data-tone={labelTone}
+    >
+      {#if labelKind === "swap"}
+        <span class="swap">
+          <span class="rest" aria-hidden="true">{NO_ZONA_LABEL}</span>
+          <span class="hover">{CONNECT_LABEL}</span>
+        </span>
+      {:else if labelKind === "identity"}
+        <!-- The spaces are non-breaking entities, not source whitespace:
+             Svelte trims whitespace that touches an element boundary, so a
+             plain space between these spans would vanish and leave
+             "ZONA·fw...". The middle dots are bare "·" in aria-hidden spans
+             and every space the eye and the accessible name need lives in a
+             word span, so with the dots removed the name is
+             "ZONA fw {fw} page {page}" and never a run of "middle dot"s. A
+             {" "} would do the same but the lint rule bans it. -->
+        <span class="word">ZONA&nbsp;</span><span class="sep" aria-hidden="true"
+          >·</span
+        ><span class="word">&nbsp;fw&nbsp;</span><span class="mono">{fw}</span
+        ><span class="word">&nbsp;</span><span class="sep" aria-hidden="true"
+          >·</span
+        ><span class="word">&nbsp;page&nbsp;</span><span class="mono"
+          >{page}</span
+        >{#if tail}<span class="tail"
+            ><span class="word">&nbsp;</span><span
+              class="sep"
+              aria-hidden="true">·</span
+            ><span class="word">&nbsp;</span>{tail}</span
+          >{/if}
+      {:else}
+        {labelText}
+      {/if}
     </span>
-  </button>
-  <span id={descId} class="sr-only">{description}</span>
-  <DeviceDetails
-    {open}
-    {panelOwnsProse}
-    opener={control}
-    onclose={() => (open = false)}
-  />
-</div>
+  </span>
+</button>
+<span id={descId} class="sr-only">{description}</span>
 
 <style>
   /*
-    The chrome wraps the button and the drawer, so the drawer's click-outside
-    boundary is the whole device chrome rather than the button alone - a click
-    on the control is the toggle's business, never a close followed by a
-    reopen. position: relative anchors the non-modal drawer to it.
-  */
-  .device-chrome {
-    position: relative;
-    display: inline-flex;
-  }
-
-  /*
-    The 44px interactive box: the touch floor on both axes, whatever the state.
-    The mark is 24px and the two 14px lines are 28px, so the content never
-    exceeds the floor and the box is 44px in every one of the nine states.
+    THE PDF'S BOX (pages 2-5, x 1260 to 1478): a 1px boundary on the
+    workspace ground, the dot at the left, the words beside it. 44px on both
+    axes is the touch floor and the height in every one of the nine states:
+    the dot is 8px and the two 14px lines are 28px, so the content never
+    exceeds the floor and nothing about the state can move the header. The
+    boundary token is the control's border (section 12; identity.spec.ts
+    test 5 forbids the divider here). No corner (D-01).
   */
   .device-slot {
-    --slot-arrive-ms: var(--arrive-ms, 700ms);
     appearance: none;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     min-block-size: 44px;
     min-inline-size: 44px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    font-family: inherit;
-    color: inherit;
+    padding: 0 16px;
+    border: 1px solid var(--color-boundary);
+    background: var(--color-workspace);
+    font-family: var(--font-sans);
+    color: var(--color-ink);
     text-align: start;
     cursor: pointer;
-    transition: opacity var(--slot-arrive-ms) cubic-bezier(0.22, 0.61, 0.36, 1);
+    transition: border-color 160ms ease-out;
+  }
+
+  .device-slot:hover:not(:disabled),
+  .device-slot[aria-expanded="true"] {
+    border-color: var(--color-ink);
   }
 
   .device-slot:disabled {
     cursor: default;
-  }
-
-  /*
-    The splash treatment, verbatim from the wordmark: invisible on the very
-    first painted frame rather than faded out of one, and not transitioned into
-    that state. On / only; false everywhere else.
-  */
-  .device-slot.covered {
-    opacity: 0;
-    transition: none;
   }
 
   /* Two stacked lines, each in a 14px fixed box (Y-10). */
@@ -395,22 +378,23 @@
     justify-content: center;
   }
 
-  /* Micro (title): sentence case, nearly no tracking. */
+  /* The caption: sentence case, the quiet ink, nearly no tracking. */
   .caption {
     line-height: 14px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 400;
     letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     transition: opacity 160ms ease-out;
   }
 
-  /* Micro (label): wide-tracked uppercase, the site's control-label form. */
+  /* The label: the site's control-label form, tracked less than Phase 10's
+     0.18em because the PDF's box sets its words plainly. */
   .label {
     line-height: 14px;
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--color-ink-quiet);
@@ -419,10 +403,12 @@
       opacity 160ms ease-out;
   }
 
-  /* The connected identity is Micro (title), not a shouted label (Y-18). */
+  /* The connected identity is a plain sentence-case line, not a shouted label (Y-18). */
   .label[data-kind="identity"] {
     letter-spacing: 0.01em;
     text-transform: none;
+    font-weight: 500;
+    font-size: 13px;
   }
 
   .label[data-tone="dim"] {
@@ -478,7 +464,7 @@
   /*
     The numeric runs only (Y-18): monospace, weight 400, tabular figures, so the
     page digit does not jitter as the module reports it at 4 Hz. The words ZONA,
-    fw, page and the middle-dot separators stay Quicksand 600. Prose is never
+    fw, page and the middle-dot separators stay in the sans face. Prose is never
     monospaced - this is the one --font-mono use in the device components.
   */
   .mono {
@@ -502,10 +488,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .device-slot {
-      --slot-arrive-ms: var(--arrive-ms, 200ms);
-    }
-
+    .device-slot,
     .caption,
     .label,
     .swap > .rest,

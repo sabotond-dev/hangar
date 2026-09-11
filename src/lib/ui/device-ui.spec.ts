@@ -29,6 +29,19 @@
 // shows an install state, and the announcer is untouched - one live region,
 // nothing from the install store, and no logic gained.
 //
+// PLAN 13-11 ADDS THREE, and two of them RENDER rather than scan: the device
+// band was re-skinned and re-homed (the header's control into the shell, the
+// disclosure into the footer as Device actions, the install phase into the
+// context bar as one clause) and what has to survive that is behaviour -
+// nine slot states from seventeen phases, three capability answers, a button
+// exactly when a click acts, one mount of the disclosure with two openers,
+// fifteen phases each accounted for, the four the spec has no row for present
+// by name, and the four uncertain phases kept as four bodies and four
+// clauses. svelte/server render() runs in this project (shell.spec.ts, 13-05),
+// so the fourteenth walks the real session store through every phase and the
+// fifteenth renders the bar with two props, one, and none. All thirteen above
+// were run green BEFORE the three were added, and none was edited.
+//
 // EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
 // These components name in prose the very tokens, specifiers and attributes they
 // are forbidden to use - DeviceSlot's header says "no width read, no matchMedia",
@@ -45,7 +58,35 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
+import {
+  CLEARED_CAPTION,
+  KEPT_CAPTION,
+  SETTLED_CAPTION,
+  keptMismatchBlock,
+  nothingLandedBlock,
+  partialBlock,
+  unconfirmedBlock,
+} from "$lib/device/install-copy";
+import type { InstallPhase } from "$lib/device/install.svelte";
+import {
+  CAPTION_INSECURE,
+  CAPTION_UNSUPPORTED,
+  CONNECT_LABEL,
+  type SessionPhase,
+  slotStateOf,
+} from "$lib/device/session-copy";
+import { session } from "$lib/device/session.svelte";
+import { PANEL_ID } from "./device-drawer.svelte";
+import DeviceActions from "./DeviceActions.svelte";
+import ConnectionControl from "./shell/ConnectionControl.svelte";
+import ContextBar from "./shell/ContextBar.svelte";
+import {
+  UNCERTAIN_PHASES,
+  UNCHARTED_PHASES,
+  deviceClause,
+} from "./shell/device-clause";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -1453,5 +1494,432 @@ describe("the device UI's structural rules", () => {
       traces,
       "a trace of the retired Bare tier or of the retired CLEAR confirmation is in the tree - A-45 and A-46 removed both before they shipped, and this is how they would arrive by copy-paste from the plan that designed them",
     ).toEqual([]);
+  });
+
+  it("the connection control renders nine slot states from seventeen phases and three capability answers, is present with its reason where it cannot connect, is a button exactly when a click acts, and names one panel", () => {
+    // Plan 13-11, task 1. RENDERED, not scanned: svelte/server's render()
+    // works in this project (shell.spec.ts proved it at 13-05), so the
+    // control is drawn over the real session store in every one of its
+    // seventeen phases and the markup is read. The store's `phase` is a public
+    // rune; it is written here and put back to `starting` at the end.
+    const PHASES: readonly SessionPhase[] = [
+      "starting",
+      "unsupported",
+      "insecure",
+      "idle",
+      "detected",
+      "choosing",
+      "opening",
+      "identifying",
+      "connected",
+      "unplugged-while-connected",
+      "cancelled",
+      "port-busy",
+      "not-zona",
+      "silent",
+      "unplugged-at-open",
+      "unknown",
+      "forgotten",
+    ];
+    // Non-vacuity: the list is the union. session-copy declares seventeen
+    // members and the source is read to prove the list did not drift.
+    const union = /export type SessionPhase =([^;]+);/.exec(
+      code("src/lib/device/session-copy.ts"),
+    );
+    expect(union, "SessionPhase is declared").not.toBeNull();
+    const declared = [...(union as RegExpExecArray)[1].matchAll(/"([^"]+)"/g)]
+      .map((m) => m[1])
+      .sort();
+    expect([...PHASES].sort(), "the walk covers every session phase").toEqual(
+      declared,
+    );
+
+    const button = (body: string) =>
+      /<button[^>]*data-testid="device-slot"[^>]*>/.exec(body)?.[0] ?? "";
+    const attr = (tag: string, name: string) =>
+      new RegExp(`${name}="([^"]*)"`).exec(tag)?.[1];
+    const text = (body: string, testid: string) => {
+      const m = new RegExp(`data-testid="${testid}"[^>]*>([^]*?)</span>`).exec(
+        body,
+      );
+      return m ? m[1].replace(/<[^>]+>/g, "").trim() : undefined;
+    };
+
+    const seenSlots = new Set<string>();
+    const seenCapabilities = new Set<string>();
+    const before = session.phase;
+    try {
+      for (const phase of PHASES) {
+        session.phase = phase;
+        const body = render(ConnectionControl).body;
+        const host = /<div[^>]*data-testid="connection-control"[^>]*>/.exec(
+          body,
+        )?.[0];
+        expect(host, `${phase}: the host renders`).toBeDefined();
+        const tag = button(body);
+        expect(
+          tag.length,
+          `${phase}: the control is PRESENT - DEGR-02 forbids hiding it on a browser that cannot install, and CONN-01 puts one control in the header in every state`,
+        ).toBeGreaterThan(0);
+
+        const slot = attr(tag, "data-slot");
+        expect(slot, `${phase}: data-slot`).toBe(slotStateOf(phase));
+        expect(attr(host as string, "data-slot")).toBe(slot);
+        seenSlots.add(slot as string);
+
+        // capabilityOf()'s answer is the phase the session set from it.
+        const capability = attr(host as string, "data-capability");
+        expect(capability, `${phase}: data-capability`).toBe(
+          phase === "unsupported" || phase === "insecure" ? phase : "ok",
+        );
+        seenCapabilities.add(capability as string);
+
+        // THE BUTTON-VERSUS-SUMMARY RULE: aria-expanded in exactly the four
+        // states where a click cannot act, a real `disabled` in exactly the
+        // busy state, and neither anywhere else.
+        const expands = tag.includes("aria-expanded=");
+        const summary = ["S0a", "S0b", "S4", "S5"].includes(slot as string);
+        expect(
+          expands,
+          `${phase} (${slot}): aria-expanded ${summary ? "missing from a summary state - the control acts on a click here and does not, so it must expand" : "present on an acting state - a control that both acts and expands lies about one of its two jobs"}`,
+        ).toBe(summary);
+        expect(
+          tag.includes(" disabled"),
+          `${phase} (${slot}): disabled exactly in S3`,
+        ).toBe(slot === "S3");
+        if (summary) {
+          expect(
+            attr(tag, "aria-controls"),
+            `${phase}: a summary names the one panel`,
+          ).toBe(PANEL_ID);
+        } else {
+          expect(
+            tag.includes("aria-controls="),
+            `${phase}: no panel named`,
+          ).toBe(false);
+        }
+
+        // CONN-02 AND DEGR-02 ON THE TWO CAPABILITY STATES: present, enabled
+        // (the reason is behind it), the caption is that browser's own line -
+        // two different lines - and no connect is offered.
+        if (slot === "S0a" || slot === "S0b") {
+          expect(text(body, "device-slot-caption")).toBe(
+            slot === "S0a" ? CAPTION_UNSUPPORTED : CAPTION_INSECURE,
+          );
+          expect(text(body, "device-slot-label")).not.toBe(CONNECT_LABEL);
+          expect(body).not.toContain("Chromium");
+        }
+      }
+    } finally {
+      session.phase = before;
+    }
+    expect([...seenSlots].sort(), "nine slot states and no tenth").toEqual([
+      "S0a",
+      "S0b",
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+    ]);
+    expect([...seenCapabilities].sort(), "three capability answers").toEqual([
+      "insecure",
+      "ok",
+      "unsupported",
+    ]);
+    expect(CAPTION_UNSUPPORTED).not.toBe(CAPTION_INSECURE);
+
+    // THE RULE IS WRITTEN DOWN WHERE THE MACHINE IS AND WHERE THE HOST IS,
+    // and the host reads the same table.
+    const control = code("src/lib/ui/shell/ConnectionControl.svelte");
+    expect(control, "the host reads slotStateOf").toContain("slotStateOf(");
+    expect(control, "the host mounts the machine").toContain("<DeviceSlot");
+    for (const file of [
+      "src/lib/ui/DeviceSlot.svelte",
+      "src/lib/ui/shell/ConnectionControl.svelte",
+    ]) {
+      expect(
+        raw(file).toLowerCase(),
+        `${file} states the button-versus-summary rule in prose`,
+      ).toMatch(/summary[^.]*whenever it does not/);
+    }
+
+    // THE LAYOUT MOUNTS THE CONTROL ONCE, FOR EVERY ROUTE; no route hands one
+    // in any more (13-09's provisional snippet is gone), and the shell's fill
+    // no longer carries the two device slots.
+    const layout = code("src/routes/+layout.svelte");
+    expect(occurrences(layout, "<ConnectionControl")).toBe(1);
+    expect(occurrences(layout, "<DeviceActions")).toBe(1);
+    expect(occurrences(code(WORKSPACE), "DeviceSlot")).toBe(0);
+    const fill = code("src/lib/ui/shell/shell.svelte.ts");
+    expect(fill).not.toContain("connection?:");
+    expect(fill).not.toContain("deviceActions?:");
+  });
+
+  it("fifteen phases are each accounted for, the four the spec has no row for are present by name, the four uncertain phases keep four distinct bodies and four distinct clauses, and the bar takes the draft and the device as two props", () => {
+    // Plan 13-11, task 2 - THE ANTI-COLLAPSE TEST. The union is read from the
+    // store's source so the fifteen cannot drift from the fourteen or the
+    // sixteen without this test noticing.
+    const union = /export type InstallPhase =([^;]+);/.exec(
+      code("src/lib/device/install.svelte.ts"),
+    );
+    expect(union, "InstallPhase is declared").not.toBeNull();
+    const phases = [
+      ...(union as RegExpExecArray)[1].matchAll(/"([^"]+)"/g),
+    ].map((m) => m[1] as InstallPhase);
+    expect(phases.length, "fifteen phases (fourteen until plan 10-12)").toBe(
+      15,
+    );
+
+    // Every phase renders: thirteen by a branch of their own, `idle` by the
+    // gate that renders nothing (the panel renders the session's blocks
+    // then), `writing` by holding the last block under aria-busy. Nothing is
+    // unaccounted for and nothing is a fall-through onto a neighbour's shape.
+    const state = code(componentPath("InstallState.svelte"));
+    const branched = phases.filter((p) => state.includes(`shown === "${p}"`));
+    expect(
+      phases.filter((p) => !branched.includes(p)).sort(),
+      "a phase lost its own branch - the two without one are idle (renders nothing) and writing (holds the last block); any other name here is a phase collapsed into a neighbour",
+    ).toEqual(["idle", "writing"]);
+    expect(branched.length, "thirteen phases have a branch").toBe(13);
+    expect(state).toContain('shown !== "idle"');
+    expect(state).toContain("writing ? held : install.phase");
+    expect(state).toContain('aria-busy={writing ? "true" : undefined}');
+
+    // THE FOUR THE SPEC HAS NO ROW FOR, PRESENT BY NAME. These are the safety
+    // rail; a re-skin that folded one into a neighbour goes red here naming it.
+    for (const phase of [
+      "restored",
+      "restored-unconfirmed",
+      "cleared",
+      "snapshot-failed",
+    ]) {
+      expect(
+        branched,
+        `${phase}: a phase the spec has no row for was collapsed into a neighbour`,
+      ).toContain(phase);
+    }
+    expect([...UNCHARTED_PHASES].sort()).toEqual([
+      "cleared",
+      "restored",
+      "restored-unconfirmed",
+      "snapshot-failed",
+    ]);
+
+    // THE FOUR UNCERTAIN PHASES: four branches calling four DIFFERENT builders,
+    // whose titles are pairwise distinct. Section 16 offers one sentence for
+    // all of them; HANGAR measured four outcomes and keeps four bodies.
+    const uncertain = [
+      "unconfirmed",
+      "kept-mismatch",
+      "partial",
+      "nothing-landed",
+    ];
+    expect([...UNCERTAIN_PHASES].sort()).toEqual([...uncertain].sort());
+    const builderOf = (phase: string): string | undefined => {
+      const at = state.indexOf(`shown === "${phase}"`);
+      const next = state.indexOf("{:else if", at + 1);
+      const branch = state.slice(at, next < 0 ? undefined : next);
+      return /block=\{([a-zA-Z]+)\(/.exec(branch)?.[1];
+    };
+    const builders = uncertain.map(builderOf);
+    expect(
+      builders,
+      "each uncertain phase renders through its own block builder",
+    ).toEqual([
+      "unconfirmedBlock",
+      "keptMismatchBlock",
+      "partialBlock",
+      "nothingLandedBlock",
+    ]);
+    const titles = [
+      unconfirmedBlock("x").title,
+      keptMismatchBlock().title,
+      partialBlock("The page init", "the Setup").title,
+      nothingLandedBlock("try").title,
+    ];
+    expect(
+      new Set(titles).size,
+      "four distinct titles - two uncertain outcomes read as one sentence",
+    ).toBe(4);
+    const missing = uncertain.filter((p, i) => builders[i] === undefined);
+    expect(missing, "an uncertain phase lost its body").toEqual([]);
+
+    // THE BAR'S DEVICE CLAUSE: every phase but idle has one, the same words as
+    // the block under the surface, and the four uncertain clauses differ.
+    const clauses = new Map(phases.map((p) => [p, deviceClause(p)] as const));
+    expect(clauses.get("idle")).toBeUndefined();
+    for (const p of phases) {
+      if (p === "idle") continue;
+      expect(clauses.get(p), `${p}: a clause`).toBeTruthy();
+    }
+    expect(
+      new Set(uncertain.map((p) => clauses.get(p as InstallPhase))).size,
+      "the four uncertain clauses are pairwise distinct",
+    ).toBe(4);
+    expect(clauses.get("settled")).toBe(SETTLED_CAPTION);
+    expect(clauses.get("kept")).toBe(KEPT_CAPTION);
+    expect(clauses.get("cleared")).toBe(CLEARED_CAPTION);
+
+    // TWO PROPS, NOT ONE. ContextBar declares `draft` and `device` separately
+    // and the layout passes both from the fill's two fields; rendered with
+    // both, the dot, the two clauses and the middle dot appear; with the
+    // device alone, one clause and no middle dot; with neither, the sentence.
+    const bar = code("src/lib/ui/shell/ContextBar.svelte");
+    expect(bar).toContain("draft?: string | Snippet;");
+    expect(bar).toContain("device?: InstallPhase;");
+    const layout = code("src/routes/+layout.svelte");
+    expect(layout).toContain("draft={fill.draft}");
+    expect(layout).toContain("device={fill.device}");
+    const both = render(ContextBar, {
+      props: {
+        breadcrumb: ["PLAYGROUND", "ARC"],
+        draft: "a draft clause",
+        device: "settled",
+      },
+    }).body;
+    expect(both).toContain('data-testid="status-dotted"');
+    expect(both).toContain('data-testid="status-draft"');
+    expect(both).toContain('data-testid="status-device"');
+    expect(both).toContain(SETTLED_CAPTION);
+    expect(both).toContain(" · ");
+    expect(both).toContain('data-tone="live"');
+    const deviceOnly = render(ContextBar, {
+      props: { breadcrumb: ["PLAYGROUND", "ARC"], device: "partial" },
+    }).body;
+    expect(deviceOnly).toContain('data-testid="status-device"');
+    expect(deviceOnly).not.toContain('data-testid="status-draft"');
+    expect(deviceOnly).not.toContain(" · ");
+    expect(deviceOnly).toContain('data-tone="uncertain"');
+    expect(deviceOnly).toContain(
+      partialBlock("The page init", "the Setup").title,
+    );
+    const neither = render(ContextBar, {
+      props: {
+        breadcrumb: ["PLAYGROUND", "CONFIGURATIONS"],
+        status: "A sentence.",
+      },
+    }).body;
+    expect(neither).not.toContain('data-testid="status-dotted"');
+    expect(neither).toContain("A sentence.");
+    const idle = render(ContextBar, {
+      props: { breadcrumb: ["PLAYGROUND", "ARC"], device: "idle" },
+    }).body;
+    expect(idle, "idle has no clause and draws no dot").not.toContain(
+      'data-testid="status-dotted"',
+    );
+    // The workspace hands the device's phase and no pre-joined line.
+    const workspace = code(WORKSPACE);
+    expect(workspace).toContain("device: install.phase");
+    expect(workspace).not.toContain("draft:");
+  });
+
+  it("Device actions in the footer: one mount of the disclosure, two openers naming one panel, the five states and FORGET's gate unchanged, focus returned to the opener, and nothing modal", () => {
+    // Plan 13-11. The disclosure moved from the header's corner to the
+    // footer; what this holds is that it moved WHOLE and ONCE.
+    const walk = (dir: string): string[] => {
+      const out: string[] = [];
+      for (const entry of readdirSync(repo(dir), { withFileTypes: true })) {
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) out.push(...walk(rel));
+        else if (entry.name.endsWith(".svelte")) out.push(rel);
+      }
+      return out;
+    };
+    const mounts = [...walk(UI_DIR), ...walk("src/routes")].filter((file) =>
+      code(file).includes("<DeviceDetails"),
+    );
+    expect(
+      mounts,
+      "DeviceDetails is mounted exactly once on the site, by Device actions (Y-11: the recovery is never on the screen twice)",
+    ).toEqual([`${UI_DIR}/DeviceActions.svelte`]);
+
+    // Two openers, one panel id, from one module.
+    const slot = code(componentPath("DeviceSlot.svelte"));
+    const actions = code(componentPath("DeviceActions.svelte"));
+    expect(slot).toContain("aria-controls={isSummary ? PANEL_ID : undefined}");
+    expect(actions).toContain("aria-controls={PANEL_ID}");
+    expect(actions).toContain("id={PANEL_ID}");
+    expect(slot).toContain('from "./device-drawer.svelte"');
+    expect(actions).toContain('from "./device-drawer.svelte"');
+    expect(
+      occurrences(slot, "let open = $state"),
+      "the slot no longer owns open",
+    ).toBe(0);
+
+    // The five states, the lock, the snapshot line and FORGET's gate, unchanged.
+    const details = code(componentPath("DeviceDetails.svelte"));
+    for (const s of ["S0a", "S0b", "S4", "S5", "S6"]) {
+      expect(details, `the ${s} branch survives`).toContain(`slot === "${s}"`);
+    }
+    expect(occurrences(details, "{FORGET_LABEL}"), "FORGET in S4 and S5").toBe(
+      2,
+    );
+    expect(
+      details.indexOf("{REVOKE_EXPLANATION}") <
+        details.indexOf("{FORGET_LABEL}"),
+      "FORGET's explanation precedes the control - its gate is the explanation one disclosure away",
+    ).toBe(true);
+    expect(details).toContain("session.canForget");
+    expect(details).toContain('data-testid="details-disconnect"');
+    expect(details).toContain('data-testid="details-forget"');
+
+    // Focus returns to the opener on Escape; both close paths know an opener.
+    expect(details).toContain("previouslyFocused?.focus()");
+    expect(
+      occurrences(details, "if (isOpener(target)) return;") +
+        occurrences(details, "isOpener(next)"),
+      "the click-outside and focus-leaving paths both recognise an opener",
+    ).toBe(2);
+    expect(details).toContain("OPENER_SELECTOR");
+    expect(
+      details,
+      "the drawer no longer floats from the header's corner",
+    ).not.toContain("position: absolute");
+
+    // Nothing modal, anywhere in the re-homed chrome. Needles assembled so
+    // this file never carries them whole.
+    const DIALOG = ["role=", '"dia', 'log"'].join("");
+    const MODAL = ["aria-", "modal"].join("");
+    const INERT = ["in", "ert"].join("");
+    const LABEL = ["aria-", "label="].join("");
+    for (const file of [
+      componentPath("DeviceActions.svelte"),
+      componentPath("DeviceDetails.svelte"),
+      "src/lib/ui/shell/ConnectionControl.svelte",
+    ]) {
+      for (const needle of [DIALOG, MODAL, INERT, LABEL]) {
+        expect(
+          occurrences(code(file), needle),
+          `${file} carries ${needle}`,
+        ).toBe(0);
+      }
+    }
+
+    // Rendered closed: the label, its state, the panel it names, and no
+    // details inside; the label declares the 44px floor on both axes.
+    const body = render(DeviceActions).body;
+    const label = /<button[^>]*data-testid="device-actions"[^>]*>/.exec(
+      body,
+    )?.[0];
+    expect(label, "the footer's label renders").toBeDefined();
+    expect(label).toContain('aria-expanded="false"');
+    expect(label).toContain(`aria-controls="${PANEL_ID}"`);
+    expect(body).toContain(`id="${PANEL_ID}"`);
+    expect(body).not.toContain('data-testid="device-details"');
+    const labelRule = rulesOf(actions)
+      .filter((r) => r.selector.includes(".label"))
+      .map((r) => r.body)
+      .join(" ");
+    expect(labelRule).toContain("min-block-size: 44px");
+    expect(labelRule).toContain("min-inline-size: 44px");
+
+    // The allowlist's last two rows are cleared: no corner in either file.
+    expect(occurrences(details, "border-radius")).toBe(0);
+    expect(
+      occurrences(code(componentPath("KeepConfirm.svelte")), "border-radius"),
+    ).toBe(0);
   });
 });

@@ -14,7 +14,7 @@
  * THREE SHAPES, AND THE THIRD IS THE BENCH'S. `variant: "app"` is the frame
  * the PDF draws on pages 2 to 5 (header with nav, context bar, rail, centre,
  * inspector, footer). `variant: "intro"` is page 1's exception (a header
- * with the wordmark, a secondary link and the connection slot, no nav, no
+ * with the wordmark, a secondary link and the connection control, no nav, no
  * context bar, no rail, no inspector). When NO route has filled the shell
  * the layout renders the announcer, the page and the footer and nothing
  * more. Every visitor-facing route fills the shell since 13-09 (/ at 13-07,
@@ -41,11 +41,20 @@
  * replaced whole, never mutated a field at a time, and a deep proxy over
  * snippet functions buys nothing.
  *
+ * THE DEVICE CHROME LEFT THE FILL AT 13-11. 13-05 reserved `connection` and
+ * `deviceActions` here as snippets a route would hand over; the header's
+ * control and the footer's Device actions must exist on every page, so the
+ * layout mounts them itself and no route names them. A fill that carries a
+ * live store value (`device`, the install phase) is re-made by the route's
+ * effect when that value moves; the snippets in it are the same functions,
+ * so the frame's slots are not re-created - only the bar's clause changes.
+ *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
 import type { Snippet } from "svelte";
 import { resolve } from "$app/paths";
 import type { ResolvedPathname } from "$app/types";
+import type { InstallPhase } from "$lib/device/install.svelte";
 
 /** The three sections of the primary nav (Bible section 4). */
 export type Section = "playground" | "sandbox" | "my-configs";
@@ -78,8 +87,20 @@ export interface ShellFill {
   section?: Section;
   /** The context bar's left zone, as the PDF writes it: ["PLAYGROUND", "CONFIGURATIONS"]. */
   breadcrumb?: readonly string[];
-  /** The context bar's centre zone: a sentence, or a snippet for the dotted draft line. */
+  /** The context bar's centre zone on pages 2 and 4: a sentence, or a snippet. */
   status?: string | Snippet;
+  /**
+   * The context bar's centre zone on pages 3 and 5 (plan 13-11): the dotted
+   * status line's TWO clauses, from two sources, as two fields - the draft's
+   * (the drafts store, 13-06; the words are 13-18's and the wiring is
+   * 13-13's, so no route sets it yet) and the device's (the install store's
+   * phase, read by the route and passed through). Section 9 says the draft,
+   * the saved copy and the device state are three objects and never one
+   * generic indicator; one merged field here would be that mistake with a
+   * type signature, so there are two and ContextBar.svelte takes two.
+   */
+  draft?: string | Snippet;
+  device?: InstallPhase;
   /**
    * The context bar's right zone. When absent the bar renders the PDF's
    * sentence "Preview without hardware" (pages 2 and 4) - the zone is a
@@ -92,10 +113,6 @@ export interface ShellFill {
   inspector?: Snippet;
   /** The intro header's secondary link (page 1's Quick guide). 13-07's. */
   secondary?: Snippet;
-  /** The connection control. Reserved: 13-11 fills it from slotStateOf and capabilityOf. */
-  connection?: Snippet;
-  /** The footer's Device actions. Reserved: 13-11 fills it. */
-  deviceActions?: Snippet;
 }
 
 let current = $state.raw<ShellFill | undefined>(undefined);

@@ -33,7 +33,23 @@
   - CONN-04's recovery is worthless behind a second click - but Tab always
   leaves it and Escape closes it. The four close paths (Escape, focus leaving, a
   click outside, and a transition into a state with no disclosure) all call
-  `onclose`; the slot owns `open` and is the only thing that toggles it.
+  `onclose`; device-drawer.svelte.ts owns `open` since 13-11 and the two
+  openers - the header's summary and the footer's Device actions label - are
+  the only things that toggle it.
+
+  RE-HOMED INTO THE FOOTER BY PLAN 13-11 (Bible section 9 "Reset behavior":
+  device actions live under Device actions; PDF pages 2-5: `Help & shortcuts ·
+  Device actions` at the footer's right). Phase 6 hung this block off the
+  header's corner as a floating drawer; it is now the panel beneath the
+  footer's line, mounted ONCE by DeviceActions.svelte, and it renders the
+  same five states with the same strings, the same controls, the same lock
+  and the same four close paths. Two consequences of having two openers, both
+  handled here: a pointerdown on an opener is the toggle's business and is
+  NOT a click outside, and focus moving to an opener is NOT focus leaving -
+  either would close the panel a hair before the opener's own click re-opened
+  it. Openers are recognised by the aria-controls they already have to carry.
+  The floating drawer's `position: absolute`, its anchor and its 10px corner
+  went with the move; no corner survives (D-01, the allowlist row cleared).
 
   FORGET THIS ZONA RENDERS ONLY WHERE THE BROWSER CAN REVOKE - session.canForget,
   set from the feature test at adoption. A revoke control on a browser that
@@ -109,6 +125,7 @@
     multiModuleLine,
     slotStateOf,
   } from "$lib/device/session-copy";
+  import { OPENER_SELECTOR } from "./device-drawer.svelte";
   import FailureBlock from "./FailureBlock.svelte";
 
   let {
@@ -117,9 +134,9 @@
     onclose,
     opener = null,
   }: {
-    /** Whether the drawer is rendered at all. Owned by DeviceSlot, which is the
-        only thing that toggles it, so there is no second source of truth for
-        "is the drawer open". */
+    /** Whether the drawer is rendered at all. Read from device-drawer.svelte.ts
+        by DeviceActions.svelte, the one mount, so there is no second source of
+        truth for "is the drawer open"; the two openers write it. */
     open: boolean;
     /** True while the chosen panel is rendering the session's prose (Y-11). The
         drawer never opens while it is true, and closes if it is open when it
@@ -129,7 +146,7 @@
     /** Escape, focus leaving, a click outside, and a transition into S1, S2 or
         S7 - the four close paths all call this. */
     onclose: () => void;
-    /** The slot's own element, the place focus goes back to when nothing else
+    /** The opener's own element, the place focus goes back to when nothing else
         had it. On the S6 road the click that raised the failure passed
         through S3, where the slot is `disabled` and the browser blurs it, so by
         the time the drawer opens document.activeElement is the body; without
@@ -190,6 +207,14 @@
    * drawer was opened by the arriving failure rather than by a summary the
    * visitor is standing on, so move focus into the recovery; otherwise leave
    * focus where the summary click left it.
+   *
+   * SINCE 13-11 THE PANEL IS IN THE FOOTER, and the footer sits under a frame
+   * sized to the viewport (13-05's layout), so a panel opened from the header
+   * lands below the fold on a full-height page. It is scrolled into view on
+   * open - nearest edge, no animation of its own - so a click on the
+   * header's summary shows what it opened. The S6 focus move scrolls anyway;
+   * this covers the four summary states. The frame not shrinking for a taller
+   * footer is 13-05's arrangement and Help & shortcuts shares it.
    */
   let wasRendered = false;
   $effect(() => {
@@ -202,6 +227,7 @@
       // disabled slot leaves behind (see `opener`). Fall back to the slot.
       previouslyFocused =
         active && active !== document.body ? active : (opener ?? active);
+      container?.scrollIntoView({ block: "nearest" });
       if (slot === "S6") container?.focus();
     }
     wasRendered = rendered;
@@ -217,7 +243,11 @@
     let attached = false;
     const onDocPointerDown = (event: MouseEvent) => {
       if (!container) return;
-      if (!container.contains(event.target as Node)) onclose();
+      const target = event.target as Node | null;
+      if (!target || container.contains(target)) return;
+      // An opener's click is the toggle's business, never a close first.
+      if (isOpener(target)) return;
+      onclose();
     };
     const raf = requestAnimationFrame(() => {
       document.addEventListener("pointerdown", onDocPointerDown, true);
@@ -245,9 +275,17 @@
     }
   }
 
+  /** True for either of the panel's two openers, by the aria-controls they carry. */
+  function isOpener(node: Node): boolean {
+    const el = node instanceof Element ? node : node.parentElement;
+    return el !== null && el.closest(OPENER_SELECTOR) !== null;
+  }
+
   function onFocusout(event: FocusEvent): void {
     const next = event.relatedTarget as Node | null;
-    if (container && (next === null || !container.contains(next))) onclose();
+    if (!container) return;
+    if (next !== null && (container.contains(next) || isOpener(next))) return;
+    onclose();
   }
 
   async function disconnect(): Promise<void> {
@@ -356,25 +394,20 @@
 
 <style>
   /*
-    Non-modal, anchored to the slot: right edges aligned, 8px below the header
-    row. The border and the black ground are the whole treatment - no shadow, no
-    glow, no backdrop tint (06-UI-SPEC). The parent (.device-chrome, plan 06-11)
-    is position: relative, so this hangs from the slot's own corner.
+    Non-modal, in the footer's panel row (13-11): a plain block beneath the
+    footer's line, no shadow, no glow, no backdrop tint (06-UI-SPEC), no
+    corner (D-01). The width is the reading measure of the prose it holds; it
+    sits at the footer's right, under the label that opened it.
   */
   .device-details {
-    position: absolute;
-    inset-inline-end: 0;
-    inset-block-start: calc(100% + 8px);
-    z-index: 40;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    inline-size: calc(100vw - 48px);
-    max-inline-size: 360px;
-    padding: 16px;
-    border: 1px solid var(--color-boundary);
-    border-radius: 10px;
-    background: var(--color-workspace);
+    box-sizing: border-box;
+    inline-size: 100%;
+    max-inline-size: 560px;
+    margin-inline-start: auto;
+    padding-block: 8px 16px;
     text-align: start;
   }
 

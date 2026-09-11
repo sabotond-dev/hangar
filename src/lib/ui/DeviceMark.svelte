@@ -1,118 +1,84 @@
 <!--
-  The device slot's 9x9 mark: the session's shape channel (06-UI-SPEC, The 9x9
-  mark; Y-08).
+  The connection control's dot: the session's shape channel (06-UI-SPEC, The
+  9x9 mark, Y-08; re-skinned by plan 13-11 to the PDF's filled dot).
 
-  Four shapes, one component, no canvas and no engine. The header must never
-  mount a simulator to say "connected": this is the pad recipe's first layer at
-  24px - the same radial-gradient dot field at an 11.111% pitch that
-  PadSpinner.svelte declares at 32px - with zero, one or five cells lit in
-  --color-action over unlit dots in --color-divider.
+  WHAT CHANGED AND WHAT DID NOT. Phase 6 drew a 24px 9x9 dot field with zero,
+  one or five cells lit - the favicon's diagonal for "connected", a walking
+  cell for "connecting". PDF pages 2-5 draw the header's control as one
+  bordered box reading "ZONA connected" behind ONE small filled dot, lime
+  when connected; page 1's "Connect ZONA" carries no dot at all. So the mark
+  is now an 8px dot and the four shapes are four fills, on the same tokens
+  and no others:
 
-    dark         81 dots, nothing lit           S0, S1, S5, S6, S7
-    detected     one cell, top-left, static     S2
-    connecting   one cell walking the rim       S3 - PadSpinner at 24px, decorative
-    connected    five cells down the diagonal   S4 - the favicon's mark, static
+    dark         no dot - the box is reserved, nothing is painted   S0, S1, S5, S6, S7
+    detected     the quiet ink                                       S2
+    connecting   full ink                                            S3
+    connected    the action colour                                   S4
 
-  So a viewer who sees no colour at all still reads four different states, and
-  no third hue is needed anywhere in the session (06-UI-SPEC, Color).
+  The four SHAPES are unchanged: DeviceSlot.svelte maps its nine states onto
+  the same four names it always did, and a viewer who sees no colour still
+  reads "nothing", "something", "brighter" and "the live one". No third hue
+  is needed anywhere in the session (06-UI-SPEC, Color), and nothing here
+  animates any more, so prefers-reduced-motion has nothing to switch off.
+  PadSpinner.svelte is no longer mounted here; its two consumers are
+  CatalogCard.svelte and TryOnDevice.svelte.
+
+  THE DOT IS A RADIAL GRADIENT, NOT A BORDER-RADIUS. D-01 forbids every corner
+  above zero and D-15 exempts exactly six circles by file and line; a seventh
+  `50%` fails the gate. The dot is painted the way the old field painted its
+  cells - a radial-gradient on a square box - so no radius is declared.
 
   THE MARK IS DECORATION. aria-hidden="true" in every state, because the
   caption line and the label line beside it carry the whole meaning; nothing
-  the mark says is missing from the text. That is what makes the accent's ninth
-  reserved use honest - the lit cells say "this is the live value" and never
-  carry a fact a text-only reader would miss - and it is why there is no role
-  and no label here to keep in step with the slot's own.
+  the dot says is missing from the text, which is what makes the accent's use
+  here honest - it says "this is the live one" and never carries a fact a
+  text-only reader would miss.
 
-  THE WALK IS NOT RE-AUTHORED. The connecting shape renders
-  <PadSpinner size={24} decorative />: one animation, two sizes, and the
-  keyframes scale because they are percentage translates on an 11.111% cell.
-  Under prefers-reduced-motion the walking shape therefore does not walk - it
-  becomes the three static cells PadSpinner already renders there, inherited
-  rather than re-implemented, so the two surfaces cannot disagree about what
-  "connecting" looks like with motion off.
-
-  24px IN ALL FOUR SHAPES, so the header row's height cannot move with the
-  session state. No hex literal, no SVG, no icon font, no import that reaches a
-  port: the only specifier is the sibling spinner.
+  8px IN ALL FOUR SHAPES, so the control's width cannot move with the session
+  state. No hex literal, no SVG, no icon font, no import at all.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import PadSpinner from "./PadSpinner.svelte";
-
   let {
     shape,
   }: {
     /** The session's four shapes by name; the slot maps its nine states onto them. */
     shape: "dark" | "detected" | "connecting" | "connected";
   } = $props();
-
-  /**
-   * The favicon's diagonal as grid coordinates: cell (0,0) to the centre
-   * (4,4). Each lit cell's box is one ninth of the field, so translate(100%,
-   * 100%) is one cell down and one cell right, exactly as PadSpinner's
-   * keyframes read.
-   */
-  const DIAGONAL = [0, 1, 2, 3, 4];
 </script>
 
-<div
+<span
   class="mark"
   data-testid="device-mark"
   data-shape={shape}
   aria-hidden="true"
->
-  {#if shape === "connecting"}
-    <PadSpinner size={24} decorative />
-  {:else}
-    <div class="field">
-      {#if shape === "detected"}
-        <div class="cell"></div>
-      {:else if shape === "connected"}
-        {#each DIAGONAL as step (step)}
-          <div
-            class="cell"
-            style:transform="translate({step * 100}%, {step * 100}%)"
-          ></div>
-        {/each}
-      {/if}
-    </div>
-  {/if}
-</div>
+></span>
 
 <style>
-  /* 24px, whatever the shape. flex: none so a header row cannot squeeze it. */
+  /* 8px, whatever the shape. flex: none so the box cannot squeeze it. */
   .mark {
-    position: relative;
-    inline-size: 24px;
-    block-size: 24px;
+    display: inline-block;
+    inline-size: 8px;
+    block-size: 8px;
     flex: none;
-  }
-
-  /* Layer 1 of the pad recipe: PadSpinner's gradient and pitch, at 24px. */
-  .field {
-    position: relative;
-    inline-size: 100%;
-    block-size: 100%;
+    --dot: transparent;
     background-image: radial-gradient(
       circle at 50% 50%,
-      var(--color-divider) 0 6%,
-      transparent 6.5%
+      var(--dot) 0 46%,
+      transparent 52%
     );
-    background-size: 11.111% 11.111%;
   }
 
-  /* One lit cell: PadSpinner's walker, standing still. */
-  .cell {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 0;
-    inline-size: 11.111%;
-    block-size: 11.111%;
-    background-image: radial-gradient(
-      circle at 50% 50%,
-      var(--color-action) 0 34%,
-      transparent 38%
-    );
+  .mark[data-shape="detected"] {
+    --dot: var(--color-ink-quiet);
+  }
+
+  .mark[data-shape="connecting"] {
+    --dot: var(--color-ink);
+  }
+
+  .mark[data-shape="connected"] {
+    --dot: var(--color-action);
   }
 </style>

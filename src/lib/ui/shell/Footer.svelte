@@ -34,11 +34,18 @@
      The panel is a plain block, never a dialog. Keyboard shortcuts join it
      when a plan defines some; nothing is invented here to fill it.
 
-  3. DEVICE ACTIONS IS A RESERVED SLOT. 13-11 fills it. Until it does the
-     label is ABSENT rather than dead: a footer link that does nothing is
-     the coy state D-05 forbids, so the pair reads Help & shortcuts alone
-     while the slot is empty and gains its middle dot and its second label
-     the day 13-11 hands the snippet over. shell.spec.ts test 4 drives both.
+  3. DEVICE ACTIONS IS A SLOT, FILLED BY THE LAYOUT SINCE 13-11 with
+     DeviceActions.svelte: the same disclosure shape as Help & shortcuts,
+     and beneath it the device disclosure Phase 6 and 7 wrote (the
+     identity, the snapshot line, DISCONNECT ZONA, FORGET THIS ZONA, the
+     connection recovery), mounted once for the whole site. The slot stays
+     a snippet so the footer knows nothing about the session, and shell
+     .spec.ts test 4 still drives both shapes: absent, the pair reads Help &
+     shortcuts alone with no dead label (D-05); filled, the middle dot and
+     the second label appear. The snippet renders its label AND its panel
+     row; `.device` is display: contents and `.actions` wraps so the panel
+     takes its own line beneath the two labels, hanging from the footer's
+     right where the PDF puts the pair.
 
   Every number is layout.ts's, imported. No radius anywhere.
 
@@ -52,7 +59,7 @@
   let {
     deviceActions,
   }: {
-    /** The Device actions control. Reserved for 13-11; absent means no label. */
+    /** The Device actions control, handed over by the layout (DeviceActions.svelte since 13-11); absent means no label. */
     deviceActions?: Snippet;
   } = $props();
 
@@ -125,14 +132,23 @@
     color: var(--color-ink-quiet);
   }
 
+  /* The brand sits on the footer's first line whatever a panel beneath the
+     labels does to the line's height. */
   .brand {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-block-size: 44px;
     margin: 0;
   }
 
   .actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    justify-content: flex-end;
+    gap: 0 8px;
+    max-inline-size: 100%;
     margin-inline-start: auto;
   }
 
@@ -156,9 +172,10 @@
     color: var(--color-ink);
   }
 
+  /* The slot's label sits in the row; its panel, a flex-basis: 100% child
+     of the snippet, wraps onto the line beneath. */
   .device {
-    display: inline-flex;
-    align-items: center;
+    display: contents;
   }
 
   /* The panel takes its own row beneath the line. */

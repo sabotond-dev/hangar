@@ -10,12 +10,14 @@
   variant is how the shell renders two shapes without each route tearing
   the frame apart.
 
-  THE CONNECTION SLOT IS RESERVED AND EMPTY. 13-11 builds the control from
-  slotStateOf and capabilityOf, keeping DeviceSlot.svelte's rule that it is
-  a plain button whenever a click does something and a summary whenever it
-  does not. This component renders the slot and reserves the box at the
-  PDF's 218 x 37 so the header's height does not move the day the control
-  arrives; it builds nothing, so two plans cannot build one control.
+  THE CONNECTION SLOT IS FILLED BY THE LAYOUT SINCE 13-11 with
+  ConnectionControl.svelte, which hosts DeviceSlot.svelte over slotStateOf
+  and keeps its rule that the control is a plain button whenever a click
+  does something and a summary whenever it does not. This component still
+  renders the slot as a snippet and reserves the box at the PDF's 218 x 37
+  (the control inside is 44px tall, the site's floor, so the row is sized by
+  the control and not by the box); it builds nothing itself, so shell.spec.ts
+  can render the header alone and two plans cannot build one control.
 
   THE LINK'S ACCESSIBLE NAME is the plain pair the two pieces spell - the
   mark's own "HANGAR" (Wordmark.svelte's ledgered label) followed by the
@@ -47,7 +49,7 @@
     section?: Section;
     /** The intro's secondary link (Quick guide). Rendered only by the intro. */
     secondary?: Snippet;
-    /** The connection control. Reserved for 13-11; the box is drawn empty until then. */
+    /** The connection control, handed over by the layout (ConnectionControl.svelte since 13-11). */
     connection?: Snippet;
   } = $props();
 </script>
@@ -72,8 +74,8 @@
   {/if}
 
   <!--
-    The connection slot. 13-11 fills it; until then the box is reserved at
-    the PDF's 218 x 37 and renders nothing.
+    The connection slot: the PDF's 218 x 37 box, filled by the layout with
+    ConnectionControl.svelte (13-11).
   -->
   <div class="connection" data-testid="shell-connection">
     {#if connection}{@render connection()}{/if}

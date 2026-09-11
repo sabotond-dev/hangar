@@ -5,7 +5,9 @@
   import favicon from "$lib/assets/favicon.svg";
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
+  import DeviceActions from "$lib/ui/DeviceActions.svelte";
   import SessionAnnouncer from "$lib/ui/SessionAnnouncer.svelte";
+  import ConnectionControl from "$lib/ui/shell/ConnectionControl.svelte";
   import ContextBar from "$lib/ui/shell/ContextBar.svelte";
   import Footer from "$lib/ui/shell/Footer.svelte";
   import Header from "$lib/ui/shell/Header.svelte";
@@ -107,9 +109,28 @@
    * COARSE_TARGET on both axes, whatever the viewport. Checkboxes and radios
    * are excluded because their label row is the target, as
    * MotionControl.svelte already declares.
+   *
+   * THE DEVICE CHROME IS THE SHELL'S, NOT A ROUTE'S (plan 13-11). The
+   * header's connection control and the footer's Device actions read the
+   * two singletons this layout starts, so the layout mounts both, once, on
+   * every shape - the intro's header, the app pages' header, and the footer
+   * under all three shapes including the unfilled bench. 13-05 reserved the
+   * two slots as snippets a route would hand over; 13-09 filled the first
+   * provisionally from the workspace route. Neither is a route's business:
+   * a control that must exist on every page belongs to the one component
+   * that is on every page. The snippet props stay on Header and Footer so
+   * shell.spec.ts can render either shape alone.
    */
   const fill = $derived(shell.fill ?? declared());
 </script>
+
+{#snippet connection()}
+  <ConnectionControl />
+{/snippet}
+
+{#snippet deviceActions()}
+  <DeviceActions />
+{/snippet}
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
@@ -140,12 +161,14 @@
         variant={fill.variant}
         section={fill.section}
         secondary={fill.secondary}
-        connection={fill.connection}
+        {connection}
       />
       {#if fill.variant === "app"}
         <ContextBar
           breadcrumb={fill.breadcrumb}
           status={fill.status}
+          draft={fill.draft}
+          device={fill.device}
           destination={fill.destination}
         />
         <div
@@ -190,7 +213,7 @@
     bundle - filled shell or not - and not on an About page. The motion control
     13-04 parked in this file's own footer went with it, under Help & shortcuts.
   -->
-  <Footer deviceActions={fill?.deviceActions} />
+  <Footer {deviceActions} />
 </div>
 
 <style>

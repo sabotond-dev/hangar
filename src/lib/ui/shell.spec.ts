@@ -768,11 +768,15 @@ describe("the shell: one frame, six regions, one set of numbers (src/lib/ui/shel
             },
           }).body,
       })),
-      deviceActions: createRawSnippet(() => ({
-        render: () => '<button type="button">Device actions</button>',
-      })),
+      // The footer's Device actions is the layout's own since 13-11
+      // (DeviceActions.svelte), so the rendered body carries its button
+      // without the fill naming it; the walk below still reaches it.
     });
     expect(body).toContain(`--coarse-target: ${COARSE_TARGET}px`);
+    expect(
+      body,
+      "the layout mounts the footer's Device actions itself (13-11)",
+    ).toContain('data-testid="device-actions"');
 
     // Every interactive tag the shell renders is covered by the rule's
     // selector: the walk is over the rendered markup, so a slot's own

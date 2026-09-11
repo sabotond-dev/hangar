@@ -1093,33 +1093,18 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
       expect(await openCount(page, 0)).toBe(1);
     };
 
-    /**
-     * The gallery's half of the same claim. /playground/ is on the shell
-     * since 13-08, whose connection slot is reserved for 13-11 and renders
-     * nothing yet - so on the two gallery hops the assertion is the half
-     * that needs no slot: the route, the same document, the same one open,
-     * and not one request. 13-11 restores the slot reads here.
-     */
-    const sameDocumentOn = async (route: RegExp): Promise<void> => {
-      expect(pathOf(page)).toMatch(route);
-      expect(
-        await page.evaluate(() => window.__hangarWalk),
-        `the same document on ${pathOf(page)}`,
-      ).toBe(STAMP);
-      expect(await requests(page)).toBe(0);
-      expect(await openCount(page, 0)).toBe(1);
-    };
-
     // THE WALK, by the site's own links and nothing else - no goto between
     // these four hops. /playground/aurora/ -> BROWSE ALL -> /playground/ -> a card ->
     // /playground/aurora/ -> BACK TO BROWSE -> /playground/ -> the wordmark link -> /.
     // (On /playground/{id}/ the wordmark is a heading, not a link; the one link home
     // is the gallery's shell wordmark since 13-08, so the way back runs through it.
-    // The gallery has no device slot until 13-11 fills the shell's connection
-    // slot, so its two hops assert the document and not the slot.)
+    // Since 13-11 the shell's header carries the connection control on EVERY
+    // route - the gallery and the intro included - so every hop asserts the
+    // slot, as this title did before 13-07 and 13-08 moved the routes onto
+    // the shell.)
     await page.getByTestId("browse-link").click();
     await expect(page.getByTestId("browse-grid")).toBeVisible();
-    await sameDocumentOn(/^\/playground\/$/);
+    await stillConnected(/^\/playground\/$/);
 
     await page.getByTestId(`card-name-${ENTRY}`).click();
     await expect(page.getByTestId("workspace")).toBeVisible();
@@ -1127,20 +1112,14 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
 
     await page.getByTestId("browse-link").click();
     await expect(page.getByTestId("browse-grid")).toBeVisible();
-    await sameDocumentOn(/^\/playground\/$/);
+    await stillConnected(/^\/playground\/$/);
 
-    // The last hop lands on the intro (13-07), which has no device slot
-    // until 13-11, so what is asserted there is the half that does not need
-    // one: the same document, the same one open, and not one request.
+    // The last hop lands on the intro (13-07), whose header carries the same
+    // control since 13-11: the identity, the same document, the same one
+    // open, and not one request.
     await page.getByTestId("shell-wordmark").click();
     await expect(page.getByTestId("intro")).toBeVisible();
-    expect(pathOf(page)).toBe("/");
-    expect(
-      await page.evaluate(() => window.__hangarWalk),
-      "the same document on /",
-    ).toBe(STAMP);
-    expect(await requests(page)).toBe(0);
-    expect(await openCount(page, 0)).toBe(1);
+    await stillConnected(/^\/$/);
     // SAFE-01 over the whole walk, before the reload resets the shim: the one
     // snapshot's three reads at connect, and not one write on any route.
     await onlyReads(page, zona, 1);

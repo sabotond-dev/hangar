@@ -172,18 +172,15 @@ export interface AllowlistRow {
  * NamePlate.svelte's one deleted with their files; FOUR IN THREE after 13-10
  * task 1 on the same day: BudgetMeter.svelte's three (the track, the fill,
  * the ghost) squared with the meters' re-home into the inspector; TWO IN TWO
- * after 13-10 task 2: MixTwo.svelte's two deleted with the file (D-12); ONE IN
- * ONE after 13-11's first commit on the same day: KeepConfirm.svelte's one
- * (the block's 10px, squared). Rows are removed by the plan named, never
- * edited to a smaller number by anyone else.
+ * after 13-10 task 2: MixTwo.svelte's two deleted with the file (D-12); ZERO
+ * after 13-11 on the same day: DeviceDetails.svelte's one (the floating
+ * drawer's 10px, gone with the drawer's move into the footer) and
+ * KeepConfirm.svelte's one (the block's 10px, squared). Rows are removed by
+ * the plan named, never edited to a smaller number by anyone else. THE LIST
+ * IS EMPTY, nine plans before 13-20 asserts it; a row added from here is a
+ * new debt and needs a plan's name.
  */
-export const ALLOWLIST: readonly AllowlistRow[] = [
-  {
-    file: "src/lib/ui/DeviceDetails.svelte",
-    declarations: 1,
-    clearedBy: "13-11",
-  },
-];
+export const ALLOWLIST: readonly AllowlistRow[] = [];
 
 /** The repository root, resolved from this file rather than from cwd. */
 export const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
