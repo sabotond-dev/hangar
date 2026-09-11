@@ -34,12 +34,24 @@
 //
 // THE COORDINATE SPACE, STATED ONCE. Samples are authored in the pad's own CELL
 // coordinates: integers 0 to 8 on both axes, x across and y down, exactly the
-// nine columns and nine rows a visitor sees. The engine reads LED coordinates
-// (0..coordMax, 127 or 1023 depending on the state's resolution), so cellToCoord
-// converts at queue time to the CENTRE of the named cell. Authoring in cells is
-// what makes a path readable and what makes it identical on a 127 pad and a
-// 1023 one; converting at the centre is what keeps a sample off a cell boundary,
-// where a rounding difference would land the finger one column over.
+// nine columns and nine rows a visitor sees. The engine reads what the SENSOR
+// reports (0..coordMax, 127 or 1023 depending on the state's resolution), so
+// cellToCoord converts at queue time to the value the sensor reports for a
+// fingertip dead-centre on the named cell: the knot for that cell in
+// src/lib/catalog/calibration.ts, measured on the user's ZONA (Probe C,
+// 2026-09-11), scaled x8 for a hi-res state. Authoring in cells is what makes a
+// path readable and what makes it identical on a 127 pad and a 1023 one;
+// converting to the knot is what puts a demo finger where the calibrated
+// library's `G` draws it on the LED itself and not a third of a cell inward -
+// and, on an entry that still reads `x*9//128`, exactly where the module would
+// put a real finger on that cell, edge behaviour included.
+//
+// Until plan 12.1-05 this was the CENTRE of the cell's ninth of the axis,
+// floor((cell + 0.5) * (max + 1) / 9): the inverse of touch.ts's old mapAxis,
+// and a finger authored on cell 0 reached the calibrated library as raw 7,
+// which `G` drew mostly on LED 1. calibration.ts is a runtime import here, and
+// the one this file makes: it imports nothing itself (its own header, section
+// 4), so it costs the first paint two arrays and two functions.
 //
 // WHY tpad WAS NOT HERE, AND WHY IT IS NOT ANYWHERE NOW. Until plan 12-10 the
 // Trackpad preset was the one dark entry a finger could not help, because its
@@ -52,6 +64,7 @@
 // entry that genuinely cannot be lit goes there with its measurement.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { sensorAt } from "../catalog/calibration";
 import type { TouchSampler } from "./touch";
 
 /** The three firmware contact events a path may name. */
@@ -102,16 +115,23 @@ export type DemoSampler = Pick<TouchSampler, "down" | "move" | "end">;
 export const DEMO_CELLS = 9;
 
 /**
- * A cell index to the LED coordinate at that cell's centre.
+ * A cell index to the value the sensor reports for a fingertip centred on it.
  *
- * The inverse of touch.ts's mapAxis, which floors offset/extent*(max+1) into a
- * cell. Taking the centre - (cell + 0.5) rather than cell - is what keeps a
- * sample away from the boundary between two cells, where the two resolutions
- * would not agree on which column the finger is in.
+ * The same forward map as touch.ts's mapAxis, evaluated at the integer LED
+ * coordinate: calibration.ts's sensorAt(cell, axis) is the knot itself -
+ * KX[cell] across, KY[cell] down - scaled x8 for a hi-res state (coordMax
+ * 1023). The axis is required, not defaulted: the two tables differ by up to
+ * 4 raw units, and a demo finger that read x's knot on y would sit measurably
+ * off the LED row on every card. There is no second table and no centre
+ * arithmetic here; a re-run of the probe that moves a knot moves every demo
+ * finger with it.
  */
-export function cellToCoord(cell: number, coordMax: number): number {
-  const centre = Math.floor(((cell + 0.5) * (coordMax + 1)) / DEMO_CELLS);
-  return Math.min(Math.max(centre, 0), coordMax);
+export function cellToCoord(
+  cell: number,
+  coordMax: number,
+  axis: "x" | "y",
+): number {
+  return sensorAt(cell, axis, coordMax);
 }
 
 /**
@@ -135,8 +155,8 @@ export function driveDemo(
   let queued = 0;
   for (const sample of path.samples) {
     if (sample.tick !== at) continue;
-    const x = cellToCoord(sample.x, coordMax);
-    const y = cellToCoord(sample.y, coordMax);
+    const x = cellToCoord(sample.x, coordMax, "x");
+    const y = cellToCoord(sample.y, coordMax, "y");
     if (sample.event === "down") sampler.down(sample.pointer, x, y);
     else if (sample.event === "move") sampler.move(sample.pointer, x, y);
     else sampler.end(sample.pointer);
@@ -203,9 +223,19 @@ function drag(
  * black social preview and turn that gate red. Ending on the second ghost shows
  * the reset AND leaves the card on a lit, moving frame.
  *
- * The corner is (8, 8) in cell coordinates, which cellToCoord puts at 120 on a
- * 127 axis, which the entry reads as 120*9//128 = 8 on both axes - screen cell
- * 80. Derived from the entry's own arithmetic rather than assumed.
+ * The corner is (8, 8) in cell coordinates, which cellToCoord puts at the
+ * outer knots, KX[8] = 126 and KY[8] = 126 on a 127 axis, which the entry
+ * reads as 126*9//128 = 8 on both axes - screen cell 80. Derived from the
+ * entry's own arithmetic rather than assumed. (Before plan 12.1-05 the same
+ * corner was 120 and 120*9//128 was also 8.)
+ *
+ * GHOST STILL READS `x*9//128` - it is not one of the entries re-fitted on the
+ * calibrated library - so since 12.1-05 its demo shows what the module shows a
+ * real finger on those cells: the knots for cells 1 and 6 fall in columns 0
+ * and 7 under the naive divisor, so the drawn trace sits a column out at both
+ * ends. That is the sensor's behaviour, not a demo bug, and it is the honest
+ * picture the forward map exists to give; whether GHOST joins the calibrated
+ * entries is a catalog decision for a later plan, not this file's.
  */
 const GHOST_PATH: DemoPath = {
   id: "ghost",

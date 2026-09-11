@@ -20,6 +20,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { byId } from "../catalog";
+import { KX, KY } from "../catalog/calibration";
 import {
   cellToCoord,
   DARK_BY_CONSTRUCTION,
@@ -227,13 +228,29 @@ describe("the demonstration finger (src/lib/sim/demo.ts)", () => {
       ).toBe(true);
     }
 
-    // The cell-to-coordinate conversion, at both resolutions and at both ends.
-    expect(cellToCoord(0, 127), "cell 0 lands inside the first column").toBe(7);
-    expect(cellToCoord(8, 127), "cell 8 lands inside the last column").toBe(
-      120,
+    // The cell-to-coordinate conversion is the knot the sensor reports for a
+    // fingertip on that cell, read off calibration.ts's tables and never
+    // written as a literal, at both resolutions, on both axes and at both ends.
+    for (let cell = 0; cell < DEMO_CELLS; cell++) {
+      expect(cellToCoord(cell, 127, "x"), `cell ${cell} across`).toBe(KX[cell]);
+      expect(cellToCoord(cell, 127, "y"), `cell ${cell} down`).toBe(KY[cell]);
+    }
+    expect(cellToCoord(0, 127, "x"), "cell 0 across is the first knot").toBe(
+      KX[0],
     );
-    expect(cellToCoord(0, 1023), "cell 0 at hiRes").toBe(56);
-    expect(cellToCoord(8, 1023), "cell 8 at hiRes").toBe(967);
+    expect(cellToCoord(8, 127, "y"), "cell 8 down is the last knot").toBe(
+      KY[8],
+    );
+    expect(cellToCoord(0, 1023, "x"), "cell 0 at hiRes is the knot x8").toBe(
+      KX[0] * 8,
+    );
+    expect(cellToCoord(8, 1023, "y"), "cell 8 at hiRes is the knot x8").toBe(
+      KY[8] * 8,
+    );
+    expect(
+      cellToCoord(5, 127, "x"),
+      "the two axes read different tables where the tables differ",
+    ).not.toBe(cellToCoord(5, 127, "y"));
   });
 
   it("imports nothing that reaches the compile surface", () => {
@@ -271,10 +288,41 @@ describe("the demonstration finger (src/lib/sim/demo.ts)", () => {
     // demo.ts is imported by CatalogCard.svelte, which renders on a page whose
     // whole job is to list names, so a runtime import here would put whatever
     // it names on that page's first paint.
+    //
+    // ONE runtime import is admitted since plan 12.1-05, by name: the
+    // calibration tables, which cellToCoord reads so a demo finger lands on the
+    // knot the sensor reports. It is admissible for exactly one reason, which
+    // the third assertion below checks rather than trusts: calibration.ts
+    // imports nothing (its header, section 4, states the rule for this file's
+    // sake), so what reaches the first paint is two arrays and two functions
+    // and never the compiler. A second runtime specifier, or a calibration.ts
+    // that grows an import, is red here.
+    const ADMITTED_RUNTIME = "../catalog/calibration";
+    const runtime = specifiers.filter((s) => !erased.includes(s));
     expect(
-      specifiers,
-      "every specifier in demo.ts sits on an import type line",
+      runtime,
+      "the only runtime specifier in demo.ts is the calibration tables",
+    ).toEqual([ADMITTED_RUNTIME]);
+    expect(
+      specifiers.filter((s) => s !== ADMITTED_RUNTIME),
+      "every other specifier in demo.ts sits on an import type line",
     ).toEqual(erased);
+    const calibrationSource = strip(
+      readFileSync(
+        fileURLToPath(new URL(ADMITTED_RUNTIME + ".ts", import.meta.url)),
+        "utf8",
+      ),
+    );
+    expect(
+      calibrationSource.length,
+      "the calibration module was read, not an empty file",
+    ).toBeGreaterThan(1000);
+    expect(
+      [...calibrationSource.matchAll(/from[ ]+["']([^"']+)["']/g)].map(
+        (match) => match[1],
+      ),
+      "calibration.ts imports nothing, which is what makes it admissible here",
+    ).toEqual([]);
 
     const forbidden = [
       "vendor",

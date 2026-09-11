@@ -20,6 +20,7 @@
 // what lets the whole rule set be asserted in node.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { sensorAt } from "../catalog/calibration";
 
 /** The pad tracks five contacts; a sixth pointer is ignored, as on hardware. */
 export const MAX_CONTACTS = 5;
@@ -30,19 +31,45 @@ const EVT_DOWN = 4;
 const EVT_UP = 5;
 
 /**
- * Canvas offset to an LED coordinate.
+ * Canvas offset to the raw value the SENSOR reports for a finger at that point
+ * on the pad.
  *
- * The factor is max + 1, not max: the emitted cell expression is x*9//128, so a
- * 128-wide domain lands each ninth of the canvas on exactly one LED column,
- * edges included. hiRes states report coordMax 1023 and scale the same way.
+ * Until plan 12.1-05 this was floor(offset / extent * (max + 1)): the naive
+ * inverse of the entries' `x*9//128`, so that each ninth of the canvas landed
+ * on exactly one LED column. That was right while every entry read cells
+ * naively, and it became a lie in the direction that flatters the preview once
+ * the library read the measured map: a mouse over LED 7 produced 106 where the
+ * sensor reports 120, so the browser drew the finger on the LED while the
+ * module drew it a third of a cell out.
+ *
+ * Now LED n is at u = n - the centre of the n-th ninth of the canvas - and the
+ * map is src/lib/catalog/calibration.ts's FORWARD map, sensorAt: piecewise
+ * linear over the knots measured on the user's ZONA (Probe C, 2026-09-11),
+ * saturating at the outer knots below LED 0 and above LED 8 as the sensor
+ * does, and scaled x8 for a hiRes state (coordMax 1023), which is the
+ * firmware's own txma(1023) identity. There is no second table here: the Lua
+ * `U` inverts the same knots, so a pointer over LED n produces what the module
+ * would see for a finger on LED n, edge behaviour included.
+ *
+ * The axis defaults to "x" so the two existing call sites -
+ * src/lib/ui/intro/HeroSurface.svelte:136-137 and the workspace route's
+ * pointer handler - compile and stay correct on x without an edit; their y
+ * lines gain the "y" token at plan 12.1-08 (12.1-CONTEXT.md D-21). Until then
+ * the preview's y is off by at most the KX/KY difference, 4 raw units.
+ *
  * A zero or negative extent - an element measured while it is not laid out -
  * returns 0 rather than dividing, because a NaN coordinate would reach the
  * engine and poison a zone.
  */
-export function mapAxis(offset: number, extent: number, max: number): number {
+export function mapAxis(
+  offset: number,
+  extent: number,
+  max: number,
+  axis: "x" | "y" = "x",
+): number {
   if (extent <= 0) return 0;
-  const v = Math.floor((offset / extent) * (max + 1));
-  return Math.min(Math.max(v, 0), max);
+  const u = (offset / extent) * 9 - 0.5; // LED n at u = n
+  return sensorAt(u, axis, max); // clamped into 0..max inside
 }
 
 /** The minimum an engine must offer for a finger to reach it. PadSim satisfies it. */

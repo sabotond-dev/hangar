@@ -8,6 +8,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
+import { KX, KY } from "../catalog/calibration";
 import { MAX_CONTACTS, TouchSampler, mapAxis, type TouchTarget } from "./touch";
 
 type Call = [string, number, number, number];
@@ -30,17 +31,73 @@ function recorder(): { calls: Call[]; target: TouchTarget } {
 }
 
 describe("the tick-locked finger (src/lib/sim/touch.ts)", () => {
-  it("scales an offset by max + 1, so every ninth of the pad lands on one column", () => {
-    // The emitted cell expression is x*9//128, so a 128-wide domain puts each
-    // ninth of the canvas on exactly one LED column, edges included.
-    expect(mapAxis(0, 90, 127), "the left edge").toBe(0);
-    expect(mapAxis(89.9, 90, 127), "just short of the right edge").toBe(127);
-    expect(mapAxis(45, 90, 127), "the middle").toBe(64);
-    expect(mapAxis(90, 90, 127), "exactly the far edge is clamped in").toBe(
-      127,
+  it("maps the centre of the n-th ninth of the canvas to the knot the sensor reports for LED n", () => {
+    // The forward map is calibration.ts's, so every expectation here is READ
+    // off its tables rather than written as a literal: a re-run of the probe
+    // that moves a knot moves this test with it, and nothing is hand-edited.
+    // A canvas 90 px wide puts LED n's centre at (n + 0.5) / 9 * 90.
+    const extent = 90;
+    const centre = (n: number): number => ((n + 0.5) / 9) * extent;
+    for (let n = 0; n < 9; n++) {
+      expect(mapAxis(centre(n), extent, 127), `LED ${n} on x`).toBe(KX[n]);
+    }
+    // The sensor saturates at the outer knots: nothing the pointer does past
+    // LED 0 or LED 8 reads below KX[0] or above KX[8], as on the module.
+    expect(mapAxis(0, extent, 127), "the left edge").toBe(KX[0]);
+    expect(mapAxis(89.9, extent, 127), "just short of the right edge").toBe(
+      KX[8],
     );
-    expect(mapAxis(-5, 90, 127), "a pointer dragged off the left").toBe(0);
-    expect(mapAxis(45, 90, 1023), "hiRes states scale the same way").toBe(512);
+    expect(mapAxis(90, extent, 127), "exactly the far edge").toBe(KX[8]);
+    expect(mapAxis(-5, extent, 127), "a pointer dragged off the left").toBe(
+      KX[0],
+    );
+    // A hiRes state (coordMax 1023) reports the raw value x8, the firmware's
+    // own txma(1023) identity, so the knot scales and nothing else moves.
+    for (const n of [0, 4, 8]) {
+      expect(mapAxis(centre(n), extent, 1023), `LED ${n} on x, hiRes`).toBe(
+        KX[n] * 8,
+      );
+    }
+    // Between two LEDs the map is linear over the knot pair, floored, which is
+    // what puts a finger between LED 3 and LED 4 at the sensor's midpoint and
+    // not at the canvas's.
+    expect(
+      mapAxis(((3.5 + 0.5) / 9) * extent, extent, 127),
+      "halfway between LED 3 and LED 4",
+    ).toBe(Math.floor(KX[3] + (KX[4] - KX[3]) * 0.5));
+  });
+
+  it("reads the y table on the y axis, and the two axes differ where the tables do", () => {
+    const extent = 90;
+    const centre = (n: number): number => ((n + 0.5) / 9) * extent;
+    for (let n = 0; n < 9; n++) {
+      expect(mapAxis(centre(n), extent, 127, "y"), `LED ${n} on y`).toBe(KY[n]);
+    }
+    expect(mapAxis(-5, extent, 127, "y"), "off the top").toBe(KY[0]);
+    expect(mapAxis(90, extent, 127, "y"), "exactly the bottom edge").toBe(
+      KY[8],
+    );
+    expect(mapAxis(centre(4), extent, 1023, "y"), "LED 4 on y, hiRes").toBe(
+      KY[4] * 8,
+    );
+    // The two tables are not the same table, and the default is x. Asserted at
+    // an n where the knots differ, so a mapAxis that read one table for both
+    // axes - or defaulted to y - is red here rather than green by coincidence.
+    const differing = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(
+      (n) => KX[n] !== KY[n],
+    );
+    expect(differing, "the tables differ somewhere").not.toHaveLength(0);
+    expect(differing, "including at LED 5").toContain(5);
+    for (const n of differing) {
+      expect(
+        mapAxis(centre(n), extent, 127, "x"),
+        `LED ${n}: x and y read different knots`,
+      ).not.toBe(mapAxis(centre(n), extent, 127, "y"));
+      expect(
+        mapAxis(centre(n), extent, 127),
+        `LED ${n}: the default axis is x`,
+      ).toBe(mapAxis(centre(n), extent, 127, "x"));
+    }
   });
 
   it("returns 0 rather than NaN for a zero-width element", () => {

@@ -1002,9 +1002,9 @@ describe("the simulator host (src/lib/sim/host.ts)", () => {
       engine.calls.touch,
       "a browse card is never the hero, so without the demo term it would receive nothing at all",
     ).toEqual([
-      ["down", 0, cellToCoord(2, 127), cellToCoord(3, 127)],
-      ["move", 0, cellToCoord(4, 127), cellToCoord(5, 127)],
-      ["up", 0, cellToCoord(4, 127), cellToCoord(5, 127)],
+      ["down", 0, cellToCoord(2, 127, "x"), cellToCoord(3, 127, "y")],
+      ["move", 0, cellToCoord(4, 127, "x"), cellToCoord(5, 127, "y")],
+      ["up", 0, cellToCoord(4, 127, "x"), cellToCoord(5, 127, "y")],
     ]);
     expect(
       engine.calls.tick,
