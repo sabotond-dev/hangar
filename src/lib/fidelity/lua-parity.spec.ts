@@ -42,6 +42,9 @@ import {
 } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
+import { KX, KY } from "../catalog/calibration";
+import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
+import { PRESETS as HANGAR_PRESETS } from "../catalog/presets";
 import { createEngine, type SimEngine } from "../sim/engine";
 import { createLuaHost, type LuaHost } from "../sim/lua-host";
 import { LuaPadSim, blankPadState, renderLua } from "../sim/lua-pad-sim";
@@ -117,11 +120,17 @@ function sha(bytes: Uint8Array): string {
  */
 async function luaRoute(
   preset: PadPreset,
+  library?: { system: string; systemTimer: string },
 ): Promise<{ host: LuaHost; sim: PadSim }> {
   const built = compile(preset.state);
   const sim = new PadSim(blankPadState());
   const host = await createLuaHost({
     sim,
+    // The touch library in front of the compiled Setup (12.1-08b, test 6):
+    // a HANGAR preset's state carries touchLibrary, so its emitted handler
+    // calls N, K and G and needs the two strings the module holds. Tests 1
+    // to 5 run the vendored shelf, which carries no such field, with none.
+    ...(library ?? {}),
     setup: built.setupLua,
     timer: built.timerLua.trim() === "" ? undefined : built.timerLua,
   });
@@ -323,6 +332,185 @@ describe("the Lua route reproduces the vendored simulator (Wave 0 gate)", () => 
       "exactly one preset renders black at every sampled tick, and it is tpad",
     ).toEqual(["tpad"]);
   });
+
+  it("draws a finger the same way on both engines for the eight HANGAR presets: the compiler's Lua beside the library against a live PadSim, 243 records after every sample", async () => {
+    // PLAN 12.1-08b (12.1-CONTEXT D-26 item 2, D-27 "mirror"). HANGAR's nine
+    // states carry touchLibrary, so the vendored compiler emits calls into
+    // the touch library - K for the comets and PINWHEEL, G for JOYSTICK's
+    // glow, N for NINE PADS' zones and FOUR FADERS' rails - and the vendored
+    // simulator's touch handler was edited to mirror the same measured map.
+    // Tests 1 to 5 never touch the pad, so they cannot see either edit. This
+    // is the proof the mirror is right: the compiler's own Lua running in a
+    // real VM beside the library's two strings, against a live PadSim of the
+    // same state, the same samples driven into both, and all 243 layer
+    // records plus the frame hash compared after EVERY sample - a finger
+    // dead on each of the nine diagonal LED centres and the four corner
+    // LEDs, a second contact, a move to the midpoint between LED 4 and 5, a
+    // lift, a hardware fast tap on the bench case LED (7,1), and fifty ticks
+    // of the decays walking. Without this the preview's truth is an
+    // assertion.
+    const eight = HANGAR_PRESETS.filter((p) => p.id !== "tpad");
+    expect(
+      eight.map((p) => p.id),
+      "the eight carded presets",
+    ).toEqual([
+      "aurora",
+      "pinwheel",
+      "starfield",
+      "radar",
+      "joystick",
+      "ninepads",
+      "faders",
+      "dial",
+    ]);
+    for (const preset of eight) {
+      expect(
+        preset.state.touchLibrary,
+        `${preset.id}: the state does not carry the library's knots`,
+      ).toEqual({ kx: [...KX], ky: [...KY] });
+    }
+    type Step = {
+      label: string;
+      drive: (engine: PadSim | LuaHost) => void;
+    };
+    const midX = Math.floor((KX[4] + KX[5]) / 2);
+    const steps: Step[] = [];
+    for (let c = 0; c < 9; c += 1) {
+      steps.push({
+        label: `down on LED (${c},${c})`,
+        drive: (e) => e.touchDown(0, KX[c], KY[c]),
+      });
+    }
+    for (const [c, r] of [
+      [0, 8],
+      [8, 0],
+      [0, 0],
+      [8, 8],
+    ]) {
+      steps.push({
+        label: `down on the corner LED (${c},${r})`,
+        drive: (e) => e.touchDown(0, KX[c], KY[r]),
+      });
+    }
+    steps.push({
+      label: "a second contact down on LED (2,6)",
+      drive: (e) => e.touchDown(1, KX[2], KY[6]),
+    });
+    steps.push({
+      label: "the first contact moves to the midpoint between LED 4 and 5",
+      drive: (e) => e.touchMove(0, midX, KY[4]),
+    });
+    steps.push({
+      label: "the second contact lifts",
+      drive: (e) => e.touchUp(1, KX[2], KY[6]),
+    });
+    steps.push({
+      label: "the first contact lifts",
+      drive: (e) => e.touchUp(0, midX, KY[4]),
+    });
+    steps.push({
+      label: "a fast tap on the bench case, LED (7,1)",
+      drive: (e) => e.touchTap(0, KX[7], KY[1]),
+    });
+    steps.push({ label: "fifty ticks of decay", drive: (e) => e.run(49) });
+    const SAMPLES = steps.length;
+    expect(SAMPLES, "nineteen samples per preset").toBe(19);
+
+    let compared = 0;
+    let litSamples = 0;
+    const rows: string[] = [];
+    for (const preset of eight) {
+      const expected = new PadSim(preset.state);
+      const { host, sim } = await luaRoute(preset, {
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+      });
+      try {
+        expect(
+          host.errors,
+          `${preset.id}: the Setup raised beside the library`,
+        ).toEqual([]);
+        let lit = 0;
+        for (const step of steps) {
+          step.drive(expected);
+          step.drive(host);
+          expected.run(1);
+          host.run(1);
+          expect(
+            host.errors,
+            `${preset.id} after "${step.label}": the handler raised: ${host.errors.join(" | ")}`,
+          ).toEqual([]);
+          let litNow = 0;
+          for (let hw = 0; hw < CELLS; hw++) {
+            for (const layer of [0, 1, 2] as const) {
+              const actualRecord = sim.layer(hw, layer);
+              const expectedRecord = expected.layer(hw, layer);
+              for (const field of LAYER_FIELDS) {
+                expect(
+                  actualRecord[field],
+                  `${preset.id} after "${step.label}": layer(${hw}, ${layer}).${field} - the Lua beside the library and the simulator's mirror disagree`,
+                ).toEqual(expectedRecord[field]);
+              }
+              if (layer === 1 && expectedRecord.pha !== 0) litNow += 1;
+              compared += 1;
+            }
+          }
+          expect(
+            sha(sim.frame),
+            `${preset.id} after "${step.label}": the frame hashes differ`,
+          ).toBe(sha(expected.frame));
+          if (litNow > 0) lit += 1;
+        }
+        // NON-VACUITY: a card whose touch writes layer 1 must have lit it
+        // at some sample, or the loop compared a dark pad with itself.
+        if (preset.state.touch.kind !== "none") {
+          expect(
+            lit,
+            `${preset.id}: no sample lit layer 1, so the finger was never drawn`,
+          ).toBeGreaterThan(0);
+        }
+        litSamples += lit;
+        rows.push(
+          `  ${preset.id.padEnd(10)} ${SAMPLES} samples, ${lit} with layer 1 lit, ${SAMPLES * CELLS * 3} records equal`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+    expect(
+      compared,
+      "layer records compared (8 presets x 19 samples x 243)",
+    ).toBe(8 * 19 * 243);
+    expect(8 * 19 * 243, "the literal").toBe(36936);
+    expect(litSamples, "some sample lit layer 1").toBeGreaterThan(0);
+
+    // THE HI-RES CASE, ONCE, ON THE TEXT: a state that is both widened and
+    // library-bearing hands the library the sensor's range. No HANGAR preset
+    // is hi-res, so this is compile-only.
+    const ninepads = eight.find((p) => p.id === "ninepads") as PadPreset;
+    const wide = {
+      ...ninepads.state,
+      sends: { ...ninepads.state.sends, hiRes: true },
+    };
+    expect(compile(wide).setupLua, "hi-res zones read N(x//8,y//8)").toContain(
+      "local n=N(x//8,y//8)",
+    );
+    expect(
+      compile(ninepads.state).setupLua,
+      "the shipped grid reads N(x,y)",
+    ).toContain("local n=N(x,y)");
+    const bare = { ...ninepads.state };
+    delete (bare as { touchLibrary?: unknown }).touchLibrary;
+    expect(
+      compile(bare).setupLua,
+      "without the field the naive zone map is back",
+    ).toContain("local z=x*4//128+y*4//128*4");
+    process.stdout.write(
+      "\nTHE EIGHT PRESETS UNDER A FINGER, LUA BESIDE THE LIBRARY AGAINST THE MIRROR (plan 12.1-08b):\n" +
+        rows.join("\n") +
+        `\n  ${compared} layer records equal\n`,
+    );
+  }, 120000);
 
   it("gives both engines one interchangeable SimEngine surface", async () => {
     const names = Object.keys(ENGINE_MEMBERS);

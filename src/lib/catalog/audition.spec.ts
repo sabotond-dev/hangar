@@ -85,8 +85,21 @@ const flat = doc.replace(/\s+/g, " ");
  * should a lost lift end the loop after three seconds (the Q + R + X(s,150)
  * shape, costed at 530 / 417 and not taken). One name in the Config cell, so
  * prettier re-padded row 27 alone; every other line is byte-identical.
+ *
+ * 27 -> 28 at plan 12.1-08b (2026-09-11; 12.1-CONTEXT D-26 item 2, D-27): the
+ * eight preset cards under the gradient (row 28), six clauses (a)-(f) -
+ * AURORA's tail, JOYSTICK's dot, NINE PADS' pads at the edges first time,
+ * FOUR FADERS' rails with the raw level and the question whether it should
+ * become calibrated, PINWHEEL's two colours, DIAL's trail. THE ONE ROW THAT
+ * NAMES NO HAND-AUTHORED CONFIGURATION: its Config cell reads "the eight
+ * preset cards" in lower case, so `namesIn` claims nothing from it and test
+ * 2's live-name gate is untouched; the document's title covers hand-authored
+ * configurations, and a dated scope line appended after the table widens it
+ * in writing for this row (R-11's rule, widened rather than bent). No
+ * re-padding: the cell is narrower than the column; eight lines inserted,
+ * every other line byte-identical.
  */
-const ROW_COUNT = 27;
+const ROW_COUNT = 28;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -230,7 +243,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-seven numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-eight numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",

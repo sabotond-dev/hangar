@@ -2312,14 +2312,21 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(new Set(timers).size, "three distinct system timers").toBe(3);
     expect(state.system?.[EVENT_TIMER]).toBe(SYSTEM_DEFAULT_TIMER);
 
-    // AN ENTRY WITH NO PAGE INIT AND NO SYSTEM TIMER OF ITS OWN - a preset,
-    // until 12.1-08b. The tuner publishes the EMPTY STRING for both, because
-    // no module under src/lib/tune/ may know a firmware default
-    // (ladder.spec.ts:275), and this store substitutes its own in ONE place
-    // each (#pageInit, #pageTimer) - so the empty string can never reach the
-    // wire, and `armed` is computed over the SUBSTITUTED values or it would
-    // never arm at all. What a preset TRY writes at 255/6 and 255/0 is
-    // therefore exactly what CLEAR writes there: CLEAR-vs-preset parity.
+    // A LANDING WITH NO PAGE INIT AND NO SYSTEM TIMER OF ITS OWN. From 12-03
+    // until 12.1-08b that was every PRESET - the tuner published the EMPTY
+    // STRING for both, because no module under src/lib/tune/ may know a
+    // firmware default (ladder.spec.ts:275) - and this store substitutes its
+    // own in ONE place each (#pageInit, #pageTimer), so the empty string can
+    // never reach the wire and `armed` is computed over the SUBSTITUTED
+    // values or it would never arm at all. SINCE 12.1-08b A PRESET LANDS THE
+    // LIBRARY'S TWO STRINGS like every other card (12.1-CONTEXT D-26 item 2,
+    // D-27; its compiled handler calls K, G and N by name) - wire-pin.spec.ts
+    // test 3 pins AURORA's four frames to the exports - so 12-03's
+    // CLEAR-vs-preset parity is INVERTED: a preset TRY writes the library at
+    // 255/6 and 255/0, and CLEAR alone writes the firmware defaults there
+    // (asserted above, and in the four-defaults test below). What this leg
+    // proves now is the substitution itself, which /dev/install/'s empty
+    // textareas and a caller that names none can still reach.
     const none: ConfigStrings = { ...PAIR, systemTimer: "", system: "" };
     const beforeNone = writesOf("CONFIG", "EXECUTE");
     store.observeConfig(none);

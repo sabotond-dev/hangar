@@ -53,8 +53,13 @@ import { resetAll } from "./state";
 /** The tightest card on the shelf, and the smallest round reserve that tips it. */
 const TPAD_RESERVE: PadReserved = { setup: 20, timer: 0 };
 
-/** The only pairing that reaches the over-budget block AND a real ladder. */
-const DIAL_RESERVE: PadReserved = { setup: 300, timer: 0 };
+/**
+ * The only pairing that reaches the over-budget block AND a real ladder.
+ * 300 -> 354 at plan 12.1-08b: DIAL's Setup went 646 -> 592 when its comet
+ * became the library's K, and 592 + 354 = 946 is the same -38 the header
+ * measured on 2026-09-04, so the four steps and every figure below reproduce.
+ */
+const DIAL_RESERVE: PadReserved = { setup: 354, timer: 0 };
 
 function mustEntry(id: string): CatalogEntry {
   // `tpad` is a shelf preset and not a catalog card since plan 12-10 (the

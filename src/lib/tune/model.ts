@@ -219,21 +219,25 @@ export type Tuner = {
  * `system` IS NOT METERED AND DOES NOT MOVE WITH A KNOB (Phase 12, 12-03). It
  * is the string the page-init slot (element 255, event 0) is written with, and
  * it is published beside the pair so that the install store has one wire shape
- * for every entry: a preset TRY after a Lua TRY then leaves the module holding
- * what the screen shows, rather than a preset pair sitting on top of the
- * previous entry's library.
+ * for every entry.
  *
- * SINCE 12-07 ITS VALUE DIFFERS BY ENTRY, and this is the type that carries the
- * difference. A hand-authored entry lands `TOUCH_LIBRARY`
- * (`src/lib/catalog/library.ts`), because from 12-08 on its Setup calls that
- * library by name and a module without it would raise on the first finger. A
- * preset lands whatever `systemSetup` said, which is the EMPTY STRING when the
- * caller named none - NOT the firmware default, because this module may not
- * know one: `src/lib/tune/ladder.spec.ts:275` refuses `lib/protocol` to every
- * file under `src/lib/tune/`, and a firmware default is a wire fact. The
- * substitution to `SYSTEM_DEFAULT_SETUP` happens in exactly one place on the
- * other side of that line, `install.svelte.ts`'s `#pageInit`, and 12-03's
- * install.spec.ts is where it is proved.
+ * EVERY CARD LANDS THE TOUCH LIBRARY SINCE 12.1-08b, and this is the type that
+ * carries it. A hand-authored entry lands `TOUCH_LIBRARY`
+ * (`src/lib/catalog/library.ts`) since 12-07, because from 12-08 on its Setup
+ * calls that library by name and a module without it would raise on the first
+ * finger. A PRESET lands the same string since 12.1-08b (12.1-CONTEXT D-26
+ * item 2, D-27): its state carries the library's knots (`touchLibrary`, set
+ * by `src/lib/catalog/presets.ts`), so the vendored compiler emits `K`, `G`
+ * and `N` calls into the library and a module without it would raise on the
+ * first finger exactly as a hand-authored entry's would. From 12-03 until
+ * 12.1-08b a preset published the EMPTY STRING here - "this entry has no page
+ * init of its own" - and `install.svelte.ts`'s `#pageInit` substituted the
+ * firmware default in ONE place; that substitution stays where it is, because
+ * this module may not know a firmware default (`src/lib/tune/ladder.spec.ts:275`
+ * refuses `lib/protocol` to every file under `src/lib/tune/`, and a firmware
+ * default is a wire fact), but it is CLEAR's alone now and no landing reaches
+ * it. What the two landings publish is pinned by `src/lib/device/wire-pin.spec.ts`
+ * tests 1 and 2, and what reaches the wire by its test 3.
  *
  * It is NOT part of the 908 budget either: the two meters measure the touch
  * element's two events, which are what the visitor's knobs move.
@@ -241,15 +245,12 @@ export type Tuner = {
  * `systemTimer` IS THE FOURTH STRING (Phase 12.1, 12.1-07), the system
  * element's Timer slot (255/6), and it follows `system`'s rules to the letter:
  * not metered, not moved by a knob, published beside the pair on every
- * landing. A hand-authored entry lands `TOUCH_LIBRARY_TIMER` - the library's
- * second half, which 255/0's `self:tim()` arms (12.1 D-03) - and a preset
- * lands whatever `systemTimer` said, the EMPTY STRING when the caller named
- * none, for exactly the reason `system` does: the firmware's 255/6 default is
- * a wire fact behind `ladder.spec.ts:275`'s line, and the substitution to
- * `SYSTEM_DEFAULT_TIMER` happens in ONE place on the other side of it,
- * `install.svelte.ts`'s `#pageTimer`, beside `#pageInit`. The keys are in
- * write order (sequence.ts SLOTS), though the writer owns that order and not
- * this type.
+ * landing, `TOUCH_LIBRARY_TIMER` - the library's second half, which 255/0's
+ * `self:tim()` arms (12.1 D-03) - for every card since 12.1-08b (a preset
+ * published the empty string here from 12.1-07 until then, and
+ * `install.svelte.ts`'s `#pageTimer` substituted `SYSTEM_DEFAULT_TIMER` beside
+ * `#pageInit`; CLEAR's alone now, likewise). The keys are in write order
+ * (sequence.ts SLOTS), though the writer owns that order and not this type.
  */
 export type ConfigStrings = {
   readonly systemTimer: string;
@@ -293,9 +294,12 @@ export type TunerOptions = {
    * SINCE 12-07 THE LUA ROUTE NO LONGER NEEDS THIS OPTION and no longer
    * publishes the empty string: `measureLuaRoute` lands the touch library for
    * every hand-authored entry, so the substitution above stops firing for them.
-   * The option stays, and it still WINS where it is given, because
-   * `/dev/install/`'s third textarea is the site's only route for pasting an
-   * arbitrary page init at a module and 12-03 built it to be exactly that.
+   * SINCE 12.1-08b THE PRESET ROUTE DOES NOT EITHER: `measurePadsim` lands the
+   * same two strings, because a preset's state carries the library's knots
+   * and its compiled handler calls the library by name. The option stays, and
+   * it still WINS where it is given, because `/dev/install/`'s third textarea
+   * is the site's only route for pasting an arbitrary page init at a module
+   * and 12-03 built it to be exactly that.
    */
   systemSetup?: string;
   /**
@@ -305,9 +309,10 @@ export type TunerOptions = {
    * its own" and the empty string published for it - never the firmware
    * default, which this module may not know (`ladder.spec.ts:275`;
    * `install.svelte.ts`'s `#pageTimer` substitutes `SYSTEM_DEFAULT_TIMER` in
-   * ONE place). The Lua route lands `TOUCH_LIBRARY_TIMER` when this is not
-   * given, as it lands `TOUCH_LIBRARY` for `systemSetup`; an explicit value
-   * wins on both routes, for `/dev/install/`'s fourth textarea (12.1-08).
+   * ONE place). Both routes land `TOUCH_LIBRARY_TIMER` when this is not
+   * given, as they land `TOUCH_LIBRARY` for `systemSetup` (the Lua route since
+   * 12.1-07, the preset route since 12.1-08b); an explicit value wins on both,
+   * for `/dev/install/`'s fourth textarea (12.1-08).
    */
   systemTimer?: string;
   /**
@@ -499,6 +504,26 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   const system = options.systemSetup ?? "";
   // The fourth string, on the same terms (12.1-07).
   const systemTimer = options.systemTimer ?? "";
+  // THE TOUCH LIBRARY, RESOLVED ONCE PER TUNER AND AHEAD OF THE FIRST
+  // MEASUREMENT (12.1-08b). Both routes land it now - the Lua route since
+  // 12-07 / 12.1-07, the preset route since 12.1-08b - so it is read here,
+  // where `land()` can stay SYNCHRONOUS on the preset route: the first
+  // landing runs through the fixed promise chain model.spec.ts and
+  // wire-pin.spec.ts flush with a fixed number of microtask hops, and an
+  // `await import()` in the middle of `measurePadsim` would put a real
+  // asynchronous boundary inside that chain. Dynamic, never static, for the
+  // same discipline as `renderLua` below, and memoised by the module system;
+  // `buildTuner` is itself reached through a dynamic import from the UI, so
+  // the catalog's first paint still carries neither string.
+  const { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } = await import(
+    "../catalog/library"
+  );
+  // An explicit `systemTimer` or `systemSetup` still wins: /dev/install/'s
+  // fourth and third textareas are the site's only route for pasting an
+  // arbitrary library at a module, and 12-03 built it to be exactly that.
+  const landedSystem = system === "" ? TOUCH_LIBRARY : system;
+  const landedSystemTimer =
+    systemTimer === "" ? TOUCH_LIBRARY_TIMER : systemTimer;
 
   // The two routes, resolved once, THROUGH THE STAMP'S OWN RESOLVERS. A
   // `state`-kind source is compiler driven and has no descriptor table of its
@@ -826,9 +851,14 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const result = await compileState(state);
     const measured = await costOf(result, options.reserved);
     if (stale(mine)) return;
+    // A PRESET LANDS THE LIBRARY'S TWO HALVES SINCE 12.1-08b, exactly as the
+    // Lua route below does: its state carries `touchLibrary`, so the
+    // compiled handler calls K, G and N on the module. 12-03's "a preset
+    // lands the defaults" is inverted here, and only here; CLEAR still
+    // writes the four firmware defaults through the install store.
     land(measured.setup.used, measured.timer.used, {
-      systemTimer,
-      system,
+      systemTimer: landedSystemTimer,
+      system: landedSystem,
       setup: result.setupLua,
       timer: result.timerLua,
     });
@@ -848,22 +878,11 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     // Dynamic, never static. See the module comment.
     const { renderLua } = await import("../sim/lua-pad-sim");
     // THE PAGE INIT A HAND-AUTHORED ENTRY WANTS IS THE TOUCH LIBRARY (12-07),
-    // and this is the landing where `system` first differs by entry. The preset
-    // route below publishes `system` unchanged - see the note on
-    // `TunerOptions.systemSetup` for why that is the empty string here and not
-    // the firmware default, and where the substitution happens instead.
-    //
     // AND ITS SYSTEM TIMER IS THE LIBRARY'S SECOND HALF (12.1-07, D-03): the
     // two strings are one library over two slots, 255/0 arming 255/6 with
-    // `self:tim()`, so an entry that lands one lands both. The preset route
-    // publishes `systemTimer` unchanged too, and for the same reason.
-    //
-    // Lazily imported for the same discipline as `renderLua` above, and
-    // memoised by the module system, so the catalog's first paint carries none
-    // of it.
-    const { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } = await import(
-      "../catalog/library"
-    );
+    // `self:tim()`, so an entry that lands one lands both. Since 12.1-08b the
+    // preset route above lands the same two - resolved once in `buildTuner`,
+    // where the reason is written.
     const lua = renderLua(entry, indices);
     // An empty Timer is a TRUE measurement of zero, not a dead meter: MORPH
     // ships one, and 0 / 908 tells the visitor something real.
@@ -872,11 +891,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     if (stale(mine)) return;
     // renderLua already produced exactly the wire text.
     land(setup, timer, {
-      // An explicit `systemTimer` or `systemSetup` still wins: /dev/install/'s
-      // fourth and third textareas are the site's only route for pasting an
-      // arbitrary library at a module, and 12-03 built it to be exactly that.
-      systemTimer: systemTimer === "" ? TOUCH_LIBRARY_TIMER : systemTimer,
-      system: system === "" ? TOUCH_LIBRARY : system,
+      systemTimer: landedSystemTimer,
+      system: landedSystem,
       setup: lua.setup,
       timer: lua.timer,
     });

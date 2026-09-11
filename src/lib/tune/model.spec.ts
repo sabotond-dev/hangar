@@ -42,8 +42,13 @@ import {
 import { resetAll } from "./state";
 import { COLOUR_LATTICE_SIZE, knobPosition, type TuneView } from "./view";
 
-/** The card whose ladder is genuinely reachable with a reserve - see ladder.spec.ts. */
-const OVER_RESERVE = { setup: 300, timer: 0 };
+/**
+ * The card whose ladder is genuinely reachable with a reserve - see
+ * ladder.spec.ts. 300 -> 354 at plan 12.1-08b: DIAL's Setup went 646 -> 592
+ * (its comet is the library's K), and 592 + 354 = 946 is the same -38 the
+ * reserve was measured to produce, so every figure downstream reproduces.
+ */
+const OVER_RESERVE = { setup: 354, timer: 0 };
 
 function mustEntry(id: string): CatalogEntry {
   const entry = byId(id);
@@ -490,7 +495,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     tuner.destroy();
   });
 
-  it("lands the touch library for a Lua entry and the caller's page init for a preset", async () => {
+  it("lands the touch library for a Lua entry AND for a preset - every card lands it since 12.1-08b - and an explicit page init still wins", async () => {
     // THE THIRD STRING, AND THE PLAN WHERE IT FIRST DIFFERS BY ENTRY (12-07).
     // 12-03 opened `system` and landed the same value for everything; the
     // library exists now, so a hand-authored entry has to land it - from 12-08
@@ -510,12 +515,16 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     ).toBe(TOUCH_LIBRARY);
     luaTuner.destroy();
 
-    // A PRESET LANDS WHAT THE CALLER GAVE, which is the empty string here -
-    // deliberately, and NOT the firmware default. `ladder.spec.ts:275` refuses
-    // `lib/protocol` to every file under `src/lib/tune/`, so a firmware default
-    // cannot be named on this side of the line at all; `install.svelte.ts`'s
-    // `#pageInit` substitutes `SYSTEM_DEFAULT_SETUP` for the empty string in
-    // ONE place before any write, and 12-03's install.spec.ts proves that half.
+    // A PRESET LANDS THE SAME LIBRARY SINCE 12.1-08b (12.1-CONTEXT D-26 item
+    // 2, D-27) - INVERTED HERE from 12-03's "a preset lands what the caller
+    // gave, the empty string": its state carries the library's knots
+    // (`touchLibrary`, presets.ts), so the vendored compiler emits K, G and N
+    // calls into the library and a module that did not hold it would raise on
+    // the first finger - exactly the reason the Lua route lands it. The
+    // firmware default is still not named on this side of `ladder.spec.ts:275`'s
+    // line; `install.svelte.ts`'s `#pageInit` substitution stays in its one
+    // place and is CLEAR's alone now, install.spec.ts proves that half, and
+    // wire-pin.spec.ts test 3 pins the preset's four frames on the wire.
     const preset = recorder();
     const presetTuner = await buildTuner({ entryId: "aurora", ...preset });
     await settle();
@@ -523,13 +532,18 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     expect(landedPreset, "the preset never landed a pair").toBeDefined();
     expect(
       landedPreset!.system,
-      "a preset landed a page init of its own, so a preset TRY would write " +
-        "HANGAR's library at a module that does not run it",
-    ).toBe("");
+      "a preset must land the touch library as its page init since 12.1-08b: " +
+        "its compiled handler calls K, G and N by name",
+    ).toBe(TOUCH_LIBRARY);
+    expect(landedPreset!.system, "the two routes land the same string").toBe(
+      landedLua!.system,
+    );
+    // And the compiled Setup really reaches the library, or the landing
+    // above is carrying a string nothing on the module would call.
     expect(
-      landedPreset!.system,
-      "the two routes landed the same string",
-    ).not.toBe(landedLua!.system);
+      landedPreset!.setup,
+      "aurora's compiled Setup does not call K",
+    ).toContain("K(x,y,1,252)");
     presetTuner.destroy();
 
     // AND AN EXPLICIT systemSetup STILL WINS ON BOTH ROUTES: /dev/install/'s
@@ -550,7 +564,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     overrideTuner.destroy();
   });
 
-  it("lands both halves of the library for a Lua entry and both empties for a preset - the store is the one place they become defaults", async () => {
+  it("lands both halves of the library for a Lua entry and for a preset alike - the store's defaults are CLEAR's alone", async () => {
     // THE FOURTH STRING (12.1-07, D-03). The library is one library over two
     // slots - 255/0 defines it and calls `self:tim()`, 255/6 is the body that
     // call arms - so a landing that carries one half without the other would
@@ -584,15 +598,15 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     ]);
     luaTuner.destroy();
 
-    // A PRESET LANDS BOTH EMPTIES - and NOT the firmware defaults, for the
-    // reason the test above gives for the third string: `ladder.spec.ts:275`
-    // refuses `lib/protocol` to every file under `src/lib/tune/`, and both
-    // defaults are wire facts. The ONE place the empty strings become
-    // `SYSTEM_DEFAULT_SETUP` and `SYSTEM_DEFAULT_TIMER` is
+    // A PRESET LANDS BOTH HALVES TOO, SINCE 12.1-08b (D-27) - INVERTED HERE
+    // from 12.1-07's "a preset lands both empties": the preset route lands
+    // the two strings the Lua route lands, for the reason the test above
+    // gives. The firmware defaults are still wire facts behind
+    // `ladder.spec.ts:275`'s line, and the ONE place an empty string becomes
+    // `SYSTEM_DEFAULT_SETUP` or `SYSTEM_DEFAULT_TIMER` is still
     // `src/lib/device/install.svelte.ts` - `#pageInit` and `#pageTimer`, side
-    // by side - and install.spec.ts proves that half. (12.1-08b, D-27, moves
-    // the presets onto the library and changes what this landing carries;
-    // until then a preset TRY writes the two firmware defaults.)
+    // by side - but no landing reaches it now; CLEAR writes the defaults
+    // through its own path, and install.spec.ts proves both halves.
     const preset = recorder();
     const presetTuner = await buildTuner({ entryId: "aurora", ...preset });
     await settle();
@@ -600,9 +614,11 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     expect(landedPreset, "the preset never landed").toBeDefined();
     expect(
       landedPreset!.systemTimer,
-      "a preset landed a system timer of its own",
-    ).toBe("");
-    expect(landedPreset!.system, "and a page init of its own").toBe("");
+      "a preset must land the library's second half as its system timer",
+    ).toBe(TOUCH_LIBRARY_TIMER);
+    expect(landedPreset!.system, "and the first half beside it").toBe(
+      TOUCH_LIBRARY,
+    );
     expect(Object.keys(landedPreset!)).toEqual([
       "systemTimer",
       "system",

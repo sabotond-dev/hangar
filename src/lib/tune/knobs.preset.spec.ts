@@ -420,16 +420,25 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
     ).toBe(1);
 
     // Both positions reach the field, and both reach it as the compiler reads
-    // it: the zone divisor in the emitted Lua is the proof, not the state.
+    // it: the zone term in the emitted Lua is the proof, not the state. SINCE
+    // 12.1-08b (12.1-CONTEXT D-26 item 2) the nine states carry the touch
+    // library's knots, so the zone is read off the LED under the finger -
+    // `local n=N(x,y)` through the LED-side rule - and the divisor is the
+    // grid's share of the nine LED columns rather than of the raw axis:
+    // `n%9//3` at 3x3 (was `x*3//128`), `n%9*4//9` at 4x4 (was `x*4//128`).
     const base = stateOf("ninepads");
     const at = (index: number) => applyKnob(base, grid, index);
     expect(at(0).sends.grid).toBe("3x3");
     expect(at(1).sends.grid).toBe("4x4");
     expect(readKnob(at(1), grid), "reads back the position it wrote").toBe(1);
-    expect(bodies(at(0)), "3x3 divides the axis by three").toContain(
-      "x*3//128",
-    );
-    expect(bodies(at(1)), "4x4 divides the axis by four").toContain("x*4//128");
+    expect(
+      bodies(at(0)),
+      "3x3 reads the LED under the finger by three",
+    ).toContain("local n=N(x,y)local z=n%9//3+n//9//3*3");
+    expect(
+      bodies(at(1)),
+      "4x4 reads the LED under the finger by four",
+    ).toContain("local n=N(x,y)local z=n%9*4//9+n//9*4//9*4");
 
     // WHAT 4x4 ACTUALLY LOOKS LIKE, PINNED RATHER THAN ASSUMED, because four
     // does not divide nine and the two pictures are not the same KIND of

@@ -44,9 +44,12 @@ const DRAWS = 2000;
 /**
  * The reserve that puts `dial` genuinely over 908 - measured, see
  * ladder.spec.ts. It is how test 4 reaches a state whose only way back inside
- * the budget is the ladder.
+ * the budget is the ladder. 300 -> 354 at plan 12.1-08b: DIAL's Setup went
+ * 646 -> 592 (its comet is the library's K), and 592 + 354 = 946 is the same
+ * -38 the ladder was measured against, so the resolved fallback reproduces
+ * (ladder.spec.ts's reason).
  */
-const OVER_RESERVE: PadReserved = { setup: 300, timer: 0 };
+const OVER_RESERVE: PadReserved = { setup: 354, timer: 0 };
 
 const compilerEntries = (): readonly CatalogEntry[] =>
   CATALOG.filter(

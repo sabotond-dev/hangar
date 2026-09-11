@@ -40,7 +40,13 @@
 // in sequence.ts - and since 12.1-08 this file pins all four: the two library
 // strings TOUCH_LIBRARY_TIMER and TOUCH_LIBRARY reach 255/6 and 255/0
 // verbatim for a Lua entry (test 2 pins what the tuner publishes, test 3 what
-// the wire carries), and the pair's bytes as before.
+// the wire carries), and the pair's bytes as before. SINCE 12.1-08b A PRESET
+// LANDS THE SAME TWO STRINGS (12.1-CONTEXT D-26 item 2, D-27): its state
+// carries the library's knots and its compiled handler calls K, G and N by
+// name, so test 1 pins the published pair of every compiler-driven entry to
+// the exports and test 3 pins AURORA's two system frames to them - where,
+// from 12-03 until 12.1-08b, both carried the empty string the install store
+// substituted the firmware defaults for.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
@@ -312,6 +318,26 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
           config.timer,
           `${entry.id}: the published Timer is not the compiled text`,
         ).toBe(result.timerLua);
+        // THE LIBRARY'S TWO HALVES, VERBATIM, ON A PRESET (12.1-08b): what
+        // test 2 pins for a Lua entry, pinned here for every compiler-driven
+        // one. A preset whose landing carried anything else would put a
+        // handler that calls K, G and N on a module that does not define
+        // them - the failure the library's own smoke gate names as
+        // "attempt to call a nil value (global 'G')".
+        expect(
+          config.system,
+          `${entry.id}: the page init is not the touch library, verbatim`,
+        ).toBe(TOUCH_LIBRARY);
+        expect(
+          config.systemTimer,
+          `${entry.id}: the page timer is not the library's second half, verbatim`,
+        ).toBe(TOUCH_LIBRARY_TIMER);
+        // And the handler really reaches it: every carded preset's Setup
+        // calls at least one of the library's three entry points.
+        expect(
+          /\b[KGN]\(/.test(config.setup),
+          `${entry.id}: the compiled Setup calls none of K, G or N, so the library it lands is dead weight`,
+        ).toBe(true);
         // The numbers, twice: the compiler's own cost() of the same result,
         // and THE METER THE TUNER SHOWED at the landing. The first holds
         // whatever the tuner does; the second is the one a reserve would
@@ -398,10 +424,12 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         // tuner publishes both, so TOUCH_LIBRARY_TIMER is what reaches 255/6
         // and the store's #pageTimer substitution stops firing the same way.
         //
-        // The preset half of the rule is unchanged and is asserted in the test
-        // above: a preset still publishes the empty string in both system
-        // slots, because a firmware default is a wire fact and no module under
-        // src/lib/tune/ may know one (ladder.spec.ts:275).
+        // The preset half of the rule moved at 12.1-08b and is asserted in the
+        // test above: a preset publishes the same two strings now, because
+        // its compiled handler calls the library by name. A firmware default
+        // is still a wire fact no module under src/lib/tune/ may know
+        // (ladder.spec.ts:275); the install store's substitution stays where
+        // it is and is CLEAR's alone.
         expect(
           landed.config.system,
           `${entry.id}: the page init is not the touch library, verbatim`,
@@ -481,20 +509,29 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         [ELEMENT_TOUCH, EVENT_TIMER],
         [ELEMENT_TOUCH, EVENT_SETUP],
       ]);
-      // A preset publishes the empty string in both system slots (test 1),
-      // and the empty string is what this rig puts on the wire: writeAll does
-      // not substitute - the install store does, in one place, before it
-      // calls writeAll (install.spec.ts). The Lua landing below is where the
-      // library's bytes are pinned.
+      // A PRESET'S TWO SYSTEM FRAMES CARRY THE LIBRARY SINCE 12.1-08b. From
+      // 12-03 until then a preset published the empty string in both slots
+      // and this rig put the empty string on the wire (writeAll does not
+      // substitute - the install store does, in one place, before it calls
+      // writeAll); the frame count was four either way. Now the bytes are the
+      // two exports, pinned here as the Lua landing below pins them.
+      expect(
+        String(systemTimer.class_parameters.ACTIONSTRING),
+        "a preset's 255/6 is not TOUCH_LIBRARY_TIMER, verbatim",
+      ).toBe(TOUCH_LIBRARY_TIMER);
       expect(String(systemTimer.class_parameters.ACTIONSTRING)).toBe(
         config.systemTimer,
       );
       expect(Number(systemTimer.class_parameters.ACTIONLENGTH)).toBe(
-        config.systemTimer.length,
+        TOUCH_LIBRARY_TIMER.length,
       );
+      expect(
+        String(system.class_parameters.ACTIONSTRING),
+        "a preset's 255/0 is not TOUCH_LIBRARY, verbatim",
+      ).toBe(TOUCH_LIBRARY);
       expect(String(system.class_parameters.ACTIONSTRING)).toBe(config.system);
       expect(Number(system.class_parameters.ACTIONLENGTH)).toBe(
-        config.system.length,
+        TOUCH_LIBRARY.length,
       );
       expect(Number(timer.class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
       expect(String(timer.class_parameters.ACTIONSTRING)).toBe(config.timer);
