@@ -37,7 +37,12 @@ import {
 } from "../sim/lua-host";
 import { renderLua } from "../sim/lua-pad-sim";
 import { CATALOG, type CatalogEntry, type LuaKnob } from "./index";
-import { LIBRARY_CONVENTIONS, LIBRARY_GLOBALS, TOUCH_LIBRARY } from "./library";
+import {
+  LIBRARY_CONVENTIONS,
+  LIBRARY_GLOBALS,
+  TOUCH_LIBRARY,
+  TOUCH_LIBRARY_TIMER,
+} from "./library";
 
 const EVENTS = ["setup", "timer"] as const;
 type EventName = (typeof EVENTS)[number];
@@ -52,11 +57,14 @@ const SELF_METHODS: readonly string[] = HOST_SELF_METHODS;
  * name, and those names are not the HOST's - they are written into the system
  * element's Setup, which `init.lua:46-50` runs before any touch Setup and which
  * `createLuaPadSim` and `LuaHost`'s `system` option now put in front of every
- * hand-authored preview. A classifier that knew only `HOST_GLOBALS` would
- * refuse every one of those call sites.
+ * hand-authored preview. Since 12.1-02 the library is TWO strings - 255/0
+ * holds state and the map, 255/6 the painters and the senders, joined by
+ * `self:tim()` - and `G(s,i,e,x,y,l,r,g,b)`, `N(x,y)` and the rest are reached
+ * through `LuaHost`'s `systemTimer`. A classifier that knew only
+ * `HOST_GLOBALS` would refuse every one of those call sites.
  *
  * BOTH HALVES ARE IMPORTED AND NEITHER IS RETYPED. `LIBRARY_GLOBALS` is DERIVED
- * from the library source at module load, so a function renamed there moves
+ * from BOTH library strings at module load, so a function renamed there moves
  * this gate with it; `LIBRARY_CONVENTIONS` is the one name the library CALLS
  * and does not define - `R`, the entry's release function, which an entry
  * ASSIGNS rather than calls. Test 6 asserts the admitted list really is those
@@ -569,21 +577,52 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     ).toBe(false);
   });
 
-  it("resolves the touch library itself, and it reaches exactly four host names", () => {
+  it("resolves the touch library itself, and it reaches exactly seven host names", () => {
     // THE LIBRARY IS SCANNED BY THE SAME CLASSIFIER AS EVERY ENTRY. It is Lua
     // that HANGAR wrote and that a ZONA runs, so an unresolvable call in it
     // would raise on the pad exactly as one in an entry would - and it would do
-    // it in the SYSTEM element's Setup, where no card is on screen to show it.
+    // it in the SYSTEM element's Setup or Timer, where no card is on screen to
+    // show it. BOTH STRINGS ARE SCANNED since 12.1-02.
     //
-    // TWENTY SITES, AND SIX OF THEM ARE DEFINITIONS. The scanner's shape is the
-    // vendored one - every identifier immediately followed by `(` - so
-    // `function W(v,p)` yields `W` exactly as `W(x,...)` does. That is not a
-    // flaw here: a definition whose name is not admitted is as much a finding
-    // as a call whose name is not, and it is how a seventh library function
-    // would announce itself in this gate.
-    const calls = resolveCalls(TOUCH_LIBRARY);
+    // THE ONE CALL THE CLASSIFIER MUST REFUSE, AND WHY IT IS RIGHT TO. 255/0
+    // closes with `self:tim()`: the system element calling its OWN Timer
+    // method, which is what defines the 255/6 half on a page load. `tim` is
+    // not a host `self:` method and must not become one - the touch element's
+    // `self` has no `tim` the host installs, and an ENTRY writing `self:tim()`
+    // would be calling its own Timer body from its Setup, which no entry does
+    // and which this gate would rightly refuse. The host reaches the system
+    // Timer through `LuaHostOptions.systemTimer`, as a stand-in `self` (see
+    // `lua-host.ts` systemPair()), not through SELF_PRELUDE. So the call is
+    // asserted to be present exactly once and REFUSED, and the scan runs over
+    // the string with it removed. `library.spec.ts` test 4 pins its position.
+    const timCall = "self:tim()";
+    expect(
+      TOUCH_LIBRARY.split(timCall).length - 1,
+      "255/0 calls self:tim() exactly once",
+    ).toBe(1);
+    const [tim] = resolveCalls(timCall);
+    expect(
+      tim.ok,
+      "self:tim() resolved as a host method; the system Timer is reached " +
+        "through systemTimer and must not join SELF_PRELUDE",
+    ).toBe(false);
+    expect(SELF_METHODS, "tim joined the host's self: methods").not.toContain(
+      "tim",
+    );
+
+    // FORTY SITES, AND TEN OF THEM ARE DEFINITIONS - eighteen in 255/0 and
+    // twenty-two in 255/6. The scanner's shape is the vendored one - every
+    // identifier immediately followed by `(` - so `function W(u,p)` yields `W`
+    // exactly as `W(x,...)` does. That is not a flaw here: a definition whose
+    // name is not admitted is as much a finding as a call whose name is not,
+    // and it is how an eleventh library function would announce itself in
+    // this gate.
+    const calls = [
+      ...resolveCalls(TOUCH_LIBRARY.replace(timCall, "")),
+      ...resolveCalls(TOUCH_LIBRARY_TIMER),
+    ];
     expect(calls.length, "the scan found no call sites in the library").toBe(
-      20,
+      40,
     );
     for (const call of calls) {
       expect(
@@ -592,10 +631,10 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
       ).toBe(true);
     }
 
-    // THE RESOLVED HOST SET EQUALS FOUR NAMES, and `equals` rather than
+    // THE RESOLVED HOST SET EQUALS SEVEN NAMES, and `equals` rather than
     // `contains` is the whole value of this assertion: it is what catches a
-    // function creeping back into the library with a dependency nobody costed.
-    // `glp` left with `F` in 12-07 and `math.abs` was never in either sketch.
+    // function creeping into the library with a dependency nobody costed.
+    // `math.abs` was never in any sketch.
     const bare = [
       ...new Set(
         calls
@@ -613,40 +652,61 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     expect(
       [...bare, ...methods],
       "the library reaches a host name nobody costed, or stopped reaching one",
-    ).toEqual(["glag", "glpfs", "glt", "self:gms"]);
+    ).toEqual(["glag", "glc", "glim", "glp", "glpfs", "glt", "self:gms"]);
+    // THE INVERSION, WITH ITS REASON. 12-07 asserted `glp` was NOT in the
+    // library, because it left with the dropped light layer `F`. It is back
+    // since 12.1-02 WITH ITS CALLERS NAMED: `G` writes the four phases of the
+    // bilinear finger with it and `V` clears them; `glc` came with `G` (D-11,
+    // the colour re-asserted on every call because layer 0 is the alert
+    // layer); `glim` came with `U` (the clamp to the outer knots) and `G` (the
+    // clamp of the block origin to 0..7).
     expect(
       bare,
-      "glp is back in the library, and it left with the dropped light layer",
-    ).not.toContain("glp");
+      "glp left the library again, so G and V have lost the finger",
+    ).toContain("glp");
+    expect(
+      bare,
+      "glc left the library, so G no longer heals its colour",
+    ).toContain("glc");
+    expect(bare, "glim left the library, so U and G no longer clamp").toContain(
+      "glim",
+    );
 
     // THE ADMITTED LIST IS THE DERIVED ONE. Both halves are imported, so this
     // asserts the identity rather than a copy: `LIBRARY_GLOBALS` comes out of
-    // the library source by regular expression at module load, and
+    // both library strings by regular expression at module load, and
     // `LIBRARY_CONVENTIONS` is the single name the library calls without
     // defining.
     expect(
       LIBRARY_NAMES,
       "the admitted list drifted from the derived one",
     ).toEqual([...LIBRARY_GLOBALS, ...LIBRARY_CONVENTIONS]);
-    expect(LIBRARY_GLOBALS.length, "the library defines ten globals").toBe(10);
+    expect(
+      LIBRARY_GLOBALS.length,
+      "the library defines eighteen globals across its two strings",
+    ).toBe(18);
     for (const name of LIBRARY_NAMES) {
       const [site] = resolveCalls(`${name}(0)`);
       expect(site.ok, `${name}() does not resolve after admission`).toBe(true);
     }
-    // And a single capital that is NOT the library's is still refused, so the
-    // admission widened the gate by exactly ten names and one convention.
-    const [stranger] = resolveCalls("Z(0)");
-    expect(
-      stranger.ok,
-      "any single capital now resolves, so the admission is a hole",
-    ).toBe(false);
+    // And a capital that is NOT the library's - one letter or two - is still
+    // refused, so the admission widened the gate by exactly eighteen names
+    // and one convention.
+    for (const name of ["Z", "ZZ", "KZ"]) {
+      const [stranger] = resolveCalls(`${name}(0)`);
+      expect(stranger.ok, `${name}( resolves, so the admission is a hole`).toBe(
+        false,
+      );
+    }
 
     // NO ENTRY MAY SHADOW A LIBRARY GLOBAL. Every single-capital helper in the
     // shipped catalog is a `local function` or a `local` table - CULL's `M` and
     // `C`, LUMEN's `H`, QUADRANT's `C` and `M`, CONSOLE's and SNAKE's `P` - and
     // a local shadows nothing outside its own event body, so the library's `H`
     // and `P` are safe. A GLOBAL assignment would not be: it would overwrite a
-    // per-contact table the library reads on the next finger.
+    // per-contact table the library reads on the next finger. Since 12.1 the
+    // scan covers the two-capital names too: an entry assigning `KX` would
+    // move every calibrated cell in the library.
     //
     // A RE-ASSIGNMENT TO A NAME THE SAME EVENT ALREADY DECLARED `local` IS NOT
     // A GLOBAL WRITE, and QUADRANT is the case that proves it: it opens
@@ -665,34 +725,62 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     // The two arms below keep the teeth: the definitions are still refused
     // outright, and the convention is asserted to be assigned by AT LEAST ONE
     // entry and only ever as a FUNCTION - so `R=4` in a card is still caught.
+    const shadowsIn = (
+      label: string,
+      text: string,
+      onConvention: (name: string, at: number) => void,
+    ): string[] => {
+      const found: string[] = [];
+      const locals = localsIn(text);
+      for (const m of text.matchAll(
+        /(^|[^A-Za-z0-9_.:])([A-Z]{1,2})\s*=[^=]/g,
+      )) {
+        if (locals.has(m[2])) continue;
+        if (LIBRARY_GLOBALS.includes(m[2])) {
+          found.push(`${label} assigns a global ${m[2]}`);
+          continue;
+        }
+        if (!LIBRARY_CONVENTIONS.includes(m[2])) continue;
+        onConvention(m[2], m.index + m[0].length - 1);
+      }
+      return found;
+    };
+    // The scanner on four synthetic bodies first, so the arm is known to bite
+    // before the corpus is trusted to be clean: a global `KX` is refused, a
+    // `local KX` re-assigned is allowed (the QUADRANT rule on a two-letter
+    // name), a three-letter name starting with a library one is neither, and
+    // a global `H` is still refused.
+    expect(shadowsIn("probe", "KX={1}", () => {})).toEqual([
+      "probe assigns a global KX",
+    ]);
+    expect(shadowsIn("probe", "local KX={1} KX={2}", () => {})).toEqual([]);
+    expect(shadowsIn("probe", "KXY=1", () => {})).toEqual([]);
+    expect(shadowsIn("probe", "H={}", () => {})).toEqual([
+      "probe assigns a global H",
+    ]);
+
     const shadows: string[] = [];
     const conventions: string[] = [];
     for (const entry of luaEntries()) {
       const rendered = renderLua(entry);
       for (const event of EVENTS) {
         const text = rendered[event];
-        const locals = localsIn(text);
-        for (const m of text.matchAll(/(^|[^A-Za-z0-9_.:])([A-Z])\s*=[^=]/g)) {
-          if (locals.has(m[2])) continue;
-          if (LIBRARY_GLOBALS.includes(m[2])) {
-            shadows.push(`${entry.id}/${event} assigns a global ${m[2]}`);
-            continue;
-          }
-          if (!LIBRARY_CONVENTIONS.includes(m[2])) continue;
-          conventions.push(`${entry.id}/${event} assigns ${m[2]}`);
-          const opens = m.index + m[0].length - 1;
-          expect(
-            text.slice(opens, opens + "function".length),
-            `${entry.id}/${event} assigns the library convention ${m[2]} to ` +
-              "something that is not a function, and the library CALLS it",
-          ).toBe("function");
-        }
+        shadows.push(
+          ...shadowsIn(`${entry.id}/${event}`, text, (name, opens) => {
+            conventions.push(`${entry.id}/${event} assigns ${name}`);
+            expect(
+              text.slice(opens, opens + "function".length),
+              `${entry.id}/${event} assigns the library convention ${name} ` +
+                "to something that is not a function, and the library CALLS it",
+            ).toBe("function");
+          }),
+        );
       }
     }
     expect(
       shadows.join("; "),
-      "an entry assigns a single-capital GLOBAL that the touch library owns, " +
-        "so the library's own state is overwritten by a card",
+      "an entry assigns a capital GLOBAL that the touch library owns, so the " +
+        "library's own state is overwritten by a card",
     ).toBe("");
     // NON-VACUITY, bounded from below only, so waves 10 and 11 can add a second
     // note-holding caller without moving a number here.

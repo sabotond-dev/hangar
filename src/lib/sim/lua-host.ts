@@ -100,6 +100,33 @@ export type LuaHostOptions = {
    */
   system?: string;
   /**
+   * The SYSTEM element's Timer (element 255, event 6) - the second half of
+   * HANGAR's touch library since phase 12.1: the painters and the senders
+   * (`V G N A D`), while `system` holds state and the map (`U W E Q X`).
+   *
+   * THE ORDER IS THE MODULE'S. On the module 255/6 is written FIRST, because a
+   * written body runs at once (`grid_decode.c:1286-1287`) and 255/0 closes with
+   * `self:tim()`, which needs the system element's `tim` method registered
+   * before it runs; on a page load `init.lua:25-50` registers every stored
+   * body as a method before the system `ini` runs, so `self:tim()` finds it
+   * there too. This host models that shape exactly: `systemTimer` is installed
+   * as the `tim` method of a stand-in `self`, and `system` is then run as a
+   * chunk whose closing `self:tim()` runs the Timer body - which is what
+   * defines `G` and the other four. Both run AFTER the pristine snapshot and
+   * BEFORE `setup`, and both run again on every `restart()`, for Pitfall 3's
+   * reason: `B`, the block-by-contact table `G` keeps, is per-contact state a
+   * remounted card must not inherit.
+   *
+   * WHEN `systemTimer` IS ABSENT AND `system` IS PRESENT, `tim` IS A NO-OP.
+   * That stands for a module whose 255/6 still holds the firmware default -
+   * `--[[@cb]]print("tick")`, which defines nothing - so the install does not
+   * raise on `self:tim()` and `G` is simply undefined. The first `G(` an entry
+   * reaches then raises "attempt to call a nil value (global 'G')" into
+   * `errors`, which is the loud failure `lua-host.spec.ts` pins: a Sandbox
+   * that forgot the second string cannot forget it silently.
+   */
+  systemTimer?: string;
+  /**
    * Canonical Timer Lua, or undefined for an entry with no Timer event. An
    * empty string is a Timer that exists and does nothing, which is not the same
    * thing: firmware's gtt is a no-op until the Timer event holds at least one
@@ -287,6 +314,8 @@ export class LuaHost {
   private setupSource = "";
   /** Its twin: the system Setup, re-run on every restart for the same reason. */
   private systemSource: string | undefined;
+  /** And the system Timer, run as `self.tim` before the system Setup each time. */
+  private systemTimerSource: string | undefined;
 
   /** The Setup-assigned self.touch_cb, reached through a Lua-side dispatcher. */
   private touchFn:
@@ -328,7 +357,7 @@ export class LuaHost {
     const engine = await factory.createEngine();
     const host = new LuaHost(opts.sim, engine);
     try {
-      await host.install(opts.setup, opts.timer, opts.system);
+      await host.install(opts.setup, opts.timer, opts.system, opts.systemTimer);
     } catch (error) {
       // A Setup that raises - a typo calling a function the host does not
       // register is exactly that - must not leak a VM. Nothing else in HANGAR
@@ -344,9 +373,11 @@ export class LuaHost {
     setup: string,
     timer: string | undefined,
     system: string | undefined,
+    systemTimer: string | undefined,
   ): Promise<void> {
     this.setupSource = setup;
     this.systemSource = system;
+    this.systemTimerSource = systemTimer;
     this.registerGlobals();
 
     // `self` is created in LUA, never marshalled in from JS. A configuration
@@ -384,13 +415,18 @@ export class LuaHost {
     // it existed would raise "attempt to call a nil value" on the first line
     // that named it.
     //
-    // After the snapshot, because the library's globals - its six functions and
-    // its four per-contact state tables - are NOT the host's furniture. Kept on
+    // After the snapshot, because the library's globals - its ten functions
+    // and its per-contact state tables - are NOT the host's furniture. Kept on
     // the pristine side they would survive RESTART_WIPE, and a card remounted
     // after a gesture would inherit the last mount's `H[i]`: a contact holding
     // a cell nobody is touching, on a pad that just reset. Recorded outside it,
     // they are wiped and rebuilt, which is what restart() below relies on.
-    if (typeof system === "string") await this.engine.doString(system);
+    //
+    // THE PAIR RUNS IN THE MODULE'S ORDER: the system Timer first, as the
+    // `tim` method the system Setup's closing `self:tim()` reaches. See
+    // LuaHostOptions.systemTimer and systemPair().
+    const pair = this.systemPair();
+    if (pair !== undefined) await this.engine.doString(pair);
 
     await this.engine.doString(setup);
 
@@ -399,6 +435,40 @@ export class LuaHost {
     // configuration that reassigns touch_cb later is honoured.
     await this.engine.doString(TOUCH_DISPATCH);
     this.touchFn = this.readTouchFn();
+  }
+
+  /**
+   * The system element's two strings as ONE Lua chunk, in the order the module
+   * runs them, or undefined when the host was given neither.
+   *
+   * `self` is saved, replaced by a stand-in table whose `tim` is a function
+   * wrapping the 255/6 body, and restored afterwards - so the system Setup's
+   * `self:tim()` runs the Timer body exactly as the system element's own
+   * method would on the module, and nothing the pair does leaks into the
+   * touch element's `self` that SELF_PRELUDE builds (or has built). Wrapping
+   * the body in a function is safe for the same reason the Timer wrapper
+   * relies on: the `--[[@cb]]` marker is a block comment and comments itself
+   * out, and every `function G(` form inside defines a plain global, which is
+   * what the module does too (`grid_ui.c:370-383`).
+   *
+   * `systemTimer` absent: `tim` is a no-op, standing for the firmware default
+   * in 255/6 (see LuaHostOptions.systemTimer). `system` absent: the Timer body
+   * is run once through `self:tim()` anyway, standing for the write of 255/6
+   * running its body on the module (`grid_decode.c:1286-1287`) - not a case
+   * HANGAR builds, but not one that should silently define nothing either.
+   */
+  private systemPair(): string | undefined {
+    const system = this.systemSource;
+    const timer = this.systemTimerSource;
+    if (typeof system !== "string" && typeof timer !== "string") {
+      return undefined;
+    }
+    return [
+      "local __hangar_self = self",
+      "self = { tim = function(s) " + (timer ?? "") + " end }",
+      typeof system === "string" ? system : "self:tim()",
+      "self = __hangar_self",
+    ].join("\n");
   }
 
   private readTouchFn(): (
@@ -456,14 +526,16 @@ export class LuaHost {
       this.engine.doStringSync(RESTART_WIPE);
       // The wipe has just removed the library along with everything else Setup
       // and the gesture left behind, so it is rebuilt here - before Setup, as
-      // at install, and before the prelude because nothing in it names `self`
-      // (it takes the touch element as a parameter, `Q(s, ...)`, because the
-      // system element's own self carries no touch accessors -
-      // `grid_ui_system.c:9-15`). H, T, C and P come back EMPTY, which is the
-      // whole of Pitfall 3: a remounted card must not inherit a contact table.
-      if (typeof this.systemSource === "string") {
-        this.engine.doStringSync(this.systemSource);
-      }
+      // at install, and before the prelude because nothing in it names the
+      // TOUCH element's `self` (the pair carries its own stand-in for the
+      // system element's, whose `tim` is the 255/6 body; a library function
+      // that needs the touch element takes it as a parameter, `Q(s, ...)`,
+      // because the system element's own self carries no touch accessors -
+      // `grid_ui_system.c:9-15`). H, T, C, P and B come back EMPTY, which is
+      // the whole of Pitfall 3: a remounted card must not inherit a contact
+      // table or a block it drew.
+      const pair = this.systemPair();
+      if (pair !== undefined) this.engine.doStringSync(pair);
       this.engine.doStringSync(SELF_PRELUDE);
       this.engine.doStringSync(this.setupSource);
       this.engine.doStringSync(TOUCH_DISPATCH);

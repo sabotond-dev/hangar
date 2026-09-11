@@ -23,7 +23,11 @@
 import { describe, expect, it } from "vitest";
 import { CELLS, DEFAULT_PAD_STATE, GRID } from "../../vendor/botor/_pad";
 import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
-import { LIBRARY_GLOBALS, TOUCH_LIBRARY } from "../catalog/library";
+import {
+  LIBRARY_GLOBALS,
+  TOUCH_LIBRARY,
+  TOUCH_LIBRARY_TIMER,
+} from "../catalog/library";
 import {
   createLuaHost,
   HOST_GLOBALS,
@@ -400,9 +404,14 @@ describe("the Lua host", () => {
     // presence: it reads `Q` at its own first line and raises if it is not a
     // function, so a host that ran the system Setup afterwards would reject in
     // createLuaHost instead of reaching an assertion.
+    //
+    // BOTH STRINGS SINCE 12.1-02: `LIBRARY_GLOBALS` now spans 255/0 and 255/6,
+    // so a host given only `system` would fail the key check below on `G`,
+    // `V`, `N`, `A` and `D` - which is the point of the test after this one.
     const host = await createLuaHost({
       sim: blank(),
       system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
       setup:
         '--[[@cb]]if type(Q)~="function" then error("Q is "..type(Q)) end ' +
         "self.touch_cb=function(s,i,e,x,y)s.n=Q(s,i,e,x,y)or -1 end",
@@ -416,14 +425,22 @@ describe("the Lua host", () => {
         expect(keys, `${name} is not in _G after install`).toContain(name);
       }
 
-      // A gesture fills the contact tables.
+      // A gesture fills the contact tables. (64, 64) is LED 4 on both axes
+      // under the measured map - x = 64 is KX[4] itself - so the cell is 40
+      // as it was under the naive divisor.
       host.touchDown(0, 64, 64);
       host.tick();
       expect(host.selfNumber("n"), "the callback did not see cell 40").toBe(40);
       expect(
-        [host.globalSize("H"), host.globalSize("T"), host.globalSize("P")],
-        "a press must leave a contact in H and a stamp in T",
-      ).toEqual([1, 1, 0]);
+        [
+          host.globalSize("H"),
+          host.globalSize("T"),
+          host.globalSize("P"),
+          host.globalSize("B"),
+        ],
+        "a press must leave a contact in H and a stamp in T, and nothing in " +
+          "P or B because this Setup calls neither A nor G",
+      ).toEqual([1, 1, 0, 0]);
 
       // And a restart rebuilds them EMPTY.
       host.restart();
@@ -433,9 +450,14 @@ describe("the Lua host", () => {
         expect(after, `${name} is missing after restart`).toContain(name);
       }
       expect(
-        [host.globalSize("H"), host.globalSize("T"), host.globalSize("P")],
+        [
+          host.globalSize("H"),
+          host.globalSize("T"),
+          host.globalSize("P"),
+          host.globalSize("B"),
+        ],
         "a remounted card inherited a contact table from the last mount",
-      ).toEqual([0, 0, 0]);
+      ).toEqual([0, 0, 0, 0]);
       // `O` is deliberately absent: it belonged to the light layer `F`, which
       // was dropped in 12-07 for having no caller. Asserting it here would be
       // asserting about a name the library does not define.
@@ -469,6 +491,118 @@ describe("the Lua host", () => {
       ).toBeUndefined();
     } finally {
       bare.close();
+    }
+  });
+
+  it("runs the system Timer as self.tim before the system Setup, and the pair again on every restart", async () => {
+    // THE MODULE'S ORDER, IN THE VM (plan 12.1-02). 255/6 is written first and
+    // 255/0 closes with `self:tim()`, which runs the Timer body as the system
+    // element's own method; on a page load init.lua registers every stored
+    // body as a method before the system `ini` runs. The host installs the
+    // Timer body as the `tim` of a stand-in `self`, then runs the Setup body,
+    // so `self:tim()` really runs it.
+    //
+    // Purpose-built strings rather than the library, as every test in this
+    // file: the Timer sets a MARKER table and defines `G`; the Setup creates
+    // `B` and calls `self:tim()`. The touch Setup's first line reads `G` and
+    // raises if it is not a function, so a host that ran the pair in the
+    // wrong order - or after Setup - rejects in createLuaHost with
+    // "attempt to call a nil value (method 'tim')" or "G is nil" instead of
+    // reaching an assertion. Its second line asserts the stand-in did not
+    // leak: the touch element's `self` has no `tim`.
+    const TIMER = "--[[@cb]]TM={1} function G(s,i)B[i]=1 end";
+    const SYSTEM = "--[[@cb]]B={} self:tim()";
+    const host = await createLuaHost({
+      sim: blank(),
+      system: SYSTEM,
+      systemTimer: TIMER,
+      setup:
+        '--[[@cb]]if type(G)~="function" then error("G is "..type(G)) end ' +
+        'if self.tim then error("the system stand-in leaked into self") end ' +
+        "self.touch_cb=function(s,i,e,x,y)G(s,i)end",
+    });
+    try {
+      expect(host.errors, "the install raised").toEqual([]);
+      const keys = host.globalKeys();
+      expect(keys, "the Timer body did not run: no marker").toContain("TM");
+      expect(keys, "the Timer body did not define G").toContain("G");
+      expect(keys, "the Setup body did not run: no B").toContain("B");
+      expect(host.globalSize("TM"), "the marker is the Timer's table").toBe(1);
+
+      // A finger drives G, which writes B[0].
+      host.touchDown(0, 64, 64);
+      host.tick();
+      expect(host.errors, "G raised").toEqual([]);
+      expect(host.globalSize("B"), "G did not record the contact's block").toBe(
+        1,
+      );
+
+      // A restart wipes B, TM and G with everything else Setup and the gesture
+      // left behind, and the pair re-creates all three - B EMPTY (Pitfall 3:
+      // a remounted card must not inherit a block G drew), TM back (so the
+      // Timer body ran again, not merely G surviving), G a function.
+      host.restart();
+      expect(host.errors, "the restart raised").toEqual([]);
+      expect(
+        host.globalSize("B"),
+        "a remounted card inherited a gradient block from the last mount",
+      ).toBe(0);
+      expect(host.globalKeys(), "G is missing after restart").toContain("G");
+      expect(
+        host.globalSize("TM"),
+        "the Timer body did not run again on restart",
+      ).toBe(1);
+      // And still callable after the restart, on a fresh contact table.
+      host.touchDown(1, 30, 30);
+      host.tick();
+      expect(host.errors, "G raised after the restart").toEqual([]);
+      expect(host.globalSize("B"), "G did not run after the restart").toBe(1);
+    } finally {
+      host.close();
+    }
+  });
+
+  it("installs the system Setup alone with a no-op tim, has no G, and says so on the first finger", async () => {
+    // A HOST WITHOUT THE SECOND STRING STANDS FOR A MODULE WHOSE 255/6 STILL
+    // HOLDS THE FIRMWARE DEFAULT (`print("tick")`, which defines nothing):
+    // `self:tim()` finds a method and the install does not raise, but `G` is
+    // undefined, and the first finger that reaches a `G(` call raises with
+    // `G` named. That is the LOUD failure the Sandbox needs
+    // (12.1-VALIDATION R-6): a card that forgot `systemTimer` fails in its
+    // own smoke gate, not silently on a dark pad.
+    const host = await createLuaHost({
+      sim: blank(),
+      system: TOUCH_LIBRARY,
+      setup:
+        "--[[@cb]]self.touch_cb=function(s,i,e,x,y)" +
+        "G(s,i,e,x,y,0,255,255,255)local m=Q(s,i,e,x,y)end",
+    });
+    try {
+      expect(host.errors, "the install raised without systemTimer").toEqual([]);
+      const keys = host.globalKeys();
+      for (const name of ["G", "V", "N", "A", "D"]) {
+        expect(
+          keys,
+          `${name} reached a host that was given no system Timer`,
+        ).not.toContain(name);
+      }
+      for (const name of ["U", "W", "E", "Q", "X", "KX", "KY"]) {
+        expect(keys, `${name} is missing from a host given 255/0`).toContain(
+          name,
+        );
+      }
+      // The first finger.
+      host.touchDown(0, 64, 64);
+      host.tick();
+      expect(host.errors, "the first G( call did not raise").toHaveLength(1);
+      expect(
+        host.errors[0],
+        "the error does not name G, so a reader could not tell which string " +
+          "is missing",
+      ).toMatch(/global 'G'/);
+      expect(host.errors[0]).toMatch(/nil value/);
+    } finally {
+      host.close();
     }
   });
 });

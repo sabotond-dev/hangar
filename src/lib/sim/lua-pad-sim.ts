@@ -21,7 +21,7 @@ import {
   type PadState,
 } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
-import { TOUCH_LIBRARY } from "../catalog/library";
+import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
 import type { CatalogEntry, LuaKnob } from "../catalog/types";
 import { SimEngineError, type SimEngine } from "./engine";
 import { createLuaHost, type LuaHost } from "./lua-host";
@@ -205,12 +205,15 @@ export class LuaPadSim implements SimEngine {
  * that distinction on `undefined` versus `""`, and this is where the catalog's
  * always-a-string shape is mapped onto it.
  *
- * THE TOUCH LIBRARY GOES IN AS THE SYSTEM SETUP (plan 12-07), for every entry
- * this function builds - which is exactly the hand-authored ones, because a
- * preset is a compiled PadState and never comes through here. That is the same
- * split the install path takes: `landLua` publishes the library and the preset
- * landing publishes the firmware's own page init. The preview can therefore
- * call the library by name, which every re-fit from 12-08 on depends on.
+ * THE TOUCH LIBRARY GOES IN AS THE SYSTEM SETUP AND THE SYSTEM TIMER (plans
+ * 12-07 and 12.1-02), for every entry this function builds - which is exactly
+ * the hand-authored ones, because a preset is a compiled PadState and never
+ * comes through here. That is the same split the install path takes: `landLua`
+ * publishes the library and the preset landing publishes the firmware's own
+ * page init. The preview can therefore call the library by name, which every
+ * re-fit from 12-08 on depends on - and since 12.1 that means BOTH strings: a
+ * host given only `TOUCH_LIBRARY` has no `G`, `V`, `N`, `A` or `D` and raises
+ * on the first finger that reaches one.
  */
 export async function createLuaPadSim(
   entry: CatalogEntry,
@@ -220,6 +223,7 @@ export async function createLuaPadSim(
   const host = await createLuaHost({
     sim: new PadSim(blankPadState()),
     system: TOUCH_LIBRARY,
+    systemTimer: TOUCH_LIBRARY_TIMER,
     setup,
     timer: timer.trim() === "" ? undefined : timer,
   });
