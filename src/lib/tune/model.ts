@@ -237,8 +237,22 @@ export type Tuner = {
  *
  * It is NOT part of the 908 budget either: the two meters measure the touch
  * element's two events, which are what the visitor's knobs move.
+ *
+ * `systemTimer` IS THE FOURTH STRING (Phase 12.1, 12.1-07), the system
+ * element's Timer slot (255/6), and it follows `system`'s rules to the letter:
+ * not metered, not moved by a knob, published beside the pair on every
+ * landing. A hand-authored entry lands `TOUCH_LIBRARY_TIMER` - the library's
+ * second half, which 255/0's `self:tim()` arms (12.1 D-03) - and a preset
+ * lands whatever `systemTimer` said, the EMPTY STRING when the caller named
+ * none, for exactly the reason `system` does: the firmware's 255/6 default is
+ * a wire fact behind `ladder.spec.ts:275`'s line, and the substitution to
+ * `SYSTEM_DEFAULT_TIMER` happens in ONE place on the other side of it,
+ * `install.svelte.ts`'s `#pageTimer`, beside `#pageInit`. The keys are in
+ * write order (sequence.ts SLOTS), though the writer owns that order and not
+ * this type.
  */
 export type ConfigStrings = {
+  readonly systemTimer: string;
   readonly system: string;
   readonly setup: string;
   readonly timer: string;
@@ -284,6 +298,18 @@ export type TunerOptions = {
    * arbitrary page init at a module and 12-03 built it to be exactly that.
    */
   systemSetup?: string;
+  /**
+   * THE SYSTEM TIMER STRING THIS ENTRY WANTS (element 255, event 6), the
+   * fourth string (12.1-07), under exactly `systemSetup`'s rules: published
+   * verbatim on every landing, metered by nothing, ABSENT meaning "none of
+   * its own" and the empty string published for it - never the firmware
+   * default, which this module may not know (`ladder.spec.ts:275`;
+   * `install.svelte.ts`'s `#pageTimer` substitutes `SYSTEM_DEFAULT_TIMER` in
+   * ONE place). The Lua route lands `TOUCH_LIBRARY_TIMER` when this is not
+   * given, as it lands `TOUCH_LIBRARY` for `systemSetup`; an explicit value
+   * wins on both routes, for `/dev/install/`'s fourth textarea (12.1-08).
+   */
+  systemTimer?: string;
   /**
    * The forecast, or `undefined` the moment it is withdrawn or invalidated.
    * Optional, so every existing caller and every existing test is unchanged.
@@ -471,6 +497,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   // route landing at all under the fixed microtask hops model.spec.ts and
   // wire-pin.spec.ts wait on, which is measured rather than guessed.
   const system = options.systemSetup ?? "";
+  // The fourth string, on the same terms (12.1-07).
+  const systemTimer = options.systemTimer ?? "";
 
   // The two routes, resolved once, THROUGH THE STAMP'S OWN RESOLVERS. A
   // `state`-kind source is compiler driven and has no descriptor table of its
@@ -799,6 +827,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const measured = await costOf(result, options.reserved);
     if (stale(mine)) return;
     land(measured.setup.used, measured.timer.used, {
+      systemTimer,
       system,
       setup: result.setupLua,
       timer: result.timerLua,
@@ -824,10 +853,17 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     // `TunerOptions.systemSetup` for why that is the empty string here and not
     // the firmware default, and where the substitution happens instead.
     //
+    // AND ITS SYSTEM TIMER IS THE LIBRARY'S SECOND HALF (12.1-07, D-03): the
+    // two strings are one library over two slots, 255/0 arming 255/6 with
+    // `self:tim()`, so an entry that lands one lands both. The preset route
+    // publishes `systemTimer` unchanged too, and for the same reason.
+    //
     // Lazily imported for the same discipline as `renderLua` above, and
     // memoised by the module system, so the catalog's first paint carries none
     // of it.
-    const { TOUCH_LIBRARY } = await import("../catalog/library");
+    const { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } = await import(
+      "../catalog/library"
+    );
     const lua = renderLua(entry, indices);
     // An empty Timer is a TRUE measurement of zero, not a dead meter: MORPH
     // ships one, and 0 / 908 tells the visitor something real.
@@ -836,9 +872,10 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     if (stale(mine)) return;
     // renderLua already produced exactly the wire text.
     land(setup, timer, {
-      // An explicit `systemSetup` still wins: /dev/install/'s third textarea is
-      // the site's only route for pasting an arbitrary page init at a module,
-      // and 12-03 built it to be exactly that.
+      // An explicit `systemTimer` or `systemSetup` still wins: /dev/install/'s
+      // fourth and third textareas are the site's only route for pasting an
+      // arbitrary library at a module, and 12-03 built it to be exactly that.
+      systemTimer: systemTimer === "" ? TOUCH_LIBRARY_TIMER : systemTimer,
       system: system === "" ? TOUCH_LIBRARY : system,
       setup: lua.setup,
       timer: lua.timer,

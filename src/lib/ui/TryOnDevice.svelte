@@ -158,7 +158,12 @@
      * treats undefined as "not ready to write", so a click inside the 120 ms
      * debounce window writes nothing rather than the previous strings.
      */
-    config?: { system: string; setup: string; timer: string };
+    config?: {
+      systemTimer: string;
+      system: string;
+      setup: string;
+      timer: string;
+    };
   } = $props();
 
   // ---------------------------------------------------------------------------

@@ -27,7 +27,7 @@ import {
   EVENT_BUDGET,
 } from "../../vendor/botor/_pad";
 import { byId, type CatalogEntry } from "../catalog";
-import { TOUCH_LIBRARY } from "../catalog/library";
+import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
 import { compileState, costOf, padReady } from "../pad";
 import type { SimEngine } from "../sim/engine";
 import {
@@ -548,6 +548,98 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       "an explicit page init was overwritten by the library",
     ).toBe(pasted);
     overrideTuner.destroy();
+  });
+
+  it("lands both halves of the library for a Lua entry and both empties for a preset - the store is the one place they become defaults", async () => {
+    // THE FOURTH STRING (12.1-07, D-03). The library is one library over two
+    // slots - 255/0 defines it and calls `self:tim()`, 255/6 is the body that
+    // call arms - so a landing that carries one half without the other would
+    // put a module in the state 12.1-06's SLOTS comment (reason three) exists
+    // to prevent: a page init arming a timer whose body is still firmware's
+    // debug print. Real timers, as the test above: EUCLID builds a Lua VM.
+    const lua = recorder();
+    const luaTuner = await buildTuner({ entryId: "euclid", ...lua });
+    await pause(80);
+    const landedLua = lua.configs.at(-1);
+    expect(landedLua, "the Lua entry never landed").toBeDefined();
+    expect(
+      landedLua!.systemTimer,
+      "a Lua entry must land the library's second half as its system timer",
+    ).toBe(TOUCH_LIBRARY_TIMER);
+    expect(landedLua!.system, "and the first half beside it").toBe(
+      TOUCH_LIBRARY,
+    );
+    expect(
+      TOUCH_LIBRARY_TIMER,
+      "the two halves are two strings, or the assertion above is vacuous",
+    ).not.toBe(TOUCH_LIBRARY);
+    // Four fields, and only four: the store's wire shape is one field wider
+    // than 12-03's, in write order (sequence.ts SLOTS), and nothing else
+    // rides along.
+    expect(Object.keys(landedLua!)).toEqual([
+      "systemTimer",
+      "system",
+      "setup",
+      "timer",
+    ]);
+    luaTuner.destroy();
+
+    // A PRESET LANDS BOTH EMPTIES - and NOT the firmware defaults, for the
+    // reason the test above gives for the third string: `ladder.spec.ts:275`
+    // refuses `lib/protocol` to every file under `src/lib/tune/`, and both
+    // defaults are wire facts. The ONE place the empty strings become
+    // `SYSTEM_DEFAULT_SETUP` and `SYSTEM_DEFAULT_TIMER` is
+    // `src/lib/device/install.svelte.ts` - `#pageInit` and `#pageTimer`, side
+    // by side - and install.spec.ts proves that half. (12.1-08b, D-27, moves
+    // the presets onto the library and changes what this landing carries;
+    // until then a preset TRY writes the two firmware defaults.)
+    const preset = recorder();
+    const presetTuner = await buildTuner({ entryId: "aurora", ...preset });
+    await settle();
+    const landedPreset = preset.configs.at(-1);
+    expect(landedPreset, "the preset never landed").toBeDefined();
+    expect(
+      landedPreset!.systemTimer,
+      "a preset landed a system timer of its own",
+    ).toBe("");
+    expect(landedPreset!.system, "and a page init of its own").toBe("");
+    expect(Object.keys(landedPreset!)).toEqual([
+      "systemTimer",
+      "system",
+      "setup",
+      "timer",
+    ]);
+    presetTuner.destroy();
+
+    // AN EXPLICIT systemTimer WINS ON THE LUA ROUTE, independently of
+    // systemSetup: /dev/install/'s fourth textarea (12.1-08) pastes one
+    // string at 255/6 and the library's first half still lands at 255/0.
+    const pasted = "--[[@cb]]-- pasted timer";
+    const override = recorder();
+    const overrideTuner = await buildTuner({
+      entryId: "euclid",
+      systemTimer: pasted,
+      ...override,
+    });
+    await pause(80);
+    expect(
+      override.configs.at(-1)?.systemTimer,
+      "an explicit system timer was overwritten by the library",
+    ).toBe(pasted);
+    expect(
+      override.configs.at(-1)?.system,
+      "the page init moved with the timer override",
+    ).toBe(TOUCH_LIBRARY);
+    overrideTuner.destroy();
+
+    // And the two firmware defaults are named by NO file under src/lib/tune/
+    // - ladder.spec.ts:275 holds the module boundary; this holds the words.
+    const source = strip(modelSource());
+    for (const needle of ["SYSTEM_DEFAULT_SETUP", "SYSTEM_DEFAULT_TIMER"]) {
+      expect(source.includes(needle), `model.ts names ${needle} in code`).toBe(
+        false,
+      );
+    }
   });
 
   it("destroy cancels a pending measurement and leaves no timer behind", async () => {

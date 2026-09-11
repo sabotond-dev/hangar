@@ -275,7 +275,9 @@
      * click time.
      */
     onconfig?: (
-      config: { system: string; setup: string; timer: string } | undefined,
+      config:
+        | { systemTimer: string; system: string; setup: string; timer: string }
+        | undefined,
     ) => void;
     /**
      * The colour picker's result pad, for whoever owns the page's SimHost.

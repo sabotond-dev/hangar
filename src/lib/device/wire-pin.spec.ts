@@ -51,7 +51,7 @@ import {
 } from "$lib/protocol";
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
 import { CATALOG, type CatalogEntry } from "../catalog";
-import { TOUCH_LIBRARY } from "../catalog/library";
+import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
 import {
   compileState,
   costOf,
@@ -240,6 +240,9 @@ function stringsOrRefuse(config: ConfigStrings | undefined): WriteDecision {
   return {
     ok: true,
     strings: {
+      // The fourth key (12.1-07): the minimum that makes this file type-check
+      // against the four-key ConfigSet; 12.1-08 pins its bytes on the wire.
+      systemTimer: config.systemTimer,
       system: config.system,
       setup: config.setup,
       timer: config.timer,
@@ -371,7 +374,13 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         expect(
           landed.config,
           `${entry.id}: the published pair is not renderLua's text`,
-        ).toEqual({ system: TOUCH_LIBRARY, ...rendered });
+        ).toEqual({
+          // The fourth string (12.1-07): the minimum that keeps this pin green;
+          // 12.1-08 pins both library strings on the wire.
+          systemTimer: TOUCH_LIBRARY_TIMER,
+          system: TOUCH_LIBRARY,
+          ...rendered,
+        });
         // AND THE PAGE INIT IS THE TOUCH LIBRARY, VERBATIM (12-07). It was the
         // empty string for every entry from 12-03 until the library existed -
         // the tuner saying "this entry has no page init of its own", which the
@@ -434,9 +443,11 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
       await writeAll(queue, TARGET, config);
 
       const writes = configWrites(transport);
-      expect(writes, "three CONFIG/EXECUTE frames").toHaveLength(3);
+      // FOUR since 12.1-07 (SLOTS: 255/6 first); the first frame's bytes are
+      // 12.1-08's pin, so it is skipped here and not asserted.
+      expect(writes, "four CONFIG/EXECUTE frames").toHaveLength(4);
       // The page init, then Timer, then Setup - the order writeAll owns.
-      const [system, timer, setup] = writes;
+      const [, system, timer, setup] = writes;
       expect(String(system.class_parameters.ACTIONSTRING)).toBe(config.system);
       expect(Number(timer.class_parameters.EVENTTYPE)).toBe(EVENT_TIMER);
       expect(String(timer.class_parameters.ACTIONSTRING)).toBe(config.timer);
@@ -502,6 +513,7 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
     if (midWindow.ok) await writeAll(queue, TARGET, midWindow.strings);
 
     const tooLong = stringsOrRefuse({
+      systemTimer: "",
       system: "",
       setup: "-".repeat(EVENT_BUDGET + 1),
       timer: "",

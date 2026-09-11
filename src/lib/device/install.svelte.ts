@@ -124,7 +124,7 @@
 // (grid_decode.c:947-961), and CONFIG/FETCH has no bulk guard. A fetch that
 // races that reload returns a partially loaded string, and the panel would say
 // the store failed when it did not. So `kept` is said only after the ACK, then
-// the module's next heartbeat, then a re-fetch of both strings that matches
+// the module's next heartbeat, then a re-fetch of all four strings that matches
 // byte for byte - bounded to three rounds with retryBackoffMs between them,
 // because nobody has measured how long the load takes (runbook row E records
 // how many rounds it took; `refetchRounds` holds the number).
@@ -274,7 +274,7 @@ export type InstallLeg = "ram" | "store";
 /** Why an action ended where it did. Rendered by no block in v1; asserted by the spec and recorded in the capture. */
 export type InstallCause = "timeout" | "nack" | "aborted" | "mismatch";
 /**
- * The tuner's THREE strings, verbatim (D-10). Declared here rather than
+ * The tuner's FOUR strings, verbatim (D-10). Declared here rather than
  * imported: a type import is still a specifier.
  *
  * `system` is the SYSTEM element's page-init slot (255/0), added in 12-03. It
@@ -283,8 +283,16 @@ export type InstallCause = "timeout" | "nack" | "aborted" | "mismatch";
  * entry leaves the module holding one coherent set rather than a new pair on
  * top of an old library. It travels with the pair everywhere the pair goes:
  * the snapshot, `lastWritten`, `config`, and every write.
+ *
+ * `systemTimer` is the SYSTEM element's Timer slot (255/6), added in 12.1-07
+ * (D-03): the library's second half, which 255/0 arms with `self:tim()`. It
+ * follows `system` everywhere `system` goes and on the same terms - not
+ * metered, substituted from the empty string in ONE place (`#pageTimer`),
+ * snapshotted, restored and cleared with the other three. The keys are in
+ * write order (sequence.ts SLOTS); the writer owns the order, not this type.
  */
 export type ConfigStrings = {
+  readonly systemTimer: string;
   readonly system: string;
   readonly setup: string;
   readonly timer: string;
@@ -407,12 +415,23 @@ export class InstallStore {
   keptThisSession = $state(false);
   confirmOpen = $state(false);
   /**
-   * partial's two lists, as the words the block interpolates (I7). Three
+   * partial's two lists, as the words the block interpolates (I7). Four
    * writes make them lists rather than single words, and the closed unions in
    * install-copy.ts say which pairings the ONE writer can produce.
    */
   landed = $state.raw<LandedWords | undefined>(undefined);
   failed = $state.raw<FailedWords | undefined>(undefined);
+  /**
+   * The same two lists AS SLOT LABELS, in write order, read straight off
+   * sequence.ts's SLOTS by #classify (12.1-07): `landedSlots` is the prefix of
+   * SLOTS whose write was acknowledged, `failedSlots` the rest. Empty outside
+   * `partial`. Rendered by nothing yet - the probe and the spec read them,
+   * and 12.1-08's sentences are built from the same labels - and they exist
+   * so that "which of four landed" is a fact about the list rather than a
+   * sentence somebody has to keep in step with it.
+   */
+  landedSlots = $state.raw<readonly string[]>([]);
+  failedSlots = $state.raw<readonly string[]>([]);
   /**
    * True when the snapshot in hand came from a `hangar.snapshot.v1` record, so
    * its `system` string is the firmware default rather than one the module
@@ -420,6 +439,16 @@ export class InstallStore {
    * it, and it exists so that the substitution is surfaced rather than silent.
    */
   snapshotFromV1 = $state(false);
+  /**
+   * True when the snapshot in hand came from a `hangar.snapshot.v2` record, so
+   * its `systemTimer` string is the firmware's 255/6 default rather than one
+   * the module handed over (12.1-07, D-22) - the v1 flag's shape one version
+   * on. A v1 record substitutes BOTH defaults and sets `snapshotFromV1` alone;
+   * "the timer slot is a default" is therefore either flag. Rendered by
+   * nothing; the probe page's install-snapshot line (12.1-08) and the spec
+   * read it.
+   */
+  snapshotFromV2 = $state(false);
   /**
    * True once a `write-*` timeout with no NACK has moved the pre-send gap to
    * the desktop's 10 ms (D-19, Pitfall 3). Shown by the probe; the runbook
@@ -731,10 +760,10 @@ export class InstallStore {
    *
    *   1. the module names itself      - "fetch-serial"; a timeout here
    *      degrades to a session-only snapshot and never throws;
-   *   2. all THREE strings come back on the module's REPORTED page and pass
+   *   2. all FOUR strings come back on the module's REPORTED page and pass
    *      canWriteBack - D-03: the empty string is exactly the shape a fetch of
    *      a non-active page produces. A factory module passes: the system
-   *      element's own default is 24 characters, never empty;
+   *      element's own defaults are 24 and 22 characters, never empty;
    *   3. the set is held IN MEMORY;
    *   4. only then is the durable record consulted, and written IF ABSENT.
    *
@@ -765,7 +794,7 @@ export class InstallStore {
     }
     if (gen !== this.#generation) return;
 
-    // THE ENUMERATION (13-12), once per connection, after the three config
+    // THE ENUMERATION (13-12), once per connection, after the four config
     // fetches so their step ids read as they always have and before `ready`
     // so the destination control never renders a list it has not been given.
     // A read, never a write; a module that does not answer offers only its
@@ -780,14 +809,16 @@ export class InstallStore {
     // D-03 over Z-16: an empty string is refused here, BEFORE the record is
     // consulted. A remembered module whose RAM reads empty on this page is
     // therefore not offered its own record - named in the header, deferred to
-    // 07-13, not fixed here. THREE strings since 12-03, and the guard runs
-    // over all three: HANGAR writes the page-init slot, so it copies it first.
-    const guard = P.canWriteBack([set.system, set.setup, set.timer]);
+    // 07-13, not fixed here. FOUR strings since 12.1-07 (three since 12-03),
+    // and the guard runs over all of them, one per SLOTS row: HANGAR writes
+    // both system slots, so it copies both first.
+    const guard = P.canWriteBack(T.SLOTS.map((slot) => set[slot.key]));
     if (!guard.ok) {
       this.#fail("snapshot-failed", "timeout", snapshotFailedBlock().title);
       return;
     }
     const fetched: ConfigStrings = {
+      systemTimer: set.systemTimer.actionString ?? "",
       system: set.system.actionString ?? "",
       setup: set.setup.actionString ?? "",
       timer: set.timer.actionString ?? "",
@@ -800,6 +831,11 @@ export class InstallStore {
     // header, and its spec's first test). A record written before Phase 12 has
     // no page-init string and is read with this one in its place; `fromV1`
     // says when that happened, and it is published rather than swallowed.
+    //
+    // 12.1-07 TASK 01'S SEAM, closed by task 02: the record holds three
+    // strings under `hangar.snapshot.v2` until task 02 adds the v3 key, so
+    // EVERY record in hand at this commit predates the timer slot and restores
+    // the firmware's 255/6 default (D-22), with `snapshotFromV2` saying so.
     const record = moduleId
       ? readSnapshot(
           this.#storage,
@@ -811,9 +847,15 @@ export class InstallStore {
     // An existing original WINS over a fresh fetch: after TRY ON DEVICE a
     // re-connect fetches HANGAR's own configuration.
     this.snapshot = record
-      ? { system: record.system, setup: record.setup, timer: record.timer }
+      ? {
+          systemTimer: P.SYSTEM_DEFAULT_TIMER,
+          system: record.system,
+          setup: record.setup,
+          timer: record.timer,
+        }
       : fetched;
     this.snapshotFromV1 = record?.fromV1 ?? false;
+    this.snapshotFromV2 = record !== undefined;
     this.snapshotPage = id.activePage;
     this.moduleId = moduleId;
     if (moduleId) {
@@ -876,6 +918,7 @@ export class InstallStore {
       (this.phase === "settled" || this.phase === "unconfirmed") &&
       written !== undefined &&
       current !== undefined &&
+      this.#pageTimer(current) === written.systemTimer &&
       this.#pageInit(current) === written.system &&
       current.setup === written.setup &&
       current.timer === written.timer;
@@ -903,6 +946,22 @@ export class InstallStore {
   #pageInit(config: ConfigStrings, P?: Protocol): string {
     if (config.system !== "") return config.system;
     return (P ?? this.#modules?.P)?.SYSTEM_DEFAULT_SETUP ?? "";
+  }
+
+  /**
+   * THE ONE PLACE THE FIRMWARE'S OWN SYSTEM TIMER IS SUBSTITUTED (12.1-07),
+   * beside #pageInit and for its reason, one slot on: the tuner publishes
+   * `systemTimer` verbatim from its `systemTimer` option and the empty string
+   * for an entry with none - the Lua route lands the library's second half
+   * since 12.1-07, a preset lands "" until 12.1-08b - and a firmware default
+   * may not be named on that side of ladder.spec.ts:275's line. So the
+   * substitution to `SYSTEM_DEFAULT_TIMER` (`--[[@cb]]print("tick")`, 22
+   * characters, read from the pinned package) happens HERE, used by the
+   * write path and by `armed` alike. The empty string can never reach 255/6.
+   */
+  #pageTimer(config: ConfigStrings, P?: Protocol): string {
+    if (config.systemTimer !== "") return config.systemTimer;
+    return (P ?? this.#modules?.P)?.SYSTEM_DEFAULT_TIMER ?? "";
   }
 
   // --- the two closed decisions the components render ----------------------
@@ -1173,6 +1232,7 @@ export class InstallStore {
     if (this.#tryRefusal(config, P.CONFIG_MAX) !== undefined) return;
     if (config === undefined) return;
     const strings: ConfigStrings = {
+      systemTimer: this.#pageTimer(config, P),
       system: this.#pageInit(config, P),
       setup: config.setup,
       timer: config.timer,
@@ -1249,24 +1309,29 @@ export class InstallStore {
    * clear that reset only the touch element would leave HANGAR's own library
    * sitting in the page init, and the line would be untrue by one element on a
    * page HANGAR did write. So the page init is reset too, with the package's
-   * own `SYSTEM_DEFAULT_SETUP`.
+   * own `SYSTEM_DEFAULT_SETUP` - and since 12.1-07 the system element's Timer
+   * (255/6, the library's second half) with its own `SYSTEM_DEFAULT_TIMER`,
+   * `--[[@cb]]print("tick")`: a debug print that runs once on the module when
+   * the write lands and prints to nobody, and then never again, because the
+   * page init that armed it is the firmware's own and arms nothing.
    *
    * AND THAT IS ALSO WHAT MAKES A KEEP AFTER A CLEAR LEAVE NOTHING BEHIND.
    * Writing an event its OWN default sets `cfg_default_flag`
    * (`../grid-fw/common/src/c/grid_ui.c:398-409`), and
    * `grid_ui_bulk_page_store` then DELETES the cfg file rather than writing it
    * (`:1126-1134`). So a cleared page stored to flash leaves no HANGAR file on
-   * the module at all. One more acknowledgement per clear is the whole cost.
+   * the module at all - 255/6 included, on the same rule (12-RESEARCH 1c).
+   * One more acknowledgement per clear per slot is the whole cost.
    *
    * RAM ONLY, AND THAT IS ASSERTED BY CLASS RATHER THAN SAID IN COPY (A-26).
-   * Three CONFIG/EXECUTE and no PAGESTORE/EXECUTE: the Editor calls
+   * Four CONFIG/EXECUTE and no PAGESTORE/EXECUTE: the Editor calls
    * sendToGrid(), never store(), so a power cycle brings back whatever is in
    * flash. D-21 fixed the line beside the control at 41 characters and it does
    * not mention the power cycle, so install.spec.ts's by-class count is where
    * that fact now lives.
    *
    * NO COMPILER ON THIS PATH, AND THAT IS DELIBERATE. The try-on writes a
-   * configuration the tuner compiled; a clear writes two strings that are
+   * configuration the tuner compiled; a clear writes four strings that are
    * already canonical under the pinned minifier (constants.spec.ts pins that),
    * sendConfig takes a plain string, and nothing here needs the Lua formatter.
    * An `await padCompilerReady()` added here would hang 628 KB of WASM off the
@@ -1287,6 +1352,7 @@ export class InstallStore {
     // install-copy.ts: these are wire facts and not copy, and install-copy is
     // on the first paint of `/` with zero imports for that reason.
     const defaults: ConfigStrings = {
+      systemTimer: P.SYSTEM_DEFAULT_TIMER,
       system: P.SYSTEM_DEFAULT_SETUP,
       setup: P.TOUCH_DEFAULT_SETUP,
       timer: P.TOUCH_DEFAULT_TIMER,
@@ -1345,7 +1411,7 @@ export class InstallStore {
    * The store leg, shared by the keep and by a put-back after a keep. One
    * PAGESTORE/EXECUTE through the queue under pagestoreMs (3000 ms, from the
    * descriptor; on a rig N acknowledgements resolve it once), then the D-12
-   * proof: wait for the ZONA's next heartbeat, then re-fetch both strings for
+   * proof: wait for the ZONA's next heartbeat, then re-fetch all four strings for
    * at most REFETCH_ROUNDS rounds with retryBackoffMs between them, kept on the
    * first byte-identical pair. `mismatch` when the rounds run out;
    * `unconfirmed` on the queue's timeout - a store dropped under a bulk NVM
@@ -1386,10 +1452,12 @@ export class InstallStore {
         );
         if (gen !== this.#generation) return false;
         this.refetchRounds = round + 1;
+        // Four for four, one per SLOTS row (12.1-07), the way runNoOpCycle
+        // compares: a slot added to the list is compared here without a line.
         if (
-          after.system.actionString === sent.system &&
-          after.setup.actionString === sent.setup &&
-          after.timer.actionString === sent.timer
+          T.SLOTS.every(
+            (slot) => after[slot.key].actionString === sent[slot.key],
+          )
         ) {
           return "kept";
         }
@@ -1434,14 +1502,16 @@ export class InstallStore {
     this.cause = undefined;
     this.landed = undefined;
     this.failed = undefined;
+    this.landedSlots = [];
+    this.failedSlots = [];
     this.phase = "writing";
     this.steps = [];
     this.#inFlight = true;
     this.#session.writeLock = true;
     this.#armSlow();
     try {
-      // The page init, then Timer, then Setup, ACK each (sequence.ts
-      // writeAll, which owns the order). Verbatim.
+      // The system timer, the page init, then Timer, then Setup, ACK each
+      // (sequence.ts writeAll over SLOTS, which owns the order). Verbatim.
       await T.writeAll(q, T.targetOf(id), strings);
       if (gen !== this.#generation) return false;
       return true;
@@ -1476,30 +1546,40 @@ export class InstallStore {
    * Anti-Patterns). Here:
    *
    *   AbortedError                                lost            aborted
-   *   NackError, write-system already ok          partial         nack
+   *   NackError, the first slot already ok        partial         nack
    *   NackError otherwise                         nothing-landed  nack
-   *   anything else, write-system ok              partial         timeout
+   *   anything else, the first slot ok            partial         timeout
    *   anything else otherwise                     nothing-landed  timeout
    *
-   * THREE WRITES, THREE STEP IDS, AND ONLY TWO PARTIALS CAN OCCUR. The writer
+   * FOUR WRITES, FOUR STEP IDS, AND ONLY THREE PARTIALS CAN OCCUR. The writer
    * is sequential and aborts on the first failure (sequence.ts writeAll), and
-   * its order is system, Timer, Setup. So:
+   * its order is SLOTS' - the system timer, the page init, the Timer, the
+   * Setup (12.1-06, three reasons). So what landed is always a PREFIX of the
+   * list, and the classifier reads it as one: it walks SLOTS in order and
+   * stops at the first write that was not acknowledged.
    *
-   *   write-system failed                nothing landed
-   *   write-system ok, write-timer bad   the page init landed, and only it
-   *   system and timer ok, setup bad     the page init and the Timer landed
+   *   write-system-timer failed                  nothing landed
+   *   255/6 ok, write-system bad                 the system timer, and only it
+   *   255/6 and 255/0 ok, write-timer bad        the system timer and the page init
+   *   255/6, 255/0 and 0/6 ok, write-setup bad   all but the Setup
    *
-   * "THE PAGE INIT DID NOT LAND BUT THE SETUP DID" CANNOT HAPPEN WITH THIS
-   * WRITER, and it is worth saying out loud because 12-RESEARCH Pitfall 6
+   * "A LATER SLOT LANDED AND AN EARLIER ONE DID NOT" CANNOT HAPPEN WITH THIS
+   * WRITER - 12-03's "the page init did not land but the Setup did", one slot
+   * wider - and it is worth saying out loud because 12-RESEARCH Pitfall 6
    * describes exactly that state and a reader will come here looking for it.
    * It is a real firmware state - a module can hold a touch Setup calling a
-   * library its page init does not define - but nothing HANGAR does produces
-   * it, because the write that would have to fail first is the one that goes
+   * library its page init does not define, or a page init arming a timer
+   * whose body is still firmware's - but nothing HANGAR does produces it,
+   * because the write that would have to fail first is the one that goes
    * first. The worst case this store can reach is the last row: the module
    * runs the OLD Setup against a NEW library, which is harmless.
    *
    * `partial` is read off the recorded steps, in write order, never off a
-   * message. A timeout cause then asks the pacing rule whether to escalate.
+   * message. The words the block interpolates are install-copy.ts's closed
+   * unions (one pairing per reachable row; 12.1-08 rewrites the sentences for
+   * four), chosen by the length of the landed prefix; the labels themselves
+   * are published beside them as `landedSlots` / `failedSlots`. A timeout
+   * cause then asks the pacing rule whether to escalate.
    */
   #classify(err: unknown, modules: HeavyModules, action: InstallAction): void {
     const { T } = modules;
@@ -1516,17 +1596,33 @@ export class InstallStore {
     const cause: InstallCause = err instanceof T.NackError ? "nack" : "timeout";
     const landedStep = (id: string): boolean =>
       this.steps.some((s) => s.id === id && s.outcome === "ok");
-    const systemLanded = landedStep("write-system");
-    const timerLanded = landedStep("write-timer");
-    if (systemLanded) {
-      const landed: LandedWords = timerLanded
-        ? "The page init and the Timer"
-        : "The page init";
-      const failed: FailedWords = timerLanded
-        ? "the Setup"
-        : "the Timer and the Setup";
+    // The landed PREFIX of SLOTS, in write order: the writer stops at the
+    // first failure, so the first slot whose write was not acknowledged ends
+    // the prefix and every later slot was never attempted.
+    let landedCount = 0;
+    while (
+      landedCount < T.SLOTS.length &&
+      landedStep(T.SLOTS[landedCount].write)
+    ) {
+      landedCount++;
+    }
+    if (landedCount > 0) {
+      const landed: LandedWords =
+        landedCount === 1
+          ? "The system timer"
+          : landedCount === 2
+            ? "The page init"
+            : "The page init and the Timer";
+      const failed: FailedWords =
+        landedCount === 1
+          ? "the page init, the Timer and the Setup"
+          : landedCount === 2
+            ? "the Timer and the Setup"
+            : "the Setup";
       this.landed = landed;
       this.failed = failed;
+      this.landedSlots = T.SLOTS.slice(0, landedCount).map((s) => s.label);
+      this.failedSlots = T.SLOTS.slice(landedCount).map((s) => s.label);
       this.#fail("partial", cause, partialBlock(landed, failed).title);
     } else {
       this.#fail("nothing-landed", cause, nothingLandedBlock(after).title);

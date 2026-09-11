@@ -110,9 +110,24 @@ export type EventWord = "Setup" | "Timer";
  *
  *   The page init                | the Timer and the Setup
  *   The page init and the Timer  | the Setup
+ *
+ * SINCE 12.1-07 A RAM LEG WRITES FOUR - the system timer (255/6) goes first
+ * of all - so a third partial exists, the first row below, and it is the ONE
+ * row this plan adds: the store's classifier reads which of four landed off
+ * sequence.ts's SLOTS and needs a pairing for the new prefix. The two older
+ * rows are unchanged and still name what they always did; the sentences that
+ * name all four in write order are 12.1-08's (13-18 rewrites this file).
+ *
+ *   The system timer             | the page init, the Timer and the Setup
  */
-export type LandedWords = "The page init" | "The page init and the Timer";
-export type FailedWords = "the Timer and the Setup" | "the Setup";
+export type LandedWords =
+  | "The system timer"
+  | "The page init"
+  | "The page init and the Timer";
+export type FailedWords =
+  | "the page init, the Timer and the Setup"
+  | "the Timer and the Setup"
+  | "the Setup";
 
 /**
  * A failure-shaped block for region 3: a title, a detail, the steps in order.

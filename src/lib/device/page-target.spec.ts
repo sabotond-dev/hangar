@@ -118,7 +118,12 @@ describe("the page target (13-12, D-06)", () => {
     await writeAll(
       queue,
       { sx: 0, sy: 0, page: ACTIVE_PAGE },
-      { system: P.SYSTEM_DEFAULT_SETUP, setup: SETUP, timer: TIMER },
+      {
+        systemTimer: P.SYSTEM_DEFAULT_TIMER,
+        system: P.SYSTEM_DEFAULT_SETUP,
+        setup: SETUP,
+        timer: TIMER,
+      },
     );
     expect(state.pageChangeEnabled, "the fake models :1279").toBe(false);
     const before = transport.writes.length;

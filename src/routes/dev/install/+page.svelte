@@ -85,9 +85,13 @@
   /**
    * What the RAM clicks and observeConfig read: the textareas, verbatim, in
    * WRITE ORDER. Still called pair() - the name is what every button below
-   * already says, and it is three strings now.
+   * already says, and it is four strings now. The system timer (255/6) is the
+   * EMPTY STRING here until 12.1-08 adds its textarea: empty means "none of
+   * its own", and the store substitutes the firmware's 255/6 default in one
+   * place (#pageTimer), exactly as it does for an empty page init. This line
+   * is 12.1-07's minimum so the probe keeps type-checking and writing four.
    */
-  const pair = () => ({ system, setup, timer });
+  const pair = () => ({ systemTimer: "", system, setup, timer });
 
   /**
    * THE TRACE. Every phase the store has been in since load, appended from an
