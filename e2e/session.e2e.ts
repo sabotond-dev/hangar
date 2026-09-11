@@ -426,10 +426,14 @@ async function labelWords(page: Page): Promise<string> {
 const pathOf = (page: Page) => new URL(page.url()).pathname;
 
 /**
- * Wait for the opening to take itself off the page. A click or a key that
- * lands while the splash is up is swallowed by its window-level skip listener
- * rather than reaching the control (e2e/first-experience.e2e.ts, and deferred
- * item 8's two records of exactly that race).
+ * Wait for the shelf to be up. Until 13-07 this also waited for the splash
+ * to take itself off /: a click or a key that landed while it was up was
+ * swallowed by its window-level skip listener rather than reaching the
+ * control (deferred item 8's two records of exactly that race). The splash
+ * is gone with the intro (D-09), / no longer renders the shelf, and the
+ * three header tests below open on /c/{id}/, where the shipped header with
+ * its device slot lives until 13-09 and 13-11 rebuild it; the splash count
+ * stays as a zero that can only be trivially true.
  */
 async function waitForFrontDoor(page: Page): Promise<void> {
   await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
@@ -956,7 +960,9 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     const consoleErrors = collectErrors(page);
     const zona = await answering(page);
     await grantBeforeLoad(page);
-    await page.goto("/");
+    // The shipped header lives on /c/{id}/ since 13-07 made / the intro; the
+    // intro's connection slot is 13-11's.
+    await page.goto(`/c/${ENTRY}/`);
 
     // Precondition: the shim is installed and the grant is what the browser
     // would list, so the header has something to offer.
@@ -1046,7 +1052,11 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     const consoleErrors = collectErrors(page);
     const zona = await answering(page);
     await grantBeforeLoad(page);
-    await page.goto("/");
+    // Since 13-07 the walk STARTS on a configuration rather than on /: the
+    // intro carries no device slot until 13-11 fills the shell's connection
+    // slot, so the header a visitor connects from is /c/{id}/'s. The walk
+    // still ends on / and proves the connection survives arriving there.
+    await page.goto(`/c/${ENTRY}/`);
     expect(
       await page.evaluate(async () => ({
         hasSerial: "serial" in navigator,
@@ -1054,9 +1064,9 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
       })),
     ).toEqual({ hasSerial: true, listed: 1 });
     await waitForFrontDoor(page);
-    expect(pathOf(page)).toBe("/");
+    expect(pathOf(page)).toBe(`/c/${ENTRY}/`);
 
-    // Precondition: a live, identified session made from the header on /.
+    // Precondition: a live, identified session made from the header.
     await connectFromHeader(page);
     // Stamp THIS document. A fresh document - a full navigation anywhere on
     // the walk - would come back without it.
@@ -1083,10 +1093,10 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     };
 
     // THE WALK, by the site's own links and nothing else - no goto between
-    // these four hops. / -> BROWSE ALL -> /browse/ -> a card -> /c/aurora/ ->
-    // BACK TO BROWSE -> /browse/ -> the wordmark link -> /. (On /c/{id}/ the
-    // wordmark is a heading, not a link; the one link home is the browse
-    // page's wordmark, so the way back runs through it.)
+    // these four hops. /c/aurora/ -> BROWSE ALL -> /browse/ -> a card ->
+    // /c/aurora/ -> BACK TO BROWSE -> /browse/ -> the wordmark link -> /.
+    // (On /c/{id}/ the wordmark is a heading, not a link; the one link home
+    // is the browse page's wordmark, so the way back runs through it.)
     await page.getByTestId("browse-link").click();
     await expect(page.getByTestId("browse-grid")).toBeVisible();
     await stillConnected(/^\/browse\/$/);
@@ -1100,18 +1110,33 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await expect(page.getByTestId("browse-grid")).toBeVisible();
     await stillConnected(/^\/browse\/$/);
 
+    // The last hop lands on the intro (13-07), which has no device slot
+    // until 13-11, so what is asserted there is the half that does not need
+    // one: the same document, the same one open, and not one request.
     await page.getByTestId("header-wordmark").click();
-    await expect(page.getByTestId("front-door")).toBeVisible();
-    await stillConnected(/^\/$/);
+    await expect(page.getByTestId("intro")).toBeVisible();
+    expect(pathOf(page)).toBe("/");
+    expect(
+      await page.evaluate(() => window.__hangarWalk),
+      "the same document on /",
+    ).toBe(STAMP);
+    expect(await requests(page)).toBe(0);
+    expect(await openCount(page, 0)).toBe(1);
     // SAFE-01 over the whole walk, before the reload resets the shim: the one
     // snapshot's three reads at connect, and not one write on any route.
     await onlyReads(page, zona, 1);
 
     // THE THING THAT MUST NOT WORK. A reload is a fresh document: the port
-    // goes with the old one and the grant does not, so the session comes back
-    // as the OFFER - detected, S2, nothing opened - and never as connected. A
-    // session that leaked a connection across a reload would show S4 here.
+    // goes with the old one and the grant does not. On / that shows as the
+    // stamp gone and nothing opened; on a configuration's page, reached as a
+    // second fresh document, the session comes back as the OFFER - detected,
+    // S2, nothing opened - and never as connected. A session that leaked a
+    // connection across a fresh document would show S4 here.
     await page.reload();
+    await expect(page.getByTestId("intro")).toBeVisible();
+    expect(await page.evaluate(() => window.__hangarWalk)).toBeUndefined();
+    expect(await openCount(page, 0)).toBe(0);
+    await page.goto(`/c/${ENTRY}/`);
     const control = slot(page);
     await expect(control).toHaveAttribute("data-hydrated", "true");
     await expect(control).toHaveAttribute("data-slot", "S2");
@@ -1220,7 +1245,8 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
     page,
   }, testInfo) => {
     const consoleErrors = collectErrors(page);
-    await page.goto("/");
+    // The shipped header lives on /c/{id}/ since 13-07 made / the intro.
+    await page.goto(`/c/${ENTRY}/`);
 
     // Precondition, asserted.
     expect(await page.evaluate(() => "serial" in navigator)).toBe(false);

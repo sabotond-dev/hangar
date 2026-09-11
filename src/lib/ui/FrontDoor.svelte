@@ -1,15 +1,19 @@
 <!--
-  The front door: the one composition both routes render.
+  The front door: the composition /c/{id}/ renders until 13-09.
 
-  Wordmark, headline, row - and, on / but never on a deep link (D-12), the
-  splash layer over the top of all three. Choosing and the panel arrive in plan
-  04-08 and the deep-link route in 04-09.
+  Wordmark, headline, row. Choosing and the panel arrived in plan 04-08 and
+  the deep-link route in 04-09.
 
-  THE ROW IS MOUNTED AND TICKING WHETHER OR NOT THE SPLASH IS THERE. The splash
-  is a layer over a live page, never a gate in front of a dead one: Coverflow is
-  rendered before it and its onMount runs regardless of what is painted over it,
-  so when the splash clears the machines really have been running for two
-  seconds (W-10). Nothing here may make the row conditional on the splash.
+  THE SPLASH WENT AT 13-07 (13-CONTEXT.md D-09, 2026-09-11). / is PDF page 1
+  now - src/routes/+page.svelte and src/lib/ui/intro/ - and no longer renders
+  this component, so the opening this file played on / and never on a deep
+  link (D-12) has no route left to play on. The `splash` prop, the `opening`
+  and `covered` state, the speech hold and the Splash layer left with it;
+  Splash.svelte and glyph-field.ts were deleted in the same commit. The
+  header wordmark is at full strength from the first frame and the three
+  header children take `covered`'s default of false. This component and the
+  coverflow it mounts go at 13-09 (13-VALIDATION D-5), when /c/{id}/ becomes
+  the workspace.
 
   The wordmark is the page's only level-1 heading, and it is one deliberately:
   it is the site's name on its front page, it is what keeps e2e/smoke.e2e.ts
@@ -54,17 +58,11 @@
   existing distance from the last thing above it, and the margin value does not
   change with the session state because the note holds its height in every one.
 
-  THE SPLASH HOLD (Phase 6, plan 06-11 task 3). While the splash covers the row
-  the session's live region is held (session.holdSpeech()), so a ZONA detected
-  during the opening is announced once, AFTER it, rather than over it. The hold
-  is taken in onMount - which runs before the layout's onMount starts the
-  session - only where there is a splash to talk over, and released from
-  Splash's onfinished, which fires on EVERY path the splash ends by, including
-  the one where a key, a click or a wheel cuts straight to the dissolve. It is
-  also released if this component is destroyed while the splash is still up (a
-  link followed during the opening), because a hold nobody releases is a live
-  region muted for the rest of the visit. On a deep link there is no splash and
-  nothing is held.
+  THE SPLASH HOLD (Phase 6, plan 06-11 task 3) LEFT WITH THE SPLASH (13-07).
+  session.holdSpeech() held the live region while the opening covered the
+  row; with no opening there is nothing to talk over, and this component no
+  longer holds anything. The method survives on the session store with its
+  own spec until a caller wants it again.
 
   The section carries no inline padding. The gutter belongs to the header block
   and the headline; the coverflow row is full-bleed on purpose, because pads
@@ -103,22 +101,18 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
-  import { onDestroy, onMount, untrack } from "svelte";
   import { FOR_TERMS } from "$lib/browse/facets";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
-  import { session } from "$lib/device/session.svelte";
   import BrowseLink from "./BrowseLink.svelte";
   import Coverflow from "./Coverflow.svelte";
   import FacetRow from "./FacetRow.svelte";
   import DeviceNote from "./DeviceNote.svelte";
   import DeviceSlot from "./DeviceSlot.svelte";
-  import Splash from "./Splash.svelte";
 
   let {
     row,
     initialId,
     notice,
-    splash = false,
   }: {
     /**
      * The ring, forwarded verbatim to Coverflow and read by nothing here.
@@ -136,27 +130,7 @@
      * lands on the shelf with an explanation rather than on a dead end.
      */
     notice?: string;
-    /** Play the opening. / does; a deep link never does (D-12). */
-    splash?: boolean;
   } = $props();
-
-  /**
-   * Whether the opening plays, read ONCE. untrack is not decoration: Svelte
-   * warns that a prop read at component-init scope captures only its initial
-   * value, and capturing only the initial value is exactly right here - a later
-   * change to the prop must never re-open a splash over a page the visitor is
-   * already using.
-   */
-  const opensWithSplash = (): boolean => splash;
-
-  /** The splash layer, until it has finished and taken itself off the page. */
-  let opening = $state(untrack(opensWithSplash));
-  /**
-   * True while the splash still covers the row. The header wordmark holds at
-   * opacity 0 through it and comes up to 1 across the dissolve, so it reaches
-   * full strength at the moment the flying mark lands on it.
-   */
-  let covered = $state(untrack(opensWithSplash));
 
   /**
    * The chosen panel is open and owns the session's prose (Y-11). The same
@@ -164,49 +138,22 @@
    * row cannot disagree about whether a panel is up. `{}` during prerender.
    */
   const panelOwnsProse = $derived(page.state.chosen === true);
-
-  /** The hold's release, set only while the splash covers the row. */
-  let releaseSpeech: (() => void) | undefined;
-
-  /** Release once, from whichever path gets there first. */
-  function releaseHold(): void {
-    releaseSpeech?.();
-    releaseSpeech = undefined;
-  }
-
-  onMount(() => {
-    // Held only where there is a splash to talk over. A deep link has none, and
-    // a suppression window that outlived a splash that never played would
-    // silence a returning visitor's reconnect offer for nothing.
-    if (opening) releaseSpeech = session.holdSpeech();
-  });
-
-  onDestroy(() => {
-    // The opening ended by this component leaving the page. onDestroy runs on
-    // the server too, where nothing was ever held, and releaseHold is a no-op.
-    releaseHold();
-  });
-
-  function onSplashFinished(): void {
-    opening = false;
-    releaseHold();
-  }
 </script>
 
-<section class="front-door" data-testid="front-door" data-splash={splash}>
+<section class="front-door" data-testid="front-door">
   <div class="header-block">
     <div class="header">
-      <h1 class="wordmark" class:covered>
+      <h1 class="wordmark">
         <span data-testid="header-wordmark">HANGAR</span>
       </h1>
       <div class="cluster">
-        <BrowseLink {covered} />
+        <BrowseLink />
         <div class="slot">
-          <DeviceSlot {covered} {panelOwnsProse} />
+          <DeviceSlot {panelOwnsProse} />
         </div>
       </div>
     </div>
-    <DeviceNote {covered} {panelOwnsProse} />
+    <DeviceNote {panelOwnsProse} />
   </div>
   <!--
     R-01. Phase 4's `You’ve got to start somewhere…` is retired: it was an
@@ -254,13 +201,11 @@
   </div>
 </section>
 
-{#if opening}
-  <Splash ondissolve={() => (covered = false)} onfinished={onSplashFinished} />
-{/if}
-
 <style>
   .front-door {
-    /* The 700ms dissolve, or the 200ms crossfade under reduced motion. */
+    /* The 700ms arrival BrowseLink's opacity still reads, or 200ms under
+       reduced motion. The dissolve it was written for went with the splash
+       (13-07); the variable stays because the link's rule names it. */
     --arrive-ms: 700ms;
     display: flex;
     flex-direction: column;
@@ -319,17 +264,6 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--color-action);
-    transition: opacity var(--arrive-ms) cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-
-  /*
-    Held at nothing while the splash owns the screen, and NOT transitioned into
-    that state - the header must be invisible on the very first painted frame
-    rather than fade out of one.
-  */
-  .wordmark.covered {
-    opacity: 0;
-    transition: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

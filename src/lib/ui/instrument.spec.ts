@@ -242,19 +242,17 @@ const INSTRUMENT_VOCABULARY: ReadonlyArray<readonly [string, string]> = [
  * they are listed with their reasons rather than as one array of names.
  *
  * FrontDoor.svelte OWNS the register line - it is the file whose root class the
- * line is drawn at - and Splash.svelte is the arrival ceremony, which exists on
- * no other route. Coverflow.svelte is the ceremonial shelf and this phase
+ * line is drawn at. Coverflow.svelte is the ceremonial shelf and this phase
  * promises in writing not to touch it, so it is excluded from a walk that would
- * have to be able to demand an edit to it.
+ * have to be able to demand an edit to it. Splash.svelte, the arrival
+ * ceremony, was the third row until 13-07 deleted the file with the glyph
+ * field (D-09); the walk is a subtraction from the directory, so a deleted
+ * file needs no row.
  */
 const FRONT_DOOR_ONLY: ReadonlyArray<readonly [string, string]> = [
   [
     "FrontDoor.svelte",
     "it is the file whose root class .front-door IS the register line; it carried the CRT shell until 13-04 deleted it",
-  ],
-  [
-    "Splash.svelte",
-    "the arrival ceremony, mounted by FrontDoor.svelte and by nothing else on the site",
   ],
   [
     "Coverflow.svelte",

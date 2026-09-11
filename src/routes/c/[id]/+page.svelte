@@ -194,5 +194,4 @@
   {row}
   initialId={listed?.id}
   notice={listed === undefined ? UNKNOWN_NOTICE : undefined}
-  splash={false}
 />

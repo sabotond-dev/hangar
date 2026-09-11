@@ -48,6 +48,8 @@ import { expect, test, type Page } from "@playwright/test";
 // separate files (05-01, 05-02) - so naming them from a Playwright file costs
 // nothing and binds these assertions to the copywriting contract and to the
 // real URL composer instead of to transcribed literals.
+// The intro's hero, by its one name (13-07). front-door.ts imports nothing.
+import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
 import { shareUrl } from "../src/lib/share/url";
 import {
   COPY_LINK,
@@ -316,11 +318,12 @@ test.describe("turning a knob", () => {
     // arrives on. This is that assertion, and it lives inside this test rather
     // than as a ninth one so the file's count stays where the plan put it.
     await page.goto("/");
-    await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    // Since 13-07, / is the intro with one live hero surface rather than the
+    // shelf; the assertion is the same one about the same page.
+    await expect(page.getByTestId("intro")).toBeVisible();
     // The precondition: the simulator really did arrive. Without this a zero
     // below would mean "nothing loaded" rather than "nothing needed WASM".
-    await waitForPicture(page, ENTRY);
+    await waitForPicture(page, FRONT_DOOR_HERO.id);
     await page.waitForLoadState("networkidle");
     expect(
       wasm,

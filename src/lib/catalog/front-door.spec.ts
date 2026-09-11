@@ -14,6 +14,15 @@
 // mis-declared pad is a red test rather than a dead-looking square on the front
 // door.
 //
+// AMENDMENT (plan 13-07, D-09, 2026-09-11): SEVEN TESTS, FROM EIGHT. The
+// PDF's intro has one live surface where the ring was, so "no two quiet pads
+// are adjacent on the ring" lost its subject and was deleted by name; the
+// motion-derivation test and the restsBlack test survive, re-aimed at the
+// hero as well as the list ("the hero must not be a dark pad" is the same
+// rule with one member). The two opening-window tests are NOT touched: the
+// ring is still mounted on /c/{id}/ until 13-09, and 13-09 deletes them with
+// the coverflow and src/lib/coverflow/slots.ts.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -25,7 +34,9 @@ import { presetById } from "./presets";
 import {
   EXCLUDED_FROM_ROW,
   FRONT_DOOR,
+  FRONT_DOOR_HERO,
   frontDoorIndex,
+  heroOf,
   type PreviewMotion,
 } from "./front-door";
 import { byId, CATALOG } from "./index";
@@ -176,7 +187,7 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
     }
   });
 
-  it("the declared motion is what the golden frames record", () => {
+  it("the declared motion is what the golden frames record, for every member and for the hero", () => {
     expect(FRONT_DOOR.length, "there is something to check").toBeGreaterThan(0);
     for (const row of FRONT_DOOR) {
       expect(
@@ -188,9 +199,30 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
         `${row.id}: declared motion disagrees with golden-frames.json`,
       ).toBe(deriveMotion(row.id));
     }
+
+    // THE HERO (13-07): the one member the intro runs. Its declared motion is
+    // the golden frames' derivation like every other member's, it is not
+    // dark, and it is the first non-dark member in the list's own order -
+    // derived, not chosen. The id is printed so the SUMMARY can quote it.
+    const hero = FRONT_DOOR_HERO;
+    console.log(`front-door hero: ${hero.id}, motion ${hero.motion}`);
+    expect(
+      GOLDEN.presets[hero.id],
+      `${hero.id}: golden-frames.json records the hero`,
+    ).toBeDefined();
+    expect(hero.motion, "the hero's declared motion is the derived one").toBe(
+      deriveMotion(hero.id),
+    );
+    expect(deriveMotion(hero.id), "the hero must not be a dark pad").not.toBe(
+      "dark",
+    );
+    expect(hero, "the hero is the first non-dark member").toBe(
+      heroOf(FRONT_DOOR),
+    );
+    expect(hero).toBe(FRONT_DOOR.find((row) => row.motion !== "dark"));
   });
 
-  it("the excluded entry is excluded because it is dark, and the catalog agrees", () => {
+  it("the excluded entry is excluded because it is dark, the catalog agrees, and the hero does not rest black", () => {
     expect(
       deriveMotion("tpad"),
       "tpad writes no LEDs at any sampled tick",
@@ -224,6 +256,17 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
         `${row.id}: a row entry may not rest black`,
       ).toBe(false);
     }
+
+    // THE HERO (13-07): the same rule with one member, and held against the
+    // catalog's own restsBlack rather than against this module's motion, so
+    // the two readings are tied together on the one entry the intro shows.
+    const hero = byId(FRONT_DOOR_HERO.id);
+    expect(hero, "the hero is a catalog entry").toBeDefined();
+    expect(hero?.restsBlack, "the hero does not rest black").toBe(false);
+    expect(
+      hero?.preview,
+      "the hero is a padsim entry, so / fetches no WebAssembly",
+    ).toBe("padsim");
   });
 
   it("no dark pad is in the opening window", () => {
@@ -248,24 +291,10 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
     }
   });
 
-  it("no two quiet pads are adjacent on the ring", () => {
-    const count = FRONT_DOOR.length;
-    let checked = 0;
-    for (let i = 0; i < count; i += 1) {
-      const here = FRONT_DOOR[i];
-      const next = FRONT_DOOR[(i + 1) % count];
-      const bothQuiet =
-        here.motion !== "animated" && next.motion !== "animated";
-      expect(
-        bothQuiet,
-        `${here.id} and ${next.id} are both quiet and sit side by side`,
-      ).toBe(false);
-      checked += 1;
-    }
-    expect(checked, "every adjacent pair on the ring, including the wrap").toBe(
-      count,
-    );
-  });
+  // "no two quiet pads are adjacent on the ring" stood here until 13-07
+  // deleted it by name (D-09, 2026-09-11): the intro has one surface, so a
+  // rule about neighbours has no subject. The two window tests above keep
+  // theirs until 13-09.
 
   it("the module stays out of the compiler's chunk, and the quiet copy is the shelf's own", () => {
     const source = strip(readFileSync(SOURCE_PATH, "utf8"));

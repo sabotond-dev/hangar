@@ -1,81 +1,68 @@
-// PREV-01, PREV-02 and D-10: the browser half of the front door.
+// PREV-01, PREV-02, D-10 and 13-CONTEXT.md D-14 Q2: the browser half of the
+// first experience.
 //
-// Eleven tests. Three from plan 04-06 (an animated pad moves, a static one does
-// not, the row steps and wraps), three from plan 04-07 (the splash opens the
-// door and clears itself, any key cuts to the dissolve, and reduced motion
-// stills the pads while making stepping instant), two from plan 04-08
-// (choosing reveals the panel and both ways out close it, and the device
-// control on a browser with no Web Serial) and three from plan 04-09 (a deep
-// link lands centred, alive and with no splash; every routed configuration is a
-// real file with its own description while an off-row page is a row of one -
-// amended by plan 05.1-05, see below; and the row's paint rate over two
-// seconds, recorded rather than gated).
+// FIVE TESTS SINCE 13-07, FROM ELEVEN. / became PDF page 1 - the intro, one
+// live hero surface beside the words, no splash, no coverflow, no dissolve -
+// and seven titles whose subject was the ring or the splash were deleted by
+// name on 2026-09-11: "the front door animates", "the row steps with the
+// keyboard and wraps", "the splash opens the front door and clears itself",
+// "any key cuts straight to the dissolve", "choosing reveals the panel, and
+// Escape and Back both close it", "a deep link lands with that configuration
+// centred and skips the splash", "the row's painted frames over two seconds
+// are recorded". None of the seven was @webkit-tagged. Four survive, re-aimed
+// where their subject moved, and one is added: the returning visitor.
 //
-// What this file covers: that the row is really running the firmware simulator
-// with nothing plugged in (an animated pad provably changes between two samples
-// of its own canvas), that the honesty of the classification holds in the other
-// direction too (a pad the catalog calls static provably does not change), and
-// that the row steps from the keyboard and wraps at both ends.
+// What this file covers now: that the intro's hero is the firmware simulator
+// really running with nothing plugged in (its canvas provably changes between
+// two samples); that the honesty of the classification holds in the other
+// direction on a configuration's own page (a pad the catalog calls static
+// provably does not change); that reduced motion stills the hero and, on the
+// shelf that survives on /c/{id}/ until 13-09, makes stepping instant; that a
+// browser with no Web Serial still gets the workspace's controls, present and
+// disabled with the reason; that every routed configuration is a real file
+// with its own description while an off-row page is a row of one; and that a
+// returning visitor is offered their draft on the same page, never redirected.
 //
 // Everything here runs against build/ served by worker/index.js under
 // wrangler dev - the deployed bytes, not a dev server - so a pad that only
 // animates in development is a red test rather than a nice demo.
 //
 // What this file cannot cover: Web Serial. It is an operating-system
-// capability with no CDP domain and no fake-device hook, so the device half of
-// this phase is a human check with a real ZONA on the desk. Nothing below opens
-// a port or writes a byte. What CAN be proven in a browser is the branch a
-// large share of visitors actually land on - no Web Serial at all - and that is
-// the last test in this file.
+// capability with no CDP domain and no fake-device hook, so the device half is
+// a human check with a real ZONA on the desk. Nothing below opens a port or
+// writes a byte. What CAN be proven in a browser is the branch a large share
+// of visitors actually land on - no Web Serial at all.
 //
 // AMENDMENT (D-07, plan 05.1-05), to ONE test - the deep-link file test, whose
-// title changed with it. One test in, one test out; the file's count did not
-// move.
+// title changed with it. It reads ROUTED and asserts every page is served with
+// its own description, and the 404 half moved to a genuinely unknown id. It
+// gained the claim D-07 makes: an off-row page is a ROW OF ONE, and a row
+// entry still opens on the shelf, both sides asserted.
 //
-// What it asserted before: every FRONT_DOOR id is a real file with its own
-// description, and every EXCLUDED_FROM_ROW id returns 404. That second half was
-// correct and is now WRONG - D-07 gives every catalog entry an address, so the
-// eight ids it demanded a 404 from are eight of the sixteen pages the site now
-// ships. The assertion is REWRITTEN rather than deleted, because what it was
-// really guarding is still worth guarding: that the set of addresses the site
-// serves is exactly the set it declares. It now reads ROUTED and asserts
-// sixteen 200s with unique descriptions, and the 404 half moved to a genuinely
-// unknown id, which is the only kind left.
+// AMENDMENT (Phase 7, plan 07-11). The degrade test is EXTENDED: PUT BACK is
+// ABSENT on a browser that cannot write (07-UI-SPEC Z-12), and KEEP ON DEVICE
+// is disabled with the capability sentence adjacent (DEGR-02 on the third
+// control). First presses wait for the band's data-ready marker (Phase 6
+// deferred item 8).
 //
-// It gained the claim D-07 makes and nothing else was: an off-row page is a
-// ROW OF ONE. /c/euclid/ shows exactly one pad and a name plate with no arrows;
-// /c/aurora/ still shows the shelf with both arrows and still wraps onto the
-// ring's last entry. Both sides, because the solo assertion alone would pass on
-// a broken row.
-//
-// The single-deliberate-console-error assertion is kept exactly as it was. It
-// is still exactly one 404: the two new navigations are to real pages.
-//
-// AMENDMENT (Phase 7, plan 07-11), to ONE test and three key presses; no title
-// changed and the file's count did not move. The degrade test is EXTENDED:
-// its shipped assertions stay as they were, and three are appended - PUT BACK
-// is ABSENT on a browser that cannot write (07-UI-SPEC Z-12: it restores a
-// specific module's own configuration, and a browser that has never seen a
-// module has nothing for it to name, so a disabled control offering to
-// restore nothing would be a worse answer than no control), and KEEP ON
-// DEVICE is disabled with the capability sentence adjacent (DEGR-02 on the
-// third control). Separately, Phase 6's deferred item 8: three tests here
-// pressed a key on the band after assertions a PRERENDERED document already
-// satisfies (visible, aria-activedescendant), so a press could land before the
-// band's onkeydown was attached and be lost - observed twice in Phase 6's full
-// runs. Each first press now waits for the band's data-ready marker, the
-// one-line fix the item named; the assertions around them are unchanged.
+// WHERE THE SHELF LIVES NOW. The coverflow, the name plate and the chosen panel
+// are mounted on /c/{id}/ until 13-09 makes that route the workspace
+// (13-VALIDATION D-5), so the three surviving titles about a row open a
+// configuration's page rather than /. 13-09 re-aims or deletes them with the
+// coverflow; 13-08 moves the address to /playground/<id> (D-20).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
-// The row itself, not a copy of it. src/lib/catalog/front-door.ts imports
+// The list itself, not a copy of it. src/lib/catalog/front-door.ts imports
 // nothing at all - that is the whole reason it exists as a separate module - so
-// pulling it into a Playwright file costs nothing and means a row that grows is
-// covered here without anyone editing a list of ids.
-import { FRONT_DOOR } from "../src/lib/catalog/front-door";
+// pulling it into a Playwright file costs nothing.
+import { FRONT_DOOR, FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
 // The routed set, by its one name. src/lib/catalog/listing.ts imports nothing at
 // runtime either, so this costs a Playwright file nothing.
 import { ROUTED } from "../src/lib/catalog/listing";
+
+/** The intro's hero, derived: the first non-dark member of FRONT_DOOR. */
+const HERO = FRONT_DOOR_HERO.id;
 
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
 
@@ -128,66 +115,126 @@ function collectErrors(page: Page): string[] {
   return errors;
 }
 
-/**
- * Wait for the opening to take itself off the page. A test that chooses while
- * the splash is still up is racing two keydown listeners - the splash's skip
- * and the row's - for one key press, and the panel it asserts on would be
- * rendered underneath a layer that covers the viewport.
- */
-async function waitForFrontDoor(page: Page): Promise<void> {
-  await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
+/** The shelf, on a configuration's page. It survives there until 13-09. */
+async function waitForShelf(page: Page): Promise<void> {
   await expect(page.getByTestId("coverflow")).toBeVisible();
 }
 
-test.describe("the front door, with no hardware attached", () => {
-  test("the front door animates", async ({ page }) => {
+test.describe("the intro, with no hardware attached", () => {
+  test("a first visit sees the intro with its hero running, a returning visitor is offered their draft, and neither is redirected", async ({
+    page,
+  }) => {
     const consoleErrors = collectErrors(page);
+
+    // Every navigation after the first arrival is counted. A redirect on
+    // mount - the thing D-14 Q2 rules out - would be one.
+    let arrivals = 0;
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) arrivals += 1;
+    });
+
+    // THE FIRST VISIT. The prerendered intro, the first card offering the
+    // Playground, and the hero really running: its backing store changes
+    // between two samples 400 ms apart, which is what "live" means.
     await page.goto("/");
+    await expect(page.getByTestId("intro")).toBeVisible();
+    await expect(page.getByTestId("start-explore")).toBeVisible();
+    await expect(page.getByTestId("start-explore")).toContainText(
+      "Explore Playground",
+    );
+    expect(await page.getByTestId("start-resume").count()).toBe(0);
+    await expect(page.getByTestId("start-sandbox")).toBeVisible();
+    expect(
+      await page.locator('[data-testid^="pad-canvas-"]').count(),
+      "one live surface, not a row",
+    ).toBe(1);
 
-    await expect(page.getByTestId("coverflow")).toBeVisible();
-    // aurora's motion is declared `animated` in src/lib/catalog/front-door.ts
-    // and that declaration is derived from golden-frames.json by
-    // front-door.spec.ts, so this test and that gate cannot disagree.
-    await waitForPicture(page, "aurora");
-
-    const first = await sample(page, "aurora");
+    await waitForPicture(page, HERO);
+    const first = await sample(page, HERO);
     expect(first, "the hero canvas was readable").not.toBeNull();
-    expect(
-      (first as string).split(",").some((b) => b !== "0"),
-      "the hero canvas has a picture before the two samples are compared",
-    ).toBe(true);
-
     await page.waitForTimeout(400);
-    const second = await sample(page, "aurora");
-    expect(second, "the hero canvas was still readable").not.toBeNull();
     expect(
-      second,
-      "aurora is declared animated, so 400ms of firmware ticks must move it",
+      await sample(page, HERO),
+      `${HERO} is the hero and is not dark, so 400ms of firmware ticks must move it`,
     ).not.toBe(first);
+
+    // The flag was written on this first successful mount, once, through
+    // 13-06's store: an envelope with the schema, seen, and the moment.
+    const flag = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("hangar.intro.v1") ?? "null"),
+    );
+    expect(flag).toMatchObject({ schema: 1, seen: true });
+    expect(typeof flag.at).toBe("string");
+
+    // THE RETURNING VISITOR, with a draft: plant a Playground draft in the
+    // store's own shape (src/lib/store/schema.ts) and come back.
+    await page.evaluate(() => {
+      const at = new Date(Date.now() - 12 * 60_000).toISOString();
+      localStorage.setItem(
+        "hangar.drafts.v1",
+        JSON.stringify({
+          schema: 1,
+          drafts: {
+            "playground:aurora": {
+              schema: 1,
+              id: "playground:aurora",
+              name: "Aurora, my way",
+              kind: "playground",
+              source: "aurora",
+              knobIndices: [0, 1, 2],
+              createdAt: at,
+              editedAt: at,
+            },
+          },
+        }),
+      );
+    });
+    const before = arrivals;
+    await page.reload();
+    await expect(page.getByTestId("intro")).toBeVisible();
+    const resume = page.getByTestId("start-resume");
+    await expect(resume).toBeVisible();
+    await expect(resume).toContainText("Resume draft");
+    await expect(resume).toContainText("Aurora, my way");
+    await expect(resume).toContainText("Last edited 12 minutes ago");
+    expect(await page.getByTestId("start-explore").count()).toBe(0);
+    await expect(page.getByTestId("start-sandbox")).toBeVisible();
+    // The card is one link and points at the draft's own address, through
+    // the same helper every card on the site uses (13-08 moves it with D-20).
+    expect(await resume.getAttribute("href")).toMatch(/\/c\/aurora\/?$/);
+
+    // NEVER REDIRECTED. The reload is the one arrival; after the page has
+    // settled there has been no other, the address is still /, and the hero
+    // is still the page's own live surface.
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(500);
+    expect(arrivals - before, "the reload was the only navigation").toBe(1);
+    expect(new URL(page.url()).pathname).toBe("/");
+    await waitForPicture(page, HERO);
+
+    // The moment is the first visit's, not this one's: marking twice keeps
+    // the first.
+    const again = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("hangar.intro.v1") ?? "null"),
+    );
+    expect(again.at).toBe(flag.at);
 
     expect(consoleErrors).toEqual([]);
   });
+});
 
+test.describe("a configuration's page, with no hardware attached", () => {
   test("a still configuration really is still", async ({ page }) => {
     const consoleErrors = collectErrors(page);
-    await page.goto("/");
-
-    const band = page.getByTestId("coverflow");
-    await expect(band).toBeVisible();
-    await expect(band).toHaveAttribute("aria-activedescendant", "slot-aurora");
-
-    // The band's onkeydown is attached at hydration; a press before data-ready
-    // lands on nothing (Phase 6 deferred item 8, fixed by plan 07-11).
-    await expect(band).toHaveAttribute("data-ready", "true");
-    // ninepads is index 2 of the ring: two steps right from the opening centre.
-    await band.press("ArrowRight");
-    await band.press("ArrowRight");
-    await expect(band).toHaveAttribute(
+    // ninepads is declared `static` in src/lib/catalog/front-door.ts, derived
+    // from golden-frames.json by front-door.spec.ts. Its own page opens the
+    // shelf centred on it (13-09 makes this the workspace).
+    await page.goto("/c/ninepads/");
+    await waitForShelf(page);
+    await expect(page.getByTestId("coverflow")).toHaveAttribute(
       "aria-activedescendant",
       "slot-ninepads",
     );
-    // The slot transition is 420ms; let it land before reading pixels.
-    await page.waitForTimeout(500);
     await waitForPicture(page, "ninepads");
 
     const first = await sample(page, "ninepads");
@@ -206,149 +253,9 @@ test.describe("the front door, with no hardware attached", () => {
 
     expect(consoleErrors).toEqual([]);
   });
-
-  test("the row steps with the keyboard and wraps", async ({ page }) => {
-    const consoleErrors = collectErrors(page);
-    await page.goto("/");
-
-    const band = page.getByTestId("coverflow");
-    await expect(band).toBeVisible();
-    await expect(band).toHaveAttribute("aria-activedescendant", "slot-aurora");
-
-    // Same race as above: wait for the band's onkeydown before the first press
-    // (Phase 6 deferred item 8, the same mechanism at a third site).
-    await expect(band).toHaveAttribute("data-ready", "true");
-    // One step left from index 0 is the wrap: the ring's last entry is dial.
-    await band.press("ArrowLeft");
-    await expect(band).toHaveAttribute("aria-activedescendant", "slot-dial");
-
-    await band.press("ArrowRight");
-    await band.press("ArrowRight");
-    await expect(band).toHaveAttribute(
-      "aria-activedescendant",
-      "slot-pinwheel",
-    );
-
-    await band.press("Home");
-    await expect(band).toHaveAttribute("aria-activedescendant", "slot-aurora");
-
-    expect(consoleErrors).toEqual([]);
-  });
-
-  test("the splash opens the front door and clears itself", async ({
-    page,
-  }) => {
-    const consoleErrors = collectErrors(page);
-    await page.goto("/");
-
-    // data-phase rather than a stopwatch. Timing a 1.84s sequence with
-    // waitForTimeout is a flake generator on a busy machine; reading the phase
-    // the component publishes is deterministic.
-    const splash = page.getByTestId("splash");
-    await expect(splash).toHaveAttribute("data-phase", /^(in|hold)$/);
-
-    // The claim the whole splash exists to make: the machines are already
-    // running underneath it, not started when it clears (04-UI-SPEC W-10).
-    await expect(page.getByTestId("coverflow")).toBeAttached();
-
-    // It clears itself. How fast is not the assertion - that it goes is.
-    await expect(splash).toHaveCount(0, { timeout: 5_000 });
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toBeVisible();
-    await expect(heading).toHaveCSS("opacity", "1");
-
-    expect(consoleErrors).toEqual([]);
-  });
-
-  test("any key cuts straight to the dissolve", async ({ page }) => {
-    const consoleErrors = collectErrors(page);
-    await page.goto("/");
-
-    const splash = page.getByTestId("splash");
-    await expect(splash).toHaveAttribute("data-phase", "hold");
-
-    await page.keyboard.press("KeyH");
-    await expect(splash).toHaveAttribute("data-phase", "dissolve", {
-      timeout: 250,
-    });
-
-    expect(consoleErrors).toEqual([]);
-  });
 });
 
-test.describe("choosing the centre pad", () => {
-  test("choosing reveals the panel, and Escape and Back both close it", async ({
-    page,
-  }) => {
-    const consoleErrors = collectErrors(page);
-    await page.goto("/");
-    await waitForFrontDoor(page);
-
-    // Counted AFTER the row is up and the opening has cleared, so a zero here
-    // is a real absence rather than a document that has not hydrated yet.
-    // D-05: nothing about the device exists until a visitor asks for it.
-    expect(
-      await page.getByTestId("chosen-panel").count(),
-      "nothing about the device is on the page before a choose",
-    ).toBe(0);
-
-    // THE TAP RULE, both halves (D-11, 04-UI-SPEC W-15). The hero is an
-    // instrument before it is a link, so a press that lingers plays the pad and
-    // does not choose; one under 250 ms and 6 px does both. Without the
-    // negative half this would pass on an implementation where every press
-    // chooses, which is exactly the collision the rule exists to prevent.
-    const hero = page.getByTestId("pad-aurora");
-    const box = await hero.boundingBox();
-    expect(box, "the hero pad was measurable").not.toBeNull();
-    const cx = (box as { x: number; width: number }).x + 40;
-    const cy = (box as { y: number; height: number }).y + 40;
-
-    await page.mouse.move(cx, cy);
-    await page.mouse.down();
-    await page.waitForTimeout(350);
-    await page.mouse.up();
-    expect(
-      await page.getByTestId("chosen-panel").count(),
-      "a press longer than the tap window plays the pad and does not choose",
-    ).toBe(0);
-
-    await page.mouse.move(cx, cy);
-    await page.mouse.down();
-    await page.mouse.up();
-    await expect(
-      page.getByTestId("chosen-panel"),
-      "a quick tap on the hero both plays it and chooses it",
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
-
-    const band = page.getByTestId("coverflow");
-    await band.press("Enter");
-
-    const panel = page.getByTestId("chosen-panel");
-    await expect(panel).toBeVisible();
-    await expect(panel.getByTestId("try-on-device")).toBeVisible();
-    // Secondary, and really disabled rather than merely styled that way.
-    const keep = panel.getByTestId("keep-on-device");
-    await expect(keep).toBeVisible();
-    await expect(keep).toBeDisabled();
-    await expect(panel.getByTestId("tuning-reserved")).toBeVisible();
-
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
-
-    // The same gesture by the other route: choosing pushed a shallow history
-    // entry, so the browser Back button is Escape (04-UI-SPEC W-16).
-    await band.press("Enter");
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
-    await page.goBack();
-    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
-
-    expect(consoleErrors).toEqual([]);
-  });
-});
-
-test.describe("the front door on a browser that cannot install", () => {
+test.describe("a configuration's page on a browser that cannot install", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
       // serial is an accessor on Navigator.prototype - deleting it off the
@@ -361,14 +268,18 @@ test.describe("the front door on a browser that cannot install", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    await page.goto("/");
+    // The intro's connection slot is 13-11's; the controls that degrade live
+    // in the chosen panel on a configuration's page.
+    await page.goto(`/c/${HERO}/`);
 
     // Precondition, asserted. A degrade test that does not verify its own
     // precondition passes for the wrong reason.
     expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
 
-    await waitForFrontDoor(page);
-    await page.getByTestId("coverflow").press("Enter");
+    await waitForShelf(page);
+    const band = page.getByTestId("coverflow");
+    await expect(band).toHaveAttribute("data-ready", "true");
+    await band.press("Enter");
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
 
     // DEGR-02: present and disabled, never hidden.
@@ -404,7 +315,7 @@ test.describe("the front door on a browser that cannot install", () => {
   });
 });
 
-test.describe("the front door for a visitor who asked for less motion", () => {
+test.describe("a visitor who asked for less motion", () => {
   test.use({ reducedMotion: "reduce" });
 
   test("reduced motion stills the pads and makes stepping instant", async ({
@@ -421,14 +332,16 @@ test.describe("the front door for a visitor who asked for less motion", () => {
     // under a reduced-motion title. emulateMedia comes BEFORE goto so the page
     // arrives stilled rather than being stilled after it has started moving.
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
 
-    // The host resets every engine and runs it to tick 64, then freezes it.
-    // golden-frames.json samples ticks 0, 37, 101, 500 and 1009 and therefore
-    // pins no preset at 64, so what is asserted here is the pair of properties
-    // that matter rather than an exact frame: lit, and unchanging.
-    await waitForPicture(page, "aurora");
-    const first = await sample(page, "aurora");
+    // THE HERO, on the intro (13-07). The host resets the engine and runs it
+    // to tick 64, then freezes it. golden-frames.json samples ticks 0, 37,
+    // 101, 500 and 1009 and therefore pins no preset at 64, so what is
+    // asserted is the pair of properties that matter rather than an exact
+    // frame: lit, and unchanging.
+    await page.goto("/");
+    await expect(page.getByTestId("intro")).toBeVisible();
+    await waitForPicture(page, HERO);
+    const first = await sample(page, HERO);
     expect(first, "the hero canvas was readable").not.toBeNull();
     const lit = (first as string).split(",").filter((b) => b !== "0").length;
     expect(
@@ -438,20 +351,22 @@ test.describe("the front door for a visitor who asked for less motion", () => {
 
     await page.waitForTimeout(400);
     expect(
-      await sample(page, "aurora"),
+      await sample(page, HERO),
       "reduced motion holds one frame; 400ms of wall clock must not move it",
     ).toBe(first);
 
-    await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
-
+    // STEPPING, on the shelf that survives on /c/{id}/ until 13-09.
+    await page.goto(`/c/${FRONT_DOOR[0].id}/`);
+    await waitForShelf(page);
     const band = page.getByTestId("coverflow");
+    await expect(band).toHaveAttribute("data-ready", "true");
     await band.press("ArrowRight");
     await expect(band).toHaveAttribute(
       "aria-activedescendant",
-      "slot-pinwheel",
+      `slot-${FRONT_DOOR[1].id}`,
     );
     const duration = await page
-      .locator("#slot-pinwheel")
+      .locator(`#slot-${FRONT_DOOR[1].id}`)
       .evaluate((el) => getComputedStyle(el).transitionDuration);
     expect(duration, "stepping is instant under reduced motion").toBe("0s");
 
@@ -459,41 +374,7 @@ test.describe("the front door for a visitor who asked for less motion", () => {
   });
 });
 
-test.describe("a deep link to one configuration", () => {
-  test("a deep link lands with that configuration centred and skips the splash", async ({
-    page,
-  }) => {
-    const consoleErrors = collectErrors(page);
-    await page.goto("/c/radar/");
-
-    // THE PRECONDITION FIRST. locator.count() does not auto-wait, so a count
-    // taken against a document that has not hydrated is zero for the wrong
-    // reason. Waiting for the row to be visible is what makes the zero below
-    // mean "no splash was ever rendered" rather than "nothing has rendered".
-    const band = page.getByTestId("coverflow");
-    await expect(band).toBeVisible();
-    expect(
-      await page.getByTestId("splash").count(),
-      "a shared link opens fast: the opening is for the front door (D-12)",
-    ).toBe(0);
-
-    await expect(band).toHaveAttribute("aria-activedescendant", "slot-radar");
-    await expect(page.getByTestId("nameplate-name")).toHaveText("Radar");
-
-    // Centred, named - and ALIVE. Without this the test would prove that a deep
-    // link arrives at the right markup, which is not the claim being made.
-    await waitForPicture(page, "radar");
-    const first = await sample(page, "radar");
-    expect(first, "the deep-linked hero canvas was readable").not.toBeNull();
-    await page.waitForTimeout(400);
-    expect(
-      await sample(page, "radar"),
-      "radar is declared animated, so a deep link must arrive at a running pad",
-    ).not.toBe(first);
-
-    expect(consoleErrors).toEqual([]);
-  });
-
+test.describe("every configuration's page", () => {
   test("every configuration is a real file with its own description, and an off-row page is a row of one", async ({
     page,
     request,
@@ -562,9 +443,9 @@ test.describe("a deep link to one configuration", () => {
       "aria-activedescendant",
       `slot-${FRONT_DOOR[0].id}`,
     );
-    // No splash on this route, and every assertion above is satisfied by the
-    // prerendered document; the press needs the hydrated band (Phase 6
-    // deferred item 8, second site, fixed by plan 07-11).
+    // Every assertion above is satisfied by the prerendered document; the
+    // press needs the hydrated band (Phase 6 deferred item 8, second site,
+    // fixed by plan 07-11).
     await expect(band).toHaveAttribute("data-ready", "true");
     await band.press("ArrowLeft");
     await expect(band).toHaveAttribute(
@@ -606,60 +487,5 @@ test.describe("a deep link to one configuration", () => {
       consoleErrors.length,
       "the deliberate 404 was logged exactly once",
     ).toBe(1);
-  });
-});
-
-test.describe("the row's frame budget, on the record", () => {
-  test("the row's painted frames over two seconds are recorded", async ({
-    page,
-  }, testInfo) => {
-    const consoleErrors = collectErrors(page);
-
-    // Count the paints at their only exit. src/lib/sim/paint.ts ends in exactly
-    // one ctx.putImageData per pad per paint, and paint.spec.ts pins that, so a
-    // counter on the prototype is a count of painted pad frames and nothing
-    // else.
-    await page.addInitScript(() => {
-      const store = window as unknown as { __padPaints: number };
-      store.__padPaints = 0;
-      const proto = CanvasRenderingContext2D.prototype;
-      const original = proto.putImageData;
-      proto.putImageData = function (
-        this: CanvasRenderingContext2D,
-        ...args: unknown[]
-      ) {
-        store.__padPaints += 1;
-        return (original as unknown as (...a: unknown[]) => void).apply(
-          this,
-          args,
-        );
-      } as typeof proto.putImageData;
-    });
-
-    await page.goto("/");
-    await waitForFrontDoor(page);
-    await waitForPicture(page, "aurora");
-
-    const read = () =>
-      page.evaluate(
-        () => (window as unknown as { __padPaints: number }).__padPaints,
-      );
-    const before = await read();
-    await page.waitForTimeout(2_000);
-    const painted = (await read()) - before;
-
-    const viewport = page.viewportSize();
-    const where = viewport ? `${viewport.width}x${viewport.height}` : "unknown";
-    const line = `pad frames painted in two seconds: ${painted} (viewport ${where})`;
-    console.log(line);
-    testInfo.annotations.push({ type: "measurement", description: line });
-
-    // A RECORDED MEASUREMENT, NOT A BUDGET GATE. The honest ceiling on a
-    // four-core laptop with integrated graphics is unmeasured (04-RESEARCH
-    // §Open Question 4), and a frame-rate threshold asserted on this machine
-    // would go red on someone else's for reasons that are not regressions. What
-    // IS asserted is that the loop is running at all.
-    expect(painted, "the shared rAF loop is painting").toBeGreaterThan(0);
-    expect(consoleErrors).toEqual([]);
   });
 });

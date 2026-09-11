@@ -59,6 +59,8 @@ import { expect, test, type Page } from "@playwright/test";
 // file costs nothing and binds these assertions to the source of the sentences
 // rather than to transcriptions of them. (src/lib/transport/transport.ts has
 // zero import statements; src/lib/tune/copy.ts is a leaf by design.)
+// The intro's hero, by its one name (13-07). front-door.ts imports nothing.
+import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
 import { COPY_LINK, LINK_COPIED, MEASURING } from "../src/lib/tune/copy";
 import { failureCopy } from "../src/lib/transport/transport";
 import { guarded, guardedNot } from "./poll";
@@ -144,15 +146,21 @@ async function settled(page: Page): Promise<void> {
   }
 }
 
-/** Wait for the opening to take itself off the page. (first-experience) */
+/**
+ * Wait for the shelf to be up. The splash it also waited for went at 13-07
+ * with the intro (D-09); the zero it asserts can only be trivially true now.
+ */
 async function waitForFrontDoor(page: Page): Promise<void> {
   await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
   await expect(page.getByTestId("coverflow")).toBeVisible();
 }
 
-/** Open the front door and choose the centre pad, from the keyboard. */
+/**
+ * Open the configuration and choose the centre pad, from the keyboard. On
+ * /c/{id}/ since 13-07: / is the intro and renders no shelf and no panel.
+ */
 async function choose(page: Page): Promise<void> {
-  await page.goto("/");
+  await page.goto(`/c/${ENTRY}/`);
   await waitForFrontDoor(page);
   await waitForPicture(page, ENTRY);
   if ((await page.getByTestId("chosen-panel").count()) === 0) {
@@ -244,22 +252,36 @@ test.describe("the whole site except install, on a phone engine", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
+    // Since 13-07 the front door is the intro: one live hero surface beside
+    // the words, on a page with no splash. The DEGR-01 floor is the same -
+    // a phone engine that can never install still gets the site's opening
+    // with its machine running - and it is now measured on that one pad.
     await page.goto("/");
-    await waitForFrontDoor(page);
+    await expect(page.getByTestId("intro")).toBeVisible();
 
-    // The row rendered at all. FRONT_DOOR has eight entries and the ring shows
-    // seven of them; asserting "more than one" rather than a count keeps this
-    // about the row existing, which is what the DEGR-01 floor is.
+    // The hero rendered, and it is the one pad on the page: the intro is a
+    // single surface, not a row.
     expect(
       await page.locator("[data-testid^='pad-canvas-']").count(),
-      "the row rendered its pads",
-    ).toBeGreaterThan(1);
+      "the intro renders exactly one pad",
+    ).toBe(1);
 
-    // aurora is declared `animated` in src/lib/catalog/front-door.ts, and that
-    // declaration is derived from golden-frames.json by front-door.spec.ts - so
-    // this test and that gate cannot disagree about what it should do.
-    await waitForPicture(page, ENTRY);
-    const first = await sample(page, ENTRY);
+    // On a phone the intro stacks its two columns and the hero panel sits
+    // below the fold. The host gates every pad on an IntersectionObserver
+    // with a 200px margin - an off-screen pad is painted once and never
+    // ticked, by design - so the surface is scrolled into view first, which
+    // is where a visitor who wants to see it running will have put it.
+    // Measured on 2026-09-11: without this line the backing store is lit
+    // and unchanging for the whole 10 s poll on webkit-phone.
+    await page.getByTestId("intro-hero").scrollIntoViewIfNeeded();
+
+    // The hero's motion is declared in src/lib/catalog/front-door.ts, derived
+    // there as the first non-dark member, and that declaration is held
+    // against golden-frames.json by front-door.spec.ts - so this test and
+    // that gate cannot disagree about what it should do.
+    const HERO = FRONT_DOOR_HERO.id;
+    await waitForPicture(page, HERO);
+    const first = await sample(page, HERO);
     expect(first, "the hero canvas was readable").not.toBeNull();
     expect(
       (first as string).split(",").some((b) => b !== "0"),
@@ -273,9 +295,9 @@ test.describe("the whole site except install, on a phone engine", () => {
     // canvas as a simulator that is running. guardedNot returns `first`
     // itself, which fails the negation, so the poll keeps its whole budget.
     const changed = guardedNot(
-      () => sample(page, ENTRY),
+      () => sample(page, HERO),
       first,
-      `${ENTRY}'s backing store`,
+      `${HERO}'s backing store`,
     );
     await expect
       .poll(changed.read, {

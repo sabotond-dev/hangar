@@ -1,5 +1,25 @@
-// The front-door row: which configurations the visitor meets, in what order,
-// and what each of them does with no finger on it.
+// The front door: the configurations good enough to open the site with, the
+// one of them the intro runs as its hero, and what each does with no finger
+// on it.
+//
+// WHAT THE ROW WAS, AND WHAT THE HERO IS (plan 13-07, 13-CONTEXT.md D-09,
+// D-14 Q2, 2026-09-11). From Phase 4 to 13-06, / rendered FRONT_DOOR as an
+// eight-pad coverflow ring, and the list's ORDER was a design: the opening
+// window, the three largest pads, and "no two quiet pads side by side" were
+// properties of that ring, asserted in front-door.spec.ts. The Bible's page 1
+// has no ring - it has ONE live surface beside the words - so / now renders
+// FRONT_DOOR_HERO (below) through src/lib/ui/intro/HeroSurface.svelte, and
+// FRONT_DOOR survives as a MEMBERSHIP list: the entries curated for the
+// opening, from which the hero is derived. EXCLUDED_FROM_ROW and its reasons
+// survive with it, because the partition is still what the spec asserts.
+//
+// THE RING'S ADJACENCY RULE LOST ITS SUBJECT ON 2026-09-11 and its test was
+// deleted by name that day ("no two quiet pads are adjacent on the ring").
+// The ring ORDER below and src/lib/coverflow/slots.ts are deliberately NOT
+// removed here: Coverflow.svelte is still mounted on /c/{id}/ until 13-09
+// makes that route the workspace, and its two opening-window tests keep
+// their subject until then. 13-09 deletes the ring order's meaning, the
+// slots module and those two tests together with the coverflow.
 //
 // WHY THIS FILE RESTATES `name` AND `description` INSTEAD OF READING THEM.
 // The obvious implementation is `byId(id).name`. It is wrong here.
@@ -136,8 +156,11 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
 ];
 
 /**
- * The row, in ring order. Index 0 is the opening centre and the ring wraps, so
- * index 7 is the first step LEFT from the opening.
+ * The membership list, still in the ring order the coverflow on /c/{id}/
+ * reads until 13-09 (see the header). Index 0 is that ring's opening centre
+ * and the ring wraps, so index 7 is the first step LEFT from the opening. The
+ * intro's hero is derived from this list by heroOf() below - the first member
+ * that is not dark - so today it is index 0 by consequence, not by decree.
  *
  * | index | id        | motion   | why it sits here                                    |
  * |-------|-----------|----------|-----------------------------------------------------|

@@ -30,8 +30,9 @@
   pixels; the ink box is the cap height, and 13-RESEARCH.md measured the
   header's at about 22 on the PDF at 1440.
 
-  Not mounted by this plan: FrontDoor.svelte's and Splash.svelte's tracked
-  Grifter text wordmarks stay until 13-07 and 13-09 delete them.
+  The intro's header mounts this mark since 13-07, which deleted the splash
+  and its tracked text wordmark; FrontDoor.svelte's tracked Grifter text
+  wordmark stays on /c/{id}/ until 13-09 deletes it.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
