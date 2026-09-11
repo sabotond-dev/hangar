@@ -39,7 +39,7 @@ import {
   type LocalStore,
 } from "./local";
 import {
-  COLLECTIONS_KEY_RESERVED,
+  COLLECTIONS_KEY,
   DRAFTS_KEY,
   FAVORITES_KEY,
   INTRO_KEY,
@@ -221,6 +221,7 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
       "hangar.recent.v1",
       "hangar.intro.v1",
       "hangar.motion.v1",
+      "hangar.collections.v1",
     ]);
     expect([
       DRAFTS_KEY,
@@ -230,10 +231,11 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
       INTRO_KEY,
     ]).toEqual(OWNED_KEYS.slice(0, 5));
     expect(MOTION_KEY, "13-04's key, adopted by name").toBe("hangar.motion.v1");
-    expect(COLLECTIONS_KEY_RESERVED).toBe("hangar.collections.v1");
-    expect(OWNED_KEYS, "the reserved key is not owned").not.toContain(
-      COLLECTIONS_KEY_RESERVED,
-    );
+    // Reserved at 13-06, spent at 13-13 (D-22): the key is owned now and
+    // collections.ts is its one reader and writer.
+    expect(COLLECTIONS_KEY).toBe("hangar.collections.v1");
+    expect(OWNED_KEYS, "the spent key is owned").toContain(COLLECTIONS_KEY);
+    expect(OWNED_KEYS.length).toBe(7);
     expect(SCHEMA_VERSION).toBe(1);
   });
 

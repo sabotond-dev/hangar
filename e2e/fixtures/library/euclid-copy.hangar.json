@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "kind": "playground",
+  "exportedAt": "2026-09-11T09:31:00.000Z",
+  "app": "hangar",
+  "record": {
+    "schema": 1,
+    "kind": "playground",
+    "id": "copy:euclid:fixture",
+    "name": "Euclid copy",
+    "source": "euclid",
+    "knobIndices": [4, 1, 1, 2, 3, 1],
+    "createdAt": "2026-09-11T09:30:00.000Z",
+    "editedAt": "2026-09-11T09:30:00.000Z"
+  },
+  "rack": [
+    {
+      "id": "tempo",
+      "options": 6
+    },
+    {
+      "id": "pulses",
+      "options": 6
+    },
+    {
+      "id": "ringColour",
+      "options": 5
+    },
+    {
+      "id": "trail",
+      "options": 5
+    },
+    {
+      "id": "note",
+      "options": 7
+    },
+    {
+      "id": "channel",
+      "options": 16
+    }
+  ]
+}

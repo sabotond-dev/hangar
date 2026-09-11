@@ -40,20 +40,28 @@
 // (StoredRecord) and share nothing else, so no module can offer one word for
 // both by accident.
 //
-// hangar.collections.v1 IS RESERVED AND UNREAD. Collections ship in v1
-// (13-CONTEXT D-13) and their shape - one collection per config or many, how
-// long a delete is undoable, what the empty state offers, whether an export
-// carries membership - is the user's decision at 13-13's checkpoint. Naming
-// the key here stops 13-13 from choosing a colliding name and stops this
-// module from guessing a shape it was told not to guess. No function in
-// src/lib/store/ reads or writes it; local.spec.ts scans for the name.
+// hangar.collections.v1 WAS RESERVED HERE AT 13-06 AND IS SPENT AT 13-13.
+// Collections ship in v1 (13-CONTEXT D-13); their shape - many collections
+// per configuration, a session-only undo on delete, the bare "+ New
+// collection" empty state, no membership in an export - was the user's
+// decision at 13-13's checkpoint, recorded as D-22 ("many session bare no",
+// 2026-09-11). collections.ts owns the key and carries the four answers in
+// its header as the specification the Bible never wrote; local.spec.ts's
+// scan still finds the word in schema.ts and in no other 13-06 store.
+//
+// THE SURFACE'S TWO NUMBERS LIVE HERE because a sandbox record is validated
+// against them on import (transfer.ts, step 5) before any Sandbox module is
+// loaded: SURFACE_SIZE is the ZONA's 9, and SURFACE_ELEMENT_CAP is D-14 Q4's
+// sixteen with the live budget meter. 13-14's region model (src/lib/sandbox/
+// model.ts) imports both rather than re-declaring them, so a cap that moves
+// after the budget is measured (13-14's own task) moves in one place.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 /** The one version every body carries and every key name ends in. */
 export const SCHEMA_VERSION = 1 as const;
 
-/** The five stores this module writes, plus the one it reserves. */
+/** The seven stores this module names. */
 export type StoreName =
   | "drafts"
   | "library"
@@ -84,8 +92,14 @@ export const INTRO_KEY = storeKey("intro", SCHEMA_VERSION);
  */
 export const MOTION_KEY = storeKey("motion", SCHEMA_VERSION);
 
-/** Reserved for 13-13. Nothing in src/lib/store/ reads or writes it. */
-export const COLLECTIONS_KEY_RESERVED = storeKey("collections", SCHEMA_VERSION);
+/** Spent by 13-13: collections.ts owns it (D-13, D-22). */
+export const COLLECTIONS_KEY = storeKey("collections", SCHEMA_VERSION);
+
+/** The ZONA's matrix is nine by nine; a region's cells are 0..8 on both axes. */
+export const SURFACE_SIZE = 9;
+
+/** The most elements one surface holds (13-CONTEXT D-14 Q4, "room for four more" beats a wall). */
+export const SURFACE_ELEMENT_CAP = 16;
 
 /** Every key this module owns, for a test that wants to see all of them. */
 export const OWNED_KEYS: readonly string[] = [
@@ -95,6 +109,7 @@ export const OWNED_KEYS: readonly string[] = [
   RECENT_KEY,
   INTRO_KEY,
   MOTION_KEY,
+  COLLECTIONS_KEY,
 ];
 
 // ---------------------------------------------------------------------------

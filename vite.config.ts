@@ -45,20 +45,20 @@ export default defineConfig({
         // build. The e2e suite asserts all three really are served, over HTTP,
         // from the finished build/.
         //
-        // TWO MORE, FOR ONE WAVE EACH (plan 13-07; three until 13-08 landed
-        // /playground/ and removed its own). The intro at / links to the
-        // primary nav's destinations before the routes exist: 13-10 lands
-        // /sandbox/ and 13-12 /my-configs/. Each of those plans removes its
-        // own path from this list in the commit that lands the route, so the
-        // crawler goes back to failing the build on a dead link the day the
-        // link stops being dead by design. Exact paths, no prefix: nothing
-        // else under them is excused.
+        // ONE MORE, FOR ONE WAVE (plan 13-07; three until 13-08 landed
+        // /playground/ and removed its own, two until 13-13 landed
+        // /my-configs/ and removed its own). The intro at / links to the
+        // primary nav's destinations before the routes exist: 13-16 lands
+        // /sandbox/ and removes this path in the commit that lands the
+        // route, so the crawler goes back to failing the build on a dead
+        // link the day the link stops being dead by design. Exact path, no
+        // prefix: nothing else under it is excused.
         handleHttpError: ({ status, path, message }) => {
           const writtenByPostbuild =
             path === "/LICENSE" ||
             path === "/THIRD-PARTY.md" ||
             (path.startsWith("/source-") && path.endsWith(".tar.gz"));
-          const notYetRouted = path === "/sandbox/" || path === "/my-configs/";
+          const notYetRouted = path === "/sandbox/";
           if (status === 404 && (writtenByPostbuild || notYetRouted)) return;
           throw new Error(message);
         },

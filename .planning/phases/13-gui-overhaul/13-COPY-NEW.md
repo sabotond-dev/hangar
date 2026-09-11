@@ -371,3 +371,80 @@ Questions for the user, from 13-11 (D-01):
    for the six uncertain and failure titles, quiet for idle and busy. The PDF draws one grey dot
    before _Draft saved locally_; the tone rule is HANGAR's reading of section 9's "never one generic
    indicator". Keep the three tones, or the PDF's one?
+
+## From 13-13: My configs, export and import - the rows, and the questions D-01 sends to the batch
+
+Added 2026-09-11 by plan 13-13 (PDF page 4 at `/my-configs/`; export and import through
+`src/lib/store/transfer.ts`). Every visible string the PDF draws is taken verbatim and is **not**
+ledgered: `YOUR PERSONAL CONFIGURATION LIBRARY`, _Pick up where you left off._, _Saved variations and
+custom surfaces. Every idea has a place._, `Import config`, `New surface`, `CONTINUE EDITING`,
+`Resume draft`, `Draft · {type} · Last edited {edited}`, `SEARCH MY CONFIGURATIONS`, _Search saved
+configurations…_ (the placeholder), `SORT BY`, `Last edited`, _{n} saved configurations_,
+`CONFIGURATION` / `TYPE` / `LAST EDITED` / `STATUS`, `ZONA · Personal configuration`, `Custom
+surface`, `Today, 10:42` / `Yesterday` / `8 Sep 2026`, `Saved`, `Draft`, `Open`, `YOUR LIBRARY`,
+`All saved`, `Drafts`, `Favorites`, `Recently used`, `MY CONFIGS / YOUR LIBRARY` and _Your
+configurations, ready for the next session._ in the context bar; section 16's _No configurations
+found. Try a different search or clear your filters._ is reused verbatim for the search miss. The
+rows below are what HANGAR had to write.
+
+| Symbol | Module | Plan | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `TITLE` | `src/routes/my-configs/+page.svelte` | landed by 13-13 for 13-18 | the document title of My configs | the section's name and the site's, as the other two pages do it | _My configs — HANGAR_ | none |
+| `SORT_NAME` | same | landed by 13-13 for 13-18 | the sort select's second option | an alphabetical order beside the PDF's `Last edited`; a select with one option is not a select | _Name_ | the PDF draws `Last edited` only |
+| `EMPTY_LIBRARY` | same | landed by 13-13 for 13-18 | the table with nothing in either record store | where a configuration comes from (a saved copy from the Playground, a surface from the Sandbox) and that this page keeps it | _Nothing saved yet. Save a copy from the Playground or build a surface in the Sandbox, and it will be kept here._ | none - the PDF draws a full table |
+| `EMPTY_DRAFTS` | same | landed by 13-13 for 13-18 | the Drafts view with no draft | what a draft is (section 9: editable working state kept locally) | _No drafts. A draft is kept here while you're still working on it._ | none |
+| `importRefused(file, reason)` | same | landed by 13-13 for 13-18 | an import that did not pass the six steps (`unreadable`) | which file, and the specific reason from `IMPORT_REASONS` | _Couldn't import {file}. {reason}_ | section 11 asks for the incompatibility shown before opening; no line |
+| `importedLine(name, reason?)` | same | landed by 13-13 for 13-18 | an import that passed (`restored`, which then opens) or landed on the base configuration (`older`, which stays) | the record's name; for `older`, the reason and that it opens on the base | _Imported {name}._ / _Imported {name}. {reason}_ | none |
+| `deletedLine(name)` + `UNDO` | same | landed by 13-13 for 13-18 | a record deleted, held for the session (D-22 fork B) | the name, and that one click puts it back | _Deleted {name}._ / _Undo_ | section 11: "deletion with undo where practical"; no words |
+| `restoredLine(name)` | same | landed by 13-13 for 13-18 | the Undo done | the name is back | _{name} is back._ | none |
+| `STORE_REFUSED` | same | landed by 13-13 for 13-18 | a write the browser store refused (private window, quota) | the change was not kept and why, plainly | _Your browser refused to store the change._ | none |
+| `IMPORT_REASONS.notJson` | `src/lib/store/transfer.ts` | landed by 13-13 for 13-18 | step 1: the text does not parse | not JSON, so not an export | _This file isn't JSON, so it can't be a HANGAR export._ | none |
+| `IMPORT_REASONS.notHangar` | same | landed by 13-13 for 13-18 | step 1: `app` is not `hangar` | the file is somebody else's | _This file wasn't exported by HANGAR._ | none |
+| `IMPORT_REASONS.schemaUnknown(schema)` | same | landed by 13-13 for 13-18 | step 1: a `schema` this build does not read | the file is newer than this build, and which format this build reads | _This file was made by a newer HANGAR (format {schema}). This version reads format 1._ | none |
+| `IMPORT_REASONS.schemaOlder(schema)` | same | landed by 13-13 for 13-18 | step 2: an older readable `schema` (no such version exists today; the door for the first `.v2`) | the file is older and lands on the base configuration | _This file was made by an earlier HANGAR (format {schema}). It opens on the base configuration._ | SHARE-03's own words for the stamp's `older` |
+| `IMPORT_REASONS.kindUnknown` | same | landed by 13-13 for 13-18 | step 3: `kind` is neither playground nor sandbox | the file holds neither of the two things this build stores | _This file doesn't hold a configuration or a surface._ | none |
+| `IMPORT_REASONS.recordMalformed` | same | landed by 13-13 for 13-18 | step 3: the record fails `isStoredRecord`, disagrees with the envelope's kind, or a playground file has no rack | the record is not whole | _The configuration inside this file is incomplete._ | none |
+| `IMPORT_REASONS.entryGone(source)` | same | landed by 13-13 for 13-18 | step 4: the source entry is no longer in the catalog | which entry, and that it is gone from the Playground | _The Playground configuration this file was made from, {source}, isn't in the Playground any more._ | none |
+| `IMPORT_REASONS.knobCount(name, filed, now)` | same | landed by 13-13 for 13-18 | step 4: the file's rack has a different number of knobs (`older`) | how many the file set, how many the entry has now, and that it opens on the base | _This file sets {filed} knobs and {name} now has {now}. It opens on the base configuration._ | SHARE-03's `older` |
+| `IMPORT_REASONS.rackChanged(name, knob)` | same | landed by 13-13 for 13-18 | step 4: a knob was renamed or resized since the export (`older`) | which knob, and that it opens on the base | _The {knob} knob of {name} has changed since this file was made. It opens on the base configuration._ | SHARE-03's `older` |
+| `IMPORT_REASONS.knobRange(knob, index, count)` | same | landed by 13-13 for 13-18 | step 4: the rack agrees and an index is still past its list - a file edited by hand (`unreadable`) | which knob, how many positions it has, which position was asked for | _{knob} has {count} positions and this file asks for position {index + 1}._ | none |
+| `IMPORT_REASONS.tooMany(count)` | same | landed by 13-13 for 13-18 | step 5: more regions than the cap | the count and the cap (D-14 Q4: sixteen) | _This surface has {count} elements. A surface holds at most 16._ | none - 13-14 ledgers the Sandbox's own cap message; the two should be one sentence at 13-18 |
+| `IMPORT_REASONS.offSurface(region)` | same | landed by 13-13 for 13-18 | step 5: a region outside the 9 x 9 | which region | _{region} lies outside the 9 × 9 surface._ | none - 13-14 ledgers the Sandbox's off-surface message; the two should be one sentence at 13-18 |
+| `IMPORT_REASONS.overlap(a, b)` | same | landed by 13-13 for 13-18 | step 5: two regions sharing a cell | both names | _{a} overlaps {b}._ | section 16: _This region overlaps Filter. Choose another area or resize it._ - the import has no region on screen to resize, so the second clause is dropped |
+| `RENAME` / `EXPORT` / `DELETE` and their accessible names | `src/lib/ui/library/LibraryTable.svelte` | landed by 13-13 for 13-18 | the three quiet row actions beyond the PDF's `Open` | section 11's named copies, export and deletion, each named with the record | _Rename_ / _Export_ / _Delete_; _Rename {name}_, _Export {name} as a file_, _Delete {name}_ | the PDF's row draws `Open` only; section 11 requires the three |
+| `HEAD_ACTIONS` | same | landed by 13-13 for 13-18 | the fifth column's screen-reader-only head | what the column holds | _Actions_ | none |
+| `typeLabel("playground")`'s fallback | `src/lib/ui/library/words.ts` | landed by 13-13 for 13-18 | the TYPE column for a Playground record whose entry has left the catalog | the kind, plainly, when no category can be derived | _Playground_ | the PDF shows categories only |
+| `editedInWords`'s `earlier` | same | landed by 13-13 for 13-18 | an unreadable `editedAt` | the same word `relativeTime` uses, never `Invalid Date` | _earlier_ | none |
+| `countLine(1)` | same | landed by 13-13 for 13-18 | one record | the PDF's line in the singular | _1 saved configuration_ | the PDF draws the plural only |
+
+Questions for the user, from 13-13 (D-01):
+
+1. **Favorites and Recently used on page 4 are links to the gallery, not filters over this table.**
+   Both lists are catalog entries and this table is personal configurations, so a filter would show
+   a count the table cannot match. But the gallery cannot arrive WITH the view selected (13-08 keeps
+   the library view out of the address), so the row lands on All configs and asks for one more
+   click. Accept, or add a session handoff (a sessionStorage key the gallery reads once on arrival,
+   the way the browse-return record works) so the row lands on the view it names?
+2. **Thumbnails of preset-backed variations render the base configuration.** A hand-authored (Lua)
+   entry's engine takes the record's knob indices and shows the variation as saved; a preset entry's
+   knobs move a PadState through the compiler, and this page does not compile. Accept, or compile per
+   row (the workspace's tuner, once per thumbnail)?
+3. **A sandbox record's thumbnail is unlit** until 13-15's surface engine exists (the frame and the
+   dot field are drawn; no engine is registered). Named as a known stub; say if a static paint of
+   the regions' colours should stand in until then.
+4. **A `restored` Playground import opens the workspace at once**; an `older` import stays on My
+   configs with its explanation and a row at the base; a sandbox import stays (its route is 13-16's).
+   Section 11 says "before opening"; if the import should never navigate, one branch.
+5. **The Playground workspace writes no draft and reads none.** The drafts store, the resume banner
+   and the `Draft` chip are wired here and read whatever is in the store; 13-16 writes Sandbox
+   drafts; no plan in the phase writes a Playground draft on a knob turn or reads one on arrival (the
+   workspace reads the stamp hash and nothing else, 13-09). Until a plan does, the banner and the
+   Drafts count are honest and empty for the Playground. Which plan owns that wiring?
+6. **`Open` and `Resume draft` reach the workspace through the stamp** (`/playground/{source}/#z.…`
+   encoded from the record's indices), because that is the one way the workspace takes a knob
+   vector today. A draft therefore resumes at its positions but the workspace does not know it is a
+   draft. Fine for one wave, or should the workspace read `?draft=` / the store?
+7. **Two extra sort options were not added** (`Name` was, `Type` was not). Say if the sort should
+   carry `Type` too.
+8. **The rename field commits on blur.** Clicking `Delete` on the same row while renaming commits the
+   rename first. Accept, or commit on Enter only?

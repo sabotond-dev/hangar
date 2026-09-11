@@ -68,17 +68,17 @@ export interface NavItem {
 
 /**
  * The nav's three destinations, section 4's routes with the site's trailing
- * slash. /playground/ is a resolve() call since 13-08 landed the route; the
- * other two literal pathnames are typed ResolvedPathname rather than built
- * with resolve() because those routes do not exist yet - 13-10 lands
- * /sandbox/ and 13-12 /my-configs/ - and resolve() is typed against the
- * routes on disk. The plan that lands each route swaps its literal for a
- * resolve() call in the same commit.
+ * slash. /playground/ is a resolve() call since 13-08 landed the route and
+ * /my-configs/ since 13-13 landed its; the remaining literal pathname is
+ * typed ResolvedPathname rather than built with resolve() because that
+ * route does not exist yet - 13-16 lands /sandbox/ - and resolve() is typed
+ * against the routes on disk. The plan that lands it swaps the literal for
+ * a resolve() call in the same commit.
  */
 export const SECTIONS: readonly NavItem[] = [
   { id: "playground", label: "PLAYGROUND", href: resolve("/playground/") },
   { id: "sandbox", label: "SANDBOX", href: "/sandbox/" },
-  { id: "my-configs", label: "MY CONFIGS", href: "/my-configs/" },
+  { id: "my-configs", label: "MY CONFIGS", href: resolve("/my-configs/") },
 ];
 
 export interface ShellFill {

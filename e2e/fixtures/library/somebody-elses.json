@@ -1,0 +1,15 @@
+{
+  "app": "grid-editor",
+  "schema": 1,
+  "kind": "playground",
+  "record": {
+    "schema": 1,
+    "kind": "playground",
+    "id": "copy:arc:elsewhere",
+    "name": "Arc, from somewhere else",
+    "source": "arc",
+    "knobIndices": [0, 0, 0, 0, 0],
+    "createdAt": "2026-09-11T09:30:00.000Z",
+    "editedAt": "2026-09-11T09:30:00.000Z"
+  }
+}
