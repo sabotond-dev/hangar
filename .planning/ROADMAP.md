@@ -437,6 +437,28 @@ good. SNAKE still deferred.
 Plans:
 - [ ] TBD (run /gsd:plan-phase 12 to break down)
 
+### Phase 12.1: Gradient touch (INSERTED)
+
+**Goal:** A finger on the ZONA is drawn where it is, not in a cell. The third bench round
+(`BENCH-2026-09-11.txt`) found the sensor is not under the LEDs: a finger on row 2 / column 8 lights
+the corner, and a fingertip between two LEDs lights nothing, because Phase 12's library turns a
+continuous position into one cell. Two problems, in order: (1) a calibration probe for the user's
+bench - the value the sensor reports with a finger centred on each LED, both axes - giving a
+measured sensor-to-LED map; (2) a bilinear library primitive G(x,y,b) that lights the 2x2 LEDs
+around the finger weighted by distance through that map, replacing Q's hit-test as what entries
+call, with any discrete choice an entry needs (EUCLID's step) taken from the same weights. Every
+entry that draws a finger (EUCLID, STEPS, RADAR POINTS, SONAR, CHORUS, MORPH, CONSOLE, LUMEN,
+TRACKPAD's flash) is re-fitted and re-measured against 908. Must land before 13-14, the Sandbox
+compiler, which would otherwise inherit the cell model; 13-07..13-13 do not depend on it. Every
+agent on Fable 5.1 (the user's instruction for Phase 13 extends to this insertion).
+**Requirements**: TBD at planning (CONT-02, CONT-03, PREV-01 and the Phase 12 qualifiers are the
+starting set)
+**Depends on:** Phase 12 (gate landed, bench pending); ordered before Phase 13 plan 13-14
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 12.1 to break down)
+
 ### Phase 13: GUI Overhaul
 
 **Goal:** A total overhaul of the interface into a straightforward, modern web app in two parts -
