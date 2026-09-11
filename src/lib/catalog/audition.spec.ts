@@ -62,8 +62,15 @@ const flat = doc.replace(/\s+/g, " ");
  * 23 -> 24 at plan 12.1-01: the calibration re-run (row 24, `any`). Probe C
  * measured the sensor-to-LED map once on the user's ZONA; the row asks for
  * the five-minute second reading that docs/CALIBRATION-PROBE.md describes.
+ *
+ * 24 -> 25 at plan 12.1-03: the gradient row (row 25, EUCLID / STEPS / RADAR
+ * POINTS / SONAR) - the first ten minutes of the bench, ten clauses (a)-(j),
+ * the last of them the alert layer. Its Config cell is the first to name four
+ * entries and the first wider than the column was, so prettier re-padded
+ * every row of the table; no row's text moved, and the gate below reads
+ * cells trimmed.
  */
-const ROW_COUNT = 24;
+const ROW_COUNT = 25;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -207,7 +214,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-four numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-five numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",

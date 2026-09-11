@@ -1,10 +1,13 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// THIRTY-TWO tests since plan 12.1-02, which appended the gradient block at
-// the end of the file (three tests; 12.1-03 adds two more and 12.1-04 two
-// more) and re-aimed every gesture that reads a cell through the library's
-// `Q` at the MEASURED sensor map (calibration.ts) instead of the naive
-// `t*9//128` centres. TWENTY-NINE since plan 12-10 (TRACKPAD's) -
+// THIRTY-FOUR tests since plan 12.1-03, which appended two to the gradient
+// block: the four sequencers under G at all 81 LED centres with the sweeps'
+// centre dot on both expiry paths, and ARC's stop through N (12.1-04 adds two
+// more). THIRTY-TWO since plan 12.1-02, which appended the gradient block at
+// the end of the file (three tests) and re-aimed every gesture that reads a
+// cell through the library's `Q` at the MEASURED sensor map (calibration.ts)
+// instead of the naive `t*9//128` centres. TWENTY-NINE since plan 12-10
+// (TRACKPAD's) -
 // counted from the runner's own report at the 12-12 gate, which found this
 // line reading TWENTY-THREE: 12-10 added its one to 12-04's 22 and skipped the
 // six between them (12-05 +1, 12-07 +2, 12-08 +1, 12-09 +2), so 22 + 1 + 6 =
@@ -8260,6 +8263,343 @@ describe("the gradient (12.1)", () => {
       "\nTHE GRADIENT, Q's hold band per segment (plan 12.1-02, D-18):\n" +
         report.join("\n") +
         "\n",
+    );
+  }, 60000);
+
+  /**
+   * The finger colour an entry hands to G, READ OFF THE RENDERED SETUP - the
+   * three literals after the layer in its one `G(s,i,e,x,y,0,r,g,b)` call
+   * (white on EUCLID and STEPS, the rendered @SWEEPC on RADAR POINTS and SONAR;
+   * 12.1-CONTEXT D-13). Not read off a knob: STEPS has a @SWEEPC knob of its
+   * own for the sweeping column and hands G white regardless.
+   */
+  const fingerColourOf = (entry: CatalogEntry): number[] => {
+    const { setup } = renderLua(entry);
+    const calls = [...setup.matchAll(/G\(s,i,e,x,y,0,(\d+),(\d+),(\d+)\)/g)];
+    if (calls.length !== 1)
+      throw new Error(`${entry.id}'s Setup calls G ${calls.length} times`);
+    return calls[0].slice(1, 4).map(Number);
+  };
+
+  /** The Timer's sweep window `X(s,n)`, read off the rendered Timer. */
+  const sweepWindowOf = (entry: CatalogEntry): number => {
+    const { timer } = renderLua(entry);
+    const m = /X\(s,(\d+)\)/.exec(timer);
+    if (!m) throw new Error(`${entry.id}'s Timer carries no X(s,n) sweep`);
+    return Number(m[1]);
+  };
+
+  it("draws the finger on all 81 LED centres of EUCLID, STEPS, RADAR POINTS and SONAR in each entry's colour, toggles EUCLID's outer ring on the first tap, and keeps the sweeps' centre dot through a sweep expiry and a lost-lift re-press", async () => {
+    // PLAN 12.1-03. Each of the four sequencers now writes `Q` first, then
+    // `G(s,i,e,x,y,0,<colour>)`, so the cell Q toggles and the LED G lights are
+    // the same LED because both read U over the measured map. RADAR POINTS
+    // and SONAR also define `R`, which re-lights and re-colours cell 40 after
+    // every G and on every expiry through E (D-15) - and cell 40 is the one
+    // layer-0 cell those two hold at 255 always. Every coordinate here is a
+    // knot from calibration.ts, never a literal.
+    const report: string[] = [];
+    const SWEEPS = new Set(["radar-points", "sonar"]);
+    const midX = Math.floor((KX[4] + KX[5]) / 2);
+
+    for (const id of ["euclid", "steps", "radar-points", "sonar"]) {
+      const entry = entryById(id);
+      const sweep = SWEEPS.has(id);
+      const colour = fingerColourOf(entry);
+      const centre: Record<number, number> = sweep ? { 40: 255 } : {};
+      const { host, sim } = await open(entry);
+      try {
+        expect(host.errors, `${id}: the Setup raised`).toEqual([]);
+        expect(
+          litOnLayer0(sim),
+          `${id}: layer 0 at rest is the centre dot alone (or dark)`,
+        ).toEqual(centre);
+
+        // 1. ALL 81 LED CENTRES. Press dead on LED (c, r), read layer 0 while
+        //    pressed, lift, read again. The picture is exact: that one cell at
+        //    255 in the entry's colour and no other layer-0 cell above 0 -
+        //    save the sweeps' centre, which is at 255 whatever the finger does.
+        const identity: string[] = [];
+        for (let r = 0; r < 9; r += 1) {
+          let row = "";
+          for (let c = 0; c < 9; c += 1) {
+            const cell = c + r * 9;
+            host.touchDown(0, KX[c], KY[r]);
+            host.tick();
+            const got = litOnLayer0(sim);
+            expect(
+              got,
+              `${id}: a press dead on LED (${c},${r}) at (${KX[c]},${KY[r]}) ` +
+                "must light exactly its own cell at 255 on layer 0",
+            ).toEqual({ ...centre, [cell]: 255 });
+            expect(
+              colour0(sim, cell),
+              `${id}: cell ${cell} is not in the entry's finger colour`,
+            ).toEqual(colour);
+            row += got[cell] === 255 ? "#" : ".";
+            host.touchUp(0, KX[c], KY[r]);
+            host.tick();
+            expect(
+              litOnLayer0(sim),
+              `${id}: after the lift from LED (${c},${r}) layer 0 is not back ` +
+                "to its rest picture",
+            ).toEqual(centre);
+          }
+          identity.push(row);
+        }
+        expect(host.errors, `${id}: ${host.errors.join(" | ")}`).toEqual([]);
+        if (id === "euclid") {
+          report.push(
+            "  EUCLID, the 81 LED centres, # where the press lit its own cell " +
+              "alone (the map is the identity):",
+          );
+          for (const row of identity) report.push(`    ${row}`);
+        }
+        expect(
+          identity.join(""),
+          `${id}: some LED centre did not light its own cell`,
+        ).toBe("#".repeat(81));
+
+        // 2. THE MIDPOINT between LED 4 and 5 in x on row 4: exactly two
+        //    layer-0 cells, 40 and 41, at the bilinear weights - on the sweeps
+        //    R holds 40 at 255 over G's weight, and it is still exactly two.
+        host.touchDown(0, midX, KY[4]);
+        host.tick();
+        const pair = litOf(expectedFinger(midX, KY[4]).phases);
+        expect(Object.keys(pair), "the midpoint is a pair").toHaveLength(2);
+        const midGot = litOnLayer0(sim);
+        expect(
+          Object.keys(midGot),
+          `${id}: the midpoint press lights exactly two layer-0 cells`,
+        ).toHaveLength(2);
+        expect(
+          midGot,
+          `${id}: the midpoint pair at the computed weights`,
+        ).toEqual({ ...pair, ...centre });
+        report.push(
+          `  ${entry.name}: midpoint (${midX},${KY[4]}) lit ` +
+            Object.entries(midGot)
+              .map(([cell, p]) => `${cell}=${p}`)
+              .join(" ") +
+            `, finger colour ${colour.join(",")}`,
+        );
+        host.touchUp(0, midX, KY[4]);
+        host.tick();
+
+        // 2b. A HARDWARE FAST TAP (code 9, a press AND a lift in one message)
+        //     leaves NO finger on layer 0 - there is nobody touching the pad
+        //     after it. Found by the residue gate (test 4 of the CONT-02
+        //     block) on the first run of this plan: G's end test was Q's live
+        //     test, `e~=1 and e~=4 and e<9`, so a 9 drew a block that stayed
+        //     lit until the Timer's sweep expired the contact. G now returns
+        //     on a 9; Q still returns the cell, so the step still toggles.
+        {
+          const cell = 2 + 2 * 9;
+          const layer = id === "steps" ? 2 : 1;
+          const before = sim.layer(hwOfCell(cell), layer).pha;
+          host.touchTap(0, KX[2], KY[2]);
+          host.tick();
+          expect(
+            litOnLayer0(sim),
+            `${id}: a fast tap (code 9) left a finger on layer 0 with nobody ` +
+              "touching the pad",
+          ).toEqual(centre);
+          expect(
+            sim.layer(hwOfCell(cell), layer).pha,
+            `${id}: the fast tap's press half did not reach the entry through Q`,
+          ).not.toBe(before);
+          expect(host.globalSize("B"), `${id}: no block recorded for a 9`).toBe(
+            0,
+          );
+        }
+
+        // 3. EUCLID'S OUTER RING, the tap the bench said needed several tries.
+        //    LED (1,4) is cell 37, Chebyshev distance 3 - the outer Euclid
+        //    ring. The naive divisor reads that same press as a cell on NO
+        //    ring (computed here), which is why `if not v then return end`
+        //    dropped it silently; through Q it flips the step on the first
+        //    try, seen on layer 1.
+        if (id === "euclid") {
+          const cell = 1 + 4 * 9;
+          const naive =
+            Math.floor((KX[1] * 9) / 128) + Math.floor((KY[4] * 9) / 128) * 9;
+          const before = sim.layer(hwOfCell(cell), 1).pha;
+          host.touchDown(0, KX[1], KY[4]);
+          host.tick();
+          const after = sim.layer(hwOfCell(cell), 1).pha;
+          host.touchUp(0, KX[1], KY[4]);
+          host.tick();
+          report.push(
+            `  EUCLID: a press dead on LED (1,4) toggles cell ${cell} (ring ` +
+              `${ringOf(cell)}): layer 1 ${before} -> ${after}; the naive ` +
+              `divisor read cell ${naive} (ring ${ringOf(naive)}, on no ring)`,
+          );
+          expect(ringOf(cell), "cell 37 is on the outer Euclid ring").toBe(3);
+          expect(
+            after,
+            "EUCLID: the first tap on the outer ring did not flip the step",
+          ).not.toBe(before);
+          expect(
+            ringOf(naive),
+            "the naive divisor reads the outer-ring press as a cell on no " +
+              "ring - the tap that needed several tries",
+          ).toBe(4);
+        }
+
+        // 4. THE CENTRE DOT ON THE EXPIRY PATHS (sweeps only; D-15, the
+        //    plan-check's finding). Press dead on the centre so G's block is
+        //    cells 40, 41, 49, 50; never lift; let the Timer's X(s,n) sweep
+        //    expire the quiet contact - E clears the block through V, then
+        //    calls R, which must put 40 back at 255 in @SWEEPC.
+        if (sweep) {
+          const n = sweepWindowOf(entry);
+          const periodTicks = knobValueOf(entry, "sweep") / 10;
+          expect(
+            Number.isInteger(periodTicks),
+            `${id}: the sweep period is a whole number of ticks`,
+          ).toBe(true);
+          host.touchDown(0, KX[4], KY[4]);
+          host.tick();
+          expect(host.globalSize("B"), `${id}: G recorded the block`).toBe(1);
+          expect(
+            litOnLayer0(sim),
+            `${id}: the centre press is 40 alone`,
+          ).toEqual({ 40: 255 });
+          host.run((n + 2) * periodTicks);
+          expect(
+            host.globalSize("B"),
+            `${id}: the Timer sweep did not expire the quiet contact, so ` +
+              "the clause below proves nothing",
+          ).toBe(0);
+          expect(
+            phase0(sim, 40),
+            `${id}: cell 40 went dark on the Timer sweep - E cleared the ` +
+              "block through V and nothing re-lit the centre",
+          ).toBe(255);
+          expect(
+            colour0(sim, 40),
+            `${id}: R did not re-colour the centre`,
+          ).toEqual(colour);
+          expect(
+            litOnLayer0(sim),
+            `${id}: after the sweep only the centre is lit`,
+          ).toEqual({ 40: 255 });
+          report.push(
+            `  ${entry.name}: held on the centre, ${n + 2} Timer calls ` +
+              `(${(n + 2) * periodTicks} ticks) later B is empty and 40=` +
+              `${phase0(sim, 40)} in ${colour0(sim, 40).join(",")}`,
+          );
+
+          // The lost-lift re-press, as the plan drives it: the same id, a
+          // different cell, no lift since the sweep.
+          host.touchDown(0, KX[1], KY[1]);
+          host.tick();
+          expect(
+            litOnLayer0(sim),
+            `${id}: after the re-press the new LED and the centre, only`,
+          ).toEqual({ 10: 255, 40: 255 });
+
+          // And the re-press OVER a block that covers 40, which is the path
+          // that actually reaches V with the centre inside it: press the
+          // centre again (block 40..50), then the same id lands elsewhere
+          // with no lift - Q's onset self-expiry clears that block, R
+          // re-lights 40, G draws the new one.
+          host.touchDown(0, KX[4], KY[4]);
+          host.tick();
+          expect(host.globalSize("B"), `${id}: the block is on 40`).toBe(1);
+          host.touchDown(0, KX[7], KY[7]);
+          host.tick();
+          const relit = litOnLayer0(sim);
+          expect(
+            relit,
+            `${id}: a lost-lift re-press over the centre must leave 40 lit ` +
+              "and the old block dark",
+          ).toEqual({ 40: 255, 70: 255 });
+          expect(colour0(sim, 40), `${id}: 40 in @SWEEPC`).toEqual(colour);
+          report.push(
+            `  ${entry.name}: lost-lift re-press from the centre to LED (7,7) ` +
+              `-> lit ` +
+              Object.entries(relit)
+                .map(([cell, p]) => `${cell}=${p}`)
+                .join(" "),
+          );
+          host.touchUp(0, KX[7], KY[7]);
+          host.tick();
+          expect(
+            litOnLayer0(sim),
+            `${id}: after the lift the centre alone`,
+          ).toEqual({ 40: 255 });
+        }
+        expect(host.errors, `${id}: ${host.errors.join(" | ")}`).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nTHE GRADIENT ON THE FOUR SEQUENCERS (plan 12.1-03):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
+
+  it("stops ARC on the calibrated centre through N, where the naive divisor would have missed", async () => {
+    // PLAN 12.1-03: ARC's stop tap is `N(x,y)==40` in place of
+    // `x*9//128+y*9//128*9==40`. Two presses: dead on LED (4,4), and one unit
+    // past the midpoint between LED 3 and LED 4 in x on row 4, which
+    // calibratedAxis rounds to LED 4 and the naive divisor to column 3. Both
+    // must stop the swirl. The "stopped" observable is 11-09.1's: layer 2's
+    // rate at cell (0,0) is 0 while stopped and non-zero while running.
+    const entry = entryById("arc");
+    const naiveCellOf = (x: number, y: number): number =>
+      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    const offCentreX = KX[3] + Math.floor((KX[4] - KX[3]) / 2) + 1;
+    const probes: readonly { label: string; x: number; y: number }[] = [
+      { label: "dead on LED (4,4)", x: KX[4], y: KY[4] },
+      { label: "one past the LED 3 -> 4 midpoint", x: offCentreX, y: KY[4] },
+    ];
+    const report: string[] = [];
+    for (const probe of probes) {
+      const { host, sim } = await open(entry);
+      try {
+        const swirlRate = (): number => sim.layer(screenToHw(0, 0), 2).fre;
+        host.run(20);
+        expect(
+          swirlRate(),
+          `arc: the swirl is turning before the ${probe.label} press`,
+        ).toBeGreaterThan(0);
+        host.touchDown(0, probe.x, probe.y);
+        host.tick();
+        host.touchUp(0, probe.x, probe.y);
+        host.tick();
+        const calibrated = calibratedCell(probe.x, probe.y);
+        const naive = naiveCellOf(probe.x, probe.y);
+        report.push(
+          `  ${probe.label} (${probe.x},${probe.y}): N -> cell ${calibrated}, ` +
+            `naive divisor -> cell ${naive}; swirl rate after the press ` +
+            `${swirlRate()}`,
+        );
+        expect(calibrated, `arc: ${probe.label} is the calibrated centre`).toBe(
+          40,
+        );
+        expect(
+          swirlRate(),
+          `arc: the press ${probe.label} did not stop the swirl - the stop ` +
+            "test is not reading the calibrated centre",
+        ).toBe(0);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        if (probe.label.startsWith("one past")) {
+          expect(
+            naive,
+            "the off-centre probe is column 3 to the naive divisor, so the " +
+              "old test would have let the swirl run",
+          ).not.toBe(40);
+        }
+      } finally {
+        host.close();
+      }
+    }
+    process.stdout.write(
+      "\nARC'S STOP THROUGH N (plan 12.1-03):\n" + report.join("\n") + "\n",
     );
   }, 60000);
 });
