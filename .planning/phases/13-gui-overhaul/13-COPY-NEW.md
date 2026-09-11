@@ -174,3 +174,66 @@ accessible description. The questions, for 13-18 and the user:
    section labels; whether `PICK UP WHERE YOU LEFT OFF` is a label or a sentence in uppercase is a
    judgement, and it is asked. The alternative that invents nothing is to keep `START WITH AN IDEA`
    above `Resume draft`, which reads oddly; the alternative that invents a word is a new label.
+
+## From 13-08: the gallery's rows, and the questions D-01 sends to the batch
+
+Added 2026-09-11 by plan 13-08 (PDF page 2 at `/playground/`). Every visible string on the gallery
+that the PDF draws is taken verbatim and is **not** ledgered: `THE CONFIGURATION PLAYGROUND`, _Find
+your next gesture._, _Playable ideas for your surface. Open one, try it, make it yours._, `SEARCH
+CONFIGURATIONS`, _Search names, gestures, and tags…_ (the placeholder), `SORT BY`, `Featured`, `Use`,
+`All`, `Explore`, `YOUR LIBRARY`, `All configs`, `Favorites`, `Recently used`, `MADE FOR`, _Start
+with a configuration._ / _Make it feel like you._, `+ Build your own`, `PLAYGROUND / CONFIGURATIONS`
+and _Browse. Preview. Make it yours._ in the context bar, and §16's _No configurations found. Try a
+different search or clear your filters._ for the empty result. The rows below are what HANGAR had to
+write, and the seven display labels the plan asked for.
+
+| Symbol | Module | Plan | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `FOR_LABELS.modulation` | `src/lib/browse/labels.ts` (read by `rail.ts`, `BrowseToolbar.svelte` through `FacetRow.svelte`, and `CatalogCard.svelte`'s category line) | landed by 13-08 for 13-18 | the MADE FOR rail row and the `Use` chip for the FOR term `modulation` | the facet's display name in D-05's sentence case; today's tree renders the identifier upper-cased, which D-05 retires | _Modulation_ | the PDF's rail and chip row both read `Modulation` |
+| `FOR_LABELS.show` | same | landed by 13-08 for 13-18 | the row and chip for `show` | as above | _Visuals_ | the PDF reads `Visuals` on the rail and in the chip row; the card line reads `VISUAL` (singular) - three forms of one word in the PDF, so the batch decides which |
+| `FOR_LABELS.sequencing` | same | landed by 13-08 for 13-18 | the row and chip for `sequencing` | as above | _Sequencing_ | none - no PDF row names it |
+| `FOR_LABELS.mixing` | same | landed by 13-08 for 13-18 | the row and chip for `mixing` | as above | _Mixing_ | none |
+| `FOR_LABELS.play` | same | landed by 13-08 for 13-18 | the row and chip for `play` | as above; the term is a verb (_you reach for a pad in order to PLAY_, facets.ts) and its carriers are nine drum pads, a snake and nine chords | _Playing_ | the PDF's nearest row is `Notes & chords` (rail) and `Notes` (chip), which names CHORUS's carrier and not NINEPADS's or SNAKE's - so the PDF's word is not the term's |
+| `FOR_LABELS.shortcuts` | same | landed by 13-08 for 13-18 | the row and chip for `shortcuts` | as above | _Shortcuts_ | none |
+| `FOR_LABELS.pointing` | same | landed by 13-08 for 13-18 | the row and chip for `pointing` | as above | _Pointing_ | none; the PDF's `Expression` names no FOR term |
+| the star's ON name (`starName` in `CatalogCard.svelte`) | `src/lib/ui/CatalogCard.svelte` | landed by 13-08 for 13-18 | the favorite button when the entry is starred (the star filled in the action colour) | that pressing it REMOVES the mark; the entry's name so the button is not one of twenty-six identical buttons; "favorites" is the PDF's rail word and never "saved" | _Remove {name} from your favorites_ | none - the PDF draws the star and names nothing |
+| the star's OFF name | same | landed by 13-08 for 13-18 | the same button, outlined | that pressing it ADDS the mark | _Add {name} to your favorites_ | none |
+| `CLEAR` and `CLEAR_NAME` | `src/lib/ui/BrowseToolbar.svelte` | landed by 13-08 for 13-18 | the search field's own clear control, visible while the field holds text | that it clears the FIELD and hands focus back to it (its accessible name says what it clears once a screen reader has moved past the label) | _Clear_ (visible), _Clear the search_ (accessible name) | none - Phase 5's `CLEAR` in the retired register |
+| `CLEAR_FILTERS` | same | landed by 13-08 for 13-18 | the control beneath the chip row, present only while something narrows the grid | that it clears the query, every chip and the rail's library view, and never the sort (a view preference) | _Clear filters_ | §16's empty line says _clear your filters_; the button is the verb form of it. Phase 5's `CLEAR FILTERS` in the retired register |
+| `TITLE` | `src/routes/playground/+page.svelte` | landed by 13-08 for 13-18 | the document title and og:title of the gallery | the section's name and the site's | _Playground — HANGAR_ | none; the intro's is `HANGAR` and the workspace's is `{name} — HANGAR` |
+
+**From 13-08, twelve strings landed and eight questions recorded (D-01: ask rather than guess).**
+
+1. **The chip-versus-rail naming of one facet.** The PDF's rail reads `Notes & chords` where its chip
+   row reads `Notes` - one facet, two lengths. HANGAR's rail and chip row read ONE record
+   (`FOR_LABELS`), so today no facet can carry a shorter chip label. If the batch wants the PDF's
+   shape, the record grows a second field per term (`{ rail, chip }`) and the rule "the two must not
+   disagree" becomes "the two derive from one record with two fields". One table either way.
+2. **The seven labels are proposals** (the table above). `show` is the awkward one: the PDF uses
+   `Visuals` on the rail and in the chips and `VISUAL` on the card line, and HANGAR renders one word in
+   all three places through the record.
+3. **The count line reads `{n} of {total} configurations.`** where the PDF draws `36 configurations`.
+   The fuller line is what browse-ui.spec test 6 and section 6's "the actual matching count" ask
+   for, and the PDF's form is only right while nothing is filtered. If the shorter form is wanted when
+   unfiltered, it is one `{#if}` and a re-pinned test.
+4. **`Favorites` and `Recently used` are a LIBRARY VIEW, not in the address.** Pressing either narrows
+   the grid to the store's ids; the address carries the sort, the query and the chips as before, and
+   the view resets to `All configs` on arrival, because a shared `?show=favorites` would show
+   somebody else a different set. If the rows should be destinations (a page of their own, as page 4's
+   `My configs` is) rather than filters, that is 13-13's shape and this page's two rows become links.
+5. **An empty library view shows §16's line** - _No configurations found. Try a different search or
+   clear your filters._ - which is true and slightly off for a visitor who has starred nothing yet.
+   A line of its own (_You haven't starred anything yet._) would be invented, so it is asked, not
+   written. The same holds for `Recently used` before the workspace records an open.
+6. **`Recently used` reads `00` until 13-09.** `touchRecent` is the workspace's call on open
+   (13-06's note assigned it to 13-08, but the workspace page is untouched by this plan under the
+   move-clean instruction); the rail counts what the store holds, honestly zero.
+7. **A FEELS term can still arrive in the address and filter without a chip.** `?feels=generative`
+   (A-20's parameter) and a mapped legacy `?tag=` still narrow the grid, the count line says the
+   truth and `Clear filters` clears it - but the FEELS row is gone (D-11), so no chip shows the
+   filter. Retiring the parameter is a codec change in `query.ts` with its own spec; asked here.
+8. **The roving card exposes two Tab stops - its link and its star.** Every other card exposes none,
+   so Tab crosses the wall in two presses instead of one. The alternative that keeps one stop makes
+   the star unreachable from the keyboard, which is worse; a third (a key on the card that toggles
+   the star) invents a keyboard model. Recorded because e2e/browse.e2e.ts's title still says "one
+   tab stop" and its assertion now counts two elements on one card.
