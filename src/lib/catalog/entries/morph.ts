@@ -160,8 +160,9 @@
 // see the section immediately below.
 //
 // COST: Setup 579 -> 710 of 908 at the RGB444 picker corner (plan 11-09.1),
-// then 710 -> 772 in plan 12-09, 136 free. Timer still the empty string, and NO
-// KEEPER WAS ADDED - see the capitalised note above, which stands.
+// then 710 -> 772 in plan 12-09, then 772 -> 814 in plan 12.1-04 (the finger),
+// 94 free. Timer still the empty string, and NO KEEPER WAS ADDED - see the
+// capitalised note above, which stands.
 //
 // ---------------------------------------------------------------------------
 // BIGGER CORNERS, A DEAD MARGIN, AND THE TRAIL CELL FROM THE LIBRARY (12-09)
@@ -224,13 +225,65 @@
 // paints the comet only when `Q` returned a cell. (The wrong shape also costs
 // 25 characters MORE, at 797, because the guard is not free.)
 //
-// TWO CONSEQUENCES OF CALLING `Q` FROM BEHIND MORPH'S OWN END TEST, both stated
-// rather than discovered. `Q` is reached only on live codes here, so its expiry
-// path never runs for this card: a contact that goes quiet keeps its entry in
-// the library's `H` until the next onset, which `Q` expires first - and MORPH
-// has no Timer, so there is no `X` to sweep it. NOTHING IS HELD, so a stale
-// entry costs nothing: the card sends CCs, never notes. And because this card
-// returns for i > 0, the only contact the library ever tracks for it is 0.
+// `Q` NOW SITS IN FRONT OF MORPH'S OWN END TEST, NOT BEHIND IT (plan 12.1-04),
+// and the reason is the finger below: `G` has to see a lift to clear the block
+// it drew, and `G` has to come AFTER `Q` (12.1-02's finding, in the finger
+// paragraph), so both moved in front of the end test together. What that
+// changes, stated rather than discovered: `Q`'s expiry path NOW RUNS for this
+// card - a lift or a code 3 reaches `E`, which drops the contact from `H` and
+// `T` and clears its block through `V`; until 12.1-04 a quiet contact kept its
+// `H` entry until the next onset, which expired it anyway. On live codes
+// nothing moved: an onset expires `H[i]` before the cell is read either way,
+// so the cell `Q` returns and the hysteresis it applies are the same as before.
+// MORPH still has no Timer and so no `X`; NOTHING IS HELD, so a stale entry
+// never cost anything and now does not exist. And because this card returns
+// for i > 0 before either call, the only contact the library ever tracks for
+// it is 0.
+//
+// THE FINGER IS THE LIBRARY'S GRADIENT IN THE TRAIL COLOUR, ON LAYER 0 (plan
+// 12.1-04; 12.1-CONTEXT D-11, D-13). `G(s,i,e,x,y,0,@TRAILC)` draws the
+// bilinear finger over the 2x2 block of LEDs around the calibrated position,
+// peak 255 dead on an LED, on layer 0 - the layer neither the corner blocks
+// (layer 1) nor the comet (layer 2) writes - and in the SAME colour as the
+// comet, so the finger and its trail read as one thing. The colour is the
+// entry's own knob token and not a new knob (D-13: a knob would move the shape
+// character). `G` RE-ASSERTS THE COLOUR ON EVERY CALL, which is the
+// alert-layer heal: layer 0 is the layer `grid_alert_all_set` recolours
+// (grid_led.h:7; a CONFIG write, a page discard, a refused page change, a TX
+// overflow, boot), so a finger coloured once at Setup would turn grey or
+// purple after a page switch. There is no floor - `glc(...,1)` forces the
+// layer's minimum to 0 - so a cleared block is dark and the card is still
+// black at rest (restsBlack stays true; frames.json did not move).
+//
+// THE ORDER OF THE FIRST LINE IS THE WHOLE DESIGN, AND EACH PIECE HAS ITS
+// REASON:
+//
+//     if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)
+//     if e==3 or e>=5 and e<9 then return end
+//
+//   1. THE SINGLE-CONTACT RULE STAYS FIRST. A second finger is refused before
+//      `Q` or `G` sees it, so `B[1]` is never set, nothing is drawn for it, and
+//      there is nothing for a sweep to clear - the same rule as before, now
+//      split from the end-code test it used to share a line with. Measured in
+//      lua-smoke.spec.ts: a second contact pressed while the first is down
+//      lights nothing new on layer 0.
+//   2. `Q` BEFORE `G`, because `Q` calls `E` on every onset and `E` clears the
+//      contact's block through `V`: a `G` drawn before `Q` is wiped on the
+//      press that drew it. Plan 12.1-04's own interfaces block wrote `G`
+//      first; driven in wasmoon that shape lights NOTHING on a press and the
+//      finger appears only on the first move. Shipped `Q` first.
+//   3. `G` BEFORE THE END TEST, so an end code reaches it: `G` returns on
+//      `e~=1 and e~=4` after clearing the contact's previous block (a code 9
+//      draws nothing, 12.1-03), and `Q`'s `E` has already cleared it on the
+//      same lift - so the lift is clean by two paths, and the finger goes out
+//      when the finger does. Put `G` behind the end test with the old guard in
+//      front and a lift leaves the block lit forever, MORPH having no Timer to
+//      sweep it (the negative check the plan names).
+//   4. THE END TEST ITSELF IS UNCHANGED, `e==3 or e>=5 and e<9` (class B, plan
+//      11-02), and still keeps a code-9 fast tap for the weights below.
+//
+// SAME CHARACTERS AS THE PLAN'S ORDER: 772 -> 814 (+42) at the picker corner
+// either way, so every figure the plan carries holds.
 //
 // `D` IS NOT USED, AND THAT IS THE LIBRARY'S OWN ARITHMETIC RATHER THAN A
 // PREFERENCE. `D(n,l,w)` derives its timeout as `w//6` from a byte, so it
@@ -273,9 +326,10 @@
 // which is the failure mode a shared guard would have introduced.
 //
 // s.p IS INDEXED BY CORNER, NOT BY CONTACT, and that was checked rather than
-// assumed: the callback's first line is "if i>0 or e==3 or e>=5 and e<9 then
-// return end", so this card is single-contact by construction. If that guard
-// ever moves, the table's key has to move with it.
+// assumed: the callback's first words are "if i>0 then return end" (12.1-04
+// split the single-contact rule from the end-code test, which now follows the
+// two library calls), so this card is single-contact by construction. If that
+// guard ever moves, the table's key has to move with it.
 //
 // THE TOKEN FOR THE TRAIL LENGTH IS @DECAY, NOT @TRAIL. renderLua substitutes
 // by plain string replacement, so a token that is a PREFIX of another token is
@@ -301,14 +355,19 @@
 // THE STRING BELOW IS A TEMPLATE OVER CANONICAL LUA. Rendered at the defaults
 // by renderLua it is byte-identical to the canonical text measured against the
 // pinned minifier: a fixed point of compressScript and accepted by
-// checkSyntax. THE CORNER THE 908 GATE READS IS 772, leaving 136 free, and it
-// is the RGB444 PICKER corner (D-06) rather than the all-longest corner of the
-// declared palettes - the two coincide here only because @TRAILC already
-// declares 255,255,255, and plan 11-07 measured them 21 characters apart on
-// CONSOLE. At the defaults it is 768. It was 579 before plan 11-09.1's corner
-// tap and 710 before plan 12-09's three edits, and every figure is re-measured
-// rather than inherited: 710 after the 3x3 corners (+0), 766 after the margin
-// (+56), 772 after the library call (+6).
+// checkSyntax. THE CORNER THE 908 GATE READS IS 814, leaving 94 free - under
+// the 890 BUDGET_ERROR line (_pad.ts:3076-3078) by 76 - and it is the RGB444
+// PICKER corner (D-06) rather than the all-longest corner of the declared
+// palettes - the two coincide here only because @TRAILC already declares
+// 255,255,255, and plan 11-07 measured them 21 characters apart on CONSOLE.
+// At the defaults it is 810. It was 579 before plan 11-09.1's corner tap, 710
+// before plan 12-09's three edits and 772 before plan 12.1-04's finger, and
+// every figure is re-measured rather than inherited: 710 after the 3x3
+// corners (+0), 766 after the margin (+56), 772 after the library call (+6),
+// 814 after the `G` call and the split end test (+42; @TRAILC now appears
+// TWICE, the comet's init loop and the finger, both substituted). Cheaper than
+// the pre-coloured shape D-11 replaced, because no 81-cell layer-0 colouring
+// was added to the init loop - `G` carries the colour.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -318,7 +377,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end local c=Q(s,i,e,x,y)local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end";
+  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end";
 
 // THE TIMER IS THE EMPTY STRING, WRITTEN INLINE. See the header: MORPH has no
 // Timer EVENT, and a named constant holding nothing would only invite someone

@@ -82,9 +82,10 @@
 //   ASCII hex         the six digits above             746 as 11-10 shipped it
 //
 // Those three were measured against each other on the same day and the ranking
-// is what they are for; the entry itself now costs 707 at that corner, because
-// 12-11 gave the cursor and the two controllers to the touch library. The
-// ranking did not move - the sysex half is the same nine-byte gmss.
+// is what they are for; the entry itself now costs 733 at that corner - 707
+// after 12-11 gave the cursor and the two controllers to the touch library,
+// plus 26 for 12.1-04's finger. The ranking did not move - the sysex half is
+// the same nine-byte gmss.
 //
 // SO THE SHORT ONE IS NOT A CANDIDATE, AND THE DECIDING FACT IS NOT TASTE:
 // SYSEX DATA BYTES ARE SEVEN-BIT. Every byte between the 0xF0 and the 0xF7 has
@@ -289,6 +290,46 @@
 // on `e<4`, so a code this card does not handle would otherwise reach the
 // controllers - and it still stands between a lift and the two CCs.
 //
+// THE FINGER IS THE LIBRARY'S GRADIENT IN THE CURSOR COLOUR, ON LAYER 0 (plan
+// 12.1-04; 12.1-CONTEXT D-11, D-13). `G(s,i,e,x,y,0,@CURSORC)` sits between
+// the `Q` call and the end test and draws the bilinear finger over the 2x2
+// block of LEDs around the calibrated position, peak 255 dead on an LED, on
+// layer 0 - the one layer `F` never writes (the field and the cursor cell are
+// on 1 and 2). THE COLOUR IS @CURSORC, THE ENTRY'S OWN COLOUR KNOB, and not the
+// palette colour under the finger: `G` takes ONE colour per call, the cursor
+// knob is what the cursor is, and the research's per-cell palette colour would
+// need a colour per call that `G` does not take (D-13). So the cursor cell on
+// layers 1 and 2 and the gradient on layer 0 are the same white (or the same
+// warm or cool white), and a finger between two LEDs shows both dimly in it.
+// THE PALETTE `glc` PAIR IS UNTOUCHED: `glc(a,1,@CURSORC,1)glc(a,2,@CURSORC,1)`
+// still paints the cursor cell at full brightness on both layers, so @CURSORC
+// now appears THREE times in the Setup (the corner is three characters dearer
+// than the defaults on it alone). `G` RE-ASSERTS THE COLOUR ON EVERY CALL,
+// and that is the alert-layer heal: layer 0 is the layer `grid_alert_all_set`
+// recolours (grid_led.h:7; a CONFIG write, a page discard, a refused page
+// change, a TX overflow, boot), so a finger coloured once in an init loop
+// would turn grey or purple after a page switch until the Setup re-ran. There
+// is no floor - `glc(...,1)` forces the layer's minimum to 0 - so a cell `V`
+// clears is dark and the field beneath it is exactly as `F` painted it. `Q`
+// COMES BEFORE `G`, and the order is a measurement (12.1-02): `Q` calls `E` on
+// every onset and `E` clears the contact's block through `V`, so a `G` drawn
+// before `Q` is wiped on the press that drew it. `G` COMES BEFORE THE END
+// TEST for the same reason `Q` does: a lift has to reach it (it clears the
+// contact's block and returns on `e~=1 and e~=4`; 12.1-03).
+//
+// `A` IS UNCHANGED, AND SO IS WHAT THE DAW RECEIVES (D-14). `G` reads the
+// measured map; `A` still sends the RAW sensor `x` and `127-y`, byte for byte
+// what 12-11 shipped - lua-smoke.spec.ts re-drives 12-11's own gesture and
+// compares the CC log. THE CONSEQUENCE, WRITTEN DOWN: the sensor's range runs
+// out about a third of an LED pitch INSIDE the outer LED centres
+// (calibration.ts section 1), so raw `x` reaches 0 and 127 a third of an LED
+// inside the outer LEDs, not on them - a finger dead on LED 8 reads 126, on
+// LED 0 reads 1. A calibrated `A` (`U(x,KX)*127//512`, about +25 characters)
+// would put 0 and 127 on the outer LEDs exactly and change what every learned
+// mapping on @CC and @CC + 1 receives; that is a behaviour change to an
+// instrument and not this phase's to make silently. docs/HARDWARE-AUDITION.md
+// row 26(d) asks the user whether the CC reaches 0 and 127 where they expect.
+//
 // `A` IS CALLED OUTSIDE THE `if n then ... end` BLOCK, DELIBERATELY. A finger
 // moving INSIDE one cell still moves an axis: `Q` returns nil for that sample,
 // and an `A` placed inside the gate would send nothing at all. That is the
@@ -428,30 +469,32 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 704 characters, Timer 0, both fixed points
+// against the pinned minifier: Setup 730 characters, Timer 0, both fixed points
 // of compressScript and both accepted by checkSyntax. The all-longest corner of
-// the four-knob cross-product is 707 / 0, leaving 201 free of 908, and the
-// all-shortest corner is 704 / 0.
+// the four-knob cross-product is 733 / 0, leaving 175 free of 908, and the
+// all-shortest corner is 730 / 0.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // AT THE RGB444 PICKER CORNER (D-06), WHICH IS THE CORNER THE 908 GATE ACTUALLY
-// READS: Setup 707 of 908 leaving 201 free, Timer 0 of 908 leaving the whole
-// 908 - still the most free Timer in the catalog. THAT IS THE SAME 707 THE
+// READS: Setup 733 of 908 leaving 175 free (plan 12.1-04; 707 and 201 before
+// the finger), Timer 0 of 908 leaving the whole 908 - still the most free
+// Timer in the catalog. THAT IS THE SAME 733 THE
 // DECLARED CROSS-PRODUCT GIVES, AND IT IS A COINCIDENCE RATHER THAN A RULE:
 // @CURSORC already declares 255,255,255, which is the longest literal any
 // picker can write, so this entry's declared corner and its picker corner are
 // the same point. ARC and MORPH are correct by the same accident; five entry
 // headers in this catalog are NOT, and quote the declared corner as though it
-// were the picker one. Do not read this line as the norm. AND 704 IS THE
+// were the picker one. Do not read this line as the norm. AND 730 IS THE
 // DEFAULTS FIGURE, NOT A CORNER AT ALL - it happens to equal the all-shortest
 // declared corner because every default is that knob's shortest literal, and
 // quoting it as the budget figure understates the cost by three characters.
 // @CC appears TWICE in the Setup and @CH once - `A(s,i,e,x,y,@CC,@CC+1,@CH)`
 // is the only site of any of them since 12-11 - which is why the corner is
 // three characters dearer and not four as it was when two `s:gms` calls named
-// all three.
+// all three. (@CURSORC appears three times since 12.1-04 and is 255,255,255 at
+// both corners and at the default, so it moves neither figure.)
 //
-// WHERE THE 707 CAME FROM, AS A LADDER RATHER THAN A NUMBER (all at the picker
+// WHERE THE 733 CAME FROM, AS A LADDER RATHER THAN A NUMBER (all at the picker
 // corner, all `max(compressScript(lua).length, lua.length)` after padReady):
 //
 //   608  as 11-09.2 measured and left it
@@ -461,18 +504,23 @@
 //   746  plus 0, the 32/32 re-cut (12-11) - four literals, same widths
 //   726  minus 20, the cursor cell through the library's `Q`
 //   707  minus 19, the two `s:gms` calls through the library's `A`
+//   733  plus 26, the finger through the library's `G` (12.1-04) - under the
+//        890 BUDGET_ERROR line (_pad.ts:3076-3078) by 157, and cheaper than
+//        the pre-coloured shape D-11 replaced because no 81-cell layer-0
+//        colouring was added to the init loop
 //
-// The two library steps are independent and were measured alone as well as
-// together: 726 with `Q` only, 727 with `A` only, 707 with both, so the
-// deltas add exactly. LUMEN now has 201 free on Setup and the entire 908 on
+// The two 12-11 library steps are independent and were measured alone as well
+// as together: 726 with `Q` only, 727 with `A` only, 707 with both, so the
+// deltas add exactly. LUMEN now has 175 free on Setup and the entire 908 on
 // Timer. THE TIMER WAS NEVER TOUCHED, and it is deliberately not where the
 // sysex went: a Timer that sends on every tick is a different card - it would
 // emit the cursor's colour a hundred times a second whether or not anything
 // changed. A colour message belongs to the gesture that chose the colour.
 //
-// THE LIBRARY IS NOT CHARGED TO THIS 707. `TOUCH_LIBRARY` is 769 of the SYSTEM
-// element's own 908 (element 255, event 0), which is a separate budget from
-// this entry's event 0 on the touch element - see library.ts section 1.
+// THE LIBRARY IS NOT CHARGED TO THIS 733. `TOUCH_LIBRARY` is 781 of the SYSTEM
+// element's own 908 (element 255, event 0) and `TOUCH_LIBRARY_TIMER` 705 of
+// its event 6, both separate budgets from this entry's event 0 on the touch
+// element - see library.ts section 1.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
@@ -483,7 +531,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local H={255,90,0,200,255,0,30,255,0,0,255,150,0,150,255,30,0,255,200,0,255,255,0,100,255,230,190}local function D(v)return v<10 and 48+v or 55+v end local function F(n)local a=glag(0,n)local i=n%9*3 local d=32-n//9*@DEPTH local r=H[i+1]*d//32 local g=H[i+2]*d//32 local b=H[i+3]*d//32 glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)return r,g,b end for n=0,80 do F(n)end self.c=-1 self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end if n then if s.c>=0 then F(s.c)end local r,g,b=F(n)gmss(240,125,D(r//16),D(r%16),D(g//16),D(g%16),D(b//16),D(b%16),247)local a=glag(0,n)glc(a,1,@CURSORC,1)glc(a,2,@CURSORC,1)s.c=n end A(s,i,e,x,y,@CC,@CC+1,@CH)end";
+  "--[[@cb]]local H={255,90,0,200,255,0,30,255,0,0,255,150,0,150,255,30,0,255,200,0,255,255,0,100,255,230,190}local function D(v)return v<10 and 48+v or 55+v end local function F(n)local a=glag(0,n)local i=n%9*3 local d=32-n//9*@DEPTH local r=H[i+1]*d//32 local g=H[i+2]*d//32 local b=H[i+3]*d//32 glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)return r,g,b end for n=0,80 do F(n)end self.c=-1 self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@CURSORC)if e~=1 and e~=4 and e<9 then return end if n then if s.c>=0 then F(s.c)end local r,g,b=F(n)gmss(240,125,D(r//16),D(r%16),D(g//16),D(g%16),D(b//16),D(b%16),247)local a=glag(0,n)glc(a,1,@CURSORC,1)glc(a,2,@CURSORC,1)s.c=n end A(s,i,e,x,y,@CC,@CC+1,@CH)end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 

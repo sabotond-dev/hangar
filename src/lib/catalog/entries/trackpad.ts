@@ -86,14 +86,17 @@
 // the Timer, the two events read:
 //
 //   Setup   903 of 908 at EVERY knob state - no knob token is in it -  5 free
-//   Timer   490 of 908 at the picker corner (`false`, `255,255,255`, any
-//           reach, any fade)  488 at the defaults                     418 free
+//   Timer   510 of 908 at the picker corner (`false`, `255,255,255`, any
+//           reach, any fade)  508 at the defaults                     398 free
 //
-// THE TWO TIMER FIGURES ABOVE WERE 488 AND 486 FROM THIS FILE'S FIRST COMMIT
-// UNTIL THE 12-12 GATE, two short on both. The gate re-measured the Timer at
-// all eighteen (flash, reach, fade) states with the colour at 255,255,255:
-// every `true` state reads 489 and every `false` state 490, so reach and fade
-// move nothing and the corner is any `false` state. 12-10's SUMMARY and the
+// THE TIMER WAS 490 / 488 FROM 12-12 UNTIL PLAN 12.1-04, which moved the two
+// flash centres through the measured map (+20, the section below; the Setup
+// byte-identical at 903). AND THE TWO TIMER FIGURES WERE 488 AND 486 FROM THIS
+// FILE'S FIRST COMMIT UNTIL THE 12-12 GATE, two short on both. The gate
+// re-measured the Timer at all eighteen (flash, reach, fade) states with the
+// colour at 255,255,255: every `true` state read 489 and every `false` state
+// 490, so reach and fade move nothing and the corner is any `false` state;
+// 12.1-04 re-measured the same way (509 / 510). 12-10's SUMMARY and the
 // audition table's 486 carried the short figures; the audition row is
 // corrected, the SUMMARY is a record and is pointed at rather than edited.
 //
@@ -113,7 +116,22 @@
 //   - THE POSITION is the contact's own last coordinate, read from `s.p`
 //     through `pairs` - the one contact there is while `s.n<2` - and the edge
 //     is centred on the OTHER coordinate: a rightward move lights the right
-//     column around the finger's row. Ten-bit axes, so `c[2]*9//1024`.
+//     column around the finger's row. THE CENTRE GOES THROUGH THE MEASURED
+//     MAP (plan 12.1-04; 12.1-CONTEXT D-17): the row is
+//     `(U(c[2]//8,KY)+32)//64` and the column `(U(c[1]//8,KX)+32)//64` - the
+//     library's `N` written out per axis, because `N` returns a cell and the
+//     Timer wants one axis of it. Until 12.1-04 both read the naive
+//     `c*9//1024`, the one divisor the phase exists to remove, and the bench
+//     saw it a cell early near the edges: the sensor's range runs out a third
+//     of an LED inside the outer LEDs (calibration.ts section 1), so a finger
+//     dead on row 1 (raw y = 12, hi-res 96) read `96*9//1024 = 0` - the top
+//     row. `c//8` IS THE HI-RES TO SENSOR STEP: `txma(1023)` makes the
+//     firmware's lerp the identity at eight times the 0..127 scale (research
+//     section 1.1), so the ten-bit coordinate divided by eight is the raw
+//     sensor value the knot tables were measured in, and `U` clamps it inside
+//     the outer knots. +10 characters per axis, +20 in the Timer, 398 free;
+//     the Setup does not move, because the flash was already painted from the
+//     Timer and the position was already stored hi-res.
 //   - "ROUNDED": the cells fall off from the centre by a quadratic,
 //     `@T*(16-k*k)//16*6`. Every value is a multiple of six BY CONSTRUCTION -
 //     the `*6` is the last operation - so every one lands on phase 0 through
@@ -138,7 +156,7 @@
 //     single-finger branch, and the Timer's `s.n<2` guard keeps a second
 //     finger landing between two Timer calls from being painted twice. The
 //     bench line describes a finger moving a pointer; if the user wants the
-//     scroll to flash too, that is a Timer-side addition with 420 characters
+//     scroll to flash too, that is a Timer-side addition with 398 characters
 //     of room.
 //   - THE HOLD-OFF SUPPRESSES THE FLASH along with the pointer: for four
 //     samples after a contact change nothing is sent and `s.u` is not written.
@@ -211,7 +229,7 @@ const SETUP =
   "--[[@cb]]self:txma(1023)self:tyma(1023)gmbs(3,0)self.r=0 local function z(s)s.p={}s.n=0 s.k=0 s.m=0 s.w=0 s.j=0 s.q=0 end z(self)self.touch_cb=function(s,i,e,x,y)if s.q>25 then z(s)end s.q=0 local o,g,f,h=true,0,0,0 while o and g<24 do g=g+1 local c,t=s.p[i],e==3 or e>=5 if e==4 or e>7 or not c and not t then if not c then s.n=s.n+1 s.k=glim(s.k,s.n,9)end c={x,y}s.p[i]=c s.j=4 end if t then if c then s.p[i]=nil s.n=s.n-1 s.j=4 if s.n<1 then if s.r<1 and e>4 and s.m<s.k*120 then gmbs(glim(s.k,1,2),1)s.r=4 end gtt(0,20)z(s)end end else local u,v=x-c[1],y-c[2]c[1]=x c[2]=y s.m=s.m+math.abs(u)+math.abs(v)if s.n>1 then s.w=s.w+v else f=f+u h=h+v end end o=s:touch_pop()i=s:tid()e=s:tev()x=s:txv()y=s:tyv()end if s.j>0 then s.j=s.j-1 elseif s.n>1 then local d=(s.w+64)//128 if d~=0 then s.w=s.w-d*128 s.m=999 gmms(3,-d)end else gmms(1,glim(f,-63,63))gmms(2,glim(h,-63,63))s.u,s.v=f,h end end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self if s.n then if s.r>0 then s.r=s.r-1 if s.r<1 then gmbs(3,0)end end s.q=s.q+1 if s.q==100 then gmbs(3,0)end if not s.i then s.i=1 for n=0,80 do glc(glag(0,n),1,@C,1)end end if @FX and s.u and s.n<2 then local f,h=s.u,s.v s.u=nil if f*f+h*h>2 then for _,c in pairs(s.p)do local u,p,q,o=f,1,9,c[2]*9//1024 if h*h>f*f then u,p,q,o=h,9,1,c[1]*9//1024 end for k=-(@N//2),@N//2 do D((u>0 and 8 or 0)*p+glim(o+k,0,8)*q,1,@T*(16-k*k)//16*6)end end end end end";
+  "--[[@cb]]gtt(0,20)local s=self if s.n then if s.r>0 then s.r=s.r-1 if s.r<1 then gmbs(3,0)end end s.q=s.q+1 if s.q==100 then gmbs(3,0)end if not s.i then s.i=1 for n=0,80 do glc(glag(0,n),1,@C,1)end end if @FX and s.u and s.n<2 then local f,h=s.u,s.v s.u=nil if f*f+h*h>2 then for _,c in pairs(s.p)do local u,p,q,o=f,1,9,(U(c[2]//8,KY)+32)//64 if h*h>f*f then u,p,q,o=h,9,1,(U(c[1]//8,KX)+32)//64 end for k=-(@N//2),@N//2 do D((u>0 and 8 or 0)*p+glim(o+k,0,8)*q,1,@T*(16-k*k)//16*6)end end end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 

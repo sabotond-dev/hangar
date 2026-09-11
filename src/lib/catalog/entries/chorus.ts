@@ -86,7 +86,8 @@
 // A PAD BOUNDARY IS A CELL BOUNDARY, WHICH IS WHY THE HYSTERESIS COMES FREE.
 // A pad is 3x3 cells - z = n%9//3 + n//9//3*3 - so every boundary between two
 // pads is also a boundary between two cells, and `Q`'s per-axis hysteresis
-// (+-10 raw units around a cell centre, an effective margin of ~3.9) is
+// (since 12.1, a hold band of 45/64 of the LOCAL LED pitch on the measured map -
+// eight raw units between LED 4 and 5, three on the outer x segment, D-18) is
 // therefore ZONE hysteresis for this card at no extra cost. A finger resting on
 // the line between two pads holds one chord instead of retriggering both, which
 // is the same defect PROBE-RESULTS-2026-09-10.md Q2 measured on the sequencers.
@@ -106,17 +107,49 @@
 // exemption. The event table itself lives in src/vendor/botor/pad-sim.ts:228-241
 // and in zona-docs/docs/ZONA_REFERENCE.md s4.6 and is CITED, never restated.
 //
+// THE FINGER IS THE LIBRARY'S GRADIENT, IN WHITE, ON LAYER 0 (plan 12.1-04;
+// 12.1-CONTEXT D-11, D-13). `G(s,i,e,x,y,0,255,255,255)` follows the `Q` call
+// and draws the bilinear finger over the 2x2 block of LEDs around the
+// calibrated position, peak 255 dead on an LED, on layer 0 - the one layer the
+// chessboard (layer 1) and the bloom (layer 2) never write. THE COLOUR IS A
+// LITERAL, NOT A KNOB: a knob would move this card's shape character and
+// demote every captured stamp (D-13), and white is the colour of a finger on a
+// card whose two other layers are already colour. G RE-ASSERTS THE COLOUR ON
+// EVERY CALL, and that is the alert-layer heal: layer 0 is the layer
+// `grid_alert_all_set` recolours (grid_led.h:7; on a CONFIG write, a page
+// discard, a refused page change, a TX overflow and at boot), so a finger
+// coloured once in an init loop would turn grey or purple after a page switch
+// until the Setup re-ran. There is no floor - `glc(...,1)` forces the layer's
+// minimum to 0 - so a cell `V` clears is dark, and the pad at rest is exactly
+// what it was. `Q` COMES BEFORE `G`, and the order is a measurement (12.1-02):
+// `Q` calls `E` on every onset, `E` clears the contact's block through `V`, so
+// a `G` drawn before `Q` is wiped on the same press that drew it. And the cell
+// `Q` returns is now the LED under the finger, so the pad the chord lands on
+// is the pad the finger is lighting; a finger between two pads holds one
+// chord by `Q`'s hysteresis (a fraction of the local LED pitch, D-18) and
+// lights both LEDs dimly. `R` is untouched and still idempotent: `E` calls it
+// after `V` on every path, and it returns unless `s.c` is the contact being
+// expired, so the block clear and the note-off travel together.
+//
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 793 characters, Timer 29, both fixed
-// points of compressScript and both accepted by checkSyntax. The all-longest
-// corner of the six-knob cross-product is 796 / 29, against a budget of 908 an
-// event - 112 free in Setup and 879 in the Timer.
-// MEASURED BEFORE AND AFTER AT THE RGB444 PICKER CORNER (plan 12-09):
-// Setup 771 -> 796 (+25), Timer 174 -> 29 (-145), the pair 945 -> 825 (-120).
-// The Setup grows because R and the library call are new text and the two
-// per-contact tables it removes are only eighteen characters; the Timer is
-// where the library pays for itself.
+// against the pinned minifier: Setup 819 characters, Timer 29, both fixed
+// points of compressScript and both accepted by checkSyntax. THE CORNER THE
+// 908 GATE READS IS THE RGB444 PICKER CORNER (D-06): Setup 822 / Timer 29,
+// against a budget of 908 an event - 86 FREE IN SETUP and 879 in the Timer,
+// under the 890 BUDGET_ERROR line (_pad.ts:3076-3078) with 68 to spare, and
+// THE TIGHTEST CARD PLAN 12.1-04 TOUCHES.
+// MEASURED BEFORE AND AFTER AT THE RGB444 PICKER CORNER, every figure re-run
+// under the pinned compressScript in this tree rather than inherited:
+//   plan 12-09    Setup 771 -> 796 (+25), Timer 174 -> 29 (-145), the pair
+//                 945 -> 825 (-120). The Setup grows because R and the library
+//                 call are new text and the two per-contact tables it removes
+//                 are only eighteen characters; the Timer is where the library
+//                 pays for itself.
+//   plan 12.1-04  Setup 796 -> 822 (+26), the `G` call; Timer unmoved at 29;
+//                 defaults 793 -> 819. Cheaper than the pre-coloured shape
+//                 D-11 replaced, because there is no 81-cell layer-0 colouring
+//                 in the init loop - `G` carries the colour itself.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
@@ -126,7 +159,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.h[s.z][j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if not n then return end local z=n%9//3+n//9//3*3 if z==s.z then s.c=i return end if s.z then R(s,s.c)end for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end s.z=z s.c=i end gtt(0,100)";
+  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.h[s.z][j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local z=n%9//3+n//9//3*3 if z==s.z then s.c=i return end if s.z then R(s,s.c)end for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end s.z=z s.c=i end gtt(0,100)";
 
 const TIMER = "--[[@cb]]gtt(0,100)X(self,20)";
 

@@ -96,9 +96,11 @@
 //     "CONSOLE: needs to setup a framework how your finger interacts with the
 //     LEDs because everything needs touch detection." The framework is
 //     src/lib/catalog/library.ts, written into the system element's Setup, and
-//     this entry's whole finger-to-cell path is now one call:
+//     this entry's whole finger-to-cell path is now one call, followed since
+//     plan 12.1-04 by the library's painter (the paragraph on the finger,
+//     further down):
 //
-//         local n=Q(s,i,e,x,y)if not n then return end
+//         local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end
 //         local c=n%9 local r=n//9
 //
 //     THREE THINGS LEFT WITH THAT LINE, and none of them was deleted - each one
@@ -162,6 +164,31 @@
 // than a black square. The level and the mute cap are painted on BOTH layers,
 // because one layer can never exceed 254/512 of the colour asked for.
 //
+// THE FINGER IS THE LIBRARY'S GRADIENT, IN WHITE, ON LAYER 0 (plan 12.1-04;
+// 12.1-CONTEXT D-11, D-13). `G(s,i,e,x,y,0,255,255,255)` follows the `Q` call
+// and draws the bilinear finger over the 2x2 block of LEDs around the
+// calibrated position, peak 255 dead on an LED, on layer 0 - the one layer
+// `P` never writes (the rails, the levels and the mute caps are all on 1 and
+// 2), so the strips are untouched by it and it is untouched by a repaint. THE
+// COLOUR IS A LITERAL, NOT A KNOB: a knob would move this card's shape
+// character and demote every captured stamp (D-13), and white reads against
+// every level, rail and mute colour the three knobs declare. `G` RE-ASSERTS
+// THE COLOUR ON EVERY CALL, and that is the alert-layer heal: layer 0 is the
+// layer `grid_alert_all_set` recolours (grid_led.h:7; a CONFIG write, a page
+// discard, a refused page change, a TX overflow, boot), so a finger coloured
+// once in an init loop would turn grey or purple after a page switch until
+// the Setup re-ran. There is no floor - `glc(...,1)` forces the layer's
+// minimum to 0 - so a cell `V` clears is dark. `Q` COMES BEFORE `G`, and the
+// order is a measurement (12.1-02): `Q` calls `E` on every onset and `E`
+// clears the contact's block through `V`, so a `G` drawn before `Q` is wiped
+// on the press that drew it. `G` sits before the `if not n then return end`,
+// so it sees every sample - a finger sliding INSIDE one cell, where `Q` says
+// nil, still moves the gradient, and a lift clears it. And the cell `Q`
+// returns is now the LED under the finger, so the strip you move is the strip
+// the finger is lighting, and the mute cap you tap is the cap under it.
+// CONSOLE needed nothing but the call: no `R` (it holds no note and paints
+// nothing on layer 0 of its own), no Timer, no init-loop colouring.
+//
 // THE TRAPS THIS ENTRY CONTAINS.
 //
 //   - EVERY DIVISION IS FLOORED. x*9//128, y*9//128 and *127//7 are all `//`.
@@ -213,11 +240,11 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 758 characters, Timer 0, both fixed points
+// against the pinned minifier: Setup 784 characters, Timer 0, both fixed points
 // of compressScript and both accepted by checkSyntax.
 //
 // TWO CORNERS, AND THE BINDING ONE IS NOT THE PALETTE'S. The all-longest corner
-// a VISITOR CAN ACTUALLY REACH is 781 / 0, leaving 127 free of 908, because
+// a VISITOR CAN ACTUALLY REACH is 807 / 0, leaving 101 free of 908, because
 // D-06 lets the colour picker write any of the 4,096 RGB444 literals and
 // 255,255,255 is two characters longer than the longest colour this card
 // declares. THREE colour tokens, occurring 3 + 2 + 2 times, is 19 of the 23
@@ -233,6 +260,14 @@
 // than it adds: 852 -> 781 at the picker corner, 829 -> 758 at the defaults, a
 // net -71 in both columns. See the self.q section above for what the 71 is.
 //
+// AND THEN THE FINGER, AT +26 (plan 12.1-04): 781 -> 807 AT THE PICKER CORNER,
+// 101 FREE, 758 -> 784 at the defaults - the `G` call and nothing else, under
+// the 890 BUDGET_ERROR line (_pad.ts:3076-3078) by 83. Cheaper than the
+// pre-coloured shape D-11 replaced, because no 81-cell layer-0 colouring was
+// added to the init loop - `G` carries the colour. Every figure re-measured
+// under the pinned compressScript in this tree, canonical and checkSyntax
+// true, rather than inherited.
+//
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
 // verbatim into the budget. Everything worth saying about this configuration is
@@ -242,7 +277,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.v={}self.m={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if not n then return end local c=n%9 local r=n//9 if r==0 then local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//7,0)P(s,c)return end local h=8-r if h~=s.v[c]then s.v[c]=h if not s.m[c]then s:gms(@CH,176,@CC+c,h*127//7,0)end P(s,c)end end";
+  "--[[@cb]]self.v={}self.m={}local function P(s,c)local m=s.m[c]local h=s.v[c]for r=0,8 do local a=glag(0,c+r*9)if r==0 then if m then glc(a,1,@MUTEC,1)glc(a,2,@MUTEC,1)else glc(a,1,@RAILC,1)glc(a,2,@RAILC,1)end glp(a,1,255)glp(a,2,255)elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)glp(a,2,8-r<h and 90 or 0)else glc(a,1,@LEVELC,1)glc(a,2,@LEVELC,1)local p=8-r<h and 255 or 0 glp(a,1,p)glp(a,2,p)end end end for c=0,8 do self.v[c]=4 P(self,c)end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local c=n%9 local r=n//9 if r==0 then local m=not s.m[c]s.m[c]=m s:gms(@CH,176,@CC+c,m and 0 or s.v[c]*127//7,0)P(s,c)return end local h=8-r if h~=s.v[c]then s.v[c]=h if not s.m[c]then s:gms(@CH,176,@CC+c,h*127//7,0)end P(s,c)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
