@@ -1,9 +1,13 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// THIRTY-FOUR tests since plan 12.1-03, which appended two to the gradient
-// block: the four sequencers under G at all 81 LED centres with the sweeps'
-// centre dot on both expiry paths, and ARC's stop through N (12.1-04 adds two
-// more). THIRTY-TWO since plan 12.1-02, which appended the gradient block at
+// THIRTY-SIX tests since plan 12.1-04, which appended two to the gradient
+// block: CHORUS, CONSOLE, MORPH and LUMEN under G at nine LED centres and a
+// midpoint in their own colours (MORPH's lift and second finger, LUMEN's A
+// byte-identical to 12-11), and TRACKPAD's flash centre through the map.
+// THIRTY-FOUR since plan 12.1-03, which appended two: the four sequencers
+// under G at all 81 LED centres with the sweeps' centre dot on both expiry
+// paths, and ARC's stop through N. THIRTY-TWO since plan 12.1-02, which
+// appended the gradient block at
 // the end of the file (three tests) and re-aimed every gesture that reads a
 // cell through the library's `Q` at the MEASURED sensor map (calibration.ts)
 // instead of the naive `t*9//128` centres. TWENTY-NINE since plan 12-10
@@ -8600,6 +8604,436 @@ describe("the gradient (12.1)", () => {
     }
     process.stdout.write(
       "\nARC'S STOP THROUGH N (plan 12.1-03):\n" + report.join("\n") + "\n",
+    );
+  }, 60000);
+
+  it("draws the finger on CHORUS, CONSOLE, MORPH and LUMEN in each entry's colour at nine LED centres and a midpoint, follows MORPH's and LUMEN's colour knobs, clears MORPH's on a lift before its early return and refuses its second finger, and leaves LUMEN's A byte-identical to 12-11", async () => {
+    // PLAN 12.1-04. The four remaining hand-authored Setups that read a cell
+    // now call `G(s,i,e,x,y,0,<colour>)` after `Q` and before their own early
+    // return - white on CHORUS and CONSOLE (D-13), @TRAILC on MORPH, @CURSORC
+    // on LUMEN. Layer 0 is the finger's alone on all four: the chessboard and
+    // the bloom, the strips, the corners and the comet, the field and the
+    // cursor cell are all on layers 1 and 2. Every coordinate is a knot from
+    // calibration.ts, never a literal; every colour is read off the rendered
+    // Setup's one G call, never a knob.
+    const report: string[] = [];
+    const midX = Math.floor((KX[4] + KX[5]) / 2);
+    /** The four corners, the four edge midpoints, the centre: (c, r) pairs. */
+    const NINE: readonly [number, number][] = [
+      [0, 0],
+      [8, 0],
+      [0, 8],
+      [8, 8],
+      [4, 0],
+      [0, 4],
+      [8, 4],
+      [4, 8],
+      [4, 4],
+    ];
+
+    for (const id of ["chorus", "console", "morph", "lumen"]) {
+      const entry = entryById(id);
+      const colour = fingerColourOf(entry);
+      const { host, sim } = await open(entry);
+      try {
+        expect(host.errors, `${id}: the Setup raised`).toEqual([]);
+        expect(
+          litOnLayer0(sim),
+          `${id}: layer 0 at rest is dark - nothing but G writes it`,
+        ).toEqual({});
+
+        // 1. NINE LED CENTRES. Press dead on LED (c, r), read layer 0 while
+        //    pressed, lift, read again: that one cell at 255 in the entry's
+        //    colour and no other layer-0 cell above 0; dark again after.
+        const marks: string[] = [];
+        for (const [c, r] of NINE) {
+          const cell = c + r * 9;
+          host.touchDown(0, KX[c], KY[r]);
+          host.tick();
+          const got = litOnLayer0(sim);
+          expect(
+            got,
+            `${id}: a press dead on LED (${c},${r}) at (${KX[c]},${KY[r]}) ` +
+              "must light exactly its own cell at 255 on layer 0",
+          ).toEqual({ [cell]: 255 });
+          expect(
+            colour0(sim, cell),
+            `${id}: cell ${cell} is not in the entry's finger colour`,
+          ).toEqual(colour);
+          marks.push(`${cell}`);
+          host.touchUp(0, KX[c], KY[r]);
+          host.tick();
+          expect(
+            litOnLayer0(sim),
+            `${id}: after the lift from LED (${c},${r}) layer 0 is not dark`,
+          ).toEqual({});
+        }
+        expect(host.errors, `${id}: ${host.errors.join(" | ")}`).toEqual([]);
+
+        // 2. THE MIDPOINT between LED 4 and 5 in x on row 4: exactly two
+        //    layer-0 cells, 40 and 41, at the bilinear weights.
+        host.touchDown(0, midX, KY[4]);
+        host.tick();
+        const pair = litOf(expectedFinger(midX, KY[4]).phases);
+        expect(Object.keys(pair), "the midpoint is a pair").toHaveLength(2);
+        const midGot = litOnLayer0(sim);
+        expect(
+          Object.keys(midGot),
+          `${id}: the midpoint press lights exactly two layer-0 cells`,
+        ).toHaveLength(2);
+        expect(
+          midGot,
+          `${id}: the midpoint pair at the computed weights`,
+        ).toEqual(pair);
+        host.touchUp(0, midX, KY[4]);
+        host.tick();
+        expect(litOnLayer0(sim), `${id}: dark after the midpoint lift`).toEqual(
+          {},
+        );
+        report.push(
+          `  ${entry.name}: nine centres lit their own cell (${marks.join(" ")}) ` +
+            `in ${colour.join(",")}; midpoint (${midX},${KY[4]}) lit ` +
+            Object.entries(midGot)
+              .map(([cell, p]) => `${cell}=${p}`)
+              .join(" "),
+        );
+
+        // 3. MORPH: THE LIFT REACHES G, AND THE SECOND FINGER DOES NOT. Its
+        //    callback returns early on an end code (`e==3 or e>=5 and e<9`)
+        //    and for any contact but the first (`i>0`); `Q` and `G` sit in
+        //    front of the end test and behind the single-contact rule, in
+        //    that order (morph.ts, the four-point paragraph). So a lift with
+        //    code 5 clears the block - through Q's E and again through G's
+        //    own end branch - and a second contact pressed while the first is
+        //    down draws nothing: `B[1]` is never set.
+        if (id === "morph") {
+          const cell = 2 + 3 * 9;
+          host.touchDown(0, KX[2], KY[3]);
+          host.tick();
+          expect(litOnLayer0(sim), "morph: the press lights its LED").toEqual({
+            [cell]: 255,
+          });
+          expect(host.globalSize("B"), "morph: G recorded the block").toBe(1);
+          host.touchUp(0, KX[2], KY[3]);
+          host.tick();
+          expect(
+            litOnLayer0(sim),
+            "morph: a lift (code 5) left the finger lit - G is not reached " +
+              "before the early return, and MORPH has no Timer to sweep it",
+          ).toEqual({});
+          expect(host.globalSize("B"), "morph: the block is forgotten").toBe(0);
+
+          host.touchDown(0, KX[2], KY[3]);
+          host.tick();
+          const midiBefore = host.midi.length;
+          host.touchDown(1, KX[6], KY[6]);
+          host.tick();
+          host.touchMove(1, KX[6] + 1, KY[6]);
+          host.tick();
+          expect(
+            litOnLayer0(sim),
+            "morph: a second contact drew a finger - the single-contact rule " +
+              "no longer comes before G",
+          ).toEqual({ [cell]: 255 });
+          expect(
+            host.globalSize("B"),
+            "morph: the second contact recorded a block",
+          ).toBe(1);
+          expect(
+            host.midi.length - midiBefore,
+            "morph: the second contact spoke on the wire",
+          ).toBe(0);
+          host.touchUp(1, KX[6] + 1, KY[6]);
+          host.tick();
+          host.touchUp(0, KX[2], KY[3]);
+          host.tick();
+          expect(litOnLayer0(sim), "morph: dark after both lifts").toEqual({});
+          report.push(
+            "  MORPH: lift with code 5 -> layer 0 dark, B empty; a second " +
+              "finger while the first is down -> nothing new lit, 0 MIDI",
+          );
+        }
+        expect(host.errors, `${id}: ${host.errors.join(" | ")}`).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 3b. THE FINGER FOLLOWS THE ENTRY'S OWN COLOUR KNOB (D-13): MORPH hands G
+    //     @TRAILC and LUMEN @CURSORC, so turning that knob to a value that is
+    //     NOT white must turn the layer-0 finger with it. Clause 1 reads the
+    //     colour off the rendered Setup and cannot tell a knob token from a
+    //     literal white at the defaults, where both render 255,255,255 on
+    //     LUMEN; this clause renders the knob at a non-default, non-white
+    //     index and reads the knob, so a G handed a literal in place of the
+    //     token - or the default in place of the knob - reddens here.
+    for (const [id, knobId] of [
+      ["morph", "trailColour"],
+      ["lumen", "cursor"],
+    ] as const) {
+      const entry = entryById(id);
+      const knob = entry.knobs.find((k) => k.id === knobId);
+      expect(knob, `${id} declares a ${knobId} knob`).toBeDefined();
+      const shipped = entry.defaults[knobId] ?? knob!.default;
+      const index = knob!.values.findIndex(
+        (v, i) => v !== "255,255,255" && i !== shipped,
+      );
+      expect(
+        index,
+        `${id}: a non-white, non-default ${knobId} value exists`,
+      ).not.toBe(-1);
+      const want = knob!.values[index].split(",").map(Number);
+      const { setup, timer } = renderLua(entry, { [knobId]: index });
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup,
+        timer: timer.trim() === "" ? undefined : timer,
+      });
+      try {
+        host.touchDown(0, KX[5], KY[2]);
+        host.tick();
+        expect(
+          litOnLayer0(sim),
+          `${id}: the press at the ${knobId} index ${index} lights its LED`,
+        ).toEqual({ [5 + 2 * 9]: 255 });
+        expect(
+          colour0(sim, 5 + 2 * 9),
+          `${id}: the finger did not follow the ${knobId} knob to ` +
+            `${want.join(",")} - G is not being handed the entry's own colour ` +
+            "token (D-13)",
+        ).toEqual(want);
+        host.touchUp(0, KX[5], KY[2]);
+        host.tick();
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          `  ${entry.name}: ${knobId} at index ${index} (${want.join(",")}) ` +
+            `-> the finger reads ${colour0(sim, 5 + 2 * 9).join(",")} through ` +
+            "the knob",
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // 4. LUMEN'S `A` IS UNCHANGED (D-14): re-drive 12-11's own gesture from
+    //    its test above - DOWN (60,60), MOVE (61,60), MOVE (61,62), MOVE
+    //    (62,62) - and compare the axis-CC log byte for byte against a Setup
+    //    that is NOTHING BUT the same `A` call, and against the four answers
+    //    12-11 asserted: nothing on the DOWN, then [CC, 61], [CC+1, 127-62],
+    //    [CC, 62]. Raw x and 127-y, on the raw sensor scale - so 0 and 127
+    //    are reached a third of an LED inside the outer LEDs (the calibrated
+    //    A the row 26 note costs at about +25 is not this phase's).
+    {
+      const entry = entryById("lumen");
+      const CC = knobValueOf(entry, "cc");
+      const CH = knobValueOf(entry, "channel");
+      const GESTURE: readonly ["down" | "move", number, number][] = [
+        ["down", 60, 60],
+        ["move", 61, 60],
+        ["move", 61, 62],
+        ["move", 62, 62],
+      ];
+      const drive = (host: {
+        touchDown: (id: number, x: number, y: number) => void;
+        touchMove: (id: number, x: number, y: number) => void;
+        tick: () => void;
+        midi: readonly HostMidi[];
+      }): [number, number, number][] => {
+        for (const [kind, x, y] of GESTURE) {
+          if (kind === "down") host.touchDown(0, x, y);
+          else host.touchMove(0, x, y);
+          host.tick();
+        }
+        return host.midi
+          .filter((m) => m.cmd === 176 && (m.p1 === CC || m.p1 === CC + 1))
+          .map((m) => [m.ch, m.p1, m.p2]);
+      };
+      const { host } = await open(entry);
+      const bare = await createLuaHost({
+        sim: new PadSim(blankPadState()),
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup:
+          "--[[@cb]]self.touch_cb=function(s,i,e,x,y)" +
+          `A(s,i,e,x,y,${CC},${CC + 1},${CH})end`,
+        timer: undefined,
+      });
+      try {
+        const lumenLog = drive(host);
+        const bareLog = drive(bare);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        expect(
+          lumenLog,
+          "lumen: the axis CC pair is not byte-identical to a bare A call - " +
+            "something between Q, G and the end test moved what A sends",
+        ).toEqual(bareLog);
+        expect(
+          lumenLog,
+          "lumen: the axis CC pair is not what 12-11's test recorded for " +
+            "the same raw coordinates",
+        ).toEqual([
+          [CH, CC, 61],
+          [CH, CC + 1, 127 - 62],
+          [CH, CC, 62],
+        ]);
+        report.push(
+          `  LUMEN: A over 12-11's gesture -> ` +
+            lumenLog.map(([, p1, p2]) => `cc${p1}=${p2}`).join(" ") +
+            " on both the entry and a bare A; raw, uncalibrated (D-14)",
+        );
+      } finally {
+        host.close();
+        bare.close();
+      }
+    }
+
+    process.stdout.write(
+      "\nTHE GRADIENT ON CHORUS, CONSOLE, MORPH AND LUMEN (plan 12.1-04):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 120000);
+
+  it("centres TRACKPAD's edge flash on the calibrated row and column, where the naive divisor was one off near the edge", async () => {
+    // PLAN 12.1-04 (D-17). The Timer's two flash centres read
+    // `(U(c[2]//8,KY)+32)//64` and `(U(c[1]//8,KX)+32)//64` in place of
+    // `c*9//1024`. The finger sits dead on LED row 1 in hi-res - `KY[1]*8`,
+    // because `txma(1023)` is the identity lerp at eight times the sensor
+    // scale - and moves right; the right column must flash centred on row 1.
+    // The naive divisor, computed here beside it, reads that same finger as
+    // row 0: the one-row-off the bench saw near the edges. Then the same for
+    // a column on an upward move at `KX[1]*8`.
+    const entry = entryById("trackpad");
+    const { setup, timer } = renderLua(entry);
+    const reach = knobValueOf(entry, "reach");
+    const naiveOf = (hiRes: number): number => Math.floor((hiRes * 9) / 1024);
+    const phase1 = (sim: PadSim, cell: number): number =>
+      sim.layer(hwOfCell(cell), 1).pha;
+    const report: string[] = [];
+
+    type Axis = {
+      label: string;
+      /** The finger's fixed hi-res coordinate on the axis the flash is centred on. */
+      fixed: number;
+      /** The LED index that coordinate is dead on. */
+      led: number;
+      /** The drag: start (x, y) and per-sample delta. */
+      from: [number, number];
+      delta: [number, number];
+      /** The edge that flashes, as a cell reader: k along the edge -> cell. */
+      edgeCell: (k: number) => number;
+    };
+    const axes: readonly Axis[] = [
+      {
+        label: "rightward at hi-res y = KY[1]*8",
+        fixed: KY[1] * 8,
+        led: 1,
+        from: [200, KY[1] * 8],
+        delta: [40, 0],
+        edgeCell: (row) => 8 + row * 9,
+      },
+      {
+        label: "upward at hi-res x = KX[1]*8",
+        fixed: KX[1] * 8,
+        led: 1,
+        from: [KX[1] * 8, 800],
+        delta: [0, -40],
+        edgeCell: (col) => col,
+      },
+    ];
+
+    for (const axis of axes) {
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup,
+        timer,
+      });
+      try {
+        expect(host.coordMax, "trackpad: ten-bit axes").toBe(1023);
+        host.run(4);
+        let [x, y] = axis.from;
+        host.touchDown(0, x, y);
+        host.run(2);
+        // Eight samples two ticks apart, as 12-10 drives it; the Timer paints
+        // the first surviving delta after the hold-off. Snapshot layer 1 the
+        // first tick anything on it is lit.
+        let snapshot: number[] | undefined;
+        for (let i = 0; i < 8 && !snapshot; i += 1) {
+          x += axis.delta[0];
+          y += axis.delta[1];
+          host.touchMove(0, x, y);
+          for (let t = 0; t < 2 && !snapshot; t += 1) {
+            host.tick();
+            const lit = Array.from({ length: 81 }, (_, c) => phase1(sim, c));
+            if (lit.some((p) => p > 0)) snapshot = lit;
+          }
+        }
+        expect(snapshot, `trackpad: ${axis.label} lit nothing`).toBeDefined();
+        const edge = Array.from(
+          { length: 9 },
+          (_, k) => snapshot![axis.edgeCell(k)],
+        );
+        const litK = edge.flatMap((p, k) => (p > 0 ? [k] : []));
+        const brightest = edge.indexOf(Math.max(...edge));
+        const offEdge = snapshot!.filter(
+          (p, c) =>
+            p > 0 &&
+            !Array.from({ length: 9 }, (_, k) => axis.edgeCell(k)).includes(c),
+        );
+        // The expected centre is the knot's own LED index through the map -
+        // `nearestLed(calibratedAxis(fixed // 8))` - and it is row/column 1
+        // by construction, because KY[1] IS where LED 1 reads.
+        const calibrated = nearestLed(
+          calibratedAxis(Math.floor(axis.fixed / 8), axis.delta[0] ? "y" : "x"),
+        );
+        const naive = naiveOf(axis.fixed);
+        const half = Math.floor(reach / 2);
+        const expectedK = Array.from(
+          new Set(
+            Array.from({ length: reach }, (_, j) =>
+              Math.min(Math.max(calibrated - half + j, 0), 8),
+            ),
+          ),
+        );
+        report.push(
+          `  ${axis.label} (${axis.fixed}): edge phases ${edge.join(" ")} - ` +
+            `brightest at ${brightest}, lit ${litK.join(",")}; through the map ` +
+            `${calibrated}, naive ${axis.fixed}*9//1024 = ${naive}`,
+        );
+        expect(calibrated, `trackpad: the knot is LED ${axis.led}`).toBe(
+          axis.led,
+        );
+        expect(
+          brightest,
+          `trackpad: ${axis.label} - the flash is not centred on row/column ` +
+            `${axis.led}; the Timer is not reading the calibrated centre`,
+        ).toBe(axis.led);
+        expect(
+          litK,
+          `trackpad: ${axis.label} - the lit run along the edge`,
+        ).toEqual(expectedK);
+        expect(offEdge, `trackpad: ${axis.label} lit off the edge`).toEqual([]);
+        expect(
+          naive,
+          "the naive divisor puts this finger a row/column early - the " +
+            "bench's one-off near the edge; if it agreed there would be " +
+            "nothing to prove here",
+        ).not.toBe(calibrated);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    process.stdout.write(
+      "\nTRACKPAD'S FLASH CENTRE THROUGH THE MAP (plan 12.1-04):\n" +
+        report.join("\n") +
+        "\n",
     );
   }, 60000);
 });

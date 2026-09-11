@@ -69,8 +69,15 @@ const flat = doc.replace(/\s+/g, " ");
  * entries and the first wider than the column was, so prettier re-padded
  * every row of the table; no row's text moved, and the gate below reads
  * cells trimmed.
+ *
+ * 25 -> 26 at plan 12.1-04: the other five under the gradient (row 26, CHORUS
+ * / MORPH / CONSOLE / LUMEN / TRACKPAD), five clauses (a)-(e), with D-14's
+ * question written beside LUMEN (does the raw CC reach 0 and 127 where the
+ * user expects) and D-17's beside TRACKPAD (is the flash centred on the
+ * finger's row). Five names in the Config cell, wider again than the column,
+ * so prettier re-padded every row a second time; no row's text moved.
  */
-const ROW_COUNT = 25;
+const ROW_COUNT = 26;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -214,7 +221,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-five numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-six numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",
