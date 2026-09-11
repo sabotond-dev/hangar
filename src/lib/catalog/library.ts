@@ -223,9 +223,9 @@
 //   returns one. The contract is 12-07's, unchanged; the cells now come from
 //   the measured map, so the toggle and the gradient agree on where the LEDs
 //   are because both read `U`. Callers: EUCLID, STEPS, RADAR POINTS, SONAR
-//   (12-08), CHORUS and CONSOLE (12-09), LUMEN (12-11), and every one of them
-//   again after its 12.1 re-fit - eight. Not TRACKPAD: a trackpad is relative
-//   motion and never asks which cell a finger is on.
+//   (12-08), CHORUS, MORPH and CONSOLE (12-09), LUMEN (12-11) - eight, and
+//   every one of them again after its 12.1 re-fit. Not TRACKPAD: a trackpad
+//   is relative motion and never asks which cell a finger is on.
 //
 // `X(s, n)` - THE TIMER-SIDE SWEEP. `C=C+1`, then expire every contact whose
 //   stamp is older than `n` calls. `n` IS IN TIMER CALLS AND IT IS THE
