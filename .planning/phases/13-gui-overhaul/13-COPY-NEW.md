@@ -57,6 +57,7 @@ caps are superseded and retired by name at 13-18.
 | `RESTORED_UNCONFIRMED_TITLE` | `src/lib/device/install-copy.ts` | seeded by 13-01 for 13-18 | PUT BACK was sent and its ACK never arrived | the snapshot is still held; the device may or may not be restored; do not assume either | _(not proposed here)_ | the same one §16 row |
 | `SNAPSHOT_FAILED_TITLE` | `src/lib/device/install-copy.ts` | seeded by 13-01 for 13-18 | the pre-write snapshot could not be taken | nothing was written; no install is offered until a snapshot exists, because PUT BACK would have nothing to restore | _(not proposed here)_ | the same one §16 row |
 | the open-failure `default` branch, beside `port-busy` (CONN-04) | `src/lib/transport/transport.ts:150` (`port-busy`) and `:190` (`default`) | filed by 13-02 for 13-18 | a port this browser opened once is refused on a second open because **another HANGAR tab** still holds it — observed on the user's desk during the slot probe (`PROBE-RESULTS-2026-09-10.md`, first section): session phase `unknown`, *"The port would not open"*, while the install store read `ready` with a landed snapshot | nothing was written and the store's refusal was right; **another tab of this site may be holding the ZONA**, and the way back is to close it, re-plug, reload and connect once — `port-busy` today names Grid Editor and its tray icon and never a second HANGAR tab | the probe's own sentence, offered for the batch: _Another tab may be holding your ZONA._ | none — §16 has no line for a port held by another tab |
+| the wordmark's accessible name (`label` prop of `Wordmark.svelte`) | `src/lib/ui/Wordmark.svelte` (default of the `label` prop) | landed by 13-03 for 13-18 | the header mark, read by a screen reader — the mark is the supplied logo as paths, not text, so it has no name of its own | that the mark says HANGAR, the site's name; the mark is `HANGAR` alone and `FOR ZONA` is text beside it (§3: _"Use HANGAR / for ZONA in the shell"_), so the name is the word the mark spells and nothing more | _HANGAR_ | §3 names the pair; the PDF's header draws the mark and `FOR ZONA` as two things. Uppercase because it is the brand as written and a short label, which D-05 permits |
 
 **A count the plan got wrong, recorded rather than reconciled:** 13-01-PLAN.md seeds "seven" and
 names **eight** symbols — `RESTORED_CAPTION`, `SAFE_NOTE`'s successor, and the six titles §16's single
@@ -76,3 +77,14 @@ the browser gave was not recorded.** 13-18 decides whether `port-busy`'s detail 
 (_a second HANGAR tab_) beside Grid Editor, or the `default` branch gains the sentence above, or both —
 and whether that needs the raw message reproduced first. This plan authored no string a visitor can
 read; the row above proposes the probe's own words and lands nothing.
+
+**From 13-03, one string landed and two questions recorded (D-01: ask rather than guess).** The
+wordmark's accessible name is landed as _HANGAR_ (the row above) so the mark is never nameless.
+Question one, for 13-05 and 13-18: when the shell wraps the mark in a link to `/`, does the link's name
+stay _HANGAR_ alone, or does it read the visible pair — _HANGAR for ZONA_ — since a screen reader will
+otherwise announce the mark and then the separate `FOR ZONA` text as two things? The Bible has no line.
+Question two, for the user rather than 13-18, because it is a mark and not a string: the favicon is
+still Phase 4's 9x9 pad outline in the retired `#d6ff4e` with two `rx` corners in its SVG; 13-03 kept it
+and its test unchanged as the plan asked (the wordmark is 8:1 and cannot be an icon), but the favicon
+now carries an accent the site no longer uses (D-16) and a corner the site never draws (D-01). Whether
+it is redrawn — in `#dcff71`, square — is asked here rather than decided.

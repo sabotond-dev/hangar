@@ -35,6 +35,13 @@
  * take it unchanged, and they did; the two edits in 10-02-03 are this census
  * note and the one fixture string that named an uninstalled package.
  *
+ * PLAN 13-03 ADDS A SIXTH TEST, on the one non-font asset the identity now
+ * depends on: src/lib/assets/wordmark.svg, derived from the user's supplied
+ * bible/hangar-logo-w.svg by exactly three edits (D-14 Q14). It joins this
+ * file rather than identity.spec.ts because it is about an ASSET'S SHAPE -
+ * what may sit in the tree and the archive - which is this gate's subject.
+ * The five font tests are unchanged.
+ *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
 import { execFileSync } from "node:child_process";
@@ -262,5 +269,136 @@ describe("FOUND-02 tracked font binaries (the gate npm run licenses cannot be)",
           `${row.path} while the file stays in the tree`,
       ).toBe(true);
     }
+  });
+
+  // -------------------------------------------------------------------------
+  // PLAN 13-03: THE WORDMARK ASSET, the one non-font file this gate holds.
+  //
+  // src/lib/assets/wordmark.svg is bible/hangar-logo-w.svg with exactly three
+  // edits (D-14 Q14): the viewBox re-cropped to the ink box, width and height
+  // stripped, and six #ffffff fills changed to currentColor. This test holds
+  // all three, and it RE-MEASURES the ink box from the path data - absolute
+  // M/L/C/Z, cubic extrema solved - rather than trusting the number the
+  // research parsed or the number the asset carries, so an "optimisation" that
+  // re-crops the box wrong, rounds a coordinate, or reintroduces a dimension
+  // is red here.
+  // -------------------------------------------------------------------------
+  it("the wordmark asset has no dimensions, six currentColor fills, zero hex fills, and a viewBox equal to its re-measured ink box at 8.06:1", () => {
+    const path = "src/lib/assets/wordmark.svg";
+    expect(existsSync(REPO_ROOT + path), `${path} exists`).toBe(true);
+    const svg = read(path);
+    expect(svg.length, "the asset was actually read").toBeGreaterThan(1000);
+
+    // No width, no height: the box is the CSS's to set.
+    expect(/\swidth\s*=/.test(svg), "no width attribute").toBe(false);
+    expect(/\sheight\s*=/.test(svg), "no height attribute").toBe(false);
+
+    // Six paths, six currentColor fills, no hex anywhere, nothing added.
+    const paths = [...svg.matchAll(/<path\b[^>]*\sd="([^"]*)"/g)].map(
+      (m) => m[1],
+    );
+    expect(paths.length, "the mark is six paths").toBe(6);
+    const fills = [...svg.matchAll(/\bfill="([^"]*)"/g)].map((m) => m[1]);
+    expect(
+      fills.filter((f) => f === "currentColor").length,
+      `six currentColor fills (got ${fills.join(", ")})`,
+    ).toBe(6);
+    expect(
+      (svg.match(/#[0-9a-fA-F]{3,8}/g) ?? []).length,
+      "zero hex colours - a fill that is not currentColor cannot serve the header, a focus state and print from one asset",
+    ).toBe(0);
+    expect(/<(defs|style|text)\b/.test(svg), "nothing was added").toBe(false);
+
+    // Re-measure the ink box from the path data.
+    const box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    const grow = (x: number, y: number) => {
+      box.x0 = Math.min(box.x0, x);
+      box.y0 = Math.min(box.y0, y);
+      box.x1 = Math.max(box.x1, x);
+      box.y1 = Math.max(box.y1, y);
+    };
+    // Where a cubic's derivative is zero on one axis, inside (0, 1).
+    const extrema = (p0: number, p1: number, p2: number, p3: number) => {
+      const a = -p0 + 3 * p1 - 3 * p2 + p3;
+      const b = 2 * (p0 - 2 * p1 + p2);
+      const c = p1 - p0;
+      const ts: number[] = [];
+      if (Math.abs(a) < 1e-12) {
+        if (Math.abs(b) > 1e-12) ts.push(-c / b);
+      } else {
+        const disc = b * b - 4 * a * c;
+        if (disc >= 0) {
+          const s = Math.sqrt(disc);
+          ts.push((-b + s) / (2 * a), (-b - s) / (2 * a));
+        }
+      }
+      return ts
+        .filter((t) => t > 0 && t < 1)
+        .map(
+          (t) =>
+            (1 - t) ** 3 * p0 +
+            3 * (1 - t) ** 2 * t * p1 +
+            3 * (1 - t) * t * t * p2 +
+            t ** 3 * p3,
+        );
+    };
+    let segments = 0;
+    for (const d of paths) {
+      const tokens = d.match(/[A-Za-z]|-?[0-9.]+/g) ?? [];
+      let i = 0;
+      let cmd = "";
+      let cx = 0;
+      let cy = 0;
+      const num = () => Number.parseFloat(tokens[i++]);
+      while (i < tokens.length) {
+        if (/[A-Za-z]/.test(tokens[i])) {
+          cmd = tokens[i++];
+          expect(
+            "MLCZ".includes(cmd),
+            `path command ${cmd} is one this measurement understands (absolute M, L, C, Z only)`,
+          ).toBe(true);
+          if (cmd === "Z") continue;
+        }
+        segments += 1;
+        if (cmd === "M" || cmd === "L") {
+          cx = num();
+          cy = num();
+          grow(cx, cy);
+          if (cmd === "M") cmd = "L";
+        } else {
+          const x1 = num();
+          const y1 = num();
+          const x2 = num();
+          const y2 = num();
+          const x = num();
+          const y = num();
+          for (const ex of extrema(cx, x1, x2, x)) grow(ex, cy);
+          for (const ey of extrema(cy, y1, y2, y)) grow(cx, ey);
+          cx = x;
+          cy = y;
+          grow(cx, cy);
+        }
+      }
+    }
+    expect(segments, "the paths carried segments to measure").toBeGreaterThan(
+      50,
+    );
+
+    // The viewBox IS the ink box, to a hundredth of a unit on each edge.
+    const viewBox = /viewBox="([^"]*)"/.exec(svg)?.[1] ?? "";
+    const [vx, vy, vw, vh] = viewBox.split(/\s+/).map(Number);
+    const measured = [box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0];
+    for (const [i, name] of ["x", "y", "width", "height"].entries()) {
+      expect(
+        Math.abs([vx, vy, vw, vh][i] - measured[i]),
+        `viewBox ${name} ${[vx, vy, vw, vh][i]} is the re-measured ink box's ${measured[i].toFixed(3)} within 0.01`,
+      ).toBeLessThan(0.01);
+    }
+    // And the aspect ratio is the mark's own 8.06 : 1, within 0.01.
+    const ratio = vw / vh;
+    expect(
+      Math.abs(ratio - 8.06),
+      `the viewBox is ${ratio.toFixed(3)} : 1; the mark is 8.06 : 1 (698.586 x 86.711) and a re-crop that moves it by more than 0.01 is wrong`,
+    ).toBeLessThan(0.01);
   });
 });
