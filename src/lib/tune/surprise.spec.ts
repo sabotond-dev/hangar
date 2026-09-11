@@ -78,7 +78,12 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
 
   it("two thousand draws per compiler-driven entry, every one inside 908", () => {
     const entries = compilerEntries();
-    expect(entries.length, "no compiler-driven entry was read").toBe(9);
+    // Eight since plan 12-10: the `tpad` preset is on the shelf but not in
+    // the catalog (the hand-authored TRACKPAD replaced it as the card), and
+    // SURPRISE ME draws over catalog cards. Its 512-state cross-product was
+    // never the one that could land over budget - it has no colour knob and
+    // tops out at 907 - so the property below loses no witness.
+    expect(entries.length, "no compiler-driven entry was read").toBe(8);
 
     let draws = 0;
     let distinct = 0;

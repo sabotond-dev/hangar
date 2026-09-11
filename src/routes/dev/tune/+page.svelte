@@ -50,6 +50,13 @@
      there is no /c/tpad/ page: mounting the region for it needs a probe, which
      is precisely why the probe can mount it without touching the front door.
 
+     SINCE PLAN 12-10 IT IS NOT A CATALOG CARD AT ALL. The hand-authored
+     TRACKPAD (`trackpad`) replaced it under the user's answer "selectable
+     tuning options under Trackpad"; the preset stays on HANGAR's shelf as the
+     compiler's over-budget fixture, and this page reaches it through
+     `portedEntry` rather than `byId`. Every number below is unchanged,
+     because the preset is.
+
   THE RESERVE, MEASURED. Every number below was measured on this tree with the
   pinned compiler, through $lib/pad, and is recorded in 05-12-SUMMARY.md:
 
@@ -92,7 +99,7 @@
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { byId } from "$lib/catalog";
+  import { portedEntry } from "$lib/catalog";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
   import TryOnDevice from "$lib/ui/TryOnDevice.svelte";
   import TuningRegion from "$lib/ui/TuningRegion.svelte";
@@ -105,7 +112,7 @@
   /** Scroll's last index: 907 + 3 = 910/908, and nobody moved it. */
   const OPENING_KNOBS: Readonly<Record<string, number>> = { scroll: 7 };
 
-  const entry = byId(ENTRY_ID);
+  const entry = portedEntry(ENTRY_ID);
 
   /**
    * The shape TryOnDevice takes. It is built here rather than looked up in

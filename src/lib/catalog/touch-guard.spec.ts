@@ -112,6 +112,14 @@ const OR = F("o", "r");
  * ONE ROW SINCE PLAN 12-04. It was two; FORGE's onset row left with FORGE when
  * the user's bench report removed the entry, so the table shrank by a deletion
  * rather than by a fix, and test 3's closure rule is what kept it honest.
+ *
+ * FOUR ROWS SINCE PLAN 12-10. TRACKPAD carries the vendored trackpad recipe's
+ * three event-code guards verbatim - a hardware-tested recipe that handles a
+ * code 9 by REGISTERING it as an onset and ENDING it in the same pass, which is
+ * exactly what makes a fast tap click - and the letter of both rules reads all
+ * three as wrong. The three rows say why the text is right because of the
+ * order around it, and all three are keyed on the whole branch so that the
+ * same text moved somewhere else stops being excused.
  */
 type DeclaredException = {
   readonly entry: string;
@@ -137,6 +145,58 @@ const DECLARED_EXCEPTIONS: readonly DeclaredException[] = [
       "reads the code on the first branch - it lights the zone at rate 4 for " +
       "a fast tap and 24 for a held press - so it is not merely tolerating 9, " +
       "it is using it.",
+  },
+  {
+    entry: "trackpad",
+    event: "setup",
+    rule: "ended",
+    branch: F(
+      "if s.q>25 then z(s)end s.q=0 local o,g,f,h=true,0,0,0 while o and ",
+      "g<24 do g=g+1 local c,t=s.p[i],",
+      V,
+      EQ,
+      "3 ",
+      OR,
+      " ",
+      V,
+      GE,
+      "5",
+    ),
+    reason:
+      "The vendored trackpad recipe's `t`, computed BEFORE the onset test " +
+      F("if ", V, EQ, "4 ", OR, " ", V, GT, "7") +
+      " that follows it in the same pass. A code 9 is therefore registered " +
+      "as a new contact first (`c={x,y}`) and ended second (`s.p[i]=nil`, " +
+      "the count falls to zero, the click test runs) - which is what turns " +
+      "a hardware fast tap into a click. Adding `and e<9` here would " +
+      "register the tap and never end it, so the click would never fire. " +
+      "The recipe is `_pad.ts` trackpadSetup, hardware-tested, carried " +
+      "byte for byte into a hand-authored entry by plan 12-10.",
+  },
+  {
+    entry: "trackpad",
+    event: "setup",
+    rule: "ended",
+    branch: F("if s.r<1 and ", V, GT, "4"),
+    reason:
+      "The click test, reached only inside `if t then if c then ... if " +
+      "s.n<1 then` - so the contact has ALREADY ended by the recipe's own " +
+      "`t`. This comparison asks whether that end was a real lift (5 or 9) " +
+      "rather than a code 3, because only a lift clicks; a fast tap IS a " +
+      "lift, and excluding 9 here would be the exact defect the rule " +
+      "exists to prevent. Same recipe, same plan.",
+  },
+  {
+    entry: "trackpad",
+    event: "setup",
+    rule: "started",
+    branch: F("if ", V, EQ, "4 ", OR, " ", V, GT, "7"),
+    reason:
+      "Admits 8 and 9 both, which is a superset of what the rule asks for " +
+      "(`>8`); the gate reads the literal and not the range. The recipe " +
+      "spells it `>7` and it is carried unchanged rather than narrowed, " +
+      "because narrowing a hardware-tested guard to satisfy a text scan " +
+      "would be a behaviour change on code 8 that nobody measured.",
   },
 ];
 
@@ -546,6 +606,13 @@ describe("the fast-tap guard", () => {
       "stage",
     );
     // 2 -> 1: FORGE was the second row and plan 12-04 removed the entry.
-    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(1);
+    // 1 -> 4: TRACKPAD's three, plan 12-10 - the vendored trackpad recipe's
+    // guards carried verbatim into a hand-authored entry, each one right
+    // because of the pass around it. Tests 1 and 2 print all three.
+    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(4);
+    expect(
+      DECLARED_EXCEPTIONS.filter((row) => row.entry === "trackpad").length,
+      "trackpad's rows: two ended, one started",
+    ).toBe(3);
   });
 });

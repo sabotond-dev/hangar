@@ -24,6 +24,7 @@ import { SONAR } from "./entries/sonar";
 import { STAGE } from "./entries/stage";
 import { STRIP } from "./entries/strip";
 import { STEPS } from "./entries/steps";
+import { TRACKPAD } from "./entries/trackpad";
 import { WHEELS } from "./entries/wheels";
 import type { CatalogEntry } from "./types";
 
@@ -44,6 +45,12 @@ export type {
 
 // Hand-authored Lua entries are appended here as they are authored: Phase 8's
 // seven first, then Phase 9's twenty in the order their waves land.
+//
+// PORTED is EIGHT of the nine shelf presets since plan 12-10: the `tpad`
+// preset left the catalog when TRACKPAD, the last entry below, replaced it
+// as the one trackpad card under the user's answer "selectable tuning
+// options under Trackpad". The preset itself stays on the shelf in
+// ./presets.ts as the compiler's over-budget fixture; see entries/ported.ts.
 export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   ...PORTED,
   EUCLID,
@@ -63,6 +70,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   POMODORO,
   WHEELS,
   RADAR_POINTS,
+  TRACKPAD,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -82,6 +90,8 @@ export { QUADRANT } from "./entries/quadrant";
 export { POMODORO } from "./entries/pomodoro";
 export { WHEELS } from "./entries/wheels";
 export { RADAR_POINTS } from "./entries/radar-points";
+export { TRACKPAD } from "./entries/trackpad";
+export { portedEntry } from "./entries/ported";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
 export function byId(id: string): CatalogEntry | undefined {

@@ -66,7 +66,7 @@ import {
   type PadState,
 } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
-import { byId, type CatalogEntry } from "../catalog";
+import { byId, portedEntry, type CatalogEntry } from "../catalog";
 import { compileState, costOf, fitState, measureLua, padReady } from "../pad";
 import { compilerKnobs, encodeFor, stampKnobs } from "../share/stamp";
 import { createEngine, type SimEngine } from "../sim/engine";
@@ -431,9 +431,18 @@ const eventWord = (event: "setup" | "timer"): EventWord =>
 const budgetWord = (events: OverBudgetView["events"]): BudgetEvents =>
   events === "both" ? "Setup and Timer" : eventWord(events);
 
-/** The entry, or a named throw. The closures below need a narrowed local. */
+/**
+ * The entry, or a named throw. The closures below need a narrowed local.
+ *
+ * THE SHELF IS THE FALLBACK, AND ONE CARD USES IT. Since plan 12-10 the `tpad`
+ * preset is on HANGAR's shelf but not in the catalog - the hand-authored
+ * TRACKPAD replaced it as the card - while /dev/tune/ and ladder.spec.ts still
+ * mount it as the compiler's over-budget fixture, the only card whose knob
+ * band straddles 908. `portedEntry` builds the entry the catalog used to hold;
+ * an id on neither the catalog nor the shelf still throws, by name.
+ */
 function entryFor(id: string): CatalogEntry {
-  const found = byId(id);
+  const found = byId(id) ?? portedEntry(id);
   if (!found) throw new Error(`no catalog entry with the id "${id}"`);
   return found;
 }

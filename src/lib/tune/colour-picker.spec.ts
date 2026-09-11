@@ -580,10 +580,16 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     // 13 to 12, `two` 7 to 6, `three` 4 to 3 and `noPicker` unmoved at 5; the
     // catalog 29 to 26. FORGE leaving takes one of the four worst cases the
     // six-canvas colour-rail budget is measured against out of the catalog.
+    //
+    // RE-RECORDED BY PLAN 12-10, which moved one entry between two buckets
+    // without moving the denominator: the `tpad` preset (no colour knob) left
+    // the catalog and the hand-authored TRACKPAD (one colour knob, the edge
+    // flash's) replaced it as the card, so `noPicker` 5 to 4 and `none` 12 to
+    // 13; `two` and `three` unmoved, the catalog still 26.
     expect(
       split,
-      "the colour-knob split moved. 12 entries render no selector (one colour knob), 6 render two options, 3 render three, and 5 have no picker at all",
-    ).toEqual({ none: 12, two: 6, three: 3, noPicker: 5 });
+      "the colour-knob split moved. 13 entries render no selector (one colour knob), 6 render two options, 3 render three, and 4 have no picker at all",
+    ).toEqual({ none: 13, two: 6, three: 3, noPicker: 4 });
     expect(
       three.sort(),
       "the three-colour entries are console, strip and wheels - the worst case the six-canvas budget is measured against",

@@ -39,6 +39,21 @@ const luaEntries = CATALOG.filter((e) => e.source.kind === "lua");
 const stateEntries = CATALOG.filter((e) => e.source.kind === "state");
 const presetIds = PRESETS.map((p) => p.id);
 
+/**
+ * The one shelf preset that is NOT a catalog card, by name.
+ *
+ * Plan 12-10, under the user's answer "selectable tuning options under
+ * Trackpad": the hand-authored TRACKPAD (`trackpad`) is the one trackpad card
+ * and the `tpad` preset left the catalog. It did NOT leave the shelf -
+ * presets.spec.ts still holds all nine against the vendored nine - so the
+ * ported entries are the vendored ids minus exactly this one, and a second
+ * name here would be a second decision somebody has to make in a plan.
+ */
+const SHELF_NOT_CARDED: readonly string[] = ["tpad"];
+const cardedPresetIds = presetIds.filter(
+  (id) => !SHELF_NOT_CARDED.includes(id),
+);
+
 describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
   it("carries complete metadata on every entry", () => {
     expect(CATALOG.length, "the catalog is not empty").toBeGreaterThan(0);
@@ -168,13 +183,18 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
     ).toBeLessThan(compared);
   });
 
-  it("carries all nine shelf presets, each exactly once", () => {
+  it("carries eight of the nine shelf presets, each exactly once, and names the ninth", () => {
     expect(PRESETS.length, "the vendored shelf").toBe(9);
+    for (const id of SHELF_NOT_CARDED) {
+      expect(presetIds, `${id} is a real shelf preset`).toContain(id);
+      expect(byId(id), `${id} is not a catalog card`).toBeUndefined();
+    }
+    expect(cardedPresetIds.length, "eight carded").toBe(8);
     const carried = presetEntries.map((e) =>
       e.source.kind === "preset" ? e.source.presetId : "",
     );
     expect(carried.slice().sort(), "the ported preset ids").toEqual(
-      presetIds.slice().sort(),
+      cardedPresetIds.slice().sort(),
     );
   });
 
@@ -194,8 +214,11 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
 
   it("holds knobs only on hand-authored Lua entries (D-12, TUNE-01)", () => {
     // The loop cannot be vacuous: the preset entries are anchored to the
-    // vendored shelf's own length, which is not counted from CATALOG.
-    expect(presetEntries.length, "ported entries").toBe(PRESETS.length);
+    // vendored shelf's own length, which is not counted from CATALOG - less
+    // the one shelf preset named above as not a card.
+    expect(presetEntries.length, "ported entries").toBe(
+      PRESETS.length - SHELF_NOT_CARDED.length,
+    );
     expect(
       CATALOG.length,
       "every entry is a preset, a state or a lua entry",

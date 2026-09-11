@@ -380,6 +380,19 @@ export const PRESETS: readonly PadPreset[] = [
         "Clockwise raises, counter-clockwise lowers. The middle of the pad stays quiet.",
     },
   ),
+  // ON THE SHELF, NOT IN THE CATALOG, SINCE PLAN 12-10. The user's answer at
+  // 12-06's checkpoint - "selectable tuning options under Trackpad" - made the
+  // hand-authored src/lib/catalog/entries/trackpad.ts the one trackpad card:
+  // this recipe's every gesture kept verbatim, plus the edge flash as a tune
+  // option, with the flash painted from the Timer because 893 + a flash does
+  // not fit 908 in the Setup. This declaration stays for three reasons that
+  // are all measurements: presets.spec.ts diffs all nine against the vendored
+  // nine; src/lib/tune/knobs.preset.ts keys its rack on the id; and it is the
+  // compiler's over-budget fixture - 902 at its defaults, 907 at its worst,
+  // the only card whose knob band straddles 908 - for ladder.spec.ts,
+  // /dev/tune/ and e2e/tuning.e2e.ts, which reach it through
+  // entries/ported.ts's `portedEntry("tpad")`. Nothing lists, routes or
+  // pictures it.
   preset(
     "tpad",
     "Trackpad",

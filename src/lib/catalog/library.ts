@@ -68,7 +68,7 @@
 //      cell-toggling sequencers decline it by name (their armed cells toggle
 //      under the finger and that IS the feedback), CONSOLE repaints through its
 //      own `P`, MORPH lights its trail, CHORUS its bloom, LUMEN its cursor
-//      cell, GLIDE its edges. `F` was dropped and its 123 characters returned
+//      cell, TRACKPAD its edges. `F` was dropped and its 123 characters returned
 //      to the budget - together with the `O={}` table and the `L` light layer
 //      that existed only for it. If a later entry wants it, it comes back WITH
 //      ITS CALLER NAMED, not on speculation.
@@ -111,7 +111,8 @@
 //   landed on. The cross-contact scan needs no `j~=i` guard because `H[i]` is
 //   already gone. The cell is returned only when it changed; an onset therefore
 //   ALWAYS returns one. Callers: EUCLID, STEPS, RADAR POINTS, SONAR (12-08),
-//   CHORUS and CONSOLE (12-09), GLIDE (12-10), LUMEN (12-11).
+//   CHORUS and CONSOLE (12-09), LUMEN (12-11). Not TRACKPAD (12-10): a
+//   trackpad is relative motion and never asks which cell a finger is on.
 //
 // `X(s, n)` - THE TIMER-SIDE SWEEP. `C=C+1`, then expire every contact whose
 //   stamp is older than `n` calls. `n` IS IN TIMER CALLS AND IT IS THE
@@ -132,7 +133,8 @@
 //   dark. This is `decay-idiom.spec.ts`'s class-A rule, parameterised.
 //   `w` IS A BYTE, SO `D` COVERS TIMEOUTS OF AT MOST 42 TICKS (w = 252). An
 //   entry whose decay knob reaches beyond that - MORPH's `@DECAY` runs 21..126 -
-//   keeps the inline idiom that gate already reads. ONE CALLER: GLIDE (12-10).
+//   keeps the inline idiom that gate already reads. ONE CALLER: TRACKPAD
+//   (12-10), from its Timer, with every `w` a multiple of six by construction.
 //
 // `R` - A CONVENTION, NOT A FUNCTION THIS LIBRARY DEFINES. An entry that holds
 //   notes sets `R=function(s,i) ... end` in its own Setup, releasing whatever

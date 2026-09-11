@@ -37,7 +37,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { EVENT_BUDGET, type PadReserved } from "../../vendor/botor/_pad";
-import { byId, type CatalogEntry } from "../catalog";
+import { byId, portedEntry, type CatalogEntry } from "../catalog";
 import {
   compileState,
   costOf,
@@ -57,7 +57,11 @@ const TPAD_RESERVE: PadReserved = { setup: 20, timer: 0 };
 const DIAL_RESERVE: PadReserved = { setup: 300, timer: 0 };
 
 function mustEntry(id: string): CatalogEntry {
-  const entry = byId(id);
+  // `tpad` is a shelf preset and not a catalog card since plan 12-10 (the
+  // hand-authored TRACKPAD replaced it as the card); it is still the tightest
+  // budget on the shelf and the only one blocked on `sends`, so this file
+  // keeps measuring it through the shelf.
+  const entry = byId(id) ?? portedEntry(id);
   if (!entry) throw new Error(`no catalog entry: ${id}`);
   return entry;
 }
