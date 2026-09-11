@@ -134,6 +134,24 @@ there and never re-derived): quick **69 → 73 files** and **724 → 776 tests**
 **unchanged**, e2e **77 → 89** (+12: six untagged probe walks, four untagged titles on the real page,
 and one `@webkit` title counted twice). No number was adjusted to fit.
 
+**Phase 13 hands this gate negative deltas, and plan 13-01 drove it backwards before any deletion
+landed** (2026-09-11, on the clean tree at `eb79e3c`, quick `85 / 887 + 1 todo`). Three scratch
+plants, each restored from a copy and sha256-identical either side, never through `git checkout`:
+(a) one `it(...)` in `src/lib/browse/sort.spec.ts` fenced in a block comment with the file kept -
+`check-counts.mjs 85 886` green (exit 0), `85 887` red (exit 1, `tests: observed 886, expected 887`);
+(b) `src/lib/sim/demo.spec.ts` (two tests) moved out of the tree - `84 885` green (exit 0), `85 885`
+red on the files line (`files: observed 84, expected 85`), `84 887` red on the tests line, `85 887` red
+on both, and the two lines are different strings, which is the distinction a plan that deletes tests
+and keeps the file (13-04) and a plan that deletes the file (13-07, 13-09, 13-10) both rest on; (c) the
+todo read `1` in all three runs and is reported, never asserted. The script needed no change: it
+compares two integers and rejects only a negative _expected_ total, which no plan produces, so the
+research's Wave 0 gap named the wrong exposure and the real two are (a) and (c). **The tree's one todo
+is `src/lib/fidelity/firmware-oracle.spec.ts:209`**, a file no Phase 13 plan touches; the whole of
+`src/` was grepped for `it.todo` and `test.todo` and no other file carries one, so none of the files
+this phase deletes can move the todo under a gate that does not watch it. This paragraph was appended
+by 13-01 and nothing above or below it was reflowed; 12-12 and 13-20 each rewrite this document at
+their own close and should treat it the same way.
+
 Phase 8's, from its own gate (`08-VERIFICATION.md`) against the baseline `08-01-SUMMARY.md` measured
 on the clean tree it started from: quick **26 → 43 files** and **453 → 563 tests** (+17 / +110),
 sweep **1 file / 9 tests, unchanged**, e2e **10 → 23**.
