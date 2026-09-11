@@ -82,22 +82,33 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
 import { CATALOG, type CatalogEntry } from "./index";
+import {
+  AND,
+  EQ,
+  F,
+  GE,
+  GT,
+  LT,
+  OR,
+  V,
+  branchOf,
+  chainsOf,
+  comparisonsIn,
+  endedEscapes,
+  is,
+  isEndedOpener,
+  isLiveTest,
+  startedAdmits,
+  type Chain,
+} from "./touch-guard";
 
 const EVENTS = ["setup", "timer"] as const;
 type EventName = (typeof EVENTS)[number];
 
-/** Assembled at run time, never written out. See the header. */
-const F = (...parts: string[]): string => parts.join("");
-
-// The pieces every needle and every message below is built from.
-const V = "e";
-const EQ = F("=", "=");
-const NE = F("~", "=");
-const GE = F(">", "=");
-const GT = ">";
-const LT = "<";
-const AND = F("an", "d");
-const OR = F("o", "r");
+// The fragments and the scanner live in touch-guard.ts since plan 13-14, so
+// the Sandbox emitter's spec runs these needles rather than a rewrite of them
+// (the header's fragment rule still holds: the module assembles them at run
+// time, and this file's prose still names none of them).
 
 /**
  * A site excused from a test, with the reason a reader needs to learn WHY
@@ -201,25 +212,8 @@ const DECLARED_EXCEPTIONS: readonly DeclaredException[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// The scanner
+// The bodies
 // ---------------------------------------------------------------------------
-
-/** One comparison of the event code against a literal. */
-type Comparison = {
-  readonly op: string;
-  readonly value: number;
-  readonly at: number;
-  readonly end: number;
-};
-
-/** A run of comparisons joined only by `and` / `or` and brackets. */
-type Chain = {
-  readonly members: readonly Comparison[];
-  /** The connective before members[i], for i >= 1. */
-  readonly joins: readonly string[];
-  readonly at: number;
-  readonly end: number;
-};
 
 type Body = {
   readonly entry: CatalogEntry;
@@ -227,101 +221,6 @@ type Body = {
   readonly text: string;
   readonly chains: readonly Chain[];
 };
-
-const NAME_CHAR = /[A-Za-z0-9_]/;
-
-const COMPARISON = new RegExp(
-  F(
-    V,
-    "\\s*(",
-    EQ,
-    "|",
-    NE,
-    "|",
-    GE,
-    "|",
-    F(LT, "="),
-    "|",
-    GT,
-    "|",
-    LT,
-    ")\\s*([0-9]+)",
-  ),
-  "g",
-);
-
-const JOIN = new RegExp(F("^[\\s()]*(", AND, "|", OR, ")[\\s()]*$"));
-
-/** Every event-code comparison in one body, in source order. */
-function comparisonsIn(text: string): Comparison[] {
-  const out: Comparison[] = [];
-  COMPARISON.lastIndex = 0;
-  for (;;) {
-    const match = COMPARISON.exec(text);
-    if (match === null) break;
-    const at = match.index;
-    // `mode==4` is a different name, not the event code.
-    if (at > 0 && NAME_CHAR.test(text[at - 1])) continue;
-    out.push({
-      op: match[1],
-      value: Number.parseInt(match[2], 10),
-      at,
-      end: at + match[0].length,
-    });
-  }
-  return out;
-}
-
-/** Group consecutive comparisons into chains. */
-function chainsOf(text: string, comparisons: readonly Comparison[]): Chain[] {
-  const out: Chain[] = [];
-  let members: Comparison[] = [];
-  let joins: string[] = [];
-  const flush = (): void => {
-    if (members.length === 0) return;
-    out.push({
-      members,
-      joins,
-      at: members[0].at,
-      end: members[members.length - 1].end,
-    });
-    members = [];
-    joins = [];
-  };
-  for (const comparison of comparisons) {
-    if (members.length === 0) {
-      members.push(comparison);
-      continue;
-    }
-    const between = text.slice(members[members.length - 1].end, comparison.at);
-    const join = JOIN.exec(between);
-    if (join === null) {
-      flush();
-      members.push(comparison);
-      continue;
-    }
-    joins.push(join[1]);
-    members.push(comparison);
-  }
-  flush();
-  return out;
-}
-
-/**
- * The `if` or `elseif` clause a chain sits in, from the keyword to the end of
- * the chain. This is what a DECLARED_EXCEPTIONS row is keyed on, so that moving
- * a correct-in-context guard somewhere it is wrong stops being excused.
- */
-function branchOf(text: string, chain: Chain): string {
-  const before = text.slice(0, chain.at);
-  const shortKeyword = before.lastIndexOf(F("if", " "));
-  const longKeyword = before.lastIndexOf(F("else", "if", " "));
-  let start = shortKeyword;
-  if (longKeyword !== -1 && longKeyword + 4 === shortKeyword)
-    start = longKeyword;
-  if (start === -1) start = chain.at;
-  return text.slice(start, chain.end);
-}
 
 function luaEntries(): CatalogEntry[] {
   return CATALOG.filter((entry) => entry.source.kind === "lua");
@@ -374,13 +273,6 @@ function excuseFor(
   );
 }
 
-const is = (c: Comparison, op: string, value: number): boolean =>
-  c.op === op && c.value === value;
-
-/** A chain that tests membership of a live contact, never an onset. */
-const isLiveTest = (chain: Chain): boolean =>
-  chain.members.some((c) => is(c, EQ, 1) || is(c, NE, 1));
-
 // ---------------------------------------------------------------------------
 
 describe("the fast-tap guard", () => {
@@ -393,13 +285,9 @@ describe("the fast-tap guard", () => {
       for (const chain of body.chains) {
         for (let i = 0; i < chain.members.length; i += 1) {
           const member = chain.members[i];
-          if (!is(member, GE, 5) && !is(member, GT, 4)) continue;
+          if (!isEndedOpener(member)) continue;
           examined += 1;
-          const next = chain.members[i + 1];
-          const joined = chain.joins[i];
-          const escaped =
-            typeof next !== "undefined" && joined === AND && is(next, LT, 9);
-          if (escaped) continue;
+          if (endedEscapes(chain, i)) continue;
           const excuse = excuseFor(body, chain, "ended");
           if (typeof excuse !== "undefined") {
             used.push(excuse);
@@ -506,10 +394,7 @@ describe("the fast-tap guard", () => {
         if (isLiveTest(chain)) continue;
         if (!chain.members.some((c) => is(c, EQ, 4))) continue;
         examined += 1;
-        const admits = chain.members.some(
-          (c) => is(c, GT, 8) || is(c, EQ, 9) || is(c, GE, 9),
-        );
-        if (admits) continue;
+        if (startedAdmits(chain)) continue;
         const excuse = excuseFor(body, chain, "started");
         if (typeof excuse !== "undefined") {
           used.push(excuse);

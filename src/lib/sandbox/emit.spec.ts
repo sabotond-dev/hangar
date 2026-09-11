@@ -1,0 +1,640 @@
+// The emitter's five tests (13-14 task 02): five costs at the picker corner,
+// the dead-branch pair, the map, both class gates, and the library's names.
+//
+// FIVE TESTS, AND THE COUNT NEVER MOVES. Each loops over its surfaces and
+// names the surface in its message.
+//
+// EVERY FIGURE HERE IS MEASURED IN THIS TREE under the pinned
+// `GridScript.compressScript` after `padReady()`, `max(compressed, raw)`,
+// canonical, at the RGB444 picker corner (every region at `255,255,255`) -
+// lua-entries.sweep.spec.ts test 1's rule, reused through cost.ts. The
+// research's figures (13-RESEARCH 3.1: 366 at four elements, 811 at sixteen;
+// 697 / 1,166 for the dead-branch pair; `M` 165, a four-row `G` 141) are
+// printed BESIDE the tree's and every difference is named in 13-14-SUMMARY.md
+// as a research correction. The pinned literals below are what this tree
+// measured on 2026-09-12; a minifier bump or an emitter edit that moves one
+// moves the assertion, which is the point of pinning.
+//
+// THE FIVE SURFACES, all at the corner, controllers at three digits and the
+// channel at 16 (the dearest literals a row can carry):
+//   1 element   the PDF's Filter, a 2 x 6 vertical fader
+//   4 elements  the PDF's page 3: Filter, an XY pad, a Button and a Knob
+//   8 elements  four 2 x 6 faders and four 2 x 1 buttons
+//   12 elements eight 1 x 6 faders and four 2 x 2 buttons
+//   16 elements eight 1 x 6 faders and eight 1 x 2 buttons
+//
+// Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { GridScript } from "@intechstudio/grid-protocol";
+import { beforeAll, describe, expect, it } from "vitest";
+import { LIBRARY_CONVENTIONS, LIBRARY_GLOBALS } from "../catalog/library";
+import {
+  AND,
+  EQ,
+  F,
+  GE,
+  GT,
+  LT,
+  OR,
+  V,
+  branchOf as branchTextOf,
+  endedEscapes,
+  isEndedOpener,
+  isOnsetChain,
+  scan,
+  startedAdmits,
+} from "../catalog/touch-guard";
+import { padReady } from "../pad/ready";
+import {
+  EVENT_BUDGET,
+  atPickerCorner,
+  canonical,
+  costOf,
+  measureSurface,
+} from "./cost";
+import {
+  MARKER,
+  OWN_NAMES_INLINE,
+  OWN_NAMES_SPLIT,
+  PULL_IN_MAPMODE,
+  PULL_IN_TIMER,
+  RUNTIME_ENTRY,
+  capitalCalls,
+  capitalDefinitions,
+  emitSurface,
+  regionRow,
+  renderCellMap,
+  renderRegionTable,
+} from "./emit";
+import { buildCellMap } from "./geometry";
+import {
+  BRANCHES,
+  PICKER_CORNER,
+  SURFACE_CELLS,
+  cellIndex,
+  type Branch,
+  type Region,
+  type Surface,
+} from "./model";
+
+// ---------------------------------------------------------------------------
+// The fixtures. Names are fixture data, not copy.
+
+function region(
+  name: string,
+  kind: Region["kind"],
+  col: number,
+  row: number,
+  w: number,
+  h: number,
+  extra: Partial<Region> = {},
+): Region {
+  return {
+    id: name.toLowerCase().replaceAll(" ", "-"),
+    name,
+    kind,
+    col,
+    row,
+    w,
+    h,
+    cc: 102,
+    channel: 16,
+    colour: PICKER_CORNER,
+    ...extra,
+  };
+}
+
+const surface = (name: string, regions: readonly Region[]): Surface => ({
+  id: name.toLowerCase(),
+  name,
+  regions,
+});
+
+/** The PDF's page 3, as drawn: a 2 x 6 Fader, an XY pad, a Button and a Knob. */
+const PAGE3 = surface("Page 3", [
+  region("Filter", "fader", 0, 0, 2, 6),
+  region("Space", "xy", 3, 0, 3, 3, { cc2: 103 }),
+  region("Turn", "knob", 3, 4, 3, 3),
+  region("Go", "button", 7, 0, 2, 2),
+]);
+
+const ONE = surface("One", [PAGE3.regions[0]]);
+
+const fadersAt = (count: number, w: number, h: number): Region[] =>
+  Array.from({ length: count }, (_, i) =>
+    region(`Fader ${i + 1}`, "fader", i * w, 0, w, h, { cc: 100 + i }),
+  );
+
+const buttonsAt = (
+  count: number,
+  w: number,
+  h: number,
+  row: number,
+): Region[] =>
+  Array.from({ length: count }, (_, i) =>
+    region(`Button ${i + 1}`, "button", i * w, row, w, h, { cc: 110 + i }),
+  );
+
+const EIGHT = surface("Eight", [
+  ...fadersAt(4, 2, 6),
+  ...buttonsAt(4, 2, 1, 7),
+]);
+const TWELVE = surface("Twelve", [
+  ...fadersAt(8, 1, 6),
+  ...buttonsAt(4, 2, 2, 7),
+]);
+const SIXTEEN = surface("Sixteen", [
+  ...fadersAt(8, 1, 6),
+  ...buttonsAt(8, 1, 2, 7),
+]);
+
+/** Four vertical faders, the research's dead-branch surface. */
+const FOUR_FADERS = surface("Four faders", fadersAt(4, 2, 6));
+
+const FIVE: readonly { surface: Surface; count: number; research?: number }[] =
+  [
+    { surface: ONE, count: 1 },
+    { surface: PAGE3, count: 4, research: 366 },
+    { surface: EIGHT, count: 8, research: 498 },
+    { surface: TWELVE, count: 12, research: 652 },
+    { surface: SIXTEEN, count: 16, research: 811 },
+  ];
+
+/** The figures this tree measured (see the header). Two-slot pull-in; the three-slot figure is +15. */
+const PINNED: Record<number, number> = {
+  1: 343,
+  4: 457,
+  8: 608,
+  12: 764,
+  16: 922,
+};
+
+describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
+  beforeAll(async () => {
+    await padReady();
+  });
+
+  it("1. costs one, four, eight, twelve and sixteen elements at the picker corner: four under 908, the dearest sixteen recorded as the finding", async () => {
+    const lines: string[] = [];
+    const over: { name: string; two: number; three: number }[] = [];
+    for (const { surface: s, count, research } of FIVE) {
+      expect(s.regions.length, s.name).toBe(count);
+      const two = await costOf(s, { slots: 2 });
+      const three = await costOf(s, { slots: 3 });
+      // Canonical on the first round: the emitter writes the fixed point.
+      const first = await canonical(two.emitted.setup);
+      expect(
+        first.rounds,
+        `${s.name}: the emitted Setup is not canonical`,
+      ).toBe(0);
+      expect(first.text).toBe(two.emitted.setup);
+      over.push({ name: s.name, two: two.setup.used, three: three.setup.used });
+      expect(
+        three.setup.used - two.setup.used,
+        "the third pull-in's price",
+      ).toBe(PULL_IN_MAPMODE.length);
+      expect(two.timer.used, `${s.name}: the Timer is the sweep alone`).toBe(
+        (MARKER + "X(self,20)").length,
+      );
+      // The colour corner is the dearest: the surface's own colours never
+      // cost more than the corner.
+      const own = await measureSurface(
+        { ...s, regions: s.regions.map((r) => ({ ...r, colour: [0, 0, 0] })) },
+        { slots: 2 },
+      );
+      expect(own.setup.used).toBeLessThanOrEqual(two.setup.used);
+      lines.push(
+        `${String(count).padStart(2)} elements: ${two.setup.used} of ${EVENT_BUDGET} ` +
+          `(${two.setup.free} free) at two slots, ${three.setup.used} at three; ` +
+          `room for ${two.roomFor} more (${two.roomLimit})` +
+          (research === undefined
+            ? ""
+            : `; the research's ${research} (${two.setup.used - research >= 0 ? "+" : ""}${two.setup.used - research})`),
+      );
+      if (PINNED[count] > 0) {
+        expect(two.setup.used, `${s.name}: the pinned figure moved`).toBe(
+          PINNED[count],
+        );
+      }
+    }
+    // The same sixteen with the literals a visitor most likely types: one-
+    // and two-digit controllers on channel 1, still at the colour corner.
+    const typed: Surface = {
+      ...SIXTEEN,
+      regions: SIXTEEN.regions.map((r, i) => ({ ...r, cc: i + 1, channel: 1 })),
+    };
+    const plain = await costOf(typed, { slots: 2 });
+    const plainThree = await costOf(typed, { slots: 3 });
+    lines.push(
+      `16 elements at cc 1..16 on channel 1: ${plain.setup.used} at two slots, ` +
+        `${plainThree.setup.used} at three`,
+    );
+    console.log(
+      ["The five costs, measured at the picker corner:", ...lines].join("\n"),
+    );
+    for (const { name, two, three } of over) {
+      if (name === SIXTEEN.name) continue;
+      expect(
+        two,
+        `${name}: ${two} of ${EVENT_BUDGET} at two slots`,
+      ).toBeLessThanOrEqual(EVENT_BUDGET);
+      expect(
+        three,
+        `${name}: ${three} of ${EVENT_BUDGET} at three slots`,
+      ).toBeLessThanOrEqual(EVENT_BUDGET);
+    }
+    // THE FINDING (13-14-PLAN.md task 02, step 4): sixteen elements at the
+    // DEAREST literals - three-digit controllers on channel 16 at the colour
+    // corner - do NOT fit: 922 at two slots, 14 over. Twelve fit with room
+    // for three more of their own largest shape, so the cap at the dearest
+    // literals is FIFTEEN at either slot count; at the literals a visitor
+    // types (cc 1..16, channel 1) sixteen fit at both. D-14 Q4's sixteen
+    // stands as the cap because the meter is the gate; the day this emitter
+    // shrinks enough for the dearest sixteen to fit, the first assertion
+    // below says so and the finding is closed in the SUMMARY that closes it.
+    const sixteen = over.find((o) => o.name === SIXTEEN.name);
+    expect(sixteen?.two, "the dearest sixteen fit: the finding is closed").toBe(
+      922,
+    );
+    expect(sixteen?.three).toBe(937);
+    const twelve = await costOf(TWELVE, { slots: 2 });
+    expect(
+      12 + twelve.roomFor,
+      "the cap at the dearest literals, two slots",
+    ).toBe(15);
+    const twelveThree = await costOf(TWELVE, { slots: 3 });
+    expect(
+      12 + twelveThree.roomFor,
+      "the cap at the dearest literals, three slots",
+    ).toBe(15);
+    expect(
+      plain.setup.used,
+      "sixteen at typed literals fit",
+    ).toBeLessThanOrEqual(EVENT_BUDGET);
+    expect(plainThree.setup.used).toBeLessThanOrEqual(EVENT_BUDGET);
+    // The parts the research measured alone: `M` at 165 and a four-row
+    // table at 141.
+    const four = emitSurface(PAGE3);
+    const mAlone = await canonical(four.parts.cellMap);
+    const jAlone = await canonical(four.parts.regionTable);
+    // Pinned: M 169 (the research's 165, +4 for `[0]=`), J at four rows at
+    // the corner 152 (the research's 141), the paint 101.
+    expect([mAlone.cost, jAlone.cost, four.parts.paint.length]).toEqual([
+      169, 152, 101,
+    ]);
+    console.log(
+      `M alone ${mAlone.cost} (the research's 165); J at four rows ${jAlone.cost} ` +
+        `(the research's 141); the paint ${four.parts.paint.length}; ` +
+        `the pull-in ${PULL_IN_TIMER.length} / ${PULL_IN_TIMER.length + PULL_IN_MAPMODE.length}; ` +
+        `the callback ${four.parts.callback.length}; the marker ${MARKER.length}`,
+    );
+  });
+
+  it("2. proves dead-branch elimination by a measured pair: four faders with and without the other three branches", async () => {
+    const lean = await measureSurface(atPickerCorner(FOUR_FADERS), {
+      runtime: "inline",
+    });
+    const fourBranches = BRANCHES.filter((b) => b !== "knob") as Branch[];
+    const fat = await measureSurface(atPickerCorner(FOUR_FADERS), {
+      runtime: "inline",
+      branches: fourBranches,
+    });
+    expect(lean.emitted.branches).toEqual(["fader-v"]);
+    expect(fat.emitted.branches).toEqual(fourBranches);
+    const saving = fat.setup.used - lean.setup.used;
+    console.log(
+      `Dead branches: four vertical faders inline at ${lean.setup.used} with the fader branch alone, ` +
+        `${fat.setup.used} with all four branches - a saving of ${saving} ` +
+        `(the research's pair 697 / 1,166, a saving of 469). ` +
+        `The split's data half for the same surface: ${(await measureSurface(atPickerCorner(FOUR_FADERS))).setup.used}.`,
+    );
+    // The saving is the text of the three branches that were not emitted:
+    // real, and large. A negative check that emits all four for a
+    // fader-only surface collapses it to 0 and fails here by name.
+    expect(
+      saving,
+      "eliminating three dead branches saves nothing",
+    ).toBeGreaterThan(200);
+    // Pinned, this tree, 2026-09-12: 806 / 1,341, a saving of 535 (the
+    // research's 697 / 1,166 / 469); the split's data half for the same four
+    // faders 452. The inline four faders FIT (102 free), which is the
+    // contingency the plan retains; the split is chosen because the inline
+    // form has no Knob and no room for one.
+    expect([lean.setup.used, fat.setup.used, saving]).toEqual([806, 1341, 535]);
+    expect((await measureSurface(atPickerCorner(FOUR_FADERS))).setup.used).toBe(
+      452,
+    );
+    expect(lean.setup.used).toBeLessThanOrEqual(EVENT_BUDGET);
+    for (const text of [lean.emitted.setup, fat.emitted.setup]) {
+      expect(GridScript.checkSyntax(text)).toBe(true);
+      expect((await canonical(text)).rounds).toBe(0);
+    }
+    // A Knob has no inline branch: the rotary is 13-15's.
+    expect(() => emitSurface(PAGE3, { runtime: "inline" })).toThrow(/Knob/);
+  });
+
+  it("3. renders M with exactly 81 entries, each 0 or a valid row index, equal to geometry.ts's map cell for cell", () => {
+    for (const { surface: s } of FIVE) {
+      const emitted = emitSurface(s);
+      const built = buildCellMap(s.regions);
+      expect(built.ok).toBe(true);
+      if (!built.ok) return;
+      const numbers = emitted.parts.cellMap
+        .replace(/^M=\{\[0\]=/, "")
+        .replace(/\}$/, "")
+        .split(",")
+        .map((n) => Number.parseInt(n, 10));
+      expect(numbers.length, s.name).toBe(SURFACE_CELLS);
+      expect(numbers, `${s.name}: M is geometry.ts's map`).toEqual([
+        ...built.map,
+      ]);
+      expect(emitted.map).toBe(
+        built.map.length === 81 ? emitted.map : built.map,
+      );
+      for (const n of numbers) {
+        expect(
+          Number.isInteger(n) && n >= 0 && n <= s.regions.length,
+          `${s.name}: ${n}`,
+        ).toBe(true);
+      }
+      // Every region's cells carry its index and nothing else does.
+      s.regions.forEach((r, index) => {
+        const cells = new Set<number>();
+        for (let row = r.row; row < r.row + r.h; row += 1) {
+          for (let col = r.col; col < r.col + r.w; col += 1)
+            cells.add(cellIndex(col, row));
+        }
+        numbers.forEach((n, cell) => {
+          expect(n === index + 1, `${s.name}: ${r.name} at cell ${cell}`).toBe(
+            cells.has(cell),
+          );
+        });
+      });
+      // One row per region, eleven numbers each, at their exact width.
+      expect(emitted.parts.regionTable).toBe(renderRegionTable(s.regions));
+      expect(emitted.parts.cellMap).toBe(renderCellMap(built.map));
+      for (const r of s.regions) {
+        const row = regionRow(r);
+        expect(row.length).toBe(11);
+        expect(emitted.parts.regionTable).toContain(`{${row.join(",")}}`);
+        expect(row[7], "the wire channel").toBe(r.channel - 1);
+        expect(row.slice(8), "the corner's bytes").toEqual([255, 255, 255]);
+      }
+    }
+    // The bounds are precomputed under the measured map: Filter's columns
+    // 0..1 run from raw 0 to the midpoint between knots 1 and 2, and its rows
+    // 0..5 from 0 to the midpoint between knots 5 and 6.
+    const filter = regionRow(PAGE3.regions[0]);
+    expect(filter.slice(0, 4)).toEqual([0, 20, 0, 89]);
+    expect(filter[4], "a vertical fader is type 1").toBe(1);
+    expect(
+      regionRow({ ...PAGE3.regions[0], orientation: "horizontal" })[4],
+    ).toBe(2);
+    expect(
+      regionRow(PAGE3.regions[1]).slice(4, 7),
+      "an XY pad carries its second CC",
+    ).toEqual([4, 102, 103]);
+    expect(
+      regionRow({ ...PAGE3.regions[3], latch: true }).slice(4, 7),
+      "a latching button's flag",
+    ).toEqual([3, 102, 1]);
+    // An overlapping surface has no map and cannot be emitted.
+    expect(() =>
+      emitSurface(
+        surface("Bad", [PAGE3.regions[0], { ...PAGE3.regions[1], col: 1 }]),
+      ),
+    ).toThrow(/overlaps/);
+  });
+
+  it("4. passes both class gates over the emitted text with the gates' own needles, and emits no decay", () => {
+    const texts: { name: string; text: string }[] = [];
+    for (const { surface: s } of FIVE) {
+      const split = emitSurface(s);
+      texts.push({ name: `${s.name} split Setup`, text: split.setup });
+      texts.push({ name: `${s.name} split Timer`, text: split.timer });
+    }
+    const fourBranches = BRANCHES.filter((b) => b !== "knob") as Branch[];
+    texts.push({
+      name: "four faders inline (all four branches)",
+      text: emitSurface(FOUR_FADERS, {
+        runtime: "inline",
+        branches: fourBranches,
+      }).setup,
+    });
+    texts.push({
+      name: "eight inline (its own branches)",
+      text: emitSurface(EIGHT, { runtime: "inline" }).setup,
+    });
+
+    let ended = 0;
+    let started = 0;
+    const problems: string[] = [];
+    for (const { name, text } of texts) {
+      for (const chain of scan(text)) {
+        chain.members.forEach((member, i) => {
+          if (!isEndedOpener(member)) return;
+          ended += 1;
+          if (endedEscapes(chain, i)) return;
+          problems.push(
+            F(
+              '"this contact ended" is written `',
+              V,
+              EQ,
+              "3 ",
+              OR,
+              " ",
+              V,
+              GE,
+              "5 ",
+              AND,
+              " ",
+              V,
+              LT,
+              "9`; ",
+            ) + `${name} writes \`${branchTextOf(text, chain)}\``,
+          );
+        });
+        if (!isOnsetChain(chain)) continue;
+        started += 1;
+        if (startedAdmits(chain)) continue;
+        problems.push(
+          F(
+            '"this contact started" is written `',
+            V,
+            EQ,
+            "4 ",
+            OR,
+            " ",
+            V,
+            GT,
+            "8`; ",
+          ) + `${name} writes \`${branchTextOf(text, chain)}\``,
+        );
+      }
+      // The class-A gate (decay-idiom.spec.ts) reads `glpfs` pairs; this
+      // emitter writes none, on purpose - a region's paint is a colour and
+      // a resting phase, and every decay is the runtime's (13-15) or the
+      // library's `D`. Asserted so the gate's silence is a fact and not a
+      // blind spot: 12.1-09 records that the gate is blind to `D(` and `K(`.
+      expect(text, `${name}: a decay appeared`).not.toContain(F("glp", "fs("));
+      expect(text, `${name}: a decay appeared`).not.toContain(F("D", "("));
+      expect(text, `${name}: a stamp appeared`).not.toContain(F("K", "("));
+    }
+    expect(problems.join("\n\n")).toBe("");
+    // NON-VACUITY: the split data half carries no event-code test at all
+    // (the runtime's are 13-15's), so both counts come from the inline
+    // texts - and there is exactly one live test and one onset per inline
+    // callback, plus the closing `e>8`.
+    expect(ended, "the scan found no 'contact ended' opener to check").toBe(0);
+    expect(started, "the scan found 'contact started' guards").toBe(2);
+    const inline = texts[texts.length - 1].text;
+    const live = F(
+      V,
+      "~",
+      "=1 ",
+      AND,
+      " ",
+      V,
+      "~",
+      "=4 ",
+      AND,
+      " ",
+      V,
+      LT,
+      "9",
+    );
+    expect(inline.split(live).length - 1, "one live test").toBe(1);
+    expect(
+      inline.split(F(V, EQ, "4 ", OR, " ", V, GT, "8")).length - 1,
+      "one onset",
+    ).toBe(1);
+    // Expiry on both paths: the end code hands the contact to E, and the
+    // Timer's sweep X does the same for a lost lift; R is defined so both
+    // release through it.
+    expect(inline).toContain("then E(s,i)return end");
+    expect(inline).toMatch(/^--\[\[@cb\]\]J=/);
+    expect(inline).toContain("R=function(s,i)");
+    expect(emitSurface(EIGHT, { runtime: "inline" }).timer).toBe(
+      MARKER + "X(self,20)",
+    );
+    // Nothing built on code 9 staying live: after its onset a 9 is ended in
+    // the same pass.
+    expect(inline).toContain(F("if ", V, GT, "8 then E(s,i)end end"));
+  });
+
+  it("5. passes checkSyntax on every surface, defines no library name, and calls only names the library exports", () => {
+    // THE LIBRARY'S EXPORT LIST, AS 12.1-08b-SUMMARY.md RECORDS IT: twenty-one
+    // names - U W E Q X N and the eight state names in 255/0, V G Z Y K A D in
+    // 255/6. Asserted against `LIBRARY_GLOBALS` as exported, so the test
+    // reads the tree AND the document and says which moved.
+    const summary = [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "G",
+      "H",
+      "K",
+      "KX",
+      "KY",
+      "L",
+      "N",
+      "P",
+      "Q",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "Z",
+    ];
+    expect(
+      [...LIBRARY_GLOBALS],
+      "library.ts's exported names differ from 12.1-08b-SUMMARY.md's twenty-one",
+    ).toEqual(summary);
+    expect([...LIBRARY_CONVENTIONS]).toEqual(["R"]);
+    const exported = new Set([...LIBRARY_GLOBALS, ...LIBRARY_CONVENTIONS]);
+
+    const cases: {
+      name: string;
+      text: string;
+      own: readonly string[];
+      calls: string[];
+    }[] = [];
+    for (const { surface: s } of FIVE) {
+      const split = emitSurface(s, { slots: 3 });
+      cases.push({
+        name: `${s.name} split`,
+        text: split.setup,
+        own: OWN_NAMES_SPLIT,
+        calls: [],
+      });
+    }
+    for (const s of [FOUR_FADERS, EIGHT]) {
+      const inline = emitSurface(s, { runtime: "inline" });
+      cases.push({
+        name: `${s.name} inline`,
+        text: inline.setup,
+        own: OWN_NAMES_INLINE,
+        calls: ["E", "N"],
+      });
+      cases.push({
+        name: `${s.name} inline Timer`,
+        text: inline.timer,
+        own: [],
+        calls: ["X"],
+      });
+    }
+    for (const { name, text, own, calls } of cases) {
+      expect(
+        GridScript.checkSyntax(text),
+        `${name}: the pinned checker refuses the text`,
+      ).toBe(true);
+      const defined = capitalDefinitions(text);
+      // Nothing this emitter defines is a library name: `G`, `Y`, `Z` and
+      // `S`, `N`, `K` are the ones a reader of the plan or 13-02's sketch
+      // would reach for, and every one of them is the library's now.
+      // `R` is the one name an entry is MEANT to define (library.ts section
+      // 5, the release convention), so the check is against the globals.
+      for (const d of defined) {
+        expect(
+          LIBRARY_GLOBALS.includes(d),
+          `${name} defines ${d}, which the library owns`,
+        ).toBe(false);
+      }
+      expect(defined, `${name}: its own names`).toEqual([...own].sort());
+      // The capital names it CALLS, minus its own, EQUAL the expected set -
+      // and every one of them is exported. A call to a function the library
+      // dropped (`F`) fails here by name.
+      // NOT filtered by the emitter's own names: none of them is a function
+      // it calls (`R` is defined for the library to call), so every capital
+      // call site must be the library's. A first draft filtered them and was
+      // blind to `F(` because `F` is also the inline form's last-sent table.
+      const called = capitalCalls(text);
+      expect(called, `${name}: the library names it calls`).toEqual(
+        [...calls].sort(),
+      );
+      for (const c of called) {
+        expect(
+          exported.has(c),
+          `${name} calls ${c}, which the library does not export`,
+        ).toBe(true);
+      }
+    }
+    // The split installs 13-15's entry after both pull-ins ran, and names
+    // the runtime entry nowhere else.
+    const split = emitSurface(PAGE3, { slots: 3 }).setup;
+    expect(
+      split.endsWith(
+        PULL_IN_TIMER + PULL_IN_MAPMODE + `self.touch_cb=${RUNTIME_ENTRY}`,
+      ),
+    ).toBe(true);
+    expect(
+      emitSurface(PAGE3).setup.endsWith(
+        PULL_IN_TIMER + `self.touch_cb=${RUNTIME_ENTRY}`,
+      ),
+    ).toBe(true);
+    expect(emitSurface(PAGE3).setup).not.toContain(PULL_IN_MAPMODE);
+  });
+});
