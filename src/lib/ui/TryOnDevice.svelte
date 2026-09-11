@@ -266,7 +266,11 @@
       budgetReason !== undefined ||
       install.phase === "snapshotting" ||
       writing ||
-      (connected && install.config === undefined),
+      (connected && install.config === undefined) ||
+      // 13-12 (D-06): not while the page target is pending - a review open, a
+      // switch awaiting the module's report, or the window closed unverified.
+      // The store's one condition, mirrored; install.tryOnDevice refuses too.
+      (connected && !install.applyReady),
   );
 
   /**

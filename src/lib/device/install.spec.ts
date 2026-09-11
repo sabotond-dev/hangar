@@ -717,15 +717,30 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toBeGreaterThanOrEqual(0);
     expect(ready, "and then ready").toBeGreaterThan(snapshotting);
 
-    // The order is the gate: the key, then Setup, then Timer, and nothing
-    // else was asked of the module.
+    // The order is the gate: the key, then the page init, Setup and Timer,
+    // then the page count (13-12: the enumeration, once per connection, a
+    // read) - and nothing else was asked of the module.
     expect(store.steps.map((s) => s.id)).toEqual([
       "fetch-serial",
       "fetch-system",
       "fetch-setup",
       "fetch-timer",
+      "fetch-page-count",
     ]);
-    expect(store.steps.map((s) => s.outcome)).toEqual(["ok", "ok", "ok", "ok"]);
+    expect(store.steps.map((s) => s.outcome)).toEqual([
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+    ]);
+    // And the enumeration is the module's answer, mirrored whole: the fake
+    // answers firmware's initial count, and the store offers exactly that.
+    expect(store.pages).toEqual([0, 1, 2, 3]);
+    expect(store.pageReported).toBe(ACTIVE_PAGE);
+    expect(store.pageRequested).toBe(ACTIVE_PAGE);
+    expect(store.pageStatus).toBe("reported");
+    expect(store.pageSettled()).toBe(true);
 
     expect(store.snapshot).toEqual(ORIGINAL);
     expect(store.snapshotFromV1, "a fresh record is v2").toBe(false);
@@ -791,6 +806,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "fetch-system",
       "fetch-setup",
       "fetch-timer",
+      "fetch-page-count",
     ]);
 
     // Ready all the same: the in-memory half is the rail.
@@ -1013,7 +1029,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("ready");
     const framesBefore = fake.writes.length;
     const stepsBefore = store.steps;
-    expect(stepsBefore, "the serial and the three fetches").toHaveLength(4);
+    expect(
+      stepsBefore,
+      "the serial, the three fetches and the page count",
+    ).toHaveLength(5);
 
     // Measuring: the tuner has withdrawn the pair (D-17). The write count is
     // asserted FIRST, so a store that proceeds on undefined is reported as
@@ -1043,13 +1062,13 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("ready");
     // The queue was not touched: the steps are still the snapshot's own array.
     expect(store.steps, "an action started").toBe(stepsBefore);
-    expect(store.steps).toHaveLength(4);
+    expect(store.steps).toHaveLength(5);
     expect(store.lastWritten).toBeUndefined();
     expect(store.armed).toBe(false);
     expect(session.writeLock).toBe(false);
   });
 
-  it("the file's shape: three specifiers, no raw onData, no direct write, no interval, no derived", () => {
+  it("the file's shape: four specifiers, no raw onData, no direct write, no interval, no derived", () => {
     // Comment-stripped: the store's header legitimately names every symbol
     // these scans forbid while explaining its absence. Needles are assembled
     // from fragments so this file does not contain what it forbids.
@@ -1060,8 +1079,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
 
     const specifiers = [...source.matchAll(/from "([^"]+)"/g)].map((m) => m[1]);
-    expect(specifiers, "exactly three static specifiers, these three").toEqual([
+    // FOUR since 13-12: the page target joined the two zero-import modules
+    // and the session, and it imports nothing either (page-target.spec.ts
+    // does not assert that; config-shape.spec.ts test 13 walks it).
+    expect(specifiers, "exactly four static specifiers, these four").toEqual([
       "./install-copy",
+      "./page-target",
       "./snapshot",
       "./session.svelte",
     ]);
@@ -1559,14 +1582,15 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
   });
 
   it("an unplug mid-write is lost, the session keeps quiet, and a reconnect finds the record", async () => {
-    // FOUR reads at connect since 12-03 - the serial and three fetches - so
-    // the fifth frame is the first CONFIG/EXECUTE, and the port dies under it.
+    // FIVE reads at connect since 13-12 - the serial, three fetches and the
+    // page count (four since 12-03) - so the sixth frame is the first
+    // CONFIG/EXECUTE, and the port dies under it.
     const rig = await connected({
-      faults: [{ kind: "disconnect", afterTxFrames: 5 }],
+      faults: [{ kind: "disconnect", afterTxFrames: 6 }],
     });
     const { store, session, storage } = rig;
     expect(rig.fake.writes, "the fault sits on the first write").toHaveLength(
-      4,
+      5,
     );
     const spoken = record(session, "speech");
     const entryBefore = pageEntry(storage, ACTIVE_PAGE);

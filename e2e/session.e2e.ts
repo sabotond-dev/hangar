@@ -256,8 +256,11 @@ const answering = (page: Page): Promise<ExposedZona> =>
 /**
  * SAFE-01 by class, over however many connects the test made: not one
  * EXECUTE of any class left the page, and every chunk the shim counted was
- * one of the snapshot's reads - one serial fetch and two config fetches per
- * connect.
+ * one of the snapshot's reads - one serial fetch, three config fetches and,
+ * since 13-12, one page-count fetch per connect (the destination control's
+ * enumeration; Bible section 9). "Any class" gained two since 13-12 too: the
+ * page switch and the page discard are writes for this purpose (13-CONTEXT
+ * D-06, first clause), and the list below is extended, never excepted.
  *
  * THE WAIT COMES FIRST, AND IT IS ON A SIGNAL THAT IMPLIES COMPLETION.
  *
@@ -292,9 +295,11 @@ const answering = (page: Page): Promise<ExposedZona> =>
  * on exactly the sites nobody was watching, so:
  *
  *   1. The fetch counters are polled to their totals FIRST, at every call site.
- *      The timer fetch is the last chunk #snapshot issues, so CONFIG/FETCH
- *      reaching 3 * connects IS "the reads are answered". This is the
- *      diagnosis's own cheap form and it needs nothing from the page.
+ *      Since 13-12 the PAGE-COUNT fetch is the last chunk #snapshot issues
+ *      (after the timer fetch, before `ready`), so PAGECOUNT/FETCH reaching
+ *      `connects` IS "the reads are answered"; CONFIG/FETCH at 3 * connects
+ *      is polled first for the diagnosis's own message. Neither needs
+ *      anything from the page.
  *   2. WHERE the row is published, the store is then required to have LEFT
  *      `snapshotting`. Step 1 makes that sound rather than racy: by then both
  *      awaits inside #snapshot have returned, so the phase is a settled one and
@@ -317,6 +322,12 @@ async function onlyReads(
     })
     .toBe(3 * connects);
   await expect
+    .poll(() => zona.seen("PAGECOUNT", "FETCH"), {
+      message: `the page count - the LAST chunk #snapshot issues since 13-12 - has been answered once per connect`,
+      timeout: 30_000,
+    })
+    .toBe(connects);
+  await expect
     .poll(() => zona.seen("SERIALNUMBER", "FETCH"), {
       message: `the module named itself once per connect`,
       timeout: 30_000,
@@ -333,13 +344,24 @@ async function onlyReads(
 
   expect(zona.seen("CONFIG", "EXECUTE"), "config writes").toBe(0);
   expect(zona.seen("PAGESTORE", "EXECUTE"), "flash stores").toBe(0);
+  // 13-12: the page switch and the page discard are writes for this purpose.
+  expect(
+    zona.seen(["PAGE", "ACTIVE"].join(""), "EXECUTE"),
+    "page switches",
+  ).toBe(0);
+  expect(
+    zona.seen(["PAGE", "DISCARD"].join(""), "EXECUTE"),
+    "page discards",
+  ).toBe(0);
   expect(zona.seen("HEARTBEAT", "EXECUTE"), "host heartbeats").toBe(0);
   expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(connects);
   expect(zona.seen("CONFIG", "FETCH")).toBe(3 * connects);
-  // FOUR chunks per connect, not three - and this one is a WRITE count, so no
-  // grep for `2 *` would have found it. One SERIALNUMBER/FETCH plus three
-  // CONFIG/FETCH, and every one of them is a read.
-  expect(await writes(page), "chunks, every one a read").toBe(4 * connects);
+  expect(zona.seen("PAGECOUNT", "FETCH")).toBe(connects);
+  // FIVE chunks per connect since 13-12 (four since 12-03, three before) -
+  // and this one is a WRITE count, so no grep for `2 *` would have found it.
+  // One SERIALNUMBER/FETCH, three CONFIG/FETCH, one PAGECOUNT/FETCH, and
+  // every one of them is a read.
+  expect(await writes(page), "chunks, every one a read").toBe(5 * connects);
 }
 
 /**
@@ -834,6 +856,12 @@ test.describe("the session with a granted ZONA on the cable", () => {
     await connectGranted(page);
     const line = await identity(page).innerText();
     expect(line).toContain(CAPTURED_FIRMWARE);
+    // And the snapshot landed (13-12): onlyReads() at the end of this test
+    // counts one whole snapshot's reads, which `connected` does not imply -
+    // the same causal wait the two tests below carry, for the same reason.
+    await expect(page.getByTestId("install-phase")).toHaveText("ready", {
+      timeout: 30_000,
+    });
 
     // The cable comes out. No click, no navigation, no failed write in
     // between: the `disconnect` event alone moves the page, in the same turn.
@@ -863,6 +891,18 @@ test.describe("the session with a granted ZONA on the cable", () => {
 
     // Precondition: a live session, then the cable out - S5, on port 0.
     await connectGranted(page);
+    // THE SNAPSHOT MUST HAVE LANDED BEFORE THE CABLE COMES OUT (13-12). This
+    // test asserts "two connects, two snapshots" at its end through
+    // onlyReads(), whose totals assume each snapshot ran to its last chunk.
+    // `connected` does not imply that (onlyReads's own header), and the
+    // unplug below used to race the snapshot's tail: with four chunks the
+    // race was rarely lost, with five since 13-12 - the page-count fetch is
+    // the last - it was lost on the first run, the first snapshot cut between
+    // its timer fetch and its count. The probe publishes `install-phase`, so
+    // the wait is causal: `ready` IS "the snapshot is done".
+    await expect(page.getByTestId("install-phase")).toHaveText("ready", {
+      timeout: 30_000,
+    });
     await page.evaluate(() => window.__hangarSerial.unplug(0));
     await expect(phase(page)).toHaveText("unplugged-while-connected");
     const oldOpensBefore = await openCount(page, 0);
@@ -893,8 +933,8 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await openCount(page, 0)).toBe(oldOpensBefore);
     expect(await openCount(page, 1)).toBe(1);
 
-    // Two connects, two snapshots, EIGHT reads, zero writes: each snapshot is
-    // one SERIALNUMBER/FETCH and three CONFIG/FETCH since 12-03.
+    // Two connects, two snapshots, TEN reads (eight before 13-12), zero writes:
+    // each snapshot is one SERIALNUMBER/FETCH, three CONFIG/FETCH and one PAGECOUNT/FETCH.
     await onlyReads(page, zona, 2);
     expect(consoleErrors).toEqual([]);
   });
@@ -913,6 +953,12 @@ test.describe("the session with a granted ZONA on the cable", () => {
     // reports is the whole journey's.
     expect(await page.evaluate(() => "serial" in navigator)).toBe(true);
     await connectGranted(page);
+    // The snapshot landed before the unplug - the same causal wait the replug
+    // test above carries, for the same reason (13-12: five chunks, and the
+    // journey's totals at the end assume both snapshots ran whole).
+    await expect(page.getByTestId("install-phase")).toHaveText("ready", {
+      timeout: 30_000,
+    });
     await page.evaluate(() => window.__hangarSerial.unplug(0));
     await expect(phase(page)).toHaveText("unplugged-while-connected");
     const replugged = await page.evaluate(() => window.__hangarSerial.replug());
@@ -943,7 +989,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await requests(page)).toBe(0);
 
     // SAFE-01 as a number over a visitor journey: offer, connect, identify,
-    // unplug, replug, connect, identify, revoke - two snapshots' six reads
+    // unplug, replug, connect, identify, revoke - two snapshots' ten reads
     // and zero writes of any class.
     await onlyReads(page, zona, 2);
     expect(consoleErrors).toEqual([]);

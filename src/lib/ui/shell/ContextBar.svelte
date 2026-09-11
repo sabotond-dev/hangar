@@ -39,8 +39,17 @@
   fact passes nothing, and the line renders the device clause alone.
 
   NOT THE INSTALL STATE MACHINE (that is install.svelte.ts's, read and not
-  edited) AND NOT THE PAGE TARGET (13-12). The destination is a snippet the
-  route hands over; this bar draws the zone.
+  edited) AND NOT THE PAGE TARGET EITHER, EVEN NOW THAT IT EXISTS (13-12).
+  The destination is a snippet the route hands over; this bar draws the zone.
+  Since 13-12 the workspace's snippet is the Target select, Apply to ZONA and
+  the destination review (D-06's envelope; Bible section 9), and the bar
+  learned nothing for it: the zone is `align-items: center` on a
+  `min-block-size` row, so a review opened under the select grows the bar
+  rather than floating over the surface - not modal, not absolute, the
+  tree's rule for every confirmation (KeepConfirm.svelte, 13-11) - and the
+  row settles back when the review closes. The status zone's device clause
+  reads the store's PHASE and knows nothing of the target's four states;
+  those render in the destination zone, next to the control they describe.
 
   The bar is a section named by its breadcrumb (aria-labelledby) - a region
   landmark without a role attribute, so no label is invented and

@@ -108,13 +108,14 @@
 // the durable record one page writes is never the reason the next one reads
 // `ready`.
 //
-// ELEVEN OF THE FOURTEEN TITLES ARE UNTAGGED: every one of them drives Web
-// Serial, which the phone engine does not have. Three carry the tag
-// playwright.config.ts greps the phone project by, so they run on both:
-// fourteen titles, seventeen runs. 07-08 added six to the suite total on the
-// desktop project alone; 07-12 adds four there and one on both, six more;
-// 10-13 adds two on both, four more; 12-01 adds ONE on the desktop project
-// alone, so the source count and the run count each move by exactly one.
+// TWELVE OF THE FIFTEEN TITLES ARE UNTAGGED (eleven of fourteen before
+// 13-12): every one of them drives Web Serial, which the phone engine does
+// not have. Three carry the tag playwright.config.ts greps the phone project
+// by, so they run on both: fifteen titles, eighteen runs. 07-08 added six to
+// the suite total on the desktop project alone; 07-12 adds four there and one
+// on both, six more; 10-13 adds two on both, four more; 12-01 adds ONE on the
+// desktop project alone, so the source count and the run count each move by
+// exactly one; 13-12 adds ONE the same way - the page target, D-06.
 //
 // AND ONE OF THE THREE TAGGED TITLES DRIVES WEB SERIAL, WHICH IS A DEPARTURE
 // FROM THE PARAGRAPH ABOVE - said plainly rather than left to be noticed. The
@@ -164,8 +165,6 @@ import {
   LIVE_STILL_WRITING,
   PUTTING_BACK_LABEL,
   PUT_BACK_LABEL,
-  PUT_BACK_LINE,
-  PUT_BACK_LINE_AFTER_KEEP,
   PUT_BACK_NEEDS_ZONA,
   RESTORED_BODY,
   RESTORED_CAPTION,
@@ -183,6 +182,10 @@ import {
   unconfirmedBlock,
   TRY_ON_LABEL,
 } from "../src/lib/device/install-copy";
+import {
+  putBackPageLine,
+  putBackPageLineAfterKeep,
+} from "../src/lib/device/page-target";
 import {
   CAPTION_UNSUPPORTED,
   WRITE_LOCK_REASON,
@@ -436,17 +439,34 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       "fetch-system ok 1",
       "fetch-setup ok 1",
       "fetch-timer ok 1",
+      // 13-12: the enumeration, once per connection, a READ. The pages the
+      // destination control offers are this answer and never a number.
+      "fetch-page-count ok 1",
     ]);
+    await expect(readout(page, "install-pages")).toHaveText("0 1 2 3");
+    await expect(readout(page, "install-page-status")).toHaveText("reported");
+    await expect(readout(page, "install-page-reported")).toHaveText(
+      String(ACTIVE_PAGE),
+    );
+    await expect(readout(page, "install-apply-ready")).toHaveText("true");
 
     // SAFE-01 by class, over the whole journey: one serial fetch, THREE config
-    // fetches, and not one write of any kind.
+    // fetches, ONE page-count fetch, and not one write of any kind - where,
+    // since 13-12, "a write" includes the PAGE SWITCH and the PAGE DISCARD
+    // (13-CONTEXT D-06, first clause: a page switch is a click, never a side
+    // effect). The class list is EXTENDED here, never excepted: connecting,
+    // snapshotting and enumerating moved the module's page zero times.
     expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(1);
     expect(zona.seen("CONFIG", "FETCH")).toBe(3);
+    expect(zona.seen("PAGECOUNT", "FETCH")).toBe(1);
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(zona.seen(["PAGE", "ACTIVE"].join(""), "EXECUTE")).toBe(0);
+    expect(zona.seen(["PAGE", "DISCARD"].join(""), "EXECUTE")).toBe(0);
     expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(0);
-    // Four frames, not three: the serial and the three fetches.
-    expect((await writesOf(page)).length).toBe(4);
+    // Five frames since 13-12 (four since 12-03): the serial, the three
+    // fetches, the page count.
+    expect((await writesOf(page)).length).toBe(5);
 
     // A module whose fetch answers empty: the snapshot is refused before the
     // record is consulted (D-03), PUT BACK stays absent, and RETRY after the
@@ -472,10 +492,14 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       /^idle > snapshotting > snapshot-failed > snapshotting > ready$/,
     );
     await expect(putBack(second)).toHaveText("enabled");
-    // Two snapshot attempts, three fetches each.
+    // Two snapshot attempts, three fetches each; the count fetched ONCE - the
+    // first attempt enumerated before its guard refused, and the retry did
+    // not ask again. Still not one write of any class.
     expect(empty.seen("CONFIG", "FETCH")).toBe(6);
+    expect(empty.seen("PAGECOUNT", "FETCH")).toBe(1);
     expect(empty.seen("CONFIG", "EXECUTE")).toBe(0);
     expect(empty.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(empty.seen(["PAGE", "ACTIVE"].join(""), "EXECUTE")).toBe(0);
 
     expect(consoleErrors).toEqual([]);
     expect(secondErrors).toEqual([]);
@@ -766,10 +790,10 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     const moduleId = await readout(page, "install-module").innerText();
 
     // The cable comes out as the first CONFIG/EXECUTE leaves: the snapshot's
-    // FOUR frames - the serial and three fetches - are on the wire already, so
-    // the next write is the fifth.
+    // FIVE frames - the serial, three fetches and the page count (13-12) - are
+    // on the wire already, so the next write is the sixth.
     const n = (await writesOf(page)).length + 1;
-    expect(n).toBe(5);
+    expect(n).toBe(6);
     await page.evaluate(
       (count) => window.__hangarSerial.unplugAfterWrites(0, count),
       n,
@@ -1300,7 +1324,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(honesty(page)).toHaveText(HONESTY_READY);
     await expect(putBackControl(page)).toBeVisible();
     await expect(putBackControl(page)).toBeEnabled();
-    await expect(visibleLine(page, "put-back-line")).toHaveText(PUT_BACK_LINE);
+    await expect(visibleLine(page, "put-back-line")).toHaveText(
+      // 13-12: the line names the page the snapshot holds (D-06).
+      putBackPageLine(ACTIVE_PAGE),
+    );
     await expect(keepControl(page)).toBeDisabled();
     await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
       KEEP_REASONS["never-tried"],
@@ -1511,7 +1538,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       KEEP_REASONS["already-kept"],
     );
     await expect(visibleLine(page, "put-back-line")).toHaveText(
-      PUT_BACK_LINE_AFTER_KEEP,
+      putBackPageLineAfterKeep(ACTIVE_PAGE),
     );
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
     // One try-on, three writes.
@@ -1573,7 +1600,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await keepOnPage(page, zona);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
     await expect(visibleLine(page, "put-back-line")).toHaveText(
-      PUT_BACK_LINE_AFTER_KEEP,
+      putBackPageLineAfterKeep(ACTIVE_PAGE),
     );
 
     // Hold the store acknowledgement so the put-back's STORE leg is on screen
@@ -1635,7 +1662,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(putBackControl(page)).not.toHaveAttribute("aria-busy", "true");
     // The keep is undone: the line is back to its first form, and KEEP ON
     // DEVICE waits for another try-on.
-    await expect(visibleLine(page, "put-back-line")).toHaveText(PUT_BACK_LINE);
+    await expect(visibleLine(page, "put-back-line")).toHaveText(
+      // 13-12: the line names the page the snapshot holds (D-06).
+      putBackPageLine(ACTIVE_PAGE),
+    );
     await expect(keepControl(page)).toBeDisabled();
     await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
       KEEP_REASONS["never-tried"],
@@ -2054,6 +2084,159 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // the number of clicks.
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(6);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("the destination menu lists the pages the module reports and sends nothing on open; the review names both pages and sends nothing; the affirmative sends the heartbeat then exactly one switch; Apply waits for the module's own report, and PUT BACK then names the new page", async ({
+    page,
+  }) => {
+    // Plan 13-12 (13-CONTEXT D-06, every clause but the bench). The fake is
+    // the node suite's responder, which since this plan moves its active page
+    // on a switch and reports it beside the next heartbeat - the whole of the
+    // confirmation firmware gives (grid_decode.c:302-357). Heartbeats here are
+    // PUSHED by the test, so "the module has not reported yet" is a state
+    // this test can hold for as long as it likes.
+    const PAGE_SWITCH = ["PAGE", "ACTIVE"].join("");
+    const TO = 3;
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(19));
+    await connectOnPage(page, zona);
+
+    const select = page.getByTestId("destination-page");
+    const apply = page.getByTestId("apply-to-zona");
+    const review = page.getByTestId("destination-review");
+    const seenBefore = () => ({
+      switches: zona.seen(PAGE_SWITCH, "EXECUTE"),
+      heartbeats: zona.seen("HEARTBEAT", "EXECUTE"),
+      writes: zona.seen("CONFIG", "EXECUTE"),
+    });
+
+    // THE MENU: the module's enumeration - four pages from the fake's
+    // firmware-initial count, never a number typed in the page - with the
+    // reported page marked and selected. Opening it sends NOTHING.
+    await expect(select).toBeVisible();
+    await expect(select).toBeEnabled();
+    await expect(select.locator("option")).toHaveCount(4);
+    await expect(select.locator("option")).toHaveText([
+      "Page 0",
+      "Page 1",
+      `Page ${ACTIVE_PAGE} · on ZONA`,
+      "Page 3",
+    ]);
+    await expect(select).toHaveValue(String(ACTIVE_PAGE));
+    await expect(apply).toBeEnabled();
+    await select.focus();
+    await select.click();
+    expect(seenBefore()).toEqual({ switches: 0, heartbeats: 0, writes: 0 });
+    await expect(review).toHaveCount(0);
+
+    // THE REVIEW, on first use: both pages named in D-06's sentence, Apply
+    // disabled, and still nothing on the wire. The negative takes the select
+    // back to the module's page, re-enables Apply, and sends nothing.
+    await select.selectOption(String(TO));
+    await expect(review).toBeVisible();
+    await expect(page.getByTestId("destination-review-line")).toHaveText(
+      `Switch your ZONA to Page ${TO}? It will stop playing Page ${ACTIVE_PAGE}.`,
+    );
+    await expect(review).toHaveAttribute("data-to", String(TO));
+    await expect(review).toHaveAttribute("data-from", String(ACTIVE_PAGE));
+    await expect(page.getByTestId("destination")).toHaveAttribute(
+      "data-status",
+      "requested",
+    );
+    await expect(apply).toBeDisabled();
+    await expect(
+      primary(page),
+      "TRY ON DEVICE is the same gate",
+    ).toBeDisabled();
+    expect(seenBefore()).toEqual({ switches: 0, heartbeats: 0, writes: 0 });
+    await page.getByTestId("destination-review-no").click();
+    await expect(review).toHaveCount(0);
+    await expect(select).toHaveValue(String(ACTIVE_PAGE));
+    await expect(apply).toBeEnabled();
+    expect(seenBefore()).toEqual({ switches: 0, heartbeats: 0, writes: 0 });
+
+    // EVERY CHANGE: the second request reviews again - no memory, no skip.
+    await select.selectOption(String(TO));
+    await expect(review).toBeVisible();
+    expect(seenBefore().switches).toBe(0);
+
+    // THE AFFIRMATIVE: the restore heartbeat, THEN exactly one switch, in
+    // that order on the wire - the case the ordering exists for is a switch
+    // after a write, and the order is asserted here off the frames the page
+    // wrote, not off a count. No config write, no store.
+    const framesBefore = (await writesOf(page)).length;
+    await page.getByTestId("destination-review-yes").click();
+    await expect(page.getByTestId("destination")).toHaveAttribute(
+      "data-status",
+      "switching",
+    );
+    await expect(page.getByTestId("destination-line")).toHaveText(
+      `Switching to Page ${TO}…`,
+    );
+    expect(seenBefore()).toEqual({ switches: 1, heartbeats: 1, writes: 0 });
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    const frames = await writesOf(page);
+    expect(frames.length - framesBefore, "two frames left the page").toBe(2);
+    const classOf = (hex: string) => {
+      const bytes = [...Buffer.from(hex, "hex")];
+      if (bytes[bytes.length - 1] === TERMINATOR) bytes.pop();
+      const decoded = decodeFrame(bytes);
+      if (!decoded.ok)
+        throw new Error(`a frame did not decode: ${decoded.reason}`);
+      return decoded.classes.map((c) => `${c.class_name}/${c.class_instr}`);
+    };
+    expect(frames.slice(-2).map(classOf)).toEqual([
+      ["HEARTBEAT/EXECUTE"],
+      [`${PAGE_SWITCH}/EXECUTE`],
+    ]);
+    // The fake accepted it: its page moved, and the next heartbeat will say so.
+    expect(zona.state.activePage).toBe(TO);
+
+    // THE ACK GATE: Apply stays disabled until the module's OWN report. The
+    // module has not heartbeated since the switch, so the target is still
+    // switching and every write control is shut.
+    await expect(apply).toBeDisabled();
+    await expect(primary(page)).toBeDisabled();
+    await expect(select).toBeDisabled();
+    await expect(putBackControl(page)).toBeDisabled();
+    await expect(clearControl(page)).toBeDisabled();
+
+    // The report: one heartbeat from the module, carrying page 3. The target
+    // settles, the select shows the new page as the module's, Apply is live
+    // again - and the store re-snapshots the NEW page (Pitfall 4's third
+    // layer), so PUT BACK's line now NAMES Page 3 before any click.
+    const beats = await beatUntilShows(page, zona, 0, {
+      selector: '[data-testid="destination"]',
+      attribute: "data-status",
+      equals: "reported",
+    });
+    console.log(`the report needed ${beats} heartbeat(s)`);
+    await expect(select).toHaveValue(String(TO));
+    await expect(select.locator("option")).toHaveText([
+      "Page 0",
+      "Page 1",
+      `Page ${ACTIVE_PAGE}`,
+      `Page ${TO} · on ZONA`,
+    ]);
+    await expect(apply).toBeEnabled();
+    await expect(primary(page)).toBeEnabled();
+    await expect(page.getByTestId("put-back-page-line")).toHaveText(
+      `Puts Page ${TO} back to what it was playing when you connected.`,
+      { timeout: 10_000 },
+    );
+    await expect(page.getByTestId("put-back-page-line")).not.toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    await expect(putBackControl(page)).toBeEnabled();
+
+    // The wire, whole: one switch, one heartbeat before it, no config write,
+    // no store, no discard; the re-snapshot of the new page is reads only.
+    expect(seenBefore()).toEqual({ switches: 1, heartbeats: 1, writes: 0 });
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(zona.seen(["PAGE", "DISCARD"].join(""), "EXECUTE")).toBe(0);
+    expect(zona.seen("PAGECOUNT", "FETCH"), "enumerated once").toBe(1);
     expect(consoleErrors).toEqual([]);
   });
 });

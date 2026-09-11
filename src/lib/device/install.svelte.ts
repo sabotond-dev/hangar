@@ -16,7 +16,7 @@
 // session exactly what plan 07-04 lent: the `transport` write view, onClass(),
 // onConnection(), announce() and writeLock.
 //
-// WHY EXACTLY THREE STATIC `from` SPECIFIERS, AND WHICH THREE. The install
+// WHY EXACTLY FOUR STATIC `from` SPECIFIERS, AND WHICH FOUR. The install
 // panel is on the first paint of `/playground/{id}/`, and this store is reachable from
 // it, so whatever this file names statically is on the cold load. Phase 4's
 // chunk guard (src/lib/config-shape.spec.ts test 13) matches specifier TEXT,
@@ -24,9 +24,42 @@
 //
 //   ./install-copy    zero imports. Every sentence this store speaks.
 //   ./snapshot        zero imports. The durable record, keyed module then page.
+//   ./page-target     zero imports. The page target (Phase 13, 13-12): the
+//                     one control that moves the hardware, and its envelope.
 //   ./session.svelte  Phase 6's four light specifiers (session-copy,
 //                     protocol/usb, transport/ports, transport/transport), all
 //                     of them free of the protocol package.
+//
+// THE PAGE TARGET, AND HOW IT IS FOLDED INTO PHASE 7'S RULES RATHER THAN
+// EXCEPTED FROM THEM (13-CONTEXT D-06, D-19). page-target.ts holds the four
+// states - reported, requested, switching, unverified - and the two frames a
+// switch puts on the wire, in the one order firmware forces (the restore
+// heartbeat, THEN the switch). This store owns the wiring and the gate:
+//
+//   - the module's page report reaches the target from the SAME class sink
+//     the heartbeat waiters and the page-change re-snapshot already read
+//     (#onClassSeen), one microtask after the session's fold has published
+//     the identity, so the target reads `activePage` the way #pageCheck does;
+//   - a switch is a CLICK and nothing else: requestPage() opens the review
+//     and sends nothing; confirmPage() is the affirmative and the only path
+//     to the target's confirm(); no navigation, selection, restore, install
+//     or report of the module's own calls either;
+//   - EVERY write path reads the target's ONE condition - pageSettled(), which
+//     is canApply(): at rest, and reported === requested - before it touches
+//     the queue: the try-on's refusal list, PUT BACK, CLEAR's enablement and
+//     the keep. Between the affirmative and the module's own report of the
+//     requested page, and through `unverified`, nothing writes;
+//   - the pages offered are the module's own answer to a PAGECOUNT fetch,
+//     taken once per connection inside the snapshot; never a number;
+//   - the per-page snapshot D-06 asks for has existed since Phase 7
+//     (snapshot.ts rule 2, keyed module then page; #pageCheck re-snapshots
+//     the new page when the module moves). What this plan adds is that PUT
+//     BACK NAMES the page it holds before the click (putBackPageLine).
+//
+// THE DISCARD (the page-discard class, revertToStored below) is the firmware-native
+// revert D-06's last clause asked to be researched. It is written, it is
+// UNPROVEN on hardware, and it is reachable from the /dev/install/ probe only
+// until docs/INSTALL-RUNBOOK.md row I confirms it. No public control.
 //
 // Every reference to $lib/protocol, $lib/transport or $lib/pad is either an
 // inline `import(...)` TYPE - erased, invisible to a specifier scan, costing no
@@ -178,6 +211,11 @@ import {
   unconfirmedBlock,
 } from "./install-copy";
 import {
+  PageTarget,
+  type PageTargetView,
+  type TargetStatus,
+} from "./page-target";
+import {
   type SnapshotStore,
   hasSnapshotFor,
   lastModuleId,
@@ -227,7 +265,11 @@ export type InstallPhase =
   | "unconfirmed"
   | "restored-unconfirmed"
   | "nothing-landed";
-export type InstallAction = "try" | "put-back" | "keep" | "clear";
+/**
+ * `discard` joined the four in Phase 13, plan 13-12: the firmware-native
+ * revert (the page-discard class), reachable from the probe only until the bench.
+ */
+export type InstallAction = "try" | "put-back" | "keep" | "clear" | "discard";
 export type InstallLeg = "ram" | "store";
 /** Why an action ended where it did. Rendered by no block in v1; asserted by the spec and recorded in the capture. */
 export type InstallCause = "timeout" | "nack" | "aborted" | "mismatch";
@@ -292,8 +334,17 @@ const REFETCH_ROUNDS = 3;
 /** Z-09: the one honest line of `writing`, and the only utterance that is not a transition. */
 const SLOW_LINE_MS = 2000;
 
-/** One reason per refusal; the guard returns the first that applies. */
-type TryRefusal = "measuring" | "not-writable" | "no-session" | "over-budget";
+/**
+ * One reason per refusal; the guard returns the first that applies.
+ * `page-pending` (13-12): the page target is not at rest - a review is open,
+ * a switch awaits the module's report, or the window closed unverified.
+ */
+type TryRefusal =
+  | "measuring"
+  | "not-writable"
+  | "no-session"
+  | "page-pending"
+  | "over-budget";
 
 /**
  * The memoised module promise. Module scope on purpose, exactly as the
@@ -375,6 +426,27 @@ export class InstallStore {
    * asks whether it ever fired. Never reset inside a page load.
    */
   pacingEscalated = $state(false);
+  /**
+   * THE PAGE TARGET'S MIRROR (13-12). Four scalars and one list, replaced
+   * whole from page-target.ts's onChange and never mutated - the house rule.
+   * `pageReported` is the page the module last reported beside its
+   * heartbeat; `pageRequested` the page the visitor asked for (equal to the
+   * reported page at rest); `pageStatus` one of the four states; `pages` the
+   * module's own enumeration, empty until the PAGECOUNT answer lands and
+   * empty again on every reconnect. Components render these; the gate they
+   * must obey is pageSettled(), below, and not a comparison of their own.
+   */
+  pageStatus = $state<TargetStatus>("reported");
+  pageReported = $state.raw<number | undefined>(undefined);
+  pageRequested = $state.raw<number | undefined>(undefined);
+  pages = $state.raw<readonly number[]>([]);
+  /**
+   * pageSettled() as a rune, for the components: assigned from the target's
+   * canApply() in the same mirror, never computed a second time from the
+   * fields above. Apply to ZONA, TRY ON DEVICE, PUT BACK and CLEAR all
+   * disable on this, and the store's own write paths refuse on pageSettled().
+   */
+  applyReady = $state(false);
 
   // --- NOT reactive: the record of the last action, and the machinery -------
 
@@ -424,9 +496,45 @@ export class InstallStore {
   #heartbeatWaiters: { resolve: () => void; reject: (err: Error) => void }[] =
     [];
   #started = false;
+  /**
+   * The page target (13-12). Built once the protocol module is in hand,
+   * because its window is PAGE_SWITCH_WINDOW_MS and this file names that
+   * constant only through the awaited module; `undefined` before the first
+   * connect, when nothing has a page to target anyway.
+   */
+  #target: PageTarget | undefined;
 
   constructor(session: DeviceSession) {
     this.#session = session;
+  }
+
+  /** The target's mirror: one assignment per field, from one view. */
+  #mirrorTarget(view: PageTargetView): void {
+    this.pageStatus = view.status;
+    this.pageReported = view.reported;
+    this.pageRequested = view.requested;
+    this.pages = view.pages;
+    this.applyReady = this.#target?.canApply() ?? false;
+  }
+
+  /** The target, built on first need with the protocol module's window. */
+  #targetWith(P: Protocol): PageTarget {
+    return (this.#target ??= new PageTarget({
+      windowMs: P.PAGE_SWITCH_WINDOW_MS,
+      onChange: (view) => this.#mirrorTarget(view),
+    }));
+  }
+
+  /**
+   * THE ONE CONDITION EVERY WRITE READS (13-12, D-06): the page target is at
+   * rest and the module's own report agrees with it. False while a review is
+   * open, while a switch awaits the report, and through `unverified`. Also
+   * false before any module has reported, which every write path already
+   * refuses on other grounds. Delegates to the target's canApply() and
+   * restates nothing.
+   */
+  pageSettled(): boolean {
+    return this.#target?.canApply() ?? false;
   }
 
   /** The last action's steps, for the probe and for the pacing rule. */
@@ -481,6 +589,10 @@ export class InstallStore {
     // Flash only what you have heard (Z-21): a session drop is one of the
     // confirmation's four exits.
     this.confirmOpen = false;
+    // The page target knows nothing about a module that is gone: a review
+    // closes, a pending switch is no longer pending, `unverified` ends the
+    // one way it can end without a report (13-12). The reconnect reports.
+    this.#target?.reset();
     if (!this.#inFlight) {
       // Nothing was in flight: back to idle. `snapshot`, `moduleId` and
       // `rememberedModule` STAY - the way back survives the unplug.
@@ -507,6 +619,11 @@ export class InstallStore {
     const id = this.#session.identity;
     if (!id) return;
     this.#preSendDelayMs ??= modules.P.PRE_SEND_DELAY_MS;
+    // The target starts from nothing on every connection and hears the page
+    // the identity carried - the module's own first report (13-12).
+    const target = this.#targetWith(modules.P);
+    target.reset();
+    target.observeReport(id.activePage);
     const queue = this.#buildQueue(modules.T);
     if (!queue) return;
     await this.#snapshot(id, queue, gen);
@@ -558,8 +675,16 @@ export class InstallStore {
     this.#heartbeatWaiters = [];
     for (const waiter of waiters) waiter.resolve();
     // The session's fold publishes the identity AFTER its sinks have run for
-    // this frame, so the page comparison waits one microtask for it.
-    queueMicrotask(() => this.#pageCheck());
+    // this frame, so the page comparison waits one microtask for it. The page
+    // target reads the same published page in the same microtask (13-12):
+    // the identity's activePage IS the module's page report - D-10's fold
+    // moves it only for a PAGENUMBER riding beside a heartbeat with no
+    // EVENTTYPE and no ACTIONLENGTH, so a CONFIG/REPORT can never land here.
+    queueMicrotask(() => {
+      this.#pageCheck();
+      const page = this.#session.identity?.activePage;
+      if (page !== undefined) this.#target?.observeReport(page);
+    });
   }
 
   /** A promise for the ZONA's next heartbeat, rejected if the link closes first. */
@@ -637,6 +762,18 @@ export class InstallStore {
       if (gen !== this.#generation) return;
       this.#fail("snapshot-failed", "timeout", snapshotFailedBlock().title);
       return;
+    }
+    if (gen !== this.#generation) return;
+
+    // THE ENUMERATION (13-12), once per connection, after the three config
+    // fetches so their step ids read as they always have and before `ready`
+    // so the destination control never renders a list it has not been given.
+    // A read, never a write; a module that does not answer offers only its
+    // reported page, and enumerate() never throws (Bible section 9: enumerate,
+    // never assume four).
+    const target = this.#targetWith(P);
+    if (target.pages.length === 0) {
+      await target.enumerate(q, P, id.zona);
     }
     if (gen !== this.#generation) return;
 
@@ -842,22 +979,32 @@ export class InstallStore {
     return (
       WRITABLE_PHASES.includes(this.phase) &&
       this.snapshot !== undefined &&
-      capable
+      capable &&
+      // 13-12: and the page target at rest. A clear resets the page the
+      // module is ON, and while a switch is pending that page is in question.
+      this.pageSettled()
     );
   }
 
   /**
    * Why CLEAR is disabled, or undefined when it is live - the three reasons of
-   * 10-UI-SPEC 10.5's closed table, in precedence order. `writing` is the one
-   * phase that reaches the last line with a session and a snapshot in hand,
-   * and the component renders CLEARING… (or a control disabled under another
-   * action's write) rather than a reason there - the same division of labour
-   * PUT BACK uses.
+   * 10-UI-SPEC 10.5's closed table, in precedence order. Two disabled
+   * moments name NO reason with a session and a snapshot in hand, and the
+   * component disables and holds its last line through both: `writing`,
+   * where it renders CLEARING… (or a control disabled under another action's
+   * write), and since 13-12 a page target that is not at rest, whose line is
+   * the destination zone's - the same division of labour PUT BACK uses.
    */
   clearReason(capable: boolean): ClearReason | undefined {
     if (this.clearEnabled(capable)) return undefined;
     if (!capable) return "incapable";
     if (this.snapshot === undefined) return "no-snapshot";
+    // 13-12: a page target that is not at rest, with a session and a
+    // snapshot in hand, is not "no session" and the closed record has no
+    // word for it on purpose - the destination zone carries that state's
+    // own line, and Clear.svelte disables on `applyReady` and holds its last
+    // reason exactly as it does through a write.
+    if (this.#queue && this.#session.phase === "connected") return undefined;
     return "no-session";
   }
 
@@ -866,12 +1013,122 @@ export class InstallStore {
   /** Opens the inline confirmation. Refused unless keepReason() is undefined. */
   openConfirm(): void {
     if (this.keepReason(this.#capable()) !== undefined) return;
+    // 13-12: not while the page target is pending - what would be stored is
+    // on a page that is about to stop being the active one.
+    if (!this.pageSettled()) return;
     this.confirmOpen = true;
   }
 
   /** NOT NOW, Escape, a knob move, a session drop - all four exits land here or in their own branch. */
   dismissConfirm(): void {
     this.confirmOpen = false;
+  }
+
+  // --- the page target: the review, the switch, the revert (13-12, D-06) ---
+
+  /**
+   * The visitor chose a destination: OPEN THE DESTINATION REVIEW. Sends
+   * nothing - that is the whole of this method's contract, and install.e2e.ts
+   * counts the switch class at zero across a cycle that opens the menu. The
+   * flash confirmation, if open, closes: two confirmations on one screen is
+   * one too many, and a page change under an open KEEP would be exactly the
+   * "flash only what you have heard" failure Z-21 names. Refused - false -
+   * while a switch is pending, before the module has reported, while a leg
+   * is in flight, and for the page the module is already on.
+   */
+  requestPage(page: number): boolean {
+    if (this.#inFlight || this.phase === "writing") return false;
+    const target = this.#target;
+    if (!target || this.#session.phase !== "connected") return false;
+    const opened = target.request(page);
+    if (opened) this.confirmOpen = false;
+    return opened;
+  }
+
+  /** The review's negative, Escape, a session drop: the target is the module's page again. Sends nothing. */
+  cancelPage(): void {
+    this.#target?.cancel();
+  }
+
+  /**
+   * THE REVIEW'S AFFIRMATIVE - the one click that moves the hardware, and the
+   * only caller of the target's confirm(). The restore heartbeat goes out,
+   * then the switch, both through this connection's ONE queue; the module's
+   * own report ends the wait, or the window lands `unverified`. Refused while
+   * a leg is in flight: sendImmediate DROPS a frame while a write is
+   * outstanding (07-RESEARCH Pitfall 2), and a dropped switch would read as a
+   * refusal on the module rather than as what it was.
+   */
+  async confirmPage(): Promise<void> {
+    if (this.#inFlight || this.phase === "writing") return;
+    const q = this.#queue;
+    const id = this.#session.identity;
+    const target = this.#target;
+    if (!q || !id || !target || this.#session.phase !== "connected") return;
+    const { P } = await heavyModules();
+    await target.confirm(q, P, id.zona);
+  }
+
+  /**
+   * THE FIRMWARE-NATIVE REVERT (the page-discard class): reload the active page from
+   * flash, undoing every RAM write since the last store without needing the
+   * snapshot (grid_decode.c:895-915). UNPROVEN ON HARDWARE and reachable from
+   * the /dev/install/ probe only until docs/INSTALL-RUNBOOK.md row I says
+   * otherwise; no public control calls this. It is a RAM-only action with the
+   * store's wire shape - a broadcast, an id-correlated acknowledgement, the
+   * store's timeout, a page reload that restarts the Lua VM - so it runs
+   * under the same lock, the same slow line and the same generation check as
+   * a store leg, and the restore heartbeat follows it as after every RAM
+   * action. Where it lands: the module now runs what FLASH holds - the kept
+   * configuration if this session stored one (`kept`), the visitor's own
+   * otherwise (`restored`). Gated like a clear: a writable phase, a snapshot
+   * in hand, and the page target at rest.
+   */
+  async revertToStored(): Promise<void> {
+    if (!this.clearEnabled(this.#capable())) return;
+    const q = this.#queue;
+    const id = this.#session.identity;
+    if (!q || !id || this.#session.phase !== "connected") return;
+    const gen = this.#generation;
+    const { P, T } = await heavyModules();
+    this.action = "discard";
+    this.leg = "ram";
+    this.cause = undefined;
+    this.phase = "writing";
+    this.steps = [];
+    this.#inFlight = true;
+    this.#session.writeLock = true;
+    this.#armSlow();
+    try {
+      await q.request(P.discardPage(), "discard");
+      if (gen !== this.#generation) return;
+      const kept = this.keptThisSession;
+      const name = this.name ?? "";
+      this.lastWritten = undefined;
+      this.name = undefined;
+      this.cause = undefined;
+      this.phase = kept ? "kept" : "restored";
+      this.#recomputeArmed();
+      this.#session.announce(kept ? liveKept(name) : LIVE_RESTORED);
+    } catch (err) {
+      if (err instanceof T.AbortedError) {
+        this.#fail("lost", "aborted", lostBlock(false, TRY_ON_LABEL).title);
+        return;
+      }
+      if (gen !== this.#generation) return;
+      // A discard dropped under a bulk operation answers with nothing, like a
+      // store (grid_decode.c:907-909): the restore's own unconfirmed form.
+      this.#fail(
+        "restored-unconfirmed",
+        err instanceof T.NackError ? "nack" : "timeout",
+        restoredUnconfirmedBlock().title,
+      );
+    } finally {
+      await T.restorePageChange(q).catch(() => undefined);
+      this.#disarmSlow();
+      this.#inFlight = false;
+      this.#session.writeLock = false;
+    }
   }
 
   // --- the two RAM clicks ----------------------------------------------------
@@ -891,6 +1148,8 @@ export class InstallStore {
     if (!WRITABLE_PHASES.includes(this.phase)) return "not-writable";
     if (!this.#queue || this.#session.phase !== "connected")
       return "no-session";
+    // 13-12: nothing writes while the page target is not at rest.
+    if (!this.pageSettled()) return "page-pending";
     if (config.setup.length >= configMax) return "over-budget";
     if (config.timer.length >= configMax) return "over-budget";
     return undefined;
@@ -944,6 +1203,9 @@ export class InstallStore {
     if (!WRITABLE_PHASES.includes(this.phase)) return;
     const id = this.#session.identity;
     if (!this.#queue || !id || this.#session.phase !== "connected") return;
+    // 13-12: not while a switch is pending or unverified - the page the
+    // snapshot names may be about to stop being the active one.
+    if (!this.pageSettled()) return;
     // Pitfall 4: the snapshot is one page's original and goes back to that
     // page only. The page-change re-snapshot keeps these equal; if it could
     // not, refusing is the honest answer rather than a cross-page write.
@@ -1056,6 +1318,7 @@ export class InstallStore {
    */
   async keepOnDevice(): Promise<void> {
     if (!this.confirmOpen || !this.armed) return;
+    if (!this.pageSettled()) return;
     const sent = this.lastWritten;
     const name = this.name ?? "";
     if (!sent || !this.#queue || this.#session.phase !== "connected") return;

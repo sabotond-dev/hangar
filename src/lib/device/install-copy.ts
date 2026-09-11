@@ -154,12 +154,25 @@ export const NOT_NOW_LABEL = "NOT NOW";
 /** Plan 10-12's fourth click. The Editor's own word, kept (D-21); what it does is said in the line beneath it. */
 export const CLEAR_LABEL = "CLEAR";
 export const CLEARING_LABEL = "CLEARING…";
+/**
+ * THE FIFTH WRITE CLICK (Phase 13, plan 13-12; 13-CONTEXT D-06): the
+ * destination review's affirmative, the one click that moves the module's
+ * active page - a write for SAFE-01's purpose, so it is in WRITE_CLICKS. And
+ * its negative beside it. BOTH ARE IN D-05'S REGISTER - sentence case, verbs
+ * plainly - and not in Phase 10's uppercase, because the review sits in the
+ * Bible's context bar beside `Apply to ZONA` and `Target`, not in the install
+ * column; install-copy.spec.ts exempts the two from the uppercase rule BY
+ * NAME with this reason, and 13-18's batch decides whether the other nine
+ * follow. Ledgered in 13-COPY-NEW.md.
+ */
+export const SWITCH_PAGE_LABEL = "Switch page";
+export const KEEP_PAGE_LABEL = "Keep this page";
 
 /**
  * THE NUMBER OF WRITE CLICKS, AS A CONSTANT RATHER THAN AS A WORD IN PROSE.
  *
- * It has now changed once - three to four, plan 10-12 - and it will change
- * again. A sentence saying "one of three clicks" rots silently in a
+ * It has now changed twice - three to four, plan 10-12; four to five, plan
+ * 13-12 - and it will change again. A sentence saying "one of three clicks" rots silently in a
  * requirements table; a constant of length four, asserted equal to the four
  * control labels, moves with the labels or turns a gate red. Every write this
  * site can perform is attributable to one of these (SAFE-01).
@@ -169,6 +182,9 @@ export const WRITE_CLICKS = [
   "PUT BACK",
   "KEEP ON DEVICE",
   "CLEAR",
+  // 13-12: the page switch. Nothing writes without a click, and the switch
+  // is a write for this purpose (D-06, first clause).
+  "Switch page",
 ] as const;
 
 // ---------------------------------------------------------------------------

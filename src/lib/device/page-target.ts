@@ -370,9 +370,10 @@ export const switchReviewLine = (to: number, from: number): string =>
 export const replaceReviewTitle = (page: number): string =>
   `Replace the configuration on ZONA · ${pageName(page)}?`;
 
-/** The review's affirmative and negative. Verbs, plainly (D-05). */
-export const SWITCH_CONFIRM = "Switch page";
-export const SWITCH_CANCEL = "Keep this page";
+// The review's affirmative and negative - `Switch page`, `Keep this page` -
+// live in install-copy.ts as SWITCH_PAGE_LABEL and KEEP_PAGE_LABEL, because
+// the affirmative is the fifth entry of WRITE_CLICKS and that module imports
+// nothing; they are not repeated here.
 
 /** The destination zone while the report is awaited (section 9's "Applying to Page N…" shape). */
 export const switchingLine = (to: number): string =>
@@ -391,6 +392,24 @@ export const unverifiedLine = (
   lastReported === undefined
     ? `Your ZONA hasn’t confirmed ${pageName(requested)}. Nothing was applied.`
     : `Your ZONA hasn’t confirmed ${pageName(requested)}. It last reported ${pageName(lastReported)}, and nothing was applied.`;
+
+/**
+ * PUT BACK NAMES ITS PAGE BEFORE IT ACTS (D-06's fourth clause; HANGAR's
+ * line, ledgered). The line under the control while a snapshot is in hand,
+ * in place of Phase 10's "Restores the Setup and Timer that were on your
+ * ZONA when you connected." - the same fact, with the page named, because a
+ * visitor who switched pages after a try-on must not be surprised by which
+ * page comes back. The snapshot in hand is the ACTIVE page's since the store
+ * re-snapshots on a page change, and the line says which that is rather
+ * than assuming the visitor knows. Two forms, as the Phase 10 pair has two:
+ * the second after a keep this session, when the put-back stores too.
+ * Both sit under PUT_BACK_CAP (129) so the 72px cell holds them.
+ */
+export const putBackPageLine = (page: number): string =>
+  `Puts ${pageName(page)} back to what it was playing when you connected.`;
+
+export const putBackPageLineAfterKeep = (page: number): string =>
+  `Puts ${pageName(page)} back to what it was playing when you connected, and stores it so it stays.`;
 
 /** The select's label, the PDF's word. */
 export const TARGET_LABEL = "Target";

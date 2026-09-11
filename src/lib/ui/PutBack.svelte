@@ -58,10 +58,24 @@
 
   Disabled is a real `disabled` attribute with the line bound by
   aria-describedby - never aria-disabled alone. The accessible name is the
-  visible label; there is no aria-label. Every string comes from install-copy;
-  none is retyped here. The three static specifiers are permitted paths of the
-  chunk guard (config-shape.spec.ts test 13), which plan 07-09 proved bites
-  from inside this file.
+  visible label; there is no aria-label. Every string comes from install-copy
+  or, since 13-12, from page-target.ts; none is retyped here. The static
+  specifiers are permitted paths of the chunk guard (config-shape.spec.ts
+  test 13), which plan 07-09 proved bites from inside this file.
+
+  PUT BACK NAMES ITS PAGE BEFORE IT ACTS (Phase 13, plan 13-12; 13-CONTEXT
+  D-06, fourth clause). While a snapshot is in hand the line under the control
+  is page-target.ts's putBackPageLine - "Puts Page 2 back to what it was
+  playing when you connected." - and its after-keep form, in place of Phase
+  10's two page-less lines, which stay rendered as the twins they always were
+  and as the fallback for a snapshot with no page (none exists; the type
+  allows it). Five twins in the cell, not three; the 72px reservation holds,
+  because the longest of the five (the page-naming after-keep form, under 90
+  characters) is shorter than the 101-character line the cell was measured
+  for. THE CONTROL IS ALSO DISABLED WHILE THE PAGE TARGET IS NOT AT REST -
+  install.applyReady false, the store's one condition mirrored - because a
+  put-back sent while a switch is pending would land on a page about to stop
+  being the active one, and the store refuses it anyway (install.putBack).
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -74,24 +88,44 @@
     PUT_BACK_NEEDS_ZONA,
     PUTTING_BACK_LABEL,
   } from "$lib/device/install-copy";
+  import {
+    putBackPageLine,
+    putBackPageLineAfterKeep,
+  } from "$lib/device/page-target";
 
   /** absent, needs-zona or enabled - the store's decision, read every time. */
   const state = $derived(install.putBackState());
   const writing = $derived(install.phase === "writing");
   /** The busy label belongs to a put-back and to nothing else, through both of its legs. */
   const busy = $derived(writing && install.action === "put-back");
-  const disabled = $derived(state === "needs-zona" || writing);
+  /** And not while the page target is pending (13-12): the store's one condition, mirrored. */
+  const disabled = $derived(
+    state === "needs-zona" ||
+      writing ||
+      (state === "enabled" && !install.applyReady),
+  );
+  /** The page the snapshot in hand names - the page PUT BACK will restore. */
+  const page = $derived(install.snapshotPage);
 
   /**
    * Which of the three strings is the visible one. The other two stay
    * rendered as sizing twins - see the style block and the header.
    */
-  const shown: "line" | "after-keep" | "needs-zona" = $derived(
+  const shown:
+    | "line"
+    | "after-keep"
+    | "needs-zona"
+    | "page"
+    | "page-after-keep" = $derived(
     state === "needs-zona"
       ? "needs-zona"
-      : install.keptThisSession
-        ? "after-keep"
-        : "line",
+      : page !== undefined
+        ? install.keptThisSession
+          ? "page-after-keep"
+          : "page"
+        : install.keptThisSession
+          ? "after-keep"
+          : "line",
   );
 
   function putBack(): void {
@@ -134,6 +168,22 @@
         aria-hidden={shown !== "needs-zona"}
       >
         {PUT_BACK_NEEDS_ZONA}
+      </p>
+      <!-- 13-12: the page named before the click (D-06). Twins like the three above. -->
+      <p
+        class="line"
+        class:twin={shown !== "page"}
+        aria-hidden={shown !== "page"}
+        data-testid="put-back-page-line"
+      >
+        {putBackPageLine(page ?? 0)}
+      </p>
+      <p
+        class="line"
+        class:twin={shown !== "page-after-keep"}
+        aria-hidden={shown !== "page-after-keep"}
+      >
+        {putBackPageLineAfterKeep(page ?? 0)}
       </p>
     </div>
   </div>

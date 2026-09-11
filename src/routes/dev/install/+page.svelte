@@ -78,6 +78,8 @@
    * a route file that deliberately names exactly two specifiers.
    */
   let system = $state("--[[@cb]]--[[page init]]");
+  /** The page the request and confirm buttons below ask for (13-12). */
+  let page = $state(0);
   let setup = $state("--[[@cb]]print(3)");
   let timer = $state("--[[@cb]]print(4)");
   /**
@@ -156,6 +158,24 @@
 <dl>
   <dt>session phase</dt>
   <dd data-testid="session-phase">{session.phase}</dd>
+
+  <!--
+    THE PAGE TARGET'S READOUT (13-12): the four fields the store mirrors and
+    the one condition, verbatim, so a browser test can watch reported,
+    requested and switching / unverified without any chrome in front of them.
+  -->
+  <dt>page target</dt>
+  <dd data-testid="install-page-status">{install.pageStatus}</dd>
+  <dt>page reported</dt>
+  <dd data-testid="install-page-reported">{install.pageReported ?? "none"}</dd>
+  <dt>page requested</dt>
+  <dd data-testid="install-page-requested">
+    {install.pageRequested ?? "none"}
+  </dd>
+  <dt>pages</dt>
+  <dd data-testid="install-pages">{install.pages.join(" ") || "none"}</dd>
+  <dt>apply ready</dt>
+  <dd data-testid="install-apply-ready">{install.applyReady}</dd>
 
   <dt>install phase</dt>
   <dd data-testid="install-phase">{install.phase}</dd>
@@ -286,5 +306,53 @@
     onclick={() => void install.retrySnapshot()}
   >
     Retry snapshot
+  </button>
+</p>
+
+<!--
+  THE PAGE TARGET'S CONTROLS (13-12; 13-CONTEXT D-06). The request opens the
+  review and sends nothing; the confirm is the affirmative and the ONE click
+  that puts a switch on the wire; the cancel takes the target back. The page
+  asked for is the field. THE DISCARD is the firmware-native revert
+  (PAGEDISCARD), written and UNPROVEN: this button is its only caller on the
+  site until docs/INSTALL-RUNBOOK.md row I says what a module does with it.
+-->
+<p>
+  <label>
+    Page
+    <input
+      type="number"
+      data-testid="install-page-field"
+      bind:value={page}
+      min="0"
+    />
+  </label>
+  <button
+    type="button"
+    data-testid="install-page-request"
+    onclick={() => install.requestPage(page)}
+  >
+    Request page
+  </button>
+  <button
+    type="button"
+    data-testid="install-page-confirm"
+    onclick={() => void install.confirmPage()}
+  >
+    Switch page
+  </button>
+  <button
+    type="button"
+    data-testid="install-page-cancel"
+    onclick={() => install.cancelPage()}
+  >
+    Keep this page
+  </button>
+  <button
+    type="button"
+    data-testid="install-discard"
+    onclick={() => void install.revertToStored()}
+  >
+    Revert to what is stored (unproven)
   </button>
 </p>

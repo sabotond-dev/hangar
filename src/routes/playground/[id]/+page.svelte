@@ -41,23 +41,26 @@
   draft's clause is 13-13's wiring and 13-18's words and is not set here.
   The fill is re-made when the phase moves - the snippets in it are the same
   functions, so the rail and the inspector are not re-created. THE
-  DESTINATION ZONE renders the module's REPORTED active page as a label
-  while a ZONA is connected, and the PDF's sentence otherwise: the Target
-  select, the destination review (Bible section 9, D02) and Apply to ZONA
-  are 13-12's, and this label is the read-only shape the research named,
-  kept for exactly one wave so two plans do not build one control.
+  DESTINATION ZONE (13-12; 13-CONTEXT D-06; Bible section 9, D02) is the
+  Target select over the pages the module enumerated, Apply to ZONA, and
+  beneath them the destination review, the switching line or the unverified
+  line, while a ZONA is connected - and the PDF's sentence otherwise. It is
+  the one control on the site that moves the hardware, and it does so only
+  from the review's affirmative: the select opens the review and sends
+  nothing, the store gates every write on the module's own page report, and
+  Apply is the same click as TRY ON DEVICE under the surface.
   THE MONITOR IS ON LUA ENTRIES ONLY (13-10, D-14 Q4b): the bar
   under the surface renders the log the Lua host keeps, read through the
   live engine on every sample, and is ABSENT - not present and empty - on
   the nine preset-backed entries, whose vendored simulator keeps no log.
   MidiMonitor.svelte's header carries the three limits. The install column
-  (TRY ON DEVICE,
-  PUT BACK, KEEP ON DEVICE, CLEAR) is Phase 7's and is rendered here, under
-  the surface, until 13-12 builds Apply to ZONA and the page target in the
-  context bar (13-11 decided to keep it shown rather than hide it: the PDF's
-  page 5 has no column because its Apply lives in the bar, and until that
-  control exists hiding the column would take the only write control off the
-  only page that has it); its Escape rules (Z-10) are kept on the window.
+  (TRY ON DEVICE, PUT BACK, KEEP ON DEVICE, CLEAR) is Phase 7's and is STILL
+  rendered here, under the surface, after 13-12 put Apply to ZONA in the bar:
+  the bar's Apply duplicates TRY ON DEVICE for one wave, because PUT BACK,
+  KEEP ON DEVICE, CLEAR and the install blocks have no home in the PDF's
+  page 5 yet (13-11 question 1, Reset under Device actions, is unanswered)
+  and moving the column is a decision 13-12 asked rather than took
+  (13-COPY-NEW.md). Its Escape rules (Z-10) are kept on the window.
 
   THE STAMP LANDING (SHARE-01, SHARE-03, D-13) runs after the engine is
   built and BEFORE the inspector mounts: the tuner builds in its own onMount
@@ -108,11 +111,19 @@
   import { FRONT_DOOR } from "$lib/catalog/front-door";
   import { LISTING, listingById } from "$lib/catalog/listing";
   import { install } from "$lib/device/install.svelte";
+  import {
+    APPLY_LABEL,
+    TARGET_LABEL,
+    pageName,
+    switchingLine,
+    unverifiedLine,
+  } from "$lib/device/page-target";
   import { session } from "$lib/device/session.svelte";
   // Every specifier here is safe under config-shape.spec.ts test 13: none names
   // the vendored tree, the protocol package nor the compile surface. The image
   // renderer is deliberately NOT imported - it is node-only - so 1200 and 630
   // appear below as literals beside the sizes it uses.
+  import type { Landing } from "$lib/share/stamp";
   import { SITE_ORIGIN, shareUrl } from "$lib/share/url";
   import type { SimEngine } from "$lib/sim/engine";
   import { SimHost } from "$lib/sim/host";
@@ -140,6 +151,7 @@
   import BrowseLink from "$lib/ui/BrowseLink.svelte";
   import Clear from "$lib/ui/Clear.svelte";
   import CopyLink from "$lib/ui/CopyLink.svelte";
+  import DestinationReview from "$lib/ui/DestinationReview.svelte";
   import FidelityLine from "$lib/ui/FidelityLine.svelte";
   import KeepConfirm from "$lib/ui/KeepConfirm.svelte";
   import KeepOnDevice from "$lib/ui/KeepOnDevice.svelte";
@@ -245,11 +257,10 @@
   // ---------------------------------------------------------------------------
   // The surface, the host and the finger (PREV-04, second half).
 
-  type Landing =
-    | { kind: "none" }
-    | { kind: "restored"; indices: Record<string, number> }
-    | { kind: "older" }
-    | { kind: "unreadable" };
+  /* stamp.ts's own union, imported as a type (erased; not a specifier the
+     chunk guard can see) rather than re-declared - 13-13's rule, applied here
+     by 13-12 while it edited this file. The module itself still arrives
+     through the awaited import below. */
   const NO_LANDING: Landing = { kind: "none" };
 
   let mode: "configure" | "play" = $state("configure");
@@ -547,9 +558,55 @@
     clearBrowseReturn(store());
   });
 
-  /* The module's reported active page, for the destination zone's label
-     (13-11; the targeted page is 13-12's). Undefined without a session. */
+  /* THE DESTINATION ZONE'S STATE (13-12; 13-CONTEXT D-06). The reported page
+     is the module's own, through the session's fold, and it is what decides
+     whether the zone renders at all: no session, the bar's own sentence. The
+     pages offered are the install store's enumeration - the module's PAGECOUNT
+     answer - and the reported page alone until it lands. The select shows the
+     REQUESTED page while a review is open or a switch is pending, the reported
+     one otherwise; changing it opens the review and sends nothing; Apply is
+     enabled on the store's one condition (applyReady) and the tuner's own
+     refusals, and is the same click as TRY ON DEVICE under the surface. */
   const reportedPage = $derived(session.identity?.activePage);
+  const targetPages = $derived(
+    install.pages.length > 0
+      ? install.pages
+      : reportedPage === undefined
+        ? []
+        : [reportedPage],
+  );
+  const targetValue = $derived(install.pageRequested ?? reportedPage);
+  const targetPending = $derived(install.pageStatus !== "reported");
+  const applyDisabled = $derived(
+    !install.applyReady ||
+      overBudgetReason !== undefined ||
+      configStrings === undefined ||
+      install.phase === "writing" ||
+      install.phase === "snapshotting",
+  );
+  const targetId = "destination-target";
+  let targetSelect = $state<HTMLSelectElement | null>(null);
+
+  /** The select changed: open the review (sends nothing). A refused request snaps the select back. */
+  function onTargetChange(event: Event): void {
+    const value = Number((event.currentTarget as HTMLSelectElement).value);
+    if (!Number.isInteger(value)) return;
+    if (!install.requestPage(value) && targetSelect) {
+      targetSelect.value = String(targetValue ?? "");
+    }
+  }
+
+  /** The review closed (its negative, Escape): the target is the module's page again, and focus returns to the select. */
+  function closeReview(): void {
+    install.cancelPage();
+    void tick().then(() => targetSelect?.focus());
+  }
+
+  /** Apply to ZONA: the bar's click, the same write as TRY ON DEVICE. */
+  function applyToZona(): void {
+    if (!listed) return;
+    void install.tryOnDevice(configStrings, listed.name);
+  }
 
   /* The shell, filled for the life of this page (13-05's bridge). The rail,
      the inspector and the destination are snippets and arrive with this
@@ -586,16 +643,72 @@
 </svelte:head>
 
 <!--
-  The context bar's destination zone while a ZONA is connected: the REPORTED
-  active page as a label (13-11). 13-12 replaces this with the Target select,
-  section 9's destination review and Apply to ZONA; without a session the
-  bar renders its own "Preview without hardware". The word is the PDF's
-  ("Page 1"), rendered as the module reports it.
+  THE CONTEXT BAR'S DESTINATION ZONE while a ZONA is connected (13-12; PDF
+  pages 3 and 5; Bible section 9; 13-CONTEXT D-06): the Target select over
+  the pages the module enumerated, the reported page marked, the requested
+  one pending, Apply to ZONA, and beneath the row either the destination
+  review (a review is open), the switching line (the module's report is
+  awaited) or the unverified line (it never came). Without a session the bar
+  renders its own "Preview without hardware". The page word is the PDF's
+  ("Page 1"), rendered as the module reports it. Nothing here sends: the
+  select opens the review, the review's affirmative is install.confirmPage(),
+  and Apply is install.tryOnDevice() - the same write as TRY ON DEVICE.
 -->
 {#snippet destination()}
-  <span class="destination-page" data-testid="destination-page"
-    >Page <span class="destination-number">{reportedPage}</span></span
+  <div
+    class="destination"
+    data-testid="destination"
+    data-status={install.pageStatus}
   >
+    <div class="destination-row">
+      <label class="destination-label" for={targetId}>{TARGET_LABEL}</label>
+      <select
+        bind:this={targetSelect}
+        id={targetId}
+        class="destination-select"
+        data-testid="destination-page"
+        value={String(targetValue ?? "")}
+        disabled={install.pageStatus === "switching" ||
+          install.phase === "writing"}
+        aria-describedby={targetPending ? "destination-line" : undefined}
+        onchange={onTargetChange}
+      >
+        {#each targetPages as page (page)}
+          <option value={String(page)} data-reported={page === reportedPage}>
+            {pageName(page)}{page === reportedPage ? " · on ZONA" : ""}
+          </option>
+        {/each}
+      </select>
+      <button
+        class="destination-apply"
+        type="button"
+        data-testid="apply-to-zona"
+        disabled={applyDisabled}
+        onclick={applyToZona}
+      >
+        {APPLY_LABEL}
+      </button>
+    </div>
+    {#if install.pageStatus === "requested"}
+      <DestinationReview name={listed?.name} onclose={closeReview} />
+    {:else if install.pageStatus === "switching" && install.pageRequested !== undefined}
+      <p
+        class="destination-line"
+        id="destination-line"
+        data-testid="destination-line"
+      >
+        {switchingLine(install.pageRequested)}
+      </p>
+    {:else if install.pageStatus === "unverified" && install.pageRequested !== undefined}
+      <p
+        class="destination-line unverified"
+        id="destination-line"
+        data-testid="destination-line"
+      >
+        {unverifiedLine(install.pageRequested, install.pageReported)}
+      </p>
+    {/if}
+  </div>
 {/snippet}
 
 <!-- PDF page 5's rail: CONFIGURATIONS, the way back, the numbered rows, Save a copy. -->
@@ -989,18 +1102,88 @@
     border-color: var(--color-action);
   }
 
-  /* The destination zone's reported-page label (13-11): the bar's quiet
-     13px line, the digit tabular so a page change does not jitter. 13-12
-     replaces this with the Target select and Apply to ZONA. */
-  .destination-page {
+  /* THE DESTINATION ZONE (13-12): the Target label, the select and the filled
+     Apply on one row (PDF pages 3 and 5: the select about 104 wide, the
+     action about 194 x 33 filled in the action colour with near-black
+     label - the 44px floor wins on height, as it does for every control);
+     the review or the one line beneath. No corner anywhere (D-01). */
+  .destination {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    padding-block: 8px;
+  }
+
+  .destination-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .destination-label {
     font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.45;
     color: var(--color-ink-quiet);
   }
 
-  .destination-number {
+  .destination-select {
+    appearance: auto;
+    min-block-size: 44px;
+    min-inline-size: 104px;
+    padding-inline: 8px;
+    border: 1px solid var(--color-boundary);
+    background: var(--color-workspace);
+    font-family: var(--font-sans);
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .destination-select:disabled {
+    color: var(--color-ink-quiet);
+    cursor: not-allowed;
+  }
+
+  .destination-apply {
+    appearance: none;
+    min-block-size: 44px;
+    min-inline-size: 194px;
+    padding-inline: 24px;
+    border: 1px solid var(--color-action);
+    background: var(--color-action);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--color-workspace);
+    cursor: pointer;
+  }
+
+  .destination-apply:disabled {
+    border-color: var(--color-boundary);
+    background: transparent;
+    color: var(--color-ink-quiet);
+    cursor: not-allowed;
+  }
+
+  /* The switching line and the unverified line: the bar's quiet 13px, the
+     unverified one at full ink because it is a state the visitor must read,
+     never the alarm red (KeepConfirm.svelte says why the red means one thing
+     on this page). */
+  .destination-line {
+    margin: 0;
+    max-inline-size: 420px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: end;
+    color: var(--color-ink-quiet);
+  }
+
+  .destination-line.unverified {
     color: var(--color-ink);
   }
 

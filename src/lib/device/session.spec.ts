@@ -1137,12 +1137,16 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     // over comment-stripped source because the session's header legitimately
     // names every one of these while explaining their absence.
     //
-    // TEN NEEDLES SINCE PLAN 10-12, nine before it. The tenth is the fourth
-    // write click: this scan exists to catch a `write.bind`-shaped export
-    // slipping into the session, and a `clearToDefault.bind`-shaped one is
-    // exactly that shape. (REQUIREMENTS.md said EIGHT until 10-12 - it was
-    // already stale at nine before this phase, and the correction is recorded
-    // in the same named amendment rather than renumbered quietly.)
+    // ELEVEN NEEDLES SINCE PLAN 13-12, ten since 10-12, nine before it. The
+    // tenth is the fourth write click: this scan exists to catch a
+    // `write.bind`-shaped export slipping into the session, and a
+    // `clearToDefault.bind`-shaped one is exactly that shape. THE ELEVENTH IS
+    // THE PAGE SWITCH (13-CONTEXT D-06): a page switch is a write for
+    // SAFE-01's purpose, so the switch's builder is named beside the config
+    // send and the page store, and the session may reach none of them -
+    // extended rather than excepted. (REQUIREMENTS.md said EIGHT until 10-12 - it was already
+    // stale at nine before this phase, and the correction is recorded in the
+    // same named amendment rather than renumbered quietly.)
     const source = strip(sessionSource());
     expect(source.length, "the source was actually read").toBeGreaterThan(1000);
     for (const needle of [
@@ -1156,6 +1160,7 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
       ["write", "Back"].join(""),
       ["clear", "ToDefault"].join(""),
       ["set", "Interval"].join(""),
+      ["page", "Active"].join(""),
     ]) {
       expect
         .soft(source.includes(needle), `session.svelte.ts reaches ${needle}`)

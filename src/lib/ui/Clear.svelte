@@ -112,7 +112,11 @@
   const writing = $derived(install.phase === "writing");
   /** The busy label belongs to a clear and to nothing else, through its one leg. */
   const busy = $derived(writing && install.action === "clear");
-  const disabled = $derived(reason !== undefined || writing);
+  /** 13-12: and the page target at rest - the store's one condition, mirrored; clearEnabled() refuses too. */
+  const pending = $derived(
+    session.phase === "connected" && !install.applyReady,
+  );
+  const disabled = $derived(reason !== undefined || writing || pending);
 
   /**
    * The line on screen: the reason, held through a write. Written from an
@@ -121,9 +125,12 @@
    */
   let held = $state<ClearReason | undefined>(undefined);
   $effect(() => {
-    if (install.phase !== "writing") held = reason;
+    if (install.phase !== "writing" && !pending) held = reason;
   });
-  const shown = $derived(writing ? held : reason);
+  /* Held through a write AND through a pending page target (13-12): the
+     destination zone carries that state's own line, and this cell keeps
+     whatever it was saying rather than inventing a fourth reason. */
+  const shown = $derived(writing || pending ? held : reason);
 
   /** The three reasons, from the closed record, in its order. */
   const REASONS = Object.entries(CLEAR_REASONS) as [ClearReason, string][];

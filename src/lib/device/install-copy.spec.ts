@@ -53,6 +53,7 @@ import {
   PUT_BACK_LINE,
   PUT_BACK_LINE_AFTER_KEEP,
   PUT_BACK_NEEDS_ZONA,
+  SWITCH_PAGE_LABEL,
   TRY_ON_LABEL,
   WRITE_CLICKS,
   announceTitle,
@@ -727,9 +728,22 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       (entry): entry is [string, string] =>
         entry[0].endsWith("_LABEL") && typeof entry[1] === "string",
     );
-    expect(labels.length, "the nine control labels").toBe(9);
+    // ELEVEN since 13-12: the destination review's affirmative and negative
+    // joined the nine, and they are the two in D-05's register (sentence
+    // case) rather than Phase 10's uppercase - exempted from the case rule
+    // BY NAME, with install-copy.ts's reason: the review sits in the Bible's
+    // context bar beside `Apply to ZONA`, and 13-18's batch decides the rest.
+    const D05_REGISTER = ["SWITCH_PAGE_LABEL", "KEEP_PAGE_LABEL"];
+    expect(labels.length, "the eleven control labels").toBe(11);
     for (const [name, label] of labels) {
-      expect(label, `${name} is not uppercase`).toBe(label.toUpperCase());
+      if (D05_REGISTER.includes(name)) {
+        expect(label, `${name} shouts`).not.toBe(label.toUpperCase());
+        expect(label[0], `${name} is sentence case`).toBe(
+          label[0].toUpperCase(),
+        );
+      } else {
+        expect(label, `${name} is not uppercase`).toBe(label.toUpperCase());
+      }
       for (const word of WIRE_WORDS) {
         expect(label.toLowerCase().includes(word), `${name} says ${word}`).toBe(
           false,
@@ -748,9 +762,12 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       PUT_BACK_LABEL,
       KEEP_LABEL,
       CLEAR_LABEL,
+      SWITCH_PAGE_LABEL,
     ]);
-    expect(WRITE_CLICKS.length, "four write clicks").toBe(4);
-    expect(new Set(WRITE_CLICKS).size, "four distinct").toBe(4);
+    // FIVE since 13-12: the page switch is a write for SAFE-01's purpose
+    // (D-06, first clause), and the review's affirmative is its click.
+    expect(WRITE_CLICKS.length, "five write clicks").toBe(5);
+    expect(new Set(WRITE_CLICKS).size, "five distinct").toBe(5);
 
     // NO STRING NAMES A CONTROL THAT IS NOT ON THE SCREEN, and `cleared` is
     // the one state this phase could have broken that rule in. CLEARED_BODY

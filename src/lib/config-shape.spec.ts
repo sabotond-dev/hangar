@@ -83,7 +83,7 @@ const COMPILER_MARKERS = [
 */
 
 /**
- * The eight modules a first-paint component MAY name, by exact path and never
+ * The nine modules (eight before 13-12) a first-paint component MAY name, by exact path and never
  * by prefix (05.1-08's lesson: the allowance is a list of paths, not a
  * namespace). Each one is verified light below rather than trusted.
  */
@@ -107,6 +107,10 @@ const PERMITTED_SPECIFIERS = [
   "$lib/device/install.svelte",
   "$lib/device/install-copy",
   "$lib/device/snapshot",
+  // Phase 13 (plan 13-12): the page target - the install store's fourth
+  // static specifier and a zero-import module like its two neighbours. The
+  // walk follows it and marker-checks what it imports, which is nothing.
+  "$lib/device/page-target",
 ];
 
 /*

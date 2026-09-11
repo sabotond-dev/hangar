@@ -478,3 +478,70 @@ Questions for the user, from 13-13 task 3 (D-01):
 12. **`Add to collection` is a native select with a placeholder option** rather than a menu, so it
     is one control per row and needs no popover. The PDF's row has no such control. Accept the
     shape, or ask for a checklist in the collection head instead?
+
+## From 13-12: the page target's rows, and the questions D-01 sends to the batch
+
+Added 2026-09-11 by plan 13-12 (the destination zone: the `Target` select, `Apply to ZONA`, the
+destination review, the switching and unverified lines; PUT BACK's page-naming line; the probe's
+discard). **Taken verbatim and not ledgered:** `Target` and `Apply to ZONA` (PDF pages 3 and 5), the
+PDF's `Page 1` shape for a page's name, section 16's _Replace the configuration on ZONA · Page 2?_ as
+the review's title (with the requested page), and 13-CONTEXT D-06's own sentence _Switch your ZONA to
+Page 3? It will stop playing Page 1._ as the review's line (with the two pages the store holds). The
+rows below are what HANGAR had to write, all in D-05's register, all landed so no state is blank.
+
+| Symbol | Module | Plan | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `unverifiedLine(requested, lastReported)` | `src/lib/device/page-target.ts` (rendered by the workspace route's destination snippet) | landed by 13-12 for 13-18 | the page target's `unverified` state: the switch was sent and the module's report carrying the requested page did not arrive inside six heartbeats | plain about state, never coy (D-05): which page was asked for, which the module last reported, and that nothing was applied - NOT switched, NOT failed, unknown; Apply stays disabled until a report or a reconnect, or the visitor's own `Keep this page` | _Your ZONA hasn’t confirmed Page 3. It last reported Page 1, and nothing was applied._ (and, if the module never reported at all, _Your ZONA hasn’t confirmed Page 3. Nothing was applied._) | section 16's _The device stopped responding. Your draft is safe; device state could not be verified._ is the register; the state is a different one (a switch, not a transfer) and names both pages |
+| `switchingLine(to)` | `src/lib/device/page-target.ts` (the destination snippet) | landed by 13-12 for 13-18 | the page target's `switching` state: the heartbeat and the switch have left, the report is awaited | the action in progress, in section 9's own shape for a transfer in progress | _Switching to Page 3…_ | section 9's _Applying to Page N…_ / _Storing on Page N…_ shape, for a third action the spec's table has no row for |
+| `putBackPageLine(page)` and `putBackPageLineAfterKeep(page)` | `src/lib/device/page-target.ts` (rendered by `src/lib/ui/PutBack.svelte` as two more sizing twins) | landed by 13-12 for 13-18 | the line under PUT BACK while a snapshot is in hand - D-06's fourth clause: PUT BACK names the page it will restore BEFORE it acts | the page the snapshot holds (the active page, since the store re-snapshots on a page change) and the same facts Phase 10's two page-less lines carried: back to what it was playing when you connected; after a keep, stored too | _Puts Page 2 back to what it was playing when you connected._ / _Puts Page 2 back to what it was playing when you connected, and stores it so it stays._ | none - section 16 has no restore line (13-01 seeded `RESTORED_CAPTION` for the same gap) |
+| `SWITCH_PAGE_LABEL` | `src/lib/device/install-copy.ts` (the fifth entry of `WRITE_CLICKS`; rendered by `src/lib/ui/DestinationReview.svelte`) | landed by 13-12 for 13-18 | the destination review's affirmative - the one click that moves the module's active page, a write for SAFE-01's purpose | a verb, plainly (D-05); in D-05's register rather than Phase 10's uppercase because the review sits in the Bible's bar beside `Apply to ZONA` - `install-copy.spec.ts` exempts it from the uppercase rule BY NAME with this reason; 13-18 decides whether the other nine follow | _Switch page_ | none |
+| `KEEP_PAGE_LABEL` | `src/lib/device/install-copy.ts` (rendered by `DestinationReview.svelte`) | landed by 13-12 for 13-18 | the review's negative: the target is the module's page again; nothing is sent | that it undoes the request and keeps what the module is on; exempted from the uppercase rule as the affirmative is | _Keep this page_ | none |
+| `DISCARD_LABEL` | `src/lib/device/page-target.ts` (rendered by NO public control; the probe `/dev/install/` carries its own dev label until runbook row I) | landed by 13-12 for 13-18, **conditional on the bench** | the firmware-native revert (PAGEDISCARD): reload the active page from flash, no snapshot needed - section 9's D03 row, _Revert device preview if supported_ | the action and its result together (D-05): RAM goes back to what is stored; a public control ships only if runbook row I confirms the module honours the class | _Revert to what’s stored_ | section 9's D03 names the action; section 16 has no line |
+| `· on ZONA` (the select's marker on the reported page's option) | the workspace route's destination snippet | landed by 13-12 for 13-18 | the option of the `Target` select that is the page the module reports | which of the listed pages the module is ON, so the list is never four equal choices | _Page 2 · on ZONA_ | the PDF's `Page 1` with section 16's middle dot (as in _Stored on ZONA · Page 2_) |
+| the review's detail line | `DestinationReview.svelte` | landed by 13-12 for 13-18 | the review's third line, under D-06's sentence | section 9's "device identity, page, configuration name": the ZONA and its firmware, and which configuration will be applied to the destination | _ZONA · fw 1.5.5 · Arc will be applied to Page 3_ | section 9 names the four facts; no line |
+
+Questions for the user, from 13-12 (D-01):
+
+1. **Page numbers as the module reports them, or one-based?** The select, the review, the switching
+   and unverified lines and PUT BACK's line all say `Page 2` for the page the module reports as 2 -
+   the header's control (`ZONA · fw 1.5.5 · page 2`) and 13-11's destination label already did, and
+   the firmware's own `page_activepage` starts at 0 (`grid_ui.c:76`). So a four-page module offers
+   `Page 0` to `Page 3`. **Grid Editor shows 1 to 4 over the same wire values** - its page selector
+   is four options `{ title: 1, value: 0 }` to `{ title: 4, value: 3 }`
+   (`../grid-editor/src/renderer/main/panels/configuration/components/Pages.svelte:9-14`, read, not
+   edited) - so under D-19 the Editor's numbering is the reference and HANGAR's raw numbers are a
+   HANGAR-invented difference, but the header's control (Phase 6) and 13-11's label already show
+   the raw number and a change here alone would make the bar and the header disagree by one. Not
+   decided here (D-01): **should HANGAR show 1 to 4 everywhere (a display offset in one place, the
+   wire unchanged), or 0 to 3 as the module reports?** One constant (`pageName`) plus the header's
+   identity line changes it everywhere.
+2. **`unverified` has a third way out - the visitor's own click.** 13-12-PLAN.md says the only way
+   out of `unverified` is a report or a reconnect. The module heartbeats four times a second, so on
+   a live link "no report" means the module went quiet; if it comes back reporting the OLD page, the
+   line stays (the switch is still unconfirmed and the line says so) until the visitor chooses
+   `Keep this page` (the target snaps to the module's page) or asks again. Without that a live
+   module that silently refused a switch would leave Apply disabled with no way back but the cable.
+   **Keep the click as a way out, or make the line clear itself on the module's next report of ANY
+   page?**
+3. **Section 9's skip clause is declined**, with the reason in `DestinationReview.svelte`'s header
+   (nothing configures "safe and clearly configured", and the review is the one gate between a web
+   page and the ZONA changing what it plays). D-19 flags the review as the one place the Bible is
+   stricter than the Editor and says the user can strike it in one word. **Strike, keep, or a
+   setting later?**
+4. **The review is not modal and does not trap focus.** The plan assumed 13-11's shared focus-trap
+   helper; there is none, and KeepConfirm's header and `device-ui.spec.ts` test 8 rule every
+   confirmation on this site never modal. The review moves focus in on open and the route returns
+   it to the select on close. **Accept the tree's rule for this control too, or should the ONE
+   confirmation that moves hardware be a real dialog (role, aria-modal, trap)?**
+5. **The review opens INSIDE the context bar, under the select, and the bar grows to hold it** (no
+   floating layer, no position: absolute - the tree's rule for the re-homed chrome). The surface
+   below moves down by the review's height while it is open. **Accept, or anchor it as a popover?**
+6. **`Apply to ZONA` in the bar duplicates `TRY ON DEVICE` under the surface for one wave.** Both
+   are `install.tryOnDevice()` and both disable on the same store condition. PUT BACK, KEEP ON
+   DEVICE, CLEAR and the install blocks have no home in the PDF's page 5, and 13-11's question 1
+   (Reset under Device actions) is still open, so the column stays and the primary reads twice.
+   **Which plan moves or removes the column - 13-18 with the words, or 13-20?**
+7. **The discard ships as a descriptor and a probe-only action, not as a control.** D-06 says
+   "shipped if the bench confirms it"; the research supports it from source. **If row I confirms
+   it, where does the control go - under Device actions beside Reset (section 9's D03 row), or
+   beside PUT BACK?**
