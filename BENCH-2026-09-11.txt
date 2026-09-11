@@ -1,0 +1,26 @@
+Bench round 3, 2026-09-11, on the user's ZONA over `npm run dev` (localhost), EUCLID, row 1 of the
+Phase 12 gate's twelve. Verbatim:
+
+> calibration is still waay off. i need to tap multiple times on a LED to react. putting a fingertip
+> between two leds and nothing happens, its just not reliable at all.
+
+Asked whether the lit cell is under the finger or offset:
+
+> not really. for example if my finger is directly on top of the LED in row 2 column 8 the top right
+> LED lights up, same in each corne. so its not precise.
+> I mean it never can be precise as the motion detector are not directly under the LEDs. that's why
+> each config should work with gradient lighting. so if i touch between two LEDs both should light up
+> dimly and if I move in one direction that should be brighter. the same should happen if I touch in
+> the middle of a 4 LEDs. each should light up and only the brightness should change depending how I
+> move my fingers. The module doesnt only send 9x9 messages, it sends a lot more. LEDs should
+> indicate that
+
+Orchestrator's reading, confirmed by the user ("continue"): two problems. (1) The sensor-to-LED map
+is uncalibrated - the outer LEDs are reached before the finger is over them; nobody has measured the
+value the sensor reports with a finger centred on each LED. (2) Phase 12's library renders a finger
+as one cell (Q's hit-test with hysteresis); the sensor is not under the LEDs, so the finger must be
+drawn bilinearly across the 2x2 LEDs around it, weighted by distance, and any discrete choice an
+entry needs comes from those weights. This is Phase 12.1. It lands before 13-14 (the Sandbox
+compiler would otherwise inherit the cell model). 13-07..13-13 do not depend on it.
+
+Rows 2-12 of the gate's bench were not run this round.
