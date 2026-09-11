@@ -58,8 +58,12 @@ const flat = doc.replace(/\s+/g, " ");
  * 22 -> 23 at plan 12-10: TRACKPAD's row. The tpad preset it replaced never
  * had one - the checklist audits hand-authored configurations - so this is an
  * addition and not an amendment.
+ *
+ * 23 -> 24 at plan 12.1-01: the calibration re-run (row 24, `any`). Probe C
+ * measured the sensor-to-LED map once on the user's ZONA; the row asks for
+ * the five-minute second reading that docs/CALIBRATION-PROBE.md describes.
  */
-const ROW_COUNT = 23;
+const ROW_COUNT = 24;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -203,7 +207,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-three numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-four numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",
