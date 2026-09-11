@@ -785,7 +785,9 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       if (entryId === "ninepads") {
         // The lengths move too, so the difference is legible in a meter and
         // not only in a diff. LUMEN's do NOT - @DEPTH is one character at
-        // every index, so 742 is 742 either way - and that is exactly why a
+        // every index, so its landed length is the same at both (742 when
+        // 12-01 measured it, 704 since 12-11 moved its cursor and its two
+        // controllers into the touch library) - and that is exactly why a
         // reader must not take equal lengths for equal strings.
         expect(
           second.setup.length,

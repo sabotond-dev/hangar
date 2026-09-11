@@ -18,12 +18,14 @@
 //     and a picker without one is a picker missing its first choice. See the
 //     colour arithmetic below for what that ninth column is worth in the
 //     picture.
-//   - DEPTH IS ONE MULTIPLY AND ONE FLOOR: d = 36 - row*@DEPTH, and every
-//     channel is anchor*d//36. Row 0 is d = 36, so the top row is the anchor
-//     colour exactly. @DEPTH is 1, 2, 3 or 4, so the bottom row is d = 28, 20,
-//     12 or 4 out of 36 - between 78 per cent and 11 per cent of the anchor,
-//     and never black. A LARGER @DEPTH IS A DEEPER RAMP, which is the way
-//     round the label reads.
+//   - DEPTH IS ONE MULTIPLY AND ONE FLOOR: d = 32 - row*@DEPTH, and every
+//     channel is anchor*d//32. ROW 0 IS d = 32 AT EVERY VALUE OF THE KNOB, so
+//     the top row is the anchor colour exactly and IS THE ANCHOR THE WHOLE
+//     CARD IS READ AGAINST - it does not move, it cannot move, and the card
+//     copy says so where a visitor reads it. @DEPTH is 1, 2, 3 or 4, so the
+//     bottom row is d = 24, 16, 8 or 0 out of 32: from three quarters of the
+//     anchor down to EXACTLY BLACK at the deepest setting. A LARGER @DEPTH IS
+//     A DEEPER RAMP, which is the way round the label reads.
 //   - Both layers carry the same colour, because one layer can never exceed
 //     254/512 of the colour asked for and this card's whole claim is that the
 //     colour on the pad is the colour on the wire.
@@ -38,15 +40,18 @@
 // WHAT THE PAD SENDS, AND WHY THE COLOUR GOES OUT AS HEX (plan 11-10, the bench
 // note "LUMEN: should send HEX in sysex").
 //
-// THREE MESSAGES, TWO OF THEM CONTINUOUS AND ONE OF THEM PER COLOUR.
+// THREE MESSAGES, AND SINCE PLAN 12-11 NOT ONE OF THEM IS SENT ON EVERY
+// SAMPLE.
 //
-//   @CC     the x coordinate, on every surviving touch sample
-//   @CC + 1 the y coordinate, on every surviving touch sample
+//   @CC     the x coordinate, THROUGH THE LIBRARY'S `A`, only when x moved
+//   @CC + 1 `127 - y`, THROUGH THE SAME `A`, only when y moved - AN INVERSION
+//           AND THEREFORE A WIRE CHANGE, see the library section below
 //   sysex   the colour under the finger, as SIX ASCII HEX DIGITS, whenever the
-//           cell changes OR the contact begins - `if n~=s.c or e>3`. e > 3
-//           inside the shipped filter is a press (4) or a fast tap (9), so
-//           touching the same cell twice sends the colour twice and a desk
-//           that missed one gets another without the finger having to move.
+//           library's `Q` returns a cell - which is on a change and on an
+//           onset, the same two conditions `if n~=s.c or e>3` carried before
+//           it. So touching the same cell twice still sends the colour twice
+//           and a desk that missed one gets another without the finger having
+//           to move.
 //
 // THE MESSAGE, BYTE BY BYTE, at the top-left cell (anchor 255,90,0, row 0, so
 // the asked colour is the anchor exactly):
@@ -74,7 +79,12 @@
 //
 //   raw RGB           gmss(240,125,r,g,b,247)          660 at the picker corner
 //   raw, 7-bit split  each channel as v%128, v//128    693
-//   ASCII hex         the six digits above             746 as shipped
+//   ASCII hex         the six digits above             746 as 11-10 shipped it
+//
+// Those three were measured against each other on the same day and the ranking
+// is what they are for; the entry itself now costs 707 at that corner, because
+// 12-11 gave the cursor and the two controllers to the touch library. The
+// ranking did not move - the sysex half is the same nine-byte gmss.
 //
 // SO THE SHORT ONE IS NOT A CANDIDATE, AND THE DECIDING FACT IS NOT TASTE:
 // SYSEX DATA BYTES ARE SEVEN-BIT. Every byte between the 0xF0 and the 0xF7 has
@@ -98,7 +108,7 @@
 // its return value and then paints the cursor colour over the top. The cell is
 // therefore written twice on a cell change - five firmware calls wasted - and
 // that is deliberate: the alternative is a second function computing the same
-// three channels, which was measured at 766 against this 746. The picture is
+// three channels, which 11-10 measured at 766 against its 746. The picture is
 // identical either way, because glc overwrites both layers and every phase in
 // the field is already 255.
 //
@@ -106,65 +116,76 @@
 // MIDDLE. Channels TRUNCATE rather than clamp, so a 260 renders as 4 and a
 // negative renders as garbage; both ends have to be proved, not assumed.
 //
-//   upper bound  every anchor channel is <= 255, d <= 36 and the divisor is
-//                36, so anchor*d//36 <= 255*36//36 = 255. The maximum is
+//   upper bound  every anchor channel is <= 255, d <= 32 and the divisor is
+//                32, so anchor*d//32 <= 255*32//32 = 255. The maximum is
 //                attained on row 0 and is exactly the anchor. Nothing can
 //                exceed 255 because d can never exceed its own divisor.
-//   lower bound  d = 36 - 8*@DEPTH at the bottom row, which is 28, 20, 12 or 4
-//                - POSITIVE AT EVERY KNOB VALUE. This is the trap: the obvious
-//                form, anchor*(@DEPTH-row)//@DEPTH, goes NEGATIVE at @DEPTH 6
-//                and exactly BLACK at @DEPTH 8, because the row index reaches
-//                8 and a divisor smaller than that is a bottom row that is not
-//                there. Subtracting a multiple from a fixed 36 cannot do that.
+//   lower bound  d = 32 - 8*@DEPTH at the bottom row, which is 24, 16, 8 or
+//                ZERO - NON-NEGATIVE AT EVERY KNOB VALUE, and zero at the
+//                deepest one BY DESIGN rather than by accident (plan 12-11;
+//                the guarantee is now 8*max(@DEPTH) <= 32 WITH EQUALITY
+//                ALLOWED). Zero is a colour; negative is not, and that is the
+//                trap: the obvious form, anchor*(@DEPTH-row)//@DEPTH, goes
+//                NEGATIVE at @DEPTH 6 and a channel TRUNCATES rather than
+//                clamping, because the row index reaches 8 and a divisor
+//                smaller than that is a bottom row that is not there.
+//                Subtracting a multiple from a fixed 32 cannot do that while
+//                8*max(@DEPTH) stays inside it, and at @DEPTH 5 it would not:
+//                8*5 = 40 is outside 32, which is why the knob's four values
+//                are still exactly {1, 2, 3, 4}.
 //   the corners  top left is the anchor 255,90,0 exactly; top right is the
 //                amber white 255,230,190 exactly; bottom left at @DEPTH 4 is
-//                255*4//36, 90*4//36, 0 = 28,10,0; bottom right is 28,25,21.
-//                All twelve channels inside 0..255, none of them zero that was
-//                not zero at the top.
+//                255*0//32, 90*0//32, 0 = 0,0,0 - the bottom row is OFF at the
+//                deepest setting, which is the one picture nobody can mistake
+//                for "nothing changed"; bottom right is 0,0,0 for the same
+//                reason. At the shipped default (@DEPTH 3) the bottom row's d
+//                is 8, so bottom left asks for 63,22,0 and bottom right for
+//                63,57,47. All twelve channels inside 0..255.
 //
 // WHAT THE DEPTH KNOB DOES TO THE EMITTED FRAME, IN BYTES RATHER THAN IN
-// RATIOS (plan 11-09.2, answering the bench note "the color depth / opacity
-// doesn't work" and the checkpoint answer "try it but we observed no
-// difference in the LEDs").
+// RATIOS (plan 11-09.2 read it at subtrahend 36; plan 12-11 re-cut it to 32
+// and re-read it, and these are the 32 numbers).
 //
-// THE OPTION THAT NOTE WAS COSTED FROM QUOTED 78 PER CENT AT @DEPTH 1 DOWN TO
-// 11 PER CENT AT @DEPTH 4, AND THAT FIGURE IS THE ARITHMETIC d/36 - NOT A
-// READING OF A FRAME. Between the arithmetic and a lit LED sit glc's three
-// colour stops, glp's phase, shapeIntensity, the per-layer weights, the
-// two-layer sum and the single divide by 512 with its clamp at 255
-// (pad-sim.ts, render()). So the frame was read, with no gesture, at all four
-// declared values. Both columns are shown because column 0 is a pure hue with
-// a ZERO channel and column 8 is the only three-channel column, and the two
-// truncate differently. * is the shipped default, index 2 of 4.
+// THE OPTION THE BENCH NOTE WAS COSTED FROM QUOTED A RATIO, AND A RATIO IS THE
+// ARITHMETIC d/32 - NOT A READING OF A FRAME. Between the arithmetic and a lit
+// LED sit glc's three colour stops, glp's phase, shapeIntensity, the per-layer
+// weights, the two-layer sum and the single divide by 512 with its clamp at
+// 255 (pad-sim.ts, render()). So the frame is read, with no gesture, at all
+// four declared values. Both columns are shown because column 0 is a pure hue
+// with a ZERO channel and column 8 is the only three-channel column, and the
+// two truncate differently. * is the shipped default, index 2 of 4.
 //
 //   column 0, the anchor 255,90,0
 //              @DEPTH 1   @DEPTH 2   @DEPTH 3*  @DEPTH 4
 //     row 0    253,89,0   253,89,0   253,89,0   253,89,0
-//     row 1    245,86,0   238,84,0   231,81,0   224,79,0
-//     row 2    238,84,0   224,79,0   210,74,0   196,69,0
-//     row 3    231,81,0   210,74,0   189,66,0   168,59,0
-//     row 4    224,79,0   196,69,0   168,59,0   139,49,0
-//     row 5    217,76,0   182,64,0   146,51,0   112,39,0
-//     row 6    210,74,0   168,59,0   126,44,0   84,29,0
-//     row 7    203,71,0   153,54,0   105,36,0   55,19,0
-//     row 8    196,69,0   139,49,0   84,29,0    27,9,0
+//     row 1    245,86,0   237,83,0   229,80,0   221,77,0
+//     row 2    237,83,0   221,77,0   205,72,0   189,66,0
+//     row 3    229,80,0   205,72,0   181,63,0   157,55,0
+//     row 4    221,77,0   189,66,0   157,55,0   126,44,0
+//     row 5    213,74,0   173,60,0   133,46,0   94,32,0
+//     row 6    205,72,0   157,55,0   110,38,0   62,21,0
+//     row 7    197,69,0   141,49,0   86,29,0    30,10,0
+//     row 8    189,66,0   126,44,0   62,21,0    0,0,0
 //
 //   column 8, the amber white 255,230,190
 //              @DEPTH 1      @DEPTH 2      @DEPTH 3*     @DEPTH 4
 //     row 0    253,228,188   253,228,188   253,228,188   253,228,188
-//     row 1    245,221,182   238,215,177   231,208,172   224,202,166
-//     row 2    238,215,177   224,202,166   210,189,156   196,176,145
-//     row 3    231,208,172   210,189,156   189,170,140   168,151,125
-//     row 4    224,202,166   196,176,145   168,151,125   139,126,104
-//     row 5    217,196,161   182,164,135   146,132,109   112,101,83
-//     row 6    210,189,156   168,151,125   126,114,94    84,75,62
-//     row 7    203,183,151   153,138,115   105,94,78     55,50,41
-//     row 8    196,176,145   139,126,104   84,75,62      27,24,20
+//     row 1    245,220,182   237,213,176   229,206,170   221,199,164
+//     row 2    237,213,176   221,199,164   205,184,152   189,170,140
+//     row 3    229,206,170   205,184,152   181,163,134   157,141,117
+//     row 4    221,199,164   189,170,140   157,141,117   126,114,94
+//     row 5    213,192,158   173,156,128   133,121,99    94,85,70
+//     row 6    205,184,152   157,141,117   110,99,82     62,56,46
+//     row 7    197,177,146   141,127,105   86,78,64      30,27,22
+//     row 8    189,170,140   126,114,94    62,56,46      0,0,0
 //
-// FOUR VALUES, FOUR DISTINCT 243-BYTE FRAMES: THE KNOB DELIVERS, and the
-// costed ratio survives to the bytes almost exactly - the bottom row is 196 of
-// the emitted anchor's 253 at @DEPTH 1 (77 per cent) and 27 of it at @DEPTH 4
-// (11 per cent).
+// FOUR VALUES, FOUR DISTINCT 243-BYTE FRAMES, AND THE FOURTH ONE TURNS THE
+// BOTTOM ROW OFF. That is the whole point of the re-cut: at subtrahend 36 the
+// deepest setting left the bottom row at 27,9,0, which Probe B confirmed IS
+// visible on the desk - "column 3 clearly lit" - and which is therefore a
+// setting a person can look at and call unchanged. Zero is not a dim colour,
+// it is an unlit LED, and the frame's non-zero byte count falls from 171 to
+// 152 at @DEPTH 4 to say so in a number.
 //
 // NOTE WHAT THE CORNER PROOF ABOVE IS MEASURING AND THIS TABLE IS NOT. 255,90,0
 // is the colour ASKED FOR; the frame emits 253,89,0, because both layers carry
@@ -173,49 +194,140 @@
 // emitted byte, and they differ by one count. Neither is wrong; they are
 // different measurements and this card has now had both.
 //
-// AND WHY "NO DIFFERENCE IN THE LEDS" IS STILL CONSISTENT WITH A KNOB THAT
-// WORKS. d = 36 - row*@DEPTH, so ROW 0 IS d = 36 AT EVERY VALUE AND CANNOT
-// MOVE - that is arithmetic, not a defect. The worst channel spread across all
-// four values, row by row from the top, is 0, 21, 42, 63, 85, 105, 126, 148,
-// 169. The whole of the knob's travel is in the lower half of the pad, and the
-// shipped default is index 2 of 4, so ONE STEP moves row 1 by seven counts of
-// 255 and the bottom row by fifty-five going shallower (84 -> 139) or
-// fifty-seven going deeper (84 -> 27). Somebody watching the top of the pad
-// while turning the knob is reporting what the pad does.
+// WHY "NO DIFFERENCE IN THE LEDS" WAS NEVER A BROKEN KNOB, AND WHERE THE TWO
+// EVIDENCE FILES LEAVE IT. Row 0 is d = 32 at every value and CANNOT MOVE -
+// that is arithmetic, not a defect - so the knob's whole travel is below the
+// anchor row. The worst channel spread across all four values, row by row from
+// the top, is now 0, 24, 48, 72, 95, 119, 143, 167, 189: zero at the top and
+// the full 189 counts of 255 at the bottom. Somebody watching the top of the
+// pad while turning the knob is reporting what the pad does.
 //
-// THERE IS NO DEEPER FOUR-VALUE RE-CUT, AND THAT IS THE SHORTFALL AGAINST THE
-// ASK RATHER THAN A REFUSAL OF IT. 8*max(@DEPTH) has to stay inside the
-// subtrahend 36 or the bottom row's d goes negative and a channel truncates
-// rather than clamping (see the lower bound above), so 4 is the largest value
-// the arithmetic admits - and {1, 2, 3, 4} is therefore the ONLY four-element
-// set of positive integers this knob can carry. The ramp is already at full
-// travel. Deepening it means moving the SUBTRAHEND and the DIVISOR together,
-// which makes it a different card, and both routes were costed rather than
-// chosen:
+// THE VERDICT, QUOTED. `12-01-SUMMARY.md`, which drove the tuner in node and
+// then read the fake ZONA's own RAM through TRY ON DEVICE:
 //
-//   move the default   index 2 -> 3 ships the deepest ramp there is. Costs
-//                      ZERO characters and no arithmetic, but rewrites eighty
-//                      of the eighty-one cells in frames.json, moves the OG
-//                      image with them, and spends the knob's last step.
-//   subtrahend 32      d = 32 - row*@DEPTH with anchor*d//32 and the same four
-//                      values. MEASURED by 11-09.2 at 608 at the picker corner
-//                      against the 608 the entry cost THAT DAY - character
-//                      neutral, and still character neutral against today's
-//                      746, because only two literals move. The bottom row reaches
-//                      EXACT BLACK at @DEPTH 4 - 0,0,0, with the frame falling
-//                      from 171 non-zero bytes to 152. At the shipped default
-//                      the bottom row becomes 62,21,0 where it is 84,29,0
-//                      today, so this rewrites frames.json and the OG image
-//                      too, and the never-black guarantee below has to be
-//                      restated as 8*max(@DEPTH) <= 32 with equality allowed.
+//   "THE VERDICT: A KNOB TURNED IN THE BROWSER REACHES THE MODULE. ... the
+//    fake ZONA's RAM held a 742-character Setup carrying `d=36-n//9*3` after
+//    the first click and a 742-character Setup carrying `d=36-n//9*4` after
+//    the second, with neither carrying the other's literal. ... The wiring is
+//    SOUND, nothing was fixed here"
 //
-// NEITHER IS SHIPPED, AND THAT IS A DECISION RATHER THAN AN OMISSION. Both
-// change the picture this card is known by, the note being answered described
-// an effect the simulator says is already present, and NOTHING HERE IS
-// HARDWARE-VERIFIED - every figure above is a statement about the simulator
-// and this source. THE OBSERVATION THAT SETTLES IT ON THE MODULE: install at
-// @DEPTH 1, install again at @DEPTH 4, and compare the BOTTOM row rather than
-// the pad as a whole.
+// SO THE REPORT WAS NOT A HANGAR BUG AND THIS RE-CUT IS NOT A FIX - it is the
+// honest deliverable under a green verdict. The knob reached the wire, the
+// module received it, and `PROBE-RESULTS-2026-09-10.md` Probe B settles the
+// other end of the chain on the user's own module: FOUR DISTINCT BRIGHTNESS
+// LEVELS across the four depth values, "column 3 clearly lit" at 27, and the
+// halving ladder 128 / 64 / 32 / 16 "all visible, visibly getting darker". THE
+// LEDS WERE NEVER THE SUSPECT and the research's sRGB-versus-linear gamma
+// hypothesis is retired by that line. What is left is what the user was
+// looking at: the top rows, which cannot move, and a one-step difference at a
+// default that already ships second-deepest.
+//
+// WHICH LEAVES A CHOICE OF PICTURE, AND 11-09.2 COSTED BOTH ROUTES WITHOUT
+// TAKING EITHER. Plan 12-11 takes one of them, on the record:
+//
+//   move the default   index 2 -> 3 ships the deepest ramp there is for zero
+//     NOT TAKEN        characters. REFUSED: at 32/32 index 3 turns a row of
+//                      the card OFF AT REST, and a card that ships with a dead
+//                      row is a different card. That is the visitor's choice
+//                      to make with the knob, not the card's to make for them.
+//                      It also spends the knob's last step, so a visitor who
+//                      wants deeper has nowhere to go.
+//   subtrahend 32      TAKEN. d = 32 - row*@DEPTH with anchor*d//32, the same
+//     SHIPPED          four values, FOUR literals moved in the string (one
+//                      subtrahend and three channel divisors - 11-09.2 said
+//                      two, and it is four; count them). CHARACTER-NEUTRAL,
+//                      measured: 746 at the picker corner before and 746
+//                      after, exactly as 11-09.2 measured 608 against 608 on
+//                      the pre-sysex string. The bottom row reaches EXACT
+//                      BLACK at @DEPTH 4 and the frame falls from 171 non-zero
+//                      bytes to 152; at the shipped default the bottom row is
+//                      62,21,0 where it was 84,29,0.
+//
+// THE DEFAULT DOES NOT MOVE AND {1, 2, 3, 4} DOES NOT MOVE. No knob gained or
+// lost a value, so the share stamp's shape character is unchanged and no
+// existing LUMEN link is demoted - measured before and after, and asserted by
+// stamp.spec.ts's own LUMEN literals still restoring.
+//
+// WHAT THE RE-CUT COSTS ELSEWHERE, AND IT IS PAID RATHER THAN ASSUMED: every
+// cell below row 0 changes colour, so frames.json was REGENERATED (72 of the
+// 81 cells move at the default - the nine that do not are row 0, which is the
+// whole point) and static/og/lumen.png was rebuilt with it.
+//
+// NOTHING HERE IS HARDWARE-VERIFIED. Every figure above is a statement about
+// the simulator and this source; the only hardware in this card's file is
+// Probe B, and it was the user's own bench. THE OBSERVATION THAT SETTLES THE
+// RE-CUT ON THE MODULE: install at @DEPTH 1, install again at @DEPTH 4, and
+// COMPARE THE BOTTOM ROW - at 4 it is off - while the top row is the same both
+// times, by design. That is row 22's neighbour in docs/HARDWARE-AUDITION.md.
+//
+// THE TOUCH LIBRARY: THIS CARD TAKES `Q` FOR ITS CURSOR AND IT IS THE ONLY
+// CALLER OF `A` IN THE CATALOG (plan 12-11, src/lib/catalog/library.ts).
+//
+// THE CURSOR CELL WAS A ONE-UNIT BOUNDARY, the same defect the four cell
+// sequencers had. `local n=x*9//128+y*9//128*9` reads the naive cell, so
+// Probe A's Q2 trace - a finger resting on the line sending 71, 72, 71, 72 -
+// flipped the cursor on every sample, restored one cell, painted another and
+// RE-SENT THE SYSEX COLOUR each time. `Q(s,i,e,x,y)` answers it with the
+// library's +-10 hysteresis window and returns the cell ONLY when it changed
+// or a contact began - the same two conditions `if n~=s.c or e>3` carried, so
+// the card's behaviour is unchanged everywhere except on the line. Measured
+// over a six-sample 71/72 wobble: FIVE sysex messages before, ZERO after (one
+// for the press that starts the gesture, and then silence while the finger
+// stays on the line).
+//
+// `s.c` STAYS. It is the CURSOR - which cell is currently painted over - and
+// that is a different question from which cell a contact is on: the restore
+// has to know the cell it must repaint even after the library has forgotten
+// the contact. `Q` owns the second question, `s.c` owns the first.
+//
+// THE END TEST SITS AFTER THE `Q` CALL, AND THAT ORDERING IS A DECISION. `Q`
+// expires a contact on an end code and returns nil, so calling it first means
+// A GENUINE LIFT RELEASES THE CONTACT in the library's own tables; putting the
+// entry's `if e~=1 and e~=4 and e<9 then return end` in front of it would mean
+// the library never hears the lift and a stale `H[i]` waits for the next
+// press. Both cost 707. The end test is KEPT rather than deleted - `A` fires
+// on `e<4`, so a code this card does not handle would otherwise reach the
+// controllers - and it still stands between a lift and the two CCs.
+//
+// `A` IS CALLED OUTSIDE THE `if n then ... end` BLOCK, DELIBERATELY. A finger
+// moving INSIDE one cell still moves an axis: `Q` returns nil for that sample,
+// and an `A` placed inside the gate would send nothing at all. That is the
+// trap 12-VALIDATION R-4 exists for and the one MORPH's weights already hit;
+// lua-smoke.spec.ts asserts an in-cell MOVE still sends its moved axis, and a
+// negative check with `A` moved inside the block reddens exactly there.
+//
+// AND `A` IS A WIRE CHANGE ON @CC + 1, NOT A REFACTOR. Three things move:
+//
+//   - THE Y CC IS INVERTED. `A` sends `127-y`, because the user's own bench
+//     snippet does (`map_saturate(y, 0, 127, 127, 0)`): screen y grows
+//     downwards and a fader does not. This card sent raw y until 12-11. A desk
+//     with a learned mapping on @CC + 1 will read the axis the other way round
+//     after a re-install, and docs/HARDWARE-AUDITION.md says so in its row.
+//   - A DOWN PRIMES WITHOUT SENDING. `A` gates on `e<4`, so the press records
+//     the starting (x, y) in `P[i]` and sends nothing; the first CC of a
+//     gesture is now the first MOVE. This card sent both CCs on the DOWN.
+//   - EACH AXIS SENDS ONLY WHEN IT MOVED. The two `s:gms` calls this replaces
+//     sat outside every gate and fired on EVERY sample - the flood the probe's
+//     rule 3 names in those words, "never on every sample". Measured over the
+//     same six-sample wobble: TWELVE CCs before, SIX after, and the six are
+//     the axis that actually moved.
+//
+// `local function D` AND `local function F` SHADOW LIBRARY NAMES INSIDE THIS
+// CHUNK, AND THAT IS HARMLESS - DO NOT "FIX" THE NAMES. The library defines a
+// global `D(n,l,w)` (a decay) and this entry declares a local `D(v)` (a hex
+// digit); it also declares a local `F(n)` while the library defines no `F` at
+// all. A `local function` is visible only inside the body that declares it, so
+// this entry's `D` and `F` are its own and the library's `E` and `Q` resolve
+// their own names in their own chunk. Renaming them would cost characters and
+// buy nothing. What an entry must NOT do is assign a single-capital GLOBAL the
+// library owns, which host-surface.spec.ts refuses outright.
+//
+// NO `X`, AND THE REASON IS THE SAME ONE CONSOLE AND MORPH GIVE. `X(s,n)` is
+// the Timer-side sweep and THIS CARD HAS NO TIMER (`timer: ""`), so there is
+// nothing to sweep from. It holds no note and no voice: a contact whose lift
+// is lost leaves an entry in the library's `H` until the next press by that
+// id, which `Q` expires first, and the cost of that stale entry is a cursor
+// that does not move until the finger does. Nothing hangs.
 //
 // THE LOOK, and why restsBlack is FALSE. Setup lights all eighty-one cells,
 // and the frame carries 171 non-zero bytes of 243 at every sampled tick.
@@ -226,21 +338,29 @@
 // pure hue is two channels by definition and eight of the nine columns are
 // therefore two-channel. The ninth column - the amber white - is the only
 // three-channel one and is worth nine of the 171 on its own, which is a second
-// reason it earns its place beside the first.
+// reason it earns its place beside the first. 171 IS THE FIGURE AT THE SHIPPED
+// DEFAULT, and it did not move with the 32/32 re-cut even though every cell
+// below row 0 changed colour: a dimmer channel is still a non-zero one, and
+// nothing reaches zero until @DEPTH 4, where the bottom row goes out and the
+// count falls to 152. frames.json
+// records the default, so its nonZeroBytes for this entry is still 171 and its
+// hash is not.
 //
 // THE TRAPS THIS ENTRY CONTAINS.
 //
-//   - EVERY DIVISION IS FLOORED. anchor*d//36, n%9, n//9, x*9//128, y*9//128,
-//     r//16 and r%16 are all `//` or `%`. A fraction reaching a firmware call
-//     becomes 0, silently.
-//   - THE CONTROLLERS SEND x AND y RAW, AND THAT IS THE FIX RATHER THAN THE
-//     OMISSION. They read `x*127//128` until plan 11-10. That maps 0..127 onto
-//     0..126 and CAN NEVER EMIT 127 - the same family as CONSOLE's 111, on
-//     BOTH axes - because 127*127//128 is 126. This entry never calls txma or
-//     tyma, so the touch range IS 0..127 and a controller value IS 0..127:
-//     the scale had nothing to scale. Removing it costs MINUS eighteen
-//     characters and the top of both axes is now reachable. Measured, not
-//     reasoned: 608 at the picker corner before, 590 with the scale gone.
+//   - EVERY DIVISION IS FLOORED. anchor*d//32, n%9, n//9, r//16 and r%16 are
+//     all `//` or `%`, and so is the `v*9//128` inside the library's own `W`.
+//     A fraction reaching a firmware call becomes 0, silently.
+//   - THE CONTROLLERS SEND x UNSCALED AND y INVERTED, AND BOTH ARE FIXES
+//     RATHER THAN OMISSIONS. They read `x*127//128` until plan 11-10, which
+//     maps 0..127 onto 0..126 and CAN NEVER EMIT 127 - the same family as
+//     CONSOLE's 111, on BOTH axes - because 127*127//128 is 126. This entry
+//     never calls txma or tyma, so the touch range IS 0..127 and a controller
+//     value IS 0..127: the scale had nothing to scale. Removing it cost MINUS
+//     eighteen characters (608 at the picker corner before, 590 after) and the
+//     top of both axes became reachable. Plan 12-11 then moved both sends into
+//     the library's `A`, which sends x as it stands and y as `127-y`: the full
+//     range is still reachable on both, and `127-0` is 127 exactly.
 //   - SYSEX DATA BYTES ARE SEVEN-BIT AND NOTHING IN HANGAR CHECKS THAT. The
 //     browser host records what a configuration asked to send, byte for byte,
 //     with no range check and no mask (lua-host.ts, recordSysex - deliberately,
@@ -252,9 +372,14 @@
 //     sysex needs its own.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP. Proved at all four corners above,
 //     over the knob's own values rather than at the default.
-//   - THE DEPTH DIVISOR IS THE LITERAL 36 AND IS NEVER A KNOB, so it can never
-//     be zero and the bottom row can never be black. @DEPTH is the multiplier,
-//     not the divisor, and 8*4 = 32 < 36 is the whole guarantee.
+//   - THE DEPTH DIVISOR IS THE LITERAL 32 AND IS NEVER A KNOB, so it can never
+//     be zero and no channel can go NEGATIVE. @DEPTH is the multiplier, not
+//     the divisor, and `8*max(@DEPTH) <= 32` WITH EQUALITY ALLOWED is the
+//     whole guarantee: 8*4 = 32 lands the bottom row on exactly zero, which is
+//     black and is legal, while 8*5 = 40 would land it on -8, which truncates
+//     rather than clamping and is not. The knob's four values are what keep
+//     that true, and lua-smoke.spec.ts reddens if one is widened without the
+//     other.
 //   - THE CURSOR RESTORES, IT DOES NOT REPAINT. DO NOT SIMPLIFY THIS to "call
 //     F over all eighty-one cells". touch_cb has a 1000-microsecond budget at
 //     100 Hz; eighty-one cells is four firmware calls each, and a handler that
@@ -264,17 +389,25 @@
 //     a glc pair is the whole repaint, and it is at most two cells per sample.
 //     The second F was added by 11-10 and is the price of the sysex payload;
 //     it is bounded by the same "at most two cells" and it fires only when the
-//     cell changes or a contact begins, never on a move within one cell.
-//   - CODE 9 IS HANDLED. A fast tap arrives as a single DOWNUP 9 with no
-//     separate press or lift, and it must both move the cursor and send, so
-//     the filter is the shipped `e~=1 and e~=4 and e<9`.
+//     cell changes or a contact begins, never on a move within one cell - and
+//     since 12-11 not on a move across a cell LINE either, because `Q`'s
+//     hysteresis holds the cell through the wobble.
+//   - CODE 9 IS HANDLED, IN TWO PLACES NOW. A fast tap arrives as a single
+//     DOWNUP 9 with no separate press or lift, and it must both move the
+//     cursor and send: this entry's filter is the shipped `e~=1 and e~=4 and
+//     e<9`, and the library's `Q` takes the same code as an onset through its
+//     own `e==4 or e>8`. Probe A's Q3 measured ten taps as fast as a hand can
+//     make them and NOT ONE arrived as a 9, so nothing depends on this - it is
+//     handled because the firmware can produce it, not because a finger does.
 //   - @CC + 1 < 128 AT EVERY KNOB VALUE. Two adjacent controllers are sent;
 //     the four values top out at 17, 49, 81 and 103.
 //   - NO KEEPER AND NO DECAY. The stored Lua holds no glt, no glf and no
 //     glpfs, so there is no countdown to freeze and no rate to wrap and
-//     pitfall 1 cannot arise here. That claim is made about the SETUP STRING
-//     and not about this file, because a header that names a trap contains the
-//     word it is warning about and a grep over the file counts itself.
+//     pitfall 1 cannot arise here. That claim is made about THIS ENTRY'S SETUP
+//     STRING - not about this file, because a header that names a trap
+//     contains the word it is warning about and a grep over the file counts
+//     itself, and not about the system element's library string, which defines
+//     a decay helper this card never calls.
 //
 // THE HONEST LIMIT, for the card copy. The pad shows the colour it is SENDING,
 // which is not necessarily the colour the fixture is producing. The desk in
@@ -295,41 +428,51 @@
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are byte-identical to the canonical text measured
-// against the pinned minifier: Setup 742 characters, Timer 0, both fixed points
+// against the pinned minifier: Setup 704 characters, Timer 0, both fixed points
 // of compressScript and both accepted by checkSyntax. The all-longest corner of
-// the four-knob cross-product is 746 / 0, leaving 162 free of 908, and the
-// all-shortest corner is 742 / 0.
+// the four-knob cross-product is 707 / 0, leaving 201 free of 908, and the
+// all-shortest corner is 704 / 0.
 // src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 //
 // AT THE RGB444 PICKER CORNER (D-06), WHICH IS THE CORNER THE 908 GATE ACTUALLY
-// READS: Setup 746 of 908 leaving 162 free, Timer 0 of 908 leaving the whole
-// 908 - still the most free Timer in the catalog. THAT IS THE SAME 746 THE
+// READS: Setup 707 of 908 leaving 201 free, Timer 0 of 908 leaving the whole
+// 908 - still the most free Timer in the catalog. THAT IS THE SAME 707 THE
 // DECLARED CROSS-PRODUCT GIVES, AND IT IS A COINCIDENCE RATHER THAN A RULE:
 // @CURSORC already declares 255,255,255, which is the longest literal any
 // picker can write, so this entry's declared corner and its picker corner are
 // the same point. ARC and MORPH are correct by the same accident; five entry
 // headers in this catalog are NOT, and quote the declared corner as though it
-// were the picker one. Do not read this line as the norm. AND 742 IS THE
+// were the picker one. Do not read this line as the norm. AND 704 IS THE
 // DEFAULTS FIGURE, NOT A CORNER AT ALL - it happens to equal the all-shortest
 // declared corner because every default is that knob's shortest literal, and
-// quoting it as the budget figure understates the cost by four characters.
-// @CC and @CH each appear TWICE in the Setup, which is why two knobs one
-// character longer cost four rather than two.
+// quoting it as the budget figure understates the cost by three characters.
+// @CC appears TWICE in the Setup and @CH once - `A(s,i,e,x,y,@CC,@CC+1,@CH)`
+// is the only site of any of them since 12-11 - which is why the corner is
+// three characters dearer and not four as it was when two `s:gms` calls named
+// all three.
 //
-// WHERE THE 746 CAME FROM, AS A LADDER RATHER THAN A NUMBER (all at the picker
+// WHERE THE 707 CAME FROM, AS A LADDER RATHER THAN A NUMBER (all at the picker
 // corner, all `max(compressScript(lua).length, lua.length)` after padReady):
 //
 //   608  as 11-09.2 measured and left it
 //   590  minus 18, the two `*127//128` scales removed - a FIX that pays
-//   746  plus 156, the sysex half: `D`, `return r,g,b`, the second F call,
-//        `or e>3`, and the nine-byte gmss itself
+//   746  plus 156, the sysex half (11-10): `D`, `return r,g,b`, the second F
+//        call, `or e>3`, and the nine-byte gmss itself
+//   746  plus 0, the 32/32 re-cut (12-11) - four literals, same widths
+//   726  minus 20, the cursor cell through the library's `Q`
+//   707  minus 19, the two `s:gms` calls through the library's `A`
 //
-// So the whole of this wave costs +138 against the 608 it inherited, and LUMEN
-// still has 162 free on Setup and the entire 908 on Timer. THE TIMER WAS NEVER
-// TOUCHED, and it is deliberately not where the sysex went: a Timer that sends
-// on every tick is a different card - it would emit the cursor's colour a
-// hundred times a second whether or not anything changed. A colour message
-// belongs to the gesture that chose the colour.
+// The two library steps are independent and were measured alone as well as
+// together: 726 with `Q` only, 727 with `A` only, 707 with both, so the
+// deltas add exactly. LUMEN now has 201 free on Setup and the entire 908 on
+// Timer. THE TIMER WAS NEVER TOUCHED, and it is deliberately not where the
+// sysex went: a Timer that sends on every tick is a different card - it would
+// emit the cursor's colour a hundred times a second whether or not anything
+// changed. A colour message belongs to the gesture that chose the colour.
+//
+// THE LIBRARY IS NOT CHARGED TO THIS 707. `TOUCH_LIBRARY` is 769 of the SYSTEM
+// element's own 908 (element 255, event 0), which is a separate budget from
+// this entry's event 0 on the touch element - see library.ts section 1.
 //
 // THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 // compressScript does not strip them: a trailing comment was measured surviving
@@ -340,7 +483,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local H={255,90,0,200,255,0,30,255,0,0,255,150,0,150,255,30,0,255,200,0,255,255,0,100,255,230,190}local function D(v)return v<10 and 48+v or 55+v end local function F(n)local a=glag(0,n)local i=n%9*3 local d=36-n//9*@DEPTH local r=H[i+1]*d//36 local g=H[i+2]*d//36 local b=H[i+3]*d//36 glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)return r,g,b end for n=0,80 do F(n)end self.c=-1 self.touch_cb=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end local n=x*9//128+y*9//128*9 if n~=s.c or e>3 then if s.c>=0 then F(s.c)end local r,g,b=F(n)gmss(240,125,D(r//16),D(r%16),D(g//16),D(g%16),D(b//16),D(b%16),247)local a=glag(0,n)glc(a,1,@CURSORC,1)glc(a,2,@CURSORC,1)s.c=n end s:gms(@CH,176,@CC,x,0)s:gms(@CH,176,@CC+1,y,0)end";
+  "--[[@cb]]local H={255,90,0,200,255,0,30,255,0,0,255,150,0,150,255,30,0,255,200,0,255,255,0,100,255,230,190}local function D(v)return v<10 and 48+v or 55+v end local function F(n)local a=glag(0,n)local i=n%9*3 local d=32-n//9*@DEPTH local r=H[i+1]*d//32 local g=H[i+2]*d//32 local b=H[i+3]*d//32 glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)return r,g,b end for n=0,80 do F(n)end self.c=-1 self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)if e~=1 and e~=4 and e<9 then return end if n then if s.c>=0 then F(s.c)end local r,g,b=F(n)gmss(240,125,D(r//16),D(r%16),D(g//16),D(g%16),D(b//16),D(b%16),247)local a=glag(0,n)glc(a,1,@CURSORC,1)glc(a,2,@CURSORC,1)s.c=n end A(s,i,e,x,y,@CC,@CC+1,@CH)end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
@@ -412,18 +555,19 @@ export const LUMEN: CatalogEntry = {
       label: "Depth",
       kind: "amount",
       token: "@DEPTH",
-      // The MULTIPLIER in d = 36 - row*@DEPTH, never the divisor. Larger is
-      // deeper: the bottom row lands at 28, 20, 12 or 4 out of 36. The largest
-      // value costs 8*4 = 32 of the 36, which is why no value can take the
-      // bottom row to black or below it.
+      // The MULTIPLIER in d = 32 - row*@DEPTH, never the divisor. Larger is
+      // deeper: the bottom row lands at 24, 16, 8 or 0 out of 32, so the
+      // deepest value turns the bottom row OFF and the shallowest leaves it at
+      // three quarters of the anchor.
       //
-      // THESE FOUR ARE THE WHOLE LEGAL TRAVEL, not a sample of it: 5 would put
-      // the bottom row's d at -4 and truncate a channel rather than clamp it,
-      // so {1, 2, 3, 4} is the only four-element set of positive integers this
-      // knob can carry at subtrahend 36. There is no deeper re-cut without
-      // moving the arithmetic. The header's depth table says what each value
-      // is worth in emitted bytes, and lua-smoke.spec.ts holds the travel
-      // clause red the day one is widened without the other.
+      // THESE FOUR ARE THE WHOLE LEGAL TRAVEL, not a sample of it, and plan
+      // 12-11's re-cut did not change that: 5 would put the bottom row's d at
+      // -8 and truncate a channel rather than clamp it, so {1, 2, 3, 4} is the
+      // only four-element set of positive integers this knob can carry at
+      // subtrahend 32 exactly as it was the only one at 36. What moved is the
+      // PICTURE the four values make, not the values. The header's depth table
+      // says what each is worth in emitted bytes, and lua-smoke.spec.ts holds
+      // the travel clause red the day one is widened without the other.
       values: ["1", "2", "3", "4"],
       default: 2,
     },

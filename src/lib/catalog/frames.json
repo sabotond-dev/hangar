@@ -581,31 +581,31 @@
     "lumen": [
       {
         "tick": 0,
-        "sha256": "b9fe7a523b3e60586bbe320553edca0194dba765abe25a1defec3bdcfb084929",
+        "sha256": "10916cba6bc33fadceb5ea2ac569a61d63f8184698a3b55b7e124a54fc12f41b",
         "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 37,
-        "sha256": "b9fe7a523b3e60586bbe320553edca0194dba765abe25a1defec3bdcfb084929",
+        "sha256": "10916cba6bc33fadceb5ea2ac569a61d63f8184698a3b55b7e124a54fc12f41b",
         "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 101,
-        "sha256": "b9fe7a523b3e60586bbe320553edca0194dba765abe25a1defec3bdcfb084929",
+        "sha256": "10916cba6bc33fadceb5ea2ac569a61d63f8184698a3b55b7e124a54fc12f41b",
         "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 500,
-        "sha256": "b9fe7a523b3e60586bbe320553edca0194dba765abe25a1defec3bdcfb084929",
+        "sha256": "10916cba6bc33fadceb5ea2ac569a61d63f8184698a3b55b7e124a54fc12f41b",
         "nonZeroBytes": 171,
         "animating": false
       },
       {
         "tick": 1009,
-        "sha256": "b9fe7a523b3e60586bbe320553edca0194dba765abe25a1defec3bdcfb084929",
+        "sha256": "10916cba6bc33fadceb5ea2ac569a61d63f8184698a3b55b7e124a54fc12f41b",
         "nonZeroBytes": 171,
         "animating": false
       }

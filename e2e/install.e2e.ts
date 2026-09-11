@@ -1944,8 +1944,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await connectOnPage(page, zona);
 
     // THE TWO LITERALS, DERIVED FROM lumen.ts AND NEVER TYPED HERE. The token
-    // sits in `local d=36-n//9*@DEPTH `, so the ten characters in front of it
-    // make each rendered value unique in a 742-character Setup - the bare
+    // sits in `local d=32-n//9*@DEPTH ` - it read 36 until plan 12-11 re-cut
+    // the ramp, which is exactly why the lead is SLICED from the template
+    // rather than written down - so the ten characters in front of it make
+    // each rendered value unique in a 704-character Setup, where the bare
     // digit would match a dozen places. The default is index 2 and one
     // ArrowRight is index 3, the deepest ramp there is.
     const depthKnob = LUMEN.knobs.find((knob) => knob.id === "depth");

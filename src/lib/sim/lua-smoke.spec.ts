@@ -538,7 +538,21 @@ async function residue(
   }
 }
 
-/** Every MIDI and HID message one entry sent, as comparable strings. */
+/**
+ * Every MIDI, HID and SYSEX message one entry sent, as comparable strings.
+ *
+ * SYSEX JOINED THE LIST IN PLAN 12-11, and it was a gap rather than a taste
+ * change. The probe's question is "does a fast tap send what a slow tap sends",
+ * and `gmss` is a send: LUMEN is the catalog's only sysex emitter and its whole
+ * response to a tap is the colour under the finger. Until 12-11 that entry also
+ * sent two axis CCs on the DOWN, so the probe had something to compare and the
+ * blindness never showed; moving those CCs onto the library's `A` - which sends
+ * per axis on change and primes silently on a press - left a tap that produces
+ * no MIDI at all, and the probe's own non-vacuity clause caught it on the first
+ * full run. The clause says "Move PARITY_TAP, do not weaken this", and neither
+ * was the answer: a static tap sends no controller ANYWHERE on that card now,
+ * by design, so the fix is to record the message it does send.
+ */
 type Sent = readonly string[];
 
 async function parity(entry: CatalogEntry, fast: boolean): Promise<Sent> {
@@ -567,6 +581,12 @@ async function parity(entry: CatalogEntry, fast: boolean): Promise<Sent> {
         (m) => `midi(${m.ch},${m.cmd},${m.p1},${m.p2},${m.mode})`,
       ),
       ...host.hid.map((h) => `hid(${JSON.stringify(h)})`),
+      // The third log, added by 12-11 - see `Sent`. `presetParity` below does
+      // NOT take it, and that is not an oversight: a preset is compiled from a
+      // PadState and the compiler has no sysex emitter at all (`gmss` is not in
+      // _pad.ts's OUT_CALLS), so the line would be dead code there and would
+      // read as though a preset might one day send one.
+      ...host.sysex.map((s) => `sysex(${s.bytes.join(",")})`),
     ];
   } finally {
     host.close();
@@ -3727,41 +3747,49 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     expect(report.length, "both halves of the gesture reported").toBe(2);
   }, 120000);
 
-  it("carries LUMEN's depth knob all the way to the emitted bytes, downwards, and only below the top row", async () => {
+  it("carries LUMEN's depth knob all the way to the emitted bytes, downwards, only below the top row, and to exact black at its deepest", async () => {
     // THE BENCH NOTE THIS ANSWERS: "LUMEN ... the color depth / opacity doesn't
     // work", answered at the 11-09 checkpoint with "try it but we observed no
-    // difference in the LEDs".
+    // difference in the LEDs", and then again at 12-00 with "LUMEN: seems like
+    // nothing changed".
     //
-    // THE OPTION THAT NOTE WAS COSTED FROM SAID DEPTH MOVES THE ANCHOR FROM 78
-    // PER CENT TO 11 PER CENT. That figure is the arithmetic d/36 and it is NOT
-    // a reading of a frame: between it and a lit LED sit glc's three colour
-    // stops, glp's phase, shapeIntensity, the per-layer weights, the two-layer
-    // sum and the single divide by 512 with its clamp at 255
-    // (pad-sim.ts render()). So this test reads the FRAME.
+    // THE OPTION THAT NOTE WAS COSTED FROM QUOTED A RATIO. That figure is the
+    // arithmetic d/32 and it is NOT a reading of a frame: between it and a lit
+    // LED sit glc's three colour stops, glp's phase, shapeIntensity, the
+    // per-layer weights, the two-layer sum and the single divide by 512 with
+    // its clamp at 255 (pad-sim.ts render()). So this test reads the FRAME.
     //
-    // WHAT IT FOUND, and it is why nothing was deepened on the strength of the
-    // note: the knob delivers. Four @DEPTH values render four distinct 243-byte
-    // frames. Column 0's bottom row walks 196,69,0 -> 139,49,0 -> 84,29,0 ->
-    // 27,9,0, which is 77 per cent of the emitted anchor down to 11 per cent of
-    // it - the costed ratio, confirmed in bytes.
+    // WHAT 11-09.2 FOUND AT SUBTRAHEND 36: the knob delivers. Four @DEPTH
+    // values, four distinct 243-byte frames, column 0's bottom row walking
+    // 196,69,0 -> 139,49,0 -> 84,29,0 -> 27,9,0. AND PROBE B FOUND THE SAME
+    // THING ON THE USER'S OWN MODULE - four distinct brightness levels, with
+    // the darkest "clearly lit". A step a person can look at and call
+    // unchanged is still a delivered step, and that is exactly the problem.
     //
-    // AND WHY "NO DIFFERENCE IN THE LEDS" IS STILL CONSISTENT WITH THAT. The
-    // whole of the knob's travel is in the LOWER rows. d = 36 - row*@DEPTH, so
-    // ROW 0 IS d = 36 AT EVERY VALUE AND CANNOT MOVE - that is arithmetic, not
+    // WHAT 12-11 CHANGED, AND WHAT THIS TEST NOW PINS: the subtrahend and the
+    // divisor are both 32, so the bottom row's d is 24 / 16 / 8 / ZERO and the
+    // deepest setting turns the bottom row OFF. Clause 2a is that zero,
+    // asserted on emitted bytes rather than described, because an unlit LED is
+    // the one picture nobody reports as "nothing changed".
+    //
+    // WHY "NO DIFFERENCE IN THE LEDS" IS STILL CONSISTENT WITH A WORKING KNOB.
+    // The whole of the travel is in the LOWER rows. d = 32 - row*@DEPTH, so
+    // ROW 0 IS d = 32 AT EVERY VALUE AND CANNOT MOVE - that is arithmetic, not
     // a defect - and the worst channel spread across all four values climbs
-    // 0, 21, 42, 63, 85, 105, 126, 148, 169 from row 0 to row 8. The shipped
-    // default is index 2 of 4, so ONE STEP moves row 1 by seven counts of 255
-    // and the bottom row by fifty-five. A person watching the top of the pad
-    // while turning the knob is reporting what the pad does.
+    // 0, 24, 48, 72, 95, 119, 143, 167, 189 from row 0 to row 8. The shipped
+    // default is index 2 of 4. A person watching the top of the pad while
+    // turning the knob is reporting what the pad does, which is why the card's
+    // own quiet line now names the anchor row (listing.ts).
     //
-    // ASSERTED AS RELATIONS, NEVER AS BRIGHTNESS LITERALS, so a future re-cut
-    // of the four values or of the divisor survives this test and only a
-    // DECOUPLING - or an inversion - reddens it. Clause 5 is the shortfall this
-    // wave found made permanent: 8*max(@DEPTH) has to stay inside the
-    // subtrahend or the bottom row goes negative and truncates to garbage, so
-    // @DEPTH's four values ARE the whole legal travel and there is no deeper
-    // re-cut available at the current arithmetic. It reddens the day someone
-    // widens one without the other.
+    // ASSERTED AS RELATIONS, NEVER AS BRIGHTNESS LITERALS - with clause 2a as
+    // the one deliberate exception, because ZERO is not a brightness literal,
+    // it is the floor of the scale and the deliverable. Everything else
+    // survives a future re-cut of the four values or of the divisor and only a
+    // DECOUPLING - or an inversion - reddens it. Clause 4 is the travel bound
+    // made permanent: 8*max(@DEPTH) has to stay inside the subtrahend OR THE
+    // BOTTOM ROW GOES NEGATIVE and truncates to garbage, while 8*(max+1) has to
+    // exceed it or the knob is not at full travel. Both are still true at 32,
+    // with the first now holding AT EQUALITY - which is what black means here.
     const entry = entryById("lumen");
     const knob = entry.knobs.find((k) => k.id === "depth");
     expect(knob, "lumen declares a depth knob").toBeDefined();
@@ -3805,7 +3833,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       rgbAt(frame, col + row * GRID_W);
     const CHANNELS = ["r", "g", "b"] as const;
 
-    // 1. ROW 0 CANNOT MOVE, AND THAT IS ARITHMETIC. d = 36 - 0*@DEPTH = 36 at
+    // 1. ROW 0 CANNOT MOVE, AND THAT IS ARITHMETIC. d = 32 - 0*@DEPTH = 32 at
     //    every value of the knob, so the top row is the anchor colour whatever
     //    the knob says. Stated out loud because a user looking at the top of
     //    the pad while turning the knob would correctly report seeing nothing.
@@ -3813,8 +3841,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const seen = new Set(frames.map((f) => tripleAt(f, col, 0)));
       expect(
         [...seen],
-        `lumen: ROW 0 IS THE ANCHOR AT EVERY @DEPTH - d = 36 - 0*@DEPTH is ` +
-          `36 for all of ${values.join(", ")}. Column ${col} row 0 rendered ` +
+        `lumen: ROW 0 IS THE ANCHOR AT EVERY @DEPTH - d = 32 - 0*@DEPTH is ` +
+          `32 for all of ${values.join(", ")}. Column ${col} row 0 rendered ` +
           `${[...seen].join(" and ")}`,
       ).toHaveLength(1);
     }
@@ -3864,6 +3892,58 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         `channels across all ${values.length} declared @DEPTH values`,
     ).toBe(anchored * (values.length - 1));
 
+    // 2a. AND AT THE DEEPEST VALUE THE BOTTOM ROW IS EXACTLY BLACK, IN EVERY
+    //     COLUMN AND EVERY CHANNEL (plan 12-11). d = 32 - 8*max(@DEPTH) = 0, so
+    //     every channel is anchor*0//32 and the whole row is unlit. This is the
+    //     one clause in this test that asserts a literal, and the literal is
+    //     zero: the user reported "nothing changed" twice at subtrahend 36,
+    //     where the deepest bottom row was 27,9,0 and Probe B confirmed 27 is
+    //     CLEARLY LIT on the desk. A dark LED is not a dim one, and this is the
+    //     assertion that says the deepest setting is unmistakable.
+    const deepestIndex = values.length - 1;
+    const bottomRow = Array.from({ length: GRID_W }, (_, col) =>
+      tripleAt(frames[deepestIndex], col, BOTTOM),
+    );
+    const bottomChannels = Array.from({ length: GRID_W }, (_, col) =>
+      CHANNELS.map((_ch, k) => channelAt(frames[deepestIndex], col, BOTTOM, k)),
+    ).flat();
+    expect(
+      bottomChannels,
+      `lumen: AT @DEPTH ${values[deepestIndex]} THE BOTTOM ROW MUST BE ` +
+        `EXACTLY BLACK in all ${GRID_W} columns - ${GRID_W - 1}*` +
+        `${values[deepestIndex]} IS the subtrahend, so d is zero there and ` +
+        "every channel is anchor*0//<subtrahend>. Clause 4 below pins that " +
+        "equality to the entry's own Lua. The row rendered " +
+        bottomRow.join("  "),
+    ).toEqual(Array.from({ length: GRID_W * CHANNELS.length }, () => 0));
+    // And it is the ONLY row that goes out, so the card is a ramp rather than
+    // a card that turns itself off: row 7 at the same value must still be lit
+    // wherever row 0 is.
+    for (let col = 0; col < GRID_W; col += 1) {
+      if (tripleAt(frames[deepestIndex], col, 0) === "0,0,0") continue;
+      expect(
+        tripleAt(frames[deepestIndex], col, BOTTOM - 1),
+        `lumen: at @DEPTH ${values[deepestIndex]} the row ABOVE the bottom ` +
+          `must still be lit in column ${col}, or the knob is blanking the ` +
+          "pad rather than deepening the ramp",
+      ).not.toBe("0,0,0");
+    }
+    // ROW 0 IS BYTE-IDENTICAL AT EVERY INDEX, asserted over the whole row's
+    // bytes at once rather than column by column - clause 1 proves each column
+    // separately, and this proves the row as a run of bytes, which is the form
+    // the bench is asked to compare against (docs/HARDWARE-AUDITION.md).
+    const rowBytes = (frame: Uint8Array, row: number): string =>
+      Array.from({ length: GRID_W }, (_, col) =>
+        tripleAt(frame, col, row),
+      ).join(" ");
+    const topRows = new Set(frames.map((f) => rowBytes(f, 0)));
+    expect(
+      [...topRows],
+      "lumen: ROW 0 IS THE ANCHOR AND THE WHOLE ROW MUST BE BYTE-IDENTICAL " +
+        "at every knob index - it is what the card's quiet line tells a " +
+        "visitor to read the rest of the pad against",
+    ).toHaveLength(1);
+
     // 3. THE KNOB'S TRAVEL LIVES IN THE LOWER ROWS, AND THAT IS THE ANSWER TO
     //    THE BENCH NOTE. The spread a row shows across the four values is zero
     //    at the top and grows with every row down. Asserted as a strict
@@ -3887,7 +3967,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       expect(
         spreads[row],
         `lumen: EVERY ROW DOWN MUST MOVE MORE THAN THE ONE ABOVE IT, because ` +
-          `d = 36 - row*@DEPTH. Row ${row} spread ${spreads[row]} against ` +
+          `d = 32 - row*@DEPTH. Row ${row} spread ${spreads[row]} against ` +
           `row ${row - 1}'s ${spreads[row - 1]}; the nine rows spread ` +
           spreads.join(", "),
       ).toBeGreaterThan(spreads[row - 1]);
@@ -3901,6 +3981,11 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     //    largest declared value must already be the largest the arithmetic
     //    admits, which is why the answer to "deepen the ramp" is that there is
     //    no deeper four-value re-cut to make.
+    //
+    //    EQUALITY IS ALLOWED AND IS WHAT SHIPS SINCE 12-11. At 32/32 the
+    //    bottom row's d is exactly zero at the deepest value: black, not
+    //    negative. The bound is `<=` and it always was; what changed is that
+    //    the entry now sits ON it, which is what clause 2a reads in bytes.
     const template = (entry.source as { setup: string }).setup;
     const ramp = /d=(\d+)-n\/\/9\*@DEPTH/.exec(template);
     const scale = /\*d\/\/(\d+)/.exec(template);
@@ -3923,11 +4008,12 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     const deepest = Math.max(...values.map(Number));
     expect(
       (GRID_W - 1) * deepest,
-      `lumen: 8*max(@DEPTH) = ${(GRID_W - 1) * deepest} must stay inside the ` +
+      `lumen: 8*max(@DEPTH) = ${(GRID_W - 1) * deepest} must not exceed the ` +
         `subtrahend ${subtrahend}, or the bottom row's d goes negative and a ` +
-        "channel TRUNCATES rather than clamping. The obvious alternative " +
-        "form, anchor*(@DEPTH-row)//@DEPTH, is negative at @DEPTH 6 and " +
-        "exactly black at 8 - see the entry header",
+        "channel TRUNCATES rather than clamping. EQUAL is legal and is what " +
+        "ships: it makes the bottom row exactly black. The obvious " +
+        "alternative form, anchor*(@DEPTH-row)//@DEPTH, is negative at " +
+        "@DEPTH 6 and exactly black at 8 - see the entry header",
     ).toBeLessThanOrEqual(subtrahend);
     expect(
       (GRID_W - 1) * (deepest + 1),
@@ -3959,7 +4045,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
   }, 120000);
 
-  it("sends LUMEN's colour as framed seven-bit hex over sysex, once per colour", async () => {
+  it("sends LUMEN's colour as framed seven-bit hex over sysex once per colour, and its two axis CCs once per moved axis", async () => {
     // THE BENCH NOTE THIS ANSWERS: "LUMEN: should send HEX in sysex".
     //
     // The call is `gmss`, midi_sysex_send. Every argument is ONE PAYLOAD BYTE
@@ -4196,6 +4282,195 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       host.close();
     }
 
+    // -----------------------------------------------------------------------
+    // CLAUSE 6 - THE CURSOR THROUGH `Q`, AND THE TWO AXIS CCs THROUGH `A`
+    // (plan 12-11). Extended into this test rather than added beside it,
+    // because it is the same question this test already asks - what does one
+    // gesture put on the wire - and because the sysex count and the CC count
+    // are only meaningful against each other.
+    //
+    // WHAT IT IS FOR. Until 12-11 this entry read its cell as the naive
+    // `x*9//128`, so Probe A's Q2 boundary - a finger resting on the line,
+    // sending 71, 72, 71, 72 - flipped the cursor on every sample and RE-SENT
+    // THE COLOUR each time; and it sent both axis CCs on every surviving
+    // sample from outside every gate, which is the flood the probe's rule 3
+    // names in those words. `Q` and `A` answer both.
+    const report: string[] = [];
+    {
+      const ccKnob = entry.knobs.find((k) => k.id === "cc");
+      const chKnob = entry.knobs.find((k) => k.id === "channel");
+      expect(ccKnob, "lumen declares a cc knob").toBeDefined();
+      expect(chKnob, "lumen declares a channel knob").toBeDefined();
+      const CC = Number(ccKnob!.values[entry.defaults.cc ?? ccKnob!.default]);
+      const CH = Number(
+        chKnob!.values[entry.defaults.channel ?? chKnob!.default],
+      );
+      const CC_CMD = 176;
+      const axis = (log: readonly HostMidi[]) =>
+        log.filter((m) => m.cmd === CC_CMD && (m.p1 === CC || m.p1 === CC + 1));
+
+      const host2 = await createLuaHost({
+        sim: new PadSim(blankPadState()),
+        system: TOUCH_LIBRARY,
+        setup,
+        timer: timer.trim() === "" ? undefined : timer,
+      });
+      try {
+        // 6a. A DOWN PRIMES AND SENDS NO CC. `A` gates on `e<4`, so the press
+        //     records (x, y) in the library's `P[i]` and says nothing. This
+        //     entry sent both CCs on the DOWN until 12-11.
+        host2.touchDown(0, 60, 60);
+        host2.tick();
+        const onDown = axis(host2.midi);
+        expect(
+          onDown.map((m) => `cc${m.p1}=${m.p2}`),
+          "lumen: a DOWN must send NO axis CC - `A` primes on the press and " +
+            "the first CC of a gesture is its first MOVE",
+        ).toEqual([]);
+        report.push(`  DOWN (60,60)          ${onDown.length} CC`);
+
+        // 6b. A MOVE THAT MOVES ONLY x SENDS ONLY THE x CC. This is the whole
+        //     of rule 3 in one assertion, and the pre-plan entry sends two
+        //     here.
+        let mark = host2.midi.length;
+        host2.touchMove(0, 61, 60);
+        host2.tick();
+        const movedX = axis(host2.midi.slice(mark));
+        expect(
+          movedX.map((m) => [m.ch, m.p1, m.p2]),
+          `lumen: a MOVE from (60,60) to (61,60) must send EXACTLY ONE CC - ` +
+            `controller ${CC} carrying x = 61 on channel ${CH}. y did not ` +
+            "move, so the y CC must be silent",
+        ).toEqual([[CH, CC, 61]]);
+        report.push(
+          `  MOVE x -> 61          ${movedX.length} CC: ` +
+            movedX.map((m) => `cc${m.p1}=${m.p2}`).join(" "),
+        );
+
+        // 6c. A MOVE THAT MOVES ONLY y SENDS ONLY THE y CC, AND IT IS
+        //     INVERTED. `A` sends `127-y` because the user's own bench snippet
+        //     does (map_saturate(y, 0, 127, 127, 0)). ASSERTED rather than
+        //     described: this is a wire change on controller CC + 1 and the
+        //     day somebody "fixes" it back to raw y, this is what reddens.
+        mark = host2.midi.length;
+        host2.touchMove(0, 61, 62);
+        host2.tick();
+        const movedY = axis(host2.midi.slice(mark));
+        expect(
+          movedY.map((m) => [m.ch, m.p1, m.p2]),
+          `lumen: a MOVE from (61,60) to (61,62) must send EXACTLY ONE CC - ` +
+            `controller ${CC + 1} carrying 127 - 62 = 65, THE INVERSION the ` +
+            "bench snippet asked for. x did not move, so the x CC is silent",
+        ).toEqual([[CH, CC + 1, 127 - 62]]);
+        report.push(
+          `  MOVE y -> 62          ${movedY.length} CC: ` +
+            movedY.map((m) => `cc${m.p1}=${m.p2}`).join(" "),
+        );
+
+        // 6d. A MOVE INSIDE ONE CELL STILL SENDS ITS MOVED AXIS. `Q` returns
+        //     nil for this sample - the cell did not change - so an `A` placed
+        //     INSIDE the `if n then ... end` block would send nothing at all.
+        //     That is 12-VALIDATION R-4's trap, and this clause is the only
+        //     thing standing between the fix and a silent controller.
+        mark = host2.midi.length;
+        const sysexMark = host2.sysex.length;
+        host2.touchMove(0, 62, 62);
+        host2.tick();
+        const inCell = axis(host2.midi.slice(mark));
+        expect(
+          inCell.map((m) => [m.ch, m.p1, m.p2]),
+          "lumen: a MOVE INSIDE ONE CELL must still send the axis that " +
+            "moved. If this is empty, `A` has been put inside the cell gate " +
+            "and the card's controllers only speak when the cursor moves",
+        ).toEqual([[CH, CC, 62]]);
+        expect(
+          host2.sysex.length - sysexMark,
+          "lumen: and that same in-cell MOVE must send NO sysex, because the " +
+            "colour under the finger did not change",
+        ).toBe(0);
+        report.push(
+          `  MOVE inside one cell  ${inCell.length} CC, ` +
+            `${host2.sysex.length - sysexMark} sysex`,
+        );
+      } finally {
+        host2.close();
+      }
+
+      // 6e. THE PROBE'S OWN BOUNDARY, SIX SAMPLES OF IT. Q2's trace is
+      //     71, 72, 71, 72 on a finger that is not moving, and `71*9//128` is
+      //     4 while `72*9//128` is 5. The naive cell flips on every sample;
+      //     `Q`'s +-10 window holds it. ONE sysex for the whole gesture - the
+      //     press - and not one more.
+      const WOBBLE: readonly (readonly [number, number])[] = [
+        [71, 64],
+        [72, 64],
+        [71, 64],
+        [72, 65],
+        [71, 65],
+        [72, 65],
+      ];
+      const host3 = await createLuaHost({
+        sim: new PadSim(blankPadState()),
+        system: TOUCH_LIBRARY,
+        setup,
+        timer: timer.trim() === "" ? undefined : timer,
+      });
+      try {
+        host3.touchDown(0, WOBBLE[0][0], WOBBLE[0][1]);
+        host3.tick();
+        const pressSysex = host3.sysex.length;
+        const pressMidi = host3.midi.length;
+        expect(
+          pressSysex,
+          "lumen: the press that opens the gesture sends its colour once",
+        ).toBe(1);
+        for (const [x, y] of WOBBLE) {
+          host3.touchMove(0, x, y);
+          host3.tick();
+        }
+        expect(host3.errors, "lumen: the wobble must run clean").toEqual([]);
+        expect(
+          host3.sysex.length,
+          `lumen: A FINGER RESTING ON A CELL LINE MUST NOT RE-SEND THE ` +
+            `COLOUR. Six samples across the 71/72 boundary produced ` +
+            `${host3.sysex.length - pressSysex} sysex message(s) after the ` +
+            "press; the hysteresis in the library's `Q` is what holds the " +
+            "cursor, and without it this card sends one per sample",
+        ).toBe(1);
+
+        // AND THE CC COUNT OVER THE SAME SIX SAMPLES, DERIVED FROM THE GESTURE
+        // RATHER THAN TYPED: one CC per axis that actually moved, counted
+        // against the DOWN's own (x, y) as the priming sample. The pre-plan
+        // entry sends TWO per sample - twelve - because both `s:gms` calls sat
+        // outside every gate. This is the number rule 3 is about.
+        let expected = 0;
+        for (let i = 0; i < WOBBLE.length; i += 1) {
+          const previous = i === 0 ? WOBBLE[0] : WOBBLE[i - 1];
+          if (WOBBLE[i][0] !== previous[0]) expected += 1;
+          if (WOBBLE[i][1] !== previous[1]) expected += 1;
+        }
+        const wobbleCCs = axis(host3.midi.slice(pressMidi));
+        expect(
+          wobbleCCs.length,
+          `lumen: the six-sample wobble must send ONE CC PER MOVED AXIS - ` +
+            `${expected} of them - and not two per sample. It sent ` +
+            `${wobbleCCs.length}: ` +
+            wobbleCCs.map((m) => `cc${m.p1}=${m.p2}`).join(" "),
+        ).toBe(expected);
+        expect(
+          wobbleCCs.length,
+          "lumen: and that must be strictly fewer than the both-axes-every-" +
+            "sample shape this replaced, or nothing was gained",
+        ).toBeLessThan(2 * WOBBLE.length);
+        report.push(
+          `  71/72 wobble x6       ${wobbleCCs.length} CC (was 12), ` +
+            `${host3.sysex.length - pressSysex} sysex after the press (was 5)`,
+        );
+      } finally {
+        host3.close();
+      }
+    }
+
     process.stdout.write(
       "\nLUMEN colour over sysex, plan 11-10:\n" +
         seen
@@ -4208,6 +4483,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
                 .join("")}"`,
           )
           .join("\n") +
+        "\nLUMEN's cursor through Q and its axis CCs through A, plan 12-11:\n" +
+        report.join("\n") +
         "\n",
     );
   }, 120000);

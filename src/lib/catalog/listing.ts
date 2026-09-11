@@ -356,8 +356,16 @@ export const LISTING: readonly ListingEntry[] = [
     description:
       "A colour picker for a lighting desk: hue across, depth down, and the colour goes out as hex over sysex.",
     motion: "static",
+    // THE SECOND SENTENCE IS THE ONE 11-09.2 OWED AND 12-11 PAID (CONT-02).
+    // `d = 32 - row*@DEPTH`, so row 0 is the anchor at every value of the depth
+    // knob and CANNOT move. Two bench reports of "nothing changed" came from
+    // watching the top of the pad while turning it, and 12-01 proved the knob
+    // reaches the module's RAM, so the missing piece was never wiring - it was
+    // that nobody told the visitor which row to watch. FidelityLine.svelte
+    // renders this line on every still card's page, which is where a person
+    // stands when their hand is on the knob.
     quiet:
-      "The whole field stays lit and still, so you read the colour instead of watching it.",
+      "The whole field stays lit and still, so you read the colour instead of watching it. The top row is the anchor and never moves; the depth knob shapes the rows below it.",
     tags: ["show", "still", "readable"],
     featured: true,
     restsBlack: false,
