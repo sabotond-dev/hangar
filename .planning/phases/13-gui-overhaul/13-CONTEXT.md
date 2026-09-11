@@ -317,6 +317,20 @@ The floor stays as layout.ts has it; the grid is two columns when the inspector 
 wider and one column below, and nothing else in the inspector changes shape. 13-09 builds it; the
 breakpoint is written once in layout.ts beside the other numbers, not in a component.
 
+## D-22 [user] Collections at four forks - many, session, bare, no
+
+Given 2026-09-11, answering 13-13's checkpoint (the four forks presented with their storage and code
+costs; the orchestrator recommended these four):
+
+> *"many session bare no"*
+
+A. A configuration may be in many collections (one id list per collection; a deleted configuration is
+removed from every list; an id the library no longer carries is dropped on read and the drop counted,
+favorites' rule). B. Deleting a collection is undoable for the rest of the session - one stored
+vector, nothing persisted, gone with the tab. C. The empty state is the PDF's bare "+ New collection"
+link, nothing invented. D. Export does not carry membership; an import always lands unfiled and can
+never create a collection the user did not make. 13-13 executes it and asks nothing.
+
 ## What the spec leaves open that HANGAR has already settled
 
 Section 19 lists open technical decisions. Several are answered by earlier
