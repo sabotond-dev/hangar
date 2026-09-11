@@ -357,16 +357,19 @@
       after = null;
       byteIdentical = undefined;
       writesAcknowledged = false;
-      // D-09: the write buttons stay disabled unless both fetched strings are
-      // trustworthy, and the page names the event and the reason.
+      // D-09: the write buttons stay disabled unless every fetched string is
+      // trustworthy, and the page names the event and the reason. FOUR since
+      // 12.1-06 (the system timer, D-03), so the fourth string is inside
+      // this page's no-op proof rather than silently outside it.
       const guard = P!.canWriteBack([
+        before.systemTimer,
         before.system,
         before.setup,
         before.timer,
       ]);
       writeRefusal = guard.ok ? null : guard.reason;
       status = guard.ok
-        ? `fetched page init ${before.system.actionString?.length}, Setup ${before.setup.actionString?.length} and Timer ${before.timer.actionString?.length} characters`
+        ? `fetched system timer ${before.systemTimer.actionString?.length}, page init ${before.system.actionString?.length}, Setup ${before.setup.actionString?.length} and Timer ${before.timer.actionString?.length} characters`
         : `write back refused: ${guard.reason}`;
     });
 
@@ -375,7 +378,7 @@
       try {
         await T!.writeBack(queue!, identity!, before!);
         writesAcknowledged = true;
-        status = "all three write-backs acknowledged in RAM";
+        status = "all four write-backs acknowledged in RAM";
       } finally {
         // The same mandatory rule runNoOpCycle holds in its own finally: a
         // successful config write leaves the module unable to change page
@@ -389,7 +392,10 @@
       const fresh = await T!.fetchAll(queue!, identity!, "refetch");
       after = fresh;
       const first = before!;
+      // All four compared (12.1-06): a system timer that came back different
+      // fails the proof exactly as a touch Setup would.
       byteIdentical =
+        first.systemTimer.actionString === fresh.systemTimer.actionString &&
         first.system.actionString === fresh.system.actionString &&
         first.setup.actionString === fresh.setup.actionString &&
         first.timer.actionString === fresh.timer.actionString;
@@ -401,7 +407,7 @@
         byteIdentical,
       });
       status = byteIdentical
-        ? "re-fetched: all three strings are byte-identical to what was fetched"
+        ? "re-fetched: all four strings are byte-identical to what was fetched"
         : "re-fetched: the strings differ - read the two panels below";
     });
 

@@ -61,6 +61,13 @@ export const STEP_IDS = [
   "refetch-timer",
   "restore-page-change",
   "burst",
+  // Phase 12.1 (12.1-06, D-03): the system element's timer - the library's
+  // second half, 255/6. Three ids ADDED beside the twelve above, none of
+  // which moved; sequence.ts's SLOTS pairs them with their element and event
+  // and its write order puts `write-system-timer` first of the four.
+  "fetch-system-timer",
+  "write-system-timer",
+  "refetch-system-timer",
   // Phase 13 (13-12): the page target. `switch-page` is the fire-and-forget
   // page switch (sendImmediate, no reply exists to wait for);
   // `fetch-page-count` the enumeration; `discard` the firmware-native revert,

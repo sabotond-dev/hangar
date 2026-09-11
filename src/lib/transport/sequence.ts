@@ -2,18 +2,21 @@
 //
 // Everything here is worth testing and nothing here touches the DOM: identity
 // folded out of inbound heartbeats, the fetches, writeAll - the ONE writer,
-// system setup then Timer then Setup, that TRY ON DEVICE, PUT BACK and the
-// skeleton's write-back reach (Phase 7, SAFE-03; Phase 12 added the first of
-// the three) - the store, the burst probe, and the closing heartbeat that gives
-// the module its page changes back. The page is the part that is not worth
-// testing; it wires a transport and a queue to these and renders what they
-// report.
+// system timer, then system setup, then Timer, then Setup, that TRY ON
+// DEVICE, PUT BACK and the skeleton's write-back reach (Phase 7, SAFE-03;
+// Phase 12 added the third of the four, Phase 12.1 the fourth) - the store,
+// the burst probe, and the closing heartbeat that gives the module its page
+// changes back. The page is the part that is not worth testing; it wires a
+// transport and a queue to these and renders what they report.
 //
-// ONE FETCHER AND ONE WRITER, EACH OVER THREE EVENTS. 12-02 shipped fetchAll
-// and writeAll beside two-event adapters, so that nothing above the transport
-// moved inside that plan; 12-03 moved the store, the tuner, the probe page,
-// both e2e files and the runbooks in ONE plan, and the adapters are gone with
-// their promise kept. Nothing here counts two any more, and sequence.spec.ts
+// ONE FETCHER AND ONE WRITER, EACH OVER ONE ORDERED LIST. 12-02 shipped
+// fetchAll and writeAll beside two-event adapters, so that nothing above the
+// transport moved inside that plan; 12-03 moved the store, the tuner, the
+// probe page, both e2e files and the runbooks in ONE plan, and the adapters
+// are gone with their promise kept. 12.1-06 turned the order from three lines
+// in a function into SLOTS, one row per slot in write order, so that the
+// fourth string (255/6, D-03) and the fifth (255/4, 13-17's) are rows and not
+// functions. Nothing here counts two or three any more, and sequence.spec.ts
 // asserts the removal by name rather than leaving it to a reader's memory.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -228,7 +231,7 @@ const fetched = (
 /**
  * ONE FETCH, ONE STEP ID, ONE FetchedEvent - the primitive the fetcher below is
  * built from. It stayed after 12-03 removed the two-event adapters it was
- * written to keep honest, because the alternative is three near-identical
+ * written to keep honest, because the alternative is four near-identical
  * request-and-label blocks inside one function.
  */
 async function fetchOne(
@@ -261,68 +264,158 @@ async function writeOne(
   );
 }
 
-/** All three strings a module holds for HANGAR: system setup, touch Setup, touch Timer. */
+/**
+ * ONE ROW PER SLOT HANGAR WRITES, IN WRITE ORDER (Phase 12.1, plan 06).
+ *
+ * THE ORDER IS DATA, NOT A FUNCTION BODY. 12-02 wrote it as three writeOne
+ * lines with two reasons in writeAll's header; a fourth string (D-03) would
+ * have been a fourth line, and 13-17's fifth (255/4, under 13-CONTEXT D-19) a
+ * fifth. Instead the list is the single source: writeAll and fetchAll iterate
+ * it, ConfigSet and FetchedSet are keyed by its `key`s, the step ids the
+ * captures and install.spec.ts read are its `write` / `fetch` / `refetch`
+ * columns, and the label a refusal names is its `label`. 13-17 adds 255/4 as
+ * ONE ROW HERE and nowhere else - after 255/6, because whatever the utility
+ * button's body calls has to be registered before the body runs.
+ *
+ * WHY THIS ORDER AND NO OTHER - three reasons, independent of each other.
+ *
+ * REASON ONE (Phase 12). A written body is registered AND RUN IMMEDIATELY, in
+ * write order: ../grid-fw/common/src/c/grid_decode.c:1283-1288 calls
+ * `grid_ui_register_script` and then `grid_ui_process_single` inside the same
+ * accepted-write branch. So at install time the initialisation order is
+ * HANGAR's, not the firmware's page-load order. A touch Setup that calls a
+ * library function by name before the system setup that defines it has been
+ * written raises `attempt to call a nil value` ONCE, at install, on the user's
+ * desk - and installs no `touch_cb` at all, so the pad goes dead rather than
+ * looking wrong. The system element's setup is where the library belongs
+ * because it is the slot firmware runs first on a page load
+ * (../grid-fw/common/src/lua/init.lua:46-50), and 12-00's slot probe confirmed
+ * on hardware that an event body is callable from another event's body and
+ * that its globals persist. Hence 255/0 before 0/6 and 0/0.
+ *
+ * REASON TWO (Phase 2, _pad.ts:3908-3913 - vendored, cited by filename only,
+ * never imported here). Timer (6) before Setup (0), and it is not stylistic:
+ * gtt is a no-op until the Timer event holds at least one stored action, and
+ * Setup runs immediately in the live VM - so a Setup-first write arms a timer
+ * that does not exist yet and the pad simply sits still. It is also why the
+ * BOTOR mixed-state incident left the Timer landed and the Setup missing
+ * rather than the reverse. Hence 0/6 before 0/0.
+ *
+ * REASON THREE (Phase 12.1, D-03), and it is reason one and reason two
+ * together: the library's second half lives in the system element's TIMER
+ * (255/6) and 255/0 arms it with `self:tim()`. A CONFIG/EXECUTE runs the body
+ * it registers (reason one), so 255/0 runs the moment it lands and calls the
+ * method the 255/6 write registers (reason two's shape, one element up) - a
+ * 255/0 written before 255/6 would arm a timer whose body is still the
+ * firmware's debug print, once, at install. Hence 255/6 FIRST OF ALL, before
+ * the setup that calls it, on the same rule that already puts 0/6 before 0/0.
+ *
+ * WHAT IS NOT IN THE LIST. 255/4, the utility button: constants.ts's header
+ * names it as 13-17's pending removal under D-19, not a rule, and
+ * sequence.spec.ts asserts no frame addresses it until that row exists. Four
+ * writes per install, not five.
+ */
+export const SLOTS: readonly {
+  readonly element: number;
+  readonly event: number;
+  readonly key: keyof ConfigSet;
+  readonly label: FetchedEvent["label"];
+  readonly write: StepId;
+  readonly fetch: StepId;
+  readonly refetch: StepId;
+}[] = [
+  {
+    element: ELEMENT_SYSTEM,
+    event: EVENT_TIMER,
+    key: "systemTimer",
+    label: "System timer",
+    write: "write-system-timer",
+    fetch: "fetch-system-timer",
+    refetch: "refetch-system-timer",
+  },
+  {
+    element: ELEMENT_SYSTEM,
+    event: EVENT_SETUP,
+    key: "system",
+    label: "System",
+    write: "write-system",
+    fetch: "fetch-system",
+    refetch: "refetch-system",
+  },
+  {
+    element: ELEMENT_TOUCH,
+    event: EVENT_TIMER,
+    key: "timer",
+    label: "Timer",
+    write: "write-timer",
+    fetch: "fetch-timer",
+    refetch: "refetch-timer",
+  },
+  {
+    element: ELEMENT_TOUCH,
+    event: EVENT_SETUP,
+    key: "setup",
+    label: "Setup",
+    write: "write-setup",
+    fetch: "fetch-setup",
+    refetch: "refetch-setup",
+  },
+];
+
+/**
+ * All FOUR strings a module holds for HANGAR, one per SLOTS row: the system
+ * element's timer and setup (the library's two halves), the touch element's
+ * Timer and Setup.
+ */
 export interface FetchedSet {
+  systemTimer: FetchedEvent;
   system: FetchedEvent;
   setup: FetchedEvent;
   timer: FetchedEvent;
 }
 
 /**
- * Read all THREE back: the system element's setup (255/0) and both touch
- * events. THE ONE FETCHER since 12-03.
+ * Read all FOUR back, one per SLOTS row. THE ONE FETCHER since 12-03.
  *
  * FETCH ORDER IS FREE - firmware answers each request on its own and no fetch
- * runs anything - but it is written system-first anyway so a capture's steps[]
- * reads in the same order as the write below, and a reader comparing a fetch
- * trace with a write trace is not comparing two different orderings.
+ * runs anything - but it is written in SLOTS order anyway so a capture's
+ * steps[] reads in the same order as the write below, and a reader comparing
+ * a fetch trace with a write trace is not comparing two different orderings.
  *
- * Events 4 and 6 of element 255 are NOT fetched. See constants.ts's header:
- * event 4 is the module's physical utility button, and HANGAR does not
- * snapshot what it will never write back.
+ * 255/4 is NOT fetched. See constants.ts's header: it is 13-17's row to add,
+ * and until then HANGAR does not snapshot what it does not write back.
  *
  * `stage` picks the pinned step ids the run reports under: the cycle and the
  * store proof fetch once before the write and once after it, and plan 05's
- * gate reads those six ids to tell the two apart.
+ * gate reads those ids to tell the two apart.
  */
 export async function fetchAll(
   q: RequestQueue,
   id: Identity,
   stage: "fetch" | "refetch" = "fetch",
 ): Promise<FetchedSet> {
-  const system = await fetchOne(
-    q,
-    id,
-    EVENT_SETUP,
-    ELEMENT_SYSTEM,
-    "System",
-    stage === "fetch" ? "fetch-system" : "refetch-system",
-  );
-  const setup = await fetchOne(
-    q,
-    id,
-    EVENT_SETUP,
-    ELEMENT_TOUCH,
-    "Setup",
-    stage === "fetch" ? "fetch-setup" : "refetch-setup",
-  );
-  const timer = await fetchOne(
-    q,
-    id,
-    EVENT_TIMER,
-    ELEMENT_TOUCH,
-    "Timer",
-    stage === "fetch" ? "fetch-timer" : "refetch-timer",
-  );
-  return { system, setup, timer };
+  const set: Partial<FetchedSet> = {};
+  for (const slot of SLOTS) {
+    set[slot.key] = await fetchOne(
+      q,
+      id,
+      slot.event,
+      slot.element,
+      slot.label,
+      stage === "fetch" ? slot.fetch : slot.refetch,
+    );
+  }
+  return set as FetchedSet;
 }
 
 /**
- * The three strings a full write puts on the wire. Verbatim, never compressed
- * here. `system` is the page-init slot the shared library lives in; the other
- * two are the touch element's.
+ * The four strings a full write puts on the wire, keyed by SLOTS' `key`s.
+ * Verbatim, never compressed here. `systemTimer` and `system` are the two
+ * halves of the shared library (255/6 and 255/0); the other two are the
+ * touch element's.
  */
 export interface ConfigSet {
+  systemTimer: string;
   system: string;
   setup: string;
   timer: string;
@@ -342,64 +435,38 @@ export const targetOf = (id: Identity): WriteTarget => ({
 });
 
 /**
- * Write all three into the module's RAM: SYSTEM SETUP, THEN TOUCH TIMER, THEN
- * TOUCH SETUP. This order and no other, and the two reasons are independent.
+ * Write all four into the module's RAM, IN SLOTS ORDER: system timer, then
+ * system setup, then touch Timer, then touch Setup. This order and no other;
+ * SLOTS' comment carries the three reasons.
  *
  * THE ONE WRITER FOR FOUR CLICKS. TRY ON DEVICE, PUT BACK, CLEAR and the
  * skeleton's write-back all come through here; writeBack below is a two-line
  * adapter. The strings go on the wire VERBATIM - never compressed here
  * (07-RESEARCH, the D-10 measurement: cost().used === setupLua.length with
- * reserve 0/0). THE ORDER IS NOT THE CALLER'S TO GET WRONG: it lives in this
- * function, so a caller that hands the set over with its keys in another
- * order changes nothing at all, and sequence.spec.ts asserts that.
- *
- * REASON ONE, THE NEW ONE (Phase 12). A written body is registered AND RUN
- * IMMEDIATELY, in write order: ../grid-fw/common/src/c/grid_decode.c:1286-1287
- * calls `grid_ui_register_script` and then `grid_ui_process_single` inside the
- * same accepted-write branch. So at install time the initialisation order is
- * HANGAR's, not the firmware's page-load order. A touch Setup that calls a
- * library function by name before the system setup that defines it has been
- * written raises `attempt to call a nil value` ONCE, at install, on the user's
- * desk - and installs no `touch_cb` at all, so the pad goes dead rather than
- * looking wrong. The system element's slot is where the library belongs
- * because it is the slot firmware runs first on a page load
- * (../grid-fw/common/src/lua/init.lua:46-50), and 12-00's slot probe confirmed
- * on hardware that an event body is callable from another event's body and
- * that its globals persist.
- *
- * REASON TWO, THE OLD ONE. Timer (6) before Setup (0). _pad.ts:3908-3913
- * (vendored, cited by filename only - never imported here) gives the reason
- * and it is not stylistic: gtt is a no-op until the Timer event holds at least
- * one stored action, and Setup runs immediately in the live VM - so a
- * Setup-first write arms a timer that does not exist yet and the pad simply
- * sits still. It is also why the BOTOR mixed-state incident left the Timer
- * landed and the Setup missing rather than the reverse. Unchanged by Phase 12,
- * and unaffected by the first write.
- *
- * EVENTS 4 AND 6 OF ELEMENT 255 ARE NEVER WRITTEN. Three writes per install,
- * not five. constants.ts's header carries the reason: event 4 is the module's
- * physical utility button, event 6 a second timer nothing arms.
+ * reserve 0/0). THE ORDER IS NOT THE CALLER'S TO GET WRONG: it lives in
+ * SLOTS, so a caller that hands the set over with its keys in another order
+ * changes nothing at all, and sequence.spec.ts asserts that.
  *
  * Sequential, one acknowledgement at a time, each under its own pinned step
  * id, and aborting on the first failure - so a half-landed write names which
- * halves landed, and "the system setup did not land but the touch Setup did"
- * cannot occur.
+ * quarters landed, and "the system timer did not land but the touch Setup
+ * did" cannot occur.
  */
 export async function writeAll(
   q: RequestQueue,
   target: WriteTarget,
   s: ConfigSet,
 ): Promise<void> {
-  await writeOne(
-    q,
-    target,
-    EVENT_SETUP,
-    ELEMENT_SYSTEM,
-    s.system,
-    "write-system",
-  );
-  await writeOne(q, target, EVENT_TIMER, ELEMENT_TOUCH, s.timer, "write-timer");
-  await writeOne(q, target, EVENT_SETUP, ELEMENT_TOUCH, s.setup, "write-setup");
+  for (const slot of SLOTS) {
+    await writeOne(
+      q,
+      target,
+      slot.event,
+      slot.element,
+      s[slot.key],
+      slot.write,
+    );
+  }
 }
 
 /** Phase 2's caller, unchanged in behaviour, now an adapter over writeAll. */
@@ -408,11 +475,9 @@ export async function writeBack(
   id: Identity,
   f: FetchedSet,
 ): Promise<void> {
-  await writeAll(q, targetOf(id), {
-    system: f.system.actionString ?? "",
-    setup: f.setup.actionString ?? "",
-    timer: f.timer.actionString ?? "",
-  });
+  const set: Partial<ConfigSet> = {};
+  for (const slot of SLOTS) set[slot.key] = f[slot.key].actionString ?? "";
+  await writeAll(q, targetOf(id), set as ConfigSet);
 }
 
 /**
@@ -493,19 +558,20 @@ export async function runNoOpCycle(
   try {
     const before = await fetchAll(q, id);
     // D-09: a write is only provably a no-op when the string it writes back is
-    // one the module really handed over. THREE strings since 12-03: the system
-    // element's setup is written back too, so it is guarded too.
-    const guard = canWriteBack([before.system, before.setup, before.timer]);
+    // one the module really handed over. FOUR strings since 12.1-06, one per
+    // SLOTS row: every slot written back is guarded, and every one is
+    // compared.
+    const guard = canWriteBack(SLOTS.map((slot) => before[slot.key]));
     if (!guard.ok) throw new Error(guard.reason);
     await writeBack(q, id, before);
     const after = await fetchAll(q, id, "refetch");
     cycle = {
       before,
       after,
-      byteIdentical:
-        before.system.actionString === after.system.actionString &&
-        before.setup.actionString === after.setup.actionString &&
-        before.timer.actionString === after.timer.actionString,
+      byteIdentical: SLOTS.every(
+        (slot) =>
+          before[slot.key].actionString === after[slot.key].actionString,
+      ),
       pageChangeRestored: false,
     };
     return cycle;
