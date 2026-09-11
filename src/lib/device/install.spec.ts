@@ -132,6 +132,7 @@ import { DeviceSession, type SerialLike } from "./session.svelte";
 import {
   SNAPSHOT_KEY,
   SNAPSHOT_KEY_V2,
+  SNAPSHOT_KEY_V3,
   type SnapshotStore,
   persistIfAbsent,
   rememberLast,
@@ -611,9 +612,9 @@ async function triedOn(rig: Rig, name = "Aurora"): Promise<void> {
 const outcomes = (steps: readonly CaptureStep[]) =>
   steps.map((s) => [s.id, s.outcome]);
 
-/** The one page entry under the v2 key - the only key this version writes. */
+/** The one page entry under the v3 key - the only key this version writes. */
 function pageEntry(storage: ReturnType<typeof mapStorage>, page: number) {
-  const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY_V2) ?? "{}") as {
+  const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY_V3) ?? "{}") as {
     modules?: Record<string, { pages: Record<string, unknown> }>;
   };
   return parsed.modules?.[expectedKey()]?.pages[String(page)];
@@ -779,7 +780,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.pageSettled()).toBe(true);
 
     expect(store.snapshot).toEqual(ORIGINAL);
-    expect(store.snapshotFromV1, "a fresh record is v2").toBe(false);
+    expect(store.snapshotFromV1, "a fresh record is v3").toBe(false);
+    expect(store.snapshotFromV2, "a fresh record is v3").toBe(false);
     expect(store.snapshotPage).toBe(ACTIVE_PAGE);
     const key = expectedKey();
     expect(store.moduleId).toMatch(/^[0-9a-f]{32}$/);
@@ -794,7 +796,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       storage.map.get(SNAPSHOT_KEY),
       "nothing here writes the v1 key",
     ).toBeUndefined();
-    const raw = storage.map.get(SNAPSHOT_KEY_V2);
+    expect(
+      storage.map.get(SNAPSHOT_KEY_V2),
+      "nothing here writes the v2 key either (12.1-07)",
+    ).toBeUndefined();
+    const raw = storage.map.get(SNAPSHOT_KEY_V3);
     expect(raw, "the record was written").toBeDefined();
     const parsed = JSON.parse(raw ?? "{}") as {
       last?: string;
@@ -805,6 +811,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       String(ACTIVE_PAGE),
     ]);
     expect(parsed.modules[key].pages[String(ACTIVE_PAGE)]).toMatchObject({
+      systemTimer: MODULE_SYSTEM_TIMER,
       system: MODULE_SYSTEM,
       setup: MODULE_SETUP,
       timer: MODULE_TIMER,
@@ -1024,35 +1031,30 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(state.system?.[EVENT_TIMER]).toBe(MODULE_SYSTEM_TIMER);
   });
 
-  it("an existing record wins and is never overwritten", async () => {
+  it("an existing record wins and is never overwritten, and a record from before the timer slot restores the 255/6 default and says so", async () => {
     // A record from an earlier visit, holding strings DIFFERENT from what the
     // module holds now - the shape a re-connect after TRY ON DEVICE produces.
-    // 12.1-07 task 01: the record is still a v2 record with THREE strings
-    // (task 02 adds the v3 key), so what it restores at 255/6 is the
-    // firmware default and the store says so through snapshotFromV2.
-    const RECORD_THREE = {
+    // Four strings under the v3 key (12.1-07).
+    const RECORD: ConfigStrings = {
+      systemTimer: "--[[@cb]]function R:tim()return 6 end",
       system: "--[[@cb]]function R()return 7 end",
       setup: "--[[@cb]]print(7)",
       timer: "--[[@cb]]print(8)",
-    };
-    const RECORD: ConfigStrings = {
-      systemTimer: SYSTEM_DEFAULT_TIMER,
-      ...RECORD_THREE,
     };
     const TAKEN_AT = "2026-09-01T09:00:00.000Z";
     const storage = mapStorage();
     const key = expectedKey();
     expect(
-      persistIfAbsent(storage.store, key, ACTIVE_PAGE, RECORD_THREE, TAKEN_AT),
+      persistIfAbsent(storage.store, key, ACTIVE_PAGE, RECORD, TAKEN_AT),
     ).toBe("written");
     const entryOf = () => {
-      const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY_V2) ?? "{}") as {
+      const parsed = JSON.parse(storage.map.get(SNAPSHOT_KEY_V3) ?? "{}") as {
         modules: Record<string, { pages: Record<string, unknown> }>;
       };
       return parsed.modules[key].pages[String(ACTIVE_PAGE)];
     };
     const before = entryOf();
-    expect(before).toEqual({ ...RECORD_THREE, takenAt: TAKEN_AT });
+    expect(before).toEqual({ ...RECORD, takenAt: TAKEN_AT });
 
     const { store, fake, state, writesOf } = await connected({ storage });
     expect(store.phase).toBe("ready");
@@ -1060,14 +1062,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       RECORD,
     );
     expect(store.snapshot).not.toEqual(ORIGINAL);
-    expect(store.snapshotFromV1, "a v2 record read as v2").toBe(false);
-    expect(store.snapshotFromV2, "and it predates the timer slot").toBe(true);
+    expect(store.snapshotFromV1, "a v3 record read as v3").toBe(false);
+    expect(store.snapshotFromV2, "a v3 record read as v3").toBe(false);
     expect(store.snapshotDurable).toBe(true);
     expect(entryOf(), "the entry was touched (takenAt included)").toEqual(
       before,
     );
 
-    // PUT BACK writes the record's strings.
+    // PUT BACK writes the record's strings - all four.
     await drive(store.putBack());
     expect(store.phase).toBe("restored");
     expect(written(fake).slice(-5).map(shape)).toEqual(ramLegFrames(RECORD));
@@ -1077,6 +1079,41 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(state.system?.[EVENT_SETUP]).toBe(RECORD.system);
     expect(state.system?.[EVENT_TIMER]).toBe(RECORD.systemTimer);
     expect(entryOf(), "PUT BACK touched the record").toEqual(before);
+
+    // A RECORD FROM BEFORE THIS PHASE (12.1 D-22): a `hangar.snapshot.v2`
+    // entry of three strings, written by hand as Phase 12 wrote it. The store
+    // restores the firmware's 255/6 default in the slot the record lacks -
+    // read from the pinned package and passed into snapshot.ts, which imports
+    // nothing - and publishes `snapshotFromV2` so the substitution is never
+    // silent. The v2 raw string is byte-unchanged through the connect and
+    // the PUT BACK, and nothing was written under v3 for that page.
+    const older = mapStorage();
+    const v2 = `{"v":2,"last":"${key}","modules":{"${key}":{"pages":{"${ACTIVE_PAGE}":{"system":"${RECORD.system}","setup":"${RECORD.setup}","timer":"${RECORD.timer}","takenAt":"${TAKEN_AT}"}}}}}`;
+    older.store.setItem(SNAPSHOT_KEY_V2, v2);
+    const second = await connected({ storage: older });
+    expect(second.store.phase).toBe("ready");
+    expect(second.store.snapshot).toEqual({
+      ...RECORD,
+      systemTimer: SYSTEM_DEFAULT_TIMER,
+    });
+    expect(second.store.snapshotFromV2, "the record predates the slot").toBe(
+      true,
+    );
+    expect(second.store.snapshotFromV1).toBe(false);
+    expect(second.store.snapshotDurable, "a kept is durable").toBe(true);
+    expect(older.map.get(SNAPSHOT_KEY_V2), "the v2 record moved").toBe(v2);
+    expect(
+      pageEntry(older, ACTIVE_PAGE),
+      "a v3 entry was written beside the v2 original",
+    ).toBeUndefined();
+    await drive(second.store.putBack());
+    expect(second.store.phase).toBe("restored");
+    expect(
+      second.state.system?.[EVENT_TIMER],
+      "PUT BACK wrote the default",
+    ).toBe(SYSTEM_DEFAULT_TIMER);
+    expect(second.state.system?.[EVENT_SETUP]).toBe(RECORD.system);
+    expect(older.map.get(SNAPSHOT_KEY_V2), "still byte-unchanged").toBe(v2);
   });
 
   it("over budget, and measuring, never reach the wire", async () => {
@@ -1708,13 +1745,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     const again = await rig.reconnect();
     expect(session.phase).toBe("connected");
     expect(store.phase).toBe("ready");
-    // 12.1-07 task 01's seam (task 02 closes it): the record found is a v2
-    // record of three strings, so its 255/6 is the firmware default, flagged.
-    expect(store.snapshot).toEqual({
-      ...ORIGINAL,
-      systemTimer: SYSTEM_DEFAULT_TIMER,
-    });
-    expect(store.snapshotFromV2).toBe(true);
+    expect(store.snapshot).toEqual(ORIGINAL);
+    expect(store.snapshotFromV2, "a v3 record, all four its own").toBe(false);
     expect(store.snapshotPage).toBe(ACTIVE_PAGE);
     expect(pageEntry(storage, ACTIVE_PAGE), "the record was touched").toEqual(
       entryBefore,

@@ -827,35 +827,31 @@ export class InstallStore {
     // IN MEMORY FIRST. Storage is a courtesy and must never be the reason a
     // visitor has no way back (Pitfall 9).
     //
-    // The DEFAULT is passed in because snapshot.ts imports nothing (its own
+    // The DEFAULTS are passed in because snapshot.ts imports nothing (its own
     // header, and its spec's first test). A record written before Phase 12 has
-    // no page-init string and is read with this one in its place; `fromV1`
-    // says when that happened, and it is published rather than swallowed.
-    //
-    // 12.1-07 TASK 01'S SEAM, closed by task 02: the record holds three
-    // strings under `hangar.snapshot.v2` until task 02 adds the v3 key, so
-    // EVERY record in hand at this commit predates the timer slot and restores
-    // the firmware's 255/6 default (D-22), with `snapshotFromV2` saying so.
+    // no page-init string, one written before Phase 12.1 has no system-timer
+    // string (D-22), and each is read with the firmware's own in its place;
+    // `fromV1` and `fromV2` say when that happened, and both are published
+    // rather than swallowed. The record is `hangar.snapshot.v3` since
+    // 12.1-07, beside v2 and v1, which are read and never written.
     const record = moduleId
-      ? readSnapshot(
-          this.#storage,
-          moduleId,
-          id.activePage,
-          P.SYSTEM_DEFAULT_SETUP,
-        )
+      ? readSnapshot(this.#storage, moduleId, id.activePage, {
+          system: P.SYSTEM_DEFAULT_SETUP,
+          systemTimer: P.SYSTEM_DEFAULT_TIMER,
+        })
       : undefined;
     // An existing original WINS over a fresh fetch: after TRY ON DEVICE a
     // re-connect fetches HANGAR's own configuration.
     this.snapshot = record
       ? {
-          systemTimer: P.SYSTEM_DEFAULT_TIMER,
+          systemTimer: record.systemTimer,
           system: record.system,
           setup: record.setup,
           timer: record.timer,
         }
       : fetched;
     this.snapshotFromV1 = record?.fromV1 ?? false;
-    this.snapshotFromV2 = record !== undefined;
+    this.snapshotFromV2 = record?.fromV2 ?? false;
     this.snapshotPage = id.activePage;
     this.moduleId = moduleId;
     if (moduleId) {
