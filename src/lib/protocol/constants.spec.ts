@@ -17,6 +17,7 @@ import {
   PRINTABLE_ASCII,
   PROTOCOL_VERSION,
   SYSTEM_DEFAULT_SETUP,
+  SYSTEM_DEFAULT_TIMER,
   SYSTEM_EVENTS,
   TOUCH_DEFAULT_SETUP,
   TOUCH_DEFAULT_TIMER,
@@ -86,7 +87,7 @@ describe("protocol constants", () => {
     expect(() => defaultFor(ELEMENT_TOUCH, 255)).toThrow(/no event 255/);
   });
 
-  it("carries the system element's three events and only its setup's default", () => {
+  it("carries the system element's three events and its setup's default", () => {
     // Phase 12, plan 02. The library that every touch configuration calls by
     // name lives in the system element's setup, because that slot runs first
     // on a page load (../grid-fw/common/src/lua/init.lua:46-50). HANGAR
@@ -127,11 +128,11 @@ describe("protocol constants", () => {
     // as a comparison against the package - never as a literal.
     expect(source("./constants.ts")).not.toMatch(/page init/);
 
-    // Events 4 and 6 RESOLVE - firmware declares them and defaultFor will hand
-    // them over - and HANGAR still never asks. Nothing in the tree calls
-    // either; the header says why, and sequence.ts's writer repeats it.
+    // Event 4 RESOLVES - firmware declares it and defaultFor will hand it
+    // over - and nothing in constants.ts exports it: the header names that as
+    // 13-17's pending removal under D-19, not a rule. Event 6 is the next
+    // test's, since 12.1-06.
     expect(defaultFor(ELEMENT_SYSTEM, 4)).toBe("--[[@cb]]gpl(gpn())");
-    expect([...defaultFor(ELEMENT_SYSTEM, 6)].length).toBe(22);
 
     // A missing ELEMENT throws with the element in the message, the same way a
     // missing event does, and for the same reason: undefined must never reach
@@ -140,6 +141,63 @@ describe("protocol constants", () => {
     expect(() => defaultFor(ELEMENT_SYSTEM, 1)).toThrow(
       /element 255 declares no event 1/,
     );
+  });
+
+  it("carries the system element's timer default, read from the package and never typed", () => {
+    // Phase 12.1, plan 06 (D-03, the user's "yes" of 2026-09-11; D-19). The
+    // library's second half lives in 255/6, so HANGAR writes it, fetches it,
+    // and on CLEAR puts the firmware's own default back - which therefore has
+    // to be a wire fact HANGAR holds, pinned like the three before it.
+    expect(SYSTEM_DEFAULT_TIMER).toBeDefined();
+
+    // READ FROM THE PACKAGE INSIDE THE TEST, selected by event NUMBER, not
+    // compared against a literal - so this cannot pass on a string somebody
+    // typed. 22 characters at the current pin: a debug print, the same
+    // length as the touch element's Timer default.
+    const declared = grid
+      .get_element_events(ElementType.SYSTEM)
+      .find((e: { value: number }) => e.value === EVENT_TIMER)?.defaultConfig;
+    expect(declared).toBeDefined();
+    expect(SYSTEM_DEFAULT_TIMER).toBe(declared);
+    expect(SYSTEM_DEFAULT_TIMER).toBe(defaultFor(ELEMENT_SYSTEM, EVENT_TIMER));
+    expect([...SYSTEM_DEFAULT_TIMER].length, "the system Timer default").toBe(
+      22,
+    );
+    expect(PRINTABLE_ASCII.test(SYSTEM_DEFAULT_TIMER)).toBe(true);
+    expect(SYSTEM_DEFAULT_TIMER.length).toBeLessThan(CONFIG_MAX);
+    // Canonical under the pinned minifier, like the other three: CLEAR sends
+    // it verbatim with no compiler on the path.
+    expect(GridScript.compressScript(SYSTEM_DEFAULT_TIMER)).toBe(
+      SYSTEM_DEFAULT_TIMER,
+    );
+
+    // D-20's rule, asserted on the source: the body of the default appears in
+    // constants.ts neither as code nor in a comment. 12-02's header carried
+    // it in prose; 12.1-06's rewrite took it out, and this keeps it out.
+    // Backslashes are stripped first because 12.1-06's own negative check
+    // planted the literal inside a double-quoted string, where its inner
+    // quotes arrive escaped and a plain includes() read straight past them -
+    // and the one word of the body that is not Lua syntax is forbidden on
+    // its own, so a concatenated or single-quoted literal cannot slip by.
+    const body = declared!.replace(/^--\[\[@cb\]\]/, "");
+    expect(body.length).toBeGreaterThan(0);
+    const word = /[a-z]+/.exec(body.replace(/^print\(/, ""))?.[0];
+    expect(word, "the body has a word to forbid").toBeDefined();
+    const flattened = source("./constants.ts").replace(/[\\]/g, "");
+    expect(flattened.includes(body)).toBe(false);
+    expect(flattened.includes(word!)).toBe(false);
+
+    // The utility default still resolves and is still exported by nothing:
+    // every exported default is one of the four, none of them 255/4.
+    expect(defaultFor(ELEMENT_SYSTEM, 4)).toBe("--[[@cb]]gpl(gpn())");
+    expect(
+      [
+        TOUCH_DEFAULT_SETUP,
+        TOUCH_DEFAULT_TIMER,
+        SYSTEM_DEFAULT_SETUP,
+        SYSTEM_DEFAULT_TIMER,
+      ].includes(defaultFor(ELEMENT_SYSTEM, 4)),
+    ).toBe(false);
   });
 
   it("holds both defaults canonical under the pinned minifier", () => {

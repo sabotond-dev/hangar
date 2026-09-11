@@ -6,24 +6,33 @@
 // retry bound, identify window - are policy, and the two the hardware run
 // settled were revised from the measurements in docs/SKELETON-RESULTS.md.
 //
-// TWO ELEMENTS ARE ADDRESSED, AND THREE OF THEIR FIVE EVENTS (Phase 12, plan
-// 02). The touch element (0) carries both of its events; the system element
-// (255) carries only its setup (0), because that slot runs first on every page
-// load - ../grid-fw/common/src/lua/init.lua:46-50 calls
+// TWO ELEMENTS, FOUR OF THEIR FIVE EVENTS. The touch element (0) carries both
+// of its events, Setup (0) and Timer (6). The system element (255) carries
+// two since Phase 12.1 (plan 06): its setup (0), because that slot runs first
+// on every page load - ../grid-fw/common/src/lua/init.lua:46-50 calls
 // `ele[#ele]:post_init_cb()` before the loop over every other element - which
-// is where a library of functions the touch configurations call by name has to
-// live.
+// is where a library of functions the touch configurations call by name has
+// to live (Phase 12, plan 02); and its timer (6), the library's second half,
+// which 255/0 arms with `self:tim()` because the gradient and the expiry
+// machinery do not fit one 908-character slot in any variant
+// (12.1-RESEARCH B.3). Writing 255/6 was permitted by 13-CONTEXT D-19
+// (2026-09-10: HANGAR can do anything the Editor can) and chosen by the user
+// on 2026-09-11 (12.1-CONTEXT D-03, answered "yes"). Its firmware default is
+// a debug print, read from the package below like the other three, and it is
+// what CLEAR writes there and what a record from before 12.1 restores.
 //
-// WHY EVENTS 4 AND 6 OF THE SYSTEM ELEMENT ARE NEVER WRITTEN AND NEVER
-// FETCHED. Event 4 is the module's physical utility button and its firmware
-// default is `gpl(gpn())` - load the page that page_next names, i.e. advance a
-// page (`gpn` is ../grid-fw/common/src/c/grid_protocol.h:354, `gpl` is :366
-// and lands in `l_grid_page_load`, ../grid-fw/common/src/c/grid_lua_api.c:1676-
-// 1714) - so writing that event changes what a button the visitor paid for
-// does, and fetching it would put it in a snapshot HANGAR then offers to write
-// back. Event 6 is a second timer whose default is `print("tick")`, which
-// nothing in HANGAR arms and which would only cost the module work if it were
-// ever written, so it is left exactly where firmware put it.
+// EVENT 4 OF THE SYSTEM ELEMENT IS STILL NEVER WRITTEN AND NEVER FETCHED
+// HERE, AND THAT IS 13-17'S PENDING REMOVAL UNDER D-19, NOT A RULE. It was
+// once refused (12-02) because event 4 is the module's physical utility
+// button and its firmware default is `gpl(gpn())` - load the page that
+// page_next names, i.e. advance a page (`gpn` is
+// ../grid-fw/common/src/c/grid_protocol.h:354, `gpl` is :366 and lands in
+// `l_grid_page_load`, ../grid-fw/common/src/c/grid_lua_api.c:1676-1714) - so
+// writing that event changes what a button the visitor paid for does. D-19
+// retired that refusal as a rule: the Editor writes 255/4, so HANGAR may. The
+// Sandbox install (13-17) is where the slot is first needed and where its
+// write lands, as one row in sequence.ts's SLOTS; until then no constant here
+// exports its default and no shipped path asks for it.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -62,7 +71,8 @@ export const ELEMENT_TOUCH = 0;
  * test 3 scans every shipped module for it and descriptors.ts is the only file
  * allowed to match.
  *
- * Only its setup (0) is ever addressed. The header says why 4 and 6 are not.
+ * Its setup (0) and its timer (6) are addressed - the library's two halves.
+ * The header says why 4 is not yet, and whose removal that is.
  */
 export const ELEMENT_SYSTEM = 255;
 export const EVENT_SETUP = EventTypeToNumber(EventType.SETUP);
@@ -72,8 +82,9 @@ export const TOUCH_EVENTS: ElementEvent[] = grid.get_element_events(
 );
 /**
  * Setup (0), utility (4) and timer (6). All three are READ from the package so
- * a pin bump moves them here; only the first is ever put on the wire, and the
- * header carries the utility-button reason for the other two.
+ * a pin bump moves them here; the first and the third are put on the wire
+ * (12.1-06), and the header carries the utility-button history for the
+ * second and names whose pending removal it is.
  */
 export const SYSTEM_EVENTS: ElementEvent[] = grid.get_element_events(
   ElementType.SYSTEM,
@@ -88,7 +99,7 @@ const EVENTS_BY_ELEMENT = new Map<number, ElementEvent[]>([
 /**
  * One event's own default configuration, SELECTED BY ELEMENT AND EVENT NUMBER.
  *
- * Exported for constants.spec.ts, which asserts both throws: the three
+ * Exported for constants.spec.ts, which asserts both throws: the four
  * constants below are the whole of its production use. An element declares its
  * events in whatever order the package builds them, and today the touch
  * element's order happens to be Setup then Timer - a coincidence, not a
@@ -132,6 +143,16 @@ export const TOUCH_DEFAULT_TIMER = defaultFor(ELEMENT_TOUCH, EVENT_TIMER);
  * one literal of it in the tree is the test that pins the package's value.
  */
 export const SYSTEM_DEFAULT_SETUP = defaultFor(ELEMENT_SYSTEM, EVENT_SETUP);
+/**
+ * The firmware's own Timer for the SYSTEM element - 22 characters, a debug
+ * print like the touch element's, and what a factory module holds in the
+ * slot the library's second half goes into (12.1-06, D-03). Read from the
+ * package like the three above, never typed: constants.spec.ts pins the
+ * package's value and asserts this file carries no literal of it. CLEAR
+ * writes it back; a snapshot from before 12.1 restores it (12.1-CONTEXT
+ * D-22).
+ */
+export const SYSTEM_DEFAULT_TIMER = defaultFor(ELEMENT_SYSTEM, EVENT_TIMER);
 
 export const PROTOCOL_VERSION = grid.getProperty("VERSION") as {
   MAJOR: number;
