@@ -160,7 +160,7 @@
     monospace;
 }
 
-/* THREE CUSTOM PROPERTIES OUTSIDE @theme, AND WHY EACH IS NOT A TOKEN.
+/* ONE CUSTOM PROPERTY OUTSIDE @theme, AND WHY IT IS NOT A TOKEN.
 
    --action-bloom is the action colour at an alpha, the one static box-shadow
    bloom the site keeps (PadFrame.svelte's hero frame and TryOnDevice.svelte's
@@ -169,18 +169,24 @@
    here, in the file identity.spec.ts reads, so the alpha is visible to the
    colour gate, and it is declared once so two consumers cannot drift.
 
-   --crt-scanline and --crt-roll are the CRT treatment's (10-UI-SPEC §7.1),
-   declared here rather than in the components that paint them for the same
-   reason: a colour authored inside a component <style> is invisible to every
-   colour gate the site has. The scanline is black at an alpha - it darkens, it
-   never tints. The roll is the action colour at the reference's alpha. Both
-   go with the CRT at 13-04 (D-09). */
+   IT SURVIVED D-09 BECAUSE IT IS NOT A TEXTURE. §3 reserves glow for the light
+   output, the active selection and the primary action, and those are exactly
+   its two consumers: the hero frame around the light output, and the primary
+   action's hover. The CRT treatment's two colours sat beside it until 13-04
+   removed the CRT on 2026-09-11 (13-CONTEXT.md D-09). */
 :root {
   --action-bloom: rgb(220 255 113 / 0.18);
-  --crt-scanline: rgb(0 0 0 / 0.5);
-  --crt-roll: rgb(220 255 113 / 0.05);
 }
 
+/* THE GROUND IS SOLID (13-04, 13-CONTEXT.md D-09, 2026-09-11). Until then
+   this file also declared a dot grain and a vignette on the body's ::before,
+   the CRT treatment's gate property switched by an attribute on <html>, and
+   the registration field (10-UI-SPEC 19.1a) with its :where() ground rule; §3
+   asks for solid surfaces inside the working application and the PDF's own
+   intro is flat, so all of it went. The ground is the workspace token on html
+   and body and nothing painted over it; instrument.spec.ts scan 6 holds that,
+   and holds the retired vocabulary absent from every stylesheet and
+   component. */
 html {
   background: var(--color-workspace);
   color-scheme: dark;
@@ -296,127 +302,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/*
-  IDENT-01 / D-07 — THE CRT'S ONE SWITCH (10-UI-SPEC §8.6).
-
-  `data-screen` on <html> is the switch and `--crt` is the property every layer
-  derives from. One attribute, not a hunt: the reference implementation spread
-  its motion across two components' pseudo-elements, which is exactly why its
-  own reduced-motion block missed its scanline sweep.
-
-  DEFAULT-ON WITH NO ATTRIBUTE, and that is deliberate. The prerendered HTML
-  carries no `data-screen` at all - ScreenToggle.svelte writes it during
-  hydration - so the styles key off `flat` only. A rule written the other way
-  round (`html[data-screen="textured"]`) would leave the first painted frame of
-  every cold arrival untextured and then snap.
-
-  WHY THE DISCRETE PROPERTIES SWITCH ON THE ATTRIBUTE AND NOT ON `--crt`
-  ARITHMETIC. `background-image`, `content` and `animation` cannot be multiplied
-  by a number, and 10-UI-SPEC §8.7's browser gate 2 reads exactly those three as
-  the literal keyword `none`. An alpha folded to zero paints nothing and still
-  computes as an image, so a `calc()` gate would leave that assertion green over
-  a layer that was still there. `--crt` carries the continuous half - the
-  layers' opacities - and the attribute carries the discrete half. Both are one
-  thing to flip.
-
-  A SECOND REASON `--crt` IS NEVER FOLDED INTO AN `rgb()` HERE: identity.spec.ts
-  parses every colour function in this file with `[^)]*`, so
-  `rgb(214 255 78 / calc(0.04 * var(--crt)))` would be read as an unterminated,
-  unapproved set of channels and the hex-and-channels gate would go red on
-  correct code. The alphas below are literals for that reason.
-*/
-html {
-  --crt: 1;
-}
-
-html[data-screen="flat"] {
-  --crt: 0;
-}
-
-/*
-  LAYER G — the page ground (10-UI-SPEC §8.2, z = -1).
-
-  Behind ALL content and an ancestor of nothing, which is the whole reason it is
-  a pseudo-element of <body> rather than a wrapper: a wrapper would be an
-  ancestor of `.stage`, and `overflow`, `mask-image` and friends on an ancestor
-  flatten the coverflow's 3D ladder.
-
-  Two techniques from the reference, both static, both rasterised once: the
-  halftone at a 3px pitch, and the inset vignette.
-
-  THE NOISE TILE IS NOT HERE, AND THE REASON WAS OBSERVED RATHER THAN ASSUMED.
-  The tile was declared as `--crt-noise` at :root above, exactly as plan 10-04
-  proposed, and identity.spec.ts was run: SEVEN PASSED. It was then run again
-  with `fill='%23ff0000'` - a pure red, a fourth hue - written into the same
-  data-URI: SEVEN PASSED AGAIN. The hex walk in that file matches a literal `#`,
-  and a percent-encoded one is not a literal `#`, so a colour smuggled inside a
-  data-URI in THIS file is invisible to every colour gate the site has. A green
-  reading there is uninformative rather than reassuring, which is precisely the
-  silent-green hole 10-UI-SPEC §7.1's placement rule exists to close. The tile
-  therefore lives in PadFrame.svelte, where aesthetic.spec.ts scan 6 reads it
-  and asserts it declares no `fill` at all, and Layer G keeps the halftone and
-  the vignette and has no noise.
-
-  0.04 is an alpha of the accent and 0.55 is the ground at an alpha; neither is
-  a tenth token and neither is a fourth hue. The vignette exists to pull the
-  eye to the middle of a very dark page, and it is the one place on the site
-  where black is painted ON TOP of black.
-
-  THE VIGNETTE IS A GRADIENT AND NOT AN INSET box-shadow, AND THE PRICE OF THE
-  OTHER SPELLING WAS MEASURED. 10-UI-SPEC §8.5 records Layer G's per-frame cost
-  as "zero by construction - two static backgrounds and one inset shadow,
-  rasterised once". That is true in Chromium and it was FALSE in WebKit at a
-  phone viewport. On /browse/ at thirty-six entries, p95 of requestAnimationFrame
-  deltas over a full scroll, median of three runs: SCREEN FLAT 79 ms; TEXTURED
-  with `box-shadow: inset 0 0 26vmax 9vmax` 196 ms; the same page with the
-  shadow forced off 101 ms; with the halftone forced off instead 184 ms. The
-  blur was ninety-five of the hundred and seventeen milliseconds, re-rastered
-  every scrolled frame rather than once. A radial gradient carries the identical
-  picture, lives in the same background-image list and is rasterised into the
-  layer once.
-
-  `will-change: transform` is the other half of that fix and it is on the one
-  element whose whole job is to sit still under a scrolling page: it gives this
-  pseudo-element its own compositor layer, so scrolling composites it instead of
-  repainting it. One viewport-sized RGBA surface, which is exactly what §8.5
-  already budgets for this layer.
-*/
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  will-change: transform;
-  background-image:
-    radial-gradient(
-      circle at 50% 50%,
-      rgb(220 255 113 / 0.04) 0 40%,
-      transparent 45%
-    ),
-    radial-gradient(
-      ellipse 78% 68% at 50% 50%,
-      rgb(0 0 0 / 0) 0%,
-      rgb(0 0 0 / 0.55) 100%
-    );
-  background-size:
-    3px 3px,
-    100% 100%;
-  background-repeat: repeat, no-repeat;
-}
-
-/*
-  SCREEN: FLAT. Both of Layer G's techniques are in ONE property now, so the
-  off switch is one line - and it is `background-image: none`, which is the
-  literal keyword 10-UI-SPEC §8.7's browser gate 2 reads. `will-change` goes
-  with it: a compositor layer promoted for a texture that is not being painted
-  is a viewport-sized surface held for nothing.
-*/
-html[data-screen="flat"] body::before {
-  background-image: none;
-  will-change: auto;
-}
-
 /* The focus ring is never removed and never animated (UI-SPEC, Accessibility
    Contract). The action colour on the workspace is 16.65:1. border-radius:
    inherit is exempt from the no-radius gate (radius-allowlist.ts
@@ -425,84 +310,6 @@ html[data-screen="flat"] body::before {
   outline: 2px solid var(--color-action);
   outline-offset: 4px;
   border-radius: inherit;
-}
-
-/*
-  THE LATTICE IS A GROUND, AND A GROUND IS VISIBLE WHERE NOTHING IS STANDING ON
-  IT (10-UI-SPEC 19.1a as amended, A-55, A-56, A-57, D-22).
-
-  WHAT WAS WRONG. 19.1a specified the marks' geometry - pitch, arm, stroke, one
-  distinguished cross - and never specified where they may LAND. Both roots are
-  ancestors of the reading column rather than neighbours of it, so on the built
-  site the crosses landed inside the text: measured at 1280x900, TWO crossings
-  inside the HANGAR wordmark's box and THIRTEEN inside the browse headline's,
-  and on the chosen panel they sat on "Available after a try-on.", on "Needs a
-  copy of what is on your ZONA first.", on CLEAR, on MIDI channel and on every
-  knob readout. A DOM walk over the built site counted 418 text-bearing
-  elements under a lattice root with no opaque ancestor between them and the
-  field. At a glance that is texture. At reading distance it is dirt on the
-  glyphs, and the brief this register came from asks for the CRT feel "without
-  being overwhelming and destructive to the UX". The reference puts its marks in
-  the SURROUND, not across the subject, and that is a statement about POSITION -
-  which is why knocking the field back with an opacity was rejected: a fainter
-  cross on the H of HANGAR is still a cross on the H of HANGAR.
-
-  THE MECHANISM IS PAINT ORDER, THE SAME MECHANISM `isolation` FURTHER DOWN HAD
-  TO LEARN. The lattice is a z-index -1 child of the root's own stacking
-  context, so it paints after the root's background and before the root's
-  content. ANYTHING IN THE CONTENT THAT DECLARES AN OPAQUE BACKGROUND OCCLUDES
-  IT. One declaration on the root's children is therefore the whole fix, and it
-  needs no wrapper, no pseudo-element and no class attribute on a single
-  component - the condition the ruling set for preferring this shape.
-
-  `:where()` IS LOAD-BEARING AND IS NOT A TIDINESS CHOICE. It zeroes the
-  compound, so the whole selector weighs 0,1,0 - the same as a bare class - and
-  that buys two things which are the entire reason:
-
-    1. A Svelte-scoped component rule compiles to `.foo.svelte-<hash>` at 0,2,0
-       and therefore WINS. Any component with an opinion about its own root
-       background keeps it, automatically, without being listed anywhere. This
-       is a DEFAULT, not an override.
-    2. `.pill`'s `background: transparent` is ALSO 0,1,0, so specificity cannot
-       separate them and SOURCE ORDER decides - which is why this rule is
-       declared ABOVE .pill rather than beside the lattice it belongs to. Put it
-       at the bottom of the file, next to its own comment, and it would win the
-       tie and quietly put an opaque box behind a control that had declared a
-       transparent one. That is the failure mode a rule sitting beside the thing
-       it describes walks straight into, and it is why the position is written
-       down here instead of being left to look arbitrary. instrument.spec.ts
-       scan 6 asserts BOTH halves by name - the `:where(` and the order - so a
-       later tidy-up that moves this block down to join the lattice cannot take
-       the fill off a pill in silence.
-
-  THREE DECLARED EXCEPTIONS AND NO FOURTH, each commented where it lives:
-  /browse/'s `.grid` stays transparent, because the card wall is where the field
-  earns its keep - it paints in the gutters BETWEEN the cards, which is the
-  "around the pads" half of the ruling, and occluding the grid would delete the
-  lattice from most of the page. CatalogCard.svelte's `.card` and
-  BrowseGrid.svelte's `.empty` take the ground themselves, because neither is a
-  direct child of a root and both are prose. The empty state was found by that
-  same DOM walk with a query that matches no entry, not by reading a template,
-  and it is named because it is the surface a reader would miss.
-
-  WHAT THIS COSTS LAYER G, STATED RATHER THAN DISCOVERED (A-57). An opaque
-  background occludes everything behind it, and Layer G is body::before at
-  z-index -1, behind everything - so the halftone no longer shows through where
-  these blocks paint. Layer G's declaration, its route scope and
-  e2e/aesthetic.e2e.ts test 3 are UNCHANGED; what changes is how much bare
-  ground the page has. The cost is computed rather than estimated: the dot is
-  rgb(214 255 78 / 0.04) in a 3px cell with a solid core out to 40% of it, so
-  its area-averaged lift over black is 0.04 x pi x 0.4^2 = 0.008 of the token -
-  about ONE PART IN 255 on the green channel, dithered at 3px, which reads as
-  grain rather than as a cast. The vignette half is rgb(0 0 0 / 0.55) over
-  --color-workspace, which is black over black and costs nothing at all.
-
-  NOTHING HERE MOVES AND NOTHING HERE IS A COLOUR THE SITE DID NOT ALREADY HAVE.
-  One declaration, one token, no new hex, no fourth hue, and the accent reserved
-  list stays at eight.
-*/
-.lattice > :where(*) {
-  background-color: var(--color-workspace);
 }
 
 /*
@@ -553,139 +360,4 @@ html[data-screen="flat"] body::before {
   padding-inline: 24px;
   border: 1px solid var(--color-boundary);
   background: transparent;
-}
-
-/*
-  THE REGISTRATION LATTICE - the instrument register's ground (10-UI-SPEC
-  19.1a, A-39, A-40, D-15 reference A).
-
-  A field of thin registration crosses at a 48px pitch, with exactly ONE cross
-  set apart, which is reference A's own device: the lattice says "this is a
-  measuring surface" and the one distinguished cross says "and this is where
-  the measurement is taken". Two surfaces carry it and no others:
-  src/routes/browse/+page.svelte's page root and src/lib/ui/ChosenPanel.svelte's
-  panel root, which covers the panels, the tuning region and the whole device
-  flow in one element.
-
-  NO DATA-URI, EVER, AND THIS IS A GATE RATHER THAN A PREFERENCE. 10-04
-  declared the CRT noise tile in this file, ran identity.spec.ts - SEVEN PASSED
-  - then wrote a pure red into the same tile as a percent-encoded fill and ran
-  it again: SEVEN PASSED AGAIN. That file's hex walk matches a literal number
-  sign, and a percent-encoded one is not one. A lattice authored as an SVG
-  data-URI would be invisible to every colour gate this site has, so every
-  colour below is a var() and the whole thing is gradients. The single hex is
-  the mask's, and a colour in a mask is opacity rather than paint - it is the
-  approved ground literal, and it is the same spelling Coverflow.svelte's edge
-  fade already uses.
-
-  THE COMPOSITION, AND WHY IT IS A MASK RATHER THAN A TILE. Two
-  repeating-linear-gradients at the 48px pitch form a 1px grid of full RULES.
-  The mask is a PAIR of 7px bands at the same pitch, composited with
-  `intersect`, so what survives is a 7px window at each intersection - and the
-  grid inside a 7px window centred on a crossing is a plus mark with 3px arms
-  about a 1px stroke. A union would have kept every rule at full length, which
-  is the picture this is not. A CSS gradient cannot paint a two-dimensional
-  glyph on its own, and the alternative to the mask is an SVG tile, which is the
-  one thing forbidden above.
-
-  THE DISTINGUISHED CROSS IS 15px AND 19.1a SAYS 14px, AND THE 1px IS RECORDED
-  RATHER THAN ROUNDED AWAY. The soft plus is 3 + 1 + 3 = 7 about its own 1px
-  stroke. Doubling the ARMS gives 6 + 1 + 6 = 13; doubling the SPAN gives 14,
-  which cannot be centred on a 1px stroke at all. 7 + 1 + 7 = 15 is the soft
-  plus's own construction with each arm doubled, and it is the only symmetric
-  answer. Its window is added to the mask as a cross-shaped pair of bars rather
-  than as a square, so the soft grid underneath is not exposed beside it.
-
-  It is `var(--color-boundary)` at 0.4 against the field's `var(--color-divider)`
-  at 0.2 - twice the alpha - and it also has the second, non-colour channel
-  A-40 requires: it is twice the size and it appears once, `no-repeat`, at one
-  declared position. No accent. The reserved list stays at eight, and a
-  lattice in the accent would have been a ninth use.
-
-  NOTHING HERE MOVES. No animation, no transition, no transform: the
-  prefers-reduced-motion block has nothing to turn off, which is why this wave
-  adds no line to it and re-runs the existing compositor gates unchanged.
-
-  z-index: -1 rather than 0. A positioned pseudo-element at z-index 0 paints
-  AFTER in-flow content and would sit on top of the words; -1 puts it behind
-  them and behind the surface's own border. BEHIND ALL CONTENT AND, SINCE A-55,
-  UNDER NONE OF IT - the `.lattice > :where(*)` ground rule is where the
-  difference between those two sentences lives, and it is declared ABOVE .pill
-  rather than here beside its own comment because at equal specificity source
-  order decides and .pill's transparent fill has to win.
-
-  `isolation: isolate` IS LOAD-BEARING AND IT WAS MEASURED, NOT REASONED. The
-  first version of this rule was `position: relative` alone, and it shipped a
-  SILENT NO-OP: the lattice painted nothing at all, and every source scan over
-  it was green. Two screenshots of /browse/ - one as authored, one with
-  `.lattice::before { display: none }` injected - came back BYTE-IDENTICAL,
-  which is the only reason it was caught.
-
-  The cause is CSS 2.1 Appendix E's painting order. Without a stacking context
-  on .lattice, a negative-z-index pseudo-element belongs to the nearest ancestor
-  stacking context - the root - and paints at step 2, while `body`'s own
-  `background: var(--color-workspace)` is an in-flow block background and paints at
-  step 3. Opaque black, straight over the top. `isolation: isolate` makes
-  .lattice its own stacking context, so the -1 child paints immediately after
-  this element's background and before its content, which is exactly the
-  intended depth and no longer depends on what any ancestor declares.
-
-  IT IS A GROUPING PROPERTY AND THAT IS WHY SCAN 3 READS Coverflow.svelte.
-  `isolation: isolate` forces `transform-style: flat` on descendants, so on or
-  above the coverflow's `.stage` it would collapse the 3D ladder into a row of
-  equal squares - 8.2's whole subject. It is legal on the panel root for the
-  same structural reason the mask is: `.panel` is a top-level sibling of
-  `.band`, outside the 3D context, and is an ancestor of no `.slot`.
-  instrument.spec.ts scan 3 asserts that position by reading Coverflow.svelte,
-  and it asserts this declaration by name so a tidy-up cannot blank the lattice
-  again in silence.
-*/
-.lattice {
-  position: relative;
-  isolation: isolate;
-}
-
-.lattice::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--color-boundary), var(--color-boundary)),
-    repeating-linear-gradient(
-      to right,
-      var(--color-divider) 0 1px,
-      transparent 1px 48px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      var(--color-divider) 0 1px,
-      transparent 1px 48px
-    );
-  background-size:
-    15px 15px,
-    auto,
-    auto;
-  background-position:
-    41px 41px,
-    0 0,
-    0 0;
-  background-repeat: no-repeat, repeat, repeat;
-  mask-image:
-    linear-gradient(#000000, #000000), linear-gradient(#000000, #000000),
-    repeating-linear-gradient(to right, #000000 0 7px, transparent 7px 48px),
-    repeating-linear-gradient(to bottom, #000000 0 7px, transparent 7px 48px);
-  mask-size:
-    15px 1px,
-    1px 15px,
-    auto,
-    auto;
-  mask-position:
-    41px 48px,
-    48px 41px,
-    -3px 0,
-    0 -3px;
-  mask-repeat: no-repeat, no-repeat, repeat, repeat;
-  mask-composite: add, add, intersect, add;
 }

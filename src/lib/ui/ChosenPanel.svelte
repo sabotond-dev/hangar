@@ -187,22 +187,16 @@
 </script>
 
 <!--
-  THE REGISTRATION LATTICE'S SECOND AND LAST ROOT (10-UI-SPEC 19.1a, D-16).
-  This one element covers the panels, the tuning region and the whole device
-  flow, which is why there are two roots and not six.
-
-  ITS POSITION IS WHY A MASK HERE IS LEGAL, AND IT IS ASSERTED RATHER THAN
-  DESCRIBED. 8.2 forbids a grouping property ON .stage or BETWEEN .stage and a
-  .slot, because either flattens the coverflow's 3D ladder into a row of equal
-  squares. This section is rendered inside Coverflow.svelte's own .panel
-  wrapper, which is a TOP-LEVEL SIBLING of .band and outside the 3D context
-  .stage establishes - so the lattice pseudo-element is a leaf that is an
-  ancestor of no .slot. instrument.spec.ts scan 3 proves that by READING
-  Coverflow.svelte, never by editing it.
+  This root carried the registration field's second class (10-UI-SPEC 19.1a)
+  from 10-13.1 until 13-04 removed the field (13-CONTEXT.md D-09, 2026-09-11):
+  §3 asks for solid surfaces inside the working application. The panel is still rendered inside
+  Coverflow.svelte's own .panel wrapper, a top-level sibling of .band outside
+  the 3D context - a position that no longer needs defending here, and that
+  13-09 retires with the component (13-VALIDATION D-5).
 -->
 <section
   bind:this={root}
-  class="panel lattice"
+  class="panel"
   data-testid="chosen-panel"
   data-entry={entry.id}
   aria-label={entry.name}

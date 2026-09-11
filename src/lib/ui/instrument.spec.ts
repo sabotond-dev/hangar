@@ -16,9 +16,9 @@
  *   2. src/lib/ui/browse-ui.spec.ts:60's browseFiles() - a hand list of six
  *      component paths plus the route and the src/lib/browse/*.ts directory. A
  *      new browse component omitted from it escapes every browse gate.
- *   3. src/lib/ui/aesthetic.spec.ts:239's CRT_FILES - four names, and this one
- *      is CORRECT for its purpose, because that file's claim is "only these
- *      four" and an allowlist is exactly the right shape for it.
+ *   3. src/lib/ui/aesthetic.spec.ts's CRT_FILES - four names, CORRECT for its
+ *      purpose because that file's claim was "only these four" - retired with
+ *      the CRT by 13-04 (D-09).
  *
  * INSTRUMENT_FILES below is every src/lib/ui/*.svelte MINUS a short declared
  * front-door-only list, asserted against readdirSync with a length and with a
@@ -43,25 +43,25 @@
  * descendants of .front-door and always have been.
  *
  * What is implementable, and what is asserted here, is the authorship reading:
- * every moving or texturing CRT layer is SCOPED to .front-door, and no
- * instrument rule is AUTHORED inside FrontDoor.svelte or under a .front-door
- * selector. Svelte scopes a component's styles to that component, so
- * TryOnDevice.svelte's pill is authored outside the front door's stylesheet
+ * no instrument rule is AUTHORED inside FrontDoor.svelte or under a
+ * .front-door selector. Svelte scopes a component's styles to that component,
+ * so TryOnDevice.svelte's pill is authored outside the front door's stylesheet
  * even though its button paints inside the front door's box. The line then
  * lives in exactly one place, cannot be moved in one file and not the other,
- * and says something a scan can check - which is what scan 7 of the other file
- * exists to teach.
+ * and says something a scan can check.
  *
- * LAYER G IS THE ONE DECLARED EXCEPTION AND D-16 GETS THAT HALF WRONG. D-16
- * reads "the ground and the roll bar are already the hero shell's". The roll
- * bar is: Layers R and T live in .crt-band inside FrontDoor.svelte and /browse/
- * has no .crt-band at all. The ground is NOT: Layer G is body::before in
- * src/app.css, on every route, and 10-04 measured /browse/ explicitly as "Layer
- * G alone". It stays on every route and is reclassified rather than scoped off -
- * a halftone whose density describes a page is D-15 reference B's own device
- * rather than a screen effect, and it is the only one of the four layers that
- * neither moves nor scans. The exception is asserted BY NAME below, with its
- * reason in the message, so it is a ruling rather than an oversight.
+ * THE OTHER SIDE OF THE LINE, AND THE GROUND, WENT AT 13-04 (13-CONTEXT.md
+ * D-09, 2026-09-11). Until then scan 1 also held every moving or texturing CRT
+ * layer to .front-door with Layer G as the one declared exception on every
+ * route, scan 3 held the registration lattice's composition and its two roots,
+ * scan 4 held the halftone at the one pitch the measurement licensed, and scan
+ * 6 held the :where() ground rule with its three exceptions. The Bible's §3
+ * asks for solid surfaces inside the working application, so the CRT, the
+ * halftone and the lattice were deleted and scans 3 and 4 with them, by name;
+ * scan 1 kept its instrument side, scan 2 lost the radius half of its subject
+ * (13-03 had already removed the pill's corners under D-10) and scan 6 was
+ * re-aimed at the ground rule that survives - the ground is solid, and the
+ * retired vocabulary stays retired.
  *
  * Every scan strips comments first. These files name in prose the very things
  * they are forbidden to declare - src/app.css's own header explains why the
@@ -83,9 +83,7 @@ const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
 
 const UI_DIR = "src/lib/ui";
 const APP_CSS = "src/app.css";
-const AESTHETIC_SPEC = "src/lib/ui/aesthetic.spec.ts";
 const FRONT_DOOR = "src/lib/ui/FrontDoor.svelte";
-const PAD_FRAME = "src/lib/ui/PadFrame.svelte";
 
 /** aesthetic.spec.ts's stripper, verbatim in behaviour and backslash-free. */
 const strip = (text: string) =>
@@ -227,126 +225,17 @@ function baseRule(rules: Rule[], cls: string): Rule | undefined {
   return rules.find((rule) => rule.selector === `.${cls}`);
 }
 
-// ---------------------------------------------------------------------------
-// THE REGISTER LINE, READ OUT OF THE OTHER FILE AS TEXT.
-//
-// CRT_FILES is aesthetic.spec.ts's and it is read from there rather than
-// restated here, in the idiom 10-UI-SPEC 8.7 scan 7 already uses on
-// Coverflow.svelte's five literals. Two copies of an allowlist is two things
-// that can be edited apart, and the whole value of a line drawn in one place is
-// that it cannot be moved in one file and not the other.
-
-/** The array literal's members, as the identifiers the other file writes. */
-function crtFileIdentifiers(source: string): string[] {
-  const block = /const CRT_FILES:[^=]*=\s*[[]([^\]]*)[\]]/.exec(source)?.[1];
-  if (block === undefined) return [];
-  return block
-    .split(",")
-    .map((one) => one.trim())
-    .filter((one) => one !== "");
-}
-
-/** `const NAME = "path";` in the other file, resolved to the path. */
-function constantsOf(source: string): Map<string, string> {
-  const out = new Map<string, string>();
-  for (const match of source.matchAll(
-    /const ([A-Z][A-Z0-9_]*)\s*=\s*"([^"]+)"/g,
-  )) {
-    out.set(match[1], match[2]);
-  }
-  return out;
-}
-
 /**
  * The instrument register's vocabulary: the class names this register's rules
  * are applied by. Each is asserted FOUND before it is asserted CONFINED, so a
  * renamed shape cannot make the confinement pass on an empty search.
  *
- * `lattice` joined in plan 10-13.1 task 2, in the same commit as the rule it
- * names - never afterwards, because a gate that arrives after the thing it
- * gates has already shipped is a comment (10-VALIDATION V-01).
+ * `lattice` joined in plan 10-13.1 task 2 and left at 13-04 with the field it
+ * named (D-09); the list is one word until 13-05's shell adds a shape.
  */
 const INSTRUMENT_VOCABULARY: ReadonlyArray<readonly [string, string]> = [
   ["pill", "10-UI-SPEC 19.1b's control shape, one rule in src/app.css"],
-  [
-    "lattice",
-    "10-UI-SPEC 19.1a's registration field, one rule in src/app.css, on exactly two surface roots",
-  ],
 ];
-
-/**
- * The lattice's two roots, and there are two rather than six because the panel
- * root covers the panels, the tuning region and the whole device flow at once.
- */
-const LATTICE_ROOTS: ReadonlyArray<readonly [string, string]> = [
-  ["src/routes/browse/+page.svelte", "browse"],
-  ["src/lib/ui/ChosenPanel.svelte", "panel"],
-];
-
-/**
- * THE GROUND RULE'S THREE DECLARED EXCEPTIONS, AND THERE IS NO FOURTH.
- *
- * A-55 makes the lattice a ground: `.lattice > :where(*)` in src/app.css gives
- * every direct child of a root the ground colour, so the field paints in the
- * margins, the gaps and the gutters rather than under the words. A-56 names the
- * surfaces that opt out of it and the surfaces the rule cannot reach, with the
- * reason each one is here rather than as a list somebody maintains by memory.
- *
- * The third was found by a DOM WALK over the built site with a query matching
- * no entry - not by reading a template - and that is why it is written down.
- */
-const GROUND_EXCEPTIONS: ReadonlyArray<
-  readonly [string, string, string, string]
-> = [
-  [
-    "src/routes/browse/+page.svelte",
-    ".grid",
-    "transparent",
-    "the card wall is where the field earns its keep - it paints in the GUTTERS BETWEEN the cards, which is the 'around the pads' half of A-55. Grounding it would delete the lattice from most of the page, which is 10-13.1's silent no-op at a different address",
-  ],
-  [
-    "src/lib/ui/CatalogCard.svelte",
-    ".card",
-    "var(--color-workspace)",
-    "a card is four levels below a lattice root, so the ground rule cannot reach its description, its name plate or its metadata row. This declaration is the other half of the grid's exception: without it, leaving the grid transparent means the lattice paints over thirty-six descriptions instead of between thirty-six cards",
-  ],
-  [
-    "src/lib/ui/BrowseGrid.svelte",
-    ".empty",
-    "var(--color-workspace)",
-    "the empty state renders INSTEAD OF the card wall inside that same transparent grid, so the one screen where the page has nothing to show would be the one screen where the field lands on three lines of prose with nothing in front of it",
-  ],
-];
-
-/**
- * HOW MANY HALFTONE PITCHES SHIP, AS A NAMED CONSTANT RATHER THAN A SILENCE.
- *
- * 19.1e proposed a SECOND density at 6px behind the header and footer bands and
- * declared its own fallback in 8.5's shape: measure /browse/ in chromium and
- * webkit-phone, and IF THE DELTA EXCEEDS 2 ms AT THE 95th PERCENTILE THE SECOND
- * DENSITY DOES NOT SHIP.
- *
- * It was measured on 2026-09-09 against a fresh build, wrangler dev serving
- * build/, the candidate layer injected at document-start via addInitScript (not
- * page.addStyleTag, which lands after load and makes the first-paint half
- * vacuous by construction), p95 of requestAnimationFrame deltas across a full
- * scroll down and back on /browse/ at thirty-six entries, median of three runs
- * per arm, with the arm PROVED per run by reading the computed
- * background-size back out of the page:
- *
- *   chromium      two pitches 16.70 / 16.70 / 16.70 -> median 16.70 ms
- *   chromium      one pitch   16.70 / 16.70 / 16.70 -> median 16.70 ms   delta 0.00
- *   webkit-phone  two pitches 94.00 / 97.00 / 94.00 -> median 94.00 ms
- *   webkit-phone  one pitch   81.00 / 83.00 / 82.00 -> median 82.00 ms   delta 12.00
- *
- * TWELVE MILLISECONDS AGAINST A DECLARED THRESHOLD OF TWO. The verdict is OVER
- * and the second density does NOT ship. So this constant is ONE, the halftone
- * stays at the single 3px pitch, and scan 4 asserts that - which makes the
- * fallback a state the tree can be checked against rather than a paragraph
- * nobody wrote. Chromium's 16.70 in every arm reproduces 10-04's own recorded
- * 16.70-16.80 exactly, which is the reason to trust the WebKit half.
- */
-const DENSITIES = 1;
 
 /**
  * Front-door-only components, and the two are not the same kind of thing, so
@@ -361,7 +250,7 @@ const DENSITIES = 1;
 const FRONT_DOOR_ONLY: ReadonlyArray<readonly [string, string]> = [
   [
     "FrontDoor.svelte",
-    "it is the file whose root class .front-door IS the register line, and Layers R and T are its own",
+    "it is the file whose root class .front-door IS the register line; it carried the CRT shell until 13-04 deleted it",
   ],
   [
     "Splash.svelte",
@@ -374,27 +263,11 @@ const FRONT_DOOR_ONLY: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /**
- * The one component that renders on EVERY route including the front door and is
- * exempt anyway, declared rather than omitted.
- *
- * ScreenToggle.svelte is the control that names the CRT vocabulary - it is on
- * aesthetic.spec.ts's CRT_FILES for exactly that reason - and it renders in the
- * footer of every route. A pill on it would put an instrument shape on a
- * front-door surface, on the one control whose subject is the front door's own
- * register. It carries a word row that would otherwise take the shape, so this
- * is a real exemption rather than a vacuous one.
+ * The excluded set is the front-door-only list and nothing else. ScreenToggle
+ * .svelte was declared exempt here - it named the CRT vocabulary and rendered
+ * in every footer - until 13-04 deleted it with the CRT (D-09).
  */
-const EXEMPT: ReadonlyArray<readonly [string, string]> = [
-  [
-    "ScreenToggle.svelte",
-    "it NAMES the CRT vocabulary and renders in the footer of every route including the front door, so an instrument shape on it would put the instrument register on a front-door surface - and it has a word row, so the exemption is doing work",
-  ],
-];
-
-const excluded = new Set([
-  ...FRONT_DOOR_ONLY.map(([name]) => name),
-  ...EXEMPT.map(([name]) => name),
-]);
+const excluded = new Set(FRONT_DOOR_ONLY.map(([name]) => name));
 
 /** Every .svelte file under src/lib/ui/, from the directory, sorted. */
 const uiComponents = (): string[] =>
@@ -511,82 +384,21 @@ const STRADDLES: readonly [string, string, string] = [
 ];
 
 describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
-  it("scan 1: the register line holds from both sides, with Layer G as the one declared exception", () => {
-    const aesthetic = read(AESTHETIC_SPEC);
-    const identifiers = crtFileIdentifiers(aesthetic);
-    const constants = constantsOf(aesthetic);
-    const crtFiles = identifiers.map(
-      (name) => constants.get(name) ?? `UNRESOLVED:${name}`,
-    );
-
-    // ---- Non-vacuity, before a single claim about what was found. ----
-    expect(
-      identifiers,
-      "CRT_FILES could not be read out of aesthetic.spec.ts as text - the register line has to live in ONE place, and a second copy of the allowlist here would be a second thing to edit",
-    ).not.toEqual([]);
-    expect(
-      crtFiles.filter((file) => file.startsWith("UNRESOLVED:")),
-      "a CRT_FILES member does not resolve to a path constant in aesthetic.spec.ts",
-    ).toEqual([]);
-    expect(
-      crtFiles,
-      "the CRT allowlist is the four files 10-UI-SPEC 8.3 names",
-    ).toEqual([
-      APP_CSS,
-      PAD_FRAME,
-      FRONT_DOOR,
-      "src/lib/ui/ScreenToggle.svelte",
-    ]);
-
-    // ---- SIDE A: every MOVING or TEXTURING CRT layer resolves under
-    // .front-door. Layer S by selector, Layers R and T by the file they are
-    // authored in, whose root class IS the line.
-    const padFrame = code(PAD_FRAME);
-    const layerS = rulesOf(styleOf(PAD_FRAME, padFrame)).filter((rule) =>
-      rule.selector.includes(".pad::after"),
-    );
-    expect(
-      layerS.map((rule) => rule.selector),
-      "PadFrame.svelte declares no .pad::after rule at all - Layer S was renamed and this scan is checking nothing",
-    ).not.toEqual([]);
-    for (const rule of layerS) {
-      expect(
-        rule.selector.includes("front-door"),
-        `Layer S is declared on "${rule.selector}", which does not name .front-door. PadFrame.svelte renders on / AND on /browse/, and /browse/ mounts up to thirty-six of them; wave 4 measured the unscoped version at 61 ms p95 on webkit-phone against a 2 ms threshold and scoped it for that reason, and D-16 then gave the same selector a second, independent reason. Two reasons hold one line, so a faster engine cannot argue it back.`,
-      ).toBe(true);
-    }
-
+  it("scan 1: the register line holds from the instrument side - the pill is authored once, in src/app.css, and never inside FrontDoor.svelte or under .front-door", () => {
     const frontDoor = code(FRONT_DOOR);
     expect(
       openingTags(templateOf(frontDoor)).some((tag) =>
         classesOf(tag).includes("front-door"),
       ),
-      "FrontDoor.svelte no longer applies the class .front-door to anything - the register line is drawn at that class, and Layer S's own selector depends on it",
-    ).toBe(true);
-    for (const compound of [".crt-band", ".crt-roll"]) {
-      expect(
-        frontDoor.includes(compound),
-        `${compound} is no longer declared in FrontDoor.svelte - Layers R and T are the roll bar and the tear, and they live inside the file whose root is the register line`,
-      ).toBe(true);
-    }
-
-    // ---- LAYER G, THE ONE DECLARED EXCEPTION, ASSERTED BY NAME AND WITH ITS
-    // REASON IN THE MESSAGE rather than in a comment somebody may not read.
-    const appCss = code(APP_CSS);
-    const layerG = rulesOf(appCss).filter(
-      (rule) => rule.selector === "body::before",
-    );
-    expect(
-      layerG.map((rule) => rule.selector),
-      "src/app.css no longer declares body::before - Layer G is the page ground and the exception below is about a rule that has to exist",
-    ).not.toEqual([]);
-    expect(
-      layerG.every((rule) => !rule.selector.includes("front-door")),
-      "Layer G has been scoped to .front-door. IT IS THE ONE DECLARED EXCEPTION AND IT STAYS ON EVERY ROUTE (10-UI-SPEC 19.1g). D-16 says the ground is already the hero shell's and D-16 IS WRONG about that half: Layer G is body::before in src/app.css, on every route, and 10-04 measured /browse/ explicitly as Layer G alone. It is reclassified rather than scoped off, because a halftone whose density describes a page is D-15 reference B's own image-making device rather than a screen effect, and it is the only one of the four layers that neither moves nor scans.",
+      "FrontDoor.svelte no longer applies the class .front-door to anything - the register line is drawn at that class",
     ).toBe(true);
 
-    // ---- SIDE B: no instrument rule is AUTHORED inside FrontDoor.svelte or
-    // under a .front-door selector, anywhere in src/.
+    // ---- THE OTHER SIDE OF THE LINE WENT WITH THE CRT (13-04, D-09). Until
+    // then this scan also held Layer S to a .front-door selector, Layers R and
+    // T to this file, and Layer G as the one declared exception on every
+    // route. There is no CRT layer left to scope, so the line is held from the
+    // instrument side alone: no instrument rule is AUTHORED inside
+    // FrontDoor.svelte or under a .front-door selector, anywhere in src/.
     //
     // The floor first: every word of the vocabulary is really in the tree, so a
     // renamed shape cannot leave this half checking an empty search.
@@ -631,7 +443,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     for (const [word] of INSTRUMENT_VOCABULARY) {
       expect(
         frontDoor.includes(word),
-        `FrontDoor.svelte names "${word}". The instrument register's rules are authored OUTSIDE the front door's own file: the front door keeps Layers G, S, R and T exactly as wave 4 built them, the SCREEN toggle and all three switches (D-16, A-37), and an instrument shape declared here would move the line in one file and not in the other.`,
+        `FrontDoor.svelte names "${word}". The instrument register's rules are authored OUTSIDE the front door's own file (D-16, A-37), and an instrument shape declared here would move the line in one file and not in the other.`,
       ).toBe(false);
     }
 
@@ -650,11 +462,11 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     }
     expect(
       scoped,
-      "an instrument rule is scoped under .front-door. The register line is a CLASS and it is drawn once: the front door keeps its screen character, and the instrument register is authored outside it (D-16, A-37, 10-UI-SPEC 19.1g).",
+      "an instrument rule is scoped under .front-door. The register line is a CLASS and it is drawn once, and the instrument register is authored outside it (D-16, A-37, 10-UI-SPEC 19.1g).",
     ).toEqual([]);
   });
 
-  it("scan 2: the pill is Primary's radius and Secondary's outline, it reaches no Quiet control, and every pill resolves both 44px axes", () => {
+  it("scan 2: the pill is Primary's fill and Secondary's outline, it reaches no Quiet control, and every pill resolves both 44px axes", () => {
     const present = uiComponents();
     const walked = instrumentFiles();
 
@@ -671,7 +483,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     ).toEqual([]);
     expect(
       [...excluded].filter((name) => !present.includes(name)),
-      "a declared front-door-only or exempt component is not on disk - it was renamed, and this walk has silently widened",
+      "a declared front-door-only component is not on disk - it was renamed, and this walk has silently widened",
     ).toEqual([]);
     expect(
       walked.length,
@@ -780,7 +592,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     ).toEqual([]);
     expect(
       shallow,
-      "a pilled control resolves less than 24px of inline padding. At the 44px block floor a 999px radius is a 22px cap at each end, so anything under 24px puts the first glyph ON the curve (19.1b).",
+      "a pilled control resolves less than 24px of inline padding. The 24px was chosen to clear the 22px cap of a radius 13-03 removed under D-10; it stays because every control wearing the class was measured against it (19.1b as amended).",
     ).toEqual([]);
 
     // ---- The hand list is checked AGAINST the derived walk in BOTH
@@ -824,27 +636,6 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       void what;
     }
 
-    // ---- THE TWO EXEMPTIONS, ASSERTED BY NAME RATHER THAN LEFT AS OMISSIONS.
-    for (const [name, why] of EXEMPT) {
-      expect(
-        excluded.has(name),
-        `${name} is no longer declared exempt, and the reason it was is: ${why}`,
-      ).toBe(true);
-      const source = code(`${UI_DIR}/${name}`);
-      expect(
-        openingTags(templateOf(source)).some((tag) =>
-          classesOf(tag).includes("pill"),
-        ),
-        `${name} wears the pill, and it is exempt: ${why}`,
-      ).toBe(false);
-      // The exemption is doing work rather than being free: this component
-      // really does render the word row the shape would otherwise reach.
-      expect(
-        source.includes('class="option"'),
-        `${name}'s word row is gone, so its exemption no longer excuses anything and should be retired rather than kept`,
-      ).toBe(true);
-    }
-
     const [straddler, member, whyStraddles] = STRADDLES;
     const straddleSource = code(`${UI_DIR}/${straddler}`);
     expect(
@@ -859,223 +650,6 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
         `${straddler}'s .${member} wears the pill, and it may not: ${whyStraddles}. This is the sharpest demonstration on the site that the register line is a CLASS rather than a file list - one component, two registers.`,
       ).toBe(false);
     }
-  });
-
-  it("scan 3: the lattice is monochrome, gradient-built, data-URI-free, on two roots, and nowhere near the 3D context", () => {
-    const appCss = code(APP_CSS);
-    const rules = rulesOf(appCss);
-    const lattice = rules.filter((rule) => rule.selector.includes(".lattice"));
-
-    // ---- Non-vacuity, before a single claim about what was found. ----
-    expect(
-      lattice.map((rule) => rule.selector),
-      "src/app.css declares no .lattice rule at all - 19.1a's registration field was renamed away and every assertion below it is checking nothing",
-    ).not.toEqual([]);
-    const painted = lattice.find((rule) =>
-      rule.selector.includes(".lattice::before"),
-    );
-    expect(
-      painted,
-      "the lattice is not a ::before on the surface root (19.1a). A background on the root itself would sit under the element's own border rather than behind its content, and a real element would be one more node in every panel",
-    ).toBeDefined();
-    const declared = new Map(declarationsOf(painted?.body ?? ""));
-    expect(
-      declared.size,
-      `the lattice rule carries ${declared.size} declarations`,
-    ).toBeGreaterThan(6);
-
-    // ---- NO DATA-URI AND NO SVG, AND THE MESSAGE CARRIES THE MEASUREMENT so
-    // the next reader learns WHY rather than only THAT.
-    const forbidden = "data:";
-    for (const [property, value] of declared) {
-      expect(
-        value.includes(forbidden) || value.includes("svg"),
-        `the lattice declares "${property}" as a data-URI or an SVG. IT MAY NOT, AND THE REASON WAS OBSERVED RATHER THAN ASSUMED: plan 10-04 declared the CRT noise tile in src/app.css and ran identity.spec.ts - SEVEN PASSED - then wrote a pure red into the same tile as a percent-encoded fill and ran it again - SEVEN PASSED AGAIN. That file's hex walk matches a literal number sign and a percent-encoded one is not one, so a colour smuggled into a data-URI in the one file the colour gate reads is invisible to every colour gate this site has. Gradients referencing a token are visible to all of them.`,
-      ).toBe(false);
-    }
-
-    // ---- MONOCHROME. Every colour is a var(), the accent is absent, and the
-    // one hex is the mask's - where a colour is opacity rather than paint.
-    expect(
-      declared.get("background-image")?.includes("var(--color-action)"),
-      "the lattice paints in the accent. 10-UI-SPEC 7.2's reserved list is EIGHT entries and a decorative field is none of them - a ninth use is exactly what --color-divider was declared decorative-only to avoid",
-    ).toBe(false);
-    for (const token of ["var(--color-divider)", "var(--color-boundary)"]) {
-      expect(
-        declared.get("background-image"),
-        `the lattice no longer paints with ${token} - the field is the soft token at 0.2 and the one distinguished cross is --color-boundary at 0.4, which is A-40's first channel`,
-      ).toContain(token);
-    }
-    expect(
-      declared.get("background-image"),
-      "the lattice is not built from gradients - 19.1a's composition is two repeating-linear-gradients forming a 1px grid, and a tile would be the data-URI forbidden above",
-    ).toContain("repeating-linear-gradient(");
-    expect(
-      declared.get("mask-image"),
-      "the lattice has no mask, so its grid paints as full RULES rather than as a field of plus marks (19.1a). A union of the two band sets would do the same; the pair has to INTERSECT",
-    ).toContain("repeating-linear-gradient(");
-    expect(
-      declared.get("mask-composite"),
-      "the mask pair does not INTERSECT. Composited with add they are a union, and a union keeps every rule at full length - which is the picture the lattice is not",
-    ).toContain("intersect");
-
-    // A-40's SECOND, NON-COLOUR CHANNEL for the distinguished cross: it appears
-    // once. A field that differed only in alpha would be one channel.
-    expect(
-      declared.get("background-repeat"),
-      "the distinguished cross is not no-repeat, so it is a field rather than a mark - A-40 requires TWO channels and the second is that there is exactly one of it, at one declared position",
-    ).toContain("no-repeat");
-
-    // ---- NOTHING NEW MOVES. The reduced-motion contract has nothing to turn
-    // off here, which is why this wave adds no line to that block.
-    for (const property of ["animation", "transition", "transform"]) {
-      expect(
-        declared.has(property),
-        `the lattice declares "${property}". Phase 4 snaps every animation to a static representative frame under prefers-reduced-motion and Playwright asserts exactly two layers stop; a moving lattice would be a third, and this one is static so the existing assertions are re-run UNCHANGED`,
-      ).toBe(false);
-    }
-    expect(
-      declared.get("pointer-events"),
-      "the lattice does not declare pointer-events: none - it sits over the whole surface, and a decoration that eats a click on a card is a decoration that broke the page",
-    ).toBe("none");
-
-    // ---- THE ONE DECLARATION THAT MAKES IT VISIBLE, ASSERTED BY NAME BECAUSE
-    // ITS ABSENCE WAS A SILENT NO-OP. The rule shipped once as `position:
-    // relative` alone and painted NOTHING, with every source scan green: two
-    // screenshots of /browse/, one as authored and one with the pseudo-element
-    // display:none, came back BYTE-IDENTICAL. Without a stacking context on the
-    // root, a negative-z-index pseudo-element belongs to the ROOT context and
-    // paints at Appendix E step 2, while body's own opaque background is an
-    // in-flow block background at step 3 - black, straight over the top.
-    const root = lattice.find((rule) => rule.selector === ".lattice");
-    expect(
-      root,
-      "src/app.css no longer declares a bare .lattice rule - the surface root has to carry the stacking context, and the pseudo-element alone cannot make one for itself",
-    ).toBeDefined();
-    const rootDeclared = new Map(declarationsOf(root?.body ?? ""));
-    expect(
-      rootDeclared.get("position"),
-      "the lattice root does not declare position: relative, so its absolutely-positioned ::before resolves against some ancestor instead of against the surface",
-    ).toBe("relative");
-    expect(
-      rootDeclared.get("isolation"),
-      "the lattice root does not declare isolation: isolate, AND ITS ABSENCE IS INVISIBLE TO EVERY OTHER ASSERTION IN THIS FILE. Measured on 2026-09-09: with position:relative alone the lattice painted nothing at all and two screenshots of /browse/ - one as authored, one with the pseudo-element hidden - were byte-identical. The stacking context is what puts the -1 child immediately behind this element's own content instead of behind body's opaque background.",
-    ).toBe("isolate");
-
-    // ---- EXACTLY TWO ROOTS, and the vocabulary reaches no CRT file.
-    const wearing: string[] = [];
-    const walkAll = (dir: string, out: string[] = []): string[] => {
-      for (const entry of readdirSync(REPO_ROOT + dir, {
-        withFileTypes: true,
-      })) {
-        const path = `${dir}/${entry.name}`;
-        if (entry.isDirectory()) walkAll(path, out);
-        else if (entry.name.endsWith(".svelte")) out.push(path);
-      }
-      return out;
-    };
-    for (const file of walkAll("src")) {
-      for (const tag of openingTags(templateOf(code(file)))) {
-        if (classesOf(tag).includes("lattice")) wearing.push(file);
-      }
-    }
-    expect(
-      wearing.sort(),
-      "the lattice is on a surface other than its two declared roots, or has fallen off one of them. 19.1a: exactly two - /browse/'s page root and ChosenPanel.svelte's root, the second of which covers the panels, the tuning region and the device flow together",
-    ).toEqual(
-      LATTICE_ROOTS.map(([file]) => file)
-        .slice()
-        .sort(),
-    );
-
-    // ---- 8.2, PROVED BY READING Coverflow.svelte RATHER THAN BY DESCRIBING
-    // IT. The panel root is inside .panel, which that file renders as a
-    // TOP-LEVEL SIBLING of .band and outside the 3D context .stage
-    // establishes - so a mask on a descendant of it flattens nothing. The file
-    // is READ here and is never edited: this phase promises it byte-untouched.
-    const coverflow = code("src/lib/ui/Coverflow.svelte");
-    const panelAt = coverflow.indexOf('<div class="panel">');
-    const stageAt = coverflow.indexOf('class="stage');
-    expect(
-      panelAt,
-      "Coverflow.svelte no longer renders a .panel wrapper, so the position this scan depends on cannot be read at all",
-    ).toBeGreaterThan(-1);
-    expect(
-      stageAt,
-      "Coverflow.svelte no longer renders a .stage, so the 3D context this scan is measuring the panel against does not exist",
-    ).toBeGreaterThan(-1);
-    // The wrapper's subtree, counted by div depth: the panel is a sibling of
-    // the band if the stage closes before the panel opens.
-    const before = coverflow.slice(0, panelAt);
-    const opens = before.split("<div").length - 1;
-    const closes = before.split("</div>").length - 1;
-    expect(
-      opens - closes,
-      "Coverflow.svelte's .panel wrapper is NESTED inside an open <div> rather than sitting at the top level of the component. 8.2 forbids a grouping property ON .stage or BETWEEN .stage and a .slot, and a mask on a descendant of the 3D context would flatten the coverflow's ladder into a row of equal squares - the lattice's legality here rests entirely on this position",
-    ).toBe(0);
-    expect(
-      before.includes('class="stage'),
-      "the .stage does not appear before the .panel wrapper in Coverflow.svelte - the two may have been reordered, and the sibling claim above no longer says what it used to",
-    ).toBe(true);
-  });
-
-  it("scan 4: the halftone declares exactly the pitches the measurement licensed, in one file", () => {
-    const appCss = code(APP_CSS);
-    const layerG = rulesOf(appCss).find(
-      (rule) => rule.selector === "body::before",
-    );
-    expect(
-      layerG,
-      "src/app.css no longer declares body::before - Layer G is the halftone, and its pitch count is what this scan is about",
-    ).toBeDefined();
-    const declared = new Map(declarationsOf(layerG?.body ?? ""));
-
-    // The pitches are the SQUARE background-size entries: a halftone dot cell.
-    // The vignette's own `100% 100%` is not a pitch and is excluded by shape
-    // rather than by position, so re-ordering the list cannot change the count.
-    const sizes = (declared.get("background-size") ?? "")
-      .split(",")
-      .map((one) => one.trim());
-    const pitches = sizes.filter((one) => /^([0-9]+)px \1px$/.test(one));
-    expect(
-      sizes.length,
-      `Layer G declares ${sizes.length} background-size entries`,
-    ).toBeGreaterThan(1);
-    expect(
-      pitches,
-      `the halftone declares ${pitches.length} pitches and the measurement licensed ${DENSITIES}. 19.1e proposed a SECOND density at 6px and declared its own fallback in 8.5's shape - over 2 ms at p95 and it does not ship. It was measured on 2026-09-09: chromium 16.70 ms in BOTH arms, delta 0.00; webkit-phone 94.00 ms with two pitches against 82.00 ms with one, delta 12.00 ms - six times the threshold. The verdict was OVER, so the halftone stays at ONE pitch and this number is the state that says so rather than a silence where a decision should be.`,
-    ).toHaveLength(DENSITIES);
-
-    // AND IT IS DECLARED IN THIS FILE AND NOWHERE ELSE (7.1's placement rule).
-    // A pitch authored inside a component's <style> would carry a colour the
-    // colour gate cannot see, which is the hole scan 1 of the other file exists
-    // to close.
-    const elsewhere: string[] = [];
-    const walkAll = (dir: string, out: string[] = []): string[] => {
-      for (const entry of readdirSync(REPO_ROOT + dir, {
-        withFileTypes: true,
-      })) {
-        const path = `${dir}/${entry.name}`;
-        if (entry.isDirectory()) walkAll(path, out);
-        else if (
-          /[.](?:svelte|css)$/.test(entry.name) &&
-          !/[.](?:spec|test)[.]/.test(entry.name)
-        )
-          out.push(path);
-      }
-      return out;
-    };
-    for (const file of walkAll("src")) {
-      if (file === APP_CSS) continue;
-      for (const rule of rulesOf(styleOf(file, code(file)))) {
-        if (rule.selector.includes("body::before"))
-          elsewhere.push(`${file} -> ${rule.selector}`);
-      }
-    }
-    expect(
-      elsewhere,
-      "Layer G is declared outside src/app.css. 10-UI-SPEC 7.1's placement rule: identity.spec.ts reads THAT FILE AND NOTHING ELSE, so a halftone authored in a component carries an alpha no colour gate on this site can see",
-    ).toEqual([]);
   });
 
   it("scan 5: the index form is furniture beside untouched strings, mono is a list of seven, and no row gained a rule", () => {
@@ -1288,101 +862,108 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     ).toBe(true);
   });
 
-  it("scan 6: the lattice is a ground - one rule at :where() specificity, declared above .pill, with three named exceptions", () => {
+  it("scan 6: the ground is solid - html and body paint the workspace token, nothing is painted over them, and the retired texture vocabulary names no rule and no component", () => {
     const appCss = code(APP_CSS);
     const rules = rulesOf(appCss);
 
-    // ---- NON-VACUITY, BEFORE ANY CLAIM. The roots and the field have to exist
-    // for a rule about what covers them to mean anything at all.
+    // ---- NON-VACUITY, BEFORE ANY CLAIM. The ground rules have to exist for a
+    // rule about what covers them to mean anything at all.
+    const html = rules.filter((rule) => rule.selector === "html");
+    const body = rules.filter((rule) => rule.selector === "body");
     expect(
-      rules.some((rule) => rule.selector === ".lattice::before"),
-      "src/app.css declares no .lattice::before - the field this scan is about is gone, and everything below it would be checking nothing",
-    ).toBe(true);
-
-    const ground = rules.filter(
-      (rule) =>
-        rule.selector.startsWith(".lattice >") ||
-        rule.selector.startsWith(".lattice>"),
-    );
+      html.map((rule) => rule.selector),
+      "src/app.css declares no html rule - the ground this scan is about is not declared, and everything below it would be checking nothing",
+    ).not.toEqual([]);
     expect(
-      ground.map((rule) => rule.selector),
-      "src/app.css declares no rule on a lattice root's CHILDREN. A-55: the lattice is a ground, and a ground is visible where nothing is standing on it. Without this rule the field paints under every glyph on both roots - measured on the built site at 1280x900 before it existed: 418 text-bearing elements under a lattice root with no opaque ancestor, TWO crossings inside the HANGAR wordmark's box and THIRTEEN inside the browse headline's",
-    ).toHaveLength(1);
+      body.map((rule) => rule.selector),
+      "src/app.css declares no body rule - the ground this scan is about is not declared, and everything below it would be checking nothing",
+    ).not.toEqual([]);
 
-    const rule = ground[0];
-    const declared = new Map(declarationsOf(rule.body));
-
-    // ---- ONE DECLARATION, AND IT IS A TOKEN. A ground rule that also set a
-    // border, a radius or a filter would be a second design decision wearing
-    // this one's justification.
-    expect(
-      [...declared.keys()],
-      `the ground rule declares ${[...declared.keys()].join(", ")}. It is one declaration - the ground colour - and nothing else: anything further is a second design decision riding on A-55's argument`,
-    ).toEqual(["background-color"]);
-    expect(
-      declared.get("background-color"),
-      "the ground rule paints something other than var(--color-workspace). It must be the ground token and not a literal: identity.spec.ts reads THIS FILE for colours, and 10-04 proved twice that a colour it cannot parse is a colour no gate on this site has",
-    ).toBe("var(--color-workspace)");
-
-    // ---- `:where()` IS LOAD-BEARING AND ITS ABSENCE IS INVISIBLE TO EVERY
-    // OTHER ASSERTION HERE. It zeroes the compound, so the selector weighs
-    // 0,1,0 - the same as a bare class - which is what lets a Svelte-scoped
-    // rule (.foo.svelte-<hash>, 0,2,0) keep a component's own background
-    // without being listed anywhere. This is a DEFAULT, not an override.
-    expect(
-      rule.selector.includes(":where("),
-      `the ground rule is declared as "${rule.selector}" rather than with :where(). AT 0,2,0 IT STOPS BEING A DEFAULT AND BECOMES AN OVERRIDE: it beats .pill's transparent fill and every unscoped component default, so a control that happens to be a direct child of a lattice root silently gains an opaque box. A-55's whole shape is that a component with an opinion about its own background wins WITHOUT being enumerated, which is what makes the fix cost no node and no list`,
-    ).toBe(true);
-
-    // ---- SOURCE ORDER, ASSERTED BECAUSE SPECIFICITY CANNOT SEPARATE THEM.
-    // .pill is also 0,1,0. At equal specificity the LATER rule wins, so the
-    // ground has to be declared FIRST or it takes the fill off a pill. This is
-    // the failure mode a rule sitting beside the thing it describes walks into,
-    // and it is the reason the block is not next to the lattice's own comment.
-    const groundAt = appCss.indexOf(rule.selector);
-    const pillAt = appCss.indexOf(".pill {");
-    expect(pillAt, "src/app.css no longer declares .pill").toBeGreaterThan(-1);
-    expect(
-      groundAt,
-      "the ground rule is declared AFTER .pill in src/app.css. Both weigh 0,1,0, so specificity cannot separate them and source order decides: declared second, the ground wins the tie and puts an opaque box behind a control that had declared a transparent one. Move it back above .pill - the comment there says why it is not beside the lattice it belongs to",
-    ).toBeLessThan(pillAt);
-
-    // ---- THE GROUND RULE LIVES IN src/app.css AND NOWHERE ELSE, so the colour
-    // gate that reads one file reads this one too (7.1's placement rule).
-    for (const [file] of LATTICE_ROOTS) {
+    // ---- THE GROUND IS THE WORKSPACE TOKEN, ON BOTH ROOTS, AND IT IS THE
+    // TOKEN RATHER THAN A COLOUR: identity.spec.ts reads this file for colours,
+    // and a literal here would be a hue that gate cannot see.
+    for (const [name, group] of [
+      ["html", html],
+      ["body", body],
+    ] as const) {
+      const declared = new Map(
+        group.flatMap((rule) => declarationsOf(rule.body)),
+      );
       expect(
-        styleOf(file, code(file)).includes(".lattice >"),
-        `${file} authors a ground rule of its own. It belongs in src/app.css: identity.spec.ts reads that file and nothing else, so a colour written into a component <style> is invisible to every colour gate this site has`,
+        declared.get("background"),
+        `${name} paints ${JSON.stringify(declared.get("background"))} rather than var(--color-workspace). §3: solid surfaces inside the working application - the ground is the workspace token and nothing else (13-04, D-09)`,
+      ).toBe("var(--color-workspace)");
+    }
+
+    // ---- NOTHING IS PAINTED OVER THE GROUND. The halftone lived on
+    // body::before; a background-image on either root or on a pseudo-element
+    // of either is a texture by another name.
+    for (const rule of rules) {
+      if (!/^(html|body)(::?[a-z-]+)?$/.test(rule.selector)) continue;
+      expect(
+        declarationsOf(rule.body).some(
+          ([property]) => property === "background-image",
+        ),
+        `src/app.css declares a background-image on "${rule.selector}". The ground is solid (§3, D-09): a texture on a root or on its pseudo-element is the halftone coming back under another name`,
       ).toBe(false);
     }
 
-    // ---- THE THREE EXCEPTIONS, EACH READ OUT OF THE FILE THAT CARRIES IT.
-    for (const [file, selector, value, why] of GROUND_EXCEPTIONS) {
-      const source = code(file);
-      const owned = rulesOf(styleOf(file, source)).filter(
-        (candidate) => candidate.selector === selector,
-      );
-      expect(
-        owned,
-        `${file} no longer declares a ${selector} rule at all, so A-56's exception cannot be read: ${why}`,
-      ).not.toEqual([]);
-      const values = owned.flatMap((candidate) =>
-        declarationsOf(candidate.body).filter(
-          ([property]) => property === "background-color",
-        ),
-      );
-      expect(
-        values.map(([, found]) => found),
-        `${file}'s ${selector} does not declare background-color: ${value}. It is one of A-56's THREE exceptions and it is written out rather than left to an initial value, because an omitted declaration is not a rule and the ground would reach it. The reason it is an exception: ${why}`,
-      ).toContain(value);
+    // ---- THE RETIRED VOCABULARY NAMES NO RULE AND NO COMPONENT. 13-04
+    // deleted the CRT (--crt, data-screen, crt-band, crt-roll, crt-tear), the
+    // halftone (body::before) and the lattice (.lattice) on 2026-09-11. The
+    // deletion removed aesthetic.spec.ts's own gate over that vocabulary, so
+    // this is where its absence is held on every run rather than once, by
+    // grep, in a SUMMARY. Comments are stripped first: a file may still SAY
+    // what went, it may not DECLARE it.
+    const RETIRED: ReadonlyArray<readonly [string, string]> = [
+      ["body::before", "Layer G, the halftone and vignette on the page ground"],
+      [
+        ".lattice",
+        "the registration lattice, its ::before and its ground rule",
+      ],
+      ["--crt", "the CRT's gate property and its two colours"],
+      ["crt-band", "the CRT shell inside the front door"],
+      ["crt-roll", "Layer R, the roll bar"],
+      ["crt-tear", "Layer T's keyframes"],
+    ];
+    for (const rule of rules) {
+      for (const [token, what] of RETIRED) {
+        expect(
+          rule.selector.includes(token) || rule.body.includes(token),
+          `src/app.css declares "${rule.selector}", which names "${token}" - ${what}. D-09 removed it on 2026-09-11 and §3 asks for solid surfaces; it does not come back under this or any other name`,
+        ).toBe(false);
+      }
     }
-
-    // ---- AND THERE IS NO FOURTH, asserted as a length so an exception added
-    // in a hurry has to be argued for here before it can ship.
+    const walk = (dir: string, out: string[] = []): string[] => {
+      for (const entry of readdirSync(REPO_ROOT + dir, {
+        withFileTypes: true,
+      })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(path, out);
+        else if (
+          /[.](?:svelte|css)$/.test(entry.name) &&
+          !/[.](?:spec|test)[.]/.test(entry.name)
+        )
+          out.push(path);
+      }
+      return out;
+    };
+    const files = walk("src");
     expect(
-      GROUND_EXCEPTIONS.length,
-      "A-56 declares THREE exceptions to the ground rule. A fourth that is not in this list is a surface nobody reasoned about, and the third only exists because a DOM walk over the built site found it - reading templates would not have",
-    ).toBe(3);
+      files.length,
+      `the walk over src/ found ${files.length} stylesheets and components`,
+    ).toBeGreaterThan(30);
+    const carriers: string[] = [];
+    for (const file of files) {
+      const source = code(file);
+      for (const [token] of RETIRED) {
+        if (source.includes(token)) carriers.push(`${file} -> ${token}`);
+      }
+    }
+    expect(
+      carriers,
+      "a stylesheet or a component names the retired texture vocabulary outside a comment. The CRT, the halftone and the lattice were deleted by 13-04 under D-09; a class, a selector or an attribute from that treatment is the texture coming back, and the file above is where",
+    ).toEqual([]);
   });
 });
 

@@ -473,15 +473,13 @@
 </svelte:head>
 
 <!--
-  THE REGISTRATION LATTICE'S FIRST OF TWO ROOTS (10-UI-SPEC 19.1a, D-16).
-
-  The class is src/app.css's and nothing about the lattice is authored here: it
-  is a colour, and identity.spec.ts reads THAT FILE AND NOTHING ELSE. Applying
-  it here rather than to body::before is what keeps it off the front door,
-  which keeps its screen character - Layers G, S, R and T, the SCREEN toggle and
-  all three switches, exactly as wave 4 built them.
+  THE GROUND IS SOLID (13-04, 13-CONTEXT.md D-09). This root carried the
+  registration field's class (10-UI-SPEC 19.1a) from 10-13.1 until 2026-09-11;
+  §3 asks for solid surfaces inside the working application, so the class and
+  the field went together, and the page paints --color-workspace with nothing
+  over it.
 -->
-<section class="browse lattice" data-testid="browse">
+<section class="browse" data-testid="browse">
   <!--
     The wordmark is this page's only level-1 heading and on this route it is a
     REAL LINK to the front door. There is no BROWSE ALL slot here - the page
@@ -615,19 +613,10 @@
   }
 
   /*
-    THE ONE BLOCK ON THIS PAGE THAT MAY NOT OCCLUDE THE LATTICE (A-56).
-
-    src/app.css's `.lattice > :where(*)` gives every direct child of a lattice
-    root the ground, so the registration field survives in the margins and the
-    gaps rather than under the words. This block is the declared exception, and
-    the reason is that the card wall is where the field earns its keep: it
-    paints in the GUTTERS BETWEEN the cards, which is the "around the pads" half
-    of the ruling. Grounding it would delete the lattice from most of the page
-    and repeat 10-13.1's silent no-op at a different address.
-
-    Transparent is what the ground rule would otherwise supply, so it is written
-    out rather than left to the initial value: a scoped rule at 0,2,0 is what
-    beats it, and an omitted declaration is not a rule.
+    The wall is transparent to the page ground. Written out rather than left to
+    the initial value because it used to be A-56's declared exception to a
+    ground rule that no longer exists (13-04, D-09); the declaration is kept so
+    the wall's paint is a stated fact rather than an inherited one.
   */
   .grid {
     margin-block-start: 32px;

@@ -70,23 +70,15 @@
   and the headline; the coverflow row is full-bleed on purpose, because pads
   falling off the edges of the viewport is the picture the brief asks for.
 
-  AMENDMENT (Phase 10, plan 10-04, 10-UI-SPEC 8.2 and 8.3). THE CRT SHELL LIVES
-  HERE BECAUSE Coverflow.svelte MAY NOT BE TOUCHED. The roll bar and the tear
-  have to be bound to the coverflow band's own box, and that box belongs to a
-  component this phase promises not to edit - so `.row` gains
-  `position: relative` and a second child, `.crt-band`, sized to `.band` rather
-  than to the row.
-
-  WHY NOT `inset: 0`. The row holds four things: the band, the name plate, the
-  fidelity line and, while a pad is chosen, the panel. A bar at `inset: 0` would
-  sweep across the 20px heading carrying a configuration's name and across the
-  prose beneath it, and 10-RESEARCH 3.5's arithmetic is not disputed - a
-  0.186-alpha black line over --color-ink-quiet takes it from 5.57:1 to about
-  3.9:1 while identity.spec.ts stays green, because that gate computes contrast
-  from the DECLARED alpha. The resolution is not to make the gate composite an
-  overlay; it is to make the overlay unable to reach the words. `.crt-band`
-  contains one empty div and nothing else, ever, and aesthetic.spec.ts scan 3
-  proves that structurally rather than trusting this paragraph.
+  THE CRT SHELL THAT LIVED HERE WENT AT 13-04 (13-CONTEXT.md D-09, 2026-09-11).
+  Plan 10-04 gave `.row` a second child sized to Coverflow's `.band` and
+  carrying the roll bar and the 180 ms tear on the connect event.
+  The Bible's §3 asks for solid surfaces inside the working application and its
+  own intro is flat, so the shell, its two layers, its keyframes, its SCREEN
+  rule and its reduced-motion block were deleted with the rest of the CRT.
+  `.row` keeps `position: relative` because the coverflow's geometry was
+  measured against it. This component and the coverflow it mounts are the
+  composition half of D-09 and go at 13-07 and 13-09 (13-VALIDATION D-5).
 
   AMENDMENT (Phase 10, plan 10-07, A-22 and 10-UI-SPEC 9.1). THE `FOR` LINK
   ROW. The ten workflow terms render here as LINKS, one `/browse/?for={term}`
@@ -106,12 +98,6 @@
   the same 32px rhythm, and the departure is recorded in 10-07-SUMMARY.md rather
   than smoothed over. The ring stays at EIGHT and front-door.ts is untouched.
 
-  THE DUPLICATION BELOW IS REAL AND IS GATED RATHER THAN TRUSTED. Five literals
-  now live in two files. Scan 7 reads all five out of Coverflow.svelte's `.band`
-  rules and out of this file's `.crt-band` rules and compares them after the
-  same whitespace normalisation identity.spec.ts uses, so an edit to one that is
-  not made to the other goes red and names both files.
-
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -121,13 +107,11 @@
   import { FOR_TERMS } from "$lib/browse/facets";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
   import { session } from "$lib/device/session.svelte";
-  import { isLowPower } from "$lib/sim/schedule";
   import BrowseLink from "./BrowseLink.svelte";
   import Coverflow from "./Coverflow.svelte";
   import FacetRow from "./FacetRow.svelte";
   import DeviceNote from "./DeviceNote.svelte";
   import DeviceSlot from "./DeviceSlot.svelte";
-  import { screen } from "./ScreenToggle.svelte";
   import Splash from "./Splash.svelte";
 
   let {
@@ -207,71 +191,6 @@
     opening = false;
     releaseHold();
   }
-
-  // --- The CRT shell: Layer R's three conditions and Layer T's one event -----
-
-  /** 10-UI-SPEC 8.4: the tear is 180 ms, and it is 180 ms in exactly one place. */
-  const TEAR_MS = 180;
-
-  /**
-   * SWITCH 3, and it is feature-detected rather than browser-sniffed. Layer R
-   * is the only layer with a per-frame compositor cost, so it is the only one
-   * worth spending a capability check on. isLowPower is src/lib/sim/schedule.ts's
-   * - `(cores ?? 8) <= 4`, the same predicate the simulator host already halves
-   * its paint rate on - rather than a second reading of the same number that
-   * could drift from it.
-   *
-   * Read in onMount because navigator does not exist in the prerenderer, and
-   * held as state so the roll bar appears at hydration rather than never.
-   */
-  let manyCores = $state(false);
-  onMount(() => {
-    manyCores = !isLowPower(navigator.hardwareConcurrency);
-  });
-
-  /**
-   * Layer R mounts on THREE conditions, and each of the three is a different
-   * kind of no: SCREEN says textured (the visitor's own choice), the machine
-   * has more than four cores (a capability), and no pad is chosen (a state -
-   * a bar sweeping over a panel somebody is reading is the "overwhelming" D-07
-   * rules out).
-   *
-   * MOUNTED, not hidden. 10-UI-SPEC 8.7's browser gate 2 requires the roll bar
-   * to be ABSENT FROM THE DOM under FLAT; `display: none` would leave that
-   * assertion reading an element that is still there.
-   */
-  const showRoll = $derived(
-    screen.value === "textured" && manyCores && !panelOwnsProse,
-  );
-
-  /**
-   * THE TEAR, ON ONE SURFACE AND ONE EVENT. session.plugged counts permitted
-   * ZONAs arriving on the cable - navigator.serial's own `connect`, past the
-   * session's guards. Not a click-driven connect, not a disconnect, not a
-   * failure, and not a recurring idle timer: real hardware caused it, and it is
-   * the one thing that happens on this site that the visitor did not start.
-   *
-   * THE {#key} IS LOAD-BEARING AND NOT DECORATION. `.crt-band::after` declares
-   * its animation at rest with `animation-play-state: paused`, sitting on the
-   * invisible 0% keyframe - which is what lets 10-UI-SPEC 8.7's gate 1 read a
-   * real animation-name at the compositor and see it become "none" under
-   * reduced motion, instead of reading "none" in both states and proving
-   * nothing. The cost of that design is that a finished animation cannot be
-   * replayed by toggling play-state, so the element is rebuilt per arrival.
-   * Rebuilding restarts the roll bar's sweep as well; at one rebuild per
-   * physical plug-in that is a fair price, and arguably the right picture.
-   */
-  const tearRun = $derived(session.plugged);
-  let tearing = $state(false);
-
-  $effect(() => {
-    if (session.plugged === 0) return;
-    tearing = true;
-    const timer = setTimeout(() => {
-      tearing = false;
-    }, TEAR_MS);
-    return () => clearTimeout(timer);
-  });
 </script>
 
 <section class="front-door" data-testid="front-door" data-splash={splash}>
@@ -317,24 +236,6 @@
   <p class="headline">START EXPLORING</p>
   <div class="row">
     <Coverflow {row} {initialId} {notice} />
-    <!--
-      THE CRT SHELL. A SIBLING of the whole coverflow output, never an ancestor
-      of any of it: the 3D rendering context is `.stage`'s, and a grouping
-      property anywhere above a `.slot` flattens the ladder into a row of equal
-      squares. It contains Layer R and nothing else; Layer T is its ::after.
-      NO TEXT NODE MAY EVER GO IN HERE - scan 3 walks this subtree and asserts
-      it is empty of words.
-    -->
-    {#key tearRun}
-      <div
-        class="crt-band"
-        class:chosen={panelOwnsProse}
-        class:tearing
-        aria-hidden="true"
-      >
-        {#if showRoll}<div class="crt-roll" aria-hidden="true"></div>{/if}
-      </div>
-    {/key}
   </div>
 
   <!--
@@ -460,8 +361,9 @@
   }
 
   /*
-    The one line this file already owned. `.crt-band` is positioned against the
-    row, and against nothing in Coverflow.svelte.
+    The one line this file already owned. position: relative stays after the
+    CRT shell left (13-04, D-09): the coverflow's geometry was measured against
+    this box, and a row that stopped being a containing block would move it.
   */
   .row {
     margin-block-start: 32px;
@@ -476,216 +378,6 @@
   .for-row {
     margin-block-start: 32px;
     padding-inline: 32px;
-  }
-
-  /*
-    ================= THE CRT SHELL (10-UI-SPEC 8.3) =========================
-
-    FIVE OF THE DECLARATIONS BELOW ARE COPIED VERBATIM FROM Coverflow.svelte's
-    `.band` RULES, AND THAT DUPLICATION IS REAL, DELIBERATE AND GATED.
-    aesthetic.spec.ts scan 7 reads `clamp(260px, 52vmin, 560px)`,
-    `min(100vw, 1280px)`, `overflow-clip-margin: 6px`, the four-stop
-    `mask-image` gradient and `translateY(-24px)` out of BOTH files and compares
-    them after the same normalisation identity.spec.ts uses. Change one without
-    the other and the scan goes red naming both files and the literal. Do NOT
-    "clean this up" by reaching into Coverflow.svelte for a shared custom
-    property: that file is not edited in this phase, and its own header forbids
-    exactly this class of change.
-
-    THE BOX IS `.band`'s, NOT THE ROW'S. The row also holds the name plate, the
-    fidelity line and the panel, all of which carry words.
-
-    `inset-inline: 0` alone would over-reach: above 1280px the row is full-bleed
-    and the band is not, so the inline size and the auto margins are load-
-    bearing rather than copied for symmetry.
-
-    `overflow: clip` and `mask-image` are grouping properties, and they are
-    legal HERE for the reason they are legal on `.band`: this element is an
-    ancestor of nothing that lives in a 3D rendering context.
-  */
-  .crt-band {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline: 0;
-    block-size: clamp(260px, 52vmin, 560px);
-    inline-size: min(100vw, 1280px);
-    max-inline-size: 100%;
-    margin-inline: auto;
-    overflow: clip;
-    overflow-clip-margin: 6px;
-    mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      #000000 14%,
-      #000000 86%,
-      transparent 100%
-    );
-    pointer-events: none;
-    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-
-  /*
-    The band lifts 24px when a pad is chosen. A layer that did not follow would
-    slip 24px out of register the instant a visitor chose one.
-  */
-  .crt-band.chosen {
-    transform: translateY(-24px);
-  }
-
-  /*
-    LAYER R - one roll bar, for the whole page. Not one per card, not one per
-    surface: exactly one instance exists on the site, it is here, and it does
-    not mount at all while a pad is chosen, under SCREEN: FLAT, or on a machine
-    with four cores or fewer.
-
-    The reference implementation's cold blue #bed7ff12 becomes the accent at the
-    same alpha, read from --crt-roll in app.css. A borrowed hue would have been
-    a fourth colour on a site whose entire palette is three.
-
-    `will-change: transform` is the one promotion in this whole treatment, and
-    it is on the one element that actually moves every frame: a 22%-tall bar
-    travelling the height of the band on a composited transform, no repaint.
-  */
-  .crt-roll {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline: 0;
-    block-size: 22%;
-    background: var(--crt-roll);
-    pointer-events: none;
-    will-change: transform;
-    animation: crt-roll 6.5s linear infinite;
-  }
-
-  @keyframes crt-roll {
-    from {
-      transform: translateY(-130%);
-    }
-    to {
-      transform: translateY(520%);
-    }
-  }
-
-  /*
-    LAYER T - the tear. Seven step-end states over 180 ms of clip-path and
-    translateX, and NOT ONE `filter` PROPERTY ANYWHERE IN THE KEYFRAMES.
-    `hue-rotate`, `saturate`, `contrast` and `brightness` are all removed from
-    the ported effect: paint.ts:17-35 makes a CSS filter that adds or tints
-    colour over a pad face a FIDELITY violation rather than a style choice, and
-    the band is full of pad faces.
-
-    It clips and translates ITSELF - a pseudo-element with no contents - and
-    never an element that has any. That is what makes "animates a border box,
-    not its contents" achievable at all.
-
-    ARMED AT REST AND PAUSED, which is not an optimisation but the thing that
-    makes the reduced-motion gate mean something. With `animation-play-state:
-    paused` the computed animation-name here is `crt-tear` at rest and `none`
-    under reduced motion, so 10-UI-SPEC 8.7's gate 1 reads a real difference at
-    the compositor. Declared the other way round - no animation until a class
-    arrives - the gate would read "none" in both states and assert nothing. The
-    0% keyframe is the invisible resting state for exactly that reason: a
-    paused animation still applies its current value, and time zero is where it
-    sits.
-  */
-  .crt-band::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--crt-roll);
-    pointer-events: none;
-    opacity: var(--crt);
-    clip-path: inset(100% 0 0 0);
-    animation: crt-tear 180ms step-end 1;
-    animation-play-state: paused;
-  }
-
-  .crt-band.tearing::after {
-    animation-play-state: running;
-  }
-
-  @keyframes crt-tear {
-    0% {
-      clip-path: inset(100% 0 0 0);
-      transform: translateX(0);
-    }
-    2% {
-      clip-path: inset(12% 0 76% 0);
-      transform: translateX(-1.6%);
-    }
-    16% {
-      clip-path: inset(38% 0 54% 0);
-      transform: translateX(2.4%);
-    }
-    30% {
-      clip-path: inset(6% 0 88% 0);
-      transform: translateX(-3.2%);
-    }
-    44% {
-      clip-path: inset(64% 0 28% 0);
-      transform: translateX(1.6%);
-    }
-    58% {
-      clip-path: inset(22% 0 70% 0);
-      transform: translateX(-2.4%);
-    }
-    72% {
-      clip-path: inset(52% 0 42% 0);
-      transform: translateX(3.2%);
-    }
-    86% {
-      clip-path: inset(80% 0 14% 0);
-      transform: translateX(-1.6%);
-    }
-    100% {
-      clip-path: inset(100% 0 0 0);
-      transform: translateX(0);
-    }
-  }
-
-  /*
-    SCREEN: FLAT. `content: none` removes the tear outright rather than fading
-    it, which is what gate 2 reads. Layer R is not here because it is not in the
-    DOM at all under FLAT.
-  */
-  :global(html[data-screen="flat"]) .crt-band::after {
-    content: none;
-  }
-
-  /*
-    SWITCH 1 - and it is a SECOND reduced-motion block on purpose, sitting after
-    the rules it overrides rather than beside the --arrive-ms one further up. A
-    media query adds no specificity, so a `transition: none` written above
-    `.crt-band`'s own `transition` would simply lose.
-
-    THE REFERENCE'S OWN REDUCED-MOTION RULE DOES NOT STOP ITS SCANLINE SWEEP.
-    That is the bug this treatment is re-derived rather than ported to avoid,
-    and it is a direct consequence of spreading motion across two components'
-    pseudo-elements. Both moving layers are stopped here, in one block, three
-    lines apart, and 10-UI-SPEC 8.7's gate 1 reads animationName at the
-    compositor in both browser projects - which the shipped canvas-backing-store
-    assertions structurally cannot see, because a CSS overlay painted above a
-    canvas never touches that canvas's bytes.
-
-    Layers G and S are untouched by this block because they do not move. Their
-    off switch is SCREEN, and that is the whole argument for SCREEN existing.
-  */
-  @media (prefers-reduced-motion: reduce) {
-    .crt-band {
-      transition: none;
-    }
-
-    .crt-band.chosen {
-      transform: none;
-    }
-
-    .crt-roll {
-      animation: none;
-    }
-
-    .crt-band::after {
-      animation: none;
-    }
   }
 
   @media (max-width: 639px) {

@@ -19,35 +19,39 @@
   eighty-one lamps collapsed into one rectangle that read as a card which had
   failed to load. Nine rows of nine dots on black is a dot grid, not a pad.
 
-  So Layer 1 carries a WASH as well as its dots - one quarter of the dot's own
-  alpha, off the same token - and Layer 3's gutters cut it into 81 dark lamps.
-  It is global, not scoped to the dark entry, and that is the point: an unlit
-  cell on the pad that can never light is exactly as strong as an unlit cell on
-  every other card, which is parity by construction rather than a branch.
+  So Layer 1 carries a WASH as well as its dots - a fraction of the dot's own
+  token - and Layer 3's gutters cut it into 81 dark lamps. It is global, not
+  scoped to the dark entry, and that is the point: an unlit cell on the pad
+  that can never light is exactly as strong as an unlit cell on every other
+  card, which is parity by construction rather than a branch.
 
   Layers 1, 3 and 4 are CSS the browser paints once. This component therefore
   issues no draw call of its own, holds no engine and reaches nothing under
   src/vendor - the canvas it wraps is owned by the simulator host, which sets
   its 9x9 backing store and does every paint (04-UI-SPEC W-07).
 
-  The canvas is inset 6px inside the 10px corner radius. Six is not on the
-  4-point spacing scale and is not meant to be: it is the smallest inset that
-  stops the corner arc clipping a corner LED (04-UI-SPEC, Spacing, exception 3).
+  THE FRAME IS SQUARE (13-CONTEXT.md D-01, plan 13-04, 2026-09-11). The root
+  carried a 10px corner radius from Phase 4, and the canvas was inset 6px to
+  keep the corner arc off a corner LED (04-UI-SPEC, Spacing, exception 3).
+  D-01 overrides every radius to zero and src/lib/ui/radius.spec.ts holds this
+  file at none, so the arc is gone and the inset is kept for a different
+  reason: the coverflow's geometry, the browse wall and layer C's
+  computed-style sweep were all measured with the face 6px inside the frame,
+  and the three siblings share the inset.
 
   No CSS here may author a colour the simulator did not emit. The only light
-  HANGAR adds around a pad is the lime glow on the hero's frame; there is no
-  drop-shadow, no blur, no hue-rotate, no sepia and no invert anywhere near a
-  pad face (04-UI-SPEC, Color).
+  HANGAR adds around a pad is the action-colour bloom on the hero's frame - §3
+  reserves glow for the light output, and the frame's bloom is the light
+  output's; there is no drop-shadow, no blur, no hue-rotate, no sepia and no
+  invert anywhere near a pad face (04-UI-SPEC, Color).
 
-  AMENDED BY NAME (Phase 10, plan 10-04, 10-UI-SPEC 8.2 and 8.3). That sentence
-  gains a fourth clause. ONE pointer-events: none pseudo-element is admitted
-  over the pad face: Layer S, a repeating gradient and a noise tile at a layer
-  opacity of at most 0.18, which adds NO COLOUR and only darkens. It carries no
-  filter, no blur, no promotion and no shadow, and it is a leaf of the 3D tree -
-  the same position filter: brightness() already legally occupies on the slot -
-  so it flattens nothing. A comment that quietly stopped being true is how a
-  header stops being read, which is why this paragraph is here rather than in a
-  planning document.
+  LAYER S WENT AT 13-04 (13-CONTEXT.md D-09). Plan 10-04 admitted one
+  pointer-events: none pseudo-element over the face - a repeating gradient and
+  a noise tile at a layer opacity of 0.18, scoped to the front door after a
+  61 ms measurement on webkit-phone - and the Bible's §3 asks for solid
+  surfaces inside the working application. The pseudo-element, its noise tile
+  and its SCREEN: FLAT rule were deleted together; what is left is the pad and
+  nothing over it, and instrument.spec.ts scan 6 holds the vocabulary absent.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -85,13 +89,13 @@
 </div>
 
 <style>
-  /* Layer 4: the frame. Decorative on a side pad, functional on the hero. */
+  /* Layer 4: the frame. Decorative on a side pad, functional on the hero.
+     Square corners (D-01): the 10px radius went at 13-04. */
   .pad {
     position: relative;
     inline-size: 100%;
     block-size: 100%;
     border: 1px solid var(--color-divider);
-    border-radius: 10px;
     background: var(--color-workspace);
   }
 
@@ -132,19 +136,21 @@
     --color-divider at full strength; the wash is the same token at 15% - it
     was 25% while the token was lime at 0.2 alpha, and 13-03's eleven-token
     palette made the divider an opaque graphite, so 25% of it would have been
-    a 0.25 alpha and e2e/aesthetic.e2e.ts holds the wash under 0.2. 15% keeps
-    it strictly dimmer at every pixel, which keeps the dot the brightest mark
-    in an unlit cell and keeps this card's unlit cells at exactly the strength
-    every other card's have. 13-04 re-skins this frame.
+    a 0.25 alpha against the 0.2 cap the browser gate of the day held. 15%
+    keeps it strictly dimmer at every pixel, which keeps the dot the brightest
+    mark in an unlit cell and keeps this card's unlit cells at exactly the
+    strength every other card's have. aesthetic.spec.ts scan 8 caps the
+    fraction at 50 and asserts the token; 13-04 removed Layer S and the
+    frame's radius and left this layer as it was.
 
     color-mix RATHER THAN A LITERAL, A NEW TOKEN OR A PSEUDO-ELEMENT. A literal
     rgba() here would be a colour no gate on this site can see: identity.spec.ts
     reads src/app.css and nothing else, and 10-04 proved twice that even inside
-    that file a percent-encoded hue passes all seven of its assertions. A tenth
+    that file a percent-encoded hue passes all of its assertions. A twelfth
     --color-* token is red by construction. A ::before with an opacity would be
-    a fifth layer and a paint-time group on every one of thirty-six cards. This
-    is one declaration that names the existing token, so every colour gate still
-    reads a var() and the ladder is still nine with three hexes.
+    a fifth layer and a paint-time group on every one of the browse wall's
+    cards. This is one declaration that names the existing token, so every
+    colour gate still reads a var().
   */
   .dots {
     background-color: color-mix(in srgb, var(--color-divider) 15%, transparent);
@@ -180,73 +186,5 @@
       );
     background-position: -0.45% -0.45%;
     pointer-events: none;
-  }
-
-  /*
-    LAYER S - scanlines and noise on pad frames, and ONLY on pad frames
-    (10-UI-SPEC 8.2, 8.3, 8.5).
-
-    THE NOISE TILE LIVES HERE AND NOT IN src/app.css, AND THAT WAS MEASURED.
-    Plan 10-04 declared it as --crt-noise at :root in app.css and ran
-    identity.spec.ts: seven passed. It then wrote fill='%23ff0000' - a pure red,
-    a fourth hue - into the same data-URI and ran it again: seven passed again.
-    That file's hex walk matches a literal '#', and a percent-encoded one is not
-    one, so a colour hidden inside a data-URI there is invisible to every colour
-    gate the site has. Here, aesthetic.spec.ts scan 6 reads the tile and asserts
-    it declares no `fill` attribute at all - the filter's own output is the only
-    thing that colours a pixel of it.
-
-    THE SELECTOR IS SCOPED TO THE FRONT DOOR, AND THAT IS A MEASUREMENT, NOT A
-    TASTE. 10-UI-SPEC 8.5 requires an A/B of this exact pair of background
-    layers against the shipped /browse/ at thirty-six entries, and rules that if
-    the delta exceeds 2 ms at the 95th percentile then Layer S is scoped to the
-    front door's seven frames and the browse grid keeps Layer G alone. Measured
-    on this machine, median of three runs per arm, p95 of requestAnimationFrame
-    deltas across a full scroll of the grid: chromium 16.70 ms with and 16.70 ms
-    without - a delta of 0.00 ms - and webkit at a phone viewport 138 ms with
-    against 77 ms without, a delta of 61 ms, with the sampled frame count
-    halving from 128 to 65. Thirty times the threshold on one of the two
-    engines. The declared fallback therefore applies, and this one selector is
-    where it applies: `.front-door` is FrontDoor.svelte's own root class, so the
-    coverflow's seven frames carry the treatment and the browse grid's
-    thirty-six do not.
-
-    inset: 6px puts it inside the 10px radius and off the frame's own border,
-    exactly as its three siblings sit. The 5px scanline period is a declared
-    non-token texture metric (10-UI-SPEC 6, exception 5). --crt-scanline is read
-    from app.css and is deliberately NOT declared here, for the reason that
-    file's own comment gives.
-  */
-  .pad {
-    --crt-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='crtNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23crtNoise)'/%3E%3C/svg%3E");
-  }
-
-  :global(.front-door) .pad::after {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border-radius: 4px;
-    pointer-events: none;
-    opacity: calc(0.18 * var(--crt, 1));
-    background-image:
-      repeating-linear-gradient(
-        to bottom,
-        var(--crt-scanline) 0 1px,
-        transparent 1px 5px
-      ),
-      var(--crt-noise);
-    background-size:
-      auto,
-      220px 220px;
-  }
-
-  /*
-    SCREEN: FLAT. `content: none` removes the pseudo-element outright rather
-    than fading it to nothing, which is what 10-UI-SPEC 8.7's browser gate 2
-    reads. An opacity folded to zero would leave that assertion green over a
-    layer that was still being composited.
-  */
-  :global(html[data-screen="flat"] .front-door) .pad::after {
-    content: none;
   }
 </style>

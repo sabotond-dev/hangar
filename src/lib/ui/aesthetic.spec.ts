@@ -1,21 +1,41 @@
 /**
- * IDENT-01 / IDENT-02 — the CRT and glitch treatment, asserted as source
- * structure rather than promised in a comment (10-UI-SPEC §8.7).
+ * IDENT-01 / IDENT-02 - what is left of the aesthetic source scans after the
+ * CRT went (10-UI-SPEC §8.7, retired in part by 13-CONTEXT.md D-09).
  *
- * THIS FILE HOLDS ONE SCAN TODAY AND SEVEN AFTER 10-04, AND THAT IS
- * DELIBERATE. §17 asks for all seven in Wave 0. Six of them scan for
- * `.crt-band`, `body::before`, the pad frame's `::after` and the noise tile,
- * none of which exists on a Wave 0 tree, and each carries a non-vacuity floor -
- * so six would be red on arrival, which is a scheduled failure rather than a
- * gate. 09-VALIDATION already named that failure mode: an assertion that
- * cannot be true yet is not a gate.
+ * WHAT THIS FILE USED TO GATE. Eight scans over the CRT and glitch treatment
+ * Phase 10 built: scan 1 held the CRT vocabulary inside an allowlist of four
+ * files and every --crt property inside src/app.css; scan 2 held every layer
+ * to pointer-events: none and its real elements aria-hidden; scan 3 held the
+ * shell's subtree empty of words; scan 5 held every CRT selector off a canvas;
+ * scan 6 held the noise tile free of any fill; scan 7 held the shell's five
+ * geometry literals string-equal to Coverflow.svelte's .band. Each landed in
+ * the same commit as the layer it gated (10-VALIDATION V-01).
  *
- * Scan 4 is here in Wave 0 because it is the only one of the seven that can be
- * true on a tree with no CRT, and it is the one that protects the file this
- * phase promises not to touch. Scans 1, 2, 3, 5, 6 and 7 land in 10-04, in the
- * same commit as the layer each one gates - never afterwards, because a gate
- * that arrives after the thing it gates has already shipped is a comment.
- * (10-VALIDATION amendment V-01.)
+ * WHAT WENT, AND WHEN. On 2026-09-11 plan 13-04 deleted the CRT treatment -
+ * Layer G on body::before, Layer S on the pad frames, Layers R and T inside
+ * the front door's shell, the --crt property and the SCREEN switch - under
+ * D-09, because the Bible's §3 asks for solid surfaces inside the working
+ * application and the PDF's own intro is flat. Scans 1, 2, 3, 5, 6 and 7 were
+ * deleted by name with it: each asserted a non-vacuity floor over a thing that
+ * no longer exists, and a floor over nothing is a scheduled failure rather
+ * than a gate. The deletion removed its own gate over the vocabulary, so
+ * instrument.spec.ts scan 6 now holds that vocabulary absent from every
+ * stylesheet and component on every run.
+ *
+ * WHAT THIS FILE GATES NOW - TWO SCANS, BOTH WITH A LIVE SUBJECT.
+ *
+ * Scan 4 was here in Wave 0 because it was the only one of the seven that
+ * could be true on a tree with no CRT, and it is the one that survives a tree
+ * with no CRT for the same reason: its subject is Coverflow.svelte's own 3D
+ * context, which stays ungrouped, and its band, which keeps its clip and its
+ * mask. Nothing in it names the CRT. It stays until 13-09 deletes the
+ * coverflow (13-VALIDATION D-5), and the plan that deletes the component
+ * deletes this scan by name in the same commit.
+ *
+ * Scan 8 is the unlit cell (10-UI-SPEC A-58, A-59): the dot is still there,
+ * the wash is the token rather than a colour, the fraction is capped, and the
+ * pad that lights nothing is still declared dark. It is about the pad and not
+ * about the texture, which is why it stays in place and the file survives.
  *
  * SCAN 4 ASSERTS BOTH DIRECTIONS, AND THE SECOND DIRECTION IS THE ONE THE
  * SPEC'S OWN FIRST PASS HAD BACKWARDS. `.band`'s `overflow: clip` and its edge
@@ -37,31 +57,12 @@
  *   2. matches a declaration on its PROPERTY NAME, the token left of the first
  *      colon, and never on a body substring.
  *
- * A substring implementation of either half turns this phase's one Wave 0 gate
- * red on arrival, which is precisely what V-01 exists to prevent.
- *
- * ---------------------------------------------------------------------------
- * AMENDED BY PLAN 10-04. Scans 1, 2, 5 and 6 land in task 1 with Layers G and
- * S; scans 3 and 7 land in task 2 with the `.crt-band` shell and Layers R and
- * T. Each is in the same commit as the layer it gates, never afterwards.
- *
- * SCAN 1 CARRIES A HALF THE SPEC DID NOT ASK FOR, AND IT IS THE HALF THAT
- * CLOSES A MEASURED HOLE. 10-UI-SPEC 8.7 states scan 1 as "the four layer
- * selectors appear only in an explicit allowlist of files". An allowlist of
- * SELECTORS cannot catch plan 10-02's negative check 4, which moved
- * `--crt-scanline` from src/app.css into PadFrame.svelte's <style> and left
- * BOTH gates green - PadFrame.svelte is on the allowlist, so the selector half
- * is satisfied by the very move that hides the colour. So scan 1 also holds
- * 10-UI-SPEC 7.1's placement rule: every `--crt` custom property is declared in
- * src/app.css, the one file identity.spec.ts reads, with `--crt-noise` as the
- * single named exception asserted from both sides; and no CRT rule outside that
- * file writes a colour literal at all, `mask-image` excepted because a colour
- * in a mask is opacity rather than paint. Re-run with `--crt-scanline` moved
- * into PadFrame.svelte: identity.spec.ts 7 passed, scan 1 red, naming the file.
+ * A substring implementation of either half turns this gate red on a legal
+ * rule, which is precisely what V-01 exists to prevent.
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 // Scan 8's honesty half is imported rather than described. A CSS wash on an
@@ -75,20 +76,7 @@ const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
 
 const COVERFLOW = "src/lib/ui/Coverflow.svelte";
-const APP_CSS = "src/app.css";
 const PAD_FRAME = "src/lib/ui/PadFrame.svelte";
-const FRONT_DOOR = "src/lib/ui/FrontDoor.svelte";
-const SCREEN_TOGGLE = "src/lib/ui/ScreenToggle.svelte";
-/**
- * NOT A CRT FILE, AND SCAN 1 SAYS SO BY NAME (plan 10-11).
- *
- * §8.4 retired the reroll firing on the tune panel BY NAME, and MIX TWO is the
- * second control that would have carried it. The panel is a Product surface
- * that renders its own words, so a `clip-path` or a `transform` on it would
- * translate and clip them. The allowlist stays closed and this file is the
- * proof that the closure was checked rather than assumed.
- */
-const MIX_TWO = "src/lib/ui/MixTwo.svelte";
 
 /**
  * identity.spec.ts's stripper, verbatim in behaviour: comments go before
@@ -244,285 +232,9 @@ const FORBIDDEN_ON_STAGE = [
   "-webkit-mask-image",
 ];
 
-// ---------------------------------------------------------------------------
-// SCANS 1, 2, 5 and 6 - the CRT layers themselves (10-UI-SPEC 8.7).
-//
-// THE ALLOWLIST IS THE POINT OF SCAN 1, so it is written out here once and read
-// by four scans rather than restated in each. A file that is not on this list
-// may not name a single word of the CRT vocabulary below, which is what makes
-// "the off switch is one attribute, not a hunt" a property of the source
-// instead of a promise.
-const CRT_FILES: readonly string[] = [
-  APP_CSS,
-  PAD_FRAME,
-  FRONT_DOOR,
-  SCREEN_TOGGLE,
-];
-
-/**
- * The vocabulary. Every string here belongs to the CRT and to nothing else on
- * this site, and each is asserted to be FOUND at least once inside the
- * allowlist - so a layer that is renamed away goes red rather than making the
- * walk pass on an empty search.
- *
- * `--crt` is a prefix and covers `--crt-scanline` and `--crt-noise` with it.
- */
-const CRT_VOCABULARY: ReadonlyArray<readonly [string, string]> = [
-  ["--crt", "the gate property and the two texture values derived from it"],
-  ["data-screen", "the one attribute on <html> that is the whole off switch"],
-  ["body::before", "Layer G, the page ground"],
-  [".pad::after", "Layer S, scanlines and noise on pad frames"],
-  ["crt-band", "the shell that binds Layers R and T to the band's own box"],
-  ["crt-roll", "Layer R, the one roll bar for the whole page"],
-  ["crt-tear", "Layer T's keyframes - the 180 ms tear on the connect event"],
-];
-
-/**
- * Everything under src/, minus the specs. A GATE HAS TO QUOTE THE NAMES IT
- * PINS, so including `*.spec.ts` would forbid the mechanism - the same
- * reasoning install-copy.spec.ts's Z-08 walk records for its own exclusion.
- * Nothing else is excluded: src/vendor/ is walked like any other directory,
- * because a CRT selector appearing in the ported simulator would be a real
- * finding rather than noise.
- */
-function walkSource(dir: string, out: string[] = []): string[] {
-  for (const entry of readdirSync(REPO_ROOT + dir, { withFileTypes: true })) {
-    const path = `${dir}/${entry.name}`;
-    if (entry.isDirectory()) {
-      walkSource(path, out);
-    } else if (
-      /[.](?:ts|js|svelte|css)$/.test(entry.name) &&
-      !/[.](?:spec|test)[.](?:ts|js)$/.test(entry.name)
-    ) {
-      out.push(path);
-    }
-  }
-  return out;
-}
-
-interface Parsed {
-  file: string;
-  /** Comments stripped. A comment can never pass or fail a check. */
-  stripped: string;
-  /** Markup only, for a .svelte file; empty for a stylesheet. */
-  template: string;
-  /** The <style> block, or the whole file for a stylesheet. */
-  css: string;
-  rules: Rule[];
-}
-
-function parseFile(file: string): Parsed {
-  const stripped = strip(read(file));
-  const isStylesheet = file.endsWith(".css");
-  const css = isStylesheet
-    ? stripped
-    : (/<style>([^]*)<\/style>/.exec(stripped)?.[1] ?? "");
-  return {
-    file,
-    stripped,
-    template: isStylesheet ? "" : stripped.replace(/<style>[^]*<\/style>/, ""),
-    css,
-    rules: parseRules(css),
-  };
-}
-
-const crtSources = new Map<string, Parsed>(
-  CRT_FILES.map((file) => [file, parseFile(file)]),
-);
-
-/**
- * The four layers, each named by the rightmost compound of the rule that
- * declares it - the same discipline scan 4 uses, and for the same reason.
- * Layers R and T join in plan 10-04 task 2, with the shell that carries them.
- */
-interface Layer {
-  /** G, S, R or T. */
-  id: string;
-  what: string;
-  file: string;
-  /** The rightmost compound of the rule that declares the layer. */
-  compound: string;
-  /**
-   * The element whose markup must carry aria-hidden="true". Pseudo-elements
-   * have no accessibility node at all, so only a real element is named here.
-   */
-  ariaHiddenOn?: string;
-}
-
-const LAYERS: Layer[] = [
-  {
-    id: "G",
-    what: "the page ground - halftone and vignette, behind all content",
-    file: APP_CSS,
-    compound: "body::before",
-  },
-  {
-    id: "S",
-    what: "scanlines and noise, on pad frames and nothing else",
-    file: PAD_FRAME,
-    compound: ".pad::after",
-  },
-  {
-    id: "R",
-    what: "the roll bar - one for the whole page, inside the CRT shell",
-    file: FRONT_DOOR,
-    compound: ".crt-roll",
-    ariaHiddenOn: "crt-roll",
-  },
-  {
-    id: "T",
-    what: "the tear, a pseudo-element overlay on the connect event and no other",
-    file: FRONT_DOOR,
-    // A pseudo-element has no accessibility node of its own, so the element it
-    // decorates is what has to be hidden - and that element is the shell.
-    compound: ".crt-band::after",
-    ariaHiddenOn: "crt-band",
-  },
-];
-
-/**
- * SCAN 3's ALLOWLIST, AND EVERY ROW CARRIES ITS CONDITION IN THE ASSERTION
- * MESSAGE rather than in a comment somebody may not read. A row is not a
- * permission slip: each condition below is separately ASSERTED in scan 3, so a
- * file whose condition stops being true goes red even though its row is still
- * here.
- */
-const TEXT_CONDITIONS: ReadonlyArray<readonly [string, string]> = [
-  [
-    FRONT_DOOR,
-    '.crt-band is aria-hidden="true", pointer-events: none, and geometrically ' +
-      "bounded to .band's own box - which holds pads and nothing else. The " +
-      "wordmark, the headline, the name plate, the fidelity line and the chosen " +
-      "panel are all SIBLINGS of that box, never descendants of it.",
-  ],
-  [
-    PAD_FRAME,
-    "Layer S is a pseudo-element on .pad, and .pad renders no text at all: its " +
-      "three children are the dot field, the canvas face and the gutter grid.",
-  ],
-  [
-    SCREEN_TOGGLE,
-    "it declares no CRT layer at all. It names data-screen because it WRITES " +
-      "data-screen - it is the control that flips the switch, and a control has " +
-      "to have a label.",
-  ],
-];
-
-/**
- * SCAN 7's FIVE LITERALS. Each is read out of Coverflow.svelte's `.band` rules
- * and out of FrontDoor.svelte's `.crt-band` rules and compared after
- * identity.spec.ts's normalisation, so a change to one file that is not made to
- * the other goes red and names both.
- *
- * A capture group is used where the literal cannot be recognised on its own -
- * `6px` and a `linear-gradient(` are both far too common to match bare - and
- * the whole match otherwise. Where there is a group, group 1 is the literal.
- */
-const GEOMETRY: ReadonlyArray<readonly [string, RegExp]> = [
-  ["the hero pad size", /clamp\([^)]*\)/],
-  ["the band's inline size", /min\([^)]*\)/],
-  ["the clip margin", /overflow-clip-margin:\s*([^;]+)/],
-  [
-    "the four-stop edge fade",
-    /mask-image:\s*(linear-gradient\((?:[^()]|\([^()]*\))*\))/,
-  ],
-  ["the chosen lift", /translateY\([^)]*\)/],
-];
-
-/** Text a visitor reads, as opposed to a class name or an attribute. */
-const TEXT_BEARING =
-  /<(?:p|h[1-6]|label|button|li|dt|dd|figcaption|legend)[\s>]/;
-
-/**
- * The whole opening tag of the element whose `class` attribute carries this
- * name as a WHOLE TOKEN, or undefined.
- *
- * A SCAN RATHER THAN ONE REGULAR EXPRESSION, and the reason is a mistake this
- * plan actually made: `crt-roll` has a hyphen in it, so a substring match would
- * also accept `not-crt-roll`, and the word boundary that fixes that is written
- * `\b` - which inside a TEMPLATE LITERAL is the backspace character and not an
- * assertion at all. The version of this check that carried that bug matched
- * nothing and said the element was missing. This file is deliberately
- * backslash-free above for the same class of reason; the discipline now
- * extends to the checks written into it.
- */
-function openingTagWithClass(
-  template: string,
-  className: string,
-): string | undefined {
-  for (const tag of template.matchAll(/<[a-z][^<>]*>/g)) {
-    const value = /class="([^"]*)"/.exec(tag[0])?.[1];
-    if (value === undefined) continue;
-    if (value.split(" ").includes(className)) return tag[0];
-  }
-  return undefined;
-}
-
-/**
- * The markup between an element's opening tag and its matching close, counting
- * <div> nesting. Every element inside the CRT shell is a div, which is what
- * makes this tractable without a parser - and if that ever stops being true,
- * the depth count is wrong in the SAFE direction: it returns too little, and
- * too little cannot hide a word that scan 3 is looking for further down.
- */
-function subtreeAfter(template: string, openTag: string): string | undefined {
-  const at = template.indexOf(openTag);
-  if (at < 0) return undefined;
-  const start = at + openTag.length;
-  let depth = 1;
-  let i = start;
-  while (i < template.length && depth > 0) {
-    if (template.startsWith("</div>", i)) {
-      depth -= 1;
-      if (depth === 0) break;
-      i += 6;
-      continue;
-    }
-    if (/^<div[\s>]/.test(template.slice(i, i + 5))) {
-      depth += 1;
-      i += 4;
-      continue;
-    }
-    i += 1;
-  }
-  return template.slice(start, i);
-}
-
-/** Every rule in a file whose rightmost compound is exactly this string. */
-function rulesFor(parsed: Parsed, compound: string): Rule[] {
-  return parsed.rules.filter((rule) =>
-    rightmostCompounds(rule.selector).some((one) => one === compound),
-  );
-}
-
-/**
- * A rule belongs to the CRT if its selector names the vocabulary, or if it
- * declares or reads a `--crt` property. Matched on PROPERTY NAMES and on the
- * selector, never on a body substring - scan 4's discipline, for scan 4's
- * reason.
- */
-function isCrtRule(rule: Rule): boolean {
-  if (CRT_VOCABULARY.some(([token]) => rule.selector.includes(token))) {
-    return true;
-  }
-  return rule.declarations.some(
-    (declaration) =>
-      declaration.property.startsWith("--crt") ||
-      declaration.value.includes("var(--crt"),
-  );
-}
-
 /** A written-out colour: a hex, or any colour function. Never a var(). */
 const COLOUR_LITERAL =
   /#[0-9a-fA-F]{3,8}|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/;
-
-/**
- * THE ONE CRT CUSTOM PROPERTY THAT MAY NOT LIVE IN src/app.css, named with its
- * reason and asserted from BOTH sides below - the shape 10-03's
- * AMENDED_BY_MEASUREMENT row established. It carries no colour at all, and
- * scan 6 is what holds it to that.
- */
-const NOISE_TOKEN = "--crt-noise";
 
 describe("IDENT-01 aesthetic source scans (10-UI-SPEC §8.7)", () => {
   it("scan 4: Coverflow.svelte's 3D context stays ungrouped and its band keeps its clip and its mask", () => {
@@ -627,424 +339,6 @@ describe("IDENT-01 aesthetic source scans (10-UI-SPEC §8.7)", () => {
   });
 });
 
-describe("IDENT-01 the CRT layers (10-UI-SPEC 8.7)", () => {
-  it("scan 1: the CRT vocabulary appears only inside its allowlist of files", () => {
-    const files = walkSource("src");
-
-    // ---- Non-vacuity, before a single claim about what was found. ----
-    expect(
-      files.length,
-      `the walk over src/ found ${files.length} source files`,
-    ).toBeGreaterThan(50);
-    for (const file of CRT_FILES) {
-      expect(
-        files.includes(file),
-        `the walk reached ${file}, which is on the allowlist`,
-      ).toBe(true);
-    }
-
-    /** file -> the vocabulary it names, comments stripped. */
-    const named = new Map<string, string[]>();
-    for (const file of files) {
-      const stripped = strip(read(file));
-      const hits = CRT_VOCABULARY.filter(([token]) =>
-        stripped.includes(token),
-      ).map(([token]) => token);
-      if (hits.length > 0) named.set(file, hits);
-    }
-
-    // The floor: every word of the vocabulary is really in the tree, so a
-    // renamed layer cannot make this walk pass on an empty search.
-    for (const [token, what] of CRT_VOCABULARY) {
-      const where = [...named.entries()]
-        .filter(([, hits]) => hits.includes(token))
-        .map(([file]) => file);
-      expect(
-        where,
-        `"${token}" is ${what}, and no file in src/ names it - a renamed layer ` +
-          "leaves this scan checking nothing, which is why the floor is here",
-      ).not.toEqual([]);
-    }
-
-    // ---- (a0) MIX TWO, NAMED, BECAUSE §8.4 RETIRED ITS FIRING BY NAME.
-    // The general rule below would catch this too, and it is asserted
-    // separately anyway and FIRST, for the reason 10-10's negative check 5
-    // taught: a red run has to name the rule, and "MixTwo.svelte names the CRT
-    // vocabulary" is a fact where "§8.4 retired the reroll firing on the tune
-    // panel" is the reason. The file is asserted PRESENT in the walk first, so
-    // this cannot pass because the component was renamed away.
-    expect(
-      files.includes(MIX_TWO),
-      `${MIX_TWO} was not reached by the walk over src/, so the two assertions below prove nothing about it`,
-    ).toBe(true);
-    expect(
-      CRT_FILES.includes(MIX_TWO),
-      `${MIX_TWO} is on the CRT allowlist. It is a tune-panel component, and 10-UI-SPEC §8.4 retires the reroll firing for SURPRISE ME and MIX TWO BY NAME: the tune panel is a Product surface, and a clip-path on it would translate and clip its own text. The children arrive on a 160 ms opacity fade and nothing else.`,
-    ).toBe(false);
-    expect(
-      named.get(MIX_TWO) ?? [],
-      `${MIX_TWO} declares CRT vocabulary. §8.4: the tune panel is a Product surface and the reroll firing is retired by name - a clip-path or a transform there would translate and clip the words the panel renders. The arrival is opacity, 160 ms, and nothing else.`,
-    ).toEqual([]);
-
-    // ---- (a) The vocabulary lives inside the allowlist. ----
-    for (const [file, hits] of named) {
-      expect(
-        CRT_FILES.includes(file),
-        `${file} names the CRT vocabulary ${JSON.stringify(hits)} and is NOT on the ` +
-          `allowlist [${CRT_FILES.join(", ")}]. The CRT is a property of a pad frame, ` +
-          "the coverflow band's own box or the page ground, and of nothing else " +
-          "(10-UI-SPEC 8.3). Either move the rule into an allowlisted file, or add " +
-          "this file to CRT_FILES and say in the same commit why a fifth surface " +
-          "may carry the treatment.",
-      ).toBe(true);
-    }
-
-    // ---- (b) EVERY --crt PROPERTY IS DECLARED IN src/app.css, AND THIS HALF
-    // IS THE ONE THAT CLOSES 10-02's SILENT-GREEN HOLE. That plan moved
-    // --crt-scanline out of app.css and into PadFrame.svelte's <style> and
-    // watched BOTH gates stay green, because identity.spec.ts reads one file
-    // and nothing then read the other. A colour that lives where the colour
-    // gate cannot see it is not gated at all, whatever the allowlist says
-    // about selectors. 10-UI-SPEC 7.1 is the placement rule; this is its
-    // assertion.
-    const declaredIn = new Map<string, string[]>();
-    for (const parsed of crtSources.values()) {
-      for (const rule of parsed.rules) {
-        for (const declaration of rule.declarations) {
-          if (!declaration.property.startsWith("--crt")) continue;
-          const where = declaredIn.get(declaration.property) ?? [];
-          where.push(parsed.file);
-          declaredIn.set(declaration.property, where);
-        }
-      }
-    }
-    expect(
-      [...declaredIn.keys()].sort(),
-      "the CRT declares custom properties to place",
-    ).not.toEqual([]);
-
-    for (const [property, where] of declaredIn) {
-      if (property === NOISE_TOKEN) continue;
-      for (const file of where) {
-        expect(
-          file,
-          `"${property}" is declared in ${file}. Every CRT custom property is declared ` +
-            "in src/app.css and read from there, because identity.spec.ts reads THAT " +
-            "FILE AND NOTHING ELSE: a colour authored inside a component <style> is " +
-            "invisible to every colour gate this site has, which plan 10-02 observed " +
-            "directly (its negative check 4 left identity.spec.ts green on exactly " +
-            "this move). The rule is 10-UI-SPEC 7.1's, and this is where it is held.",
-        ).toBe(APP_CSS);
-      }
-    }
-
-    // The one exception, asserted from BOTH sides so it cannot be widened by
-    // deleting a line: --crt-noise IS in PadFrame.svelte and is NOT in app.css.
-    expect(
-      declaredIn.get(NOISE_TOKEN),
-      `${NOISE_TOKEN} is declared in ${PAD_FRAME} and only there. It is the one CRT ` +
-        "property that may not live in src/app.css: a percent-encoded hue inside a " +
-        "data-URI reads as no hex at all to identity.spec.ts, so declaring it there " +
-        "would put the one colour the gate cannot see in the one file the gate reads.",
-    ).toEqual([PAD_FRAME]);
-
-    // ---- (c) No CRT rule outside src/app.css writes a colour. ----
-    // The named exception is `mask-image`, and the reason is that a colour in a
-    // mask is not paint - it is opacity. Scan 7 additionally pins that gradient
-    // byte-equal to Coverflow.svelte's, so it cannot drift into a hue.
-    const outside: Array<{ file: string; selector: string; text: string }> = [];
-    for (const parsed of crtSources.values()) {
-      if (parsed.file === APP_CSS) continue;
-      for (const rule of parsed.rules) {
-        if (!isCrtRule(rule)) continue;
-        outside.push({
-          file: parsed.file,
-          selector: rule.selector,
-          text: rule.body,
-        });
-      }
-    }
-    expect(
-      outside.length,
-      `the walk found ${outside.length} CRT rules outside src/app.css to check`,
-    ).toBeGreaterThan(0);
-
-    for (const parsed of crtSources.values()) {
-      if (parsed.file === APP_CSS) continue;
-      for (const rule of parsed.rules) {
-        if (!isCrtRule(rule)) continue;
-        for (const declaration of rule.declarations) {
-          if (declaration.property.endsWith("mask-image")) continue;
-          expect(
-            COLOUR_LITERAL.test(declaration.value),
-            `${parsed.file} writes a colour into "${declaration.property}: ${declaration.value}" ` +
-              `on "${rule.selector}". A CRT rule outside src/app.css reads its colour ` +
-              "through var(), never writes one: identity.spec.ts reads app.css alone, so " +
-              "a literal here is a hue no gate on this site can see. The one exception is " +
-              "mask-image, where a colour is opacity rather than paint.",
-          ).toBe(false);
-        }
-      }
-    }
-  });
-
-  it("scan 2: every CRT layer declares pointer-events: none, and the real elements are aria-hidden", () => {
-    // ---- Non-vacuity. ----
-    expect(
-      LAYERS.length,
-      `the layer table holds ${LAYERS.length} layers`,
-    ).toBeGreaterThan(0);
-
-    for (const layer of LAYERS) {
-      const parsed = crtSources.get(layer.file) as Parsed;
-      const rules = rulesFor(parsed, layer.compound);
-      expect(
-        rules.map((rule) => rule.selector),
-        `Layer ${layer.id} (${layer.what}) is declared in ${layer.file} on a rule whose ` +
-          `rightmost compound is "${layer.compound}"`,
-      ).not.toEqual([]);
-
-      const declarations = rules.flatMap((rule) => rule.declarations);
-      const pointerEvents = declarations.find(
-        (declaration) => declaration.property === "pointer-events",
-      );
-      expect(
-        pointerEvents?.value,
-        `Layer ${layer.id} (${layer.file}, "${layer.compound}") does not declare ` +
-          "pointer-events: none. Every CRT layer is decoration over a page people " +
-          "click on, and a layer that swallows a pointer is worse than no layer.",
-      ).toBe("none");
-
-      if (layer.ariaHiddenOn !== undefined) {
-        const element = openingTagWithClass(
-          parsed.template,
-          layer.ariaHiddenOn,
-        );
-        expect(
-          element,
-          `Layer ${layer.id} renders an element carrying class "${layer.ariaHiddenOn}" in ${layer.file}`,
-        ).toBeDefined();
-        expect(
-          (element as string).includes('aria-hidden="true"'),
-          `Layer ${layer.id}'s element (class "${layer.ariaHiddenOn}", ${layer.file}) is not ` +
-            'aria-hidden="true". It carries no information; announcing it puts a ' +
-            "decorative box into somebody's reading order.",
-        ).toBe(true);
-      }
-    }
-  });
-
-  it("scan 5: no CRT selector names a canvas", () => {
-    const crtRules: Array<{ file: string; selector: string }> = [];
-    for (const parsed of crtSources.values()) {
-      for (const rule of parsed.rules) {
-        const inSelector = CRT_VOCABULARY.some(([token]) =>
-          rule.selector.includes(token),
-        );
-        const inBody = rule.declarations.some(
-          (declaration) =>
-            declaration.property.startsWith("--crt") ||
-            declaration.value.includes("var(--crt"),
-        );
-        if (inSelector || inBody) {
-          crtRules.push({ file: parsed.file, selector: rule.selector });
-        }
-      }
-    }
-
-    // ---- Non-vacuity. ----
-    expect(
-      crtRules.length,
-      `the walk found ${crtRules.length} CRT rules across ${CRT_FILES.length} files`,
-    ).toBeGreaterThan(0);
-
-    for (const { file, selector } of crtRules) {
-      expect(
-        /\bcanvas\b/i.test(selector),
-        `${file} declares a CRT rule on "${selector}", which names a canvas. ` +
-          "paint.ts:17-35 makes any CSS that adds or tints colour over a pad face a " +
-          "FIDELITY violation rather than a style choice: the product's central claim " +
-          "is that those pixels are the firmware's own.",
-      ).toBe(false);
-    }
-  });
-
-  it("scan 6: the noise tile declares no fill - only the filter's own output colours it", () => {
-    const tiles: Array<{ file: string; uri: string }> = [];
-    for (const parsed of crtSources.values()) {
-      for (const match of parsed.css.matchAll(
-        /url\(\s*"(data:image\/svg\+xml,[^"]*)"\s*\)/g,
-      )) {
-        tiles.push({ file: parsed.file, uri: match[1] });
-      }
-    }
-
-    // ---- Non-vacuity: the tile exists, is declared once, and is the tile. ----
-    expect(
-      tiles.map((tile) => tile.file),
-      "exactly one SVG data-URI is declared across the allowlisted files - the noise tile",
-    ).toEqual([PAD_FRAME]);
-    const { uri } = tiles[0];
-    expect(
-      uri.includes("feTurbulence"),
-      "the tile is an feTurbulence tile, not some other SVG",
-    ).toBe(true);
-    expect(
-      uri.includes("filter="),
-      "the tile applies its filter to a shape, so the filter's output is what is painted",
-    ).toBe(true);
-
-    // ---- The claim: nothing in it declares a colour. ----
-    for (const spelling of ["fill=", "fill%3D", "fill:", "fill%3A"]) {
-      expect(
-        uri.includes(spelling),
-        `the noise tile in ${PAD_FRAME} declares "${spelling}". A colour written inside ` +
-          "a data-URI is invisible to identity.spec.ts - its hex walk matches a literal " +
-          "'#' and a percent-encoded one is not one - so the tile is the one place on " +
-          "this site a fourth hue could enter unseen. The filter's own output is the " +
-          "only thing that may colour a pixel of it.",
-      ).toBe(false);
-    }
-  });
-});
-
-describe("IDENT-01 the CRT reaches no word and duplicates no geometry silently", () => {
-  it("scan 3: no text-bearing element is a descendant of a CRT container", () => {
-    const components = CRT_FILES.filter((file) => file !== APP_CSS);
-
-    // ---- Non-vacuity, and it is asserted in BOTH directions. Every CRT
-    // component has a row, and no row names a file that is not a CRT
-    // component - so the list cannot be quietly widened, and a new CRT
-    // component cannot quietly arrive without stating its condition.
-    expect(
-      TEXT_CONDITIONS.map(([file]) => file).sort(),
-      "every CRT component carries a condition, and every condition names a CRT component",
-    ).toEqual([...components].sort());
-
-    for (const [, condition] of TEXT_CONDITIONS) {
-      expect(
-        condition.length,
-        "a row's condition is a sentence, not an empty string",
-      ).toBeGreaterThan(40);
-    }
-
-    const frontDoor = crtSources.get(FRONT_DOOR) as Parsed;
-    const padFrame = crtSources.get(PAD_FRAME) as Parsed;
-    const screenToggle = crtSources.get(SCREEN_TOGGLE) as Parsed;
-    const condition = (file: string) =>
-      TEXT_CONDITIONS.find(([name]) => name === file)?.[1] ?? "";
-
-    // ---- FrontDoor.svelte: the shell's own subtree, walked. ----
-    const shellTag = openingTagWithClass(frontDoor.template, "crt-band");
-    expect(
-      shellTag,
-      `${FRONT_DOOR} renders an element carrying class="crt-band", so there is a ` +
-        "subtree to walk. Without this the walk below would be over an empty string, " +
-        "and an empty string contains no words for the happiest of reasons.",
-    ).toBeDefined();
-    const shell = subtreeAfter(frontDoor.template, shellTag as string);
-    expect(
-      shell,
-      `${FRONT_DOOR}'s .crt-band element has a body to walk`,
-    ).toBeDefined();
-
-    const inside = shell as string;
-    expect(
-      TEXT_BEARING.test(inside),
-      `${FRONT_DOOR}: a text-bearing element is a descendant of .crt-band. ` +
-        `The condition this file is allowlisted under is: ${condition(FRONT_DOOR)} ` +
-        "A clip-path and a transform apply to an element AND EVERY DESCENDANT, and a " +
-        "0.186-alpha overlay over --color-ink-quiet takes it from 5.57:1 to about " +
-        "3.9:1 while identity.spec.ts stays green - that gate computes contrast from " +
-        "the DECLARED alpha (10-RESEARCH 3.5). The resolution is that the overlay " +
-        "CANNOT REACH the words, and this is where that is held.",
-    ).toBe(false);
-    expect(
-      inside
-        .replace(/<[^>]*>/g, "")
-        .replace(/\{[^}]*\}/g, "")
-        .trim(),
-      `${FRONT_DOOR}: .crt-band's subtree carries a text node. It holds Layer R and ` +
-        `nothing else, ever. Condition: ${condition(FRONT_DOOR)}`,
-    ).toBe("");
-
-    // ---- PadFrame.svelte: the whole template, since Layer S sits on .pad. ----
-    expect(
-      TEXT_BEARING.test(padFrame.template),
-      `${PAD_FRAME} renders a text-bearing element. Condition: ${condition(PAD_FRAME)}`,
-    ).toBe(false);
-
-    // ---- ScreenToggle.svelte: it renders labels, so it declares no layer. ----
-    for (const layer of LAYERS) {
-      expect(
-        rulesFor(screenToggle, layer.compound).map((rule) => rule.selector),
-        `${SCREEN_TOGGLE} declares Layer ${layer.id} ("${layer.compound}"). ` +
-          `Condition: ${condition(SCREEN_TOGGLE)} A control that flips the switch is ` +
-          "not a surface the switch acts on.",
-      ).toEqual([]);
-    }
-  });
-
-  it("scan 7: .crt-band's geometry is string-equal to .band's, across the two files", () => {
-    const coverflow = parseFile(COVERFLOW);
-    const frontDoor = crtSources.get(FRONT_DOOR) as Parsed;
-
-    const blob = (parsed: Parsed, className: string) =>
-      parsed.rules
-        .filter((rule) => targets(rule, className))
-        .map((rule) => rule.body)
-        .join(" ; ");
-
-    const bandText = blob(coverflow, "band");
-    const crtBandText = blob(frontDoor, "crt-band");
-
-    // ---- Non-vacuity: both sides parsed into something. ----
-    expect(
-      bandText.length,
-      `${COVERFLOW}'s .band rules parsed into ${bandText.length} characters`,
-    ).toBeGreaterThan(200);
-    expect(
-      crtBandText.length,
-      `${FRONT_DOOR}'s .crt-band rules parsed into ${crtBandText.length} characters`,
-    ).toBeGreaterThan(200);
-
-    for (const [what, pattern] of GEOMETRY) {
-      const fromBand = pattern.exec(bandText);
-      const fromShell = pattern.exec(crtBandText);
-
-      // Each literal is asserted FOUND on both sides before it is compared, so
-      // a rule deleted from either file is red rather than a comparison of two
-      // absences that happen to agree.
-      expect(
-        fromBand,
-        `${what} was not found in ${COVERFLOW}'s .band rules. It is one of the five ` +
-          "literals the CRT shell duplicates; if it left that file, the shell is now " +
-          "bound to a box that no longer exists.",
-      ).not.toBeNull();
-      expect(
-        fromShell,
-        `${what} was not found in ${FRONT_DOOR}'s .crt-band rules. The shell is sized ` +
-          `to ${COVERFLOW}'s .band and must carry all five of its literals.`,
-      ).not.toBeNull();
-
-      const band = normalise(
-        (fromBand as RegExpExecArray)[1] ?? (fromBand as RegExpExecArray)[0],
-      );
-      const shell = normalise(
-        (fromShell as RegExpExecArray)[1] ?? (fromShell as RegExpExecArray)[0],
-      );
-      expect(
-        shell,
-        `${what} DIFFERS between the two files. ${COVERFLOW}'s .band says "${band}" and ` +
-          `${FRONT_DOOR}'s .crt-band says "${shell}". The duplication is deliberate ` +
-          "(10-UI-SPEC 8.3): Coverflow.svelte is not edited in this phase, so the shell " +
-          "copies its box rather than sharing it. Change one and you must change the " +
-          "other, or the roll bar and the tear slip out of register with the pads.",
-      ).toBe(band);
-    }
-  });
-});
-
 describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", () => {
   it("scan 8: the unlit cell is drawn as a cell, in the token, and the pad that lights nothing is still dark", () => {
     const rules = parseRules(strip(read(PAD_FRAME)));
@@ -1116,12 +410,12 @@ describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", ()
     ).toBeGreaterThan(0);
 
     // ---- NOTHING NEW MOVES. Phase 4 snaps every animation to a static frame
-    // under prefers-reduced-motion and Playwright asserts exactly TWO layers
-    // stop; a moving wash would be a third.
+    // under prefers-reduced-motion (src/lib/sim/host.ts, a normal entry at
+    // tick 64); a moving wash would be uninvited motion on every card.
     for (const property of ["animation", "transition", "transform", "filter"]) {
       expect(
         declared.has(property),
-        `.dots declares "${property}". Layer 1 is painted once by the browser and stays painted - the reduced-motion contract asserts exactly two layers stop, and 04-UI-SPEC's Color rule puts no filter, no blur and no shadow anywhere near a pad face`,
+        `.dots declares "${property}". Layer 1 is painted once by the browser and stays painted - the reduced-motion contract stills every pad, and 04-UI-SPEC's Color rule puts no filter, no blur and no shadow anywhere near a pad face`,
       ).toBe(false);
     }
 

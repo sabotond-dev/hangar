@@ -491,16 +491,11 @@
   }
 
   /*
-    THE EMPTY STATE CARRIES THE GROUND, AND IT WAS FOUND BY A WALK RATHER THAN
-    BY READING A TEMPLATE (A-56).
-
-    It renders INSTEAD OF the card wall, inside the same `.grid` that /browse/
-    deliberately leaves transparent so the registration lattice keeps painting
-    between the cards - so the one screen where the page has nothing to show is
-    the one screen where the field would land on three lines of prose with
-    nothing in front of it. Nobody would have thought of it: it turned up in a
-    DOM walk over the built site with a query that matches no entry, and it is
-    named in 10-UI-SPEC A-56 for that reason rather than for its own sake.
+    THE EMPTY STATE PAINTS THE WORKSPACE ITSELF. It was A-56's third exception
+    to the registration field's ground rule, found by a DOM walk with a query
+    that matches no entry; the field and the rule went at 13-04 (D-09), and the
+    declaration stays as a stated fact for the same reason CatalogCard.svelte's
+    does.
   */
   .empty {
     display: flex;

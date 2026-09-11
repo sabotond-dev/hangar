@@ -238,20 +238,11 @@
     row starts at the same line whatever the descriptions do.
   */
   /*
-    THE CARD CARRIES THE GROUND ITSELF (A-56).
-
-    src/app.css's `.lattice > :where(*)` reaches a lattice root's DIRECT
-    children, and a card is four levels down - so the rule that keeps the
-    registration field off the site's prose cannot reach a description, a name
-    plate or a metadata row on its own. /browse/'s `.grid` is deliberately left
-    transparent so the field paints in the gutters between the cards; this
-    declaration is the other half of that trade, and without it the exception
-    above would mean "the lattice paints over thirty-six descriptions" instead
-    of "the lattice paints between thirty-six cards".
-
-    Measured before it was written: a DOM walk over the built site found 418
-    text-bearing elements under a lattice root with no opaque ancestor, and the
-    cards were most of them.
+    THE CARD PAINTS THE WORKSPACE ITSELF. It used to be one of A-56's three
+    exceptions to a ground rule that painted the registration field between
+    the cards; the field and the rule went at 13-04 (D-09), and the declaration
+    stays because the card's ground is a fact 13-08's re-skin should read here
+    rather than inherit.
   */
   .card {
     position: relative;

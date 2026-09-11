@@ -344,10 +344,13 @@ export class DeviceSession {
   unpluggedWhileWriting = $state(false);
   /**
    * HOW MANY TIMES A PERMITTED ZONA HAS ARRIVED ON THE CABLE in this page's
-   * life. A monotonic counter and not a boolean, because the one thing reading
-   * it - FrontDoor.svelte's 180 ms tear on `.crt-band::after` (10-UI-SPEC 8.4)
-   * - has to be able to tell a second arrival from the first, and a flag that
-   * went true twice would fire once.
+   * life. A monotonic counter and not a boolean, so a reader can tell a second
+   * arrival from the first where a flag that went true twice would fire once.
+   * Its one reader - FrontDoor.svelte's 180 ms tear on `.crt-band::after`
+   * (10-UI-SPEC 8.4) - was deleted with the CRT by 13-04 (13-CONTEXT.md D-09,
+   * 2026-09-11); the counter and its tests stay, because the event it counts
+   * is still the one thing on this site the visitor did not start, and the
+   * device UI (13-11) is the next surface with a reason to read it.
    *
    * INCREMENTED FROM #onSerialConnect AND FROM NOWHERE ELSE, past its two
    * guards, so it counts exactly the event the tear is about: real hardware
