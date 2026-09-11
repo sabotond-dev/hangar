@@ -45,17 +45,20 @@
      thing that runs inside the click's activation window. The session's own
      header explains why that is load-bearing.
 
-  The THREE strings TRY ON DEVICE writes come from three textareas on this page,
+  The FOUR strings TRY ON DEVICE writes come from four textareas on this page,
   so the probe needs no tuner and no formatter: the strings are short, printable
   and different from anything a scripted module holds at connect. The third one -
   install-system, added by plan 12-03 - is the SYSTEM element s page-init slot
-  (255/0), and it goes on the wire FIRST. It is the sure route for pasting an
-  arbitrary page init at a module, which is what 12-RESEARCH s touch probe
-  needed and what the shipped panel deliberately never offers. The two static
-  specifiers below are on the permitted list of the chunk guard
-  (src/lib/config-shape.spec.ts test 13): the session, and the install store
-  whose own three specifiers are two zero-import modules and the session.
-  Nothing else is imported.
+  (255/0). The fourth - install-system-timer, added by plan 12.1-08 - is the
+  SYSTEM element s timer slot (255/6), the first box on the page, and it goes on
+  the wire FIRST of all, ahead of the page init (sequence.ts s SLOTS order). It
+  is the sure route for pasting an arbitrary page timer at a module, which is
+  what the runbook s page-load row (12.1 D-04) needs: a way to put the library s
+  second half into 255/6 without the tuner. The two static specifiers below are
+  on the permitted list of the chunk guard (src/lib/config-shape.spec.ts test
+  13): the session, and the install store whose own three specifiers are two
+  zero-import modules and the session. Nothing else is imported; the fourth
+  textarea added none.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -68,30 +71,34 @@
   const NAME = "Probe";
 
   /**
-   * THE PAGE INIT, AND THE ONE LITERAL ON THIS PAGE THAT IS THE HONEST CHOICE.
+   * THE PAGE TIMER AND THE PAGE INIT, AND THE TWO LITERALS ON THIS PAGE THAT
+   * ARE THE HONEST CHOICE.
    *
    * Everywhere else in HANGAR a firmware default is READ FROM THE PINNED
    * PACKAGE and never typed (D-20 s rule; constants.ts). Here it is typed,
    * because this page exists to paste ARBITRARY strings at a module: this is a
    * starting value a visitor overwrites, not a claim about what the firmware
    * ships. Reading the real default would also mean naming $lib/protocol from
-   * a route file that deliberately names exactly two specifiers.
+   * a route file that deliberately names exactly two specifiers. The page
+   * timer (12.1-08) follows the same rule for the same reason; neither is the
+   * firmware s own text, and an empty box means "none of its own" - the store
+   * substitutes the real default in one place per slot (#pageInit, #pageTimer).
    */
+  let systemTimer = $state("--[[@cb]]--[[page timer]]");
   let system = $state("--[[@cb]]--[[page init]]");
   /** The page the request and confirm buttons below ask for (13-12). */
   let page = $state(0);
   let setup = $state("--[[@cb]]print(3)");
   let timer = $state("--[[@cb]]print(4)");
   /**
-   * What the RAM clicks and observeConfig read: the textareas, verbatim, in
-   * WRITE ORDER. Still called pair() - the name is what every button below
-   * already says, and it is four strings now. The system timer (255/6) is the
-   * EMPTY STRING here until 12.1-08 adds its textarea: empty means "none of
-   * its own", and the store substitutes the firmware's 255/6 default in one
-   * place (#pageTimer), exactly as it does for an empty page init. This line
-   * is 12.1-07's minimum so the probe keeps type-checking and writing four.
+   * What the RAM clicks and observeConfig read: the four textareas, verbatim,
+   * in WRITE ORDER. Still called pair() - the name is what every button below
+   * already says, and it is four strings now (12.1-07 carried an empty
+   * systemTimer here; 12.1-08 replaced it with the box). The order of this
+   * object is for the reader: the wire order is SLOTS' in sequence.ts, and
+   * the store reads the fields by name.
    */
-  const pair = () => ({ systemTimer: "", system, setup, timer });
+  const pair = () => ({ systemTimer, system, setup, timer });
 
   /**
    * THE TRACE. Every phase the store has been in since load, appended from an
@@ -113,13 +120,27 @@
   const keepReason = $derived(install.keepReason(capable) ?? "live");
   const putBack = $derived(install.putBackState());
 
-  /** `durable` / `session` / `none`, then the two lengths. */
+  /**
+   * `durable` / `session` / `none`, then the FOUR lengths in write order
+   * (the page timer, the page init, then the pair), then the record's key
+   * when it predates a slot: `v1` for a Phase 7 record (both system strings
+   * are the firmware defaults), `v2` for a Phase 12 record (the page timer
+   * is), nothing for a v3 record. Both flags are the store's own, rendered
+   * separately because this page renders values verbatim; a sentence that
+   * says "the record predates the timer slot" is true of EITHER and is the
+   * panel's to say (13-17 / 13-18), not this readout's.
+   */
   const snapshotLine = $derived.by(() => {
     const s = install.snapshot;
     if (!s) return "none";
     const kind = install.snapshotDurable ? "durable" : "session";
-    // Three lengths, in write order: the page init, then the pair.
-    return `${kind} ${s.system.length} ${s.setup.length} ${s.timer.length}`;
+    const lengths = `${s.systemTimer.length} ${s.system.length} ${s.setup.length} ${s.timer.length}`;
+    const from = install.snapshotFromV1
+      ? " v1"
+      : install.snapshotFromV2
+        ? " v2"
+        : "";
+    return `${kind} ${lengths}${from}`;
   });
 
   /**
@@ -228,7 +249,15 @@
 </dl>
 
 <p>
-  <!-- In write order: the page init first, as writeAll sends it. -->
+  <!-- In write order: the page timer first, then the page init, as writeAll sends them. -->
+  <label>
+    Page timer
+    <textarea
+      data-testid="install-system-timer"
+      bind:value={systemTimer}
+      rows="2"
+    ></textarea>
+  </label>
   <label>
     Page init
     <textarea data-testid="install-system" bind:value={system} rows="2"

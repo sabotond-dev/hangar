@@ -256,8 +256,9 @@ const answering = (page: Page): Promise<ExposedZona> =>
 /**
  * SAFE-01 by class, over however many connects the test made: not one
  * EXECUTE of any class left the page, and every chunk the shim counted was
- * one of the snapshot's reads - one serial fetch, three config fetches and,
- * since 13-12, one page-count fetch per connect (the destination control's
+ * one of the snapshot's reads - one serial fetch, four config fetches
+ * (12.1-08; three before) and, since 13-12, one page-count fetch per connect
+ * (the destination control's
  * enumeration; Bible section 9). "Any class" gained two since 13-12 too: the
  * page switch and the page discard are writes for this purpose (13-CONTEXT
  * D-06, first clause), and the list below is extended, never excepted.
@@ -317,10 +318,10 @@ async function onlyReads(
 ): Promise<void> {
   await expect
     .poll(() => zona.seen("CONFIG", "FETCH"), {
-      message: `all three config reads - the page init, the Setup and the Timer - of all ${connects} snapshot(s) have been answered; the timer fetch is the last chunk #snapshot issues`,
+      message: `all four config reads - the page timer, the page init, the Timer and the Setup, in SLOTS order - of all ${connects} snapshot(s) have been answered; the Setup fetch is the last config chunk #snapshot issues`,
       timeout: 30_000,
     })
-    .toBe(3 * connects);
+    .toBe(4 * connects);
   await expect
     .poll(() => zona.seen("PAGECOUNT", "FETCH"), {
       message: `the page count - the LAST chunk #snapshot issues since 13-12 - has been answered once per connect`,
@@ -355,13 +356,13 @@ async function onlyReads(
   ).toBe(0);
   expect(zona.seen("HEARTBEAT", "EXECUTE"), "host heartbeats").toBe(0);
   expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(connects);
-  expect(zona.seen("CONFIG", "FETCH")).toBe(3 * connects);
+  expect(zona.seen("CONFIG", "FETCH")).toBe(4 * connects);
   expect(zona.seen("PAGECOUNT", "FETCH")).toBe(connects);
-  // FIVE chunks per connect since 13-12 (four since 12-03, three before) -
-  // and this one is a WRITE count, so no grep for `2 *` would have found it.
-  // One SERIALNUMBER/FETCH, three CONFIG/FETCH, one PAGECOUNT/FETCH, and
-  // every one of them is a read.
-  expect(await writes(page), "chunks, every one a read").toBe(5 * connects);
+  // SIX chunks per connect since 12.1-08 (five since 13-12, four since
+  // 12-03, three before) - and this one is a WRITE count, so no grep for
+  // `2 *` would have found it. One SERIALNUMBER/FETCH, four CONFIG/FETCH,
+  // one PAGECOUNT/FETCH, and every one of them is a read.
+  expect(await writes(page), "chunks, every one a read").toBe(6 * connects);
 }
 
 /**
@@ -773,7 +774,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await requests(page)).toBe(0);
     expect(await openCount(page, 0)).toBe(1);
 
-    // The snapshot's three reads and nothing else (Phase 7).
+    // The snapshot's four reads (three until 12.1-08) and nothing else.
     await onlyReads(page, zona, 1);
 
     // THE READOUT IS THE SHIM'S OWN COUNT, AS AN EQUALITY. It used to be two
@@ -786,7 +787,7 @@ test.describe("the session with a granted ZONA on the cable", () => {
     // be read too early. Somebody hit the race that fails inside onlyReads,
     // understood it, and weakened this assertion instead of waiting for the
     // event. The $effect now also depends on `install.phase`, which publishes
-    // `ready` after all three round trips, so the pair collapses into the one
+    // `ready` after all four round trips, so the pair collapses into the one
     // thing it was always trying to say.
     const shown = Number(await page.getByTestId("session-writes").innerText());
     expect(shown, "the readout is the shim's own count").toBe(
@@ -933,8 +934,9 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await openCount(page, 0)).toBe(oldOpensBefore);
     expect(await openCount(page, 1)).toBe(1);
 
-    // Two connects, two snapshots, TEN reads (eight before 13-12), zero writes:
-    // each snapshot is one SERIALNUMBER/FETCH, three CONFIG/FETCH and one PAGECOUNT/FETCH.
+    // Two connects, two snapshots, TWELVE reads (ten before 12.1-08, eight
+    // before 13-12), zero writes: each snapshot is one SERIALNUMBER/FETCH,
+    // four CONFIG/FETCH and one PAGECOUNT/FETCH.
     await onlyReads(page, zona, 2);
     expect(consoleErrors).toEqual([]);
   });
@@ -1167,7 +1169,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await expect(page.getByTestId("intro")).toBeVisible();
     await stillConnected(/^\/$/);
     // SAFE-01 over the whole walk, before the reload resets the shim: the one
-    // snapshot's three reads at connect, and not one write on any route.
+    // snapshot's four reads at connect, and not one write on any route.
     await onlyReads(page, zona, 1);
 
     // THE THING THAT MUST NOT WORK. A reload is a fresh document: the port
@@ -1533,7 +1535,7 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     expect(utterances(afterKnob.log["browse-live"])).toEqual([]);
 
     // Still connected, still nothing asked of the picker, nothing written:
-    // the snapshot's three reads and no write through two moments and a
+    // the snapshot's four reads and no write through two moments and a
     // knob.
     await expect(slot(page)).toHaveAttribute("data-slot", "S4");
     expect(await requests(page)).toBe(0);
