@@ -152,10 +152,12 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
   });
 
   it("renders: every shipped Lua knob gets a widget, and none falls through on malformed data", () => {
+    // Five since 13-09: a worded knob at five to eight options is a select.
     const WIDGETS: readonly KnobWidget[] = [
       "colour",
       "swatch",
       "words",
+      "select",
       "rail",
     ];
     let colours = 0;
@@ -184,11 +186,16 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
           colours++;
         } else if (knob.kind === "scale") {
           // An unlisted semitone set would rail too, and then a visitor would
-          // pick "position 3" instead of "Dorian".
-          expect(widget, `${where} is not a word row`).toBe("words");
+          // pick "position 3" instead of "Dorian". Worded either way: a row
+          // up to four options, a select from five (13-09, the 4/5 boundary).
+          expect(["words", "select"], `${where} is not worded`).toContain(
+            widget,
+          );
           words++;
         } else if (knob.kind === "note" && knob.options.length <= 8) {
-          expect(widget, `${where} is not a word row`).toBe("words");
+          expect(["words", "select"], `${where} is not worded`).toContain(
+            widget,
+          );
           words++;
         } else {
           rails++;

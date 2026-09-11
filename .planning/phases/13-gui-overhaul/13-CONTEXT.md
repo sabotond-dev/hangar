@@ -205,6 +205,12 @@ only, rounded rectangles never — and the gate counts **exactly six**, listed b
 file and line: `ColourPicker.svelte:829, :857, :872` and `Knob.svelte:598, :653,
 `:674`. A seventh `50%` anywhere fails the gate until it is added here by name.
 
+**Amended 2026-09-11 by plan 13-09 (lines only; the six circles are the same
+six).** `Knob.svelte`'s three moved to `:730` (the dot), `:785` (the thumb)
+and `:807` (the home mark) when the select branch, the changed-field marker
+and the per-field reset landed above them (task 1). `src/lib/ui/radius-allowlist.ts`'s
+`CIRCLES` carries the same numbers; the gate still counts exactly six.
+
 ## D-16 [user] The action colour is the Bible's `#DCFF71`
 
 Not HANGAR's `#D6FF4E` from Phase 4. Every accent changes by a few points of hue

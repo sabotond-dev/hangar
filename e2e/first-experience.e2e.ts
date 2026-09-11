@@ -12,16 +12,27 @@
 // are recorded". None of the seven was @webkit-tagged. Four survive, re-aimed
 // where their subject moved, and one is added: the returning visitor.
 //
+// THE SHELF WENT AT 13-09. A configuration's page is PDF page 5's workspace
+// now - the rail of nearby configurations, the surface, the inspector - and
+// FrontDoor.svelte, Coverflow.svelte and NamePlate.svelte left the tree with
+// src/lib/coverflow/. The three titles whose subject was the ring on
+// /playground/{id}/ are re-aimed at the workspace: a still configuration is
+// still on its own page; reduced motion stills the surface too (stepping no
+// longer exists to be instant); and an off-row page is a workspace of its own
+// with the rail as its way on (a row of one no longer exists either). Two of
+// the three titles changed their words with their subject, and 13-09-SUMMARY
+// .md names them.
+//
 // What this file covers now: that the intro's hero is the firmware simulator
 // really running with nothing plugged in (its canvas provably changes between
 // two samples); that the honesty of the classification holds in the other
 // direction on a configuration's own page (a pad the catalog calls static
-// provably does not change); that reduced motion stills the hero and, on the
-// shelf that survives on /playground/{id}/ until 13-09, makes stepping instant; that a
-// browser with no Web Serial still gets the workspace's controls, present and
-// disabled with the reason; that every routed configuration is a real file
-// with its own description while an off-row page is a row of one; and that a
-// returning visitor is offered their draft on the same page, never redirected.
+// provably does not change); that reduced motion stills the hero and the
+// workspace's surface; that a browser with no Web Serial still gets the
+// workspace's controls, present and disabled with the reason; that every
+// routed configuration is a real file with its own description while an
+// off-row page is a workspace of its own; and that a returning visitor is
+// offered their draft on the same page, never redirected.
 //
 // Everything here runs against build/ served by worker/index.js under
 // wrangler dev - the deployed bytes, not a dev server - so a pad that only
@@ -35,21 +46,12 @@
 //
 // AMENDMENT (D-07, plan 05.1-05), to ONE test - the deep-link file test, whose
 // title changed with it. It reads ROUTED and asserts every page is served with
-// its own description, and the 404 half moved to a genuinely unknown id. It
-// gained the claim D-07 makes: an off-row page is a ROW OF ONE, and a row
-// entry still opens on the shelf, both sides asserted.
+// its own description, and the 404 half moved to a genuinely unknown id.
 //
 // AMENDMENT (Phase 7, plan 07-11). The degrade test is EXTENDED: PUT BACK is
 // ABSENT on a browser that cannot write (07-UI-SPEC Z-12), and KEEP ON DEVICE
 // is disabled with the capability sentence adjacent (DEGR-02 on the third
-// control). First presses wait for the band's data-ready marker (Phase 6
-// deferred item 8).
-//
-// WHERE THE SHELF LIVES NOW. The coverflow, the name plate and the chosen panel
-// are mounted on /playground/{id}/ until 13-09 makes that route the workspace
-// (13-VALIDATION D-5), so the three surviving titles about a row open a
-// configuration's page rather than /. 13-09 re-aims or deletes them with the
-// coverflow; 13-08 moves the address to /playground/<id> (D-20).
+// control).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
@@ -115,9 +117,9 @@ function collectErrors(page: Page): string[] {
   return errors;
 }
 
-/** The shelf, on a configuration's page. It survives there until 13-09. */
-async function waitForShelf(page: Page): Promise<void> {
-  await expect(page.getByTestId("coverflow")).toBeVisible();
+/** The workspace, on a configuration's page (13-09). */
+async function waitForWorkspace(page: Page): Promise<void> {
+  await expect(page.getByTestId("workspace")).toBeVisible();
 }
 
 test.describe("the intro, with no hardware attached", () => {
@@ -229,14 +231,11 @@ test.describe("a configuration's page, with no hardware attached", () => {
   test("a still configuration really is still", async ({ page }) => {
     const consoleErrors = collectErrors(page);
     // ninepads is declared `static` in src/lib/catalog/front-door.ts, derived
-    // from golden-frames.json by front-door.spec.ts. Its own page opens the
-    // shelf centred on it (13-09 makes this the workspace).
+    // from golden-frames.json by front-door.spec.ts. Its own page is its
+    // workspace (13-09), and the surface is its pad.
     await page.goto("/playground/ninepads/");
-    await waitForShelf(page);
-    await expect(page.getByTestId("coverflow")).toHaveAttribute(
-      "aria-activedescendant",
-      "slot-ninepads",
-    );
+    await waitForWorkspace(page);
+    await expect(page.getByTestId("workspace-name")).toHaveText("Nine pads");
     await waitForPicture(page, "ninepads");
 
     const first = await sample(page, "ninepads");
@@ -270,18 +269,19 @@ test.describe("a configuration's page on a browser that cannot install", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    // The intro's connection slot is 13-11's; the controls that degrade live
-    // in the chosen panel on a configuration's page.
+    // The shell's connection slot is 13-11's; the controls that degrade live
+    // in the install column on a configuration's workspace.
     await page.goto(`/playground/${HERO}/`);
 
     // Precondition, asserted. A degrade test that does not verify its own
     // precondition passes for the wrong reason.
     expect(await page.evaluate(() => "serial" in navigator)).toBe(false);
 
-    await waitForShelf(page);
-    const band = page.getByTestId("coverflow");
-    await expect(band).toHaveAttribute("data-ready", "true");
-    await band.press("Enter");
+    await waitForWorkspace(page);
+    await expect(page.getByTestId("workspace")).toHaveAttribute(
+      "data-ready",
+      "true",
+    );
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
 
     // DEGR-02: present and disabled, never hidden.
@@ -320,7 +320,7 @@ test.describe("a configuration's page on a browser that cannot install", () => {
 test.describe("a visitor who asked for less motion", () => {
   test.use({ reducedMotion: "reduce" });
 
-  test("reduced motion stills the pads and makes stepping instant", async ({
+  test("reduced motion stills the intro's hero and the workspace's surface", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
@@ -357,27 +357,27 @@ test.describe("a visitor who asked for less motion", () => {
       "reduced motion holds one frame; 400ms of wall clock must not move it",
     ).toBe(first);
 
-    // STEPPING, on the shelf that survives on /playground/{id}/ until 13-09.
+    // THE SURFACE, on the workspace (13-09). The same host, the same rule:
+    // the entry that animates on the intro is held on one frame here too.
+    // Stepping no longer exists to be instant - the ring went with the
+    // coverflow - so the second half of this title is the surface's stillness.
     await page.goto(`/playground/${FRONT_DOOR[0].id}/`);
-    await waitForShelf(page);
-    const band = page.getByTestId("coverflow");
-    await expect(band).toHaveAttribute("data-ready", "true");
-    await band.press("ArrowRight");
-    await expect(band).toHaveAttribute(
-      "aria-activedescendant",
-      `slot-${FRONT_DOOR[1].id}`,
-    );
-    const duration = await page
-      .locator(`#slot-${FRONT_DOOR[1].id}`)
-      .evaluate((el) => getComputedStyle(el).transitionDuration);
-    expect(duration, "stepping is instant under reduced motion").toBe("0s");
+    await waitForWorkspace(page);
+    await waitForPicture(page, FRONT_DOOR[0].id);
+    const surface = await sample(page, FRONT_DOOR[0].id);
+    expect(surface, "the surface canvas was readable").not.toBeNull();
+    await page.waitForTimeout(400);
+    expect(
+      await sample(page, FRONT_DOOR[0].id),
+      "reduced motion holds the workspace's surface on one frame too",
+    ).toBe(surface);
 
     expect(consoleErrors).toEqual([]);
   });
 });
 
 test.describe("every configuration's page", () => {
-  test("every configuration is a real file with its own description, and an off-row page is a row of one", async ({
+  test("every configuration is a real file with its own description, and an off-row page is a workspace of its own with the rail as its way on", async ({
     page,
     request,
   }) => {
@@ -415,52 +415,51 @@ test.describe("every configuration's page", () => {
       "two configurations must not share one description",
     ).toBe(descriptions.size);
 
-    // AN OFF-ROW PAGE IS A ROW OF ONE. euclid is in the catalog and not in the
-    // row, so its page must be about euclid rather than about the shelf: one
-    // pad, and a name plate with no arrows to a row it is not in.
+    // AN OFF-ROW PAGE IS A WORKSPACE OF ITS OWN. euclid is in the catalog and
+    // not in the front-door membership, so its page must be about euclid: one
+    // pad, its own name, and the rail carrying it as the current row - first,
+    // prepended to the membership it is not part of - so the raised row is
+    // never missing (13-09).
     await page.goto("/playground/euclid/");
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await waitForWorkspace(page);
     const soloPads = page.locator('[data-testid^="pad-canvas-"]');
-    await expect(soloPads, "an off-row page shows one pad").toHaveCount(1);
+    await expect(soloPads, "a workspace shows one pad").toHaveCount(1);
     await expect(page.getByTestId("pad-canvas-euclid")).toBeVisible();
+    await expect(page.getByTestId("workspace-name")).toHaveText("EUCLID");
+    const rail = page.getByTestId("shell-rail");
+    await expect(rail.locator('[data-row="euclid"]')).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     await expect(
-      page.getByTestId("nameplate-prev"),
-      "a row of one has nowhere to step back to",
-    ).toHaveCount(0);
-    await expect(page.getByTestId("nameplate-next")).toHaveCount(0);
+      rail.locator("[data-row]"),
+      "the off-row entry joins the front-door membership in the rail",
+    ).toHaveCount(FRONT_DOOR.length + 1);
 
-    // BOTH SIDES, or the solo assertion above could pass on a broken row. A row
-    // entry keeps Phase 4's ring exactly as it shipped: several pads, both
-    // arrows, and one step left from the opening centre wrapping onto the
-    // ring's LAST entry - which is what proves the whole row is still there
-    // rather than only the pads that happen to be in the visible window.
+    // AND A MEMBER'S PAGE, so the prepend above is proved to be conditional:
+    // aurora is the membership's first row, current, with nothing prepended,
+    // and the rail is the site's way to every other member.
     await page.goto("/playground/aurora/");
-    const band = page.getByTestId("coverflow");
-    await expect(band).toBeVisible();
-    await expect(
-      page.locator('[data-testid^="pad-canvas-"]'),
-      "a row entry still opens on the shelf",
-    ).not.toHaveCount(1);
+    await waitForWorkspace(page);
     await expect(page.getByTestId("pad-canvas-aurora")).toBeVisible();
-    await expect(page.getByTestId("nameplate-prev")).toHaveCount(1);
-    await expect(page.getByTestId("nameplate-next")).toHaveCount(1);
-    await expect(band).toHaveAttribute(
-      "aria-activedescendant",
-      `slot-${FRONT_DOOR[0].id}`,
+    await expect(
+      rail.locator("[data-row]"),
+      "a member's rail is the membership, no more",
+    ).toHaveCount(FRONT_DOOR.length);
+    await expect(rail.locator('[data-row="aurora"]')).toHaveAttribute(
+      "aria-current",
+      "page",
     );
-    // Every assertion above is satisfied by the prerendered document; the
-    // press needs the hydrated band (Phase 6 deferred item 8, second site,
-    // fixed by plan 07-11).
-    await expect(band).toHaveAttribute("data-ready", "true");
-    await band.press("ArrowLeft");
-    await expect(band).toHaveAttribute(
-      "aria-activedescendant",
-      `slot-${FRONT_DOOR[FRONT_DOOR.length - 1].id}`,
-    );
+    for (const entry of FRONT_DOOR) {
+      await expect(rail.locator(`[data-row="${entry.id}"]`)).toHaveAttribute(
+        "href",
+        `/playground/${entry.id}`,
+      );
+    }
 
     // And an address nobody has heard of is still not a dead end: the static
     // host serves the fallback with a 404, the client router matches /playground/[id],
-    // and the shelf comes up centred on its first entry with a line saying so.
+    // and the page comes up with the rail as the way on and a line saying so.
     // Since D-07 every catalog id resolves, so the unknown id is a genuinely
     // unknown one rather than a deliberately excluded entry.
     const unknown = "no-such-configuration";
@@ -471,14 +470,14 @@ test.describe("every configuration's page", () => {
     ).toBe(404);
 
     await page.goto(`/playground/${unknown}/`);
-    await expect(page.getByTestId("coverflow")).toBeVisible();
-    await expect(page.getByTestId("coverflow")).toHaveAttribute(
-      "aria-activedescendant",
-      `slot-${FRONT_DOOR[0].id}`,
-    );
+    await waitForWorkspace(page);
     await expect(page.getByTestId("fidelity-notice")).toHaveText(
-      "Never heard of that one. Here is the shelf instead.",
+      "Never heard of that one. Pick a configuration from the list.",
     );
+    await expect(
+      rail.locator("[data-row]"),
+      "the rail is the way on from an unknown address",
+    ).toHaveCount(FRONT_DOOR.length);
 
     // That navigation was deliberately to a 404, and the browser logs one error
     // for it. This is the only test in the file that cannot assert an empty

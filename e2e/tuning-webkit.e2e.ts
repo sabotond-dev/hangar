@@ -61,7 +61,8 @@ import { expect, test, type Page } from "@playwright/test";
 // zero import statements; src/lib/tune/copy.ts is a leaf by design.)
 // The intro's hero, by its one name (13-07). front-door.ts imports nothing.
 import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
-import { COPY_LINK, LINK_COPIED, MEASURING } from "../src/lib/tune/copy";
+import { LINK_COPIED, MEASURING } from "../src/lib/tune/copy";
+import { SHARE_SNAPSHOT } from "../src/lib/tune/inspector-copy";
 import { failureCopy } from "../src/lib/transport/transport";
 import { guarded, guardedNot } from "./poll";
 
@@ -147,27 +148,26 @@ async function settled(page: Page): Promise<void> {
 }
 
 /**
- * Wait for the shelf to be up. The splash it also waited for went at 13-07
- * with the intro (D-09); the zero it asserts can only be trivially true now.
+ * Wait for the workspace to be up. The splash this also waited for went at
+ * 13-07 with the intro (D-09) and the shelf at 13-09 with the workspace; the
+ * zero it asserts can only be trivially true now.
  */
 async function waitForFrontDoor(page: Page): Promise<void> {
   await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
-  await expect(page.getByTestId("coverflow")).toBeVisible();
+  await expect(page.getByTestId("workspace")).toBeVisible();
 }
 
 /**
- * Open the configuration and choose the centre pad, from the keyboard. On
- * /playground/{id}/ since 13-07: / is the intro and renders no shelf and no panel.
+ * Open the configuration's workspace. Since 13-09 there is nothing to choose:
+ * the panel and the inspector are on the page on arrival, and the inspector
+ * renders one rack per section, so the rack locator takes the first.
  */
 async function choose(page: Page): Promise<void> {
   await page.goto(`/playground/${ENTRY}/`);
   await waitForFrontDoor(page);
   await waitForPicture(page, ENTRY);
-  if ((await page.getByTestId("chosen-panel").count()) === 0) {
-    await page.getByTestId("coverflow").press("Enter");
-  }
   await expect(page.getByTestId("chosen-panel")).toBeVisible();
-  await expect(page.getByTestId("knob-rack")).toBeVisible();
+  await expect(page.getByTestId("knob-rack").first()).toBeVisible();
   await settled(page);
 }
 
@@ -314,7 +314,7 @@ test.describe("the whole site except install, on a phone engine", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("choosing opens the panel and the rack never scrolls sideways @webkit", async ({
+  test("the workspace opens with its panel and the rack never scrolls sideways @webkit", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
@@ -323,7 +323,7 @@ test.describe("the whole site except install, on a phone engine", () => {
     const panel = page.getByTestId("chosen-panel");
     await expect(panel).toBeVisible();
     await expect(page.getByTestId("tuning-region")).toBeVisible();
-    await expect(page.getByTestId("nameplate-name")).toHaveText(ENTRY_NAME);
+    await expect(page.getByTestId("workspace-name")).toHaveText(ENTRY_NAME);
 
     // D-11's "wrap, never scroll", MEASURED rather than asserted in prose.
     for (const id of ["knob-rack", "tuning-region", "chosen-panel"]) {
@@ -347,9 +347,21 @@ test.describe("the whole site except install, on a phone engine", () => {
       `${w.id} is side by side at this width: ${JSON.stringify(w)}`,
     ).toBe("side-by-side");
 
-    // 320px: the narrowest width DEGR-01 is written for. Now the container
-    // query fires and the layout stacks - and still nothing scrolls sideways.
+    // 320px is the narrowest width DEGR-01 is written for, and since 13-09 the
+    // rack no longer stacks there: the inspector's body is 268px wide at 320
+    // (the viewport less two 26px insets), above Knob.svelte's 220px query,
+    // where the chosen panel's 192px content box was below it. So the
+    // stacking MECHANISM is exercised below the floor, at 260px, where the
+    // rack is 208px - and at both widths nothing scrolls sideways.
     await page.setViewportSize({ width: 320, height: 659 });
+    for (const id of ["knob-rack", "tuning-region", "chosen-panel"]) {
+      const box = await overflowOf(page, id);
+      expect(
+        (box as { scrollWidth: number }).scrollWidth,
+        `${id} has nothing to scroll to sideways at 320px: ${JSON.stringify(box)}`,
+      ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
+    }
+    await page.setViewportSize({ width: 260, height: 659 });
     await expect
       .poll(
         guarded(
@@ -379,7 +391,7 @@ test.describe("the whole site except install, on a phone engine", () => {
       const box = await overflowOf(page, id);
       expect(
         (box as { scrollWidth: number }).scrollWidth,
-        `${id} still has nothing to scroll to sideways at 320px: ${JSON.stringify(box)}`,
+        `${id} still has nothing to scroll to sideways at 260px: ${JSON.stringify(box)}`,
       ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
     }
 
@@ -488,8 +500,8 @@ test.describe("the whole site except install, on a phone engine", () => {
     await choose(page);
 
     const copy = page.getByTestId("copy-link");
-    await expect(copy, "the control arrives as COPY LINK").toHaveText(
-      COPY_LINK,
+    await expect(copy, "the control arrives as Share snapshot").toHaveText(
+      SHARE_SNAPSHOT,
     );
     expect(
       await page.getByTestId("copy-link-fallback").count(),
@@ -509,7 +521,7 @@ test.describe("the whole site except install, on a phone engine", () => {
 
     // The confirmed state has a lifetime of its own: 2000ms, and then the
     // control goes back to offering the same thing again.
-    await expect(copy, "and it reverts on its own").toHaveText(COPY_LINK, {
+    await expect(copy, "and it reverts on its own").toHaveText(SHARE_SNAPSHOT, {
       timeout: 10_000,
     });
 
@@ -589,7 +601,7 @@ test.describe("the whole site except install, on a phone engine", () => {
     ).toBeVisible();
     await settled(page);
 
-    await expect(page.getByTestId("nameplate-name")).toHaveText(ENTRY_NAME);
+    await expect(page.getByTestId("workspace-name")).toHaveText(ENTRY_NAME);
     expect(
       await knobIndices(page),
       "every knob came back exactly where the link left it",

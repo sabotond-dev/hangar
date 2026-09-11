@@ -47,6 +47,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { filterListing } from "../src/lib/browse/filter";
 import { columnsFromTemplate } from "../src/lib/browse/grid";
 import { sortListing, type BrowseSort } from "../src/lib/browse/sort";
+// The rail's way back reads the PDF's one label (13-09); the module imports nothing.
+import { ALL_CONFIGS } from "../src/lib/tune/inspector-copy";
 import { LISTING } from "../src/lib/catalog/listing";
 // The re-homed reduced-motion title computes its expected frame with the same
 // vendored simulator the page runs, over the same HANGAR preset, at the same
@@ -1217,7 +1219,7 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
 
     await page.getByTestId(`card-name-${shown[0]}`).click();
     await expect(page).toHaveURL(new RegExp(`/playground/${shown[0]}/$`));
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
 
     // THE ADDRESS BAR AND THE SCREEN MUST AGREE. Before the fix this read
     // sixteen cards and no active chip while the address still said
@@ -1247,7 +1249,7 @@ test.describe("coming back to a browse screen you had already narrowed", () => {
     await coldGoto(page, "/playground/?tag=colour");
     await expect(page.locator(CARDS)).toHaveCount(shown.length);
     await page.getByTestId(`card-name-${shown[0]}`).click();
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(/\/playground\/\?for=show$/);
     await expect(page.locator(CARDS)).toHaveCount(shown.length);
@@ -1392,7 +1394,7 @@ test.describe("the catalog with no pointer at all", () => {
     // keeps middle-click and open-in-new-tab working too.
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(new RegExp(`/playground/${featured[last]}/$`));
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
   });
@@ -1499,13 +1501,16 @@ test.describe("browse, open a configuration, and come back", () => {
     const opened = expectedIds[expectedIds.length - 1];
     await page.getByTestId(`card-name-${opened}`).click();
     await expect(page).toHaveURL(new RegExp(`/playground/${opened}/$`));
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
 
-    // ONE SLOT, TWO LABELS (W-01, D-19). A visitor who came from browse gets
-    // their own view back; the cold-arrival label is asserted at the end of
+    // ONE SLOT, ONE LABEL, TWO WAYS (W-01, D-19; 13-09). The rail's way back
+    // reads the PDF's `All configs` in both states; a visitor who came from
+    // browse gets their own view back (the button, data-way back), and the
+    // cold-arrival form (the link, data-way all) is asserted at the end of
     // this test, in a tab that holds no record.
     const slot = page.getByTestId("browse-link");
-    await expect(slot).toHaveText("BACK TO BROWSE");
+    await expect(slot).toHaveText(ALL_CONFIGS);
+    await expect(slot).toHaveAttribute("data-way", "back");
     await slot.click();
 
     await expect(page).toHaveURL(address);
@@ -1557,7 +1562,7 @@ test.describe("browse, open a configuration, and come back", () => {
     const fresh = await context.newPage();
     try {
       await fresh.goto("/playground/euclid/");
-      await expect(fresh.getByTestId("coverflow")).toBeVisible();
+      await expect(fresh.getByTestId("workspace")).toBeVisible();
       expect(
         await fresh.evaluate(() => window.sessionStorage.length),
         "the precondition: this tab holds no browse return",
@@ -1565,7 +1570,11 @@ test.describe("browse, open a configuration, and come back", () => {
       await expect(
         fresh.getByTestId("browse-link"),
         "a visitor arriving cold is never left without a route into the catalog",
-      ).toHaveText("BROWSE ALL");
+      ).toHaveText(ALL_CONFIGS);
+      await expect(fresh.getByTestId("browse-link")).toHaveAttribute(
+        "data-way",
+        "all",
+      );
     } finally {
       await fresh.close();
     }
@@ -1575,25 +1584,26 @@ test.describe("browse, open a configuration, and come back", () => {
 });
 
 test.describe("the engine hazard this phase created, in a browser", () => {
-  test("un-choosing a hand-authored configuration leaves its pad running", async ({
+  test("a hand-authored configuration's pad runs on arrival and keeps running once the tuner has published", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
 
     // THE ONE PAGE WHERE THE HAZARD IS VISIBLE. `buildTuner`'s `destroy()` used
-    // to call `closeEngine(engine)` unconditionally, and that was harmless only
-    // while every Lua entry stayed out of FRONT_DOOR. Plan 05.1-05 made
-    // /playground/euclid/ real, where the row is EUCLID ALONE - so un-choosing would have
-    // closed the VM behind the only pad on the page and blanked it. 05.1-04
-    // fixed it (`if (engine !== published)`) and pinned it in node; this is the
-    // same property where a visitor would have met it.
+    // to call `closeEngine(engine)` unconditionally, and 05.1-04 fixed it
+    // (`if (engine !== published)`) and pinned it in node. Until 13-09 this
+    // test reached the hazard by un-choosing the panel; the workspace has no
+    // panel to un-choose, so what is left to prove in a browser is the
+    // handover itself: the pad runs before the tuner publishes, and the
+    // published engine replaces the shipped one under the same id without
+    // blanking or stopping the surface (SimHost.replaceEngine).
     const ID = "euclid";
 
     await coldGoto(page, `/playground/${ID}/`);
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
     await expect(
       page.locator('[data-testid^="pad-canvas-"]'),
-      "a row of one: this page has a single pad, and it is the one under test",
+      "the workspace has a single pad, and it is the one under test",
     ).toHaveCount(1);
     await waitForPicture(page, ID);
 
@@ -1605,26 +1615,16 @@ test.describe("the engine hazard this phase created, in a browser", () => {
     await page.waitForTimeout(400);
     expect(
       await samplePad(page, ID),
-      `${ID} is running before anything is chosen`,
+      `${ID} is running before the tuner has published`,
     ).not.toBe(opening);
 
-    // The tap rule: under 250 ms and 6 px both plays the pad and chooses it.
-    const pad = page.getByTestId(`pad-${ID}`);
-    const box = await pad.boundingBox();
-    expect(box, "the pad was measurable").not.toBeNull();
-    const at = box as { x: number; y: number; width: number; height: number };
-    await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
-    await page.mouse.down();
-    await page.mouse.up();
-
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
-    await expect(page.getByTestId("tuning-region")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeAttached();
 
     // BOTH METERS SETTLED, AND THAT IS THE PART THAT ARMS THIS TEST. Ownership
-    // of the engine transfers at `onpreview`; a test that pressed Escape before
-    // the handover would exercise the branch where `destroy()` closes an engine
-    // nobody ever saw, which is the safe case and not the hazard. A settled
-    // meter means the tuner has compiled and published.
+    // of the engine transfers at `onpreview`; a settled meter means the tuner
+    // has compiled and published, so the surface is now painting from the
+    // tuner's engine rather than the shipped one.
     for (const event of ["setup", "timer"] as const) {
       await expect(
         page.getByTestId(`meter-${event}`),
@@ -1632,18 +1632,15 @@ test.describe("the engine hazard this phase created, in a browser", () => {
       ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
     }
 
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
-
     const after = await samplePad(page, ID);
     expect(
       after,
-      "the pad canvas is still readable after un-choosing",
+      "the pad canvas is still readable after the handover",
     ).not.toBe(null);
     await page.waitForTimeout(400);
     expect(
       await samplePad(page, ID),
-      "D-18: un-choosing must not close the engine the row is still painting from",
+      "D-18: the handover must not close or stop the engine the surface is painting from",
     ).not.toBe(after);
 
     expect(consoleErrors).toEqual([]);

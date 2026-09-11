@@ -72,25 +72,45 @@ export const KNOB_KIND_NAMES: readonly KnobKindName[] = [
 ];
 
 /**
- * Four names, three row skins and one picker.
+ * Five names, four row skins and one picker.
  *
- * `swatch`, `words` and `rail` are what a KNOB ROW can be, and `widgetFor`
- * chooses between the last two. `colour` is the fourth, and it is not a row at
- * all: it is the whole ColourPicker block, which the rack renders ONCE per
- * panel however many colour knobs an entry declares (10-UI-SPEC §11.2).
+ * `swatch`, `words`, `select` and `rail` are what a KNOB ROW can be, and
+ * `widgetFor` chooses between the last three. `colour` is the fifth, and it
+ * is not a row at all: it is the whole ColourPicker block, which the rack
+ * renders ONCE per panel however many colour knobs an entry declares
+ * (10-UI-SPEC §11.2) - since 13-09 behind a swatch and a popover.
  *
  * `widgetFor` never returns `swatch` any more. The picker synthesises it for
  * the one case that still needs it - a hand-authored Lua palette, whose four
  * or five literals cannot be reached from three sixteen-detent rails - and
  * hands that view to the SHIPPED `Knob.svelte` swatch row rather than drawing
  * a second one. See ColourPicker.svelte's header.
+ *
+ * `select` ARRIVED AT 13-09 AND IT IS A RENDERING CHANGE, NOT A VALUE-COUNT
+ * CHANGE (Bible section 7, PDF page 5's `On release`). Section 7's control
+ * inventory is segmented buttons for a few alternatives and a select for a
+ * larger enumeration; the PDF draws the select at four visible words. A
+ * worded knob with up to SEGMENTED_MAX options is still the word row
+ * (segmented radios); one with more, up to WORD_ROW_MAX, is a `<select>`.
+ * No knob's options moved and no stamp changed - the seven knobs that cross
+ * the line are listed in 13-09-SUMMARY.md by entry and id.
  */
-export type KnobWidget = "colour" | "swatch" | "words" | "rail";
+export type KnobWidget = "colour" | "swatch" | "words" | "select" | "rail";
 
 /** A rail's two skins: a dot per option, or a track with a thumb. */
 export type RailSkin = "dots" | "track";
 
-/** Above this many options a word row will not fit, and a rail is used. */
+/**
+ * Above this many options a worded knob is a `<select>` rather than a row of
+ * segmented radios (13-09, section 7). At or below it, the row.
+ */
+export const SEGMENTED_MAX = 4;
+/**
+ * Above this many options a worded knob will not fit a closed enumeration
+ * either, and a rail is used. The name is the one view.spec.ts and
+ * tune-ui.spec.ts read; since 13-09 it is the select's ceiling, with
+ * SEGMENTED_MAX the row's, and the two together are the one boundary.
+ */
 export const WORD_ROW_MAX = 8;
 /** Above this many options a dot rail becomes a detent track. */
 export const DOT_RAIL_MAX = 8;
@@ -403,9 +423,12 @@ export function widgetFor(
   if (kind === "colour") return "colour";
   if (WORD_KINDS.includes(kind)) {
     const fits = values.length > 0 && values.length <= WORD_ROW_MAX;
-    return fits && values.every((v) => wordFor(kind, v) !== undefined)
-      ? "words"
-      : "rail";
+    if (!fits || !values.every((v) => wordFor(kind, v) !== undefined)) {
+      return "rail";
+    }
+    // The 4/5 boundary (13-09): a row of segmented radios up to four worded
+    // options, a select from five to eight. Rendering only; see the header.
+    return values.length <= SEGMENTED_MAX ? "words" : "select";
   }
   if (
     values.length > 0 &&

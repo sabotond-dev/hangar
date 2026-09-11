@@ -117,6 +117,20 @@ export const INSPECTOR_INSET = 26;
  */
 export const GRID_FITS_INSPECTOR = NUMERIC_GRID_W + INSPECTOR_INSET * 2;
 
+/**
+ * D-21 (13-CONTEXT.md, given 2026-09-11, "reflow"): THE FLOOR STAYS AND THE
+ * GRID REFLOWS. The inspector keeps INSPECTOR_MIN at 380; the 2 x 2 numeric
+ * grid (page 5's CC number / Channel pair under MIDI output, and any other
+ * two-field row the schema renders) is two columns when the INSPECTOR is at
+ * least this wide and one column below. This is the arithmetic above under
+ * its own name, written once here and read by the inspector's renderer
+ * (TuningRegion.svelte, 13-09) through a ResizeObserver rather than as a
+ * container-query literal, because a container query cannot read a custom
+ * property and D-21 says the number lives here and not in a component.
+ * Nothing else in the inspector changes shape at this width.
+ */
+export const NUMERIC_GRID_REFLOW = GRID_FITS_INSPECTOR;
+
 /** Section 7: "a practical maximum around 600px" for the surface. */
 export const SURFACE_MAX = 600;
 

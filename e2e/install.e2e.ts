@@ -36,12 +36,12 @@
 // anything that needs a window past 2000 ms, the slow line, is observed on a
 // STORE leg, whose single attempt runs to pagestoreMs 3000.
 //
-// THE HEADER LOCK IS MET ONLY AFTER AN UN-CHOOSE DURING A LEG (deferred item
-// 19). panelOwnsProse is page.state.chosen and the drawer never renders while
-// the panel that holds every writing control is open, so test 7 reaches the
-// open disclosure the way a visitor could: the browser's Back inside the RAM
-// leg, which un-chooses where Escape refuses (Z-10 names Escape only). The
-// panel is re-chosen after the leg and reads its settled block.
+// THE HEADER LOCK WAS MET ONLY AFTER AN UN-CHOOSE DURING A LEG (deferred item
+// 19) until 13-09: panelOwnsProse was page.state.chosen and the drawer never
+// rendered while the panel that holds every writing control was open. The
+// workspace has no chosen state - the panel is always on the page and the
+// slot is handed panelOwnsProse false - so test 7 opens the disclosure with
+// one click inside the RAM leg and reads the panel's settled block after it.
 //
 // THE ELEVENTH (plan 10-13) is the fourth write click walked end to end: at
 // rest CLEAR is live beside KEEP ON DEVICE under the NEXT caption; one click
@@ -1046,15 +1046,17 @@ async function turnRail(
  */
 async function openPanel(page: Page, id: string = ENTRY): Promise<void> {
   await page.goto(`/playground/${id}/`);
-  const band = page.getByTestId("coverflow");
-  await expect(band).toBeVisible();
+  // Since 13-09 the workspace opens with its panel and its inspector on the
+  // page; there is nothing to choose, and the inspector renders one rack per
+  // section, so the rack locator takes the first.
+  await expect(page.getByTestId("workspace")).toBeVisible();
   await waitForPicture(page, id);
-  if ((await page.getByTestId("chosen-panel").count()) === 0) {
-    await expect(band).toHaveAttribute("data-ready", "true");
-    await band.press("Enter");
-  }
+  await expect(page.getByTestId("workspace")).toHaveAttribute(
+    "data-ready",
+    "true",
+  );
   await expect(page.getByTestId("chosen-panel")).toBeVisible();
-  await expect(page.getByTestId("knob-rack")).toBeVisible();
+  await expect(page.getByTestId("knob-rack").first()).toBeVisible();
   await metersSettled(page);
 }
 
@@ -1362,12 +1364,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(during.transition).toBe("0s");
     expect(during.panels).toBe(1);
 
-    // THE HEADER LOCK, reached the only way the page allows (deferred item
-    // 19): Back un-chooses the panel mid-leg where Escape refuses, and the
-    // disclosure can open once the panel is gone. Still inside the window.
-    await page.evaluate(() => history.back());
-    await expect(page.getByTestId("chosen-panel")).toHaveCount(0);
-    await expect(page).toHaveURL(/\/playground\/aurora\/$/);
+    // THE HEADER LOCK. Since 13-09 the panel is always on the page and the
+    // header's drawer opens beside it (the workspace hands the slot
+    // panelOwnsProse false), so the lock is reached with one click where
+    // deferred item 19 needed a Back. Still inside the window.
     await page.getByTestId("device-slot").click();
     const disconnect = page.getByTestId("details-disconnect");
     const forget = page.getByTestId("details-forget");
@@ -1403,12 +1403,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       `test 7 timing: WRITING at +${busySeenAt} ms, panel snapshot at +${snapshotAt} ms, header locked at +${lockSeenAt} ms, released at +${releasedAt} ms`,
     );
 
-    // Re-chosen, the panel reads the settled state the write produced while
-    // nobody was watching it: PLAYING NOW, the label back at rest, KEEP ON
-    // DEVICE enabled - the one and only path to it (I4).
-    const band = page.getByTestId("coverflow");
-    await expect(band).toHaveAttribute("data-ready", "true");
-    await band.press("Enter");
+    // The drawer closed, the panel reads the settled state the write produced:
+    // PLAYING NOW, the label back at rest, KEEP ON DEVICE enabled - the one
+    // and only path to it (I4).
+    await page.keyboard.press("Escape");
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
     await expect(installState(page)).toContainText(SETTLED_CAPTION);
     await expect(installState(page)).toContainText(settledBody(ENTRY_NAME));
@@ -2088,13 +2086,8 @@ test.describe("the install controls on the engine that can never install", () =>
     );
     await expect(slot).toHaveAttribute("data-slot", "S0a");
 
-    const band = page.getByTestId("coverflow");
-    await expect(band).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
     await waitForPicture(page, ENTRY);
-    if ((await page.getByTestId("chosen-panel").count()) === 0) {
-      await expect(band).toHaveAttribute("data-ready", "true");
-      await band.press("Enter");
-    }
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
 
     // DEGR-02, all three controls. The primary: present, disabled, the
@@ -2180,13 +2173,8 @@ test.describe("the install controls on the engine that can never install", () =>
     const slot = page.getByTestId("device-slot");
     await expect(slot).toHaveAttribute("data-hydrated", "true");
     await expect(slot).toHaveAttribute("data-slot", "S0a");
-    const band = page.getByTestId("coverflow");
-    await expect(band).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
     await waitForPicture(page, ENTRY);
-    if ((await page.getByTestId("chosen-panel").count()) === 0) {
-      await expect(band).toHaveAttribute("data-ready", "true");
-      await band.press("Enter");
-    }
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
 
     // PRESENT AND DISABLED, WITH ITS REASON INLINE. Not hidden: a visitor who

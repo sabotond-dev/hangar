@@ -437,7 +437,8 @@ const pathOf = (page: Page) => new URL(page.url()).pathname;
  */
 async function waitForFrontDoor(page: Page): Promise<void> {
   await expect(page.getByTestId("splash")).toHaveCount(0, { timeout: 5_000 });
-  await expect(page.getByTestId("coverflow")).toBeVisible();
+  // The shelf went at 13-09; the workspace is what a configuration's page is.
+  await expect(page.getByTestId("workspace")).toBeVisible();
 }
 
 /**
@@ -1121,8 +1122,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await sameDocumentOn(/^\/playground\/$/);
 
     await page.getByTestId(`card-name-${ENTRY}`).click();
-    await expect(page.getByTestId("front-door")).toBeVisible();
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
     await stillConnected(new RegExp(`^/playground/${ENTRY}/?$`));
 
     await page.getByTestId("browse-link").click();
@@ -1322,9 +1322,11 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
     //    back; Enter on the row opens the panel.
     await page.keyboard.press("Escape");
     await expect(drawer).toHaveCount(0);
-    const band = page.getByTestId("coverflow");
-    await expect(band).toHaveAttribute("data-ready", "true");
-    await band.press("Enter");
+    // Since 13-09 the panel is on the page on arrival; nothing is chosen.
+    await expect(page.getByTestId("workspace")).toHaveAttribute(
+      "data-ready",
+      "true",
+    );
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
     const tryOn = page.getByTestId("try-on-device");
     await expect(tryOn).toBeVisible();
@@ -1397,9 +1399,11 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     await expect(slot(page)).toHaveAttribute("data-slot", "S2");
 
     // The panel, from the keyboard, once the band is really listening.
-    const band = page.getByTestId("coverflow");
-    await expect(band).toHaveAttribute("data-ready", "true");
-    await band.press("Enter");
+    // Since 13-09 the panel is on the page on arrival; nothing is chosen.
+    await expect(page.getByTestId("workspace")).toHaveAttribute(
+      "data-ready",
+      "true",
+    );
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
     await expect(page.getByTestId("knob-rack")).toBeVisible();
     await settled(page);

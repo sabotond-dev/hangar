@@ -237,3 +237,49 @@ write, and the seven display labels the plan asked for.
    the star unreachable from the keyboard, which is worse; a third (a key on the card that toggles
    the star) invents a keyboard model. Recorded because e2e/browse.e2e.ts's title still says "one
    tab stop" and its assertion now counts two elements on one card.
+
+## From 13-09: the workspace's and the inspector's rows, and the questions D-01 sends to the batch
+
+Added 2026-09-11 by plan 13-09 (PDF page 5 at `/playground/<id>/`). Every visible string on the
+workspace that the PDF draws is taken verbatim and is **not** ledgered: `CONFIGURATIONS`,
+`← All configs`, `Save a copy`, `EXPLORE` (the eyebrow's first word; the FOR label follows the
+slash through 13-08's `FOR_LABELS`), `Configure`, `Play`, `ZONA · 9 × 9 LIGHT MATRIX`, the
+`X … / Y …` readout form, `CONFIGURATION`, _Tune the gesture, then try it on your surface._,
+`Behavior`, `Appearance`, `MIDI output`, `Randomize`, `Reset settings`, `Edit color`, `Save copy`,
+`Share snapshot`, _Map this CC to a parameter in your instrument or DAW._, and the breadcrumb
+`PLAYGROUND / ARC` (the entry's name upper-cased, a short label under D-05). They live in
+`src/lib/tune/inspector-copy.ts`, a zero-import module beside `copy.ts`, because `copy.spec.ts`
+holds `copy.ts` character for character and 13-19 owns it. The rows below are what HANGAR had to
+write.
+
+| Symbol | Module | Plan | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `INSPECTOR_HEADLINE` | `src/lib/tune/inspector-copy.ts` (read by `TuningRegion.svelte`) | landed by 13-09 for 13-18 | the inspector's two-line headline, on every entry's workspace | that the panel is where the gesture is shaped; ONE constant for twenty-seven entries, because the PDF gives one line for ARC and inventing twenty-six more is not this plan's to do (D-01) | _Shape the_ / _movement._ | PDF page 5, verbatim - for ARC. The question is whether it is per entry (see question 1) |
+| `fieldResetName(label)` | same (read by `Knob.svelte`) | landed by 13-09 for 13-18 | the per-field reset's accessible name (section 7); the visible word is `Reset` | which field it restores, so a screen reader hears one of six rather than six alike | _Reset {label}_ | none - section 7 asks for the control and gives it no name |
+| `FIELD_CHANGED` | same (read by `Knob.svelte`) | landed by 13-09 for 13-18 | the changed-field marker's hidden sentence, beside a field off its default | that the value is not the one the card ships with | _Changed from the default_ | none - section 7 asks for "a subtle marker" and gives it no words |
+| `UNKNOWN_NOTICE` | `src/routes/playground/[id]/+page.svelte` | landed by 13-09 for 13-18 | an address nobody has heard of, on the workspace | that nothing is here and the rail is the way on; Phase 4's line named "the shelf", which 13-09 deleted | _Never heard of that one. Pick a configuration from the list._ | none |
+| `SAVED_COPY` | same | landed by 13-09 for 13-18 | the two Save copy buttons for 2 s after a copy was written | that a NAMED COPY was written to the library (library.ts permits _Saved copy_ on a copy and forbids _Saved_ on a draft or the device) | _Saved copy_ | none - the PDF draws the button at rest only |
+| `copyName(name)` | same | landed by 13-09 for 13-18 | the name a saved copy is given, before 13-13's rename | that it is a copy of this entry and not the entry | _{name} copy_ | none |
+| the mode switch's group name | same (`aria-label` on the radiogroup) | landed by 13-09 for 13-18 | the `Configure` / `Play` radiogroup, which the PDF draws with no caption | that the two segments are one choice | _Mode_ | none |
+
+**From 13-09, seven rows landed and six questions recorded (D-01: ask rather than guess).**
+
+1. **Per-entry inspector headlines.** The PDF's _Shape the / movement._ is ARC's; HANGAR renders it
+   above every entry. If the batch wants a headline per entry, that is twenty-seven lines of copy in
+   the entries (or a table beside them) and a schema field; one constant is what ships until then.
+2. **`Active color` against the schema's own label.** The PDF labels the swatch row `Active color`;
+   HANGAR renders the colour knob's own label (`Colour`, `Swirl colour`, `Heart colour` …) because
+   section 7 says to use actual parameter names and six entries carry two or three colour knobs.
+   The PDF's word is not shown anywhere.
+3. **The hex beside the swatch.** The PDF draws `#DCFF71`. The picker's accessible value stays the
+   three stored integers (view.ts: a hex implies a 24-bit resolution the pad cannot reach); the
+   visible hex is exact because every channel is a multiple of 17. Show it, or show `r, g, b`?
+4. **The context bar's status on the workspace.** The PDF's _Draft saved locally · Changes not
+   applied_ reports the draft store (13-10 / 13-13) and the device (13-11); the zone is empty on the
+   workspace until they fill it, and the destination zone reads _Preview without hardware_.
+5. **`LINK COPIED` after `Share snapshot`.** The share control wears the PDF's label at rest and
+   Phase 5's `LINK COPIED` when confirmed, because `copy.ts` is 13-19's. What does a confirmed
+   snapshot say - _Link copied_, _Snapshot copied_?
+6. **The install column under the surface.** TRY ON DEVICE, PUT BACK, KEEP ON DEVICE and CLEAR are
+   rendered beneath the surface in Phase 7's column until 13-11 moves Apply to ZONA into the context
+   bar; the PDF draws none of them there. Recorded so nobody reads the column as a design.

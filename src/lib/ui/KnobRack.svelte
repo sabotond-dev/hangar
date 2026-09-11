@@ -1,99 +1,65 @@
 <!--
-  The rack: every knob of one configuration, and nothing else.
+  The rack: a list of knobs of one configuration, and nothing else.
 
   It owns exactly two things - the container, and the row/stacked decision -
-  and it renders no button. SURPRISE ME and RESET ALL belong to the region
-  above the meters (05-10), not here, and this file must never grow them: a
-  rack that also owned the actions row would own the region's height too, and
-  the height arithmetic below is the region's contract, not the rack's.
+  and it renders no button. Randomize and Reset settings belong to the
+  inspector's Behavior section (TuningRegion.svelte), not here, and this file
+  must never grow them.
 
-  WHY A CONTAINER AND NOT A MEDIA QUERY. The rows have to fit THE PANEL, which
-  is 420px at most and narrower on a phone, so `container-type: inline-size`
-  here lets Knob.svelte's `@container (width < 220px)` reflow against the panel
-  rather than the viewport. A viewport media query would stack rows on a phone
-  held in a wide panel and keep them side by side in a narrow one - exactly
+  SINCE 13-09 THE INSPECTOR RENDERS THREE RACKS, ONE PER SECTION 7 SECTION -
+  Behavior, Appearance, MIDI output - each handed the knobs that belong to it.
+  The rack does not know which section it is in; it renders what it is given.
+  The one thing it knows beyond the row/stacked decision is `layout`: a
+  list, which is every section but one, or the 2 x 2 GRID of PDF page 5's
+  MIDI output (CC number beside Channel), whose column count the region
+  decides under D-21 and hands down as `columns` - never a number this file
+  writes.
+
+  WHY A CONTAINER AND NOT A MEDIA QUERY. The rows have to fit THE PANEL - the
+  inspector's body, 380 to 456 in the wide band, 268 to 300 in the compact
+  band, the viewport below - so `container-type: inline-size` here lets
+  Knob.svelte's `@container (width < 220px)` reflow against the rack rather
+  than the viewport. A viewport media query would stack rows on a phone held
+  in a wide panel and keep them side by side in a narrow one - exactly
   backwards.
 
   A WORD ROW ALWAYS STACKS, at every width, because its options wrap and it
-  needs the full content width to wrap into. That is the one stacking decision
-  this file makes; the width-driven one is the container query's.
+  needs the full content width to wrap into. A GRID FIELD ALWAYS STACKS too:
+  page 5 draws the field's label above its box. Those are the two stacking
+  decisions this file makes; the width-driven one is the container query's.
 
   NOTHING IN HERE SCROLLS HORIZONTALLY. Neither this component nor Knob.svelte
-  declares a horizontal overflow of auto or of scroll anywhere, and wave 10's
+  declares a horizontal overflow of auto or of scroll anywhere, and
   tune-ui.spec.ts greps for exactly those two declarations - which is why they
   are described here rather than spelled, so the grep reads the CSS and not this
   paragraph. D-11's rule is "wrap, never scroll", and a scrollbar under a
   visitor's thumb is the failure it names.
 
-  ------------------------------------------------------------------------
-  THE HEIGHT ARITHMETIC, AND WHY IT IS TWO CONSTANTS RATHER THAN ONE
+  THE COLOUR KNOBS GO THROUGH ONE SWATCH BLOCK (10-UI-SPEC 11.2, 13-09). The
+  colour knobs come out of the row list and into a single Swatch block,
+  rendered in the place of the FIRST of them so the entry's own knob order
+  survives; Swatch.svelte draws one row per colour knob and opens the ONE
+  picker in a popover. Six entries carry two or three colour knobs; giving
+  each its own three rails and result pad would put nine rails and three
+  extra canvases on `console`, `strip` and `forge`.
 
-  Wave 10 sizes the tuning region from this, and a number nobody can re-derive
-  is a number that rots, so the derivation lives beside the code that produces
-  it.
-
-  A row-layout knob is 44 + 4 = 48. A word row is 62 + 4 = 66 (a 14px label
-  line box, a 4px gap, a 44px control). THE COLOUR PICKER IS 192 + 4 = 196, and
-  it is billed ONCE however many colour knobs an entry declares, because plan
-  10-10 renders one picker per panel rather than one per knob - so `p` below is
-  1 or 0, never 2 and never 3, and the colour knobs themselves cost nothing.
-  The rack drops its trailing gap. With no messages, and `r` row-layout knobs
-  against `w` word rows and `p` pickers:
-
-      194 + 48r + 66w + 196p - 4     the actions row fits on one line
-      246 + 48r + 66w + 196p - 4     the actions row wraps to two
-
-  246 = 194 + 44 + 8: the second 44px button row plus the 8px `sm` gap.
-
-  192 = 44 (the picker's head) + 8 + 140 (three 44px rails and two 4px gaps),
-  and it is width-independent BY CONSTRUCTION: the picker's rails shrink rather
-  than wrap, and its result pad is a fixed 88px square, so the reservation is
-  true at 320px and at 420px alike.
-
-  THIS IS A CORRECTION TO THE APPROVED UI SPEC AND IS RECORDED AS ONE.
-  05-UI-SPEC's "Vertical arithmetic" table bills the actions row at a flat 44px
-  and derives a single 194 constant from it. But the same document's
-  "SURPRISE ME and RESET ALL" section gives that row `flex-wrap: wrap`, and its
-  Spacing table defines `sm` 8px as "gap between SURPRISE ME and RESET ALL WHEN
-  THEY WRAP". The spec provides for the wrap everywhere except in the one table
-  that adds the heights up. The two-constant form is the arithmetic the spec's
-  own rules produce, and 05-08-SUMMARY.md records it as a correction to the
-  approved contract in the same open manner as X-27's gate amendment.
-
-  WHERE THE SWITCH IS: DERIVED HERE, THEN MEASURED IN 05-10.
-  Both labels are Micro: 12px, weight 600, uppercase, letter-spacing 0.18em =
-  2.16px after every character, inside padding-inline: 16px (32px of chrome per
-  button), with the 8px gap between them. SURPRISE ME is ten caps and a space;
-  RESET ALL is eight caps and a space. At Quicksand 600's uppercase advance the
-  pair needs about 251px of inline space (about 131 + about 112 + 8). The
-  rack's container is the region's content box - the viewport less 48px of page
-  padding, 48px of panel padding and 32px of region padding - so the row wraps
-  below a content box of about 251px, which is below a viewport of about 379px.
-  It therefore wraps at 320px (content box 192px) and at 375px (247px), and
-  does not at 420px (292px).
-
-  That 251px was arithmetic over a font whose exact advance widths plan 05-08
-  could not measure, because nothing in the tree rendered SURPRISE ME or RESET
-  ALL until TuningRegion.svelte existed. It does now, and the number was taken:
-  mounted in Chromium with Quicksand loaded the way src/app.css loads it,
-  SURPRISE ME lays out at 134.453125px and RESET ALL at 114.546875px, so with
-  the 8px gap the pair needs exactly 257px. THE ROW WRAPS BELOW A REGION
-  CONTENT BOX OF 257px - it holds one line at 257 and wraps at 256 - which is a
-  viewport of about 385px. The derivation was 6px narrow and its three
-  conclusions all survive: the row wraps at 320px (content box 192px) and at
-  375px (247px), and does not at 420px (292px). 257px is the number
-  TuningRegion.svelte's container query actually carries, and wave 10's
-  tune-ui.spec.ts asserts the shipped two-constant form against it, so this
-  comment and that code cannot drift apart.
-  ------------------------------------------------------------------------
+  THE HEIGHT ARITHMETIC THIS HEADER USED TO CARRY WENT WITH THE CHOSEN PANEL.
+  From 05-08 to 13-08 the rack's rows were billed at 48 / 66 / 196 so
+  ChosenPanel.svelte could reserve the tuning region's height before a knob
+  had turned and keep TRY ON DEVICE from moving. The inspector's body is the
+  one scroll container of a panel whose primary action sits in the context
+  bar (Bible section 7; Inspector.svelte), so nothing above the rack can
+  move when it grows, and the reservation - both constants, the measured
+  257px wrap and the 196p term - has no subject. Recorded in
+  13-09-SUMMARY.md rather than kept as a number nobody re-derives.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
   import { EMPTY_RACK } from "$lib/tune/copy";
   import type { ColourBudget, KnobView } from "$lib/tune/view";
-  import ColourPicker from "./ColourPicker.svelte";
   import Knob from "./Knob.svelte";
+  import ColourPicker from "./ColourPicker.svelte";
 
   let {
     entry,
@@ -101,6 +67,9 @@
     held,
     budget,
     forecast,
+    layout = "list",
+    columns = 1,
+    empty = true,
     onchange,
     onreset,
     onhold,
@@ -113,14 +82,14 @@
      * catalog type and costs no chunk.
      */
     entry: { id: string; name: string };
-    /** Every knob of the chosen configuration, in the order the entry gives. */
+    /** The knobs this rack renders, in the order the entry gives. */
     knobs: readonly KnobView[];
     /** One knob moved to one index. The region owns what that means. */
     onchange: (id: string, index: number) => void;
-    /** One knob back to its default. RESET ALL is the region's, not this. */
+    /** One knob back to its default. Reset settings is the region's, not this. */
     onreset: (id: string) => void;
     /**
-     * The ids SURPRISE ME must not roll. EPHEMERAL and the region's: it is
+     * The ids Randomize must not roll. EPHEMERAL and the region's: it is
      * never encoded into a stamp, so a held knob's link is byte-identical to
      * the same knob's unheld one.
      */
@@ -149,25 +118,32 @@
     budget?: ColourBudget;
     /** The picker's result pad, for whoever owns the page's SimHost. */
     onresult?: (id: string, canvas: HTMLCanvasElement) => void;
+    /** A list of rows, or page 5's field grid (D-21). */
+    layout?: "list" | "grid";
+    /** The grid's column count, decided by the region under D-21. Ignored by a list. */
+    columns?: number;
+    /**
+     * Render the empty line when there is nothing to turn. The inspector
+     * says it once, in Behavior; the other racks are simply omitted.
+     */
+    empty?: boolean;
   } = $props();
 
-  /**
-   * ONE PICKER PER PANEL, NOT ONE PER KNOB (10-UI-SPEC 11.2).
-   *
-   * The colour knobs come out of the rack's row list and go into a single
-   * ColourPicker block, rendered in the place of the FIRST of them so the
-   * entry's own knob order survives. Six entries carry two or three colour
-   * knobs; giving each its own three rails and its own result pad would put
-   * nine rails and three extra canvases on `console`, `strip` and `forge`.
-   */
   const colourKnobs = $derived(knobs.filter((k) => k.widget === "colour"));
-  /** The one colour knob whose slot the picker takes; the others render nothing. */
+  /** The one colour knob whose slot the swatch block takes; the others render nothing. */
   const pickerAt = $derived(colourKnobs[0]?.id);
 </script>
 
-<div class="rack" data-testid="knob-rack">
+<div
+  class="rack"
+  class:grid={layout === "grid"}
+  data-testid="knob-rack"
+  data-layout={layout}
+  data-columns={layout === "grid" ? columns : undefined}
+  style:--columns={columns}
+>
   {#if knobs.length === 0}
-    <p class="empty">{EMPTY_RACK}</p>
+    {#if empty}<p class="empty">{EMPTY_RACK}</p>{/if}
   {:else}
     {#each knobs as row (row.id)}
       {#if row.widget === "colour"}
@@ -187,7 +163,7 @@
       {:else}
         <Knob
           view={row}
-          stacked={row.widget === "words"}
+          stacked={row.widget === "words" || layout === "grid"}
           held={held.has(row.id)}
           forecastAt={forecast?.knobId === row.id
             ? forecast.position
@@ -211,14 +187,26 @@
 <style>
   /*
     The container the rows reflow against. A flex column's gap has no trailing
-    edge, which is the "the rack drops its trailing gap" of the arithmetic
-    above - stated once, in one place, rather than subtracted twice.
+    edge, so the last row carries no gap below it.
   */
   .rack {
     container-type: inline-size;
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+
+  /*
+    PDF page 5's field grid: two 190px fields and a 22px gutter at the PDF's
+    width, as columns of equal share with the gutter between. --columns is
+    the region's answer under D-21 - two at or above layout.ts's
+    NUMERIC_GRID_REFLOW, one below - and no number is written here.
+  */
+  .rack.grid {
+    display: grid;
+    grid-template-columns: repeat(var(--columns, 1), minmax(0, 1fr));
+    column-gap: 22px;
+    row-gap: 12px;
   }
 
   /* Body role, quiet. One line, and the rack renders nothing else beside it. */

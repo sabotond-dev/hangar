@@ -107,21 +107,25 @@ export const CIRCLES: readonly Circle[] = [
     what: "the home mark",
     box: "2x2",
   },
+  // Knob.svelte's three moved from :598 / :653 / :674 to :730 / :785 / :807
+  // on 2026-09-11 when 13-09 re-skinned the file (the select branch, the
+  // marker and the per-field reset landed above them); D-15 is amended with
+  // the same three numbers on the same day.
   {
     file: "src/lib/ui/Knob.svelte",
-    line: 598,
+    line: 730,
     what: "the dot rail's dot",
     box: "8x8",
   },
   {
     file: "src/lib/ui/Knob.svelte",
-    line: 653,
+    line: 785,
     what: "the slider thumb",
     box: "12x12",
   },
   {
     file: "src/lib/ui/Knob.svelte",
-    line: 674,
+    line: 807,
     what: "the home mark",
     box: "2x2",
   },
@@ -154,23 +158,14 @@ export interface AllowlistRow {
  * after 13-08 on the same day: BrowseToolbar.svelte's one (the field's 6px),
  * CatalogCard.svelte's three (the plate, the focus ring, the tag chips) and
  * FacetRow.svelte's one (the link member) cleared with the gallery's
- * re-skin. Rows are removed by the plan named, never edited to a smaller
- * number by anyone else.
+ * re-skin; twenty in seven after 13-09 task 1 on the same day: TuningRegion
+ * .svelte's one (the action buttons' 6px), Knob.svelte's five (the
+ * track, the held bar, the swatch option, the swatch, the lock - its three
+ * circles stay, now at :730 / :785 / :807) and CopyLink.svelte's one (the
+ * fallback field's 2px) cleared with the inspector. Rows are removed by
+ * the plan named, never edited to a smaller number by anyone else.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
-  {
-    file: "src/lib/ui/TuningRegion.svelte",
-    declarations: 1,
-    clearedBy: "13-09",
-  },
-  {
-    file: "src/lib/ui/Knob.svelte",
-    declarations: 5,
-    clearedBy: "13-09",
-    circles: 3,
-    circleLines: [598, 653, 674],
-    note: "dot rail, slider thumb, home mark - three 50% survive under D-15 and nothing here becomes a square; the five non-circle declarations (:635, :701, :761, :858, :911) are cleared. :569 is inherit and exempt. The planner's 'ten' counted the comment at :25 and the inherit.",
-  },
   {
     file: "src/lib/ui/ColourPicker.svelte",
     declarations: 6,
@@ -188,11 +183,6 @@ export const ALLOWLIST: readonly AllowlistRow[] = [
     file: "src/lib/ui/NamePlate.svelte",
     declarations: 1,
     clearedBy: "13-09 (deleted)",
-  },
-  {
-    file: "src/lib/ui/CopyLink.svelte",
-    declarations: 1,
-    clearedBy: "13-09",
   },
   {
     file: "src/lib/ui/BudgetMeter.svelte",

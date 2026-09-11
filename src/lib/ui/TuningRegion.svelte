@@ -1,8 +1,52 @@
 <!--
-  The tuning region: the six bands Phase 4 reserved room for, filled.
+  The inspector: PDF page 5's right column, rendered from the schema that
+  already exists (plan 13-09, Bible section 7, 13-CONTEXT.md D-14 Q5, Q11c,
+  D-21).
 
-  Two rules in this file are structural guards rather than preferences, and
-  both are the reason it is shaped the way it is.
+  Section 7 asks production for "a validated schema driving the controls".
+  HANGAR has one: src/lib/tune/view.ts's twelve knob kinds, checked exhaustive
+  against the vendored compiler's own union, and a TOTAL widget rule. Every
+  field this panel renders comes through `widgetFor` on a KnobView the tuner
+  published; nothing here is a hand-written form per entry, and no entry
+  declares a field the schema does not carry.
+
+  THREE SECTIONS, PARTITIONED FROM THE SCHEMA, AND A FOURTH THAT IS HANGAR'S.
+  Behavior is every knob that is neither a colour nor a MIDI destination, and
+  it carries the PDF's two buttons, Randomize and Reset settings. Appearance is
+  the colour knobs, through the one picker block. MIDI output is the knobs
+  that address the wire - ids `cc`, `ccBase`, `channel` and `send` - in PDF
+  page 5's 2 x 2 field grid with section 16's helper line beneath. A section
+  with no knob in it is OMITTED, not rendered empty: an empty disclosure is
+  the thing the next paragraph exists to forbid. The fourth group is the two
+  budget meters under Phase 4's TUNING caption - the spec has no budget meter
+  anywhere and HANGAR's honesty is not for cutting (13-RESEARCH Q8).
+
+  THERE IS NO ADVANCED SECTION, AND THAT IS A DECISION RATHER THAN AN EMPTY
+  DISCLOSURE. Section 7 proposes Curve, Smoothing, Phase, Clock sync, Voicing,
+  Inversion, Velocity response and External trigger under "Advanced
+  properties, only if supported". HANGAR's entries declare none of them, and
+  section 7's own boundary says: "Use actual parameter names, limits, units,
+  defaults, and dependencies from the configuration schema. Do not expose
+  numerical concepts such as 'Arms' without a clear meaning." Inventing a tier
+  would mean new tokens in the Lua on entries already at 857-875 of 908 at the
+  picker corner. Do not add a disclosure with nothing behind it.
+
+  THE HEADLINE IS ONE CONSTANT (inspector-copy.ts). Page 5 draws "Shape the /
+  movement." above ARC; twenty-seven entries have no headline of their own and
+  this plan does not invent twenty-seven (D-01). Per-entry headlines are a
+  question for 13-18. The lede is the PDF's sentence; the entry's `quiet` line
+  belongs to the centre, under the surface (D-14 Q11c).
+
+  D-21, THE REFLOW. The 2 x 2 grid needs 454 of inspector and the wide band's
+  floor is 380 (13-05's finding). The user chose "reflow": the floor stays,
+  and the grid is two columns when the inspector is at least layout.ts's
+  NUMERIC_GRID_REFLOW wide and one column below. The number is read from
+  layout.ts and never written here; a ResizeObserver on the grid's own box
+  answers it, because a container query cannot read a custom property and the
+  decision says the number lives in one place. Nothing else in the inspector
+  changes shape at that width.
+
+  Two rules in this file are structural guards rather than preferences.
 
   RULE 1 - THE COMPILER ARRIVES THROUGH `await import("$lib/tune/model")` AND
   NEVER STATICALLY. src/lib/tune/model.ts imports the vendored compiler, which
@@ -13,118 +57,36 @@
   src/lib/ui/ and fails on a `from` specifier naming the vendored tree, the
   protocol package or the compile surface; test 14 asserts the built
   build/index.html and build/playground/aurora/index.html reference no chunk carrying the
-  package. Coverflow.svelte reaches the simulator the same way, in its own
-  onMount, and this is a copy of that shape rather than a new one. The types the
-  region holds are therefore declared STRUCTURALLY below - the
-  src/lib/sim/host.ts HostEngine pattern - and the real ones are checked against
-  them where buildTuner's result is assigned.
+  package. The workspace route reaches the simulator the same way, in its own
+  onMount. The types the region holds are therefore declared STRUCTURALLY
+  below - the src/lib/sim/host.ts HostEngine pattern - and the real ones are
+  checked against them where buildTuner's result is assigned. The boundary is
+  proved by the build's chunk list, not by a gate: 13-09-SUMMARY.md says so.
 
   Everything else this file names is compiler-free by construction:
-  $lib/tune/view, $lib/tune/copy and $lib/tune/idle import nothing at all, and
-  $lib/sim/engine is a type-only import that is erased before a byte is emitted.
+  $lib/tune/view, $lib/tune/copy, $lib/tune/inspector-copy and $lib/tune/idle
+  import nothing at all, $lib/ui/shell/layout imports nothing, and
+  $lib/sim/engine is a type-only import that is erased before a byte is
+  emitted.
 
-  RULE 2 - THE REGION'S HEIGHT IS FIXED THE MOMENT AN ENTRY IS CHOSEN. It is a
-  pure function of that entry's knob count and knob kinds. A meter changing, a
-  readout going stale and a bar crossing 908 all leave it exactly where it was.
-  Phase 4's comment in ChosenPanel.svelte was written to protect this, and this
-  is the mechanism.
-
-  ------------------------------------------------------------------------
-  THE ARITHMETIC, AND WHY IT IS TWO CONSTANTS
-
-  Every vertical gap between bands in the region is 16px - Phase 4's `md`, so
-  this phase adds no new spacing value. The 12px in 05-UI-SPEC is horizontal
-  only. Top to bottom, with `r` row-layout knobs and `w` word rows:
-
-      region padding, top                                       16
-      TUNING caption           (the region's fixed 14px line box) 14
-      gap                                                        16
-      message slot A           auto, and only when a stamp landed  -
-      knob rack                               48r + 66w + 196p - 4
-      gap                                                        16
-      actions row              SURPRISE ME / RESET ALL            44
-      gap                                                        16
-      meters block             (14 + 4 + 8) x 2 + 4 = exactly     56
-      message slot B           auto, and only when it applies      -
-      region padding, bottom                                     16
-
-  which sums to
-
-      194 + 48r + 66w + 196p - 4     the actions row on one line
-      246 + 48r + 66w + 196p - 4     the actions row wrapped to two
-
-  `p` is 1 when the entry declares ANY colour knob and 0 otherwise, because
-  plan 10-10 renders one ColourPicker per panel rather than one per knob
-  (10-UI-SPEC 11.2). The colour knobs themselves are billed at zero: they are
-  inside the picker, not beside it.
-
-  ITS 192px BLOCK IS WIDTH-INDEPENDENT ON THE FOURTEEN ENTRIES WITH ONE COLOUR
-  KNOB, AND A FLOOR ON THE SEVENTEEN WITH MORE. A single-knob picker holds a
-  44px head at every width - ColourPicker.svelte's 262px container query drops
-  the metadata rather than let the head grow - so 196 is exact there and needs
-  no third constant. With a knob selector the head carries a word row whose
-  options are 44px on both axes, and three of them do not share a line with the
-  caption and the lock on a 172px rack: measured on `console` at a 320px
-  viewport the picker resolves to 288px. It declares `min-block-size` so it
-  grows instead of painting over the next row, and this reservation then
-  under-reserves by 96px there. Recorded rather than hidden,
-  and assigned to 10-13.1 in deferred-items.md item 7, because 10-UI-SPEC
-  19.1b's 24px pill padding lands in that wave and moves every number in it.
-
-  246 = 194 + 44 + 8: the second 44px button row plus the 8px `sm` gap that
-  05-UI-SPEC's Spacing table defines as the gap between SURPRISE ME and RESET
-  ALL when they wrap. A region carrying only the 194 constant would
-  under-reserve by 52px at exactly the widths DEGR-01 exists for. The
-  two-constant form is a recorded correction to the approved UI spec, whose
-  "Vertical arithmetic" table bills the actions row at a flat 44px while its own
-  "SURPRISE ME and RESET ALL" section gives that row `flex-wrap: wrap`.
-  KnobRack.svelte carries the same derivation beside the code that produces the
-  `48r + 66w - 4` half of it.
-
-  THE WRAP WIDTH IS MEASURED, NOT DERIVED. KnobRack.svelte's comment reasoned
-  from Quicksand 600's uppercase advance to about 251px and said plainly that
-  the real number was this plan's to take. It was taken: this component was
-  mounted in Chromium against its own shipped markup and style block, with
-  Quicksand loaded the way src/app.css loads it, and the container narrowed one
-  pixel at a time. SURPRISE ME lays out at 134.453125px and RESET ALL at
-  114.546875px - 249.0px exactly - so with the 8px `sm` gap the pair needs
-  exactly 257px. They share one line down to a region content box of 257px and
-  wrap at 256px. The container query below is therefore `width < 257px`, and
-  257px of content box is a viewport of about 385px once 48px of page padding,
-  48px of panel padding and 32px of region padding are taken off it. Both 320px
-  (content box 192px) and 375px (247px) are below it and reserve the wrapped
-  constant; 420px (292px) is above it and reserves the one-line constant. The
-  measurement is 6px wider than the derivation, which is inside the margin the
-  derivation admitted, and it agrees with the derivation's conclusion about all
-  three of those widths.
-
-  The two constants are stated here in terms of the OUTER region box, which is
-  ChosenPanel.svelte's `.reserved` - it owns the 16px of padding at each end.
-  The element this file reserves sits inside that padding, so it carries
-  194 - 32 = 162 and 246 - 32 = 214.
-
-  ONE THING THE HEIGHT CANNOT BE SETTLED BEFORE. The knob count and the knob
-  kinds live behind the compiler: src/lib/tune/knobs.preset.ts imports the
-  vendored `_pad`, so there is no compiler-free way to ask how many knobs an
-  entry has. The reservation is therefore Phase 4's 152px floor until the
-  tuner's first view lands - the same tick the rack first appears - and the
-  computed constant from then on, unchanged for the life of the entry. Nothing
-  a visitor is reading moves either way: the primary control, its honesty line
-  and the connect-state region are all ABOVE this element, and the region grows
-  downward.
-  ------------------------------------------------------------------------
+  RULE 2 - THE PANEL SCROLLS ITS OWN BODY AND THE PRIMARY ACTION IS NOT IN IT.
+  Inspector.svelte's body is the one scroll container; the head and the
+  pinned pair stay put; Apply to ZONA lives in the context bar (13-11). So
+  the height reservation this file carried from 05-10 to 13-08 - the two
+  constants, the measured 257px wrap, the 196p picker term - has no subject
+  and is gone. Nothing above the rack can move when the rack grows.
 
   ONE LIVE REGION, AND IT CANNOT CHATTER. There is exactly one visually-hidden
-  aria-live="polite" aria-atomic="true" element for the whole tuning region, and
+  aria-live="polite" aria-atomic="true" element for the whole inspector, and
   it NEVER fires on a value change. It fires on a category transition (in budget
   to over budget and back), on the two explicit commands, and on a successful
-  copy - which arrives through the exported announceCopied(), because COPY LINK
-  sits below the panel's hairline and holds no live region of its own.
+  copy - which arrives through the exported announceCopied(), because the share
+  control holds no live region of its own.
 
   Everything it says goes through ONE trailing timer, and that is what makes
   "a command and a category transition are one utterance, never two" true by
-  construction rather than by remembering: RESET ALL can land on defaults that
-  are already over budget, and $lib/tune/copy carries combined strings for
+  construction rather than by remembering: Reset settings can land on defaults
+  that are already over budget, and $lib/tune/copy carries combined strings for
   exactly that case. The 500ms delay is the UI spec's coalescing window - a knob
   dragged across 908 and back says nothing at all - and it doubles as the wait
   for the command's own numbers, which arrive with the debounced measurement.
@@ -140,22 +102,18 @@
   (D-08). Nothing here awaits it before the first paint: the meters say
   `measuring…` until a number lands, and the preview is already running. When it
   never resolves at all - blocked, 404, offline - the meters block is replaced
-  by one Body line and NOTHING else is disabled. This phase connects and
-  identifies and needs no compiler: knobs still turn, the preview still animates,
-  COPY LINK still copies.
+  by one Body line and NOTHING else is disabled.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { onDestroy, onMount, untrack } from "svelte";
+  import { onDestroy, onMount, untrack, type Snippet } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
   import type { SimEngine } from "$lib/sim/engine";
   import {
     LINK_COPIED_ANNOUNCEMENT,
     METERS_UNAVAILABLE,
-    RESET_ALL,
     SURPRISE_ALL_HELD,
-    SURPRISE_ME,
     TUNING_CAPTION,
     liveBackInside,
     liveRandomised,
@@ -167,11 +125,25 @@
     type EventWord,
   } from "$lib/tune/copy";
   import { onIdle } from "$lib/tune/idle";
+  import {
+    INSPECTOR_EYEBROW,
+    INSPECTOR_HEADLINE,
+    INSPECTOR_LEDE,
+    MIDI_HELPER,
+    RANDOMIZE,
+    RANDOMIZE_GLYPH,
+    RESET_SETTINGS,
+    SECTION_APPEARANCE,
+    SECTION_BEHAVIOR,
+    SECTION_MIDI,
+  } from "$lib/tune/inspector-copy";
   import { knobPosition, type KnobView, type TuneView } from "$lib/tune/view";
   import BudgetMessage from "./BudgetMessage.svelte";
   import BudgetMeter from "./BudgetMeter.svelte";
   import KnobRack from "./KnobRack.svelte";
   import StampNotice from "./StampNotice.svelte";
+  import Inspector from "./shell/Inspector.svelte";
+  import { INSPECTOR_INSET, NUMERIC_GRID_REFLOW } from "./shell/layout";
 
   /**
    * $lib/share/stamp's `Landing["kind"]`, restated. See rule 1 in the header:
@@ -179,14 +151,14 @@
    */
   type LandingKind = "none" | "restored" | "older" | "unreadable";
 
-  /** $lib/tune/model's LadderView, narrowed to what slot B renders. */
+  /** $lib/tune/model's LadderView, narrowed to what the message renders. */
   type LadderMessage = { line: string };
 
   /** $lib/tune/model's OverBudgetView, narrowed to what this region uses. */
   type OverBudgetMessage = {
     line: string;
     backOff: string;
-    /** The reason beside a disabled TRY ON DEVICE. Reported upward, never rendered here. */
+    /** The reason beside a disabled primary control. Reported upward, never rendered here. */
     reason: string;
     /** The one utterance for the crossing, with the knob named when one moved. */
     live: string;
@@ -223,6 +195,7 @@
     knobs = {},
     reserved,
     landing = { kind: "none" },
+    actions,
     onknobs,
     onpreview,
     onstamp,
@@ -232,31 +205,35 @@
   }: {
     /**
      * The catalog id, NOT an entry object, so /dev/tune/ can mount the region
-     * for a configuration that has no front-door page without inventing a row
+     * for a configuration that has no workspace page without inventing a row
      * entry for it.
      */
     entryId: string;
     /**
-     * The configuration's name, which two of message slot A's three sentences
-     * carry. It is a prop rather than a catalog lookup because the catalog's
-     * knob tables sit behind the compiler (see rule 1) and slot A's height is
-     * settled at landing, before the panel is visible - resolving the name
-     * through the same dynamic import would settle it a chunk-fetch later.
+     * The configuration's name, which two of the stamp notice's three
+     * sentences carry. It is a prop rather than a catalog lookup because the
+     * catalog's knob tables sit behind the compiler (see rule 1).
      */
     name: string;
-    /** Knob id to index. The owner keeps them, so re-choosing restores them. */
+    /** Knob id to index. The owner keeps them, so re-opening restores them. */
     knobs?: Readonly<Record<string, number>>;
     /** Phase 7's install marker, and /dev/tune/'s way to reach over budget. */
     reserved?: { setup: number; timer: number };
     /** Where the URL landed, decided by the route before the panel opened. */
     landing?: { kind: LandingKind };
+    /**
+     * The inspector's pinned pair - page 5's Save copy / Share snapshot - which
+     * are the route's controls and not the tuner's. Forwarded to the shell's
+     * Inspector as its `actions`.
+     */
+    actions?: Snippet;
     /** Every knob position, on every change, so the owner can hold them. */
     onknobs?: (indices: Readonly<Record<string, number>>) => void;
     /** The new engine, for SimHost.replaceEngine. Never stored in a rune. */
     onpreview?: (engine: SimEngine) => void;
-    /** The share payload, precomputed, so COPY LINK never awaits anything. */
+    /** The share payload, precomputed, so the share control never awaits anything. */
     onstamp?: (stamp: string | undefined) => void;
-    /** The over-budget reason for TRY ON DEVICE, or undefined when in budget. */
+    /** The over-budget reason for the primary control, or undefined when in budget. */
     onbudget?: (reason: string | undefined) => void;
     /**
      * The compiled pair, or undefined while measuring. The owner hands it to
@@ -268,12 +245,9 @@
     ) => void;
     /**
      * The colour picker's result pad, for whoever owns the page's SimHost.
-     *
-     * The region has no host of its own - it hands the tuner's engine upward
-     * through `onpreview` and the owner registers it - so the result canvas
-     * goes the same way. A consumer that supplies this registers the element
-     * against the id it is handed and unregisters it on teardown; one that
-     * does not gets no result pad at all rather than a blank one.
+     * A consumer that supplies this registers the element against the id it
+     * is handed; one that does not gets no result pad at all rather than a
+     * blank one.
      */
     onresult?: (id: string, canvas: HTMLCanvasElement) => void;
   } = $props();
@@ -284,21 +258,19 @@
    */
   const VOICE_DELAY_MS = 500;
 
-  /*
-    The two constants of the header's arithmetic, less ChosenPanel's 32px of
-    region padding, are 194 - 32 = 162 and 246 - 32 = 214. They are literals in
-    the style block below rather than constants here, because a CSS custom
-    property cannot be used inside a container query's condition and half the
-    pair would then live in one place and half in the other. What this script
-    computes is the rack's own contribution, which IS a custom property.
-  */
-
-  /** A row-layout knob is 44 + 4; a word row is 62 + 4; the rack drops its trailing gap. */
-  const ROW_KNOB_PX = 48;
-  const WORD_ROW_PX = 66;
-  /** The colour picker's 192px block plus the same 4px gap. Billed ONCE. */
-  const PICKER_PX = 196;
-  const RACK_GAP_PX = 4;
+  /**
+   * The knobs that address the wire, by id: the CC or CC base a gesture
+   * sends on, and its channel. These are page 5's MIDI output fields; every
+   * other non-colour knob is Behavior. An id, not a kind: `send` is a `note`
+   * kind by the compiler's vocabulary and `channel` is `amount` on the preset
+   * route and `mode` on the Lua route, so the kind cannot say what the id can.
+   */
+  const MIDI_IDS: ReadonlySet<string> = new Set([
+    "cc",
+    "ccBase",
+    "channel",
+    "send",
+  ]);
 
   let view: TuneView | undefined = $state(undefined);
   let ladder: LadderMessage | undefined = $state(undefined);
@@ -312,42 +284,30 @@
    * is no path from a lock to `encodeFor` and a held knob's link is
    * byte-identical to the same knob's unheld one. SHARE-01 is untouched, and
    * `surprise.spec.ts` asserts the stamp rather than trusting this paragraph.
-   *
-   * A SvelteSet rather than a plain Set in a rune, and the linter is right to
-   * insist: a plain Set is not deeply reactive, so `allHeld` would have to be
-   * recomputed by reassigning the whole collection on every toggle. This one
-   * invalidates the readers of the key that changed and nothing else, which is
-   * the same reason Knob.svelte reaches for MediaQuery rather than a one-shot
-   * matchMedia read.
    */
   const heldKnobs = new SvelteSet<string>();
   /**
-   * The one forecast on screen (TUNE-02, T2), or undefined.
-   *
-   * AT MOST ONE FOR THE WHOLE RACK: a visitor has one pointer and one focus,
-   * so a second forecast could only ever be a stale first one. The tuner
+   * The one forecast on screen (TUNE-02, T2), or undefined. AT MOST ONE FOR
+   * THE WHOLE INSPECTOR: a visitor has one pointer and one focus. The tuner
    * withdraws it on every knob move, so nothing here has to remember to.
    */
   let forecast: ForecastMessage | undefined = $state(undefined);
   /**
-   * Slot A describes how the panel arrived, and stops being true once the
-   * visitor takes over.
-   *
-   * untrack is not decoration: reading a prop at component-init scope otherwise
-   * warns that only the initial value is captured - which is exactly what is
-   * wanted here, because the landing is decided by the route before the panel
-   * opens and a later change to it must not put the notice back after a knob
-   * has moved. Coverflow.svelte's openingCentre is the same shape.
+   * The stamp notice describes how the panel arrived, and stops being true
+   * once the visitor takes over. untrack: the landing is decided by the route
+   * before the panel opens and a later change must not put the notice back
+   * after a knob has moved.
    */
   let landed = $state(untrack(() => landing.kind !== "none"));
   let metersUnavailable = $state(false);
-  /** Settled on the first view and never recomputed. See rule 2 in the header. */
-  let rackPx: number | undefined = $state(undefined);
   let announcement = $state("");
+  /** D-21: the MIDI grid's column count, answered by the observer below. */
+  let gridColumns = $state(1);
 
   /*
     Plain locals, deliberately outside the reactive graph. Nothing that holds an
-    engine or a timer handle goes into a rune, and none of these is rendered.
+    engine, a timer handle or an observer goes into a rune, and none of these
+    is rendered.
   */
   let tuner: Tuner | undefined;
   let mounted = false;
@@ -358,6 +318,9 @@
   let announcedOver = false;
   /** Which event was over when it did, so the way back can name the same one. */
   let announcedEvent: EventWord = "Setup";
+  /** The grid's box, observed for D-21. */
+  let gridBox: HTMLDivElement | undefined = $state(undefined);
+  let gridObserver: ResizeObserver | undefined;
 
   /*
     Both of these read the view through a PARAMETER rather than inline, and that
@@ -365,8 +328,7 @@
     TypeScript has seen `view` assigned only undefined - it is filled inside an
     async callback further down - so it narrows it to undefined here and every
     property access below becomes an error on `never`. A parameter is not
-    narrowed by the outer control flow, so the declared union survives. It is
-    TryOnDevice.svelte's labelOf/secondsOf shape, for the same reason.
+    narrowed by the outer control flow, so the declared union survives.
   */
   const knobsOf = (current: TuneView | undefined): readonly KnobView[] =>
     current?.knobs ?? [];
@@ -377,11 +339,25 @@
 
   const knobViews = $derived(knobsOf(view));
   const hasKnobs = $derived(knobViews.length > 0);
+  /** The schema, partitioned into section 7's three sections. */
+  const colourKnobs = $derived(
+    knobViews.filter((knob) => knob.widget === "colour"),
+  );
+  const midiKnobs = $derived(
+    knobViews.filter(
+      (knob) => knob.widget !== "colour" && MIDI_IDS.has(knob.id),
+    ),
+  );
+  const behaviorKnobs = $derived(
+    knobViews.filter(
+      (knob) => knob.widget !== "colour" && !MIDI_IDS.has(knob.id),
+    ),
+  );
   const atDefaults = $derived(
     knobViews.every((knob) => knob.index === knob.default),
   );
   /**
-   * Every knob held, which is the one state SURPRISE ME cannot act in.
+   * Every knob held, which is the one state Randomize cannot act in.
    *
    * `surpriseIndices` already answers this by handing the previous indices
    * back - its documented exhaustion signal - so the alternative to disabling
@@ -395,7 +371,6 @@
    * an assistive technology does not read numbers that are about to change.
    */
   const busy = $derived(busyOf(view));
-  const rack = $derived(rackPx ?? 0);
   /** The disabled control's reason, wired to it by aria-describedby. */
   const heldReasonId = "tuning-surprise-held";
 
@@ -406,8 +381,7 @@
    * the delta beside the option is ONE number and has to be about one of them.
    * It is the event that moves further, ties to Setup - so the number answers
    * "what is the most this would cost me" rather than averaging two budgets
-   * that are not interchangeable. The sentence beside it names the event, so
-   * the number is never ambiguous about which meter it belongs to.
+   * that are not interchangeable.
    */
   const forecastEvent = $derived.by<EventWord>(() => {
     const now = forecast;
@@ -448,25 +422,16 @@
    * emitted script writes the literal. A colour change moves nothing else in
    * the script, so a candidate's cost is exactly the digit-count difference of
    * its three channels times the copy count - which is why this is arithmetic
-   * the picker can do without ever reaching the compiler, and why it does not
-   * cost 4,096 compiles to answer.
+   * the picker can do without ever reaching the compiler.
    *
    * `copies` is 1, and the ONE card that emits its colour twice is `ninepads`,
    * whose checkerboard draws a dimmed second copy. So the guard is
    * conservative by at most six characters on exactly one entry, and what
    * catches that six is the path that already exists: the meters go over, the
-   * message appears and TRY ON DEVICE is disabled with a reason. Under-warning
-   * into a state the panel already handles is the right side to err on;
-   * over-warning would grey out a colour that fits.
+   * message appears and the primary control is disabled with a reason.
    *
    * Clamped at zero because an ALREADY over-budget state must not shorten
-   * every rail to one detent: the colour the knob stands at is always
-   * affordable by construction, and 908 is the meters' business to report.
-   *
-   * MEASURED AT ZERO EXCLUSIONS ON TODAY'S SHELF. The dearest colour-bearing
-   * preset is `ninepads` at 640 of 908 - 268 free against a lattice worth six
-   * characters - and zero of the reachability sweep's 24,576 colour states
-   * crosses the wall.
+   * every rail to one detent.
    */
   const colourBudget = $derived.by(() => {
     const current = view;
@@ -487,24 +452,35 @@
     return state === "measuring" || state === "stale";
   }
 
-  /** `48r + 66w + 196p - 4`, and zero for an entry with nothing to turn. */
-  function rackHeight(next: TuneView): number {
-    const words = next.knobs.filter((knob) => knob.widget === "words").length;
-    const colours = next.knobs.filter(
-      (knob) => knob.widget === "colour",
-    ).length;
-    const rows = next.knobs.length - words - colours;
-    if (next.knobs.length === 0) return 0;
-    // ONE picker, however many colour knobs it holds. Billing them one each
-    // would over-reserve by 48px on `console`, `strip` and `forge` and would
-    // contradict the one thing 10-UI-SPEC 11.2 is about.
-    return (
-      ROW_KNOB_PX * rows +
-      WORD_ROW_PX * words +
-      (colours > 0 ? PICKER_PX : 0) -
-      RACK_GAP_PX
-    );
+  // ---------------------------------------------------------------------------
+  // D-21: the grid's columns, from layout.ts's number and the grid's own box.
+
+  /**
+   * Two columns when the INSPECTOR is at least NUMERIC_GRID_REFLOW wide. The
+   * grid's box is the inspector's body less the two insets, so the inspector's
+   * width is the box plus INSPECTOR_INSET twice - both numbers layout.ts's.
+   */
+  function columnsFor(boxWidth: number): number {
+    return boxWidth + INSPECTOR_INSET * 2 >= NUMERIC_GRID_REFLOW ? 2 : 1;
   }
+
+  $effect(() => {
+    const box = gridBox;
+    gridObserver?.disconnect();
+    gridObserver = undefined;
+    if (box === undefined || typeof ResizeObserver === "undefined") return;
+    gridColumns = columnsFor(box.getBoundingClientRect().width);
+    gridObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        gridColumns = columnsFor(entry.contentRect.width);
+      }
+    });
+    gridObserver.observe(box);
+    return () => {
+      gridObserver?.disconnect();
+      gridObserver = undefined;
+    };
+  });
 
   // ---------------------------------------------------------------------------
   // The one voice.
@@ -536,8 +512,8 @@
 
   /**
    * The command's own sentence, with the crossing folded into it when the
-   * command landed over budget. RESET ALL can land on defaults that are already
-   * over 908, and the live region emits at most one string per event.
+   * command landed over budget. Reset settings can land on defaults that are
+   * already over 908, and the live region emits at most one string per event.
    */
   function commandLine(
     command: "reset" | "surprise",
@@ -588,9 +564,9 @@
   }
 
   /**
-   * COPY LINK's one announcement. It lives below the panel's hairline and holds
-   * no live region of its own, so its owner calls this through bind:this - the
-   * shape TryOnDevice.svelte's release() established.
+   * The share control's one announcement. It holds no live region of its
+   * own, so its owner calls this through bind:this - the shape
+   * TryOnDevice.svelte's release() established.
    */
   export function announceCopied(): void {
     clearVoice();
@@ -602,12 +578,8 @@
 
   function receive(next: TuneView): void {
     view = next;
-    // Settled once, on the first view, and never recomputed: see rule 2.
-    rackPx ??= rackHeight(next);
     const indices: Record<string, number> = {};
-    // THROUGH knobPosition, never knob.index: a windowed view - today only a
-    // lattice colour knob, until 10-10 - indexes its own values rather than
-    // the knob. See view.ts.
+    // THROUGH knobPosition, never knob.index. See view.ts.
     for (const knob of next.knobs) indices[knob.id] = knobPosition(knob);
     onknobs?.(indices);
     onstamp?.(tuner?.stamp());
@@ -697,9 +669,9 @@
   }
 
   /**
-   * One lock, toggled. It moves no knob, so it does NOT clear slot A and it
-   * does not touch the tuner: "these knobs came with the link" is still true
-   * of a link whose knobs the visitor has only locked.
+   * One lock, toggled. It moves no knob, so it does NOT clear the stamp
+   * notice and it does not touch the tuner: "these knobs came with the link"
+   * is still true of a link whose knobs the visitor has only locked.
    */
   function holdKnob(id: string): void {
     if (!heldKnobs.delete(id)) heldKnobs.add(id);
@@ -726,9 +698,9 @@
     const current = tuner;
     if (current === undefined || rolling || allHeld) return;
     rolling = true;
-    // Slot A goes for the same reason it goes on a knob turn and on RESET ALL:
-    // a roll moves every knob, so "these knobs came with the link" stops being
-    // true the moment it settles.
+    // The notice goes for the same reason it goes on a knob turn and on Reset
+    // settings: a roll moves every knob, so "these knobs came with the link"
+    // stops being true the moment it settles.
     landed = false;
     pendingCommand = "surprise";
     try {
@@ -740,68 +712,135 @@
   }
 </script>
 
-<div class="region">
-  <div class="bands" data-testid="tuning-region" style="--tune-rack: {rack}px">
-    <p class="caption">{TUNING_CAPTION}</p>
+<!-- Behavior: the schema's fields, then the PDF's two buttons. -->
+{#snippet behavior()}
+  {#if landed}
+    <StampNotice kind={landing.kind} {name} />
+  {/if}
 
-    {#if landed}
-      <StampNotice kind={landing.kind} {name} />
+  <KnobRack
+    entry={{ id: entryId, name }}
+    knobs={behaviorKnobs}
+    held={heldKnobs}
+    budget={colourBudget}
+    forecast={rackForecast}
+    empty={!hasKnobs}
+    onchange={changeKnob}
+    onreset={resetKnob}
+    onhold={holdKnob}
+    onforecast={forecastKnob}
+  />
+
+  {#if hasKnobs}
+    <div class="actions">
+      <button
+        class="action"
+        type="button"
+        data-testid="surprise-me"
+        disabled={rolling || allHeld}
+        aria-busy={rolling}
+        aria-describedby={allHeld ? heldReasonId : undefined}
+        onclick={surprise}
+      >
+        <span class="glyph" aria-hidden="true">{RANDOMIZE_GLYPH}</span>
+        {RANDOMIZE}
+      </button>
+      <button
+        class="action"
+        type="button"
+        data-testid="reset-all"
+        disabled={atDefaults}
+        onclick={resetAll}
+      >
+        {RESET_SETTINGS}
+      </button>
+    </div>
+    <!--
+      DEGR-02's reason rule, and this control needs one where Reset settings
+      does not: Reset settings is disabled by a state the rack shows directly,
+      and this one is disabled by a state spread across every row's toggle.
+    -->
+    {#if allHeld}
+      <p class="reason" id={heldReasonId} data-testid="surprise-held-reason">
+        {SURPRISE_ALL_HELD}
+      </p>
     {/if}
+  {/if}
+{/snippet}
 
+<!-- Appearance: the colour knobs, through the one picker block. -->
+{#snippet appearance()}
+  <KnobRack
+    entry={{ id: entryId, name }}
+    knobs={colourKnobs}
+    held={heldKnobs}
+    budget={colourBudget}
+    forecast={rackForecast}
+    empty={false}
+    {onresult}
+    onchange={changeKnob}
+    onreset={resetKnob}
+    onhold={holdKnob}
+    onforecast={forecastKnob}
+  />
+{/snippet}
+
+<!-- MIDI output: page 5's 2 x 2 field grid (D-21), and section 16's helper line. -->
+{#snippet midi()}
+  <div class="grid-box" bind:this={gridBox} data-testid="midi-grid">
     <KnobRack
       entry={{ id: entryId, name }}
-      knobs={knobViews}
+      knobs={midiKnobs}
       held={heldKnobs}
-      budget={colourBudget}
       forecast={rackForecast}
-      {onresult}
+      layout="grid"
+      columns={gridColumns}
+      empty={false}
       onchange={changeKnob}
       onreset={resetKnob}
       onhold={holdKnob}
       onforecast={forecastKnob}
     />
+  </div>
+  <p class="helper type-helper">{MIDI_HELPER}</p>
+{/snippet}
 
-    {#if hasKnobs}
-      <div class="actions">
-        <button
-          class="action"
-          type="button"
-          data-testid="surprise-me"
-          disabled={rolling || allHeld}
-          aria-busy={rolling}
-          aria-describedby={allHeld ? heldReasonId : undefined}
-          onclick={surprise}
-        >
-          {SURPRISE_ME}
-        </button>
-        <button
-          class="action"
-          type="button"
-          data-testid="reset-all"
-          disabled={atDefaults}
-          onclick={resetAll}
-        >
-          {RESET_ALL}
-        </button>
-      </div>
-      <!--
-        DEGR-02's reason rule, and this control needs one where RESET ALL does
-        not: RESET ALL is disabled by a state the rack shows directly, and this
-        one is disabled by a state spread across every row's toggle.
-      -->
-      {#if allHeld}
-        <p class="reason" id={heldReasonId} data-testid="surprise-held-reason">
-          {SURPRISE_ALL_HELD}
-        </p>
-      {/if}
-    {/if}
+{#snippet headline()}
+  {INSPECTOR_HEADLINE[0]}<br />{INSPECTOR_HEADLINE[1]}
+{/snippet}
 
+<div class="region" data-testid="tuning-region">
+  <Inspector
+    eyebrow={INSPECTOR_EYEBROW}
+    {headline}
+    lede={INSPECTOR_LEDE}
+    sections={[
+      { title: SECTION_BEHAVIOR, content: behavior },
+      ...(colourKnobs.length > 0
+        ? [{ title: SECTION_APPEARANCE, content: appearance }]
+        : []),
+      ...(midiKnobs.length > 0 ? [{ title: SECTION_MIDI, content: midi }] : []),
+    ]}
+    {actions}
+  >
+    <!--
+      HANGAR's fourth group: the two budget meters under Phase 4's TUNING
+      caption. Not a section 7 section - the spec has no budget meter - and
+      not for cutting; it is the site's honesty about 908.
+    -->
+    <hr class="divider" />
+    <p class="caption" id="tuning-meters-caption">{TUNING_CAPTION}</p>
     {#if metersUnavailable}
       <p class="unavailable" data-testid="meters-unavailable">
         {METERS_UNAVAILABLE}
       </p>
     {:else if view}
-      <div class="meters" data-testid="tuning-meters" aria-busy={busy}>
+      <div
+        class="meters"
+        data-testid="tuning-meters"
+        aria-busy={busy}
+        aria-labelledby="tuning-meters-caption"
+      >
         <BudgetMeter view={view.setup} ghost={forecast?.setup} />
         <BudgetMeter view={view.timer} ghost={forecast?.timer} />
       </div>
@@ -817,90 +856,51 @@
     >
       {announcement}
     </p>
-  </div>
+  </Inspector>
 </div>
 
 <style>
   /*
-    The query container the height switch below resolves against, and nothing
-    else. Its width IS the region's content box, because ChosenPanel.svelte's
-    `.reserved` owns the 16px of padding at each edge. A container cannot query
-    itself, which is why the reservation is on the child rather than here.
+    No box of its own: the shell's inspector column sizes the Inspector, and
+    a wrapper with a box would put a second scroll container between them.
+    The test id is what e2e/tuning-webkit.e2e.ts measures for sideways
+    overflow; a box of zero width has nothing to scroll to.
   */
   .region {
-    container-type: inline-size;
+    display: contents;
   }
 
   /*
-    194 - 32, plus the rack. A flex column so the gaps below are the elements'
-    own margins rather than a collapsing negotiation between them, and so an
-    empty message slot costs exactly nothing.
-  */
-  .bands {
-    display: flex;
-    flex-direction: column;
-    min-block-size: calc(162px + var(--tune-rack, 0px));
-  }
-
-  /*
-    246 - 32. MEASURED, not derived: the two action buttons need exactly 257px
-    of content box (134.453125 + 114.546875 + the 8px gap), so they share one
-    line down to 257px and wrap at 256px. See the header for the working and for
-    why reserving only the one-line constant would under-reserve by 52px at
-    320px and 375px.
-  */
-  @container (width < 257px) {
-    .bands {
-      min-block-size: calc(214px + var(--tune-rack, 0px));
-    }
-  }
-
-  /*
-    Micro role in the quiet rung, and a 14px line box rather than Quicksand's
-    1.2 ratio: every 12px line inside this region is 14px, which is what makes
-    the arithmetic in the header whole pixels. 16px below it, always.
-  */
-  .caption {
-    margin: 0 0 16px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 14px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ink-quiet);
-  }
-
-  /*
-    One 44px row that wraps into two rather than truncating or scrolling
-    (D-11: wrap, never scroll). `flex: 1 1 auto` on the buttons means the line
-    breaks at their natural widths and each wrapped line then fills.
+    Page 5's two outlined buttons under Behavior, side by side and equal. One
+    row that wraps into two at a narrow width rather than truncating or
+    scrolling (D-11: wrap, never scroll).
   */
   .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
     margin-block-start: 16px;
   }
 
   /*
-    Phase 4's secondary treatment at 44px. Neither of these ever takes an accent
-    fill: the only filled button on this panel is TRY ON DEVICE.
+    Section 10.3's Secondary treatment at 44px: a 1px boundary outline, no
+    fill, the field face. Neither of these ever takes an accent fill: the
+    only filled button on this site is the primary. Square (D-01).
   */
   .action {
     appearance: none;
-    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     min-block-size: 44px;
     padding-inline: 16px;
     border: 1px solid var(--color-boundary);
-    border-radius: 6px;
     background: transparent;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 500;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
     color: var(--color-ink);
     cursor: pointer;
     transition: border-color 140ms ease-out;
@@ -910,20 +910,18 @@
     border-color: var(--color-action);
   }
 
-  /*
-    Phase 4's disabled treatment, and RESET ALL carries no adjacent reason line:
-    DEGR-02's reason rule exists for install controls whose cause is invisible,
-    and here the cause is the rack directly above with every marker at home.
-  */
   .action:disabled {
     color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 
+  .glyph {
+    font-size: 13px;
+  }
+
   /*
     The one reason line this region renders, and it appears only in the state
-    that produces it. Body role, quiet, 8px under the actions row - the same
-    `sm` step that separates the two buttons when they wrap.
+    that produces it. Body role, quiet, 8px under the actions row.
   */
   .reason {
     margin: 8px 0 0;
@@ -933,18 +931,45 @@
     color: var(--color-ink-quiet);
   }
 
+  /* The grid's box, observed for D-21. It is exactly as wide as the body's content. */
+  .grid-box {
+    inline-size: 100%;
+  }
+
+  .helper {
+    margin: 12px 0 0;
+    color: var(--color-ink-quiet);
+  }
+
+  /* The fourth group's separation, Inspector.svelte's own divider rule. */
+  .divider {
+    margin-block: 20px;
+    border: 0;
+    border-block-start: 1px solid var(--color-divider);
+  }
+
+  /* Phase 4's caption: 12px / 600 / 14px box / 0.18em, uppercase, quiet. */
+  .caption {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 14px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink-quiet);
+  }
+
   /* Exactly 56px: two 26px meters and the 4px between them. */
   .meters {
     display: flex;
     flex-direction: column;
     gap: 4px;
     block-size: 56px;
-    margin-block-start: 16px;
   }
 
   /* The formatter never resolved. One Body line, and nothing else is disabled. */
   .unavailable {
-    margin: 16px 0 0;
+    margin: 0;
     font-size: 16px;
     font-weight: 400;
     line-height: 1.5;

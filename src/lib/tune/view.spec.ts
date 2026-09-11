@@ -115,7 +115,16 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
   });
 
   it("gives every one of the twelve kinds a widget, and falls through to a rail", () => {
-    const widgets: KnobWidget[] = ["colour", "swatch", "words", "rail"];
+    // Five since 13-09: `select` is the worded knob at five to eight options
+    // (section 7's select for a larger enumeration); the 4/5 boundary itself
+    // is asserted in src/lib/ui/tune-ui.spec.ts, beside the component.
+    const widgets: KnobWidget[] = [
+      "colour",
+      "swatch",
+      "words",
+      "select",
+      "rail",
+    ];
 
     // THE WHOLE MAPPING, COMPARED AS ONE OBJECT (plan 10-10). The amendment
     // below moves ONE row, and "no other kind's mapping moved" is a claim

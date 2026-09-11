@@ -39,6 +39,33 @@ import {
 // it here costs this file nothing and lets the canvas budget be counted against
 // the constant the component actually loops over rather than against a 4.
 import { MIX_CHILDREN } from "../tune/mix";
+// The inspector (13-09): the widget rule and its boundary, the copy the
+// inspector renders, layout.ts's D-21 numbers, and a real tuner for the
+// per-field reset - the model.spec.ts harness in brief. The compile surface
+// is a spec's to import statically; test 1 holds the COMPONENTS to the
+// await form.
+import { INSPECTOR_HEADLINE, fieldResetName } from "../tune/inspector-copy";
+import { buildTuner } from "../tune/model";
+import { padReady } from "../pad";
+import {
+  KNOB_KIND_NAMES,
+  SCALE_WORDS,
+  SEGMENTED_MAX,
+  WORD_ROW_MAX,
+  widgetFor,
+  type KnobView,
+  type TuneView,
+} from "../tune/view";
+import {
+  GRID_FITS_INSPECTOR,
+  NUMERIC_FIELD_W,
+  NUMERIC_GRID_REFLOW,
+  NUMERIC_GRID_W,
+} from "./shell/layout";
+
+/** Seven and twelve integers, for the totality walk over every kind. */
+const SEVEN_INTEGERS = Array.from({ length: 7 }, (_, i) => String(i));
+const TWELVE = Array.from({ length: 12 }, (_, i) => String(i * 10));
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -678,115 +705,304 @@ describe("the tuning UI's structural rules", () => {
   });
 
   it("the region's arithmetic is present, and both constants are", () => {
-    // THE ONE TEST THAT READS COMMENTS ON PURPOSE. Two of the four numbers
-    // below are prose - a height a component reserves is only auditable if the
-    // derivation is beside it - and the other two are the declarations that
-    // have to agree with them.
+    // SINCE 13-09 THE REGION IS THE INSPECTOR AND ITS ARITHMETIC IS D-21's.
+    // From 05-10 to 13-08 this test held the two height constants (194 / 246
+    // + 48r + 66w + 196p - 4) and the measured 257px wrap that let
+    // ChosenPanel.svelte reserve the tuning region's height before a knob had
+    // turned. The inspector's body is the one scroll container of a panel
+    // whose primary action lives in the context bar (Bible section 7), so
+    // that reservation has no subject and the region carries none of it.
+    // What it carries instead is D-21's one number - the width at which the
+    // 2 x 2 numeric grid is two columns - and the rule that the number is
+    // layout.ts's and written in no component. "Both constants" are now the
+    // two layout.ts reads the decision rests on: the reflow width and the
+    // inset that turns a body width into an inspector width.
     const region = componentPath("TuningRegion.svelte");
     const rack = componentPath("KnobRack.svelte");
-    const tryOn = componentPath("TryOnDevice.svelte");
-
     const regionRaw = raw(region);
     const regionCode = code(region);
+    const rackCode = code(rack);
 
     expect(regionRaw.length, "TuningRegion.svelte was read").toBeGreaterThan(
       1000,
     );
     expect(raw(rack).length, "KnobRack.svelte was read").toBeGreaterThan(1000);
 
-    // BOTH constants, because a region carrying only the one-line form
-    // under-reserves by 52px at exactly the two widths DEGR-01 exists for.
+    // ---- THE OLD RESERVATION IS GONE, BOTH HALVES. A region that still
+    // reserved a height would be sizing itself for a panel that no longer
+    // exists, and a rack that still billed its rows would be a number nobody
+    // re-derives.
+    for (const relic of ["calc(162px", "calc(214px", "width < 257px", "196p"]) {
+      expect(
+        regionCode + rackCode,
+        `the chosen panel's reservation is still written down as "${relic}" - the inspector scrolls its own body and reserves nothing`,
+      ).not.toContain(relic);
+    }
+
+    // ---- D-21: THE NUMBER IS READ FROM layout.ts AND WRITTEN NOWHERE ELSE.
+    // Both constants imported by name, from the shell's one module.
+    const layoutImport =
+      /import[ ]*[{]([^}]*)[}][ ]*from[ ]*["'][.][/]shell[/]layout["']/.exec(
+        regionCode,
+      );
+    expect(
+      layoutImport,
+      "TuningRegion.svelte no longer imports from ./shell/layout - D-21's number has to come from there",
+    ).not.toBeNull();
+    const imported = (layoutImport as RegExpExecArray)[1];
+    for (const name of ["NUMERIC_GRID_REFLOW", "INSPECTOR_INSET"]) {
+      expect(
+        imported,
+        `TuningRegion.svelte does not import ${name} from layout.ts (D-21: the breakpoint is written once, beside the other numbers)`,
+      ).toContain(name);
+    }
+    expect(
+      NUMERIC_GRID_REFLOW,
+      "layout.ts's reflow width is no longer the width that holds the 402px grid with its insets",
+    ).toBe(GRID_FITS_INSPECTOR);
+    // The rule that reads them, in one function, both names present.
+    const columnsFor = regionCode.slice(
+      regionCode.indexOf("function columnsFor"),
+      regionCode.indexOf("}", regionCode.indexOf("function columnsFor")),
+    );
+    expect(columnsFor, "columnsFor was found").toContain("INSPECTOR_INSET");
+    expect(columnsFor).toContain("NUMERIC_GRID_REFLOW");
+    // And the observer that answers it, because a container query cannot
+    // read a custom property.
+    expect(
+      regionCode,
+      "the grid's columns are not answered by a ResizeObserver on its own box",
+    ).toContain("new ResizeObserver(");
+    // NO LITERAL. Neither file writes the reflow width, the grid width or a
+    // field width as a number; the rack's grid rule reads --columns.
+    for (const literal of [
+      String(NUMERIC_GRID_REFLOW),
+      String(NUMERIC_GRID_W),
+      `${NUMERIC_FIELD_W}px`,
+    ]) {
+      expect(
+        regionCode + rackCode,
+        `a component writes "${literal}" as a literal - D-21 says the number lives in layout.ts and not in a component`,
+      ).not.toContain(literal);
+    }
+    const gridRule = rulesOf(rackCode).find(
+      (rule) => rule.selector.trim() === ".rack.grid",
+    );
+    expect(
+      gridRule,
+      "KnobRack.svelte no longer has a .rack.grid rule",
+    ).toBeDefined();
+    expect(
+      gridRule?.body,
+      "the grid's column count is not read from the --columns the region sets",
+    ).toContain("repeat(var(--columns");
+    expect(rackCode, "the rack sets --columns from its prop").toContain(
+      "style:--columns={columns}",
+    );
+
+    // ---- THE SECTIONS ARE THE SCHEMA'S PARTITION AND THERE IS NO ADVANCED
+    // SECTION. Three titles from the copy module, the MIDI ids the partition
+    // keys on, and the section 7 boundary quoted where the next person reads
+    // it - in the header, which is why this half reads the raw file.
+    for (const title of [
+      "SECTION_BEHAVIOR",
+      "SECTION_APPEARANCE",
+      "SECTION_MIDI",
+    ]) {
+      expect(regionCode, `the inspector does not render ${title}`).toContain(
+        `title: ${title}`,
+      );
+    }
+    for (const id of ['"cc"', '"ccBase"', '"channel"', '"send"']) {
+      expect(
+        regionCode,
+        `the MIDI output partition no longer names ${id}`,
+      ).toContain(id);
+    }
+    expect(
+      /advanced/i.test(regionCode),
+      "TuningRegion.svelte renders something called Advanced - section 7's tier is a decision written down, not an empty disclosure",
+    ).toBe(false);
     expect(
       regionRaw,
-      "the one-line height constant 194 + 48r + 66w + 196p - 4 is not written down - the region's height is no longer auditable",
-    ).toContain("194 + 48r + 66w + 196p - 4");
-    expect(
-      regionRaw,
-      "the WRAPPED height constant 246 + 48r + 66w + 196p - 4 is missing - a region reserving only the one-line form is 52px short at 320px and at 375px, where the actions row wraps",
-    ).toContain("246 + 48r + 66w + 196p - 4");
+      "the header no longer quotes section 7's boundary, so the next person will add the empty Advanced disclosure",
+    ).toContain("Use actual parameter names");
+    expect(regionRaw).toContain("THERE IS NO ADVANCED SECTION");
 
-    // THE PICKER'S TERM, AND WHY IT IS `p` RATHER THAN A THIRD KNOB COUNT
-    // (plan 10-10). The colour knobs are billed at ZERO and one 196px block is
-    // billed once, because 10-UI-SPEC §11.2 renders one picker per panel
-    // however many colour knobs an entry declares. Billing them one each would
-    // over-reserve by 48px on `console`, `strip` and `wheels` - the three
-    // entries the rule exists for - and would contradict it in the arithmetic
-    // while obeying it in the markup.
+    // ---- THE HEADLINE IS ONE CONSTANT, NOT PER ENTRY.
+    expect(regionCode, "the headline is not the register's constant").toContain(
+      "INSPECTOR_HEADLINE",
+    );
     expect(
-      regionCode,
-      "the picker's 196px is not a constant, so the reservation and the block can drift apart",
-    ).toContain("PICKER_PX = 196");
+      INSPECTOR_HEADLINE.length,
+      "the headline is two lines, the PDF's",
+    ).toBe(2);
     expect(
-      regionCode,
-      "the rack height still bills every colour knob as a row, so a three-colour entry reserves three pickers",
-    ).toContain("colours > 0 ? PICKER_PX : 0");
-    // A FLOOR, AND THE WORD `min` IS THE ASSERTION. 192 = 44 head + 8 gap +
-    // 140 rails, and it is exact on the fourteen entries with one colour knob.
-    // On the seventeen with two or three the head carries a word row whose
-    // options are 44px on both axes, and three of those plus the caption plus
-    // the lock do not fit a 172px rack at a 320px viewport - measured on
-    // `console`: head 92px, selector 140px, content 240px inside a box
-    // declared at 192. A fixed height paints that over the next rack row; a
-    // floor grows instead. `min-block-size: 192px` also CONTAINS the string
-    // "block-size: 192px", which is exactly why this asserts the prefix: an
-    // assertion that passes either way would not have noticed the change.
-    expect(
-      code(componentPath("ColourPicker.svelte")),
-      "the picker's block is not the 192px the region reserves 196 for - 44 head + 8 gap + 140 rails, plus the rack's own 4px - or it is fixed rather than a floor, which overlaps the next rack row when a selector wraps",
-    ).toContain("min-block-size: 192px");
-    expect(
-      raw(rack),
-      "KnobRack.svelte no longer carries the picker's term in the derivation it owns",
-    ).toContain("196p");
+      regionCode.includes("headline={") || regionCode.includes("{headline}"),
+      "the headline is not handed to Inspector.svelte as a snippet",
+    ).toBe(true);
 
-    // The two constants, less ChosenPanel's 32px of region padding, as the
-    // shipped declarations. Comments that no longer match the CSS are worse
-    // than no comments.
-    expect(
-      regionCode,
-      "the one-line reservation 194 - 32 = 162px is not in the style block",
-    ).toContain("calc(162px");
-    expect(
-      regionCode,
-      "the wrapped reservation 246 - 32 = 214px is not in the style block",
-    ).toContain("calc(214px");
+    // ---- THE DYNAMIC IMPORT BOUNDARY IS STILL THE ONE TEST 1 HOLDS. Stated
+    // here once more because it is what makes the inspector's chunk the
+    // gallery's chunk plus nothing: the compiler arrives inside onMount.
+    expect(regionCode).toContain('await import("$lib/tune/model")');
+    expect(regionCode, "the tuner is built statically").not.toMatch(
+      /from[ ]*["']\$lib\/tune\/model["']/,
+    );
+  });
 
-    // MEASURED, not derived: SURPRISE ME and RESET ALL need exactly 257px of
-    // region content box, so the row holds one line at 257 and wraps at 256.
-    // Both comments carry the number and the container query switches on it.
+  it("every one of the twelve knob kinds resolves to a widget the row renders, and the boundary is four words to a row and a select from five", () => {
+    // THE RULE IS TOTAL AND THE ROW RENDERS EVERYTHING IT CAN RETURN. The
+    // widget vocabulary is read off Knob.svelte's own branches rather than
+    // typed: every `view.widget === "..."` the markup tests, plus the
+    // radiogroup that is its else branch, plus the picker block KnobRack
+    // .svelte takes out of the row list. A widget widgetFor could return that
+    // no branch renders would be a knob that fails to render, which the rule
+    // promises cannot happen.
+    const knob = code(componentPath("Knob.svelte"));
+    const rack = code(componentPath("KnobRack.svelte"));
+    const branches = new Set(
+      [...knob.matchAll(/view[.]widget === "([a-z]+)"/g)].map((m) => m[1]),
+    );
     expect(
-      regionCode,
-      "the container query no longer switches at the MEASURED wrap width of 257px - the two reservations are being chosen at the wrong width",
-    ).toContain("width < 257px");
-    expect(
-      regionRaw,
-      "TuningRegion.svelte no longer records the measured 257px wrap width",
-    ).toContain("257px");
-    expect(
-      raw(rack),
-      "KnobRack.svelte still carries the derivation without the measurement that replaced it",
-    ).toContain("257px");
+      [...branches].sort(),
+      "Knob.svelte's widget branches are not the rail, the select and the swatch",
+    ).toEqual(["rail", "select", "swatch"]);
+    expect(knob, "the else branch is no longer a radiogroup").toContain(
+      'role="radiogroup"',
+    );
+    expect(rack, "the rack no longer takes the colour knobs out").toContain(
+      'row.widget === "colour"',
+    );
+    const renderable = new Set([...branches, "words", "colour"]);
 
-    // The two fixed heights either side of the seam.
-    expect(
-      regionCode,
-      "the meters block is not exactly 56px - (14 + 4 + 8) x 2 + 4, and the one half of Phase 4's 152px that survived contact with six controls",
-    ).toContain("block-size: 56px");
-    expect(
-      code(tryOn),
-      "the honesty slot no longer reserves 48px, so swapping its sentence changes its line count and shoves the whole region down at the instant a knob crosses 908. ceil(85 / 43) x 24 = 48, where 85 is the longest of its five candidates after plan 10-03 and 43 is the CH_PER_LINE plan 10-01 measured in Inter - it was 72px for three lines",
-    ).toContain("min-block-size: 48px");
+    let seen = 0;
+    for (const kind of KNOB_KIND_NAMES) {
+      for (const values of [["1"], ["1", "2", "3"], SEVEN_INTEGERS, TWELVE]) {
+        const widget = widgetFor(kind, values);
+        expect(
+          renderable.has(widget),
+          `${kind} at ${values.length} options resolved to "${widget}", which no branch renders`,
+        ).toBe(true);
+      }
+      seen += 1;
+    }
+    expect(seen, "the loop ran over all twelve kinds").toBe(12);
 
-    // AND THE TWO NUMBERS T2 IS FORBIDDEN TO MOVE. The ghost lives inside the
-    // existing 8px bar and the delta is absolutely positioned inside an option
-    // it does not resize, so neither the meters block nor Phase 4's region
-    // floor changes by a pixel. Both are asserted rather than assumed, because
-    // "it lives inside the existing box" is exactly the claim a later tidy-up
-    // breaks without noticing.
+    // THE 4/5 BOUNDARY (13-09, section 7, PDF page 5's select). A worded knob
+    // with four options is the row of segmented radios; with five it is the
+    // select; with nine it is a rail, because nine words do not fit a closed
+    // enumeration either. Driven with real scale words, because a scale
+    // whose set is not in the table would rail for a different reason and
+    // pass this test for the wrong one.
+    const scales = Object.keys(SCALE_WORDS);
+    expect(scales.length, "the scale table has enough words").toBeGreaterThan(
+      9,
+    );
+    expect(SEGMENTED_MAX, "the row holds four").toBe(4);
+    expect(WORD_ROW_MAX, "the select holds eight").toBe(8);
+    expect(widgetFor("scale", scales.slice(0, 4))).toBe("words");
     expect(
-      code(componentPath("ChosenPanel.svelte")),
-      "ChosenPanel's 152px region floor moved, so the forecast grew the region after all",
-    ).toContain("min-block-size: 152px");
+      widgetFor("scale", scales.slice(0, 5)),
+      "five worded options must be a select, not a row (the boundary moved to 4/5 at 13-09)",
+    ).toBe("select");
+    expect(widgetFor("scale", scales.slice(0, 8))).toBe("select");
+    expect(widgetFor("scale", scales.slice(0, 9))).toBe("rail");
+    // The same boundary through a note knob, whose words are computed rather
+    // than tabled.
+    const notes = (n: number) =>
+      Array.from({ length: n }, (_, i) => String(60 + i));
+    expect(widgetFor("note", notes(4))).toBe("words");
+    expect(widgetFor("note", notes(5))).toBe("select");
+    // And a value-count change is NOT what moved: the select renders the
+    // same values in the same order, one <option> per value.
+    expect(knob, "the select does not render one option per value").toContain(
+      "{#each view.values as value, at (at)}",
+    );
+    expect(knob).toContain("<option value={at} selected={at === view.index}>");
+  });
+
+  it("a changed field shows its marker and its own reset restores only that field, with the others proved unmoved", async () => {
+    // TWO HALVES. The row's half is source: `changed` is the one comparison
+    // section 7 asks for, the marker and the reset both key on it, and the
+    // reset is named for the field. The model's half is behaviour: a real
+    // tuner, two knobs moved, one reset, the other read back unmoved - the
+    // claim "restores only that field" is measured rather than asserted.
+    const knob = code(componentPath("Knob.svelte"));
+    expect(
+      knob,
+      "the changed test is not the one comparison section 7 asks for",
+    ).toContain("view.index !== view.default");
+    expect(knob, "the marker is not keyed on changed").toMatch(
+      /[{]#if changed[}]\s*<span class="changed"/,
+    );
+    expect(knob, "the marker carries no accessible sentence").toContain(
+      "{FIELD_CHANGED}",
+    );
+    expect(knob, "the reset is not disabled at the default").toContain(
+      "disabled={!changed}",
+    );
+    expect(knob, "the reset is not named for its field").toContain(
+      "aria-label={fieldResetName(view.label)}",
+    );
+    expect(knob, "the reset does not call the row's one reset").toContain(
+      'data-testid="knob-{view.id}-reset"\n    disabled={!changed}\n    aria-label={fieldResetName(view.label)}\n    onclick={onreset}',
+    );
+    expect(fieldResetName("Speed")).toBe("Reset Speed");
+    // The region hands the row's reset to the tuner by id, and nothing else.
+    const region = code(componentPath("TuningRegion.svelte"));
+    expect(region).toContain("onreset={resetKnob}");
+    expect(region).toMatch(
+      /function resetKnob[(]id: string[)][^}]*tuner[?][.]reset[(]id[)]/,
+    );
+
+    // The behaviour, on a real tuner (the model.spec.ts harness, in brief).
+    await padReady();
+    const views: TuneView[] = [];
+    const tuner = await buildTuner({
+      entryId: "aurora",
+      onview: (view) => void views.push(view),
+      onpreview: () => undefined,
+      onladder: () => undefined,
+      onover: () => undefined,
+    });
+    try {
+      const settle = async () => {
+        for (let index = 0; index < 64; index++) await Promise.resolve();
+      };
+      await settle();
+      const first = views.at(-1) as TuneView;
+      const [a, b] = first.knobs.filter((k) => k.widget !== "colour");
+      expect(a && b, "aurora has two non-colour knobs to move").toBeTruthy();
+      const moveTo = (k: KnobView) => (k.default + 1) % k.values.length;
+      tuner.set(a.id, moveTo(a));
+      tuner.set(b.id, moveTo(b));
+      await settle();
+      const moved = views.at(-1) as TuneView;
+      const at = (view: TuneView, id: string) =>
+        view.knobs.find((k) => k.id === id) as KnobView;
+      expect(at(moved, a.id).index).not.toBe(a.default);
+      expect(at(moved, b.id).index).not.toBe(b.default);
+      // Both changed, as the row would show them.
+      expect(at(moved, a.id).index !== at(moved, a.id).default).toBe(true);
+
+      tuner.reset(a.id);
+      await settle();
+      const after = views.at(-1) as TuneView;
+      expect(at(after, a.id).index, "the reset field is at its default").toBe(
+        a.default,
+      );
+      expect(
+        at(after, b.id).index,
+        "the OTHER field moved - a per-field reset touched a field it was not named for",
+      ).toBe(moveTo(b));
+      for (const k of after.knobs) {
+        if (k.id === a.id || k.id === b.id) continue;
+        expect(k.index, `${k.id} moved`).toBe(at(moved, k.id).index);
+      }
+    } finally {
+      tuner.destroy();
+    }
   });
 
   it("MIX TWO offers four real results, changes nothing until one is clicked, and arrives on opacity alone", () => {

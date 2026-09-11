@@ -81,12 +81,14 @@ const DEV_ROUTES = readdirSync("src/routes/dev")
  * :829, :857, :872) - exist only for a LATTICE colour knob (4,096 values,
  * which 10-08 gave the vendored presets; every Lua entry's colour knob is a
  * hand-authored palette and mounts a swatch Knob instead), so AURORA carries
- * them. Knob's slider thumb (:653) needs a knob with nine or more values, so
- * ARC's 16-value amount knob carries it; its dot rail (:598) and home mark
- * (:674) are on every rack. A cold /playground/<id>/ shows the coverflow only; the
- * panel is opened with the same Enter that e2e/tuning.e2e.ts presses, so the
- * circles are in the DOM when they are measured. Zero circles measured would
- * be a vacuous square arm, and it was, on this title's first run.
+ * them. Knob's slider thumb needs a knob with nine or more values, so ARC's
+ * 16-value amount knob carries it; its dot rail and home mark
+ * are on every rack. Since 13-09 a /playground/<id>/ is the workspace with its
+ * inspector on the page, and the picker's three live in a popover behind the
+ * swatch's Edit color, which this sweep opens before it measures - so all six
+ * are in the DOM when they are measured (D-15 lines: Knob :730 / :785 / :807).
+ * Zero circles measured would be a vacuous square arm, and it was, on this
+ * title's first run.
  */
 const WORKSPACE_ENTRIES = ["aurora", "arc"];
 const WORKSPACES = WORKSPACE_ENTRIES.map((id) => `/playground/${id}/`);
@@ -320,13 +322,13 @@ test("no element on any route computes a corner radius above zero, and every 50%
   for (const route of ROUTES) {
     await page.goto(route);
     if (WORKSPACES.includes(route)) {
-      // The same gesture e2e/tuning.e2e.ts uses, with the same precondition:
-      // the entry's pad has painted before Enter is pressed on the band
-      // (pressed too early the band ignores it, observed once on the phone
-      // project), and the knob rack is where the circles live.
+      // The same arrival e2e/tuning.e2e.ts waits for: the workspace up and
+      // the entry's pad painted. Since 13-09 nothing is chosen - the panel
+      // and the inspector are on the page - and the circles live in the
+      // inspector's racks and in the colour popover, which is opened so its
+      // three are measured too.
       const id = WORKSPACE_ENTRIES[WORKSPACES.indexOf(route)];
-      const band = page.getByTestId("coverflow");
-      await expect(band).toBeVisible();
+      await expect(page.getByTestId("workspace")).toBeVisible();
       await page.waitForFunction(
         (sel) => {
           const c = document.querySelector(sel) as HTMLCanvasElement | null;
@@ -338,18 +340,17 @@ test("no element on any route computes a corner radius above zero, and every 50%
         `[data-testid="pad-canvas-${id}"]`,
         { timeout: 30_000 },
       );
-      if ((await page.getByTestId("chosen-panel").count()) === 0) {
-        await band.press("Enter");
-      }
       await expect(page.getByTestId("chosen-panel")).toBeVisible();
-      await expect(page.getByTestId("knob-rack")).toBeVisible();
+      const inspector = page.getByTestId("shell-inspector");
+      await expect(inspector.getByTestId("knob-rack").first()).toBeVisible();
+      const editColor = inspector.getByTestId("edit-color");
+      if ((await editColor.count()) > 0) await editColor.first().click();
       // The precondition is the circles themselves, not the rack: a sweep
       // that runs before the last rail mounts measures fewer than it should
       // (observed once in chromium, the 16-value knob's thumb missing).
-      const panel = page.getByTestId("chosen-panel");
-      await expect(panel.locator(".thumb").first()).toBeVisible();
-      await expect(panel.locator(".dot").first()).toBeVisible();
-      await expect(panel.locator(".home").first()).toBeAttached();
+      await expect(page.locator(".thumb").first()).toBeVisible();
+      await expect(inspector.locator(".dot").first()).toBeVisible();
+      await expect(inspector.locator(".home").first()).toBeAttached();
     }
     await settle(page);
     const result = await page.evaluate(sweep, {

@@ -1,11 +1,14 @@
 <!--
-  The header's one right-hand slot: BROWSE ALL, or BACK TO BROWSE.
+  The rail's way back: the PDF's `← All configs` (page 5), in one place.
 
-  One control with two labels, in one place on the screen (D-19, W-01). It is
-  rendered by FrontDoor.svelte, so / and every /playground/{id}/ get the identical slot
-  and the two routes cannot drift apart. It never moves when a visitor chooses,
-  it is header chrome rather than panel content, and it cannot be confused with
-  an install control.
+  One control, ONE label since 13-09, two behaviours (D-19, W-01). It is
+  rendered by the workspace's rail (src/routes/playground/[id]/+page.svelte)
+  as the rail's lead, above the CONFIGURATIONS rows. Phase 5's BROWSE ALL and
+  BACK TO BROWSE were two labels for the two behaviours below; the Bible's
+  page 5 draws one link, so the label is the PDF's and the behaviour is still
+  decided by the record. It never moves when a visitor tunes, it is rail
+  chrome rather than panel content, and it cannot be confused with an install
+  control.
 
   THREE RULES, AND EACH OF THEM IS A DECISION.
 
@@ -16,33 +19,32 @@
      `disable_search(url)` whenever `state.prerendering`, and utils/url.js then
      redefines search and searchParams as accessors that raise. `pathname` is
      untouched by that, which is why it is the only part of the address this
-     component is allowed to read. (The browse page never renders FrontDoor
-     today, so this branch is a guard rather than a live case - it is here so
-     that a future route which does render the header cannot accidentally offer
-     a visitor a link to the page they are standing on. W-01.)
+     component is allowed to read. (The gallery never renders this rail, so
+     this branch is a guard rather than a live case - it is here so that a
+     future route which does render it cannot accidentally offer a visitor a
+     link to the page they are standing on. W-01.)
 
   2. THE RECORD IS READ AFTER MOUNT, NEVER AT INIT AND NEVER THROUGH A $derived
      OVER SOMETHING THE SERVER CAN SEE. `sessionStorage` does not exist during
-     prerender, and it is per tab besides - so a BACK TO BROWSE baked into the
-     prerendered HTML would be a lie in every visitor's first painted frame,
-     including the ones who arrived cold from a shared link in a brand new tab.
-     The prerendered file therefore carries BROWSE ALL, always, and hydration
-     upgrades the label when this tab really does hold a record. That is the
-     whole reason the record lives in a rune assigned from onMount rather than
-     in a $derived: a $derived would have to derive from something, and there
-     is nothing on the server to derive it from.
+     prerender, and it is per tab besides - so a way back baked into the
+     prerendered HTML as a button would be a lie in every visitor's first
+     painted frame, including the ones who arrived cold from a shared link in
+     a brand new tab. The prerendered file therefore carries the plain link,
+     always, and hydration upgrades it to the button when this tab really does
+     hold a record. That is the whole reason the record lives in a rune
+     assigned from onMount rather than in a $derived: a $derived would have to
+     derive from something, and there is nothing on the server to derive it
+     from.
 
-  3. RETURNING IS A goto, NEVER A history.back(). Phase 4's Coverflow.choose()
-     performs pushState("", { chosen: true }), so a visitor who arrived from
-     browse and then tapped the pad is TWO entries deep rather than one, and a
-     history.back() would land them on the un-chosen detail page - short by an
-     amount that depends on what they happened to do while they were here
-     (05.1-RESEARCH.md, Pitfall 8). A recorded address is deterministic however
-     many entries the detail page collected. `noScroll: true` rides along with
-     it because the browse page restores its own recorded offset on mount and a
-     scroll-to-top from Kit would fight it. `replaceState: true` does NOT - see
-     RETURN_OPTIONS below, where the measurement that ruled it out is written
-     down.
+  3. RETURNING IS A goto, NEVER A history.back(). A visitor who arrived from
+     the gallery may have collected any number of history entries here, and a
+     history.back() would land short by an amount that depends on what they
+     happened to do (05.1-RESEARCH.md, Pitfall 8). A recorded address is
+     deterministic however many entries the workspace collected. `noScroll:
+     true` rides along with it because the gallery restores its own recorded
+     offset on mount and a scroll-to-top from Kit would fight it.
+     `replaceState: true` does NOT - see RETURN_OPTIONS below, where the
+     measurement that ruled it out is written down.
 
   THE STORE IS FETCHED THROUGH A FUNCTION, NOT CACHED. A property access on
   window.sessionStorage can itself throw in a browser configured to refuse
@@ -61,19 +63,7 @@
     type BrowseReturn,
     type ReturnStore,
   } from "$lib/browse/return";
-
-  let {
-    covered = false,
-  }: {
-    /** True while the splash covers the row. The wordmark's own treatment. */
-    covered?: boolean;
-  } = $props();
-
-  /* Visitor-facing copy, verbatim from the Copywriting Contract, in one block.
-     Consts rather than inline markup text: Prettier reflows element text and
-     Phase 2 lost a load-bearing sentence to exactly that. */
-  const BROWSE_ALL = "BROWSE ALL";
-  const BACK_TO_BROWSE = "BACK TO BROWSE";
+  import { ALL_CONFIGS } from "$lib/tune/inspector-copy";
 
   /** The one route on which this slot is not offered, and the only one it
       ever navigates to. */
@@ -99,13 +89,11 @@
    * a SHALLOW branch when that holds: it updates `page.state` and the address
    * and renders nothing new.
    *
-   * Coverflow.choose()'s `pushState` is what lines the two indices up. Observed
-   * on a served production build with `replaceState: true`: browse to /playground/ghost/,
-   * tap the pad, press the control, then press the browser's Back - the address
-   * bar reads /playground/ghost/ while the browse screen is still on the page
-   * (`[data-testid="browse"]` present, `[data-testid="front-door"]` absent,
-   * still true five seconds later). Without it, the same Back lands on the
-   * chosen /playground/ghost/ correctly.
+   * Observed on a served production build with `replaceState: true`: browse to
+   * /playground/ghost/, press the control, then press the browser's Back - the
+   * address bar reads /playground/ghost/ while the browse screen is still on
+   * the page (`[data-testid="browse"]` present, still true five seconds
+   * later). Without it, the same Back lands on /playground/ghost/ correctly.
    *
    * The price is one history entry per round trip. An address bar that lies
    * about what is on the screen is worth more than that.
@@ -178,80 +166,61 @@
     -->
     <a
       class="browse-link"
-      class:covered
       href={resolve("/playground/")}
-      data-testid="browse-link">{BROWSE_ALL}</a
+      data-testid="browse-link"
+      data-way="all">{ALL_CONFIGS}</a
     >
   {:else}
     <!--
       A button, because this is not a plain navigation: it restores a scroll
-      offset and it replaces rather than pushes. Giving it an href would
-      promise a middle-click that could not carry the record into a new tab.
+      offset. Giving it an href would promise a middle-click that could not
+      carry the record into a new tab. Same words: the PDF draws one link.
     -->
     <button
       class="browse-link"
-      class:covered
       type="button"
       data-testid="browse-link"
-      onclick={toRecorded}>{BACK_TO_BROWSE}</button
+      data-way="back"
+      onclick={toRecorded}>{ALL_CONFIGS}</button
     >
   {/if}
 {/if}
 
 <style>
   /*
-    The shipped DISCONNECT ZONA treatment, which is Phase 4's only other quiet
-    header-weight control: Micro, no border, no fill, quiet at rest. A bordered
-    button here would outshout the wordmark it sits opposite (W-02).
-
-    The 44px inline floor matters as much as the block one: BROWSE ALL is wide
-    enough on its own, but the box is what a thumb aims at and the rule has to
-    hold for whatever label the slot carries next.
+    The rail's own row treatment (Rail.svelte's .row): the sans face at 15px,
+    no border, no fill, ink at rest and the raised fill on hover. A 44px box
+    on both axes at every pointer - the site's floor is per control.
   */
   .browse-link {
     appearance: none;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    inline-size: 100%;
     min-block-size: 44px;
     min-inline-size: 44px;
-    padding-block: 0;
-    padding-inline: 0;
+    padding-inline: 12px;
     border: 0;
     background: transparent;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.3;
+    text-align: start;
     text-decoration: none;
     white-space: nowrap;
-    color: var(--color-ink-quiet);
+    color: var(--color-ink);
     cursor: pointer;
-    /*
-      Two transitions, and they are two different jobs. The colour is the hover
-      response. The opacity is the OPENING, and it uses the front door's own
-      --arrive-ms and the wordmark's own curve so the two come up together and
-      land as one. --arrive-ms is declared on .front-door, the ancestor that
-      always wraps this control; it is 700ms, or 200ms under reduced motion.
-    */
-    transition:
-      color 160ms ease-out,
-      opacity var(--arrive-ms) cubic-bezier(0.22, 0.61, 0.36, 1);
+    transition: background-color 160ms ease-out;
   }
 
   .browse-link:hover {
-    color: var(--color-ink);
+    background: var(--color-raised);
   }
 
-  /*
-    Held at nothing while the splash owns the screen, and NOT transitioned into
-    that state - exactly the wordmark's rule, for exactly the wordmark's reason.
-    The control must be invisible on the very first painted frame rather than
-    fade out of one, which is a thing a visitor sees.
-  */
-  .browse-link.covered {
-    opacity: 0;
-    transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    .browse-link {
+      transition: none;
+    }
   }
 </style>

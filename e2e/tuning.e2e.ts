@@ -52,13 +52,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
 import { shareUrl } from "../src/lib/share/url";
 import {
-  COPY_LINK,
   LINK_COPIED,
   MEASURING,
-  RESET_ALL,
   SHARE_FALLBACK_FIELD_NAME,
   STAMP_RESTORED,
-  SURPRISE_ME,
   TURN_IT_DOWN,
   backOffKnob,
   overBudgetArrived,
@@ -66,6 +63,13 @@ import {
   stampUnreadable,
   tryOnBudgetReason,
 } from "../src/lib/tune/copy";
+// The workspace's words (13-09): the PDF's labels for the two buttons and
+// the share control. The module imports nothing.
+import {
+  RANDOMIZE,
+  RESET_SETTINGS,
+  SHARE_SNAPSHOT,
+} from "../src/lib/tune/inspector-copy";
 import { guardedNot } from "./poll";
 
 /** The configuration every test in this file opens. */
@@ -245,7 +249,11 @@ async function recomputed(page: Page): Promise<void> {
 }
 
 /**
- * Open a configuration and choose it, from the keyboard.
+ * Open a configuration's workspace and wait for its inspector to settle.
+ *
+ * Since 13-09 there is nothing to choose: the workspace (PDF page 5) opens
+ * with its panel and its inspector on the page, and the inspector renders one
+ * rack per section, so the rack locator takes the first.
  *
  * trailingSlash: "always" (src/routes/+layout.ts), so the slash is not optional
  * - without it the static build 404s and the failure reads as a broken route
@@ -253,15 +261,25 @@ async function recomputed(page: Page): Promise<void> {
  */
 async function openPanel(page: Page, path: string): Promise<void> {
   await page.goto(path);
-  const band = page.getByTestId("coverflow");
-  await expect(band).toBeVisible();
+  await expect(page.getByTestId("workspace")).toBeVisible();
   await waitForPicture(page, ENTRY);
-  if ((await page.getByTestId("chosen-panel").count()) === 0) {
-    await band.press("Enter");
-  }
   await expect(page.getByTestId("chosen-panel")).toBeVisible();
-  await expect(page.getByTestId("knob-rack")).toBeVisible();
+  await expect(page.getByTestId("knob-rack").first()).toBeVisible();
   await settled(page);
+}
+
+/**
+ * The colour picker lives in a popover behind the swatch's Edit color since
+ * 13-09 (Bible section 7). Open it when its rails are not on screen; a rail
+ * inside a closed dialog cannot take focus.
+ */
+async function openColourPopover(page: Page): Promise<void> {
+  const rail = page.locator(
+    "[data-testid='colour-rail-r'] input[type='range']",
+  );
+  if (await rail.isVisible()) return;
+  await page.getByTestId("edit-color").first().click();
+  await expect(rail).toBeVisible();
 }
 
 /**
@@ -297,6 +315,7 @@ async function turnRail(page: Page, at: number): Promise<void> {
  * something moved would be false through no fault of the picker.
  */
 async function turnColourRail(page: Page): Promise<void> {
+  await openColourPopover(page);
   await page
     .locator("[data-testid='colour-rail-r'] input[type='range']")
     .focus();
@@ -423,7 +442,7 @@ test.describe("turning a knob", () => {
     await openPanel(page, `/playground/${ENTRY}/`);
 
     const resetAll = page.getByTestId("reset-all");
-    await expect(resetAll).toHaveText(RESET_ALL);
+    await expect(resetAll).toHaveText(RESET_SETTINGS);
     // The precondition: on arrival every knob is at home, so the control that
     // puts them there has nothing to do.
     await expect(
@@ -475,7 +494,7 @@ test.describe("turning a knob", () => {
     await openPanel(page, `/playground/${ENTRY}/`);
 
     const surprise = page.getByTestId("surprise-me");
-    await expect(surprise).toHaveText(SURPRISE_ME);
+    await expect(surprise).toContainText(RANDOMIZE);
     const home = await knobIndices(page);
 
     await surprise.click();
@@ -525,8 +544,8 @@ test.describe("sharing what the visitor made", () => {
     await openPanel(page, `/playground/${ENTRY}/`);
 
     const copy = page.getByTestId("copy-link");
-    await expect(copy, "the control arrives as COPY LINK").toHaveText(
-      COPY_LINK,
+    await expect(copy, "the control arrives as Share snapshot").toHaveText(
+      SHARE_SNAPSHOT,
     );
 
     await turnRail(page, 0);
@@ -597,15 +616,14 @@ test.describe("sharing what the visitor made", () => {
     */
     await page.goto("about:blank");
     await page.goto(address);
-    const band = page.getByTestId("coverflow");
-    await expect(band).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
     // X-18: the whole content of a tuned link is what somebody moved, and the
     // knobs are the only evidence of it - so it arrives with the tuner open.
     await expect(
       page.getByTestId("chosen-panel"),
       "a stamped link opens with the panel already open",
     ).toBeVisible();
-    await expect(page.getByTestId("nameplate-name")).toHaveText(ENTRY_NAME);
+    await expect(page.getByTestId("workspace-name")).toHaveText(ENTRY_NAME);
     await expect(page.getByTestId("stamp-notice")).toHaveText(STAMP_RESTORED);
     await settled(page);
 
@@ -632,7 +650,7 @@ test.describe("sharing what the visitor made", () => {
     // A cold arrival, for the reason spelled out in the test above.
     await page.goto("about:blank");
     await page.goto(`/playground/${ENTRY}/${FOREIGN_STAMP}`);
-    await expect(page.getByTestId("coverflow")).toBeVisible();
+    await expect(page.getByTestId("workspace")).toBeVisible();
     await expect(
       page.getByTestId("chosen-panel"),
       "the panel opens so the sentence explaining the link is visible",
@@ -643,7 +661,7 @@ test.describe("sharing what the visitor made", () => {
       page.getByTestId("stamp-notice"),
       "SHARE-03: it says so rather than landing on a subtly wrong configuration",
     ).toHaveText(stampUnreadable(ENTRY_NAME));
-    await expect(page.getByTestId("nameplate-name")).toHaveText(ENTRY_NAME);
+    await expect(page.getByTestId("workspace-name")).toHaveText(ENTRY_NAME);
     expect(
       await knobIndices(page),
       "every knob is at its default, because a stamp never half-applies",
@@ -721,8 +739,8 @@ test.describe("a browser with no clipboard API", () => {
     ).toBe("16px");
 
     // It did not become a different control.
-    await expect(copy, "the button's label is still COPY LINK").toHaveText(
-      COPY_LINK,
+    await expect(copy, "the button's label is still Share snapshot").toHaveText(
+      SHARE_SNAPSHOT,
     );
 
     expect(consoleErrors).toEqual([]);

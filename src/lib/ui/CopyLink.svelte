@@ -69,6 +69,7 @@
   let {
     url,
     oncopied,
+    label = COPY_LINK,
   }: {
     /**
      * The share link, ALREADY COMPOSED upstream and recomposed on every knob
@@ -80,6 +81,13 @@
      * own polite live region. This component holds no live region.
      */
     oncopied?: () => void;
+    /**
+     * The resting label. COPY LINK by default (Phase 5's, copy.ts's, 13-19's
+     * to rename); the workspace's inspector passes the PDF's `Share snapshot`
+     * (13-09). The confirmed label stays LINK COPIED in both places until
+     * 13-19 answers what a confirmed snapshot says.
+     */
+    label?: string;
   } = $props();
 
   /** The confirmed state's lifetime, and the contract's number. */
@@ -143,7 +151,7 @@
     aria-describedby={fallback ? "copy-link-line" : undefined}
     onclick={copy}
   >
-    {confirmed ? LINK_COPIED : COPY_LINK}
+    {confirmed ? LINK_COPIED : label}
   </button>
 
   <!--
@@ -231,7 +239,6 @@
     margin-block-start: 8px;
     padding-inline: 12px;
     border: 1px solid var(--color-boundary);
-    border-radius: 2px;
     background: transparent;
     font-family: var(--font-mono);
     font-size: 16px;
