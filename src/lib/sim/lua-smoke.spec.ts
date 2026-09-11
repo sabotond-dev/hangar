@@ -1,6 +1,10 @@
 // The execution gate: every hand-authored configuration actually RUNS.
 //
-// TWENTY-NINE tests since plan 12-10 (TRACKPAD's, the last in the file) -
+// THIRTY-TWO tests since plan 12.1-02, which appended the gradient block at
+// the end of the file (three tests; 12.1-03 adds two more and 12.1-04 two
+// more) and re-aimed every gesture that reads a cell through the library's
+// `Q` at the MEASURED sensor map (calibration.ts) instead of the naive
+// `t*9//128` centres. TWENTY-NINE since plan 12-10 (TRACKPAD's) -
 // counted from the runner's own report at the 12-12 gate, which found this
 // line reading TWENTY-THREE: 12-10 added its one to 12-04's 22 and skipped the
 // six between them (12-05 +1, 12-07 +2, 12-08 +1, 12-09 +2), so 22 + 1 + 6 =
@@ -45,9 +49,21 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
 import { CELLS, PRESETS, compile } from "../../vendor/botor/_pad";
-import { PadSim, screenToHw } from "../../vendor/botor/pad-sim";
+import { glcStops, PadSim, screenToHw } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
-import { TOUCH_LIBRARY } from "../catalog/library";
+import {
+  calibratedAxis,
+  KX,
+  KY,
+  knotsOf,
+  LED_STEP,
+  sensorAt,
+} from "../catalog/calibration";
+import {
+  LIBRARY_PARTS,
+  TOUCH_LIBRARY,
+  TOUCH_LIBRARY_TIMER,
+} from "../catalog/library";
 import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, renderLua } from "./lua-pad-sim";
@@ -137,6 +153,7 @@ async function smoke(entry: CatalogEntry): Promise<SmokeRun> {
     // moves - but from 12-08 on an entry that called `Q` without it would raise
     // "attempt to call a nil value" in this gate rather than in a card.
     system: TOUCH_LIBRARY,
+    systemTimer: TOUCH_LIBRARY_TIMER,
     setup,
     timer: timer.trim() === "" ? undefined : timer,
   });
@@ -486,6 +503,7 @@ async function open(entry: CatalogEntry, rendering: Rendering = "defaults") {
   const host = await createLuaHost({
     sim,
     system: TOUCH_LIBRARY,
+    systemTimer: TOUCH_LIBRARY_TIMER,
     setup,
     timer: timer.trim() === "" ? undefined : timer,
   });
@@ -777,9 +795,99 @@ const PRESET_PARITY_ALLOWANCES: readonly {
 // day a card unlocked the 10-bit range.
 // ---------------------------------------------------------------------------
 
-/** The centre of cell index k on one axis, for a nine-wide t*9//128 mapping. */
+/**
+ * The centre of cell index k on one axis, for a nine-wide t*9//128 mapping.
+ *
+ * THE NAIVE INVERSE, AND SINCE 12.1 ONLY FOR THE ENTRIES THAT STILL USE IT:
+ * the compiled presets and the hand-authored entries whose own Lua reads
+ * `t*9//128` (ARC, GHOST, STAGE, STRIP, WHEELS, TRACKPAD). An entry that reads
+ * its cell through the library's `Q` reads the MEASURED map, and a gesture
+ * aimed at one of its cells is aimed with `ledCentre` below - on the
+ * measured tables `cellCentre(0)` is 7, which the map puts on LED 1.
+ */
 function cellCentre(k: number): number {
   return Math.floor((k * 128 + 64) / 9);
+}
+
+/**
+ * Every raw coordinate that lands in cell k under a nine-wide t*9//128 map -
+ * the naive set, kept for the one MORPH probe whose claim is about the entry's
+ * raw-unit weights over a run of samples rather than about a cell.
+ */
+function coordinatesIn(k: number): number[] {
+  const out: number[] = [];
+  for (let t = 0; t <= 127; t += 1)
+    if (Math.floor((t * 9) / 128) === k) out.push(t);
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// THE CALIBRATED HELPERS (phase 12.1). Every value below comes out of the two
+// knot tables in calibration.ts or out of the library's own `W`; nothing is
+// typed, so a knot that moves in the table moves every gesture and every
+// expectation here with it.
+// ---------------------------------------------------------------------------
+
+/** The raw value the sensor reports with a finger centred on LED k - the knot. */
+function ledCentre(k: number, axis: "x" | "y"): number {
+  return sensorAt(k, axis);
+}
+
+/** The nearest LED of a calibrated coordinate - the library's `(u+32)//64`. */
+function nearestLed(u: number): number {
+  return Math.floor((u + LED_STEP / 2) / LED_STEP);
+}
+
+/**
+ * The hold margin `W` uses, in 64ths of a pitch, READ OFF THE LIBRARY PART
+ * rather than typed: `u-p*64<45 and p*64-u<45`. A margin edited in the
+ * library moves every band expectation here with it.
+ */
+function holdFraction(): number {
+  const w = LIBRARY_PARTS.find((p) => p.name === "W");
+  if (!w) throw new Error("the library has no W part");
+  const m = /<(\d+) and [a-z]\*64-[a-z]<(\d+) then/.exec(w.lua);
+  if (!m || m[1] !== m[2])
+    throw new Error(`W's hold margin is not one number: ${w.lua}`);
+  return Number(m[1]);
+}
+
+/** The library's `W`: hold LED p while |u - p*64| < the margin, else the nearest. */
+function holdOrNearest(u: number, p: number | undefined): number {
+  if (p !== undefined && Math.abs(u - p * LED_STEP) < holdFraction()) return p;
+  return nearestLed(u);
+}
+
+/** The nearest calibrated cell of a raw point - the library's `N`. */
+function calibratedCell(x: number, y: number): number {
+  return (
+    nearestLed(calibratedAxis(x, "x")) + nearestLed(calibratedAxis(y, "y")) * 9
+  );
+}
+
+/** Every raw coordinate whose nearest calibrated LED on one axis is k. */
+function calibratedCoordinatesIn(k: number, axis: "x" | "y"): number[] {
+  const out: number[] = [];
+  for (let t = 0; t <= 127; t += 1)
+    if (nearestLed(calibratedAxis(t, axis)) === k) out.push(t);
+  return out;
+}
+
+/** The first raw value, walking up from LED p's knot, at which `W` lets go of p. */
+function switchUp(p: number, axis: "x" | "y"): number {
+  const k = knotsOf(axis);
+  for (let v = k[p]; v <= k[p + 1]; v += 1)
+    if (calibratedAxis(v, axis) >= p * LED_STEP + holdFraction()) return v;
+  throw new Error(`no up-switch between LED ${p} and ${p + 1} on ${axis}`);
+}
+
+/** The first raw value, walking down from LED p+1's knot, at which `W` lets go of p+1. */
+function switchDown(p: number, axis: "x" | "y"): number {
+  const k = knotsOf(axis);
+  for (let v = k[p + 1]; v >= k[p]; v -= 1)
+    if (calibratedAxis(v, axis) <= (p + 1) * LED_STEP - holdFraction())
+      return v;
+  throw new Error(`no down-switch between LED ${p + 1} and ${p} on ${axis}`);
 }
 
 function entryById(id: string): CatalogEntry {
@@ -819,8 +927,8 @@ function tapConsoleCell(
   column: number,
   row: number,
 ): void {
-  const x = cellCentre(column);
-  const y = cellCentre(row);
+  const x = ledCentre(column, "x");
+  const y = ledCentre(row, "y");
   host.touchDown(0, x, y);
   host.tick();
   host.touchUp(0, x, y);
@@ -845,27 +953,19 @@ function sweepConsoleBody(
   },
   column: number,
 ): number[] {
-  const x = cellCentre(column);
+  const x = ledCentre(column, "x");
   const rows: number[] = [];
-  host.touchDown(0, x, cellCentre(8));
+  host.touchDown(0, x, ledCentre(8, "y"));
   host.tick();
   rows.push(8);
   for (let row = 7; row >= 1; row -= 1) {
-    host.touchMove(0, x, cellCentre(row));
+    host.touchMove(0, x, ledCentre(row, "y"));
     host.tick();
     rows.push(row);
   }
-  host.touchUp(0, x, cellCentre(1));
+  host.touchUp(0, x, ledCentre(1, "y"));
   host.tick();
   return rows;
-}
-
-/** Every raw coordinate that lands in cell k under a nine-wide t*9//128 map. */
-function coordinatesIn(k: number): number[] {
-  const out: number[] = [];
-  for (let t = 0; t <= 127; t += 1)
-    if (Math.floor((t * 9) / 128) === k) out.push(t);
-  return out;
 }
 
 /**
@@ -878,7 +978,7 @@ function swipeConsoleMuteRow(host: {
   touchUp: TouchFn;
   tick: () => void;
 }): number {
-  const y = cellCentre(0);
+  const y = ledCentre(0, "y");
   host.touchDown(0, 0, y);
   host.tick();
   let delivered = 1;
@@ -905,8 +1005,8 @@ function restConsoleMuteCell(
   },
   column: number,
 ): number {
-  const xs = coordinatesIn(column);
-  const ys = coordinatesIn(0);
+  const xs = calibratedCoordinatesIn(column, "x");
+  const ys = calibratedCoordinatesIn(0, "y");
   host.touchDown(0, xs[0], ys[0]);
   host.tick();
   let delivered = 1;
@@ -1551,30 +1651,35 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // one-unit wobble - PROBE-RESULTS-2026-09-10.md Q2 - and a mixer receives
     // two half-moved faders instead of one moved one.
     //
-    // 56 AND 57 ARE THE SEAM, DERIVED: 56*9//128 = 3 and 57*9//128 = 4, so the
-    // naive read this card used to do flips on every sample of the trace below.
+    // THE SEAM IS DERIVED FROM THE MEASURED MAP (12.1): the two raw x values
+    // either side of the point where the nearest calibrated LED flips from 3
+    // to 4, so a bare nearest-LED read flips on every sample of the trace
+    // below. (Under the naive read it was 56/57; on the measured knots it is
+    // one LED's third-of-a-pitch further left.)
     // -----------------------------------------------------------------------
     {
-      const naive = (v: number): number => Math.floor((v * 9) / 128);
-      const SEAM = [56, 57];
+      const nearest = (v: number): number => nearestLed(calibratedAxis(v, "x"));
+      let flip = KX[3];
+      while (nearest(flip) < 4) flip += 1;
+      const SEAM = [flip - 1, flip];
       expect(
-        SEAM.map(naive),
-        "the seam must really be a seam under the naive read, or the stage " +
-          "below is a finger sitting inside one column",
+        SEAM.map(nearest),
+        "the seam must really be a seam under a nearest-LED read, or the " +
+          "stage below is a finger sitting inside one column",
       ).toEqual([3, 4]);
 
       const { host } = await open(entry);
       try {
         // Down on the seam, then every body row with x alternating across it.
-        host.touchDown(0, SEAM[0], cellCentre(8));
+        host.touchDown(0, SEAM[0], ledCentre(8, "y"));
         host.tick();
         let step = 1;
         for (let row = 7; row >= 1; row -= 1) {
-          host.touchMove(0, SEAM[step % 2], cellCentre(row));
+          host.touchMove(0, SEAM[step % 2], ledCentre(row, "y"));
           host.tick();
           step += 1;
         }
-        host.touchUp(0, SEAM[step % 2], cellCentre(1));
+        host.touchUp(0, SEAM[step % 2], ledCentre(1, "y"));
         host.tick();
 
         const perController = new Map<number, number[]>();
@@ -1842,7 +1947,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       {
         const { host, sim } = await open(entry);
         try {
-          const y = cellCentre(4);
+          const y = ledCentre(4, "y");
           const before = armVector(sim, row.armLayer);
           host.touchDown(0, 0, y);
           host.tick();
@@ -1905,8 +2010,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
             row.eligible(cell),
             `${row.id}: the resting probe sits on a cell this entry ignores`,
           ).toBe(true);
-          const xs = coordinatesIn(3);
-          const ys = coordinatesIn(4);
+          const xs = calibratedCoordinatesIn(3, "x");
+          const ys = calibratedCoordinatesIn(4, "y");
           const at = hwOfCell(cell);
           host.touchDown(0, xs[0], ys[0]);
           host.tick();
@@ -1958,8 +2063,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         try {
           const cell = 4 * 9 + 3;
           const at = hwOfCell(cell);
-          const x = cellCentre(3);
-          const y = cellCentre(4);
+          const x = ledCentre(3, "x");
+          const y = ledCentre(4, "y");
           const rest = sim.layer(at, row.armLayer).pha;
           host.touchDown(0, x, y);
           host.tick();
@@ -2452,8 +2557,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         { length: SIDE * SIDE },
         (_, d) => k + (d % SIDE) + Math.floor(d / SIDE) * 9,
       );
-    const cellOf = (x: number, y: number): number =>
-      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    // The cell a press lands on, as the entry's `Q` reads it since 12-09: the
+    // nearest calibrated cell (12.1), not the naive `t*9//128`.
+    const cellOf = (x: number, y: number): number => calibratedCell(x, y);
     // THE DEAD MARGIN, READ OFF THE ENTRY (plan 12-09). The bench asked that
     // "the zero point should not sit only in the extreme corner", so the raw
     // axis is remapped before the weights: raw 24 reads 0 and raw 103 reads
@@ -2501,7 +2607,19 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     const aimAt = (k: number): [number, number] => {
       const inner = (start: number): number =>
         start === 0 ? SIDE - 1 : start + 0;
-      return [cellCentre(inner(k % 9)), cellCentre(inner(Math.floor(k / 9)))];
+      // The raw coordinate of that cell NEAREST THE PAD CENTRE, on the measured
+      // map (12.1): the cell is read through `Q`, so it spans the raw values
+      // whose nearest calibrated LED it is, and the LED's own centre is too
+      // close to MORPH's dead margin (raw 24) for all four weights to be
+      // non-zero - corner 1's inner LED sits at raw (29, 26).
+      const towardsCentre = (cell: number, axis: "x" | "y"): number => {
+        const raw = calibratedCoordinatesIn(cell, axis);
+        return cell < 4 ? raw[raw.length - 1] : raw[0];
+      };
+      return [
+        towardsCentre(inner(k % 9), "x"),
+        towardsCentre(inner(Math.floor(k / 9)), "y"),
+      ];
     };
     const report: string[] = [];
 
@@ -3813,6 +3931,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const host = await createLuaHost({
         sim,
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup,
         timer: timer.trim() === "" ? undefined : timer,
       });
@@ -4125,6 +4244,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     const host = await createLuaHost({
       sim,
       system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
       setup,
       timer: timer.trim() === "" ? undefined : timer,
     });
@@ -4139,9 +4259,11 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
 
       // 1. A PRESS ON THE TOP-LEFT CELL. Row 0, column 0: the anchor colour
       //    exactly, and the one cell whose channels are largest.
-      const c0 = cellCentre(0);
-      const c8 = cellCentre(GRID_W - 1);
-      host.touchDown(0, c0, c0);
+      const x0 = ledCentre(0, "x");
+      const y0 = ledCentre(0, "y");
+      const x8 = ledCentre(GRID_W - 1, "x");
+      const y8 = ledCentre(GRID_W - 1, "y");
+      host.touchDown(0, x0, y0);
       host.tick();
       seen.push({
         label: "press on cell 0",
@@ -4153,12 +4275,12 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       //    the send sits inside the cursor's own change gate rather than beside
       //    the two controllers, which do fire on every sample.
       const beforeIdleMove = host.sysex.length;
-      host.touchMove(0, c0 + 1, c0 + 1);
+      host.touchMove(0, x0 + 1, y0 + 1);
       host.tick();
       const afterIdleMove = host.sysex.length;
 
       // 3. A MOVE TO ANOTHER CELL SENDS THAT CELL'S COLOUR.
-      host.touchMove(0, c8, c8);
+      host.touchMove(0, x8, y8);
       host.tick();
       seen.push({
         label: "move to cell 80",
@@ -4169,9 +4291,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       //    `if n~=s.c or e>3` - e above 3 inside the shipped filter is a press
       //    or a fast tap. Without the second half a desk that missed the first
       //    message would need the finger to move to another cell and back.
-      host.touchUp(0, c8, c8);
+      host.touchUp(0, x8, y8);
       host.tick();
-      host.touchDown(0, c8, c8);
+      host.touchDown(0, x8, y8);
       host.tick();
       seen.push({
         label: "press again on cell 80",
@@ -4317,6 +4439,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const host2 = await createLuaHost({
         sim: new PadSim(blankPadState()),
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup,
         timer: timer.trim() === "" ? undefined : timer,
       });
@@ -4417,6 +4540,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const host3 = await createLuaHost({
         sim: new PadSim(blankPadState()),
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup,
         timer: timer.trim() === "" ? undefined : timer,
       });
@@ -5226,7 +5350,13 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     indices.spring = spring;
     const { setup, timer } = renderLua(entry, indices);
     const sim = new PadSim(blankPadState());
-    return await createLuaHost({ sim, system: TOUCH_LIBRARY, setup, timer });
+    return await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup,
+      timer,
+    });
   };
 
   it("springs WHEELS' pitch home to exactly 8192, on the wire and in the light together", async () => {
@@ -5893,8 +6023,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       // never emits code 9). Each press at a different coordinate inside the
       // cell, so the host's change gate delivers every one.
       const press = (cell: number, offset: number): void => {
-        const x = cellCentre(cell % 9) + offset;
-        const y = cellCentre(Math.floor(cell / 9));
+        const x = ledCentre(cell % 9, "x") + offset;
+        const y = ledCentre(Math.floor(cell / 9), "y");
         host.touchDown(0, x, y);
         run(1);
         host.touchUp(0, x, y);
@@ -6130,6 +6260,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     const host = await createLuaHost({
       sim,
       system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
       setup: LIBRARY_PROBE,
     });
     const report: string[] = [];
@@ -6145,7 +6276,21 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       host.touchDown(0, 14, 3);
       host.tick();
       const drift = [15, 14, 15, 16, 15, 20, 24, 26, 30];
-      const held: number[] = [0];
+      // THE EXPECTATION IS THE LIBRARY'S OWN RULE ON THE MEASURED MAP (12.1):
+      // `W` holds the LED while the calibrated coordinate is within the hold
+      // margin of its centre, else takes the nearest; computed from
+      // calibration.ts, never typed. The 12-07 sequence 0,0,0,0,0,0,1,1,1,1
+      // was the naive map's, where these samples straddled the 0/1 seam at
+      // 14.2; on the measured knots x = 14 is inside LED 1 and the drift
+      // crosses the 1/2 seam instead. The claim is the same: one crossing.
+      const row = nearestLed(calibratedAxis(3, "y"));
+      let twin = nearestLed(calibratedAxis(14, "x"));
+      const predicted: number[] = [twin + row * 9];
+      for (const x of drift) {
+        twin = holdOrNearest(calibratedAxis(x, "x"), twin);
+        predicted.push(twin + row * 9);
+      }
+      const held: number[] = [cellsOf(host.midi).at(-1)!];
       const naive: number[] = [Math.floor((14 * 9) / 128)];
       for (const x of drift) {
         const before = host.midi.length;
@@ -6157,17 +6302,12 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       report.push(`  drift x: ${[14, ...drift].join(", ")}`);
       report.push(`  naive:   ${naive.join(", ")}`);
       report.push(`  library: ${held.join(", ")}`);
+      report.push(`  twin:    ${predicted.join(", ")}`);
       expect(
         held,
-        "the drift is read as one clean crossing, not as a toggle",
-      ).toEqual([0, 0, 0, 0, 0, 0, 1, 1, 1, 1]);
-      // NOT the research's 0,0,0,0,1,1,1,1,1,2. That figure was measured
-      // against the research's +-9 window (`<9`); the probe raised the margin
-      // to 3, which makes the window +-10 (`<11`), and at 11 units the sample
-      // at x=16 is 9 from cell 0's centre of 7 and the sample at x=30 is 9 from
-      // cell 1's centre of 21 - both INSIDE the wider band. The sequence above
-      // is what a `<11` window has to produce, and it is one crossing where the
-      // naive column has four.
+        "the VM does not read the drift as the library's own rule on the " +
+          "measured map predicts",
+      ).toEqual(predicted);
       let naiveToggles = 0;
       for (let k = 1; k < naive.length; k += 1) {
         if (naive[k] !== naive[k - 1]) naiveToggles += 1;
@@ -6176,23 +6316,45 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       for (let k = 1; k < held.length; k += 1) {
         if (held[k] !== held[k - 1]) heldToggles += 1;
       }
+      let predictedToggles = 0;
+      for (let k = 1; k < predicted.length; k += 1) {
+        if (predicted[k] !== predicted[k - 1]) predictedToggles += 1;
+      }
       expect(
         [naiveToggles, heldToggles],
-        "the hysteresis has to remove crossings, not merely move them",
-      ).toEqual([4, 1]);
+        "the hysteresis has to remove crossings, not merely move them: the " +
+          "naive read of these samples toggles four times, the library once",
+      ).toEqual([4, predictedToggles]);
+      expect(heldToggles, "one clean crossing").toBe(1);
 
       // 2. THE PROBE'S OWN 71/72 BOUNDARY, and the seven-value band.
       const second = new PadSim(blankPadState());
       const edge = await createLuaHost({
         sim: second,
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup: LIBRARY_PROBE,
       });
       try {
         const walk = [72, 71, 72, 73, 74, 75, 74, 68, 67];
         edge.touchDown(0, 71, 64);
         edge.tick();
-        const cells: number[] = [40];
+        // The prediction, from the table: on the measured knots the probe's
+        // whole trace sits INSIDE LED 4's hold band (the up-switch is past
+        // 75 and the down-switch below 68 - printed as the band below), so
+        // the library reads every sample as column 4. The 12-07 sequence
+        // 4,4,4,4,4,4,5,5,5,4 was the naive map's, whose seam sat at 71.1.
+        const edgeRow = nearestLed(calibratedAxis(64, "y"));
+        let edgeTwin = nearestLed(calibratedAxis(71, "x"));
+        const predictedEdge: number[] = [edgeTwin];
+        for (const x of walk) {
+          edgeTwin = holdOrNearest(calibratedAxis(x, "x"), edgeTwin);
+          predictedEdge.push(edgeTwin);
+        }
+        const cells: number[] = [cellsOf(edge.midi).at(-1)!];
+        expect(cells[0], "the press lands on row 4").toBe(
+          edgeTwin + edgeRow * 9,
+        );
         for (const x of walk) {
           const before = edge.midi.length;
           edge.touchMove(0, x, 64);
@@ -6205,41 +6367,43 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         const columns = cells.map((cell) => cell % 9);
         report.push(`  edge x:  ${[71, ...walk].join(", ")}`);
         report.push(`  column:  ${columns.join(", ")}`);
+        report.push(`  twin:    ${predictedEdge.join(", ")}`);
         expect(
           columns,
-          "a finger on the line between columns 4 and 5 is read as ONE column",
-        ).toEqual([4, 4, 4, 4, 4, 4, 5, 5, 5, 4]);
-
-        // THE BAND, WRITTEN OUT. Centres are 64 and 78; the window is 11, so
-        // from column 4 the values 68..74 hold and 75 switches, and from
-        // column 5 the same 68..74 hold and 67 switches back. SEVEN VALUES,
-        // and they are enumerated rather than described.
-        const band: number[] = [];
-        for (let x = 60; x <= 80; x += 1) {
-          const fromFour = Math.abs(x - 64) < 11;
-          const fromFive = Math.abs(x - 78) < 11;
-          if (fromFour && fromFive) band.push(x);
-        }
-        report.push(`  overlap: ${band.join(", ")} (${band.length} values)`);
-        expect(band, "the overlap is seven values, 68..74").toEqual([
-          68, 69, 70, 71, 72, 73, 74,
-        ]);
-
-        // The effective margin, as an observed number rather than a claim. The
-        // naive boundary sits at 128*5/9 = 71.11; the library switches at 75
-        // going up and at 67 coming down.
-        const boundary = (128 * 5) / 9;
-        const up = 75 - boundary;
-        const down = boundary - 67;
-        report.push(
-          `  margin:  ${up.toFixed(2)} up, ${down.toFixed(2)} down, ` +
-            "against a cell half-width of 7.11",
-        );
+          "the probe's own trace is not read as the library's rule on the " +
+            "measured map predicts",
+        ).toEqual(predictedEdge);
         expect(
-          [Math.round(up * 100) / 100, Math.round(down * 100) / 100],
-          "the effective margin is ~3.9 raw units up and ~4.1 down, against " +
-            'the probe\'s "at least 2, 3 is the working figure"',
-        ).toEqual([3.89, 4.11]);
+          new Set(columns).size,
+          "a finger on the probe's 71/72 line is read as ONE column",
+        ).toBe(1);
+
+        // THE BAND, FROM THE TABLE (12.1-CONTEXT D-18): the raw x values
+        // held from LED 4 AND held from LED 5, i.e. within the hold margin
+        // of both centres in calibrated units. It is a fraction of the LOCAL
+        // pitch, so its width in raw units is the segment's, not a constant;
+        // "the gradient (12.1)" below asserts the switch points per segment.
+        const band: number[] = [];
+        for (let x = KX[4]; x <= KX[5]; x += 1) {
+          const u = calibratedAxis(x, "x");
+          if (holdOrNearest(u, 4) === 4 && holdOrNearest(u, 5) === 5)
+            band.push(x);
+        }
+        report.push(
+          `  overlap: ${band.join(", ")} (${band.length} values, pitch ` +
+            `${KX[5] - KX[4]})`,
+        );
+        for (const x of [71, ...walk]) {
+          expect(
+            holdOrNearest(calibratedAxis(x, "x"), 4),
+            `the probe's sample ${x} is not held from LED 4 on the measured ` +
+              "map, so the one-column reading above was not the hysteresis",
+          ).toBe(4);
+        }
+        expect(
+          band.length,
+          "the overlap band between LED 4 and 5 is empty on the measured map",
+        ).toBeGreaterThan(0);
         expect(edge.errors, edge.errors.join(" | ")).toEqual([]);
       } finally {
         edge.close();
@@ -6251,6 +6415,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const axes = await createLuaHost({
         sim: third,
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup:
           "--[[@cb]]self.touch_cb=function(s,i,e,x,y)A(s,i,e,x,y,16,17,0)end",
       });
@@ -6303,6 +6468,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const host = await createLuaHost({
         sim,
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup: LIBRARY_PROBE,
         timer,
       });
@@ -6471,6 +6637,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const host = await createLuaHost({
         sim,
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup: "--[[@cb]]D(40,2,252)",
       });
       try {
@@ -6576,11 +6743,18 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
 
   /** The probe's own trace, as raw x: a finger that is not moving. */
   const BOUNDARY_WOBBLE: readonly number[] = [72, 71, 72, 71, 73, 72];
-  /** The raw coordinates the gesture starts at, and the two it then crosses. */
+  /** The raw coordinates the gesture starts at - the probe's own line. */
   const BOUNDARY_X = 71;
   const BOUNDARY_Y = 80;
-  const ACROSS_X = 76;
-  const BACK_X = 66;
+  /**
+   * The two coordinates it then crosses to, DERIVED FROM THE MEASURED MAP
+   * (12.1): the first raw x at which `W` lets go of LED 4 walking right, and
+   * the first at which it lets go of LED 5 walking left. They were 76 and 66
+   * under the naive map's +-10 window; on the measured knots the pitch
+   * between LED 4 and 5 is wider and so is the band.
+   */
+  const ACROSS_X = switchUp(4, "x");
+  const BACK_X = switchDown(4, "x");
 
   /** The naive read of one axis - what every one of the four used to compute. */
   const naiveAxis = (v: number): number => Math.floor((v * 9) / 128);
@@ -6601,14 +6775,21 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       "the probe's trace crosses the 71/72 line five times under a naive read",
     ).toEqual([[4, 5, 4, 5, 4, 5, 5], 5]);
 
-    const held = naiveAxis(BOUNDARY_X) + naiveAxis(BOUNDARY_Y) * 9;
-    const neighbour = naiveAxis(ACROSS_X) + naiveAxis(BOUNDARY_Y) * 9;
+    // THE TWO CELLS, DERIVED FROM THE LIBRARY'S OWN MAP (12.1): the four
+    // entries read their cell through `Q`, so the held cell is the nearest
+    // calibrated cell of the start point and the neighbour the one the
+    // crossing reaches - the next column of the same row.
+    const held = calibratedCell(BOUNDARY_X, BOUNDARY_Y);
+    const neighbour = calibratedCell(ACROSS_X, BOUNDARY_Y);
     expect(
-      [held, neighbour],
-      "the finger rests on the line between cells 49 and 50 - column 4 and " +
-        "column 5 of row 5, derived from the entries' own t*9//128 division " +
-        "rather than pasted",
-    ).toEqual([49, 50]);
+      [held % 9, neighbour],
+      "the finger rests on LED 4 of its row and the crossing reaches LED 5 " +
+        "of the same row - derived from the map, never pasted",
+    ).toEqual([4, held + 1]);
+    expect(
+      BACK_X < BOUNDARY_X && BOUNDARY_X < ACROSS_X,
+      "the probe's line sits inside the hold band between the two switches",
+    ).toBe(true);
 
     const report: string[] = [];
     const finalState = new Map<string, [number, number]>();
@@ -6651,17 +6832,18 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         const wobbleNeighbour = neighbourChanges;
         const afterWobble = lastHeld;
 
-        // 2. ACROSS THE LINE FOR REAL. 76 is 12 units from column 4's centre of
-        //    64, outside the +-10 window, so the hysteresis releases and the
-        //    neighbour takes one toggle.
+        // 2. ACROSS THE LINE FOR REAL. ACROSS_X is the first raw x whose
+        //    calibrated coordinate is the hold margin past LED 4's centre, so
+        //    the hysteresis releases and the neighbour takes one toggle.
         host.touchMove(0, ACROSS_X, BOUNDARY_Y);
         host.tick();
         sample();
         const acrossHeld = heldChanges - wobbleHeld;
         const acrossNeighbour = neighbourChanges - wobbleNeighbour;
 
-        // 3. AND BACK. 66 is 12 units from column 5's centre of 78, so the held
-        //    cell takes one toggle back.
+        // 3. AND BACK. BACK_X is the first raw x whose calibrated coordinate is
+        //    the hold margin short of LED 5's centre, so the held cell takes
+        //    one toggle back.
         host.touchMove(0, BACK_X, BOUNDARY_Y);
         host.tick();
         sample();
@@ -7195,6 +7377,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       const host = await createLuaHost({
         sim,
         system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
         setup,
         timer,
       });
@@ -7583,4 +7766,500 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
     expect(report.length, "every stage of the trackpad probe ran").toBe(8);
   }, 120000);
+});
+
+// ---------------------------------------------------------------------------
+// THE GRADIENT (phase 12.1, plan 12.1-02): G, E, X and Q in the real VM, with
+// every expected phase, cell and band computed from calibration.ts.
+//
+// THE USER'S SPECIFICATION (12.1-CONTEXT D-01): a finger between two LEDs
+// lights both dimly, a finger in the middle of four lights all four, and the
+// brightness follows the finger. `G(s,i,e,x,y,l,r,g,b)` in the system Timer
+// (255/6) draws that: the calibrated position through `U`, the 2x2 block
+// around it, integer bilinear weights over 4096 at peak 255, the colour
+// re-asserted on each cell every call (D-11 - layer 0 is the alert layer).
+// Every expectation below is the same arithmetic in TypeScript over the SAME
+// two knot tables, so a knot that moves in calibration.ts moves the Lua and
+// the expectation together, and nothing here is a literal read off a run.
+//
+// THE CALLBACK ORDER IS `Q` FIRST, THEN `G`, THEN THE ENTRY'S EARLY RETURN -
+// A FINDING OF THIS PLAN, NOT THE RESEARCH'S SHAPE. The research and the
+// plans wrote `G(...)local m=Q(...)`, and the research's VM only ever called
+// `G` on its own. Run together in one callback: on an onset `G` draws the
+// block and records it in `B[i]`, and then `Q` expires contact `i` itself
+// (the same-id lost-lift rule, library.ts section 7), which reaches `E` and
+// `V(B[i])` - and clears the block `G` just drew. A still finger reads DARK
+// after its DOWN until its first MOVE, and a second contact landing on a cell
+// another contact held has its fresh block cleared by the cross-contact
+// expiry. With `Q` first the stale block is what `E` clears, and `G` then
+// draws the fresh one: every path is right at the same character cost. Plans
+// 12.1-03 and 12.1-04 re-fit the callers in this order; 13-14's emitter must
+// emit it in this order.
+//
+// Nothing here is hardware-verified. The bench sees the gradient at 12.1-09.
+// ---------------------------------------------------------------------------
+
+describe("the gradient (12.1)", () => {
+  /**
+   * The EUCLID shape of the callback, with Q first (see the header above):
+   * the cell Q returns goes out as CC 1 so the test can read it, and G draws
+   * the finger white on layer 0.
+   */
+  const GRADIENT_SETUP =
+    "--[[@cb]]self.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)" +
+    "G(s,i,e,x,y,0,255,255,255)if m then s:gms(0,176,1,m,0)end end";
+
+  /** The sweep, with the caller's own window, where a test needs it. */
+  const GRADIENT_TIMER = "--[[@cb]]gtt(0,10)X(self,20)";
+
+  /** One host over both library strings, optionally with the sweeping Timer. */
+  const openGradient = async (
+    withTimer: boolean,
+    setup: string = GRADIENT_SETUP,
+  ) => {
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: withTimer ? setup + " gtt(0,10)" : setup,
+      timer: withTimer ? GRADIENT_TIMER : undefined,
+    });
+    return { host, sim };
+  };
+
+  const phase0 = (sim: PadSim, cell: number): number =>
+    sim.layer(hwOfCell(cell), 0).pha;
+  const colour0 = (sim: PadSim, cell: number): number[] => [
+    ...sim.layer(hwOfCell(cell), 0).max,
+  ];
+  /** Every layer-0 cell with a non-zero phase, cell -> phase. */
+  const litOnLayer0 = (sim: PadSim): Record<number, number> => {
+    const out: Record<number, number> = {};
+    for (let cell = 0; cell < 81; cell += 1) {
+      const p = phase0(sim, cell);
+      if (p !== 0) out[cell] = p;
+    }
+    return out;
+  };
+  /** Q's returns, in call order, from the CC 1 the Setup emits. */
+  const cellsReturned = (host: { midi: readonly HostMidi[] }): number[] =>
+    host.midi.filter((m) => m.cmd === 176 && m.p1 === 1).map((m) => m.p2);
+
+  /**
+   * What G must write for a raw point, from the table - the block's four
+   * cells and their phases, zeros included. The interfaces block of plan
+   * 12.1-02, in TypeScript: `c = min(u // 64, 7)`, `f = u - c*64`, the four
+   * weights over 4096 at peak 255, floored as Lua's `//` floors.
+   */
+  const expectedFinger = (
+    x: number,
+    y: number,
+  ): { block: number[]; phases: Record<number, number> } => {
+    const u = calibratedAxis(x, "x");
+    const w = calibratedAxis(y, "y");
+    const c = Math.min(Math.floor(u / LED_STEP), 7);
+    const q = Math.min(Math.floor(w / LED_STEP), 7);
+    const f = u - c * LED_STEP;
+    const h = w - q * LED_STEP;
+    const n = c + q * 9;
+    const weight = (a: number, b: number): number =>
+      Math.floor((255 * a * b) / 4096);
+    const phases: Record<number, number> = {};
+    phases[n] = weight(LED_STEP - f, LED_STEP - h);
+    phases[n + 1] = weight(f, LED_STEP - h);
+    phases[n + 9] = weight(LED_STEP - f, h);
+    phases[n + 10] = weight(f, h);
+    return { block: [n, n + 1, n + 9, n + 10], phases };
+  };
+  const litOf = (phases: Record<number, number>): Record<number, number> =>
+    Object.fromEntries(Object.entries(phases).filter(([, p]) => p !== 0));
+
+  it("draws the bilinear finger in the colour it is handed, heals a recoloured cell, and U is its TypeScript twin at every value", async () => {
+    const report: string[] = [];
+    const { host, sim } = await openGradient(false);
+    try {
+      const press = (x: number, y: number): void => {
+        host.touchDown(0, x, y);
+        host.tick();
+      };
+      const lift = (x: number, y: number): void => {
+        host.touchUp(0, x, y);
+        host.tick();
+      };
+      const WHITE = [255, 255, 255];
+
+      // THE EIGHT CASES OF 12.1-RESEARCH B.2, ON THE MEASURED KNOTS. Each
+      // coordinate is a knot or a knot midpoint from calibration.ts; each
+      // expected picture is expectedFinger() over the same table.
+      const midX = Math.floor((KX[4] + KX[5]) / 2);
+      const midY = Math.floor((KY[4] + KY[5]) / 2);
+      const cases: readonly {
+        readonly label: string;
+        readonly x: number;
+        readonly y: number;
+      }[] = [
+        { label: "dead on LED (4,4)", x: KX[4], y: KY[4] },
+        {
+          label: "midway between LED 4 and 5 in x, on 4 in y",
+          x: midX,
+          y: KY[4],
+        },
+        { label: "the centre of four", x: midX, y: midY },
+        { label: "the far corner (127,127)", x: 127, y: 127 },
+        { label: "the near corner (0,0)", x: 0, y: 0 },
+        { label: "x = 5 inside the saturated first segment", x: 5, y: 0 },
+        { label: "THE BENCH CASE, row 1 column 7", x: KX[7], y: KY[1] },
+      ];
+      for (const c of cases) {
+        press(c.x, c.y);
+        expect(host.errors, `${c.label}: raised`).toEqual([]);
+        const want = expectedFinger(c.x, c.y);
+        const got = litOnLayer0(sim);
+        report.push(
+          `  ${c.label} (${c.x},${c.y}): lit ` +
+            Object.entries(got)
+              .map(([cell, p]) => `${cell}=${p}`)
+              .join(" "),
+        );
+        // THE PICTURE, EXACTLY: every lit cell is one of the block's four at
+        // its computed weight, and nothing else on layer 0 is lit.
+        expect(
+          got,
+          `${c.label}: layer 0 is not the computed bilinear finger`,
+        ).toEqual(litOf(want.phases));
+        // THE COLOUR, ON ALL FOUR CELLS OF THE BLOCK - including the ones at
+        // weight 0, because glc runs before glp on every one of them.
+        for (const cell of want.block) {
+          expect(
+            colour0(sim, cell),
+            `${c.label}: cell ${cell} is not in the colour G was handed`,
+          ).toEqual(WHITE);
+        }
+        lift(c.x, c.y);
+      }
+
+      // THE THREE SENTENCES, READ OFF THE CASES. Dead on an LED: that LED at
+      // peak, alone. Between two: both, dimly, the pair summing to about the
+      // peak. Middle of four: all four.
+      const alone = expectedFinger(KX[4], KY[4]);
+      expect(litOf(alone.phases), "dead on LED (4,4) is cell 40 alone").toEqual(
+        { 40: 255 },
+      );
+      const pair = litOf(expectedFinger(midX, KY[4]).phases);
+      expect(
+        Object.keys(pair).map(Number).sort(),
+        "the pair is 40 and 41",
+      ).toEqual([40, 41]);
+      const four = litOf(expectedFinger(midX, midY).phases);
+      expect(
+        Object.keys(four)
+          .map(Number)
+          .sort((a, b) => a - b),
+        "the centre of four is 40, 41, 49, 50",
+      ).toEqual([40, 41, 49, 50]);
+      // THE BENCH CASE: the LED under the finger, where the naive divisor lit
+      // the corner. The naive cell is COMPUTED here as the entries used to
+      // compute it, never typed - on these knots it is the top-right corner
+      // the user reported (12.1-CONTEXT D-01: "row 2 column 8 ... the top
+      // right LED lights up").
+      const bench = litOf(expectedFinger(KX[7], KY[1]).phases);
+      const naiveBench =
+        Math.floor((KX[7] * 9) / 128) + Math.floor((KY[1] * 9) / 128) * 9;
+      report.push(
+        `  the bench case (${KX[7]},${KY[1]}): calibrated cell ` +
+          `${Object.keys(bench).join(",")}, naive cell ${naiveBench}`,
+      );
+      expect(
+        bench,
+        "the bench case lights the LED under the finger, alone",
+      ).toEqual({ 16: 255 });
+      expect(
+        naiveBench,
+        "the naive divisor reads the bench case as a different cell - the " +
+          "corner the user saw",
+      ).not.toBe(16);
+      expect(
+        litOf(expectedFinger(127, 127).phases),
+        "(127,127) is cell 80 alone, at peak",
+      ).toEqual({ 80: 255 });
+
+      // A LIFT DARKENS LAYER 0. The last case above lifted; the layer is
+      // dark, and it is asserted rather than assumed.
+      press(KX[4], KY[4]);
+      expect(litOnLayer0(sim)[40], "the press lit 40").toBe(255);
+      lift(KX[4], KY[4]);
+      expect(litOnLayer0(sim), "a lift (code 5) leaves layer 0 dark").toEqual(
+        {},
+      );
+
+      // THE COLOUR HEALS (D-11). Layer 0 is the alert layer: grid_alert_all_set
+      // recolours it WHITE_DIM (64,64,64) on a page-discard completion, PURPLE
+      // on a refused page change, BLUE on a TX overflow. The same rewrite,
+      // done here through the sim's own layer hook on cell 40; the next
+      // sample's G re-asserts white on the cell.
+      sim.pokeLayer(hwOfCell(40), 0, glcStops(64, 64, 64, true));
+      expect(colour0(sim, 40), "the alert took the colour").toEqual([
+        64, 64, 64,
+      ]);
+      press(KX[4], KY[4]);
+      expect(
+        colour0(sim, 40),
+        "the finger did not heal the alert's colour on its next sample",
+      ).toEqual(WHITE);
+      expect(phase0(sim, 40), "and it is lit at peak").toBe(255);
+      lift(KX[4], KY[4]);
+      report.push(
+        "  the colour heals: 64,64,64 -> 255,255,255 on the next sample",
+      );
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+
+    // THE TS TWIN. The Lua U(v, KX) and U(v, KY) for every v in 0..127, read
+    // back through the MIDI recorder (CC 1 for x, CC 2 for y; p2 carries U,
+    // which the recorder does not narrow), against calibratedAxis().
+    const twin = await createLuaHost({
+      sim: new PadSim(blankPadState()),
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup:
+        "--[[@cb]]for v=0,127 do self:gms(0,1,v,U(v,KX),0)" +
+        "self:gms(0,2,v,U(v,KY),0)end",
+    });
+    try {
+      expect(twin.errors, "the twin probe raised").toEqual([]);
+      expect(twin.midi, "256 readings").toHaveLength(256);
+      const mismatches: string[] = [];
+      for (const m of twin.midi) {
+        const axis = m.cmd === 1 ? "x" : "y";
+        const want = calibratedAxis(m.p1, axis);
+        if (m.p2 !== want)
+          mismatches.push(`${axis}=${m.p1}: Lua ${m.p2}, TS ${want}`);
+      }
+      expect(
+        mismatches.join("; "),
+        "the Lua U and calibratedAxis() disagree, so every expectation " +
+          "computed from the table is computed from a different function " +
+          "than the one on the module",
+      ).toBe("");
+      report.push(
+        "  U(v,K) equals calibratedAxis(v) for all 128 values on both axes",
+      );
+    } finally {
+      twin.close();
+    }
+
+    process.stdout.write(
+      "\nTHE GRADIENT, G in the real VM (plan 12.1-02):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 60000);
+
+  it("clears a contact's block through E on the Timer sweep and on a lost-lift re-press", async () => {
+    const report: string[] = [];
+
+    // 1. THE SWEEP. Two fingers; the second goes quiet and X(s,20) in the
+    //    Timer expires it through E, which clears its block through V. The
+    //    first keeps wobbling, so it is never swept and its block stays lit -
+    //    the assertion is "dark for ITS block", not "dark".
+    {
+      const { host, sim } = await openGradient(true);
+      try {
+        host.touchDown(0, KX[4], KY[4]);
+        host.tick();
+        host.touchDown(1, KX[1], KY[1]);
+        host.tick();
+        const second = expectedFinger(KX[1], KY[1]);
+        expect(
+          litOnLayer0(sim),
+          "both fingers lit, each alone on its LED",
+        ).toEqual({
+          ...litOf(expectedFinger(KX[4], KY[4]).phases),
+          ...litOf(second.phases),
+        });
+        expect(host.globalSize("B"), "two blocks recorded").toBe(2);
+
+        // Forty ticks: contact 0 alternates two coordinates inside LED 4 (the
+        // host's FIFO is change-gated, so a repeated point would never reach
+        // the VM), contact 1 says nothing.
+        for (let t = 0; t < 40; t += 1) {
+          host.touchMove(0, KX[4] + (t % 2), KY[4]);
+          host.tick();
+        }
+        const lit = litOnLayer0(sim);
+        report.push(
+          `  sweep: after 40 ticks of silence from contact 1, lit ` +
+            Object.entries(lit)
+              .map(([cell, p]) => `${cell}=${p}`)
+              .join(" "),
+        );
+        for (const cell of second.block) {
+          expect(
+            phase0(sim, cell),
+            `the swept contact's block is still lit at cell ${cell}: E did ` +
+              "not clear it through V on the Timer sweep",
+          ).toBe(0);
+        }
+        expect(
+          phase0(sim, 40),
+          "the wobbling finger is still lit",
+        ).toBeGreaterThan(0);
+        expect(host.globalSize("B"), "one block left, the live finger's").toBe(
+          1,
+        );
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 2. THE LOST LIFT. The same id presses again on a different cell with no
+    //    lift in between - firmware assigns the lowest free contact id, so
+    //    this is the sequence hardware normally takes (library.ts section 7).
+    //    Q's onset self-expiry reaches E, which clears the stale block; G then
+    //    draws the new one.
+    {
+      const { host, sim } = await openGradient(false);
+      try {
+        host.touchDown(0, KX[4], KY[4]);
+        host.tick();
+        expect(phase0(sim, 40), "the first press lit 40").toBe(255);
+        host.touchDown(0, KX[1], KY[1]);
+        host.tick();
+        const want = litOf(expectedFinger(KX[1], KY[1]).phases);
+        const got = litOnLayer0(sim);
+        report.push(
+          `  lost lift: re-press by the same id on (${KX[1]},${KY[1]}) -> lit ` +
+            Object.entries(got)
+              .map(([cell, p]) => `${cell}=${p}`)
+              .join(" "),
+        );
+        expect(
+          got,
+          "after a same-id re-press the OLD block must be dark and the new " +
+            "one lit; a stale block left lit is a finger nobody is touching",
+        ).toEqual(want);
+        expect(
+          cellsReturned(host),
+          "Q returned a cell for both presses - the lost lift did not swallow " +
+            "the second (library.ts section 7)",
+        ).toEqual([40, 10]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // MORPH's shape - G before an early return without Q - is plan 12.1-04's.
+
+    process.stdout.write(
+      "\nTHE GRADIENT, E and X clear the block (plan 12.1-02):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 60000);
+
+  it("holds Q's cell across a band that is a fraction of the LED pitch, per segment, and lands the bench case on cell 16", async () => {
+    // D-18: `W` holds the previous LED while the calibrated coordinate is
+    // within 45/64 of a pitch of its centre. In raw sensor units that band is
+    // as wide as the local pitch makes it - the assertion is the formula on
+    // the table, the printed width is the observation, and no width is typed.
+    const report: string[] = [];
+    const { host } = await openGradient(false);
+    try {
+      const y = KY[4];
+      const walk = (
+        from: number,
+        to: number,
+        expectCell: number,
+      ): number | undefined => {
+        const step = to > from ? 1 : -1;
+        for (let x = from + step; step > 0 ? x <= to : x >= to; x += step) {
+          host.touchMove(0, x, y);
+          host.tick();
+          if (cellsReturned(host).at(-1) === expectCell) return x;
+        }
+        return undefined;
+      };
+      const HOLD = holdFraction();
+      for (const p of [4, 7, 2]) {
+        const lo = p + 36;
+        const hi = p + 37;
+        // Up: press on LED p, walk right to LED p+1's knot.
+        host.touchDown(0, KX[p], y);
+        host.tick();
+        expect(
+          cellsReturned(host).at(-1),
+          `the press landed on cell ${lo}`,
+        ).toBe(lo);
+        const upObserved = walk(KX[p], KX[p + 1], hi);
+        host.touchUp(0, KX[p + 1], y);
+        host.tick();
+        // Down: press on LED p+1, walk left to LED p's knot.
+        host.touchDown(0, KX[p + 1], y);
+        host.tick();
+        expect(
+          cellsReturned(host).at(-1),
+          `the press landed on cell ${hi}`,
+        ).toBe(hi);
+        const downObserved = walk(KX[p + 1], KX[p], lo);
+        host.touchUp(0, KX[p], y);
+        host.tick();
+
+        const upExpected = switchUp(p, "x");
+        const downExpected = switchDown(p, "x");
+        const band: number[] = [];
+        for (let x = downExpected + 1; x < (upExpected ?? 0); x += 1)
+          band.push(x);
+        report.push(
+          `  LED ${p} -> ${p + 1} in x (pitch ${KX[p + 1] - KX[p]}): up at ` +
+            `${upObserved}, down at ${downObserved}; band ${band[0]}..` +
+            `${band[band.length - 1]}, ${band.length} values`,
+        );
+        expect(
+          upObserved,
+          `LED ${p} -> ${p + 1}: the up-switch is the first x with ` +
+            `calibratedAxis(x) >= ${p}*64 + ${HOLD}`,
+        ).toBe(upExpected);
+        expect(
+          downObserved,
+          `LED ${p + 1} -> ${p}: the down-switch is the first x with ` +
+            `calibratedAxis(x) <= ${p + 1}*64 - ${HOLD}`,
+        ).toBe(downExpected);
+        expect(
+          band.length,
+          `LED ${p} -> ${p + 1}: the band is empty, so the hysteresis is a ` +
+            "dead zone or nothing",
+        ).toBeGreaterThan(0);
+      }
+
+      // THE BENCH CASE, THROUGH Q: the same cell G lights (test 1), so the
+      // toggle and the glow agree on where the LED is because both read U.
+      host.touchDown(0, KX[7], KY[1]);
+      host.tick();
+      const benchCell = cellsReturned(host).at(-1);
+      const naiveBench =
+        Math.floor((KX[7] * 9) / 128) + Math.floor((KY[1] * 9) / 128) * 9;
+      report.push(
+        `  the bench case (${KX[7]},${KY[1]}): Q returns ${benchCell}, ` +
+          `the naive divisor read ${naiveBench}`,
+      );
+      expect(benchCell, "a press on row 1 column 7 returns cell 16").toBe(16);
+      expect(benchCell, "and G lights the same cell").toBe(
+        Number(Object.keys(litOf(expectedFinger(KX[7], KY[1]).phases))[0]),
+      );
+      host.touchUp(0, KX[7], KY[1]);
+      host.tick();
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nTHE GRADIENT, Q's hold band per segment (plan 12.1-02, D-18):\n" +
+        report.join("\n") +
+        "\n",
+    );
+  }, 60000);
 });
