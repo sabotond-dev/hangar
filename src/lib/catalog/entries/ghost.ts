@@ -51,6 +51,23 @@
 //    on, so the pad never has a dead square and the visitor never presses a key
 //    that does nothing.
 //
+//    SINCE PLAN 12.1-08a THE KEY IS TESTED THROUGH THE LIBRARY'S `N` (12.1-
+//    CONTEXT D-26 item 1): `s.n>0 and N(x,y)==80`, the nearest CALIBRATED cell
+//    of the onset's raw pair - so the key is the LED at (8,8) and nothing else,
+//    not the sensor's saturated corner. The test was `x*9//128+y*9//128*9==80`
+//    until 12.1-08a, and that read cell 80 for every raw pair with both axes at
+//    114 or above - which on the user's module (calibration.ts, Probe C) is
+//    where LED (7,7) sits: a finger centred on LED (7,7) reads (120, 115), and
+//    `120*9//128 = 8`, `115*9//128 = 8`. A FINGER PLACED ON LED (7,7) WHILE A
+//    LOOP WAS PLAYING ERASED THE LOOP. Under `N`, (120, 115) is cell 70 and
+//    records; only the LED at (8,8), (126, 126), is the key. lua-smoke.spec.ts
+//    pins both readings in the real VM with the naive figure printed beside
+//    them. `N` has no hysteresis and no state, which is the right shape for a
+//    press-time lookup on an onset edge (ARC's stop tap, 12.1-03, is the same
+//    shape); both the key here and the comet cell in the Timer read the same
+//    `U` and the same two tables, so the key and the comet agree on where the
+//    LEDs are.
+//
 //    It is red because red is the one colour a person reads as "this undoes
 //    something" without being told, and because it must stay legible whichever
 //    pair of colours the two colour knobs are set to - the erase key is a
@@ -142,9 +159,70 @@
 //   instead of one - and buys nothing: one lit red corner on an otherwise black
 //   pad is already unmistakable. It is the more expensive of the two on Setup.
 //
-// SHIPPED: Setup 478 of 908 at the picker corner, 430 free; 475 at the
-// defaults. Timer 422 of 908 at the picker corner, 486 free; 418 at the
-// defaults. The all-shortest corner is not read by any gate and is not quoted.
+// SHIPPED (plan 12.1-08a, re-measured in this tree under the pinned minifier
+// after initLuaFormatter, cost = max(raw, compressed), fixed point, checkSyntax
+// true): Setup 491 of 908 at the picker corner, 417 free; 486 at the defaults.
+// Timer 409 of 908 at the picker corner, 499 free; 405 at the defaults. The
+// figures B was chosen at - Setup 478 / 430 free (475 at the defaults), Timer
+// 422 / 486 free (418 at the defaults) - are the pre-12.1-08a figures, and the
+// difference is the three needles of that plan: `N(x,y)==80` for the key
+// (-13 on the Setup), `G(s,i,e,x,y,0,@RECC)` after the id gate (+26 at the
+// corner, where @RECC is 255,255,255; +24 at the defaults) and `glag(0,N(x,y))`
+// in the Timer (-13). The all-shortest corner is not read by any gate and is
+// not quoted.
+//
+// ---------------------------------------------------------------------------
+// THE FINGER IS THE LIBRARY'S GRADIENT (plan 12.1-08a; 12.1-CONTEXT D-26)
+// ---------------------------------------------------------------------------
+//
+// While a finger is down GHOST draws it as the library's bilinear finger:
+// `G(s,i,e,x,y,0,@RECC)` in the callback, AFTER the id gate and BEFORE the
+// onset block, on layer 0 in the recording colour. `G` clears the contact's
+// previous 2x2 block, returns on an end code (3, 5..8) AND on a coalesced 9
+// (12.1-03: a 9 is a press and a lift in one message, so there is no finger
+// left to draw), and otherwise lights the 2x2 block around the calibrated
+// position at the four bilinear weights with the colour re-asserted on every
+// cell. GHOST calls no `Q`, so there is no "Q first" here; `G` after the gate
+// is the whole order, and `G`'s own end test and the onset's `s.h=e<9` agree
+// on what a tap is: one recorded point, no gradient lit.
+//
+// WHY @RECC AND NOT WHITE (D-13). The finger is exactly what this knob names -
+// the recording comet that follows your hand - so the gradient takes the
+// knob, as RADAR POINTS took @SWEEPC and LUMEN @CURSORC. At the picker corner
+// @RECC renders 255,255,255, so the cost is the white literal's. The ghost's
+// replay stays on layer 2 in @GHOSTC; the live finger is on layer 0; telling
+// your hand from its ghost is still the two layers' job.
+//
+// WHY `G` CARRIES THE COLOUR, AND WHY THERE IS NO FLOOR (D-11). Layer 0 is the
+// firmware's alert layer: `grid_alert_all_set` (grid_led.h:7, grid_led.c:260-
+// 271) rewrites layer 0's colour on every LED and forces its min to 0, and it
+// is called from five places - a CONFIG write, page-discard completion, a
+// refused page change, a TX overflow, and boot. A finger coloured once in an
+// init loop would turn grey, purple or blue after any of those; `G` writes
+// `glc(a,0,r,g,b,1)` on each of its four cells on every call, so the finger
+// heals on the next sample. The trailing `1` forces the layer's min to 0, so
+// a cell `V` clears is dark - there is no byte-6 floor, and GHOST's black rest
+// frame (frames.spec.ts test 5, `restsBlack: true`) is unmoved by this.
+//
+// WHY `G` AND NOT `Q` / `X` / `R` - THE STILL FINGER. The library's expiry
+// (`Q` registering the contact, `X(s,n)` in the Timer, `E` clearing the block
+// and calling an `R`) would let a LOST lift end the recording and darken the
+// gradient. It would also end the recording of a STILL finger after `n` Timer
+// ticks, because the firmware's change gate means a motionless contact sends
+// nothing - and "a motionless finger still records, which is correct" is this
+// card's one promise about recording (below). That is a behaviour change, not
+// a re-fit. Measured for the record (plan 12.1-08a, same harness):
+// `R=function(s,i)s.h=nil end` + `Q(s,i,e,x,y)` before `G` + `X(s,150)` in
+// the Timer (3 s of stillness before expiry, against the 5 s recording cap) is
+// Setup 530 / Timer 417 at the picker corner - inside 908, and NOT TAKEN.
+// docs/HARDWARE-AUDITION.md row 27(d) asks the user whether a paused drag
+// should keep recording; if the answer is no, that shape is a one-commit
+// change.
+//
+// WHAT A LOST LIFT LEAVES, STATED. Exactly what it left before 12.1-08a - the
+// comet held at the last point and the recording running to @LEN - plus one
+// lit 2x2 block on layer 0 at the last position, which the next onset's `G`
+// clears (`local o=B[i]if o then V(o)end`) before it draws the new one.
 //
 // ---------------------------------------------------------------------------
 // THE CONVENTIONS THIS ENTRY IS WRITTEN INSIDE, CITED AND NOT RESTATED
@@ -172,16 +250,26 @@
 // per contact and would take fewer points from a slow drag than from a fast one.
 // A motionless finger still records, which is correct.
 //
+// THE CELL THE COMET AND THE GHOST LIGHT IS `N(x,y)` - the LED under the raw
+// pair, through the library's calibrated map - so a replayed point lands on
+// the LED the finger was over, and the comet's head sits under the fingertip.
+// Until plan 12.1-08a it was `x*9//128+y*9//128*9`, the naive ninth of the
+// sensor's range, which put a finger centred on LED 1 in column 0 and one on
+// LED 6 in column 7 (12.1-05 found GHOST's demo trace a column out at both
+// ends for exactly this reason). The recording itself is unchanged: `s.g`
+// still holds the RAW `x*128+y`, so the CC pair still sends the raw sensor
+// value (D-14) and only the picture goes through the map.
+//
 // THE SECOND CC NUMBER IS "@CCX+1" RATHER THAN A LITERAL. Two characters, and
 // the pair can never drift into a configuration that sends X on 16 and Y on
 // some unrelated controller.
 //
 // ONE THING THE DESIGN COSTS AND IT IS SAID RATHER THAN HIDDEN: while a ghost
-// is looping, cell 80 is the erase key, so a NEW drag cannot be started in the
-// bottom-right corner without erasing first. One cell of 81, in the corner
-// furthest from where a hand rests, and only while the key is lit. A comet or a
-// ghost dot passing OVER cell 80 is unaffected - the key acts on an onset and
-// on nothing else.
+// is looping, cell 80 - the LED at (8,8), through `N` - is the erase key, so a
+// NEW drag cannot be started in the bottom-right corner without erasing first.
+// One cell of 81, in the corner furthest from where a hand rests, and only
+// while the key is lit. A comet or a ghost dot passing OVER cell 80 is
+// unaffected - the key acts on an onset and on nothing else.
 //
 // THE TWO STRINGS BELOW ARE TEMPLATES OVER CANONICAL LUA. Rendered at the
 // defaults by renderLua they are fixed points of the pinned minifier and
@@ -195,10 +283,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and x*9//128+y*9//128*9==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end gtt(0,20)";
+  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,x*9//128+y*9//128*9)local l=s.h and 1 or 2 glpfs(a,l,252,250,0)glt(a,l,42)end if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end";
+  "--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,N(x,y))local l=s.h and 1 or 2 glpfs(a,l,252,250,0)glt(a,l,42)end if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -238,12 +326,15 @@ export const GHOST: CatalogEntry = {
       label: "Recording colour",
       kind: "colour",
       token: "@RECC",
-      // Layer 1 - the comet that follows your own finger. Every channel is
-      // inside 0..255 on purpose: the firmware truncates rather than clamps, so
-      // 260 would render as 4 and turn a bright comet nearly black with no
-      // warning. The erase key is on this layer too and does NOT take this
-      // colour: Setup writes cell 80 red after the loop, so the key stays
-      // legible at every setting of both colour knobs.
+      // Layer 1 - the comet that follows your own finger - and, since plan
+      // 12.1-08a, the library's gradient under the live finger on layer 0
+      // (`G(s,i,e,x,y,0,@RECC)`; D-13: the finger takes the entry's own
+      // colour where one exists). Every channel is inside 0..255 on purpose:
+      // the firmware truncates rather than clamps, so 260 would render as 4
+      // and turn a bright comet nearly black with no warning. The erase key
+      // is on layer 1 too and does NOT take this colour: Setup writes cell 80
+      // red after the loop, so the key stays legible at every setting of both
+      // colour knobs.
       values: [
         "0,255,180",
         "0,200,255",

@@ -225,17 +225,19 @@ function drag(
  *
  * The corner is (8, 8) in cell coordinates, which cellToCoord puts at the
  * outer knots, KX[8] = 126 and KY[8] = 126 on a 127 axis, which the entry
- * reads as 126*9//128 = 8 on both axes - screen cell 80. Derived from the
- * entry's own arithmetic rather than assumed. (Before plan 12.1-05 the same
- * corner was 120 and 120*9//128 was also 8.)
+ * reads through the library's `N` as the nearest calibrated cell - LED (8,8),
+ * screen cell 80 - since plan 12.1-08a. Derived from the entry's own
+ * arithmetic rather than assumed. (Until 12.1-08a the entry read the corner
+ * as 126*9//128 = 8 on both axes; before plan 12.1-05 the same corner was 120
+ * and 120*9//128 was also 8.)
  *
- * GHOST STILL READS `x*9//128` - it is not one of the entries re-fitted on the
- * calibrated library - so since 12.1-05 its demo shows what the module shows a
- * real finger on those cells: the knots for cells 1 and 6 fall in columns 0
- * and 7 under the naive divisor, so the drawn trace sits a column out at both
- * ends. That is the sensor's behaviour, not a demo bug, and it is the honest
- * picture the forward map exists to give; whether GHOST joins the calibrated
- * entries is a catalog decision for a later plan, not this file's.
+ * GHOST READS THE LIBRARY'S `N` SINCE PLAN 12.1-08a (12.1-CONTEXT D-26 item
+ * 1), so the knot for an authored cell is drawn on that cell's LED: cells 1
+ * and 6 draw in columns 1 and 6, and the trace sits under the drawn finger
+ * again. Between 12.1-05 and 12.1-08a GHOST still read `x*9//128`, and this
+ * comment recorded that the same knots fell in columns 0 and 7 under the
+ * naive divisor - the sensor's edge behaviour, honestly shown, and the reason
+ * 12.1-05 asked whether GHOST should join the calibrated entries. It did.
  */
 const GHOST_PATH: DemoPath = {
   id: "ghost",

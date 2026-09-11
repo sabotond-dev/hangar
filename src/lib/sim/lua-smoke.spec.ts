@@ -4664,11 +4664,18 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // (event, x, y), so a probe that pressed the same pixel twice would be
     // measuring the HOST's dedup and reporting it as the entry's. Both points
     // are asserted to land on cell 80 before either is used.
+    //
+    // RE-AIMED AT THE MEASURED MAP BY PLAN 12.1-08a. GHOST's two cell sites
+    // read the library's `N(x,y)` since that plan, so the drag is at the LED
+    // centres from calibration.ts (KX / KY) and the cell arithmetic is the
+    // library's nearest calibrated cell; until 12.1-08a this test drove the
+    // naive ninths (`cellCentre`) and mirrored `x*9//128+y*9//128*9`. The
+    // three claims are unchanged. The reset pixels are two raw points inside
+    // LED (8,8)'s calibrated cell, asserted through the same arithmetic.
     const entry = entryById("ghost");
     const cc = knobValueOf(entry, "cc");
-    /** The entry's own cell arithmetic, from its Timer: x*9//128+y*9//128*9. */
-    const cellOf = (x: number, y: number): number =>
-      Math.floor((x * 9) / 128) + Math.floor((y * 9) / 128) * 9;
+    /** The entry's own cell arithmetic since 12.1-08a: the library's N. */
+    const cellOf = calibratedCell;
     /** The erase key, from the entry's own Setup: glag(0,80). */
     const KEY_CELL = 80;
     /** The three columns the demonstration drag visits, on one row. */
@@ -4693,8 +4700,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         return out;
       };
 
-      const pathX = PATH_COLUMNS.map((column) => cellCentre(column));
-      const pathY = cellCentre(PATH_ROW);
+      const pathX = PATH_COLUMNS.map((column) => ledCentre(column, "x"));
+      const pathY = ledCentre(PATH_ROW, "y");
       const pathCells = PATH_COLUMNS.map((column) => column + PATH_ROW * 9);
       for (let i = 0; i < pathX.length; i += 1) {
         expect(
@@ -4750,8 +4757,11 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         ).toEqual([...pathX].sort((a, b) => a - b));
 
         // 2 and 3. THE RESET, on the red corner, at a different pixel each
-        // round so the host's change gate cannot swallow the second one.
-        const keyPoint = 116 + round * 2;
+        // round so the host's change gate cannot swallow the second one -
+        // two raw points inside LED (8,8)'s calibrated cell, either side of
+        // the outer knot (KX[8] = KY[8] = 126; the cell starts at 123 in x on
+        // the measured map, so 125 and 123 are its two ends).
+        const keyPoint = KX[8] + 1 - round * 2;
         expect(
           cellOf(keyPoint, keyPoint),
           `ghost round ${round}: the reset probe must press the erase key`,
