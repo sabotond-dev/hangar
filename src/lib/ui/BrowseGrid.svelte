@@ -100,6 +100,7 @@
   import type { ListingEntry } from "$lib/catalog/listing";
   import type { DemoPath } from "$lib/sim/demo";
   import { SimHost, type HostEngine } from "$lib/sim/host";
+  import { motionDeps } from "$lib/sim/motion.svelte";
   import CatalogCard from "./CatalogCard.svelte";
 
   let {
@@ -332,7 +333,10 @@
 
   onMount(() => {
     mounted = true;
-    host = new SimHost();
+    // The ambient-motion preference folded into the host's reduced-motion
+    // input, os || still, so the footer's control stills this wall exactly as
+    // the OS setting does and can never un-still it (13-04, Bible §14).
+    host = new SimHost(motionDeps());
     // No card is ever the hero. The sampler holds no contact for a browse
     // screen, so nothing is delivered to any card's engine on any tick.
     host.setHero(undefined);

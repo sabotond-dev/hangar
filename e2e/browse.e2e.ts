@@ -7,13 +7,18 @@
 // and never reads build/ at all. A filter that only works in `vite dev` is a
 // red test rather than a nice demo.
 //
-// NO TITLE IN THIS FILE CARRIES THE TAG playwright.config.ts greps the
-// webkit-phone project by. That project owns the phone journey in its own file,
-// and a tag here would silently cost two against the suite total instead of
-// one. The tag is deliberately not written out anywhere in this file, because
-// the gate for it is a plain grep and a comment naming the thing it forbids
-// would make that grep useless. No title carries the word the acceptance gate
-// greps the captured log for either, for exactly the same reason.
+// ONE TITLE IN THIS FILE CARRIES THE TAG playwright.config.ts greps the
+// webkit-phone project by, and it is the exception by name: the reduced-motion
+// proof plan 13-04 re-homed here from e2e/aesthetic.e2e.ts when D-09 deleted
+// that file. It runs in both engines on purpose, because the contract it
+// proves - a normal entry snaps to tick 64, not tick 0 - is the simulator
+// host's and not one engine's. Every other title runs in chromium only: the
+// phone journey has its own file, and a tag here costs two against the suite
+// total instead of one. The tag is written out nowhere else in this file,
+// because the gate for it is a plain grep and a comment naming the thing it
+// forbids would make that grep useless. No title carries the word the
+// acceptance gate greps the captured log for either, for exactly the same
+// reason.
 //
 // THE EXPECTED DATA IS IMPORTED, NEVER TRANSCRIBED. src/lib/catalog/listing.ts,
 // src/lib/browse/sort.ts and src/lib/browse/filter.ts each import one erased
@@ -43,6 +48,14 @@ import { filterListing } from "../src/lib/browse/filter";
 import { columnsFromTemplate } from "../src/lib/browse/grid";
 import { sortListing, type BrowseSort } from "../src/lib/browse/sort";
 import { LISTING } from "../src/lib/catalog/listing";
+// The re-homed reduced-motion title computes its expected frame with the same
+// vendored simulator the page runs, over the same HANGAR preset, at the same
+// tick constant - so the assertion is against a frame, not a description.
+// (src/lib/sim/motion.svelte.ts is NOT imported: it carries a rune and cannot
+// load outside the Svelte compiler; its key is written out below with a note.)
+import { presetById } from "../src/lib/catalog/presets";
+import { REDUCED_MOTION_TICKS } from "../src/lib/sim/schedule";
+import { PadSim } from "../src/vendor/botor/pad-sim";
 import {
   DARK_BY_CONSTRUCTION,
   isDarkByConstruction,
@@ -827,6 +840,125 @@ test.describe("the browse screen for a visitor who asked for less motion", () =>
         `${id} shows its still representative frame, not a black square`,
       ).toBe(true);
     }
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("@webkit reduced motion snaps a normal entry to its representative frame, and it is not tick 0", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+
+    // THE CONTRACT BEING PROVED, READ FROM src/lib/sim/host.ts AND NOT EDITED
+    // (plan 13-04). host.ts:267 subscribes to (prefers-reduced-motion: reduce)
+    // and host.ts:733-739 says a NORMAL entry "runs to tick 64. Restarting
+    // from tick 0 makes it deterministic ... and the tick count is chosen so a
+    // sine look sits near its peak - the still frame shows colour and pattern
+    // rather than a black square." schedule.ts's REDUCED_MOTION_TICKS is that
+    // 64. host.spec.ts proves it against a fake clock; this title proves it in
+    // two browser engines, which is where e2e/aesthetic.e2e.ts used to hold
+    // the reduced-motion half of the CRT until 13-04 deleted that file (D-09).
+    //
+    // THE EXPECTED FRAME IS COMPUTED, NOT TRANSCRIBED. The same vendored PadSim
+    // the page runs, built over the same HANGAR preset, run to the same tick
+    // in Node - so the strong assertion is "the browser painted the frame the
+    // simulator produces at tick 64", byte for byte. Tick 0 is computed the
+    // same way and asserted DIFFERENT from tick 64 first, so the weaker claim
+    // - it is not tick 0 - cannot pass vacuously on an entry whose two frames
+    // happen to agree. golden-frames.json samples 0, 37, 101, 500 and 1009 and
+    // pins nothing at 64, which is why the frame is computed rather than read.
+    const preset = presetById("aurora");
+    if (preset === undefined) throw new Error("aurora is not on the shelf");
+    const at64 = new PadSim(preset.state);
+    at64.run(REDUCED_MOTION_TICKS);
+    const frame64 = Array.from(at64.frame);
+    const frame0 = Array.from(new PadSim(preset.state).frame);
+    expect(REDUCED_MOTION_TICKS, "the contract's tick").toBe(64);
+    expect(
+      frame64.some((b) => b !== 0),
+      "the tick-64 frame is lit, so 'not a black square' means something",
+    ).toBe(true);
+    expect(
+      frame64,
+      "aurora's tick-64 frame differs from its tick-0 frame, so the two assertions below are not the same assertion",
+    ).not.toEqual(frame0);
+
+    /** 324 RGBA backing-store bytes to the 243 RGB bytes paintPad was given. */
+    const rgbOf = (sample: string | null): number[] => {
+      const rgba = (sample ?? "").split(",").map(Number);
+      expect(rgba.length, "a 9x9 RGBA backing store").toBe(324);
+      const rgb: number[] = [];
+      for (let n = 0; n < 81; n += 1) {
+        rgb.push(rgba[n * 4], rgba[n * 4 + 1], rgba[n * 4 + 2]);
+      }
+      return rgb;
+    };
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+    expect(
+      await page.evaluate(
+        () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      ),
+      "the page sees the reduced-motion preference",
+    ).toBe(true);
+
+    // A card's engine is built on its first intersection (BrowseGrid.svelte),
+    // so the card is brought on screen before its picture is waited for.
+    await page.getByTestId("card-aurora").scrollIntoViewIfNeeded();
+    await waitForPicture(page, "aurora");
+    const first = await samplePad(page, "aurora");
+    expect(first, "the aurora canvas was readable").not.toBeNull();
+    await page.waitForTimeout(400);
+    expect(
+      await samplePad(page, "aurora"),
+      "reduced motion holds one frame; 400ms of wall clock must not move it",
+    ).toBe(first);
+
+    const observed = rgbOf(first);
+    expect(
+      observed,
+      "the still frame is tick 0 - a pad two-thirds unlit - which is the frame host.ts:733 says a normal entry must NOT show",
+    ).not.toEqual(frame0);
+    expect(
+      observed,
+      "the still frame is not the tick-64 frame the simulator produces for aurora (host.ts:733-739, REDUCED_MOTION_TICKS)",
+    ).toEqual(frame64);
+
+    // THE MOTION CONTROL IS ADDITIVE TO THE OS PREFERENCE, NEVER SUBTRACTIVE
+    // (13-04; src/lib/sim/motion.svelte.ts reports os || still). Two halves:
+    // the control cannot even be offered here - it is shown checked and
+    // disabled - and a recorded preference for motion, written straight into
+    // the key the control uses, does not override the OS after a cold reload.
+    const box = page.getByTestId("motion-still");
+    await expect(
+      box,
+      "under the OS preference the box is checked",
+    ).toBeChecked();
+    await expect(
+      box,
+      "and it is disabled: it cannot offer motion",
+    ).toBeDisabled();
+    // The key is src/lib/sim/motion.svelte.ts's MOTION_KEY, written out here
+    // because that module carries a rune and cannot be imported into Node.
+    await page.evaluate(() =>
+      localStorage.setItem("hangar.motion.v1", "animated"),
+    );
+    await coldGoto(page, BROWSE);
+    await waitForCards(page, LISTING.length);
+    await page.getByTestId("card-aurora").scrollIntoViewIfNeeded();
+    await waitForPicture(page, "aurora");
+    const again = await samplePad(page, "aurora");
+    await page.waitForTimeout(400);
+    expect(
+      await samplePad(page, "aurora"),
+      "a recorded preference for motion overrode the OS: the control must be additive only",
+    ).toBe(again);
+    expect(rgbOf(again), "and the frame is still the tick-64 frame").toEqual(
+      frame64,
+    );
+    await page.evaluate(() => localStorage.removeItem("hangar.motion.v1"));
 
     expect(consoleErrors).toEqual([]);
   });

@@ -922,6 +922,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
         "the registration lattice, its ::before and its ground rule",
       ],
       ["--crt", "the CRT's gate property and its two colours"],
+      ["data-screen", "the SCREEN switch's attribute on <html>"],
       ["crt-band", "the CRT shell inside the front door"],
       ["crt-roll", "Layer R, the roll bar"],
       ["crt-tear", "Layer T's keyframes"],

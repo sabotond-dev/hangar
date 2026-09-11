@@ -61,6 +61,7 @@
   import { shareUrl } from "$lib/share/url";
   import type { SimEngine } from "$lib/sim/engine";
   import { SimHost } from "$lib/sim/host";
+  import { motionDeps } from "$lib/sim/motion.svelte";
   import { mapAxis } from "$lib/sim/touch";
   import ChosenPanel from "./ChosenPanel.svelte";
   import CopyLink from "./CopyLink.svelte";
@@ -678,7 +679,9 @@
     });
     window.addEventListener("resize", onResize);
     window.addEventListener("keydown", onWindowKeyDown);
-    host = new SimHost();
+    // The ambient-motion preference folded into the host's reduced-motion
+    // input, os || still (13-04, Bible §14); the hero still answers a finger.
+    host = new SimHost(motionDeps());
 
     void (async () => {
       const [{ createEngine }, { byId }] = await Promise.all([

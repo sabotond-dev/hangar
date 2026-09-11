@@ -147,18 +147,13 @@ export interface AllowlistRow {
 
 /**
  * The debt on 2026-09-11: thirty-three declarations in sixteen files as 13-01
- * left it, thirty-two in fifteen after 13-03 removed the pill, thirty in
- * fourteen after 13-04 cleared PadFrame's two on the same day (the frame's
- * 10px removed under D-01, and Layer S's 4px deleted with the CRT under D-09).
- * Rows are removed by the plan named, never edited to a smaller number by
- * anyone else.
+ * left it, thirty-two in fifteen after 13-03 removed the pill, twenty-eight
+ * in thirteen after 13-04 on the same day: PadFrame's two cleared (the frame's
+ * 10px removed under D-01, and Layer S's 4px deleted with the CRT under D-09)
+ * and ScreenToggle.svelte deleted with its two (D-09). Rows are removed by the
+ * plan named, never edited to a smaller number by anyone else.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
-  {
-    file: "src/lib/ui/ScreenToggle.svelte",
-    declarations: 2,
-    clearedBy: "13-04 (deleted)",
-  },
   {
     file: "src/lib/ui/BrowseToolbar.svelte",
     declarations: 1,
