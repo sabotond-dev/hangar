@@ -318,7 +318,9 @@ const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   ],
   ["CopyLink.svelte", "control", "Secondary"],
   ["BudgetMessage.svelte", "back-off", "Secondary - TURN IT DOWN"],
-  ["MixTwo.svelte", "mix-two", "Secondary"],
+  // MixTwo.svelte's row ("mix-two", Secondary) left with the file at 13-10
+  // (13-CONTEXT D-12): the derived walk finds one pilled control fewer and
+  // the hand list says so in the same commit.
   [
     "Knob.svelte",
     "option",

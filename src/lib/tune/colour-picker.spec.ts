@@ -593,7 +593,7 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     ).toEqual({ none: 13, two: 6, three: 3, noPicker: 4 });
     expect(
       three.sort(),
-      "the three-colour entries are console, strip and wheels - the worst case the six-canvas budget is measured against",
+      "the three-colour entries are console, strip and wheels - the worst case the canvas budget (test 6; two, not four, since MIX TWO left at 13-10) is measured against",
     ).toEqual(["console", "strip", "wheels"]);
     expect(
       CATALOG.length,
@@ -664,7 +664,7 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     expect(picker).not.toContain(`"${COLOUR_RED_RAIL}"`);
   });
 
-  it("the picker contributes exactly one canvas, so the worst entry shows six rather than eight", () => {
+  it("the picker contributes exactly one canvas, so the worst entry shows two rather than four", () => {
     const picker = code(PICKER);
     const rack = code(RACK);
 
@@ -697,24 +697,23 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
       "the picker declares more than one result pad - one per colour knob is what one-picker-per-panel exists to prevent",
     ).toBe(1);
 
-    // THE BUDGET, RECORDED FOR 10-11 TO BUILD ON. `console`, `strip` and
-    // `forge` each declare three colour knobs, and each shows: the hero, the
-    // picker's one result, and four more only while MIX TWO's children are
-    // showing. SIX at most, not eight, and that difference is exactly what one
-    // picker per panel bought.
+    // THE CANVAS BUDGET. `console`, `strip` and `wheels` each declare three
+    // colour knobs, and each shows: the hero, and the picker's one result.
+    // TWO at most, not four, and that difference is exactly what one picker
+    // per panel bought. (From 10-11 to 13-10 the budget was six against
+    // eight, with MIX TWO's four result pads on top; MIX TWO was cut at
+    // 13-10 under 13-CONTEXT D-12 and tune-ui.spec.ts's canvas-budget title
+    // went with it - this assertion is the half of it that still has a
+    // subject, kept here where the one-canvas rule lives.)
     const HERO = 1;
     const PICKER_RESULT = 1;
-    const MIX_TWO_CHILDREN = 4;
     const worst = colourKnobsOf("console").length;
     expect(worst, "console no longer declares three colour knobs").toBe(3);
+    expect(HERO + PICKER_RESULT, "the two-canvas budget moved").toBe(2);
     expect(
-      HERO + PICKER_RESULT + MIX_TWO_CHILDREN,
-      "the six-canvas budget moved",
-    ).toBe(6);
-    expect(
-      HERO + worst + MIX_TWO_CHILDREN,
-      "one picker per KNOB would be eight, which is what this rule exists to avoid",
-    ).toBe(8);
+      HERO + worst,
+      "one picker per KNOB would be four, which is what this rule exists to avoid",
+    ).toBe(4);
 
     // The pad is registered by whoever owns the page's SimHost, gated by the
     // same IntersectionObserver as every other pad, and it is rendered only

@@ -38,6 +38,27 @@
   would mean new tokens in the Lua on entries already at 857-875 of 908 at the
   picker corner. Do not add a disclosure with nothing behind it.
 
+  RANDOMIZE HAS A SCOPE, AND THE SCOPE IS THE MIDI SECTION'S OWN PARTITION
+  (13-10, section 7: "Preserve MIDI destination, channel, routing, and
+  device target"). $lib/tune/surprise's `isMidiDestination` is ONE predicate
+  over the descriptor's id and label, and it does two jobs here: it decides
+  which knobs render under MIDI output, and - inside surpriseIndices - which
+  knobs a roll never touches. One rule, so what the section shows is exactly
+  what the button preserves. Randomize is disabled when every ROLLABLE knob
+  is held, not every knob: a MIDI destination is out of the roll on every
+  click, held or not.
+
+  UNDO RANDOMIZE IS ONE VALUE AND ONE CLICK. `tuner.surprise()` resolves to
+  a copy of the index vector the roll replaced; this component keeps EXACTLY
+  ONE of them (`undo`) and `Undo randomize` hands it back through
+  `tuner.restore()`. Not a history, not a stack, not a tree: a second click
+  finds `undo` cleared and the button disabled, and a knob turned by hand
+  after a roll clears it too, because the vector would then restore more
+  than the roll. IT IS EXPLICITLY NOT GENERAL UNDO. Section 17's Sandbox
+  undo/redo is a different thing with a different owner - plan 13-16, the
+  Sandbox's own draft history - and conflating the two is how a one-value
+  control becomes a subsystem.
+
   THE HEADLINE IS ONE CONSTANT (inspector-copy.ts). Page 5 draws "Shape the /
   movement." above ARC; twenty-seven entries have no headline of their own and
   this plan does not invent twenty-seven (D-01). Per-entry headlines are a
@@ -72,9 +93,9 @@
 
   Everything else this file names is compiler-free by construction:
   $lib/tune/view, $lib/tune/copy, $lib/tune/inspector-copy and $lib/tune/idle
-  import nothing at all, $lib/ui/shell/layout imports nothing, and
-  $lib/sim/engine is a type-only import that is erased before a byte is
-  emitted.
+  import nothing at all, $lib/tune/surprise imports one type, $lib/ui/shell/
+  layout imports nothing, and $lib/sim/engine is a type-only import that is
+  erased before a byte is emitted.
 
   RULE 2 - THE PANEL SCROLLS ITS OWN BODY AND THE PRIMARY ACTION IS NOT IN IT.
   Inspector.svelte's body is the one scroll container; the head and the
@@ -143,7 +164,9 @@
     SECTION_APPEARANCE,
     SECTION_BEHAVIOR,
     SECTION_MIDI,
+    UNDO_RANDOMIZE,
   } from "$lib/tune/inspector-copy";
+  import { isMidiDestination } from "$lib/tune/surprise";
   import { knobPosition, type KnobView, type TuneView } from "$lib/tune/view";
   import BudgetMessage from "./BudgetMessage.svelte";
   import BudgetMeter from "./BudgetMeter.svelte";
@@ -185,12 +208,16 @@
     timerDelta: number;
   };
 
+  /** One index vector: what Undo randomize keeps, and all it keeps. */
+  type IndexVector = Readonly<Record<string, number>>;
+
   /** $lib/tune/model's Tuner, narrowed to the calls this region makes. */
   type Tuner = {
     set(knobId: string, index: number): void;
     reset(knobId: string): void;
     resetAll(): void;
-    surprise(held?: ReadonlySet<string>): Promise<void>;
+    surprise(held?: ReadonlySet<string>): Promise<IndexVector | undefined>;
+    restore(indices: IndexVector): void;
     forecast(knobId: string, position: number | undefined): void;
     stamp(): string | undefined;
     destroy(): void;
@@ -265,24 +292,16 @@
    */
   const VOICE_DELAY_MS = 500;
 
-  /**
-   * The knobs that address the wire, by id: the CC or CC base a gesture
-   * sends on, and its channel. These are page 5's MIDI output fields; every
-   * other non-colour knob is Behavior. An id, not a kind: `send` is a `note`
-   * kind by the compiler's vocabulary and `channel` is `amount` on the preset
-   * route and `mode` on the Lua route, so the kind cannot say what the id can.
-   */
-  const MIDI_IDS: ReadonlySet<string> = new Set([
-    "cc",
-    "ccBase",
-    "channel",
-    "send",
-  ]);
-
   let view: TuneView | undefined = $state(undefined);
   let ladder: LadderMessage | undefined = $state(undefined);
   let over: OverBudgetMessage | undefined = $state(undefined);
   let rolling = $state(false);
+  /**
+   * The vector the last roll replaced, or undefined: before any roll, after
+   * an undo, and after any hand move since the roll. ONE value - see the
+   * header. It is component state and never the tuner's.
+   */
+  let undo: IndexVector | undefined = $state(undefined);
   /**
    * The knobs the visitor has locked (T1, 10-UI-SPEC 11.5).
    *
@@ -346,32 +365,45 @@
 
   const knobViews = $derived(knobsOf(view));
   const hasKnobs = $derived(knobViews.length > 0);
-  /** The schema, partitioned into section 7's three sections. */
+  /**
+   * The schema, partitioned into section 7's three sections. The MIDI
+   * partition is surprise.ts's predicate over the knob's id and label - the
+   * CC or CC base a gesture sends on, and its channel - so the section and
+   * the roll's scope are one rule. A kind could not say it: `send` is a
+   * `note` kind by the compiler's vocabulary and `channel` is `amount` on the
+   * preset route and `mode` on the Lua route.
+   */
   const colourKnobs = $derived(
     knobViews.filter((knob) => knob.widget === "colour"),
   );
   const midiKnobs = $derived(
     knobViews.filter(
-      (knob) => knob.widget !== "colour" && MIDI_IDS.has(knob.id),
+      (knob) => knob.widget !== "colour" && isMidiDestination(knob),
     ),
   );
   const behaviorKnobs = $derived(
     knobViews.filter(
-      (knob) => knob.widget !== "colour" && !MIDI_IDS.has(knob.id),
+      (knob) => knob.widget !== "colour" && !isMidiDestination(knob),
     ),
+  );
+  /** The knobs a roll may move: section 7's scope, colour included. */
+  const rollableKnobs = $derived(
+    knobViews.filter((knob) => !isMidiDestination(knob)),
   );
   const atDefaults = $derived(
     knobViews.every((knob) => knob.index === knob.default),
   );
   /**
-   * Every knob held, which is the one state Randomize cannot act in.
+   * Every ROLLABLE knob held, which is the one state Randomize cannot act
+   * in. A MIDI destination is out of scope on every roll, so holding or not
+   * holding it changes nothing here.
    *
    * `surpriseIndices` already answers this by handing the previous indices
    * back - its documented exhaustion signal - so the alternative to disabling
    * the control is a button that appears to do nothing, which is worse.
    */
   const allHeld = $derived(
-    hasKnobs && knobViews.every((knob) => heldKnobs.has(knob.id)),
+    hasKnobs && rollableKnobs.every((knob) => heldKnobs.has(knob.id)),
   );
   /**
    * aria-busy on the block while either meter is measuring or catching up, so
@@ -528,8 +560,10 @@
     isOver: boolean,
   ): string {
     if (command === "surprise") {
+      // The count is the roll's SCOPE, not the rack: a MIDI destination was
+      // never rolled and the sentence must not say it was.
       return liveRandomised(
-        current.knobs.length,
+        current.knobs.filter((knob) => !isMidiDestination(knob)).length,
         current.setup.used,
         current.timer.used,
       );
@@ -667,11 +701,15 @@
 
   function changeKnob(id: string, index: number): void {
     landed = false;
+    // A hand move after a roll: the stored vector would now restore more
+    // than the roll, so it goes. One value, and it means one thing.
+    undo = undefined;
     tuner?.set(id, index);
   }
 
   function resetKnob(id: string): void {
     landed = false;
+    undo = undefined;
     tuner?.reset(id);
   }
 
@@ -696,6 +734,7 @@
   function resetAll(): void {
     if (tuner === undefined) return;
     landed = false;
+    undo = undefined;
     pendingCommand = "reset";
     tuner.resetAll();
     scheduleVoice();
@@ -706,16 +745,29 @@
     if (current === undefined || rolling || allHeld) return;
     rolling = true;
     // The notice goes for the same reason it goes on a knob turn and on Reset
-    // settings: a roll moves every knob, so "these knobs came with the link"
-    // stops being true the moment it settles.
+    // settings: a roll moves every knob in scope, so "these knobs came with
+    // the link" stops being true the moment it settles.
     landed = false;
     pendingCommand = "surprise";
+    let previous: IndexVector | undefined;
     try {
-      await current.surprise(heldKnobs);
+      previous = await current.surprise(heldKnobs);
     } finally {
       if (mounted) rolling = false;
     }
+    // The ONE stored vector: what this roll replaced. A second roll
+    // replaces it - Undo takes you back one roll, never two.
+    if (mounted && previous !== undefined) undo = previous;
     scheduleVoice();
+  }
+
+  /** Undo randomize: one value, one click, then nothing left to undo. */
+  function undoRandomize(): void {
+    const vector = undo;
+    if (tuner === undefined || vector === undefined || rolling) return;
+    undo = undefined;
+    landed = false;
+    tuner.restore(vector);
   }
 </script>
 
@@ -760,6 +812,20 @@
         onclick={resetAll}
       >
         {RESET_SETTINGS}
+      </button>
+      <!--
+        Section 7's "Provide Undo randomize". Disabled until a roll has
+        happened and again the moment it is used or a knob moves by hand:
+        the button's state IS the one stored vector's presence.
+      -->
+      <button
+        class="action"
+        type="button"
+        data-testid="undo-randomize"
+        disabled={undo === undefined || rolling}
+        onclick={undoRandomize}
+      >
+        {UNDO_RANDOMIZE}
       </button>
     </div>
     <!--

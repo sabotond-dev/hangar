@@ -178,11 +178,6 @@ export interface AllowlistRow {
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
   {
-    file: "src/lib/ui/MixTwo.svelte",
-    declarations: 2,
-    clearedBy: "13-10 (deleted)",
-  },
-  {
     file: "src/lib/ui/DeviceDetails.svelte",
     declarations: 1,
     clearedBy: "13-11",

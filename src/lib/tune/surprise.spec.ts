@@ -27,11 +27,16 @@ import {
 } from "../../vendor/botor/_pad";
 import { CATALOG, byId, type CatalogEntry } from "../catalog";
 import { padReady } from "../pad";
-import { encodeFor } from "../share/stamp";
+import { encodeFor, stampKnobs } from "../share/stamp";
 import { luaKnobs } from "./knobs.lua";
 import { presetKnobs, type KnobDescriptor } from "./knobs.preset";
 import { applyKnob, baseStateFor, resetAll } from "./state";
-import { SURPRISE_ROLL_LIMIT, surpriseIndices } from "./surprise";
+import {
+  SURPRISE_ROLL_LIMIT,
+  isMidiDestination,
+  rollable,
+  surpriseIndices,
+} from "./surprise";
 
 /** The property's draw count, per compiler-driven entry. */
 const DRAWS = 2000;
@@ -353,5 +358,139 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       heldStamp,
       "a held knob changed the stamp, so a lock is travelling in a link",
     ).toBe(unheldStamp);
+  });
+
+  it("the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is these twenty-nine knobs on twenty entries", () => {
+    // SECTION 7 (13-10): "Preserve MIDI destination, channel, routing, and
+    // device target." The predicate is over the DESCRIPTOR - its id and its
+    // label - and this test holds three things: what it excludes across the
+    // whole catalog, by entry and id, so the list in 13-10-SUMMARY.md is a
+    // measurement; that a roll on an entry with MIDI knobs never draws them
+    // and still moves something; and that `previous` comes out of the roll
+    // exactly as it went in, which is the vector Undo randomize restores.
+    const excluded: string[] = [];
+    let entries = 0;
+    let knobsSeen = 0;
+    for (const entry of CATALOG) {
+      const knobs = stampKnobs(entry);
+      knobsSeen += knobs.length;
+      const out = knobs.filter(isMidiDestination).map((knob) => knob.id);
+      if (out.length > 0) {
+        entries++;
+        excluded.push(`${entry.id}: ${out.join(", ")}`);
+      }
+      // The predicate agrees with the ids the inspector partitioned by until
+      // 13-10, on every entry - so the MIDI output section is unchanged.
+      expect(
+        out.sort(),
+        `${entry.id}: the predicate and the four ids disagree`,
+      ).toEqual(
+        knobs
+          .filter((knob) =>
+            ["cc", "ccBase", "channel", "send"].includes(knob.id),
+          )
+          .map((knob) => knob.id)
+          .sort(),
+      );
+      // Every rollable knob keeps its kind and its option count: exclusion
+      // shrinks the domain and changes no knob.
+      for (const knob of rollable(knobs)) {
+        expect(knob.options.length).toBeGreaterThan(1);
+      }
+    }
+    expect(knobsSeen, "the catalog was walked").toBeGreaterThan(100);
+    expect(
+      excluded,
+      "the excluded set moved - a knob was added, renamed or re-labelled onto or off the wire; update 13-10-SUMMARY.md's list with it",
+    ).toEqual([
+      "radar: send",
+      "joystick: send",
+      "ninepads: channel",
+      "faders: send, channel",
+      "dial: send, channel",
+      "euclid: channel",
+      "chorus: channel",
+      "arc: cc, channel",
+      "ghost: cc, channel",
+      "morph: ccBase, channel",
+      "sonar: channel",
+      "steps: channel",
+      "console: cc, channel",
+      "strip: cc, channel",
+      "lumen: cc, channel",
+      "snake: channel",
+      "quadrant: channel",
+      "pomodoro: channel",
+      "wheels: cc, channel",
+      "radar-points: channel",
+    ]);
+    expect(entries, "twenty entries carry a MIDI destination").toBe(20);
+    expect(
+      excluded.reduce((n, line) => n + line.split(", ").length, 0),
+      "twenty-nine knobs are excluded",
+    ).toBe(29);
+    // Not theatre: the labels alone name the wire too, camelCase and all.
+    expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
+      true,
+    );
+    expect(isMidiDestination({ id: "ccBase", label: "x" })).toBe(true);
+    expect(isMidiDestination({ id: "x", label: "MIDI channel" })).toBe(true);
+    expect(isMidiDestination({ id: "sensitivity", label: "Sensitivity" })).toBe(
+      false,
+    );
+    expect(isMidiDestination({ id: "scale", label: "Compass scale" })).toBe(
+      false,
+    );
+
+    // THE ROLL. dial: send (12), channel (16), sensitivity, mode, brightness.
+    // The MIDI knobs stand OFF their defaults first, so "unmoved" is not
+    // "at default"; an rng that draws the last position for everything
+    // offered to it moves every rollable knob and is never asked for the
+    // two it must not touch - counted, so the scope is a number of draws.
+    const knobs = knobsOf(mustEntry("dial"));
+    const inScope = rollable(knobs);
+    expect(inScope.map((knob) => knob.id).sort()).toEqual([
+      "brightness",
+      "mode",
+      "sensitivity",
+    ]);
+    const previous: Record<string, number> = defaultsOf(knobs);
+    previous.channel = 5;
+    previous.send = 7;
+    const frozen = { ...previous };
+    let draws = 0;
+    const drawn = surpriseIndices(
+      knobs,
+      previous,
+      () => true,
+      () => {
+        draws++;
+        return 0.5;
+      },
+    );
+    expect(draws, "a MIDI destination reached the rng").toBe(inScope.length);
+    expect(drawn.channel, "the channel rolled").toBe(5);
+    expect(drawn.send, "the send rolled").toBe(7);
+    expect(
+      inScope.filter((knob) => drawn[knob.id] !== previous[knob.id]).length,
+      "nothing in scope moved",
+    ).toBeGreaterThan(0);
+    // `previous` is the vector Undo restores: the roll never wrote to it.
+    expect(previous, "the roll mutated the previous vector").toEqual(frozen);
+    // And the held path composes with the scope: hold every rollable knob
+    // and the roll is the fully-held exhaustion, with no draw at all.
+    let noDraws = 0;
+    const stuck = surpriseIndices(
+      knobs,
+      previous,
+      () => true,
+      () => {
+        noDraws++;
+        return 0.5;
+      },
+      new Set(inScope.map((knob) => knob.id)),
+    );
+    expect(noDraws, "a held or excluded knob was drawn").toBe(0);
+    expect(keyOf(knobs, stuck)).toBe(keyOf(knobs, previous));
   });
 });

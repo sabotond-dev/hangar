@@ -980,7 +980,6 @@ disagreement is named in "Where the planner was wrong" below.
 | `src/lib/sim/demo.spec.ts`           | **2** | the three authored demo gestures light cells `frames.json` records as dark, and `DARK_BY_CONSTRUCTION` names the one entry a finger cannot help                                                           |
 | `src/lib/browse/facets.spec.ts`      | **4** | the closed sixteen terms in two facets, exactly three per entry in both directions, both health rules, and the legacy table's bounds                                                                      |
 | `src/lib/tune/colour-picker.spec.ts` | **6** | the picker's model: one picker per panel, three rails over the 4,096-colour lattice, A-09's six forbidden shapes, and the two-swatch window retired                                                       |
-| `src/lib/tune/mix.spec.ts`           | **2** | the seeded crossover property over all 36 entries with knobs, and the four boundaries                                                                                                                     |
 | `src/lib/ui/instrument.spec.ts`      | **6** | the register line asserted from both sides, the pill, the lattice and its `:where()` ground rule with three declared exceptions, the halftone density, the headline form and the seven `--font-mono` uses |
 
 ### The files this phase touched without creating
@@ -1019,8 +1018,8 @@ disagreement is named in "Where the planner was wrong" below.
 `src/lib/pad/ready.spec.ts` **6**. All green, none edited by this phase.
 
 **The eight suites this document was missing are now four.** `browse/facets.spec.ts`,
-`sim/demo.spec.ts`, `tune/mix.spec.ts` and `ui/font-assets.spec.ts` are written up in the tables
-above. `fidelity/vendored-diff.spec.ts`, `format-parity.spec.ts`, `licence-notices.spec.ts` and
+`sim/demo.spec.ts` and `ui/font-assets.spec.ts` are written up in the tables above
+(`tune/mix.spec.ts` was too, until 13-10 deleted it with MIX TWO under 13-CONTEXT D-12). `fidelity/vendored-diff.spec.ts`, `format-parity.spec.ts`, `licence-notices.spec.ts` and
 `pad/ready.spec.ts` have a count and no description, which is less than they deserve and more than
 they had. Carried in `.planning/phases/10-redesign/deferred-items.md`.
 

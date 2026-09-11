@@ -85,7 +85,7 @@ import {
 } from "./copy";
 import type { KnobDescriptor, PresetKnob } from "./knobs.preset";
 import { applyKnob, baseStateFor, resetAll } from "./state";
-import { surpriseIndices } from "./surprise";
+import { rollable, surpriseIndices } from "./surprise";
 import {
   integerReadout,
   isColourLattice,
@@ -177,8 +177,23 @@ export type Tuner = {
    * The roll. `held` names the knobs the visitor has locked (T1) and is the
    * caller's ephemeral state - the tuner never stores it, so it can never
    * reach `encodeFor` and the stamp is a function of the indices alone.
+   *
+   * RESOLVES TO THE VECTOR THE ROLL REPLACED (13-10, Bible section 7's
+   * "Undo randomize"): a copy of every index as it stood the moment before
+   * the draw, or undefined when nothing was rolled (destroyed). The region
+   * keeps exactly one of these and hands it to `restore`. It is not a
+   * history and the tuner keeps none.
    */
-  surprise(held?: ReadonlySet<string>): Promise<void>;
+  surprise(
+    held?: ReadonlySet<string>,
+  ): Promise<Readonly<Record<string, number>> | undefined>;
+  /**
+   * Every knob to the position the vector names, in one move and one
+   * recompile - Undo randomize's whole mechanism. A position outside a
+   * knob's range, or a knob the vector does not name, is that knob's
+   * default, the way a decoded stamp is treated.
+   */
+  restore(indices: Readonly<Record<string, number>>): void;
   /** Undefined at the defaults: a URL with no fragment IS the base configuration. */
   stamp(): string | undefined;
   destroy(): void;
@@ -965,12 +980,30 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       moved = undefined;
       moveTo(next);
     },
-    async surprise(held?: ReadonlySet<string>): Promise<void> {
+    restore(next: Readonly<Record<string, number>>): void {
       if (destroyed) return;
+      const positions: Record<string, number> = {};
+      for (const knob of knobs) {
+        positions[knob.id] = positionOf(
+          next[knob.id],
+          knob.options.length,
+          knob.default,
+        );
+      }
+      moved = undefined;
+      moveTo(positions);
+    },
+    async surprise(
+      held?: ReadonlySet<string>,
+    ): Promise<Readonly<Record<string, number>> | undefined> {
+      if (destroyed) return undefined;
       // The gate FIRST, through HANGAR's own surface, so the synchronous
       // predicate below cannot observe an uninitialised formatter.
       await padReady();
-      if (destroyed) return;
+      if (destroyed) return undefined;
+      // The vector Undo randomize restores: a COPY, taken after the gate so
+      // it is the state the draw actually replaced, and before moveTo.
+      const before: Readonly<Record<string, number>> = { ...indices };
       const reserved = options.reserved;
       // `held` is READ AND DROPPED. It is never assigned to anything this
       // module keeps, which is what makes T1's ephemerality structural rather
@@ -994,30 +1027,36 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       const exhausted = knobs.every(
         (knob) => drawn[knob.id] === indices[knob.id],
       );
-      // AND THE ONE EXHAUSTION THAT IS NOT A COMPILER FAILURE. With every knob
-      // held the roll cannot move anything, so it returns the previous indices
+      // AND THE ONE EXHAUSTION THAT IS NOT A COMPILER FAILURE. With every
+      // ROLLABLE knob held the roll cannot move anything - a MIDI destination
+      // is out of scope on every roll (surprise.ts, section 7) and a held
+      // knob is out of it on this one - so it returns the previous indices
       // for a reason that has nothing to do with 908 and the ladder has
-      // nothing to resolve. The region disables SURPRISE ME in exactly this
+      // nothing to resolve. The region disables Randomize in exactly this
       // state, so this guard is unreachable from the interface; it is here so
       // that a caller which does not disable the control cannot make a lock
       // silently turn a knob down.
+      const inScope = rollable(knobs);
       const allHeld =
-        held !== undefined && knobs.every((knob) => held.has(knob.id));
+        inScope.length === 0 ||
+        (held !== undefined && inScope.every((knob) => held.has(knob.id)));
       moved = undefined;
       moveTo(drawn);
-      if (!exhausted || allHeld || entry.preview === "lua") return;
-      if (knobs.length === 0) return;
-      // The UI spec's rule: SURPRISE ME has no failure state, so an exhausted
+      if (!exhausted || allHeld || entry.preview === "lua") return before;
+      if (knobs.length === 0) return before;
+      // The UI spec's rule: Randomize has no failure state, so an exhausted
       // roll applies the ladder-resolved state rather than landing over budget.
       const state = stateNow();
       const measured = await costOf(await compileState(state), reserved);
-      if (destroyed) return;
+      if (destroyed) return undefined;
       const plan = await ladderFor(state, measured);
-      if (destroyed || !plan?.resolved) return;
+      if (destroyed) return undefined;
+      if (!plan?.resolved) return before;
       resolved = plan.resolved;
       emit();
       swapEngine(new PadSim(resolved));
       schedule();
+      return before;
     },
     stamp(): string | undefined {
       // Already computed - see `payload` above. Undefined at the defaults,

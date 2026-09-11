@@ -27,18 +27,15 @@ import { describe, expect, it } from "vitest";
 // The copy module imports NOTHING (its own header says why), so naming it here
 // costs this file no chunk and lets the source scans below check a component
 // against the sentence it is supposed to be rendering rather than a copy of it.
-import {
-  KNOB_HOLD,
-  MIX_LINE,
-  MIX_THAT,
-  MIX_THIS,
-  MIX_TWO,
-  SURPRISE_ALL_HELD,
-} from "../tune/copy";
-// mix.ts imports a type and surprise.ts, and surprise.ts imports a type. Naming
-// it here costs this file nothing and lets the canvas budget be counted against
-// the constant the component actually loops over rather than against a 4.
-import { MIX_CHILDREN } from "../tune/mix";
+import { KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
+// MIX TWO left the tree at 13-10 (13-CONTEXT D-12): MixTwo.svelte, mix.ts and
+// mix.spec.ts deleted, the two titles this file held for it deleted by name,
+// copy.ts's MIX_TWO / MIX_THIS / MIX_THAT / MIX_LINE family left standing for
+// 13-19, which owns that module and its spec's count.
+// The randomiser's scope (13-10, section 7): the predicate the inspector's
+// MIDI partition and the roll share.
+import { isMidiDestination } from "../tune/surprise";
+import { UNDO_RANDOMIZE } from "../tune/inspector-copy";
 // The inspector (13-09): the widget rule and its boundary, the copy the
 // inspector renders, layout.ts's D-21 numbers, and a real tuner for the
 // per-field reset - the model.spec.ts harness in brief. The compile surface
@@ -96,23 +93,26 @@ const repo = (rel: string) =>
 const UI_DIR = "src/lib/ui";
 
 /**
- * The ten tuning components. A literal list is unavoidable - the directory
+ * The nine tuning components. A literal list is unavoidable - the directory
  * also holds Phase 4's components, which these rules do not all bind - so its
  * length is asserted and every name is checked against the directory listing.
- * A rename, a deletion or an ELEVENTH component added without being listed
- * is then a visible omission rather than a silent gap.
+ * A rename, a deletion or a TENTH component added without being listed is
+ * then a visible omission rather than a silent gap.
  *
- * The eighth is plan 10-10's ColourPicker.svelte, the ninth is 10-11's
- * MixTwo.svelte and the tenth is 13-09's Swatch.svelte (the popover the
- * picker lives in), and adding each here is not bookkeeping: a component
- * omitted from a hand-declared list passes every walk in this file silently,
- * which would have left them outside the compiler guard, the scroll
- * prohibition, the 44px floor and the accent census at once.
+ * The eighth is plan 10-10's ColourPicker.svelte and the ninth is 13-09's
+ * Swatch.svelte (the popover the picker lives in); 10-11's MixTwo.svelte was
+ * the ninth from 10-11 to 13-10, when D-12 cut it and its row left with the
+ * file. Adding each here is not bookkeeping: a component omitted from a
+ * hand-declared list passes every walk in this file silently, which would
+ * have left them outside the compiler guard, the scroll prohibition, the
+ * 44px floor and the accent census at once.
  *
- * THIS IS THE HAND-DECLARED WALK MixTwo.svelte BELONGS TO, AND IT BELONGS TO
- * NO OTHER. device-ui.spec.ts's DEVICE_COMPONENTS is the six device components
- * and browse-ui.spec.ts's browseFiles() is the six browse ones; MIX TWO is a
- * tuning control and is neither.
+ * 13-10's MidiMonitor.svelte is NOT on this list, and that is a ruling: it
+ * is section 10's diagnostics bar in the centre column, not a tuning
+ * control, and the monitor's own title below holds its floor, its scroll
+ * rule and its silence. device-ui.spec.ts's DEVICE_COMPONENTS is the six
+ * device components and browse-ui.spec.ts's browseFiles() is the six browse
+ * ones.
  */
 const TUNING_COMPONENTS: readonly string[] = [
   "BudgetMessage.svelte",
@@ -121,7 +121,6 @@ const TUNING_COMPONENTS: readonly string[] = [
   "CopyLink.svelte",
   "Knob.svelte",
   "KnobRack.svelte",
-  "MixTwo.svelte",
   "StampNotice.svelte",
   "Swatch.svelte",
   "TuningRegion.svelte",
@@ -198,7 +197,7 @@ describe("the tuning UI's structural rules", () => {
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(TUNING_COMPONENTS.length, "ten components were listed").toBe(10);
+    expect(TUNING_COMPONENTS.length, "nine components were listed").toBe(9);
     expect(
       TUNING_COMPONENTS.filter((name) => !present.has(name)),
       "a listed tuning component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -280,7 +279,7 @@ describe("the tuning UI's structural rules", () => {
 
     expect(
       declarations,
-      "the ten components' code was actually read",
+      "the nine components' code was actually read",
     ).toBeGreaterThan(100);
     expect(
       offenders,
@@ -579,10 +578,18 @@ describe("the tuning UI's structural rules", () => {
       region,
       "SURPRISE ME is not disabled on full exhaustion, so it is a button that appears to do nothing",
     ).toContain("disabled={rolling || allHeld}");
+    // Since 13-10 the exhaustion is over the ROLLABLE knobs (section 7's
+    // scope: a MIDI destination is out of every roll, held or not), so the
+    // derivation reads the rollable list, which is the rack minus the
+    // predicate the MIDI partition uses.
     expect(
       region,
-      "allHeld is not derived from the rack, so the disabled state is not the one the toggles produce",
-    ).toContain("knobViews.every((knob) => heldKnobs.has(knob.id))");
+      "allHeld is not derived from the rack's rollable knobs, so the disabled state is not the one the toggles produce",
+    ).toContain("rollableKnobs.every((knob) => heldKnobs.has(knob.id))");
+    expect(
+      region,
+      "the rollable list is not the rack minus the MIDI predicate",
+    ).toContain("knobViews.filter((knob) => !isMidiDestination(knob))");
 
     // The reason is imported, never transcribed, and it is wired to the
     // control rather than merely printed near it.
@@ -658,15 +665,11 @@ describe("the tuning UI's structural rules", () => {
       "CopyLink.svelte": 1,
       "Knob.svelte": 9,
       "KnobRack.svelte": 0,
-      // A NINTH COMPONENT THAT MOVES THE CENSUS BY ZERO (plan 10-11). MIX TWO
-      // is Secondary tier, so its pill is an OUTLINE and never a fill; its
-      // results are bordered in --color-divider; and its focus ring is
-      // app.css's :focus-visible, which belongs to every control on the site
-      // and is declared in no component. There was nothing here to spend
-      // accent on that would not have been a ninth entry.
-      "MixTwo.svelte": 0,
+      // MixTwo.svelte stood here at 0 from 10-11 to 13-10 (Secondary tier,
+      // an outline and never a fill) and left with the file under D-12; the
+      // total did not move because it never spent any.
       "StampNotice.svelte": 0,
-      // THE TENTH (13-09), ONE DECLARATION: the popover's Close button takes
+      // THE NINTH (13-09), ONE DECLARATION: the popover's Close button takes
       // the action colour on its border on hover - entry 4's family, the
       // focus and hover treatment every control on the site shares - and the
       // swatch square is the stored RGB444 value, never a token. The Edit
@@ -676,7 +679,7 @@ describe("the tuning UI's structural rules", () => {
     });
     expect(
       total,
-      "the accent declaration count across the ten tuning components is no longer twenty-two",
+      "the accent declaration count across the nine tuning components is no longer twenty-two",
     ).toBe(22);
 
     // Non-vacuity: the walk really read files with accent in them.
@@ -1213,11 +1216,25 @@ describe("the tuning UI's structural rules", () => {
         `title: ${title}`,
       );
     }
-    for (const id of ['"cc"', '"ccBase"', '"channel"', '"send"']) {
+    // Since 13-10 the partition is surprise.ts's ONE predicate rather than a
+    // list of four ids in this file, so the section and Randomize's scope
+    // cannot drift apart; the four ids the list carried resolve true through
+    // it, with the labels the catalog gives them.
+    expect(
+      regionCode,
+      "the MIDI output partition is not surprise.ts's predicate",
+    ).toContain("isMidiDestination(knob)");
+    expect(regionCode).not.toContain("MIDI_IDS");
+    for (const [id, label] of [
+      ["cc", "CC number"],
+      ["ccBase", "CC base"],
+      ["channel", "Channel"],
+      ["send", "Send"],
+    ]) {
       expect(
-        regionCode,
-        `the MIDI output partition no longer names ${id}`,
-      ).toContain(id);
+        isMidiDestination({ id, label }),
+        `the MIDI output partition no longer admits ${id}`,
+      ).toBe(true);
     }
     expect(
       /advanced/i.test(regionCode),
@@ -1405,335 +1422,140 @@ describe("the tuning UI's structural rules", () => {
     }
   });
 
-  it("MIX TWO offers four real results, changes nothing until one is clicked, and arrives on opacity alone", () => {
-    const mix = code(componentPath("MixTwo.svelte"));
-    const rawMix = raw(componentPath("MixTwo.svelte"));
-    expect(rawMix.length, "MixTwo.svelte was read").toBeGreaterThan(1000);
-
-    // ---- FOUR REAL BUTTONS IN A GROUP, EACH NAMED FOR WHAT IT WOULD CHANGE
-    // (10-UI-SPEC §15). The results are pictures of 81 lights and carry no
-    // text of their own, so the accessible name IS what a screen reader gets:
-    // four buttons called "Option 1" would be four indistinguishable buttons.
-    expect(mix, "the block has no test id").toContain('data-testid="mix-two"');
+  it("Undo randomize restores the prior indices in one click and is disabled before any roll, and a roll leaves every MIDI destination where it stood", async () => {
+    // TWO HALVES (13-10, Bible section 7). The source half: the control is a
+    // real button whose disabled state IS the presence of the ONE stored
+    // vector, the vector is component state and not a stack, a hand move
+    // clears it, and the header says what this is not - general undo, which
+    // is 13-16's. The behaviour half: a real tuner on an entry with two MIDI
+    // knobs, rolled with the tuner's own rng; the MIDI knobs read back
+    // unmoved, something else moved, and restore() puts every index back.
+    const region = code(componentPath("TuningRegion.svelte"));
+    const regionRaw = raw(componentPath("TuningRegion.svelte"));
+    expect(region, "no Undo randomize control").toContain(
+      'data-testid="undo-randomize"',
+    );
     expect(
-      mix,
-      "the results are not indexed test ids, so no test can reach the second one",
-    ).toContain('data-testid="mix-child-{at}"');
+      region,
+      "the button's disabled state is not the stored vector's absence",
+    ).toContain("disabled={undo === undefined || rolling}");
     expect(
-      mix,
-      "a result is not a real <button> - a div with a click handler is not reachable by keyboard and is not a control",
-    ).toMatch(/<button[^>]*class="child"/);
+      region,
+      "the label is not section 7's own words, imported",
+    ).toContain("{UNDO_RANDOMIZE}");
+    expect(UNDO_RANDOMIZE).toBe("Undo randomize");
+    expect(region).not.toContain('"Undo randomize"');
+    // ONE value: a vector or undefined, never an array of them.
+    expect(region).toContain(
+      "let undo: IndexVector | undefined = $state(undefined)",
+    );
     expect(
-      mix,
-      "the results are not in a role=group, which §15 requires so the four are announced as one set",
-    ).toContain('role="group"');
-    // Labelled BY THE CONTROL THAT PRODUCED IT. §13.4 gives this component
-    // four strings; a group label would be a fifth saying what the button
-    // above it already says.
+      /undo[ ]*=[ ]*[[]/.test(region) || region.includes("undo.push("),
+      "undo has become a stack",
+    ).toBe(false);
     expect(
-      mix,
-      "the group is unlabelled, or labelled by a fifth string rather than by MIX TWO itself",
-    ).toContain("aria-labelledby={mixId}");
-    expect(
-      mix,
-      "a result's accessible name is not composed from what would change",
-    ).toContain("aria-label={nameOf(result)}");
-    expect(
-      mix,
-      "nameOf writes its own sentence instead of calling the one composer in copy.ts",
-    ).toContain("mixChildName(");
-
-    // ---- THE COPY IS IMPORTED, NEVER TRANSCRIBED. This is what closes A-15's
-    // loop: every word this component renders comes from copy.ts, and
-    // copy.spec.ts scans every string copy.ts can produce for the genetics
-    // vocabulary by stem. A transcribed literal here would escape that scan.
-    for (const [name, text] of [
-      ["MIX_TWO", MIX_TWO],
-      ["MIX_LINE", MIX_LINE],
-      ["MIX_THIS", MIX_THIS],
-      ["MIX_THAT", MIX_THAT],
-    ] as const) {
-      expect(mix, `MixTwo.svelte imports ${name}`).toContain(name);
-      expect(
-        mix,
-        `MixTwo.svelte transcribes ${name} instead of importing it, which puts a rendered string outside copy.spec.ts's metaphor scan`,
-      ).not.toContain(`"${text}"`);
-    }
-
-    // ---- AND THE SECOND HALF OF A-15, MEASURED ON THIS FILE'S OWN TEXT.
-    // Everything between tags, with expressions and the style block removed:
-    // whatever is left is literal text the component renders, and it must be
-    // empty of the metaphor. `child` is an identifier and `mix-child-0` is a
-    // test id - both are code, and neither is text.
-    const template = rawMix
-      .replace(/<script[^]*?<[/]script>/g, "")
-      .replace(/<style>[^]*?<[/]style>/g, "")
-      .replace(/<!--[^]*?-->/g, "")
-      .replace(/<[^>]*>/g, " ")
-      .replace(/[{][^}]*[}]/g, " ")
-      .toLowerCase();
-    for (const word of [
-      "breed",
-      "parent",
-      "mutat",
-      "dna",
-      "gene",
-      "offspring",
-      "child",
+      region,
+      "the vector the roll replaced is not what the tuner's surprise() resolves to",
+    ).toContain("previous = await current.surprise(heldKnobs)");
+    expect(region).toContain(
+      "if (mounted && previous !== undefined) undo = previous;",
+    );
+    // The click: hand the vector to restore() and forget it.
+    const undoFn = region.slice(
+      region.indexOf("function undoRandomize"),
+      region.indexOf("}", region.indexOf("tuner.restore(vector)")),
+    );
+    expect(undoFn, "undoRandomize was found").toContain("undo = undefined;");
+    expect(undoFn).toContain("tuner.restore(vector)");
+    // A hand move after the roll clears it: the vector would restore more
+    // than the roll.
+    for (const fn of [
+      "function changeKnob",
+      "function resetKnob",
+      "function resetAll",
     ]) {
-      expect(
-        template.split(/[^a-z]+/).filter((each) => each.startsWith(word)),
-        `MixTwo.svelte renders the word "${word}" as text. A-15: no genetics metaphor reaches the interface - two candidates, four results, one button`,
-      ).toEqual([]);
+      const body = region.slice(
+        region.indexOf(fn),
+        region.indexOf("}", region.indexOf(fn)),
+      );
+      expect(body, `${fn} does not clear the stored vector`).toContain(
+        "undo = undefined;",
+      );
     }
+    // What it is not, in the header: general undo is the Sandbox's (13-16).
+    expect(regionRaw).toContain("NOT GENERAL UNDO");
+    expect(regionRaw).toContain("13-16");
+    expect(regionRaw).toContain("Not a history, not a stack, not a tree");
 
-    // ---- NON-DESTRUCTIVE, ASSERTED AS A COUNT RATHER THAN AS A CLAIM. The
-    // configuration on the screen survives until a result is clicked, so
-    // `ontake` has exactly ONE call site and it is inside `take`. Rolling
-    // again and clearing the results change nothing, which is why there is no
-    // undo here and nothing to restore.
-    expect(
-      occurrences(mix, "ontake("),
-      "ontake is called from more than one place, so something other than a click on a result changes the configuration",
-    ).toBe(1);
-    expect(
-      mix,
-      "the take does not move the previous state into THAT ONE, so the next mix has no second candidate",
-    ).toContain("previous = { ...mine }");
-    expect(
-      mix.slice(mix.indexOf("function roll"), mix.indexOf("function take")),
-      "roll() reaches ontake - MIX TWO would then change the configuration by being pressed, and the current state would not survive the mix",
-    ).not.toContain("ontake");
-
-    // ---- RANDOMNESS INJECTED. The whole of src/lib/ui/ is walked rather than
-    // this one file, because the rule is the directory's: a component that
-    // reached for Math.random would make its own behaviour untestable.
-    const random = uiFiles().filter((file) =>
-      code(file).includes("Math.random"),
-    );
-    expect(
-      random,
-      "a component under src/lib/ui/ calls Math.random - randomness is injected, exactly as surpriseIndices and mixIndices both require",
-    ).toEqual([]);
-    expect(
-      mix,
-      "the rng is not a prop, so the component owns its own randomness",
-    ).toContain("rng: () => number");
-
-    // ---- THE PASTED LINK IS DECODED BY THE MACHINERY THAT ALREADY EXISTS.
-    // One lazy import of $lib/share/stamp (test 1 holds the await form), the
-    // two functions Phase 5 wrote, and no second format table anywhere.
-    expect(
-      mix,
-      "the pasted link is not decoded by the existing stamp machinery",
-    ).toContain("decodeFor(source, payload)");
-    expect(mix, "parseHash is not what reads the fragment").toContain(
-      "parseHash(",
-    );
-    expect(
-      mix,
-      "MixTwo.svelte carries its own format letters, which is a second decoder by another name",
-    ).not.toContain("HANGAR_FORMAT");
-    expect(
-      mix,
-      "a stamp this entry's knobs cannot reproduce is refused with a NEW message instead of the landing vocabulary",
-    ).toContain("stampUnreadable(entry.name)");
-
-    // ---- SECONDARY TIER, PILL OUTLINE, AND A-41's LIMIT (§10.3, §19.1b).
-    // Bordered, never filled: a filled pill is Primary's, and there is one
-    // Primary control per panel and it is TRY ON DEVICE.
-    //
-    // THE FOUR SHAPE DECLARATIONS MOVED TO src/app.css IN 10-13.1 AND THIS
-    // ASSERTION MOVED WITH THEM, WHICH IS THE POINT RATHER THAN A CONCESSION.
-    // This file authored the pill first, in 10-11, and by wave 14 eleven
-    // controls across nine files wanted the same three declarations - eleven
-    // places for one shape to drift. So the shape is now one rule, `.pill`,
-    // read HERE out of src/app.css and asserted to be exactly what §19.1b
-    // specifies, and MIX TWO is asserted to WEAR it. A component that keeps the
-    // class and loses the rule, or keeps the rule and loses the class, is red
-    // on one of the two halves below.
-    const rules = rulesOf(mix);
-    const shared = rulesOf(
-      "<style>" + stripComments(raw("src/app.css")) + "</style>",
-    ).find((rule) => rule.selector.trim() === ".pill");
-    expect(
-      shared,
-      "src/app.css no longer declares a .pill rule - §19.1b's shape is the one place the site says what a control looks like",
-    ).toBeDefined();
-    for (const declaration of [
-      "border: 1px solid var(--color-boundary)",
-      "background: transparent",
-      "padding-inline: 24px",
-      "min-inline-size: 44px",
-      "min-block-size: 44px",
-    ]) {
+    // The behaviour, on a real tuner. dial carries `send` and `channel`
+    // beside three rollable knobs.
+    await padReady();
+    const views: TuneView[] = [];
+    const tuner = await buildTuner({
+      entryId: "dial",
+      onview: (view) => void views.push(view),
+      onpreview: () => undefined,
+      onladder: () => undefined,
+      onover: () => undefined,
+    });
+    try {
+      const settle = async () => {
+        for (let index = 0; index < 64; index++) await Promise.resolve();
+      };
+      await settle();
+      const before = views.at(-1) as TuneView;
+      const midi = before.knobs.filter((k) => isMidiDestination(k));
       expect(
-        shared?.body,
-        `src/app.css's .pill does not declare "${declaration}" - §19.1b's pill, since 13-03 a RECTANGLE under D-10 (no radius), is a 1px boundary outline with a transparent fill and 24px of inline padding, and §10.3 puts MIX TWO in Secondary`,
-      ).toContain(declaration);
+        midi.map((k) => k.id).sort(),
+        "dial's MIDI destinations are send and channel",
+      ).toEqual(["channel", "send"]);
+      // Move a MIDI knob by hand first, so "unmoved" is not "at default".
+      const channel = midi.find((k) => k.id === "channel") as KnobView;
+      tuner.set(channel.id, (channel.default + 3) % channel.values.length);
+      await settle();
+      const armed = views.at(-1) as TuneView;
+      const indexOf = (view: TuneView, id: string) =>
+        (view.knobs.find((k) => k.id === id) as KnobView).index;
+      const snapshot = Object.fromEntries(
+        armed.knobs.map((k) => [k.id, k.index]),
+      );
+
+      const previous = await tuner.surprise();
+      await settle();
+      expect(
+        previous,
+        "surprise() did not resolve to the vector it replaced",
+      ).toEqual(snapshot);
+      const rolled = views.at(-1) as TuneView;
+      for (const k of midi) {
+        expect(
+          indexOf(rolled, k.id),
+          `${k.id} moved on a roll - section 7 preserves the MIDI destination and channel`,
+        ).toBe(snapshot[k.id]);
+      }
+      const movedIds = rolled.knobs
+        .filter((k) => indexOf(rolled, k.id) !== snapshot[k.id])
+        .map((k) => k.id);
+      expect(
+        movedIds.length,
+        "the roll moved nothing - the exhaustion signal on a domain measured never to exhaust",
+      ).toBeGreaterThan(0);
+      for (const id of movedIds)
+        expect(midi.map((k) => k.id)).not.toContain(id);
+
+      // One click back: every index where it stood before the roll.
+      tuner.restore(previous as Readonly<Record<string, number>>);
+      await settle();
+      const restored = views.at(-1) as TuneView;
+      for (const k of restored.knobs) {
+        expect(k.index, `${k.id} was not restored`).toBe(snapshot[k.id]);
+      }
+      expect(
+        indexOf(restored, "channel"),
+        "the hand-moved channel came back to its moved index, not its default",
+      ).toBe((channel.default + 3) % channel.values.length);
+    } finally {
+      tuner.destroy();
     }
-    expect(
-      buttonClassesOf(mix).includes("pill"),
-      "MIX TWO does not carry the pill class, so §19.1b's Secondary shape reaches it through nothing - the rule in src/app.css is applied BY CLASS and a control that does not name it is unshaped",
-    ).toBe(true);
-    const mixTwoRule = rules.find(
-      (rule) => rule.selector.trim() === ".mix-two",
-    );
-    expect(
-      mixTwoRule,
-      "MixTwo.svelte no longer has a .mix-two rule",
-    ).toBeDefined();
-    // The floor stays THIS CONTROL'S, declared here rather than inherited from
-    // the shape: it is Phase 4's per-control touch contract, and it would still
-    // have to hold if the pill were taken away.
-    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
-      expect(
-        mixTwoRule?.body,
-        `MIX TWO does not declare ${axis} on its own rule - the pill guarantees it too, but Phase 4's floor is per control and survives the shape`,
-      ).toContain(axis);
-    }
-    // A-41's LIMIT, ASSERTED BY ABSENCE. The pill reaches Primary and
-    // Secondary and nothing else; pilling a Quiet control flattens it into
-    // Secondary, which is the SAFE-02 regression the tier ladder exists to
-    // prevent. Nothing in this file is rounded to 999px any more, and no second
-    // control in it wears the class.
-    expect(
-      rules
-        .filter((rule) => rule.body.includes("border-radius: 999px"))
-        .map((rule) => rule.selector.trim()),
-      "MixTwo.svelte re-declares the pill radius locally - §19.1b's shape is one rule in src/app.css and a second copy is the drift the move exists to stop",
-    ).toEqual([]);
-    expect(
-      buttonClassesOf(mix).filter((cls) => cls === "pill").length,
-      "more than one button in MixTwo.svelte wears the pill - A-41 puts it on Primary and Secondary only, and the four MIX TWO results are neither",
-    ).toBe(1);
-
-    // Both 44px axes on a result, named separately: the file-level
-    // includes("44px") walk in the test above passes on the pill alone.
-    const child = rules.find((rule) => rule.selector.trim() === ".child");
-    expect(child, "MixTwo.svelte no longer has a .child rule").toBeDefined();
-    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
-      expect(
-        child?.body,
-        `a result does not declare ${axis} - Phase 4's touch floor is both axes per control`,
-      ).toContain(axis);
-    }
-
-    // ---- THE ARRIVAL: 160 ms, ease-out, OPACITY ONLY (§14). A transform here
-    // would be the tear by another name, on a Product surface that renders its
-    // own words - which is exactly what §8.4 retired the reroll firing for.
-    expect(
-      child?.body,
-      "the results do not arrive on the 160 ms ease-out §14 gives them",
-    ).toContain("animation: mix-arrive 160ms ease-out");
-    const arrival = rawMix.slice(rawMix.indexOf("@keyframes mix-arrive"));
-    const frames = arrival.slice(0, arrival.indexOf("@media"));
-    expect(frames, "the arrival keyframes were found").toContain("opacity: 0");
-    for (const forbidden of ["transform", "translate", "scale", "clip-path"]) {
-      expect(
-        frames,
-        `the arrival declares "${forbidden}". §14 gives MIX TWO's results opacity and nothing else, and §8.4 retired the reroll firing by name: a clip-path or a translate on the tune panel would move and clip its own text`,
-      ).not.toContain(forbidden);
-      expect(
-        child?.body,
-        `the .child rule declares "${forbidden}", which puts the motion back beside the rule that forbids it`,
-      ).not.toContain(forbidden);
-    }
-    expect(
-      mix,
-      "the reduced-motion override is gone, so a visitor who asked for less motion still gets the fade",
-    ).toContain("@media (prefers-reduced-motion: reduce)");
-
-    // ---- AND THE TWO TOKENS THIS FILE MAY NOT SPEND. A-44 makes the
-    // --font-mono list SEVEN with six spent, and the seventh is reserved for
-    // §19.1c's metadata block; nothing here is a number that moves under a
-    // pointer. --color-error-ink is X-01's three uses, all of them a meter or a
-    // message.
-    expect(
-      mix,
-      "MixTwo.svelte spends a --font-mono use. A-44 reserves the seventh for §19.1c's metadata block, and this component displays no number that changes as a pointer moves",
-    ).not.toContain("--font-mono");
-    expect(
-      mix,
-      "MixTwo.svelte reaches for the alarm red. X-01 scopes it to three uses and all three belong to a meter or a message",
-    ).not.toContain("--color-error-ink");
-  });
-
-  it("MIX TWO's four results are the last four canvases in the budget: six on the worst entry, not eight", () => {
-    const mix = code(componentPath("MixTwo.svelte"));
-    const picker = code(componentPath("ColourPicker.svelte"));
-
-    // RECONCILED AGAINST 10-10's RECORDED NUMBER RATHER THAN RECOUNTED. That
-    // plan asserted the picker declares exactly ONE PadCanvas however many
-    // colour knobs an entry carries (colour-picker.spec.ts test 6, "the picker
-    // contributes exactly one canvas, so the worst entry shows six rather than
-    // eight"), and recorded the budget for this plan to build on. Re-reading
-    // the picker here is what makes the reconciliation real: if it grew a
-    // second pad, six would be seven and this test says so.
-    expect(
-      occurrences(picker, "<PadCanvas"),
-      "the picker declares more than one result pad, so 10-10's recorded budget no longer holds and six is not six",
-    ).toBe(1);
-
-    // The mix declares ONE PadCanvas inside a loop over the four results, so
-    // the instance count is MIX_CHILDREN and the constant is what is counted -
-    // a hard-coded 4 here would agree with a component that had stopped
-    // looping over four.
-    expect(
-      occurrences(mix, "<PadCanvas"),
-      "the results do not render one pad each from one declaration",
-    ).toBe(1);
-    expect(
-      mix,
-      "the results are not a loop over what mixIndices returned",
-    ).toContain("{#each results as result, at (at)}");
-    expect(MIX_CHILDREN, "MIX TWO no longer produces four results").toBe(4);
-
-    const HERO = 1;
-    const PICKER_RESULT = 1;
-    const worstColourKnobs = 3;
-    expect(
-      HERO + PICKER_RESULT + MIX_CHILDREN,
-      "the six-canvas budget moved. §11.6 costs MIX TWO at four beside the hero and the picker's ONE result - the parents are text on purpose, because two more canvases would be eight and THIS ONE is already running as the hero six centimetres up the same panel",
-    ).toBe(6);
-    expect(
-      HERO + worstColourKnobs + MIX_CHILDREN,
-      "one picker per KNOB would be eight on console, forge and strip, which is what §11.2's one-picker-per-panel rule bought",
-    ).toBe(8);
-
-    // EVERY ONE IS IntersectionObserver-GATED, and that is a property of the
-    // host rather than of this component: a canvas is painted only once
-    // `SimHost.register` has adopted it, and the host gates every registered
-    // canvas on one observer. So the assertion has two halves - the results
-    // hand their elements up, and the thing they are handed to is the gate.
-    expect(
-      mix,
-      "a result pad does not hand its element upward, so nothing can register it and nothing can gate it",
-    ).toContain("onready={onchild}");
-    expect(
-      code("src/lib/sim/host.ts"),
-      "the host no longer gates registered canvases on an IntersectionObserver, so 'every one is gated' is no longer true of anything",
-    ).toContain("new IntersectionObserver(");
-
-    // Rendered only when a consumer supplies the hop - the picker's own rule,
-    // for the picker's own reason. An unregistered canvas has no backing store
-    // and paints nothing, and four empty boxes claiming to show four
-    // configurations would be worse than none.
-    expect(
-      mix,
-      "the results render their pads unconditionally, so a page with no SimHost shows four empty boxes",
-    ).toMatch(/[{]#if onchild[}]/);
-    expect(
-      picker,
-      "the picker stopped gating its result pad on a supplied consumer, so the two components no longer answer the missing hop the same way",
-    ).toMatch(/[{]#if onresult[}]/);
-
-    // FOUR DISTINCT IDS, AND NONE OF THEM THE HERO'S. register() unregisters
-    // whatever holds the id first, so a result sharing the hero's id would
-    // blank the hero - the failure 10-10 avoided with `-colour-result`.
-    expect(
-      mix,
-      "the result pads do not carry their own registration ids, so they collide with each other or with the hero",
-    ).toContain("`${entry.id}-mix-${at}`");
   });
 });

@@ -52,6 +52,8 @@ export const MIDI_HELPER =
 export const RANDOMIZE = "Randomize";
 export const RANDOMIZE_GLYPH = "⤬";
 export const RESET_SETTINGS = "Reset settings";
+/** Section 7's own words ("Provide Undo randomize"), verbatim - plan 13-10. */
+export const UNDO_RANDOMIZE = "Undo randomize";
 
 /** The swatch row's link. PDF page 5, verbatim. */
 export const EDIT_COLOR = "Edit color";
