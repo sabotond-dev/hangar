@@ -1,4 +1,25 @@
-@import "tailwindcss";
+@import "tailwindcss" source(".");
+
+/*
+  THE SCANNER IS SCOPED TO src/ AND THE rounded FAMILY IS REFUSED AT THE
+  COMPILER (plan 13-01, under D-01's no-radius gate).
+
+  Tailwind v4 detects candidate class names from the whole project root, and on
+  2026-09-11 the shipped stylesheet carried .rounded, .rounded-md and
+  .rounded-full - three corner-radius rules no component uses - because the
+  scanner had tokenised "rounded-md" and "rounded-full" out of a planning
+  document under .planning/ and "rounded" out of comments in src/. A word in a
+  document must not put a rule in the production stylesheet. source(".") is
+  resolved against this file, so detection now starts at src/, and the
+  @source not inline() line refuses the whole named rounded family so a comment
+  in a component cannot emit a corner either. Every utility the markup uses
+  (sr-only, flex, grid, mt-16, px-4, py-6, gap-x-4, gap-y-1, border-t,
+  items-center, text-xs, underline, block, border, flex-wrap) was measured
+  emitted before and after this change. src/lib/ui/radius.spec.ts layer B reads
+  the built CSS and is what caught it; an arbitrary value such as rounded-[3px]
+  cannot be refused by name, and layer B is what still stands in its way.
+*/
+@source not inline("rounded{,-{t,r,b,l,s,e,tl,tr,bl,br,ss,se,es,ee}}{,-{none,xs,sm,md,lg,xl,2xl,3xl,4xl,full}}");
 
 /*
   D-24 / UI-SPEC W-01, amended by 10-UI-SPEC §5.1 (D-14): two faces, both
