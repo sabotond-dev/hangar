@@ -108,3 +108,25 @@ so the desk decides whether this is a real failure on the user's own module befo
 to a card that is documented as deliberately having none.
 
 **Owner:** plan 12-12, with the bench answer to row 19 in hand.
+
+---
+
+## 4. `docs/TESTING.md`'s cost table now has a fourth stale row, and LUMEN is it
+
+**Found by:** plan 12-11, which took LUMEN from 742 / 746 to **704 / 707** at the defaults and at the
+RGB444 picker corner.
+
+`docs/TESTING.md:1318` still reads `| lumen | 742 | 746 | 162 | 0 | 0 | 908 | 302 / 908 |`. It is the
+fourth row of that table this phase has invalidated without editing: 12-09 left CHORUS (771 / 174 →
+796 / 29), CONSOLE (852 → 781) and MORPH (710 → 772) stale for the same reason, and its SUMMARY hands
+"the tenth stale cost row" to 12-12 by name.
+
+**Why it was not fixed here.** The plan's `files_modified` does not name `docs/TESTING.md`, 12-09
+established the phase's handling of exactly this row, and a one-row edit to a table whose other three
+rows are also wrong reads as though the table had been checked. **Nothing gates any number in it** —
+that is the standing property that lets it go stale — so the risk is a reader, not a suite.
+
+**What the correct row is, measured on the tree at `ff67efb`:** `| lumen | 704 | 707 | 201 | 0 | 0 |
+908 | 302 / 908 |`.
+
+**Owner:** plan 12-12, with the other three.
