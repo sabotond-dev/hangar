@@ -149,6 +149,20 @@ export const MODULE_HEARTBEAT_MS = grid.getProperty(
 export const HOST_HEARTBEAT_MS = 300;
 /** Six module heartbeats. Long enough to see the page report, short enough to feel instant. */
 export const IDENTIFY_WINDOW_MS = 1500;
+/**
+ * THE PAGE SWITCH'S WINDOW (Phase 13, plan 13-12; 13-CONTEXT D-06). After a
+ * page switch (the EXECUTE descriptors.ts builds) the module answers with
+ * nothing (grid_decode.c:302-357); the only confirmation is the page report
+ * beside its next heartbeat, and the active page moves at the START of the
+ * page load (grid_ui.c:1017), so on a healthy link the report carrying the
+ * new page is at most one heartbeat period away. Six periods - the identify window's own arithmetic - is the
+ * time HANGAR waits before it stops calling the switch pending and calls it
+ * `unverified`: NOT switched, NOT failed, unknown, with Apply disabled until
+ * a report or a reconnect says otherwise. The wait itself lives in
+ * src/lib/device/page-target.ts, which imports nothing and is handed this
+ * number by the install store.
+ */
+export const PAGE_SWITCH_WINDOW_MS = 6 * MODULE_HEARTBEAT_MS;
 /** Three missed heartbeats, the desktop's isAlive rule (runtime.ts:2426-2430). */
 export const MODULE_GONE_MS = 750;
 

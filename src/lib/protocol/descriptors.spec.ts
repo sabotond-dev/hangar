@@ -13,11 +13,14 @@ import {
   TOUCH_EVENTS,
 } from "./constants";
 import {
+  discardPage,
   encodeRequest,
   fetchConfig,
+  fetchPageCount,
   fetchSerialNumber,
   hostHeartbeat,
   moduleKeyOf,
+  pageActive,
   sendConfig,
   storePage,
   type GridRequest,
@@ -358,6 +361,137 @@ describe("outbound descriptors", () => {
     expect(wireLength).toBe(65);
     expect(cls.brc_parameters.SX).toBe(-127);
     expect(cls.brc_parameters.SY).toBe(-127);
+  });
+
+  /**
+   * A REPORT or an ACKNOWLEDGE of one of the three page classes, built by the
+   * package's own encoder and decoded back to the class the queue would hand
+   * matchResponse. No hardware capture holds any of these frames - Phase 2
+   * never sent the requests - so, as for the serial report above, the round
+   * trip is the only evidence in the tree that the layout is the package's.
+   */
+  const pageClassFrame = (
+    class_name: string,
+    class_instr: string,
+    class_parameters: Record<string, number>,
+  ): DecodedClass => {
+    const encoded = grid.encode_packet({
+      brc_parameters: { DX: -127, DY: -127 },
+      class_name,
+      class_instr,
+      class_parameters,
+    });
+    if (!encoded) throw new Error(`encode_packet refused ${class_name}`);
+    const frame = grid.decode_packet_frame([...(encoded.serial as number[])]);
+    grid.decode_packet_classes(frame);
+    return frame[0] as DecodedClass;
+  };
+
+  it("the three page requests encode with the package's class codes and offsets, and their filters take the module's own report and refuse a stranger's", () => {
+    // Phase 13, plan 13-12 (D-06, D-19). Every offset below is READ from the
+    // pinned package's class table inside the test, so the test pins the
+    // package's layout rather than a number somebody typed.
+    const table = grid.getProperty("CLASSES") as Record<
+      string,
+      Record<string, { offset: string; length: string } | string>
+    >;
+    const codeOf = (name: string) => table[name].code;
+    const fieldOf = (name: string, field: string) =>
+      table[name][field] as { offset: string; length: string };
+    const PAGE_ACTIVE = ["PAGE", "ACTIVE"].join("");
+    const PAGE_DISCARD = ["PAGE", "DISCARD"].join("");
+    expect(codeOf(PAGE_ACTIVE)).toBe("0x030");
+    expect(codeOf("PAGECOUNT")).toBe("0x031");
+    expect(codeOf(PAGE_DISCARD)).toBe("0x063");
+    expect(fieldOf(PAGE_ACTIVE, "PAGENUMBER")).toEqual({
+      offset: "5",
+      length: "2",
+    });
+    expect(fieldOf("PAGECOUNT", "PAGENUMBER")).toEqual({
+      offset: "5",
+      length: "2",
+    });
+    expect(fieldOf(PAGE_DISCARD, "LASTHEADER")).toEqual({
+      offset: "5",
+      length: "2",
+    });
+
+    // THE SWITCH: addressed like a config write, PAGENUMBER at the package's
+    // offset, and NO FILTER - firmware answers the EXECUTE with nothing
+    // (grid_decode.c:302-357), so a filter would be a promise the module
+    // never keeps. Fire-and-forget is the wire fact, not a shortcut.
+    const sw = pageActive(0, 0, 3);
+    expect(sw.descr.brc_parameters).toEqual({ DX: 0, DY: 0 });
+    expect(sw.descr.class_name).toBe(PAGE_ACTIVE);
+    expect(sw.descr.class_instr).toBe("EXECUTE");
+    expect(sw.descr.class_parameters).toEqual({ PAGENUMBER: 3 });
+    expect(sw.filter, "the switch has no reply to wait for").toBeUndefined();
+    expect(sw.correlateById).toBe(false);
+    expect(sw.label).toBe("switch-page-3");
+    const swFrame = roundTrip(sw);
+    expect(swFrame[0].class_name).toBe(PAGE_ACTIVE);
+    expect(swFrame[0].class_instr).toBe("EXECUTE");
+    expect(Number(swFrame[0].class_parameters.PAGENUMBER)).toBe(3);
+    // Offset 5 of the class block, two hex digits: the page is "03" there.
+    const swBytes = encodeRequest(sw).bytes;
+    const stx = swBytes.indexOf(2);
+    expect(String.fromCharCode(swBytes[stx + 5], swBytes[stx + 6])).toBe("03");
+
+    // THE ENUMERATION: addressed, FETCH, answered by a REPORT from the global
+    // position, so the filter names the class and instruction alone.
+    const count = fetchPageCount(0, 0);
+    expect(count.descr.brc_parameters).toEqual({ DX: 0, DY: 0 });
+    expect(count.descr.class_name).toBe("PAGECOUNT");
+    expect(count.descr.class_instr).toBe("FETCH");
+    expect(count.filter).toEqual({
+      class_name: "PAGECOUNT",
+      class_instr: "REPORT",
+    });
+    expect(count.correlateById).toBe(false);
+    expect(count.timeoutMs).toBe(TIMEOUTS.fetchMs);
+    expect(roundTrip(count)[0].class_name).toBe("PAGECOUNT");
+    const countReport = pageClassFrame("PAGECOUNT", "REPORT", {
+      PAGENUMBER: 2,
+    });
+    expect(Number(countReport.class_parameters.PAGENUMBER)).toBe(2);
+    expect(matchResponse(countReport, count.filter!, undefined)).toBe("ok");
+    // A stranger's frame: the switch class's own report, the one the module
+    // sends beside every heartbeat, must NOT satisfy the count fetch even
+    // though it carries a PAGENUMBER at the same offset.
+    const activeReport = pageClassFrame(PAGE_ACTIVE, "REPORT", {
+      PAGENUMBER: 2,
+    });
+    expect(matchResponse(activeReport, count.filter!, undefined)).toBe("no");
+
+    // THE DISCARD: the store's shape exactly - a global broadcast, an
+    // id-correlated acknowledgement, the store's timeout - and UNPROVEN on
+    // hardware, which the builder's own comment says (runbook row I).
+    const discard = discardPage();
+    expect(discard.descr.brc_parameters).toEqual({ DX: -127, DY: -127 });
+    expect(discard.descr.class_name).toBe(PAGE_DISCARD);
+    expect(discard.descr.class_instr).toBe("EXECUTE");
+    expect(discard.descr.class_parameters).toEqual({});
+    expect(discard.filter).toEqual({
+      class_name: PAGE_DISCARD,
+      class_instr: "ACKNOWLEDGE",
+    });
+    expect(discard.correlateById).toBe(true);
+    expect(discard.timeoutMs).toBe(TIMEOUTS.pagestoreMs);
+    // The same 33 bytes on the wire as a page store: an empty class block.
+    expect(encodeRequest(discard).bytes.length).toBe(33);
+    const ack = pageClassFrame(PAGE_DISCARD, "ACKNOWLEDGE", { LASTHEADER: 7 });
+    expect(matchResponse(ack, discard.filter!, 7)).toBe("ok");
+    expect(
+      matchResponse(ack, discard.filter!, 8),
+      "another request's acknowledgement",
+    ).toBe("no");
+    const storeAck = pageClassFrame("PAGESTORE", "ACKNOWLEDGE", {
+      LASTHEADER: 7,
+    });
+    expect(
+      matchResponse(storeAck, discard.filter!, 7),
+      "a store's acknowledgement is not a discard's",
+    ).toBe("no");
   });
 
   it("moduleKeyOf is 32 lowercase hex characters, stable, and distinct for distinct words", () => {

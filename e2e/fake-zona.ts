@@ -77,9 +77,29 @@ import {
   zonaResponder,
 } from "../src/lib/transport/fixtures/synthetic";
 
+/**
+ * The classes the module acknowledges by id, and so the classes a script can
+ * drop or hold. PAGEDISCARD joined the two in Phase 13, plan 13-12: the
+ * responder answers the firmware-native revert with an acknowledgement of its
+ * own class (synthetic.ts, grid_decode.c:872-885), so a test can script a
+ * discard whose acknowledgement never lands, exactly as it can a store's.
+ *
+ * WHAT ELSE 13-12 TAUGHT THE FAKE, AND WHERE. The page switch, the page-count
+ * report, the page-changes-disabled-by-a-write rule and the heartbeat that
+ * restores it all live in synthetic.ts's responder, which this file hands
+ * every class to unchanged (thing 1 in the header) - so the browser fake
+ * learned them with no line of its own, and `heartbeatHex()` below already
+ * reads `state.activePage`, which the responder moves on a switch: the next
+ * beat a test pushes carries the new page, which is the whole of the
+ * confirmation firmware gives. Thing 2 in the header applies in full: every
+ * one of those is a source reading, and docs/INSTALL-RUNBOOK.md row I is
+ * where the switch meets a module.
+ */
+type AckedClass = "CONFIG" | "PAGESTORE" | "PAGEDISCARD";
+
 /** One acknowledgement of one class, by its cumulative number, to drop. */
 export interface DropAck {
-  class_name: "CONFIG" | "PAGESTORE";
+  class_name: AckedClass;
   nth: number;
 }
 
@@ -98,7 +118,7 @@ export interface ZonaScript {
    * Hold every acknowledgement of this class by this many ms (a Node-side
    * setTimeout) - the page's write() stalls with it; see the header.
    */
-  delayAckMs?: { class_name: "CONFIG" | "PAGESTORE"; byMs: number };
+  delayAckMs?: { class_name: AckedClass; byMs: number };
   /** Answer the first CONFIG/EXECUTE with a NACK echoing its id; nothing is written. */
   nackFirstWrite?: boolean;
   /**

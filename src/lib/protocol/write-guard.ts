@@ -40,7 +40,16 @@ export function canWriteBack(fetched: FetchedEvent[]): WriteGuard {
       // Not paranoia: when a recall fails, firmware sends a NACK and then falls
       // through and sends the REPORT anyway, with ACTIONLENGTH 0 and the zeroed
       // buffer (grid_decode.c:1315-1360, grid_ui.c:464-501). An empty string is
-      // exactly the shape a fetch of a non-active page produces.
+      // exactly the shape a fetch of a non-active page produces - and since
+      // Phase 13, plan 13-12, the CAUSE of that shape is addressed upstream
+      // rather than only caught here: the page target (page-target.ts) follows
+      // the page the module REPORTS, every fetch and write is addressed to it,
+      // and a switch is confirmed by the module's own report before anything
+      // is fetched or written on the new page. This refusal is now the
+      // backstop for the case that cannot be ruled out by construction - the
+      // module changing page under HANGAR between a report and a fetch - and
+      // it stays, because a backstop that was never needed costs nothing and
+      // one that was removed costs a write to the wrong page.
       return {
         ok: false,
         reason: `${label} fetch returned an empty config string - the shape a fetch of a non-active page produces`,

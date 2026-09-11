@@ -61,6 +61,13 @@ export const STEP_IDS = [
   "refetch-timer",
   "restore-page-change",
   "burst",
+  // Phase 13 (13-12): the page target. `switch-page` is the fire-and-forget
+  // page switch (sendImmediate, no reply exists to wait for);
+  // `fetch-page-count` the enumeration; `discard` the firmware-native revert,
+  // unproven. Added beside the fourteen, none of which moved.
+  "switch-page",
+  "fetch-page-count",
+  "discard",
 ] as const;
 export type StepId = (typeof STEP_IDS)[number];
 

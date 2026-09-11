@@ -1,11 +1,16 @@
 // Inbound frames a real ZONA would send, built from real encoder output.
 //
 // This is the ONLY file outside src/lib/protocol/descriptors.ts allowed to call
-// encode_packet, and the only one allowed to name the page-report class.
-// forbidden-instructions.spec.ts excludes `fixtures/` from both rules, for the
-// same reason: everything here is a frame HANGAR RECEIVES. The forbidden thing
-// is the EXECUTE form of a page change, which no file may construct - and none
-// does, here or anywhere.
+// encode_packet, and (with descriptors.ts, since 13-12) one of two allowed to
+// name the page-change class. forbidden-instructions.spec.ts excludes
+// `fixtures/` from its scans, because everything here is a frame HANGAR
+// RECEIVES - or, since Phase 13, plan 13-12, the scripted module's ANSWER to
+// one it sends: the responder below models the page switch (D-06), the
+// page-count report and the page discard, and the two firmware facts the
+// switch lives or dies by - a successful config write disables page changes
+// (grid_decode.c:1279) and only a host heartbeat TYPE 255 restores them
+// (:717). A fake that did not model those two would let a switch sent
+// straight after a write pass in every test and be refused on every module.
 //
 // Three facts shape every builder below, all executed against the pinned
 // package rather than assumed:
@@ -42,12 +47,16 @@ const ETX = 3;
 const EOT = 4;
 
 /**
- * The class name on the second block of a USB-attached module's heartbeat. It
- * is a REPORT - something the module tells the host - and it is the only form
- * of this class that appears anywhere in HANGAR. The EXECUTE form destroys the
- * module's Lua VM and is forbidden forever (D-06).
+ * The class name on the second block of a USB-attached module's heartbeat: a
+ * REPORT, something the module tells the host, beside every type-1 heartbeat
+ * (grid_transport.c:199-203). Since 13-12 the responder below also ACCEPTS the
+ * EXECUTE form of the same class - the switch descriptors.ts builds under
+ * Phase 13's D-06 - and moves `activePage` the way grid_ui.c:1017 does, so
+ * the next heartbeatFrame() built from the state carries the new page. That
+ * is the whole confirmation firmware gives: the EXECUTE itself is answered by
+ * nothing (grid_decode.c:302-357).
  */
-const PAGE_REPORT = "PAGEACTIVE";
+const PAGE_CLASS = "PAGEACTIVE";
 
 interface BrcField {
   length: string;
@@ -170,7 +179,7 @@ export function heartbeatFrame(opts: {
   if (opts.type !== 1) return seal(msg);
   const pageReport = encodeOne({
     brc_parameters: GLOBAL,
-    class_name: PAGE_REPORT,
+    class_name: PAGE_CLASS,
     class_instr: "REPORT",
     class_parameters: { PAGENUMBER: opts.activePage },
   });
@@ -279,6 +288,51 @@ export function pagestoreAckFrame(opts: {
 }
 
 /**
+ * The answer to a PAGEDISCARD/EXECUTE once the reload has finished: the
+ * success callback's acknowledgement echoing the request id
+ * (grid_decode.c:872-885). Built exactly as the store's is, for the same
+ * reason - the discard is a global broadcast too (Phase 13, plan 13-12).
+ */
+export function pagediscardAckFrame(opts: {
+  lastheader: number;
+  sx?: number;
+  sy?: number;
+}): number[] {
+  return seal(
+    inbound(
+      {
+        brc_parameters: GLOBAL,
+        class_name: "PAGEDISCARD",
+        class_instr: "ACKNOWLEDGE",
+        class_parameters: { LASTHEADER: opts.lastheader },
+      },
+      { sx: opts.sx ?? 0, sy: opts.sy ?? 0 },
+    ),
+  );
+}
+
+/**
+ * The answer to a PAGECOUNT/FETCH: the module's page count in a REPORT from
+ * the global position (grid_decode.c:359-385 builds it with
+ * GRID_PARAMETER_GLOBAL_POSITION, like the serial-number report - so, like
+ * that one, it is built with encodeOne and NOT with inbound()). The number is
+ * the STATE's, never a literal here: the fixture's default is firmware's own
+ * initial value and is named where the state is declared.
+ */
+export function pageCountReportFrame(count: number): number[] {
+  return seal(
+    message(
+      encodeOne({
+        brc_parameters: GLOBAL,
+        class_name: "PAGECOUNT",
+        class_instr: "REPORT",
+        class_parameters: { PAGENUMBER: count },
+      }),
+    ),
+  );
+}
+
+/**
  * The answer to a SERIALNUMBER/FETCH: WORD0..WORD3 in a 62-byte class block.
  *
  * Built with encodeOne and NOT with inbound(): fact 3 in the header. Firmware
@@ -346,7 +400,25 @@ export interface ZonaState {
   systemFlash?: Record<number, string>;
   /** WORD0..WORD3. Undefined means the module does not answer a SERIALNUMBER/FETCH at all. */
   serial?: readonly [number, number, number, number];
+  /**
+   * What a PAGECOUNT/FETCH is answered with (Phase 13, plan 13-12). Absent
+   * means firmware's own initial value, 4 (../grid-fw/common/src/c/grid_ui.c:77)
+   * - a fact about the fake's model of the module, and the ONE place that
+   * number is written: nothing shipped may assume it (Bible section 9).
+   */
+  pageCount?: number;
+  /**
+   * grid_ui_state.page_change_enabled (13-12). Absent means enabled, as a
+   * module boots (grid_ui.c:79). A successful CONFIG/EXECUTE clears it
+   * (grid_decode.c:1279); a host heartbeat TYPE 255 sets it and any other
+   * type above 127 clears it (:717); a page switch is silently refused while
+   * it is clear (:319). Optional so every existing literal is unchanged.
+   */
+  pageChangeEnabled?: boolean;
 }
+
+/** Firmware's initial page count, in the fixture and nowhere shipped (grid_ui.c:77). */
+const FIRMWARE_INITIAL_PAGE_COUNT = 4;
 
 /** Flash, allocated on first need as a copy of what RAM held at that moment. */
 const flashOf = (state: ZonaState): Record<number, string> =>
@@ -464,9 +536,62 @@ export function zonaResponder(
         flashOf(state);
         state.configs[event] = written;
       }
+      // grid_decode.c:1279, inside the accepted-write branch: every successful
+      // write disables page changes until a host heartbeat TYPE 255 (13-12).
+      state.pageChangeEnabled = false;
       return [
         configAckFrame({ sx: state.sx, sy: state.sy, lastheader: requestId }),
       ];
+    }
+    if (class_name === PAGE_CLASS && class_instr === "EXECUTE" && me) {
+      // THE SWITCH (Phase 13, plan 13-12), as grid_decode.c:302-357 has it and
+      // answered by NOTHING, whatever happens: already on that page (:310),
+      // page changes disabled by a write (:319), or the load started (:349,
+      // the active page moving at grid_ui.c:1017). The only confirmation a
+      // host ever gets is the next heartbeat carrying the new page, which
+      // heartbeatFrame() builds from `activePage`. THE FAKE HOLDS ONE PAGE'S
+      // STRINGS: a real module loads the target page's own configuration
+      // from NVM, and this one reloads RAM from its single flash instead -
+      // the shape of a load without a second page's contents. Stated as the
+      // fixture's limit, not hidden.
+      if (page === state.activePage) return [];
+      if (state.pageChangeEnabled === false) return [];
+      state.activePage = page;
+      powerCycle(state);
+      return [];
+    }
+    if (class_name === "PAGECOUNT" && class_instr === "FETCH" && meOrGlobal) {
+      // grid_decode.c:359-385: FETCH only, answered from the global position.
+      return [
+        pageCountReportFrame(state.pageCount ?? FIRMWARE_INITIAL_PAGE_COUNT),
+      ];
+    }
+    if (
+      class_name === "PAGEDISCARD" &&
+      class_instr === "EXECUTE" &&
+      meOrGlobal
+    ) {
+      // grid_decode.c:895-915: reload the ACTIVE page from NVM, then the
+      // success callback acknowledges (:872-885). RAM becomes flash for both
+      // elements - what powerCycle() already models - and the page is the
+      // active one, never a parameter. Unproven on hardware (runbook row I).
+      powerCycle(state);
+      return [
+        pagediscardAckFrame({
+          sx: state.sx,
+          sy: state.sy,
+          lastheader: requestId,
+        }),
+      ];
+    }
+    if (class_name === "HEARTBEAT" && class_instr === "EXECUTE") {
+      // grid_decode.c:712-716: an editor heartbeat (TYPE above 127) sets
+      // page_change_enabled to (TYPE == 255). Answered by nothing; the effect
+      // is on the state, and it is what lets a switch after a write succeed
+      // only when the restore heartbeat went first.
+      const type = Number(class_parameters.TYPE);
+      if (type > 127) state.pageChangeEnabled = type === 255;
+      return [];
     }
     if (class_name === "PAGESTORE" && class_instr === "EXECUTE" && meOrGlobal) {
       // grid_decode.c:955-961: the store copies RAM into flash, then the
