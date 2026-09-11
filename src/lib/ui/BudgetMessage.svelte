@@ -45,6 +45,23 @@
   block. The SENTENCE stays --color-ink - red is a marker beside the text, never
   the text itself - and no button in this file is red, bordered red, or filled.
 
+  THE OVER-BUDGET BLOCK SITS ON --color-error-surface (13-10, 13-03's token;
+  Bible section 12: "error message backgrounds"). 13-03 renamed --color-over
+  to --color-error-ink and shipped the surface with no consumer; this block
+  is its first and, with the meter's own rows being 14px of numerals, its
+  only one on the tuning side. Ink on that surface is 13.32:1 and the error
+  ink beside it 9.92:1 (identity.spec.ts recomputes both). The ladder block
+  takes no surface: it is the compiler explaining itself, not a warning.
+
+  This component renders inside the inspector since 13-09, directly under the
+  two meters and therefore under the entry's last section - MIDI output when
+  it has one. TUNE-05's five clauses live across the two files and the model:
+  the primary control is disabled through TuningRegion's onbudget (the
+  reason reaches TRY ON DEVICE as a real `disabled`), the offending meter is
+  red (BudgetMeter.svelte), the knob is NAMED in `over.line` (model.ts's knob
+  case), the back-off is ONE click below, and nothing here ever reaches a
+  port - `over.apply` talks to the tuner and to nothing else.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -129,9 +146,16 @@
     padding-inline-start: 12px;
   }
 
-  /* X-01 use 3 of 3, and the only red in this file. */
+  /*
+    X-01 use 3 of 3, and the only red in this file, on section 12's error
+    surface: the rule is the error ink, the block behind it the error
+    surface, the sentence stays --color-ink. Square (D-01).
+  */
   .block.over {
+    padding-block: 12px;
+    padding-inline: 14px 12px;
     border-inline-start-color: var(--color-error-ink);
+    background: var(--color-error-surface);
   }
 
   /* Body role at full strength: the line naming the knob is the point. */

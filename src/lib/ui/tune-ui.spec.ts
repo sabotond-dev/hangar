@@ -44,9 +44,32 @@ import { MIX_CHILDREN } from "../tune/mix";
 // per-field reset - the model.spec.ts harness in brief. The compile surface
 // is a spec's to import statically; test 1 holds the COMPONENTS to the
 // await form.
-import { INSPECTOR_HEADLINE, fieldResetName } from "../tune/inspector-copy";
+import {
+  INSPECTOR_HEADLINE,
+  MIDI_MONITOR,
+  MONITOR_COLUMNS,
+  MONITOR_STATUS,
+  fieldResetName,
+  monitorCount,
+} from "../tune/inspector-copy";
 import { buildTuner } from "../tune/model";
 import { padReady } from "../pad";
+// The monitor's arithmetic (13-10): a pure module the component paints, so
+// the coalescing window, the ring cap and the absent-on-preset rule are
+// driven here with a scripted clock and no browser. The engines come through
+// the compile surface, which a spec may import statically.
+import { byId } from "../catalog";
+import { createEngine } from "../sim/engine";
+import type { HostMidi } from "../sim/lua-host";
+import {
+  COALESCE_WINDOW_MS,
+  MONITOR_CAP,
+  MonitorLog,
+  describeChannel,
+  describeMessage,
+  describeTime,
+  midiLogOf,
+} from "../sim/monitor";
 import {
   KNOB_KIND_NAMES,
   SCALE_WORDS,
@@ -676,25 +699,98 @@ describe("the tuning UI's structural rules", () => {
     }
   });
 
-  it("the alarm red lives in exactly two components and on no button", () => {
-    // X-01 scopes the ninth token to THREE USES: the offending meter's bar fill
+  it("the error ink and its surface live in the two meter components inside the inspector, and on no button", () => {
+    // X-01 scopes the alarm token to THREE USES: the offending meter's bar fill
     // and its 2px outline, that meter's numerals and percentage, and the 2px
     // left rule on the over-budget message. THIS TEST COUNTS COMPONENTS, NOT
     // USES - the first two uses live in BudgetMeter.svelte and the third in
     // BudgetMessage.svelte, so two here and three in the UI spec are the same
     // fact counted differently, and neither number contradicts the other.
+    //
+    // RE-AIMED AT 13-10. 13-03 renamed --color-over to --color-error-ink and
+    // left this title pointing at the new name with its old subject; the
+    // subject now is the Bible's error PAIR (section 12: error ink on error
+    // surface) and where it lives - in the two meter components, which since
+    // 13-09 render inside the inspector, after its last section. The surface
+    // token shipped at 13-03 with no consumer; its consumer is the over-budget
+    // message block and nothing else under src/lib/ui/.
     const TOKEN = "--color-error-ink";
+    const SURFACE = "--color-error-surface";
     const files = uiFiles().filter((file) => file.endsWith(".svelte"));
     const carriers = files.filter((file) => code(file).includes(TOKEN));
+    const surfaces = files.filter((file) => code(file).includes(SURFACE));
 
     expect(files.length, "the ui directory was walked").toBeGreaterThan(7);
     expect(
       carriers.sort(),
-      "the alarm red is scoped to the meter and the message, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
+      "the error ink is scoped to the meter and the message, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
     ).toEqual([
       `${UI_DIR}/BudgetMessage.svelte`,
       `${UI_DIR}/BudgetMeter.svelte`,
     ]);
+    expect(
+      surfaces,
+      "the error surface has a consumer other than the over-budget message block, or has lost that one - section 12 gives it to error message backgrounds and 13-03 shipped it for exactly this block",
+    ).toEqual([`${UI_DIR}/BudgetMessage.svelte`]);
+    const overBlock = rulesOf(code(componentPath("BudgetMessage.svelte"))).find(
+      (rule) => rule.selector.trim() === ".block.over",
+    );
+    expect(
+      overBlock,
+      "BudgetMessage.svelte has no .block.over rule",
+    ).toBeDefined();
+    expect(
+      overBlock?.body,
+      "the over-budget block is not the error pair: the rule in the ink on the surface",
+    ).toContain(`var(${SURFACE})`);
+    expect(overBlock?.body).toContain(`var(${TOKEN})`);
+    expect(
+      overBlock?.body,
+      "the over-budget block grew a radius - D-01",
+    ).not.toContain("border-radius");
+
+    // WHERE THEY LIVE: both meters and the message render inside the
+    // inspector, as the children the shell's Inspector draws after its last
+    // section - which is MIDI output on every entry that addresses the wire.
+    // The two meters and the message are the honesty device the Bible never
+    // drew, and this is the assertion that they survived the redesign.
+    const region = code(componentPath("TuningRegion.svelte"));
+    const inspector = region.slice(
+      region.indexOf("<Inspector"),
+      region.indexOf("</Inspector>"),
+    );
+    expect(inspector.length, "the Inspector block was found").toBeGreaterThan(
+      100,
+    );
+    expect(
+      occurrences(inspector, "<BudgetMeter"),
+      "the two 908 meters no longer render inside the inspector",
+    ).toBe(2);
+    expect(
+      occurrences(inspector, "<BudgetMessage"),
+      "the ladder message no longer renders inside the inspector beside the meters",
+    ).toBe(1);
+    expect(
+      inspector.indexOf("<BudgetMeter"),
+      "the meters render before the sections rather than after them - they are children, drawn under the last section",
+    ).toBeGreaterThan(inspector.indexOf("sections={["));
+    // And the numbers are TUNE-03's own words: `{used} / 908`, a percentage,
+    // tabular numerals so the column never jitters while a knob turns.
+    const meterSource = code(componentPath("BudgetMeter.svelte"));
+    expect(meterSource).toContain("meterNumerals(view.used)");
+    expect(meterSource).toContain("meterPercent(view.pct)");
+    expect(
+      rulesOf(meterSource).find((rule) => rule.selector.includes(".numerals"))
+        ?.body,
+      "the meter's numerals are not tabular",
+    ).toContain("tabular-nums");
+    for (const selector of [".track", ".fill", ".ghost"]) {
+      expect(
+        rulesOf(meterSource).find((rule) => rule.selector.trim() === selector)
+          ?.body,
+        `${selector} still carries a radius - 13-10 squared the meter (D-01) and cleared its allowlist row`,
+      ).not.toContain("border-radius");
+    }
 
     // And in neither is it a button's fill or a button's border. The check is
     // by SELECTOR against the classes actually applied to a <button> in that
@@ -763,6 +859,249 @@ describe("the tuning UI's structural rules", () => {
       )?.body,
       "the fill keeps its landing transition while a forecast is showing, so it eases under the pointer",
     ).toContain("transition: none");
+  });
+
+  it("the MIDI monitor renders the host's existing log coalesced with an xN count, caps at 200, is absent on a preset entry, and announces nothing", async () => {
+    // FOUR HALVES (13-10, Bible section 10 and 14, D-14 Q4b). The shape half
+    // is source: the component is a real disclosure over a real table, has no
+    // live region, no interval and no animation-frame loop of its own, and is
+    // mounted by the workspace behind `preview === "lua"` and nowhere else.
+    // The arithmetic half drives src/lib/sim/monitor.ts with a scripted
+    // clock. The absent half asks two REAL engines for their log. The words
+    // half holds the PDF's two strings verbatim and section 10's six heads.
+    const MONITOR = "MidiMonitor.svelte";
+    const monitor = code(componentPath(MONITOR));
+    const rawMonitor = raw(componentPath(MONITOR));
+    expect(rawMonitor.length, "MidiMonitor.svelte was read").toBeGreaterThan(
+      1000,
+    );
+
+    // ---- NOT A LIVE REGION, and no clock of its own kind. Section 14: "do
+    // not announce every MIDI event or animation frame." Phase 4: never
+    // setInterval; SimHost owns the page's one rAF.
+    for (const forbidden of [
+      "aria-live",
+      'role="log"',
+      'role="status"',
+      "setInterval",
+      "requestAnimationFrame",
+      "Math.random",
+      "overflow-x",
+    ]) {
+      expect(
+        monitor,
+        `MidiMonitor.svelte carries "${forbidden}" - the monitor announces nothing, polls on a setTimeout chain and never scrolls sideways`,
+      ).not.toContain(forbidden);
+    }
+    expect(
+      /overflow[ ]*:[ ]*(auto|scroll)/.exec(monitor),
+      "the overflow shorthand would set the inline axis too (D-11)",
+    ).toBeNull();
+    expect(monitor, "the sampler is not a self-rescheduling timeout").toContain(
+      "timer = setTimeout(sample, SAMPLE_MS)",
+    );
+    expect(
+      monitor,
+      "the sampler is not stopped on destroy, so a closed workspace keeps polling",
+    ).toContain("onDestroy(stop)");
+    expect(monitor, "no radius (D-01)").not.toContain("border-radius");
+
+    // ---- A REAL DISCLOSURE OVER A REAL TABLE, collapsed by default.
+    expect(monitor).toContain("let open = $state(false)");
+    expect(monitor).toContain("aria-expanded={open}");
+    expect(monitor).toContain("aria-controls={panelId}");
+    expect(monitor, "the log is not a table").toContain("<table");
+    expect(monitor, "the heads are not column heads").toContain(
+      '<th scope="col">',
+    );
+    expect(
+      monitor,
+      "the six heads are not the copy module's, in section 10's order",
+    ).toContain("{#each MONITOR_COLUMNS as head (head)}");
+    expect(MONITOR_COLUMNS, "section 10's six columns, in its order").toEqual([
+      "Time",
+      "Direction",
+      "Source",
+      "Channel",
+      "Message",
+      "Value",
+    ]);
+    // Pause and Clear (section 10), each a real button on both 44px axes.
+    for (const id of ["monitor-toggle", "monitor-pause", "monitor-clear"]) {
+      expect(monitor, `no ${id} control`).toContain(`data-testid="${id}"`);
+    }
+    const controlRule = rulesOf(monitor).find(
+      (rule) => rule.selector.trim() === ".control",
+    );
+    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+      expect(
+        controlRule?.body,
+        `.control does not declare ${axis} - Phase 4's floor is both axes per control`,
+      ).toContain(axis);
+    }
+    expect(
+      rulesOf(monitor).find((rule) => rule.selector.trim() === ".bar")?.body,
+      "the bar is under 44px tall",
+    ).toContain("min-block-size: 44px");
+
+    // ---- THE WORDS. The PDF's two, verbatim and imported; section 10's
+    // heads; the count form.
+    expect(MIDI_MONITOR).toBe("MIDI monitor");
+    expect(MONITOR_STATUS).toBe("Browser preview · No MIDI output");
+    for (const [name, text] of [
+      ["MIDI_MONITOR", MIDI_MONITOR],
+      ["MONITOR_STATUS", MONITOR_STATUS],
+    ] as const) {
+      expect(monitor, `MidiMonitor.svelte imports ${name}`).toContain(name);
+      expect(
+        monitor,
+        `MidiMonitor.svelte transcribes ${name} instead of importing it`,
+      ).not.toContain(`"${text}"`);
+    }
+    expect(monitorCount(1)).toBe("");
+    expect(monitorCount(12)).toBe("x12");
+    expect(monitor).toContain("monitorCount(row.count)");
+
+    // ---- ABSENT ON PRESET ENTRIES, NOT PRESENT AND EMPTY. The route mounts
+    // the bar behind the one guard, and the header names the divergence it
+    // declined (D-14 Q4b: no log added to src/vendor/).
+    const route = code("src/routes/playground/[id]/+page.svelte");
+    expect(
+      route,
+      'the workspace does not mount the monitor behind preview === "lua"',
+    ).toMatch(
+      /[{]#if listed[.]preview === "lua"[}][ \n]*<MidiMonitor source=[{][(][)] => midiLogOf[(]engine[)][}] [/]>[ \n]*[{][/]if[}]/,
+    );
+    expect(
+      occurrences(route, "<MidiMonitor"),
+      "the monitor is mounted more than once, or somewhere outside the guard",
+    ).toBe(1);
+    expect(rawMonitor).toContain("D-14 Q4b");
+    expect(rawMonitor).toContain("src/vendor/");
+    expect(rawMonitor, "the header does not name the host's log").toContain(
+      "midiLog",
+    );
+
+    // ---- THE ARITHMETIC, with a scripted clock. Two alike messages 10 ms
+    // apart are one row with x2; the window's edge opens a new row; two
+    // controllers alternating fold into two rows, not two hundred; five
+    // hundred distinct messages leave exactly the cap, newest first.
+    const cc = (p1: number, p2: number, ch = 0): HostMidi => ({
+      ch,
+      cmd: 176,
+      p1,
+      p2,
+      mode: 0,
+    });
+    const log = new MonitorLog();
+    const stream: HostMidi[] = [cc(74, 10)];
+    expect(log.ingest(stream, 0), "the first message changed nothing").toBe(
+      true,
+    );
+    stream.push(cc(74, 11));
+    log.ingest(stream, 10);
+    expect(log.size, "two alike messages 10 ms apart made two rows").toBe(1);
+    expect(log.visible[0].count).toBe(2);
+    expect(
+      log.visible[0].p2,
+      "a coalesced row does not show the latest value",
+    ).toBe(11);
+    expect(monitorCount(log.visible[0].count)).toBe("x2");
+    expect(
+      log.ingest(stream, 20),
+      "an unchanged source reported a change",
+    ).toBe(false);
+    stream.push(cc(74, 12));
+    log.ingest(stream, COALESCE_WINDOW_MS + 1);
+    expect(
+      log.size,
+      "a message past the window folded into a row it does not belong to",
+    ).toBe(2);
+    expect(log.visible[0].p2, "newest is not first").toBe(12);
+    // X and Y alternating, forty times inside one window: two rows.
+    const xy = new MonitorLog();
+    const pairs: HostMidi[] = [];
+    for (let i = 0; i < 40; i++) pairs.push(cc(i % 2 === 0 ? 1 : 2, i));
+    xy.ingest(pairs, 0);
+    expect(
+      xy.size,
+      "alternating controllers did not fold into their own rows",
+    ).toBe(2);
+    expect(xy.visible.map((row) => row.count)).toEqual([20, 20]);
+    // The ring. Five hundred distinct messages, each its own row: the cap,
+    // and the survivors are the LAST two hundred.
+    const ring = new MonitorLog();
+    const flood: HostMidi[] = [];
+    for (let i = 0; i < 500; i++) {
+      flood.push(cc(i % 128, i % 128, Math.floor(i / 128)));
+      ring.ingest(flood, i * (COALESCE_WINDOW_MS + 1));
+    }
+    expect(ring.size, "the ring did not cap").toBe(MONITOR_CAP);
+    expect(MONITOR_CAP).toBe(200);
+    expect(ring.visible[0].p1, "the newest row is not first").toBe(499 % 128);
+    expect(
+      ring.visible[MONITOR_CAP - 1].p1,
+      "the oldest survivor is not the three-hundredth message",
+    ).toBe(300 % 128);
+    // Clear empties the view and not the source; what arrives next shows.
+    ring.clear();
+    expect(ring.size).toBe(0);
+    flood.push(cc(5, 5, 9));
+    ring.ingest(flood, 999_999);
+    expect(ring.size).toBe(1);
+    expect(ring.visible[0].ch).toBe(9);
+    // A restarted host (a SHORTER array) is read from its start again.
+    const restarted = new MonitorLog();
+    restarted.ingest([cc(1, 1), cc(2, 2), cc(3, 3)], 0);
+    restarted.ingest([cc(4, 4)], 1000);
+    expect(
+      restarted.size,
+      "a host restart's fresh log was not read from the start",
+    ).toBe(4);
+    // The columns' words.
+    expect(describeMessage(176, 74)).toBe("CC 74");
+    expect(describeMessage(144, 60)).toBe("Note on 60");
+    expect(describeMessage(128, 60)).toBe("Note off 60");
+    expect(describeChannel(0), "the wire's 0 is the DAW's 1").toBe("1");
+    expect(describeChannel(15)).toBe("16");
+    expect(describeTime(61_005)).toBe("1:01.005");
+    expect(describeTime(0)).toBe("0:00.000");
+
+    // ---- TWO REAL ENGINES. The preset route keeps no log - undefined, never
+    // an empty array, because "absent" and "nothing sent yet" are two facts
+    // and the bar exists for the second only. The Lua route keeps one, and
+    // ARC's timer fills it without a finger.
+    const aurora = byId("aurora");
+    const arc = byId("arc");
+    expect(aurora?.preview, "aurora is the preset witness").toBe("padsim");
+    expect(arc?.preview, "arc is the Lua witness").toBe("lua");
+    const preset = await createEngine(aurora!);
+    expect(
+      midiLogOf(preset),
+      "a vendored PadSim reports a MIDI log - D-14 Q4b's premise is gone, and the bar's absence on preset entries no longer follows",
+    ).toBeUndefined();
+    expect(midiLogOf(undefined)).toBeUndefined();
+    expect(midiLogOf({})).toBeUndefined();
+    const lua = await createEngine(arc!);
+    try {
+      const before = midiLogOf(lua);
+      expect(before, "the Lua engine exposes no MIDI log").toBeDefined();
+      lua.run(200);
+      const after = midiLogOf(lua) as readonly HostMidi[];
+      expect(
+        after.length,
+        "two seconds of ARC's timer sent nothing - the log the monitor renders is empty at the source",
+      ).toBeGreaterThan(0);
+      expect(describeMessage(after[0].cmd, after[0].p1)).toMatch(/^CC [0-9]+$/);
+      const live = new MonitorLog();
+      live.ingest(after, 0);
+      expect(
+        live.size,
+        "the host's log did not render to a row",
+      ).toBeGreaterThan(0);
+    } finally {
+      (lua as unknown as { close?: () => void }).close?.();
+    }
   });
 
   it("the region's arithmetic is present, and both constants are", () => {

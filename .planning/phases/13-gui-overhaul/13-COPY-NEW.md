@@ -284,3 +284,25 @@ write.
 6. **The install column under the surface.** TRY ON DEVICE, PUT BACK, KEEP ON DEVICE and CLEAR are
    rendered beneath the surface in Phase 7's column until 13-11 moves Apply to ZONA into the context
    bar; the PDF draws none of them there. Recorded so nobody reads the column as a design.
+
+## From 13-10: the monitor's rows, the randomiser's, and the questions D-01 sends to the batch
+
+Added 2026-09-11 by plan 13-10 (the workspace's second half). Taken verbatim and **not** ledgered:
+`MIDI monitor` and `Browser preview · No MIDI output` (PDF page 5's collapsed bar, both strings as
+drawn), `Randomize` and `Reset settings` (PDF page 5, already landed by 13-09), and `Undo randomize`
+(Bible section 7's own words: _"Provide **Undo randomize**"_). The two 908 meters keep every string
+they had - `SETUP`, `TIMER`, `{used} / 908`, `{pct}%`, `measuring…`, the ladder family and
+`TURN IT DOWN` - because the re-home changed where they render and what colour their over state is,
+not a word; a string that survives unchanged is not ledgered, and `tune/copy.ts` is 13-19's. The
+rows below are what HANGAR had to write. They live in `src/lib/tune/inspector-copy.ts`.
+
+| Symbol | Module | Plan | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `MONITOR_COLUMNS` | `src/lib/tune/inspector-copy.ts` (read by `MidiMonitor.svelte`) | landed by 13-10 for 13-18 | the six column heads of the expanded log | section 10's six nouns in section 10's order, as table heads a screen reader announces per cell | _Time_ · _Direction_ · _Source_ · _Channel_ · _Message_ · _Value_ | section 10 names the six ("timestamp, direction, source, channel, message, and value"); the heads are those words capitalised, with _Time_ for _timestamp_ because a head is a label |
+| `MONITOR_DIRECTION` | same | landed by 13-10 for 13-18 | every row's direction cell | that every message is outbound from the simulation; HANGAR has no MIDI input to route (lua-host.ts records `rx_mode` and routes nothing) | _out_ | none - section 10 names the column and no value |
+| `MONITOR_SOURCE` | same | landed by 13-10 for 13-18 | every row's source cell | that the message came from the browser preview and not from a ZONA or a port - the same fact the bar's status states | _Browser preview_ | the PDF's own phrase, from the bar's status line |
+| `MONITOR_PAUSE` / `MONITOR_RESUME` | same | landed by 13-10 for 13-18 | the one control that freezes and unfreezes the log; the label swaps with the state, so the accessible name carries it | that pausing stops new rows and that what arrives meanwhile is not shown (the paused line below says so) | _Pause_ / _Resume_ | section 10: "users can pause and clear the log" - the verbs are the Bible's, the labels are the verbs |
+| `MONITOR_CLEAR` | same | landed by 13-10 for 13-18 | the control that empties the visible log; disabled when it is already empty | that it clears the VIEW and nothing else - the simulation is untouched | _Clear_ | section 10's verb |
+| `monitorCount(n)` | same | landed by 13-10 for 13-18 | the count beside a value on a row that stands for a run of alike messages inside the 100 ms window | how many messages the row folded; empty on a lone message so a lone row carries no `x1` | _x{n}_ | none - section 10 says "aggregate or limit high-rate messages" and gives no form |
+| `MONITOR_EMPTY` | same | landed by 13-10 for 13-18 | the expanded log with no row in it | that nothing has been sent since the monitor opened, and what to do to see something | _Nothing sent yet. Play the surface and what it sends shows here._ | none |
+| `MONITOR_PAUSED` | same | landed by 13-10 for 13-18 | the expanded log while paused | that what the surface sends now is not shown and will not be replayed on resume - the honest statement of the pause semantics shipped | _Paused. What the surface sends now is not shown until you resume._ | none |

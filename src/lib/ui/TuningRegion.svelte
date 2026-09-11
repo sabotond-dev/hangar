@@ -19,7 +19,14 @@
   with no knob in it is OMITTED, not rendered empty: an empty disclosure is
   the thing the next paragraph exists to forbid. The fourth group is the two
   budget meters under Phase 4's TUNING caption - the spec has no budget meter
-  anywhere and HANGAR's honesty is not for cutting (13-RESEARCH Q8).
+  anywhere and HANGAR's honesty is not for cutting (13-RESEARCH Q8). They
+  render after the last section, so under MIDI output on an entry that has
+  one: two `{used} / 908` rows with a percentage in tabular numerals, the
+  ladder's line and the over-budget block beneath them, the over state on
+  13-03's error tokens (13-10). TUNE-05 survives the re-home clause by
+  clause: over budget disables the primary control through `onbudget`, turns
+  the offending meter red, names the knob that pushed it over, offers a
+  one-click back-off, and the click never reaches the wire to fail there.
 
   THERE IS NO ADVANCED SECTION, AND THAT IS A DECISION RATHER THAN AN EMPTY
   DISCLOSURE. Section 7 proposes Curve, Smoothing, Phase, Clock sync, Voicing,

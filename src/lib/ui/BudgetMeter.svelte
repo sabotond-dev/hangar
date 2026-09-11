@@ -56,6 +56,18 @@
   meter's bar fill with its 2px outline, and that meter's numerals and
   percentage. It is never a button, never a border elsewhere, never a knob.
 
+  WHERE THE METER LIVES SINCE 13-09 AND WHAT 13-10 CHANGED. Both meters
+  render inside the inspector (TuningRegion.svelte), after its last section -
+  under `MIDI output` when the entry has one - as two `{used} / 908` rows
+  with a percentage: the Bible has no budget meter anywhere, and "you have
+  thirty-three characters left" is what makes a visitor trust the install
+  button (13-RESEARCH Q8). 13-03 renamed the alarm token: `--color-over` is
+  `--color-error-ink`, section 12's validation-and-transfer-error ink, and its
+  surface `--color-error-surface` paints the over-budget MESSAGE block in
+  BudgetMessage.svelte - a meter row is 14px of numerals and takes no surface
+  of its own. 13-10 also squared the track, the fill and the ghost (D-01: no
+  radius above zero anywhere), which cleared this file's allowlist row.
+
   THE GHOST IS THE THIRD THING IN THE BAR AND IT SPENDS NOTHING (TUNE-02, T2).
   A hovered or focused knob option publishes what it WOULD cost, and the bar
   draws the difference in --color-divider - the track's own token, at 0 ms,
@@ -282,12 +294,11 @@
     color: var(--color-error-ink);
   }
 
-  /* 4px under the row, then an 8px bar at the full content width. */
+  /* 4px under the row, then an 8px bar at the full content width. Square (D-01). */
   .track {
     position: relative;
     margin-block-start: 4px;
     block-size: 8px;
-    border-radius: 2px;
     background: var(--color-divider);
   }
 
@@ -313,7 +324,6 @@
     position: absolute;
     inset-block: 0;
     display: block;
-    border-radius: 2px;
     background: var(--color-divider);
     transition: none;
   }
@@ -331,7 +341,6 @@
   .fill {
     display: block;
     block-size: 100%;
-    border-radius: 2px;
     background: var(--color-action);
     transition: inline-size 120ms ease-out;
   }

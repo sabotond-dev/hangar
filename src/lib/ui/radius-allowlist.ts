@@ -169,15 +169,14 @@ export interface AllowlistRow {
  * 13-09 task 2 on the same day: ColourPicker.svelte's six (the lock, the
  * result, the focus ring, the detent, the track, the held bar - its three
  * circles stay, now at :840 / :867 / :882), ChosenPanel.svelte's two and
- * NamePlate.svelte's one deleted with their files. Rows are removed by the
- * plan named, never edited to a smaller number by anyone else.
+ * NamePlate.svelte's one deleted with their files; FOUR IN THREE after 13-10
+ * task 1 on the same day: BudgetMeter.svelte's three (the track, the fill,
+ * the ghost) squared with the meters' re-home into the inspector; TWO IN TWO
+ * after 13-10 task 2: MixTwo.svelte's two deleted with the file (D-12). Rows
+ * are removed by the plan named, never edited to a smaller number by anyone
+ * else.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [
-  {
-    file: "src/lib/ui/BudgetMeter.svelte",
-    declarations: 3,
-    clearedBy: "13-10",
-  },
   {
     file: "src/lib/ui/MixTwo.svelte",
     declarations: 2,

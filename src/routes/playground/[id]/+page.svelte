@@ -13,8 +13,8 @@
   centre carries the eyebrow (`EXPLORE / MODULATION`: the FOR label through
   13-08's FOR_LABELS), the name, the two-segment `Configure` / `Play` switch,
   the sentence, the surface at the PDF's square with its 1px lattice, the
-  `ZONA · 9 × 9 LIGHT MATRIX` line with the live `X / Y` readout, and the row
-  the collapsed MIDI monitor takes at 13-10. The inspector is the schema
+  `ZONA · 9 × 9 LIGHT MATRIX` line with the live `X / Y` readout, and the
+  collapsed MIDI monitor (13-10) under them. The inspector is the schema
   renderer, TuningRegion.svelte, handed to the shell as a snippet.
 
   "NEARBY" IS THE BROWSE-RETURN SET IF THERE IS ONE, ELSE THE FRONT-DOOR
@@ -31,13 +31,17 @@
   a catalog entry has no structure to lock, which is the Sandbox's rule at
   13-16. 13-20 decides the requirement's tick.
 
-  THE CONNECTION CONTROL AND THE MONITOR ARE OTHER PLANS'. The shell's
-  connection slot is 13-11's; until then this route hands the shipped
-  DeviceSlot into it, provisionally, so the header keeps a control and the
-  session suite keeps its subject - with `panelOwnsProse` false, because the
-  panel is always on this page and a drawer that could never open would be
-  a control that does nothing. The monitor bar's row is 13-10's and is a
-  named, empty slot below the surface. The install column (TRY ON DEVICE,
+  THE CONNECTION CONTROL IS ANOTHER PLAN'S. The shell's connection slot is
+  13-11's; until then this route hands the shipped DeviceSlot into it,
+  provisionally, so the header keeps a control and the session suite keeps
+  its subject - with `panelOwnsProse` false, because the panel is always on
+  this page and a drawer that could never open would be a control that does
+  nothing. THE MONITOR IS ON LUA ENTRIES ONLY (13-10, D-14 Q4b): the bar
+  under the surface renders the log the Lua host keeps, read through the
+  live engine on every sample, and is ABSENT - not present and empty - on
+  the nine preset-backed entries, whose vendored simulator keeps no log.
+  MidiMonitor.svelte's header carries the three limits. The install column
+  (TRY ON DEVICE,
   PUT BACK, KEEP ON DEVICE, CLEAR) is Phase 7's and is rendered here, under
   the surface, until 13-11 moves Apply to ZONA into the context bar; its
   Escape rules (Z-10) are kept on the window.
@@ -98,6 +102,7 @@
   import { SITE_ORIGIN, shareUrl } from "$lib/share/url";
   import type { SimEngine } from "$lib/sim/engine";
   import { SimHost } from "$lib/sim/host";
+  import { midiLogOf } from "$lib/sim/monitor";
   import { motionDeps } from "$lib/sim/motion.svelte";
   import { mapAxis } from "$lib/sim/touch";
   import type { LocalStore } from "$lib/store/local";
@@ -125,6 +130,7 @@
   import FidelityLine from "$lib/ui/FidelityLine.svelte";
   import KeepConfirm from "$lib/ui/KeepConfirm.svelte";
   import KeepOnDevice from "$lib/ui/KeepOnDevice.svelte";
+  import MidiMonitor from "$lib/ui/MidiMonitor.svelte";
   import PadCanvas from "$lib/ui/PadCanvas.svelte";
   import PadFrame from "$lib/ui/PadFrame.svelte";
   import PutBack from "$lib/ui/PutBack.svelte";
@@ -720,11 +726,17 @@
       {/if}
 
       <!--
-        THE MONITOR BAR'S ROW (PDF page 5: a collapsed `MIDI monitor` bar with
-        `Browser preview · No MIDI output`). 13-10's, by name; this is the
-        slot it fills, empty until then.
+        THE MONITOR BAR (PDF page 5: a collapsed `MIDI monitor` bar with
+        `Browser preview · No MIDI output`), on Lua entries only - D-14 Q4b.
+        The source is a closure over the live engine, because the tuner swaps
+        engines under the same id on every knob turn and the monitor has to
+        read the one that is playing.
       -->
-      <div class="monitor-slot" data-testid="monitor-slot"></div>
+      <div class="monitor-slot" data-testid="monitor-slot">
+        {#if listed.preview === "lua"}
+          <MidiMonitor source={() => midiLogOf(engine)} />
+        {/if}
+      </div>
 
       <div class="fidelity"><FidelityLine entry={listed} /></div>
 
@@ -882,7 +894,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /* 13-10's row. Empty until it fills it; no box of its own until then. */
+  /* The monitor's row. No box of its own: the bar sizes itself to the surface. */
   .monitor-slot {
     display: contents;
   }

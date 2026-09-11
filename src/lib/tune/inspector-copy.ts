@@ -86,6 +86,44 @@ export function coordinateLine(x: number, y: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// The MIDI monitor (PDF page 5's collapsed bar; Bible section 10; plan 13-10).
+// The bar's two strings are the PDF's, verbatim. The rest are HANGAR's -
+// section 10 names the six columns as nouns and gives the controls verbs but
+// no labels - and are ledgered in 13-COPY-NEW.md for 13-18.
+
+export const MIDI_MONITOR = "MIDI monitor";
+export const MONITOR_STATUS = "Browser preview · No MIDI output";
+
+/** Section 10's six columns, in its order, capitalised as table heads. */
+export const MONITOR_COLUMNS: readonly [
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+] = ["Time", "Direction", "Source", "Channel", "Message", "Value"];
+
+/** Direction and source are constants in v1: nothing here reaches a port. */
+export const MONITOR_DIRECTION = "out";
+export const MONITOR_SOURCE = "Browser preview";
+
+export const MONITOR_PAUSE = "Pause";
+export const MONITOR_RESUME = "Resume";
+export const MONITOR_CLEAR = "Clear";
+
+/** The count on a coalesced row: `x12`. Empty for a lone message. */
+export function monitorCount(count: number): string {
+  return count > 1 ? `x${count}` : "";
+}
+
+export const MONITOR_EMPTY =
+  "Nothing sent yet. Play the surface and what it sends shows here.";
+
+export const MONITOR_PAUSED =
+  "Paused. What the surface sends now is not shown until you resume.";
+
+// ---------------------------------------------------------------------------
 // The per-field marker and reset (section 7). HANGAR's own - ledgered.
 
 /**
