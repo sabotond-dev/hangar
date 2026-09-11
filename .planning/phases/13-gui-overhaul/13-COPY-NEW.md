@@ -448,3 +448,33 @@ Questions for the user, from 13-13 (D-01):
    carry `Type` too.
 8. **The rename field commits on blur.** Clicking `Delete` on the same row while renaming commits the
    rename first. Accept, or commit on Enter only?
+
+### 13-13, task 3: the collections' rows (D-22 "many session bare no")
+
+The PDF's two strings are verbatim and not ledgered: `COLLECTIONS` (the section title) and `+ New
+collection` (the last row, and the whole empty state - fork C). `Live set` and `Studio experiments`
+are the mockup's DATA, not strings; nothing is pre-named (fork C). The rows below are HANGAR's.
+
+| Symbol | Module | Plan | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `COLLECTION_NAME` | `src/routes/my-configs/+page.svelte` | landed by 13-13 for 13-18 | the `+ New collection` form's one field | what goes in it | _Collection name_ | none |
+| `CREATE` / `CANCEL` | same | landed by 13-13 for 13-18 | the form's two buttons | verbs, plainly (D-05) | _Create_ / _Cancel_ | none |
+| `RENAME_COLLECTION` and `renameCollectionName(name)` | same | landed by 13-13 for 13-18 | the selected collection's inline rename | which collection | _Rename_; accessible name _Rename {name}_ | none |
+| `DELETE_COLLECTION` and `deleteCollectionName(name)` | same | landed by 13-13 for 13-18 | the selected collection's one destructive control; undoable for the session (fork B) | that it is the COLLECTION being deleted and not its members, by name | _Delete collection_; accessible name _Delete the collection {name}_ | section 11: "deletion with undo where practical" |
+| `emptyCollection(name)` | same | landed by 13-13 for 13-18 | a selected collection with no members | which collection, and where to file something from | _Nothing in {name} yet. Add a configuration from All saved._ | none |
+| `deletedLine(name)` / `restoredLine(name)` reused | same | landed by 13-13 for 13-18 | a collection deleted and undone: the same two lines the records use | one register for one action | _Deleted {name}._ / _{name} is back._ | none |
+| `ADD_TO_COLLECTION` and `fileName(name)` | `src/lib/ui/library/LibraryTable.svelte` | landed by 13-13 for 13-18 | the per-row select's placeholder option; offered only when a collection exists that the record is not yet in (fork A: it may be in others) | the action, and the record | _Add to collection_; accessible name _Add {name} to a collection_ | none |
+| `REMOVE` and `removeName(name, collection)` | same | landed by 13-13 for 13-18 | the per-row action inside a collection's view | that the record leaves THIS collection and nothing else - the record stays saved | _Remove_; accessible name _Remove {name} from {collection}_ | none |
+
+Questions for the user, from 13-13 task 3 (D-01):
+
+9. **Delete a record deletes it from every collection (fork A's reconciliation) and the undo puts
+   the memberships back too.** The undo vector carries `memberOf`; a record restored by Undo is
+   filed exactly as it was. Accept, or should Undo restore the record unfiled?
+10. **Two collections may share a name** (ids are distinct; the PDF's rows are names). Accept, or
+    refuse a duplicate name at Create and Rename?
+11. **The record undo and the collection undo share one slot** - the last deletion, whichever it
+    was. A second delete replaces the first's vector. Accept, or a stack for the session?
+12. **`Add to collection` is a native select with a placeholder option** rather than a menu, so it
+    is one control per row and needs no popover. The PDF's row has no such control. Accept the
+    shape, or ask for a checklist in the collection head instead?

@@ -73,11 +73,13 @@
     empty,
     collections = [],
     memberOf = () => [],
+    removeFrom,
     onready,
     onrename,
     onexport,
     ondelete,
     onfile,
+    onunfile,
   }: {
     rows: readonly LibraryRow[];
     /** The sentence shown when there are no rows. */
@@ -90,8 +92,12 @@
     onrename: (record: StoredRecord, name: string) => void;
     onexport: (record: StoredRecord) => void;
     ondelete: (record: StoredRecord) => void;
+    /** The collection the table is showing, when it is showing one: every row offers Remove. */
+    removeFrom?: CollectionOption;
     /** Add a record to a collection. */
     onfile?: (record: StoredRecord, collectionId: string) => void;
+    /** Take a record out of `removeFrom`; the record itself stays. */
+    onunfile?: (record: StoredRecord, collectionId: string) => void;
   } = $props();
 
   /* The PDF's column heads and row words, verbatim. */
@@ -107,7 +113,10 @@
   const EXPORT = "Export";
   const DELETE = "Delete";
   const ADD_TO_COLLECTION = "Add to collection";
+  const REMOVE = "Remove";
   const HEAD_ACTIONS = "Actions";
+  const removeName = (name: string, collection: string) =>
+    `Remove ${name} from ${collection}`;
   const renameName = (name: string) => `Rename ${name}`;
   const exportName = (name: string) => `Export ${name} as a file`;
   const deleteName = (name: string) => `Delete ${name}`;
@@ -220,9 +229,7 @@
             <span class="subline type-helper">{RECORD_SUBLINE}</span>
           </td>
           <td class="type-cell" data-testid="library-type">{row.type}</td>
-          <td class="edited-cell numerals" data-testid="library-edited"
-            >{row.edited}</td
-          >
+          <td class="edited-cell" data-testid="library-edited">{row.edited}</td>
           <td class="status-cell">
             <span
               class="chip {row.status}"
@@ -256,6 +263,16 @@
                 aria-label={deleteName(row.record.name)}
                 onclick={() => ondelete(row.record)}>{DELETE}</button
               >
+              {#if removeFrom !== undefined}
+                <button
+                  class="quiet"
+                  type="button"
+                  data-testid="library-unfile"
+                  aria-label={removeName(row.record.name, removeFrom.name)}
+                  onclick={() => onunfile?.(row.record, removeFrom.id)}
+                  >{REMOVE}</button
+                >
+              {/if}
               {#if collections.length > 0 && offered(row.record).length > 0}
                 <select
                   class="file"
@@ -359,6 +376,11 @@
     color: var(--color-ink);
   }
 
+  /* The moment in the sans face with tabular numerals, so a column of times lines up. */
+  .edited-cell {
+    font-variant-numeric: tabular-nums;
+  }
+
   .status-cell {
     white-space: nowrap;
   }
@@ -385,10 +407,13 @@
     color: var(--color-action);
   }
 
-  /* Open: a small outlined rectangle at the floor. */
+  /* Open: a small outlined rectangle at the floor, the arrow beside the word. */
   .open {
-    display: inline-grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
     min-inline-size: 44px;
     min-block-size: 44px;
     padding-inline: 16px;

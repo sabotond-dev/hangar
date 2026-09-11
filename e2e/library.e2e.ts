@@ -224,6 +224,68 @@ test.describe("My configs, with no hardware attached", () => {
     );
     await page.getByTestId("library-search").fill("euclid");
     await expect(rows).toHaveCount(1);
+    await page.getByTestId("library-search").fill("");
+    await expect(rows).toHaveCount(2);
+
+    // COLLECTIONS (D-22: many, session, bare, no). Bare: the section is the
+    // one `+ New collection` row and nothing else.
+    const collectionRows = rail.locator('[data-row^="collection:"]');
+    await expect(collectionRows).toHaveCount(1);
+    await expect(collectionRows.first()).toHaveText("+ New collection");
+    await expect(rail).toContainText("COLLECTIONS");
+
+    // Create one from the rail; it becomes the selected view, empty.
+    await rail.locator('[data-row="collection:new"]').click();
+    await page.getByTestId("collection-name").fill("Live set");
+    await page.getByTestId("collection-create-submit").click();
+    await expect(page.getByTestId("collection-title")).toHaveText("Live set");
+    await expect(collectionRows).toHaveCount(2);
+    await expect(page.getByTestId("library-empty")).toContainText(
+      "Nothing in Live set yet.",
+    );
+
+    // File the copy from All saved through the row's select; the collection
+    // view then shows it, and the draft stays out of it.
+    await rail.locator('[data-row="all"]').click();
+    await expect(rows).toHaveCount(2);
+    const liveId = await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem("hangar.collections.v1") ?? "null")
+          .collections[0].id as string,
+    );
+    await saved.getByTestId("library-file").selectOption(liveId);
+    await rail.locator(`[data-row="collection:${liveId}"]`).click();
+    await expect(rows).toHaveCount(1);
+    await expect(rows.getByTestId("library-name")).toHaveText("Euclid copy");
+    // Many: the same record can also be filed elsewhere - the select still
+    // offers nothing here because there is only one collection, and that is
+    // the one it is in.
+    expect(await rows.getByTestId("library-file").count()).toBe(0);
+
+    // Remove from the collection; the record itself stays in All saved.
+    await rows.getByTestId("library-unfile").click();
+    await expect(page.getByTestId("library-empty")).toContainText(
+      "Nothing in Live set yet.",
+    );
+    await rail.locator('[data-row="all"]').click();
+    await expect(rows).toHaveCount(2);
+
+    // Delete the collection from its own view; undo brings it back with its
+    // name (session: the vector is in memory, nothing in the store).
+    await rail.locator(`[data-row="collection:${liveId}"]`).click();
+    await page.getByTestId("collection-delete").click();
+    await expect(notice).toContainText("Deleted Live set.");
+    await expect(collectionRows).toHaveCount(1);
+    expect(
+      await page.evaluate(() => localStorage.getItem("hangar.collections.v1")),
+    ).not.toContain("Live set");
+    await page.getByTestId("library-undo").click();
+    await expect(notice).toContainText("Live set is back.");
+    await expect(collectionRows).toHaveCount(2);
+    await expect(collectionRows.first()).toHaveText("Live set");
+
+    // No: the export written above carried no membership.
+    expect("collections" in exported).toBe(false);
 
     expect(consoleErrors).toEqual([]);
   });

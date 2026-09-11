@@ -81,11 +81,22 @@
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script module lang="ts">
+  import type { Collection } from "$lib/store/collections";
   import type { StoredRecord } from "$lib/store/schema";
   import type { Status } from "$lib/ui/library/words";
 
-  /** What one deletion needs to be undone. */
-  type Deletion = { readonly record: StoredRecord; readonly status: Status };
+  /**
+   * What one deletion needs to be undone: a record with the collections it
+   * was filed in (fork A's reconciliation, reversed), or a whole collection.
+   */
+  type Deletion =
+    | {
+        readonly kind: "record";
+        readonly record: StoredRecord;
+        readonly status: Status;
+        readonly memberOf: readonly string[];
+      }
+    | { readonly kind: "collection"; readonly collection: Collection };
 
   /**
    * THE SESSION'S UNDO VECTOR (D-22 fork B): the last deletion, held for the
@@ -106,6 +117,16 @@
   import { listingById } from "$lib/catalog/listing";
   import { SimHost, type HostEngine } from "$lib/sim/host";
   import { motionDeps } from "$lib/sim/motion.svelte";
+  import {
+    collectionsOf,
+    createCollection,
+    deleteCollection,
+    readCollections,
+    removeFromAll,
+    renameCollection,
+    restoreCollection,
+    setMember,
+  } from "$lib/store/collections";
   import { readDrafts, removeDraft, writeDraft } from "$lib/store/drafts";
   import { readFavorites } from "$lib/store/favorites";
   import {
@@ -166,18 +187,35 @@
   const restoredLine = (name: string) => `${name} is back.`;
   const STORE_REFUSED = "Your browser refused to store the change.";
 
+  /* COLLECTIONS (D-22): the PDF's two strings verbatim, the rest HANGAR's, ledgered. */
+  const COLLECTIONS = "COLLECTIONS";
+  const NEW_COLLECTION = "+ New collection";
+  const COLLECTION_NAME = "Collection name";
+  const CREATE = "Create";
+  const CANCEL = "Cancel";
+  const RENAME_COLLECTION = "Rename";
+  const DELETE_COLLECTION = "Delete collection";
+  const emptyCollection = (name: string) =>
+    `Nothing in ${name} yet. Add a configuration from All saved.`;
+  const renameCollectionName = (name: string) => `Rename ${name}`;
+  const deleteCollectionName = (name: string) =>
+    `Delete the collection ${name}`;
+
   type Sort = "edited" | "name";
   const SORTS: readonly { id: Sort; label: string }[] = [
     { id: "edited", label: SORT_EDITED },
     { id: "name", label: SORT_NAME },
   ];
 
-  type View = "all" | "drafts";
+  /** All saved, Drafts, or one collection by its row id. */
+  type View = "all" | "drafts" | `collection:${string}`;
 
   /** The rail's four rows: two views over this table, two destinations on the gallery. */
   const ROW_ALL = "all";
   const ROW_DRAFTS = "drafts";
+  const ROW_NEW_COLLECTION = "collection:new";
   const [, ROW_FAVORITES, ROW_RECENT] = LIBRARY_ROWS;
+  const collectionRow = (id: string): View => `collection:${id}`;
 
   const PLAYGROUND: ResolvedPathname = SECTIONS[0].href;
   const SANDBOX: ResolvedPathname = SECTIONS[1].href;
@@ -204,11 +242,27 @@
   let notice:
     | { text: string; tone: "plain" | "refused"; undo?: boolean }
     | undefined = $state(undefined);
+  /** The collections, pruned on read; the drop count is read and not rendered (13-06's open question). */
+  let collections: readonly Collection[] = $state([]);
+  let collectionsDropped = $state(0);
+  /** The `+ New collection` form, and the name as typed. */
+  let creating = $state(false);
+  let newName = $state("");
+  /** The selected collection's inline rename. */
+  let renamingCollection = $state(false);
+  let collectionName = $state("");
 
   const newest = $derived(
     drafts.length === 0
       ? undefined
       : drafts.reduce((a, b) => (b.editedAt > a.editedAt ? b : a)),
+  );
+
+  /** The collection the view names, if any. */
+  const current = $derived(
+    view.startsWith("collection:")
+      ? collections.find((c) => collectionRow(c.id) === view)
+      : undefined,
   );
 
   /** The TYPE word: the source entry's FOR label, or the kind said plainly. */
@@ -247,7 +301,11 @@
       live: liveIds.has(record.id),
     }));
     const inView =
-      view === "drafts" ? all.filter((r) => r.status === "draft") : all;
+      view === "drafts"
+        ? all.filter((r) => r.status === "draft")
+        : current !== undefined
+          ? all.filter((r) => current.members.includes(r.record.id))
+          : all;
     const needle = q.trim().toLowerCase();
     const found =
       needle === ""
@@ -269,9 +327,16 @@
       ? EMPTY_SEARCH
       : view === "drafts"
         ? EMPTY_DRAFTS
-        : EMPTY_LIBRARY,
+        : current !== undefined
+          ? emptyCollection(current.name)
+          : EMPTY_LIBRARY,
   );
 
+  /*
+    The rail: YOUR LIBRARY, a divider, COLLECTIONS. Fork C (bare): with no
+    collection the second section is the `+ New collection` row and nothing
+    else - no suggested first collection, and the section is never hidden.
+  */
   const sections = $derived<readonly RailSection[]>([
     {
       title: YOUR_LIBRARY,
@@ -292,9 +357,33 @@
         },
       ],
     },
+    {
+      title: COLLECTIONS,
+      rows: [
+        ...collections.map((collection) => ({
+          id: collectionRow(collection.id),
+          label: collection.name,
+        })),
+        { id: ROW_NEW_COLLECTION, label: NEW_COLLECTION },
+      ],
+    },
   ]);
 
-  const selected = $derived(view === "drafts" ? ROW_DRAFTS : ROW_ALL);
+  const selected = $derived(
+    current !== undefined
+      ? collectionRow(current.id)
+      : view === "drafts"
+        ? ROW_DRAFTS
+        : ROW_ALL,
+  );
+
+  /** The route's validator for a member id: a draft or a saved copy. */
+  const knownRecord = (id: string): boolean =>
+    drafts.some((d) => d.id === id) || copies.some((c) => c.id === id);
+
+  /** The collections a record is in, for the table's select. */
+  const memberOf = (recordId: string): readonly string[] =>
+    collectionsOf(collections, recordId);
 
   // ---------------------------------------------------------------------------
   // The store, the codec and the engines - plain bindings outside the graph.
@@ -338,6 +427,10 @@
     favoritesCount = readFavorites(store, (id) => listingById(id) !== undefined)
       .ids.length;
     recentCount = listRecent(store).length;
+    // After both record lists, so the validator sees them (fork A's drop rule).
+    const filed = readCollections(store, knownRecord);
+    collections = filed.list;
+    collectionsDropped = filed.dropped;
     refreshStamps();
     void buildEngines();
   }
@@ -486,9 +579,118 @@
     notice = { text, tone, undo: withUndo };
   }
 
+  /** A rail row: a view over the table, a collection, or the new-collection form. */
   function onselect(id: string): void {
+    renamingCollection = false;
     if (id === ROW_DRAFTS) view = "drafts";
     else if (id === ROW_ALL) view = "all";
+    else if (id === ROW_NEW_COLLECTION) {
+      creating = true;
+      newName = "";
+    } else if (collections.some((c) => collectionRow(c.id) === id)) {
+      view = id as View;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Collections (D-22): create, rename, delete with the session's undo, file.
+
+  /** A collection id: the moment, base 36, like the workspace's copy ids. */
+  const mintCollectionId = (): string =>
+    `collection:${Date.now().toString(36)}`;
+
+  function oncreate(): void {
+    const name = newName.trim();
+    if (name.length === 0) return;
+    const id = mintCollectionId();
+    const outcome = createCollection(local(), id, name, moment());
+    if (outcome !== "written") {
+      say(STORE_REFUSED, "refused");
+      return;
+    }
+    creating = false;
+    newName = "";
+    readAll();
+    view = collectionRow(id);
+  }
+
+  function oncancelCreate(): void {
+    creating = false;
+    newName = "";
+  }
+
+  function createKeys(event: KeyboardEvent): void {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      oncreate();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      oncancelCreate();
+    }
+  }
+
+  function startRenameCollection(): void {
+    if (current === undefined) return;
+    collectionName = current.name;
+    renamingCollection = true;
+  }
+
+  function commitRenameCollection(): void {
+    if (!renamingCollection || current === undefined) return;
+    renamingCollection = false;
+    const name = collectionName.trim();
+    if (name.length === 0 || name === current.name) return;
+    if (renameCollection(local(), current.id, name) !== "written") {
+      say(STORE_REFUSED, "refused");
+    }
+    readAll();
+  }
+
+  function renameCollectionKeys(event: KeyboardEvent): void {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitRenameCollection();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      renamingCollection = false;
+    }
+  }
+
+  /** Delete the selected collection; it is held for one Undo (fork B). */
+  function ondeleteCollection(): void {
+    if (current === undefined) return;
+    const removed = deleteCollection(local(), current.id);
+    if (removed === undefined) {
+      say(STORE_REFUSED, "refused");
+      return;
+    }
+    held = { kind: "collection", collection: removed };
+    undo = held;
+    view = "all";
+    say(deletedLine(removed.name), "plain", true);
+    readAll();
+  }
+
+  /** File a record in a collection (fork A: it may already be in others). */
+  function onfileRecord(record: StoredRecord, collectionId: string): void {
+    if (setMember(local(), collectionId, record.id, true) !== "written") {
+      say(STORE_REFUSED, "refused");
+    }
+    readAll();
+  }
+
+  /** Take a record out of the selected collection; the record itself stays. */
+  function onunfileRecord(record: StoredRecord, collectionId: string): void {
+    if (setMember(local(), collectionId, record.id, false) !== "written") {
+      say(STORE_REFUSED, "refused");
+    }
+    readAll();
+  }
+
+  /** Focus a field the moment it mounts. */
+  function focusOnMount(node: HTMLInputElement): void {
+    node.focus();
+    node.select();
   }
 
   function sortChanged(event: Event): void {
@@ -514,39 +716,65 @@
     downloadExport(exportFile(record, moment(), codec?.knobsOf));
   }
 
-  /** Delete: the record leaves its store and is held for one Undo. */
+  /**
+   * Delete: the record leaves its store AND every collection it was in
+   * (fork A's reconciliation, removeFromAll), and is held for one Undo with
+   * the memberships it had.
+   */
   function ondelete(record: StoredRecord): void {
     const store = local();
     const isDraft = drafts.some((draft) => draft.id === record.id);
-    const ok = isDraft
-      ? removeDraft(store, record.id)
-      : deleteCopy(store, record.id) === "written";
+    const wasIn = removeFromAll(store, record.id);
+    const ok =
+      wasIn !== undefined &&
+      (isDraft
+        ? removeDraft(store, record.id)
+        : deleteCopy(store, record.id) === "written");
     if (!ok) {
       say(STORE_REFUSED, "refused");
+      readAll();
       return;
     }
-    held = { record, status: isDraft ? "draft" : "saved" };
+    held = {
+      kind: "record",
+      record,
+      status: isDraft ? "draft" : "saved",
+      memberOf: wasIn,
+    };
     undo = held;
     say(deletedLine(record.name), "plain", true);
     readAll();
   }
 
-  /** Undo: the held record goes back through its own store's write. */
+  /** Undo: the held thing goes back through its own store's write, memberships too. */
   function onundo(): void {
     const deletion = undo;
     if (deletion === undefined) return;
     const store = local();
-    const ok =
-      deletion.status === "draft"
-        ? writeDraft(store, deletion.record, deletion.record.editedAt)
-        : saveCopy(store, deletion.record) !== "refused";
+    let ok: boolean;
+    let name: string;
+    if (deletion.kind === "collection") {
+      ok = restoreCollection(store, deletion.collection) !== "refused";
+      name = deletion.collection.name;
+    } else {
+      ok =
+        deletion.status === "draft"
+          ? writeDraft(store, deletion.record, deletion.record.editedAt)
+          : saveCopy(store, deletion.record) !== "refused";
+      for (const collectionId of deletion.memberOf) {
+        ok =
+          setMember(store, collectionId, deletion.record.id, true) !==
+            "refused" && ok;
+      }
+      name = deletion.record.name;
+    }
     if (!ok) {
       say(STORE_REFUSED, "refused");
       return;
     }
     held = undefined;
     undo = undefined;
-    say(restoredLine(deletion.record.name));
+    say(restoredLine(name));
     readAll();
   }
 
@@ -700,15 +928,104 @@
     </div>
   </search>
 
-  <p class="count" data-testid="library-count">{countLine(rows.length)}</p>
+  <!-- `+ New collection`: one field, Create and Cancel, above the table (fork C: nothing else is offered). -->
+  {#if creating}
+    <form
+      class="create"
+      data-testid="collection-create"
+      onsubmit={(event) => {
+        event.preventDefault();
+        oncreate();
+      }}
+    >
+      <label class="caption type-micro" for="collection-name-field"
+        >{COLLECTION_NAME}</label
+      >
+      <div class="create-row">
+        <input
+          id="collection-name-field"
+          class="create-field"
+          type="text"
+          autocomplete="off"
+          data-testid="collection-name"
+          bind:value={newName}
+          use:focusOnMount
+          onkeydown={createKeys}
+        />
+        <button
+          class="filled small"
+          type="submit"
+          data-testid="collection-create-submit"
+          disabled={newName.trim().length === 0}>{CREATE}</button
+        >
+        <button
+          class="outlined small"
+          type="button"
+          data-testid="collection-create-cancel"
+          onclick={oncancelCreate}>{CANCEL}</button
+        >
+      </div>
+    </form>
+  {/if}
+
+  <!-- The selected collection: its name (renamable inline), and its one destructive control. -->
+  {#if current !== undefined}
+    <div class="collection-head" data-testid="collection-head">
+      {#if renamingCollection}
+        <input
+          class="collection-rename type-field"
+          type="text"
+          data-testid="collection-rename-field"
+          aria-label={renameCollectionName(current.name)}
+          bind:value={collectionName}
+          use:focusOnMount
+          onblur={commitRenameCollection}
+          onkeydown={renameCollectionKeys}
+        />
+      {:else}
+        <h2 class="collection-name" data-testid="collection-title">
+          {current.name}
+        </h2>
+      {/if}
+      <div class="collection-actions">
+        <button
+          class="quiet"
+          type="button"
+          data-testid="collection-rename"
+          aria-label={renameCollectionName(current.name)}
+          onclick={startRenameCollection}>{RENAME_COLLECTION}</button
+        >
+        <button
+          class="quiet"
+          type="button"
+          data-testid="collection-delete"
+          aria-label={deleteCollectionName(current.name)}
+          onclick={ondeleteCollection}>{DELETE_COLLECTION}</button
+        >
+      </div>
+    </div>
+  {/if}
+
+  <p
+    class="count"
+    data-testid="library-count"
+    data-dropped={collectionsDropped}
+  >
+    {countLine(rows.length)}
+  </p>
 
   <LibraryTable
     {rows}
     empty={emptyLine}
+    {collections}
+    {memberOf}
+    removeFrom={current}
     onready={collect}
     {onrename}
     {onexport}
     {ondelete}
+    onfile={onfileRecord}
+    onunfile={onunfileRecord}
   />
 </section>
 
@@ -917,6 +1234,99 @@
     color: var(--color-ink);
   }
 
+  /* The new-collection form: a caption, a field and two small buttons in a row. */
+  .create {
+    margin-block-start: 24px;
+    padding: 16px;
+    background: var(--color-panel);
+    border: 1px solid var(--color-divider);
+  }
+
+  .create-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .create-field {
+    box-sizing: border-box;
+    flex: 1 1 240px;
+    min-block-size: 44px;
+    padding-inline: 16px;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    appearance: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-ink);
+  }
+
+  .small {
+    min-inline-size: 96px;
+  }
+
+  .filled:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* The selected collection's head: the name in the panel-title role, two quiet actions. */
+  .collection-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin-block-start: 24px;
+  }
+
+  .collection-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .collection-rename {
+    box-sizing: border-box;
+    inline-size: min(100%, 32ch);
+    min-block-size: 44px;
+    padding-inline: 12px;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    appearance: none;
+    background: transparent;
+    color: var(--color-ink);
+  }
+
+  .collection-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .quiet {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    padding-inline: 8px;
+    border: 0;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--color-ink-quiet);
+    cursor: pointer;
+    transition: color 160ms ease-out;
+  }
+
+  .quiet:hover {
+    color: var(--color-ink);
+  }
+
   /* `12 saved configurations`, quiet, above the table. */
   .count {
     margin: 24px 0 12px;
@@ -927,7 +1337,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .outlined {
+    .outlined,
+    .quiet {
       transition: none;
     }
   }
