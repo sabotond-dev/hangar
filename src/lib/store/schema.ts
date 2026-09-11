@@ -56,6 +56,23 @@
 // model.ts) imports both rather than re-declaring them, so a cap that moves
 // after the budget is measured (13-14's own task) moves in one place.
 //
+// THE REGION AND THE SURFACE ARE DEFINED HERE ONCE AND EXTENDED AT 13-14, NOT
+// DUPLICATED. 13-13 put the shapes here because a sandbox record carries a
+// Surface and the import validates one before any Sandbox module loads. 13-14
+// re-exports them from src/lib/sandbox/model.ts and adds what the editor needs
+// beside them (the named one-based door, the runtime type codes, the minimum
+// sizes); the one field it added HERE is a fader's `orientation`, because the
+// Bible's inspector lists orientation under Geometry (section 8) and 13-13's
+// four kinds had folded both faders into one. A record written before this
+// field existed reads as a vertical fader - the field is optional and its
+// absence IS the default - so no `.v2` is needed. THE VERSION STAYS ON THE
+// RECORD, NOT ON THE SURFACE: a Surface never travels alone (transfer.ts
+// exports the SandboxRecord, whose base carries `schema: 1`), and a second
+// `schema` on the nested surface would be the same number in two places with
+// two readers to keep in step. 13-14-PLAN.md's interfaces block draws a
+// `schema: 1` on the Surface itself; the tree's envelope rule (above) puts it
+// on the record, and 13-14 kept the tree's shape and said so.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 /** The one version every body carries and every key name ends in. */
@@ -136,11 +153,21 @@ export const ELEMENT_KINDS: readonly ElementKind[] = [
 ];
 
 /**
+ * A fader's axis (Bible section 8, the inspector's Geometry row). Absent
+ * means vertical - the PDF's own Filter fader is a 2 x 6 upright - so every
+ * record written before 13-14 added the field still reads as it was drawn.
+ * Meaningful on a fader only; the model ignores it on the other kinds.
+ */
+export type Orientation = "vertical" | "horizontal";
+
+export const ORIENTATIONS: readonly Orientation[] = ["vertical", "horizontal"];
+
+/**
  * One placed element. Cells are ZERO-based, 0..8, and the UI shows them
  * one-based through 13-14's named door. `channel` is 1..16 as the user sees
  * it; the wire's 0..15 is the compiler's business. `colour` is RGB444, the
  * picker's own resolution. `cc2` exists for the XY pad's second axis;
- * `latch` for a button only.
+ * `latch` for a button only; `orientation` for a fader only (13-14).
  */
 export type Region = {
   readonly id: string;
@@ -155,9 +182,13 @@ export type Region = {
   readonly channel: number;
   readonly colour: readonly [number, number, number];
   readonly latch?: boolean;
+  readonly orientation?: Orientation;
 };
 
-/** A Sandbox surface: a region list and nothing else. No thumbnail, ever. */
+/**
+ * A Sandbox surface: a region list and nothing else. No thumbnail, ever. The
+ * version is on the record that carries it, not here (the header says why).
+ */
 export type Surface = {
   readonly id: string;
   readonly name: string;
@@ -244,6 +275,12 @@ export function isRegion(value: unknown): value is Region {
   }
   if (value.cc2 !== undefined && !isInt(value.cc2)) return false;
   if (value.latch !== undefined && typeof value.latch !== "boolean") {
+    return false;
+  }
+  if (
+    value.orientation !== undefined &&
+    !ORIENTATIONS.includes(value.orientation as Orientation)
+  ) {
     return false;
   }
   const colour = value.colour;
