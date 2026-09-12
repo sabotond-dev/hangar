@@ -3510,6 +3510,62 @@ the four-document rule for the copy specs (`13.1-COPY-NEW.md` read by two specs,
   Phase 13 tree's; the switch on the select's change, the header's Clear, the zone and the fields
   are handed to the bench in the runbook.
 
+### The app frame fits the screen - A.4 closed by a quick task after the gate (2026-09-12)
+
+The quick task after the 13.1 gate did A.4's edit as it was written and measured it on the served
+build in chromium at 1280 × 720, document `scrollHeight / clientHeight`, before and after, against
+a fresh build each time (the build on disk was stale; `e798ea0` was rebuilt first): before `/`
+**720 / 720**, `/playground/` **791 / 720**, `/sandbox/?new` **791 / 720**, `/my-configs/`
+**791 / 720**, `/playground/arc/` **1012 / 720** - A.4's five to the pixel; after **720 / 720 on all
+five**, the frame **464** (`720 − 76 − 59 − 121`, derived, never a calc), the footer's bottom
+edge at 720. `src/routes/+layout.svelte`: `.site` is the 100dvh flex column under every variant
+(the `.intro` qualifier gone from the root rule and from `.site .shell`'s flex 1; the old
+`.site { display: contents }` with it), `.frame` is `flex: 1 1 0; min-block-size: 0` with the
+calc on `FOOTER_H` deleted, and the stacked band's `.site.intro { display: contents }` reads
+`.site`. **One line A.4 did not write and the tree needed**: `.frame { flex: none }` in the stacked
+band beside the `block-size: auto` that stays - measured at 900 × 720 without it, the frame was
+**0px tall** and `/playground/` a **8522px** document, because with the site root `display:
+contents` the shell's column is content-height and Chrome sizes a flex-basis-0 child of a
+content-height column at zero; `.centre.intro` has declared the same `flex: none` in the same band
+since 13.1-01 for the same reason. After it the stacked and narrow bands flow as before (900 × 720:
+`/playground/` 9356, `/sandbox/` 1855, `/my-configs/` 1166, `/playground/arc/` 2593, the frame
+content-sized and the footer under it).
+
+**The workspace's 221px was a second thing, diagnosed**: `TuningRegion.svelte:865`'s
+`<p class="sr-only" data-testid="tuning-live">` - Tailwind's `sr-only` is `position: absolute` -
+sat at its static position under the inspector's last section (top 1011, bottom 1012) with the
+initial containing block as its containing block, so neither `shell-inspector-body`'s
+`overflow: auto` nor `inspector-col`'s `overflow: hidden` clipped it and the document's scrollable
+overflow reached 1012 = 791 + 221. The same shape as A.4 (content that belongs to a frame scroll
+region), so fixed rather than recorded: `Inspector.svelte`'s `.body` is `position: relative` - a
+containing block on the scroll container keeps the paragraph inside it. `TuningRegion.svelte` is
+untouched. The same escape exists for the workspace's two `sr-only` mode radios (`mode-configure`,
+`mode-play`, 1px boxes at their static position inside the centre, offsetParent BODY); they sit
+inside the viewport and move nothing, so `.centre` was left without a `position` - noted, not a
+change.
+
+**Proof**: `e2e/browse.e2e.ts`'s new chromium title _the app frame fits the screen_ visits
+`/playground/`, `/sandbox/?new`, `/my-configs/` and `/playground/arc/` at 1280 × 720 through a cold
+arrival each, waits for the page (the cards, the plate, `my-configs`, the settled region), lets
+fonts and two frames land, and asserts `scrollHeight <= clientHeight`, the footer's bottom at 720
+and the frame above 300 tall; before the edit the first assertion reads 791 or 1012 against 720.
+`e2e/sandbox.e2e.ts`'s drag title is back at the harness's 720 (it was 900 because the footer
+overlaid the plate's bottom row; its comment says so). `intro.spec.ts` 5's two `.site.intro`
+selectors read `.site`; `shell.spec.ts` 5 unchanged; `FOOTER_H` keeps its one reader
+(`Footer.svelte`'s `min-block-size`). Counts as carried from the gate, then the delta: quick
+**94 / 964 (+1 todo)** twice at `--maxWorkers=2` (`+0 / +0`); check **654 / 0 / 0** (`+0`); lint
+clean; radius layer A allowlist **0** and six circles by file and line (`ColourPicker.svelte`
+:840 :867 :882, `Knob.svelte` :730 :785 :807), layer B green against the fresh build, layer C
+**79** circles square STRICT on 12 routes; e2e **86 titles / 101 runs** (`+1 / +1`) in the five
+chunks on fresh detached servers (`e2e-chunks-1208.sh`, stopped through PowerShell): c1 32, c2 19
+green + 3 red, c3 21, c4 15, c5 11. c2's three reds were the named transient and nothing else
+(`browse:299`, `:343`, `:1404`, the hydration race under three workers, A.8): `:299` and `:1404`
+green on the first solo run, `:343` red once more on that run with the transient's shape (5
+expected, 26 - the grid never narrowed) and green on the second, as at the gate. Commits: the code
+and the e2e together, then this paragraph with `deferred-items.md`'s dated closed line and STATE.
+No device, no deploy; `src/vendor/`, `library.ts`, `Knob.svelte`, `ColourPicker.svelte` untouched.
+CAT-04 stays `[ ]`; the phase stays gate landed / bench pending.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
