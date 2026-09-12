@@ -20,6 +20,13 @@
   face, body about 13px in the secondary colour, square 48. Every colour is
   one of 13-03's eleven tokens.
 
+  ITS VERTICAL NUMBERS ARE THE INTRO'S TO SCALE (plan 13.1-01; D-01): the
+  minimum height, the block padding, the text gap and the title size are
+  read from custom properties the intro's .cards sets, with the PDF's values
+  as the fallbacks, so the card is the PDF's on its own and shrinks with the
+  intro when the screen is short. The square stays 48 at every height - it
+  is the affordance - and the eyebrow and the body keep their roles.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -67,8 +74,8 @@
     justify-content: space-between;
     gap: 24px;
     box-sizing: border-box;
-    min-block-size: 108px;
-    padding: 20px 24px;
+    min-block-size: var(--start-card-min, 108px);
+    padding: var(--start-card-pad, 16px) 24px;
     text-decoration: none;
     color: var(--color-ink);
   }
@@ -92,7 +99,7 @@
   .text {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--start-card-gap, 6px);
     min-inline-size: 0;
   }
 
@@ -102,7 +109,7 @@
 
   .title {
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: var(--start-card-title, 24px);
     font-weight: 700;
     line-height: 1.15;
   }

@@ -35,6 +35,30 @@
   address helper CatalogCard.svelte uses today, so 13-08's move to
   /playground/<id> (D-20) carries this line with every other call site.
 
+  IT FITS THE SCREEN (plan 13.1-01; 13.1-CONTEXT.md D-01; bench line 1,
+  2026-09-12, verbatim: "I dont want the index page to be scrollable, always
+  fit on the screen"). In the wide and compact bands the layout hands this
+  component a centre that is exactly what the viewport leaves after the
+  header and the footer (+layout.svelte, a 100dvh column; the centre is a
+  size container). The root is a grid of two rows - the columns, then the
+  strip at the foot - and every vertical number below is the PDF's times a
+  scale read off that height: --intro-unit is one PDF pixel at the current
+  height (min(1px, 100cqh / INTRO_FIT_H)) and --intro-squeeze is a steeper
+  ramp for the spacings, zero at INTRO_SQUEEZE_FROM of the PDF's height. The
+  type scales with the unit and is floored here - the headline never below
+  34px, the sub-lines 15, the card titles 18 - and app.css's .type-display
+  role stays at 60 (D-17 is the PDF's scale; this file clamps its own
+  headline locally). The hero's square is the smaller of its column's width
+  and the height its row leaves (HeroSurface.svelte). Nothing 13-07 pinned
+  is hidden at any height; what gives when the screen is short is the
+  spacing first, then the type down to its floors, then the surface. Below
+  1024 none of this applies: the unit and the ramp are 1px, the columns
+  stack, and the phone may scroll (D-01 is about the desktop; D.10 open).
+  The constants and their provenance are in shell/layout.ts, read here as
+  UNITLESS custom properties because the CSS multiplies them by a length.
+  Nothing in this file uses the cq units inside the hero's own stage, whose
+  nearest container is itself, not the centre.
+
   Measured on the PDF at a 1500px render width (MEDIUM confidence, raster):
   page inset 72; left column 72-710, right 806-1425 (a 96 gutter); eyebrow at
   y 170 under a 76 header, panel from y 133; cards 108 tall; strip y 845-930
@@ -47,6 +71,15 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
+  import {
+    INTRO_FIT_H,
+    INTRO_GAP,
+    INTRO_PAD_BOTTOM,
+    INTRO_PAD_TOP,
+    INTRO_SQUEEZE_FROM,
+    INTRO_STRIP_PAD,
+    INTRO_WORDS_MIN_W,
+  } from "../shell/layout";
   import { SECTIONS } from "../shell/shell.svelte";
   import HeroSurface from "./HeroSurface.svelte";
   import StartCard from "./StartCard.svelte";
@@ -79,7 +112,17 @@
   );
 </script>
 
-<div class="intro" data-testid="intro">
+<div
+  class="intro"
+  data-testid="intro"
+  style:--intro-fit-h={INTRO_FIT_H}
+  style:--intro-squeeze-from={INTRO_SQUEEZE_FROM}
+  style:--intro-pad-top={INTRO_PAD_TOP}
+  style:--intro-pad-bottom={INTRO_PAD_BOTTOM}
+  style:--intro-gap={INTRO_GAP}
+  style:--intro-strip-pad={INTRO_STRIP_PAD}
+  style:--intro-words-min-w="{INTRO_WORDS_MIN_W}px"
+>
   <div class="columns">
     <div class="words">
       <p class="eyebrow type-micro">WELCOME TO YOUR CONFIGURATION STUDIO</p>
@@ -159,38 +202,76 @@
 </div>
 
 <style>
+  /*
+    THE FIT (13.1-01, D-01). --intro-unit: one PDF pixel at the centre's
+    height, capped at 1px so nothing ever grows past the PDF's numbers.
+    --intro-squeeze: the spacing ramp, 1px at the PDF's height and 0 at
+    INTRO_SQUEEZE_FROM of it, so gaps give before words. Both are token
+    streams resolved where they are used, and the whole intro sits under one
+    size container (the centre), so 100cqh is the centre everywhere below.
+    Two rows: the columns take what the strip leaves; the strip is at the foot.
+  */
   .intro {
-    display: flex;
-    flex-direction: column;
-    gap: 44px;
+    --intro-unit: min(1px, calc(100cqh / var(--intro-fit-h)));
+    --intro-squeeze: clamp(
+      0px,
+      calc(
+        (var(--intro-unit) - var(--intro-squeeze-from) * 1px) /
+          (1 - var(--intro-squeeze-from))
+      ),
+      1px
+    );
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    row-gap: calc(var(--intro-gap) * var(--intro-squeeze));
     box-sizing: border-box;
-    padding: 57px 72px 48px;
+    block-size: 100%;
+    min-block-size: 0;
+    padding: calc(var(--intro-pad-top) * var(--intro-squeeze)) 72px
+      calc(var(--intro-pad-bottom) * var(--intro-squeeze));
     color: var(--color-ink);
   }
 
-  /* Two columns at the PDF's proportions: 638 and 619 across a 96 gutter. */
+  /*
+    Two columns at the PDF's proportions: 638 and 619 across a 96 gutter,
+    the words never narrower than INTRO_WORDS_MIN_W (the cards' bodies on one
+    line at the compact band's foot; layout.ts says why). One explicit row,
+    the height the intro's first row gives, so the hero is bounded by the row
+    and never by the words beside it.
+  */
   .columns {
     display: grid;
-    grid-template-columns: minmax(0, 638fr) minmax(0, 619fr);
+    grid-template-columns:
+      minmax(min(100%, var(--intro-words-min-w)), 638fr)
+      minmax(0, 619fr);
+    grid-template-rows: minmax(0, 1fr);
     column-gap: 96px;
-    align-items: start;
+    align-items: stretch;
+    min-block-size: 0;
   }
 
   .words {
     display: flex;
     flex-direction: column;
-    padding-block-start: 37px;
+    min-block-size: 0;
+    padding-block-start: calc(37 * var(--intro-squeeze));
   }
 
   .eyebrow {
-    margin: 0 0 20px;
+    margin: 0 0 calc(20 * var(--intro-squeeze));
     color: var(--color-ink-quiet);
   }
 
+  /*
+    The headline's size is clamped HERE, locally: app.css's .type-display
+    stays at 60px (D-17, the PDF's scale). 60 at the PDF's height, never
+    below 34.
+  */
   .headline {
     display: flex;
     flex-direction: column;
-    margin: 0 0 28px;
+    margin: 0 0 calc(28 * var(--intro-squeeze));
+    font-size: max(34px, calc(60 * var(--intro-unit)));
   }
 
   .line {
@@ -205,20 +286,30 @@
   .sub {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: 19px;
+    font-size: max(15px, calc(19 * var(--intro-unit)));
     line-height: 1.55;
     color: var(--color-ink-quiet);
   }
 
+  /*
+    The cards' own vertical numbers travel as custom properties StartCard
+    reads (its padding, gap, title size and minimum height): the PDF's 108
+    tall at the PDF's height, the title never below 18.
+  */
   .cards {
+    --start-card-min: calc(108 * var(--intro-unit));
+    --start-card-pad: calc(16 * var(--intro-squeeze));
+    --start-card-gap: calc(6 * var(--intro-squeeze));
+    --start-card-title: max(18px, calc(24 * var(--intro-unit)));
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-block: 44px 40px;
+    gap: calc(16 * var(--intro-squeeze));
+    margin-block: calc(44 * var(--intro-squeeze))
+      calc(40 * var(--intro-squeeze));
   }
 
   .have {
-    margin: 0 0 20px;
+    margin: 0 0 calc(20 * var(--intro-squeeze));
     color: var(--color-ink-quiet);
   }
 
@@ -249,13 +340,13 @@
     background: var(--color-action);
   }
 
-  /* The strip: a full-width rule, then three equal columns. */
+  /* The strip: a full-width rule, then three equal columns. Its height is its content's. */
   .steps {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     column-gap: 32px;
     margin: 0;
-    padding: 32px 4px 0;
+    padding: calc(var(--intro-strip-pad) * var(--intro-squeeze)) 4px 0;
     list-style: none;
     border-block-start: 1px solid var(--color-divider);
   }
@@ -263,7 +354,7 @@
   .steps li {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: calc(8 * var(--intro-squeeze));
   }
 
   .num {
@@ -281,14 +372,24 @@
     color: var(--color-ink-quiet);
   }
 
-  /* Below the compact band the columns stack and the strip follows. */
+  /*
+    Below the compact band the columns stack and the strip follows; the page
+    flows and may scroll, at the PDF's numbers (the unit and the ramp are 1px
+    here; the centre is no container, so 100cqh would read the viewport).
+  */
   @media (max-width: 1023.98px) {
     .intro {
+      --intro-unit: 1px;
+      --intro-squeeze: 1px;
+      display: flex;
+      flex-direction: column;
+      block-size: auto;
       padding-inline: 32px;
     }
 
     .columns {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: none;
       row-gap: 40px;
     }
 

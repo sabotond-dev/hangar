@@ -110,6 +110,22 @@
    * are excluded because their label row is the target, as
    * MotionControl.svelte already declares.
    *
+   * THE INTRO IS ONE SCREEN (plan 13.1-01; 13.1-CONTEXT.md D-01; bench line
+   * 1, 2026-09-12: "I dont want the index page to be scrollable, always fit
+   * on the screen"). In the wide and compact bands the site root under the
+   * intro variant is a 100dvh flex column: the announcer, the shell (header
+   * over centre) and the footer, each at its own rendered height, and the
+   * centre takes what is left with overflow: hidden. The centre's height is
+   * DERIVED from the header and the footer as they render, never computed
+   * from HEADER_H and FOOTER_H: the footer is min-block-size FOOTER_H and
+   * renders taller (its licence row is a second 44px line), so a calc on
+   * the constants would leave the document 71px of scroll. The centre is a
+   * size container, and Intro.svelte reads its height as 100cqh to scale
+   * the PDF's numbers (layout.ts, INTRO_FIT_H and the paragraph above it).
+   * Below 1024 the root is display: contents again, the columns stack
+   * (13-07) and the phone may scroll - D-01 is the user's rule about the
+   * desktop; deferred-items D.10 is still open.
+   *
    * THE DEVICE CHROME IS THE SHELL'S, NOT A ROUTE'S (plan 13-11). The
    * header's connection control and the footer's Device actions read the
    * two singletons this layout starts, so the layout mounts both, once, on
@@ -148,6 +164,7 @@
 
 <div
   class="site"
+  class:intro={fill?.variant === "intro"}
   style:--coarse-target="{COARSE_TARGET}px"
   style:--header-h="{HEADER_H}px"
   style:--context-h="{CONTEXT_H}px"
@@ -267,9 +284,31 @@
     padding: var(--centre-pad);
   }
 
+  /*
+    The intro's centre (13.1-01, D-01): a flex child of the 100dvh site
+    column below, sized by what the header and the footer leave, clipped at
+    its edge, and a size container so Intro.svelte can read its height in
+    cq units. The e2e title in first-experience.e2e.ts proves the fit at four
+    desktop viewports off the rendered boxes, not off this stylesheet.
+  */
   .centre.intro {
+    flex: 1 1 0;
+    min-block-size: 0;
     padding: 0;
-    overflow: visible;
+    overflow: hidden;
+    container-type: size;
+  }
+
+  /* One screen: the desktop intro by the user's word (13.1-01, D-01). */
+  .site.intro {
+    display: flex;
+    flex-direction: column;
+    block-size: 100dvh;
+  }
+
+  .site.intro .shell {
+    flex: 1 1 0;
+    min-block-size: 0;
   }
 
   .inspector-col {
@@ -308,6 +347,17 @@
 
     .centre {
       overflow: visible;
+    }
+
+    /* The stacked intro flows and may scroll (13-07's stack; D-01 is about the desktop). */
+    .site.intro {
+      display: contents;
+    }
+
+    .centre.intro {
+      flex: none;
+      overflow: visible;
+      container-type: normal;
     }
   }
 

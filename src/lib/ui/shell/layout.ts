@@ -135,6 +135,98 @@ export const NUMERIC_GRID_REFLOW = GRID_FITS_INSPECTOR;
 export const SURFACE_MAX = 600;
 
 /**
+ * THE INTRO FITS THE SCREEN (plan 13.1-01; 13.1-CONTEXT.md D-01; bench line
+ * 1, 2026-09-12, verbatim: "I dont want the index page to be scrollable,
+ * always fit on the screen"). The numbers the intro's fit arithmetic reads,
+ * declared here like every other shell number and handed to Intro.svelte as
+ * UNITLESS custom properties, because the CSS multiplies them by a length.
+ *
+ * HOW THE FIT WORKS, in one paragraph. src/routes/+layout.svelte makes the
+ * intro's centre the height the viewport leaves after the header and the
+ * footer AS THEY RENDER (a 100dvh flex column, never an arithmetic on
+ * FOOTER_H: the footer is min-block-size FOOTER_H and renders taller - its
+ * licence row is a second 44px line - so a calc on the constant would leave
+ * 71px of document scroll). The centre is a size container and the intro
+ * reads its height as 100cqh. INTRO_UNIT, in CSS, is one PDF pixel at the
+ * current height: min(1px, 100cqh / INTRO_FIT_H). Every vertical measure in
+ * the intro is the PDF's number times a scale: the TYPE scales with the unit
+ * and is floored (the headline never below 34px, the sub-lines 15, the card
+ * titles 18; the micro and helper roles never scale); the SPACING scales with
+ * a steeper ramp that reaches zero at INTRO_SQUEEZE_FROM of the PDF's height,
+ * so gaps give before words do; the hero's square is the smaller of its
+ * column's width and the height its row leaves (HeroSurface.svelte, cq units
+ * on the square's own stage). Below the compact band (1024) none of this
+ * applies: the columns stack (13-07) and the phone may scroll - D-01 is the
+ * user's rule about the desktop, and deferred-items D.10 (surface first on a
+ * phone) is still open.
+ *
+ * WHAT GIVES WHEN THE VIEWPORT IS SHORT, in order: the spacings (the intro's
+ * paddings and gap, the words column's margins, the cards' padding, the
+ * strip's padding) along the ramp; the type down to its floors; the hero's
+ * surface, which takes whatever height the row leaves. Nothing 13-07 pinned
+ * is hidden at any height. Below a centre of about INTRO_SQUEEZE_FROM x
+ * INTRO_FIT_H (about 280px, a desktop viewport under about 480px tall with
+ * the shell's header and footer) the spacings are zero and the type is at its
+ * floors, and the intro overflows its box and is clipped by the centre's
+ * overflow: hidden - a desktop that short is not one the bench named, and it
+ * is stated here rather than promised away. At a centre TALLER than
+ * INTRO_FIT_H the strip stays at the foot and the columns row grows: the
+ * hero panel stretches with it and its square, width-bound by then, sits
+ * centred in the room the panel's two text rows leave.
+ *
+ * INTRO_FIT_H IS MEASURED OFF THE TREE, NOT THE PDF, and the difference is
+ * stated: PDF page 1 at the 1500px render is 1042 tall and its centre (less
+ * the 76 header and the PDF's 50 footer) is 916; the intro as 13-07 built it
+ * at the PDF's numbers renders 937 tall at any wide viewport (measured in
+ * chromium, 2026-09-12: pad 57 + the hero's 681 + gap 44 + the strip's 107
+ * + pad 48), 21 taller than the PDF's page because 13-07 stacks the strip's
+ * number above its word where the PDF sets it beside, and the hero's two
+ * rows are a few pixels taller than the PDF's. At a centre of 937 or more
+ * nothing scales and the intro is exactly 13-07's. MEDIUM confidence, a
+ * raster-and-DOM measurement like every other figure here.
+ */
+export const INTRO_FIT_H = 937;
+
+/** The intro's block padding at the PDF's 1500 render: 57 under the header, 48 above the strip's foot (13-07). */
+export const INTRO_PAD_TOP = 57;
+export const INTRO_PAD_BOTTOM = 48;
+
+/** The gap between the columns and the strip: 44 (13-07). */
+export const INTRO_GAP = 44;
+
+/**
+ * The strip: the PDF's rule at y 845 and its text's foot at y 930 at 1500 -
+ * 85 tall, of which 32 is the padding between the rule and the numbers.
+ * INTRO_STRIP_H is recorded for provenance and read by no rule: the strip's
+ * height is its content's, never fixed, so a font change cannot clip it.
+ */
+export const INTRO_STRIP_H = 85;
+export const INTRO_STRIP_PAD = 32;
+
+/**
+ * The spacing ramp's foot: the fraction of INTRO_FIT_H at which every
+ * spacing in the intro has shrunk to zero. Chosen so the four desktop
+ * viewports the bench names (1920 x 1080, 1440 x 900, 1366 x 768, 1280 x
+ * 720) all fit and the words column fills its row at the tightest of them
+ * (0.45 left 99px of slack at 1280 x 720 with the headline at its floor;
+ * 0.3 leaves about 16), and stated so a later measurement can move it by
+ * name. Type is floored separately and does not read this.
+ */
+export const INTRO_SQUEEZE_FROM = 0.3;
+
+/**
+ * The words column's floor, in px. The PDF's two columns are 638 : 619
+ * across a 96 gutter, and at the compact band's foot (1024 wide) the
+ * proportional share is 398px, at which the two start cards' bodies wrap
+ * onto a second line and the column runs 16px into the strip at 1024 x 768
+ * (measured 2026-09-12). At 460 the bodies hold one line. The hero's column
+ * gives the width: at every compact height its square is height-bound and
+ * its column has room to spare. Read by Intro.svelte's .columns as the
+ * first track's minimum; it never binds above about 1150px of viewport.
+ */
+export const INTRO_WORDS_MIN_W = 460;
+
+/**
  * THE SANDBOX'S PLATE (plan 13-16): PDF page 3's outer plate, x 351 to 922
  * and y 347 to 918 at 1500 - 571 square, holding the 9 x 9 lattice at a
  * pitch of 571 / 9 = 63.4. It is the SVG's user-unit square; the element

@@ -53,6 +53,19 @@
 // is disabled with the capability sentence adjacent (DEGR-02 on the third
 // control).
 //
+// SIX TESTS SINCE 13.1-01 (13.1-CONTEXT D-01; bench line 1, 2026-09-12: "I
+// dont want the index page to be scrollable, always fit on the screen"). One
+// title added beside the intro's: the intro fits at four desktop viewports.
+// It sets its own viewport with page.setViewportSize (the project's stays
+// 1280 x 720; playwright.config.ts is not edited) and puts it back at the
+// end. The proof is measured off rendered boxes and off three scrollHeight
+// readings - the document's, the centre's and the intro's own - because the
+// centre clips (overflow: hidden) and a document-only reading would pass
+// while the strip was cut off (13.1-PLAN-CHECK W-02); and every element
+// intro.spec.ts test 1 pins is asserted inside the viewport AND above the
+// strip, because the words column can run into the strip's row without
+// leaving the intro's box at all.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 // The list itself, not a copy of it. src/lib/catalog/front-door.ts imports
@@ -224,6 +237,138 @@ test.describe("the intro, with no hardware attached", () => {
     );
     expect(again.at).toBe(flag.at);
 
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("the intro fits the screen at 1920 x 1080, 1440 x 900, 1366 x 768 and 1280 x 720: no document scroll, no overflow inside the centre or the intro's own box, and every element PDF page 1 pins inside the viewport and above the strip", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const sizes = [
+      [1920, 1080],
+      [1440, 900],
+      [1366, 768],
+      [1280, 720],
+    ] as const;
+    // The pinned elements, by the same handles intro.spec.ts test 1 reads:
+    // the eyebrow, both headline lines, both sub-lines, both start cards, the
+    // import link, the note, the hero panel, and the strip's three items.
+    const pinned = (): { name: string; box: string }[] => [
+      { name: "eyebrow", box: "[data-testid=intro] p.eyebrow" },
+      { name: "headline line 1", box: "[data-testid=intro] h1 .line >> nth=0" },
+      { name: "headline line 2", box: "[data-testid=intro] h1 .line >> nth=1" },
+      { name: "sub-line 1", box: "[data-testid=intro] p.sub >> nth=0" },
+      { name: "sub-line 2", box: "[data-testid=intro] p.sub >> nth=1" },
+      { name: "card A", box: "[data-testid=start-explore]" },
+      { name: "card B", box: "[data-testid=start-sandbox]" },
+      { name: "the import link", box: "[data-testid=intro-import]" },
+      { name: "the note", box: "[data-testid=intro] .note" },
+      { name: "the hero panel", box: "[data-testid=intro-hero]" },
+      { name: "step 01", box: "[data-testid=intro-steps] li >> nth=0" },
+      { name: "step 02", box: "[data-testid=intro-steps] li >> nth=1" },
+      { name: "step 03", box: "[data-testid=intro-steps] li >> nth=2" },
+    ];
+
+    for (const [width, height] of sizes) {
+      await page.setViewportSize({ width, height });
+      await page.goto("/");
+      await expect(page.getByTestId("intro-steps")).toBeVisible();
+      await expect(page.getByTestId("start-explore")).toBeVisible();
+      // The hero's picture, so the panel is measured with its pad painted.
+      await waitForPicture(page, HERO);
+
+      // THREE READINGS, all inside. The document's alone would pass while
+      // the centre clipped; the centre's and the intro's own catch what the
+      // clip hides.
+      const scroll = await page.evaluate(() => {
+        const read = (el: Element | null) =>
+          el === null ? null : [el.scrollHeight, el.clientHeight];
+        return {
+          document: read(document.scrollingElement),
+          centre: read(document.querySelector("main.centre")),
+          intro: read(document.querySelector('[data-testid="intro"]')),
+          overflow: getComputedStyle(
+            document.querySelector("main.centre") as Element,
+          ).overflowY,
+        };
+      });
+      expect(scroll.overflow, `${width} x ${height}: the centre clips`).toBe(
+        "hidden",
+      );
+      for (const [name, pair] of Object.entries({
+        document: scroll.document,
+        centre: scroll.centre,
+        intro: scroll.intro,
+      })) {
+        expect(pair, `${width} x ${height}: ${name} was read`).not.toBeNull();
+        const [scrollHeight, clientHeight] = pair as [number, number];
+        expect(
+          scrollHeight,
+          `${width} x ${height}: ${name} scrollHeight ${scrollHeight} exceeds clientHeight ${clientHeight} - the intro scrolls or is clipped`,
+        ).toBeLessThanOrEqual(clientHeight);
+      }
+      expect(
+        scroll.document?.[1],
+        `${width} x ${height}: the document's clientHeight is the viewport`,
+      ).toBe(height);
+
+      // EVERY PINNED ELEMENT inside the viewport, and everything above the
+      // strip actually above it.
+      const strip = await page.getByTestId("intro-steps").boundingBox();
+      expect(strip, `${width} x ${height}: the strip has a box`).not.toBeNull();
+      const stripTop = (strip as { y: number }).y;
+      for (const { name, box } of pinned()) {
+        const b = await page.locator(box).boundingBox();
+        expect(b, `${width} x ${height}: ${name} has a box`).not.toBeNull();
+        const {
+          x,
+          y,
+          width: w,
+          height: h,
+        } = b as {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        };
+        expect(y, `${width} x ${height}: ${name} top`).toBeGreaterThanOrEqual(
+          0,
+        );
+        expect(x, `${width} x ${height}: ${name} left`).toBeGreaterThanOrEqual(
+          0,
+        );
+        expect(
+          y + h,
+          `${width} x ${height}: ${name} bottom ${Math.round(y + h)} is below the viewport's ${height}`,
+        ).toBeLessThanOrEqual(height);
+        expect(
+          x + w,
+          `${width} x ${height}: ${name} right ${Math.round(x + w)} is past the viewport's ${width}`,
+        ).toBeLessThanOrEqual(width);
+        if (!name.startsWith("step")) {
+          expect(
+            y + h,
+            `${width} x ${height}: ${name} bottom ${Math.round(y + h)} runs into the strip at ${Math.round(stripTop)}`,
+          ).toBeLessThanOrEqual(stripTop);
+        }
+      }
+
+      // The square is a square, and it is live.
+      const surface = await page.getByTestId("intro-surface").boundingBox();
+      expect(surface).not.toBeNull();
+      const sq = surface as { width: number; height: number };
+      expect(
+        Math.abs(sq.width - sq.height),
+        `${width} x ${height}: the surface is square`,
+      ).toBeLessThan(1);
+      expect(
+        sq.width,
+        `${width} x ${height}: the surface is not collapsed`,
+      ).toBeGreaterThan(200);
+    }
+
+    // The project's viewport back, so later titles in this file are unmoved.
+    await page.setViewportSize({ width: 1280, height: 720 });
     expect(consoleErrors).toEqual([]);
   });
 });

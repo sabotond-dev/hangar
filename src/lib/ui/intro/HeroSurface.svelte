@@ -39,6 +39,17 @@
   chip is solid, and the only light is the light output's own bloom on the
   frame.
 
+  THE SQUARE IS BOUNDED BY ITS ROW (plan 13.1-01; 13.1-CONTEXT.md D-01). The
+  panel is a grid of three rows - the label row, the stage, the caption row
+  - stretched to the height the intro's columns row gives it, and the stage
+  is a size container: the square is min(100cqw, 100cqh) of the stage, so it
+  is the smaller of the column's width and whatever height the two text
+  rows leave, centred in the stage either way. No arithmetic on the panel's
+  padding or gaps is written anywhere, because the stage's own box already
+  excludes them. The panel's padding and gaps scale with the intro's unit
+  (--intro-unit, Intro.svelte; 1px outside it). Below 1024 the stage is no
+  container and the square is the column's width, as 13-07 built it.
+
   THE STRINGS ARE THE PDF's, VERBATIM: `TRY THE SURFACE`, `BROWSER PREVIEW`,
   the name-slash-term caption (`ARC / MODULATION` on the PDF; the hero's own
   name and FOR term here) and "Drag across the surface to preview". The one
@@ -181,20 +192,22 @@
     static-element rule is suppressed here rather than satisfied with a role
     that would promise a control this surface is not.
   -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
-    class="surface"
-    data-testid="intro-surface"
-    aria-describedby="intro-hero-description"
-    onpointerdown={onDown}
-    onpointermove={onMove}
-    onpointerup={onUp}
-    onpointercancel={onUp}
-    onlostpointercapture={onUp}
-  >
-    <PadFrame {entry} hero>
-      <PadCanvas {entry} hero onready={collect} />
-    </PadFrame>
+  <div class="stage">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="surface"
+      data-testid="intro-surface"
+      aria-describedby="intro-hero-description"
+      onpointerdown={onDown}
+      onpointermove={onMove}
+      onpointerup={onUp}
+      onpointercancel={onUp}
+      onlostpointercapture={onUp}
+    >
+      <PadFrame {entry} hero>
+        <PadCanvas {entry} hero onready={collect} />
+      </PadFrame>
+    </div>
   </div>
   <p id="intro-hero-description" class="description">{description}</p>
 
@@ -207,13 +220,19 @@
 </section>
 
 <style>
-  /* The panel: solid, bounded, square-cornered (D-01). PDF: x 806-1425, y 133-802 at 1500. */
+  /*
+    The panel: solid, bounded, square-cornered (D-01). PDF: x 806-1425, y
+    133-802 at 1500. Three rows, the middle one the stage, the whole panel
+    stretched to its grid row (13.1-01); the padding and gaps scale with the
+    intro's unit.
+  */
   .hero {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    row-gap: calc(24 * var(--intro-unit, 1px));
     box-sizing: border-box;
-    padding: 28px;
+    min-block-size: 0;
+    padding: calc(28 * var(--intro-unit, 1px));
     background: var(--color-panel);
     border: 1px solid var(--color-divider);
   }
@@ -238,11 +257,37 @@
     color: var(--color-on-action);
   }
 
-  /* The matrix is square and fills the panel's inner width. PDF: 511 inside 619. */
+  /*
+    The stage is the square's room and its own size container; the square
+    is the smaller of the stage's two sides (13.1-01). PDF: 511 inside 619,
+    which is what the width side gives at the PDF's height.
+  */
+  .stage {
+    container-type: size;
+    display: grid;
+    place-content: center;
+    min-block-size: 0;
+  }
+
   .surface {
-    inline-size: 100%;
+    inline-size: min(100cqw, 100cqh);
     aspect-ratio: 1;
     touch-action: none;
+  }
+
+  /* Below the compact band the columns stack: no container, the column's width (13-07). */
+  @media (max-width: 1023.98px) {
+    .hero {
+      grid-template-rows: auto auto auto;
+    }
+
+    .stage {
+      container-type: normal;
+    }
+
+    .surface {
+      inline-size: 100%;
+    }
   }
 
   /* Read by assistive technology, drawn by nothing: the caption pair below is the visible text. */
