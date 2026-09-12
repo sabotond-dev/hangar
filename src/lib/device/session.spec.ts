@@ -442,7 +442,7 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     // frame that called start(), and the block renders in that frame too.
     expect(a.phase).toBe("unsupported");
     expect(a.failureFor(CONNECT_LABEL)?.title).toBe(
-      "This browser cannot talk to hardware",
+      "This browser can’t talk to hardware",
     );
 
     const insecure = fakeSerial({});
@@ -641,7 +641,7 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     expect(unplugged.phase).toBe("unplugged-at-open");
     expect(unplugged.failureKind).toBe("unplugged");
     expect(unplugged.failureFor(CONNECT_LABEL)?.title).toBe(
-      "The ZONA is not there any more",
+      "Your ZONA isn’t there any more",
     );
 
     // The same NetworkError with the port still attached, and with no
@@ -666,7 +666,10 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
         opening(rxOnly([])),
       );
       expect(busy.phase).toBe("port-busy");
-      expect(busy.failureFor(CONNECT_LABEL)?.steps[0]).toContain("Grid Editor");
+      // The first step names the other HANGAR tab since 13-20 landed batch
+      // row I.3.12 (D-23); Grid Editor's quit is the second.
+      expect(busy.failureFor(CONNECT_LABEL)?.steps[0]).toContain("HANGAR tab");
+      expect(busy.failureFor(CONNECT_LABEL)?.steps[1]).toContain("Grid Editor");
     }
 
     // InvalidStateError: HANGAR's own bug wearing a DOMException. It renders

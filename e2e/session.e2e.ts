@@ -824,15 +824,18 @@ test.describe("the session with a granted ZONA on the cable", () => {
     await expect(title(page)).toHaveText(PORT_BUSY.title);
     await expect(detail(page)).toHaveText(PORT_BUSY.detail);
 
-    // CONN-04: the block names Grid Editor and the tray icon, and the six
-    // steps appear IN ORDER - the tray-icon quit first, the click last.
+    // CONN-04: the block names Grid Editor and the tray icon, and the seven
+    // steps appear IN ORDER - the other HANGAR tab first (batch row I.3.12,
+    // landed by 13-20 under D-23), the tray-icon quit second, the click last.
     expect(PORT_BUSY.detail).toContain("Grid Editor");
+    expect(PORT_BUSY.detail).toContain("HANGAR tab");
     const listed = steps(page).locator("li");
-    await expect(listed).toHaveCount(6);
+    await expect(listed).toHaveCount(7);
     await expect(listed).toHaveText(PORT_BUSY.steps);
-    expect(PORT_BUSY.steps[0]).toContain("Grid Editor");
-    expect(PORT_BUSY.steps[0]).toContain("tray icon");
-    expect(PORT_BUSY.steps[5]).toBe(`Click ${CONNECT_LABEL} again`);
+    expect(PORT_BUSY.steps[0]).toContain("HANGAR tab");
+    expect(PORT_BUSY.steps[1]).toContain("Grid Editor");
+    expect(PORT_BUSY.steps[1]).toContain("tray icon");
+    expect(PORT_BUSY.steps[6]).toBe(`Click ${CONNECT_LABEL} again`);
 
     // The browser's own sentence never reaches the screen. The shim raised
     // it; failureRaw holds it; only the `unknown` row would render it.
@@ -1259,14 +1262,15 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
       }),
     ).toEqual({ inside: true, active: "device-details" });
 
-    // CONN-04's six steps, in order, naming the header's control in the last.
+    // CONN-04's seven steps (six until 13-20 landed I.3.12), in order,
+    // naming the header's control in the last.
     const block = drawer.getByTestId("failure-block");
     await expect(block).toContainText(PORT_BUSY.title);
     await expect(block).toContainText(PORT_BUSY.detail);
     const listed = block.locator("li");
-    await expect(listed).toHaveCount(6);
+    await expect(listed).toHaveCount(7);
     await expect(listed).toHaveText(PORT_BUSY.steps);
-    expect(PORT_BUSY.steps[5]).toBe(`Click ${CONNECT_LABEL} again`);
+    expect(PORT_BUSY.steps[6]).toBe(`Click ${CONNECT_LABEL} again`);
     expect(await page.locator("body").innerText()).not.toContain(
       BROWSER_BUSY_SENTENCE,
     );

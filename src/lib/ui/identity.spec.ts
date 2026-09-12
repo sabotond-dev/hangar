@@ -910,9 +910,15 @@ describe("IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twe
       "the mark declares colour literals to check",
     ).toBeGreaterThan(0);
     for (const hex of hexes) {
+      // #101210 and #dcff71 since the Phase 13 gate (batch row J.1, D-23,
+      // 13-20): the mark carries the Bible's two hexes and not Phase 4's.
       expect(hex, `${hex} is one of the two approved colours`).toMatch(
-        /^(#000000|#d6ff4e)$/,
+        /^(#101210|#dcff71)$/,
       );
     }
+    // D-01 covers any shape, not only CSS: the plate and the frame are square.
+    expect(raw, "the favicon draws no rounded corner (D-01)").not.toMatch(
+      /\srx=|\sry=/,
+    );
   });
 });

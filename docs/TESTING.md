@@ -2515,6 +2515,656 @@ nothing - the copy is byte-identical afterwards.
 - **The presets' emitted Lua is not a fixed point** of the minifier (the marker's trailing space)
   and is costed raw; `presets.spec.ts` pins the raw figure, and no gate asserts the compressed one.
 
+## Phase 13's suites, measured at the gate
+
+**Every count below was observed on 2026-09-12 at the Phase 13 gate (plan 13-20)**, on the tree at
+`24e2790` (clean apart from the user's three untracked root files), against a fresh production
+build, from five `vitest run --project server --maxWorkers=2` runs (three whole and green before
+the gate's own string landings, one with the JSON reporter for the per-file table, one whole and
+green after the landings), one sweep, and the Playwright suite twice in five file chunks on fresh
+detached servers, plus a third pass over the two chunks whose strings the gate moved.
+`.planning/phases/13-gui-overhaul/13-VALIDATION.md` carried a projected delta table, a per-file
+table and a twenty-term chain from planning time, and two of its terms were corrected at the
+plan-check; the tables here are the observations that replace them, and every disagreement is
+named in "Where the planner was wrong" below rather than corrected quietly. **Nothing in this
+section is hardware-verified**: no agent in Phase 13 connected to a ZONA, wrote to one or deployed.
+The two probes of 2026-09-10 were the user's (cell 80, twice, through `/dev/install/` and Grid
+Editor); every claim about the page switch, the rotary Knob and the Sandbox install below is
+subordinate to runbook rows I, L, M and H, which are still the user's.
+
+**This section is appended, and nothing above it is reflowed.** Phase 12.1 ran its nine plans in
+the same tree while Phase 13 was open (Band 1 beside 13-08..13-13, Band 2 between 13-12 and
+13-14, its gate before 13-14), and its gate (12.1-09) appended the section above this one with the
+Phase 13 offset it saw; this section states the 12.1 offset once and both ends meet. Where an
+earlier section of this document now states a stale count, the correction is listed by line under
+"Corrections to earlier sections, by line" and the line itself is left standing.
+
+### The tree this gate measured is shared, and the 12.1 offset is stated once
+
+Phase 13's chains below run from **the block 12-12 left** - the carried block, `85 files / 888
+tests (+1 todo) / 87 e2e titles / 106 runs / catalog 26 (8 + 18) / static/og/ 26 / audition 23 /
+runbook 7 (A-G) / sweep 4 19` - in **twenty** terms and end at **93 / 936 / 83 / 99**. The tree at
+`24e2790` reads **94 / 961 (+1 todo) / 83 / 99**. The difference is Phase 12.1's, read from
+`12.1-09-SUMMARY.md`'s "The 12.1 offset, stated once for 13-20" and reproduced here from the
+runner's per-file JSON against a textual count of the same files at `eb79e3c` (13-01's baseline
+commit): **tests +25, files +1, e2e +0 / +0, audition +5, runbook +2, catalog +0, OG +0**, plus
+**12-10's +1 test** (the TRACKPAD smoke test, which landed between 13-06 and 13-07 and is inside
+12-12's 888). `888 + 48 + 25 = 961`; `85 + 8 + 1 = 94`; `87 − 4 + 0 = 83`; `106 − 7 + 0 = 99`;
+`23 + 0 + 5 = 28`; `7 + 4 + 2 = 13`. **Both ends meet on every row.**
+
+**13-01's offset, applied once.** 13-01 observed `85 / 887` against 12-VALIDATION's projected
+`85 / 888` and recorded `−1`; that `−1` was 12-10's unlanded `+1`, which landed on 2026-09-11
+between 13-06 (observed 902 at its close) and 13-07 (observed 903 at its start). 12-12's chain ends
+at `85 / 888` and its tree at `fed9c17` read `88 / 903 = 888 + 15` with Phase 13's first six terms,
+so 12-12's observed pair IS the projection's pair, and the offset 13-01 carried, and 13-02, 13-03
+and 13-04 carried after it, closed itself the day 12-10 landed. It is applied here as the +1 in
+the sentence above and nowhere else; 13-05 was the first plan whose carried literal matched the
+tree, and its SUMMARY says why.
+
+### The twenty-term chains, every zero written out
+
+**The columns are waves, and wave order is not plan order** (13-13 at wave 12, 13-12 at wave 13,
+as 13-VALIDATION.md's dated correction says). The order the plans EXECUTED in was a third one -
+`01 02 03 04 05 06 | 12-06 12-10 12-12 | 07 08 | 12.1-01 | 09 | 12.1-02 12.1-03 | 10 | 12.1-04
+12.1-05 | 11 13 | 12.1-08a | 12 | 12.1-06 12.1-07 12.1-08 12.1-08b 12.1-09 | 14 15 16 17 18 19 20`
+
+- and every chain is unmoved by that, because every term is a delta on the baseline its plan
+  observed.
+
+```
+wave            01  02  03  04  05  06  07  08  09  10  11  12  13  14  15  16  17  18  19  20
+plan            01  02  03  04  05  06  07  08  09  10  11 [13][12] 14  15  16  17  18  19  20
+tests    888    +2  +0  +5  -8  +6 +10  -2  +3  -9  -1  +3  +8  +6  +9  +7  +6  +3  +0  +0  +0  = 936
+files     85    +1  +0  +0  +0  +1  +1  +0  +0  -1  -1  +0  +2  +1  +2  +1  +1  +0  +0  +0  +0  =  93
+e2e ttl   87    +1  +0  +0  -4  +0  +0  -6  +0  +0  +0  +0  +1  +1  +0  +0  +2  +1  +0  +0  +0  =  83
+e2e run  106    +2  +0  +0  -8  +0  +0  -6  +0  +0  +0  +0  +1  +1  +0  +0  +2  +1  +0  +0  +0  =  99
+catalog   26    +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  =  26, 8 + 18
+og        26    +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  =  26 (154,136 B)
+audition  23    +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  =  23 by Phase 13; 28 with 12.1's five
+runbook    7    +0  +1  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +1  +0  +1  +0  +1  +0  +0  +0  =  11 by Phase 13 (H, I, L, M); 13 with 12.1's J and K
+allowlist 33    -1  +0  -1  -4  +0  +0  +0  -5 -16  -5  -2   -   -   -   -   -   -   -   -   -   =   0 declarations, 0 rows (16 rows to 0)
+circles    6    +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  +0  =   6 (D-15; the lines moved at 13-09)
+sweep   4 19     -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   = 4 19
+```
+
+**Eleven rows, twenty terms each, the count of terms asserted at twenty on every row and the
+twenty column headers asserted to be the twenty wave numbers with 13-13 at wave 12 and 13-12 at
+wave 13** - counted, not described. There are twenty `13-*-PLAN.md` files (`ls | wc -l` 20);
+the chain block in `13-VALIDATION.md` has twenty plan columns; this block has twenty. Every
+statement of the form `<number> terms` / `<number>-term` / `<number> plans` was grepped in
+`13-VALIDATION.md` and in `13-20-PLAN.md`: every term-count statement reads twenty
+(`13-VALIDATION.md:84, :86` twice, `:500`, `:717`; `13-20-PLAN.md:19, :26, :141, :154-156, :160,
+:311, :329, :348, :364, :368, :408, :534, :565`), every reconciliation statement reads twenty-seven
+(`13-VALIDATION.md:489, :497, :500, :501`; `13-20-PLAN.md:183, :193, :196, :197, :350, :367`), and
+`13-20-PLAN.md:41`'s "Nineteen plans" counts the plans before the gate, which is nineteen.
+(`13-VALIDATION.md:659`'s "Twelve plans" is the build-required list, not a term count.) **The one
+count both documents get wrong is not a term count: "twenty-seven names" (`13-VALIDATION.md:76,
+:334, :452, :716`; `13-20-PLAN.md:231` "all twenty-seven")** - the catalog has been 26 = 8 + 18
+since 12-10, as 12-12 and 12.1-09 record and as 13-19 named; twenty-six names, eighteen of them
+moved.
+
+`2+0+5−8+6+10−2+3−9−1+3+8+6+9+7+6+3+0+0+0 = 48`; `1+0+0+0+1+1+0+0−1−1+0+2+1+2+1+1+0+0+0+0 = 8`;
+e2e titles `1+0+0−4+0+0−6+0+0+0+0+1+1+0+0+2+1+0+0+0 = −4`; runs `2+0+0−8+0+0−6+0+0+0+0+1+1+0+0+2+1+0+0+0 = −7`.
+**Every term checked against its plan's own count line**: the observed `PREV_TESTS` ladder in the
+SUMMARYs is 887 → 889 (01), 889 → 889 (02), 889 → 894 (03), 894 → 886 (04), 886 → 892 (05),
+892 → 902 (06), 903 → 901 (07, with 12-10's +1 landed between), 901 → 904 (08), 904 → 899 (09,
+through 12.1-01's +4, stated −11, −9 by its parts - below), 906 → 905 (10, 12.1-02's +7 between),
+907 → 912 (11, 12.1-03's and 12.1-04's +4 between, 12.1-05's +1 during), 913 → 921 (13), 921 → 928
+(12, 12.1-08a's +1 during), 936 → 945 (14, 12.1's Band 2 and gate between), 945 → 952 (15),
+952 → 958 (16), 958 → 961 (17), 961 → 961 (18, 19, 20), and every step is its plan's term on the
+baseline it observed.
+
+**The one term whose SUMMARY states a different number is 13-09's, and 12.1-09 named it first.**
+`13-09-SUMMARY.md` states `−1 / −11`, measured as `910 → 899` against 12.1-01's close; its own parts
+are `+2 −8 −1 −2 = −9`; and 12.1-01 had observed **906** where 13-08 left **904** because two of
+13-09's in-flight `tune-ui.spec.ts` tests were already on disk uncommitted, so its ladder counts
+them once inside the 910 and once more in the −11. The term is **−9**, the sentence in 13-09's
+SUMMARY is left standing and pointed at, and the chain's 936 needs it: `888 + 48 = 936` and
+`936 + 25 = 961` only at −9.
+
+**The four negative test terms and the two negative file terms are the first this project has
+had, and 13-01 proved the count gate against a negative delta before any of them landed.** Its
+three drives, quoted from `13-01-SUMMARY.md` with their exit codes: (a) one test fenced out with
+the file kept - `check-counts.mjs 85 886` exit **0**, `85 887` exit **1** printing `tests: observed
+886, expected 887`; (b) one two-test file moved out - `84 885` exit **0**, `85 885` exit **1**
+(`files: observed 84, expected 85`), `84 887` exit **1** (`tests: observed 885, expected 887`),
+`85 887` exit **1** printing both; (c) the todo unmoved at 1 across all three, owned by
+`src/lib/fidelity/firmware-oracle.spec.ts:209`. The two red strings of (b) are different strings,
+which is what lets a plan that deletes tests (13-04, −8 with the file kept) be told apart from a
+plan that deletes files (13-07, 13-09, 13-10). **Ten negative terms landed**: tests −8 (13-04), −2
+(13-07), −9 (13-09), −1 (13-10); files −1 (13-09), −1 (13-10); e2e titles −4 (13-04), −6 (13-07);
+runs −8 (13-04), −6 (13-07) - the projection's ten, with two of the four test terms at a different
+size (below). The todo is still 1 and still `firmware-oracle.spec.ts:209`.
+
+**The e2e tagging arithmetic, as observed:**
+
+```
+titles 87 − 5 (aesthetic.e2e, all @webkit, 13-04) + 1 (radius, @webkit, 13-01) + 1 (reduced motion re-homed, @webkit, 13-04)
+          − 7 (first-experience: the splash and coverflow titles, 13-07) + 1 (the intro, 13-07)
+          + 1 (the page target, 13-12) + 1 (import validation, 13-13) + 2 (the Sandbox, 13-16) + 1 (the Sandbox install, 13-17) = 83
+tagged 19 − 5 + 1 + 1 = 16        runs 83 + 16 = 99        npx playwright test --list: "Total: 99 tests in 15 files"
+```
+
+`grep -c "test("` over `e2e/*.e2e.ts` sums to 83 (artifacts 3, browse-webkit 4, browse 12, catalog
+2, fidelity 2, first-experience 5, install 15, library 1, radius 1, sandbox 3, session 14, skeleton
+2, smoke 4, tuning-webkit 5, tuning 10); sixteen titles carry `@webkit`.
+
+### The per-file reconciliation, from the runner's JSON
+
+`vitest run --project server --reporter=json` at `24e2790` (the fourth quick run, 94 / 961 / 1
+todo) against a textual `it(` count of every spec at `eb79e3c` (13-01's baseline commit, 85 / 887),
+calibrated file by file at HEAD: the four `it.each` files (`golden-frames` 11, `preset-baseline`
+20, `vendored-diff` 15, `format-parity` 3) are the only ones where the textual count differs from
+the runner's, they are unchanged either end, and their 40 expansions are exactly the difference
+between the textual 847 and the observed 887. Every other changed file:
+
+| File                                   | `eb79e3c` | HEAD | delta   | Whose                                                                    |
+| -------------------------------------- | --------- | ---- | ------- | ------------------------------------------------------------------------ |
+| `src/lib/ui/radius.spec.ts`            | -         | 2    | **+2**  | 13-01                                                                    |
+| `src/lib/ui/identity.spec.ts`          | 7         | 11   | **+4**  | 13-03                                                                    |
+| `src/lib/ui/font-assets.spec.ts`       | 5         | 6    | **+1**  | 13-03                                                                    |
+| `src/lib/ui/aesthetic.spec.ts`         | 8         | 1    | **−7**  | 13-04 (−6) and 13-09 (−1, scan 4)                                        |
+| `src/lib/ui/instrument.spec.ts`        | 6         | 4    | **−2**  | 13-04                                                                    |
+| `src/lib/ui/shell.spec.ts`             | -         | 6    | **+6**  | 13-05                                                                    |
+| `src/lib/store/local.spec.ts`          | -         | 10   | **+10** | 13-06 (the projection's 7)                                               |
+| `src/lib/ui/glyph-field.spec.ts`       | 5         | -    | **−5**  | 13-07                                                                    |
+| `src/lib/ui/intro.spec.ts`             | -         | 4    | **+4**  | 13-07                                                                    |
+| `src/lib/catalog/front-door.spec.ts`   | 8         | 5    | **−3**  | 13-07 (−1, the adjacency property) and 13-09 (−2, the two window titles) |
+| `src/lib/ui/browse-ui.spec.ts`         | 6         | 9    | **+3**  | 13-08                                                                    |
+| `src/lib/ui/tune-ui.spec.ts`           | 9         | 11   | **+2**  | 13-09 (+2), 13-10 (−2 +2)                                                |
+| `src/lib/tune/surprise.spec.ts`        | 5         | 6    | **+1**  | 13-10 (the scope test - the projection put it in `tune-ui`)              |
+| `src/lib/coverflow/slots.spec.ts`      | 8         | -    | **−8**  | 13-09                                                                    |
+| `src/lib/tune/mix.spec.ts`             | 2         | -    | **−2**  | 13-10                                                                    |
+| `src/lib/ui/device-ui.spec.ts`         | 13        | 17   | **+4**  | 13-11 (+3), 13-12 (+1)                                                   |
+| `src/lib/protocol/descriptors.spec.ts` | 13        | 14   | **+1**  | 13-12                                                                    |
+| `src/lib/device/page-target.spec.ts`   | -         | 4    | **+4**  | 13-12                                                                    |
+| `src/lib/store/transfer.spec.ts`       | -         | 4    | **+4**  | 13-13                                                                    |
+| `src/lib/store/collections.spec.ts`    | -         | 4    | **+4**  | 13-13                                                                    |
+| `src/lib/sandbox/geometry.spec.ts`     | -         | 4    | **+4**  | 13-14                                                                    |
+| `src/lib/sandbox/emit.spec.ts`         | -         | 5    | **+5**  | 13-14                                                                    |
+| `src/lib/sandbox/runtime.spec.ts`      | -         | 7    | **+7**  | 13-15                                                                    |
+| `src/lib/ui/sandbox-ui.spec.ts`        | -         | 6    | **+6**  | 13-16                                                                    |
+| `src/lib/device/install.spec.ts`       | 23        | 27   | +4      | **13-17 (+3)** and 12.1-07 (+1)                                          |
+| `src/lib/catalog/calibration.spec.ts`  | -         | 4    | +4      | 12.1-01                                                                  |
+| `src/lib/catalog/library.spec.ts`      | 3         | 6    | +3      | 12.1                                                                     |
+| `src/lib/sim/lua-host.spec.ts`         | 11        | 13   | +2      | 12.1                                                                     |
+| `src/lib/sim/lua-smoke.spec.ts`        | 28        | 38   | +10     | 12.1 (+9) and 12-10 (+1)                                                 |
+| `src/lib/sim/touch.spec.ts`            | 8         | 9    | +1      | 12.1                                                                     |
+| `src/lib/protocol/constants.spec.ts`   | 8         | 9    | +1      | 12.1                                                                     |
+| `src/lib/transport/sequence.spec.ts`   | 12        | 13   | +1      | 12.1                                                                     |
+| `src/lib/tune/model.spec.ts`           | 12        | 13   | +1      | 12.1                                                                     |
+| `src/lib/device/snapshot.spec.ts`      | 8         | 9    | +1      | 12.1                                                                     |
+| `src/lib/fidelity/lua-parity.spec.ts`  | 5         | 6    | +1      | 12.1                                                                     |
+| sum                                    | 85 files  | 94   | **+74** | **Phase 13 +48 (25 files) + 12.1 +25 + 12-10 +1**; `887 + 74 = 961`      |
+
+**The twenty-seven-term reconciliation, derived and not typed.** The projection's twenty-seven
+terms (`13-VALIDATION.md:489`) come to `+47`. The observed rows in the same order, with the three
+that differ in bold and the one row the table lacked appended:
+
+```
+radius +2 | identity +4 | font-assets +1 | aesthetic −7 | instrument −2 | shell +6 | local **+10**
+glyph-field −5 | intro +4 | front-door **−3** | browse-ui +3 | tune-ui **+2 −2 +2** | slots −8 | mix −2
+device-ui +3 +1 | descriptors +1 | page-target +4 | transfer +4 | collections +4
+geometry +4 | emit +5 | runtime +7 | sandbox-ui +6 | install +3 | surprise **+1**
+
+2+4+1−7−2+6+10−5+4−3+3+2−2+2−8−2+3+1+1+4+4+4+4+5+7+6+3+1 = 48   in TWENTY-EIGHT terms over twenty-six files
+```
+
+Twenty-eight because the projection's `tune-ui +2 −2 +3` was three terms for two plans and the third
+of them landed in `surprise.spec.ts` as its own row (13-10 said so: "the plan allowed 'say which
+file'"); as terms the row count is the projection's twenty-seven plus one, as files it is
+twenty-six. The two ends agree at `+48`, which is one more than the projection's `+47` for the three
+reasons named: `local.spec.ts` +10 for +7 (13-06, "Ten, not seven"), `front-door.spec.ts` −3 for −1
+(13-09 deleted the two window titles 13-07 had kept and named for it), and the scope test's file.
+The chain and the per-file table agree with each other and with the tree; **the per-file table in
+13-VALIDATION.md is wrong on two rows and short by one**, and this is the plan that says which.
+
+### The files this phase created, and the files the gate does not count
+
+Ten spec files created (the count gate's +8 with `glyph-field`, `slots` and `mix` deleted):
+`radius.spec.ts` 2, `shell.spec.ts` 6, `local.spec.ts` 10, `intro.spec.ts` 4, `page-target.spec.ts`
+4, `transfer.spec.ts` 4, `collections.spec.ts` 4, `geometry.spec.ts` 4, `emit.spec.ts` 5,
+`runtime.spec.ts` 7, `sandbox-ui.spec.ts` 6 - eleven files, 56 tests, less the three deleted files' 15. Not counted by `check-counts.mjs` and counted by `svelte-check`: `radius-allowlist.ts` (the one
+declaration the three radius layers share), the six shell components and `layout.ts` and
+`shell.svelte.ts`, the eight store modules, the four intro files, `labels.ts` and `rail.ts`, the
+workspace route and its `inspector-copy.ts` and `Swatch.svelte`, `monitor.ts` and
+`MidiMonitor.svelte`, `page-target.ts`, the My configs route with `LibraryTable`, `LibraryRow`,
+`CollectionsPanel`, `transfer.ts`, `collections.ts`, the fourteen `src/lib/sandbox/` modules and
+components, the Sandbox routes, `land.ts` and `SurfaceActions.svelte`. `svelte-check` reads **657
+files, 0 errors, 0 warnings** in 28 s; it read 581 at 13-01's baseline and 627 at 12.1-09's gate.
+It is provenance, not a chain: the plans' stated check terms sum to +70 (13-01 +2, 03 +1, 04 +1, 05
++9, 06 +9, 07 +4, 08 +4, 09 −4, 10 −1, 11 +1, 13 +11, 12 +3, 14 +7, 15 +2, 16 +19, 17 +2) and with
+12.1's +2 and 12-10's +1 reach 654, three short of the observed 657; 13-11 observed 612 where 13-10
+had left 609 and 12.1's plans had added 2, and the three files that make the difference were not
+named by any SUMMARY. Reported, not asserted, as every gate before this one has said.
+
+### The standing gates, re-read at the gate rather than assumed
+
+`git diff --stat HEAD -- src/vendor/` is empty (`git diff --quiet` exit 0) and has been at every one
+of the twenty plans: **no vendored byte moved in Phase 13**. `upstream-manifest.json` sha256
+`dae35d39…`, the 12.1-08b figure, 6 files / 38 `intendedDivergence` rows (`_pad.ts` 18,
+`pad-sim.ts` 14, `tests/pad.test.js` 1, `tests/pad-sim.test.js` 5, `pad-sim-host.ts` 0,
+`tests/pad-invariants.test.js` 0); `vendored-diff.spec.ts` 15 green in all five runs.
+`preset-baseline.json` `187c31fc…` (last commit `d85495a`), `golden-frames.json` `bf54f15c…`,
+`frames.json` `9f9cd666…` - all three the hashes 12.1-09 recorded; 13-19's id re-case negative check
+went red on twelve tests across five specs because they read these. `firmware-oracle.spec.ts` 7 + 1
+todo, byte-unedited since `b3a554d`, green five times; `protocol-pin.spec.ts` 5 green and unedited since `85505e2` (07-01); `forbidden-instructions.spec.ts` 5
+green and unedited by the gate - its last edit is 13-12's `53649bc`, which widened the list of
+classes the page target may send (its deviation 1), the one edit any Phase 13 plan made to it. `lua-parity.spec.ts` 6,
+`decay-idiom.spec.ts`, `touch-guard.spec.ts` 3, `e2e/catalog.e2e.ts` 2, `e2e/fidelity.e2e.ts` 2,
+`e2e/artifacts.e2e.ts` 3, `e2e/skeleton.e2e.ts` 2 all green in every chunk that carried them.
+
+### The three-layer radius gate, asserted EMPTY - this phase's proof of D-01
+
+| Layer                       | Observed at the gate                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A, the source scan          | `radius layer A: 33 declarations in 68 files scanned; 0 above zero remaining in 0 allowlisted files (); 6 circles (D-15): src/lib/ui/ColourPicker.svelte:840, :867, :882, src/lib/ui/Knob.svelte:730, :785, :807; 27 exempt` - **`ALLOWLIST` is `[]`**, the six pairs set-equal to `CIRCLES` and to D-15 as 13-09 amended it                                  |
+| B, the built-CSS scan       | `radius layer B: 35 radius declarations in 16 built stylesheets; 6 of them 50%; tolerated values from the allowlist: none` against the build of 08:44Z, newer than the newest source                                                                                                                                                                          |
+| C, the computed-style sweep | `radius layer C: 12 routes, 2793 elements, 87 circles measured square; STRICT (the allowlist is empty)` in chromium and `2864 elements, 87 circles` in webkit-phone; `/playground/aurora/` 47 (knob:dot, knob:home, picker:home, picker:thumb, picker:tick), `/playground/arc/` 13 (knob:dot, knob:home, knob:thumb), `/sandbox/?new` 27 (the picker's three) |
+
+The allowlist started at sixteen rows and thirty-three declarations on 2026-09-11 (13-01; the
+planner's 43 counted two comment lines and its 41 held two `inherit`s) and reached zero at 13-11 the
+same day: 13-03 −1 (the pill), 13-04 −4, 13-08 −5, 13-09 −16, 13-10 −5, 13-11 −2. Every row was
+removed by the plan named on it, none was edited to a smaller number by anyone else, and
+`app.css:442`'s `999px` pill was removed, not re-skinned. **The six circles' boxes, measured in
+both engines on the served build** (a probe outside the suite, `getBoundingClientRect` on every
+element computing `50%`):
+
+| Circle (D-15, line at HEAD)         | chromium          | webkit-phone (iPhone 15) | Where                                     |
+| ----------------------------------- | ----------------- | ------------------------ | ----------------------------------------- |
+| `ColourPicker.svelte:840` the tick  | **2.00 × 2.00**   | **2.00 × 2.00**          | `/playground/aurora/`, 21 on the page     |
+| `ColourPicker.svelte:867` the thumb | **12.00 × 12.00** | **12.00 × 12.00**        | `/playground/aurora/`, 3                  |
+| `ColourPicker.svelte:882` the home  | **2.00 × 2.00**   | **2.00 × 2.00**          | `/playground/aurora/`, 3                  |
+| `Knob.svelte:730` the dot           | **8.00 × 8.00**   | **8.00 × 8.00**          | `/playground/aurora/`, 24                 |
+| `Knob.svelte:785` the slider thumb  | **12.00 × 12.00** | **12.00 × 12.00**        | `/playground/arc/`, 1 (the 16-value knob) |
+| `Knob.svelte:807` the home mark     | **2.00 × 2.00**   | **2.00 × 2.00**          | `/playground/aurora/`, 8                  |
+
+`|w − h| = 0.000` on every one, in both engines. The six lines were re-read at HEAD and each reads
+`border-radius: 50%;`; `grep -rn border-radius src` finds no other value above zero outside a
+comment. **A seventh `50%` anywhere is red** (13-01's negative checks proved the set-equality both
+ways: a squared circle is red under layer A by its line, a `50%` on a 40 × 24 box is red under
+layer C by its box).
+
+**The gate's negative check, as the plan asked: one `border-radius: 2px` planted in
+`src/lib/ui/shell/Footer.svelte:118`.** Layer A caught it first, in 85 ms, naming
+`src/lib/ui/shell/Footer.svelte:118 border-radius: 2px`. Layer B was red at the same moment for a
+different reason - `Footer.svelte was modified after build/_app/immutable/assets was written … the
+build is stale and a scan of it proves nothing` - and, after a rebuild, red on the value itself:
+`build/_app/immutable/assets/0.BJ6xdJgt.css: border-radius: 2px` with `tolerated today: nothing -
+the allowlist is empty`. Layer C, against that build, was red in **both** engines, naming
+`<footer.footer data-testid="shell-footer"> computes border-radius 2px | 2px | 2px | 2px and the
+allowlist is empty: never a rounded corner (D-01)` on all twelve routes. The file was restored from
+its copy (sha256 `d6cec79c…` either side, `git diff --quiet` exit 0), the build redone, A and B green
+again. **A, then B by staleness, then B by value, then C; three layers, three different sentences,
+and the order is the cost order.**
+
+### e2e
+
+Fifteen files, 83 titles, 99 runs. The suite cannot run in one process on this machine (13-07's
+finding: wrangler 4.128.0 dies with an empty `ProxyController` error in any run over about 85 s,
+however started); it ran in five file chunks on fresh detached servers stopped through PowerShell
+(`e2e-chunks-1208.sh`'s shape, 12.1-08's copy), every chunk read through its own log, never through
+`grep` or `head`, and every red rerun alone at `--workers 1`.
+
+### The gate's runs, with the memory beside each
+
+The machine had between **0.05 and 1.33 GB of 16 GB free** at the start of each command; the
+figure beside each is what it had then.
+
+| Run                                                                   | Free    | Result                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run check`                                                       | 0.05 GB | **657 files, 0 errors, 0 warnings**, 28 s                                                                                                                                                                                                                                                   |
+| `npm run lint`                                                        | 0.92 GB | clean (prettier and eslint), 56 s                                                                                                                                                                                                                                                           |
+| quick 1 (`--maxWorkers=2`)                                            | 0.78 GB | **94 / 961 / 1 todo**, green, 50.7 s; `check-counts.mjs 94 961` matches                                                                                                                                                                                                                     |
+| sweep                                                                 | 0.23 GB | **4 / 19** in 91.8 s (96 s wall); reachability 20,270 + 24,576 = **44,846** in 87.4 s, laddered 8, over budget 0; `lua-entries` 1,140 / 2,280 over 18; the kind cross-product 1,296 in 2.6 s, worst 906 of 908 at `none/none/trackpad/hi=false/grid=false`; `check-counts.mjs 4 19` matches |
+| `npm run build`                                                       | 0.22 GB | 40 s; 26 OG images, **154,136 B**, byte-identical to 13-19's                                                                                                                                                                                                                                |
+| quick 2 (after the build)                                             | 0.07 GB | **94 / 961 / 1 todo**, green, 45.0 s                                                                                                                                                                                                                                                        |
+| quick 3                                                               | 0.47 GB | **94 / 961 / 1 todo**, green, 55.6 s                                                                                                                                                                                                                                                        |
+| quick 4 (JSON reporter, for the per-file table)                       | 0.38 GB | **94 / 961 / 1 todo**, green, 51.8 s                                                                                                                                                                                                                                                        |
+| `radius.spec.ts` alone, verbose                                       | -       | layers A and B green, the lines quoted above                                                                                                                                                                                                                                                |
+| e2e run 1, c1 (install, session)                                      | 0.22 GB | 33 + 1: `[webkit-phone] install.e2e.ts:1977` CLEAR, `CONFIG/EXECUTE` **6 for 5** (a retried write counted; the title scripts a 200 ms acknowledgement delay under a 250 ms `executeMs` - a 50 ms margin the phone engine loses under load)                                                  |
+| e2e run 1, c2 (browse, browse-webkit)                                 | 0.34 GB | 20 + 1: `[chromium] browse.e2e.ts:343` searching and tag chips - `write UNKNOWN` on the CDP pipe at `expectCount`, then `Test ended`                                                                                                                                                        |
+| e2e run 1, c3 (tuning, tuning-webkit)                                 | 0.63 GB | **20 passed**                                                                                                                                                                                                                                                                               |
+| e2e run 1, c4 (catalog, fidelity, first-experience, library, sandbox) | 0.41 GB | **13 passed**                                                                                                                                                                                                                                                                               |
+| e2e run 1, c5 (artifacts, radius, skeleton, smoke)                    | 1.33 GB | **11 passed** - layer C green in both engines, the tallies quoted above                                                                                                                                                                                                                     |
+| run 1's two reds alone, `--workers 1`                                 | 0.11 GB | `browse:343` **passed**; `install:1977` chromium passed, **webkit-phone failed again** (`CONFIG/EXECUTE` 16 for 15 at the end of the title); alone in its own project at 0.40 GB, **failed a third time** (6 for 5)                                                                         |
+| e2e run 2, c1                                                         | 0.08 GB | 29 + 5: `install:1434` (7 for 5), `install:1977` in both projects (6 for 5), `session:851` (the module named itself twice per connect), `session:1009` (six config reads for five) - every one a retried write or read under load, the family 13-12, 13-17, 13-18 and 13-19 recorded        |
+| e2e run 2, c2                                                         | 0.33 GB | **wrangler died at the start** (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), src\win\async.c`; the runner read "server did not come up"); 20 + 1 on the late server, not counted                                                                                                |
+| e2e run 2, c2 rerun whole                                             | 0.34 GB | 19 + 2: `browse:299` (the sort select's value not `name` in 5 s), `browse:1404` (5 cards for 3 - 13-13's transient)                                                                                                                                                                         |
+| e2e run 2, c3                                                         | 0.39 GB | **20 passed**                                                                                                                                                                                                                                                                               |
+| e2e run 2, c4                                                         | 0.26 GB | **13 passed**                                                                                                                                                                                                                                                                               |
+| e2e run 2, c5                                                         | 1.08 GB | **11 passed**                                                                                                                                                                                                                                                                               |
+| run 2's seven reds alone, `--workers 1`                               | 0.30 GB | **7 passed, 1 failed**: `install:1434`, `install:1977` in both projects, `session:851`, `session:1009`, `browse:299`, `browse:569` green; `browse:1404` red (5 for 3); alone again at 0.49 GB **passed** (5.7 s)                                                                            |
+| the gate's string landings, then `npm run build`                      | -       | 28 s                                                                                                                                                                                                                                                                                        |
+| quick 5 (after the landings)                                          | 0.93 GB | **94 / 961 / 1 todo**, green, 49.6 s; `check-counts.mjs 94 961` matches                                                                                                                                                                                                                     |
+| e2e run 3, c1 (the moved failure strings)                             | 0.22 GB | 32 + 2: `install:1434` (7 for 5), `[webkit-phone] install:1977` (`Still writing. Your ZONA is taking longer than usual.` where the reset caption was expected in 5 s); **all 16 session titles green**, the two re-pinned to seven steps among them                                         |
+| e2e run 3, c4 (the moved `UNKNOWN_NOTICE`)                            | 0.54 GB | **13 passed**                                                                                                                                                                                                                                                                               |
+| run 3's two reds alone, `--workers 1`                                 | 0.24 GB | **3 passed** (`install:1977` in both projects)                                                                                                                                                                                                                                              |
+| the negative check's layer C, `--workers 1`                           | 0.57 GB | **red in both engines**, as intended (above)                                                                                                                                                                                                                                                |
+
+Run 1: `34 + 21 + 20 + 13 + 11 = 99` runs, two reds, both green alone in the end. Run 2: `34 + 21 +
+20 + 13 + 11 = 99` with one dead server rerun whole, seven reds, every one green alone. **No red
+named a page target, a review, a switch, a count this phase wrote, a string 13-18 or 13-19 moved, or
+a string this gate landed**; every one is a retried write or read under three workers at a
+twentieth of the machine's memory, or a locator that did not settle in 5 s on a cold server. The
+one title that was red five times before it was green - `install.e2e.ts:1977` on the phone engine -
+is the CLEAR title whose scripted 200 ms acknowledgement delay sits 50 ms under `executeMs`; it is
+carried in `deferred-items.md` as a harness margin, not a store defect, because every one of its
+extra frames is the store's bounded retry doing what SAFE-09 says it does. `test-results/` removed
+after every run; `git status --porcelain` clean of everything but the user's three root files
+before each commit.
+
+### The picker-corner re-measurement, replacing the projection
+
+Every hand-authored entry at three corners (`max(text.length, measureLua(text))` after
+`padReady()`; the picker corner is every knob at its longest declared value with every colour knob
+at `255,255,255`, the corner `lua-entries.sweep.spec.ts` gates; the shortest corner every knob at
+its shortest value with colours at `0,0,0`), every string a fixed point of `compressScript` and
+`checkSyntax` true; measured by a scratch spec copied into `src/lib/catalog/` for one run and
+deleted (12-12's shape; the tree clean after). **Every figure is identical to 12.1-09's table**,
+and it should be: 13-19 moved the `name` field of eighteen entry files and nothing else
+(`git diff 5c256c5 HEAD -- src/lib/catalog/entries/` is 18 insertions and 18 deletions, all on
+`name:` lines); no Lua, no knob value list and no colour list moved in Phase 13. **Every header
+agreed** - 12.1-09 found all eighteen right and nothing has changed since; the audition table's 24
+Config cells were re-cased in place by 13-19 and its cost cells are 12.1-09's.
+
+| Entry                  | Setup defaults / picker / free | Timer defaults / picker / free | Fixed point, syntax                                                 |
+| ---------------------- | ------------------------------ | ------------------------------ | ------------------------------------------------------------------- |
+| euclid                 | 722 / **726** / 182            | 233 / **237** / 671            | yes, yes                                                            |
+| chorus                 | 819 / **822** / 86             | 29 / **29** / 879              | yes, yes                                                            |
+| arc                    | 525 / **528** / 380            | 273 / **275** / 633            | yes, yes                                                            |
+| ghost                  | 486 / **491** / 417            | 405 / **409** / 499            | yes, yes                                                            |
+| morph                  | 810 / **814** / 94             | -                              | yes, yes                                                            |
+| sonar                  | 571 / **572** / 336            | 286 / **289** / 619            | yes, yes                                                            |
+| steps                  | 414 / **420** / 488            | 258 / **260** / 648            | yes, yes                                                            |
+| console                | 784 / **807** / 101            | -                              | yes, yes                                                            |
+| strip                  | 857 / **875** / 33             | -                              | yes, yes                                                            |
+| lumen                  | 730 / **733** / 175            | -                              | yes, yes                                                            |
+| stage                  | 640 / **653** / 255            | 136 / **136** / 772            | yes, yes                                                            |
+| cull                   | 564 / **565** / 343            | -                              | yes, yes                                                            |
+| snake                  | 581 / **585** / 323            | 870 / **880** / 28             | yes, yes                                                            |
+| quadrant               | 835 / **838** / 70             | -                              | yes, yes                                                            |
+| pomodoro               | 733 / **743** / 165            | 647 / **659** / 249            | yes, yes                                                            |
+| wheels                 | 882 / **895** / 13             | 338 / **343** / 565            | yes, yes                                                            |
+| radar-points           | 592 / **592** / 316            | 286 / **288** / 620            | yes, yes                                                            |
+| trackpad               | 903 / **903** / 5              | 508 / **510** / 398            | yes, yes                                                            |
+| **the library, 255/0** | **842 / 66**                   | -                              | fixed, syntax true; the nine-part uniform join 843 compresses to it |
+| **the library, 255/6** | -                              | **873 / 35**                   | fixed, syntax true; the eight-part join 874 compresses to it        |
+
+The shortest corner: euclid 717 / 232, chorus 812 / 29, arc 515 / 272, ghost 473 / 404, morph 798,
+sonar 546 / 286, steps 407 / 257, console 761, strip 835, lumen 712, stage 630 / 136, cull 564,
+snake 573 / 854, quadrant 835, pomodoro 716 / 627, wheels 862 / 338, radar-points 562 / 285,
+trackpad 903 / 503. The eight presets and the shelf through `compileState` / `costOf` at their
+defaults read their declared costs exactly: aurora 361 / 55, pinwheel 413 / 55, starfield 349 / 55,
+radar 391 / 55, joystick 491 / 24, ninepads 565 / 158, faders 525 / 24, dial 592 / 55, tpad 902 /
+146, every one with `touchLibrary` and `checkSyntax` true and none a fixed point (12.1-09's gate
+hole, unchanged: the marker's trailing space). `LIBRARY_GLOBALS` 21; the callers as 12.1-09 listed
+them, unmoved (`Q` eight Setups, `G` nine, `X` six, `N` ARC and GHOST, `D` LUMEN, WHEELS and
+TRACKPAD, `A` LUMEN, `R` four, `U` TRACKPAD, `Z` STAGE; `W E V Y` library-internal; **`K` no entry**
+
+- the compiler's emitted comet is its caller, as 12.1-08b recorded). The facets: FOR seven summing
+  26, FEELS six summing 52; preset-backed 8, hand-authored 18.
+
+### The Sandbox's five costs, and the PDF's page 3 on the wire
+
+Printed by `emit.spec.ts` test 1 and `runtime.spec.ts` test 7 on this tree, every string canonical
+on the first round (`rounds 0`), every colour at its dearest:
+
+| Elements at the picker corner (three-digit controllers on channel 16) | Setup, two slots   | Setup, three slots | Room for                                      | The research's |
+| --------------------------------------------------------------------- | ------------------ | ------------------ | --------------------------------------------- | -------------- |
+| 1                                                                     | **345** (563 free) | 360                | 15 more (cap)                                 | -              |
+| 4 (the PDF's page 3)                                                  | **460** (448 free) | 475                | 0 more (budget: a fourth 1 × 6 fader tips it) | 366 (+94)      |
+| 8                                                                     | **588** (320 free) | 603                | 8 more (cap)                                  | 498 (+90)      |
+| 12                                                                    | **748** (160 free) | 763                | 4 more (cap)                                  | 652 (+96)      |
+| 16, the dearest                                                       | **882** (26 free)  | **897**            | 0 more (cap) - D-14 Q4's sixteen fits         | 811 (+71)      |
+| 16 at cc 1..16 on channel 1                                           | 841                | 856                |                                               |                |
+
+`M` alone 169 (the research's 165), `J` at four rows 155 (141), the paint 101, the pull-ins 10
+(`self:tim()`) and 25 (with `ele[#ele]:map()`), the callback 15, the marker 9. Dead branches: four
+vertical faders inline at 805 with the fader branch alone, 1,333 with all four (the research's
+697 / 1,166); the split's data half for the same four 456.
+
+**The runtime** (13-15, in a real Lua VM): 1,340 with every branch, **1,042 without the Knob**
+(the research's 861, +181; 13-02's re-sketch 738 / 1,042); **the rotary's share 298** (D-08's
+150-200, 98 above the top; 13-02's 304); the parts marker 9, arm 10, head 24, `R` 112, `O` 304,
+fader-v 121, fader-h 121, button 133, xy 222, knob 297, sweep 10. Two slots, the Timer of 908
+beside `gtt(0,100)` and `X(self,20)`: fifteen combinations fit (`v h vh b vb hb vhb x vx hx bx k vk
+hk bk`, the largest `bk` 903) and sixteen are over (the smallest `vhx` 938, the largest `vhbxk`
+1,370); **three slots, every combination fits**, the worst 1,370 across 1,816. **The PDF's page 3
+on three slots, the five strings at the picker corner as `install.spec.ts` lands them**: 255/6
+**873** (35 free), 255/0 **842** (66 free), 255/4 **706** (202 free: the head, `R`, `O`, `I[1]`,
+`I[3]`), 0/6 **574** (334 free: `gtt(0,100)`, `I[4]`, `I[5]`, `X(self,20)`), 0/0 **466** (442 free:
+`J`, `M`, the paint, both pull-ins, the callback). On two slots the same surface lands a Timer of
+**1,248 (340 over)** and puts zero frames on the transport. One vertical fader on two slots: Timer
+593, 315 free.
+
+### The five-write install shape, as shipped
+
+Since 13-17 every install - a Lua entry, a preset, a Sandbox surface - writes **five** strings
+through the one writer in `SLOTS` order: 255/6 (the library's Timer half), 255/0 (the page init and
+the library's first half), **255/4** (the utility: a Lua entry lands the firmware's page-next
+default `gpl(gpn())` there, 19 characters; a surface lands its runtime's second slot), 0/6, 0/0;
+the snapshot holds five under `hangar.snapshot.v4` with v3, v2 and v1 read and flagged; the
+classifier names which of five landed in write order over four reachable partials; `PUT BACK`
+restores 255/4 with the rest. 12-02's refusal to address 255/4 and 255/6 is gone under D-19
+(`constants.ts`'s header says so, dated); `sequence.spec.ts` asserts the five frames under every
+caller key order. **Whether the firmware runs a 255/4 body written by `CONFIG/EXECUTE` from the
+touch Setup's `ele[#ele]:map()` is runbook row H's question, and whether a catalog entry should
+write page-next there at all is batch row J.40, approved and owed** (a landing's empty utility
+substituted by the snapshot's own). Nothing of this has reached a module.
+
+### The cost, observed against what was projected
+
+| Thing                                         | Projected / carried                                                       | **Observed 2026-09-12**                                                                                                                                 | Verdict                                                                                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| the phase's test total                        | 935 (13-VALIDATION, from 888 + 47); the research's forecast **890-930**   | **936** by the chain (888 + 48); 961 on the tree with 12.1                                                                                              | the projection one low (three terms); the research's forecast six under its own top                                                         |
+| the file total                                | 93 (85 + 8); the research's **84-88**                                     | **93** by the chain; 94 with 12.1                                                                                                                       | exact; the research five under                                                                                                              |
+| e2e                                           | 83 / 99                                                                   | **83 / 99**, `--list` says 99                                                                                                                           | exact                                                                                                                                       |
+| `npm run test:sweep` wall                     | 100 s (12-12), 104 s (12.1-09), 98 s (13-19)                              | **96 s** wall, 91.8 s in Vitest                                                                                                                         | the spread is the machine                                                                                                                   |
+| `npm run build`                               | 19 s (12-12), 33 / 17 s (12.1-09), 22.6 s (13-19)                         | **40 s** at 0.22 GB, then 28 s and 27 s                                                                                                                 | the first at a fiftieth of the memory                                                                                                       |
+| `static/og/`                                  | 27 files (13-VALIDATION); 26 / 154,136 B (12.1-09, 13-19)                 | **26 / 154,136 B**, byte-identical                                                                                                                      | the projection's 27 is the catalog defect below                                                                                             |
+| catalog                                       | 27 (13-VALIDATION); 26 = 8 + 18 (12-12, 12.1-09)                          | **26 = 8 + 18**                                                                                                                                         | document defect, named                                                                                                                      |
+| audition rows                                 | 23 (13-VALIDATION)                                                        | **28** (23 + 12.1's five), 24 Config cells re-cased in place, all unanswered                                                                            | the projection predates 12.1                                                                                                                |
+| the research's costs 1,067 / 1,166            | one element / four elements inline, all four branches, in the touch Setup | the shape shipped is the split, not the inline: one element **345**, four **460** in the Setup; the inline pair measured at four faders **805 / 1,333** | the research's inline figures were low by about 170 on the all-branches case; the split makes them moot                                     |
+| the research's 861 (the runtime)              | four branches, the Knob undefined                                         | **1,042** without the Knob, 1,340 with                                                                                                                  | +181 without the Knob; +479 with                                                                                                            |
+| the research's 366 / 811 (the data half)      | four / sixteen elements                                                   | **460 / 882**                                                                                                                                           | +94 / +71 (13-14: "the research was low by about 110 per row" at its first cut; 13-15's per-kind geometry took the sixteen from 922 to 882) |
+| the research's 697 (four faders, dead-branch) | inline, the fader branch alone                                            | **805**                                                                                                                                                 | +108                                                                                                                                        |
+| D-08's 150-200 (the rotary)                   | the decision's estimate                                                   | **298**                                                                                                                                                 | 98 above the top; 13-02's re-sketch said 304                                                                                                |
+| the two-slot ceiling                          | 13-02: three kinds                                                        | **two kinds** (13-15's table)                                                                                                                           | a kind lower; moot under the three slots the user bought, and the re-ask did not fire                                                       |
+| `PadSpinner.svelte`                           | the research: deletable                                                   | **three live consumers** (`CatalogCard`, `DeviceMark`, `TryOnDevice`), kept                                                                             | research defect (13-09)                                                                                                                     |
+| the allowlist                                 | 43 declarations, fifteen files + `app.css` (the plan); Knob ten / seven   | 41 declarations (two comment lines), 33 to clear in sixteen files, Knob nine / five; **0 / 0 at the gate**                                              | 13-01's re-count; the end state as projected                                                                                                |
+| the inspector floor                           | 380 holds the 402px grid (13-05's plan)                                   | needs 454 with the insets; the grid reflows to one column below 454 (D-21, 13-09)                                                                       | plan defect found by a test, decided by the user                                                                                            |
+
+### Where the planner was wrong, named rather than corrected
+
+**Plan defects** (a term that disagrees with its plan's line) and **document defects** (a term
+that disagrees with 13-VALIDATION.md), in wave order:
+
+1. **13-04, tests: projected −9, observed −8.** `aesthetic.spec.ts` went 8 → 2, not 8 → 1: scan 4's
+   subject was `Coverflow.svelte`, which 13-04 did not touch, so the scan stayed and 13-09 deleted it
+   by name. The projection's per-file row "8 → 1" was right about the end and wrong about the plan.
+   13-04's own line says −8 and names the reason.
+2. **13-06, tests: projected +7, observed +10.** `local.spec.ts` was created with ten (13-06 "Ten,
+   not seven": the plan's task 2 said the file gains no test; tests 6-10 were its by necessity).
+3. **13-07, tests: projected −1 at planning, −2 at the plan-check, observed −2.** Named because the
+   correction has a source (`front-door.spec.ts` carries eight, not seven); the plan-check's number
+   is the tree's.
+4. **13-09, tests: projected +2 at planning, −6 at the plan-check, observed −9.** The plan-check
+   found `slots.spec.ts` (−8) and missed the two deletions 13-04 and 13-07 had assigned to 13-09 by
+   name - scan 4 (−1) and the two window titles (−2). **13-09's SUMMARY states −11**; the term is −9
+   by its own parts (above).
+5. **13-10, tests: projected −1, observed −1, by different parts.** The projection's `tune-ui −2
++3` was `tune-ui −2 +2, surprise +1`; the scope test landed where the plan allowed.
+6. **The per-file table** (`13-VALIDATION.md:456-487`): `local.spec.ts` "7 (created)" is 10;
+   `front-door.spec.ts` "8 → 7" is 8 → 5 over two plans; `tune-ui.spec.ts` "9 → 11 → 12" is 9 → 11
+   → 11 with the twelfth in `surprise.spec.ts`, which the table lacks; `aesthetic.spec.ts` "8 → 1" is
+   right as an end and two plans' work. The reconciliation string sums to 47 in twenty-seven terms
+   and the tree says 48.
+7. **The baseline block** (`:48-52`, `:74-78`): catalog 27 (9 + 18), OG 27, audition 23, runbook not
+   carried - the tree at 13-01 read 26 (8 + 18) / 26 / 22 numbered rows (23 with row 23's arrival
+   in the same day's 12-10) / 7; 12-12 and 12.1-09 record the fold that made it 26. "Twenty-seven
+   names re-cased at 13-19" (`:76, :334, :452, :716`) is twenty-six, eighteen moved.
+8. **"`85 / 888` is a projection"** (`:52`) - true when written; it became 12-12's observed pair
+   when 12-10 landed, and the "offset" 13-01 to 13-04 carried was that one unlanded test.
+9. **D-15's glosses** (`13-CONTEXT.md`): `:829` "the rail thumb", `:857` / `:872` "markers" - the
+   source says tick, thumb, home (13-01); the pairs are the decision and were right, and moved to
+   `:840 / :867 / :882` and `:730 / :785 / :807` at 13-09 with D-15 amended the same day.
+10. **13-VALIDATION's "layer B is skipped with a named reason when no build exists"** (`:600`):
+    13-01's plan said red unless a flag, and red is what shipped; a flagged skip is a real skip the
+    count gate refuses.
+11. **The research's costs** - every one above: 1,067 / 1,166 / 861 / 366 / 811 / 697 against
+    345 / 460 / 1,042 / 460 / 882 / 805, the two-slot ceiling three kinds against two, D-08's 150-200
+    against 298, `PadSpinner` deletable against three consumers, the test forecast 890-930 against
+    936, the file forecast 84-88 against 93.
+12. **13-VALIDATION's D-11 on PREV-04** put the row on 13-10 with no task touching it; corrected at
+    the plan-check to 13-09; 13-16 carried it too. Three plans reached it and none ticked it; the
+    gate does (`.planning/REQUIREMENTS.md`).
+13. **The plan's "three `50%` boxes"** (`13-20-PLAN.md:334, :539`) beside its own "six" everywhere
+    else - six, measured above.
+14. **The plan's `check-counts.mjs 93 935`** (`:358`, `:533`) - the tree is 94 / 961 and the gate
+    ran at that; 93 / 935 is the chain's end without 12.1 and with the projection's +47.
+15. **The plan's "`npx playwright test --workers 3` at 99" as one run** - unreachable on this
+    machine (13-07); 99 twice in chunks.
+16. **The plan's "the Sandbox's deferred element kinds if 13-02 answered no", "anything 13-15's
+    fallback order dropped", "whether that re-ask reversed D-08 or deferred the XY pad", "the
+    six-or-one transfer lines if 13-18's answer was provisional"** - 13-02 answered `three-slots`
+    (recorded, not asked), 13-15's re-ask did not fire and dropped nothing, D-23 was `approve` and
+    the six lines stay six. Every conditional branch the plan wrote for closed on the other side.
+17. **The plan's "runbook row H … only if 13-02's checkpoint asked for it"** - the mechanism was
+    answered on 2026-09-10 (cell 80 through Grid Editor); row H is HANGAR's own route through its
+    own writer and is conditional on 13-15 and 13-17, both landed; it is a bench row today.
+18. **The plan's "the twelve dead internal links … 13-20 counts them once"** (D-20): thirteen
+    `/c/<id>/` addresses were dead before the move (nine from 11-01, three from 12-04, `/c/tpad/`
+    from 12-10) and every `/c/` and `/browse/` address is dead since 13-08 (twenty-six entries and
+    the gallery); the site has never been public and no real link exists (SHARE-03's amendment).
+19. **13-13's plan-time premise that the resume banner reads a Playground draft the workspace
+    writes** - no route writes one (13-13 finding 1; 13-16 confirmed; J.19 assigned to the gate
+    and owed below).
+20. **13-02's checkpoint text** framed the third slot as open after D-18 and the probe had answered
+    it; recorded, not asked.
+21. **13-11's plan** asked for a disabled header control in S0a / S0b, focus-trapping dialogs, a
+    second store trigger and a reset under Device actions; the first three contradicted shipped
+    rules and were not built, the fourth is batch row I.6.5, approved and owed.
+22. **13-12's plan** named the fake ZONA `fake-zona.ts` (it is `synthetic.ts`) and cited store
+    lines that had moved; found by name.
+23. **13-14's plan** computed the cell as `y*9//128*9 + x*9//128` and named `F(i,n,2)` for the
+    finger light; the hand-off's `N(x,y)` and `G(...)` are what shipped (13-15).
+24. **13-17's plan** said "three strings" and "`sequence.ts` is not edited"; five strings, and the
+    row needed its key on two sets.
+25. **13-19's plan** said twenty-seven names and 27 OG files; twenty-six and 26.
+
+**Research defects that were not counts**: the coverflow "deletable at wave 3" (13-VALIDATION D-5:
+two routes import it until wave 9); persistence "at wave 7" (D-6: the intro and the gallery read it,
+so wave 6); `check-counts.mjs` "must be checked against a negative delta" (D-9: it already was
+correct, and the two real exposures were the file count and the todo); the eight FOR terms (seven
+since 12-04); the `ele[1]` spelling (`ele[#ele]` is what lit); `self:tim()` "eleven characters"
+(ten) and `ele[1]:map()` "twelve" (`ele[#ele]:map()` fifteen).
+
+### The batch rows the gate landed, and the ones it owes
+
+D-23 approved every proposal in `13-18-BATCH.md`. 13-18 and 13-19 landed the device, session and
+tune modules and handed nineteen rows here by number. **Landed at this gate** (strings, each held
+by the spec that already pinned the old string): I.8.1 (`This browser can’t talk to hardware`),
+I.8.2 (`isn’t a secure context`), I.8.3 (`pick your ZONA`), I.8.5 (`Your ZONA isn’t there any
+more`, `can’t power the module`), I.8.6 and I.8.7 (`The port wouldn’t open`, `Unplug your ZONA`),
+I.3.12 (`port-busy`'s second culprit - _"Grid Editor is the usual reason, and another HANGAR tab
+can be holding it too"_ - with **`Close any other HANGAR tab` as the first of now SEVEN steps**;
+`transport.spec.ts`, `session.spec.ts` and two `session.e2e.ts` titles re-pinned from six to seven,
+and CONN-04 amended by name in `.planning/REQUIREMENTS.md`; the classifier's branch is unchanged
+until the bench reproduces the raw message), F.4 (`There’s no configuration at this address. Pick
+one from the list.`), G.31 and G.36 (`the most a page holds`), H.20 (`and a page holds at most
+16`), H.21 (`doesn’t fit on the 9 × 9 surface`), and **J.1 - the favicon redrawn square in the
+Bible's `#101210` and `#dcff71`** with `identity.spec.ts` test 11 re-pinned to the two hexes and
+asserting no `rx` / `ry` (the tab's mark carried a corner the site never draws and the retired
+accent; 13-03 and the gate notes flagged it). No test added or removed; the term is `+0 / +0`.
+**Owed, recorded in `deferred-items.md` as approved-and-owed with the exact edit**: J.13 (the
+install column), I.6.5 (the reset under Device actions with §16's confirmation, A-45 retired), E.14
+(`36 configurations` unfiltered), E.15 (the two empty-view lines), G.34 (the unreachable two-slot
+`overLine`), J.10 (`?feels=`), J.19 (the Playground draft), J.23 (the one-shot view handoff), J.25
+(the sandbox thumbnail's static paint), J.30 (duplicate collection names), J.40 (the snapshot's
+utility for a landing's empty 255/4).
+
+### Corrections to earlier sections, by line - listed, not reflowed
+
+Every count in the sections above this one that a Phase 13 plan moved, with where the current
+figure is. None of these lines is edited.
+
+- **"Phase 12.1's suites" → "The tree this gate measured"**: 13-09's `−11` is `−9` by its parts
+  (this section, "The one term"); the six Phase 13 terms it lists are right, and 13-20 owns the
+  totals.
+- **Every `/c/<id>/` and `/browse/` address** in every section above the plan 13-08 note at the
+  end of this document reads `/playground/<id>/` and `/playground/` (D-20, move-clean; the note
+  says so and this line repeats it because the sections between are long).
+- **"The install flow's test surface"** and the Phase 7, 10, 11, 12 and 12.1 sections' counts of
+  three and four strings on the wire: **five** since 13-17 (255/6, 255/0, 255/4, 0/6, 0/0), the key
+  `hangar.snapshot.v4`, and every write click count in `install-copy.ts` five.
+- **Every `TRY ON DEVICE`, `KEEP ON DEVICE`, `PUT BACK`, `CLEAR`, `SURPRISE ME`, `RESET ALL`,
+  `COPY LINK`, `LINK COPIED`, `CONNECT ZONA`, `PLAYING NOW`, `KEPT`, `FACTORY DEFAULT`** named
+  in the sections above reads, since 13-18 and 13-19 under D-05 and D-23: `Apply to ZONA`, `Store on
+ZONA`, `Put back`, `Reset active device page`, `Randomize`, `Reset settings`, `Share snapshot`,
+  `Link copied`, `Connect ZONA`, and the state captions `Applied to Page N…`, `Stored on ZONA ·
+Page N`, `Page N reset to its firmware default`. The facts they carried (RAM against flash, the
+  snapshot, the firmware default, nothing without a click, the page's own scripts) are asserted in
+  `install-copy.spec.ts` and `session-copy.spec.ts` against the batch read from disk. The test ids
+  (`try-on-device`, `keep-on-device`, `put-back`, `clear`, `surprise-me`, `reset-all`) did not move.
+- **Every uppercase entry name** (`EUCLID`, `RADAR POINTS`, …) reads in sentence case since 13-19
+  (`Euclid`, `Radar points`); ids, fixtures, OG filenames and addresses did not move. The prose
+  above is the record it is (13-19's question 5; about ninety lines).
+- **"The device session's test surface"** and the Phase 6 sections' `CONNECT` control, the header
+  identity line and the drawer: the control is the context bar's summary since 13-11, the S4
+  identity moved into Device actions at 13-18, `DeviceDetails.svelte`'s drawer became a footer
+  panel; `session-copy.ts` 49 exports, `install-copy.ts` 56.
+- **The Phase 10 and 11 sections' aesthetic and instrument scans** (`aesthetic.spec.ts` 8,
+  `instrument.spec.ts` 6, `e2e/aesthetic.e2e.ts` 5 / 10, the CRT layers, the halftone, the lattice,
+  the pill, the SCREEN switch): 1, 4, deleted, and gone under D-09 and D-10 (13-04; the pill at
+  13-03); `identity.spec.ts` 11 (was 7), eleven tokens against `#DCFF71` and no twelfth (13-03).
+- **`glyph-field.spec.ts` 5, `slots.spec.ts` 8, `mix.spec.ts` 2, `first-experience.e2e.ts` 11
+  titles, `Splash`, `Coverflow`, `FrontDoor`, `NamePlate`, `ChosenPanel`, `MixTwo`,
+  `ScreenToggle`**: deleted (13-04, 13-07, 13-09, 13-10); `first-experience.e2e.ts` carries 5;
+  `front-door.spec.ts` 5.
+- **The Phase 6 / 7 / 10 sections' "the four-corner table"** for Phase 13 is the Sandbox's five
+  costs above; the Lua entries' corners are 12.1-09's and unmoved.
+- **The Phase 12 section's `CONN-04` "six steps"** and every "six steps" in this document: seven
+  since this gate landed I.3.12.
+- **The catalog "27" and "twenty-seven"** wherever the Phase 13 planning documents say it: 26.
+- **`SESSION-RUNBOOK.md:14`'s suite counts** (Phase 6's 724 / 13 / 77): still unedited, still
+  named (12-03, 12-12, 12.1-09); the tree is 961 / 19 / 83.
+
+### The gate holes, recorded
+
+- **The workspace's `▷ Play` reach of PREV-04 has no test.** `intro.spec.ts` 4 source-asserts the
+  hero's three pointer handlers reaching `touchDown` / `touchMove` / `touchEnd` through `mapAxis`;
+  `sandbox.e2e.ts` 2 drives a finger into the Sandbox's preview in Play; the workspace route's
+  `ledPoint()` → `host.touchDown` (13-09, `data-testid="mode-play"`) is the same shape and nothing
+  reads it. One e2e title would close it; carried in `deferred-items.md` A.
+- **`check-counts.mjs` has no direction and misreports a red run** (12-04, 12-12, 12.1-09),
+  unchanged; 13-01 proved it correct for a negative delta and named the two real exposures.
+- **A declared e2e zero is a count of titles, not a run** (12.1-09): 13-14 and 13-15 declared
+  `+0 / +0` and did not run the suite; both were right, and the rule stands.
+- **The wrangler harness.** 4.128.0 dies mid-run under load (13-05 first, every plan since; one
+  death at this gate, run 2's chunk 2 at start-up); `scripts/` still has no chunk runner (the one used lives
+  in the scratchpad, 13-07 deviation 9); `playwright.config.ts` still spawns the server
+  (13-05's question 6). A pin bump or an attach-not-spawn config is a quick task nobody has been
+  given.
+- **`install.e2e.ts:1977`'s 50 ms margin** on the phone engine (above): the title's scripted
+  200 ms acknowledgement delay against `executeMs` 250 is a harness number that reads as a store
+  fault under load.
+- **The audition table's cost cells are still gated by nothing** (12-12, 12.1-09), and the runbook's
+  rows are gated by nothing at all (`docs/INSTALL-RUNBOOK.md` has no spec); thirteen rows, five of
+  them Phase 13's, every one unanswered.
+- **`decay-idiom.spec.ts` is blind to `D(` and `K(`** (12.1-09), unchanged; the Sandbox's emitted
+  strings pass it because they emit no decay (13-14 test 4 says so by name).
+- **The Sandbox's cost gate is a server spec** (`emit.spec.ts` 1, `runtime.spec.ts` 7) and the
+  sweep's `4 19` did not move by choice (13-14); a knob cross-product over surfaces does not exist
+  and is not owed - a surface's cost is a handful of strings.
+- **Nothing gates the eleven tokens' consumers across the tree** beyond `identity.spec.ts`'s
+  literal census: a component that hard-codes a hex would be red (test 1), a component that uses
+  the right token for the wrong job would not (13-03's test 5 is the boundary scan and names the
+  one hole it cannot see, `TagChip.svelte:136`).
+- **The fidelity probe on `/dev/fidelity/`** compiles BOTOR's DIAL through HANGAR's shelf since
+  12.1-09 and reports `shelf: vendored`; it proves the WASM build, not a HANGAR preset's divergence
+  (12.1-09's fix, carried).
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

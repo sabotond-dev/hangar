@@ -99,7 +99,7 @@ export const GEOMETRY_COPY = {
     `${a} and ${b} touch with no gap between them. A press on the shared edge could land on either.`,
   /** The cap, with the count. */
   cap: (cap: number): string =>
-    `This surface holds ${cap} elements, the most a page can carry. Remove one to add another.`,
+    `This surface holds ${cap} elements, the most a page holds. Remove one to add another.`,
   /**
    * Rule 3, per kind (13-15; model.ts section 4). A knob's line carries the
    * reason - its centre cannot read a turn - and the fader's names the one

@@ -165,7 +165,7 @@ export const CHANNEL_RANGE = "A channel is 1 to 16.";
 export const DUPLICATE_NO_SPACE =
   "There’s no free area this size. Make it smaller, or clear some room, and duplicate again.";
 export const DUPLICATE_AT_CAP =
-  "This surface holds 16 elements, the most a page can carry. Remove one to duplicate another.";
+  "This surface holds 16 elements, the most a page holds. Remove one to duplicate another.";
 
 /** The meter's sentence: "N of 908 · room for about M more". */
 export const roomLine = (used: number, roomFor: number): string =>

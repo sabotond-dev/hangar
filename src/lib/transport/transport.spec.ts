@@ -71,12 +71,23 @@ describe("open failure taxonomy (CONN-02, CONN-04, CONN-05)", () => {
     expect(failureCopy("unplugged").detail, "name the cable").toMatch(/cable/i);
   });
 
-  it("the recovery steps are exactly quit, unplug, wait, replug, reload, connect", () => {
+  it("the recovery steps are exactly close the other tab, quit, unplug, wait, replug, reload, connect", () => {
     const steps = failureCopy("port-busy").steps;
-    expect(steps, "CONN-04's recovery is six steps").toHaveLength(6);
+    // Seven since 13-20 landed batch row I.3.12 (D-23, 2026-09-12): another
+    // HANGAR tab can hold the port too, so "Close any other HANGAR tab" is the
+    // first step and CONN-04's six became seven, amended by name that day.
+    expect(steps, "CONN-04's recovery is seven steps").toHaveLength(7);
     // Asserted in order, not as a set: "unplug, wait, replug" is the whole
     // point, and a set would pass with the replug before the unplug.
-    const inOrder = ["Quit", "Unplug", "Wait", "Plug", "Reload", "Connect"];
+    const inOrder = [
+      "Close",
+      "Quit",
+      "Unplug",
+      "Wait",
+      "Plug",
+      "Reload",
+      "Connect",
+    ];
     inOrder.forEach((word, i) => {
       expect(steps[i], `step ${i + 1} is the "${word}" step`).toContain(word);
     });

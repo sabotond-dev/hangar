@@ -305,9 +305,9 @@ export const IMPORT_REASONS = {
   knobRange: (knob: string, index: number, count: number) =>
     `${knob} has ${count} positions and this file asks for position ${index + 1}.`,
   tooMany: (count: number) =>
-    `This surface has ${count} elements. A surface holds at most ${SURFACE_ELEMENT_CAP}.`,
+    `This surface has ${count} elements, and a page holds at most ${SURFACE_ELEMENT_CAP}.`,
   offSurface: (region: string) =>
-    `${region} lies outside the ${SURFACE_SIZE} × ${SURFACE_SIZE} surface.`,
+    `${region} doesn’t fit on the ${SURFACE_SIZE} × ${SURFACE_SIZE} surface.`,
   overlap: (a: string, b: string) => `${a} overlaps ${b}.`,
 } as const;
 

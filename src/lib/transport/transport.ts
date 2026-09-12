@@ -122,7 +122,7 @@ export function failureCopy(
       // Names no control on purpose: there is no button to click on a browser
       // that cannot talk to hardware at all.
       return {
-        title: "This browser cannot talk to hardware",
+        title: "This browser can’t talk to hardware",
         detail: UNSUPPORTED_DETAIL,
         steps: ["Open this page in Chrome, Edge, or desktop Firefox 151+"],
       };
@@ -131,7 +131,7 @@ export function failureCopy(
         title: "This page needs HTTPS",
         detail:
           "Talking to hardware is only allowed over HTTPS. Opening a built " +
-          `file from disk is not a secure context either, which is why the ` +
+          `file from disk isn’t a secure context either, which is why the ` +
           `${controlLabel} button does nothing there.`,
         steps: [
           "Open this site over HTTPS, or run it on localhost",
@@ -143,16 +143,18 @@ export function failureCopy(
         title: "You closed the chooser",
         detail:
           "No port was picked, so nothing was opened and nothing was sent.",
-        steps: [`Click ${controlLabel} again and pick the ZONA`],
+        steps: [`Click ${controlLabel} again and pick your ZONA`],
       };
     case "port-busy":
       return {
         title: "Another program is holding the port",
         detail:
-          "Grid Editor is the usual reason. Only one program can hold a " +
+          "Grid Editor is the usual reason, and another HANGAR tab can be " +
+          "holding it too. Only one program can hold a " +
           "serial port at a time, and Grid Editor takes it as soon as it " +
           "starts - including from its tray icon after you close its window.",
         steps: [
+          "Close any other HANGAR tab",
           "Quit Grid Editor completely, from its tray icon, not just its window",
           "Unplug the ZONA",
           "Wait a few seconds",
@@ -163,11 +165,11 @@ export function failureCopy(
       };
     case "unplugged":
       return {
-        title: "The ZONA is not there any more",
+        title: "Your ZONA isn’t there any more",
         detail:
           "The module was picked but was gone by the time the port opened. " +
           "A loose or charge-only USB cable does this, and so does a hub " +
-          "that cannot power the module.",
+          "that can’t power the module.",
         steps: [
           "Check the cable is a data cable and is seated at both ends",
           "Plug the ZONA straight into the computer rather than through a hub",
@@ -181,16 +183,16 @@ export function failureCopy(
       // `raw` is deliberately not interpolated - the browser's own words here
       // describe HANGAR's mistake and mean nothing to the person reading them.
       return {
-        title: "The port would not open",
+        title: "The port wouldn’t open",
         detail: "HANGAR is already connecting — one moment.",
         steps: [],
       };
     default:
       return {
-        title: "The port would not open",
+        title: "The port wouldn’t open",
         detail: `The browser reported: ${raw ?? "no further detail"}`,
         steps: [
-          `Unplug the ZONA, plug it back in, and click ${controlLabel} again`,
+          `Unplug your ZONA, plug it back in, and click ${controlLabel} again`,
           "If it keeps happening, copy the message above into a bug report",
         ],
       };

@@ -474,7 +474,7 @@ test.describe("every configuration's page", () => {
     await page.goto(`/playground/${unknown}/`);
     await waitForWorkspace(page);
     await expect(page.getByTestId("fidelity-notice")).toHaveText(
-      "Never heard of that one. Pick a configuration from the list.",
+      "There’s no configuration at this address. Pick one from the list.",
     );
     await expect(
       rail.locator("[data-row]"),

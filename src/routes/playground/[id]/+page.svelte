@@ -172,7 +172,7 @@
   const SITE = "HANGAR";
   /** An address nobody has heard of. Ledgered (13-09): the shelf it named is gone. */
   const UNKNOWN_NOTICE =
-    "Never heard of that one. Pick a configuration from the list.";
+    "There’s no configuration at this address. Pick one from the list.";
   const SHELF_DESCRIPTION =
     "A shelf of ZONA configurations, every one of them running live in the firmware’s own simulator.";
   /** The saved copy's confirmed label - library.ts's own permitted word ON A COPY. Ledgered. */
