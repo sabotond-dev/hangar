@@ -64,8 +64,11 @@ import {
   tryOnBudgetReason,
 } from "../src/lib/tune/copy";
 // The workspace's words (13-09): the PDF's labels for the two buttons and
-// the share control. The module imports nothing.
+// the share control, and (13.1-04) the swatch toggle's two words. The
+// module imports nothing.
 import {
+  EDIT_COLOR,
+  POPOVER_CLOSE,
   RANDOMIZE,
   RESET_SETTINGS,
   SHARE_SNAPSHOT,
@@ -166,6 +169,14 @@ function canvasSize(
  * quietly stopped being checked against the one knob with 4,096 positions.
  * The three rails are appended under their own ids, which is also why they
  * cannot collide with a row.
+ *
+ * SINCE 13.1-04 THE RAILS ARE IN THE DOM ONLY WHILE THE COLOUR BLOCK IS OPEN
+ * (13.1-CONTEXT D-08: the picker opens inline under the swatch row, rendered
+ * only while open; 13-09's closed dialog kept them mounted). A title that
+ * wants the colour knob in a snapshot opens the block first, with
+ * `openColourEditor`, and keeps it open across whatever it compares; a
+ * title that never opens it compares snapshots without the three rails on
+ * both sides, which is still an honest comparison of the rows.
  */
 function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
   return page.evaluate(() => {
@@ -269,16 +280,19 @@ async function openPanel(page: Page, path: string): Promise<void> {
 }
 
 /**
- * The colour picker lives in a popover behind the swatch's Edit color since
- * 13-09 (Bible section 7). Open it when its rails are not on screen; a rail
- * inside a closed dialog cannot take focus.
+ * The colour picker opens INLINE under the swatch row on the swatch's Edit
+ * color since 13.1-04 (Bible section 7; 13.1-CONTEXT D-08 - a popover from
+ * 13-09 to 13.1-04). Open it when its rails are not on screen: the block,
+ * and the rails with it, exist only while open, so the toggle is clicked
+ * first and the block waited for.
  */
-async function openColourPopover(page: Page): Promise<void> {
+async function openColourEditor(page: Page): Promise<void> {
   const rail = page.locator(
     "[data-testid='colour-rail-r'] input[type='range']",
   );
   if (await rail.isVisible()) return;
   await page.getByTestId("edit-color").first().click();
+  await expect(page.getByTestId("colour-editor")).toBeVisible();
   await expect(rail).toBeVisible();
 }
 
@@ -315,7 +329,7 @@ async function turnRail(page: Page, at: number): Promise<void> {
  * something moved would be false through no fault of the picker.
  */
 async function turnColourRail(page: Page): Promise<void> {
-  await openColourPopover(page);
+  await openColourEditor(page);
   await page
     .locator("[data-testid='colour-rail-r'] input[type='range']")
     .focus();
@@ -450,8 +464,18 @@ test.describe("turning a knob", () => {
       "on arrival at the defaults RESET ALL is a real disabled button",
     ).toBeDisabled();
 
+    // THE COLOUR BLOCK IS OPENED BEFORE `home` IS TAKEN (13.1-04, D-08): its
+    // rails are in the DOM only while it is open, and it stays open across
+    // the turns and the reset so the picker's three are in every snapshot
+    // this title compares - otherwise the one 4,096-position knob would be
+    // absent from `home` and RESET ALL would never be checked against it.
+    await openColourEditor(page);
     const home = await knobIndices(page);
     expect(home.length, "the rack rendered its knobs").toBeGreaterThan(1);
+    expect(
+      home.some((knob) => knob.id === "colour-rail-r"),
+      "the picker's rails are in the snapshot - the block is open",
+    ).toBe(true);
     const homeSetup = await meterText(page, "setup");
     const homeTimer = await meterText(page, "timer");
 
@@ -462,16 +486,6 @@ test.describe("turning a knob", () => {
     // moved, so RESET ALL would be proved to leave it alone rather than to put
     // it back.
     await turnColourRail(page);
-    // THE POPOVER GIVES FOCUS BACK (13-09, Bible section 14). The colour rail
-    // lives in the swatch's <dialog> since 13-09; Escape is the platform's
-    // cancel, and the link that opened it must hold focus afterwards - the
-    // one behaviour a source scan cannot prove, so it is pressed here.
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("colour-popover")).not.toHaveAttribute(
-      "open",
-      "",
-    );
-    await expect(page.getByTestId("edit-color").first()).toBeFocused();
     const turned = await knobIndices(page);
     expect(turned, "two knobs and the colour really moved").not.toEqual(home);
     await expect(resetAll, "a moved knob enables RESET ALL").toBeEnabled();
@@ -493,6 +507,32 @@ test.describe("turning a knob", () => {
       resetAll,
       "back at the defaults there is nothing left to reset",
     ).toBeDisabled();
+
+    // THE TOGGLE AND ESCAPE (13.1-04, 13.1-CONTEXT D-08; Bible section 14 as
+    // simplified). The block is inline, so there is no trap and no return:
+    // while it is open the row's toggle reads Close; Escape pressed with
+    // focus INSIDE the block closes it - the block leaves the DOM - and focus
+    // lands on the row's toggle, which reads Edit color again. The one
+    // behaviour a source scan cannot prove, so it is pressed here.
+    const toggle = page.getByTestId("edit-color").first();
+    await expect(page.getByTestId("colour-editor")).toBeVisible();
+    await expect(toggle, "the open block's toggle reads Close").toHaveText(
+      POPOVER_CLOSE,
+    );
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await page
+      .locator("[data-testid='colour-rail-r'] input[type='range']")
+      .focus();
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByTestId("colour-editor"),
+      "Escape inside the block closes it",
+    ).toHaveCount(0);
+    await expect(toggle, "focus lands on the row's toggle").toBeFocused();
+    await expect(toggle, "the closed toggle reads Edit color").toHaveText(
+      EDIT_COLOR,
+    );
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
     expect(consoleErrors).toEqual([]);
   });

@@ -336,8 +336,9 @@ test("no element on any route computes a corner radius above zero, and every 50%
       // The same arrival e2e/tuning.e2e.ts waits for: the workspace up and
       // the entry's pad painted. Since 13-09 nothing is chosen - the panel
       // and the inspector are on the page - and the circles live in the
-      // inspector's racks and in the colour popover, which is opened so its
-      // three are measured too.
+      // inspector's racks and in the colour block under the swatch row,
+      // which is opened so its three are measured too (inline since 13.1-04,
+      // D-08; a popover from 13-09 to 13.1-04).
       const id = WORKSPACE_ENTRIES[WORKSPACES.indexOf(route)];
       await expect(page.getByTestId("workspace")).toBeVisible();
       await page.waitForFunction(
@@ -351,17 +352,20 @@ test("no element on any route computes a corner radius above zero, and every 50%
         `[data-testid="pad-canvas-${id}"]`,
         { timeout: 30_000 },
       );
-      await expect(page.getByTestId("chosen-panel")).toBeVisible();
+      // The inspector's root, not the workspace column: 13.1-06 deletes the
+      // column and its testid, and this strict title must stay green when it
+      // goes (13.1-PLAN-CHECK W-08, B-01's radius half, closed here).
+      await expect(page.getByTestId("tuning-region")).toBeVisible();
       const inspector = page.getByTestId("shell-inspector");
       await expect(inspector.getByTestId("knob-rack").first()).toBeVisible();
       // THE VIEW MUST HAVE LANDED BEFORE THE SWATCH IS LOOKED FOR. The
       // Behavior rack renders (with its empty line) before the tuner's first
       // view arrives, and the Appearance section - the swatch and its
-      // popover - exists only once it has; a count of Edit color taken at
+      // block - exists only once it has; a count of Edit color taken at
       // "first rack visible" read zero once under three workers and skipped
-      // the click, and the closed popover's thumb then read hidden
-      // (2026-09-11, both engines). So a knob ROW is waited for first, and
-      // the popover is opened and its open attribute waited for.
+      // the click, and the picker's thumb then read hidden (2026-09-11, both
+      // engines, on the dialog of the day). So a knob ROW is waited for
+      // first, and the block is opened and waited for visible.
       await expect(
         inspector
           .locator('[data-testid^="knob-"]:not([data-testid="knob-rack"])')
@@ -370,10 +374,7 @@ test("no element on any route computes a corner radius above zero, and every 50%
       const editColor = inspector.getByTestId("edit-color");
       if ((await editColor.count()) > 0) {
         await editColor.first().click();
-        await expect(page.getByTestId("colour-popover")).toHaveAttribute(
-          "open",
-          "",
-        );
+        await expect(page.getByTestId("colour-editor")).toBeVisible();
       }
       // The precondition is the circles themselves, not the rack: a sweep
       // that runs before the last rail mounts measures fewer than it should
@@ -386,8 +387,8 @@ test("no element on any route computes a corner radius above zero, and every 50%
       await expect(page).toHaveURL(/[/]sandbox[/]s-[a-z0-9-]+[/]$/);
       await expect(page.getByTestId("sandbox")).toBeVisible();
       // A knob placed by the palette and one click, so the inspector's
-      // fields, selects and swatch are on the page; the popover opened so
-      // the picker's three are measured here too.
+      // fields, selects and swatch are on the page; the colour block opened
+      // inline so the picker's three are measured here too.
       await page.getByTestId("palette-knob").click();
       const plate = page.getByTestId("surface-plate");
       const box = await plate.boundingBox();
@@ -399,10 +400,7 @@ test("no element on any route computes a corner radius above zero, and every 50%
       const inspector = page.getByTestId("shell-inspector");
       await expect(inspector.getByTestId("field-w")).toBeVisible();
       await inspector.getByTestId("edit-color").first().click();
-      await expect(page.getByTestId("colour-popover")).toHaveAttribute(
-        "open",
-        "",
-      );
+      await expect(page.getByTestId("colour-editor")).toBeVisible();
       await expect(page.locator(".thumb").first()).toBeVisible();
     }
     await settle(page);
