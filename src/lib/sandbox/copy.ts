@@ -188,3 +188,32 @@ export const copyName = (name: string): string => `${name} copy`;
 export const savedLine = (name: string): string =>
   `${name} saved to My configs.`;
 export const SAVE_REFUSED = "Your browser refused to store the copy.";
+
+// ---------------------------------------------------------------------------
+// The install and the share (plan 13-17; Bible section 9 and section 11;
+// 13-CONTEXT D-14 Q7, D-18, D-19). `Apply to ZONA` and `Store on ZONA` are
+// section 9's and are VERBATIM (the first is page-target.ts's APPLY_LABEL);
+// the rest are HANGAR's, in D-05's register, ledgered under "From 13-17".
+
+/** Section 9's word for the store, verbatim: the same click as KEEP ON DEVICE, the same confirmation. */
+export const STORE_LABEL = "Store on ZONA";
+/**
+ * The meter when a string is over 908 under three slots: which one, by how
+ * much, and the way. What pushed a surface over is an ELEMENT - names are
+ * never emitted and colours are measured at their dearest already (land.ts)
+ * - so the way offered is the last element's removal.
+ */
+export const overElementLine = (
+  word: "Setup" | "Timer" | "Utility",
+  used: number,
+  over: number,
+): string =>
+  `${word} is ${used} of 908, ${over} over. Remove the last element to fit.`;
+/** The share control: a surface exports as a file (D-14 Q7), through the same door My configs opens. */
+export const EXPORT_SURFACE = "Export as a file";
+/** Why there is no link: one clause, the reason, the way. */
+export const NO_LINK_EXPLANATION =
+  "A surface isn’t a variation of a catalog entry, so there’s no link to share; export it as a file and import it on My configs.";
+/** The export's success line, with the file name the browser was asked for. */
+export const exportedLine = (fileName: string): string =>
+  `Exported as ${fileName}.`;

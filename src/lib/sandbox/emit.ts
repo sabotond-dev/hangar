@@ -119,14 +119,17 @@
 // `map` is the firmware's short name for the mapmode event,
 // GRID_LUA_FNC_A_MAPMODE_short in ../grid-fw/common/src/c/grid_protocol.h,
 // read and not edited). This emitter takes `slots` as a parameter and emits
-// BOTH calls under 3. The default is 2, for one reason that is a safety
-// matter and not a ceiling: HANGAR does not write 255/4 until 13-17 lands
-// (D-19), and until it does that slot holds the firmware's default -
-// page-next, `gpl(gpn())` - so a Setup that called `ele[#ele]:map()` on a
-// module whose 255/4 is untouched would TURN THE PAGE on every load. 13-17
-// flips the default when its write and its PUT BACK exist. The costs are
-// measured under both (emit.spec.ts test 1 prints the pair) and the
-// difference is the fifteen characters of the second call.
+// BOTH calls under 3. The PARAMETER's default is 2, and it stayed 2 when
+// 13-17 landed the write: the reason it was 2 - HANGAR did not write 255/4,
+// so a Setup calling `ele[#ele]:map()` on a module whose 255/4 held the
+// firmware's page-next would TURN THE PAGE on every load (D-19) - is gone
+// since 13-17 writes the slot on the same install (SLOTS' third row) and
+// PUT BACK restores it, but emit.spec.ts pins the two-slot figures against
+// the bare call and moving the default would move those pins for nothing.
+// Every shipped caller passes 3: the route's SLOTS, preview.ts's
+// PREVIEW_SLOTS and land.ts's LANDING_SLOTS. The costs are measured under
+// both (emit.spec.ts test 1 prints the pair) and the difference is the
+// fifteen characters of the second call.
 //
 // The ceiling in element KINDS is the runtime's - runtime.ts section 6 and
 // runtime.spec.ts test 7 measure it under both slot counts; the data half is

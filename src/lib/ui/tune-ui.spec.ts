@@ -728,6 +728,14 @@ describe("the tuning UI's structural rules", () => {
     // surface cannot take - and X-01's rule (never a button, never a border
     // elsewhere, never a knob) holds: the ink is on a refused field's
     // boundary and its sentence, and on nothing a visitor clicks.
+    //
+    // WIDENED BY ONE MORE AT 13-17, ON THE SAME ROW. The Sandbox's actions
+    // (src/lib/ui/sandbox/SurfaceActions.svelte) render the landing's
+    // over-budget refusal beneath Apply to ZONA - which string is over 908
+    // and by how much, the sentence the disabled Apply is described by
+    // (TUNE-05 on a producer it had never seen). That is section 12's
+    // "transfer error" half of the same row: a transfer refused before it
+    // starts, in this ink, on a sentence and never on the button.
     const TOKEN = "--color-error-ink";
     const SURFACE = "--color-error-surface";
     const files = uiFiles().filter((file) => file.endsWith(".svelte"));
@@ -737,11 +745,12 @@ describe("the tuning UI's structural rules", () => {
     expect(files.length, "the ui directory was walked").toBeGreaterThan(7);
     expect(
       carriers.sort(),
-      "the error ink is scoped to the meter, the message and the Sandbox's refused field, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
+      "the error ink is scoped to the meter, the message, the Sandbox's refused field and the Sandbox's over-budget refusal, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
     ).toEqual([
       `${UI_DIR}/BudgetMessage.svelte`,
       `${UI_DIR}/BudgetMeter.svelte`,
       `${UI_DIR}/sandbox/RegionInspector.svelte`,
+      `${UI_DIR}/sandbox/SurfaceActions.svelte`,
     ]);
     expect(
       surfaces,

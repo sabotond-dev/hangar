@@ -218,9 +218,11 @@
   const collectionRow = (id: string): View => `collection:${id}`;
 
   const PLAYGROUND: ResolvedPathname = SECTIONS[0].href;
-  const SANDBOX: ResolvedPathname = SECTIONS[1].href;
   /** New surface: the Sandbox's front door told to mint rather than resume (13-16). */
   const NEW_SURFACE_HREF = resolve("/sandbox/?new");
+  /** A saved copy: the same front door told to mint AND to load the copy (13-17). */
+  const fromCopyHref = (id: string): ResolvedPathname =>
+    resolve(`/sandbox/?from=${encodeURIComponent(id)}`);
 
   const SEARCH_ID = "library-search-field";
   const SORT_ID = "library-sort-field";
@@ -285,9 +287,12 @@
    */
   function hrefOf(record: StoredRecord): ResolvedPathname {
     if (record.kind === "sandbox") {
+      // A draft opens its own surface; a saved or imported COPY opens onto a
+      // fresh surface id through /sandbox/?from=<id> (13-17), so the copy
+      // stays a copy and its edits become a draft of their own.
       return drafts.some((d) => d.id === record.id)
         ? resolve("/sandbox/[draftId]", { draftId: record.source })
-        : SANDBOX;
+        : fromCopyHref(record.id);
     }
     const stamp = stamps[record.id];
     return stamp === undefined

@@ -70,7 +70,22 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { render } from "svelte/server";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "$lib/catalog/library";
+import { overElementLine } from "$lib/sandbox/copy";
+import { canonical } from "$lib/sandbox/cost";
+import { landSurface, type SurfaceLanding } from "$lib/sandbox/land";
+import type { Region, Surface } from "$lib/sandbox/model";
+import SurfaceActions from "$lib/ui/sandbox/SurfaceActions.svelte";
 import {
   DESKTOP_PRE_SEND_DELAY_MS,
   ELEMENT_SYSTEM,
@@ -2883,5 +2898,314 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       (union?.[1].match(/\| "/g) ?? []).length,
       "fifteen phases, as 13-12 left them",
     ).toBe(15);
+  });
+
+  // -------------------------------------------------------------------------
+  // The Sandbox's landing (13-17; 13-CONTEXT D-03, D-18, D-19): the third
+  // producer of the one shape, through the one writer, refused before the
+  // wire when it does not fit.
+
+  describe("a surface through the one writer (13-17)", () => {
+    /** The PDF's page 3: a 2 x 6 Fader, a 3 x 3 XY pad, a 3 x 3 Knob and a 2 x 2 Button (runtime.spec.ts's fixture). */
+    const region = (
+      name: string,
+      kind: Region["kind"],
+      col: number,
+      row: number,
+      w: number,
+      h: number,
+      cc: number,
+      extra: Partial<Region> = {},
+    ): Region => ({
+      id: name.toLowerCase(),
+      name,
+      kind,
+      col,
+      row,
+      w,
+      h,
+      cc,
+      channel: 1,
+      colour: [15, 15, 15],
+      ...extra,
+    });
+    const PAGE3: Surface = {
+      id: "page-3",
+      name: "Page 3",
+      regions: [
+        region("Filter", "fader", 0, 0, 2, 6, 20),
+        region("Space", "xy", 3, 0, 3, 3, 21, { cc2: 22 }),
+        region("Turn", "knob", 3, 4, 3, 3, 23),
+        region("Go", "button", 7, 0, 2, 2, 30),
+      ],
+    };
+    /** The landings, built once with real timers: the minifier's WASM gate is awaited here, never under the fake clock. */
+    let three: SurfaceLanding;
+    let two: SurfaceLanding;
+    beforeAll(async () => {
+      three = await landSurface(PAGE3);
+      two = await landSurface(PAGE3, { slots: 2 });
+    }, 30_000);
+
+    it("a surface lands in the tuner's own shape, and the store consumes it by the one path an entry takes", async () => {
+      // THE SHAPE. Five keys, the tuner's, in write order - model.spec.ts
+      // asserts the same five on a Lua entry and on a preset; a landing
+      // with a sixth key or a "kind" would fail here by name. The library's
+      // two halves land verbatim, as a Lua entry's do (wire-pin.spec.ts
+      // test 2), because the runtime calls E, G, N, U and X by name; the
+      // utility is the runtime's second slot; and every string is canonical
+      // under the pinned minifier (a fixed point on the first round).
+      expect(Object.keys(three.config)).toEqual(Object.keys(PAIR));
+      expect(Object.keys(three.config)).toEqual([
+        "systemTimer",
+        "system",
+        "systemUtility",
+        "setup",
+        "timer",
+      ]);
+      // The same five keys SLOTS names - the writer owns the wire order, not
+      // the shape (sequence.spec.ts's permutation test), so as a set.
+      expect([...Object.keys(three.config)].sort()).toEqual(
+        SLOTS.map((s) => s.key).sort(),
+      );
+      expect(three.config.system).toBe(TOUCH_LIBRARY);
+      expect(three.config.systemTimer).toBe(TOUCH_LIBRARY_TIMER);
+      expect(three.config.systemUtility.startsWith("--[[@cb]]")).toBe(true);
+      expect(three.config.setup.startsWith("--[[@cb]]")).toBe(true);
+      expect(three.config.timer.startsWith("--[[@cb]]")).toBe(true);
+      for (const key of ["systemUtility", "setup", "timer"] as const) {
+        expect((await canonical(three.config[key])).rounds, key).toBe(0);
+      }
+      expect(three.label).toBe("Page 3");
+      expect(three.refusal, "page 3 fits three slots").toBeUndefined();
+      // The label is the ONLY thing about the surface the store sees: the
+      // shape carries no field that says what produced it.
+      expect(
+        Object.keys(three).sort(),
+        "the landing is config, label, measured and refusal",
+      ).toEqual(["config", "label", "measured", "refusal"]);
+      // Printed for the SUMMARY: the five measured strings at the picker
+      // corner, with their free characters.
+      const m = three.measured;
+      console.log(
+        `page 3 at three slots: system timer ${three.config.systemTimer.length}, page init ${three.config.system.length}, utility ${m.mapmode?.used} (${m.mapmode?.free} free), Timer ${m.timer.used} (${m.timer.free} free), Setup ${m.setup.used} (${m.setup.free} free)`,
+      );
+
+      // THE PATH. A surface's landing and an entry-shaped one, through the
+      // same store: the same step ids in the same order, the same six frames
+      // in SLOTS order, the same phases, the same arming, the same keep
+      // reason. Not the payload - the consumption.
+      const fromSurface = await connected();
+      const fromEntry = await connected();
+      const phasesBefore = [fromSurface.phases.length, fromEntry.phases.length];
+      fromSurface.store.observeConfig(three.config);
+      fromEntry.store.observeConfig(PAIR);
+      await drive(fromSurface.store.tryOnDevice(three.config, three.label));
+      await drive(fromEntry.store.tryOnDevice(PAIR, "Aurora"));
+      expect(outcomes(fromSurface.store.steps)).toEqual(
+        outcomes(fromEntry.store.steps),
+      );
+      expect(fromSurface.phases.slice(phasesBefore[0])).toEqual(
+        fromEntry.phases.slice(phasesBefore[1]),
+      );
+      expect(fromSurface.store.phase).toBe("settled");
+      expect(written(fromSurface.fake).slice(-6).map(shape)).toEqual(
+        ramLegFrames(three.config),
+      );
+      expect(written(fromEntry.fake).slice(-6).map(shape)).toEqual(
+        ramLegFrames(PAIR),
+      );
+      expect(fromSurface.store.name).toBe("Page 3");
+      expect(fromSurface.store.armed).toBe(fromEntry.store.armed);
+      expect(fromSurface.store.armed).toBe(true);
+      expect(fromSurface.store.keepReason(true)).toBe(
+        fromEntry.store.keepReason(true),
+      );
+      expect(fromSurface.store.keepReason(true)).toBeUndefined();
+      // The fake holds the surface's five - the runtime in 255/4 among them -
+      // and PUT BACK restores the module's own five, the utility included.
+      const { state } = fromSurface;
+      expect(state.system?.[EVENT_UTILITY]).toBe(three.config.systemUtility);
+      expect(state.system?.[EVENT_SETUP]).toBe(TOUCH_LIBRARY);
+      expect(state.system?.[EVENT_TIMER]).toBe(TOUCH_LIBRARY_TIMER);
+      expect(state.configs[EVENT_SETUP]).toBe(three.config.setup);
+      expect(state.configs[EVENT_TIMER]).toBe(three.config.timer);
+      await drive(fromSurface.store.putBack());
+      expect(fromSurface.store.phase).toBe("restored");
+      expect(state.system?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
+      expect(state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
+      expect(state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+
+      // THE STRUCTURAL HALF: the store's code names no surface, no sandbox
+      // and no kind, and tryOnDevice takes a config and a name - a label,
+      // never a branch. And the landing's module stays on the tuner's side
+      // of ladder.spec.ts's line: it reaches no protocol, transport or
+      // device module, so a firmware default can never be typed into it.
+      const store = strip(sourceOf("./install.svelte.ts"));
+      for (const needle of ["sandbox", "Surface", "surface", ".kind"]) {
+        expect(store.includes(needle), `the store names ${needle}`).toBe(false);
+      }
+      expect(store).toContain(
+        "async tryOnDevice(\n    config: ConfigStrings | undefined,\n    name: string,\n  )",
+      );
+      const land = strip(sourceOf("../sandbox/land.ts"));
+      for (const needle of ["lib/protocol", "lib/transport", "lib/device"]) {
+        expect(land.includes(needle), `land.ts reaches ${needle}`).toBe(false);
+      }
+    }, 30_000);
+
+    it("a surface's five strings go out in SLOTS order, the classifier names which of five landed, and the impossible partial is still impossible", async () => {
+      // THE ORDER, off the list: the same one writer, the same five frames,
+      // 255/6, 255/0, 255/4, 0/6, 0/0, with the surface's own strings in
+      // them - the utility third, before the touch Setup that calls it
+      // through ele[#ele]:map().
+      const rig = await connected();
+      rig.store.observeConfig(three.config);
+      await drive(rig.store.tryOnDevice(three.config, three.label));
+      const frames = written(rig.fake)
+        .flat()
+        .filter((c) => c.class_name === "CONFIG" && c.class_instr === "EXECUTE")
+        .map((c) => [
+          Number(c.class_parameters.ELEMENTNUMBER),
+          Number(c.class_parameters.EVENTTYPE),
+          String(c.class_parameters.ACTIONSTRING),
+        ]);
+      expect(frames).toEqual(
+        SLOTS.map((slot) => [slot.element, slot.event, three.config[slot.key]]),
+      );
+      expect(rig.store.steps.map((s) => s.id)).toEqual([
+        ...SLOTS.map((s) => s.write),
+        "restore-page-change",
+      ]);
+
+      // THE CLASSIFIER over a surface's landing: refuse the nth write and
+      // the store names the landed prefix - in words and in labels - and
+      // what the fake holds of the surface's is always a prefix of SLOTS.
+      const labels = SLOTS.map((s) => s.label);
+      const refuseNth = async (nth: number) => {
+        let seen = 0;
+        const r = await connected({
+          wrap: (inner) => (outbound, requestId) => {
+            const isWrite =
+              outbound.class_name === "CONFIG" &&
+              outbound.class_instr === "EXECUTE";
+            if (isWrite && ++seen === nth) {
+              return [configNackFrame({ sx: 0, sy: 0, lastheader: requestId })];
+            }
+            return inner(outbound, requestId);
+          },
+        });
+        r.store.observeConfig(three.config);
+        await drive(r.store.tryOnDevice(three.config, three.label));
+        return r;
+      };
+      const utilityRefused = await refuseNth(3);
+      expect(utilityRefused.store.phase).toBe("partial");
+      expect(utilityRefused.store.landed).toBe(
+        "The system timer and the page init",
+      );
+      expect(utilityRefused.store.failed).toBe(
+        "the utility script, the Timer and the Setup",
+      );
+      expect(utilityRefused.store.landedSlots).toEqual(labels.slice(0, 2));
+      expect(utilityRefused.store.failedSlots).toEqual(labels.slice(2));
+      expect(
+        utilityRefused.state.system?.[EVENT_UTILITY],
+        "the refused utility never reached the module",
+      ).toBe(MODULE_SYSTEM_UTILITY);
+      const timerRefused = await refuseNth(4);
+      expect(timerRefused.store.phase).toBe("partial");
+      expect(timerRefused.store.landed).toBe(
+        "The system timer, the page init and the utility script",
+      );
+      expect(timerRefused.store.landedSlots).toEqual(labels.slice(0, 3));
+      expect(timerRefused.state.system?.[EVENT_UTILITY]).toBe(
+        three.config.systemUtility,
+      );
+      const setupRefused = await refuseNth(5);
+      expect(setupRefused.store.phase).toBe("partial");
+      expect(setupRefused.store.landedSlots).toEqual(labels.slice(0, 4));
+      for (const r of [utilityRefused, timerRefused, setupRefused]) {
+        const holds = SLOTS.map((slot) =>
+          slot.element === ELEMENT_SYSTEM
+            ? r.state.system?.[slot.event] === three.config[slot.key]
+            : r.state.configs[slot.event] === three.config[slot.key],
+        );
+        const firstMiss = holds.indexOf(false);
+        expect(
+          firstMiss === -1 || holds.slice(firstMiss).every((h) => !h),
+          `a later slot landed and an earlier one did not: ${holds.join(",")}`,
+        ).toBe(true);
+        expect(r.store.landedSlots).toEqual(
+          labels.slice(0, firstMiss === -1 ? labels.length : firstMiss),
+        );
+      }
+    }, 30_000);
+
+    it("over budget refuses before the wire: a surface over 908 disables Apply, names the cause, and sends zero frames", async () => {
+      // THE SAME SURFACE ON TWO SLOTS does not fit (13-15's ceiling: page 3
+      // at two slots is over by hundreds), and the landing says which string
+      // and by how much, first in write order; the meter's sentence names
+      // the way - the last element's removal - because an element is the
+      // only thing that can push a surface over (names are never emitted,
+      // colours are measured at their dearest already).
+      expect(two.refusal).toBeDefined();
+      expect(two.refusal?.word).toBe("Timer");
+      expect(two.refusal?.used).toBeGreaterThan(908);
+      expect(two.refusal?.over).toBe((two.refusal?.used ?? 0) - 908);
+      expect(two.config.systemUtility, "two slots: no 255/4 of its own").toBe(
+        "",
+      );
+      const sentence = overElementLine(
+        two.refusal!.word,
+        two.refusal!.used,
+        two.refusal!.over,
+      );
+      expect(sentence).toBe(
+        `Timer is ${two.refusal!.used} of 908, ${two.refusal!.over} over. Remove the last element to fit.`,
+      );
+      console.log(`page 3 at two slots: ${sentence}`);
+
+      // APPLY IS DISABLED BEFORE THE CLICK, described by the sentence: the
+      // destination zone rendered with the refusal carries a real disabled
+      // attribute on Apply and the sentence under it.
+      const html = render(SurfaceActions, {
+        props: {
+          zone: "destination",
+          name: two.label,
+          config: two.config,
+          refusal: sentence,
+        },
+      }).body;
+      const apply = /<button[^>]*data-testid="apply-to-zona"[^>]*>/.exec(html);
+      expect(apply, "Apply to ZONA is rendered").not.toBeNull();
+      expect(apply?.[0]).toContain(" disabled");
+      expect(apply?.[0]).toMatch(/aria-describedby="[^"]*-refusal"/);
+      expect(html).toContain(`data-testid="apply-refusal"`);
+      expect(html).toContain(sentence);
+
+      // AND ZERO FRAMES: were the click to happen anyway, the store refuses
+      // the over-budget Timer on its own (TUNE-05, D-10) and the transport
+      // never hears of it - the frame count is the assertion.
+      const rig = await connected();
+      const framesBefore = rig.fake.writes.length;
+      const stepsBefore = rig.store.steps;
+      rig.store.observeConfig(undefined);
+      await drive(rig.store.tryOnDevice(two.config, two.label));
+      expect(rig.fake.writes.length, "frames the refusal produced").toBe(
+        framesBefore,
+      );
+      expect(rig.writesOf("CONFIG", "EXECUTE"), "config writes").toBe(0);
+      expect(rig.writesOf("HEARTBEAT", "EXECUTE"), "restores").toBe(0);
+      expect(rig.store.phase).toBe("ready");
+      expect(rig.store.steps, "an action started").toBe(stepsBefore);
+      expect(rig.store.lastWritten).toBeUndefined();
+      expect(rig.store.armed).toBe(false);
+      // The same surface on three slots fits, and the same click writes five.
+      rig.store.observeConfig(three.config);
+      await drive(rig.store.tryOnDevice(three.config, three.label));
+      expect(rig.store.phase).toBe("settled");
+      expect(rig.writesOf("CONFIG", "EXECUTE")).toBe(5);
+    }, 30_000);
   });
 });

@@ -5,7 +5,10 @@
   goes to the newest one - "pick up where you left off" is section 11's
   promise and a draft is section 9's first object; with none, or with
   `?new` in the address (My configs' `New surface`), it mints a surface id
-  and goes to an empty surface under it. /sandbox/[draftId]/ is where every
+  and goes to an empty surface under it; with `?from=<record id>` (a saved
+  or imported copy's `Open` on My configs, 13-17) it mints a surface id and
+  carries the query on, so the copy's surface opens under a fresh id and
+  the copy stays a copy. /sandbox/[draftId]/ is where every
   surface is edited; this page holds no editor of its own, so there is one
   place a surface is built. The navigation replaces this entry in the
   history, so Back from the editor is Back to wherever the visitor came
@@ -58,11 +61,15 @@
   }
 
   onMount(() => {
-    const fresh = page.url.searchParams.has("new");
+    const from = page.url.searchParams.get("from");
+    const fresh = page.url.searchParams.has("new") || from !== null;
     const id = (fresh ? undefined : newestSurface()) ?? mintSurfaceId();
-    void goto(resolve("/sandbox/[draftId]", { draftId: id }), {
-      replaceState: true,
-    });
+    void goto(
+      from === null
+        ? resolve("/sandbox/[draftId]", { draftId: id })
+        : resolve(`/sandbox/${id}/?from=${encodeURIComponent(from)}`),
+      { replaceState: true },
+    );
   });
 
   $effect(() =>

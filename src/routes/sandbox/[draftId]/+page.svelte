@@ -29,16 +29,33 @@
   surface leaves no Draft row behind in My configs.
 
   THE METER IS cost.ts's, MEASURED (13-14, 13-15): after every change,
-  `costOf` measures the emitted Setup and Timer under the pinned minifier
-  at the picker corner and re-measures with representative regions for
-  "room for about M more". It reaches the minifier through await import(),
-  after the plate has painted. `SLOTS` IS 2 UNTIL 13-17: HANGAR does not
-  write 255/4 yet, so the Sandbox emits against the two slots the module
-  holds today - and on two slots a Knob beside an XY pad, and the PDF's own
-  page 3, do not fit (13-15's measured ceiling). The meter RENDERS that
-  refusal - which string is over, by how much - rather than hiding it;
-  13-17 flips the constant when its write and PUT BACK exist and the
-  refusal disappears with the third slot.
+  `costOf` measures the emitted Setup, Timer and 255/4 under the pinned
+  minifier at the picker corner and re-measures with representative regions
+  for "room for about M more". It reaches the minifier through await
+  import(), after the plate has painted. `SLOTS` IS 3 SINCE 13-17 (13-CONTEXT
+  D-18, D-19): HANGAR writes 255/4, so the Sandbox emits against the three
+  slots the install lands, and every combination of kinds fits (13-15's
+  measured ceiling) - the PDF's own page 3 included. The two-slot refusal
+  line 13-16 rendered is kept in copy.ts for `slots: 2` and is unreachable
+  from this route; when a string is over 908 here it is the Setup, an
+  element pushed it, and the meter says so in the error ink.
+
+  THE INSTALL IS THE ONE WRITER'S (13-17; D-03; BUILD-03, BUILD-05, SAFE-01
+  to SAFE-09). After every measurement `landSurface` (land.ts) publishes the
+  five strings in the tuner's own shape - the library's two halves, the
+  runtime's 255/4, the packed Timer, the data-half Setup - and the route
+  hands them to `install.observeConfig` exactly as the workspace hands the
+  tuner's; the context bar's destination zone (SurfaceActions.svelte) is
+  13-12's Target select and `Apply to ZONA` with section 9's `Store on ZONA`
+  and PUT BACK beside them, every click the install store's own. Over
+  budget, Apply is disabled before the click and the meter names the cause;
+  nothing reaches the wire (install.spec.ts counts zero frames).
+
+  A SURFACE SHARES AS A FILE (D-14 Q7; section 11): `Export as a file`
+  beside Save copy goes through 13-13's transfer.ts unchanged - the same
+  envelope My configs exports and imports - and a copy opened from My
+  configs (`?from=<record id>`, minted onto a fresh surface id by /sandbox/)
+  lands back on this route.
 
   PLAY ROUTES THE FINGER TO THE PREVIEW (PREV-04's third reach, after the
   intro's hero and the workspace). Entering Play builds a Lua engine
@@ -56,8 +73,8 @@
   (SurfaceEditor.svelte, ElementList.svelte).
 
   "Follow hardware selection" is not built: ZONA has one touch element
-  (editor.ts section 3). No device is written to from this page; installing
-  a surface is 13-17's.
+  (editor.ts section 3). Nothing on this page writes to a device except
+  through the install store's clicks in the destination zone.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -65,8 +82,10 @@
   import { browser } from "$app/environment";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import { onDestroy, onMount, untrack } from "svelte";
   import { install } from "$lib/device/install.svelte";
+  import { session } from "$lib/device/session.svelte";
   import {
     DEFAULT_SURFACE_NAME,
     DRAFT_SAVED,
@@ -95,7 +114,8 @@
     TITLE,
     UNDO,
     copyName,
-    overLine,
+    exportedLine,
+    overElementLine,
     renameSurfaceName,
     roomLine,
     savedLine,
@@ -113,18 +133,21 @@
   } from "$lib/sandbox/editor";
   import { emptySurface } from "$lib/sandbox/model";
   import type { SurfaceCost } from "$lib/sandbox/cost";
+  import type { SurfaceLanding } from "$lib/sandbox/land";
   import { SimHost } from "$lib/sim/host";
   import type { SimEngine } from "$lib/sim/engine";
   import { motionDeps } from "$lib/sim/motion.svelte";
   import { mapAxis } from "$lib/sim/touch";
-  import { saveCopy } from "$lib/store/library";
+  import { readCopy, saveCopy } from "$lib/store/library";
   import type { LocalStore } from "$lib/store/local";
+  import { downloadExport, exportFile } from "$lib/store/transfer";
   import { meterView, type MeterView } from "$lib/tune/view";
   import BudgetMeter from "$lib/ui/BudgetMeter.svelte";
   import PadCanvas from "$lib/ui/PadCanvas.svelte";
   import ElementList from "$lib/ui/sandbox/ElementList.svelte";
   import Palette from "$lib/ui/sandbox/Palette.svelte";
   import RegionInspector from "$lib/ui/sandbox/RegionInspector.svelte";
+  import SurfaceActions from "$lib/ui/sandbox/SurfaceActions.svelte";
   import SurfaceEditor from "$lib/ui/sandbox/SurfaceEditor.svelte";
   import Rail from "$lib/ui/shell/Rail.svelte";
   import { fillShell } from "$lib/ui/shell/shell.svelte";
@@ -133,13 +156,13 @@
   let { data }: { data: PageData } = $props();
 
   /**
-   * TWO SLOTS UNTIL 13-17. The emitter and the meter measure against the
-   * slots the module holds today; 13-17 writes 255/4 and PUT BACK for it,
-   * and flips this to 3 in the same commit (13-14's default rule, 13-15's
-   * ceiling). Until then the meter says honestly which surfaces need the
-   * third slot.
+   * THREE SLOTS SINCE 13-17 (13-CONTEXT D-18, D-19). The emitter, the meter,
+   * the preview and the landing all measure against the slots the install
+   * lands: the touch Timer and the system element's utility (255/4), which
+   * HANGAR writes and PUT BACK restores. 13-16 held this at 2 with the
+   * two-slot refusal rendered; the flip and the write are one commit.
    */
-  const SLOTS = 2 as const;
+  const SLOTS = 3 as const;
   const SAVE_DEBOUNCE_MS = 250;
   const MEASURE_DEBOUNCE_MS = 120;
   const CONFIRM_MS = 4000;
@@ -152,6 +175,8 @@
   let view = $state.raw<EditorState | undefined>(undefined);
   let draftLine = $state<string | undefined>(undefined);
   let cost = $state.raw<SurfaceCost | undefined>(undefined);
+  let landing = $state.raw<SurfaceLanding | undefined>(undefined);
+  let exported = $state<string | undefined>(undefined);
   let measuring = $state(true);
   let notice = $state<string | undefined>(undefined);
   let saved = $state<string | undefined>(undefined);
@@ -166,9 +191,11 @@
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let measureTimer: ReturnType<typeof setTimeout> | undefined;
   let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+  let exportTimer: ReturnType<typeof setTimeout> | undefined;
   let measureGeneration = 0;
   let previewGeneration = 0;
   let costOfSurface: typeof import("$lib/sandbox/cost").costOf | undefined;
+  let landSurface: typeof import("$lib/sandbox/land").landSurface | undefined;
 
   function local(): LocalStore | undefined {
     if (!browser) return undefined;
@@ -224,17 +251,35 @@
     measureTimer = setTimeout(() => void measure(), MEASURE_DEBOUNCE_MS);
   }
 
+  /**
+   * The meter and the landing, from one measurement. The landing is withdrawn
+   * the instant the feed goes stale (`observeConfig(undefined)`), so a click
+   * inside the debounce cannot write the previous surface's strings -
+   * 07-RESEARCH Pitfall 5, the tuner's own discipline.
+   */
   async function measure(): Promise<void> {
     measureTimer = undefined;
     if (editor === undefined || !mounted) return;
     const generation = (measureGeneration += 1);
     const surface = editor.surface;
+    landing = undefined;
+    install.observeConfig(undefined);
     try {
       costOfSurface ??= (await import("$lib/sandbox/cost")).costOf;
-      const measured = await costOfSurface(surface, { slots: SLOTS });
+      landSurface ??= (await import("$lib/sandbox/land")).landSurface;
+      const [measured, landed] = await Promise.all([
+        costOfSurface(surface, { slots: SLOTS }),
+        landSurface(surface, { slots: SLOTS }),
+      ]);
       if (generation !== measureGeneration || !mounted) return;
       cost = measured;
+      landing = landed;
       measuring = false;
+      // An over-budget landing is never observed: Apply is disabled on the
+      // refusal and the store is not told about strings it must not write.
+      install.observeConfig(
+        landed.refusal === undefined ? landed.config : undefined,
+      );
     } catch {
       if (generation !== measureGeneration || !mounted) return;
       unavailable = true;
@@ -257,17 +302,38 @@
     ),
   );
 
+  /**
+   * The over sentence when a string is over 908 - which one, by how much,
+   * the way (land.ts's refusal, first in write order) - or undefined.
+   */
+  const refusal = $derived.by((): string | undefined => {
+    const r = landing?.refusal;
+    if (r === undefined) return undefined;
+    return overElementLine(r.word, r.used, r.over);
+  });
+
   /** "N of 908 · room for about M more", or which string is over and by how much. */
   const meterLine = $derived.by(() => {
     if (cost === undefined) return MEASURING;
     if (!cost.fits) {
+      if (refusal !== undefined) return refusal;
       const over =
         cost.setup.used > cost.setup.limit
           ? (["Setup", cost.setup] as const)
-          : (["Timer", cost.timer] as const);
-      return overLine(over[0], over[1].used, over[1].used - over[1].limit);
+          : cost.timer.used > cost.timer.limit
+            ? (["Timer", cost.timer] as const)
+            : (["Utility", cost.mapmode ?? cost.timer] as const);
+      return overElementLine(
+        over[0],
+        over[1].used,
+        over[1].used - over[1].limit,
+      );
     }
-    const used = Math.max(cost.setup.used, cost.timer.used);
+    const used = Math.max(
+      cost.setup.used,
+      cost.timer.used,
+      cost.mapmode?.used ?? 0,
+    );
     return cost.roomFor === 0
       ? `${used} ${ROOM_NONE}`
       : roomLine(used, cost.roomFor);
@@ -383,6 +449,38 @@
     }, CONFIRM_MS);
   }
 
+  /**
+   * Export as a file (D-14 Q7; section 11): the surface as the record shape
+   * 13-13 defined, through transfer.ts's own envelope and download - the
+   * same door My configs opens, and no code of this route's own.
+   */
+  function export_surface(): void {
+    if (editor === undefined) return;
+    const at = new Date().toISOString();
+    const surface = editor.surface;
+    const fileName = downloadExport(
+      exportFile(
+        {
+          schema: 1,
+          id: surface.id,
+          name: surface.name,
+          kind: "sandbox",
+          source: surface.id,
+          surface,
+          createdAt: at,
+          editedAt: at,
+        },
+        at,
+      ),
+    );
+    exported = exportedLine(fileName);
+    if (exportTimer !== undefined) clearTimeout(exportTimer);
+    exportTimer = setTimeout(() => {
+      exportTimer = undefined;
+      exported = undefined;
+    }, CONFIRM_MS);
+  }
+
   function commitName(next: string): void {
     renaming = false;
     const trimmed = next.trim();
@@ -418,10 +516,25 @@
   // ---------------------------------------------------------------------------
   // Mount: the store, the model, the host.
 
+  /**
+   * A saved copy, opened from My configs: `?from=<record id>` names a
+   * sandbox record in the library, and its surface is loaded onto THIS
+   * surface id (a fresh one, minted by /sandbox/) so the copy stays a copy
+   * and the first edit writes a draft of its own. A draft under this id
+   * wins over the query, so a return visit resumes the edits.
+   */
+  function fromCopy(store: LocalStore | undefined, id: string) {
+    const from = page.url.searchParams.get("from");
+    if (from === null) return undefined;
+    const record = readCopy(store, from);
+    if (record === undefined || record.kind !== "sandbox") return undefined;
+    return { ...record.surface, id };
+  }
+
   function open(id: string): void {
     closePreview();
     const store = local();
-    const stored = readSurfaceDraft(store, id);
+    const stored = readSurfaceDraft(store, id) ?? fromCopy(store, id);
     const surface = stored ?? emptySurface(id, DEFAULT_SURFACE_NAME);
     editor = new SandboxEditor(surface, { onchange });
     view = editor.state();
@@ -448,6 +561,9 @@
     }
     if (measureTimer !== undefined) clearTimeout(measureTimer);
     if (confirmTimer !== undefined) clearTimeout(confirmTimer);
+    if (exportTimer !== undefined) clearTimeout(exportTimer);
+    // The landing is this page's: the store forgets it with the page.
+    install.observeConfig(undefined);
     host?.destroy();
     host = undefined;
     engine = undefined;
@@ -461,7 +577,12 @@
     untrack(() => open(id));
   });
 
-  /* The shell: SANDBOX current, the breadcrumb, the draft's clause, the device's, the rail and the inspector. */
+  /* THE DESTINATION ZONE renders while a ZONA is connected (13-12's rule, the
+     workspace's own): without a session the bar says "Preview without
+     hardware" on its own. */
+  const reportedPage = $derived(session.identity?.activePage);
+
+  /* The shell: SANDBOX current, the breadcrumb, the draft's clause, the device's, the destination, the rail and the inspector. */
   $effect(() =>
     fillShell({
       variant: "app",
@@ -469,6 +590,7 @@
       breadcrumb: ["SANDBOX", name.toUpperCase()],
       draft: draftLine,
       device: install.phase,
+      destination: reportedPage === undefined ? undefined : destination,
       rail,
       inspector,
     }),
@@ -507,6 +629,16 @@
       {/snippet}
     </Rail>
   {/if}
+{/snippet}
+
+<!-- The context bar's destination zone (13-12; 13-17): the page target, Apply to ZONA, Store on ZONA, PUT BACK. -->
+{#snippet destination()}
+  <SurfaceActions
+    zone="destination"
+    {name}
+    config={landing?.config}
+    {refusal}
+  />
 {/snippet}
 
 {#snippet meter()}
@@ -672,6 +804,12 @@
           data-testid="save-copy"
           onclick={save_copy}>{SAVE_COPY}</button
         >
+        <SurfaceActions
+          zone="share"
+          {name}
+          {exported}
+          onexport={export_surface}
+        />
       </div>
     </div>
 
@@ -840,7 +978,7 @@
   .history,
   .save {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
   }
 

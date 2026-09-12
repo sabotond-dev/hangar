@@ -688,3 +688,54 @@ Questions for the user, from 13-16 (D-01):
 6. **`Draft saved locally` after the first edit only.** Opening an empty surface writes nothing, so My
    configs shows no Draft row for a surface the visitor only looked at; the row appears with the first
    element. Right, or should the empty surface be a draft from the moment it has an address?
+
+## From 13-17: the surface's install and its share - the words, the fifth string's sentences, and the questions D-01 sends to the batch
+
+Added 2026-09-12 by plan 13-17 (the Sandbox install through the one writer; 13-CONTEXT D-03, D-18,
+D-19, D-14 Q7). **Verbatim and not ledgered:** §9's `Apply to ZONA` (page-target.ts's `APPLY_LABEL`,
+13-12's) and `Store on ZONA` (`STORE_LABEL` in `src/lib/sandbox/copy.ts`, the state machine's main
+action for _Applied temporarily_ - the same click as KEEP ON DEVICE, the same confirmation), page 3's
+`Target`. The Store on ZONA control's disabled reasons are install-copy.ts's `KEEP_REASONS`,
+unchanged. Everything below is HANGAR's, in D-05's register.
+
+**The fifth string moved sentences 12.1-08 wrote.** A RAM leg writes five since 13-17 - the system
+element's utility slot (255/4) third, after the page init and before the touch pair - so
+`install-copy.ts`'s closed unions gained a row each and every row names the five in write order, the
+confirmation names three page scripts, and the partial's step says "all five". `the utility script`
+is HANGAR's word for the slot (the firmware's is the utility button's event; a catalog entry lands the
+module's own page-next there through the store's `#pageUtility`, a surface lands its runtime). 13-18
+rewrites the file and must carry the five-string fact; these are the shipped strings.
+
+| Symbol | Module | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- |
+| `CONFIRM_REPLACES` | `src/lib/device/install-copy.ts` (KeepConfirm.svelte; the Sandbox's Store on ZONA opens the same block) | the KEEP confirmation | five scripts replaced, and that a store survives a power cycle (SAFE-05) | _This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init, timer and utility scripts, and it survives a power cycle._ | the 07-UI-SPEC contract row plus the insertion ` and the page’s own init, timer and utility scripts`, held from both sides by `AMENDED_BY_THE_FIFTH_SCRIPT` |
+| `LandedWords` / `FailedWords` (four rows each) | same (`partialBlock`) | a partial: which of five landed, as a prefix of SLOTS | every row names the five in write order; the landed prefix on the left, the rest on the right | _The system timer_ / _the page init, the utility script, the Timer and the Setup_ · _The system timer and the page init_ / _the utility script, the Timer and the Setup_ · _The system timer, the page init and the utility script_ / _the Timer and the Setup_ · _The system timer, the page init, the utility script and the Timer_ / _the Setup_ - each read as _{landed} reached your ZONA and {failed} did not. What is on the module now is part of this configuration and part of your own._ | §16's one uncertain-outcome row; 12-03's and 12.1-08's rows above |
+| `partialBlock(...).steps[0]` | same | the partial's first step | send all five again | _Click TRY ON DEVICE to send all five again_ | none |
+| `overElementLine(word, used, over)` | `src/lib/sandbox/copy.ts` (the meter line under three slots, and the sentence Apply to ZONA is described by while disabled - SurfaceActions.svelte) | a surface with a string over 908 | which string, by how much, and the way - the last element's removal, because an element is the only thing that can push a surface over (names are never emitted, colours are measured at their dearest already; land.ts) | _Setup is 921 of 908, 13 over. Remove the last element to fit._ | none; TUNE-05's rule on a new producer. 13-16's `overLine` (kinds, two slots) is kept for `slots: 2` and is unreachable from the route |
+| `EXPORT_SURFACE` | `copy.ts` (the share control beside Save copy, `data-testid="export-surface"`) | a surface shared | that a surface leaves as a file (D-14 Q7), through 13-13's transfer.ts | _Export as a file_ | §11's export; 13-13's row action is `Export` |
+| `NO_LINK_EXPLANATION` | `copy.ts` (the helper line under the control, `aria-describedby`) | why there is no link | one clause: not a variation of a catalog entry, so nothing for a link to point at; the way: export, import on My configs | _A surface isn’t a variation of a catalog entry, so there’s no link to share; export it as a file and import it on My configs._ | none |
+| `exportedLine(fileName)` | `copy.ts` (`role="status"` beside the control for four seconds) | the export's success | the file name the browser was asked for | _Exported as my-performance.hangar.json._ | none; 13-16's `savedLine` is the pattern |
+
+Questions for the user, from 13-17 (D-01):
+
+1. **A catalog entry now writes 255/4 too - the firmware's page-next.** Every TRY ON DEVICE / Apply
+   of a Lua entry or a preset lands `gpl(gpn())` in the utility slot (the store substitutes it for the
+   landing's empty string, 12-03's placement one slot over), so a module whose owner had a utility
+   script of their own runs page-next under a catalog configuration until PUT BACK - and a KEEP after
+   it stores the default (cfg_default_flag deletes the file). Acceptable as D-19's consequence, or
+   should a catalog entry leave 255/4 as the snapshot found it (the store would substitute the
+   snapshot's own utility instead of the firmware's - one line in `#pageUtility`, still no branch on a
+   kind)?
+2. **`the utility script`** as the slot's word in the partial sentences and the confirmation: the
+   firmware calls the event the utility button's; a visitor may not know their ZONA has one. Keep,
+   or say _the utility button's script_?
+3. **Store on ZONA and PUT BACK in the Sandbox's destination zone** beside Apply to ZONA, because the
+   Sandbox has no install column: the zone is wider than page 3 draws it. Keep them there, or move
+   the pair under Device actions in the footer (13-11's disclosure)?
+4. **The over line under three slots names "the last element"** because names are never emitted and
+   colours are measured at their dearest; the plan asked for "an element, a colour or a name". Is a
+   sentence that only ever names an element right, or should the meter say which element (the
+   dearest by cells) rather than the last?
+5. **A saved copy opens onto a fresh surface** (`/sandbox/?from=<id>` mints an id and loads the copy's
+   surface under it), so the copy stays a copy and its edits become a new draft. Right, or should
+   opening a copy edit the copy in place?

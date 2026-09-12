@@ -179,8 +179,9 @@
 // runtime spans two slots under 13-02's `three-slots` answer: `packRuntime`
 // fills 255/4 from the front (the head, `R`, `O`, then the branches in kind
 // order) until 908 is reached and the touch Timer takes the rest between
-// `gtt(0,100)` and the sweep. Under two slots (the default until 13-17
-// writes 255/4 - emit.ts section 4) everything is in the Timer, and a
+// `gtt(0,100)` and the sweep. Under two slots (the emitter's parameter
+// default; every shipped caller passes three since 13-17 wrote 255/4 -
+// emit.ts section 4) everything is in the Timer, and a
 // surface whose runtime does not fit is a surface the meter refuses; the
 // measured table is runtime.spec.ts test 7's and 13-15-SUMMARY.md's. In one
 // sentence: on two slots a Knob shares a surface with one fader orientation
