@@ -607,3 +607,84 @@ Questions for the user, from 13-15 (D-01):
    row (docs/INSTALL-RUNBOOK.md row L) and the meter?
 3. **The knob's starting value is 0** and nothing in the schema sets it. A field (_Starts at_) in the
    inspector's Behaviour section would cost one row column; is one wanted?
+
+## From 13-16: the Sandbox's interface - the words the PDF and the Bible did not give
+
+Landed in `src/lib/sandbox/copy.ts` (one import-free module, the shape `src/lib/tune/inspector-copy.ts`
+set) and read by `src/routes/sandbox/+page.svelte`, `src/routes/sandbox/[draftId]/+page.svelte`,
+`src/lib/ui/sandbox/Palette.svelte`, `ElementList.svelte`, `SurfaceEditor.svelte` and
+`RegionInspector.svelte`. **Verbatim and not ledgered**: PDF page 3's `SANDBOX / MY PERFORMANCE`,
+`My performance`, *"Compose your controls. Select an element to shape its behavior."*, `ADD AN ELEMENT`,
+`Fader` / `Button` / `Knob` / `XY pad`, `ON THIS SURFACE`, `+ New surface`, `Edit`, `▷ Play`, `Undo`,
+`Redo`, `Save copy`, `ZONA · CONTINUOUS TOUCH SURFACE`, `4 elements`, `SELECTED ELEMENT / FADER`,
+`2 × 6 units`, `Element name`, `Position & size`, `Column`, `Row`, `Width`, `Height`, *"Snap to light
+guides. Touch remains continuous."*, `MIDI output`, `CC number`, `Channel`, `Appearance`, `Edit color`
+(13-09's), `Duplicate`, `Delete element`; §8's *"Add an element, or select an area on the surface."*
+and its section names `Behavior`, `Type`, `Orientation`; §16's overlap line (13-14's `overlapLine`);
+drafts.ts's own `Draft saved locally` (the PDF's context-bar status, drafts.ts header). The three
+geometry refusals, the adjacency warning and the cap are 13-14's and 13-15's rows above and are
+rendered here unchanged. Everything below is HANGAR's, in D-05's register.
+
+| Symbol | Module | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- |
+| `TITLE` | `copy.ts` (`<title>` on both routes) | the tab | which site, which section | _Sandbox — HANGAR_ | none (13-13's `My configs — HANGAR` is the pattern) |
+| `OPENING_LINE` | `copy.ts` (`/sandbox/` before its effect navigates) | the front door deciding which surface to open | that something is happening, in one line | _Opening your surface…_ | none |
+| `STATUS_LINE` | `copy.ts` (the context bar's sentence on `/sandbox/`, and on the editor before the first write) | the bar's centre zone with no draft fact yet | the section's promise, as pages 2 and 4 carry one | _Build a surface. Every element is yours to shape._ | none - page 3 draws the dotted draft line instead; this is for before a draft exists |
+| `EMPTY_SECOND_LINE` | `copy.ts` (the empty state, under §8's instruction) | an empty surface | the one starter and the click path, named | _Start with a fader, or click any cell to begin an area._ | none |
+| `STARTER_ACTION` | `copy.ts` (the one visible starter, filled) | the same | the verb and the element (§8: "one visible starter action") | _Add a fader_ | none |
+| `TEMPLATE_ACTION` | `copy.ts` (the quiet alternative) | the same | that it is a TEMPLATE, so an empty surface stays possible, and what it holds | _Use the fader and button template_ | none |
+| `TEMPLATE_FADER_NAME`, `TEMPLATE_BUTTON_NAME` | `copy.ts` (the template's two elements) | the template placed | names, not `Fader 1` / `Button 1` | _Filter_, _Hold_ (the PDF's own two) | page 3's `FILTER` and `HOLD` |
+| `defaultName(kind, n)` | `copy.ts` (every element placed by the palette or an area) | a new element | its kind and an ordinal that never repeats on the surface | _Fader 1_, _Button 2_ | none |
+| `paletteAddName(kind)` | `copy.ts` (the palette row's accessible name) | a row whose visible text is the kind and a `+` | the verb, for a screen reader | _Add a Fader_ | none |
+| `PLAY_LOCKS_PALETTE` | `copy.ts` (the reason beside the four disabled rows in Play, `aria-describedby`) | Play: structure locked (§8) | where touches go, and the way back | _In Play, touches go to the surface. Switch to Edit to add elements._ | none |
+| `PLAY_LOCKS_FIELDS` | `copy.ts` (the reason beside every read-only field and the disabled pair in Play) | the same, in the inspector | the same, for an element | _In Play, touches go to the surface. Switch to Edit to change this element._ | none |
+| `MODE_LINE_EDIT` | `copy.ts` (the persistent mode label under the switch, §8) | Edit | what the mode does and does not | _Edit: select and arrange elements. Touch goes nowhere._ | none |
+| `MODE_LINE_PLAY` | `copy.ts` (the same) | Play | the same | _Play: touch the surface as you would the pad._ | none |
+| `DRAFT_UNSAVED` | `copy.ts` (the context bar's draft clause when the store refused) | a refusing storage, degraded to an unsaved session (the plan's must-have) | that the work is not stored and where it lives, honestly and without a dialog | _Your browser refused to store this draft. It lives in this tab only._ | none - 13-13's `STORE_REFUSED` is the sibling for a copy |
+| `SURFACE_NAME` | `copy.ts` (the headline field's accessible name) | the surface's name, edited in place | what the field is | _Surface name_ | none |
+| `RENAME_SURFACE`, `renameSurfaceName(name)` | `copy.ts` (the quiet control beside the headline; its accessible name) | the same | the verb, and the name for a screen reader | _Rename_; _Rename My performance_ | 13-13's `Rename` |
+| `PLATE_NAME` | `copy.ts` (the plate's `aria-label`) | the plate as one tab stop | the PDF's word | _Surface_ | page 3's `SURFACE` |
+| `placeInstruction(kind)` | `copy.ts` (the plate's status line, `role="status"`, while a kind is armed) | element first, waiting for the cell | what the next click or Enter does | _Click a cell to place the Fader._ | none |
+| `AREA_START` | `copy.ts` (the same, after the first corner) | area first, waiting for the far corner | the same | _Click the far corner of the area._ | none |
+| `selectedLine(name, kind)`, `NOTHING_SELECTED`, `cellLine(col, row)` | `copy.ts` (the same, at rest: the selection then the focus cell) | nothing pending | what is selected and where the keyboard's cell is, one-based | _Filter, Fader, selected. Column 3, Row 1._ / _Nothing selected. Column 1, Row 1._ | none |
+| `listRowName(name, kind)` | `copy.ts` (the element list row's accessible name) | a row whose visible text is the name and the type | both, for a screen reader | _Filter, Fader_ | none |
+| `LIST_EMPTY` | `copy.ts` (`ON THIS SURFACE` with no rows; §15's empty state) | an empty list | that it is empty, not missing | _Nothing on this surface yet._ | none |
+| `NO_SELECTION_EYEBROW`, `NO_SELECTION_HEADLINE`, `NO_SELECTION_LEDE` | `copy.ts` (the inspector with nothing selected) | no selection | that the panel waits for one, and the two ways to make one | _NO ELEMENT SELECTED_; _Pick an element_; _Select an element on the surface or in the list to shape it._ | none |
+| `ORIENTATION_VERTICAL`, `ORIENTATION_HORIZONTAL` | `copy.ts` (a fader's `Orientation` select) | a fader's axis (13-14's field) | the two words | _Vertical_, _Horizontal_ | §8 names the field only |
+| `LATCH`, `LATCH_HELPER` | `copy.ts` (a button's `Behavior` section) | the button's latch flag (13-14's row) | what latched and unlatched send | _Latch_; _Latched, a press toggles between on and off. Unlatched, it sends on while held._ | none |
+| `CC_NUMBER_Y` (and `CC number (X)` beside it) | `copy.ts` (an XY pad's second controller) | the XY pad's two axes | which axis each field sends | _CC number (Y)_ | page 3 has one `CC number` |
+| `COLOUR_LABEL` | `copy.ts` (the swatch row's label; 13-09's Swatch takes a knob label) | one colour per element | the word | _Color_ | page 5's `Active color`; page 3 draws the swatch with no label |
+| `WHOLE_NUMBER` | `copy.ts` (a numeric field that got a word or a blank) | a keystroke the field cannot read | the way, never "invalid" | _Type a whole number._ | none |
+| `CC_RANGE` | `copy.ts` (a controller past 127 or below 0) | the range | the range, as MIDI defines it (§2's row) | _A controller number is 0 to 127._ | none |
+| `CHANNEL_RANGE` | `copy.ts` (a channel past 16 or below 1) | the range | the same, one-based as the user sees it | _A channel is 1 to 16._ | none |
+| `DUPLICATE_NO_SPACE` | `copy.ts` (the inspector's notice after a refused duplicate) | rule 4: no free window of that size (§8: "offer resize ... never silently delete") | the fact and the two ways | _There’s no free area this size. Make it smaller, or clear some room, and duplicate again._ | none |
+| `DUPLICATE_AT_CAP` | `copy.ts` (the same, at sixteen) | the cap, reached by Duplicate | the count and the way, as 13-14's `cap` says it | _This surface holds 16 elements, the most a page can carry. Remove one to duplicate another._ | none |
+| `roomLine(used, roomFor)` | `copy.ts` (the meter's sentence under 13-10's two meters, from `cost.ts`) | the budget with room | the plan's own sentence: N and about M | _451 of 908 · room for about 11 more_ | none (13-RESEARCH Q8's honesty device) |
+| `ROOM_NONE` | `copy.ts` (the same, at zero room) | the budget or the cap or the space stopping the count | that nothing more fits, said plainly | _882 of 908 · no room for another_ | none |
+| `overLine(word, used, over)` | `copy.ts` (the meter when a string is over 908 - 13-15's two-slot ceiling, until 13-17 flips `SLOTS` to 3) | a surface whose Setup or Timer does not fit two events | which string, by how much, and the way (fewer kinds) | _Timer is 1013 of 908, 105 over. Two events can’t hold this mix of element kinds; remove one kind to fit._ | none |
+| `MEASURING` | `copy.ts` (the meter line before the first measurement) | no measurement yet | the same word 13-10's meter uses | _measuring…_ | 05-UI-SPEC's word |
+| `savedLine(name)` | `copy.ts` (Save copy's outcome beside the button, `role="status"`) | a copy written to library.ts | the name and where it went | _My performance copy saved to My configs._ | §16's _Arc — my variation saved to My configs._ (the shape) |
+| `SAVE_REFUSED` | `copy.ts` (the same, when the store refused) | a refusing store on Save copy | the fact | _Your browser refused to store the copy._ | 13-13's `STORE_REFUSED` (the shape) |
+| `copyName(name)` | `copy.ts` | the copy's name | 13-09's rule | _{name} copy_ | 13-09's row |
+
+Questions for the user, from 13-16 (D-01):
+
+1. **The area-first kind.** Two clicks on empty cells make a Fader (vertical when the box is taller than
+   wide, horizontal otherwise) and a one-cell box a Button; §8 says *"then choose a compatible element"*,
+   which the inspector's `Type` select is. Should the second click instead open a small kind chooser at
+   the region, so the choice is made before anything is named?
+2. **The over-budget sentence names kinds.** 13-15 measured the two-slot ceiling in KINDS of element,
+   so `overLine` says *"remove one kind to fit"*; a visitor who has never read a ceiling may not know
+   what a kind is. Keep it, or say *"a knob beside an XY pad"* when that is the pair?
+3. **The mode lines are HANGAR's.** §8 asks for a persistent visible mode label and gives no words;
+   _Edit: select and arrange elements. Touch goes nowhere._ / _Play: touch the surface as you would the
+   pad._ are two sentences each. One word each (`Edit`, `Play` are already on the switch) and no line?
+4. **A recolour is one entry until the next edit**, not one per popover session: the picker's rails
+   report every detent and the entries coalesce under the region's colour key; two separate visits to
+   the popover with nothing between them merge into one Undo. Acceptable, or should closing the
+   popover seal the entry (Swatch.svelte would need an `onclose` it does not have)?
+5. **The surface's name is not in the history.** Undo covers the regions (§8's structural edits); a
+   rename of the SURFACE is not undone. Should it be?
+6. **`Draft saved locally` after the first edit only.** Opening an empty surface writes nothing, so My
+   configs shows no Draft row for a surface the visitor only looked at; the row appears with the first
+   element. Right, or should the empty surface be a draft from the moment it has an address?
