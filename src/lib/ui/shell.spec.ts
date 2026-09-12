@@ -1,6 +1,8 @@
 /**
- * THE SHELL, SIX TESTS (plan 13-05; 13-CONTEXT.md D-01, D-03, D-05, D-14 Q9,
- * D-17; Bible sections 4, 7, 12, 13, 14, 15).
+ * THE SHELL, SEVEN TESTS (six from plan 13-05; 13-CONTEXT.md D-01, D-03,
+ * D-05, D-14 Q9, D-17; Bible sections 4, 7, 12, 13, 14, 15 - and a seventh
+ * from plan 13.1-05, 13.1-CONTEXT D-04: the header's Clear beside the
+ * connection control).
  *
  * One frame with six regions - a 76px header, a 59px context bar, a rail, a
  * centre, an inspector and a footer - mounted once in src/routes/+layout.svelte
@@ -47,6 +49,7 @@ import { describe, expect, it } from "vitest";
 import Layout from "../../routes/+layout.svelte";
 import ContextBar from "./shell/ContextBar.svelte";
 import Footer from "./shell/Footer.svelte";
+import Header from "./shell/Header.svelte";
 import Inspector from "./shell/Inspector.svelte";
 import Nav from "./shell/Nav.svelte";
 import Rail from "./shell/Rail.svelte";
@@ -862,6 +865,112 @@ describe("the shell: one frame, six regions, one set of numbers (src/lib/ui/shel
     expect(body).toContain('data-testid="shell-inspector-body"');
     expect(body.indexOf('data-testid="headline"')).toBeLessThan(
       body.indexOf('data-testid="shell-inspector-body"'),
+    );
+  });
+
+  it("7. the header's connection zone carries the Clear snippet BEFORE the connection snippet in both variants, the layout mounts <Clear /> there once, and the zone is a 12px-gapped container that takes the row's slack (13.1-05, D-04)", () => {
+    // Plan 13.1-05, bench line 4 of 2026-09-12: "CLEAR button. we need a
+    // CLEAR button it should live all the time in the top right corner next
+    // to ZONA connected." RENDERED, not scanned, for the order: the header
+    // is drawn alone in both shapes with two marked snippets, and the
+    // layout is drawn around a page in both shapes with its real Clear.
+    for (const variant of ["app", "intro"] as const) {
+      const body = render(Header, {
+        props: {
+          variant,
+          section: "playground",
+          clear: marked("clear-mark", "clear"),
+          connection: marked("connection-mark", "connection"),
+        },
+      }).body;
+      const zoneAt = body.indexOf('data-testid="shell-connection"');
+      const clearAt = body.indexOf('data-testid="clear-mark"');
+      const connectionAt = body.indexOf('data-testid="connection-mark"');
+      const zoneEnd = body.indexOf("</header>");
+      expect(zoneAt, `${variant}: the zone renders`).toBeGreaterThan(-1);
+      expect(clearAt, `${variant}: the clear snippet renders`).toBeGreaterThan(
+        zoneAt,
+      );
+      expect(
+        connectionAt,
+        `${variant}: the connection snippet renders after Clear - Clear is to its LEFT`,
+      ).toBeGreaterThan(clearAt);
+      expect(connectionAt, `${variant}: inside the header`).toBeLessThan(
+        zoneEnd,
+      );
+      expect(count(body, 'data-testid="clear-mark"'), `${variant}: once`).toBe(
+        1,
+      );
+    }
+
+    // The layout hands its real Clear to that snippet, on every page it
+    // renders a header for: the app shape and the intro shape both carry
+    // exactly one `clear` control, inside the zone, before the device slot.
+    for (const fill of [
+      {
+        variant: "app" as const,
+        section: "sandbox" as const,
+        breadcrumb: ["SANDBOX", "CUSTOM SURFACE"],
+        status: "Build a surface that works the way you do.",
+      },
+      { variant: "intro" as const },
+    ]) {
+      const body = renderLayout(fill);
+      expect(
+        count(body, 'data-testid="clear"'),
+        `${fill.variant}: one Clear on the page`,
+      ).toBe(1);
+      const zoneAt = body.indexOf('data-testid="shell-connection"');
+      const clearAt = body.indexOf('data-testid="clear"');
+      const slotAt = body.indexOf('data-testid="device-slot"');
+      expect(clearAt, `${fill.variant}: Clear is in the zone`).toBeGreaterThan(
+        zoneAt,
+      );
+      expect(
+        slotAt,
+        `${fill.variant}: the connection control follows Clear`,
+      ).toBeGreaterThan(clearAt);
+      expect(
+        body.indexOf("</header>"),
+        `${fill.variant}: both inside the header`,
+      ).toBeGreaterThan(slotAt);
+      expect(
+        count(body, 'data-testid="clear-line"'),
+        `${fill.variant}: one description`,
+      ).toBe(1);
+    }
+    // The unfilled shape has no header and so no Clear: the bench draws its
+    // own chrome (13-09).
+    expect(count(renderLayout(), 'data-testid="clear"')).toBe(0);
+
+    // The source side: the layout mounts <Clear /> inside its clear snippet,
+    // once, and hands it to the header; the header renders the clear prop
+    // before the connection prop; the zone declares the 12px gap, the
+    // 218 basis through the variable, and inline-size containment so the
+    // Clear box can ask the zone how much room it has.
+    const layout = code(LAYOUT);
+    expect(count(layout, "<Clear />"), "the layout mounts Clear once").toBe(1);
+    expect(layout).toMatch(
+      /[{]#snippet clear[(][)][}]\s*<Clear \/>\s*[{]\/snippet[}]/,
+    );
+    expect(layout, "the header takes the snippet").toContain("{clear}");
+    const header = code(`${SHELL_DIR}/Header.svelte`);
+    expect(header.indexOf("{@render clear()}")).toBeGreaterThan(-1);
+    expect(header.indexOf("{@render clear()}")).toBeLessThan(
+      header.indexOf("{@render connection()}"),
+    );
+    const zone = rulesOf(styleOf(`${SHELL_DIR}/Header.svelte`)).filter((r) =>
+      r.selector.includes(".connection"),
+    );
+    expect(zone.length, "the zone has a rule").toBeGreaterThan(0);
+    const decls = new Map(zone.flatMap((r) => declarationsOf(r.body)));
+    expect(decls.get("gap"), "12px between the pair").toBe("12px");
+    expect(decls.get("flex"), "the zone's basis is the reserved box").toBe(
+      "1 1 var(--connection-w)",
+    );
+    expect(decls.get("min-inline-size")).toBe("var(--connection-w)");
+    expect(decls.get("container-type"), "a container for the room rule").toBe(
+      "inline-size",
     );
   });
 });

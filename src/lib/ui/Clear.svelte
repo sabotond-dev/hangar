@@ -1,91 +1,90 @@
 <!--
-  CLEAR: the fourth write click, and the quietest of them (D-19, D-20, D-21;
-  10-UI-SPEC 10.3, 10.4, 10.5 as amended by A-45 to A-52; SAFE-01, SAFE-03,
-  SAFE-07, DEGR-02).
+  CLEAR: the header's control, top right, beside the connection control
+  (13.1-05; 13.1-CONTEXT D-04, bench line 4 of 2026-09-12: "CLEAR button. we
+  need a CLEAR button it should live all the time in the top right corner
+  next to ZONA connected."). Re-homed from the foot of the workspace's install
+  column (10-13, A-45 to A-52; 13-18 D-23), not rebuilt: the script below is
+  the column's, line for line; the markup and the style are the header's.
 
-  One click sends. There is NO CONFIRMATION and there is no ClearConfirm
-  component (A-45): CLEAR writes RAM only, so PUT BACK - the control directly
-  above it in the column - restores the visitor's own configuration, and a
-  power cycle brings back whatever is in flash. An action undone by its
-  neighbour AND by unplugging the cable does not need a gate. KEEP ON DEVICE's
-  confirmation is the site's only one, because that one is genuinely
-  irreversible.
+  WHERE IT LIVES. The layout hands this component to Header.svelte's `clear`
+  snippet on every page and in both header variants - the intro's header too,
+  because the user said "all the time" - and the header renders it inside
+  the connection zone BEFORE the connection control, 12px to its left. One
+  mount on the site; one `clear` test id on any page; the column has none
+  since this plan (13.1-06 removes the rest of the column).
+
+  ONE CLICK SENDS. There is NO CONFIRMATION and there is no ClearConfirm
+  component: A-45's shipped behaviour, KEPT by the user's word - they asked
+  for a button - and batch row I.6.5 (section 16's confirmation, approved and
+  owed) is DECLINED by Phase 13.1 and recorded in 13.1-CONTEXT D-04; the
+  gate's bench row asks whether a confirmation is wanted. What the click
+  writes is RAM only: a power cycle brings back whatever is in flash, and
+  Store on ZONA's confirmation stays the site's only one, because that one
+  is genuinely irreversible. With Put back leaving (D-07, 13.1-06) this is the
+  way back HANGAR keeps after an Apply.
 
   WHAT IT WRITES IS NOT EMPTINESS (A-48, D-20). The store sends the firmware's
   own defaultConfig for the touch element - Setup 641, Timer 22, read from the
   pinned protocol package by event number - so after a clear the pad runs a
-  proximity-weighted touch highlight rather than nothing. The line beneath the
-  control says exactly that and never says clear, empty or remove; the string
-  is install-copy's and its stems are scanned there.
+  proximity-weighted touch highlight rather than nothing. The label is the
+  user's one word; the description says exactly what the click restores and
+  never says clear, empty or remove as a verb about the page; every string is
+  install-copy's and its stems are scanned there.
 
-  WHY IT IS THE QUIET TIER AND NOT A TIER OF ITS OWN (A-46). An earlier
-  revision of this design gave CLEAR a fifth "Bare" tier with its own wide
-  tracking and a second hairline above it. A tier with one member is not a
-  hierarchy, it is a special case with a name, and A-41 had already had to
-  carve an exception for it twice. So CLEAR takes the Quiet treatment verbatim,
-  beside KEEP ON DEVICE: no border, no background, no radius, no inline
-  padding, a Micro label at the site's ordinary 0.18em tracking in the quiet
-  rung, to full ink on hover.
+  THE BOX IS THE CONNECTION CONTROL'S (DeviceSlot.svelte, 13-11): a 1px
+  boundary on the workspace ground, 44px on both axes - the site's floor on
+  every control (section 14; device-ui.spec.ts test 3) - 16px of inline
+  padding, and two 14px fixed line boxes inside: the label over a caption.
+  The caption is the disabled REASON, from install-copy's closed record of
+  three, and it is empty when the control is live - the two-line shape is
+  fixed, as DeviceSlot's is, so the header's row cannot move with the state,
+  and it is aria-hidden so the accessible name is the label alone (WCAG
+  2.5.3). The sr-only span beneath the button carries the description the
+  button points at through aria-describedby: clearLine(page) when live - the
+  firmware default, the draft untouched, the page named as the visitor reads
+  it (numbered from one, 13-18 I.3.1) - and the reason when not, so a screen
+  reader hears why a disabled control is disabled at every width.
 
-  THE HONEST CONSEQUENCE, STATED RATHER THAN BURIED (A-47): at rest, after a
-  try-on, on a browser that can write, CLEAR and KEEP ON DEVICE LOOK THE SAME.
-  Same tier, same weight, same colour, same tracking. Three channels separate
-  them and two of the three are behaviour rather than appearance - the words,
-  the enablement set, and the ceremony inverted (KEEP opens a block, CLEAR
-  sends). That is acceptable on the facts and not on taste: CLEAR is the least
-  consequential of the four writes, and the write that needed setting apart is
-  the irreversible one, which still has its confirmation.
+  THE CAPTION SHOWS WHERE THE ROW HAS ROOM FOR IT. The reasons were written
+  for a 372px column and run 173 to 254px at 12px, so the box is 207 to
+  288 wide with one inside; the header's row has 88px of slack beside the
+  connection control at 1024 and none at 768 (measured on the served build,
+  13.1-05-SUMMARY.md), so a box that always carried its reason would push
+  the header sideways in the compact and stacked bands. The connection zone
+  is therefore a size container that takes the row's remaining space
+  (Header.svelte), and the caption is rendered only when the zone is wide
+  enough for the widest reason beside the widest connection label - the
+  container query below, whose number is the arithmetic in the comment on
+  it. Below that width the box carries the label alone, and the reason is
+  still in the description. The description is never conditional.
 
-  WHY BOTH 44px AXES ARE DECLARED, AND WHY NEITHER IS REDUNDANT. padding-inline
-  is 0, so the label's own text box sets the control's width, and CLEAR at
-  12px/0.18em is well under 44px wide. min-inline-size is therefore what makes
-  the target actually reachable by thumb, not decoration - and it is what
-  device-ui.spec.ts's control walk requires on every interactive class it finds
-  on a listed device component. Do not remove either one as redundant.
-
-  WHY THE LINE CELL RESERVES 48px (A-52, carried). Phase 10 reserved two Body
-  lines here as headroom rather than occupancy, so a shipped string could
-  never sit exactly on its own cap; the measured cap (CLEAR_CAP, 86) and the
-  character counts it was argued from retired with 13-18 under D-05 -
-  install-copy.ts's header says what they were and what replaced them. The
-  48px stays: clearLine (13-18, D-23) is two clauses and takes both lines,
-  and the four twins are rendered so the tallest sets the height.
-
-  The mechanism is its two neighbours': one grid cell, every candidate at
-  grid-area 1 / 1, the inactive ones visibility: hidden and aria-hidden. The
-  reason is safety and not tidiness (Z-18) - a cell that changed height with
-  its line would move the column's controls vertically under a hand already
-  reaching for them.
+  DISABLED WITH ITS REASON, NEVER HIDDEN (DEGR-02). On a browser that cannot
+  write the control renders with `incapable`; with no session, `no-session`;
+  before the snapshot, `no-snapshot`. A real `disabled` attribute, never
+  aria-disabled alone. The accessible name is the visible label.
 
   WHY THE LINE IS HELD THROUGH A WRITE (I3, rule 4). The store's clearReason()
   reads `no-session` for the `writing` phase - `writing` is outside
   WRITABLE_PHASES while the snapshot and the session are both still in hand -
-  so a derived line would flip to the needs-a-ZONA sentence for as long as a
-  40 ms RAM leg takes, which is both false and noise. The last non-writing
-  reason is held in a local written from an effect, and the control is disabled
-  through the leg regardless. The disabling is protective; the line does not
-  have to explain it.
+  so a derived caption would flip to the needs-a-ZONA sentence for as long as
+  a 40 ms RAM leg takes, which is both false and noise. The last non-writing
+  reason is held in a local written from an effect, and the control is
+  disabled through the leg regardless. The same hold covers a page target
+  that is not at rest (13-12): the destination zone carries that state's own
+  line, and this box keeps whatever it was saying rather than inventing a
+  fourth reason.
 
   WHY THE BUSY LABEL SWAPS WITH NO TRANSITION (Z-09). `Resetting Page 2…`
-  replaces `Reset active device page` the instant install.clearToDefault()
-  starts and is replaced the instant its
-  one leg settles. A 140 ms crossfade on a 40 ms state renders as a smear
-  rather than as a change, so the swap is instant by contract - nothing in this
-  file animates, and the only transition is the hover colour, declared on the
-  ENABLED control alone so the drop to the dim rung is instant too. The 2000 ms
-  line is the store's and is rendered by region 3, not here.
+  replaces `Clear` the instant install.clearToDefault() starts and is
+  replaced the instant its one leg settles, with aria-busy on the button. A
+  crossfade on a 40 ms state renders as a smear rather than as a change, so
+  nothing in this file animates or transitions - the hover's boundary colour
+  is instant too. The 2000 ms line is the store's and is rendered by the
+  context bar, not here.
 
-  DEGR-02: PRESENT AND DISABLED, NEVER ABSENT. On a browser that cannot write,
-  CLEAR renders with its `incapable` reason inline. It is deliberately unlike
-  PUT BACK, which Z-12 makes absent - PUT BACK offers to restore a specific
-  module's own configuration and has none to name, while CLEAR does something
-  meaningful on any module, so there is a real capability to teach.
-
-  A real `disabled` attribute with the line bound by aria-describedby, never
-  aria-disabled alone. The accessible name is the visible label. Every string
-  is install-copy's and the three reasons are iterated from its closed record,
-  never retyped: a fourth reason is a type error there, and this file cannot
-  disagree with it about the count.
+  No radius (D-01). Every string is install-copy's and the three reasons are
+  read from its closed record, never retyped: a fourth reason is a type error
+  there, and this file cannot disagree with it about the count.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -116,30 +115,35 @@
   const disabled = $derived(reason !== undefined || writing || pending);
 
   /**
-   * The line on screen: the reason, held through a write. Written from an
-   * effect on the phase and read by the markup; the effect never reads it, so
-   * there is no loop. See the header.
+   * The reason on screen: held through a write. Written from an effect on
+   * the phase and read by the markup; the effect never reads it, so there is
+   * no loop. See the header.
    */
   let held = $state<ClearReason | undefined>(undefined);
   $effect(() => {
     if (install.phase !== "writing" && !pending) held = reason;
   });
   /* Held through a write AND through a pending page target (13-12): the
-     destination zone carries that state's own line, and this cell keeps
+     destination zone carries that state's own line, and this box keeps
      whatever it was saying rather than inventing a fourth reason. */
   const shown = $derived(writing || pending ? held : reason);
 
-  /** The three reasons, from the closed record, in its order. */
-  const REASONS = Object.entries(CLEAR_REASONS) as [ClearReason, string][];
-  /** The page the line and the busy label name, as the module reports it (the copy adds one); 0 is never read before a snapshot exists. */
+  /** The page the description and the busy label name, as the module reports it (the copy adds one); 0 is never read before a snapshot exists. */
   const page = $derived(install.snapshotPage ?? 0);
+
+  /** The caption: the shown reason from the closed record, or nothing when live. */
+  const caption = $derived(shown === undefined ? "" : CLEAR_REASONS[shown]);
+  /** The description: what the click restores when live, the reason when not. */
+  const description = $derived(
+    shown === undefined ? clearLine(page) : CLEAR_REASONS[shown],
+  );
 
   function clear(): void {
     void install.clearToDefault();
   }
 </script>
 
-<div class="clear">
+<div class="clear" data-testid="clear-control">
   <button
     class="control"
     type="button"
@@ -149,111 +153,118 @@
     aria-describedby="clear-line"
     onclick={clear}
   >
-    {busy ? clearingLabel(page) : CLEAR_LABEL}
+    <span class="lines">
+      <span class="label" data-testid="clear-label"
+        >{busy ? clearingLabel(page) : CLEAR_LABEL}</span
+      >
+      <span class="caption" data-testid="clear-caption" aria-hidden="true"
+        >{caption}</span
+      >
+    </span>
   </button>
-
-  <div class="cell" id="clear-line" data-testid="clear-line">
-    <p
-      class="line"
-      class:twin={shown !== undefined}
-      aria-hidden={shown !== undefined}
-    >
-      {clearLine(page)}
-    </p>
-    {#each REASONS as [key, text] (key)}
-      <p class="line" class:twin={shown !== key} aria-hidden={shown !== key}>
-        {text}
-      </p>
-    {/each}
-  </div>
+  <span id="clear-line" class="sr-only" data-testid="clear-line"
+    >{description}</span
+  >
 </div>
 
 <style>
   .clear {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
   }
 
   /*
-    Quiet tier (07-UI-SPEC, The control hierarchy; A-46), declaration for
-    declaration KeepOnDevice.svelte's: the 44px floor on BOTH axes, no border,
-    no background, no radius, no inline padding, Micro label in the quiet rung
-    at the site's ordinary 0.18em, to full ink on hover. Never a fill and never
-    a border - the accent is the primary's and the hairline is the secondary
-    tier's, and A-41's no-pill rule now protects two controls rather than one.
-
-    min-inline-size IS NOT REDUNDANT HERE. padding-inline is 0, so the label
-    sets the box and CLEAR is well under 44px wide. See the header.
+    DeviceSlot.svelte's box, declaration for declaration where the two share
+    a fact: 44px on both axes, 16px of inline padding, the boundary token as
+    the border (identity.spec.ts test 5 forbids the divider here), the
+    workspace ground as the fill, the sans face. No corner. No transition -
+    see the header.
   */
   .control {
     appearance: none;
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     inline-size: fit-content;
     min-block-size: 44px;
     min-inline-size: 44px;
-    padding-inline: 0;
-    border: 0;
+    padding: 0 16px;
+    border: 1px solid var(--color-boundary);
     background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.01em;
-    color: var(--color-ink-quiet);
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    text-align: start;
     cursor: pointer;
   }
 
-  /*
-    The hover colour is the ONLY transition, declared on the enabled control
-    alone so that disabling for a write - and the busy label that arrives with
-    it - is instant. The same rule PUT BACK and KEEP ON DEVICE keep, so the
-    column's controls behave as one.
-  */
-  .control:not(:disabled) {
-    transition: color 140ms ease-out;
-  }
-
+  /* Hover: the boundary to the action colour, instantly. */
   .control:hover:not(:disabled) {
-    color: var(--color-ink);
+    border-color: var(--color-action);
   }
 
-  /* Disabled: the label to the dim rung, a real attribute. */
+  /* Disabled: a real attribute; the label to the quiet rung. */
   .control:disabled {
-    color: var(--color-ink-quiet);
     cursor: not-allowed;
   }
 
-  /*
-    THE RESERVED LINE CELL: one grid cell, four strings at 1 / 1, a 48px floor
-    whose SECOND LINE IS HEADROOM AND NOT OCCUPANCY (A-52). The header carries
-    the arithmetic and the reason the formula's 24px is refused; KeepOnDevice's
-    cell is its sibling and TryOnDevice's honesty slot the original.
-  */
-  .cell {
-    display: grid;
-    margin-block-start: 8px;
-    min-block-size: 48px;
-  }
-
-  /* Body role, quiet: the control's own line. */
-  .line {
-    grid-area: 1 / 1;
-    margin: 0;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.5;
+  .control:disabled .label {
     color: var(--color-ink-quiet);
   }
 
-  .twin {
-    visibility: hidden;
+  /* Two stacked lines, each in a 14px fixed box (Y-10): the row cannot move with the state. */
+  .lines {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .control:not(:disabled) {
-      transition: none;
+  /* The label: the user's word, sentence case, at the connection control's size and one weight up. */
+  .label {
+    line-height: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    color: var(--color-ink);
+  }
+
+  /*
+    The caption: the reason, in DeviceSlot's caption register (12px, the
+    quiet ink, nearly no tracking, one line). Rendered only where the
+    connection zone has room for it - see the container query beneath.
+  */
+  .caption {
+    display: none;
+    line-height: 14px;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    color: var(--color-ink-quiet);
+  }
+
+  /*
+    THE ROOM RULE. The zone (Header.svelte's .connection, an inline-size
+    container that takes the row's remaining space) must hold this box with
+    its widest reason beside the connection control at its widest, with the
+    12px gap between them. Measured on the served build in 13.1-05 (Inter at
+    12px; chromium and webkit agree to the pixel): the reasons run 172.6 /
+    205.6 / 254.2 wide, so the box (32px of padding, 2px of border) is 206.6
+    / 239.6 / 288.2; the connection control is its label or its caption plus
+    52 (16 + 16 of padding, 2 of border, the 8px dot and its 10px gap) -
+    160.3 at `ZONA connected`, 161.1 at `Not in this browser`, 220.1 at
+    `Disconnected · draft retained`. The pairs that can occur together are
+    the store's: no-snapshot beside a connected or idle control (288.2 + 12
+    + 160.3 = 460.5), incapable beside the two capability captions (239.6 +
+    12 + 161.1 = 412.7), no-session beside the unplugged caption (206.6 + 12
+    + 220.1 = 438.7). 480 is the largest rounded up to the next ten. The
+    zone is 503 at 1280 and 247 at 1024, so the caption shows from about
+    1257 up on the app pages; below it the caption is not rendered and the
+    reason lives in the description alone; the row never scrolls sideways.
+  */
+  @container (min-width: 480px) {
+    .caption {
+      display: inline;
     }
   }
 </style>

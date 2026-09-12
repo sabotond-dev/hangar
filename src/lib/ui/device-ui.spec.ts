@@ -29,6 +29,19 @@
 // shows an install state, and the announcer is untouched - one live region,
 // nothing from the install store, and no logic gained.
 //
+// PLAN 13.1-05 RE-HOMES ONE AND DELETES ONE. The user asked for the reset in
+// the header ("CLEAR button ... next to ZONA connected", 13.1-CONTEXT D-04),
+// so Clear.svelte is the header's bordered box now, mounted by the layout
+// beside the connection control on every page, and the column's test "the
+// CLEAR cell is the measured arithmetic..." is REWRITTEN as a rendered test
+// over the real install and session singletons - the caption reads the
+// reason, the description reads clearLine, one click and no confirmation
+// (A-45 kept), nothing animates - while "CLEAR and KEEP ON DEVICE are
+// shapeless alike..." is DELETED BY TITLE: its subject was the column's pair
+// of Quiet controls, and the pair no longer exists. Its A-45 clause (no
+// ClearConfirm, no trace of the retired confirmation) lives in the rewritten
+// test. The count is one fewer here and one more in shell.spec.ts.
+//
 // PLAN 13-11 ADDS THREE, and two of them RENDER rather than scan: the device
 // band was re-skinned and re-homed (the header's control into the shell, the
 // disclosure into the footer as Device actions, the install phase into the
@@ -61,7 +74,12 @@ import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 import {
+  CLEAR_LABEL,
+  CLEAR_REASONS,
+  type ClearReason,
+  clearLine,
   clearedCaption,
+  clearingLabel,
   keptCaption,
   keptMismatchBlock,
   nothingLandedBlock,
@@ -69,7 +87,11 @@ import {
   settledCaption,
   unconfirmedBlock,
 } from "$lib/device/install-copy";
-import { type InstallPhase } from "$lib/device/install.svelte";
+import {
+  type ConfigStrings,
+  type InstallPhase,
+  install,
+} from "$lib/device/install.svelte";
 import {
   CAPTION_INSECURE,
   CAPTION_UNSUPPORTED,
@@ -78,6 +100,7 @@ import {
   slotStateOf,
 } from "$lib/device/session-copy";
 import { session } from "$lib/device/session.svelte";
+import Clear from "./Clear.svelte";
 import { PANEL_ID } from "./device-drawer.svelte";
 import DeviceActions from "./DeviceActions.svelte";
 import ConnectionControl from "./shell/ConnectionControl.svelte";
@@ -184,6 +207,8 @@ const code = (rel: string) => stripComments(raw(rel));
 const componentPath = (name: string) => `${UI_DIR}/${name}`;
 /** The workspace route, where the chosen panel's column and the Escape rules live since 13-09. */
 const WORKSPACE = "src/routes/playground/[id]/+page.svelte";
+/** The layout, which mounts the header's Clear since 13.1-05. */
+const LAYOUT = "src/routes/+layout.svelte";
 const occurrences = (text: string, needle: string) =>
   text.split(needle).length - 1;
 
@@ -996,18 +1021,34 @@ describe("the device UI's structural rules", () => {
       "PUT BACK is the first cell of the column",
     ).toBe(true);
 
-    // PLAN 10-13, D-04: THE SEQUENCE IS A CAPTION, AN ORDER AND AN ENABLEMENT.
-    // The caption is one Micro word under the hairline the panel already had;
-    // CLEAR joins the column after KEEP ON DEVICE and before the share
-    // snippet; and NO SECOND HAIRLINE arrives with it - A-46 retired that with
-    // the Bare tier it was separating, so the file declares exactly one
-    // border-block-start, the .rule's.
-    const clearAt = panel.indexOf("<Clear ");
-    expect(clearAt, "the panel mounts Clear").toBeGreaterThan(-1);
+    // PLAN 10-13, D-04, AS AMENDED BY 13.1-05 (13.1-CONTEXT D-04): the
+    // caption is one Micro word under the hairline the panel already had, and
+    // NO SECOND HAIRLINE - A-46 retired that with the Bare tier it was
+    // separating, so the file declares exactly one border-block-start, the
+    // .rule's. CLEAR is NOT in the column any more: the user asked for it in
+    // the header beside ZONA connected, so the layout mounts it once, in the
+    // header's clear snippet, and the route neither imports nor mounts it.
+    // One control on the site, one `clear` test id on any page.
     expect(
-      keepAt < clearAt && confirmAt < clearAt,
-      "the column is PUT BACK, KEEP ON DEVICE (or its confirmation), CLEAR - CLEAR sits after the control it is quietest beside",
+      occurrences(panel, "<Clear "),
+      "the workspace mounts Clear - the reset is the header's since 13.1-05 and the column has none",
+    ).toBe(0);
+    expect(
+      occurrences(panel, "Clear.svelte"),
+      "the workspace still imports Clear.svelte",
+    ).toBe(0);
+    const layout = code(LAYOUT);
+    expect(
+      occurrences(layout, "<Clear "),
+      "the layout mounts Clear exactly once",
+    ).toBe(1);
+    expect(
+      /[{]#snippet clear[(][)][}][^]*?<Clear [/]>[^]*?[{][/]snippet[}]/.test(
+        layout,
+      ),
+      "the layout mounts Clear inside its clear snippet",
     ).toBe(true);
+    expect(layout, "and hands the snippet to the header").toContain("{clear}");
     // THE SHARE CONTROL LEFT THE COLUMN AT 13-09: it is the inspector's
     // pinned pair (PDF page 5's Share snapshot), rendered by the route's
     // actions snippet and never inside the install row - it was never an
@@ -1016,7 +1057,7 @@ describe("the device UI's structural rules", () => {
       panel.indexOf('class="install-row"'),
       panel.indexOf("</section>", panel.indexOf('class="install-row"')),
     );
-    expect(column, "the install row was found").toContain("<Clear ");
+    expect(column, "the install row was found").toContain("<KeepOnDevice");
     expect(
       column,
       "the share control is back inside the install column",
@@ -1079,14 +1120,15 @@ describe("the device UI's structural rules", () => {
       filled,
       "a control other than TRY ON DEVICE wears the accent fill - SAFE-02's content is that the two install controls are never equal-weight, and D-04's sequence is not allowed to buy itself with the primary's weight",
     ).toEqual(["TryOnDevice.svelte -> .primary"]);
+    // KEEP ON DEVICE alone since 13.1-05: Clear is the header's bordered box
+    // now (its own test below holds the box), and its fill is still
+    // transparent - the accent walk above already proved only the primary
+    // is filled, so the Quiet clause here has one subject.
     const clearControl = rulesOf(code(componentPath("Clear.svelte")))
       .filter((r) => r.selector.includes(".control"))
       .map((r) => r.body)
       .join(" ");
-    for (const [name, body] of [
-      ["KEEP ON DEVICE", keepControl],
-      ["CLEAR", clearControl],
-    ] as const) {
+    for (const [name, body] of [["KEEP ON DEVICE", keepControl]] as const) {
       expect(
         body,
         `${name} is no longer fit-content - the primary is the full-width control and the Quiet tier is not`,
@@ -1096,6 +1138,10 @@ describe("the device UI's structural rules", () => {
         `${name} no longer declares a transparent background - only the primary is filled`,
       ).toContain("background: transparent");
     }
+    expect(
+      clearControl,
+      "the header's Clear declares a fill - only the primary is filled; the box is the boundary and the workspace ground",
+    ).toContain("background: transparent");
     expect(
       occurrences(tryOn, '"cleared"'),
       "TRY ON DEVICE names the `cleared` phase - the primary's disabled set is `writing`, `snapshotting` and a missing config, and plan 10-13 adds no phase to it",
@@ -1293,201 +1339,219 @@ describe("the device UI's structural rules", () => {
     ).toBe(3);
   });
 
-  it("the CLEAR cell is the measured arithmetic with its second line declared headroom, its four twins come from the closed record, and nothing about a clear animates", () => {
-    // Plan 10-13. The same shape as the PUT BACK cell at test 8 and the KEEP
-    // cell at test 10: the reservation is asserted on the source with its
-    // arithmetic in the message, so a later reader who changes the number has
-    // to read why it is the number it is.
-    const clear = code(componentPath("Clear.svelte"));
+  it("the header's Clear: a 44px box in the connection zone, one click and no confirmation (A-45 kept by the user's word, 13.1 D-04), the reason as the caption when disabled, clearLine as the description when live, the busy label through its one leg, nothing animates", () => {
+    // Plan 13.1-05, replacing plan 10-13's column test ("the CLEAR cell is
+    // the measured arithmetic...") and absorbing the A-45 clause of the
+    // deleted "CLEAR and KEEP ON DEVICE are shapeless alike..." - the column's
+    // pair is gone, and what is worth holding is the header control the user
+    // asked for: "CLEAR button. we need a CLEAR button it should live all the
+    // time in the top right corner next to ZONA connected."
+    //
+    // RENDERED, over the real singletons. svelte/server's render() draws the
+    // component with the install store and the session in a state set by
+    // hand; the three reasons are reached through the store's own
+    // clearReason() (install.spec.ts holds the rule), and the live state
+    // through a stub on the instance, because canApply() needs a page target
+    // only a session can make. Every field written is put back.
+    const source = code(componentPath("Clear.svelte"));
+    const button = (body: string) =>
+      /<button[^>]*data-testid="clear"[^>]*>/.exec(body)?.[0] ?? "";
+    const text = (body: string, testid: string) => {
+      const m = new RegExp(`data-testid="${testid}"[^>]*>([^]*?)</span>`).exec(
+        body,
+      );
+      return m ? m[1].replace(/<[^>]+>/g, "").trim() : undefined;
+    };
+    const decode = (t: string | undefined) =>
+      t?.replace(/&#39;|&#x27;/g, "'").replace(/&#8217;|’/g, "’");
+    const snapshot: ConfigStrings = {
+      systemTimer: "",
+      system: "",
+      systemUtility: "",
+      setup: "",
+      timer: "",
+    };
+    const PAGE = 1;
+    const before = {
+      session: session.phase,
+      phase: install.phase,
+      action: install.action,
+      snapshot: install.snapshot,
+      snapshotPage: install.snapshotPage,
+      applyReady: install.applyReady,
+    };
+    const seen: Record<string, string> = {};
+    try {
+      install.snapshotPage = PAGE;
 
-    // 48px, AND THE FORMULA'S OWN ANSWER IS SMALLER (A-52). CH_PER_LINE is 43,
-    // measured in Inter Variable by plan 10-01; the four candidates are
-    // CLEAR_LINE at 41 and the three reasons at 43, 26 and 36, so
-    // ceil(43 / 43) x 24 = 24. It is refused: one line would put a shipped
-    // string exactly on a 43-character cap, which is the zero-headroom defect
-    // plan 10-01 flagged against the old 86-character CLEAR_LINE reintroduced
-    // at a different number. install-copy.spec.ts asserts the departure on the
-    // constants; this asserts it in pixels.
-    expect(
-      clear,
-      "the reset cell no longer reserves 48px - two Body lines, the headroom Phase 10 declared (A-52) and 13-18 kept when the caps retired; clearLine is two clauses and takes both",
-    ).toContain("min-block-size: 48px");
-    expect(
-      clear.includes("min-block-size: 24px"),
-      "the CLEAR cell has been 'corrected' to the formula's 24px - that is the zero-headroom defect A-52 exists to refuse",
-    ).toBe(false);
+      // THE THREE REASONS, through the store's own rule, in the record's
+      // order: the caption is the reason, the description is the reason, the
+      // button is disabled with a real attribute, and the label is the
+      // user's word.
+      const drive: Record<ClearReason, () => void> = {
+        "no-snapshot": () => {
+          session.phase = "connected";
+          install.phase = "ready";
+          install.snapshot = undefined;
+          install.applyReady = true;
+        },
+        "no-session": () => {
+          session.phase = "idle";
+          install.phase = "idle";
+          install.snapshot = snapshot;
+          install.applyReady = false;
+        },
+        incapable: () => {
+          session.phase = "unsupported";
+          install.phase = "idle";
+          install.snapshot = undefined;
+          install.applyReady = false;
+        },
+      };
+      for (const [key, reason] of Object.entries(CLEAR_REASONS) as [
+        ClearReason,
+        string,
+      ][]) {
+        drive[key]();
+        install.action = undefined;
+        const body = render(Clear).body;
+        const tag = button(body);
+        expect(tag, `${key}: the button renders`).not.toBe("");
+        expect(tag, `${key}: disabled, a real attribute`).toContain("disabled");
+        expect(tag, `${key}: not busy`).not.toContain("aria-busy");
+        expect(tag, `${key}: described by the line`).toContain(
+          'aria-describedby="clear-line"',
+        );
+        expect(text(body, "clear-label"), `${key}: the label`).toBe(
+          CLEAR_LABEL,
+        );
+        expect(
+          decode(text(body, "clear-caption")),
+          `${key}: the caption is the reason`,
+        ).toBe(reason);
+        expect(
+          decode(text(body, "clear-line")),
+          `${key}: the description is the reason`,
+        ).toBe(reason);
+        expect(
+          body,
+          `${key}: the caption is hidden from the accessible name`,
+        ).toMatch(/data-testid="clear-caption"[^>]*aria-hidden="true"/);
+        expect(
+          occurrences(body, 'data-testid="clear"'),
+          `${key}: one control`,
+        ).toBe(1);
+        seen[key] = reason;
+      }
+      expect(Object.keys(seen).sort(), "all three reasons were driven").toEqual(
+        ["incapable", "no-session", "no-snapshot"],
+      );
 
-    // FOUR CANDIDATES, TWO MARKERS, FROM THE CLOSED RECORD. The enabled line
-    // plus the three reasons, every one rendered at grid-area 1 / 1 with the
-    // inactive ones hidden. The marker count is TWO rather than four and that
-    // is not a shortfall: the three reasons come from an {#each} over
-    // install-copy's closed record rather than being listed, exactly as
-    // KeepOnDevice renders its six, so a fourth reason is a type error there
-    // and never a silent omission here. TryOnDevice's five are literal and its
-    // count is five; this one cannot be counted that way and says so.
-    expect(
-      occurrences(clear, "class:twin="),
-      "the CLEAR cell renders its enabled line and its iterated reasons as sizing twins - two markers, one literal and one inside the {#each} (Z-18)",
-    ).toBe(2);
-    expect(clear, "the inactive twins are visibility: hidden").toContain(
-      "visibility: hidden",
-    );
-    expect(clear, "the twins are aria-hidden").toContain("aria-hidden=");
-    expect(clear, "the enabled line is rendered once").toContain(
-      "{clearLine(page)}",
-    );
-    expect(
-      /CLEAR_REASONS[)][^;]*;[^]*[{]#each[ ]+REASONS/.test(clear),
-      "the three reasons are iterated from CLEAR_REASONS rather than listed",
-    ).toBe(true);
-    for (const opening of [
-      "Needs a copy of",
-      "Needs your ZONA",
-      "This browser can",
-    ]) {
+      // LIVE: the store says no reason, the target is at rest, the session is
+      // connected. The caption is EMPTY (the two-line box keeps its shape),
+      // the description is clearLine with the page as the visitor reads it,
+      // the button is enabled, and the label is the user's word.
+      session.phase = "connected";
+      install.phase = "ready";
+      install.snapshot = snapshot;
+      install.applyReady = true;
+      install.action = undefined;
+      Object.defineProperty(install, "clearReason", {
+        value: () => undefined,
+        configurable: true,
+        writable: true,
+      });
+      try {
+        const live = render(Clear).body;
+        const tag = button(live);
+        expect(tag, "live: the button renders").not.toBe("");
+        expect(tag, "live: enabled").not.toContain("disabled");
+        expect(text(live, "clear-label"), "live: the label").toBe(CLEAR_LABEL);
+        expect(text(live, "clear-caption"), "live: no caption").toBe("");
+        expect(
+          decode(text(live, "clear-line")),
+          "live: the description is clearLine, the page numbered from one",
+        ).toBe(clearLine(PAGE));
+        expect(clearLine(PAGE)).toContain("Page 2");
+
+        // PENDING (13-12): the page target not at rest - disabled, no fourth
+        // reason invented, the description still clearLine.
+        install.applyReady = false;
+        const pending = render(Clear).body;
+        expect(button(pending), "pending: disabled").toContain("disabled");
+        expect(text(pending, "clear-caption"), "pending: no caption").toBe("");
+        expect(decode(text(pending, "clear-line"))).toBe(clearLine(PAGE));
+      } finally {
+        Reflect.deleteProperty(install, "clearReason");
+      }
       expect(
-        occurrences(clear, opening),
-        `Clear retypes a reason ("${opening}...") instead of iterating the record`,
-      ).toBe(0);
-    }
-    expect(clear, "the control carries its testid").toContain(
-      'data-testid="clear"',
-    );
-    expect(clear, "the cell carries its testid").toContain(
-      'data-testid="clear-line"',
-    );
+        typeof install.clearReason,
+        "the stub is gone and the prototype's rule is back",
+      ).toBe("function");
 
-    // THE CLICK SENDS, AND IT OPENS NOTHING (A-45). One call, straight to the
-    // store's sequencer; no confirmation is opened and none exists to open.
-    expect(clear, "the click hands the clear to the install store").toContain(
+      // BUSY, through its one leg: `writing` under the `clear` action swaps
+      // the label for clearingLabel(page) and sets aria-busy; the caption is
+      // empty (the last non-writing reason is held by an effect the server
+      // does not run) and the control is disabled.
+      session.phase = "connected";
+      install.phase = "writing";
+      install.action = "clear";
+      install.snapshot = snapshot;
+      install.applyReady = true;
+      const busy = render(Clear).body;
+      expect(button(busy), "busy: aria-busy").toContain('aria-busy="true"');
+      expect(button(busy), "busy: disabled").toContain("disabled");
+      expect(text(busy, "clear-label"), "busy: the progress label").toBe(
+        clearingLabel(PAGE),
+      );
+      // And a write under ANOTHER action is not busy here, only disabled.
+      install.action = "try";
+      const other = render(Clear).body;
+      expect(button(other), "another action: not busy").not.toContain(
+        "aria-busy",
+      );
+      expect(button(other), "another action: disabled").toContain("disabled");
+    } finally {
+      session.phase = before.session;
+      install.phase = before.phase;
+      install.action = before.action;
+      install.snapshot = before.snapshot;
+      install.snapshotPage = before.snapshotPage;
+      install.applyReady = before.applyReady;
+    }
+
+    // THE CLICK SENDS, AND IT OPENS NOTHING (A-45, kept by the user's word;
+    // batch row I.6.5 declined by 13.1-CONTEXT D-04). One call, straight to
+    // the store's sequencer; no confirmation is opened, none exists to open,
+    // and the button is a button - not a checkbox, not a summary.
+    expect(source, "the click hands the clear to the install store").toContain(
       "install.clearToDefault(",
     );
     expect(
-      occurrences(clear, "openConfirm"),
-      "Clear opens a confirmation - CLEAR sends on the click (D-19, A-45), and KEEP ON DEVICE's is the site's only confirmation",
+      occurrences(source, "openConfirm"),
+      "Clear opens a confirmation",
     ).toBe(0);
-
-    // BUSY IS INSTANT (Z-09). The busy label arrives with aria-busy and
-    // NOTHING in this file animates: no animation at all, and the one
-    // transition is the hover colour on the enabled control, so the drop to
-    // the dim rung under a write is instant.
-    expect(clear, "the busy label is install-copy's clearingLabel").toContain(
-      "clearingLabel(page)",
-    );
-    expect(clear, "the busy state carries aria-busy").toContain("aria-busy=");
-    expect(
-      occurrences(clear, "animation"),
-      "Clear.svelte animates something - a 40 ms state under a 160 ms animation renders as a smear (Z-09)",
-    ).toBe(0);
-    const transitions = rulesOf(clear).filter((r) =>
-      r.body.includes("transition:"),
-    );
-    expect(
-      transitions.length,
-      "Clear.svelte declares a transition somewhere, so the selector assertion below is not vacuous",
-    ).toBeGreaterThan(0);
-    expect(
-      transitions
-        .map((r) => r.selector)
-        .filter((selector) => !selector.includes(":not(:disabled)")),
-      "a transition is declared on a selector that is not the enabled control - disabling for a write must be instant",
-    ).toEqual([]);
-  });
-
-  it("CLEAR and KEEP ON DEVICE are shapeless alike, the retired Bare tier left no trace, and the confirmation that was cut is absent", () => {
-    // Plan 10-13, replacing the tracking-uniqueness test the earlier revision
-    // of this plan carried. A-46 retired the Bare tier before it shipped, so
-    // there is no longer anything that makes CLEAR unlike everything else;
-    // what is worth holding is the opposite claim, and it is the stronger one.
-    // A-41 forbids pilling the Quiet tier, and that prohibition now protects
-    // TWO controls rather than one.
-    const QUIET = ["KeepOnDevice.svelte", "Clear.svelte"];
-    const offenders: string[] = [];
-    let bodiesRead = 0;
-    let trackingFound = 0;
-
-    for (const name of QUIET) {
-      const source = code(componentPath(name));
-      const body = rulesOf(source)
-        .filter((r) => r.selector.includes(".control"))
-        .map((r) => r.body)
-        .join(" ");
-      bodiesRead += body.length;
-
-      if (!/border:[ ]*(0|none)[;]/.test(body))
-        offenders.push(`${name} -> the control declares a border`);
-      if (!body.includes("padding-inline: 0"))
-        offenders.push(`${name} -> the control declares inline padding`);
-      if (body.includes("border-radius"))
-        offenders.push(`${name} -> border-radius`);
-
-      // Every declaration in the control's own rules, read one at a time so a
-      // background or a tracking value is judged rather than merely found.
-      for (const declaration of body.split(";")) {
-        const at = declaration.indexOf(":");
-        if (at < 0) continue;
-        const property = declaration.slice(0, at).trim();
-        const value = declaration.slice(at + 1).trim();
-        if (property === "background" || property === "background-color") {
-          if (value !== "transparent" && value !== "none")
-            offenders.push(`${name} -> ${property}: ${value}`);
-        }
-        // 0.01em since 13-18: the labels are sentence case (D-05, D-23), so
-        // the tracking is the sentence-case control's, not Micro's 0.18em.
-        if (property === "letter-spacing") {
-          trackingFound += 1;
-          if (value !== "0.01em")
-            offenders.push(`${name} -> letter-spacing: ${value}`);
-        }
-      }
-    }
-
-    // Non-vacuity in both directions: the rules were found, and a tracking
-    // declaration was actually judged rather than absent.
-    expect(
-      bodiesRead,
-      "both Quiet controls' own rules were found",
-    ).toBeGreaterThan(400);
-    expect(
-      trackingFound,
-      "neither Quiet control declares letter-spacing - the tracking rule above is vacuous",
-    ).toBe(2);
-    expect(
-      offenders,
-      "a Quiet-tier control has gained a border, a background, a radius, inline padding or a tracking other than the sentence-case control's 0.01em - A-41 forbids pilling Quiet and A-46 put the reset in it beside Store on ZONA",
-    ).toEqual([]);
-
-    // THE BARE TIER LEFT NO TRACE. A-24 gave CLEAR a fifth tier distinguished
-    // by a wider tracking; A-46 retired it before it shipped. The needle is
-    // assembled from fragments so this file's own text is not a hit, and the
-    // scan is the whole of src/lib/ui rather than the two controls, because
-    // the way it would arrive now is a copy-paste from the old plan.
-    const BARE_TRACKING = ["0.2", "8em"].join("");
-    const CONFIRM_TESTID = ["clear", "-confirm"].join("");
-    const REMOVES_CAPTION = ["REMO", "VES"].join("");
-    const EMPTIES = ["This empties the ", "Setup and Timer"].join("");
+    expect(source, "the control is a button").toContain('type="button"');
+    expect(occurrences(source, 'type="checkbox"')).toBe(0);
+    expect(occurrences(source, "<summary")).toBe(0);
     const components = readdirSync(repo(UI_DIR))
       .map(String)
       .filter((name) => name.endsWith(".svelte"));
-    expect(
-      components.length,
-      "the src/lib/ui walk found the site's components",
-    ).toBeGreaterThan(20);
+    expect(components.length, "the walk found the components").toBeGreaterThan(
+      20,
+    );
     expect(
       components.includes("ClearConfirm.svelte"),
-      "ClearConfirm.svelte is on disk - A-45 retired the confirmation before it shipped, because CLEAR writes RAM only, PUT BACK directly above it undoes it and a power cycle undoes it, so KEEP ON DEVICE's is the site's only confirmation",
+      "ClearConfirm.svelte is on disk - A-45 retired the confirmation before it shipped, the user asked for a button, and Store on ZONA's is the site's only confirmation",
     ).toBe(false);
-
+    const CONFIRM_TESTID = ["clear", "-confirm"].join("");
+    const REMOVES_CAPTION = ["REMO", "VES"].join("");
+    const EMPTIES = ["This empties the ", "Setup and Timer"].join("");
     const traces: string[] = [];
     for (const name of components) {
-      const source = code(componentPath(name));
-      for (const needle of [
-        BARE_TRACKING,
-        CONFIRM_TESTID,
-        REMOVES_CAPTION,
-        EMPTIES,
-      ]) {
-        if (source.includes(needle)) traces.push(`${name} -> ${needle}`);
+      const component = code(componentPath(name));
+      for (const needle of [CONFIRM_TESTID, REMOVES_CAPTION, EMPTIES]) {
+        if (component.includes(needle)) traces.push(`${name} -> ${needle}`);
       }
     }
     const copyModule = stripComments(
@@ -1499,8 +1563,60 @@ describe("the device UI's structural rules", () => {
     }
     expect(
       traces,
-      "a trace of the retired Bare tier or of the retired CLEAR confirmation is in the tree - A-45 and A-46 removed both before they shipped, and this is how they would arrive by copy-paste from the plan that designed them",
+      "a trace of the retired CLEAR confirmation is in the tree - A-45 removed it before it shipped, and this is how it would arrive by copy-paste",
     ).toEqual([]);
+
+    // THE STRINGS ARE THE RECORD'S, NEVER RETYPED: the reasons are read from
+    // CLEAR_REASONS by key, the description from clearLine, the busy label
+    // from clearingLabel.
+    expect(source).toContain("CLEAR_REASONS[shown]");
+    expect(source).toContain("clearLine(page)");
+    expect(source).toContain("clearingLabel(page)");
+    for (const opening of [
+      "Needs a copy of",
+      "Needs your ZONA",
+      "This browser can",
+    ]) {
+      expect(
+        occurrences(source, opening),
+        `Clear retypes a reason ("${opening}...") instead of reading the record`,
+      ).toBe(0);
+    }
+    expect(source, "the disabled attribute is real").toContain("{disabled}");
+    expect(occurrences(source, "{#if"), "DEGR-02: never hidden, no gate").toBe(
+      0,
+    );
+
+    // THE BOX (DeviceSlot.svelte's, 13-11): 44px on both axes, the boundary
+    // token as the border, no radius, no transition, no animation. The
+    // hover moves the boundary to the action colour and nothing else moves.
+    const control = rulesOf(source)
+      .filter((r) => r.selector.includes(".control"))
+      .map((r) => r.body)
+      .join(" ");
+    expect(control, "the box floor, block").toContain("min-block-size: 44px");
+    expect(control, "the box floor, inline").toContain("min-inline-size: 44px");
+    expect(control, "the boundary token").toContain(
+      "border: 1px solid var(--color-boundary)",
+    );
+    expect(occurrences(source, "border-radius"), "no corner (D-01)").toBe(0);
+    expect(
+      occurrences(source, "transition"),
+      "nothing transitions (Z-09)",
+    ).toBe(0);
+    expect(occurrences(source, "animation"), "nothing animates (Z-09)").toBe(0);
+    expect(source, "the hover is the action colour on the boundary").toContain(
+      "border-color: var(--color-action)",
+    );
+    expect(source, "the caption carries its testid").toContain(
+      'data-testid="clear-caption"',
+    );
+    expect(source, "the line carries its testid").toContain(
+      'data-testid="clear-line"',
+    );
+    expect(source, "the caption shows where the zone has room").toContain(
+      "@container (min-width:",
+    );
   });
 
   it("the connection control renders nine slot states from seventeen phases and three capability answers, is present with its reason where it cannot connect, is a button exactly when a click acts, and names one panel", () => {

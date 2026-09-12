@@ -5,6 +5,7 @@
   import favicon from "$lib/assets/favicon.svg";
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
+  import Clear from "$lib/ui/Clear.svelte";
   import DeviceActions from "$lib/ui/DeviceActions.svelte";
   import SessionAnnouncer from "$lib/ui/SessionAnnouncer.svelte";
   import ConnectionControl from "$lib/ui/shell/ConnectionControl.svelte";
@@ -136,9 +137,27 @@
    * a control that must exist on every page belongs to the one component
    * that is on every page. The snippet props stay on Header and Footer so
    * shell.spec.ts can render either shape alone.
+   *
+   * THE USER'S CLEAR IS THE HEADER'S TOO (plan 13.1-05; 13.1-CONTEXT D-04;
+   * bench line 4, 2026-09-12: "CLEAR button. we need a CLEAR button it
+   * should live all the time in the top right corner next to ZONA
+   * connected."). Clear.svelte - the store's clearToDefault() as one click,
+   * disabled with its reason otherwise - is handed to the header's `clear`
+   * snippet here, once, beside the connection snippet, so it renders on
+   * every page and in both header variants: the intro's header carries it
+   * as the app pages' does, because "all the time" is the user's word. The
+   * workspace's install column no longer mounts it. Clear.svelte names the
+   * session, the install store and install-copy and nothing else - the
+   * chunk guard's permitted paths (config-shape.spec.ts test 13;
+   * device-ui.spec.ts test 1 reads the component), all free of the protocol
+   * package, so the header still paints without it.
    */
   const fill = $derived(shell.fill ?? declared());
 </script>
+
+{#snippet clear()}
+  <Clear />
+{/snippet}
 
 {#snippet connection()}
   <ConnectionControl />
@@ -178,6 +197,7 @@
         variant={fill.variant}
         section={fill.section}
         secondary={fill.secondary}
+        {clear}
         {connection}
       />
       {#if fill.variant === "app"}

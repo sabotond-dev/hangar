@@ -348,13 +348,17 @@ const PILLED: ReadonlyArray<readonly [string, string, string]> = [
  *
  * Pilling any of these would give it a border and flatten it into Secondary,
  * which is the exact SAFE-02 regression the ladder exists to prevent. Since
- * A-46 retired the Bare tier the rule protects SIX controls rather than one,
- * and CLEAR is among them - so the claim this scan holds is strictly stronger
- * than the one it was written against.
+ * A-46 retired the Bare tier the rule protected SIX controls rather than one,
+ * CLEAR among them. CLEAR LEFT THE TIER AT 13.1-05 (13.1-CONTEXT D-04): the
+ * user asked for it in the header beside `ZONA connected`, so Clear.svelte
+ * now draws the connection control's bordered box (DeviceSlot.svelte's 1px
+ * boundary, 16px of inline padding, the header's row) and is no longer
+ * shapeless - the row goes with the move, and the list says so in the same
+ * commit. It wears no pill either way: the derived walk below still reads
+ * the file, and device-ui.spec.ts holds its box.
  */
 const QUIET: ReadonlyArray<readonly [string, string, string]> = [
   ["KeepOnDevice.svelte", "control", "KEEP ON DEVICE"],
-  ["Clear.svelte", "control", "CLEAR - Quiet since A-46 retired the Bare tier"],
   ["KeepConfirm.svelte", "quiet-control", "NOT NOW"],
   ["TryOnDevice.svelte", "disconnect", "DISCONNECT ZONA"],
   ["Knob.svelte", "lock", "HOLD / HELD"],
@@ -592,9 +596,10 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
         .sort(),
     );
 
-    // ---- QUIET IS UNTOUCHED, and A-46 makes the claim bigger rather than
-    // smaller: the Bare tier is retired, CLEAR sits in Quiet, and the no-pill
-    // rule now protects six controls instead of one.
+    // ---- QUIET IS UNTOUCHED, and A-46 made the claim bigger rather than
+    // smaller: the Bare tier is retired and the no-pill rule protects the
+    // five controls listed (CLEAR sat among them until 13.1-05 re-homed it
+    // into the header's bordered box - see QUIET).
     for (const [name, cls, what] of QUIET) {
       const file = `${UI_DIR}/${name}`;
       const source = code(file);

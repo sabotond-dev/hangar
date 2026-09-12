@@ -19,6 +19,20 @@
   the control and not by the box); it builds nothing itself, so shell.spec.ts
   can render the header alone and two plans cannot build one control.
 
+  THE ZONE IS A PAIR SINCE 13.1-05 (13.1-CONTEXT D-04; bench line 4 of
+  2026-09-12: "CLEAR button. we need a CLEAR button it should live all the
+  time in the top right corner next to ZONA connected."): the user's Clear
+  box, handed over by the layout in the `clear` snippet, renders 12px to
+  the LEFT of the PDF's box, in both variants, on every page the shell
+  renders. The zone is an inline-size container that takes the row's
+  remaining space rather than its content's width - its flex basis is the
+  PDF's 218 and it grows - so Clear.svelte can render its caption only where
+  the row has room for it (a container query there) and the header never
+  scrolls sideways in the compact and stacked bands, where the slack beside
+  the connection control is 88px at 1024 and nothing at 768 (measured,
+  13.1-05-SUMMARY.md). The two boxes sit at the zone's end; the row's height
+  is still the control's 44px inside the 76px band.
+
   THE LINK'S ACCESSIBLE NAME is the plain pair the two pieces spell - the
   mark's own "HANGAR" (Wordmark.svelte's ledgered label) followed by the
   text FOR ZONA - because the Bible gives no line for the link and 13-03
@@ -42,6 +56,7 @@
     section,
     secondary,
     connection,
+    clear,
   }: {
     /** "app" for pages 2-5; "intro" for page 1's exception. */
     variant?: "app" | "intro";
@@ -51,6 +66,8 @@
     secondary?: Snippet;
     /** The connection control, handed over by the layout (ConnectionControl.svelte since 13-11). */
     connection?: Snippet;
+    /** The user's Clear, handed over by the layout (Clear.svelte since 13.1-05); rendered before the connection control. */
+    clear?: Snippet;
   } = $props();
 </script>
 
@@ -74,10 +91,12 @@
   {/if}
 
   <!--
-    The connection slot: the PDF's 218 x 37 box, filled by the layout with
+    The connection zone: the user's Clear (13.1-05) and then the PDF's 218 x
+    37 box, both filled by the layout - Clear.svelte and
     ConnectionControl.svelte (13-11).
   -->
   <div class="connection" data-testid="shell-connection">
+    {#if clear}{@render clear()}{/if}
     {#if connection}{@render connection()}{/if}
   </div>
 </header>
@@ -119,14 +138,22 @@
     align-items: center;
   }
 
-  /* The reserved box, pushed to the right edge. */
+  /*
+    The zone, pushed to the right edge: the reserved box is its basis and its
+    floor, the row's slack is its width (13.1-05), and it is a container so
+    the Clear box inside can ask how much room there is. 12px between the
+    pair.
+  */
   .connection {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    gap: 12px;
+    flex: 1 1 var(--connection-w);
     margin-inline-start: auto;
     min-inline-size: var(--connection-w);
     min-block-size: var(--connection-h);
+    container-type: inline-size;
   }
 
   /*

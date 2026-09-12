@@ -3,8 +3,9 @@
   pages 2-5 `ZONA connected`; Bible section 15 "Connection control: Ready,
   unavailable, denied, interrupted"; CONN-01, CONN-02, CONN-08, DEGR-02).
 
-  It fills the slot Header.svelte reserved at 13-05 (CONNECTION_SLOT, 218 x
-  37) on every shell page, in both header variants: the intro's `Connect
+  It sits at the end of the zone Header.svelte reserved at 13-05
+  (CONNECTION_SLOT, 218 x 37; since 13.1-05 the zone also holds the user's
+  Clear box to its left) on every shell page, in both header variants: the intro's `Connect
   ZONA` and the app pages' `ZONA connected` are ONE control in two of its
   nine states, not two controls, so the header's `variant` prop does not
   reach it. The layout mounts it once, from the shell, so no route hands a
@@ -76,10 +77,18 @@
 </div>
 
 <style>
-  /* The host fills the reserved box; the control inside it draws the border. */
+  /*
+    The host is sized by the control inside it, which draws the border. It
+    FILLED the reserved box (min-inline-size: 100%) from 13-11 to 13.1-05;
+    since the header's zone holds the user's Clear box 12px to this one's
+    left (13.1-CONTEXT D-04), a host that took the zone's whole width pushed
+    the Clear box out of the zone and over the nav - measured at 1280 on the
+    served build: the zone at x 757, the Clear box at x 457. The zone is the
+    one that justifies to the end now (Header.svelte); this host justifies
+    its one child the same way and claims no width of its own.
+  */
   .connection-control {
     display: flex;
     justify-content: flex-end;
-    min-inline-size: 100%;
   }
 </style>

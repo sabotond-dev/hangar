@@ -157,7 +157,6 @@
     workspaceTitle,
   } from "$lib/tune/inspector-copy";
   import BrowseLink from "$lib/ui/BrowseLink.svelte";
-  import Clear from "$lib/ui/Clear.svelte";
   import CopyLink from "$lib/ui/CopyLink.svelte";
   import FidelityLine from "$lib/ui/FidelityLine.svelte";
   import KeepConfirm from "$lib/ui/KeepConfirm.svelte";
@@ -903,9 +902,12 @@
         Phase 7's install column, ChosenPanel.svelte's contents in the order
         D-08 gave them: the primary control with its honesty line and its
         connect-state region, a hairline, the NEXT caption and the column PUT
-        BACK / KEEP ON DEVICE (or its confirmation) / CLEAR. The share control
-        moved to the inspector's pinned pair. 13-11 moves Apply to ZONA into
-        the context bar; until then the column is here, under the surface.
+        BACK / KEEP ON DEVICE (or its confirmation). The share control moved
+        to the inspector's pinned pair. The reset lives in the header since
+        13.1-05 (13.1-CONTEXT D-04: the user's Clear, top right, beside the
+        connection control, on every page) and the column no longer mounts
+        it. 13-11 moves Apply to ZONA into the context bar; the column's
+        remainder goes with 13.1-06 (D-06).
       -->
       <section
         bind:this={panelRoot}
@@ -929,7 +931,6 @@
           {:else}
             <KeepOnDevice bind:this={keep} />
           {/if}
-          <Clear />
         </div>
       </section>
     {/key}
@@ -1090,7 +1091,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /* One column at a 16px rhythm: PUT BACK, KEEP ON DEVICE or its confirmation, CLEAR (Z-03). */
+  /* One column at a 16px rhythm: PUT BACK, KEEP ON DEVICE or its confirmation (Z-03); the reset is the header's since 13.1-05. */
   .install-row {
     display: flex;
     flex-direction: column;

@@ -19,6 +19,16 @@
 // or in the batch. A string that appears in neither was invented after the
 // review and is red here by name.
 //
+// ONE WORD IS THE USER'S, NOT A DOCUMENT'S (13.1-05; 13.1-CONTEXT D-04). The
+// user asked for the reset by its own word at the fourth bench ("CLEAR
+// button ... next to ZONA connected"), so CLEAR_LABEL is `Clear` and section
+// 9's `Reset active device page` is retired by name in the module's header
+// and exported by nothing; test 2 holds both, and holds that the fact the old
+// label carried - the firmware default, the draft untouched - is still
+// clearLine's. The containment check above passes `Clear` by the batch's
+// E.11 row (the search field's own Clear), which is a substring accident and
+// not a review: the review is 13.1-COPY-NEW.md's row for this label.
+//
 // THE HONESTY CAPS ARE RETIRED BY NAME (test 3). HONESTY_CAP, PUT_BACK_CAP,
 // KEEP_CAP and CLEAR_CAP were measured maximum lengths per string - lines x
 // the 43 characters plan 10-01 measured as a Body line box's minimum
@@ -165,6 +175,8 @@ const RETIRED_CAPS = ["HONESTY", "PUT_BACK", "KEEP", "CLEAR"].map(
 const RETIRED_REVIEW_LABELS = ["SWITCH_PAGE", "KEEP_PAGE"].map(
   (stem) => `${stem}_LABEL`,
 );
+/** Assembled: section 9's reset label, retired by 13.1-05 under D-04 - the value of no export, named in the header. */
+const RETIRED_RESET_LABEL = ["Reset active", "device page"].join(" ");
 
 const FW = { major: 1, minor: 5, patch: 5 };
 /** The catalog's title-case name (D-14 Q11b), as the batch's samples read. */
@@ -431,7 +443,6 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       ["keptCaption", "Stored on ZONA · Page 2"],
       ["TRY_ON_LABEL", "Apply to ZONA"],
       ["KEEP_LABEL", "Store on ZONA"],
-      ["CLEAR_LABEL", "Reset active device page"],
       ["IDENTIFIED_CAPTION", "ZONA connected"],
       ["writingLabel", "Applying to Page 2…"],
       ["keepingLabel", "Storing on Page 2…"],
@@ -444,8 +455,28 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         line,
       );
     }
+    // THE RESET'S LABEL IS THE USER'S WORD (13.1-05, D-04): `Clear`, in
+    // D-05's case, and section 9's four words are the value of no export -
+    // retired by name in the module's header with the date and the
+    // decision. Section 9's row still stands in the Bible (held below with
+    // the other rows the Bible really gives), and the fact it carried is
+    // clearLine's, which names the firmware default and the draft.
+    expect(CLEAR_LABEL, "the user's word, sentence case").toBe("Clear");
+    expect(
+      Object.entries(copy).filter(([, v]) => v === RETIRED_RESET_LABEL),
+      "section 9's reset label is still exported under some name",
+    ).toEqual([]);
+    expect(installCopySource()).toContain(
+      "SECTION 9'S RESET LABEL IS RETIRED BY NAME, 2026-09-12",
+    );
+    expect(clearLine(PAGE), "the fact moved to the line").toMatch(
+      /firmware default/,
+    );
+    expect(clearLine(PAGE), "and the draft").toMatch(/draft stays/);
+
     // And the Bible really gives each: section 9 writes the progress labels
-    // and the stored row with `N`, section 16 writes its rows with `2`.
+    // and the stored row with `N`, section 16 writes its rows with `2` -
+    // and its reset row, whose label HANGAR no longer renders (above).
     for (const line of [
       "Applied to Page 2. Store on ZONA to keep it after power-off.",
       "Stored on ZONA · Page 2",
@@ -825,9 +856,12 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     // label never appears re-cased inside a sentence. `Put back` is excused:
     // it was chosen BECAUSE it is the register's own verb ("can be put back",
     // "nothing to put back"), and the verb in prose is not the control.
+    // `Clear` is excused on the same ground since 13.1-05 (D-04): the user's
+    // word is the register's own verb too, and settledBody's "changing page
+    // on your ZONA clears it" (D-23) is the wire's fact, not the control.
     for (const { name, text } of strings) {
       for (const label of WRITE_CLICKS) {
-        if (label === PUT_BACK_LABEL) continue;
+        if (label === PUT_BACK_LABEL || label === CLEAR_LABEL) continue;
         if (text.toLowerCase().includes(label.toLowerCase())) {
           expect(text, `${name} re-cases ${label}`).toContain(label);
         }

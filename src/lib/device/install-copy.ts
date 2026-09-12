@@ -24,10 +24,11 @@
 // test 2 checks which by reading the documents from disk:
 //
 //  - a line the design specification's section 16 or its state table (section
-//    9) gives, taken VERBATIM - `Apply to ZONA`, `Store on ZONA`, `Reset active
-//    device page`, `Applying to Page 2…`, `Storing on Page 2…`, `Applied to
-//    Page 2. Store on ZONA to keep it after power-off.`, `Stored on ZONA ·
-//    Page 2`, `ZONA connected`;
+//    9) gives, taken VERBATIM - `Apply to ZONA`, `Store on ZONA`, `Applying to
+//    Page 2…`, `Storing on Page 2…`, `Applied to Page 2. Store on ZONA to keep
+//    it after power-off.`, `Stored on ZONA · Page 2`, `ZONA connected`;
+//  - ONE WORD THE USER GAVE at the fourth bench (13.1-05, 13.1-CONTEXT D-04):
+//    the header's `Clear`, in D-05's case, ledgered in 13.1-COPY-NEW.md;
 //  - a line the specification never wrote, PROPOSED in 13-18-BATCH.md with the
 //    state it names and the fact it must carry, and APPROVED as written by
 //    D-23 - everything else in this file; or
@@ -54,9 +55,9 @@
 //  2. The snapshot - a copy of the page is taken before anything is written
 //     and `Put back` restores it. snapshottingBody, identifiedBody,
 //     restoredCaption, restoredBody, liveSnapshotSaved.
-//  3. The firmware default - `Reset active device page` writes the module's
-//     own default and the browser draft survives. clearLine, clearedCaption,
-//     clearedBody, liveCleared.
+//  3. The firmware default - `Clear` (the header's control since 13.1-05)
+//     writes the module's own default and the browser draft survives.
+//     clearLine, clearedCaption, clearedBody, liveCleared.
 //  4. Nothing is written without a click - session-copy.ts's SAFE_NOTE; here,
 //     every write is a named click and every step names one.
 //  5. A store carries the page's own scripts - five strings on the wire since
@@ -106,6 +107,23 @@
 // select's change is the fifth write click (TARGET_CLICK below), and the
 // way back from an unverified switch is the select itself - choosing the
 // page the module reports is a cancel - so no negative is needed.
+//
+// SECTION 9'S RESET LABEL IS RETIRED BY NAME, 2026-09-12 (13.1-05,
+// 13.1-CONTEXT D-04; ledgered in 13.1-COPY-NEW.md). CLEAR_LABEL read section
+// 9's `Reset active device page` from 13-18 (D-23) to 13.1-05, on the quiet
+// control at the foot of the workspace's install column. The user asked for
+// the control by its own word at the fourth bench ("CLEAR button. we need a
+// CLEAR button it should live all the time in the top right corner next to
+// ZONA connected."), so the control moved into the header's connection zone
+// beside `ZONA connected` and CLEAR_LABEL became `Clear` - the user's word
+// in D-05's case, one that fits the PDF's 218 x 37 box where section 9's
+// four words do not. The fact section 9's label carried - the firmware
+// default, the browser draft untouched - is clearLine's, which is the
+// control's accessible description and did not change. The label is not a
+// stem the register forbids (A-48 scans `clears`, `empt` and `remove`;
+// the word `Clear` is none of them) and the line beneath it still says
+// what the click restores. Section 9's row stands in the Bible as text;
+// install-copy.spec.ts asserts the old words are exported by nothing.
 //
 // THREE RULES A READER WOULD REVERSE, WRITTEN DOWN:
 //
@@ -229,8 +247,8 @@ export const puttingBackLabel = (page: number): string =>
 export const KEEP_LABEL = "Store on ZONA";
 /** The store confirmation's negative (I.4.19). */
 export const NOT_NOW_LABEL = "Not now";
-/** Section 9's own label for the firmware default; what it does is said in the line beneath it. */
-export const CLEAR_LABEL = "Reset active device page";
+/** The user's own word for the firmware default (13.1-05, D-04), in D-05's case; what it does is said in clearLine, the control's description. */
+export const CLEAR_LABEL = "Clear";
 /** Section 9's progress shape, for the reset (I.4.20). */
 export const clearingLabel = (page: number): string =>
   `Resetting ${pageName(page)}…`;
@@ -528,8 +546,8 @@ export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
 };
 
 // ---------------------------------------------------------------------------
-// The Reset active device page control: one line, and the three reasons it
-// can be disabled for.
+// The Clear control (the header's, since 13.1-05): one line, and the three
+// reasons it can be disabled for.
 
 /**
  * The third fact, before the click (I.6.3): section 16's confirmation words

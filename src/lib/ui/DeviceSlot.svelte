@@ -335,12 +335,24 @@
     justify-content: center;
   }
 
-  /* The caption: sentence case, the quiet ink, nearly no tracking. */
+  /*
+    The caption: sentence case, the quiet ink, nearly no tracking - and ONE
+    LINE, because its line box is a fixed 14px (Y-10) and a caption that
+    wrapped inside it would stack two lines into one box and push the label
+    to the floor. That happened once: 13.1-05 put the user's Clear box 12px
+    to this control's left, and at 375 on the intro and at 768 on the app
+    pages the zone was 9 to 23px short for the pair, so WebKit shrank this
+    control and wrapped `Not in this browser` under the label (measured on
+    the served build). The label already declared nowrap; the caption now
+    does too, and where the zone is short the pair overflows it toward the
+    gap beside it rather than folding.
+  */
   .caption {
     line-height: 14px;
     font-size: 12px;
     font-weight: 400;
     letter-spacing: 0.01em;
+    white-space: nowrap;
     color: var(--color-ink-quiet);
     transition: opacity 160ms ease-out;
   }
