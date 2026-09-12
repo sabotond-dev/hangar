@@ -1,4 +1,5 @@
-// The Sandbox's emitter: a surface -> the touch Setup and the touch Timer.
+// The Sandbox's emitter: a surface -> the touch Setup, the touch Timer and,
+// under three slots, the system element's fourth event.
 //
 // ---------------------------------------------------------------------------
 // 1. WHAT THIS EMITS, AND WHAT IT DOES NOT
@@ -7,11 +8,12 @@
 // The data half (13-RESEARCH 3.1, "the split"): the region table `J`, the
 // 81-entry cell map `M`, the paint loop, the pull-in call(s) that run the
 // runtime's slot(s), and the callback assignment. The runtime itself - the
-// per-kind behaviour a contact drives - is 13-15's, lives in the touch Timer
-// (proved reachable from Setup by probe 1, `SLOT-ARITHMETIC.md`) and, for a
-// four-kind surface, spans the system element's fourth event as well (probe
-// 2). 13-15 defines the entry `O(s,i,e,x,y)`; this Setup installs it as the
-// touch callback AFTER the pull-in has run, so `O` exists when it is named.
+// per-kind behaviour a contact drives - is runtime.ts's (13-15), lives in the
+// touch Timer (proved reachable from Setup by probe 1, `SLOT-ARITHMETIC.md`)
+// and, under three slots, spans the system element's fourth event as well
+// (probe 2); `packRuntime` decides which part lands where. runtime.ts defines
+// the entry `O(s,i,e,x,y)`; this Setup installs it as the touch callback
+// AFTER the pull-in has run, so `O` exists when it is named.
 // On the wire the Sandbox is a Lua entry: 13-17 lands these two strings
 // beside `TOUCH_LIBRARY` (255/0) and `TOUCH_LIBRARY_TIMER` (255/6) exactly
 // as 12.1-07's `landLua` does for a hand-authored card, and the library's
@@ -24,29 +26,43 @@
 // twenty-one names the library defines are `LIBRARY_GLOBALS`; emit.spec.ts
 // test 5 asserts every name this file defines is outside that set and that
 // the only capital names it CALLS are inside it. This file's own: `J` (the
-// region table), `M` (the map), `O` (13-15's runtime entry,
-// named here so both plans spell it once), and under the inline contingency
-// `S` (contact -> region index), `F` (last sent per contact) and `R` (the
+// region table), `M` (the map), `O` (the runtime's entry, spelled once in
+// runtime.ts and re-exported here), and under the inline contingency `S`
+// (contact -> region index), `F` (last sent per contact) and `R` (the
 // release convention, section 5 of library.ts - defined, never called here).
 //
 // ---------------------------------------------------------------------------
 // 2. THE SHAPES
 // ---------------------------------------------------------------------------
 //
-//   J={{x0,x1,y0,y1,t,cc,cc2,ch,r,g,b},...}   one row per region
+//   J={{g1,g2,g3,g4,t,cc,cc2,ch,r,g,b},...}   one row per region
 //   M={[0]=n0,n1,...,n80}                      cell -> 1-based row index, 0 none
 //
-// `x0..y1` ARE PRECOMPUTED IN RAW 0..127 UNITS. A fader's value is
-// `127-(y-y0)*127//(y1-y0)` and the compiler knows `y0` and `y1` exactly, so
-// the runtime never derives a bound from a cell. The bounds are the raw
-// span of the region's cells UNDER THE MEASURED MAP: cell `c` on an axis
-// begins at the midpoint between knots `c-1` and `c` and ends one short of
-// the midpoint between `c` and `c+1` (`KX` / `KY`, calibration.ts, measured
-// on the user's ZONA by Probe C), with the first cell starting at 0 and the
-// last ending at 127 because the pad reaches its edges (Probe A Q5). That is
-// exactly the span in which the library's `N(x,y)` reports one of the
-// region's cells, so a finger that is IN the region by the map's reckoning
-// is inside its bounds by the fader's. The knots are imported, never typed.
+// THE FOUR GEOMETRY NUMBERS ARE PRECOMPUTED IN THE FRAME THE KIND READS THEM
+// IN, so the runtime never derives a bound from a cell and pays no
+// conversion (13-15; 13-14 carried the raw span of the cells for every kind,
+// and the Phase 12.1 hand-off's rule replaced it: a fader's value is read on
+// the library's CALIBRATED axis `U`, LED n at n*64, between the region's
+// first and last LED centres, or the top and bottom LEDs do not give 127 and
+// 0). Per kind:
+//
+//   fader, vertical    0, 0, gy, gh        gy = the BOTTOM LED's U (row*64),
+//                                          gh = the LED span ((h-1)*64);
+//                                          value (gy-U(y,KY))*127//gh, clamped
+//   fader, horizontal  gx, gw, 0, 0        gx = the LEFT LED's U, gw = (w-1)*64;
+//                                          value (U(x,KX)-gx)*127//gw
+//   button             0, 0, 0, 0          reads none
+//   XY pad             gx, gw, gy, gh      both axes as the faders read them
+//   knob               cx, cy, 0, 0        the region's centre in RAW units:
+//                                          its middle LED position through the
+//                                          forward map (`sensorAt`), so the
+//                                          centre and the dead zone are in the
+//                                          sensor's own units (runtime.ts 5)
+//
+// A knob's row carries two more columns, its value and its accumulator
+// remainder, both 0. The knots are imported, never typed; a one-row fader
+// would divide by zero on the module, and model.ts section 4a is where that
+// is refused.
 //
 // `M` IS `[0]=`-INDEXED so the lookup is `M[N(x,y)]` with `N` returning
 // 0..80 - the spelling the Phase 12.1 hand-off names - at four characters
@@ -56,9 +72,10 @@
 //
 // A ROW'S SEVENTH COLUMN is the XY pad's second controller and the button's
 // latch flag (0 or 1), 0 otherwise; the fifth is the type code (model.ts);
-// the eighth is the wire channel (0..15, through `wireChannel`); the last
-// three are the colour as `glc` takes it (0..255, through `colourByte`).
-// Every number is emitted at its exact width - no padding, no float.
+// the eighth is the wire channel (0..15, through `wireChannel`); columns
+// nine to eleven are the colour as `glc` takes it (0..255, through
+// `colourByte`). Every number is emitted at its exact width - no padding,
+// no float.
 //
 // ---------------------------------------------------------------------------
 // 3. DEAD-BRANCH ELIMINATION IS A PARAMETER, AND THE INLINE CONTINGENCY
@@ -67,17 +84,17 @@
 // `branches` names the runtime branches to emit and defaults to the ones the
 // surface uses (`branchesUsed`). The data half has no branches of its own -
 // `J`, `M` and the paint are the same for every kind - so the parameter reaches
-// the runtime: under the split it is what 13-15 reads to emit the Timer per
-// surface, and under the INLINE contingency it selects which of the four
-// branch texts below go into the callback - dead-branch elimination in the
-// research's words, worth about 470 characters there. The contingency
-// exists because the research measured four vertical faders inline at 697
-// against 1,166 with every branch (13-RESEARCH 3.1), and the plan asks the
-// pair to be re-measured rather than quoted (emit.spec.ts test 2). It
-// carries no Knob branch: the rotary is 13-15's (D-08), and an inline
-// surface with a Knob is refused rather than approximated.
+// the runtime: under the split it is what `packRuntime` reads to emit the
+// Timer (and 255/4) per surface, and under the INLINE contingency it selects
+// which of the four branch texts below go into the callback - dead-branch
+// elimination in the research's words, worth about 470 characters there.
+// The contingency exists because the research measured four vertical faders
+// inline at 697 against 1,166 with every branch (13-RESEARCH 3.1), and the
+// plan asks the pair to be re-measured rather than quoted (emit.spec.ts test
+// 2). It carries no Knob branch: the rotary is runtime.ts's (D-08), and an
+// inline surface with a Knob is refused rather than approximated.
 //
-// The inline callback, in prose (its text is `INLINE` below): an end code
+// The inline callback, in prose (its text is assembled below): an end code
 // (`e~=1 and e~=4 and e<9`) hands the contact to the library's `E`, whose
 // release `R` sends a button's 0 - so a lost lift (Probe A Q6.5) is released
 // by the Timer's `X` sweep through the same `R`. An onset (`e==4 or e>8`)
@@ -111,30 +128,35 @@
 // measured under both (emit.spec.ts test 1 prints the pair) and the
 // difference is the fifteen characters of the second call.
 //
-// The ceiling in element KINDS is the runtime's and 13-15 measures it; the
-// data half is the same under every answer, which is the plan's premise.
+// The ceiling in element KINDS is the runtime's - runtime.ts section 6 and
+// runtime.spec.ts test 7 measure it under both slot counts; the data half is
+// the same under every answer, which was 13-14's premise and holds.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { KX, KY } from "../catalog/calibration";
+import { LED_STEP, sensorAt } from "../catalog/calibration";
 import { buildCellMap, type CellMap } from "./geometry";
 import {
   BRANCHES,
-  LAST_CELL,
   SURFACE_CELLS,
   branchesUsed,
   colourByte,
+  orientationOf,
   typeCodeOf,
   wireChannel,
   type Branch,
   type Region,
   type Surface,
 } from "./model";
+import {
+  DEFAULT_SWEEP_CALLS,
+  MARKER,
+  RUNTIME_ENTRY,
+  packRuntime,
+  sweepCall,
+  type PackedRuntime,
+} from "./runtime";
 
-/** The event marker every stored body opens with (9 characters, a block comment). */
-export const MARKER = "--[[@cb]]";
-
-/** 13-15's runtime entry, installed as the touch callback under the split. */
-export const RUNTIME_ENTRY = "O";
+export { MARKER, RUNTIME_ENTRY, DEFAULT_SWEEP_CALLS };
 
 /** The names this emitter defines, split and inline. Test 5 holds them apart from the library's. */
 export const OWN_NAMES_SPLIT: readonly string[] = ["J", "M"];
@@ -143,9 +165,6 @@ export const OWN_NAMES_INLINE: readonly string[] = ["J", "M", "S", "F", "R"];
 /** The pull-in calls, by slot (section 4). */
 export const PULL_IN_TIMER = "self:tim()";
 export const PULL_IN_MAPMODE = "ele[#ele]:map()";
-
-/** The Timer's sweep: `X(self, n)` expires contacts unseen for n Timer calls (library.ts section 8). */
-export const DEFAULT_SWEEP_CALLS = 20;
 
 /** The quiet resting phase the paint sets on a region's cells. PROVISIONAL; 13-15 / 13-16 may move it. */
 export const DEFAULT_REST_PHASE = 48;
@@ -157,8 +176,6 @@ export type EmitOptions = {
   readonly runtime?: "split" | "inline";
   /** Dead-branch elimination's parameter. Default: the branches the surface uses. */
   readonly branches?: readonly Branch[];
-  /** The runtime body 13-15 supplies for the Timer, ahead of the sweep call. */
-  readonly runtimeBody?: string;
   readonly sweepCalls?: number;
   readonly restPhase?: number;
 };
@@ -166,6 +183,10 @@ export type EmitOptions = {
 export type Emitted = {
   readonly setup: string;
   readonly timer: string;
+  /** The system element's fourth event under three slots (runtime.ts section 6); undefined otherwise. */
+  readonly mapmode: string | undefined;
+  /** The packed runtime under the split; undefined under the inline contingency. */
+  readonly runtime: PackedRuntime | undefined;
   /** The parts, for a spec that measures them apart. */
   readonly parts: {
     readonly regionTable: string;
@@ -179,24 +200,39 @@ export type Emitted = {
 };
 
 // ---------------------------------------------------------------------------
-// The bounds (section 2).
+// The geometry numbers (section 2).
 
-/** The first raw value of cell `c` on the axis with knots `k`. */
-export function rawLow(c: number, k: readonly number[]): number {
-  return c === 0 ? 0 : Math.ceil((k[c - 1] + k[c]) / 2);
+/** LED `c`'s position on the calibrated axis: `c * 64`, what `U` returns at the knot. */
+const led = (c: number): number => c * LED_STEP;
+
+/** The four geometry numbers of a region, in its kind's frame (section 2). */
+export function geometryOf(region: Region): [number, number, number, number] {
+  const { col, row, w, h } = region;
+  switch (region.kind) {
+    case "fader":
+      return orientationOf(region) === "horizontal"
+        ? [led(col), led(w - 1), 0, 0]
+        : [0, 0, led(row + h - 1), led(h - 1)];
+    case "xy":
+      return [led(col), led(w - 1), led(row + h - 1), led(h - 1)];
+    case "knob":
+      // The centre in raw units: the middle LED position on each axis through
+      // the forward map (an LED centre for an odd width, halfway between two
+      // for an even one). Rounded to the sensor's own integers.
+      return [
+        Math.round(sensorAt(col + (w - 1) / 2, "x")),
+        Math.round(sensorAt(row + (h - 1) / 2, "y")),
+        0,
+        0,
+      ];
+    case "button":
+      return [0, 0, 0, 0];
+  }
 }
 
-/** The last raw value of cell `c` on the axis with knots `k`. */
-export function rawHigh(c: number, k: readonly number[]): number {
-  return c === LAST_CELL ? 127 : Math.ceil((k[c] + k[c + 1]) / 2) - 1;
-}
-
-/** A region's row: `{x0,x1,y0,y1,t,cc,cc2,ch,r,g,b}`. */
+/** A region's row: `{g1,g2,g3,g4,t,cc,cc2,ch,r,g,b}`, plus `0,0` on a knob. */
 export function regionRow(region: Region): number[] {
-  const x0 = rawLow(region.col, KX);
-  const x1 = rawHigh(region.col + region.w - 1, KX);
-  const y0 = rawLow(region.row, KY);
-  const y1 = rawHigh(region.row + region.h - 1, KY);
+  const [x0, x1, y0, y1] = geometryOf(region);
   const seventh =
     region.kind === "xy"
       ? (region.cc2 ?? 0)
@@ -213,6 +249,8 @@ export function regionRow(region: Region): number[] {
     seventh,
     wireChannel(region.channel),
     ...region.colour.map(colourByte),
+    // A knob's value and its accumulator remainder (runtime.ts section 5).
+    ...(region.kind === "knob" ? [0, 0] : []),
   ];
 }
 
@@ -259,12 +297,14 @@ const INLINE_OPEN =
   "local o=e==4 or e>8 if o then E(s,i)S[i]=M[N(x,y)]end T[i]=C " +
   "local r=J[S[i]]if not r then return end local t=r[5]";
 
+// On the calibrated axis with the per-kind geometry numbers (section 2),
+// exactly as runtime.ts's branches read them.
 const FADER_V =
-  "if t==1 then local v=glim(127-(y-r[3])*127//(r[4]-r[3]),0,127)" +
+  "if t==1 then local v=glim((r[3]-U(y,KY))*127//r[4],0,127)" +
   "if v~=F[i]then F[i]=v s:gms(r[8],176,r[6],v,0)end end";
 
 const FADER_H =
-  "if t==2 then local v=glim((x-r[1])*127//(r[2]-r[1]),0,127)" +
+  "if t==2 then local v=glim((U(x,KX)-r[1])*127//r[2],0,127)" +
   "if v~=F[i]then F[i]=v s:gms(r[8],176,r[6],v,0)end end";
 
 const BUTTON =
@@ -272,8 +312,8 @@ const BUTTON =
   "s:gms(r[8],176,r[6],r[12]and 127 or 0,0)else s:gms(r[8],176,r[6],127,0)end end";
 
 const XY =
-  "if t==4 then local a,b=glim((x-r[1])*127//(r[2]-r[1]),0,127)," +
-  "glim(127-(y-r[3])*127//(r[4]-r[3]),0,127)local p=F[i]or{}" +
+  "if t==4 then local a,b=glim((U(x,KX)-r[1])*127//r[2],0,127)," +
+  "glim((r[3]-U(y,KY))*127//r[4],0,127)local p=F[i]or{}" +
   "if a~=p[1]then s:gms(r[8],176,r[6],a,0)end " +
   "if b~=p[2]then s:gms(r[8],176,r[7],b,0)end F[i]={a,b}end";
 
@@ -342,7 +382,7 @@ export function emitSurface(
   const runtime = options.runtime ?? "split";
   const branches = options.branches ?? branchesUsed(surface.regions);
   const restPhase = options.restPhase ?? DEFAULT_REST_PHASE;
-  const sweep = `X(self,${options.sweepCalls ?? DEFAULT_SWEEP_CALLS})`;
+  const sweepCalls = options.sweepCalls ?? DEFAULT_SWEEP_CALLS;
 
   const regionTable = renderRegionTable(surface.regions);
   const cellMap = renderCellMap(built.map);
@@ -355,12 +395,19 @@ export function emitSurface(
   // separator; every other seam is `}` against a name and needs none.
   const setup =
     MARKER + regionTable + cellMap + paint + " " + pullIn + callback;
-  const runtimeBody = runtime === "split" ? (options.runtimeBody ?? "") : "";
-  const timer = MARKER + (runtimeBody ? runtimeBody + " " : "") + sweep;
+  // The split's Timer (and 255/4) are the runtime's, packed per surface;
+  // the inline contingency's Timer is the sweep alone.
+  const packed =
+    runtime === "split"
+      ? packRuntime(branches, { slots, sweepCalls })
+      : undefined;
+  const timer = packed ? packed.timer : MARKER + sweepCall(sweepCalls);
 
   return {
     setup,
     timer,
+    mapmode: packed?.mapmode,
+    runtime: packed,
     parts: { regionTable, cellMap, paint, pullIn, callback },
     branches,
     map: built.map,

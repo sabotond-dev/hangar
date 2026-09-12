@@ -46,16 +46,75 @@
 // sixteen channels might not; only the measurement knows which.
 //
 // ---------------------------------------------------------------------------
-// 4. THE MINIMUM SIZE PER KIND IS A PARAMETER, NOT A RULE THIS PLAN INVENTS
+// 4. THE MINIMUM SIZE PER KIND IS DERIVED, NOT CHOSEN (13-15)
 // ---------------------------------------------------------------------------
 //
-// A Knob is a real rotary (D-08): angle around the region's centre, and the
-// arithmetic that sets its minimum size is a centre dead zone derived from
-// Probe A Q1's measured jitter - 13-15's derivation, not this plan's. So the
-// geometry rules take the minimum sizes as a parameter (`MinimumSizes`), with
-// a PROVISIONAL default that refuses a 1x1 and a 2x2 Knob as the plan asks
-// and nothing else; 13-15 replaces the default with the derived rule and
-// ledgers the refusal message. Every other kind's minimum is one cell.
+// 13-14 left the minimum sizes as a parameter with a provisional 3 x 3 Knob;
+// 13-15 replaced the default with the rule below, and the parameter stays so
+// a spec can still move it. Two kinds of minimum, and neither is taste:
+//
+// (a) A FADER OR AN XY PAD NEEDS TWO CELLS ALONG EVERY AXIS IT READS. Since
+//     13-15 a fader's value is computed on the library's calibrated axis
+//     (`U(y,KY)`, LED n at n*64) between the region's first and last LED
+//     CENTRES, so the top and bottom LEDs give 127 and 0 exactly (the Phase
+//     12.1 hand-off's rule); the divisor is the LED span `(h-1)*64`, and on
+//     a one-row fader that is ZERO - Lua's `//0` raises on the module on
+//     every sample. A vertical fader therefore needs h >= 2, a horizontal one
+//     w >= 2 and an XY pad 2 x 2. `minimumSizeFor` reads the orientation,
+//     which `minimumSizeOf` by kind alone cannot.
+//
+// (b) A KNOB NEEDS A RING OUTSIDE ITS DEAD ZONE, and the dead zone's radius
+//     is derived from the probe, not from the nine-cells-per-turn figure.
+//     The rotary (runtime.ts, `I[5]`) reads the angle `math.atan(dy,dx)`
+//     around the region's centre in RAW sensor units (0..127 per axis), and
+//     steps the value once per KNOB_STEP_DEG degrees of accumulated turn.
+//     Probe A Q1 measured a still finger moving ONE raw unit on one axis
+//     per sample (x 65<->66, y 66<->67 at 100 Hz); over a few samples it
+//     visits a 2 x 2 set whose diagonal is sqrt(2) raw units, and that is
+//     the spread this file takes as the jitter (JITTER_DIAGONAL_RAW - the
+//     conservative reading; the per-sample figure is 1). At radius rho from
+//     the centre a tangential spread j swings the angle by about j/rho
+//     radians, i.e. j * (180/pi) / rho degrees. The runtime's truncating
+//     accumulator (runtime.ts section 3) never steps while the spread stays
+//     under one step, so the angle is UNSTABLE - jitter alone steps the value
+//     - wherever j * 57.3 / rho >= KNOB_STEP_DEG, that is inside
+//
+//         rho0 = JITTER_DIAGONAL_RAW * (180 / pi) / KNOB_STEP_DEG raw units
+//              = 1.414 * 57.30 / 8 = 10.13 raw units (KNOB_DEAD_ZONE_RAW),
+//
+//     which is 0.71 of a cell at the uniform 128/9 = 14.2 raw units per
+//     cell (CELL_RAW). The runtime refuses samples inside it outright
+//     (`u*u+v*v<103`, KNOB_DEAD_ZONE_SQUARED = ceil(rho0^2)) and forgets the
+//     contact's previous angle there, so a finger dragged through the centre
+//     lands on the far side without a half-turn jump. EVERY FIGURE ABOVE IS
+//     RESOLUTION: it says where a turn can be read. "Nine cells of travel per
+//     turn" (D-08) is LED FEEDBACK: how many lights a finger walks past on a
+//     3 x 3 ring, which is a different number about a different thing.
+//
+//     THE INEQUALITY. The ring a finger follows on a w-wide region is the
+//     region's outer cells, whose LED centres sit (w-1)/2 cells from the
+//     centre: (w-1)/2 * CELL_RAW raw units. A region is usable when that ring
+//     lies outside the dead zone by at least one unit of per-sample jitter:
+//
+//         (w - 1) / 2 * CELL_RAW  >=  rho0 + JITTER_RAW
+//         w  >=  1 + 2 * (10.13 + 1) / 14.22  =  2.57
+//
+//     so KNOB_MINIMUM_CELLS = 3. A 2 x 2 has its ring 7.1 raw units out,
+//     inside the dead zone, and is refused; a 3 x 3's ring is 14.2 out, 3.1
+//     past it; a 4 x 4's 21.3. The measured map (calibration.ts) is not
+//     uniform - its pitches run 6..22 raw units per cell - and
+//     runtime.spec.ts prints the ring radius of every 3 x 3 placement under
+//     it; the rule here is the uniform one the plan asks for, and the two
+//     placements the measured map puts under the line are a question in
+//     13-15-SUMMARY.md, not a refusal this plan invents.
+//
+//     THE STEP, KNOB_STEP_DEG = 8, is the finest step that keeps the 3 x 3
+//     knob the Bible draws (page 3, "Turn") clear of the dead zone under the
+//     diagonal jitter: at 6 degrees rho0 is 13.5, one unit short of the 3 x
+//     3's ring; at 8 it is 10.1. Forty-five steps a turn, 128/45 = 2.84 turns
+//     from 0 to 127. Nothing about this has been felt on the pad; the bench
+//     row (docs/INSTALL-RUNBOOK.md row L) is where the figure is tested, and
+//     the constant is one number.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -180,19 +239,79 @@ export type CellSize = { readonly w: number; readonly h: number };
 /** The minimum size per kind. Absent kinds have a one-cell minimum. */
 export type MinimumSizes = Partial<Record<ElementKind, CellSize>>;
 
+// The Knob's arithmetic (section 4b). Every number below is derived from the
+// two inputs and the one design constant; none is typed twice.
+
+/** One raw sensor unit: Probe A Q1's per-sample wobble on one axis. */
+export const JITTER_RAW = 1;
+
+/** The diagonal of the 2 x 2 set a still finger visits over a few samples - the conservative jitter. */
+export const JITTER_DIAGONAL_RAW = Math.SQRT2;
+
+/** Degrees of accumulated turn per value step. 45 steps a turn, 2.84 turns end to end. */
+export const KNOB_STEP_DEG = 8;
+
+/** Value steps in one full turn. */
+export const KNOB_STEPS_PER_TURN = 360 / KNOB_STEP_DEG;
+
+/** One cell in raw units under the uniform 128/9 approximation (the measured pitches run 6..22). */
+export const CELL_RAW = 128 / SURFACE_SIZE;
+
 /**
- * PROVISIONAL. The plan's own words: "a 1x1 or 2x2 knob is refused - 13-15
- * derives the exact rule from the arithmetic and this plan takes it as a
- * parameter rather than inventing it". Three by three is the smallest size
- * this default admits; 13-15 replaces it from the dead-zone inequality.
+ * The dead zone's radius in raw units: where the diagonal jitter alone swings
+ * the angle by a whole step. 10.13 raw units, 0.71 of a cell.
  */
-export const DEFAULT_MINIMUM_SIZES: MinimumSizes = { knob: { w: 3, h: 3 } };
+export const KNOB_DEAD_ZONE_RAW =
+  (JITTER_DIAGONAL_RAW * (180 / Math.PI)) / KNOB_STEP_DEG;
+
+/** The literal the runtime compares `dx*dx+dy*dy` against: ceil(rho0^2) = 103. */
+export const KNOB_DEAD_ZONE_SQUARED = Math.ceil(
+  KNOB_DEAD_ZONE_RAW * KNOB_DEAD_ZONE_RAW,
+);
+
+/** The ring's radius on a w-wide region: the outer cells' LED centres, uniform map. */
+export const knobRingRaw = (w: number): number => ((w - 1) / 2) * CELL_RAW;
+
+/**
+ * The smallest w for which the ring lies outside the dead zone by one unit
+ * of per-sample jitter: `(w-1)/2 * CELL_RAW >= rho0 + JITTER_RAW`, so 3.
+ */
+export const KNOB_MINIMUM_CELLS = Math.ceil(
+  1 + (2 * (KNOB_DEAD_ZONE_RAW + JITTER_RAW)) / CELL_RAW,
+);
+
+/**
+ * The derived defaults: a Knob at the dead-zone minimum, an XY pad at two
+ * cells on each axis it reads (section 4a). A fader's minimum depends on its
+ * orientation and is `minimumSizeFor`'s to answer; by kind alone a fader has
+ * a one-cell minimum here and the orientation rule is applied on top.
+ */
+export const DEFAULT_MINIMUM_SIZES: MinimumSizes = {
+  knob: { w: KNOB_MINIMUM_CELLS, h: KNOB_MINIMUM_CELLS },
+  xy: { w: 2, h: 2 },
+};
 
 export function minimumSizeOf(
   kind: ElementKind,
   minimums: MinimumSizes = DEFAULT_MINIMUM_SIZES,
 ): CellSize {
   return minimums[kind] ?? { w: 1, h: 1 };
+}
+
+/**
+ * The minimum size of THIS region: its kind's, and for a fader two cells
+ * along the axis it reads (section 4a) - the one rule the kind alone cannot
+ * state. geometry.ts's `validate` reads this one.
+ */
+export function minimumSizeFor(
+  region: Region,
+  minimums: MinimumSizes = DEFAULT_MINIMUM_SIZES,
+): CellSize {
+  const byKind = minimumSizeOf(region.kind, minimums);
+  if (region.kind !== "fader") return byKind;
+  return orientationOf(region) === "horizontal"
+    ? { w: Math.max(byKind.w, 2), h: byKind.h }
+    : { w: byKind.w, h: Math.max(byKind.h, 2) };
 }
 
 // ---------------------------------------------------------------------------

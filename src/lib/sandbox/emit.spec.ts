@@ -66,6 +66,7 @@ import {
   renderRegionTable,
 } from "./emit";
 import { buildCellMap } from "./geometry";
+import { packRuntime } from "./runtime";
 import {
   BRANCHES,
   PICKER_CORNER,
@@ -159,13 +160,18 @@ const FIVE: readonly { surface: Surface; count: number; research?: number }[] =
     { surface: SIXTEEN, count: 16, research: 811 },
   ];
 
-/** The figures this tree measured (see the header). Two-slot pull-in; the three-slot figure is +15. */
+/**
+ * The figures this tree measured (see the header). Two-slot pull-in; the
+ * three-slot figure is +15. 13-14 pinned 343 / 457 / 608 / 764 / 922 with the
+ * raw spans; 13-15's per-kind geometry moved every one (a fader's calibrated
+ * span costs a digit or two more, a button's four zeros cost several less).
+ */
 const PINNED: Record<number, number> = {
-  1: 343,
-  4: 457,
-  8: 608,
-  12: 764,
-  16: 922,
+  1: 345,
+  4: 460,
+  8: 588,
+  12: 748,
+  16: 882,
 };
 
 describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
@@ -173,7 +179,7 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     await padReady();
   });
 
-  it("1. costs one, four, eight, twelve and sixteen elements at the picker corner: four under 908, the dearest sixteen recorded as the finding", async () => {
+  it("1. costs one, four, eight, twelve and sixteen elements at the picker corner: all five under 908, the dearest sixteen's finding closed", async () => {
     const lines: string[] = [];
     const over: { name: string; two: number; three: number }[] = [];
     for (const { surface: s, count, research } of FIVE) {
@@ -192,9 +198,13 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         three.setup.used - two.setup.used,
         "the third pull-in's price",
       ).toBe(PULL_IN_MAPMODE.length);
-      expect(two.timer.used, `${s.name}: the Timer is the sweep alone`).toBe(
-        (MARKER + "X(self,20)").length,
+      // The Timer is the runtime packed for the surface's own branches
+      // beside the sweep (13-15; until then it was the sweep alone at 19),
+      // canonical, and it is measured in runtime.spec.ts test 7.
+      expect(two.emitted.timer, `${s.name}: the Timer`).toBe(
+        packRuntime(two.emitted.branches, { slots: 2 }).timer,
       );
+      expect(two.timer.used).toBe(two.emitted.timer.length);
       // The colour corner is the dearest: the surface's own colours never
       // cost more than the corner.
       const own = await measureSurface(
@@ -232,7 +242,6 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       ["The five costs, measured at the picker corner:", ...lines].join("\n"),
     );
     for (const { name, two, three } of over) {
-      if (name === SIXTEEN.name) continue;
       expect(
         two,
         `${name}: ${two} of ${EVENT_BUDGET} at two slots`,
@@ -242,30 +251,35 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         `${name}: ${three} of ${EVENT_BUDGET} at three slots`,
       ).toBeLessThanOrEqual(EVENT_BUDGET);
     }
-    // THE FINDING (13-14-PLAN.md task 02, step 4): sixteen elements at the
-    // DEAREST literals - three-digit controllers on channel 16 at the colour
-    // corner - do NOT fit: 922 at two slots, 14 over. Twelve fit with room
-    // for three more of their own largest shape, so the cap at the dearest
-    // literals is FIFTEEN at either slot count; at the literals a visitor
-    // types (cc 1..16, channel 1) sixteen fit at both. D-14 Q4's sixteen
-    // stands as the cap because the meter is the gate; the day this emitter
-    // shrinks enough for the dearest sixteen to fit, the first assertion
-    // below says so and the finding is closed in the SUMMARY that closes it.
+    // THE FINDING, CLOSED (13-14-PLAN.md task 02, step 4; 13-15). 13-14
+    // measured sixteen elements at the DEAREST literals - three-digit
+    // controllers on channel 16 at the colour corner - at 922 at two slots,
+    // 14 over, and pinned that figure so the day the emitter shrank enough
+    // the test would say so. It did, at 13-15: the four geometry numbers
+    // are now in the kind's own frame (emit.ts section 2), and a button's
+    // are four zeros where 13-14 wrote its raw span, so eight 1 x 2 buttons
+    // lost about five characters each. The dearest sixteen measure 882 at
+    // two slots and 897 at three, both inside 908, and the cap at the
+    // dearest literals is SIXTEEN - D-14 Q4's figure - at two slots. At
+    // three, `roomFor`'s floor from twelve says fifteen: its representative
+    // is a 1 x 6 FADER at cc 127 (the surface's largest shape, dearer in M
+    // than the 1 x 2 buttons the sixteen actually carry), and the fourth
+    // one tips 908 by the fifteen characters of the second pull-in. The
+    // meter errs on the floor, as cost.ts section 3 says it should.
+    // 13-15-SUMMARY.md closes the finding with the arithmetic.
     const sixteen = over.find((o) => o.name === SIXTEEN.name);
-    expect(sixteen?.two, "the dearest sixteen fit: the finding is closed").toBe(
-      922,
-    );
-    expect(sixteen?.three).toBe(937);
+    expect(sixteen?.two, "the dearest sixteen").toBe(882);
+    expect(sixteen?.three).toBe(897);
     const twelve = await costOf(TWELVE, { slots: 2 });
     expect(
-      12 + twelve.roomFor,
+      [12 + twelve.roomFor, twelve.roomLimit],
       "the cap at the dearest literals, two slots",
-    ).toBe(15);
+    ).toEqual([16, "cap"]);
     const twelveThree = await costOf(TWELVE, { slots: 3 });
     expect(
-      12 + twelveThree.roomFor,
-      "the cap at the dearest literals, three slots",
-    ).toBe(15);
+      [12 + twelveThree.roomFor, twelveThree.roomLimit],
+      "the cap at the dearest literals, three slots (the floor)",
+    ).toEqual([15, "budget"]);
     expect(
       plain.setup.used,
       "sixteen at typed literals fit",
@@ -277,9 +291,10 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     const mAlone = await canonical(four.parts.cellMap);
     const jAlone = await canonical(four.parts.regionTable);
     // Pinned: M 169 (the research's 165, +4 for `[0]=`), J at four rows at
-    // the corner 152 (the research's 141), the paint 101.
+    // the corner 155 (the research's 141; 13-14's 152 carried raw spans, and
+    // a knob row now carries its value and remainder), the paint 101.
     expect([mAlone.cost, jAlone.cost, four.parts.paint.length]).toEqual([
-      169, 152, 101,
+      169, 155, 101,
     ]);
     console.log(
       `M alone ${mAlone.cost} (the research's 165); J at four rows ${jAlone.cost} ` +
@@ -314,14 +329,16 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       saving,
       "eliminating three dead branches saves nothing",
     ).toBeGreaterThan(200);
-    // Pinned, this tree, 2026-09-12: 806 / 1,341, a saving of 535 (the
-    // research's 697 / 1,166 / 469); the split's data half for the same four
-    // faders 452. The inline four faders FIT (102 free), which is the
-    // contingency the plan retains; the split is chosen because the inline
-    // form has no Knob and no room for one.
-    expect([lean.setup.used, fat.setup.used, saving]).toEqual([806, 1341, 535]);
+    // Pinned, this tree, 2026-09-12: 805 / 1,333, a saving of 528 (the
+    // research's 697 / 1,166 / 469; 13-14's 806 / 1,341 / 535 with the raw
+    // spans, before the inline branches read the calibrated axis); the
+    // split's data half for the same four faders 456 (13-14's 452). The
+    // inline four faders FIT (103 free), which is the contingency the plan
+    // retains; the split is chosen because the inline form has no Knob and
+    // no room for one.
+    expect([lean.setup.used, fat.setup.used, saving]).toEqual([805, 1333, 528]);
     expect((await measureSurface(atPickerCorner(FOUR_FADERS))).setup.used).toBe(
-      452,
+      456,
     );
     expect(lean.setup.used).toBeLessThanOrEqual(EVENT_BUDGET);
     for (const text of [lean.emitted.setup, fat.emitted.setup]) {
@@ -374,17 +391,18 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       expect(emitted.parts.cellMap).toBe(renderCellMap(built.map));
       for (const r of s.regions) {
         const row = regionRow(r);
-        expect(row.length).toBe(11);
+        // Eleven columns, and a knob's value and remainder make thirteen.
+        expect(row.length).toBe(r.kind === "knob" ? 13 : 11);
         expect(emitted.parts.regionTable).toContain(`{${row.join(",")}}`);
         expect(row[7], "the wire channel").toBe(r.channel - 1);
-        expect(row.slice(8), "the corner's bytes").toEqual([255, 255, 255]);
+        expect(row.slice(8, 11), "the corner's bytes").toEqual([255, 255, 255]);
       }
     }
-    // The bounds are precomputed under the measured map: Filter's columns
-    // 0..1 run from raw 0 to the midpoint between knots 1 and 2, and its rows
-    // 0..5 from 0 to the midpoint between knots 5 and 6.
+    // The geometry is precomputed in the kind's frame (13-15, emit.ts
+    // section 2): a vertical fader reads nothing on x, its bottom LED (row
+    // 5) sits at 320 on the calibrated axis and its LED span is 320.
     const filter = regionRow(PAGE3.regions[0]);
-    expect(filter.slice(0, 4)).toEqual([0, 20, 0, 89]);
+    expect(filter.slice(0, 4)).toEqual([0, 0, 320, 320]);
     expect(filter[4], "a vertical fader is type 1").toBe(1);
     expect(
       regionRow({ ...PAGE3.regions[0], orientation: "horizontal" })[4],
@@ -481,11 +499,14 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     }
     expect(problems.join("\n\n")).toBe("");
     // NON-VACUITY: the split data half carries no event-code test at all
-    // (the runtime's are 13-15's), so both counts come from the inline
+    // (the runtime's are in the Timer, runtime.spec.ts test 6 reads them
+    // with the same needles), so the ended count comes from the inline
     // texts - and there is exactly one live test and one onset per inline
     // callback, plus the closing `e>8`.
     expect(ended, "the scan found no 'contact ended' opener to check").toBe(0);
-    expect(started, "the scan found 'contact started' guards").toBe(2);
+    // One onset per inline callback and one per split Timer, which carries
+    // the runtime's entry since 13-15: five split surfaces and two inline.
+    expect(started, "the scan found 'contact started' guards").toBe(7);
     const inline = texts[texts.length - 1].text;
     const live = F(
       V,
@@ -577,7 +598,8 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         name: `${s.name} inline`,
         text: inline.setup,
         own: OWN_NAMES_INLINE,
-        calls: ["E", "N"],
+        // `U` since 13-15: the inline branches read the calibrated axis.
+        calls: ["E", "N", "U"],
       });
       cases.push({
         name: `${s.name} inline Timer`,

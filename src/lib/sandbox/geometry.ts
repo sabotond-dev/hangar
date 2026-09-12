@@ -28,7 +28,8 @@
 //   1. On the surface: col + w <= 9, row + h <= 9, col, row >= 0, w, h >= 1.
 //      Refused with the offending FIELD named (`validate`).
 //   2. No overlap: the cell map (above). Reported with BOTH names.
-//   3. A minimum size per kind: taken as a parameter (model.ts section 4).
+//   3. A minimum size per kind: derived in model.ts section 4 (13-15) and
+//      still a parameter; a fader's depends on its orientation.
 //   4. Duplicate to a free area: `freeWindow` scans the map in reading order
 //      for a w x h window of zeros; `duplicate` places the copy there, and if
 //      there is none it returns the surface UNCHANGED with `no-space` so the
@@ -65,7 +66,6 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
-  DEFAULT_MINIMUM_SIZES,
   LAST_CELL,
   SURFACE_CELLS,
   SURFACE_ELEMENT_CAP,
@@ -73,8 +73,10 @@ import {
   cellIndex,
   cellsOf,
   cloneRegion,
-  minimumSizeOf,
+  minimumSizeFor,
+  orientationOf,
   toDisplay,
+  type CellSize,
   type MinimumSizes,
   type Region,
   type Surface,
@@ -99,11 +101,24 @@ export const GEOMETRY_COPY = {
   cap: (cap: number): string =>
     `This surface holds ${cap} elements, the most a page can carry. Remove one to add another.`,
   /**
-   * Rule 3's placeholder. PROVISIONAL: 13-15 derives the Knob's minimum from
-   * the dead-zone arithmetic and ledgers the refusal message that names it.
+   * Rule 3, per kind (13-15; model.ts section 4). A knob's line carries the
+   * reason - its centre cannot read a turn - and the fader's names the one
+   * axis it reads. Ledgered in 13-COPY-NEW.md under "From 13-15".
    */
-  tooSmall: (kind: string, w: number, h: number): string =>
-    `A ${kind} needs at least ${w} × ${h} cells.`,
+  tooSmall: (region: Region, minimum: CellSize): string => {
+    switch (region.kind) {
+      case "knob":
+        return `A knob needs at least ${minimum.w} × ${minimum.h} cells. Its centre can’t read a turn, so the finger needs a ring of cells around it.`;
+      case "fader":
+        return orientationOf(region) === "horizontal"
+          ? `A horizontal fader needs at least ${minimum.w} columns.`
+          : `A vertical fader needs at least ${minimum.h} rows.`;
+      case "xy":
+        return `An XY pad needs at least ${minimum.w} × ${minimum.h} cells.`;
+      case "button":
+        return `A button needs at least ${minimum.w} × ${minimum.h} cells.`;
+    }
+  },
 } as const;
 
 /** The field an off-surface refusal names. */
@@ -240,10 +255,7 @@ export function validate(
       },
     };
   }
-  const minimum = minimumSizeOf(
-    region.kind,
-    rules.minimums ?? DEFAULT_MINIMUM_SIZES,
-  );
+  const minimum = minimumSizeFor(region, rules.minimums);
   if (region.w < minimum.w || region.h < minimum.h) {
     const field: GeometryField = region.w < minimum.w ? "w" : "h";
     return {
@@ -251,7 +263,7 @@ export function validate(
       problem: {
         rule: "too-small",
         field,
-        message: GEOMETRY_COPY.tooSmall(region.kind, minimum.w, minimum.h),
+        message: GEOMETRY_COPY.tooSmall(region, minimum),
       },
     };
   }

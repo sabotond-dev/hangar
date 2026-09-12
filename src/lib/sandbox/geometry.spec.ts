@@ -99,12 +99,14 @@ describe("the Sandbox's geometry rules (BUILD-01, BUILD-02)", () => {
         GEOMETRY_COPY.offSurface(field as "col" | "row" | "w" | "h"),
       );
     }
-    // The four corners and the whole surface are on it.
+    // The four corners and the whole surface are on it. The corners are
+    // buttons: since 13-15 a one-row vertical fader is refused by rule 3
+    // (its LED span is zero - model.ts section 4a), which is not this rule.
     for (const r of [
-      region("TL", 0, 0, 1, 1),
-      region("TR", 8, 0, 1, 1),
-      region("BL", 0, 8, 1, 1),
-      region("BR", 8, 8, 1, 1),
+      region("TL", 0, 0, 1, 1, { kind: "button" }),
+      region("TR", 8, 0, 1, 1, { kind: "button" }),
+      region("BL", 0, 8, 1, 1, { kind: "button" }),
+      region("BR", 8, 8, 1, 1, { kind: "button" }),
       region("All", 0, 0, 9, 9),
     ]) {
       expect(validate(r, surface([])).ok, `${r.name} is on the surface`).toBe(
@@ -308,8 +310,11 @@ describe("the Sandbox's geometry rules (BUILD-01, BUILD-02)", () => {
     expect(JSON.stringify(s.regions)).toBe(bytes);
 
     // Rule 3 through the parameter: a 2 x 2 Knob is refused under the
-    // provisional default and admitted under a caller's own minimum, so
-    // 13-15's derived rule is a parameter change and not a rewrite.
+    // derived default (13-15, model.ts section 4b) and admitted under a
+    // caller's own minimum, so the rule stayed a parameter. Since 13-15 a
+    // fader needs two cells along the axis it reads and an XY pad 2 x 2
+    // (section 4a): a one-row vertical fader and a one-column horizontal
+    // one are refused with the axis named; a 2 x 1 horizontal one is not.
     const knob = region("Turn", 4, 4, 2, 2, { kind: "knob" });
     const refused = validate(knob, surface([]));
     expect(refused.ok).toBe(false);
@@ -318,5 +323,27 @@ describe("the Sandbox's geometry rules (BUILD-01, BUILD-02)", () => {
       validate(knob, surface([]), { minimums: { knob: { w: 2, h: 2 } } }).ok,
     ).toBe(true);
     expect(validate({ ...knob, w: 3, h: 3 }, surface([])).ok).toBe(true);
+    const flat = validate(region("Flat", 0, 0, 3, 1), surface([]));
+    expect(flat.ok).toBe(false);
+    if (!flat.ok) {
+      expect(flat.problem.rule).toBe("too-small");
+      expect(flat.problem.field).toBe("h");
+      expect(flat.problem.message).toContain("rows");
+    }
+    const thin = validate(
+      region("Thin", 0, 0, 1, 3, { orientation: "horizontal" }),
+      surface([]),
+    );
+    expect(thin.ok).toBe(false);
+    if (!thin.ok) expect(thin.problem.field).toBe("w");
+    expect(
+      validate(
+        region("Wide", 0, 0, 2, 1, { orientation: "horizontal" }),
+        surface([]),
+      ).ok,
+    ).toBe(true);
+    expect(
+      validate(region("Pad", 0, 0, 1, 2, { kind: "xy" }), surface([])).ok,
+    ).toBe(false);
   });
 });

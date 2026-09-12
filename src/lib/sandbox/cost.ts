@@ -1,5 +1,7 @@
 // The cost of an emitted surface, MEASURED under the pinned minifier at the
-// RGB444 picker corner - never estimated, never divided.
+// RGB444 picker corner - never estimated, never divided. Since 13-15 the
+// Timer (and, under three slots, 255/4) carries the runtime, so `fits` is a
+// statement about every string the surface emits and not the Setup alone.
 //
 // ---------------------------------------------------------------------------
 // 1. HOW A STRING IS MEASURED IN THIS TREE (lua-entries.sweep.spec.ts test 1)
@@ -108,25 +110,34 @@ function budget(used: number): Budget {
 export type MeasuredSurface = {
   readonly emitted: Emitted;
   readonly setup: Budget;
+  /** The touch Timer: the runtime (or what the packer left in it) beside the sweep (13-15). */
   readonly timer: Budget;
+  /** The system element's fourth event under three slots; undefined under two. */
+  readonly mapmode: Budget | undefined;
+  /** Every emitted string inside 908. A runtime that does not fit its slot(s) is a surface that does not fit. */
   readonly fits: boolean;
 };
 
-/** The surface as given, measured. */
+/** The surface as given, measured - every string it emits. */
 export async function measureSurface(
   surface: Surface,
   options: EmitOptions = {},
 ): Promise<MeasuredSurface> {
   const emitted = emitSurface(surface, options);
-  const [setup, timer] = await Promise.all([
+  const [setup, timer, mapmode] = await Promise.all([
     canonical(emitted.setup),
     canonical(emitted.timer),
+    emitted.mapmode === undefined ? undefined : canonical(emitted.mapmode),
   ]);
   return {
     emitted,
     setup: budget(setup.cost),
     timer: budget(timer.cost),
-    fits: setup.cost <= EVENT_BUDGET && timer.cost <= EVENT_BUDGET,
+    mapmode: mapmode === undefined ? undefined : budget(mapmode.cost),
+    fits:
+      setup.cost <= EVENT_BUDGET &&
+      timer.cost <= EVENT_BUDGET &&
+      (mapmode === undefined || mapmode.cost <= EVENT_BUDGET),
   };
 }
 
