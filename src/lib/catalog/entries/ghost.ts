@@ -292,7 +292,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const GHOST: CatalogEntry = {
   id: "ghost",
-  name: "GHOST",
+  name: "Ghost",
   description:
     "Drag once and a ghost retraces your path forever, still sending; the red corner takes it back.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

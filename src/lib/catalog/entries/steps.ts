@@ -262,7 +262,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const STEPS: CatalogEntry = {
   id: "steps",
-  name: "STEPS",
+  name: "Steps",
   description:
     "Tap a cell to arm it and a bright column sweeps across, playing back the pattern you drew.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

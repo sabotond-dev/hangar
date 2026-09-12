@@ -225,7 +225,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const POMODORO: CatalogEntry = {
   id: "pomodoro",
-  name: "POMODORO",
+  name: "Pomodoro",
   description:
     "A twenty-five minute ring draining around the edge, so the time left is a thing in the room.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

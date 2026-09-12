@@ -105,7 +105,7 @@ const ROW_COUNT = 28;
 const LUA_FLOOR = 6;
 
 /** The one name the document must mention and the catalog must NOT hold. */
-const BLOCKED = "MIRROR";
+const BLOCKED = "Mirror";
 
 /** The shortest a stated reason may be before it reads as a placeholder. */
 const MIN_REASON = 20;
@@ -165,23 +165,27 @@ const ROWS = rows();
 /**
  * The configuration names a Config cell claims.
  *
- * Split on "/" for the two shared rows, then take the leading upper-case run of
- * each part - which drops the lower-case `any` and survives a parenthetical
- * such as "MIRROR (optional)" without this function needing to know about it.
+ * Split on "/" for the two shared rows, then take the leading capitalised run
+ * of each part - which drops the lower-case `any` and `the eight preset
+ * cards`, and survives a parenthetical such as "Mirror (optional)" without
+ * this function needing to know about it.
  *
- * A RUN MAY CONTAIN SINGLE SPACES SINCE PLAN 11-14: RADAR POINTS is the first
+ * A RUN MAY CONTAIN SINGLE SPACES SINCE PLAN 11-14: Radar points is the first
  * hand-authored entry with a two-word name, and the one-word run claimed it as
- * "RADAR", which no live entry is called (the preset is "Radar"), so the
- * gate went red on a real row for a name it could not read. The widening
- * admits `WORD WORD`, still stops at a parenthesis or a lower-case letter, and
- * claims exactly the same names for every row that was here before it: the
- * two-name rows are split on "/" first, and no single cell holds two names
- * separated by a space.
+ * "Radar", which IS a live entry - the preset - so the gate would have passed
+ * a row it could not read. The widening admits `Word word`, still stops at a
+ * parenthesis, and claims exactly the same names for every row.
+ *
+ * SENTENCE CASE SINCE PLAN 13-19 (D-14 Q11b): the names read `Euclid`, `Radar
+ * points`, and the run is one capital followed by lower-case letters and
+ * digits, then any number of lower-case words. A cell that still read EUCLID
+ * would claim nothing here and fail test 3 by name, which is the right way
+ * round: the document's cells were re-cased with the catalog, in place.
  */
 function namesIn(config: string): string[] {
   return config
     .split("/")
-    .map((part) => /[A-Z][A-Z0-9]*(?: [A-Z][A-Z0-9]*)*/.exec(part.trim()))
+    .map((part) => /[A-Z][a-z0-9]*(?: [a-z0-9]+)*/.exec(part.trim()))
     .filter((match): match is RegExpExecArray => match !== null)
     .map((match) => match[0]);
 }
@@ -194,7 +198,7 @@ function luaEntries(): CatalogEntry[] {
   return CATALOG.filter((entry) => entry.source.kind === "lua");
 }
 
-/** One entry's Timer text, as stored. "" is MORPH's, and is legitimate. */
+/** One entry's Timer text, as stored. "" is Morph's, and is legitimate. */
 function timerOf(entry: CatalogEntry): string {
   const source = entry.source;
   if (source.kind !== "lua") throw new Error(`${entry.id}: not a lua entry`);
@@ -276,7 +280,7 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
     }
   });
 
-  it("names only real configurations, and MIRROR only as an optional row", () => {
+  it("names only real configurations, and Mirror only as an optional row", () => {
     const live = new Set(CATALOG.map((entry) => entry.name));
     expect(
       CLAIMED.length,
@@ -292,7 +296,7 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
       ).toBe(true);
     }
 
-    // The double condition. MIRROR is blocked (D-04) on one hardware answer, so
+    // The double condition. Mirror is blocked (D-04) on one hardware answer, so
     // it must be IN the document - as an optional row that ships nothing - and
     // OUT of the catalog. Either half alone would let it be quietly shipped or
     // quietly forgotten.
@@ -334,7 +338,7 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
     }
   });
 
-  it("keeps the install-order rule, its reason and MORPH's exemption", () => {
+  it("keeps the install-order rule, its reason and Morph's exemption", () => {
     // Both numbers come from ./types.ts, so a future event renumbering moves
     // this assertion with the code instead of leaving a document that names
     // the old events and a spec that agrees with it.
@@ -354,15 +358,18 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
       /gtt[^.]{0,120}no-op/,
     );
 
-    // MORPH is the exception, and the document and the data must agree on it.
-    expect(flat, "MORPH is described as Setup only").toMatch(
-      /MORPH[^.]{0,200}Setup only/,
+    // Morph is the exception, and the document and the data must agree on it.
+    // The document's PROSE still spells the name as Phase 11 wrote it (the
+    // file is append-only; only its Config cells were re-cased at 13-19), so
+    // the match is without case.
+    expect(flat, "Morph is described as Setup only").toMatch(
+      /Morph[^.]{0,200}Setup only/i,
     );
-    const morph = CATALOG.find((entry) => entry.name === "MORPH");
-    expect(morph, "MORPH is in the catalog").toBeDefined();
+    const morph = CATALOG.find((entry) => entry.name === "Morph");
+    expect(morph, "Morph is in the catalog").toBeDefined();
     expect(
       timerOf(morph as CatalogEntry),
-      "MORPH's stored Timer - the document calls it Setup only, and the entry " +
+      "Morph's stored Timer - the document calls it Setup only, and the entry " +
         "must actually be",
     ).toBe("");
   });

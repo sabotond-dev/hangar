@@ -274,7 +274,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const ARC: CatalogEntry = {
   id: "arc",
-  name: "ARC",
+  name: "Arc",
   description:
     "Draw a modulation shape with your finger; it keeps sending after you let go, and the swirl shows the rate.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

@@ -235,7 +235,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const TRACKPAD: CatalogEntry = {
   id: "trackpad",
-  name: "TRACKPAD",
+  name: "Trackpad",
   description:
     "One finger moves the pointer, two fingers scroll, a tap clicks, and the edge you move toward lights up.",
   // The preset's three, unchanged, and the histogram moves by zero. `still`

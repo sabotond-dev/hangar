@@ -301,7 +301,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const STAGE: CatalogEntry = {
   id: "stage",
-  name: "STAGE",
+  name: "Stage",
   description:
     "Nine scenes for your stream: the live one glows and the one you are lining up breathes.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

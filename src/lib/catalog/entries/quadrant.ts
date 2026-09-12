@@ -137,7 +137,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const QUADRANT: CatalogEntry = {
   id: "quadrant",
-  name: "QUADRANT",
+  name: "Quadrant",
   description:
     "Four targets big enough to hit without looking, each with its own colour and its own fill.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

@@ -272,7 +272,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
 export const STRIP: CatalogEntry = {
   id: "strip",
-  name: "STRIP",
+  name: "Strip",
   description:
     "Slide up the pad for the big fader and along the bottom for the crossfader; each sends its own controller.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

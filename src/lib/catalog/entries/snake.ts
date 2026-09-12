@@ -177,7 +177,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const SNAKE: CatalogEntry = {
   id: "snake",
-  name: "SNAKE",
+  name: "Snake",
   description:
     "Snake on eighty-one lights: steer with a finger, eat, grow, and hear a note for every bite.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

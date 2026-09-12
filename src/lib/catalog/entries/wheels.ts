@@ -364,7 +364,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const WHEELS: CatalogEntry = {
   id: "wheels",
-  name: "WHEELS",
+  name: "Wheels",
   description:
     "Pitch on the left springs home the moment you let go; the mod wheel on the right stays where you left it.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

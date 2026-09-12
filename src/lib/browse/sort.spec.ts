@@ -250,17 +250,21 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
     );
 
     // And the reviewable half, by position rather than by a full list, so the
-    // code-point consequence stays a fact somebody can read at any catalog
-    // size: ARC precedes Aurora because R (82) is below u (117), and SONAR
-    // precedes Starfield for the same reason. An English collation would put
-    // both pairs the other way round.
+    // order stays a fact somebody can read at any catalog size. Until 13-19
+    // these two pairs were the code-point CONSEQUENCE - ARC before Aurora
+    // because R (82) is below u (117) - and an English collation would have
+    // put them the other way round. With every name in sentence case (D-14
+    // Q11b) the two orders agree on the shipped list, so the pairs now read
+    // as plain alphabet: Arc before Aurora, Sonar before Starfield. The
+    // code-point property itself is held by the synthetic pair in the next
+    // test, where a lower-case name is what tells the two comparisons apart.
     const seq = sorted.map((e) => e.name);
     const before = (a: string, b: string) =>
       expect(seq.indexOf(a), `${a} precedes ${b} by code point`).toBeLessThan(
         seq.indexOf(b),
       );
-    before("ARC", "Aurora");
-    before("SONAR", "Starfield");
+    before("Arc", "Aurora");
+    before("Sonar", "Starfield");
   });
 
   it("the name comparison is by code point, not by locale", () => {

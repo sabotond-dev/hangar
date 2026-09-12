@@ -288,7 +288,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const SONAR: CatalogEntry = {
   id: "sonar",
-  name: "SONAR",
+  name: "Sonar",
   description:
     "A sweep turns like radar and fires the cells you armed: the ring is the pitch, the angle the time.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

@@ -233,7 +233,7 @@ export const LISTING: readonly ListingEntry[] = [
   // the shelf as the compiler's over-budget fixture and is listed nowhere.
   {
     id: "euclid",
-    name: "EUCLID",
+    name: "Euclid",
     description:
       "Three Euclidean rings turn at their own speeds and beat against each other; tap a step to change the pattern.",
     motion: "animated",
@@ -244,7 +244,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "chorus",
-    name: "CHORUS",
+    name: "Chorus",
     description:
       "Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit.",
     motion: "animated",
@@ -255,7 +255,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "arc",
-    name: "ARC",
+    name: "Arc",
     description:
       "Draw a modulation shape with your finger; it keeps sending after you let go, and the swirl shows the rate.",
     motion: "animated",
@@ -266,7 +266,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "ghost",
-    name: "GHOST",
+    name: "Ghost",
     description:
       "Drag once and a ghost retraces your path forever, still sending; the red corner takes it back.",
     motion: "dark",
@@ -278,7 +278,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "morph",
-    name: "MORPH",
+    name: "Morph",
     description:
       "Four macros in the corners; slide between them and each corner’s brightness is its own weight.",
     motion: "dark",
@@ -290,7 +290,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "sonar",
-    name: "SONAR",
+    name: "Sonar",
     description:
       "A sweep turns like radar and fires the cells you armed: the ring is the pitch, the angle the time.",
     motion: "animated",
@@ -301,7 +301,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "steps",
-    name: "STEPS",
+    name: "Steps",
     description:
       "Tap a cell to arm it and a bright column sweeps across, playing back the pattern you drew.",
     motion: "animated",
@@ -312,7 +312,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "console",
-    name: "CONSOLE",
+    name: "Console",
     description:
       "Nine strips with rails: slide anywhere in a column to set its level, tap the top cell to mute it.",
     motion: "static",
@@ -325,7 +325,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "strip",
-    name: "STRIP",
+    name: "Strip",
     description:
       "Slide up the pad for the big fader and along the bottom for the crossfader; each sends its own controller.",
     motion: "static",
@@ -338,7 +338,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "lumen",
-    name: "LUMEN",
+    name: "Lumen",
     description:
       "A colour picker for a lighting desk: hue across, depth down, and the colour goes out as hex over sysex.",
     motion: "static",
@@ -359,7 +359,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "stage",
-    name: "STAGE",
+    name: "Stage",
     description:
       "Nine scenes for your stream: the live one glows and the one you are lining up breathes.",
     motion: "animated",
@@ -370,7 +370,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "cull",
-    name: "CULL",
+    name: "Cull",
     description:
       "Rate a photo without leaving the keyboard: each rating has its own colour and its own shape.",
     motion: "static",
@@ -383,7 +383,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "snake",
-    name: "SNAKE",
+    name: "Snake",
     description:
       "Snake on eighty-one lights: steer with a finger, eat, grow, and hear a note for every bite.",
     motion: "animated",
@@ -394,7 +394,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "quadrant",
-    name: "QUADRANT",
+    name: "Quadrant",
     description:
       "Four targets big enough to hit without looking, each with its own colour and its own fill.",
     motion: "static",
@@ -415,7 +415,7 @@ export const LISTING: readonly ListingEntry[] = [
 
   {
     id: "pomodoro",
-    name: "POMODORO",
+    name: "Pomodoro",
     description:
       "A twenty-five minute ring draining around the edge, so the time left is a thing in the room.",
     motion: "animated",
@@ -426,7 +426,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "wheels",
-    name: "WHEELS",
+    name: "Wheels",
     description:
       "Pitch on the left springs home the moment you let go; the mod wheel on the right stays where you left it.",
     // STATIC, AND IT IS READ OFF frames.json RATHER THAN DECLARED. This entry
@@ -448,7 +448,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "radar-points",
-    name: "RADAR POINTS",
+    name: "Radar points",
     description:
       "Rings roll out from the centre and play the points you placed: the ring is the time, the direction the pitch.",
     // ANIMATED, read off frames.json: Setup arms the Timer and the body
@@ -464,7 +464,7 @@ export const LISTING: readonly ListingEntry[] = [
   },
   {
     id: "trackpad",
-    name: "TRACKPAD",
+    name: "Trackpad",
     description:
       "One finger moves the pointer, two fingers scroll, a tap clicks, and the edge you move toward lights up.",
     // DARK, read off frames.json: nothing is lit until a finger moves, and the

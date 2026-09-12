@@ -46,7 +46,7 @@ const withoutApostrophes = (s: string) =>
   s.split(CURLY).join("").split("'").join("");
 
 describe("the display apostrophe (src/lib/browse/typographic.ts)", () => {
-  it("curls GHOST's finger's, and changes nothing else in the sentence", () => {
+  it("curls Ghost's finger's, and changes nothing else in the sentence", () => {
     const out = typographic(GHOST_TODAY);
 
     expect(out, "the whole sentence, with one character changed").toBe(
@@ -65,7 +65,7 @@ describe("the display apostrophe (src/lib/browse/typographic.ts)", () => {
     expect(out.length, "and the length is unchanged").toBe(GHOST_TODAY.length);
   });
 
-  it("curls MORPH's corner's, and changes nothing else in the sentence", () => {
+  it("curls Morph's corner's, and changes nothing else in the sentence", () => {
     const out = typographic(MORPH_TODAY);
 
     expect(out, "the whole sentence, with one character changed").toBe(

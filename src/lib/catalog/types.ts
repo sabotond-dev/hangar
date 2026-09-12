@@ -64,7 +64,7 @@ export type LuaKnob = {
 export type CatalogEntry = {
   /** URL slug, stable forever. Matches ^[a-z][a-z0-9-]*$. */
   id: string;
-  /** Display name, e.g. "EUCLID". */
+  /** Display name, sentence case (D-14 Q11b), e.g. "Euclid", "Radar points". */
   name: string;
   /** One line, no newline. */
   description: string;

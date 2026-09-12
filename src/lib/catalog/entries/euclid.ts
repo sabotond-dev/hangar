@@ -236,7 +236,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const EUCLID: CatalogEntry = {
   id: "euclid",
-  name: "EUCLID",
+  name: "Euclid",
   description:
     "Three Euclidean rings turn at their own speeds and beat against each other; tap a step to change the pattern.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

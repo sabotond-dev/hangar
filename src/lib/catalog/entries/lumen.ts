@@ -537,7 +537,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
 export const LUMEN: CatalogEntry = {
   id: "lumen",
-  name: "LUMEN",
+  name: "Lumen",
   description:
     "A colour picker for a lighting desk: hue across, depth down, and the colour goes out as hex over sysex.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

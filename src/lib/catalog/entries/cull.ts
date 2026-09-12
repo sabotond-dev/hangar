@@ -153,7 +153,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const CULL: CatalogEntry = {
   id: "cull",
-  name: "CULL",
+  name: "Cull",
   description:
     "Rate a photo without leaving the keyboard: each rating has its own colour and its own shape.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

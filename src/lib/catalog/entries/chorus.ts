@@ -167,7 +167,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const CHORUS: CatalogEntry = {
   id: "chorus",
-  name: "CHORUS",
+  name: "Chorus",
   description:
     "Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

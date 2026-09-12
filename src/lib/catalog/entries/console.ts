@@ -283,7 +283,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
 
 export const CONSOLE: CatalogEntry = {
   id: "console",
-  name: "CONSOLE",
+  name: "Console",
   description:
     "Nine strips with rails: slide anywhere in a column to set its level, tap the top cell to mute it.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in

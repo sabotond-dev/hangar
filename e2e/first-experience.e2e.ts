@@ -427,7 +427,7 @@ test.describe("every configuration's page", () => {
     const soloPads = page.locator('[data-testid^="pad-canvas-"]');
     await expect(soloPads, "a workspace shows one pad").toHaveCount(1);
     await expect(page.getByTestId("pad-canvas-euclid")).toBeVisible();
-    await expect(page.getByTestId("workspace-name")).toHaveText("EUCLID");
+    await expect(page.getByTestId("workspace-name")).toHaveText("Euclid");
     const rail = page.getByTestId("shell-rail");
     await expect(rail.locator('[data-row="euclid"]')).toHaveAttribute(
       "aria-current",

@@ -48,7 +48,7 @@ The batch's section letters are the index; each row's number is in `13-18-BATCH.
 | --- | --- | --- | --- | --- |
 | D intro | D.1–D.5 | `src/lib/ui/intro/card.ts` `RESUME_EYEBROW` = `CONTINUE EDITING` (D.4, the PDF's page-4 eyebrow) | D.1, D.2, D.3, D.5 | — |
 | E gallery | E.1–E.16 | — | E.1–E.13 (`FOR_LABELS` as shipped; the chip-versus-rail question answered no), E.16 (no sentence) | **13-20**: E.14 (the PDF's `36 configurations` while nothing narrows the grid), E.15 (the two empty-view lines) — `BrowseToolbar.svelte`, `src/routes/playground/+page.svelte` |
-| F workspace | F.1–F.19 | — | F.2, F.3, F.5–F.10, F.12–F.16, F.18, F.19 | **13-19**: F.1 (a per-entry headline as an optional entry field — "if you want it"; one constant stands), F.11 (`LINK COPIED` → `Link copied`, `src/lib/tune/copy.ts`), F.17 (`x{n}` → `×{n}`, `inspector-copy.ts`); **13-20**: F.4 (`UNKNOWN_NOTICE` → `There’s no configuration at this address. Pick one from the list.`, `src/routes/playground/[id]/+page.svelte`) |
+| F workspace | F.1–F.19 | **13-19 (2026-09-12)**: F.11 (`LINK_COPIED` = `Link copied`, `src/lib/tune/copy.ts`), F.17 (`monitorCount` = `×{n}`, `src/lib/tune/inspector-copy.ts`); F.1 answered by silence — one constant stands, no per-entry headline written | F.2, F.3, F.5–F.10, F.12–F.16, F.18, F.19 | **13-20**: F.4 (`UNKNOWN_NOTICE` → `There’s no configuration at this address. Pick one from the list.`, `src/routes/playground/[id]/+page.svelte`) |
 | G Sandbox | G.1–G.48 | — | every row but three | **13-20**: G.31 and G.36 (`the most a page holds` in `DUPLICATE_AT_CAP` and `GEOMETRY_COPY.cap`), G.34 (the unreachable two-slot `overLine` — delete or keep is 13-19/13-20's) |
 | H My configs | H.1–H.34 | — | every row but two | **13-20**: H.20 (`This surface has {count} elements, and a page holds at most 16.`), H.21 (`{region} doesn’t fit on the 9 × 9 surface.`) — `src/lib/store/transfer.ts` |
 | I.1 footer | I.1.1–I.1.5 | — | all five | — |
@@ -59,12 +59,16 @@ The batch's section letters are the index; each row's number is in `13-18-BATCH.
 | I.6 the controls' lines | I.6.1–I.6.5 | `install-copy.ts`: `keepLineEnabled`, `KEEP_REASONS` (six reworded, the union kept), `clearLine`, `CLEAR_REASONS` (the union kept) | I.6.4 | **13-20**: I.6.5 (the reset's §16 confirmation under Device actions, A-45 retired by name in `device-ui.spec.ts` test 13 — the control's move is the column's move, J.13) |
 | I.7 live region | I.7.1–I.7.5 | `install-copy.ts`: `liveSnapshotSaved`, `liveSettled` (§16), `liveRestored`, `liveKept` (§16), `liveCleared` | — | — |
 | I.8 open failures | I.8.1–I.8.7 | — | the details and steps as shipped | **13-20**: the title and wording changes of I.8.1, I.8.2, I.8.3, I.8.5, I.8.6, I.8.7 in `src/lib/transport/transport.ts` (outside this plan's files; `transport.spec.ts` holds them) |
-| J questions | J.1–J.43 | J.43 (one constant) | J.2–J.9, J.11, J.12, J.14–J.18, J.20–J.22, J.24, J.26–J.29, J.31–J.39, J.41, J.42 — accepted as shipped | **13-19**: J.10 (retire `?feels=`, keep the `?tag=` mapping — `query.ts`); **13-20**: J.1 (the favicon, square, `#dcff71`), J.13 (the install column's duplicate `Apply to ZONA` and the column's move under Device actions — see 13-18-SUMMARY.md, deviation 1), J.19 (the Playground draft on a knob turn and `?draft=` on arrival), J.23 (the one-shot view handoff to the gallery), J.25 (a static paint for the sandbox thumbnail), J.30 (refuse a duplicate collection name; the string `A collection called {name} already exists.`), J.40 (substitute the snapshot's own utility for a landing's empty 255/4 — one line in `install.svelte.ts` `#pageUtility`, with `install.spec.ts`'s default-utility assertions re-pinned) |
+| J questions | J.1–J.43 | J.43 (one constant) | J.2–J.9, J.11, J.12, J.14–J.18, J.20–J.22, J.24, J.26–J.29, J.31–J.39, J.41, J.42 — accepted as shipped | **13-20**: J.10 (retire `?feels=`, keep the `?tag=` mapping — a codec change in `query.ts` whose `feels` field ten files read, outside 13-19's files and its `+0 / +0` term; the batch offered "13-19 or 13-20" and 13-19 hands it on, 13-19-SUMMARY.md); J.1 (the favicon, square, `#dcff71`), J.13 (the install column's duplicate `Apply to ZONA` and the column's move under Device actions — see 13-18-SUMMARY.md, deviation 1), J.19 (the Playground draft on a knob turn and `?draft=` on arrival), J.23 (the one-shot view handoff to the gallery), J.25 (a static paint for the sandbox thumbnail), J.30 (refuse a duplicate collection name; the string `A collection called {name} already exists.`), J.40 (substitute the snapshot's own utility for a landing's empty 255/4 — one line in `install.svelte.ts` `#pageUtility`, with `install.spec.ts`'s default-utility assertions re-pinned) |
 
-**Handed to 13-19 in full:** `src/lib/tune/copy.ts` (56 exports, Phase 10's register, including `LINK
-COPIED` → `Link copied` and `tryOnBudgetReason`'s comment that still names `HONESTY_CAP`), the
-twenty-seven catalog names and their `quiet` lines and descriptions, F.1's optional per-entry headline,
-F.17, and J.10. Nothing else in this ledger is 13-19's.
+**Handed to 13-19 in full, and landed 2026-09-12 (13-19-SUMMARY.md):** `src/lib/tune/copy.ts`
+rewritten in the register (56 value exports → 48: the mix family's five deleted by name, the three
+Phase 10 labels whose Bible lines are `inspector-copy.ts`'s retired, `tryOnBudgetReason`'s
+`HONESTY_CAP` comment and the other measured caps retired by name); the catalog names re-cased
+(twenty-six, not twenty-seven: the eight preset names were already sentence case and the eighteen
+hand-authored ones moved), the `quiet` lines and descriptions kept in their roles; F.1 (one
+constant stands), F.11 and F.17 landed; J.10 handed to 13-20 (above). Nothing else in this ledger
+is 13-19's.
 
 **Handed to 13-20 (the closing plan):** the rows marked above — every one a decided string or a decided
 shape, none a question.

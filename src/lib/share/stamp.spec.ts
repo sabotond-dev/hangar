@@ -489,7 +489,7 @@ describe("the stamp: the envelope", () => {
     ).toBe(13);
   });
 
-  it("keeps POMODORO's four original intervals on their four original indices", () => {
+  it("keeps Pomodoro's four original intervals on their four original indices", () => {
     // THE ONLY GUARD AGAINST THE INSERTION MISTAKE, AND THE REASON IT HAD TO
     // BE WRITTEN (plan 11-09).
     //

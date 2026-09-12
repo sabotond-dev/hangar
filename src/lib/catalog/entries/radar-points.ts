@@ -327,7 +327,7 @@ const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
 export const RADAR_POINTS: CatalogEntry = {
   id: "radar-points",
-  name: "RADAR POINTS",
+  name: "Radar points",
   description:
     "Rings roll out from the centre and play the points you placed: the ring is the time, the direction the pitch.",
   // D-10: one FOR term then two FEELS, drawn from the closed thirteen in
