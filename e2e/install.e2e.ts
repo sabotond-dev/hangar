@@ -2229,15 +2229,22 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(consoleErrors).toEqual([]);
   });
 
-  test("the destination menu lists the pages the module reports and sends nothing on open; the review names both pages and sends nothing; the affirmative sends the heartbeat then exactly one switch; Apply waits for the module's own report, and PUT BACK then names the new page", async ({
+  test("the destination menu lists the pages the module reports and sends nothing on open; a change sends the heartbeat then exactly one switch with no review; Apply waits for the module's own report, and PUT BACK then names the new page", async ({
     page,
   }) => {
-    // Plan 13-12 (13-CONTEXT D-06, every clause but the bench). The fake is
-    // the node suite's responder, which since this plan moves its active page
-    // on a switch and reports it beside the next heartbeat - the whole of the
-    // confirmation firmware gives (grid_decode.c:302-357). Heartbeats here are
-    // PUSHED by the test, so "the module has not reported yet" is a state
-    // this test can hold for as long as it likes.
+    // Plan 13-12 (13-CONTEXT D-06, every clause but the bench), re-written
+    // at 13.1-02 under 13.1-CONTEXT D-05: the user struck the destination
+    // review at the fourth bench ("When you change page form the drop down
+    // just change the page and thats it."), so the select's CHANGE is the
+    // switch and the two review blocks 13-12 wrote here are gone. What did
+    // not move is the wire's: nothing on open, the restore heartbeat THEN
+    // exactly one switch asserted off the frames, the ACK gate on the
+    // module's own report. The fake is the node suite's responder, which
+    // moves its active page on a switch and reports it beside the next
+    // heartbeat - the whole of the confirmation firmware gives
+    // (grid_decode.c:302-357). Heartbeats here are PUSHED by the test, so
+    // "the module has not reported yet" is a state this test can hold for
+    // as long as it likes. (The put-back clause is 13.1-06's to remove.)
     const PAGE_SWITCH = ["PAGE", "ACTIVE"].join("");
     const TO = 3;
     const consoleErrors = collectErrors(page);
@@ -2246,7 +2253,9 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     const select = page.getByTestId("destination-page");
     const apply = page.getByTestId("apply-to-zona");
-    const review = page.getByTestId("destination-review");
+    const destination = page.getByTestId("destination");
+    // The review's testid, assembled: it must have count 0 throughout.
+    const review = page.getByTestId(["destination", "-review"].join(""));
     const seenBefore = () => ({
       switches: zona.seen(PAGE_SWITCH, "EXECUTE"),
       heartbeats: zona.seen("HEARTBEAT", "EXECUTE"),
@@ -2271,48 +2280,21 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await select.click();
     expect(seenBefore()).toEqual({ switches: 0, heartbeats: 0, writes: 0 });
     await expect(review).toHaveCount(0);
+    await expect(destination).toHaveAttribute("data-status", "reported");
 
-    // THE REVIEW, on first use: both pages named in D-06's sentence, Apply
-    // disabled, and still nothing on the wire. The negative takes the select
-    // back to the module's page, re-enables Apply, and sends nothing.
-    await select.selectOption(String(TO));
-    await expect(review).toBeVisible();
-    await expect(page.getByTestId("destination-review-line")).toHaveText(
-      `Switch your ZONA to ${pageName(TO)}? It will stop playing ${pageName(ACTIVE_PAGE)}.`,
-    );
-    await expect(review).toHaveAttribute("data-to", String(TO));
-    await expect(review).toHaveAttribute("data-from", String(ACTIVE_PAGE));
-    await expect(page.getByTestId("destination")).toHaveAttribute(
-      "data-status",
-      "requested",
-    );
-    await expect(apply).toBeDisabled();
-    await expect(
-      primary(page),
-      "TRY ON DEVICE is the same gate",
-    ).toBeDisabled();
-    expect(seenBefore()).toEqual({ switches: 0, heartbeats: 0, writes: 0 });
-    await page.getByTestId("destination-review-no").click();
-    await expect(review).toHaveCount(0);
-    await expect(select).toHaveValue(String(ACTIVE_PAGE));
-    await expect(apply).toBeEnabled();
-    expect(seenBefore()).toEqual({ switches: 0, heartbeats: 0, writes: 0 });
-
-    // EVERY CHANGE: the second request reviews again - no memory, no skip.
-    await select.selectOption(String(TO));
-    await expect(review).toBeVisible();
-    expect(seenBefore().switches).toBe(0);
-
-    // THE AFFIRMATIVE: the restore heartbeat, THEN exactly one switch, in
-    // that order on the wire - the case the ordering exists for is a switch
-    // after a write, and the order is asserted here off the frames the page
-    // wrote, not off a count. No config write, no store.
+    // THE CHANGE IS THE SWITCH, WITH NO REVIEW: the restore heartbeat, THEN
+    // exactly one switch, in that order on the wire - the case the ordering
+    // exists for is a switch after a write, and the order is asserted here
+    // off the frames the page wrote, not off a count. No config write, no
+    // store. The status is awaited at `switching`, never read once: a single
+    // immediate read may still see `requested` for the microtask
+    // confirmPage spends on the cached module (13.1-PLAN-CHECK I-05), so the
+    // assertion is the WIRE ORDER and the settled state, never the absence
+    // of a transient. No review appears at any point.
     const framesBefore = (await writesOf(page)).length;
-    await page.getByTestId("destination-review-yes").click();
-    await expect(page.getByTestId("destination")).toHaveAttribute(
-      "data-status",
-      "switching",
-    );
+    await select.selectOption(String(TO));
+    await expect(destination).toHaveAttribute("data-status", "switching");
+    await expect(review).toHaveCount(0);
     await expect(page.getByTestId("destination-line")).toHaveText(
       `Switching to ${pageName(TO)}…`,
     );
@@ -2337,12 +2319,15 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // THE ACK GATE: Apply stays disabled until the module's OWN report. The
     // module has not heartbeated since the switch, so the target is still
-    // switching and every write control is shut.
+    // switching and every write control is shut - the select too, which is
+    // what ends a run of arrow presses on a focused, closed select (each a
+    // change in Chromium, each a switch) at the first one that leaves.
     await expect(apply).toBeDisabled();
     await expect(primary(page)).toBeDisabled();
     await expect(select).toBeDisabled();
     await expect(putBackControl(page)).toBeDisabled();
     await expect(clearControl(page)).toBeDisabled();
+    await expect(review).toHaveCount(0);
 
     // The report: one heartbeat from the module, carrying page 3. The target
     // settles, the select shows the new page as the module's, Apply is live
@@ -2375,10 +2360,12 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // The wire, whole: one switch, one heartbeat before it, no config write,
     // no store, no discard; the re-snapshot of the new page is reads only.
+    // And no review appeared at any point of the journey.
     expect(seenBefore()).toEqual({ switches: 1, heartbeats: 1, writes: 0 });
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(zona.seen(["PAGE", "DISCARD"].join(""), "EXECUTE")).toBe(0);
     expect(zona.seen("PAGECOUNT", "FETCH"), "enumerated once").toBe(1);
+    await expect(review).toHaveCount(0);
     expect(consoleErrors).toEqual([]);
   });
 });

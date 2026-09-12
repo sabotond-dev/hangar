@@ -55,7 +55,7 @@
 //     switch class at zero across a cycle that opens the menu;
 //   - THE KEYBOARD FACT, NAMED (13.1-PLAN-CHECK W-03): on a focused, CLOSED
 //     <select>, Chromium fires `change` on every ArrowUp / ArrowDown, so
-//     each arrow press is a switch - the heartbeat and the PAGEACTIVE - until
+//     each arrow press is a switch - the heartbeat and the page change - until
 //     the select disables at `switching`. That is the user's own gesture on
 //     the one control that moves the hardware, a click for SAFE-01's
 //     purpose and counted by class like any other; it is NOT a write that

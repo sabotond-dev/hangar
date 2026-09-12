@@ -69,7 +69,7 @@ import {
   settledCaption,
   unconfirmedBlock,
 } from "$lib/device/install-copy";
-import { type InstallPhase, install } from "$lib/device/install.svelte";
+import { type InstallPhase } from "$lib/device/install.svelte";
 import {
   CAPTION_INSECURE,
   CAPTION_UNSUPPORTED,
