@@ -85,6 +85,19 @@
   beneath the row while the store's `slow` flag is set; the live region
   speaks LIVE_STILL_WRITING once from the store.
 
+  WHERE FOCUS GOES WHEN THE CONFIRMATION LEAVES (13.1-07, on 13.1-06's
+  zone). KeepConfirm renders in Store on ZONA's place and holds focus while
+  open, so whatever closes it takes the focused element out of the DOM, and
+  a browser then drops focus on the body - the one place a keyboard visitor
+  cannot find. The column (KeepOnDevice, until 13.1-06) sent it to the state
+  region. Here it goes to Store on ZONA when that control is live again (NOT
+  NOW, Escape - KeepConfirm's one focus rule, kept in closeConfirm) and to
+  the zone itself otherwise (a commit leaves Store disabled with its
+  already-kept reason; a knob move closes the block from outside), which is
+  why the zone's root carries tabindex="-1": programmatically focusable,
+  never a tab stop. One effect on the store's confirmOpen, after the tick
+  that removes the block.
+
   OVER BUDGET REFUSES BEFORE THE CLICK (TUNE-05). `refusal` is the caller's
   sentence when a string is over 908 (the workspace's tuner, the Sandbox's
   meter); while it is set Apply is a real `disabled` button described by
@@ -276,6 +289,27 @@
 
   let targetSelect = $state<HTMLSelectElement | null>(null);
   let storeButton = $state<HTMLButtonElement | null>(null);
+  let root = $state<HTMLDivElement | null>(null);
+
+  /**
+   * Focus after the confirmation leaves: Store on ZONA when it is live, the
+   * zone itself when it is not (the header's paragraph). `wasOpen` is a
+   * plain local so the effect reads one rune and writes none.
+   */
+  let wasOpen = false;
+  $effect(() => {
+    const open = install.confirmOpen;
+    if (open) {
+      wasOpen = true;
+      return;
+    }
+    if (!wasOpen) return;
+    wasOpen = false;
+    void tick().then(() => {
+      if (storeButton && !storeButton.disabled) storeButton.focus();
+      else root?.focus();
+    });
+  });
 
   /** The select changed: the switch, in one call (13.1 D-05). A change that did not leave the wire snaps the select back. */
   async function onTargetChange(event: Event): Promise<void> {
@@ -305,9 +339,11 @@
 </script>
 
 <div
+  bind:this={root}
   class="destination"
   data-testid="destination"
   data-status={install.pageStatus}
+  tabindex="-1"
 >
   <div class="destination-row">
     <label class="destination-label" for={targetId}>{TARGET_LABEL}</label>

@@ -135,10 +135,12 @@ import {
   identitySentence,
   liveConnected,
 } from "../src/lib/device/session-copy";
-import { liveSnapshotSaved } from "../src/lib/device/install-copy";
+import {
+  CLEAR_REASONS,
+  liveSnapshotSaved,
+} from "../src/lib/device/install-copy";
 import { EVENT_SETUP, EVENT_TIMER } from "../src/lib/protocol";
 import { failureCopy } from "../src/lib/transport/transport";
-import { MEASURING } from "../src/lib/tune/copy";
 import { FAKE_SERIAL } from "./fake-serial";
 import { type ExposedZona, installZona } from "./fake-zona";
 
@@ -483,28 +485,30 @@ async function connectFromHeader(page: Page): Promise<number> {
 }
 
 /**
- * Both meters settled, then a change measured rather than merely applied -
- * e2e/tuning.e2e.ts's two waits, re-derived: aria-busy is the meter's own
- * published state, and a wait that only asked for "not measuring…" comes back
- * instantly with the previous number.
+ * Both numbers settled, then a change measured rather than merely applied -
+ * e2e/tuning.e2e.ts's two waits, re-derived: data-busy on the tuning
+ * region's root is the region's own published state (the meters' aria-busy,
+ * carried there since 13.1-07 hid the meters - 13.1-CONTEXT D-10), and a
+ * wait that only asked for a present number comes back instantly with the
+ * previous one.
  */
 async function settled(page: Page): Promise<void> {
+  await expect(
+    page.getByTestId("tuning-region"),
+    "the region settled on its numbers",
+  ).toHaveAttribute("data-busy", "false", { timeout: 30_000 });
   for (const event of ["setup", "timer"] as const) {
     await expect(
-      page.getByTestId(`meter-${event}`),
-      `the ${event} meter settled on a number`,
-    ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
-    await expect(
-      page.getByTestId(`meter-${event}`).locator(".numerals"),
-      `the ${event} meter left ${MEASURING}`,
-    ).not.toHaveText(MEASURING);
+      page.getByTestId("tuning-region"),
+      `the ${event} number landed`,
+    ).toHaveAttribute(`data-${event}`, /^[0-9]+$/);
   }
 }
 async function recomputed(page: Page): Promise<void> {
   await expect(
-    page.getByTestId("meter-setup"),
+    page.getByTestId("tuning-region"),
     "the change went through the debounced recompile",
-  ).toHaveAttribute("aria-busy", "true", { timeout: 5_000 });
+  ).toHaveAttribute("data-busy", "true", { timeout: 5_000 });
   await settled(page);
 }
 
@@ -1361,9 +1365,11 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
     //    see.
     expect(await page.getByTestId("device-note").count()).toBe(0);
 
-    // 6. The panel's connect-status carries the same reason - DEGR-02's two
-    //    surfaces, one sentence. Escape closes the drawer and hands focus
-    //    back; Enter on the row opens the panel.
+    // 6. The header's Clear carries the same reason - DEGR-02's two
+    //    surfaces, one sentence (the column's connect-status was the second
+    //    until 13.1-06; since then the bar's zone renders only for a module
+    //    that has reported a page, and where it would be the bar says
+    //    preview-only). Escape closes the drawer and hands focus back.
     await page.keyboard.press("Escape");
     await expect(drawer).toHaveCount(0);
     // Since 13-09 the panel is on the page on arrival; nothing is chosen.
@@ -1372,16 +1378,17 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
       "true",
     );
     await expect(page.getByTestId("tuning-region")).toBeVisible();
-    const tryOn = page.getByTestId("try-on-device");
-    await expect(tryOn).toBeVisible();
-    await expect(tryOn).toBeDisabled();
-    const status = page.getByTestId("connect-status");
-    await expect(status).toContainText(UNSUPPORTED.title);
-    await expect(status).toContainText(UNSUPPORTED.detail);
-    const panelReason = await status.innerText();
-    for (const named of ["Chrome", "Edge", "Firefox 151"]) {
-      expect(panelReason, `the panel names ${named}`).toContain(named);
-    }
+    const clear = page.getByTestId("clear");
+    await expect(clear).toBeVisible();
+    await expect(clear).toBeDisabled();
+    await expect(page.getByTestId("clear-line")).toHaveText(
+      CLEAR_REASONS.incapable,
+    );
+    expect(await page.getByTestId("destination").count()).toBe(0);
+    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
+    await expect(page.locator('[data-zone="destination"]')).toContainText(
+      "Preview",
+    );
     expect(await page.locator("body").innerText()).not.toContain("Chromium");
 
     // The header a large share of visitors will see, on the record.

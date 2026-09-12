@@ -81,9 +81,15 @@ const DEV_ROUTES = readdirSync("src/routes/dev")
  * :829, :857, :872) - exist only for a LATTICE colour knob (4,096 values,
  * which 10-08 gave the vendored presets; every Lua entry's colour knob is a
  * hand-authored palette and mounts a swatch Knob instead), so AURORA carries
- * them. Knob's slider thumb needs a knob with nine or more values, so ARC's
- * 16-value amount knob carries it; its dot rail and home mark
- * are on every rack. Since 13-09 a /playground/<id>/ is the workspace with its
+ * them. Knob's slider thumb needs a knob with nine or more values, which
+ * ARC's 16-value channel knob carried until 13.1-07 made every MIDI knob a
+ * typed field (13.1-CONTEXT D-09): since then NO catalog entry renders a
+ * track rail in the rack - the only nine-plus lists in the tree were the
+ * MIDI channel and send lists - so Knob.svelte's thumb circle (:785, D-15's
+ * six) is declared, counted by radius.spec.ts layer A, and MOUNTED NOWHERE
+ * this sweep can reach; the wait below asks for it only where a track rail
+ * is on the page, and the finding is 13.1-07's SUMMARY's for the gate. ARC
+ * still carries the dot rail and the home mark, as every rack does. Since 13-09 a /playground/<id>/ is the workspace with its
  * inspector on the page, and the picker's three live in a popover behind the
  * swatch's Edit color, which this sweep opens before it measures - so all six
  * are in the DOM when they are measured (D-15 lines: Knob :730 / :785 / :807).
@@ -115,6 +121,16 @@ const SIX_CIRCLES = [
   "picker:thumb",
   "picker:home",
 ];
+/**
+ * The one of the six no route can mount since 13.1-07 (13.1-CONTEXT D-09):
+ * Knob.svelte's track thumb (:785) draws only on a rail of nine or more
+ * values, and the two such lists in the tree - the MIDI channel's sixteen
+ * and a preset's send's twelve - are typed fields now. The circle is still
+ * declared and still counted by radius.spec.ts layer A; this sweep cannot
+ * reach it, says so by name, and measures the other five. Whether the
+ * track rail's circle stays declared is the gate's (13.1-08) to decide.
+ */
+const UNREACHABLE_CIRCLES = ["knob:thumb"];
 
 /** Strict once the allowlist is empty; tolerant of exactly its values until then. */
 const STRICT = ALLOWLIST.length === 0;
@@ -378,8 +394,14 @@ test("no element on any route computes a corner radius above zero, and every 50%
       }
       // The precondition is the circles themselves, not the rack: a sweep
       // that runs before the last rail mounts measures fewer than it should
-      // (observed once in chromium, the 16-value knob's thumb missing).
-      await expect(page.locator(".thumb").first()).toBeVisible();
+      // (observed once in chromium, the 16-value knob's thumb missing - a
+      // knob that is a typed field since 13.1-07; see the header).
+      if ((await page.locator(".rail.track").count()) > 0) {
+        await expect(page.locator(".thumb").first()).toBeVisible();
+      }
+      if ((await page.getByTestId("colour-rail-r").count()) > 0) {
+        await expect(page.locator(".thumb").first()).toBeVisible();
+      }
       await expect(inspector.locator(".dot").first()).toBeVisible();
       await expect(inspector.locator(".home").first()).toBeAttached();
     }
@@ -421,11 +443,20 @@ test("no element on any route computes a corner radius above zero, and every 50%
     findings.push(...result.findings.map((f) => `${route} ${f}`));
   }
 
-  // D-10's square arm is only a check if the six are on screen: every one
-  // of D-15's circle kinds must have been measured on some route.
+  // D-10's square arm is only a check if the circles are on screen: every
+  // one of D-15's circle kinds a route can mount must have been measured on
+  // some route, and the one no route can mount (UNREACHABLE_CIRCLES, above)
+  // must NOT have been - a thumb measured somewhere means a track rail came
+  // back and the list here is stale.
   expect(
-    SIX_CIRCLES.filter((kind) => !measuredKinds.has(kind)),
+    SIX_CIRCLES.filter(
+      (kind) => !UNREACHABLE_CIRCLES.includes(kind) && !measuredKinds.has(kind),
+    ),
     `D-15 circle kinds NOT measured on any route (measured: ${[...measuredKinds].sort().join(", ") || "none"}) - the square arm would be vacuous`,
+  ).toEqual([]);
+  expect(
+    UNREACHABLE_CIRCLES.filter((kind) => measuredKinds.has(kind)),
+    "a circle listed as unreachable since 13.1-07 was measured on a route - a track rail mounts again; take it off UNREACHABLE_CIRCLES",
   ).toEqual([]);
 
   console.log(

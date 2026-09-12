@@ -72,7 +72,7 @@ import { expect, test, type Page } from "@playwright/test";
 // nothing at all - that is the whole reason it exists as a separate module - so
 // pulling it into a Playwright file costs nothing.
 import { FRONT_DOOR, FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
-import { KEEP_REASONS } from "../src/lib/device/install-copy";
+import { CLEAR_REASONS, KEEP_REASONS } from "../src/lib/device/install-copy";
 // The routed set, by its one name. src/lib/catalog/listing.ts imports nothing at
 // runtime either, so this costs a Playwright file nothing.
 import { ROUTED } from "../src/lib/catalog/listing";
@@ -415,8 +415,12 @@ test.describe("a configuration's page on a browser that cannot install", () => {
     page,
   }) => {
     const consoleErrors = collectErrors(page);
-    // The shell's connection slot is 13-11's; the controls that degrade live
-    // in the install column on a configuration's workspace.
+    // The shell's connection slot is 13-11's. Since 13.1-06 the install
+    // column is gone and the bar's destination zone renders only once a
+    // module has reported a page, so on a browser that can never connect
+    // the control that degrades - present, disabled, saying why - is the
+    // header's Clear (13.1-05), and the bar says preview-only where the zone
+    // would be.
     await page.goto(`/playground/${HERO}/`);
 
     // Precondition, asserted. A degrade test that does not verify its own
@@ -430,35 +434,46 @@ test.describe("a configuration's page on a browser that cannot install", () => {
     );
     await expect(page.getByTestId("tuning-region")).toBeVisible();
 
-    // DEGR-02: present and disabled, never hidden.
-    const tryOn = page.getByTestId("try-on-device");
-    await expect(tryOn).toBeVisible();
-    await expect(tryOn).toBeDisabled();
+    // DEGR-02: present and disabled, never hidden - the header's Clear, with
+    // its reason as its description (and its caption where the zone has
+    // room, install.e2e.ts's degrade titles measure that).
+    const clear = page.getByTestId("clear");
+    await expect(clear).toBeVisible();
+    await expect(clear).toBeDisabled();
+    await expect(page.getByTestId("clear-line")).toHaveText(
+      CLEAR_REASONS.incapable,
+    );
+    expect(CLEAR_REASONS.incapable).toBe(KEEP_REASONS.incapable);
+    expect(KEEP_REASONS.incapable).toBe("This browser can’t write to a ZONA.");
 
-    const status = page.getByTestId("connect-status");
-    await expect(status).toContainText("Firefox 151");
-    const reason = await status.innerText();
+    // The header's connection caption has settled on the unsupported
+    // sentence, and its disclosure names the browsers that can install.
+    const slot = page.getByTestId("device-slot");
+    await expect(slot).toHaveAttribute("data-hydrated", "true");
+    await expect(slot).toHaveAttribute("data-slot", "S0a");
+    await slot.click();
+    const drawer = page.getByTestId("device-details");
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toContainText("Firefox 151");
+    const reason = await drawer.innerText();
     for (const named of ["Chrome", "Edge", "Firefox 151"]) {
       expect(reason, `the reason names ${named}`).toContain(named);
     }
     // CONN-01 is a capability test, never a browser test, and no visitor-facing
     // string names an engine.
     expect(await page.locator("body").innerText()).not.toContain("Chromium");
+    await page.keyboard.press("Escape");
+    await expect(drawer).toHaveCount(0);
 
-    // The secondary control degrades too, for its own separate reason.
-    const keep = page.getByTestId("keep-on-device");
-    await expect(keep).toBeVisible();
-    await expect(keep).toBeDisabled();
-
-    // Phase 7 (Z-12): PUT BACK restores a specific module's own configuration, and on a
-    // browser that has never seen a module there is nothing for it to name. Absent, not disabled.
-    await expect(page.getByTestId("put-back")).toHaveCount(0);
-    // DEGR-02 on the third control: the reason is the capability sentence, adjacent.
-    await expect(page.getByTestId("keep-on-device")).toBeDisabled();
-    await expect(page.getByTestId("keep-on-device-line")).toContainText(
-      KEEP_REASONS.incapable,
+    // No zone without a module (13.1-06): no Apply, no Store, and the bar's
+    // preview-only line in their place. Put back is on no screen (D-07).
+    expect(await page.getByTestId("destination").count()).toBe(0);
+    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
+    expect(await page.getByTestId("store-on-zona").count()).toBe(0);
+    await expect(page.locator('[data-zone="destination"]')).toContainText(
+      "Preview",
     );
-    expect(KEEP_REASONS.incapable).toBe("This browser can’t write to a ZONA.");
+    await expect(page.getByTestId("put-back")).toHaveCount(0);
 
     expect(consoleErrors).toEqual([]);
   });
