@@ -40,6 +40,23 @@
 // THE NUMERIC ROUTE is `editNumber(field, text)`: place anything, then type
 // Column, Row, Width, Height. The third complete route.
 //
+// THE HANDLE DRAG (13.1-03, 13.1-CONTEXT D-03, bench line 3: "you should be
+// able to resize each element by draggin its points") is `resizeSelectedTo(
+// box)`: the plate draws the proposed bounds while a handle is dragged and
+// hands the box here ONCE, on release. It is the same `applyEdit` the
+// numeric fields use, under the edit kind `resize`, so an off-surface,
+// overlapping or too-small box is refused with its line and the region stays
+// as it was (section 8: "preserve the previous valid value"); the entry is
+// sealed on the spot, so one drag is one Undo. Nothing about it is required:
+// the numeric fields and the keyboard reach every box a drag can.
+//
+// EVERY NEW REGION TAKES THE NEXT COLOUR OF `PALETTE` (D-03: "each element
+// should have its own color"), indexed by `created` - a counter of regions
+// this editor has created, seeded by `load()` from the loaded count - and
+// NOT by `minted`, which advances inside `mint()` before the colour is
+// chosen and skips colliding ids on a loaded surface (13.1-PLAN-CHECK W-05).
+// The picker still recolours any region; a duplicate keeps its source's.
+//
 // ---------------------------------------------------------------------------
 // 2. THE MODEL IS NEVER TRANSIENTLY INVALID (section 8; geometry.ts rule 5)
 // ---------------------------------------------------------------------------
@@ -173,8 +190,27 @@ export const DEFAULT_SIZES: Readonly<
   xy: { w: 3, h: 3 },
 };
 
-/** The action colour on the RGB444 lattice: #DCFF71 is 220,255,113, so 13,15,7 (221,255,119). */
-export const DEFAULT_COLOUR: readonly [number, number, number] = [13, 15, 7];
+/**
+ * The four colours new regions cycle through, RGB444 levels (13.1-03, D-03).
+ * The first two are PDF page 3's, measured at its 1500 render:
+ *   - lime: the action colour, #DCFF71 = 220,255,113, on the lattice 13,15,7
+ *     (221,255,119) - Filter's, and the colour every region took before this.
+ *   - teal: Space's 1px boundary stroke samples #74b9aa (116,185,170) at
+ *     x 900 / y 500 of the render; on the lattice 7,11,10 (119,187,170). The
+ *     plan's starting point was 3,11,11 (51,187,187); the page is greener.
+ * The last two are PROPOSED in the same key, not the page's, and the gate's
+ * bench row asks (13.1-CONTEXT question 4):
+ *   - amber 15,10,3 (255,170,51); - violet 10,7,15 (170,119,255).
+ */
+export const PALETTE: readonly (readonly [number, number, number])[] = [
+  [13, 15, 7],
+  [7, 11, 10],
+  [15, 10, 3],
+  [10, 7, 15],
+];
+
+/** The action colour on the RGB444 lattice, `PALETTE[0]`: the template's, the picker's reset and the first element's. */
+export const DEFAULT_COLOUR: readonly [number, number, number] = PALETTE[0];
 
 /** Everything a component reads, as one immutable value replaced on every change. */
 export type EditorState = {
@@ -241,6 +277,9 @@ export function kindForBox(
 const clampCell = (n: number): number =>
   Math.min(LAST_CELL, Math.max(0, Math.trunc(n)));
 
+/** The coalesce key of a handle drag - sealed on release, so one drag is one entry. */
+const dragKey = (regionId: string): string => `drag:${regionId}`;
+
 export class SandboxEditor {
   private _surface: Surface;
   private _selectedId: string | undefined = undefined;
@@ -252,6 +291,8 @@ export class SandboxEditor {
   private readonly rules: GeometryRules;
   private readonly onchange: ((state: EditorState) => void) | undefined;
   private minted = 0;
+  /** Regions this editor has created, for the palette (header, last paragraph). */
+  private created = 0;
   readonly history = new History();
 
   constructor(surface: Surface, options: EditorOptions = {}) {
@@ -343,6 +384,13 @@ export class SandboxEditor {
     }
   }
 
+  /** The next palette entry by creation order (header, last paragraph). */
+  private nextColour(): [number, number, number] {
+    const colour = PALETTE[this.created % PALETTE.length];
+    this.created += 1;
+    return [colour[0], colour[1], colour[2]];
+  }
+
   private nameFor(kind: ElementKind): string {
     const label = KIND_LABELS[kind];
     const taken = new Set(this._surface.regions.map((r) => r.name));
@@ -368,16 +416,20 @@ export class SandboxEditor {
     box: { col: number; row: number; w: number; h: number },
     orientation?: Orientation,
     name?: string,
+    colour?: readonly [number, number, number],
   ): Region {
     const cc = this.freeController();
+    const id = this.mint(kind);
     const region: Region = {
-      id: this.mint(kind),
+      id,
       name: name ?? this.nameFor(kind),
       kind,
       ...box,
       cc,
       channel: CHANNEL_MIN,
-      colour: [...DEFAULT_COLOUR] as [number, number, number],
+      // The palette's next, AFTER the id is minted (W-05): a probe hands a
+      // colour in and the cycle does not move.
+      colour: colour === undefined ? this.nextColour() : [...colour],
     };
     if (kind === "xy") return { ...region, cc2: Math.min(CC_MAX, cc + 1) };
     if (kind === "button") return { ...region, latch: false };
@@ -445,7 +497,13 @@ export class SandboxEditor {
 
   private capMessage(): string {
     const probe = validate(
-      this.newRegion("button", { col: 0, row: 0, w: 1, h: 1 }),
+      this.newRegion(
+        "button",
+        { col: 0, row: 0, w: 1, h: 1 },
+        undefined,
+        undefined,
+        DEFAULT_COLOUR,
+      ),
       this._surface,
       this.rules,
     );
@@ -462,6 +520,9 @@ export class SandboxEditor {
     const region = this.newRegion(kind, box, orientation, name);
     const result = addRegion(this._surface, region, this.rules);
     if (!result.ok) {
+      // The region was never created: its palette entry goes back, so the
+      // next placement is still the next of the cycle.
+      this.created -= 1;
       // The placement stays armed so the next click can try elsewhere; an
       // area start is dropped, because its far corner was the problem.
       if (this._placement.kind === "area") this._placement = { kind: "idle" };
@@ -610,6 +671,49 @@ export class SandboxEditor {
     this._fields = rest;
     this.emit();
     return true;
+  }
+
+  /**
+   * A handle drag's box, on release (header: THE HANDLE DRAG). Column and row
+   * arrive ZERO-BASED - the plate's own cells; the numeric fields' one-based
+   * door is theirs. Refuses silently in Play or with nothing selected;
+   * otherwise the same applyEdit as Width and Height, under `resize`, and
+   * the entry sealed so the drag is one Undo. Returns the problem when the
+   * box is refused - the region is then exactly as it was - or undefined.
+   */
+  resizeSelectedTo(box: {
+    col: number;
+    row: number;
+    w: number;
+    h: number;
+  }): Problem | undefined {
+    const id = this._selectedId;
+    if (this._mode === "play" || id === undefined) return undefined;
+    const region = this.selected as Region;
+    // The same box is no edit and no entry: applyEdit builds a fresh array
+    // for every accepted patch, so the box is compared here, not there.
+    if (
+      region.col === box.col &&
+      region.row === box.row &&
+      region.w === box.w &&
+      region.h === box.h
+    ) {
+      return undefined;
+    }
+    const problem = this.applyPatch(
+      { col: box.col, row: box.row, w: box.w, h: box.h },
+      "resize",
+      dragKey(id),
+    );
+    this.history.seal();
+    if (problem !== undefined) return problem;
+    // An accepted box: a field still showing a refused width or height is
+    // stale now, and the focus cell follows the region's origin as select() does.
+    this._fields = {};
+    this._kindProblem = undefined;
+    this._focus = { col: clampCell(box.col), row: clampCell(box.row) };
+    this.emit();
+    return undefined;
   }
 
   /** The value a field shows: the typed text while refused, else the model's, one-based where the interface counts so. */
@@ -828,7 +932,10 @@ export class SandboxEditor {
       TEMPLATE_FADER_NAME,
     );
     const one = addRegion(this._surface, fader, this.rules);
-    if (!one.ok) return false;
+    if (!one.ok) {
+      this.created -= 1;
+      return false;
+    }
     const button = this.newRegionOn(one.surface, "button", {
       col: 7,
       row: 0,
@@ -836,7 +943,10 @@ export class SandboxEditor {
       h: 2,
     });
     const two = addRegion(one.surface, button, this.rules);
-    if (!two.ok) return false;
+    if (!two.ok) {
+      this.created -= 2;
+      return false;
+    }
     this.record("template", this._surface, two.surface, fader.id);
     this._surface = two.surface;
     this._selectedId = fader.id;
@@ -863,6 +973,7 @@ export class SandboxEditor {
   /** Replace the surface without an entry: a draft recovered on return. */
   load(surface: Surface): void {
     this._surface = surface;
+    this.created = surface.regions.length;
     this._selectedId = undefined;
     this._placement = { kind: "idle" };
     this._fields = {};

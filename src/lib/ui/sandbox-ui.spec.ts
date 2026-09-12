@@ -1,5 +1,6 @@
-// The Sandbox's interface, six tests (plan 13-16; Bible sections 2, 8, 14,
-// 16; BUILD-01, BUILD-02, BUILD-06, BUILD-07, BUILD-08, PREV-04, KEEP-01).
+// The Sandbox's interface, eight tests (plan 13-16, tests 7 and 8 by 13.1-03;
+// Bible sections 2, 8, 14, 16; BUILD-01, BUILD-02, BUILD-06, BUILD-07,
+// BUILD-08, PREV-04, KEEP-01).
 //
 // TWO HALVES IN EVERY TEST, AS tune-ui.spec.ts DOES IT. The behaviour half
 // drives src/lib/sandbox/editor.ts - the model every component renders and
@@ -34,7 +35,9 @@ import {
   WHOLE_NUMBER,
 } from "../sandbox/copy";
 import {
+  DEFAULT_COLOUR,
   DEFAULT_SIZES,
+  PALETTE,
   SandboxEditor,
   type EditorState,
 } from "../sandbox/editor";
@@ -280,11 +283,18 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(editor.selectedId).toBe(knob.id);
     expect(editor.surface.regions.length).toBe(before);
 
-    // NO POINTER-MOVE, PROVED TWO WAYS. The model has no method a move could
-    // reach; and the plate's pointermove handler only records the hover
-    // cell - it never calls onclick.
+    // NO POINTER-MOVE IS REQUIRED, PROVED TWO WAYS - the clause 13-16 wrote
+    // as "no method a move could reach", inverted honestly by 13.1-03 (D-03):
+    // the model has exactly ONE method whose name starts `resize`, the box a
+    // handle drag hands over on RELEASE, and none a pointer or a hover could
+    // reach; and the plate's pointermove handler records the hover cell and
+    // the proposed box of a drag in progress - it never calls onclick and
+    // never commits. Test 7 drives the resize without a pointer at all.
     const methods = Object.getOwnPropertyNames(SandboxEditor.prototype);
-    expect(methods.filter((m) => /pointer|drag|hover/i.test(m))).toEqual([]);
+    expect(methods.filter((m) => /pointer|hover/i.test(m))).toEqual([]);
+    expect(methods.filter((m) => m.startsWith("resize"))).toEqual([
+      "resizeSelectedTo",
+    ]);
     const source = code(`${UI}/SurfaceEditor.svelte`);
     const move = source.slice(
       source.indexOf("function onpointermove"),
@@ -294,6 +304,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       40,
     );
     expect(move, "pointermove places or selects").not.toContain("onclick(");
+    expect(move, "pointermove commits a drag").not.toContain("onresize(");
     expect(move).toContain("hover = cellOf(event)");
     expect(
       source,
@@ -764,5 +775,192 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(count(rail, "disabled")).toBe(4);
     expect(rail).toContain(GEOMETRY_COPY.cap(SURFACE_ELEMENT_CAP));
     expect(capped.duplicate()).toEqual({ ok: false, reason: "cap" });
+  });
+
+  it("7. a handle drag commits through the editor on release: resizeSelectedTo moves a fader to the box, one entry undone and redone; an overlapping or too-small box is refused with its line and the surface is the same object; Play and an empty selection change nothing", () => {
+    // 13.1-03 (13.1-CONTEXT D-03, bench line 3). Driven with no pointer: the
+    // box is what the plate computes from the handle and the cell under the
+    // pointer, and the model takes it once, on release.
+    const { editor, emitted } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    const faderId = editor.selectedId as string;
+    expect(byId(editor, faderId)).toMatchObject({ col: 0, row: 0, w: 2, h: 6 });
+    const before = editor.surface;
+    const depth = editor.history.depth;
+
+    // THE ACCEPTED BOX: the fader is 3 x 6, one entry under the resize kind.
+    expect(editor.resizeSelectedTo({ col: 0, row: 0, w: 3, h: 6 })).toBe(
+      undefined,
+    );
+    expect(byId(editor, faderId)).toMatchObject({ col: 0, row: 0, w: 3, h: 6 });
+    expect(editor.history.depth, "one drag is one entry").toBe(depth + 1);
+    expect(editor.history.entries[depth].kind).toBe("resize");
+    expect(editor.fieldText("w"), "the width field follows the plate").toBe(
+      "3",
+    );
+    // A second drag is a SECOND entry - the first was sealed on release -
+    // and Undo walks each back on its own; Redo re-applies.
+    expect(editor.resizeSelectedTo({ col: 1, row: 0, w: 3, h: 6 })).toBe(
+      undefined,
+    );
+    expect(editor.history.depth).toBe(depth + 2);
+    expect(editor.undo()).toBe(true);
+    expect(byId(editor, faderId)).toMatchObject({ col: 0, w: 3, h: 6 });
+    expect(editor.undo()).toBe(true);
+    expect(byId(editor, faderId)).toMatchObject({ col: 0, w: 2, h: 6 });
+    expect(editor.surface).toEqual(before);
+    expect(editor.redo()).toBe(true);
+    expect(byId(editor, faderId)).toMatchObject({ w: 3, h: 6 });
+    expect(editor.selectedId, "undo and redo re-select the region").toBe(
+      faderId,
+    );
+
+    // A REFUSED BOX LEAVES THE REGION AS IT WAS. An overlap: the fader
+    // dragged onto a button is section 16's line, naming the button, and
+    // the surface is the SAME OBJECT - not a copy, not a partial edit.
+    editor.choose("button");
+    editor.clickCell(5, 0);
+    editor.select(faderId);
+    const held = editor.surface;
+    const heldDepth = editor.history.depth;
+    const overlap = editor.resizeSelectedTo({ col: 0, row: 0, w: 6, h: 6 });
+    expect(overlap?.message).toBe(
+      "This region overlaps Button 1. Choose another area or resize it.",
+    );
+    expect(editor.surface, "the same surface object").toBe(held);
+    expect(byId(editor, faderId)).toMatchObject({ w: 3, h: 6 });
+    expect(editor.history.depth, "a refusal is no entry").toBe(heldDepth);
+    // Off the surface: the off-surface line, the field named.
+    const off = editor.resizeSelectedTo({ col: 0, row: 0, w: 3, h: 10 });
+    expect(off?.message).toBe(GEOMETRY_COPY.offSurface("h"));
+    expect(editor.surface).toBe(held);
+    // Too small: a knob dragged to 2 x 2 is refused with the knob's line.
+    editor.choose("knob");
+    editor.clickCell(5, 5);
+    const knobId = editor.selectedId as string;
+    const knobHeld = editor.surface;
+    const small = editor.resizeSelectedTo({ col: 5, row: 5, w: 2, h: 2 });
+    expect(small?.message).toContain("A knob needs at least 3 × 3 cells");
+    expect(editor.surface).toBe(knobHeld);
+    expect(byId(editor, knobId)).toMatchObject({ w: 3, h: 3 });
+
+    // THE SAME BOX commits nothing: no entry, the surface untouched.
+    const same = editor.surface;
+    const sameDepth = editor.history.depth;
+    expect(editor.resizeSelectedTo({ col: 5, row: 5, w: 3, h: 3 })).toBe(
+      undefined,
+    );
+    expect(editor.surface).toBe(same);
+    expect(editor.history.depth).toBe(sameDepth);
+
+    // PLAY LOCKS IT, silently; NOTHING SELECTED is nothing to resize.
+    editor.setMode("play");
+    expect(editor.resizeSelectedTo({ col: 5, row: 5, w: 4, h: 4 })).toBe(
+      undefined,
+    );
+    expect(editor.surface).toBe(same);
+    editor.setMode("edit");
+    editor.select(undefined);
+    expect(editor.resizeSelectedTo({ col: 0, row: 0, w: 4, h: 4 })).toBe(
+      undefined,
+    );
+    expect(editor.surface).toBe(same);
+
+    // Every surface the editor emitted validates whole: a drag never put an
+    // invalid one anywhere (section 2).
+    for (const surface of emitted)
+      expect(wholeSurfaceValid(surface)).toBe(true);
+    for (const entry of editor.history.entries) {
+      expect(wholeSurfaceValid(entry.before)).toBe(true);
+      expect(wholeSurfaceValid(entry.after)).toBe(true);
+    }
+  });
+
+  it("8. every new element takes the next of the four-entry palette by creation order - the first PALETTE[0], the fifth PALETTE[0] again, a deletion not counted, a loaded surface continuing from its count - and the four are distinct RGB444 triples with the first the action colour", () => {
+    // 13.1-03 (D-03: "each element should have its own color"). The counter
+    // is CREATION order, not `minted` (13.1-PLAN-CHECK W-05) and not the
+    // live count.
+    expect(PALETTE).toHaveLength(4);
+    expect(PALETTE[0]).toEqual(DEFAULT_COLOUR);
+    expect(DEFAULT_COLOUR).toEqual([13, 15, 7]);
+    for (const triple of PALETTE) {
+      expect(triple).toHaveLength(3);
+      for (const level of triple) {
+        expect(Number.isInteger(level)).toBe(true);
+        expect(level).toBeGreaterThanOrEqual(0);
+        expect(level).toBeLessThanOrEqual(15);
+      }
+    }
+    expect(new Set(PALETTE.map((t) => t.join(","))).size, "four distinct").toBe(
+      4,
+    );
+
+    // FOUR KINDS, FOUR COLOURS, in the order placed; the fifth wraps.
+    const { editor } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.choose("xy");
+    editor.clickCell(3, 0);
+    editor.choose("button");
+    editor.clickCell(0, 7);
+    editor.choose("knob");
+    editor.clickCell(6, 6);
+    expect(editor.surface.regions.map((r) => r.colour)).toEqual([
+      PALETTE[0],
+      PALETTE[1],
+      PALETTE[2],
+      PALETTE[3],
+    ]);
+    editor.clickCell(8, 0);
+    editor.clickCell(8, 0);
+    expect(editor.surface.regions[4].colour).toEqual(PALETTE[0]);
+
+    // A DELETION IS NOT A STEP BACK: delete the fifth, place a sixth - it is
+    // the next of the cycle, not the fifth's colour again.
+    expect(editor.remove()).toBe(true);
+    editor.clickCell(8, 2);
+    editor.clickCell(8, 2);
+    expect(editor.surface.regions[4].colour).toEqual(PALETTE[1]);
+    // The colours are the region's own value: the picker still recolours,
+    // and the palette is not consulted again for that region.
+    editor.setColour([15, 0, 0]);
+    expect(editor.surface.regions[4].colour).toEqual([15, 0, 0]);
+    // A refused placement and the cap's probe never advance the cycle: an
+    // element placed after a refusal is still the next of the cycle.
+    editor.choose("knob");
+    expect(editor.clickCell(0, 0).kind, "a knob on the fader").toBe("refused");
+    editor.cancel();
+    editor.clickCell(4, 4);
+    editor.clickCell(4, 4);
+    expect(editor.surface.regions[5].colour).toEqual(PALETTE[2]);
+
+    // A LOADED SURFACE continues from its count: three regions loaded, the
+    // next placed takes PALETTE[3] - whatever ids the loaded ones carry.
+    const loaded = fresh().editor;
+    loaded.choose("button");
+    loaded.clickCell(0, 0);
+    loaded.choose("button");
+    loaded.clickCell(3, 0);
+    loaded.choose("button");
+    loaded.clickCell(6, 0);
+    const three = loaded.surface;
+    const opened = fresh().editor;
+    opened.load(three);
+    opened.choose("button");
+    opened.clickCell(0, 5);
+    expect(opened.surface.regions[3].colour).toEqual(PALETTE[3]);
+    // Its id is button-4: mint() walked past the three loaded ids, so a
+    // palette indexed by `minted` (4) would have wrapped to PALETTE[0] here.
+    // The counter is creation order (W-05).
+    expect(opened.surface.regions[3].id).toBe("button-4");
+
+    // The template's two are the first two of the cycle.
+    const templated = fresh().editor;
+    expect(templated.template()).toBe(true);
+    expect(templated.surface.regions.map((r) => r.colour)).toEqual([
+      PALETTE[0],
+      PALETTE[1],
+    ]);
   });
 });
