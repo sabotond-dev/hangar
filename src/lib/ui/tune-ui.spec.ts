@@ -896,7 +896,14 @@ describe("the tuning UI's structural rules", () => {
     // way: the typed text kept, its boundary and its message in this ink,
     // until a keystroke validates. The same validation fact on the same
     // shape, and still never on a button.
-
+    //
+    // AND THE METERS LEFT THE INSPECTOR AT 13.1-07 (13.1-CONTEXT D-10, the
+    // user's word: "TUNING, so code limit visualiztation should be removed,
+    // lets not show that"). BudgetMeter.svelte still carries the ink - the
+    // Sandbox route mounts it twice under its own room line, which D-10
+    // keeps - but the workspace's inspector renders no meter, no TUNING
+    // caption and no forecast ghost; TUNE-05's line, BudgetMessage.svelte,
+    // is what renders after the last section, alone.
     const TOKEN = "--color-error-ink";
     const SURFACE = "--color-error-surface";
     const files = uiFiles().filter((file) => file.endsWith(".svelte"));
@@ -935,11 +942,15 @@ describe("the tuning UI's structural rules", () => {
       "the over-budget block grew a radius - D-01",
     ).not.toContain("border-radius");
 
-    // WHERE THEY LIVE: both meters and the message render inside the
-    // inspector, as the children the shell's Inspector draws after its last
+    // WHERE THEY LIVE SINCE 13.1-07: the message alone renders inside the
+    // inspector, as the child the shell's Inspector draws after its last
     // section - which is MIDI output on every entry that addresses the wire.
-    // The two meters and the message are the honesty device the Bible never
-    // drew, and this is the assertion that they survived the redesign.
+    // The meters are hidden by the user's word (D-10): no <BudgetMeter, no
+    // TUNING caption, no forecast, no ghost in the region; the two numbers
+    // ride on the region's root as data attributes for the e2e suite, and
+    // the region still wires the over-budget refusal upward (onbudget) and
+    // still measures (cost() through the tuner). TUNE-05's four clauses are
+    // BudgetMessage's line and the zone's disabled Apply, unchanged.
     const region = code(componentPath("TuningRegion.svelte"));
     const inspector = region.slice(
       region.indexOf("<Inspector"),
@@ -949,19 +960,55 @@ describe("the tuning UI's structural rules", () => {
       100,
     );
     expect(
-      occurrences(inspector, "<BudgetMeter"),
-      "the two 908 meters no longer render inside the inspector",
-    ).toBe(2);
+      occurrences(region, "<BudgetMeter"),
+      "a 908 meter renders in the workspace's inspector again - hidden by the user's word (13.1-07, D-10)",
+    ).toBe(0);
+    for (const relic of [
+      "TUNING_CAPTION",
+      "METERS_UNAVAILABLE",
+      "forecast",
+      "ghost",
+      "tuning-meters",
+    ]) {
+      expect(
+        region,
+        `TuningRegion.svelte still carries "${relic}" - the fourth group is hidden (13.1-07, D-10)`,
+      ).not.toContain(relic);
+    }
     expect(
       occurrences(inspector, "<BudgetMessage"),
-      "the ladder message no longer renders inside the inspector beside the meters",
+      "the ladder message no longer renders inside the inspector",
     ).toBe(1);
     expect(
-      inspector.indexOf("<BudgetMeter"),
-      "the meters render before the sections rather than after them - they are children, drawn under the last section",
+      inspector.indexOf("<BudgetMessage"),
+      "the message renders before the sections rather than after them - it is a child, drawn under the last section",
     ).toBeGreaterThan(inspector.indexOf("sections={["));
-    // And the numbers are TUNE-03's own words: `{used} / 908`, a percentage,
-    // tabular numerals so the column never jitters while a knob turns.
+    // The numbers survive as attributes on the root, machine-readable and
+    // never painted, so settled() and recomputed() in the e2e suite keep
+    // their anchors; the refusal still reaches the zone through onbudget.
+    for (const attribute of [
+      "data-setup={view?.setup.used}",
+      "data-timer={view?.timer.used}",
+      "data-busy={busy}",
+    ]) {
+      expect(
+        region,
+        `the region's root does not carry ${attribute} - the suite reads the numbers there since the meters went (13.1-07)`,
+      ).toContain(attribute);
+    }
+    expect(region).toContain("onbudget?.(next?.reason)");
+    expect(region).toContain("<BudgetMessage {ladder} {over} />");
+    // The meter's one remaining mount is the Sandbox's, under its room line
+    // (D-10 keeps it; the bench row asks). If that goes too, BudgetMeter.svelte
+    // goes with it by name.
+    const sandboxRoute = code("src/routes/sandbox/[draftId]/+page.svelte");
+    expect(
+      occurrences(sandboxRoute, "<BudgetMeter"),
+      "the Sandbox no longer mounts the two meters under its room line - if that is by decision, delete BudgetMeter.svelte by name (D-12) and take it off TUNING_COMPONENTS",
+    ).toBe(2);
+    // And the numbers are TUNE-03's own words where they are still painted:
+    // `{used} / 908`, a percentage, tabular numerals so the column never
+    // jitters while a knob turns.
     const meterSource = code(componentPath("BudgetMeter.svelte"));
     expect(meterSource).toContain("meterNumerals(view.used)");
     expect(meterSource).toContain("meterPercent(view.pct)");

@@ -39,7 +39,6 @@ import {
   LINK_COPIED,
   LINK_COPIED_ANNOUNCEMENT,
   MEASURING,
-  METERS_UNAVAILABLE,
   SETUP_CAPTION,
   SURPRISE_ALL_HELD,
   SHARE_FALLBACK_FIELD_NAME,
@@ -388,17 +387,21 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "a mix string is still in the code of src/",
     ).toEqual([]);
 
-    // TUNING is Phase 4's caption and this is its one home: the region
-    // IMPORTS it, and does not transcribe it.
+    // TUNING is Phase 4's caption. From 13-09 to 13.1-06 the region imported
+    // it as the fourth group's heading; since 13.1-07 the group is hidden by
+    // the user's word (13.1-CONTEXT D-10: "TUNING, so code limit
+    // visualiztation should be removed, lets not show that") and the region
+    // neither imports nor transcribes it - the caption stays here, exported,
+    // as the meter family's word (the header says why the family stays).
     const region = stripComments(read("../ui/TuningRegion.svelte"));
     expect(region, "the region was read").not.toBe("");
     expect(
       region,
-      "TuningRegion.svelte no longer imports the TUNING caption from this module",
-    ).toContain("TUNING_CAPTION");
+      "TuningRegion.svelte imports the TUNING caption again - the fourth group is hidden by the user's word (13.1-07, D-10)",
+    ).not.toContain("TUNING_CAPTION");
     expect(
       region,
-      "TuningRegion.svelte transcribes the TUNING caption instead of importing it, which is the drift this assertion exists to prevent",
+      "TuningRegion.svelte transcribes the TUNING caption, which is the drift this assertion exists to prevent",
     ).not.toContain(`"${TUNING_CAPTION}"`);
   });
 
@@ -515,9 +518,18 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(emptyTimerExpansion()).toBe(
       "Timer uses 0 of 908 characters. This configuration has no timer.",
     );
-    expect(METERS_UNAVAILABLE).toBe(
-      "The character counter couldn’t load, so the two budgets aren’t shown. Everything else here still works.",
-    );
+    // METERS_UNAVAILABLE IS RETIRED BY NAME (13.1-07, D-10, W-14): the Body
+    // line that replaced the meters when the formatter never resolved lost
+    // its one reader when the workspace's meters were hidden. Not exported,
+    // and the header says why the state it named is not left silent.
+    expect(
+      Object.keys(copy).includes("METERS_UNAVAILABLE"),
+      "METERS_UNAVAILABLE is exported again - it was retired by name at 13.1-07 with the workspace's meters (D-10), and its header paragraph says what carries the state it named",
+    ).toBe(false);
+    expect(
+      copySource(),
+      "copy.ts's header no longer retires METERS_UNAVAILABLE by name",
+    ).toContain("METERS_UNAVAILABLE IS RETIRED BY NAME");
 
     // THE FORECAST rides inside the meter test because it IS a meter string:
     // the delta is what the bar would read and the expansion says so in

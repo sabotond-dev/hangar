@@ -106,6 +106,24 @@
 // them and A-15's genetics-vocabulary scan, which existed to keep the
 // crossover metaphor off a control that no longer exists.
 //
+// METERS_UNAVAILABLE IS RETIRED BY NAME, 2026-09-12 (13.1-07; 13.1-CONTEXT
+// D-10, D-12's rule; 13.1-PLAN-CHECK W-14). `The character counter couldn’t
+// load, so the two budgets aren’t shown. Everything else here still works.`
+// was the one Body line TuningRegion.svelte rendered in the meters' place
+// when the formatter never resolved (D-08). The workspace's meters are hidden
+// by the user's word (bench line 8) and that branch went with them, so the
+// string lost its only reader. Nothing replaces it, and the state it named
+// is not left silent by accident: an unmeasurable budget leaves the tuner's
+// pair undefined, and the destination zone's Apply is a real `disabled` on
+// `config === undefined`, so no visitor is left with an enabled write and no
+// number. The meter family below (TUNING_CAPTION, SETUP_CAPTION,
+// TIMER_CAPTION, meterNumerals, meterPercent, MEASURING, meterExpansion,
+// emptyTimerExpansion, forecastDelta, forecastExpansion) stays exported: the
+// Sandbox's BudgetMeter.svelte still reads the meter strings under its own
+// room line, which D-10 keeps and the gate's bench row asks about, and the
+// forecast pair keeps U+2212's one scope; whether the forecast strings retire
+// with the ghost is the gate's (13.1-08) to decide by name.
+//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 // ---------------------------------------------------------------------------
@@ -255,10 +273,6 @@ export function forecastDelta(delta: number): string {
 export function forecastExpansion(event: EventWord, used: number): string {
   return `Choosing this would put ${event} at ${used} of 908.`;
 }
-
-/** The formatter never resolved, so there is nothing honest to show. */
-export const METERS_UNAVAILABLE =
-  "The character counter couldn’t load, so the two budgets aren’t shown. Everything else here still works.";
 
 // ---------------------------------------------------------------------------
 // The colour picker (plan 10-10). Seven strings, unchanged: they were already

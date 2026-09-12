@@ -1,10 +1,20 @@
 // TUNE-02 to TUNE-07, SHARE-01 to SHARE-03 and DEGR-01's clipboard half: the
 // whole tuning and sharing journey, in a real browser.
 //
-// Ten tests, all in the chromium project. The last two open /dev/tune/, the
-// unlinked probe wave 12 added, because the over-budget state TUNE-04 and
-// TUNE-05 describe is unreachable from the shipped UI - see the block above
-// those two tests. No title here carries the tag
+// Eleven tests, all in the chromium project (ten from 05-11 to 13.1-06; the
+// eleventh, 13.1-07's, types into the MIDI output's CC number field). The
+// last two open /dev/tune/, the unlinked probe wave 12 added, because the
+// over-budget state TUNE-04 and TUNE-05 describe is unreachable from the
+// shipped UI - see the block above those two tests.
+//
+// THE NUMBERS ARE READ OFF THE TUNING REGION'S DATA ATTRIBUTES SINCE 13.1-07
+// (13.1-CONTEXT D-10: the meters are hidden by the user's word - "TUNING, so
+// code limit visualiztation should be removed, lets not show that"). Nothing
+// paints `{used} / 908` on the workspace any more; the region's root carries
+// data-setup, data-timer and data-busy, machine-readable and never painted,
+// so settled() and recomputed() below keep exactly the meaning the meters'
+// aria-busy and numerals gave them. TUNE-05 is read where it renders: the
+// zone's disabled Apply and its refusal line, and BudgetMessage's block. No title here carries the tag
 // playwright.config.ts greps the webkit-phone project by, so that project
 // still lists zero tests - wave 12 owns the phone journey in its own file.
 // The tag is deliberately not written out anywhere in this file: the gate
@@ -53,7 +63,6 @@ import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
 import { shareUrl } from "../src/lib/share/url";
 import {
   LINK_COPIED,
-  MEASURING,
   SHARE_FALLBACK_FIELD_NAME,
   STAMP_RESTORED,
   TURN_IT_DOWN,
@@ -68,11 +77,17 @@ import {
 // module imports nothing.
 import {
   EDIT_COLOR,
+  LUA_CHANNEL_CUE,
   POPOVER_CLOSE,
   RANDOMIZE,
   RESET_SETTINGS,
   SHARE_SNAPSHOT,
+  offeredLine,
 } from "../src/lib/tune/inspector-copy";
+// Arc, for the CC number title (13.1-07): the values the field must offer
+// and refuse are read off the entry, never typed here. arc.ts imports only
+// a type from the vendored compiler, so this costs the runner nothing.
+import { ARC } from "../src/lib/catalog/entries/arc";
 import { guardedNot } from "./poll";
 
 /** The configuration every test in this file opens. */
@@ -211,41 +226,54 @@ function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
   });
 }
 
-/** `"250 / 908"`, or `measuring…` before the first number has landed. */
-function meterText(page: Page, event: "setup" | "timer"): Promise<string> {
-  return page.getByTestId(`meter-${event}`).locator(".numerals").innerText();
+/** The region's root, which carries the two measured numbers and the busy state (13.1-07). */
+const region = (page: Page) => page.getByTestId("tuning-region");
+
+/**
+ * The measured number for one event, read off the region's data attribute:
+ * `250`, never `250 / 908` - nothing paints the slash any more. Throws on a
+ * region that has not measured yet, which no caller reaches: every read
+ * here follows settled().
+ */
+async function measured(page: Page, event: "setup" | "timer"): Promise<number> {
+  const text = await region(page).getAttribute(`data-${event}`);
+  expect(text, `the ${event} number has landed on the region`).toMatch(
+    /^[0-9]+$/,
+  );
+  return Number(text);
 }
 
 /**
- * Both meters settled: neither measuring nor catching up.
+ * Both numbers settled: neither measuring nor catching up.
  *
- * `aria-busy` is the meter's own published state and covers both waits, which
- * is exactly why it is the anchor. Waiting only for the numerals to leave
- * `measuring…` is NOT enough and the difference is not academic - it was
- * observed on this file's first run. See `recomputed` below.
+ * `data-busy` is the region's own published state - the meters' aria-busy,
+ * kept on the root since the meters went - and covers both waits, which is
+ * exactly why it is the anchor. Waiting only for a number to be present is
+ * NOT enough and the difference is not academic - it was observed on this
+ * file's first run. See `recomputed` below.
  */
 async function settled(page: Page): Promise<void> {
+  await expect(
+    region(page),
+    "the region settled on its numbers",
+  ).toHaveAttribute("data-busy", "false", { timeout: 30_000 });
   for (const event of ["setup", "timer"] as const) {
-    await expect(
-      page.getByTestId(`meter-${event}`),
-      `the ${event} meter settled on a number`,
-    ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
-    await expect(
-      page.getByTestId(`meter-${event}`).locator(".numerals"),
-      `the ${event} meter left ${MEASURING}`,
-    ).not.toHaveText(MEASURING);
+    await expect(region(page), `the ${event} number landed`).toHaveAttribute(
+      `data-${event}`,
+      /^[0-9]+$/,
+    );
   }
 }
 
 /**
  * Wait for a knob change to be MEASURED, not merely applied.
  *
- * A knob move puts both meters into the stale state - `aria-busy="true"`, the
- * numerals dimmed and still showing the PREVIOUS number - while the
- * 120ms-debounced recompile runs. A wait that only asked for "not measuring…"
- * therefore came back instantly with the old measurement, and every comparison
- * in this file would have been against the wrong number. Observed: RESET ALL
- * read `256 / 908` where the defaults are `250 / 908`.
+ * A knob move puts the region into the stale state - `data-busy="true"`, the
+ * numbers still the PREVIOUS ones - while the 120ms-debounced recompile
+ * runs. A wait that only asked for a present number therefore came back
+ * instantly with the old measurement, and every comparison in this file
+ * would have been against the wrong number. Observed (on the meters, 05-11):
+ * RESET ALL read `256 / 908` where the defaults are `250 / 908`.
  *
  * The stale phase is asserted rather than assumed, so a future change that
  * compiled synchronously on every keystroke - which is what the debounce exists
@@ -253,9 +281,9 @@ async function settled(page: Page): Promise<void> {
  */
 async function recomputed(page: Page): Promise<void> {
   await expect(
-    page.getByTestId("meter-setup"),
+    region(page),
     "the change went through the debounced recompile",
-  ).toHaveAttribute("aria-busy", "true", { timeout: 5_000 });
+  ).toHaveAttribute("data-busy", "true", { timeout: 5_000 });
   await settled(page);
 }
 
@@ -270,10 +298,14 @@ async function recomputed(page: Page): Promise<void> {
  * - without it the static build 404s and the failure reads as a broken route
  * rather than a URL typo.
  */
-async function openPanel(page: Page, path: string): Promise<void> {
+async function openPanel(
+  page: Page,
+  path: string,
+  id: string = ENTRY,
+): Promise<void> {
   await page.goto(path);
   await expect(page.getByTestId("workspace")).toBeVisible();
-  await waitForPicture(page, ENTRY);
+  await waitForPicture(page, id);
   // 13.1-06: the tuner's region, not the install column's panel (chosen-panel
   // left with the column, 13.1-CONTEXT D-06; 13.1-04's swap in radius.e2e.ts).
   await expect(page.getByTestId("tuning-region")).toBeVisible();
@@ -413,36 +445,161 @@ test.describe("turning a knob", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("the two meters read two different numbers and both change on a knob turn", async ({
+  test("a CC number typed into the MIDI output field moves the knob to that value, one the knob does not offer is refused in the field with the offered values named and the last good value kept, and a Lua channel says it counts from 0", async ({
+    page,
+  }) => {
+    // 13.1-07, 13.1-CONTEXT D-09 (bench line 7, screenshot 2), in a browser:
+    // the field is a text input OVER Arc's closed cc list - 1, 16, 20, 74,
+    // 102 - so a typed 20 is the knob at index 2, a typed 99 is refused
+    // with aria-invalid and the offered line under it while the knob stays
+    // where it was, blur keeps the refused text, and a typed 102 lands. The
+    // knob index is read off the field's own data-index, and the measurement
+    // is proved to have run by the busy transition and - on the 3-character
+    // literal - by the number moving. A CC number paints nothing, so the
+    // pad's picture is deliberately NOT compared here; test 1 above owns
+    // that assertion for a knob that does paint. tune-ui.spec.ts holds the
+    // door (typedIndex) and the rendered shape; this is the wiring, pressed.
+    const consoleErrors = collectErrors(page);
+    const cc = ARC.knobs.find((knob) => knob.id === "cc");
+    const channel = ARC.knobs.find((knob) => knob.id === "channel");
+    expect(cc && channel, "Arc carries a cc and a channel knob").toBeTruthy();
+    const values = cc!.values;
+    expect(values).toEqual(["1", "16", "20", "74", "102"]);
+    const arrival = values[cc!.default];
+
+    await openPanel(page, `/playground/${ARC.id}/`, ARC.id);
+    const field = page.getByTestId("midi-field-cc");
+    const input = page.getByTestId("midi-field-cc-input");
+    const message = page.getByTestId("midi-field-cc-message");
+    const reset = page.getByTestId("midi-field-cc-reset");
+    // The section: two fields in the grid, under the PDF's labels, with the
+    // PDF's helper beneath; no rack in the MIDI section.
+    const grid = page.getByTestId("midi-grid");
+    await expect(grid).toBeVisible();
+    expect(await grid.locator("[data-testid='knob-rack']").count()).toBe(0);
+    await expect(grid.locator("label")).toHaveText(["CC number", "Channel"]);
+    await expect(input).toHaveAttribute("type", "text");
+    await expect(input).toHaveAttribute("inputmode", "numeric");
+    await expect(
+      input,
+      "the field arrives on the knob's own literal",
+    ).toHaveValue(arrival);
+    await expect(field).toHaveAttribute("data-index", String(cc!.default));
+    await expect(
+      reset,
+      "at the default there is nothing to reset",
+    ).toBeDisabled();
+    const setupBefore = await measured(page, "setup");
+    const timerBefore = await measured(page, "timer");
+
+    // A VALUE THE KNOB OFFERS: the knob moves to its index, the measurement
+    // runs, the marker and the reset come on, nothing is refused.
+    await input.fill("20");
+    await recomputed(page);
+    await expect(field).toHaveAttribute("data-index", "2");
+    await expect(input).toHaveValue("20");
+    await expect(input).not.toHaveAttribute("aria-invalid", "true");
+    await expect(message).toHaveCount(0);
+    await expect(field).toHaveAttribute("data-changed", "true");
+    await expect(reset).toBeEnabled();
+
+    // A VALUE THE KNOB DOES NOT OFFER: refused in the field, the offered
+    // values named, the knob unmoved and the numbers unmoved - no compile
+    // ran, so the region never went busy.
+    const setupAt20 = await measured(page, "setup");
+    await input.fill("99");
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+    await expect(message).toHaveText(offeredLine("cc", values));
+    expect(offeredLine("cc", values)).toBe(
+      "A controller number here is one of 1, 16, 20, 74 or 102.",
+    );
+    await expect(input).toHaveAttribute(
+      "aria-describedby",
+      await message.getAttribute("id"),
+    );
+    await expect(field).toHaveAttribute("data-index", "2");
+    await expect(region(page)).toHaveAttribute("data-busy", "false");
+    expect(await measured(page, "setup")).toBe(setupAt20);
+    // Blur keeps the refused text and its message (13-16's rule).
+    await input.blur();
+    await expect(input).toHaveValue("99");
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+    await expect(message).toHaveText(offeredLine("cc", values));
+    await expect(field).toHaveAttribute("data-index", "2");
+
+    // A VALID VALUE AGAIN: the message goes, the knob lands, and a
+    // three-character literal moves the measurement where 16 -> 20 could
+    // not (both two characters).
+    await input.fill("102");
+    await recomputed(page);
+    await expect(field).toHaveAttribute("data-index", "4");
+    await expect(input).toHaveValue("102");
+    await expect(input).not.toHaveAttribute("aria-invalid", "true");
+    await expect(message).toHaveCount(0);
+    const setupAt102 = await measured(page, "setup");
+    const timerAt102 = await measured(page, "timer");
+    expect(
+      setupAt102 !== setupBefore || timerAt102 !== timerBefore,
+      `the typed literal reached the compiler: setup ${setupBefore} -> ${setupAt102}, timer ${timerBefore} -> ${timerAt102}`,
+    ).toBe(true);
+
+    // THE PER-FIELD RESET: back to the default, the marker off.
+    await reset.click();
+    await recomputed(page);
+    await expect(field).toHaveAttribute("data-index", String(cc!.default));
+    await expect(input).toHaveValue(arrival);
+    await expect(field).toHaveAttribute("data-changed", "false");
+    await expect(reset).toBeDisabled();
+
+    // THE CHANNEL FIELD ON A LUA ENTRY: the firmware's zero-based literal
+    // (X-08) under the PDF's label, with the cue beneath it and in its
+    // description - 13.1-CONTEXT question 5 is open, and this is what keeps
+    // the asked state from being a silent off-by-one until it is answered.
+    const channelInput = page.getByTestId("midi-field-channel-input");
+    await expect(channelInput).toHaveValue(channel!.values[channel!.default]);
+    expect(channel!.values[0], "a Lua channel list starts at 0").toBe("0");
+    const cue = page.getByTestId("midi-field-channel-cue");
+    await expect(cue).toBeVisible();
+    await expect(cue).toHaveText(LUA_CHANNEL_CUE);
+    await expect(channelInput).toHaveAttribute(
+      "aria-describedby",
+      await cue.getAttribute("id"),
+    );
+    await expect(
+      page.getByTestId("midi-field-cc-cue"),
+      "the cue is the channel's alone",
+    ).toHaveCount(0);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("the two measured numbers differ and both change on a knob turn", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
     await openPanel(page, `/playground/${ENTRY}/`);
 
-    const setupBefore = await meterText(page, "setup");
-    const timerBefore = await meterText(page, "timer");
-    for (const [event, text] of [
-      ["setup", setupBefore],
-      ["timer", timerBefore],
-    ] as const) {
-      expect(text, `the ${event} meter left ${MEASURING}`).not.toContain(
-        MEASURING,
-      );
-      expect(text, `the ${event} meter states its number out of 908`).toMatch(
-        /^[0-9]+ \/ 908$/,
-      );
-    }
-    // Two events, two budgets, two numbers. A meter pair showing one number
-    // twice would be a wiring bug that every other assertion here would miss.
+    const setupBefore = await measured(page, "setup");
+    const timerBefore = await measured(page, "timer");
+    // Two events, two budgets, two numbers. A pair carrying one number twice
+    // would be a wiring bug that every other assertion here would miss.
     expect(
       timerBefore,
       "Setup and Timer are measured separately and do not read the same",
     ).not.toBe(setupBefore);
+    for (const [event, used] of [
+      ["setup", setupBefore],
+      ["timer", timerBefore],
+    ] as const) {
+      expect(used, `the ${event} number is inside 908`).toBeLessThanOrEqual(
+        908,
+      );
+    }
 
     await turnRail(page, 0);
 
-    const setupAfter = await meterText(page, "setup");
-    const timerAfter = await meterText(page, "timer");
+    const setupAfter = await measured(page, "setup");
+    const timerAfter = await measured(page, "timer");
     expect(
       setupAfter !== setupBefore || timerAfter !== timerBefore,
       `a knob turn moves at least one budget: setup ${setupBefore} -> ${setupAfter}, timer ${timerBefore} -> ${timerAfter}`,
@@ -478,8 +635,8 @@ test.describe("turning a knob", () => {
       home.some((knob) => knob.id === "colour-rail-r"),
       "the picker's rails are in the snapshot - the block is open",
     ).toBe(true);
-    const homeSetup = await meterText(page, "setup");
-    const homeTimer = await meterText(page, "timer");
+    const homeSetup = await measured(page, "setup");
+    const homeTimer = await measured(page, "timer");
 
     await turnRail(page, 0);
     await turnRail(page, 1);
@@ -499,10 +656,10 @@ test.describe("turning a knob", () => {
       await knobIndices(page),
       "RESET ALL returns every knob to the position it arrived at",
     ).toEqual(home);
-    expect(await meterText(page, "setup"), "the Setup budget came back").toBe(
+    expect(await measured(page, "setup"), "the Setup budget came back").toBe(
       homeSetup,
     );
-    expect(await meterText(page, "timer"), "the Timer budget came back").toBe(
+    expect(await measured(page, "timer"), "the Timer budget came back").toBe(
       homeTimer,
     );
     await expect(
@@ -563,19 +720,17 @@ test.describe("turning a knob", () => {
     ).not.toEqual(home);
 
     // SURPRISE ME has no failure state: its roll only accepts states that fit,
-    // so neither meter may be in the over-budget branch afterwards.
+    // so neither number may be over 908 afterwards and no refusal renders.
     for (const event of ["setup", "timer"] as const) {
-      const meter = page.getByTestId(`meter-${event}`);
       expect(
-        await meter.locator(".over").count(),
-        `the ${event} meter is not in the over-budget state after a roll`,
-      ).toBe(0);
-      const percent = await meter.locator(".percent").innerText();
-      expect(
-        Number.parseInt(percent, 10),
-        `the ${event} meter reads at or under 100 per cent`,
-      ).toBeLessThanOrEqual(100);
+        await measured(page, event),
+        `the ${event} number is at or under 908 after a roll`,
+      ).toBeLessThanOrEqual(908);
     }
+    await expect(
+      page.getByTestId("budget-message"),
+      "no over-budget block after a roll",
+    ).toHaveText("");
 
     expect(consoleErrors).toEqual([]);
   });
@@ -807,8 +962,12 @@ test.describe("a browser with no clipboard API", () => {
 // every shelf card and not one crosses 908. So these two tests open
 // /dev/tune/ - the unlinked probe that mounts the same tuning region over a
 // real `PadReserved`, which the vendored cost() charges itself. Nothing here
-// injects a cost, and the region has no test-only prop: what reddens the meter
-// is a budget the compiler really refused.
+// injects a cost, and the region has no test-only prop: what sets the refusal
+// is a budget the compiler really refused. Since 13.1-07 (D-10) nothing paints
+// the numbers; they are read off the region's data attributes, and TUNE-05 is
+// read where it renders - the zone's disabled Apply with its refusal line
+// (the probe mounts DestinationZone with the refusal alone, 13.1-06) and
+// BudgetMessage's block with its one-click back-off.
 //
 // The probe's own numbers are read from its `probe-cost` readout, which
 // recomputes the cost from the indices the region reports, through $lib/pad. So
@@ -839,22 +998,6 @@ async function probeCost(
   return JSON.parse(text);
 }
 
-/** The number in front of the slash. `meterText` returns "910 / 908". */
-async function meterUsed(
-  page: Page,
-  event: "setup" | "timer",
-): Promise<number> {
-  return Number((await meterText(page, event)).split("/")[0].trim());
-}
-
-async function meterPct(page: Page, event: "setup" | "timer"): Promise<number> {
-  const text = await page
-    .getByTestId(`meter-${event}`)
-    .locator(".percent")
-    .innerText();
-  return Number(text.replace("%", ""));
-}
-
 /** Open the probe and wait for its first measurement, not merely its markup. */
 async function openProbe(page: Page): Promise<void> {
   await page.goto(PROBE);
@@ -875,15 +1018,16 @@ async function pressScroll(page: Page, key: "Home" | "End"): Promise<void> {
 }
 
 /**
- * Wait for the next measurement to LAND when the meter is starting from over
+ * Wait for the next measurement to LAND when the region is starting from over
  * budget, where it cannot report that it is busy.
  *
  * `meterView` makes `over` outrank the feed - "a warning is never dimmed" - so
- * a meter showing an over-budget number publishes `aria-busy="false"` for the
+ * a view holding an over-budget number publishes `data-busy="false"` for the
  * whole of the 120ms recompile, and `recomputed` above would time out on it.
- * OBSERVED: this file's first run failed exactly there. The anchor here is
- * therefore the number itself, polled until it is no longer the one that was on
- * screen when the key went down. Every transition these tests make moves the
+ * OBSERVED: this file's first run failed exactly there (on the meter's
+ * aria-busy, which the attribute inherits). The anchor here is therefore the
+ * number itself, polled until it is no longer the one that was on the region
+ * when the key went down. Every transition these tests make moves the
  * number, so a poll that never changes is a real defect rather than a slow
  * machine.
  *
@@ -901,20 +1045,20 @@ async function pressScroll(page: Page, key: "Home" | "End"): Promise<void> {
  */
 async function remeasured(page: Page, was: number): Promise<void> {
   const moved = guardedNot(
-    () => meterUsed(page, "setup"),
+    () => measured(page, "setup"),
     was,
-    "the Setup meter's numeral",
+    "the Setup number on the region",
   );
   await expect.poll(moved.read, { timeout: 30_000 }).not.toBe(was);
   expect(
     moved.lastError(),
-    "the meter moved without the page ever refusing to read it",
+    "the number moved without the page ever refusing to read it",
   ).toBeUndefined();
   await settled(page);
 }
 
 test.describe("a configuration the compiler refuses", () => {
-  test("an over-budget configuration reddens its meter and disables the primary control", async ({
+  test("an over-budget configuration shows the refusal line and disables Apply", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
@@ -929,45 +1073,44 @@ test.describe("a configuration the compiler refuses", () => {
     ).toBe(false);
     expect(cost.setup).toBeGreaterThan(908);
 
-    const used = await meterUsed(page, "setup");
+    const used = await measured(page, "setup");
     expect(
       used,
-      "the meter shows the number the compiler measured, reserve and all",
+      "the region carries the number the compiler measured, reserve and all",
     ).toBe(cost.setup);
     expect(used, "and it is over the budget").toBeGreaterThan(908);
     expect(
-      await meterPct(page, "setup"),
-      "the percentage is CEILED outside the budget, so one character over reads 101",
-    ).toBeGreaterThan(100);
-
-    // The red is asserted as the class the stylesheet keys off rather than as a
-    // colour: 05-10 measured that the over state is carried by four non-colour
-    // signals as well, so the hue is deliberately not the thing under test.
-    const meter = page.getByTestId("meter-setup");
-    await expect(meter.locator(".numerals")).toHaveClass(/over/);
-    await expect(meter.locator(".track")).toHaveClass(/over/);
-    expect(
-      await meterUsed(page, "timer"),
-      "the event that fits is not reddened with it - one event over is not two",
+      await measured(page, "timer"),
+      "the event that fits is not over with it - one event over is not two",
     ).toBeLessThan(908);
-    await expect(
-      page.getByTestId("meter-timer").locator(".numerals"),
-    ).not.toHaveClass(/over/);
+    // NOTHING PAINTS THE NUMBER (13.1-07, D-10): no meter, no TUNING caption,
+    // no percentage in the workspace's inspector. The refusal is the message.
+    expect(await page.getByTestId("meter-setup").count()).toBe(0);
+    expect(await page.getByTestId("tuning-meters").count()).toBe(0);
+    expect(await page.getByText("TUNING", { exact: true }).count()).toBe(0);
 
     // TUNE-05: a real disabled button, never aria-disabled alone, never hidden,
-    // and the reason beside it.
-    const tryOn = page.getByTestId("try-on-device");
-    await expect(tryOn).toBeVisible();
-    await expect(tryOn).toBeDisabled();
+    // and the reason beside it - the zone's Apply to ZONA (13.1-06 mounts the
+    // zone on the probe with the refusal alone) described by its refusal
+    // line, which is the one place the cause is painted.
+    const apply = page.getByTestId("apply-to-zona");
+    await expect(apply).toBeVisible();
+    await expect(apply).toBeDisabled();
     const reason = tryOnBudgetReason("Setup");
     await expect(
       page.getByTestId("probe-budget-reason"),
       "the region reported the reason upward, which is what disables the control",
     ).toHaveText(reason);
+    const refusal = page.getByTestId("apply-refusal");
     await expect(
-      page.locator("#try-on-reason").getByText(reason),
+      refusal,
       "and the sentence is rendered beside the control, not only held in a prop",
     ).toBeVisible();
+    await expect(refusal).toHaveText(reason);
+    await expect(
+      apply,
+      "the refusal is Apply's description as well as its neighbour",
+    ).toHaveAttribute("aria-describedby", /-refusal$/);
 
     // TUNE-04's block. Nothing has been turned yet, so this is the ARRIVED
     // sentence: naming a knob here would name one nobody moved.
@@ -1004,7 +1147,7 @@ test.describe("a configuration the compiler refuses", () => {
 
     const consoleErrors = collectErrors(page);
     await openProbe(page);
-    const opened = await meterUsed(page, "setup");
+    const opened = await measured(page, "setup");
     expect(
       opened,
       "the precondition: the probe opens over budget",
@@ -1016,14 +1159,19 @@ test.describe("a configuration the compiler refuses", () => {
     await rails(page).nth(SCROLL_RAIL).focus();
     await page.keyboard.press("Home");
     await remeasured(page, opened);
-    const inside = await meterUsed(page, "setup");
+    const inside = await measured(page, "setup");
     expect(inside, "one key press brings it back inside 908").toBeLessThan(908);
     await expect(page.getByTestId("budget-message")).toHaveText("");
-    await expect(page.getByTestId("try-on-device")).toBeEnabled();
+    // The probe has no session, so Apply stays disabled on that; what the
+    // budget controls is the REFUSAL, which is gone inside 908.
+    await expect(page.getByTestId("apply-refusal")).toHaveCount(0);
+    await expect(page.getByTestId("probe-budget-reason")).toHaveText(
+      "in budget",
+    );
 
     // And back over, this time with a culprit.
     await pressScroll(page, "End");
-    const over = await meterUsed(page, "setup");
+    const over = await measured(page, "setup");
     expect(over).toBeGreaterThan(908);
     await expect(
       page.getByTestId("budget-message").locator(".line"),
@@ -1038,21 +1186,27 @@ test.describe("a configuration the compiler refuses", () => {
       "the quiet line says exactly what the click will do, in characters",
     ).toHaveText(backOffKnob(SCROLL_LABEL, "Setup", inside));
 
+    await expect(
+      page.getByTestId("apply-refusal"),
+      "over budget the zone's refusal line names the cause",
+    ).toHaveText(tryOnBudgetReason("Setup"));
+    await expect(page.getByTestId("apply-to-zona")).toBeDisabled();
+
     await backOff.click();
     await remeasured(page, over);
 
     expect(
-      await meterUsed(page, "setup"),
+      await measured(page, "setup"),
       "one click puts the knob back where it was, and the number with it",
     ).toBe(inside);
-    await expect(
-      page.getByTestId("meter-setup").locator(".numerals"),
-    ).not.toHaveClass(/over/);
     await expect(
       page.getByTestId("budget-message"),
       "the block goes away rather than lingering as a warning about a state that has passed",
     ).toHaveText("");
-    await expect(page.getByTestId("try-on-device")).toBeEnabled();
+    await expect(
+      page.getByTestId("apply-refusal"),
+      "and the refusal with it",
+    ).toHaveCount(0);
     await expect(page.getByTestId("probe-budget-reason")).toHaveText(
       "in budget",
     );

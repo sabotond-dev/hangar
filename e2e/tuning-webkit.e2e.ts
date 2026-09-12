@@ -61,8 +61,8 @@ import { expect, test, type Page } from "@playwright/test";
 // zero import statements; src/lib/tune/copy.ts is a leaf by design.)
 // The intro's hero, by its one name (13-07). front-door.ts imports nothing.
 import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
-import { TRY_ON_LABEL } from "../src/lib/device/install-copy";
-import { LINK_COPIED, MEASURING } from "../src/lib/tune/copy";
+import { CLEAR_REASONS } from "../src/lib/device/install-copy";
+import { LINK_COPIED } from "../src/lib/tune/copy";
 import { SHARE_SNAPSHOT } from "../src/lib/tune/inspector-copy";
 import { failureCopy } from "../src/lib/transport/transport";
 import { guarded, guardedNot } from "./poll";
@@ -70,9 +70,6 @@ import { guarded, guardedNot } from "./poll";
 /** The opening centre of the front-door row, and an `animated` entry. */
 const ENTRY = "aurora";
 const ENTRY_NAME = "Aurora";
-
-/** The label the honesty copy is interpolated with on this control: section 9's, from the module (13-18). */
-const PRIMARY_LABEL = TRY_ON_LABEL;
 
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
 
@@ -134,17 +131,22 @@ function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
 }
 
 /**
- * Both meters settled, anchored on the meter's own `aria-busy` rather than on
- * its text: a knob move leaves the PREVIOUS number on screen through the whole
- * stale window, so a text-only wait returns the measurement the knob replaced.
- * (05-11 observed this.)
+ * Both numbers settled, anchored on the region's own `data-busy` (the
+ * meters' aria-busy, carried on the tuning region's root since 13.1-07 hid
+ * the meters - 13.1-CONTEXT D-10) rather than on any text: a knob move
+ * leaves the PREVIOUS number through the whole stale window, so a text-only
+ * wait returns the measurement the knob replaced. (05-11 observed this.)
  */
 async function settled(page: Page): Promise<void> {
+  await expect(
+    page.getByTestId("tuning-region"),
+    "the region settled on its numbers",
+  ).toHaveAttribute("data-busy", "false", { timeout: 30_000 });
   for (const event of ["setup", "timer"] as const) {
     await expect(
-      page.getByTestId(`meter-${event}`),
-      `the ${event} meter settled on a number`,
-    ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+      page.getByTestId("tuning-region"),
+      `the ${event} number landed`,
+    ).toHaveAttribute(`data-${event}`, /^[0-9]+$/);
   }
 }
 
@@ -323,13 +325,15 @@ test.describe("the whole site except install, on a phone engine", () => {
     const consoleErrors = collectErrors(page);
     await choose(page);
 
-    const panel = page.getByTestId("chosen-panel");
+    // 13.1-07: the panel is the shell's inspector (chosen-panel left with the
+    // install column at 13.1-06, 13.1-CONTEXT D-06).
+    const panel = page.getByTestId("shell-inspector");
     await expect(panel).toBeVisible();
     await expect(page.getByTestId("tuning-region")).toBeVisible();
     await expect(page.getByTestId("workspace-name")).toHaveText(ENTRY_NAME);
 
     // D-11's "wrap, never scroll", MEASURED rather than asserted in prose.
-    for (const id of ["knob-rack", "tuning-region", "chosen-panel"]) {
+    for (const id of ["knob-rack", "tuning-region", "shell-inspector"]) {
       const box = await overflowOf(page, id);
       expect(box, `${id} is on the page`).not.toBeNull();
       expect(
@@ -357,7 +361,7 @@ test.describe("the whole site except install, on a phone engine", () => {
     // stacking MECHANISM is exercised below the floor, at 260px, where the
     // rack is 208px - and at both widths nothing scrolls sideways.
     await page.setViewportSize({ width: 320, height: 659 });
-    for (const id of ["knob-rack", "tuning-region", "chosen-panel"]) {
+    for (const id of ["knob-rack", "tuning-region", "shell-inspector"]) {
       const box = await overflowOf(page, id);
       expect(
         (box as { scrollWidth: number }).scrollWidth,
@@ -390,7 +394,7 @@ test.describe("the whole site except install, on a phone engine", () => {
       "and below it, not merely reflowed",
     ).toBeGreaterThanOrEqual(n.label.y + n.label.h);
 
-    for (const id of ["knob-rack", "tuning-region", "chosen-panel"]) {
+    for (const id of ["knob-rack", "tuning-region", "shell-inspector"]) {
       const box = await overflowOf(page, id);
       expect(
         (box as { scrollWidth: number }).scrollWidth,
@@ -444,15 +448,18 @@ test.describe("the whole site except install, on a phone engine", () => {
     // THE requestIdleCallback FALLBACK, OBSERVED FROM OUTSIDE. Safari has no
     // requestIdleCallback, so $lib/tune/idle prefetches the 628 KB formatter on
     // a setTimeout instead. If that fallback never fired, no number would ever
-    // land and both meters would still read `measuring…`. This is the only
-    // place that branch is visible without instrumenting the page.
+    // land and the region would carry no data-setup / data-timer at all
+    // (13.1-07: the numbers are attributes, nothing paints them). This is the
+    // only place that branch is visible without instrumenting the page.
     for (const event of ["setup", "timer"] as const) {
-      const numerals = page.getByTestId(`meter-${event}`).locator(".numerals");
-      await expect(
-        numerals,
-        `the ${event} meter left ${MEASURING}, so the formatter really did initialise here`,
-      ).not.toHaveText(MEASURING);
-      await expect(numerals).toHaveText(/^[0-9]+ \/ 908$/);
+      const text = await page
+        .getByTestId("tuning-region")
+        .getAttribute(`data-${event}`);
+      expect(
+        text,
+        `the ${event} number landed on the region, so the formatter really did initialise here`,
+      ).toMatch(/^[0-9]+$/);
+      expect(Number(text)).toBeLessThanOrEqual(908);
     }
 
     expect(consoleErrors).toEqual([]);
@@ -610,20 +617,34 @@ test.describe("the whole site except install, on a phone engine", () => {
       "every knob came back exactly where the link left it",
     ).toEqual(tuned);
 
-    // DEGR-02: present, really disabled, never hidden - and the reason names
-    // the browsers that CAN install rather than apologising for this one.
-    const tryOn = page.getByTestId("try-on-device");
-    await expect(tryOn).toBeVisible();
-    await expect(tryOn).toBeDisabled();
-    const copyForThis = failureCopy("no-web-serial", undefined, PRIMARY_LABEL);
-    const status = page.getByTestId("connect-status");
-    await expect(status).toContainText(copyForThis.title);
-    await expect(status).toContainText(copyForThis.detail);
-    for (const step of copyForThis.steps) {
-      await expect(status).toContainText(step);
-    }
+    // DEGR-02: present, really disabled, never hidden - the header's Clear
+    // with its reason (13.1-05; since 13.1-06 the bar's Apply exists only
+    // for a module that has reported a page, so on this engine the bar says
+    // preview-only where the zone would be) - and the header's disclosure
+    // names the browsers that CAN install rather than apologising for this
+    // one.
+    const clear = page.getByTestId("clear");
+    await expect(clear).toBeVisible();
+    await expect(clear).toBeDisabled();
+    await expect(page.getByTestId("clear-line")).toHaveText(
+      CLEAR_REASONS.incapable,
+    );
+    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
+    await expect(page.locator('[data-zone="destination"]')).toContainText(
+      "Preview",
+    );
+    const copyForThis = failureCopy("no-web-serial", undefined, "Connect ZONA");
+    const slot = page.getByTestId("device-slot");
+    await expect(slot).toHaveAttribute("data-slot", "S0a");
+    await slot.click();
+    const drawer = page.getByTestId("device-details");
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toContainText(copyForThis.title);
+    await expect(drawer).toContainText(copyForThis.detail);
     // CONN-01 is a capability test, never a browser test.
     expect(await page.locator("body").innerText()).not.toContain("Chromium");
+    await page.keyboard.press("Escape");
+    await expect(drawer).toHaveCount(0);
 
     expect(consoleErrors).toEqual([]);
   });

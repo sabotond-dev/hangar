@@ -1621,15 +1621,20 @@ test.describe("the engine hazard this phase created, in a browser", () => {
     await expect(page.getByTestId("tuning-region")).toBeVisible();
     await expect(page.getByTestId("tuning-region")).toBeAttached();
 
-    // BOTH METERS SETTLED, AND THAT IS THE PART THAT ARMS THIS TEST. Ownership
-    // of the engine transfers at `onpreview`; a settled meter means the tuner
-    // has compiled and published, so the surface is now painting from the
-    // tuner's engine rather than the shipped one.
+    // BOTH NUMBERS SETTLED, AND THAT IS THE PART THAT ARMS THIS TEST. Ownership
+    // of the engine transfers at `onpreview`; a settled region (data-busy on
+    // its root since 13.1-07 hid the meters, 13.1-CONTEXT D-10) means the
+    // tuner has compiled and published, so the surface is now painting from
+    // the tuner's engine rather than the shipped one.
+    await expect(
+      page.getByTestId("tuning-region"),
+      "the region settled, so the tuner has published its engine",
+    ).toHaveAttribute("data-busy", "false", { timeout: 30_000 });
     for (const event of ["setup", "timer"] as const) {
       await expect(
-        page.getByTestId(`meter-${event}`),
-        `the ${event} meter settled, so the tuner has published its engine`,
-      ).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+        page.getByTestId("tuning-region"),
+        `the ${event} number landed`,
+      ).toHaveAttribute(`data-${event}`, /^[0-9]+$/);
     }
 
     const after = await samplePad(page, ID);

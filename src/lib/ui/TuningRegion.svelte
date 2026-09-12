@@ -21,16 +21,24 @@
   line 7's screenshot: `CC number` and `Channel` as two text inputs). The
   partition is the same; only what renders it changed, and Knob.svelte did
   not. A section with no knob in it is OMITTED, not rendered empty: an empty
-  disclosure is the thing the next paragraph exists to forbid. The fourth group is the two
-  budget meters under Phase 4's TUNING caption - the spec has no budget meter
-  anywhere and HANGAR's honesty is not for cutting (13-RESEARCH Q8). They
-  render after the last section, so under MIDI output on an entry that has
-  one: two `{used} / 908` rows with a percentage in tabular numerals, the
-  ladder's line and the over-budget block beneath them, the over state on
-  13-03's error tokens (13-10). TUNE-05 survives the re-home clause by
-  clause: over budget disables the primary control through `onbudget`, turns
-  the offending meter red, names the knob that pushed it over, offers a
-  one-click back-off, and the click never reaches the wire to fail there.
+  disclosure is the thing the next paragraph exists to forbid.
+
+  THE FOURTH GROUP IS HIDDEN BY THE USER'S WORD (13.1-07; 13.1-CONTEXT
+  D-10; bench line 8: "TUNING, so code limit visualiztation should be
+  removed, lets not show that."). From 13-10 to 13.1-06 the two `{used} /
+  908` meters, the TUNING caption and the forecast ghost rendered here after
+  the last section. None of them is painted now, and BudgetMeter.svelte is
+  no longer mounted by this region (the Sandbox still mounts it under its
+  own room line, which D-10 keeps and the gate's bench row asks about). What
+  did NOT go: cost() still measures every change, the two numbers are
+  carried on the region's root as data-setup / data-timer with data-busy
+  beside them - machine-readable for the e2e suite's settled() and
+  recomputed() anchors, never painted - and TUNE-05 survives clause by
+  clause as BudgetMessage.svelte's line: over budget disables Apply through
+  `onbudget` (the zone's refusal line names the cause), the ladder names the
+  knob that pushed it over, the one-click back-off is offered, and the click
+  never reaches the wire to fail there. TUNE-03's visible meters are
+  qualified at the gate by the user's word, not amended into a claim.
 
   THERE IS NO ADVANCED SECTION, AND THAT IS A DECISION RATHER THAN AN EMPTY
   DISCLOSURE. Section 7 proposes Curve, Smoothing, Phase, Clock sync, Voicing,
@@ -132,10 +140,13 @@
 
   THE FORMATTER IS PREFETCHED WHEN THE BROWSER IS IDLE, and shortly instead on
   Safari, which has no idea what idle means - that is the whole of $lib/tune/idle
-  (D-08). Nothing here awaits it before the first paint: the meters say
-  `measuring…` until a number lands, and the preview is already running. When it
-  never resolves at all - blocked, 404, offline - the meters block is replaced
-  by one Body line and NOTHING else is disabled.
+  (D-08). Nothing here awaits it before the first paint: the numbers are
+  absent until one lands, and the preview is already running. When it never
+  resolves at all - blocked, 404, offline - no number ever lands, the tuner
+  never publishes a pair, and the zone's Apply stays a real `disabled` on
+  `config === undefined`; nothing else is disabled and nothing here says so
+  (METERS_UNAVAILABLE, the Body line that replaced the meters in that state,
+  retired with them - 13.1-07, W-14).
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -145,16 +156,12 @@
   import type { SimEngine } from "$lib/sim/engine";
   import {
     LINK_COPIED_ANNOUNCEMENT,
-    METERS_UNAVAILABLE,
     SURPRISE_ALL_HELD,
-    TUNING_CAPTION,
     liveBackInside,
     liveRandomised,
     liveReset,
     liveResetOver,
     liveResetOverBoth,
-    forecastDelta,
-    forecastExpansion,
     type EventWord,
   } from "$lib/tune/copy";
   import { onIdle } from "$lib/tune/idle";
@@ -174,7 +181,6 @@
   import { isMidiDestination } from "$lib/tune/surprise";
   import { knobPosition, type KnobView, type TuneView } from "$lib/tune/view";
   import BudgetMessage from "./BudgetMessage.svelte";
-  import BudgetMeter from "./BudgetMeter.svelte";
   import KnobRack from "./KnobRack.svelte";
   import MidiField from "./MidiField.svelte";
   import StampNotice from "./StampNotice.svelte";
@@ -201,19 +207,6 @@
     apply: () => void;
   };
 
-  /**
-   * $lib/tune/model's ForecastView, restated for the same reason every other
-   * type on this page is: that module reaches the vendored compiler.
-   */
-  type ForecastMessage = {
-    knobId: string;
-    position: number;
-    setup: number;
-    timer: number;
-    setupDelta: number;
-    timerDelta: number;
-  };
-
   /** One index vector: what Undo randomize keeps, and all it keeps. */
   type IndexVector = Readonly<Record<string, number>>;
 
@@ -224,7 +217,6 @@
     resetAll(): void;
     surprise(held?: ReadonlySet<string>): Promise<IndexVector | undefined>;
     restore(indices: IndexVector): void;
-    forecast(knobId: string, position: number | undefined): void;
     stamp(): string | undefined;
     destroy(): void;
   };
@@ -327,19 +319,12 @@
    */
   const heldKnobs = new SvelteSet<string>();
   /**
-   * The one forecast on screen (TUNE-02, T2), or undefined. AT MOST ONE FOR
-   * THE WHOLE INSPECTOR: a visitor has one pointer and one focus. The tuner
-   * withdraws it on every knob move, so nothing here has to remember to.
-   */
-  let forecast: ForecastMessage | undefined = $state(undefined);
-  /**
    * The stamp notice describes how the panel arrived, and stops being true
    * once the visitor takes over. untrack: the landing is decided by the route
    * before the panel opens and a later change must not put the notice back
    * after a knob has moved.
    */
   let landed = $state(untrack(() => landing.kind !== "none"));
-  let metersUnavailable = $state(false);
   let announcement = $state("");
   /** D-21: the MIDI grid's column count, answered by the observer below. */
   let gridColumns = $state(1);
@@ -420,53 +405,13 @@
     hasKnobs && rollableKnobs.every((knob) => heldKnobs.has(knob.id)),
   );
   /**
-   * aria-busy on the block while either meter is measuring or catching up, so
-   * an assistive technology does not read numbers that are about to change.
+   * data-busy on the region's root while either number is measuring or
+   * catching up - the state the meters' aria-busy carried, kept for the e2e
+   * suite's settled() and recomputed() anchors now that nothing paints it.
    */
   const busy = $derived(busyOf(view));
   /** The disabled control's reason, wired to it by aria-describedby. */
   const heldReasonId = "tuning-surprise-held";
-
-  /**
-   * WHICH EVENT THE ONE NUMBER SPEAKS FOR.
-   *
-   * The forecast moves both budgets and both meters draw their own ghost, but
-   * the delta beside the option is ONE number and has to be about one of them.
-   * It is the event that moves further, ties to Setup - so the number answers
-   * "what is the most this would cost me" rather than averaging two budgets
-   * that are not interchangeable.
-   */
-  const forecastEvent = $derived.by<EventWord>(() => {
-    const now = forecast;
-    if (now === undefined) return "Setup";
-    return Math.abs(now.timerDelta) > Math.abs(now.setupDelta)
-      ? "Timer"
-      : "Setup";
-  });
-
-  /**
-   * The forecast as the rack takes it: two already-written strings.
-   *
-   * `$derived.by` rather than `$derived`, and it is not a style choice: a rune
-   * initialiser is an expression in the module body, so TypeScript's flow
-   * analysis knows `forecast` was assigned `undefined` on the line above and
-   * narrows every later branch of it to `never`. A closure defers the read and
-   * the declared type survives.
-   */
-  const rackForecast = $derived.by(() => {
-    const now = forecast;
-    if (now === undefined) return undefined;
-    const event = forecastEvent;
-    return {
-      knobId: now.knobId,
-      position: now.position,
-      label: forecastDelta(event === "Setup" ? now.setupDelta : now.timerDelta),
-      sentence: forecastExpansion(
-        event,
-        event === "Setup" ? now.setup : now.timer,
-      ),
-    };
-  });
 
   /**
    * WHAT A COLOUR MAY STILL SPEND (TUNE-05, 10-UI-SPEC 11.2).
@@ -650,15 +595,17 @@
   /**
    * D-08's prefetch, and the only place this component reaches the compile
    * surface. It is a DYNAMIC import for the reason in rule 1, it is not awaited
-   * before the first paint, and its failure is the meters' own degraded state
-   * rather than the region's.
+   * before the first paint, and its failure disables nothing here: no number
+   * lands, the tuner publishes no pair, and the zone's Apply is disabled on
+   * that (the header's formatter paragraph).
    */
   async function prefetchFormatter(): Promise<void> {
     try {
       const { padReady } = await import("$lib/pad");
       await padReady();
     } catch {
-      if (mounted) metersUnavailable = true;
+      // The formatter never resolved. Nothing to flag: the absence of a
+      // number is the state, and the zone reads it off the missing pair.
     }
   }
 
@@ -683,9 +630,6 @@
         },
         onover: receiveOver,
         onconfig,
-        onforecast: (next) => {
-          forecast = next;
-        },
       });
       if (!mounted) {
         built.destroy();
@@ -734,15 +678,6 @@
    */
   function holdKnob(id: string): void {
     if (!heldKnobs.delete(id)) heldKnobs.add(id);
-  }
-
-  /**
-   * One hover or focus, forwarded. Nothing is computed here and nothing is
-   * cached here: the tuner owns the memo, because the memo's key is the index
-   * vector and the tuner is what owns that.
-   */
-  function forecastKnob(id: string, position: number | undefined): void {
-    tuner?.forecast(id, position);
   }
 
   function resetAll(): void {
@@ -796,12 +731,10 @@
     knobs={behaviorKnobs}
     held={heldKnobs}
     budget={colourBudget}
-    forecast={rackForecast}
     empty={!hasKnobs}
     onchange={changeKnob}
     onreset={resetKnob}
     onhold={holdKnob}
-    onforecast={forecastKnob}
   />
 
   {#if hasKnobs}
@@ -862,13 +795,11 @@
     knobs={colourKnobs}
     held={heldKnobs}
     budget={colourBudget}
-    forecast={rackForecast}
     empty={false}
     {onresult}
     onchange={changeKnob}
     onreset={resetKnob}
     onhold={holdKnob}
-    onforecast={forecastKnob}
   />
 {/snippet}
 
@@ -896,7 +827,17 @@
   {INSPECTOR_HEADLINE[0]}<br />{INSPECTOR_HEADLINE[1]}
 {/snippet}
 
-<div class="region" data-testid="tuning-region">
+<!--
+  The two measured numbers and the busy state ride on the root as data
+  attributes (13.1-07, D-10): read by the e2e suite, painted by nothing.
+-->
+<div
+  class="region"
+  data-testid="tuning-region"
+  data-setup={view?.setup.used}
+  data-timer={view?.timer.used}
+  data-busy={busy}
+>
   <Inspector
     eyebrow={INSPECTOR_EYEBROW}
     {headline}
@@ -911,28 +852,12 @@
     {actions}
   >
     <!--
-      HANGAR's fourth group: the two budget meters under Phase 4's TUNING
-      caption. Not a section 7 section - the spec has no budget meter - and
-      not for cutting; it is the site's honesty about 908.
+      HANGAR's fourth group, hidden by the user's word (13.1-07, D-10): no
+      caption, no meter, no forecast. What renders after the last section is
+      TUNE-05's line alone - the ladder's sentence and the over-budget block
+      with its one-click back-off - because a refusal is a message, not a
+      meter, and the user asked for the visualisation to go.
     -->
-    <hr class="divider" />
-    <p class="caption" id="tuning-meters-caption">{TUNING_CAPTION}</p>
-    {#if metersUnavailable}
-      <p class="unavailable" data-testid="meters-unavailable">
-        {METERS_UNAVAILABLE}
-      </p>
-    {:else if view}
-      <div
-        class="meters"
-        data-testid="tuning-meters"
-        aria-busy={busy}
-        aria-labelledby="tuning-meters-caption"
-      >
-        <BudgetMeter view={view.setup} ghost={forecast?.setup} />
-        <BudgetMeter view={view.timer} ghost={forecast?.timer} />
-      </div>
-    {/if}
-
     <BudgetMessage {ladder} {over} />
 
     <p
@@ -1035,41 +960,6 @@
 
   .helper {
     margin: 12px 0 0;
-    color: var(--color-ink-quiet);
-  }
-
-  /* The fourth group's separation, Inspector.svelte's own divider rule. */
-  .divider {
-    margin-block: 20px;
-    border: 0;
-    border-block-start: 1px solid var(--color-divider);
-  }
-
-  /* Phase 4's caption: 12px / 600 / 14px box / 0.18em, uppercase, quiet. */
-  .caption {
-    margin: 0 0 12px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 14px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ink-quiet);
-  }
-
-  /* Exactly 56px: two 26px meters and the 4px between them. */
-  .meters {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    block-size: 56px;
-  }
-
-  /* The formatter never resolved. One Body line, and nothing else is disabled. */
-  .unavailable {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.5;
     color: var(--color-ink-quiet);
   }
 
