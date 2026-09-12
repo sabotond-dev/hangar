@@ -95,6 +95,18 @@
 // no-paraphrase rule, Z-08's one "about a second", A-48's three stems -
 // carry over and are asserted over every export in install-copy.spec.ts.
 //
+// THE REVIEW'S TWO LABELS ARE RETIRED BY NAME, 2026-09-12 (13.1-02,
+// 13.1-CONTEXT D-05; ledgered in 13.1-COPY-NEW.md). SWITCH_PAGE_LABEL
+// (`Switch page`) and KEEP_PAGE_LABEL (`Keep this page`) were the
+// destination review's affirmative and negative (13-12; batch row I.3.8),
+// the affirmative being the fifth entry of WRITE_CLICKS. The user struck the
+// review at the fourth bench ("Page switch doesnt need a confirmation
+// window. When you change page form the drop down just change the page and
+// thats it."); DestinationReview.svelte is deleted with them, the Target
+// select's change is the fifth write click (TARGET_CLICK below), and the
+// way back from an unverified switch is the select itself - choosing the
+// page the module reports is a cancel - so no negative is needed.
+//
 // THREE RULES A READER WOULD REVERSE, WRITTEN DOWN:
 //
 //  - THE SIX STORE ON ZONA REASONS ARE A CLOSED RECORD OVER A SIX-MEMBER
@@ -223,24 +235,30 @@ export const CLEAR_LABEL = "Reset active device page";
 export const clearingLabel = (page: number): string =>
   `Resetting ${pageName(page)}…`;
 /**
- * THE FIFTH WRITE CLICK (13-12; 13-CONTEXT D-06): the destination review's
- * affirmative, the one click that moves the module's active page - a write
- * for SAFE-01's purpose, so it is in WRITE_CLICKS. And its negative beside it.
+ * THE FIFTH WRITE CLICK IS THE TARGET SELECT'S CHANGE (13.1-02; 13.1-CONTEXT
+ * D-05). `Target` is page-target.ts's TARGET_LABEL - the PDF's word for the
+ * select - carried here a second time as TARGET_CLICK because neither module
+ * may import the other (the pageName precedent, three modules, three specs),
+ * and install-copy.spec.ts pins the twin equal to TARGET_LABEL. Not a visible
+ * string of this module's own: the select renders TARGET_LABEL, and this
+ * constant names the control in WRITE_CLICKS so SAFE-01's count reads the
+ * one click that moves the module's active page - a change on a select,
+ * which is the user's gesture and a click for SAFE-01's purpose.
  */
-export const SWITCH_PAGE_LABEL = "Switch page";
-export const KEEP_PAGE_LABEL = "Keep this page";
+export const TARGET_CLICK = "Target";
 
 /**
  * THE NUMBER OF WRITE CLICKS, AS A CONSTANT RATHER THAN AS A WORD IN PROSE.
- * Five since 13-12. REQUIREMENTS.md's SAFE-01 names this constant; a sixth
- * write control is a change here first.
+ * Five since 13-12; the fifth a control that is a SELECT since 13.1-02.
+ * REQUIREMENTS.md's SAFE-01 names this constant; a sixth write control is a
+ * change here first.
  */
 export const WRITE_CLICKS = [
   TRY_ON_LABEL,
   PUT_BACK_LABEL,
   KEEP_LABEL,
   CLEAR_LABEL,
-  SWITCH_PAGE_LABEL,
+  TARGET_CLICK,
 ] as const;
 
 // ---------------------------------------------------------------------------

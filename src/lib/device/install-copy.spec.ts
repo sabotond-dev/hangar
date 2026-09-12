@@ -56,7 +56,7 @@ import {
   LIVE_STILL_WRITING,
   PUT_BACK_LABEL,
   PUT_BACK_NEEDS_ZONA,
-  SWITCH_PAGE_LABEL,
+  TARGET_CLICK,
   TRY_ON_LABEL,
   WRITE_CLICKS,
   announceTitle,
@@ -88,6 +88,8 @@ import {
   type KeepReason,
   type LandedWords,
 } from "./install-copy";
+// The twin's other half, read from the module that renders it (13.1-02).
+import { TARGET_LABEL } from "./page-target";
 
 const read = (relative: string) =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
@@ -158,6 +160,10 @@ const RETIRED_VERBS = [
 /** Assembled: the four retired caps, by name, which the module must not export and must retire in words. */
 const RETIRED_CAPS = ["HONESTY", "PUT_BACK", "KEEP", "CLEAR"].map(
   (stem) => `${stem}_CAP`,
+);
+/** Assembled: the destination review's two labels (13-12), retired by 13.1-02 under D-05 - not exported, named in the header. */
+const RETIRED_REVIEW_LABELS = ["SWITCH_PAGE", "KEEP_PAGE"].map(
+  (stem) => `${stem}_LABEL`,
 );
 
 const FW = { major: 1, minor: 5, patch: 5 };
@@ -672,7 +678,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         )
         .map(([name, build]) => [name, build(PAGE)] as [string, string]),
     ];
-    expect(labels.length, "seven constants and four progress labels").toBe(11);
+    expect(labels.length, "five constants and four progress labels").toBe(9);
     for (const [name, label] of labels) {
       expect(label, `${name} shouts`).not.toBe(label.toUpperCase());
       expect(label[0], `${name} is sentence case`).toBe(label[0].toUpperCase());
@@ -685,16 +691,38 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
 
     // SAFE-01's number, as a constant rather than as a word in prose. The
     // equality FIRST, so a WRITE_CLICKS that has drifted names the label it
-    // lost rather than failing on an arithmetic.
+    // lost rather than failing on an arithmetic. THE FIFTH IS THE TARGET
+    // SELECT'S CHANGE (13.1-02, D-05): TARGET_CLICK is page-target.ts's
+    // TARGET_LABEL carried twice because neither module imports the other -
+    // the twin is pinned by reading the other module, as the three pageName
+    // twins are - and the review's two labels are gone from the exports and
+    // retired in the header by name, with the date and the decision.
     expect([...WRITE_CLICKS], "a write click is not a control label").toEqual([
       TRY_ON_LABEL,
       PUT_BACK_LABEL,
       KEEP_LABEL,
       CLEAR_LABEL,
-      SWITCH_PAGE_LABEL,
+      TARGET_CLICK,
     ]);
     expect(WRITE_CLICKS.length, "five write clicks").toBe(5);
     expect(new Set(WRITE_CLICKS).size, "five distinct").toBe(5);
+    expect(TARGET_CLICK).toBe("Target");
+    expect(TARGET_CLICK, "the twin of page-target.ts's TARGET_LABEL").toBe(
+      TARGET_LABEL,
+    );
+    for (const retired of RETIRED_REVIEW_LABELS) {
+      expect(
+        Object.keys(copy).includes(retired),
+        `${retired} is still exported`,
+      ).toBe(false);
+      expect(
+        installCopySource().includes(retired),
+        `${retired} is retired without being named`,
+      ).toBe(true);
+    }
+    expect(installCopySource()).toContain(
+      "THE REVIEW'S TWO LABELS ARE RETIRED BY NAME, 2026-09-12",
+    );
 
     // NO STRING NAMES A CONTROL THAT IS NOT ON THE SCREEN. The reset's body
     // names Put back and nothing else among the write clicks - the machine's

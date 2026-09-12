@@ -1956,7 +1956,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
   });
 
-  it("flash only what you have heard - the confirmation closes on a knob move and a session drop, and a page change re-snapshots", async () => {
+  it("flash only what you have heard - the confirmation closes on a knob move and a session drop, a page change re-snapshots, and the select's change is switchPage: the heartbeat then exactly one switch in that order, refused where it must be, and never parked at requested", async () => {
     // The four exits of the confirmation, two of them here: a knob move that
     // disarms, and the session dropping.
     const first = await connected();
@@ -2046,6 +2046,104 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       third.store.putBackState(),
       "a remembered module is not a snapshot",
     ).toBe("absent");
+
+    // THE SELECT'S CHANGE IS switchPage() (13.1-02; 13.1-CONTEXT D-05, the
+    // user's word at the fourth bench): the target's request() then its
+    // confirm() in ONE call, no review between them. What is proved here is
+    // the wire's envelope, which D-05 did not move - the restore heartbeat
+    // FIRST, then exactly one switch (grid_decode.c:717), `switching` until
+    // the module's OWN report, Apply by canApply() alone - and the return:
+    // true exactly when the switch left, false with nothing sent otherwise.
+    const PAGE_SWITCH = ["PAGE", "ACTIVE"].join("");
+    const TO = ACTIVE_PAGE + 1;
+    const fourth = await connected();
+    const classes = (frames: DecodedClass[][]) =>
+      frames.map((f) => f.map((c) => `${c.class_name}/${c.class_instr}`));
+    expect(fourth.store.pageStatus).toBe("reported");
+    expect(fourth.store.applyReady).toBe(true);
+    const framesAtRest = fourth.fake.writes.length;
+
+    // The module's own page: nothing to switch to, nothing sent, false.
+    expect(await fourth.store.switchPage(ACTIVE_PAGE)).toBe(false);
+    expect(fourth.fake.writes.length - framesAtRest, "sent nothing").toBe(0);
+    expect(fourth.store.pageStatus).toBe("reported");
+
+    // The change: two frames, HEARTBEAT/EXECUTE then PAGEACTIVE/EXECUTE, as
+    // the last two on the wire; the target is `switching`; the call resolves
+    // TRUE; Apply is shut on the one condition.
+    expect(await fourth.store.switchPage(TO)).toBe(true);
+    expect(fourth.store.pageStatus).toBe("switching");
+    expect(fourth.store.pageRequested).toBe(TO);
+    expect(fourth.store.pageReported).toBe(ACTIVE_PAGE);
+    expect(fourth.store.applyReady).toBe(false);
+    expect(fourth.store.pageSettled()).toBe(false);
+    const afterSwitch = written(fourth.fake);
+    expect(afterSwitch.length - framesAtRest, "two frames left").toBe(2);
+    expect(classes(afterSwitch.slice(-2))).toEqual([
+      ["HEARTBEAT/EXECUTE"],
+      [`${PAGE_SWITCH}/EXECUTE`],
+    ]);
+    expect(fourth.writesOf("CONFIG", "EXECUTE"), "no config write").toBe(0);
+    expect(fourth.state.activePage, "the fake accepted the switch").toBe(TO);
+
+    // Refused while switching: the request is refused, nothing more leaves,
+    // false - and choosing the module's page while switching is refused too
+    // (cancel() is a no-op in flight: the wire cannot be unsent).
+    expect(await fourth.store.switchPage(ACTIVE_PAGE - 1)).toBe(false);
+    expect(await fourth.store.switchPage(ACTIVE_PAGE)).toBe(false);
+    expect(fourth.fake.writes.length - framesAtRest).toBe(2);
+    expect(fourth.store.pageStatus).toBe("switching");
+
+    // The ACK gate: the module's own report of the requested page ends the
+    // wait, and only then is Apply live again. The store then re-snapshots
+    // the new page (a read); wait for it so the next step starts at rest.
+    fourth.push(zonaHeartbeat(TO));
+    await until(() => fourth.store.pageStatus === "reported", "the report");
+    expect(fourth.store.pageReported).toBe(TO);
+    expect(fourth.store.pageRequested).toBe(TO);
+    expect(fourth.store.applyReady).toBe(true);
+    await until(
+      () => fourth.store.phase === "ready" && fourth.store.snapshotPage === TO,
+      "the re-snapshot of the new page",
+    );
+    expect(
+      fourth.writesOf("CONFIG", "EXECUTE"),
+      "a re-snapshot is a read",
+    ).toBe(0);
+
+    // Refused while writing: a leg in flight refuses the request before
+    // anything is sent - false, no switch on the wire, the target at rest.
+    const switchesBeforeLeg = fourth.writesOf(PAGE_SWITCH, "EXECUTE");
+    fourth.store.observeConfig(PAIR);
+    const finish = begin(fourth.store.tryOnDevice(PAIR, "Aurora"));
+    await settle();
+    expect(fourth.store.phase).toBe("writing");
+    expect(await fourth.store.switchPage(ACTIVE_PAGE)).toBe(false);
+    expect(fourth.store.pageStatus).toBe("reported");
+    await finish();
+    expect(fourth.store.phase).toBe("settled");
+    expect(fourth.writesOf(PAGE_SWITCH, "EXECUTE")).toBe(switchesBeforeLeg);
+
+    // NEVER PARKED AT `requested` (13.1-PLAN-CHECK W-04). requestPage() sets
+    // the target; confirmPage() sends one microtask later, after its await on
+    // the cached module. If the target is taken back inside that microtask -
+    // on the site a report of the requested page or a session drop; here
+    // cancelPage(), the same tick - the target's own guard refuses the send,
+    // and switchPage resolves FALSE with nothing on the wire and the target
+    // at `reported`, not left at `requested` with Apply disabled and no line
+    // on the screen. (confirmPage's own guards re-check the leg, the phase
+    // and the session, and switchPage cancels on any early return.)
+    const framesBeforeRace = fourth.fake.writes.length;
+    const raced = fourth.store.switchPage(ACTIVE_PAGE);
+    expect(fourth.store.pageStatus, "the request opened").toBe("requested");
+    fourth.store.cancelPage();
+    expect(await raced).toBe(false);
+    expect(fourth.store.pageStatus).toBe("reported");
+    expect(fourth.store.pageRequested).toBe(TO);
+    expect(fourth.fake.writes.length - framesBeforeRace, "sent nothing").toBe(
+      0,
+    );
+    expect(fourth.store.applyReady).toBe(true);
   });
 
   it("the slow line is a timer on the store, spoken once, and never an interval", async () => {

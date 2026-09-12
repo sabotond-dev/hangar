@@ -1,6 +1,8 @@
 // The page target: the one control on this site that moves the hardware, and
 // the envelope that makes it acceptable (Phase 13, plan 13-12; 13-CONTEXT
-// D-06, all six clauses; D-19; Bible section 9 "Destination review").
+// D-06 clauses 1 and 3 to 6; D-19; Bible section 9). Clause 2 - section 9's
+// destination review - was struck by the user at the fourth bench
+// (13.1-CONTEXT D-05, 2026-09-12): the select's change is the switch.
 //
 // THE FINDING THIS MODULE IS BUILT ON. ../grid-fw/common/src/c/grid_decode.c
 // :1272 NACKs any config write that is not on the module's ACTIVE page,
@@ -14,20 +16,27 @@
 //
 //   reported    the page the module last REPORTED beside its heartbeat. The
 //               only trustworthy value; every write is addressed to it
-//   requested   the page the visitor asked for. Set by the review's open,
-//               confirmed by its affirmative, and equal to `reported` at
+//   requested   the page the visitor asked for. Set by request(), sent by
+//               confirm() one microtask later, and equal to `reported` at
 //               rest - the target follows the module unless asked otherwise
-//   switching   the affirmative was clicked: the restore heartbeat went out,
-//               then the switch, and the module's own report is awaited
+//   switching   the change was sent: the restore heartbeat went out, then
+//               the switch, and the module's own report is awaited
 //   unverified  the window closed with no report carrying the requested
 //               page. NOT switched. NOT failed. Unknown, and rendered as one
 //
-// THE SWITCH IS A CLICK. request() opens the review and sends nothing;
-// confirm() is the affirmative and is the ONLY method here that puts a
-// switch on the wire. Nothing else in this module or the install store calls
-// it: not a navigation, not a selection, not a restore, not an install, not
-// the module reporting a page of its own accord. install.e2e.ts counts the
-// class at zero over a connect-and-browse cycle that opens the menu.
+// THE SWITCH IS A CLICK, AND THE CLICK IS THE SELECT'S CHANGE. request()
+// sets the target and sends nothing; confirm() sends, and is the ONLY method
+// here that puts a switch on the wire. The install store's switchPage()
+// calls the two back to back from the Target select's change handler - no
+// review between them, by the user's word (13.1-CONTEXT D-05: "When you
+// change page form the drop down just change the page and thats it."), and
+// confirmPage() there is still the one caller of confirm(). Nothing else in
+// this module or the install store calls it: not a navigation, not a
+// selection, not a restore, not an install, not the module reporting a page
+// of its own accord. Opening the menu sends nothing; install.e2e.ts counts
+// the class at zero over a connect-and-browse cycle that opens the menu.
+// Choosing the page the module reports is a cancel (request() below), which
+// is the way back from `unverified` now that there is no negative button.
 //
 // THE HEARTBEAT GOES FIRST, AND IT IS NOT DEFENSIVE. grid_decode.c:1279 sets
 // page_change_enabled = 0 on EVERY successful config write, and :717 says
@@ -54,9 +63,9 @@
 // status is `unverified`: Apply stays disabled and the rendered line says
 // what is known - which page was asked for and which the module last
 // reported. The ways out are a report carrying the requested page (the late
-// confirmation), a reconnect (reset()), or the visitor's own click - cancel()
-// takes the target back to the module's reported page, request() opens a
-// new review. Never a retry counter, never a second timer.
+// confirmation), a reconnect (reset()), or the visitor's own change - cancel()
+// takes the target back to the module's reported page, request() sets a new
+// one. Never a retry counter, never a second timer.
 //
 // PAGES ARE ENUMERATED, NEVER ASSUMED. enumerate() asks the module with a
 // PAGECOUNT fetch and offers exactly that many; a module answering 2 offers
@@ -143,10 +152,11 @@ export class PageTarget {
 
   /**
    * THE ONE CONDITION APPLY IS ENABLED ON. At rest, with the module's own
-   * report agreeing with the target. False through `requested` (a review is
-   * open), `switching` (the report is awaited) and `unverified` (it never
-   * came), and false before the module has reported at all. The install
-   * store's write paths all read this and none restates it.
+   * report agreeing with the target. False through `requested` (a change is
+   * on its way to the wire), `switching` (the report is awaited) and
+   * `unverified` (it never came), and false before the module has reported
+   * at all. The install store's write paths all read this and none restates
+   * it.
    */
   canApply(): boolean {
     return (
@@ -165,8 +175,8 @@ export class PageTarget {
    *
    *   reported     the target follows the module: `requested` moves with it,
    *                so a page the visitor changed on the hardware itself is
-   *                the new target with no review, because nothing moved
-   *   requested    the review is open; the "from" page it names updates
+   *                the new target with nothing sent, because nothing moved
+   *   requested    a change is on its way to the wire; `reported` updates
    *   switching    the requested page ends the wait; any other page only
    *                updates `reported` and the wait continues
    *   unverified   the requested page is the late confirmation; any other
@@ -233,14 +243,14 @@ export class PageTarget {
     return count;
   }
 
-  // --- the review and the switch --------------------------------------------------
+  // --- the request and the switch --------------------------------------------------
 
   /**
-   * The visitor chose a destination: OPEN THE REVIEW, SEND NOTHING. Refused -
+   * The visitor chose a destination: SET THE TARGET, SEND NOTHING. Refused -
    * returns false - while a switch is pending, before the module has
    * reported, and for the page the module is already on (nothing to switch
    * to). Allowed from `unverified`: a new request is one of the visitor's
-   * ways out of it.
+   * ways out of it, and choosing the reported page is the other.
    */
   request(page: number): boolean {
     if (this.status === "switching") return false;
@@ -259,7 +269,7 @@ export class PageTarget {
   }
 
   /**
-   * The review's negative, or the visitor taking an unverified target back to
+   * A refused change, or the visitor taking an unverified target back to
    * what the module reports. The target is the module's page again. Nothing
    * is sent. A no-op while a switch is in flight - the wire cannot be
    * unsent; the report or the window decides.
@@ -274,12 +284,12 @@ export class PageTarget {
   }
 
   /**
-   * THE AFFIRMATIVE. The only method that puts a switch on the wire, and it
-   * sends TWO frames in ONE order: the restore heartbeat, then the switch.
-   * Both are fire-and-forget (the switch has no reply to wait for), both go
+   * THE SEND. The only method that puts a switch on the wire, and it sends
+   * TWO frames in ONE order: the restore heartbeat, then the switch. Both
+   * are fire-and-forget (the switch has no reply to wait for), both go
    * through the queue's sendImmediate so the one-outstanding-request rule
    * holds, and the window is armed after the second has left. Refused unless
-   * a review is open. A send that throws - the link died under the click -
+   * a request is open. A send that throws - the link died under the change -
    * lands `unverified`: the frame may or may not have left, which is exactly
    * what the word means, and the close that follows resets everything.
    */
@@ -347,9 +357,13 @@ export class PageTarget {
 // ---------------------------------------------------------------------------
 // The words. Landed here so no screen is blank, ledgered in 13-COPY-NEW.md
 // for 13-18's batch (D-05's register: sentence case, second person, plain
-// about state, names the action and its result together). Two of them are
-// the Bible's own and are not ledgered: section 16's review shape and D-06's
-// switch sentence, both verbatim.
+// about state, names the action and its result together). RETIRED BY NAME,
+// 2026-09-12 (13.1-02, 13.1-CONTEXT D-05, ledgered in 13.1-COPY-NEW.md):
+// switchReviewLine (13-CONTEXT D-06's sentence, "Switch your ZONA to Page 3?
+// It will stop playing Page 1.") and replaceReviewTitle (section 16's
+// "Target review" row) - the two lines the destination review rendered.
+// The user struck the review; nothing renders them, so they are gone rather
+// than left exported for no reader.
 
 /**
  * How a page is named to a visitor: FROM ONE (13-CONTEXT D-23, batch row
@@ -364,22 +378,6 @@ export class PageTarget {
  * others; the three specs pin wire 0 to `Page 1`.
  */
 export const pageName = (page: number): string => `Page ${page + 1}`;
-
-/**
- * THE DESTINATION REVIEW'S SENTENCE - 13-CONTEXT D-06, verbatim: the review
- * names BOTH pages, the one being written and the one being left.
- */
-export const switchReviewLine = (to: number, from: number): string =>
-  `Switch your ZONA to ${pageName(to)}? It will stop playing ${pageName(from)}.`;
-
-/** Bible section 16's "Target review" row, verbatim, as the review's title. */
-export const replaceReviewTitle = (page: number): string =>
-  `Replace the configuration on ZONA · ${pageName(page)}?`;
-
-// The review's affirmative and negative - `Switch page`, `Keep this page` -
-// live in install-copy.ts as SWITCH_PAGE_LABEL and KEEP_PAGE_LABEL, because
-// the affirmative is the fifth entry of WRITE_CLICKS and that module imports
-// nothing; they are not repeated here.
 
 /** The destination zone while the report is awaited (section 9's "Applying to Page N…" shape). */
 export const switchingLine = (to: number): string =>
@@ -417,7 +415,12 @@ export const putBackPageLine = (page: number): string =>
 export const putBackPageLineAfterKeep = (page: number): string =>
   `Puts ${pageName(page)} back to what it was playing when you connected, and stores it so it stays.`;
 
-/** The select's label, the PDF's word. */
+/**
+ * The select's label, the PDF's word. install-copy.ts carries the same
+ * string as TARGET_CLICK - the fifth write click is this select's change -
+ * because neither module may import the other (the pageName precedent), and
+ * install-copy.spec.ts pins the twin equal to this.
+ */
 export const TARGET_LABEL = "Target";
 
 /** The bar's action, PDF pages 3 and 5, verbatim. */

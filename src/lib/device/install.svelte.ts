@@ -31,24 +31,43 @@
 //                     of them free of the protocol package.
 //
 // THE PAGE TARGET, AND HOW IT IS FOLDED INTO PHASE 7'S RULES RATHER THAN
-// EXCEPTED FROM THEM (13-CONTEXT D-06, D-19). page-target.ts holds the four
-// states - reported, requested, switching, unverified - and the two frames a
-// switch puts on the wire, in the one order firmware forces (the restore
-// heartbeat, THEN the switch). This store owns the wiring and the gate:
+// EXCEPTED FROM THEM (13-CONTEXT D-06 clauses 1 and 3-6; 13.1-CONTEXT D-05
+// for clause 2, struck). page-target.ts holds the four states - reported,
+// requested, switching, unverified - and the two frames a switch puts on the
+// wire, in the one order firmware forces (the restore heartbeat, THEN the
+// switch). This store owns the wiring and the gate:
 //
 //   - the module's page report reaches the target from the SAME class sink
 //     the heartbeat waiters and the page-change re-snapshot already read
 //     (#onClassSeen), one microtask after the session's fold has published
 //     the identity, so the target reads `activePage` the way #pageCheck does;
-//   - a switch is a CLICK and nothing else: requestPage() opens the review
-//     and sends nothing; confirmPage() is the affirmative and the only path
-//     to the target's confirm(); no navigation, selection, restore, install
-//     or report of the module's own calls either;
+//   - a switch is a CLICK and nothing else, and the click is the Target
+//     select's CHANGE. There is no destination review: the user struck it
+//     at the fourth bench (BENCH-2026-09-12.txt line 5, "Page switch doesnt
+//     need a confirmation window. When you change page form the drop down
+//     just change the page and thats it."; 13.1-CONTEXT D-05). switchPage()
+//     is what the select's change handler calls: requestPage() sets the
+//     target and sends nothing, confirmPage() sends - it is still the ONLY
+//     path to the target's confirm() - and the two run back to back in one
+//     call. No navigation, selection, restore, install or report of the
+//     module's own calls either. Opening the menu sends nothing; only a
+//     change sends, and install.e2e.ts's zero-writes proof counts the
+//     switch class at zero across a cycle that opens the menu;
+//   - THE KEYBOARD FACT, NAMED (13.1-PLAN-CHECK W-03): on a focused, CLOSED
+//     <select>, Chromium fires `change` on every ArrowUp / ArrowDown, so
+//     each arrow press is a switch - the heartbeat and the PAGEACTIVE - until
+//     the select disables at `switching`. That is the user's own gesture on
+//     the one control that moves the hardware, a click for SAFE-01's
+//     purpose and counted by class like any other; it is NOT a write that
+//     happens without a gesture. The gate's bench row 5 tries it on
+//     hardware;
 //   - EVERY write path reads the target's ONE condition - pageSettled(), which
 //     is canApply(): at rest, and reported === requested - before it touches
 //     the queue: the try-on's refusal list, PUT BACK, CLEAR's enablement and
-//     the keep. Between the affirmative and the module's own report of the
-//     requested page, and through `unverified`, nothing writes;
+//     the keep. Between the change and the module's own report of the
+//     requested page, and through `unverified`, nothing writes. The ACK gate
+//     and the heartbeat-first order are the wire's, not the interface's,
+//     and D-05 moves neither;
 //   - the pages offered are the module's own answer to a PAGECOUNT fetch,
 //     taken once per connection inside the snapshot; never a number;
 //   - the per-page snapshot D-06 asks for has existed since Phase 7
@@ -357,8 +376,9 @@ const SLOW_LINE_MS = 2000;
 
 /**
  * One reason per refusal; the guard returns the first that applies.
- * `page-pending` (13-12): the page target is not at rest - a review is open,
- * a switch awaits the module's report, or the window closed unverified.
+ * `page-pending` (13-12): the page target is not at rest - a change is on
+ * its way to the wire, a switch awaits the module's report, or the window
+ * closed unverified.
  */
 type TryRefusal =
   | "measuring"
@@ -578,8 +598,9 @@ export class InstallStore {
 
   /**
    * THE ONE CONDITION EVERY WRITE READS (13-12, D-06): the page target is at
-   * rest and the module's own report agrees with it. False while a review is
-   * open, while a switch awaits the report, and through `unverified`. Also
+   * rest and the module's own report agrees with it. False for the microtask
+   * a change spends in `requested`, while a switch awaits the report, and
+   * through `unverified`. Also
    * false before any module has reported, which every write path already
    * refuses on other grounds. Delegates to the target's canApply() and
    * restates nothing.
@@ -640,8 +661,8 @@ export class InstallStore {
     // Flash only what you have heard (Z-21): a session drop is one of the
     // confirmation's four exits.
     this.confirmOpen = false;
-    // The page target knows nothing about a module that is gone: a review
-    // closes, a pending switch is no longer pending, `unverified` ends the
+    // The page target knows nothing about a module that is gone: a request
+    // is dropped, a pending switch is no longer pending, `unverified` ends the
     // one way it can end without a report (13-12). The reconnect reports.
     this.#target?.reset();
     if (!this.#inFlight) {
@@ -1134,12 +1155,38 @@ export class InstallStore {
     this.confirmOpen = false;
   }
 
-  // --- the page target: the review, the switch, the revert (13-12, D-06) ---
+  // --- the page target: the change, the switch, the revert (13-12, D-06; 13.1 D-05) ---
 
   /**
-   * The visitor chose a destination: OPEN THE DESTINATION REVIEW. Sends
-   * nothing - that is the whole of this method's contract, and install.e2e.ts
-   * counts the switch class at zero across a cycle that opens the menu. The
+   * THE SELECT'S CHANGE, IN ONE CALL (13.1-CONTEXT D-05): the target's
+   * request() then its confirm(), back to back, with no review between them.
+   * Resolves TRUE exactly when the switch LEFT - the target is `switching`
+   * after confirmPage() returned - and FALSE otherwise, with nothing sent:
+   * when requestPage() refused (a switch pending, no report yet, a leg in
+   * flight, the module's own page, no session), or when confirmPage()
+   * early-returned on its own guards (they re-check the leg, the phase and
+   * the session after the await). In that second case the target would be
+   * parked at `requested` - Apply disabled, no line on the screen, because
+   * the routes render `switching` and `unverified` only - so it is taken
+   * back with cancelPage() before the false is returned (13.1-PLAN-CHECK
+   * W-04). The routes snap the select back on false. Opening the menu never
+   * reaches here; only a change does.
+   */
+  async switchPage(page: number): Promise<boolean> {
+    if (!this.requestPage(page)) return false;
+    await this.confirmPage();
+    if (this.pageStatus !== "switching") {
+      this.cancelPage();
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * The visitor chose a destination: SET THE TARGET. Sends nothing - that is
+   * the whole of this method's contract, and install.e2e.ts counts the switch
+   * class at zero across a cycle that opens the menu. switchPage() calls it
+   * first and confirmPage() next; the /dev/install/ probe calls it alone. The
    * flash confirmation, if open, closes: two confirmations on one screen is
    * one too many, and a page change under an open KEEP would be exactly the
    * "flash only what you have heard" failure Z-21 names. Refused - false -
@@ -1165,19 +1212,20 @@ export class InstallStore {
     return opened;
   }
 
-  /** The review's negative, Escape, a session drop: the target is the module's page again. Sends nothing. */
+  /** A refused change, a session drop, the probe, `unverified`'s programmatic way out: the target is the module's page again. Sends nothing. */
   cancelPage(): void {
     this.#target?.cancel();
   }
 
   /**
-   * THE REVIEW'S AFFIRMATIVE - the one click that moves the hardware, and the
-   * only caller of the target's confirm(). The restore heartbeat goes out,
-   * then the switch, both through this connection's ONE queue; the module's
-   * own report ends the wait, or the window lands `unverified`. Refused while
-   * a leg is in flight: sendImmediate DROPS a frame while a write is
+   * THE SEND - the second half of the select's change, and the only caller
+   * of the target's confirm(). The restore heartbeat goes out, then the
+   * switch, both through this connection's ONE queue; the module's own
+   * report ends the wait, or the window lands `unverified`. Refused while a
+   * leg is in flight: sendImmediate DROPS a frame while a write is
    * outstanding (07-RESEARCH Pitfall 2), and a dropped switch would read as a
-   * refusal on the module rather than as what it was.
+   * refusal on the module rather than as what it was. Called by switchPage()
+   * and by the /dev/install/ probe; nothing else.
    */
   async confirmPage(): Promise<void> {
     if (this.#inFlight || this.phase === "writing") return;
