@@ -3621,6 +3621,83 @@ chunk script's does. Commits: the code alone, then this paragraph with `deferred
 12 and STATE. No device, no deploy; `src/vendor/`, `library.ts`, `Knob.svelte`,
 `ColourPicker.svelte` untouched. CAT-04 stays `[ ]`; the phase stays gate landed / bench pending.
 
+### Clear stores the defaults - round 4c, closed by a quick task after the gate (2026-09-12)
+
+The user's word, `BENCH-2026-09-12.txt` Round 4c, after case (b) - the Editor's stored page came
+back after a power-cycle: "clear should not be RAM only though!! it should be like Store but with
+Clear!". `install.svelte.ts`'s `clearToDefault()` runs the five defaults through `writeAll` as it
+did and then the same `#storeLeg` Store on ZONA runs - one `PAGESTORE/EXECUTE` under pagestoreMs,
+the module's next heartbeat, the five-string re-fetch bounded to three rounds (D-12) - proved
+against the five defaults; `cleared` is said only after the proof. The sequence, as shipped and
+as `install.spec.ts` asserts it by class, by shape and by step id: **five `CONFIG/EXECUTE`** in
+SLOTS order (255/6, 255/0, 255/4, 0/6, 0/0), **one `HEARTBEAT/EXECUTE`** (the restore), **one
+`PAGESTORE/EXECUTE`**, **five `CONFIG/FETCH`** per proof round - twelve frames and twelve steps
+per click, the put-back-after-a-keep shape. The store's three outcomes are classified as Store on
+ZONA's are: `kept` lands `cleared` and sets `keptThisSession` (a probe put-back stores too,
+Z-04); `mismatch` lands `kept-mismatch` - REUSED, not a sixteenth phase, because
+`keptMismatchBlock`'s sentence (acknowledged, read back different, not called stored) is exactly
+true of a clear's store and its second step names Clear as the retry, and a `cleared-mismatch`
+would have cost a row in the union, both `device-clause.ts` switches, `UNCERTAIN_PHASES`,
+`DestinationZone.svelte`'s switch and the anti-collapse test to render the same sentence;
+`unconfirmed` (no acknowledgement inside the retry bound) lands `unconfirmed` with
+`FIRMWARE_DEFAULT_NAME` (`The firmware default`) set as `name` so the zone's block reads what is
+running rather than the route's entry, and `keepReason()` gains an eighth row - `unconfirmed`
+after a clear reads `never-tried`, because `knobs-moved` would have been a lie (no knob moved) -
+still the closed set of six. `steps` is not reset between the legs. One click, no confirmation
+(13.1 D-04 stands); no new snapshot; `sequence.ts` and `descriptors.ts` untouched; the
+whole-page reset class stays forbidden (the store's comment names it by number, not by name,
+because `forbidden-instructions.spec.ts` scans comments too - a first draft that spelled it and
+the two page classes was red there and reworded).
+
+**The copy** (D-05's register, ledgered in `13.1-COPY-NEW.md` with the batch rows superseded):
+`clearLine` `Returns Page 2 to its firmware default and stores it, so it stays after power-off.
+Your browser draft stays as it is.` (was I.6.3's without the store clause; the clause is
+`keepLineEnabled`'s own words); `clearingLabel` `Resetting and storing Page 2…` (I.4.20);
+`clearedCaption` `Page 2 reset to its firmware default and stored` (I.4.16); `liveCleared` the
+same as a sentence (I.7.5); `FIRMWARE_DEFAULT_NAME` new. `install-copy.spec.ts`'s closed
+ledgered list seventeen -> twenty-two; the A-48 stem scan's twelve strings still twelve and none
+says `clears`, `empt` or `remove`. The "after a clear a KEEP stores nothing" line
+(`cfg_default_flag`, 12-03) is unchanged and true: it is what the clear's OWN store does on the
+module now - the cfg file deleted rather than written - the same power-cycle-safe default by
+another route. `WRITE_CLICKS` unchanged at four.
+
+**The tests.** `install.spec.ts` (+2): the clear title rewritten - the four classes, the twelve
+frames, the twelve steps, the re-fetch sent after the fed heartbeat, the fake's flash and system
+flash holding the five defaults, `powerCycle(state)` on the fake bringing the defaults back (the
+user's case (b) on the fake), the locks `[true, false, true, false]` over the two legs,
+`keptThisSession` true, a second clear idempotent (two stores), an apply after it RAM only; a
+mismatch fixture on the clear (the touch Setup re-fetch answers `print(9)` after the store) lands
+`kept-mismatch` after three rounds with the title spoken; a dropped `PAGESTORE` acknowledgement
+lands `unconfirmed` with the name, the reason and the RAM leg landed (and the fake's flash holds
+the default - the fault drops the acknowledgement, not the store, which is SAFE-07 on this leg);
+the partial clear asserts zero `PAGESTORE`; the SLOTS-order title reads the refetch ids off the
+list and the put-back after a stored clear stores too, flash holding the original again. Negative:
+HEAD's `install.svelte.ts` under the new spec **4 failed / 25 passed**; restored byte-identical
+(sha256 `0be8ded9…`). `e2e/install.e2e.ts`: the Clear walk's title says the store; after the
+click the label reads the two-verb busy label, then `beatUntilShows` paces heartbeats until the bar
+reads the stored caption (**4 heartbeats on webkit-phone, 5 on chromium**, logged), and the wire at
+the end reads **fifteen `CONFIG/EXECUTE` and ONE `PAGESTORE/EXECUTE`** where it read zero - read
+as numbers, not deltas, so a clear that stopped at RAM again fails on the one. The three other e2e
+files that read the header's Clear read it disabled and are unchanged.
+
+**Runbook row N** appended (the letter after M): apply and STORE a configuration in Grid Editor,
+connect HANGAR, `Clear`, unplug, replug without HANGAR, touch the pad, read the page in the
+Editor - passes when the page is the firmware default after the power-cycle; the RAM-only readings
+in "If something goes wrong" (`FACTORY DEFAULT`) and item 11 of the fourth-bench section named as
+superseded, not edited. SAFE-02's qualifier is the gate's; CAT-04 stays `[ ]`.
+
+Counts as carried from the round-4b quick task, then the delta: quick **94 / 966 (+1 todo)**
+twice at `--maxWorkers=2` (`+0 / +2`; a first run before the rebuild was red on layer B's stale
+build and on the forbidden-instruction scan's comment, both named above); check **654 / 0 / 0**
+(`+0`); lint clean; e2e **86 titles / 101 runs** (`+0 / +0`); chunk c1 (`install`, `session`)
+**32 passed** on a fresh detached server (`e2e-chunks-1208.sh`, stopped through PowerShell, HTTP
+000 after), no rerun. Commits: the code, the specs, the e2e, the ledger and the runbook row
+together (`61ba376`), then this paragraph with `deferred-items.md`'s row 13 and STATE. The
+build on disk is stamped at the commit before the code commit (`a66b034`); `artifacts.e2e.ts`
+needs a rebuild before c5. No device, no deploy - the flash write is the user's bench row;
+`src/vendor/`, `library.ts`, `sequence.ts`, `descriptors.ts`, `forbidden-instructions.spec.ts`,
+`Knob.svelte`, `ColourPicker.svelte` untouched. The phase stays gate landed / bench pending.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
