@@ -571,7 +571,7 @@ clean; the three user files at the root untouched.
 | `76ba5cf` | `docs(13-20): the gate against a fresh build - twenty-term chains from 12-12's block with the 12.1 offset stated once and both ends meeting at 94 / 961, the radius allowlist asserted EMPTY across three layers … and the batch rows the gate may land landed` (task 01: `docs/TESTING.md`, the nine source and spec files, the two e2e files, the favicon) |
 | `562b20a` | `docs(13-20): six requirements amended by name and dated with the old text kept … CAT-04 still Pending for the seventh time for a row no plan claimed, and the phase's work list in five sections` (task 02: `.planning/REQUIREMENTS.md`, `deferred-items.md`) |
 | `a809b63` | `docs(13-20): the bench rows handed over unanswered - the page switch and the rotary Knob first …` (task 03's documents: `docs/INSTALL-RUNBOOK.md`, `docs/HARDWARE-AUDITION.md`)                                                                 |
-| (this document) | `docs(13-20): the gate summary, STATE recorded as gate landed and bench pending`                                                                                                                                                          |
+| `3c6c7b1` | `docs(13-20): the gate summary, STATE recorded as gate landed and bench pending` (this document and `.planning/STATE.md`)                                                                                                                                                          |
 
 `git commit --only <paths> -F <message-file>`, pathspec before the flag; no push; no co-author
 trailer (deviation 10). No other agent ran during this plan. **The build on disk is the tree
