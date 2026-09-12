@@ -45,13 +45,16 @@
 // one click inside the RAM leg and reads the panel's settled block after it.
 //
 // THE ELEVENTH (plan 10-13) is the fourth write click walked end to end: at
-// rest CLEAR is live beside KEEP ON DEVICE under the NEXT caption; one click
+// rest CLEAR is live - IN THE HEADER, beside the connection control, since
+// 13.1-05 (13.1-CONTEXT D-04: "CLEAR button ... next to ZONA connected"),
+// with its description reading clearLine and its caption empty; one click
 // sends with NO confirmation and no element ever appears bearing the testid
 // one would have had; CLEARING… carries aria-busy through the one leg; region
 // 3 reads FACTORY DEFAULT over a body that names PUT BACK, which is on the
 // screen and enabled; and PUT BACK then brings the visitor's own back. The
 // wire is counted by class at the end and PAGESTORE/EXECUTE is zero, which is
-// A-26's RAM-only ruling as a number rather than an intention.
+// A-26's RAM-only ruling as a number rather than an intention. The column's
+// NEXT caption and PUT BACK stay in the title until 13.1-06 removes them.
 //
 // THE TWELFTH (plan 12-01) is the phase-12 question asked of the wire rather
 // than of the tuner: a rail turned on /playground/lumen/ BEFORE the click, then the
@@ -65,8 +68,11 @@
 // THE THIRTEENTH AND FOURTEENTH are the degrade path, tagged for the phone
 // project: no shim, `Navigator.prototype.serial` deleted, and every install
 // control present, disabled and explained - PUT BACK absent, by decision
-// (Z-12), and CLEAR present-and-disabled beside it, by the opposite decision
-// (DEGR-02), which the thirteenth holds as one assertion.
+// (Z-12), and CLEAR present-and-disabled in the header, by the opposite
+// decision (DEGR-02), which the thirteenth holds as one assertion. Its
+// reason is the box's caption where the header's zone has room for it
+// (chromium at 1280) and its description everywhere (the phone too, where
+// the caption is not rendered - Clear.svelte's room rule).
 //
 // THE PUT-BACK AFTER A KEEP NEEDS A BOUNDED BEAT LOOP, NOT ONE TIMED BEAT.
 // After a keep, PUT BACK runs a store leg too (Z-04), and the store's D-12
@@ -1210,14 +1216,20 @@ const primary = (page: Page) => page.getByTestId("try-on-device");
 const putBackControl = (page: Page) => page.getByTestId("put-back");
 const keepControl = (page: Page) => page.getByTestId("keep-on-device");
 const clearControl = (page: Page) => page.getByTestId("clear");
+/** The header Clear's label span (13.1-05): the visible word, and the busy label through a leg. The button's own text also carries its aria-hidden caption, so the label is read here and the name through toHaveAccessibleName. */
+const clearLabel = (page: Page) => page.getByTestId("clear-label");
+/** The header Clear's caption: the reason when disabled, empty when live; rendered only where the zone has room (Clear.svelte). */
+const clearCaption = (page: Page) => page.getByTestId("clear-caption");
+/** The header Clear's sr-only description, the button's aria-describedby: clearLine when live, the reason when not. Not a visibleLine - it is never visible. */
+const clearDescription = (page: Page) => page.getByTestId("clear-line");
 
 /**
  * True when nothing anywhere on the page is CLEAR's confirmation. There is no
- * such component (A-45, D-19) and there is no such testid, so this is a proof
- * of an absence rather than of a state: CLEAR writes RAM only, PUT BACK
- * directly above it undoes it, and a power cycle undoes it, so KEEP ON
- * DEVICE's block is the site's only confirmation. Asserted at rest, inside
- * the write and after it lands.
+ * such component (A-45, D-19; kept by the user's word at 13.1-05, D-04) and
+ * there is no such testid, so this is a proof of an absence rather than of a
+ * state: CLEAR writes RAM only, PUT BACK undoes it (until 13.1-06), and a
+ * power cycle undoes it, so KEEP ON DEVICE's block is the site's only
+ * confirmation. Asserted at rest, inside the write and after it lands.
  */
 const noConfirmOnScreen = async (page: Page): Promise<boolean> =>
   (await page.locator('[data-testid="clear-confirm"]').count()) === 0;
@@ -1983,18 +1995,33 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await recordLiveRegions(page);
     await tryOnPage(page);
 
-    // AT REST, AFTER A TRY-ON, ON A BROWSER THAT CAN WRITE. CLEAR is live
-    // beside KEEP ON DEVICE, under the NEXT caption, with its own line - and
-    // the two look the same, which is A-47's ruling stated rather than hidden.
-    // What separates them is behaviour: the words, the enablement set, and the
-    // ceremony KEEP has and CLEAR does not.
+    // AT REST, AFTER A TRY-ON, ON A BROWSER THAT CAN WRITE. CLEAR is live in
+    // the header's connection zone, left of the connection control (13.1-05,
+    // D-04): its label is the user's word, its accessible name is the label
+    // alone, its caption is EMPTY (the reason is a disabled control's), and
+    // its description - the sr-only span the button points at - is clearLine
+    // with the page as the visitor reads it. The column's KEEP ON DEVICE is
+    // live under the NEXT caption still (13.1-06's to remove).
     await expect(page.getByTestId("next-caption")).toHaveText("NEXT");
     await expect(clearControl(page)).toBeVisible();
     await expect(clearControl(page)).toBeEnabled();
-    await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
-    await expect(visibleLine(page, "clear-line")).toHaveText(
-      clearLine(ACTIVE_PAGE),
+    await expect(clearLabel(page)).toHaveText(CLEAR_LABEL);
+    await expect(clearControl(page)).toHaveAccessibleName(CLEAR_LABEL);
+    await expect(clearCaption(page)).toHaveText("");
+    await expect(clearDescription(page)).toHaveText(clearLine(ACTIVE_PAGE));
+    await expect(clearControl(page)).toHaveAttribute(
+      "aria-describedby",
+      "clear-line",
     );
+    // One Clear on the page: the header's. The column has none.
+    await expect(clearControl(page)).toHaveCount(1);
+    expect(
+      await page
+        .getByTestId("shell-connection")
+        .locator('[data-testid="clear"]')
+        .count(),
+      "the one Clear is inside the header's connection zone",
+    ).toBe(1);
     await expect(keepControl(page)).toBeEnabled();
     expect(await noConfirmOnScreen(page)).toBe(true);
 
@@ -2028,7 +2055,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // THE CLICK SENT. No block appeared, nothing waited for a second click,
     // and the busy label is on the control that was clicked. This is the
     // cheapest possible proof that A-45 shipped rather than being planned.
-    await expect(clearControl(page)).toHaveText(clearingLabel(ACTIVE_PAGE));
+    await expect(clearLabel(page)).toHaveText(clearingLabel(ACTIVE_PAGE));
     await expect(clearControl(page)).toHaveAttribute("aria-busy", "true");
     expect(await noConfirmOnScreen(page)).toBe(true);
 
@@ -2037,9 +2064,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // phase could most easily have broken it.
     await expect(installState(page)).toContainText(clearedCaption(ACTIVE_PAGE));
     await expect(installState(page)).toContainText(clearedBody(ACTIVE_PAGE));
-    await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
+    await expect(clearLabel(page)).toHaveText(CLEAR_LABEL);
     await expect(clearControl(page)).not.toHaveAttribute("aria-busy", "true");
     await expect(clearControl(page)).toBeEnabled();
+    await expect(clearCaption(page)).toHaveText("");
+    await expect(clearDescription(page)).toHaveText(clearLine(ACTIVE_PAGE));
     await expect(putBackControl(page)).toBeEnabled();
     // A clear leaves nothing of the visitor's on the module to keep, so the
     // closed set of six answers the new phase without a seventh member.
@@ -2475,7 +2504,7 @@ test.describe("the install controls on the engine that can never install", () =>
 
   test("@webkit CLEAR is present and disabled where PUT BACK is absent, and the difference is one assertion @webkit", async ({
     page,
-  }) => {
+  }, testInfo) => {
     // DEGR-02 for the fourth click (plan 10-13). This is the branch a large
     // share of visitors hit and the one no manual tester remembers to check.
     const consoleErrors = collectErrors(page);
@@ -2489,18 +2518,43 @@ test.describe("the install controls on the engine that can never install", () =>
     await waitForPicture(page, ENTRY);
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
 
-    // PRESENT AND DISABLED, WITH ITS REASON INLINE. Not hidden: a visitor who
-    // cannot install still learns what the control would have done, which is
-    // the whole of DEGR-02's "teach rather than hide". The caption above the
-    // column is on the screen too - the sequence reads the same on a browser
-    // that can never walk it.
+    // PRESENT AND DISABLED, WITH ITS REASON. Not hidden: a visitor who cannot
+    // install still learns what the control would have done, which is the
+    // whole of DEGR-02's "teach rather than hide". Since 13.1-05 the control
+    // is the header's box beside the connection control, and the reason is
+    // its caption AND its description: the description on both projects, the
+    // caption's text on both, the caption VISIBLE only where the header's
+    // zone has room for it - Clear.svelte's room rule, 480px of zone; 503 at
+    // the desktop project's 1280, 335 on the phone - so the phone reads the
+    // reason through the description alone. The caption above the column is
+    // on the screen too - the sequence reads the same on a browser that can
+    // never walk it.
     await expect(page.getByTestId("next-caption")).toHaveText("NEXT");
     await expect(clearControl(page)).toBeVisible();
     await expect(clearControl(page)).toBeDisabled();
-    await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
-    await expect(visibleLine(page, "clear-line")).toHaveText(
-      CLEAR_REASONS.incapable,
+    await expect(clearLabel(page)).toHaveText(CLEAR_LABEL);
+    await expect(clearControl(page)).toHaveAccessibleName(CLEAR_LABEL);
+    await expect(clearCaption(page)).toHaveText(CLEAR_REASONS.incapable);
+    await expect(clearDescription(page)).toHaveText(CLEAR_REASONS.incapable);
+    await expect(clearCaption(page)).toHaveAttribute("aria-hidden", "true");
+    const zoneWidth = await page
+      .getByTestId("shell-connection")
+      .evaluate((el) => el.getBoundingClientRect().width);
+    if (zoneWidth >= 480) {
+      await expect(clearCaption(page)).toBeVisible();
+    } else {
+      await expect(clearCaption(page)).toBeHidden();
+    }
+    console.log(
+      `degrade Clear on ${testInfo.project.name}: zone ${Math.round(zoneWidth)}px, caption ${zoneWidth >= 480 ? "shown" : "in the description alone"}`,
     );
+    expect(
+      await page
+        .getByTestId("shell-connection")
+        .locator('[data-testid="clear"]')
+        .count(),
+      "the one Clear is inside the header's connection zone",
+    ).toBe(1);
 
     // AND THE CONTRAST WITH PUT BACK, IN ONE ASSERTION, so the difference is
     // deliberate and visible rather than two facts in two places. PUT BACK is
