@@ -1074,13 +1074,17 @@
   }
 
   /*
-    The per-field reset and the lock (section 7; 10-UI-SPEC 11.5). Micro,
-    quiet when free and full ink when held or hovered - the colour is the
-    lock's THIRD channel, after the word and the marker, and it is two rungs
-    of the ink ladder rather than any part of the accent list.
+    The per-field reset and the lock (section 7; 10-UI-SPEC 11.5). Sentence
+    case at 13px / 600 with the 0.01em tracking a sentence-case control wears
+    (13-18's rule; 13-19 took Phase 10's uppercase transform and 0.18em off
+    these two, because `Reset`, `Lock` and `Locked` are verbs on buttons
+    under D-05 and the CSS was re-casing them to RESET / LOCK / LOCKED). Quiet
+    when free and full ink when held or hovered - the colour is the lock's
+    THIRD channel, after the word and the marker, and it is two rungs of the
+    ink ladder rather than any part of the accent list.
 
     44px on BOTH axes, which is the touch floor stated per control rather than
-    per page: a 4-character label at 12px is nowhere near 44px wide on its own.
+    per page: a short word at 13px is nowhere near 44px wide on its own.
     No radius (D-01).
   */
   .reset {
@@ -1092,29 +1096,36 @@
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
     transition: color 140ms ease-out;
   }
 
-  /* The same rule, spelled twice on purpose: instrument.spec.ts and tune-ui.spec.ts read .lock by its own selector. */
+  /*
+    The same rule, spelled twice on purpose: instrument.spec.ts and
+    tune-ui.spec.ts read .lock by its own selector - plus ONE declaration the
+    reset does not carry. The lock's word changes with its state (Lock /
+    Locked), and the two words are not the same width as Phase 10's HOLD /
+    HELD were; a fixed inline-size wider than the longer word is what keeps
+    the toggle from moving the column it ends (copy.ts's header, the retired
+    4 / 4 rule; copy.spec.ts test 5 reads this rule).
+  */
   .lock {
     grid-area: lock;
     appearance: none;
+    inline-size: 52px;
     min-inline-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
     transition: color 140ms ease-out;

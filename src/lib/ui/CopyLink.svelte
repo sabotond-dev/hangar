@@ -1,5 +1,8 @@
 <!--
-  COPY LINK: copy without awaiting, and a fallback that does not fail silently.
+  Share snapshot (the PDF's label since 13-09; Phase 5's COPY LINK before it):
+  copy without awaiting, and a fallback that does not fail silently. The
+  prose below keeps Phase 5's name for the control where it explains the
+  mechanism; the rendered words are the PDF's and the batch's (13-19, D-05).
 
   THE HANDLER IS THE WHOLE COMPONENT. `writeText` is called with nothing held up
   in front of it and its promise is continued with `.then`, never `await`ed.
@@ -60,16 +63,16 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import {
-    COPY_LINK,
     LINK_COPIED,
     SHARE_FALLBACK_FIELD_NAME,
     SHARE_FALLBACK_LINE,
   } from "$lib/tune/copy";
+  import { SHARE_SNAPSHOT } from "$lib/tune/inspector-copy";
 
   let {
     url,
     oncopied,
-    label = COPY_LINK,
+    label = SHARE_SNAPSHOT,
   }: {
     /**
      * The share link, ALREADY COMPOSED upstream and recomposed on every knob
@@ -82,10 +85,9 @@
      */
     oncopied?: () => void;
     /**
-     * The resting label. COPY LINK by default (Phase 5's, copy.ts's, 13-19's
-     * to rename); the workspace's inspector passes the PDF's `Share snapshot`
-     * (13-09). The confirmed label stays LINK COPIED in both places until
-     * 13-19 answers what a confirmed snapshot says.
+     * The resting label: the PDF's `Share snapshot` (inspector-copy.ts) by
+     * default, and the workspace passes the same constant. The confirmed label
+     * is copy.ts's `Link copied` (13-18-BATCH.md row F.11, approved by D-23).
      */
     label?: string;
   } = $props();
@@ -191,7 +193,9 @@
   }
 
   /*
-    Phase 4's secondary treatment: Micro label, hairline border, no fill - and
+    Phase 4's secondary treatment - a sentence-case label at 13px / 600 /
+    0.01em since 13-19 (D-05; the uppercase transform is gone), hairline
+    border, no fill - and
     the last three of those are src/app.css's .pill since A-41, applied by the
     class on the button. The 44px floor stays here, because it belongs to this
     control rather than to the shape it wears. It is
@@ -204,11 +208,10 @@
     inline-size: fit-content;
     min-block-size: 44px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink);
     cursor: pointer;
     transition: border-color 140ms ease-out;

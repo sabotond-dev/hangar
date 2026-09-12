@@ -183,8 +183,10 @@
     button would read as "dangerous" where the truth is "not yet".
 
     THE SHAPE IS src/app.css's .pill (A-41), applied by the class on the button.
-    It brings the INLINE 44px floor this rule never declared - TURN IT DOWN is
-    eleven characters at 12px, so the block floor alone was the only one it had.
+    It brings the INLINE 44px floor this rule never declared - the label is
+    short, so the block floor alone was the only one it had. Sentence case at
+    13px / 600 / 0.01em since 13-19 (D-05): the word is `Turn it down` and
+    no transform re-cases it.
   */
   .back-off {
     appearance: none;
@@ -192,11 +194,10 @@
     min-block-size: 44px;
     margin-block-start: 8px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink);
     cursor: pointer;
     transition:

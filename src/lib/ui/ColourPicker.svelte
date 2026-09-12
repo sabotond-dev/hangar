@@ -656,22 +656,22 @@
   }
 
   /*
-    The lock, for the knob the rails are editing. Knob.svelte's own rule,
-    unchanged: Micro, quiet when free and full ink when held, 44px on both axes
-    because a four-character word at 12px is nowhere near 44px wide.
+    The lock, for the knob the rails are editing. Knob.svelte's own rule: 13px
+    / 600 / 0.01em sentence case (13-19, D-05), quiet when free, full ink when
+    held, 44px on both axes, and a fixed 52px so Locked cannot move the row.
   */
   .lock {
     appearance: none;
+    inline-size: 52px;
     min-inline-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
     transition: color 140ms ease-out;

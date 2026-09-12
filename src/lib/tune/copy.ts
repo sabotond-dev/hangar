@@ -4,38 +4,114 @@
 // src/lib/tune/view.ts: Phase 4's chunk guard matches specifier TEXT, so a
 // module a component may name has to be free of the compiler entirely. It also
 // means the two event words arrive as already-capitalised strings rather than
-// as a `MeterEvent` imported from view.ts - which is what the contract's
-// {Setup|Timer} placeholder literally says anyway.
+// as a `MeterEvent` imported from view.ts.
 //
 // WHY THE STRINGS LIVE IN CONSTS AND NOT IN MARKUP. Prettier reflows text
 // inside Svelte markup, and Phase 2 lost a load-bearing sentence to exactly
-// that. src/lib/ui/TryOnDevice.svelte established the house rule: visitor-facing
-// copy is a named constant, and markup interpolates it.
+// that. Visitor-facing copy is a named constant, and markup interpolates it.
 //
 // WHY THERE IS EXACTLY ONE COPY. Two copies of a sentence is how they drift.
-// Every string below is transcribed verbatim from 05-UI-SPEC's Copywriting
-// Contract and copy.spec.ts asserts each one character-for-character against
-// that table. Nothing here may be paraphrased, reflowed, re-punctuated or
-// "improved" - if a sentence is wrong, the contract is what changes first.
+// Every string below has one home, and copy.spec.ts asserts each one
+// character-for-character. Nothing here may be paraphrased, reflowed,
+// re-punctuated or "improved" in a component. That is also why three of Phase
+// 10's exports are GONE rather than rewritten: the Bible's own lines for the
+// three controls they named - `Randomize`, `Reset settings` and `Share
+// snapshot`, PDF page 5 and section 7 - were landed VERBATIM by plan 13-09 in
+// src/lib/tune/inspector-copy.ts (RANDOMIZE, RESET_SETTINGS, SHARE_SNAPSHOT),
+// and the components read them there. A second constant here with the same
+// three words would be the second copy this paragraph exists to forbid.
 //
-// THE PUNCTUATION IS LOAD-BEARING. Real apostrophes (U+2019), a real ellipsis
-// (U+2026) and a real em dash (U+2014). No emoji, no exclamation marks, never
-// the word "Error", never the word "loading", and no string names a control
-// that is not on the screen.
+// THE REGISTER IS THE BIBLE'S (13-CONTEXT D-05), AND THE WORDS ARE THE USER'S
+// (D-23). Every string here is one of three things, and copy.spec.ts checks
+// which by reading the documents from disk:
 //
-// AND A FIFTH, ADDED BY PLAN 10-09 WITH A SCOPE ATTACHED: U+2212 MINUS SIGN,
-// permitted in `forecastDelta`'s signed numeral and NOWHERE ELSE. copy.spec.ts
-// asserts the scope as well as the character - it fails if the delta writes a
-// hyphen-minus, and it fails if U+2212 appears in the code of any other file
-// under src/. A permitted character with no scope is how a copy contract
-// loosens one glyph at a time.
+//  - a line the design specification or its PDF gives, taken VERBATIM - the
+//    three above (in inspector-copy.ts), and `Lock` / `Locked` as section 7's
+//    parameter locks read in sentence case;
+//  - a line the specification never wrote, PROPOSED in 13-18-BATCH.md with the
+//    state it names and the fact it must carry, and APPROVED as written by
+//    D-23 - row F.11, `Link copied`; or
+//  - a HANGAR mechanic the Bible never saw - the two meters, the forecast, the
+//    fit ladder, the colour picker, the stamp landings, the live region -
+//    written in the register with its FACT kept. The facts are the constraint
+//    (13-19-PLAN.md's family table): how many of 908 characters are used and
+//    what a choice would cost; that a feature was trimmed to stay in budget
+//    AND WHICH (TUNE-04); the RGB444 lattice and its cheap steps; that a
+//    setting is locked against Randomize; that a link made with an older
+//    version lands on the base configuration and says so (SHARE-03); what
+//    changed, once, in the live region (section 14).
+//
+// The register, as rules: sentence case, short, second person; the action and
+// its result in one line; plain about state, never coy; real apostrophes
+// (U+2019), a real ellipsis (U+2026), a real em dash (U+2014); no exclamation
+// marks; no emoji; no uppercase paragraphs - the four one-word captions below
+// are the short section labels D-05 permits; never "Error", never "loading";
+// no browser engine named; and NO CONTROL LABEL PARAPHRASED IN PROSE - the one
+// sentence here that names a control (STAMP_RESTORED) names `Reset settings`
+// exactly as the control reads. The Bible's word for what a visitor turns is
+// a SETTING (PDF page 5: `Reset settings`; section 7: parameters, fields).
+// Phase 10's "knob" was the site's own word and it is gone from every string
+// here; it survives as an identifier (knobLabel, KNOB_HOLD) because a screen
+// reader never hears an identifier.
+//
+// AND A FIFTH PERMITTED CHARACTER, ADDED BY PLAN 10-09 WITH A SCOPE ATTACHED:
+// U+2212 MINUS SIGN, permitted in `forecastDelta`'s signed numeral and NOWHERE
+// ELSE. copy.spec.ts asserts the scope as well as the character - it fails if
+// the delta writes a hyphen-minus, and it fails if U+2212 appears in the code
+// of any other file under src/. A permitted character with no scope is how a
+// copy contract loosens one glyph at a time.
+//
+// THE MEASURED CAPS ARE RETIRED BY NAME, 2026-09-12 (13-19, D-05), in the
+// same move 13-18 made for install-copy.ts's four. Five numbers travelled with
+// this module's strings and copy.spec.ts held every one of them:
+//
+//  - HONESTY_CAP (86): tryOnBudgetReason was the honesty slot's fifth
+//    candidate, so its worst form (`Setup and Timer`) was held under
+//    install-copy.ts's cap from outside - 2 x CH_PER_LINE, the 43 characters
+//    plan 10-01 measured for one Body line box in Phase 10's 372px install
+//    column. Plan 10-03 shortened the literal to 85 to fit it. 13-18 retired
+//    the cap with the column it measured; the reason now reads in the
+//    register and no number governs it.
+//  - SURPRISE_ALL_HELD's 53 (10-UI-SPEC 13.4): a count of the sentence as
+//    written, held in copy.spec.ts and tune-ui.spec.ts. The sentence is
+//    rewritten (it said "every knob" where 13-10 scoped Randomize off the
+//    MIDI settings, so the count had already stopped describing the state)
+//    and no count replaces it.
+//  - KNOB_HOLD / KNOB_HELD at 4 / 4: the two labels were the same width so
+//    toggling one could not reflow the row it ends. `Lock` and `Locked` are
+//    not, and the invariant is kept by GEOMETRY instead: Knob.svelte's and
+//    ColourPicker.svelte's .lock rules give the button a fixed inline-size
+//    that holds the longer word, so the column is the same width in either
+//    state. The invariant moved from a letter count to a CSS rule, and the
+//    rule is where it should always have been.
+//  - MIX_TWO 7, MIX_LINE 75, MIX_THIS / MIX_THAT 8 / 8 (10-UI-SPEC 13.4):
+//    gone with the family (D-12; below).
+//  - forecastExpansion's 44 "at the placeholder": a count of a sentence that
+//    did not change, and it goes with the others because a number in a copy
+//    module is a description, not a rule.
+//
+// The picker's seven counts live in colour-picker.spec.ts beside the picker
+// and are the one exception: those seven strings are unchanged (they were
+// already in the register), so their spec is untouched and its numbers still
+// describe them.
+//
+// THE MIX FAMILY IS GONE BY NAME, 2026-09-12 (13-19 closing the row 13-10
+// opened; 13-CONTEXT D-12 cut the feature). Plan 10-11's four strings -
+// MIX_TWO (the control's two-word uppercase label), MIX_LINE (`Takes half its
+// settings from each, at random. Nothing is sent to your ZONA.`), MIX_THIS and
+// MIX_THAT (the two candidates, `THIS ONE` and `THAT ONE`) - and their
+// composer mixChildName(changes) were left standing by 13-10 (which deleted
+// MixTwo.svelte, mix.ts and mix.spec.ts) so that plan's count term stayed
+// honest. They are deleted here, with copy.spec.ts's seven assertions over
+// them and A-15's genetics-vocabulary scan, which existed to keep the
+// crossover metaphor off a control that no longer exists.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 // ---------------------------------------------------------------------------
 // The two events, in the case the sentences print them.
 
-/** One event, as the contract's {Setup|Timer} placeholder writes it. */
+/** One event, as the two scripts are named - already capitalised. */
 export type EventWord = "Setup" | "Timer";
 
 /** What the primary control's reason can name. */
@@ -45,55 +121,67 @@ export type BudgetEvents = EventWord | "Setup and Timer";
 // Captions and button labels.
 
 /**
- * Phase 4's region caption, unchanged, and now its one home.
- * src/lib/ui/ChosenPanel.svelte still declares its own const; copy.spec.ts
- * holds the two equal until wave 9 replaces that const with this import.
+ * Phase 4's region caption, and its one home: TuningRegion.svelte imports it.
+ * Uppercase because it is a one-word section label, which D-05 permits.
  */
 export const TUNING_CAPTION = "TUNING";
 export const SETUP_CAPTION = "SETUP";
 export const TIMER_CAPTION = "TIMER";
 
-export const SURPRISE_ME = "SURPRISE ME";
-export const RESET_ALL = "RESET ALL";
 /**
- * Deliberately NOT `PUT IT BACK`: Phase 7 owns `PUT BACK` for restoring a
- * module's own configuration, and two near-identical labels on the same panel
- * would be a genuine hazard on hardware people paid for.
+ * The back-off control under an over-budget message. A verb on a button, in
+ * sentence case (D-05); the site's own idiom, which the ladder line shares
+ * ("turned down"). Deliberately NOT `Put it back`: `Put back` is the device
+ * band's own control for restoring a module's configuration, and two
+ * near-identical labels on one page would be a hazard on hardware people
+ * paid for.
  */
-export const TURN_IT_DOWN = "TURN IT DOWN";
-export const COPY_LINK = "COPY LINK";
-export const LINK_COPIED = "LINK COPIED";
+export const TURN_IT_DOWN = "Turn it down";
 
 /**
- * The lock toggle on a knob row, off and on (10-UI-SPEC 11.5, T1).
- *
- * A WORD RATHER THAN AN ICON, because X-22 ships no new SVG this phase, and
- * the word CHANGES rather than only the `aria-pressed` state so the lock's
- * state is in its accessible name. Four characters each, on purpose: the two
- * labels are the same width, so toggling one cannot reflow the row it ends.
+ * The share control for two seconds after the link is on the clipboard.
+ * 13-18-BATCH.md row F.11, approved (D-23); the control at rest reads the
+ * PDF's `Share snapshot` (inspector-copy.ts, SHARE_SNAPSHOT).
  */
-export const KNOB_HOLD = "HOLD";
-export const KNOB_HELD = "HELD";
+export const LINK_COPIED = "Link copied";
 
 /**
- * The reason beside a disabled SURPRISE ME when every knob is held. 53
- * characters, and copy.spec.ts counts them.
+ * The lock toggle on a setting's row, off and on. Section 7 permits parameter
+ * locks "only when the configuration has enough randomizable parameters to
+ * justify them"; they exist and they are justified, and the words are section
+ * 7's own noun in sentence case.
  *
- * `surpriseIndices` already answers a fully-held roll by handing the previous
- * indices back - its documented exhaustion signal - so the control would
- * otherwise be a button that appears to do nothing, which is worse than a
- * disabled one.
+ * A WORD RATHER THAN AN ICON, and the word CHANGES rather than only the
+ * `aria-pressed` state, so the lock's state is in its accessible name. The
+ * two words are different widths; the row does not reflow because the button
+ * has a fixed inline-size (see the header's retirement of the 4 / 4 rule).
+ */
+export const KNOB_HOLD = "Lock";
+export const KNOB_HELD = "Locked";
+
+/**
+ * The reason beside a disabled Randomize when every setting it could change is
+ * locked. Two facts: every randomizable setting is locked, and the MIDI
+ * settings do not count because Randomize never touches them (section 7:
+ * "Preserve MIDI destination, channel, routing, and device target"; plan
+ * 13-10's scope rule). It names the STATE and never the control directly
+ * above it.
+ *
+ * `surpriseIndices` already answers a fully-locked roll by handing the
+ * previous indices back - its documented exhaustion signal - so the control
+ * would otherwise be a button that appears to do nothing, which is worse than
+ * a disabled one.
  */
 export const SURPRISE_ALL_HELD =
-  "Every knob is held, so there is nothing left to roll.";
+  "Everything that can be randomized is locked. MIDI settings are never randomized.";
 
 // ---------------------------------------------------------------------------
-// The two meters.
+// The two meters. HANGAR's own honesty device: how many of 908 are used.
 
 /**
- * The first-measurement wait. NOT "loading": Phase 4 forbids that word and
- * requires every wait to name what it is waiting for. This one is a character
- * count being taken with the pinned minifier.
+ * The first-measurement wait. NOT "loading": every wait names what it is
+ * waiting for, and this one is a character count being taken with the pinned
+ * minifier. The Sandbox's copy.ts carries the same word for the same meter.
  */
 export const MEASURING = "measuring…";
 
@@ -125,7 +213,7 @@ export function emptyTimerExpansion(): string {
 }
 
 // ---------------------------------------------------------------------------
-// The forecast (TUNE-02, T2). What a choice would cost, before it is made.
+// The forecast (TUNE-02). What a choice would cost, before it is made.
 
 /**
  * U+2212 MINUS SIGN, named rather than pasted, and THE FIFTH PERMITTED
@@ -140,15 +228,14 @@ export function emptyTimerExpansion(): string {
  *
  * PERMITTED IN THE FORECAST DELTA AND NOWHERE ELSE. `copy.spec.ts` asserts
  * both halves: that `forecastDelta` writes it, and that the character appears
- * in exactly one place in the whole of `src/`. A permitted character with no
- * scope is how a copy contract loosens.
+ * in exactly one place in the whole of `src/`.
  */
 const MINUS = "−";
 
 /**
  * The signed cost of a choice, in characters: `+6`, a U+2212 and a 3, `0`.
  *
- * Zero is bare rather than a signed zero of either sign: a knob that costs
+ * Zero is bare rather than a signed zero of either sign: a choice that costs
  * nothing has no direction to point in.
  */
 export function forecastDelta(delta: number): string {
@@ -157,8 +244,8 @@ export function forecastDelta(delta: number): string {
 }
 
 /**
- * The forecast's accessible twin: 44 characters at the placeholder's own
- * length, `Choosing this would put Setup at {n} of 908.`
+ * The forecast's accessible twin: `Choosing this would put Setup at {n} of
+ * 908.`
  *
  * It exists because the signed delta is a NUMBER BESIDE A POINTER, and a
  * number beside a pointer is pointer-only information. This sentence is real
@@ -171,25 +258,26 @@ export function forecastExpansion(event: EventWord, used: number): string {
 
 /** The formatter never resolved, so there is nothing honest to show. */
 export const METERS_UNAVAILABLE =
-  "The character counter could not load, so the two budgets are not shown. Everything else on this page still works.";
+  "The character counter couldn’t load, so the two budgets aren’t shown. Everything else here still works.";
 
 // ---------------------------------------------------------------------------
-// The colour picker (10-UI-SPEC §11.2, plan 10-10). Seven strings, all counted.
+// The colour picker (plan 10-10). Seven strings, unchanged: they were already
+// in the register, and colour-picker.spec.ts counts them beside the picker.
 
-/** The picker's caption. 6, Micro, --color-ink-quiet. */
+/** The picker's caption. A one-word section label, uppercase by D-05. */
 export const COLOUR_CAPTION = "COLOUR";
 
 /**
- * The knob selector's group label. 12.
+ * The knob selector's group label.
  *
  * It names the QUESTION rather than the control, because the options beside it
- * are already the knobs' own labels and "Which colour knob" would repeat the
- * word the caption above it has just said.
+ * are already the settings' own labels and "Which colour knob" would repeat
+ * the word the caption above it has just said.
  */
 export const COLOUR_WHICH = "Which colour";
 
 /**
- * Each rail's visually-hidden label. 13 / 15 / 14.
+ * Each rail's visually-hidden label.
  *
  * "16 steps" rather than "0 to 255", and the difference is the whole argument
  * of the picker: the state holds sixteen values per channel and offering 256
@@ -216,13 +304,12 @@ const COLOUR_RAIL_NAMES = {
 /**
  * The prefixed form, COMPOSED and never written down: `Mute red, 16 steps`.
  *
- * A picker on an entry with more than one colour knob has to say WHICH knob a
- * rail belongs to, and the seventeen entries that need it carry seventeen
- * different knob labels - so writing the prefixed strings out would be a table
- * of fifty-one sentences that drifts from the catalog. The knob's own label
- * leads and the channel word drops to lower case behind it, which is the same
- * "lower-case only the first character of the compiler's own label" rule
- * `ladderLine` already uses.
+ * A picker on an entry with more than one colour setting has to say WHICH one
+ * a rail belongs to, and the entries that need it carry different labels - so
+ * writing the prefixed strings out would be a table of sentences that drifts
+ * from the catalog. The setting's own label leads and the channel word drops
+ * to lower case behind it, which is the same "lower-case only the first
+ * character of the compiler's own label" rule `ladderLine` already uses.
  */
 export function colourRailName(
   channel: keyof typeof COLOUR_RAIL_NAMES,
@@ -234,7 +321,7 @@ export function colourRailName(
 }
 
 /**
- * The cheap-step ticks' hidden expansion. 40.
+ * The cheap-step ticks' hidden expansion.
  *
  * The ticks are a 2px mark under six of the sixteen detents, which is
  * information no assistive technology can reach. It says what the mark MEANS
@@ -244,88 +331,25 @@ export function colourRailName(
 export const COLOUR_CHEAP_STEPS = "Marked steps cost the fewest characters.";
 
 /**
- * The unaffordable detents' hidden expansion. 57.
+ * The unaffordable detents' hidden expansion.
  *
- * NO ADJACENT REASON LINE - X-17's precedent, and 05.1's disabled chip. The
- * meter two centimetres away is the cause, and a sentence beside the rail
- * would be a third place saying the same 908. This is the accessible twin of a
- * shortened rail, not a message.
- *
- * MEASURED NEVER TO APPEAR on today's shelf: the dearest colour-bearing preset
- * is `ninepads` at 640 of 908 and the whole lattice is worth six characters.
+ * NO ADJACENT REASON LINE. The meter two centimetres away is the cause, and a
+ * sentence beside the rail would be a third place saying the same 908. This is
+ * the accessible twin of a shortened rail, not a message.
  */
 export const COLOUR_UNAFFORDABLE =
   "The colours left out would not fit inside 908 characters.";
 
 // ---------------------------------------------------------------------------
-// MIX TWO (10-UI-SPEC §11.6, plan 10-11). Four strings and one composer.
-//
-// THE COPY DISCIPLINE IS THE FEATURE HERE, not decoration on it (A-15). The
-// idea underneath is genetic crossover and the vocabulary that comes with it -
-// breed, parent, mutate, DNA - would arrive free and would be wrong: it names
-// a mechanism where the house style names a result. So the interface says two
-// candidates, four results, one button, and copy.spec.ts scans every string
-// this module can produce, plus MixTwo.svelte's own text nodes and literal
-// aria-labels, for that whole vocabulary. `child` is on the forbidden list as
-// USER-FACING TEXT and permitted as an identifier, which is why the scan reads
-// rendered strings rather than code.
-
-/** The control. 7, Secondary tier - bordered, never filled (A-41). */
-export const MIX_TWO = "MIX TWO";
-
-/**
- * The line under it. 75.
- *
- * The second sentence is not reassurance, it is the truth about what the
- * control does: `MIX TWO` composes index vectors and touches no port. Phase 7
- * owns every sentence that names a write, and this one names the absence of
- * one because a control that produces four new configurations beside
- * TRY ON DEVICE is exactly where a visitor would wonder.
- */
-export const MIX_LINE =
-  "Takes half its settings from each, at random. Nothing is sent to your ZONA.";
-
-/**
- * The two candidates. 8 and 8, and the same length is not a coincidence: they
- * label two slots side by side, and two labels of different widths would move
- * the second slot as the first one changed.
- *
- * `THIS ONE` is the configuration on the screen. `THAT ONE` is a candidate
- * from the last `SURPRISE ME` or a pasted link. Neither says "parent", and
- * neither has to: what the words point at is on the screen beside them.
- */
-export const MIX_THIS = "THIS ONE";
-export const MIX_THAT = "THAT ONE";
-
-/**
- * One result's accessible name, composed from what would change.
- *
- * The children are four pictures of 81 lights, so their accessible names are
- * the whole of what a screen reader gets: "Option 1" would be four
- * indistinguishable buttons. Each change arrives already worded by the rack -
- * `Speed 3`, `Colour 214 255 78` - and this joins them into the sentence,
- * exactly as `ladderLine` joins the compiler's own labels rather than
- * rewriting them.
- *
- * The no-change form is a real case rather than defensive padding: with every
- * knob held there is nothing to cross and nothing to redraw, so all four
- * results are the configuration on the screen, and a button that claimed to
- * change something would be lying.
- */
-export function mixChildName(changes: readonly string[]): string {
-  return changes.length === 0
-    ? "Take this: the same settings as now."
-    : `Take this: ${changes.join(", ")}.`;
-}
-
-// ---------------------------------------------------------------------------
 // The rack.
 
+/** A configuration with no settings at all: the meters still measure it. */
 export const EMPTY_RACK =
-  "This configuration has nothing to turn. Its two budgets are still live below.";
+  "This configuration has no settings to change. Its two budgets below are still live.";
 
 // ---------------------------------------------------------------------------
-// The fit ladder.
+// The fit ladder (TUNE-04). The fact: a feature was trimmed to stay inside the
+// budget, and WHICH - the compiler's own label for the step, never reworded.
 
 /**
  * Lower-case the first character of a label and NOTHING else.
@@ -339,7 +363,11 @@ export function lowerFirst(label: string): string {
   return label.length === 0 ? label : label[0].toLowerCase() + label.slice(1);
 }
 
-/** The fit-ladder line, in its one-step and several-step forms. */
+/**
+ * The fit-ladder line, in its one-step and several-step forms. The label is
+ * the WHICH: a line that said something was turned down without naming it
+ * would keep half of TUNE-04's fact.
+ */
 export function ladderLine(steps: number, label: string): string {
   return steps === 1
     ? `One thing was turned down to stay inside 908 characters: ${lowerFirst(label)}.`
@@ -347,7 +375,7 @@ export function ladderLine(steps: number, label: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Over budget. Four sentences, because "a knob did it" and "it arrived like
+// Over budget. Four sentences, because "a setting did it" and "it arrived like
 // this" are different facts, and one event over is not two.
 
 export function overBudgetKnob(
@@ -377,7 +405,7 @@ export function overBudgetArrivedBoth(
   return `This configuration starts over 908 on both events: Setup by ${setupBy} characters, Timer by ${timerBy}.`;
 }
 
-/** The quiet line under TURN IT DOWN when a knob caused the overrun. */
+/** The quiet line under Turn it down when a setting caused the overrun. */
 export function backOffKnob(
   knobLabel: string,
   event: EventWord,
@@ -387,13 +415,13 @@ export function backOffKnob(
 }
 
 /**
- * The quiet line under TURN IT DOWN when the fit ladder's first step is what
+ * The quiet line under Turn it down when the fit ladder's first step is what
  * the click will apply.
  *
  * The compiler's label OPENS this sentence rather than sitting inside one, so
- * it keeps its own capital: the contract's placeholder is `{Label}`, where the
- * two ladder lines use `{label}`. That is the whole of the rule "lower-cased at
- * the first character WHERE THEY SIT INSIDE ANOTHER SENTENCE".
+ * it keeps its own capital, where the two ladder lines lower-case it. That is
+ * the whole of the rule "lower-cased at the first character WHERE THEY SIT
+ * INSIDE ANOTHER SENTENCE".
  */
 export function backOffLadder(
   label: string,
@@ -404,21 +432,16 @@ export function backOffLadder(
 }
 
 /**
- * The reason beside a disabled TRY ON DEVICE. It names the budget and does not
- * repeat the knob sentence: they are two different jobs.
+ * The reason beside a disabled Apply to ZONA. It names the budget and does not
+ * repeat the setting's sentence: they are two different jobs. The way back is
+ * in the second sentence, and the register's own verb ("apply") stands for the
+ * control without re-casing its label into prose.
  *
- * SHORTENED BY NAME, plan 10-03. This is the fifth candidate in the honesty
- * slot, so it is held to install-copy.ts's HONESTY_CAP even though it lives
- * here, and its worst form - `Setup and Timer`, the longest of the three
- * BudgetEvents - was 90 against a cap that the measured CH_PER_LINE moved to
- * 86 (10-01-SUMMARY.md). The literal shortens, never the cap: a cap widened to
- * admit its own string stops reserving anything. `and this comes back` becomes
- * `and it returns`, which takes the worst form to 85. The shortening is in the
- * sentence around ${events} rather than in the interpolation, so all three
- * forms move together and the shortest is still the shortest.
+ * No cap governs it any more (the header's retirement of HONESTY_CAP); the
+ * three forms move together because the interpolation is inside one sentence.
  */
 export function tryOnBudgetReason(events: BudgetEvents): string {
-  return `Over the 908-character budget on ${events}. Turn something down and it returns.`;
+  return `Over the 908-character budget on ${events}. Turn something down to apply it.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -428,25 +451,31 @@ export function tryOnBudgetReason(events: BudgetEvents): string {
 //
 // `Copies this configuration, knobs and all, as a link anyone can open.` is
 // RETIRED OUTRIGHT by plan 10-03 (10-UI-SPEC.md, R-07), with no replacement.
-// The audit rule the register closes D-08 with is that a string goes only when
-// the control beside it already says the same thing, and COPY LINK names
-// itself: a labelled button whose whole job is in its two words does not need a
-// sentence explaining that it copies a link. Nothing that names a risk, a
-// consequence, a way back or a next step was retired with it - SHARE_FALLBACK_
-// LINE below stays whole, because it is the one that tells a visitor what to do
-// when the copy did not happen.
+// A string goes only when the control beside it already says the same thing,
+// and `Share snapshot` names itself: a labelled button whose whole job is in
+// its two words does not need a sentence explaining that it shares a link.
+// Nothing that names a risk, a consequence, a way back or a next step was
+// retired with it - SHARE_FALLBACK_LINE below stays whole, because it is the
+// one that tells a visitor what to do when the copy did not happen.
 
-/** Names keys, never controls: the button beside it stays COPY LINK. */
+/** Names keys, never controls: the button beside it stays `Share snapshot`. */
 export const SHARE_FALLBACK_LINE =
-  "Your browser would not let the page copy for you. The link is selected below — press Ctrl+C, or Cmd+C on a Mac.";
+  "Your browser wouldn’t let the page copy for you. The link is selected below — press Ctrl+C, or Cmd+C on a Mac.";
 
-export const SHARE_FALLBACK_FIELD_NAME = "Shareable link";
+/** The fallback field's accessible name: the control's own noun. */
+export const SHARE_FALLBACK_FIELD_NAME = "Snapshot link";
 
 // ---------------------------------------------------------------------------
-// The three stamp landings.
+// The three stamp landings. SHARE-03's fact: a link made with an older version
+// lands on the base configuration AND SAYS SO; the other two are what they
+// are - restored, and unreadable.
 
+/**
+ * The link landed. Names `Reset settings` exactly as the control reads
+ * (inspector-copy.ts, RESET_SETTINGS; copy.spec.ts holds the two equal).
+ */
 export const STAMP_RESTORED =
-  "These knobs came with the link. RESET ALL puts the configuration back to its defaults.";
+  "These settings came with the link. Reset settings returns the configuration to its defaults.";
 
 /**
  * The format letter is known but its version is behind the current one. Split
@@ -454,21 +483,22 @@ export const STAMP_RESTORED =
  * stamp would be a small lie.
  */
 export function stampOlder(name: string): string {
-  return `This link was made with an older version of HANGAR. Its knob settings could not be read, so this is ${name} at its defaults.`;
+  return `This link was made with an older version of HANGAR. Its settings couldn’t be read, so this is ${name} at its defaults.`;
 }
 
-/** Undecodable, or a payload that does not match the entry's knob count. */
+/** Undecodable, or a payload that does not match the entry's setting count. */
 export function stampUnreadable(name: string): string {
-  return `That link’s knob settings could not be read, so this is ${name} at its defaults.`;
+  return `That link’s settings couldn’t be read, so this is ${name} at its defaults.`;
 }
 
 // ---------------------------------------------------------------------------
-// The live region. One utterance per event, never two.
+// The live region (section 14). One utterance per event, never two, and
+// never a frame.
 
 /**
- * Crossing into over budget. The knob clause is dropped when no knob moved -
- * a landed stamp or an already-over default cannot name one, and inventing a
- * culprit would be a lie.
+ * Crossing into over budget. The culprit clause is dropped when no setting
+ * moved - a landed stamp or an already-over default cannot name one, and
+ * inventing a culprit would be a lie.
  */
 export function liveOverBudget(
   event: EventWord,
@@ -483,36 +513,38 @@ export function liveBackInside(event: EventWord): string {
   return `${event} is back inside the 908-character budget.`;
 }
 
+/** After Randomize: how many settings moved, and where the two budgets stand. */
 export function liveRandomised(
   knobs: number,
   setup: number,
   timer: number,
 ): string {
-  return `${knobs} knobs randomised. Setup ${setup} of 908, Timer ${timer} of 908.`;
+  return `${knobs} settings randomized. Setup ${setup} of 908, Timer ${timer} of 908.`;
 }
 
 export function liveReset(setup: number, timer: number): string {
-  return `Knobs back to their defaults. Setup ${setup} of 908, Timer ${timer} of 908.`;
+  return `Settings back to their defaults. Setup ${setup} of 908, Timer ${timer} of 908.`;
 }
 
 /**
- * RESET ALL can land on defaults that are ALREADY over budget, so the command
- * and the crossing happen on the same tick. The live region is aria-atomic and
- * emits at most one string per event, so these two exist rather than a reset
- * string followed by a transition string.
+ * Reset settings can land on defaults that are ALREADY over budget, so the
+ * command and the crossing happen on the same tick. The live region is
+ * aria-atomic and emits at most one string per event, so these two exist
+ * rather than a reset string followed by a transition string.
  */
 export function liveResetOver(event: EventWord, by: number): string {
-  return `Knobs back to their defaults. ${event} is ${by} characters over the 908-character budget.`;
+  return `Settings back to their defaults. ${event} is ${by} characters over the 908-character budget.`;
 }
 
 export function liveResetOverBoth(setupBy: number, timerBy: number): string {
-  return `Knobs back to their defaults. Both events are over the 908-character budget: Setup by ${setupBy} characters, Timer by ${timerBy}.`;
+  return `Settings back to their defaults. Both events are over the 908-character budget: Setup by ${setupBy} characters, Timer by ${timerBy}.`;
 }
 
 export const LINK_COPIED_ANNOUNCEMENT = "Link copied to the clipboard.";
 
 // ---------------------------------------------------------------------------
-// The OG image.
+// The OG image. The name is interpolated raw and never re-cased: the catalog's
+// names are the form the page shows (Arc, Euclid - D-14 Q11b).
 
 export function ogAlt(name: string): string {
   return `The ${name} configuration running on a ZONA’s 9 by 9 pad.`;
@@ -524,9 +556,9 @@ export function ogAlt(name: string): string {
 /**
  * There are none, and the empty list is the assertion.
  *
- * This phase writes nothing to any module and destroys nothing recoverable.
- * RESET ALL and TURN IT DOWN both act immediately, with no dialog. The only
- * destructive control on the site (KEEP ON DEVICE) is still disabled, and its
- * copy belongs to Phase 7.
+ * Nothing on the tuning panel writes to a module or destroys anything
+ * recoverable: Reset settings and Turn it down both act immediately, with no
+ * dialog, and Undo randomize is one click away. The one confirmation on the
+ * site that precedes a write to flash (Store on ZONA) is install-copy.ts's.
  */
 export const DESTRUCTIVE_CONFIRMATIONS: readonly string[] = [];

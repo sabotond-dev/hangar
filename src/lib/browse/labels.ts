@@ -1,5 +1,7 @@
-// The FOR facet's DISPLAY labels, one per machine term - PROVISIONAL until
-// plan 13-18 answers the copy ledger.
+// The FOR facet's DISPLAY labels, one per machine term - APPROVED as shipped
+// by 13-18-BATCH.md rows E.1-E.8 and 13-CONTEXT D-23 (2026-09-12; recorded by
+// 13-19): the seven values below are the user's, and the chip-versus-rail
+// question was answered "no" - one label per term.
 //
 // FOR_TERMS in ./facets.ts holds identifiers: `modulation`, `show`,
 // `sequencing`, `mixing`, `play`, `shortcuts`, `pointing`. Until plan 13-08
@@ -8,13 +10,14 @@
 // SHORTCUTS as a rail row is a paragraph-voice identifier wearing a label's
 // clothes. The PDF's rail reads Modulation, Notes & chords, Visuals,
 // Expression - four rows, three of which name no FOR term at all - so the
-// display strings are HANGAR's to write and the user's to approve. The seven
-// below are the planner's proposals, in the vocabulary's own order, LEDGERED
-// in .planning/phases/13-gui-overhaul/13-COPY-NEW.md for 13-18's batch
-// together with the chip-versus-rail naming question (the PDF shows `Notes &
-// chords` on the rail and `Notes` in the chip row - a shorter chip label for
-// one facet). When 13-18's answers land, the change is this one table and not
-// seven call sites: the rail (src/lib/browse/rail.ts), the chip row
+// display strings were HANGAR's to write and the user's to approve. The seven
+// below were 13-08's proposals, in the vocabulary's own order, ledgered for
+// 13-18's batch together with the chip-versus-rail naming question (the PDF
+// shows `Notes & chords` on the rail and `Notes` in the chip row - a shorter
+// chip label for one facet); the batch kept all seven (E.1-E.7: `Visuals` for
+// the PDF's three spellings of one facet, `Playing` because the term is a
+// verb) and declined the short form (E.8). Any later change is this one table
+// and not seven call sites: the rail (src/lib/browse/rail.ts), the chip row
 // (BrowseToolbar.svelte through FacetRow.svelte) and the card's category line
 // (CatalogCard.svelte) all read it, so a chip and its rail row can never carry
 // two unrelated strings.
@@ -34,8 +37,8 @@
 import type { ForTerm } from "./facets";
 
 /**
- * The seven, keyed by machine term. Provisional - 13-18 replaces the values;
- * the keys are the vocabulary's and move only when facets.ts moves.
+ * The seven, keyed by machine term. The values are the batch's, approved
+ * (D-23); the keys are the vocabulary's and move only when facets.ts moves.
  */
 export const FOR_LABELS: Readonly<Record<ForTerm, string>> = Object.freeze({
   modulation: "Modulation",

@@ -1,10 +1,22 @@
-// Every sentence this phase can say, asserted character-for-character against
-// 05-UI-SPEC's Copywriting Contract.
+// Every sentence the tuning panel can say, held character-for-character
+// against the documents that author it: the Bible (section 7) and its PDF for
+// the lines it gives, 13-18-BATCH.md for the line it approved (F.11), and the
+// register (13-CONTEXT D-05) for everything HANGAR had to write itself.
 //
-// The table in that document IS the specification. These tests exist so that a
-// string cannot be paraphrased, reflowed, re-punctuated or "improved" without
-// a red run naming it - which is the only mechanism that keeps one copy of a
-// sentence one copy.
+// These tests exist so that a string cannot be paraphrased, reflowed,
+// re-punctuated or "improved" without a red run naming it - which is the only
+// mechanism that keeps one copy of a sentence one copy.
+//
+// THE MEASURED CAPS ARE RETIRED BY NAME (test 5). This file held five numbers
+// about its strings - tryOnBudgetReason under install-copy.ts's HONESTY_CAP
+// (86), SURPRISE_ALL_HELD at 53, the lock's two labels at 4 / 4, the mix
+// family's 7 / 75 / 8 / 8, the forecast expansion at 44 - and holds none of
+// them now. Test 5 asserts each is absent as an assertion and present, by
+// name with its number, in copy.ts's retirement paragraph, so a mechanism that
+// disappeared has a sentence saying why. The rules that travelled with them
+// and did not retire are asserted where they always were: the U+2212 scope,
+// the lock's state in its accessible name, the reason naming the state and
+// never the control.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readdirSync, readFileSync } from "node:fs";
@@ -20,7 +32,6 @@ import {
   COLOUR_UNAFFORDABLE,
   COLOUR_WHICH,
   colourRailName,
-  COPY_LINK,
   DESTRUCTIVE_CONFIRMATIONS,
   EMPTY_RACK,
   KNOB_HELD,
@@ -29,18 +40,11 @@ import {
   LINK_COPIED_ANNOUNCEMENT,
   MEASURING,
   METERS_UNAVAILABLE,
-  MIX_LINE,
-  MIX_THAT,
-  MIX_THIS,
-  MIX_TWO,
-  mixChildName,
-  RESET_ALL,
   SETUP_CAPTION,
   SURPRISE_ALL_HELD,
   SHARE_FALLBACK_FIELD_NAME,
   SHARE_FALLBACK_LINE,
   STAMP_RESTORED,
-  SURPRISE_ME,
   TIMER_CAPTION,
   TUNING_CAPTION,
   TURN_IT_DOWN,
@@ -69,9 +73,39 @@ import {
   stampUnreadable,
   tryOnBudgetReason,
 } from "./copy";
+import { RANDOMIZE, RESET_SETTINGS, SHARE_SNAPSHOT } from "./inspector-copy";
 
-const source = (file: string) =>
-  readFileSync(new URL(file, import.meta.url), "utf8");
+const read = (relative: string) =>
+  readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
+
+const copySource = () => read("./copy.ts");
+
+/**
+ * The documents that author the words, read from disk: src/lib/tune/ is
+ * three levels below the root. Each is checked for length and for a heading
+ * before it is searched, because a containment check over a document that
+ * failed to load is a gate that passes everything.
+ */
+const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
+  [
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/bible/HANGAR-ZONA-GUI-design-specification.md",
+      heading: "### Randomization",
+      atLeast: 30_000,
+    },
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/13-18-BATCH.md",
+      heading: "## F. The workspace",
+      atLeast: 60_000,
+    },
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/13-CONTEXT.md",
+      heading: "## D-23 [user] The copy batch approved as proposed",
+      atLeast: 20_000,
+    },
+  ];
+
+const documents = () => DOCUMENTS.map(({ path }) => read(path));
 
 /**
  * U+2212 MINUS SIGN and U+002D HYPHEN-MINUS, both named by escape rather than
@@ -109,33 +143,43 @@ const stripComments = (text: string) =>
     .replace(/[/][*][^]*?[*][/]/g, "")
     .replace(/<!--[^]*?-->/g, "");
 
+/** Assembled, never written: the engine name that appears in no string and no comment. */
+const ENGINE = ["Chrom", "ium"].join("");
+
 /**
- * A-15's forbidden vocabulary, each word with the reason it is forbidden, so a
- * red run explains itself rather than printing a banned list.
- *
- * `child` is on it as USER-FACING TEXT and is permitted as an identifier:
- * `mix.ts` and `MixTwo.svelte` both use it, and the scan that reads this list
- * reads rendered strings and never code.
- *
- * The match is by STEM, so `gene` already covers `genetic` and `genetics`, and
- * `mutate` covers `mutated`. Both nouns are listed anyway - `mutation` does not
- * begin with `mutate` - and a root that subsumes another costs nothing.
- *
- * NINE ROOTS RATHER THAN ONE ALTERNATION, because the failure message has to
- * say WHICH word was found and in what form: "the copy matches
- * /breed|parent|…/" is a rule restated, not a finding.
+ * Assembled: Phase 10's register, which no string may carry any more - its
+ * uppercase labels, in the order the panel showed them - and the mix family's
+ * three, which no file under src/ may carry in code at all.
  */
-const GENETICS: ReadonlyArray<readonly [string, string]> = [
-  ["breed", "the mechanism, named where the result should be"],
-  ["parent", "the two slots are two candidates, and the screen shows them"],
-  ["mutate", "a knob was redrawn; that is a sentence anybody can read"],
-  ["mutation", "the noun form of the same borrowed word"],
-  ["dna", "there is no DNA here, there is an index vector"],
-  ["gene", "the metaphor's root"],
-  ["genetic", "the metaphor by its own name"],
-  ["offspring", "four results, and they are on the screen"],
-  ["child", "fine as an identifier, wrong on a button"],
+const RETIRED_LABELS = [
+  ["SURPRISE ", "ME"].join(""),
+  ["RESET ", "ALL"].join(""),
+  ["COPY ", "LINK"].join(""),
+  ["LINK ", "COPIED"].join(""),
+  ["TURN IT ", "DOWN"].join(""),
+  ["TRY ON ", "DEVICE"].join(""),
 ];
+const MIX_STRINGS = [
+  ["MIX ", "TWO"].join(""),
+  ["THIS ", "ONE"].join(""),
+  ["THAT ", "ONE"].join(""),
+];
+/** The mix family's five exports, by name, which the module must not export. */
+const MIX_EXPORTS = [
+  "MIX_TWO",
+  "MIX_LINE",
+  "MIX_THIS",
+  "MIX_THAT",
+  "mixChildName",
+];
+/** The three Phase 10 exports whose Bible lines live in inspector-copy.ts. */
+const MOVED_EXPORTS = ["SURPRISE_ME", "RESET_ALL", "COPY_LINK"];
+/**
+ * Assembled, matched without case as a WORD: the site's own noun for what a
+ * visitor turns, which the register replaces with the Bible's "setting"
+ * (PDF page 5: Reset settings). Fine as an identifier; wrong in a sentence.
+ */
+const RETIRED_NOUN = new RegExp(["kno", "bs?"].join("") + "\\b", "i");
 
 /**
  * The compiler writes its ladder labels as whole sentences. This one has a
@@ -144,6 +188,9 @@ const GENETICS: ReadonlyArray<readonly [string, string]> = [
  * they are for.
  */
 const LADDER_LABEL = "Stop drawing the ZONA control on the pad";
+
+/** The catalog's sentence-case name (D-14 Q11b), as the samples read. */
+const NAME = "Euclid";
 
 /**
  * One sample input per builder, so test 2 can put every builder's OUTPUT
@@ -160,7 +207,6 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   forecastDelta: [-3],
   forecastExpansion: ["Setup", 714],
   colourRailName: ["r", "Mute"],
-  mixChildName: [["Speed 3", "Colour 214 255 78"]],
   lowerFirst: [LADDER_LABEL],
   ladderLine: [1, LADDER_LABEL],
   overBudgetKnob: ["Trail", "Setup", 33],
@@ -170,15 +216,15 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   backOffKnob: ["Trail", "Setup", 702],
   backOffLadder: [LADDER_LABEL, "Setup", 702],
   tryOnBudgetReason: ["Setup and Timer"],
-  stampOlder: ["EUCLID"],
-  stampUnreadable: ["EUCLID"],
+  stampOlder: [NAME],
+  stampUnreadable: [NAME],
   liveOverBudget: ["Setup", 33, "Trail"],
   liveBackInside: ["Timer"],
   liveRandomised: [6, 702, 218],
   liveReset: [702, 218],
   liveResetOver: ["Setup", 33],
   liveResetOverBoth: [33, 12],
-  ogAlt: ["EUCLID"],
+  ogAlt: [NAME],
 };
 
 /** Every string the module can produce, named, for the mechanical rules. */
@@ -197,60 +243,105 @@ const everyString = () => {
   return out;
 };
 
+/** Sentence case: an initial capital and no run of two or more capitals after it. */
+const sentenceCase = (text: string) =>
+  /^[A-Z]/.test(text) && !/[A-Z]{2,}/.test(text);
+
 describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
-  it("uppercases every button label and caption, and keeps captions to one word", () => {
-    // The rule is "button labels, and captions of at most two words". TURN IT
-    // DOWN is three words and it is a BUTTON LABEL, which the rule permits, so
-    // the two lists are asserted separately rather than by a word count that
-    // would forbid it.
-    const buttonLabels = [
-      SURPRISE_ME,
-      RESET_ALL,
-      TURN_IT_DOWN,
-      COPY_LINK,
-      LINK_COPIED,
+  it("the labels and captions: the Bible's lines where 13-09 put them, the batch's as approved, the retired ones gone, and the captions the short labels D-05 permits", () => {
+    const docs = documents();
+    docs.forEach((doc, i) => {
+      expect(
+        doc.length,
+        `${DOCUMENTS[i].path} was actually read`,
+      ).toBeGreaterThan(DOCUMENTS[i].atLeast);
+      expect(
+        doc,
+        `${DOCUMENTS[i].path} is not the document it claims to be`,
+      ).toContain(DOCUMENTS[i].heading);
+    });
+    const [bible, batch, context] = docs;
+    const d23 = context.slice(context.indexOf(DOCUMENTS[2].heading));
+    expect(d23, "D-23 records the answer").toContain('> *"approve"*');
+
+    // THE THREE CONTROLS THE BIBLE NAMES are inspector-copy.ts's since 13-09,
+    // verbatim from PDF page 5 and section 7, and this module does NOT carry
+    // a second copy of any of them. Section 7 is read for the one of the
+    // three it writes in prose.
+    const randomization = bible.slice(bible.indexOf("### Randomization"));
+    expect(randomization, "section 7 labels the control").toContain(
+      `Label it **${RANDOMIZE}**`,
+    );
+    expect(randomization, "section 7 permits parameter locks").toContain(
+      "allow parameter locks only when",
+    );
+    expect(RANDOMIZE).toBe("Randomize");
+    expect(RESET_SETTINGS).toBe("Reset settings");
+    expect(SHARE_SNAPSHOT).toBe("Share snapshot");
+    const exported = new Set(Object.keys(copy));
+    for (const name of MOVED_EXPORTS) {
+      expect(
+        exported.has(name),
+        `${name} is exported again - its Bible line is inspector-copy.ts's, and a second copy is the drift the header forbids`,
+      ).toBe(false);
+    }
+
+    // THE BATCH'S ONE ROW FOR THIS MODULE, F.11, approved by D-23: the
+    // proposal column carries the string in backticks, and the module carries
+    // it character for character.
+    const f11 = batch.split("\n").find((line) => line.startsWith("| F.11 |"));
+    expect(f11, "batch row F.11 is in the document").toBeDefined();
+    expect(f11, "F.11 proposes the share control's confirmed label").toContain(
+      `\`${LINK_COPIED}\``,
+    );
+    expect(f11, "F.11 hands the row to this module").toContain(
+      "src/lib/tune/copy.ts",
+    );
+    expect(LINK_COPIED).toBe("Link copied");
+
+    // THE LOCK: section 7's noun in sentence case, off and on. The state is
+    // in the WORD, so it is in the accessible name and not only in
+    // aria-pressed (10-UI-SPEC 15, kept). No width rule: the header's
+    // retirement moved that invariant into the two .lock rules.
+    expect(KNOB_HOLD).toBe("Lock");
+    expect(KNOB_HELD).toBe("Locked");
+    expect(
       KNOB_HOLD,
-      KNOB_HELD,
-      MIX_TWO,
-    ];
+      "the two labels are the same word, so the state of the lock is not in its accessible name",
+    ).not.toBe(KNOB_HELD);
+
+    // The back-off control: a verb on a button, sentence case, and never the
+    // device band's `Put back` wearing another case.
+    expect(TURN_IT_DOWN).toBe("Turn it down");
+    expect(TURN_IT_DOWN.toLowerCase()).not.toContain("put");
+
+    // EVERY BUTTON LABEL IS SENTENCE CASE (D-05): an initial capital, no
+    // shouted word after it. The four captions are the short section labels
+    // D-05 permits in uppercase, and they are one word each.
+    for (const label of [TURN_IT_DOWN, LINK_COPIED, KNOB_HOLD, KNOB_HELD]) {
+      expect(sentenceCase(label), `${label} is not sentence case`).toBe(true);
+    }
     const captions = [
       TUNING_CAPTION,
       SETUP_CAPTION,
       TIMER_CAPTION,
       COLOUR_CAPTION,
-      MIX_THIS,
-      MIX_THAT,
     ];
-
-    expect(SURPRISE_ME).toBe("SURPRISE ME");
-    expect(RESET_ALL).toBe("RESET ALL");
-    expect(TURN_IT_DOWN).toBe("TURN IT DOWN");
-    expect(COPY_LINK).toBe("COPY LINK");
-    expect(LINK_COPIED).toBe("LINK COPIED");
-
-    // T1's toggle. The two labels are the SAME LENGTH on purpose - toggling a
-    // lock must not reflow the row it sits at the end of - and the state is in
-    // the word rather than only in aria-pressed, which is what makes it part
-    // of the accessible name (10-UI-SPEC 15).
-    expect(KNOB_HOLD).toBe("HOLD");
-    expect(KNOB_HELD).toBe("HELD");
-    expect([...KNOB_HOLD].length, "the lock's off label is 4").toBe(4);
-    expect([...KNOB_HELD].length, "the lock's on label is 4").toBe(4);
-    expect(
-      KNOB_HOLD,
-      "the two labels are the same word, so the state of the lock is not in its accessible name",
-    ).not.toBe(KNOB_HELD);
     expect(TUNING_CAPTION).toBe("TUNING");
     expect(SETUP_CAPTION).toBe("SETUP");
     expect(TIMER_CAPTION).toBe("TIMER");
     expect(COLOUR_CAPTION).toBe("COLOUR");
+    for (const caption of captions) {
+      expect(caption, caption).toBe(caption.toUpperCase());
+      expect(
+        caption.split(" "),
+        `${caption} is more than one word`,
+      ).toHaveLength(1);
+    }
 
-    // -----------------------------------------------------------------------
-    // THE PICKER'S SEVEN STRINGS, CHARACTER FOR CHARACTER (10-UI-SPEC §11.2,
-    // plan 10-10). They ride inside this test rather than becoming an eighth
-    // because what they are is a caption plus six sentences, and this file's
-    // job is to hold each of them to the contract's own words. Their COUNTS
-    // are asserted in colour-picker.spec.ts, beside the picker they belong to.
+    // THE PICKER'S SEVEN STRINGS, CHARACTER FOR CHARACTER (plan 10-10). They
+    // were already in the register and did not move; their COUNTS are
+    // colour-picker.spec.ts's, beside the picker they belong to.
     expect(COLOUR_WHICH).toBe("Which colour");
     expect(COLOUR_RED_RAIL).toBe("Red, 16 steps");
     expect(COLOUR_GREEN_RAIL).toBe("Green, 16 steps");
@@ -259,12 +350,9 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(COLOUR_UNAFFORDABLE).toBe(
       "The colours left out would not fit inside 908 characters.",
     );
-
-    // The prefixed rail name is COMPOSED and never written down: seventeen
-    // entries carry more than one colour knob, so the alternative is
-    // fifty-one sentences that drift from the catalog. Composed the same way
+    // The prefixed rail name is COMPOSED and never written down, the same way
     // `ladderLine` lower-cases the compiler's own label - first character
-    // only, so a proper noun in a knob's label survives.
+    // only, so a proper noun in a label survives.
     expect(colourRailName("r")).toBe(COLOUR_RED_RAIL);
     expect(colourRailName("r", "Mute")).toBe("Mute red, 16 steps");
     expect(colourRailName("g", "Rail")).toBe("Rail green, 16 steps");
@@ -273,75 +361,36 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "the prefixed form is a literal rather than a composition",
     ).toBe("Level blue, 16 steps");
 
-    // -----------------------------------------------------------------------
-    // MIX TWO'S FOUR STRINGS, CHARACTER FOR CHARACTER AND THEN COUNTED
-    // (10-UI-SPEC §11.6 and §13.4, plan 10-11). They ride inside this test for
-    // the same reason the picker's seven do: what they are is a label, two
-    // slot captions and one sentence, and this file's job is to hold each of
-    // them to the contract's own words. The counts are asserted HERE rather
-    // than in mix.spec.ts, because §13.4 gives the numbers and this is the
-    // file that holds §13.4.
-    expect(MIX_TWO).toBe("MIX TWO");
-    expect(MIX_LINE).toBe(
-      "Takes half its settings from each, at random. Nothing is sent to your ZONA.",
-    );
-    expect(MIX_THIS).toBe("THIS ONE");
-    expect(MIX_THAT).toBe("THAT ONE");
-
-    expect([...MIX_TWO].length, "the mix label is no longer 7").toBe(7);
-    expect([...MIX_LINE].length, "the mix line is no longer 75").toBe(75);
-    expect(
-      [...MIX_THIS].length,
-      "the first candidate's label is no longer 8",
-    ).toBe(8);
-    expect(
-      [...MIX_THAT].length,
-      "the second candidate's label is no longer 8",
-    ).toBe(8);
-    // The two slot labels are the SAME WIDTH on purpose - they head two slots
-    // side by side, and two labels of different lengths would move the second
-    // as the first one changed.
-    expect(
-      [...MIX_THIS].length,
-      "the two candidate labels are no longer the same length, so the second slot moves with the first",
-    ).toBe([...MIX_THAT].length);
-
-    // The line says what the control does AND what it does not do, and the
-    // second half is the load-bearing one: four new configurations appearing
-    // beside TRY ON DEVICE is exactly where a visitor would wonder.
-    expect(
-      MIX_LINE,
-      "the mix line no longer says that nothing is sent to the module",
-    ).toContain("Nothing is sent to your ZONA.");
-
-    // The child's accessible name is COMPOSED from what would change, never
-    // written down: four buttons called "Option 1" are four indistinguishable
-    // buttons, and the changes are the only thing that tells them apart.
-    expect(mixChildName(["Speed 3"])).toBe("Take this: Speed 3.");
-    expect(mixChildName(["Speed 3", "Colour 214 255 78"])).toBe(
-      "Take this: Speed 3, Colour 214 255 78.",
-    );
-    // Every knob held is a real case, not defensive padding: nothing is
-    // crossed and nothing is redrawn, so a name claiming a change would lie.
-    expect(mixChildName([])).toBe("Take this: the same settings as now.");
-
-    for (const label of [...buttonLabels, ...captions]) {
-      expect(label, label).toBe(label.toUpperCase());
+    // THE MIX FAMILY IS GONE BY NAME (D-12; 13-10 left it, 13-19 closes it):
+    // the five exports are absent, the header retires them by identifier,
+    // and none of the three uppercase strings appears in the CODE of any
+    // file under src/ - so a component cannot have kept a transcription.
+    const raw = copySource();
+    expect(raw.length, "the source was actually read").toBeGreaterThan(4000);
+    for (const name of MIX_EXPORTS) {
+      expect(exported.has(name), `${name} is still exported`).toBe(false);
+      expect(raw.includes(name), `${name} is deleted without being named`).toBe(
+        true,
+      );
     }
-    for (const caption of captions) {
-      expect(caption.split(" ").length, caption).toBeLessThanOrEqual(2);
+    expect(raw).toContain("THE MIX FAMILY IS GONE BY NAME, 2026-09-12");
+    const root = fileURLToPath(new URL("../..", import.meta.url));
+    const carriers: string[] = [];
+    for (const file of everySourceFile(root)) {
+      if (!/[.](ts|svelte|css|js|json|html)$/.test(file)) continue;
+      const code = stripComments(readFileSync(file, "utf8"));
+      for (const text of MIX_STRINGS) {
+        if (code.includes(`"${text}"`)) carriers.push(`${file}: ${text}`);
+      }
     }
-    // Stated rather than implied: the three-word string is on the label list.
-    expect(buttonLabels).toContain(TURN_IT_DOWN);
-    expect(TURN_IT_DOWN.split(" ")).toHaveLength(3);
+    expect(
+      carriers.map((each) => each.split(root).join("src")),
+      "a mix string is still in the code of src/",
+    ).toEqual([]);
 
-    // TUNING is Phase 4's caption and this is now its one home. It was held
-    // against ChosenPanel.svelte's local const while that component still
-    // transcribed it; wave 10 moved the caption into the tuning region, which
-    // IMPORTS it from here. So the drift this line guarded against is no longer
-    // possible by construction, and what it checks is that the move really was
-    // to an import and not to a second transcription.
-    const region = stripComments(source("../ui/TuningRegion.svelte"));
+    // TUNING is Phase 4's caption and this is its one home: the region
+    // IMPORTS it, and does not transcribe it.
+    const region = stripComments(read("../ui/TuningRegion.svelte"));
     expect(region, "the region was read").not.toBe("");
     expect(
       region,
@@ -353,25 +402,22 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     ).not.toContain(`"${TUNING_CAPTION}"`);
   });
 
-  it("obeys the copy rules mechanically, over every string and every builder's output", () => {
+  it("obeys the register mechanically, over every string and every builder's output: the punctuation, the case, the engine, the retired words", () => {
     const strings = everyString();
     expect(
       strings.length,
       "the module was actually read - too few strings to be checking anything",
     ).toBeGreaterThanOrEqual(25);
 
-    // Non-vacuity for A-15's scan below, in both halves: the vocabulary is the
-    // nine words the plan names, and the word split it matches against really
-    // splits. A scan whose tokeniser returned one long string would find no
-    // forbidden word for the happiest of reasons.
-    expect(GENETICS.length, "the forbidden vocabulary is nine words").toBe(9);
-    expect(
-      "Take this: Speed 3."
-        .toLowerCase()
-        .split(/[^a-z]+/)
-        .filter(Boolean),
-      "the word split the metaphor scan depends on no longer splits",
-    ).toEqual(["take", "this", "speed"]);
+    const APOSTROPHE = String.fromCharCode(39);
+    /** Uppercase runs of two or more letters inside a sentence: names and one initialism only. */
+    const ACRONYMS = new Set(["ZONA", "HANGAR", "MIDI"]);
+    const CAPTIONS = new Set([
+      "TUNING_CAPTION",
+      "SETUP_CAPTION",
+      "TIMER_CAPTION",
+      "COLOUR_CAPTION",
+    ]);
 
     for (const { name, text } of strings) {
       expect(text, `${name} is empty`).not.toBe("");
@@ -379,57 +425,82 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
         /\p{Extended_Pictographic}/u,
       );
       expect(text, `${name} carries an exclamation mark`).not.toContain("!");
-      expect(text, `${name} carries a straight apostrophe`).not.toContain("'");
+      expect(text, `${name} carries a straight apostrophe`).not.toContain(
+        APOSTROPHE,
+      );
       expect(text, `${name} carries a three-dot ellipsis`).not.toContain("...");
+      expect(text, `${name} has a hyphen for a dash`).not.toContain(" -- ");
       expect(text, `${name} says Error`).not.toMatch(/error/i);
       expect(text, `${name} says loading`).not.toMatch(/loading/i);
+      expect(text.includes(ENGINE), `${name} names an engine`).toBe(false);
       // THE FIFTH PERMITTED CHARACTER, WITH ITS SCOPE ASSERTED BESIDE IT.
       // U+2212 is permitted in forecastDelta's signed numeral and in no other
-      // string this module can produce. A permitted character with no scope is
-      // how a copy contract loosens one glyph at a time, so the scope is a
-      // condition on the name rather than an exemption from the loop.
+      // string this module can produce.
       if (name !== "forecastDelta") {
         expect(
           text,
           `${name} carries U+2212, which is permitted in the forecast delta and nowhere else`,
         ).not.toContain(MINUS);
       }
-      // -----------------------------------------------------------------
-      // A-15: NO GENETICS METAPHOR REACHES THE INTERFACE (plan 10-11).
-      // MIX TWO is crossover, and the vocabulary that comes with crossover
-      // would arrive free and would be wrong - it names a mechanism where
-      // the house style names a result. Two candidates, four results, one
-      // button. The scan is over EVERY string this module can produce
-      // rather than over MIX TWO's four, because a metaphor that leaked
-      // would leak into a sentence next door just as easily.
-      //
-      // `child` is here as USER-FACING TEXT and is fine as an identifier -
-      // mix.ts and MixTwo.svelte both use it - which is exactly why this
-      // scan reads rendered strings and never code. `mixChildName`'s output
-      // is in this walk, so the component's composed accessible name is
-      // covered here as well as in tune-ui.spec.ts's text-node scan.
-      // BY STEM, NOT BY WHOLE WORD, AND THE DIFFERENCE WAS MEASURED RATHER
-      // THAN REASONED. The first spelling of this scan asked whether the word
-      // list CONTAINED the root; the plan's negative check then put `Breeds`
-      // in the mix line and this scan stayed GREEN, because "breeds" is not
-      // "breed". A metaphor arrives inflected far more often than bare, so a
-      // word is an offender when it BEGINS with a forbidden root, and the
-      // found form is in the message beside the root it came from.
-      const words = text
-        .toLowerCase()
-        .split(/[^a-z]+/)
-        .filter(Boolean);
-      for (const [word, why] of GENETICS) {
-        const found = words.filter((each) => each.startsWith(word));
+      // NO UPPERCASE PARAGRAPHS (D-05): outside the four one-word captions, a
+      // run of capitals is a name or MIDI, never a shouted word.
+      if (!CAPTIONS.has(name)) {
+        for (const run of text.match(/[A-Z]{2,}/g) ?? []) {
+          expect(ACRONYMS.has(run), `${name} shouts "${run}"`).toBe(true);
+        }
+      }
+      // NO RETIRED REGISTER: Phase 10's uppercase labels are gone from every
+      // string, prose included, and so is its noun for a setting.
+      for (const word of RETIRED_LABELS) {
         expect(
-          found,
-          `${name} says "${found.join('", "')}" - ${why}. A-15: no genetics metaphor reaches the interface. Two candidates, four results, one button`,
-        ).toEqual([]);
+          text.includes(word),
+          `${name} carries Phase 10's "${word}"`,
+        ).toBe(false);
+      }
+      expect(
+        RETIRED_NOUN.test(text),
+        `${name} says "knob" where the Bible says setting`,
+      ).toBe(false);
+    }
+
+    // THE REAL PUNCTUATION IS PRESENT - a POSITIVE test since D-05, because
+    // the register is contractions with real apostrophes, not the absence of
+    // typewriter ones. At least four across the module, a real ellipsis and a
+    // real em dash.
+    const all = strings.map((s) => s.text).join(" ");
+    const contractions = all.match(/[a-zA-Z]’(?:t|s|ll|re|ve)\b/g) ?? [];
+    expect(
+      contractions.length,
+      "real apostrophes in real contractions",
+    ).toBeGreaterThanOrEqual(4);
+    expect(all.includes(String.fromCharCode(0x2026)), "a real ellipsis").toBe(
+      true,
+    );
+    expect(all.includes(String.fromCharCode(0x2014)), "a real em dash").toBe(
+      true,
+    );
+
+    // NO CONTROL LABEL PARAPHRASED IN PROSE: the one string that names a
+    // control names it exactly as the control reads, and no string re-cases
+    // any of the panel's three Bible labels. Matched as a WHOLE word: the
+    // register's own verb ("randomized", "apply") is not the control.
+    for (const { name, text } of strings) {
+      for (const label of [RANDOMIZE, RESET_SETTINGS, SHARE_SNAPSHOT]) {
+        const asWord = new RegExp(`\\b${label}\\b`, "i");
+        if (asWord.test(text)) {
+          expect(text, `${name} re-cases ${label}`).toContain(label);
+        }
       }
     }
+    expect(STAMP_RESTORED).toContain(RESET_SETTINGS);
+
+    // And the engine appears nowhere in the file at all, comments included.
+    expect(copySource().includes(ENGINE), "copy.ts names an engine").toBe(
+      false,
+    );
   });
 
-  it("writes the meter strings exactly as the contract does", () => {
+  it("writes the meter strings and the forecast, with the fifth character in its one place", () => {
     expect(meterNumerals(702)).toBe("702 / 908");
     expect(meterNumerals(941)).toBe("941 / 908");
     expect(meterPercent(77)).toBe("77%");
@@ -445,25 +516,20 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "Timer uses 0 of 908 characters. This configuration has no timer.",
     );
     expect(METERS_UNAVAILABLE).toBe(
-      "The character counter could not load, so the two budgets are not shown. Everything else on this page still works.",
+      "The character counter couldn’t load, so the two budgets aren’t shown. Everything else here still works.",
     );
 
-    // -----------------------------------------------------------------------
-    // THE FORECAST, and it rides inside the meter test because it IS a meter
-    // string: the delta is what the bar would read and the expansion says so
-    // in words. This file stays at six tests (10-VALIDATION's per-file table).
-
+    // THE FORECAST rides inside the meter test because it IS a meter string:
+    // the delta is what the bar would read and the expansion says so in
+    // words.
     expect(forecastDelta(6)).toBe("+6");
     expect(forecastDelta(3)).toBe("+3");
     expect(forecastDelta(0), "a zero delta is bare, never signed").toBe("0");
 
     // THE FIFTH PERMITTED CHARACTER, ASSERTED IN BOTH DIRECTIONS AND ASSERTED
-    // FIRST. U+2212 is what a signed numeral takes on a site that already
-    // ships U+2019, U+2026, U+2014 and U+00B7; U+002D HYPHEN-MINUS is a
-    // word-joining dash and would be the inconsistency this whole contract
-    // exists to prevent. These come BEFORE the equalities below because a
-    // wrong sign fails both, and a failure that names the two codepoints is
-    // worth more than one that prints two glyphs a reader has to tell apart.
+    // FIRST, because a wrong sign fails both and a failure that names the two
+    // codepoints is worth more than one that prints two glyphs a reader has
+    // to tell apart.
     expect(
       forecastDelta(-3),
       "the delta writes U+002D HYPHEN-MINUS instead of U+2212 MINUS SIGN",
@@ -476,15 +542,12 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       forecastDelta(6),
       "a positive delta reaches for U+2212 as well, which is not a sign at all",
     ).not.toContain(MINUS);
-
     expect(forecastDelta(-3)).toBe(`${MINUS}3`);
     expect(forecastDelta(-12)).toBe(`${MINUS}12`);
 
     // AND THE SCOPE, WHICH IS THE OTHER HALF OF PERMITTING A CHARACTER.
     // Exactly one occurrence of the glyph in the CODE of the whole of src/,
     // comments stripped - so the permission cannot spread one paste at a time.
-    // Comments are excluded on purpose: nothing in a comment is shipped, and
-    // the paragraph beside MINUS has to be able to spell out what it is.
     const root = fileURLToPath(new URL("../..", import.meta.url));
     const carriers: string[] = [];
     let scanned = 0;
@@ -502,22 +565,17 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "U+2212 is permitted in the forecast delta and nowhere else, and it has appeared somewhere else",
     ).toEqual(["src/lib/tune/copy.ts x1"]);
 
-    // The hidden expansion, at the placeholder's own length. 44 characters,
-    // counted rather than asserted by eye, and identical for either event
-    // word because Setup and Timer are both five.
+    // The hidden expansion, identical in shape for either event word. Its
+    // length is not asserted any more (test 5).
     expect(forecastExpansion("Setup", 714)).toBe(
       "Choosing this would put Setup at 714 of 908.",
     );
     expect(forecastExpansion("Timer", 218)).toBe(
       "Choosing this would put Timer at 218 of 908.",
     );
-    expect(
-      [..."Choosing this would put Setup at {n} of 908."].length,
-      "the forecast expansion is no longer 44 characters at its placeholder",
-    ).toBe(44);
   });
 
-  it("lower-cases only the first character of the compiler's own label", () => {
+  it("the fit ladder keeps TUNE-04's fact - something was turned down, and WHICH - and lower-cases only the label's first character", () => {
     expect(lowerFirst(LADDER_LABEL)).toBe(
       "stop drawing the ZONA control on the pad",
     );
@@ -530,9 +588,45 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(ladderLine(3, LADDER_LABEL)).toBe(
       "3 things were turned down to stay inside 908 characters, starting with stop drawing the ZONA control on the pad.",
     );
+
+    // THE FACT, ASSERTED AS A FACT AND NOT AS A STRING (TUNE-04): whatever
+    // the words, every form of the line names the budget it stayed inside,
+    // says that something was turned down, and carries the compiler's own
+    // label for WHICH - lower-cased at its first character and otherwise
+    // untouched - and the several-step form carries the count. A line that
+    // dropped the label would keep half the fact and go red here by name.
+    const labels = [
+      LADDER_LABEL,
+      "Drop the heart's second colour",
+      "Shorten the trail",
+    ];
+    for (const label of labels) {
+      for (const steps of [1, 2, 3, 7]) {
+        const line = ladderLine(steps, label);
+        expect(line, `ladderLine(${steps}) names the budget`).toContain("908");
+        expect(line, `ladderLine(${steps}) says what happened`).toMatch(
+          /turned down/,
+        );
+        expect(
+          line,
+          `ladderLine(${steps}) does not say WHICH feature was trimmed`,
+        ).toContain(lowerFirst(label));
+        if (label === LADDER_LABEL) {
+          expect(
+            line,
+            `ladderLine(${steps}) flattens the proper noun in the compiler's label`,
+          ).not.toContain(LADDER_LABEL.toLowerCase());
+        }
+        if (steps > 1) {
+          expect(line, `ladderLine(${steps}) drops the count`).toContain(
+            String(steps),
+          );
+        }
+      }
+    }
   });
 
-  it("writes the four over-budget sentences, both back-off explanations and the primary control's reason", () => {
+  it("writes the four over-budget sentences, both back-off lines and the primary control's reason, and the measured caps are retired by name", () => {
     expect(overBudgetKnob("Trail", "Setup", 33)).toBe(
       "Trail pushed Setup 33 characters over 908.",
     );
@@ -550,75 +644,110 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "Puts Trail back where it was, and Setup at 702 of 908.",
     );
     // The ladder label OPENS this sentence, so it keeps the compiler's own
-    // capital - the contract's placeholder is {Label}, not {label}.
+    // capital where the two ladder lines lower-case it.
     expect(backOffLadder(LADDER_LABEL, "Setup", 702)).toBe(
       "Stop drawing the ZONA control on the pad. Puts Setup at 702 of 908.",
     );
 
-    // SHORTENED BY NAME, plan 10-03. This is the honesty slot's fifth
-    // candidate, so it is capped by install-copy.ts's HONESTY_CAP, which the
-    // measured CH_PER_LINE moved from 129 to 86 (2 x 43). The worst form -
-    // `Setup and Timer` - was 90, four over. The literal shortens and the cap
-    // does not move: a cap widened to admit its own string reserves nothing.
+    // The reason beside a disabled Apply to ZONA: the budget, the event, and
+    // the way back. The three forms move together because the interpolation
+    // sits inside one sentence.
     expect(tryOnBudgetReason("Setup")).toBe(
-      "Over the 908-character budget on Setup. Turn something down and it returns.",
+      "Over the 908-character budget on Setup. Turn something down to apply it.",
     );
     expect(tryOnBudgetReason("Timer")).toBe(
-      "Over the 908-character budget on Timer. Turn something down and it returns.",
+      "Over the 908-character budget on Timer. Turn something down to apply it.",
     );
     expect(tryOnBudgetReason("Setup and Timer")).toBe(
-      "Over the 908-character budget on Setup and Timer. Turn something down and it returns.",
+      "Over the 908-character budget on Setup and Timer. Turn something down to apply it.",
     );
-    // The worst form, under the cap, measured here rather than assumed - this
-    // module cannot import install-copy.ts (both are import-free by contract),
-    // so the number is written out with its arithmetic.
-    expect(
-      [...tryOnBudgetReason("Setup and Timer")].length,
-      "the worst budget reason is over HONESTY_CAP - 2 x 43 = 86",
-    ).toBeLessThanOrEqual(86);
 
-    // The other disabled control's reason, and the only one this region
-    // renders. 53 characters, counted rather than asserted by eye, because
-    // 10-UI-SPEC 13.4 gives the number and this is the file that holds it.
+    // The other disabled control's reason. It names the STATE and never the
+    // control directly above it, and it carries both facts 13-10's scope
+    // rule gave it: everything Randomize could change is locked, and the
+    // MIDI settings are outside its reach.
     expect(SURPRISE_ALL_HELD).toBe(
-      "Every knob is held, so there is nothing left to roll.",
+      "Everything that can be randomized is locked. MIDI settings are never randomized.",
     );
-    expect(
-      [...SURPRISE_ALL_HELD].length,
-      "the fully-held reason is no longer 53 characters",
-    ).toBe(53);
-    // It names the state, never the control: a reason that said "SURPRISE ME"
-    // would repeat the label directly above it.
-    expect(SURPRISE_ALL_HELD).not.toContain(SURPRISE_ME);
+    expect(SURPRISE_ALL_HELD).not.toContain(RANDOMIZE);
+    expect(SURPRISE_ALL_HELD).toContain("MIDI");
+    expect(SURPRISE_ALL_HELD.toLowerCase()).toContain(KNOB_HELD.toLowerCase());
+
+    // THE MEASURED CAPS ARE RETIRED BY NAME, NOT LEFT AT A VALUE NOTHING
+    // CHECKS. Each is present, with its number, in copy.ts's retirement
+    // paragraph, which has to say what it measured and what superseded it;
+    // and the one that lived in another module is named as that module's.
+    const raw = copySource();
+    expect(raw.length, "the source was actually read").toBeGreaterThan(4000);
+    expect(raw).toContain("THE MEASURED CAPS ARE RETIRED BY NAME, 2026-09-12");
+    expect(raw).toContain("HONESTY_CAP (86)");
+    expect(raw).toContain("CH_PER_LINE, the 43");
+    expect(raw).toContain("SURPRISE_ALL_HELD's 53");
+    expect(raw).toContain("KNOB_HOLD / KNOB_HELD at 4 / 4");
+    expect(raw).toContain("MIX_TWO 7, MIX_LINE 75, MIX_THIS / MIX_THAT 8 / 8");
+    expect(raw).toContain("forecastExpansion's 44");
+    expect(raw).toContain("D-05");
+    // And the invariant the 4 / 4 rule carried is where the header says it
+    // went: a fixed inline-size on both .lock rules, wider than the 44px
+    // floor, so toggling the word cannot move the column.
+    for (const component of ["Knob.svelte", "ColourPicker.svelte"]) {
+      const styles = read(`../ui/${component}`);
+      const lock = styles.slice(styles.indexOf("\n  .lock {"));
+      const body = lock.slice(0, lock.indexOf("}"));
+      expect(body, `${component}'s .lock rule was found`).toContain(
+        "min-inline-size: 44px",
+      );
+      const fixed = /inline-size: (\d+)px;/.exec(
+        body.replace("min-inline-size: 44px", ""),
+      );
+      expect(
+        fixed,
+        `${component}'s .lock declares no fixed inline-size`,
+      ).not.toBeNull();
+      expect(
+        Number(fixed?.[1]),
+        `${component}'s .lock is narrower than its 44px floor`,
+      ).toBeGreaterThan(44);
+    }
   });
 
-  it("writes the stamp landings, the share lines and every live-region string, and imports nothing", () => {
+  it("writes the stamp landings with SHARE-03's fact, the share lines and every live-region string, and imports nothing", () => {
     expect(STAMP_RESTORED).toBe(
-      "These knobs came with the link. RESET ALL puts the configuration back to its defaults.",
+      "These settings came with the link. Reset settings returns the configuration to its defaults.",
     );
-    expect(stampOlder("EUCLID")).toBe(
-      "This link was made with an older version of HANGAR. Its knob settings could not be read, so this is EUCLID at its defaults.",
+    expect(stampOlder(NAME)).toBe(
+      "This link was made with an older version of HANGAR. Its settings couldn’t be read, so this is Euclid at its defaults.",
     );
-    expect(stampUnreadable("EUCLID")).toBe(
-      "That link’s knob settings could not be read, so this is EUCLID at its defaults.",
+    expect(stampUnreadable(NAME)).toBe(
+      "That link’s settings couldn’t be read, so this is Euclid at its defaults.",
     );
+    // SHARE-03's FACT, as a fact: the older landing says it was an older
+    // version and names the configuration it landed on; the unreadable one
+    // names the configuration and does NOT claim an older version, because
+    // saying so of a corrupted stamp would be a small lie.
+    expect(stampOlder(NAME)).toMatch(/older version/);
+    expect(stampOlder(NAME)).toContain(NAME);
+    expect(stampUnreadable(NAME)).not.toMatch(/older/);
+    expect(stampUnreadable(NAME)).toContain(NAME);
+    // The name is interpolated raw: a re-cased name would be a second
+    // opinion about a string the catalog owns (D-14 Q11b).
+    expect(stampOlder("Radar points")).toContain("Radar points");
 
     expect(EMPTY_RACK).toBe(
-      "This configuration has nothing to turn. Its two budgets are still live below.",
+      "This configuration has no settings to change. Its two budgets below are still live.",
     );
     // SHARE_QUIET_LINE was asserted here. R-07 retires it outright, with no
-    // replacement, because COPY LINK names itself. Its absence is asserted
-    // rather than merely uncommented: the export walk below is over the
-    // module's own keys, so a re-added constant would otherwise be invisible
-    // here and would ship a second sentence beneath a labelled button.
+    // replacement, because the share control names itself. Its absence is
+    // asserted rather than merely uncommented: a re-added constant would
+    // otherwise ship a second sentence beneath a labelled button.
     expect(
       Object.keys(copy),
-      "SHARE_QUIET_LINE came back - it is retired by R-07 and COPY LINK names itself",
+      "SHARE_QUIET_LINE came back - it is retired by R-07 and the share control names itself",
     ).not.toContain("SHARE_QUIET_LINE");
     expect(SHARE_FALLBACK_LINE).toBe(
-      "Your browser would not let the page copy for you. The link is selected below — press Ctrl+C, or Cmd+C on a Mac.",
+      "Your browser wouldn’t let the page copy for you. The link is selected below — press Ctrl+C, or Cmd+C on a Mac.",
     );
-    expect(SHARE_FALLBACK_FIELD_NAME).toBe("Shareable link");
+    expect(SHARE_FALLBACK_FIELD_NAME).toBe("Snapshot link");
 
     expect(liveOverBudget("Setup", 33, "Trail")).toBe(
       "Setup is now 33 characters over the 908-character budget. Trail pushed it over.",
@@ -630,31 +759,31 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "Timer is back inside the 908-character budget.",
     );
     expect(liveRandomised(6, 702, 218)).toBe(
-      "6 knobs randomised. Setup 702 of 908, Timer 218 of 908.",
+      "6 settings randomized. Setup 702 of 908, Timer 218 of 908.",
     );
     expect(liveReset(702, 218)).toBe(
-      "Knobs back to their defaults. Setup 702 of 908, Timer 218 of 908.",
+      "Settings back to their defaults. Setup 702 of 908, Timer 218 of 908.",
     );
-    // RESET ALL can land on defaults that are already over budget, so the
-    // command and the crossing are ONE utterance, never two.
+    // Reset settings can land on defaults that are already over budget, so
+    // the command and the crossing are ONE utterance, never two.
     expect(liveResetOver("Setup", 33)).toBe(
-      "Knobs back to their defaults. Setup is 33 characters over the 908-character budget.",
+      "Settings back to their defaults. Setup is 33 characters over the 908-character budget.",
     );
     expect(liveResetOverBoth(33, 12)).toBe(
-      "Knobs back to their defaults. Both events are over the 908-character budget: Setup by 33 characters, Timer by 12.",
+      "Settings back to their defaults. Both events are over the 908-character budget: Setup by 33 characters, Timer by 12.",
     );
     expect(LINK_COPIED_ANNOUNCEMENT).toBe("Link copied to the clipboard.");
-    expect(ogAlt("EUCLID")).toBe(
-      "The EUCLID configuration running on a ZONA’s 9 by 9 pad.",
+    expect(ogAlt(NAME)).toBe(
+      "The Euclid configuration running on a ZONA’s 9 by 9 pad.",
     );
 
-    // The contract's last row: this phase writes nothing to any module and
+    // The contract's last row: this panel writes nothing to any module and
     // destroys nothing recoverable, so there is no confirmation copy at all.
     expect(DESTRUCTIVE_CONFIRMATIONS).toEqual([]);
 
-    const code = stripComments(source("./copy.ts"));
+    const code = stripComments(copySource());
     expect(code, "the file was actually read").toContain(
-      "export const SURPRISE_ME",
+      "export const TURN_IT_DOWN",
     );
     expect(code).not.toContain('from "');
     expect(code).not.toContain("from '");

@@ -3,9 +3,11 @@
 // gives: a component under src/lib/ui/ may name it freely and it costs no
 // chunk.
 //
-// WHY A SECOND COPY MODULE BESIDE copy.ts. copy.ts is Phase 10's register
-// and copy.spec.ts holds it character for character; 13-19 rewrites it under
-// D-05. The strings the Bible's page 5 gives the workspace are the PDF's and
+// WHY A SECOND COPY MODULE BESIDE copy.ts. copy.ts was Phase 10's register
+// when this module was written and copy.spec.ts held it character for
+// character; 13-19 rewrote it under D-05 and retired the three Phase 10
+// labels whose Bible lines live here (RANDOMIZE, RESET_SETTINGS,
+// SHARE_SNAPSHOT), so each of the three has one home. The strings the Bible's page 5 gives the workspace are the PDF's and
 // are taken VERBATIM here (13-COPY-NEW.md's first rule), and the few HANGAR
 // had to write - the two accessible names, the inspector's one headline -
 // are ledgered there for 13-18. Landing them in copy.ts would move
@@ -114,9 +116,13 @@ export const MONITOR_PAUSE = "Pause";
 export const MONITOR_RESUME = "Resume";
 export const MONITOR_CLEAR = "Clear";
 
-/** The count on a coalesced row: `x12`. Empty for a lone message. */
+/**
+ * The count on a coalesced row: `×12`, with U+00D7 - the real multiplication
+ * sign the PDF uses in `2 × 6 units` and MATRIX_LINE already carries
+ * (13-18-BATCH.md row F.17, approved by D-23). Empty for a lone message.
+ */
 export function monitorCount(count: number): string {
-  return count > 1 ? `x${count}` : "";
+  return count > 1 ? `×${count}` : "";
 }
 
 export const MONITOR_EMPTY =

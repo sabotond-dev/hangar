@@ -46,6 +46,7 @@ import {
   MIDI_MONITOR,
   MONITOR_COLUMNS,
   MONITOR_STATUS,
+  RANDOMIZE,
   fieldResetName,
   monitorCount,
 } from "../tune/inspector-copy";
@@ -603,16 +604,15 @@ describe("the tuning UI's structural rules", () => {
       "the reason is not wired to the disabled control by aria-describedby, so it is visual-only",
     ).toContain("aria-describedby={allHeld ? heldReasonId : undefined}");
 
-    // 53, counted rather than asserted by eye. copy.spec.ts holds the sentence
-    // character-for-character; this holds the number the UI spec gives it.
-    expect(
-      [...SURPRISE_ALL_HELD].length,
-      "the fully-held reason is no longer 53 characters",
-    ).toBe(53);
+    // THE 53-CHARACTER COUNT IS RETIRED (13-19, D-05): copy.ts's header
+    // retires it by name with the other measured caps, and copy.spec.ts holds
+    // the sentence character-for-character. What stays is the rule the count
+    // travelled with: the reason names the STATE, never the control directly
+    // above it - asserted against the label the region actually renders.
     expect(
       SURPRISE_ALL_HELD,
       "the reason names the control instead of the state, repeating the label directly above it",
-    ).not.toContain("SURPRISE ME");
+    ).not.toContain(RANDOMIZE);
   });
 
   it("the accent census moves with the picker and the reserved list does not", () => {
@@ -983,7 +983,7 @@ describe("the tuning UI's structural rules", () => {
       ).not.toContain(`"${text}"`);
     }
     expect(monitorCount(1)).toBe("");
-    expect(monitorCount(12)).toBe("x12");
+    expect(monitorCount(12)).toBe("×12");
     expect(monitor).toContain("monitorCount(row.count)");
 
     // ---- ABSENT ON PRESET ENTRIES, NOT PRESENT AND EMPTY. The route mounts
@@ -1030,7 +1030,7 @@ describe("the tuning UI's structural rules", () => {
       log.visible[0].p2,
       "a coalesced row does not show the latest value",
     ).toBe(11);
-    expect(monitorCount(log.visible[0].count)).toBe("x2");
+    expect(monitorCount(log.visible[0].count)).toBe("×2");
     expect(
       log.ingest(stream, 20),
       "an unchanged source reported a change",
