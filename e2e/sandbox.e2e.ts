@@ -19,6 +19,9 @@
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+/** A surface's own address: the front door mints the id and lands here. */
+const SURFACE_ADDRESS = /[/]sandbox[/]s-[a-z0-9-]+[/]$/;
+
 /**
  * Every console error but one: the surface's own document arrives with
  * status 404 by design (the static host serves the fallback page for a path
@@ -36,7 +39,7 @@ function collectErrors(page: Page): string[] {
     if (
       text.startsWith("Failed to load resource") &&
       text.includes("404") &&
-      /[/]sandbox[/]s-[a-z0-9-]+[/]$/.test(at)
+      SURFACE_ADDRESS.exec(at) !== null
     ) {
       return;
     }
@@ -59,7 +62,7 @@ async function clickCell(plate: Locator, col: number, row: number) {
 /** Open the Sandbox from its front door and land on a surface of its own. */
 async function openFresh(page: Page): Promise<Locator> {
   await page.goto("/sandbox/?new");
-  await expect(page).toHaveURL(/\/sandbox\/s-[a-z0-9-]+\/$/);
+  await expect(page).toHaveURL(SURFACE_ADDRESS);
   await expect(page.getByTestId("sandbox")).toBeVisible();
   return page.getByTestId("surface-plate");
 }
