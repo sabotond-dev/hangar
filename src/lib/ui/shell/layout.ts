@@ -134,6 +134,20 @@ export const NUMERIC_GRID_REFLOW = GRID_FITS_INSPECTOR;
 /** Section 7: "a practical maximum around 600px" for the surface. */
 export const SURFACE_MAX = 600;
 
+/**
+ * THE SANDBOX'S PLATE (plan 13-16): PDF page 3's outer plate, x 351 to 922
+ * and y 347 to 918 at 1500 - 571 square, holding the 9 x 9 lattice at a
+ * pitch of 571 / 9 = 63.4. It is the SVG's user-unit square; the element
+ * scales down with the centre column and up never (the PDF's figure is the
+ * ceiling, under SURFACE_MAX). The handle is the PDF's small filled square
+ * on the selected region, about 8 device pixels at 1:1; the label is the
+ * 11px uppercase name at the region's top-left.
+ */
+export const SANDBOX_PLATE = 571;
+export const SANDBOX_PITCH = SANDBOX_PLATE / 9;
+export const SANDBOX_HANDLE = 8;
+export const SANDBOX_LABEL_SIZE = 11;
+
 /** Section 7's 24px centre padding; the PDF measures 24-34. */
 export const CENTRE_PAD = 24;
 

@@ -37,6 +37,15 @@
   beneath that floor. Every number is layout.ts's. The section titles and
   row labels are the route's, so nothing here is ledgered.
 
+  PAGE 3's TWO SECTIONS ARRIVE AS CHILDREN (plan 13-16). The palette's `+`
+  is disabled at the cap with a reason beside it, and the element list has
+  a keyboard model of its own; neither is a row a `RailRow` can describe. So
+  the rail takes an optional `children` snippet, rendered inside the same
+  scroll column after any `sections`, and src/lib/ui/sandbox/Palette.svelte
+  and ElementList.svelte draw their rows at this file's numbers. One aside,
+  one landmark, one scroll container - the frame does not know the
+  difference.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -68,14 +77,15 @@
   }
 
   let {
-    sections,
+    sections = [],
     selected,
     onselect,
     lead,
     note,
     action,
+    children,
   }: {
-    sections: readonly RailSection[];
+    sections?: readonly RailSection[];
     /** The id of the selected row, if any. */
     selected?: string;
     /** Reported by a button row's click. */
@@ -86,6 +96,8 @@
     note?: Snippet;
     /** The bottom-pinned action: page 2's + Build your own, page 3's + New surface. */
     action?: Snippet;
+    /** Page 3's palette and element list (13-16): rendered in the scroll column after the sections. */
+    children?: Snippet;
   } = $props();
 
   const uid = $props.id();
@@ -148,6 +160,7 @@
         </ul>
       </section>
     {/each}
+    {#if children}{@render children()}{/if}
   </div>
 
   {#if note || action}

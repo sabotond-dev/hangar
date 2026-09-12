@@ -93,7 +93,18 @@ const DEV_ROUTES = readdirSync("src/routes/dev")
 const WORKSPACE_ENTRIES = ["aurora", "arc"];
 const WORKSPACES = WORKSPACE_ENTRIES.map((id) => `/playground/${id}/`);
 
-const ROUTES = ["/", "/playground/", ...WORKSPACES, ...DEV_ROUTES];
+/**
+ * The Sandbox (13-16): its front door mints a surface and lands on
+ * /sandbox/<id>/, where the plate, the palette, the element list, the
+ * inspector's fields and selects and the swatch's popover are all on the
+ * page once a knob is placed - and where the Knob's circle is an SVG
+ * <circle>, which is not a border-radius and is not counted here. The
+ * inputs, the selects and the checkbox carry user-agent radii no source
+ * scan can see, which is what this sweep is for.
+ */
+const SANDBOX = "/sandbox/?new";
+
+const ROUTES = ["/", "/playground/", ...WORKSPACES, SANDBOX, ...DEV_ROUTES];
 
 /** The six, as the sweep labels them: the owning control and the class. */
 const SIX_CIRCLES = [
@@ -370,6 +381,29 @@ test("no element on any route computes a corner radius above zero, and every 50%
       await expect(page.locator(".thumb").first()).toBeVisible();
       await expect(inspector.locator(".dot").first()).toBeVisible();
       await expect(inspector.locator(".home").first()).toBeAttached();
+    }
+    if (route === SANDBOX) {
+      await expect(page).toHaveURL(/[/]sandbox[/]s-[a-z0-9-]+[/]$/);
+      await expect(page.getByTestId("sandbox")).toBeVisible();
+      // A knob placed by the palette and one click, so the inspector's
+      // fields, selects and swatch are on the page; the popover opened so
+      // the picker's three are measured here too.
+      await page.getByTestId("palette-knob").click();
+      const plate = page.getByTestId("surface-plate");
+      const box = await plate.boundingBox();
+      if (box === null) throw new Error("the plate has no box");
+      await plate.click({
+        position: { x: (box.width / 9) * 1.5, y: (box.height / 9) * 1.5 },
+      });
+      await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+      const inspector = page.getByTestId("shell-inspector");
+      await expect(inspector.getByTestId("field-w")).toBeVisible();
+      await inspector.getByTestId("edit-color").first().click();
+      await expect(page.getByTestId("colour-popover")).toHaveAttribute(
+        "open",
+        "",
+      );
+      await expect(page.locator(".thumb").first()).toBeVisible();
     }
     await settle(page);
     const result = await page.evaluate(sweep, {

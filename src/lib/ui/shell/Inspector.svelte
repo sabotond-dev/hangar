@@ -25,6 +25,11 @@
   invented. Every size is app.css's type role or layout.ts's; the strings
   are the route's.
 
+  PAGE 3's `Element name` SITS ABOVE THE FIRST SECTION (plan 13-16): the
+  PDF draws the name field and the type directly under the headline, before
+  `Position & size`, so the body takes an optional `lead` snippet rendered
+  before the sections, inside the one scroll container. Nothing else moved.
+
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
@@ -42,6 +47,7 @@
     aside,
     lede,
     sections = [],
+    lead,
     children,
     actions,
   }: {
@@ -55,6 +61,8 @@
     lede?: string;
     /** Titled sections, in order. */
     sections?: readonly InspectorSection[];
+    /** Before the first section, inside the scroll: page 3's Element name and Type (13-16). */
+    lead?: Snippet;
     /** Anything else in the body, after the sections. */
     children?: Snippet;
     /** The bottom-pinned pair. */
@@ -82,6 +90,7 @@
   </div>
 
   <div class="body" data-testid="shell-inspector-body">
+    {#if lead}{@render lead()}{/if}
     {#each sections as section, i (section.title)}
       {#if i > 0}<hr class="divider" />{/if}
       <section class="group">

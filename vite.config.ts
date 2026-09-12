@@ -45,21 +45,18 @@ export default defineConfig({
         // build. The e2e suite asserts all three really are served, over HTTP,
         // from the finished build/.
         //
-        // ONE MORE, FOR ONE WAVE (plan 13-07; three until 13-08 landed
-        // /playground/ and removed its own, two until 13-13 landed
-        // /my-configs/ and removed its own). The intro at / links to the
-        // primary nav's destinations before the routes exist: 13-16 lands
-        // /sandbox/ and removes this path in the commit that lands the
-        // route, so the crawler goes back to failing the build on a dead
-        // link the day the link stops being dead by design. Exact path, no
-        // prefix: nothing else under it is excused.
+        // NO OTHER PATH IS EXCUSED. From 13-07 to 13-16 one nav destination
+        // at a time was excused here while its route did not exist yet
+        // (/playground/ until 13-08, /my-configs/ until 13-13, /sandbox/
+        // until 13-16 landed it and removed the last entry in the commit
+        // that landed the route). The crawler now fails the build on any
+        // dead link, which is the state 13-07 said it would return to.
         handleHttpError: ({ status, path, message }) => {
           const writtenByPostbuild =
             path === "/LICENSE" ||
             path === "/THIRD-PARTY.md" ||
             (path.startsWith("/source-") && path.endsWith(".tar.gz"));
-          const notYetRouted = path === "/sandbox/";
-          if (status === 404 && (writtenByPostbuild || notYetRouted)) return;
+          if (status === 404 && writtenByPostbuild) return;
           throw new Error(message);
         },
       },

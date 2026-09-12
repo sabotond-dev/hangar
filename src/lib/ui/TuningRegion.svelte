@@ -56,8 +56,9 @@
   after a roll clears it too, because the vector would then restore more
   than the roll. IT IS EXPLICITLY NOT GENERAL UNDO. Section 17's Sandbox
   undo/redo is a different thing with a different owner - plan 13-16, the
-  Sandbox's own draft history - and conflating the two is how a one-value
-  control becomes a subsystem.
+  Sandbox's own draft history, src/lib/sandbox/history.ts, whose header
+  points back here - and conflating the two is how a one-value control
+  becomes a subsystem.
 
   THE HEADLINE IS ONE CONSTANT (inspector-copy.ts). Page 5 draws "Shape the /
   movement." above ARC; twenty-seven entries have no headline of their own and

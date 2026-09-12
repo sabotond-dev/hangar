@@ -1,0 +1,591 @@
+<!--
+  SELECTED ELEMENT: PDF page 3's right column (plan 13-16; Bible section 8's
+  inspector and geometry rules; BUILD-02, BUILD-07), drawn in
+  Inspector.svelte's panel.
+
+  The eyebrow `SELECTED ELEMENT / FADER`, the name as the headline, the
+  `2 × 6 units` chip beside it; `Element name`; section 8's Identity row as
+  a `Type` select and, on a fader, `Orientation`; `Position & size` as the
+  2 x 2 numeric grid - `Column`, `Row`, `Width`, `Height` - with the PDF's
+  helper *"Snap to light guides. Touch remains continuous."*; `Behavior` on
+  a button (latch); `MIDI output` with `CC number` and `Channel` (and the
+  XY pad's second controller); `Appearance` reusing 13-09's Swatch.svelte
+  UNCHANGED, the region's colour handed over as the one knob it renders;
+  then the budget meters; and the pinned pair `Duplicate` / `Delete element`.
+
+  EVERY NUMERIC EDIT GOES THROUGH THE EDITOR AND THE PREVIOUS VALID VALUE
+  SURVIVES A REJECTION. The field is uncontrolled in one direction only: its
+  value is the state's `texts[field]` - the model's number, or, while a
+  keystroke has been refused, the text that was typed - and every keystroke reports
+  through `onnumber(field, text)`. The editor validates through
+  geometry.ts (`applyEdit`), keeps the surface it had on a refusal, and
+  records the text and the message; the field then shows the typed text
+  with `aria-invalid` and the message under it, and keeps showing it until a
+  keystroke validates (section 8: "keep an inline message until corrected").
+  No half-typed width ever reaches the surface, the history or the draft.
+  Blur and Enter call `oncommit`, which is the history's coalescing
+  boundary (history.ts section 2): the keystrokes were one entry.
+
+  THE 2 x 2 GRID REFLOWS BELOW NUMERIC_GRID_REFLOW (D-21): two columns
+  when the inspector body is 454 or wider, one column below, measured with
+  a ResizeObserver against layout.ts's own number - the same rule and the
+  same constant TuningRegion.svelte reads, never a container-query literal.
+
+  IN PLAY (section 8) every field is read-only with PLAY_LOCKS_FIELDS beside
+  it through aria-describedby, and the pinned pair is disabled with the same
+  reason; the selection stays, the fields keep their values, and the way
+  back is the mode switch in the centre.
+
+  DUPLICATE never deletes: with no free window the editor refuses and this
+  panel shows DUPLICATE_NO_SPACE, which offers resize (section 8's own
+  rule). The overlap message is section 16's line verbatim through
+  geometry.ts; the adjacency WARNING names both regions and never blocks.
+
+  "Follow hardware selection" is not here: ZONA has one touch element
+  (editor.ts section 3).
+
+  Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+-->
+<script lang="ts">
+  import { onMount } from "svelte";
+  import {
+    COLOUR_KNOB_ID,
+    colourKnobView,
+    levelsOf,
+  } from "$lib/sandbox/colour-knob";
+  import {
+    APPEARANCE,
+    BEHAVIOR,
+    CC_NUMBER,
+    CC_NUMBER_Y,
+    CHANNEL,
+    COLOUR_LABEL,
+    COLUMN,
+    DELETE_ELEMENT,
+    DUPLICATE,
+    ELEMENT_NAME,
+    HEIGHT,
+    KIND_LABELS,
+    LATCH,
+    LATCH_HELPER,
+    MIDI_OUTPUT,
+    NO_SELECTION_EYEBROW,
+    NO_SELECTION_HEADLINE,
+    NO_SELECTION_LEDE,
+    ORIENTATION,
+    ORIENTATION_HORIZONTAL,
+    ORIENTATION_VERTICAL,
+    PLAY_LOCKS_FIELDS,
+    POSITION_AND_SIZE,
+    ROW,
+    SELECTED_ELEMENT,
+    SNAP_HELPER,
+    TYPE,
+    WIDTH,
+    unitsChip,
+  } from "$lib/sandbox/copy";
+  import {
+    DEFAULT_COLOUR,
+    type EditorState,
+    type NumericField,
+  } from "$lib/sandbox/editor";
+  import {
+    ELEMENT_KINDS,
+    ORIENTATIONS,
+    orientationOf,
+    type ElementKind,
+    type Orientation,
+  } from "$lib/sandbox/model";
+  import Inspector, {
+    type InspectorSection,
+  } from "$lib/ui/shell/Inspector.svelte";
+  import { NUMERIC_GRID_REFLOW } from "$lib/ui/shell/layout";
+  import Swatch from "$lib/ui/Swatch.svelte";
+  import type { Snippet } from "svelte";
+
+  let {
+    view,
+    onrename,
+    onnumber,
+    oncommit,
+    onkind,
+    onorientation,
+    onlatch,
+    oncolour,
+    onduplicate,
+    ondelete,
+    notice,
+    meter,
+  }: {
+    view: EditorState;
+    onrename: (name: string) => void;
+    /** Every keystroke of a numeric field, validated by the editor. */
+    onnumber: (field: NumericField, text: string) => void;
+    /** Blur or Enter: the history's coalescing boundary. */
+    oncommit: () => void;
+    onkind: (kind: ElementKind) => void;
+    onorientation: (orientation: Orientation) => void;
+    onlatch: (latch: boolean) => void;
+    /** Three RGB444 levels from the picker. */
+    oncolour: (colour: readonly [number, number, number]) => void;
+    onduplicate: () => void;
+    ondelete: () => void;
+    /** A duplicate refused, or a store that declined - the panel's one notice. */
+    notice?: string;
+    /** The route's meters (cost.ts), rendered after the last section. */
+    meter?: Snippet;
+  } = $props();
+
+  const uid = $props.id();
+  const nameId = `${uid}-name`;
+  const typeId = `${uid}-type`;
+  const orientationId = `${uid}-orientation`;
+  const latchId = `${uid}-latch`;
+  const lockId = `${uid}-lock`;
+  const kindProblemId = `${uid}-kind-problem`;
+  const fieldId = (field: NumericField) => `${uid}-${field}`;
+  const messageId = (field: NumericField) => `${uid}-${field}-message`;
+
+  const region = $derived(view.selected);
+  const play = $derived(view.mode === "play");
+  const lock = $derived(play ? lockId : undefined);
+
+  /** The swatch's one knob: the region's colour at its lattice position. */
+  const colourKnobs = $derived(
+    region === undefined
+      ? []
+      : [colourKnobView(region.colour, DEFAULT_COLOUR, COLOUR_LABEL)],
+  );
+  const noHeld: ReadonlySet<string> = new Set();
+
+  /* D-21: the 2 x 2 grid is two columns from NUMERIC_GRID_REFLOW and one below. */
+  let body = $state<HTMLElement | null>(null);
+  let twoColumns = $state(true);
+  onMount(() => {
+    if (body === null || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        twoColumns = entry.contentRect.width >= NUMERIC_GRID_REFLOW;
+      }
+    });
+    observer.observe(body);
+    return () => observer.disconnect();
+  });
+
+  const GEOMETRY: readonly { field: NumericField; label: string }[] = [
+    { field: "col", label: COLUMN },
+    { field: "row", label: ROW },
+    { field: "w", label: WIDTH },
+    { field: "h", label: HEIGHT },
+  ];
+
+  function onkeydown(event: KeyboardEvent): void {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      oncommit();
+    }
+  }
+
+  const sections = $derived.by((): InspectorSection[] => {
+    if (region === undefined) return [];
+    const out: InspectorSection[] = [
+      { title: POSITION_AND_SIZE, content: geometry },
+    ];
+    if (region.kind === "button")
+      out.push({ title: BEHAVIOR, content: behavior });
+    out.push({ title: MIDI_OUTPUT, content: midi });
+    out.push({ title: APPEARANCE, content: appearance });
+    return out;
+  });
+</script>
+
+{#snippet headline()}
+  {#if region === undefined}
+    {NO_SELECTION_HEADLINE}
+  {:else}
+    <span data-testid="inspector-name">{region.name}</span>
+  {/if}
+{/snippet}
+
+{#snippet chip()}
+  {#if region !== undefined}
+    <span class="chip numerals" data-testid="inspector-units"
+      >{unitsChip(region.w, region.h)}</span
+    >
+  {/if}
+{/snippet}
+
+{#snippet numeric(field: NumericField, label: string)}
+  {@const problem = view.fields[field]}
+  <div class="field" class:invalid={problem !== undefined}>
+    <label class="label type-helper" for={fieldId(field)}>{label}</label>
+    <input
+      class="input numerals"
+      id={fieldId(field)}
+      type="text"
+      inputmode="numeric"
+      autocomplete="off"
+      data-testid="field-{field}"
+      data-field={field}
+      value={view.texts[field]}
+      readonly={play}
+      aria-readonly={play}
+      aria-invalid={problem !== undefined}
+      aria-describedby={problem !== undefined ? messageId(field) : lock}
+      oninput={(event) => onnumber(field, event.currentTarget.value)}
+      onblur={oncommit}
+      {onkeydown}
+    />
+    {#if problem !== undefined}
+      <p
+        class="message type-helper"
+        id={messageId(field)}
+        data-testid="field-{field}-message"
+      >
+        {problem.message}
+      </p>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet geometry()}
+  {#if region !== undefined}
+    <div class="grid" class:two={twoColumns} data-testid="geometry-grid">
+      {#each GEOMETRY as { field, label } (field)}
+        {@render numeric(field, label)}
+      {/each}
+    </div>
+    <p class="helper type-helper">{SNAP_HELPER}</p>
+    {#each view.warnings.filter((w) => w.a === region.name || w.b === region.name) as warning (warning.a + warning.b)}
+      <p class="warning type-helper" data-testid="adjacency-warning">
+        {warning.message}
+      </p>
+    {/each}
+  {/if}
+{/snippet}
+
+{#snippet behavior()}
+  {#if region !== undefined && region.kind === "button"}
+    <div class="check">
+      <input
+        class="checkbox"
+        id={latchId}
+        type="checkbox"
+        data-testid="field-latch"
+        checked={region.latch === true}
+        disabled={play}
+        aria-describedby={lock}
+        onchange={(event) => onlatch(event.currentTarget.checked)}
+      />
+      <label class="label type-helper" for={latchId}>{LATCH}</label>
+    </div>
+    <p class="helper type-helper">{LATCH_HELPER}</p>
+  {/if}
+{/snippet}
+
+{#snippet midi()}
+  {#if region !== undefined}
+    <div class="grid" class:two={twoColumns}>
+      {@render numeric(
+        "cc",
+        region.kind === "xy" ? `${CC_NUMBER} (X)` : CC_NUMBER,
+      )}
+      {#if region.kind === "xy"}
+        {@render numeric("cc2", CC_NUMBER_Y)}
+      {/if}
+      {@render numeric("channel", CHANNEL)}
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet appearance()}
+  {#if region !== undefined}
+    <div class="swatch" class:locked={play} data-testid="region-swatch">
+      <Swatch
+        entry={{ id: `sandbox-${region.id}`, name: region.name }}
+        knobs={colourKnobs}
+        held={noHeld}
+        onchange={(_id, position) => {
+          if (!play) oncolour(levelsOf(position));
+        }}
+        onreset={(id) => {
+          if (!play && id === COLOUR_KNOB_ID) oncolour(DEFAULT_COLOUR);
+        }}
+        onhold={() => undefined}
+      />
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet actions()}
+  {#if region !== undefined}
+    <button
+      class="outlined"
+      type="button"
+      data-testid="duplicate-element"
+      disabled={play}
+      aria-describedby={lock}
+      onclick={onduplicate}>{DUPLICATE}</button
+    >
+    <button
+      class="outlined"
+      type="button"
+      data-testid="delete-element"
+      disabled={play}
+      aria-describedby={lock}
+      onclick={ondelete}>{DELETE_ELEMENT}</button
+    >
+  {/if}
+{/snippet}
+
+<div class="region-inspector" bind:this={body} data-testid="region-inspector">
+  <Inspector
+    eyebrow={region === undefined
+      ? NO_SELECTION_EYEBROW
+      : `${SELECTED_ELEMENT} / ${KIND_LABELS[region.kind].toUpperCase()}`}
+    {headline}
+    aside={region === undefined ? undefined : chip}
+    lede={region === undefined ? NO_SELECTION_LEDE : undefined}
+    {sections}
+    lead={region === undefined ? undefined : identity}
+    actions={region === undefined ? undefined : actions}
+  >
+    {#if region !== undefined}
+      {#if play}
+        <p class="lock type-helper" id={lockId} data-testid="fields-locked">
+          {PLAY_LOCKS_FIELDS}
+        </p>
+      {/if}
+      {#if notice !== undefined}
+        <p class="notice type-helper" data-testid="inspector-notice">
+          {notice}
+        </p>
+      {/if}
+      {#if meter}
+        <div class="meter">{@render meter()}</div>
+      {/if}
+    {/if}
+  </Inspector>
+</div>
+
+{#snippet identity()}
+  {#if region !== undefined}
+    <!-- Identity (section 8): the name and the type, above the first section. -->
+    <div class="identity">
+      <div class="field">
+        <label class="label type-helper" for={nameId}>{ELEMENT_NAME}</label>
+        <input
+          class="input"
+          id={nameId}
+          type="text"
+          autocomplete="off"
+          data-testid="field-name"
+          value={region.name}
+          readonly={play}
+          aria-readonly={play}
+          aria-describedby={lock}
+          oninput={(event) => onrename(event.currentTarget.value)}
+          onblur={oncommit}
+          {onkeydown}
+        />
+      </div>
+      <div class="grid" class:two={twoColumns}>
+        <div class="field">
+          <label class="label type-helper" for={typeId}>{TYPE}</label>
+          <select
+            class="input select"
+            id={typeId}
+            data-testid="field-kind"
+            value={region.kind}
+            disabled={play}
+            aria-describedby={view.kindProblem !== undefined
+              ? kindProblemId
+              : lock}
+            onchange={(event) =>
+              onkind(event.currentTarget.value as ElementKind)}
+          >
+            {#each ELEMENT_KINDS as kind (kind)}
+              <option value={kind} selected={kind === region.kind}
+                >{KIND_LABELS[kind]}</option
+              >
+            {/each}
+          </select>
+        </div>
+        {#if region.kind === "fader"}
+          <div class="field">
+            <label class="label type-helper" for={orientationId}
+              >{ORIENTATION}</label
+            >
+            <select
+              class="input select"
+              id={orientationId}
+              data-testid="field-orientation"
+              value={orientationOf(region)}
+              disabled={play}
+              aria-describedby={lock}
+              onchange={(event) =>
+                onorientation(event.currentTarget.value as Orientation)}
+            >
+              {#each ORIENTATIONS as orientation (orientation)}
+                <option
+                  value={orientation}
+                  selected={orientation === orientationOf(region)}
+                  >{orientation === "vertical"
+                    ? ORIENTATION_VERTICAL
+                    : ORIENTATION_HORIZONTAL}</option
+                >
+              {/each}
+            </select>
+          </div>
+        {/if}
+      </div>
+      {#if view.kindProblem !== undefined}
+        <p
+          class="message type-helper"
+          id={kindProblemId}
+          data-testid="kind-problem"
+        >
+          {view.kindProblem}
+        </p>
+      {/if}
+    </div>
+  {/if}
+{/snippet}
+
+<style>
+  .region-inspector {
+    display: contents;
+  }
+
+  /* The raised chip beside the headline: `2 × 6 units`, a rectangle (D-01). */
+  .chip {
+    display: inline-block;
+    padding: 4px 8px;
+    background: var(--color-raised);
+    font-size: 12px;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+
+  .identity {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-block-end: 20px;
+  }
+
+  /* D-21: one column, and two from NUMERIC_GRID_REFLOW, measured. */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px 22px;
+  }
+
+  .grid.two {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-inline-size: 0;
+  }
+
+  .label {
+    color: var(--color-ink-quiet);
+  }
+
+  /*
+    The PDF's field: 38 tall beneath the 44px floor, a boundary hairline,
+    square (D-01; the user-agent radius zeroed for layer C), the panel's
+    ink. 16px so iOS does not zoom a focused field.
+  */
+  .input {
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-block-size: 44px;
+    padding-inline: 12px;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    background: var(--color-workspace);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: var(--color-ink);
+  }
+
+  .input.numerals {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .input:read-only,
+  .input:disabled {
+    color: var(--color-ink-quiet);
+  }
+
+  /* The field that refused a keystroke: the error ink on its boundary only. */
+  .invalid .input {
+    border-color: var(--color-error-ink);
+  }
+
+  .message {
+    margin: 0;
+    color: var(--color-error-ink);
+  }
+
+  .helper,
+  .warning,
+  .lock,
+  .notice {
+    margin: 12px 0 0;
+    color: var(--color-ink-quiet);
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-block-size: 44px;
+  }
+
+  .checkbox {
+    inline-size: 20px;
+    block-size: 20px;
+    margin: 0;
+    border-radius: 0;
+    accent-color: var(--color-action);
+  }
+
+  .swatch.locked {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  .meter {
+    margin-block-start: 20px;
+  }
+
+  /* The pinned pair: outlined, the boundary token, square, 44px. */
+  .outlined {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    padding-inline: 12px;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .outlined:hover:not(:disabled) {
+    border-color: var(--color-action);
+  }
+
+  .outlined:disabled {
+    color: var(--color-ink-quiet);
+    cursor: default;
+  }
+</style>

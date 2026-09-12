@@ -219,6 +219,8 @@
 
   const PLAYGROUND: ResolvedPathname = SECTIONS[0].href;
   const SANDBOX: ResolvedPathname = SECTIONS[1].href;
+  /** New surface: the Sandbox's front door told to mint rather than resume (13-16). */
+  const NEW_SURFACE_HREF = resolve("/sandbox/?new");
 
   const SEARCH_ID = "library-search-field";
   const SORT_ID = "library-sort-field";
@@ -275,9 +277,18 @@
     );
   }
 
-  /** Where a record opens: the workspace with its stamp, or the Sandbox. */
+  /**
+   * Where a record opens: the workspace with its stamp, or the Sandbox. A
+   * sandbox DRAFT opens at its own surface (/sandbox/{source}/, 13-16); a
+   * saved sandbox copy opens the Sandbox's front door until 13-17 gives a
+   * copy a way back onto a surface.
+   */
   function hrefOf(record: StoredRecord): ResolvedPathname {
-    if (record.kind === "sandbox") return SANDBOX;
+    if (record.kind === "sandbox") {
+      return drafts.some((d) => d.id === record.id)
+        ? resolve("/sandbox/[draftId]", { draftId: record.source })
+        : SANDBOX;
+    }
     const stamp = stamps[record.id];
     return stamp === undefined
       ? resolve("/playground/[id]", { id: record.source })
@@ -859,7 +870,7 @@
         aria-hidden="true"
         onchange={onfile}
       />
-      <a class="filled" href={SANDBOX} data-testid="new-surface"
+      <a class="filled" href={NEW_SURFACE_HREF} data-testid="new-surface"
         >{NEW_SURFACE}</a
       >
     </div>

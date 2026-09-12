@@ -717,6 +717,17 @@ describe("the tuning UI's structural rules", () => {
     // 13-09 render inside the inspector, after its last section. The surface
     // token shipped at 13-03 with no consumer; its consumer is the over-budget
     // message block and nothing else under src/lib/ui/.
+    //
+    // WIDENED BY ONE AT 13-16, ON THE BIBLE'S OWN ROW. Section 12 names the
+    // ink "Error text - Validation and transfer errors", and the Sandbox's
+    // region inspector (src/lib/ui/sandbox/RegionInspector.svelte) is the
+    // first validation UI in the tree: a numeric field whose keystroke the
+    // model refused shows the typed text with its message in this ink and
+    // its boundary in this ink, until the edit is corrected (section 8). It
+    // is the same fact the meter states about a budget - a number the
+    // surface cannot take - and X-01's rule (never a button, never a border
+    // elsewhere, never a knob) holds: the ink is on a refused field's
+    // boundary and its sentence, and on nothing a visitor clicks.
     const TOKEN = "--color-error-ink";
     const SURFACE = "--color-error-surface";
     const files = uiFiles().filter((file) => file.endsWith(".svelte"));
@@ -726,10 +737,11 @@ describe("the tuning UI's structural rules", () => {
     expect(files.length, "the ui directory was walked").toBeGreaterThan(7);
     expect(
       carriers.sort(),
-      "the error ink is scoped to the meter and the message, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
+      "the error ink is scoped to the meter, the message and the Sandbox's refused field, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
     ).toEqual([
       `${UI_DIR}/BudgetMessage.svelte`,
       `${UI_DIR}/BudgetMeter.svelte`,
+      `${UI_DIR}/sandbox/RegionInspector.svelte`,
     ]);
     expect(
       surfaces,
