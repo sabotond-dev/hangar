@@ -79,3 +79,18 @@ export it as a file and import it on My configs."). The controls and their helpe
 different heights and alignments - "all over the place". To be sorted into the PDF's page-3 row:
 Undo, Redo left; Save copy (and Export as a file beside it) right, one baseline; the helper lines
 out of the row.
+
+## Round 4c - Clear and flash
+
+> noticed a bug: the Clear button cannot clear configuration that were put on the ZONA before
+> using HANGAR. it should clear configs that were put on to ZONA on Editor as well
+
+Asked whether Clear was greyed out (a), cleared RAM but the Editor's config came back after a
+power-cycle (b), or left the Editor's behaviour running (c):
+
+> b, clear should not be RAM only though!! it should be like Store but with Clear!
+
+Decision, the user's: Clear writes the page's defaults AND stores them to flash in one click - the
+firmware's own page clear followed by a page store, like Store on ZONA but with the defaults. A
+configuration the Editor stored on the page is gone after Clear and stays gone after a power-cycle.
+One click, no confirmation, as the user decided for Clear on 2026-09-12 (13.1 D-04).
