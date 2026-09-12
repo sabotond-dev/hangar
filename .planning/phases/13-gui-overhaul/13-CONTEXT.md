@@ -331,6 +331,18 @@ vector, nothing persisted, gone with the tab. C. The empty state is the PDF's ba
 link, nothing invented. D. Export does not carry membership; an import always lands unfiled and can
 never create a collection the user did not make. 13-13 executes it and asks nothing.
 
+## D-23 [user] The copy batch approved as proposed - six transfer lines stay six
+
+Given 2026-09-12, answering 13-18's checkpoint (`13-18-BATCH.md`, 262 rows, every proposal in
+D-05's register with the fact it must carry, section J's 43 questions each with a proposed answer,
+the six transfer-uncertainty lines kept six with the reason stated and a collapse-six option):
+
+> *"approve"*
+
+Every proposal is taken as written; every section-J answer is taken as proposed; the six transfer
+lines stay six. Page numbering shows 1 to 4 (row I.3.1). 13-18 task 02 executes it and asks nothing;
+13-19 takes the tune copy and the twenty-seven names on the same register.
+
 ## What the spec leaves open that HANGAR has already settled
 
 Section 19 lists open technical decisions. Several are answered by earlier
