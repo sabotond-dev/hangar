@@ -237,7 +237,14 @@
     if (event.button !== 0) return;
     const at = cellOf(event);
     if (at === undefined) return;
-    plate?.focus();
+    // WITHOUT SCROLLING (13-17): a programmatic focus scrolls a partly visible
+    // plate into view, and a page that moves under a pressed pointer makes
+    // the release land on another cell - which the accelerator below reads
+    // as the second click of a drag, so one click placed an element AND
+    // started an area. The pointer is already on the plate; nothing needs to
+    // move for it. Found by 13-17's layout (the tools row grew, the plate
+    // sat partly below the fold) and e2e/sandbox.e2e.ts's first title.
+    plate?.focus({ preventScroll: true });
     downCell = at;
     onclick(at.col, at.row);
   }
