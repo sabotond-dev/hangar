@@ -59,7 +59,13 @@ export const UNDO_RANDOMIZE = "Undo randomize";
 
 /** The swatch row's link. PDF page 5, verbatim. */
 export const EDIT_COLOR = "Edit color";
-/** The popover's visible close. HANGAR's own (the PDF draws no popover) - ledgered. */
+/**
+ * The swatch toggle's word while its colour block is open (13.1-04, D-08):
+ * `Edit color` opens the block inline under the row, and the same toggle
+ * reads `Close` until it is closed. F.8's approved word, kept; the symbol
+ * keeps 13-09's name because three files read it. HANGAR's own (the PDF draws
+ * no close) - ledgered.
+ */
 export const POPOVER_CLOSE = "Close";
 
 /** The pinned pair at the inspector's foot. PDF page 5, verbatim. */

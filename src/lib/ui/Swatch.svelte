@@ -1,32 +1,50 @@
 <!--
-  The swatch: PDF page 5's Appearance row, and the popover that holds the
-  picker (plan 13-09, Bible section 7, 13-CONTEXT.md D-10, D-15).
+  The swatch: PDF page 5's Appearance row, and the colour block that opens
+  under it (plan 13-09, Bible section 7, 13-CONTEXT.md D-10, D-15; 13.1-04,
+  13.1-CONTEXT.md D-08).
 
-  Section 7 asks for a swatch that opens a colour popover with the exact value
-  still available. The PDF draws it: a 34 x 34 square in the colour, the hex
-  beside it, and a right-aligned `Edit color`. This component draws ONE ROW
-  PER COLOUR KNOB the entry declares - six entries carry two or three - and
-  ONE popover for all of them, because the picker is one block per panel
-  (10-UI-SPEC 11.2) and a row's link opens it on that row's knob.
+  Section 7 asks for a swatch that opens the colour editor with the exact
+  value still available. The PDF draws it: a 34 x 34 square in the colour, the
+  hex beside it, and a right-aligned `Edit color`. This component draws ONE
+  ROW PER COLOUR KNOB the entry declares - six entries carry two or three -
+  and ONE editor block for all of them, because the picker is one block per
+  panel (10-UI-SPEC 11.2) and a row's toggle opens it on that row's knob.
 
-  THE PICKER IS MOVED, NOT REWRITTEN. ColourPicker.svelte's RGB444 lattice,
-  its three sixteen-detent rails, its cheap-step marks and the picker-corner
-  budget arithmetic are the most expensive correctness in the tree; this file
-  puts the component inside a dialog and hands it the knob to open on, and
-  13-09-SUMMARY.md pastes the picker's diffstat to show that nothing else in
-  it moved. Its three true circles stay round inside the popover (D-15).
+  INLINE, BELOW THE ROW, SINCE 13.1-04 (bench line 7, 2026-09-12: "Edit
+  color should not be pop up window in the left upper corne but instead open
+  down seamlessly to edit color."; D-08). 13-09 put the picker in a <dialog>
+  opened with showModal(); the user saw a modal box in the top-left corner,
+  and the PDF's inspector is one column that grows. So the dialog is gone:
+  `Edit color` is a toggle (aria-expanded, aria-controls) and the editor is a
+  block in the inspector's own flow directly under the row it belongs to. The
+  rows below move down; nothing floats, nothing is positioned, there is no
+  backdrop and no top layer. The toggle reads `Close` (F.8's approved word,
+  kept) while its block is open; a click on another row's toggle moves the
+  block to that row.
 
-  A <dialog>, OPENED WITH showModal(), AND THAT IS THE WHOLE OF THE
-  ACCESSIBILITY (section 14): the platform gives the focus trap (everything
-  outside a modal dialog is inert), the top layer, and Escape through the
-  cancel event, so none of the three is re-implemented here and none can
-  drift. The two things the platform does not give are written here: a click
-  on the backdrop closes (the backdrop is the dialog element itself, so
-  `event.target === dialog` is the test), and focus RETURNS TO THE LINK THAT
-  OPENED IT on close, whichever way it closed. The dialog's accessible name is
-  the knob's own label through aria-labelledby - section 7 says to use actual
-  parameter names, and no name is invented. tune-ui.spec.ts holds the three
-  shapes, and e2e/tuning.e2e.ts presses Escape and reads the focus back.
+  THE PICKER IS MOVED, NOT REWRITTEN - twice now. ColourPicker.svelte's
+  RGB444 lattice, its three sixteen-detent rails, its cheap-step marks and
+  the picker-corner budget arithmetic are the most expensive correctness in
+  the tree; this file hands the component the knob to open on and nothing
+  else, and 13.1-04-SUMMARY.md shows its diffstat empty. Its three true
+  circles stay round inside the block (D-15).
+
+  FOCUS SIMPLIFIES: NO TRAP, NO RETURN (section 14, D-08). An inline group is
+  not a modal: nothing outside it is made inert, Tab walks on into the rows
+  below, and the toggle never leaves the DOM, so there is nothing to give
+  back. Escape inside the open block closes it and puts focus on the row's
+  toggle - only because the element that held focus is about to leave the DOM
+  (KeepConfirm's rule for an inline group, 13-11), not as a modal's return.
+  The block's accessible name is the knob's own label through
+  aria-labelledby - section 7 says to use actual parameter names, and no name
+  is invented. tune-ui.spec.ts holds the shape, and e2e/tuning.e2e.ts presses
+  Escape and reads the focus.
+
+  THE PICKER RENDERS ONLY WHILE OPEN. 13-09 rendered the dialog once, closed,
+  so the picker's rails were in the DOM and a stamp's knobs could be read off
+  them before anything was opened. That reason went with the dialog: the
+  rails are in the DOM only while the block is open, and the e2e that reads
+  them opens the block first (`openColourEditor`, then `knobIndices`).
 
   THE HEX IS SHOWN AND NEVER ANNOUNCED. The picker's aria-valuetext is the
   three stored integers (view.ts: a hex implies a 24-bit resolution the pad
@@ -35,13 +53,14 @@
   eye gets the PDF's form and the ear gets the firmware's. The batch may
   choose either (13-COPY-NEW.md, 13-09's question 3).
 
-  No corner above zero (D-01): the square, the dialog and its sheet are
-  square. --color-error-ink appears nowhere in this file.
+  No corner above zero (D-01): the square and the block are square, and no
+  border-radius is declared here at all. --color-error-ink appears nowhere in
+  this file.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { tick } from "svelte";
   import { EDIT_COLOR, POPOVER_CLOSE } from "$lib/tune/inspector-copy";
   import type { ColourBudget, KnobView } from "$lib/tune/view";
   import ColourPicker from "./ColourPicker.svelte";
@@ -78,17 +97,11 @@
   } = $props();
 
   const uid = $props.id();
-  const titleId = `${uid}-title`;
 
-  /** The knob the popover opened on, or undefined while it is closed. */
+  /** The knob the block is open on, or undefined while it is closed. */
   let openFor = $state<string | undefined>(undefined);
-  let dialog = $state<HTMLDialogElement | null>(null);
-  /** The link that opened the popover, so focus can go back to it. */
-  let trigger: HTMLButtonElement | undefined;
-
-  const opened = $derived(
-    knobs.find((knob) => knob.id === openFor) ?? knobs[0],
-  );
+  /** Each row's toggle by knob id, so Escape can put focus on the row's own. */
+  let toggles: Record<string, HTMLButtonElement | undefined> = {};
 
   /** "rgb(r g b)" - the selected value's flat fill, as the row paints it. */
   const fillOf = (knob: KnobView): string | undefined =>
@@ -111,31 +124,28 @@
     );
   }
 
-  function open(knob: KnobView, event: MouseEvent): void {
-    trigger = event.currentTarget as HTMLButtonElement;
-    openFor = knob.id;
-    dialog?.showModal();
+  /** The row's toggle: open the block on this knob, or close it if it is open here. */
+  function toggleFor(knob: KnobView): void {
+    openFor = openFor === knob.id ? undefined : knob.id;
   }
 
-  function close(): void {
-    dialog?.close();
-  }
-
-  /** The backdrop is the dialog element itself; a click on the sheet is not. */
-  function onBackdropClick(event: MouseEvent): void {
-    if (event.target === dialog) close();
-  }
-
-  /** Whichever way it closed - Escape, the backdrop, the button - focus goes back. */
-  function onClosed(): void {
+  /**
+   * Escape INSIDE the block closes it. The element holding focus is about to
+   * leave the DOM, so focus is placed on the row's toggle once the block is
+   * gone - the one deliberate focus move in this file, and it is not a return.
+   */
+  async function onEditorKeydown(
+    event: KeyboardEvent,
+    id: string,
+  ): Promise<void> {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopPropagation();
+    const toggle = toggles[id];
     openFor = undefined;
-    trigger?.focus();
-    trigger = undefined;
+    await tick();
+    toggle?.focus();
   }
-
-  onDestroy(() => {
-    if (dialog?.open) dialog.close();
-  });
 </script>
 
 <div class="swatches" data-testid="swatch-block">
@@ -152,61 +162,62 @@
         ></span>
         <span class="hex numerals" aria-hidden="true">{hexOf(fill)}</span>
         <button
+          bind:this={toggles[knob.id]}
           class="edit"
           type="button"
           data-testid="edit-color"
+          aria-expanded={openFor === knob.id}
+          aria-controls="{uid}-{knob.id}-editor"
           aria-describedby="{uid}-{knob.id}-label"
-          onclick={(event) => open(knob, event)}
+          onclick={() => toggleFor(knob)}
         >
-          {EDIT_COLOR}
+          {openFor === knob.id ? POPOVER_CLOSE : EDIT_COLOR}
         </button>
       </div>
+      <!--
+        The block, in the row's own flow, rendered only while open on this
+        knob. Re-keyed on the knob: the picker reads selectedId once, at init.
+
+        The keydown on the group is DELEGATED, as BrowseGrid's is: the things
+        that take focus and receive the key are the picker's rails, its
+        selector and its buttons inside, and the handler exists so Escape on
+        any of them closes the block. A window listener (KeepConfirm's shape)
+        would do the same at one remove; this one is scoped to the block by
+        construction. The explanation is a separate comment on purpose:
+        everything after the rule name inside a svelte-ignore comment is
+        parsed as further rule names, and svelte/no-unused-svelte-ignore then
+        reports one error per word.
+      -->
+      {#if openFor === knob.id}
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div
+          class="editor"
+          id="{uid}-{knob.id}-editor"
+          role="group"
+          aria-labelledby="{uid}-{knob.id}-label"
+          data-testid="colour-editor"
+          data-knob={knob.id}
+          onkeydown={(event) => onEditorKeydown(event, knob.id)}
+        >
+          {#key knob.id}
+            <ColourPicker
+              {entry}
+              {knobs}
+              {held}
+              {budget}
+              {onchange}
+              {onreset}
+              {onhold}
+              {onforecast}
+              {onresult}
+              selectedId={knob.id}
+            />
+          {/key}
+        </div>
+      {/if}
     </div>
   {/each}
 </div>
-
-<!--
-  The popover. Rendered once, closed, so the picker's rails are in the DOM
-  and a stamp's knobs can be read off them before anything is opened; opened
-  with showModal() on a row's link. `onclose` fires for every way out.
--->
-<dialog
-  bind:this={dialog}
-  class="popover"
-  data-testid="colour-popover"
-  aria-labelledby={titleId}
-  onclick={onBackdropClick}
-  onclose={onClosed}
->
-  <div class="sheet">
-    <div class="head">
-      <p class="title type-micro" id={titleId}>{opened?.label ?? ""}</p>
-      <button
-        class="close"
-        type="button"
-        data-testid="colour-popover-close"
-        onclick={close}
-      >
-        {POPOVER_CLOSE}
-      </button>
-    </div>
-    <!-- Re-keyed on the knob it opened on: the picker reads selectedId once, at init. -->
-    {#key openFor}
-      <ColourPicker
-        {entry}
-        {knobs}
-        {held}
-        {budget}
-        {onchange}
-        {onreset}
-        {onhold}
-        {onforecast}
-        {onresult}
-        selectedId={openFor}
-      />
-    {/key}
-  </div>
-</dialog>
 
 <style>
   .swatches {
@@ -229,7 +240,7 @@
     color: var(--color-ink);
   }
 
-  /* The PDF's row: the square, the hex, and the link pushed to the right. */
+  /* The PDF's row: the square, the hex, and the toggle pushed to the right. */
   .value {
     display: flex;
     align-items: center;
@@ -276,57 +287,25 @@
   }
 
   /*
-    The popover: a panel-coloured sheet in the top layer, square-cornered,
-    sized to the picker. Zero padding on the dialog itself so a click on the
-    backdrop lands on the dialog and a click on the sheet does not.
+    THE ONE ACCENT DECLARATION IN THIS FILE (the census in tune-ui.spec.ts):
+    13-09 spent it on the popover's Close button's hover border; with the
+    dialog gone it moves to the toggle's OPEN state, so the row whose block is
+    open reads as the selected one - entry 8's family, the selected value of
+    a knob, here the selected row. Nothing else in this file takes the token.
   */
-  .popover {
-    padding: 0;
-    border: 1px solid var(--color-boundary);
-    border-radius: 0;
+  .edit[aria-expanded="true"] {
+    color: var(--color-action);
+  }
+
+  /*
+    The block: the panel's own surface, in the flow, square-cornered, a
+    hairline rule above so the picker reads as the row's own. No shadow, no
+    position, no top layer - the rows below simply move down.
+  */
+  .editor {
+    padding-block: 12px;
+    border-block-start: 1px solid var(--color-divider);
     background: var(--color-panel);
-    color: var(--color-ink);
-    inline-size: min(92vw, 520px);
-    max-block-size: 90dvh;
-  }
-
-  .popover::backdrop {
-    background: var(--color-workspace);
-    opacity: 0.7;
-  }
-
-  .sheet {
-    padding: 20px;
-  }
-
-  .head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-block-end: 12px;
-  }
-
-  .title {
-    margin: 0;
-    color: var(--color-ink-quiet);
-  }
-
-  .close {
-    appearance: none;
-    min-inline-size: 44px;
-    min-block-size: 44px;
-    padding-inline: 12px;
-    border: 1px solid var(--color-boundary);
-    background: transparent;
-    font-family: var(--font-sans);
-    font-size: 14px;
-    color: var(--color-ink);
-    cursor: pointer;
-  }
-
-  .close:hover {
-    border-color: var(--color-action);
   }
 
   @media (prefers-reduced-motion: reduce) {

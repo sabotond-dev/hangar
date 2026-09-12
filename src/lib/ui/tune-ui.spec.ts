@@ -36,6 +36,14 @@ import { KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
 // MIDI partition and the roll share.
 import { isMidiDestination } from "../tune/surprise";
 import { UNDO_RANDOMIZE } from "../tune/inspector-copy";
+// The swatch's inline colour block (13.1-04, D-08): the toggle's two words
+// are the copy module's, and the closed shape is RENDERED with svelte/server
+// (shell.spec.ts proved it at 13-05, device-ui.spec.ts draws the slot with
+// it) so "two toggles and no picker" is read off markup rather than off a
+// scan of the template.
+import { EDIT_COLOR, POPOVER_CLOSE } from "../tune/inspector-copy";
+import { render } from "svelte/server";
+import Swatch from "./Swatch.svelte";
 // The inspector (13-09): the widget rule and its boundary, the copy the
 // inspector renders, layout.ts's D-21 numbers, and a real tuner for the
 // per-field reset - the model.spec.ts harness in brief. The compile surface
@@ -101,7 +109,8 @@ const UI_DIR = "src/lib/ui";
  * then a visible omission rather than a silent gap.
  *
  * The eighth is plan 10-10's ColourPicker.svelte and the ninth is 13-09's
- * Swatch.svelte (the popover the picker lives in); 10-11's MixTwo.svelte was
+ * Swatch.svelte (the rows and, since 13.1-04, the inline block the picker
+ * lives in - a popover from 13-09 to 13.1-04); 10-11's MixTwo.svelte was
  * the ninth from 10-11 to 13-10, when D-12 cut it and its row left with the
  * file. Adding each here is not bookkeeping: a component omitted from a
  * hand-declared list passes every walk in this file silently, which would
@@ -512,52 +521,160 @@ describe("the tuning UI's structural rules", () => {
     ).not.toContain("forecastDelta(");
 
     // -----------------------------------------------------------------------
-    // THE SWATCH'S POPOVER (13-09, Bible section 7 and 14). It rides here
-    // because what it must do is what this test is about - a control, its
-    // floor, and the platform behaviour the control relies on. A <dialog>
-    // opened with showModal(): the platform traps focus and handles Escape,
-    // so neither is re-implemented; the two things it does not do are
-    // asserted as code - the backdrop click closes, and focus returns to the
-    // link that opened it on close, whichever way it closed. The behaviour is
-    // pressed in e2e/tuning.e2e.ts (Escape, then the link is focused).
+    // THE SWATCH'S INLINE COLOUR BLOCK (13.1-04, 13.1-CONTEXT D-08; bench
+    // line 7: "Edit color should not be pop up window in the left upper corne
+    // but instead open down seamlessly to edit color."). From 13-09 to
+    // 13.1-04 this was a <dialog> opened with showModal() - the platform's
+    // trap, top layer and Escape, plus a backdrop click and a focus return
+    // written here. All of that is gone: the toggle opens a block in the
+    // inspector's own flow under its row, the rows below move down, nothing
+    // floats, and focus neither traps nor returns (the toggle never leaves
+    // the DOM). Escape inside the block closes it and places focus on the
+    // row's toggle only because the focused element is about to leave the
+    // DOM. The behaviour is pressed in e2e/tuning.e2e.ts; the shape is here.
     const swatch = code(componentPath("Swatch.svelte"));
-    expect(swatch, "the popover is not a <dialog>").toContain("<dialog");
-    expect(
-      swatch,
-      "the popover is not opened with showModal(), so nothing traps focus and the background is not inert",
-    ).toContain("showModal()");
-    expect(
-      swatch,
-      "the popover has no accessible name - it must be labelled by the knob's own label",
-    ).toContain("aria-labelledby={titleId}");
-    expect(
-      swatch,
-      "a click on the backdrop does not close the popover",
-    ).toContain("if (event.target === dialog) close();");
-    const closed = swatch.slice(
-      swatch.indexOf("function onClosed"),
-      swatch.indexOf("}", swatch.indexOf("function onClosed")),
-    );
-    expect(
-      closed,
-      "focus does not return to the link that opened the popover when it closes (section 14)",
-    ).toContain("trigger?.focus()");
-    expect(swatch, "onclose is not wired to the focus return").toContain(
-      "onclose={onClosed}",
-    );
-    for (const selector of [".edit", ".close"]) {
-      const rule = rulesOf(swatch).find((r) => r.selector.trim() === selector);
+    for (const needle of [
+      "<dialog",
+      "showModal",
+      "::backdrop",
+      "position: absolute",
+      "position: fixed",
+      "z-index",
+      "focusTrap",
+      "inert",
+      "aria-modal",
+    ]) {
       expect(
-        rule,
-        `Swatch.svelte no longer has a ${selector} rule`,
-      ).toBeDefined();
-      for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
-        expect(
-          rule?.body,
-          `${selector} does not declare ${axis} - Phase 4's touch floor is both axes per control`,
-        ).toContain(axis);
-      }
+        swatch,
+        `Swatch.svelte contains "${needle}" - the colour block is inline in the inspector's flow (D-08), never a dialog, never floated, never a trap`,
+      ).not.toContain(needle);
     }
+    // The toggle: aria-expanded on the row's own knob, aria-controls to the
+    // block's id, and the copy module's two words - Edit color closed, Close
+    // open - never a transcription.
+    expect(
+      swatch,
+      "the toggle does not carry aria-expanded for its own knob",
+    ).toContain("aria-expanded={openFor === knob.id}");
+    expect(swatch, "the toggle does not name the block it controls").toContain(
+      'aria-controls="{uid}-{knob.id}-editor"',
+    );
+    expect(
+      swatch,
+      "the toggle's text is not EDIT_COLOR closed and POPOVER_CLOSE open",
+    ).toContain("{openFor === knob.id ? POPOVER_CLOSE : EDIT_COLOR}");
+    expect(swatch, "the toggle's words are transcribed").not.toContain(
+      `"${EDIT_COLOR}"`,
+    );
+    expect(swatch).not.toContain(`"${POPOVER_CLOSE}"`);
+    // The block: a group labelled by the row's own label id (section 7 -
+    // actual parameter names, nothing invented), rendered only while open on
+    // that knob, the picker inside it keyed on the knob and mounted once.
+    expect(swatch, "the block is not role=group").toContain('role="group"');
+    expect(swatch, "the block is not labelled by the row's label").toContain(
+      'aria-labelledby="{uid}-{knob.id}-label"',
+    );
+    expect(
+      swatch,
+      "the block is not conditional on the row's knob being the open one",
+    ).toContain("{#if openFor === knob.id}");
+    expect(
+      occurrences(swatch, "<ColourPicker"),
+      "the picker is mounted more than once, or not at all",
+    ).toBe(1);
+    const block = swatch.slice(
+      swatch.indexOf("{#if openFor === knob.id}"),
+      swatch.indexOf("{/if}", swatch.indexOf("{#if openFor === knob.id}")),
+    );
+    expect(block, "the picker is not inside the open row's block").toContain(
+      "<ColourPicker",
+    );
+    expect(block, "the picker is not keyed on the knob").toContain(
+      "{#key knob.id}",
+    );
+    expect(block, "the picker is not handed the row's knob").toContain(
+      "selectedId={knob.id}",
+    );
+    expect(block).toContain('data-testid="colour-editor"');
+    // Escape: the handler names the toggle and focuses it after the close -
+    // the one deliberate focus move, and the only one (no trap, no return).
+    const escape = swatch.slice(
+      swatch.indexOf("function onEditorKeydown"),
+      swatch.indexOf("</script>"),
+    );
+    expect(escape, "Escape is not the key the block closes on").toContain(
+      'event.key !== "Escape"',
+    );
+    expect(
+      escape,
+      "Escape does not put focus on the row's toggle after the block leaves the DOM",
+    ).toContain("toggle?.focus()");
+    expect(
+      occurrences(swatch, ".focus()"),
+      "Swatch.svelte moves focus more than the once Escape needs",
+    ).toBe(1);
+    // The one control keeps Phase 4's floor on both axes; the .close rule
+    // left with the dialog. No corner is declared at all (D-01).
+    const edit = rulesOf(swatch).find((r) => r.selector.trim() === ".edit");
+    expect(edit, "Swatch.svelte no longer has a .edit rule").toBeDefined();
+    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+      expect(
+        edit?.body,
+        `.edit does not declare ${axis} - Phase 4's touch floor is both axes per control`,
+      ).toContain(axis);
+    }
+    expect(
+      rulesOf(swatch).find((r) => r.selector.trim() === ".close"),
+      "a .close rule survives the dialog it belonged to",
+    ).toBeUndefined();
+    expect(
+      occurrences(swatch, "border-radius"),
+      "Swatch.svelte declares a corner",
+    ).toBe(0);
+    const editor = rulesOf(swatch).find((r) => r.selector.trim() === ".editor");
+    expect(editor, "Swatch.svelte has no .editor rule").toBeDefined();
+    for (const forbidden of ["position", "box-shadow", "z-index"]) {
+      expect(
+        editor?.body,
+        `.editor declares ${forbidden} - the block is in the flow, never floated`,
+      ).not.toContain(forbidden);
+    }
+    // RENDERED, not scanned: two colour knobs give two toggles, both closed,
+    // and no picker in the markup - the block exists only while open.
+    const colourKnob = (id: string, label: string): KnobView => ({
+      id,
+      label,
+      kind: "colour",
+      widget: "rail",
+      values: [{ label: "0,85,255", swatch: "rgb(0 85 255)" }],
+      index: 0,
+      default: 0,
+    });
+    const closedBody = render(Swatch, {
+      props: {
+        entry: { id: "aurora", name: "Aurora" },
+        knobs: [
+          colourKnob("colour", "Colour"),
+          colourKnob("colour2", "Second colour"),
+        ],
+        held: new Set<string>(),
+        onchange: () => undefined,
+        onreset: () => undefined,
+        onhold: () => undefined,
+      },
+    }).body;
+    expect(
+      occurrences(closedBody, 'data-testid="edit-color"'),
+      "two colour knobs did not render two toggles",
+    ).toBe(2);
+    expect(occurrences(closedBody, 'aria-expanded="false"')).toBe(2);
+    expect(occurrences(closedBody, `>${EDIT_COLOR}<`)).toBe(2);
+    expect(closedBody).not.toContain(POPOVER_CLOSE);
+    expect(
+      occurrences(closedBody, 'data-testid="colour-editor"'),
+      "a closed swatch rendered a colour block",
+    ).toBe(0);
+    expect(closedBody).not.toContain("colour-rail-r");
     // The square is the PDF's 34 x 34 and square-cornered (D-01).
     const square = rulesOf(swatch).find((r) => r.selector.trim() === ".square");
     expect(square?.body).toContain("inline-size: 34px");
@@ -669,11 +786,13 @@ describe("the tuning UI's structural rules", () => {
       // an outline and never a fill) and left with the file under D-12; the
       // total did not move because it never spent any.
       "StampNotice.svelte": 0,
-      // THE NINTH (13-09), ONE DECLARATION: the popover's Close button takes
-      // the action colour on its border on hover - entry 4's family, the
-      // focus and hover treatment every control on the site shares - and the
-      // swatch square is the stored RGB444 value, never a token. The Edit
-      // color link and the hex are quiet ink.
+      // THE NINTH (13-09), ONE DECLARATION, MOVED AT 13.1-04: 13-09 spent it
+      // on the popover's Close button's hover border; with the dialog gone
+      // (D-08) it is the toggle's OPEN state - `.edit[aria-expanded="true"]`
+      // in the action colour, so the row whose block is open reads as the
+      // selected one, entry 8's family. The swatch square is the stored
+      // RGB444 value, never a token; the closed toggle and the hex are quiet
+      // ink. Still one, and the rule that carries it is asserted below.
       "Swatch.svelte": 1,
       "TuningRegion.svelte": 1,
     });
@@ -681,6 +800,15 @@ describe("the tuning UI's structural rules", () => {
       total,
       "the accent declaration count across the nine tuning components is no longer twenty-two",
     ).toBe(22);
+    // Swatch.svelte's one is the open toggle's, by rule, so a move to any
+    // other selector in that file is named rather than absorbed by the count.
+    const openToggle = rulesOf(code(componentPath("Swatch.svelte"))).find(
+      (rule) => rule.selector.trim() === '.edit[aria-expanded="true"]',
+    );
+    expect(
+      openToggle?.body,
+      "Swatch.svelte's one accent declaration is not the open toggle's colour",
+    ).toContain("--color-action");
 
     // Non-vacuity: the walk really read files with accent in them.
     expect(
