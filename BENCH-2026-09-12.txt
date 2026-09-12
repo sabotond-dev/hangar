@@ -55,3 +55,27 @@ Orchestrator's reading, to be confirmed by the user where marked:
 - PUT BACK's removal: CONFIRM WITH THE USER - Clear writes the firmware default; Put back restores
   the configuration the module held when it connected. Without Put back the only way back to a
   user's own page after a TRY is Grid Editor. The snapshot machinery (SAFE-03) stays either way.
+
+## Round 4b, the same evening, against the 13.1 gate's hand-over (nine changes by eye, Clear on hardware)
+
+> 1) nice
+> 2) nice
+> 3)nice only thing, attached thin looks all over the place sort these button out
+> 4) nice
+> 5)nice
+> 6)nice
+> 7)nice
+> 8)nice
+> 9) nice
+> 10)nice
+
+All ten pass. One correction, item 3, with a screenshot of the Sandbox's header: the eyebrow
+SANDBOX / MY PERFORMANCE, the name "My performance" with "Rename" beside it, the Edit / Play switch
+top right with its helper line under it ("Edit: select and arrange elements. Touch goes nowhere."),
+the sub-line "Compose your controls. Select an element to shape its behavior.", then a second row
+with Undo / Redo left, "Save copy" mid-right, and "Export as a file" far right with a two-line
+explanation under it ("A surface isn't a variation of a catalog entry, so there's no link to share;
+export it as a file and import it on My configs."). The controls and their helper lines sit at
+different heights and alignments - "all over the place". To be sorted into the PDF's page-3 row:
+Undo, Redo left; Save copy (and Export as a file beside it) right, one baseline; the helper lines
+out of the row.
