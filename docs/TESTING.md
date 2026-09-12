@@ -3566,6 +3566,61 @@ and the e2e together, then this paragraph with `deferred-items.md`'s dated close
 No device, no deploy; `src/vendor/`, `library.ts`, `Knob.svelte`, `ColourPicker.svelte` untouched.
 CAT-04 stays `[ ]`; the phase stays gate landed / bench pending.
 
+### The Sandbox header row - round 4b's item 3, closed by a quick task after the gate (2026-09-12)
+
+Round 4b passed ten of ten and named one thing, with a screenshot: the Sandbox's header controls
+"all over the place" - the `Edit` / `Play` switch with its mode line under it, `Save copy`
+mid-right, `Export as a file` far right with its two-line explanation under it, four controls at
+four heights. The quick task sorted them into PDF page 3's two rows and nothing else (commit
+`775a2d4`, `src/routes/sandbox/[draftId]/+page.svelte` and `src/lib/ui/sandbox/SurfaceActions.svelte`;
+no string changed, so no ledger row; no test re-aimed). **The name's row**: the name, `Rename` and
+the switch centred on one another (`.title-row` and `.name-block` `align-items: center`), as the PDF
+draws the switch's boxes at y 186-226 on the name at 207. **The helper lines out of the rows**: the
+mode line is the sub-line's second line (a `.lines` block, gap 4, left) - visible because section 8
+says "a persistent visible mode label", under the sub-line because the PDF draws none under the
+switch; the export's explanation is the button's description alone (`sr-only`, still its
+`aria-describedby`; `sandbox.e2e.ts` reads it by `toContainText`, which does not need paint). **One
+toolbar row**: `Undo` `Redo` left, `Save copy` `Export as a file` right, four outlined 44px boxes
+of one family, `SurfaceActions`'s `.share` `display: contents` so its button and its line are the
+row's items directly. **Measured on the served build in chromium** (every box on a row equal top
+and bottom to 0.0px; the criterion was 1px): 1280 x 720 - Rename and both segments **184.2-228.2**,
+the name 186.4-226; the four boxes **303.7-347.7**; the plate from 363.7; document 720 / 720.
+1440 x 900 - the same four numbers, the plate from 363.7, document 900 / 900. 1024 x 720 - the four
+boxes **431.5-475.5** on one row (the compact band's `.tools .outlined` at 10px padding and 8px
+gaps: 353 in the 372 column; at the wide band's 16 / 12 they are 413 and would not); the name folds
+to two lines and the switch takes its own line right-aligned - the 40px name is 343 wide, IDENT-01's
+scale, not this task's; document 720 / 720. Nothing on the plate at any width.
+
+**The transient outcome lines were the real work.** `saved to My configs.` and `Exported as …` sit
+in the row for four seconds each, and prose beside fixed boxes sets a row's minimum: on the first
+cut, both showing at 1024 slid the centre 55px sideways (the row's min-content past the column,
+`.centre`'s `overflow: auto` scrolling to the clicked button). Now both lines are `min-inline-size:
+0; overflow-wrap: anywhere; text-align: end`, shrinking and folding beside their buttons, and the
+row does not wrap above 480 of column (a container query on `.sandbox` - KnobRack's precedent,
+Clear.svelte's number): one line beside its button at 1440 and 1920, two at 1280, the row still 44
+and the boxes still level; both at once make the row 56 for those seconds (the export's line
+three deep at 1440 and 1280). Under 480 (1024's 372) the right pair drops to a second line for
+the four seconds rather than fold to a column of letters; both at once there fold five and six
+deep - the rarest state at a width the bench does not use, recorded in `deferred-items.md` row 12
+and not fixed. Two shapes were tried and measured out: the lines nested inside `.share` (the
+export's line paid for its own button in the shrink - 75px wide and five lines at 1440 while the
+saved line had 219) and equal `flex: 1 1 0` shares (the same arithmetic the other way - 4px wide
+and 697 tall at 1024, and the document scrolled).
+
+Counts as carried from the gate, then the delta: quick **94 / 964 (+1 todo)** twice at
+`--maxWorkers=2` (`+0 / +0`), and twice more on the final tree after a comment edit; check
+**654 / 0 / 0** (`+0`); lint clean; radius layer A allowlist **0** and the six circles by file and
+line (`ColourPicker.svelte` :840 :867 :882, `Knob.svelte` :730 :785 :807), layer B green against
+the fresh build (36 declarations in 14 built stylesheets, six at 50%, nothing tolerated); e2e
+**86 titles / 101 runs** (`+0 / +0`); chunk c4 (`catalog`, `fidelity`, `first-experience`,
+`library`, `sandbox`) **15 passed** twice on fresh detached servers (`e2e-chunks-1208.sh`, stopped
+through PowerShell, HTTP 000 after each stop). One executor note: a `Stop-Process` whose filter
+matched `wrangler.*dev --port 4173` killed the Bash shell that carried the pattern in its own
+command line (exit 255, the server already down); the stop lives in a script file since, as the
+chunk script's does. Commits: the code alone, then this paragraph with `deferred-items.md`'s row
+12 and STATE. No device, no deploy; `src/vendor/`, `library.ts`, `Knob.svelte`,
+`ColourPicker.svelte` untouched. CAT-04 stays `[ ]`; the phase stays gate landed / bench pending.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
