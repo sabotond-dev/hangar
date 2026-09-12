@@ -5,12 +5,25 @@
 
   THREE REGIONS, ALL THE PDF'S. The rail: ADD AN ELEMENT (Palette.svelte),
   a divider, ON THIS SURFACE (ElementList.svelte), and `+ New surface`
-  pinned. The centre: the eyebrow `SANDBOX / MY PERFORMANCE`, the name, the
-  two-segment `Edit` / `Play` switch with its persistent mode line, the
-  sub-line, `Undo` and `Redo` left with `Save copy` right, the plate
-  (SurfaceEditor.svelte) with `ZONA · CONTINUOUS TOUCH SURFACE` and the
-  element count beneath it. The inspector: RegionInspector.svelte, handed
-  to the shell as a snippet, with the budget meters after its last section.
+  pinned. The centre: the eyebrow `SANDBOX / MY PERFORMANCE`, the name with
+  `Rename` beside it and the two-segment `Edit` / `Play` switch at the right
+  of the SAME row (PDF page 3: the name at y 207, the switch's boxes at
+  186-226, centred on the name's line), the sub-line with the persistent
+  mode line under it, then ONE toolbar row - `Undo` and `Redo` left, `Save
+  copy` and `Export as a file` right, four outlined 44px boxes on one
+  baseline (the PDF's row at y 289-323: `Undo` `Redo` left, `Save copy`
+  right; the export is HANGAR's, D-14 Q7, and takes the PDF's shape beside
+  Save copy) - then the plate (SurfaceEditor.svelte) with `ZONA ·
+  CONTINUOUS TOUCH SURFACE` and the element count beneath it. The helper
+  lines LEFT THE ROWS on the fourth bench's round 4b ("all over the place"):
+  the mode line sat under the switch and the export's explanation under its
+  button, so the row's four controls sat at four heights; the PDF draws no
+  helper under the switch and none under the row. The mode line stays
+  visible because section 8 says "a persistent visible mode label", so it
+  is the sub-line's second line; the export's explanation is the button's
+  description alone (sr-only, still its `aria-describedby`). The inspector:
+  RegionInspector.svelte, handed to the shell as a snippet, with the budget
+  meters after its last section.
 
   ONE MODEL, RENDERED. src/lib/sandbox/editor.ts holds the surface, the
   selection, the mode, the pending placement, the focus cell, the field
@@ -721,54 +734,54 @@
             {/if}
           {/if}
         </div>
-        <div class="mode-block">
-          <!-- The two-segment switch: a radiogroup of two real radios in labels, one tab stop. -->
-          <div class="mode" role="radiogroup" aria-label="Mode">
-            <label
-              class="segment"
-              class:selected={!play}
-              data-testid="segment-edit"
-            >
-              <input
-                class="sr-only"
-                type="radio"
-                name="sandbox-mode"
-                value="edit"
-                data-testid="mode-edit"
-                checked={!play}
-                onchange={() => setMode("edit")}
-              />
-              {MODE_EDIT}
-            </label>
-            <label
-              class="segment"
-              class:selected={play}
-              data-testid="segment-play"
-            >
-              <input
-                class="sr-only"
-                type="radio"
-                name="sandbox-mode"
-                value="play"
-                data-testid="mode-play"
-                checked={play}
-                onchange={() => setMode("play")}
-              />
-              <span aria-hidden="true">{MODE_PLAY_GLYPH}</span>
-              {MODE_PLAY}
-            </label>
-          </div>
-          <!-- The persistent, visible mode label (section 8). -->
-          <p
-            class="mode-line type-helper"
-            id="sandbox-mode-line"
-            data-testid="mode-line"
+        <!-- The two-segment switch: a radiogroup of two real radios in labels, one tab stop. On the name's row (PDF page 3). -->
+        <div class="mode" role="radiogroup" aria-label="Mode">
+          <label
+            class="segment"
+            class:selected={!play}
+            data-testid="segment-edit"
           >
-            {play ? MODE_LINE_PLAY : MODE_LINE_EDIT}
-          </p>
+            <input
+              class="sr-only"
+              type="radio"
+              name="sandbox-mode"
+              value="edit"
+              data-testid="mode-edit"
+              checked={!play}
+              onchange={() => setMode("edit")}
+            />
+            {MODE_EDIT}
+          </label>
+          <label
+            class="segment"
+            class:selected={play}
+            data-testid="segment-play"
+          >
+            <input
+              class="sr-only"
+              type="radio"
+              name="sandbox-mode"
+              value="play"
+              data-testid="mode-play"
+              checked={play}
+              onchange={() => setMode("play")}
+            />
+            <span aria-hidden="true">{MODE_PLAY_GLYPH}</span>
+            {MODE_PLAY}
+          </label>
         </div>
       </div>
-      <p class="sentence">{SUB_LINE}</p>
+      <div class="lines">
+        <p class="sentence">{SUB_LINE}</p>
+        <!-- The persistent, visible mode label (section 8): the sub-line's second line since round 4b, not the switch's helper - the PDF draws none there. -->
+        <p
+          class="mode-line type-helper"
+          id="sandbox-mode-line"
+          data-testid="mode-line"
+        >
+          {play ? MODE_LINE_PLAY : MODE_LINE_EDIT}
+        </p>
+      </div>
     </header>
 
     <div class="tools">
@@ -853,6 +866,8 @@
     gap: 16px;
     max-inline-size: 900px;
     margin-inline: auto;
+    /* The toolbar row's wrap rule reads this column's width, not the viewport's (KnobRack's precedent). */
+    container-type: inline-size;
   }
 
   .top {
@@ -866,17 +881,19 @@
     color: var(--color-ink-quiet);
   }
 
+  /* The name's row: the name left, the switch right, the switch's boxes centred on the name's line (PDF page 3). */
   .title-row {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 24px;
     flex-wrap: wrap;
   }
 
+  /* The name and Rename: centred on each other, so Rename's 44px box and the switch's share one top and bottom. */
   .name-block {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 16px;
     flex: 1 1 240px;
     min-inline-size: 0;
@@ -912,6 +929,13 @@
     outline-offset: 4px;
   }
 
+  /* The sub-line and the mode line under it, one block. */
+  .lines {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   .sentence {
     margin: 0;
     font-family: var(--font-sans);
@@ -920,23 +944,20 @@
     color: var(--color-ink-quiet);
   }
 
-  .mode-block {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-
   /* PDF page 3's two-segment switch: two outlined boxes, the active one in the action colour. Square (D-01). */
   .mode {
     display: flex;
+    flex: none;
     gap: 12px;
+    /* When the row wraps (the name at 40px beside a 372px compact centre), the switch keeps the right edge. */
+    margin-inline-start: auto;
   }
 
   .segment {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
     min-inline-size: 44px;
     min-block-size: 44px;
     padding-inline: 20px;
@@ -960,26 +981,83 @@
   .mode-line {
     margin: 0;
     color: var(--color-ink-quiet);
-    text-align: end;
   }
 
+  /* ONE toolbar row (PDF page 3): Undo, Redo left; Save copy and the export
+     right; every box 44 tall on one line. Above 480 of column the row does
+     not wrap: the two transient outcome lines (saved, exported) are the only
+     things that give, shrinking and folding beside their buttons for the
+     four seconds they show, the boxes centred on the row (measured at 1280
+     and 1440: one line beside its button stays one row of 44; both at once
+     make the row 56 for those seconds). They fold anywhere, so a file name
+     never sets the row's minimum and the centre never scrolls sideways
+     (measured at 1024: without this the column slid 55px while both lines
+     showed). */
   .tools {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    flex-wrap: wrap;
   }
 
   .history,
   .save {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
   }
 
+  .history {
+    flex: none;
+  }
+
+  .save {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-inline-size: 0;
+  }
+
+  /* The saved line gives way beside its button: it shrinks and folds, never the boxes. */
   .saved {
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+    text-align: end;
     color: var(--color-ink-quiet);
+  }
+
+  .tools .outlined {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  /* The compact band (1024-1439): the centre is 372 at 1024 and the four
+     boxes at the wide band's padding and gaps are 413, so the row tightens -
+     10px padding and 8px gaps, 353 - and stays one row. */
+  @media (max-width: 1439.98px) {
+    .tools {
+      gap: 12px;
+    }
+
+    .history,
+    .save {
+      gap: 8px;
+    }
+
+    .tools .outlined {
+      padding-inline: 10px;
+    }
+  }
+
+  /* Under 480 of column (the centre is 372 at 1024, 619 at 1280) an outcome
+     line beside the boxes has no room - the four boxes and their gaps are
+     353 - so for its four seconds the right pair drops to a second line
+     rather than fold to a column of letters. Above 480 the row never wraps
+     and the line folds beside its button. Measured, not the Bible's:
+     Clear.svelte's 480 is the same threshold for the same reason. */
+  @container (width < 480px) {
+    .tools {
+      flex-wrap: wrap;
+    }
   }
 
   /* Outlined controls: the boundary token, square, 44px on both axes. */
