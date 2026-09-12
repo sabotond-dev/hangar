@@ -56,12 +56,17 @@
 // "CLEAR button ... next to ZONA connected"), with its description reading
 // clearLine and its caption empty; one click sends with NO confirmation and
 // no element ever appears bearing the testid one would have had; CLEARING…
-// carries aria-busy through the one leg; the bar reads the reset's caption
-// and Store on ZONA closes with never-tried. The wire is counted by class at
-// the end and PAGESTORE/EXECUTE is zero, which is A-26's RAM-only ruling as a
-// number rather than an intention. Put back is gone (D-07): nothing brings
-// the visitor's own back but Grid Editor or the firmware default, and the
-// title says so no longer.
+// carries aria-busy through BOTH legs; the bar reads the reset's caption -
+// which says stored - and Store on ZONA closes with never-tried. THE CLEAR
+// STORES SINCE ROUND 4C (2026-09-12; the user's word in BENCH-2026-09-12.txt:
+// "clear should not be RAM only though!! it should be like Store but with
+// Clear!"): the five defaults into RAM, then the same ACK-gated store leg
+// Store on ZONA runs and the same D-12 proof, so the walk paces heartbeats
+// through beatUntilShows() as the keep does, and the wire counted by class at
+// the end reads ONE PAGESTORE/EXECUTE for the clear where it read zero -
+// A-26's RAM-only ruling retired by the user, as a number rather than an
+// intention. Put back is gone (D-07): nothing brings the visitor's own back
+// but Grid Editor or the firmware default, and the title says so no longer.
 //
 // THE TWELFTH (plan 12-01) is the phase-12 question asked of the wire rather
 // than of the tuner: a rail turned on /playground/lumen/ BEFORE the click, then the
@@ -1248,9 +1253,10 @@ const clearDescription = (page: Page) => page.getByTestId("clear-line");
  * True when nothing anywhere on the page is CLEAR's confirmation. There is no
  * such component (A-45, D-19; kept by the user's word at 13.1-05, D-04) and
  * there is no such testid, so this is a proof of an absence rather than of a
- * state: CLEAR writes RAM only and a power cycle undoes it, so Store on
- * ZONA's block is the site's only confirmation. Asserted at rest, inside the
- * write and after it lands.
+ * state: Store on ZONA's block is the site's only confirmation, and since
+ * round 4c (2026-09-12) Clear stores too WITHOUT one - the user's decision,
+ * 13.1 D-04 standing - because what it makes permanent is the firmware's own
+ * configuration. Asserted at rest, inside the write and after it lands.
  */
 const noConfirmOnScreen = async (page: Page): Promise<boolean> =>
   (await page.locator('[data-testid="clear-confirm"]').count()) === 0;
@@ -1948,7 +1954,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(consoleErrors).toEqual([]);
   });
 
-  test("@webkit Clear sends on the click with no confirmation and the panel reads the firmware default; and where the browser cannot write, Clear is present and disabled with its reason @webkit", async ({
+  test("@webkit Clear sends on the click with no confirmation, stores the defaults and the bar reads them stored after the proof; and where the browser cannot write, Clear is present and disabled with its reason @webkit", async ({
     page,
     context,
   }, testInfo) => {
@@ -2020,18 +2026,31 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // THE CLICK SENT. No block appeared, nothing waited for a second click,
     // and the busy label is on the control that was clicked. This is the
     // cheapest possible proof that A-45 shipped rather than being planned.
+    // The label names both legs (`Resetting and storing Page 2…`) and holds
+    // through the store, whose proof waits for a heartbeat this harness has
+    // to push.
     await expect(clearLabel(page)).toHaveText(clearingLabel(ACTIVE_PAGE));
     await expect(clearControl(page)).toHaveAttribute("aria-busy", "true");
     expect(await noConfirmOnScreen(page)).toBe(true);
 
-    // I14 lands: the bar's caption names the STATE (the reset's, from the
-    // module's own report); the body that named PUT BACK retired with the
-    // column and the control (13.1-06, D-07) - nothing on the page offers to
-    // bring the visitor's own back, and no failure block renders for a
-    // success phase.
-    await expect(statusDevice(page)).toHaveText(clearedCaption(ACTIVE_PAGE), {
-      timeout: 10_000,
-    });
+    // I14 lands - AFTER THE STORE'S PROOF (round 4c): the bar's caption
+    // names the STATE (the reset's, stored, from the module's own report),
+    // and it cannot land before the PAGESTORE acknowledgement, the module's
+    // next heartbeat and a matching re-fetch of all five (D-12), so the
+    // beats are paced as keepOnPage paces them - the RAM leg's five held
+    // acknowledgements (about a second) pass under the first beats, which the
+    // fold absorbs. The body that named PUT BACK retired with the column and
+    // the control (13.1-06, D-07) - nothing on the page offers to bring the
+    // visitor's own back, and no failure block renders for a success phase.
+    const clearBeats = await beatUntilShows(
+      page,
+      zona,
+      0,
+      barShows(clearedCaption(ACTIVE_PAGE)),
+      24,
+    );
+    console.log(`clear: stored and proved after ${clearBeats} heartbeat(s)`);
+    await expect(statusDevice(page)).toHaveText(clearedCaption(ACTIVE_PAGE));
     expect(await failureBlock(page).count()).toBe(0);
     await expect(clearLabel(page)).toHaveText(CLEAR_LABEL);
     await expect(clearControl(page)).not.toHaveAttribute("aria-busy", "true");
@@ -2057,7 +2076,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // THE WAY BACK after a clear is another apply (or Grid Editor): Put back
     // is gone by the user's word (D-07), and CLEAR still needs no
-    // confirmation because it writes RAM only and a power cycle undoes it.
+    // confirmation by the same user's word (D-04) - what it stores is the
+    // firmware's own configuration.
     await tryOnPage(page);
     await expect(sessionLive(page)).toHaveText(liveSettled(ACTIVE_PAGE));
 
@@ -2072,10 +2092,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // The wire, by class: the two applies and the clear are FIVE
     // CONFIG/EXECUTE each (13-17; four since 12.1-08, three since 12-03), and
-    // A-26's RAM-only ruling is a counted zero rather than an intention - a
-    // clear stores nothing.
+    // the clear is the ONE PAGESTORE/EXECUTE on the wire (round 4c) - the
+    // applies store nothing, as ever. Read as fifteen and one, not as a
+    // delta, so a clear that stopped at RAM again would fail on the one.
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
     expect(consoleErrors).toEqual([]);
 
     // ------------------------------------------------------------------

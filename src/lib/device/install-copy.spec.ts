@@ -557,16 +557,24 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "strings neither the Bible, the batch nor the 13.1 ledger carries",
     ).toEqual([]);
     // And the ledger is not a blanket: the strings it carries are exactly
-    // the ones 13.1-06 rewrote, each with its old form struck beside it.
+    // the ones 13.1-06 rewrote, each with its old form struck beside it -
+    // and, since the round-4c quick task (2026-09-12, Clear stores the
+    // defaults), the four Clear strings that say the store and the one name
+    // the unconfirmed row reads, each in the same shape.
     const ledgered = strings.filter(
       ({ text }) => !batch.includes(templated(text)) && !bible.includes(text),
     );
     expect(
       ledgered.map(({ name }) => name).sort(),
-      "the strings only the 13.1 ledger carries are the D-07 rewrites and no other",
+      "the strings only the 13.1 ledger carries are the D-07 rewrites, the round-4c Clear strings, and no other",
     ).toEqual(
       [
         "HONESTY_SNAPSHOTTING",
+        "clearLine",
+        "clearingLabel",
+        "clearedCaption",
+        "liveCleared",
+        "FIRMWARE_DEFAULT_NAME",
         "restoredCaption",
         "stepOrClear",
         "keptMismatchBlock.steps[1]",

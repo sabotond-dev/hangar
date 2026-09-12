@@ -17,11 +17,17 @@
   component: A-45's shipped behaviour, KEPT by the user's word - they asked
   for a button - and batch row I.6.5 (section 16's confirmation, approved and
   owed) is DECLINED by Phase 13.1 and recorded in 13.1-CONTEXT D-04; the
-  gate's bench row asks whether a confirmation is wanted. What the click
-  writes is RAM only: a power cycle brings back whatever is in flash, and
-  Store on ZONA's confirmation stays the site's only one, because that one
-  is genuinely irreversible. With Put back leaving (D-07, 13.1-06) this is the
-  way back HANGAR keeps after an Apply.
+  gate's bench row asks whether a confirmation is wanted. SINCE ROUND 4C
+  (2026-09-12) THE CLICK STORES TOO - the user's word, BENCH-2026-09-12.txt:
+  "clear should not be RAM only though!! it should be like Store but with
+  Clear!" - so the store's clearToDefault() runs the five defaults into
+  memory and then the same ACK-gated store leg Store on ZONA runs, proved by
+  the same read-back (D-12), and a page the Editor stored is gone after a
+  power-cycle. Still one click and no confirmation (D-04 stands): what the
+  store makes permanent is the firmware's own configuration, and the
+  snapshot taken at connect still holds the visitor's original. Store on
+  ZONA's confirmation stays the site's only one. With Put back leaving
+  (D-07, 13.1-06) this is the way back HANGAR keeps after an Apply.
 
   WHAT IT WRITES IS NOT EMPTINESS (A-48, D-20). The store sends the firmware's
   own defaultConfig for the touch element - Setup 641, Timer 22, read from the
@@ -67,17 +73,19 @@
   reads `no-session` for the `writing` phase - `writing` is outside
   WRITABLE_PHASES while the snapshot and the session are both still in hand -
   so a derived caption would flip to the needs-a-ZONA sentence for as long as
-  a 40 ms RAM leg takes, which is both false and noise. The last non-writing
+  the RAM leg and the store leg take, which is both false and noise. The last non-writing
   reason is held in a local written from an effect, and the control is
   disabled through the leg regardless. The same hold covers a page target
   that is not at rest (13-12): the destination zone carries that state's own
   line, and this box keeps whatever it was saying rather than inventing a
   fourth reason.
 
-  WHY THE BUSY LABEL SWAPS WITH NO TRANSITION (Z-09). `Resetting Page 2…`
-  replaces `Clear` the instant install.clearToDefault() starts and is
-  replaced the instant its one leg settles, with aria-busy on the button. A
-  crossfade on a 40 ms state renders as a smear rather than as a change, so
+  WHY THE BUSY LABEL SWAPS WITH NO TRANSITION (Z-09). `Resetting and
+  storing Page 2…` replaces `Clear` the instant install.clearToDefault()
+  starts and is replaced the instant its second leg settles - the store's
+  `action` stays `clear` through both, so one derived covers them - with
+  aria-busy on the button. A crossfade on a short state renders as a smear
+  rather than as a change, so
   nothing in this file animates or transitions - the hover's boundary colour
   is instant too. The 2000 ms line is the store's and is rendered by the
   context bar, not here.
@@ -106,7 +114,7 @@
   /** Why the control is disabled, or undefined when it is live - the store's one rule. */
   const reason = $derived(install.clearReason(capable));
   const writing = $derived(install.phase === "writing");
-  /** The busy label belongs to a clear and to nothing else, through its one leg. */
+  /** The busy label belongs to a clear and to nothing else, through both its legs (the RAM writes, then the store and its proof). */
   const busy = $derived(writing && install.action === "clear");
   /** 13-12: and the page target at rest - the store's one condition, mirrored; clearEnabled() refuses too. */
   const pending = $derived(

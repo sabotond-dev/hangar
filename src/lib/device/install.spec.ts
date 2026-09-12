@@ -119,12 +119,14 @@ import {
   configNackFrame,
   configReportFrame,
   heartbeatFrame,
+  powerCycle,
   rigResponder,
   serialNumberReportFrame,
   zonaResponder,
   type ZonaState,
 } from "../transport/fixtures/synthetic";
 import {
+  FIRMWARE_DEFAULT_NAME,
   LIVE_STILL_WRITING,
   TRY_ON_LABEL,
   announceTitle,
@@ -2208,7 +2210,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
   // -------------------------------------------------------------------------
   // The fourth click: CLEAR (10-12; A-48, A-50, SAFE-03, SAFE-07).
 
-  it("CLEAR writes the firmware's own default configuration into RAM, and nothing into flash", async () => {
+  it("CLEAR writes the firmware's own default configuration into RAM, then stores it - ACK-gated, proved by the read-back - and only then says cleared", async () => {
     const rig = await connected();
     const { store, fake, state, session, writesOf } = rig;
     // The pad is holding HANGAR's work when the clear happens, which is the
@@ -2223,14 +2225,17 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       true,
     );
     expect(store.clearReason(true)).toBeUndefined();
-    await drive(store.clearToDefault());
+    expect(store.keptThisSession, "nothing stored yet this session").toBe(
+      false,
+    );
+    const fedAt = await throughStore(rig, store.clearToDefault());
 
-    // A-26, ASSERTED BY CLASS RATHER THAN SAID IN COPY, and asserted FIRST so
-    // that a store added to this path names the class it added rather than
-    // failing on an arithmetic. The line beside the control is 41 characters
-    // and does not mention the power cycle (D-21), so this enumeration is
-    // where "RAM only" is held: every class the click put on the wire, and
-    // PAGESTORE is not among them.
+    // ROUND 4C (2026-09-12), ASSERTED BY CLASS FIRST, as A-26's RAM-only
+    // ruling was until this date: every class the click put on the wire.
+    // The user's word - "clear should not be RAM only though!! it should be
+    // like Store but with Clear!" - is the PAGESTORE in this list and the
+    // CONFIG/FETCH of the proof after it. A clear that stopped at RAM again
+    // would fail here by the class it lost.
     const frames = written(fake);
     expect(
       [
@@ -2241,20 +2246,26 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
             .map((c) => `${c.class_name}/${c.class_instr}`),
         ),
       ].sort(),
-      "a clear reached a class it has no business reaching",
-    ).toEqual(["CONFIG/EXECUTE", "HEARTBEAT/EXECUTE"]);
-    expect(writesOf("PAGESTORE", "EXECUTE"), "a clear stored to flash").toBe(0);
+      "a clear reached a class it has no business reaching, or lost one",
+    ).toEqual([
+      "CONFIG/EXECUTE",
+      "CONFIG/FETCH",
+      "HEARTBEAT/EXECUTE",
+      "PAGESTORE/EXECUTE",
+    ]);
+    expect(writesOf("PAGESTORE", "EXECUTE"), "one store per clear").toBe(1);
 
-    // FIVE CONFIG/EXECUTE carrying the five defaults VERBATIM, in SLOTS order
-    // - the system timer first, the utility third - then the one restore
-    // heartbeat: the same six frames every RAM leg produces, through the same
-    // one writer. The page init is reset TOO (12-03, option A): D-21's line
-    // says "the current page", and since Phase 12 HANGAR writes both of that
-    // page's elements - since 12.1-07 both of the system element's library
-    // slots, so 255/6 goes back to the firmware's own print("tick") as well,
-    // and since 13-17 its utility, so 255/4 goes back to page-next.
-    expect(frames.length - framesBefore, "frames the click produced").toBe(6);
-    expect(frames.slice(-6).map(shape)).toEqual(
+    // THE SEQUENCE: FIVE CONFIG/EXECUTE carrying the five defaults VERBATIM,
+    // in SLOTS order - the system timer first, the utility third - then the
+    // one restore heartbeat (the same six frames every RAM leg produces,
+    // through the same one writer), THEN one PAGESTORE/EXECUTE, THEN the
+    // proof's five CONFIG/FETCH: twelve frames, the shape a put-back after a
+    // keep produces. The page init is reset TOO (12-03, option A); since
+    // 12.1-07 both of the system element's library slots; since 13-17 its
+    // utility.
+    const clicked = frames.slice(framesBefore).map(shape);
+    expect(clicked, "frames the click produced").toHaveLength(12);
+    expect(clicked.slice(0, 6)).toEqual(
       ramLegFrames({
         systemTimer: SYSTEM_DEFAULT_TIMER,
         system: SYSTEM_DEFAULT_SETUP,
@@ -2263,10 +2274,20 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         timer: TOUCH_DEFAULT_TIMER,
       }),
     );
+    expect(clicked[6][0].cls).toBe("PAGESTORE/EXECUTE");
+    expect(clicked.slice(7).map((f) => f[0].cls)).toEqual([
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+    ]);
     expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(5);
 
-    // SAFE-07: `cleared` is every acknowledgement and the restore, never a
-    // resolved writer promise.
+    // SAFE-07: `cleared` is every acknowledgement, the restore, the store's
+    // acknowledgement and a matching round - never a resolved writer
+    // promise. `steps` is not reset between the legs, so the capture reads
+    // the whole click.
     expect(outcomes(store.steps)).toEqual([
       ["write-system-timer", "ok"],
       ["write-system", "ok"],
@@ -2274,11 +2295,34 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       ["write-timer", "ok"],
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
+      ["store", "ok"],
+      ["refetch-system-timer", "ok"],
+      ["refetch-system", "ok"],
+      ["refetch-system-utility", "ok"],
+      ["refetch-timer", "ok"],
+      ["refetch-setup", "ok"],
     ]);
+    // D-12 through Pitfall 6, on the fourth click as on the second: the
+    // re-fetch went out only AFTER the heartbeat was fed.
+    expect(
+      fedAt,
+      "a heartbeat was fed while the clear's store waited",
+    ).toBeDefined();
+    for (const step of store.steps.filter((s) => s.id.startsWith("refetch"))) {
+      expect(
+        step.sentAt,
+        `${step.id} was sent before the heartbeat`,
+      ).toBeGreaterThanOrEqual(fedAt ?? Number.POSITIVE_INFINITY);
+    }
     expect(store.phase).toBe("cleared");
     expect(store.action).toBe("clear");
-    expect(store.leg).toBe("ram");
+    expect(store.leg, "the second leg is the one that ended").toBe("store");
     expect(store.cause).toBeUndefined();
+    expect(store.refetchRounds).toBe(1);
+    expect(
+      store.keptThisSession,
+      "flash was written this session, so a put-back stores too (Z-04)",
+    ).toBe(true);
     expect(state.configs[EVENT_SETUP], "the fake's RAM").toBe(
       TOUCH_DEFAULT_SETUP,
     );
@@ -2298,9 +2342,37 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "and so is the utility - page-next, the fifth default, not the module's own",
     ).toBe(SYSTEM_DEFAULT_UTILITY);
     expect(SYSTEM_DEFAULT_UTILITY).not.toBe(MODULE_SYSTEM_UTILITY);
+    // THE USER'S CASE (b), CLOSED: the fake's FLASH holds the defaults too,
+    // so a power-cycle brings the defaults back and not the Editor's page.
+    // (On the module the store of a slot holding its own default DELETES the
+    // cfg file - cfg_default_flag, grid_ui.c:398-409, :1126-1134 - which is
+    // the same fact by another route; the fake models flash as bytes.)
+    expect(state.flash, "the fake's flash holds the touch defaults").toEqual({
+      [EVENT_SETUP]: TOUCH_DEFAULT_SETUP,
+      [EVENT_TIMER]: TOUCH_DEFAULT_TIMER,
+    });
+    expect(
+      state.systemFlash,
+      "and the second flash holds the three system defaults",
+    ).toEqual({
+      [EVENT_SETUP]: SYSTEM_DEFAULT_SETUP,
+      [EVENT_TIMER]: SYSTEM_DEFAULT_TIMER,
+      [EVENT_UTILITY]: SYSTEM_DEFAULT_UTILITY,
+    });
+
+    // And the power-cycle itself, on the fake: RAM becomes flash, and what
+    // comes back is the default - not the module's own, which is what came
+    // back before this date (runbook row N is this on hardware).
+    powerCycle(state);
+    expect(state.configs[EVENT_SETUP], "after a power-cycle").toBe(
+      TOUCH_DEFAULT_SETUP,
+    );
+    expect(state.system?.[EVENT_SETUP]).toBe(SYSTEM_DEFAULT_SETUP);
+    expect(state.system?.[EVENT_UTILITY]).toBe(SYSTEM_DEFAULT_UTILITY);
 
     // Nothing of the visitor's and nothing of HANGAR's is playing, so there is
-    // nothing to arm and nothing to keep; the way back is untouched.
+    // nothing to arm and nothing to keep; the way back is untouched - the
+    // snapshot is the one taken at connect, and a clear takes no new one.
     expect(store.lastWritten).toBeUndefined();
     expect(store.name).toBeUndefined();
     expect(store.armed).toBe(false);
@@ -2311,21 +2383,169 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "enabled",
     );
     expect(store.snapshot).toEqual(ORIGINAL);
-    expect(locks, "the header lock closed over the leg").toEqual([true, false]);
+    expect(
+      locks,
+      "the header lock closed over each leg - the RAM leg, then the store leg",
+    ).toEqual([true, false, true, false]);
     expect(session.writeLock).toBe(false);
+    expect(store.slow).toBe(false);
     await after(500);
     expect(session.speech).toBe(liveCleared(ACTIVE_PAGE));
 
     // `cleared` is in WRITABLE_PHASES: a clear after a clear is idempotent and
-    // harmless, and TRY ON DEVICE works from here.
+    // harmless - one more store, one more proof - and TRY ON DEVICE works
+    // from here.
     expect(store.clearEnabled(true)).toBe(true);
-    await drive(store.clearToDefault());
+    await throughStore(rig, store.clearToDefault());
     expect(store.phase).toBe("cleared");
     expect(writesOf("CONFIG", "EXECUTE") - configsBefore).toBe(10);
+    expect(writesOf("PAGESTORE", "EXECUTE"), "two clears, two stores").toBe(2);
     store.observeConfig(PAIR);
     await drive(store.tryOnDevice(PAIR, "Aurora"));
     expect(store.phase).toBe("settled");
     expect(state.configs[EVENT_SETUP]).toBe(PAIR.setup);
+    expect(
+      state.flash?.[EVENT_SETUP],
+      "an apply after a clear is RAM only, as ever: flash still holds the default",
+    ).toBe(TOUCH_DEFAULT_SETUP);
+  });
+
+  it("a clear whose store is acknowledged but never reads back is kept-mismatch, never cleared", async () => {
+    // The kept-mismatch fixture, on the fourth click: after the store the
+    // module answers every fetch of the touch Setup with something other
+    // than the default that was sent (the element in the condition, as the
+    // keep's test explains). The RAM leg landed; the store was acknowledged;
+    // the proof ran out. `cleared` is NOT said - the store's phase is
+    // reused, block and all, because its sentence is exactly true here.
+    let stored = false;
+    const rig = await connected({
+      wrap: (inner) => (outbound, requestId) => {
+        const p = outbound.class_parameters;
+        if (
+          stored &&
+          outbound.class_name === "CONFIG" &&
+          outbound.class_instr === "FETCH" &&
+          Number(p.ELEMENTNUMBER) === ELEMENT_TOUCH &&
+          Number(p.EVENTTYPE) === EVENT_SETUP
+        ) {
+          return [
+            configReportFrame({
+              sx: 0,
+              sy: 0,
+              page: Number(p.PAGENUMBER),
+              event: EVENT_SETUP,
+              config: "--[[@cb]]print(9)",
+              element: ELEMENT_TOUCH,
+            }),
+          ];
+        }
+        const replies = inner(outbound, requestId);
+        if (outbound.class_name === "PAGESTORE") stored = true;
+        return replies;
+      },
+      sleep: async () => {},
+    });
+    const { store, state, session, writesOf } = rig;
+    await triedOn(rig);
+    await throughStore(rig, store.clearToDefault());
+
+    expect(outcomes(store.steps).slice(0, 7)).toEqual([
+      ["write-system-timer", "ok"],
+      ["write-system", "ok"],
+      ["write-system-utility", "ok"],
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+      ["restore-page-change", "sent"],
+      ["store", "ok"],
+    ]);
+    expect(store.refetchRounds, "three rounds, then the honest answer").toBe(3);
+    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(1);
+    expect(
+      store.phase,
+      "acknowledged and read back different is not cleared",
+    ).toBe("kept-mismatch");
+    expect(store.action).toBe("clear");
+    expect(store.cause).toBe("mismatch");
+    expect(store.keptThisSession, "not called stored").toBe(false);
+    expect(store.keepReason(true)).toBe("after-mismatch");
+    expect(
+      store.clearEnabled(true),
+      "and Clear is one click from a retry",
+    ).toBe(true);
+    expect(state.configs[EVENT_TIMER], "the RAM leg did land").toBe(
+      TOUCH_DEFAULT_TIMER,
+    );
+    await after(500);
+    expect(session.speech).toBe(
+      announceTitle(keptMismatchBlock(ACTIVE_PAGE).title),
+    );
+  });
+
+  it("a clear whose store never acknowledges is unconfirmed with the firmware default named, Store on ZONA reads never-tried, and the RAM leg alone never stores", async () => {
+    // Part one: the store's acknowledgement is dropped on every attempt.
+    // Three bounded attempts at pagestoreMs, no heartbeat waited for, and
+    // the phase is `unconfirmed` - with the block's name set to the firmware
+    // default, because that is what the RAM leg left running in memory,
+    // and Store on ZONA disabled for the first-apply reason (no knob moved;
+    // there is nothing of the visitor's on the module to store).
+    const rig = await connected({
+      faults: [
+        {
+          kind: "drop",
+          match: { class_name: "PAGESTORE", class_instr: "ACKNOWLEDGE" },
+        },
+      ],
+    });
+    const { store, state, session, writesOf } = rig;
+    await triedOn(rig);
+    const fedAt = await throughStore(rig, store.clearToDefault());
+
+    expect(fedAt).toBeUndefined();
+    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(RETRY_ATTEMPTS);
+    expect(outcomes(store.steps)).toEqual([
+      ["write-system-timer", "ok"],
+      ["write-system", "ok"],
+      ["write-system-utility", "ok"],
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+      ["restore-page-change", "sent"],
+      ["store", "timeout"],
+    ]);
+    expect(store.phase).toBe("unconfirmed");
+    expect(store.action).toBe("clear");
+    expect(store.cause).toBe("timeout");
+    expect(store.keptThisSession).toBe(false);
+    expect(store.name, "the block names what is running").toBe(
+      FIRMWARE_DEFAULT_NAME,
+    );
+    expect(store.lastWritten).toBeUndefined();
+    expect(store.armed).toBe(false);
+    expect(
+      store.keepReason(true),
+      "the eighth row: not knobs-moved, no knob moved",
+    ).toBe("never-tried");
+    expect(store.clearEnabled(true), "Clear is the retry").toBe(true);
+    expect(state.configs[EVENT_SETUP], "the RAM leg did land").toBe(
+      TOUCH_DEFAULT_SETUP,
+    );
+    // The fault drops the ACKNOWLEDGE, not the store: the scripted module
+    // took the default into flash and HANGAR cannot know that. Saying
+    // `unconfirmed` on what it heard is the whole of SAFE-07 on this leg.
+    expect(
+      state.flash?.[EVENT_SETUP],
+      "the module stored; HANGAR heard nothing",
+    ).toBe(TOUCH_DEFAULT_SETUP);
+    await after(500);
+    expect(session.speech).toBe(
+      announceTitle(unconfirmedBlock(FIRMWARE_DEFAULT_NAME, ACTIVE_PAGE).title),
+    );
+    // And an apply from here puts the entry's name back on the block's
+    // path: the action moves, so the eighth row no longer matches.
+    store.observeConfig(PAIR);
+    await drive(store.tryOnDevice(PAIR, "Aurora"));
+    expect(store.phase).toBe("settled");
+    expect(store.name).toBe("Aurora");
+    expect(store.keepReason(true)).toBeUndefined();
   });
 
   it("a clear whose second acknowledgement never comes is partial, never cleared", async () => {
@@ -2349,6 +2569,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ]);
     expect(store.phase, "four acknowledgements are not five").toBe("partial");
     expect(store.action).toBe("clear");
+    expect(store.leg, "the leg that failed is the RAM leg").toBe("ram");
+    // ROUND 4C: a clear that did not land in memory stores NOTHING - the
+    // store leg runs only after every acknowledgement, so a partial clear
+    // cannot make a half-default page permanent.
+    expect(
+      rig.writesOf("PAGESTORE", "EXECUTE"),
+      "no store after a partial",
+    ).toBe(0);
     expect(store.landed).toBe(
       "The system timer, the page init, the utility script and the Timer",
     );
@@ -2556,7 +2784,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // keeps D-21's 41-character line literally true of every element HANGAR
     // has ever written.
     const beforeClear = writesOf("CONFIG", "EXECUTE");
-    await drive(store.clearToDefault());
+    await throughStore(rig, store.clearToDefault());
     expect(store.phase).toBe("cleared");
     expect(configOrder().slice(beforeClear)).toEqual([
       [ELEMENT_SYSTEM, EVENT_TIMER, SYSTEM_DEFAULT_TIMER],
@@ -2885,12 +3113,16 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       timer: TOUCH_DEFAULT_TIMER,
     };
     let from = fake.writes.length;
-    await drive(store.clearToDefault());
+    await throughStore(rig, store.clearToDefault());
     expect(store.phase).toBe("cleared");
     expect(configFrames(from)).toEqual(inSlotOrder(defaults));
+    // Round 4c: the five writes, the restore, then the store and its proof -
+    // the refetch ids read off the list as the write ids are.
     expect(store.steps.map((s) => s.id)).toEqual([
       ...SLOTS.map((s) => s.write),
       "restore-page-change",
+      "store",
+      ...SLOTS.map((s) => `refetch-${s.write.slice("write-".length)}`),
     ]);
     expect(state.system?.[EVENT_TIMER], "255/6 is the 22-character print").toBe(
       SYSTEM_DEFAULT_TIMER,
@@ -2902,11 +3134,17 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toBe(SYSTEM_DEFAULT_UTILITY);
     expect(SYSTEM_DEFAULT_UTILITY).toHaveLength(19);
 
-    // PUT BACK: the five snapshotted originals, the same order.
+    // PUT BACK: the five snapshotted originals, the same order - and,
+    // because the clear STORED this session (Z-04, keptThisSession), a store
+    // leg after them, so the owner's flash holds their original again.
     from = fake.writes.length;
-    await drive(store.putBack());
+    await throughStore(rig, store.putBack());
     expect(store.phase).toBe("restored");
     expect(configFrames(from)).toEqual(inSlotOrder(ORIGINAL));
+    expect(state.flash?.[EVENT_SETUP], "flash holds the original again").toBe(
+      MODULE_SETUP,
+    );
+    expect(store.keptThisSession).toBe(false);
     expect(state.system?.[EVENT_TIMER]).toBe(MODULE_SYSTEM_TIMER);
     expect(state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
     expect(state.system?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);

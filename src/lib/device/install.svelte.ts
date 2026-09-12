@@ -226,6 +226,7 @@
 import {
   type ClearReason,
   type FailedWords,
+  FIRMWARE_DEFAULT_NAME,
   type KeepReason,
   type LandedWords,
   LIVE_STILL_WRITING,
@@ -460,7 +461,7 @@ export class InstallStore {
   config = $state.raw<ConfigStrings | undefined>(undefined);
   /** True exactly when the module holds the pair the visitor is looking at (Z-05). */
   armed = $state(false);
-  /** True from a proved keep until a put-back that stored (Z-04). */
+  /** True from a proved keep - or, since round 4c, a proved clear - until a put-back that stored (Z-04). */
   keptThisSession = $state(false);
   confirmOpen = $state(false);
   /**
@@ -1056,15 +1057,21 @@ export class InstallStore {
 
   /**
    * Why KEEP ON DEVICE is disabled, or undefined when it is live (Z-05, Z-21).
-   * One function, seven rows, first match wins:
+   * One function, eight rows, first match wins:
    *
    *   !capable                                   incapable
    *   partial                                    after-partial
    *   kept                                       already-kept
    *   kept-mismatch                              after-mismatch
+   *   unconfirmed after a clear                  never-tried
    *   settled | unconfirmed, armed               undefined - live
    *   settled | unconfirmed, not armed           knobs-moved
    *   anything else                              never-tried
+   *
+   * The clear row (round 4c, 2026-09-12): a clear whose store never
+   * acknowledged leaves the firmware default in memory and nothing of the
+   * visitor's to store, so the honest reason is the first-apply one and not
+   * `knobs-moved` - no knob moved. Eight rows, still the closed set of six.
    *
    * `capable` is the session's: false on `unsupported` and `insecure`.
    */
@@ -1074,6 +1081,8 @@ export class InstallStore {
     if (phase === "partial") return "after-partial";
     if (phase === "kept") return "already-kept";
     if (phase === "kept-mismatch") return "after-mismatch";
+    if (phase === "unconfirmed" && this.action === "clear")
+      return "never-tried";
     if (phase === "settled" || phase === "unconfirmed") {
       return this.armed ? undefined : "knobs-moved";
     }
@@ -1461,12 +1470,49 @@ export class InstallStore {
    * the module at all - 255/6 included, on the same rule (12-RESEARCH 1c).
    * One more acknowledgement per clear per slot is the whole cost.
    *
-   * RAM ONLY, AND THAT IS ASSERTED BY CLASS RATHER THAN SAID IN COPY (A-26).
-   * Five CONFIG/EXECUTE and no PAGESTORE/EXECUTE: the Editor calls
-   * sendToGrid(), never store(), so a power cycle brings back whatever is in
-   * flash. D-21 fixed the line beside the control at 41 characters and it does
-   * not mention the power cycle, so install.spec.ts's by-class count is where
-   * that fact now lives.
+   * AND THEN IT STORES - ROUND 4C, THE USER'S WORD (BENCH-2026-09-12.txt,
+   * "clear should not be RAM only though!! it should be like Store but with
+   * Clear!"). Until 2026-09-12 the clear was RAM only, asserted by class
+   * (A-26: five CONFIG/EXECUTE and no PAGESTORE/EXECUTE), and a page the
+   * Editor had STORED came back after a power-cycle - the user's case (b).
+   * Now the RAM leg is followed by the SAME store leg Store on ZONA runs
+   * (#storeLeg: one PAGESTORE/EXECUTE through the queue, ACK-gated, then the
+   * D-12 proof - the module's next heartbeat, then a re-fetch of all five
+   * strings compared byte for byte, bounded to REFETCH_ROUNDS), with the
+   * defaults as the strings it proves against. The wire, per click, is
+   * therefore 5 CONFIG/EXECUTE + 1 HEARTBEAT/EXECUTE (the restore) + 1
+   * PAGESTORE/EXECUTE + 5 CONFIG/FETCH per proof round; install.spec.ts
+   * asserts the sequence by step id and e2e/install.e2e.ts counts it by
+   * class. One click, no confirmation, as before (13.1 D-04 stands): the
+   * store here is of the FIRMWARE'S OWN configuration, so what it makes
+   * irreversible is the Editor's stored page - which is the point - and the
+   * snapshot taken at connect still holds the visitor's original for the
+   * probe's putBack(). No new snapshot is taken by a clear.
+   *
+   * THE THREE OUTCOMES OF THE STORE LEG, CLASSIFIED AS Store on ZONA's ARE:
+   * `kept` (the ACK, the heartbeat and a matching round) lands `cleared`
+   * and sets `keptThisSession` - flash was written this session, so a
+   * put-back from the probe stores too (Z-04); `mismatch` (three rounds and
+   * no byte-identical read-back) lands `kept-mismatch`, REUSED rather than a
+   * sixteenth phase, because keptMismatchBlock's sentence - acknowledged,
+   * read back different, not called stored - is exactly true of a clear's
+   * store and its second step names Clear as the retry; `unconfirmed` (no
+   * ACK inside the retry bound) lands `unconfirmed` with FIRMWARE_DEFAULT_NAME
+   * as the name the block reads, because the RAM leg did land and the
+   * firmware default IS what is running in memory. keepReason() reads
+   * `never-tried` for that last row (the closed set's own answer - see the
+   * table there), since nothing of the visitor's is on the module to store.
+   *
+   * WHAT A CLEAR DOES NOT WRITE. The five slots HANGAR knows (SLOTS) are the
+   * five it resets; a slot the Editor wrote and HANGAR never does (the system
+   * element's MIDI RX, say) is untouched by the five writes and survives the
+   * store. The firmware's whole-page reset class (0x064) exists in the pinned
+   * package and would be the Editor-parity answer - that class, then the
+   * store - but forbidden-instructions.spec.ts forbids it by name (which is
+   * why this comment does not spell it) and nothing the user has seen needs
+   * it; the day the user sees case (c) on a slot HANGAR does not write, that
+   * gate is amended as 13-12 amended it for the two page classes under D-19,
+   * and not before.
    *
    * NO COMPILER ON THIS PATH, AND THAT IS DELIBERATE. The try-on writes a
    * configuration the tuner compiled; a clear writes five strings that are
@@ -1503,13 +1549,40 @@ export class InstallStore {
     // `never-tried` from here, which is the closed set's own answer.
     this.lastWritten = undefined;
     this.name = undefined;
-    this.cause = undefined;
-    // SAFE-07 verbatim: `cleared` is reached only through #ramLeg returning
-    // true, which is both CONFIG/ACKNOWLEDGE frames and never a resolved
-    // writer promise.
-    this.phase = "cleared";
-    this.#recomputeArmed();
-    this.#session.announce(liveCleared(this.#page()));
+    // ROUND 4C: the store leg, the same one Store on ZONA runs, proved
+    // against the five defaults. `steps` is NOT reset between the legs (the
+    // put-back after a keep does the same), so the capture reads the whole
+    // click: five writes, the restore, the store, the proof.
+    const outcome = await this.#storeLeg("clear", defaults);
+    if (outcome === false) return;
+    if (outcome === "kept") {
+      // SAFE-07 verbatim: `cleared` is reached only through #ramLeg returning
+      // true (every CONFIG/ACKNOWLEDGE) AND #storeLeg returning kept (the
+      // PAGESTORE/ACKNOWLEDGE, the heartbeat, a matching round) - never a
+      // resolved writer promise.
+      this.keptThisSession = true;
+      this.cause = undefined;
+      this.phase = "cleared";
+      this.#recomputeArmed();
+      this.#session.announce(liveCleared(this.#page()));
+      return;
+    }
+    if (outcome === "mismatch") {
+      this.#fail(
+        "kept-mismatch",
+        "mismatch",
+        keptMismatchBlock(this.#page()).title,
+      );
+      return;
+    }
+    // The RAM leg landed and the firmware default is what runs in memory;
+    // the block names it so, rather than the route's entry.
+    this.name = FIRMWARE_DEFAULT_NAME;
+    this.#fail(
+      "unconfirmed",
+      "timeout",
+      unconfirmedBlock(FIRMWARE_DEFAULT_NAME, this.#page()).title,
+    );
   }
 
   // --- the flash store: KEEP ON DEVICE, and the proof ----------------------
@@ -1555,8 +1628,8 @@ export class InstallStore {
   }
 
   /**
-   * The store leg, shared by the keep and by a put-back after a keep. One
-   * PAGESTORE/EXECUTE through the queue under pagestoreMs (3000 ms, from the
+   * The store leg, shared by the keep, by a put-back after a keep and - since
+   * round 4c, 2026-09-12 - by every clear. One PAGESTORE/EXECUTE through the queue under pagestoreMs (3000 ms, from the
    * descriptor; on a rig N acknowledgements resolve it once), then the D-12
    * proof: wait for the ZONA's next heartbeat, then re-fetch all five strings for
    * at most REFETCH_ROUNDS rounds with retryBackoffMs between them, kept on the

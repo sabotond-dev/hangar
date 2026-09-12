@@ -58,9 +58,11 @@
 //     restoredCaption and liveRestored (the restore has no control on the
 //     site - see the retirement below).
 //  3. The firmware default - `Clear` (the header's control since 13.1-05)
-//     writes the module's own default and the browser draft survives, and
-//     since 13.1-06 it is THE WAY BACK every step names. clearLine,
-//     clearedCaption, liveCleared, stepOrClear, CONFIRM_WAY_BACK.
+//     writes the module's own default AND STORES IT (round 4c, 2026-09-12,
+//     the user's word: "it should be like Store but with Clear!") and the
+//     browser draft survives, and since 13.1-06 it is THE WAY BACK every
+//     step names. clearLine, clearingLabel, clearedCaption, liveCleared,
+//     stepOrClear, CONFIRM_WAY_BACK, FIRMWARE_DEFAULT_NAME.
 //  4. Nothing is written without a click - session-copy.ts's SAFE_NOTE; here,
 //     every write is a named click and every step names one.
 //  5. A store carries the page's own scripts - five strings on the wire since
@@ -291,9 +293,15 @@ export const KEEP_LABEL = "Store on ZONA";
 export const NOT_NOW_LABEL = "Not now";
 /** The user's own word for the firmware default (13.1-05, D-04), in D-05's case; what it does is said in clearLine, the control's description. */
 export const CLEAR_LABEL = "Clear";
-/** Section 9's progress shape, for the reset (I.4.20). */
+/**
+ * Section 9's progress shape, for the reset (I.4.20) - and since round 4c
+ * (2026-09-12) it names the store leg too, because the click runs both:
+ * the five defaults into memory, then the same store Store on ZONA runs.
+ * Batch I.4.20's `Resetting Page 2…` is superseded; ledgered in
+ * 13.1-COPY-NEW.md.
+ */
 export const clearingLabel = (page: number): string =>
-  `Resetting ${pageName(page)}…`;
+  `Resetting and storing ${pageName(page)}…`;
 /**
  * THE FIFTH WRITE CLICK IS THE TARGET SELECT'S CHANGE (13.1-02; 13.1-CONTEXT
  * D-05). `Target` is page-target.ts's TARGET_LABEL - the PDF's word for the
@@ -371,9 +379,15 @@ export const restoredCaption = (page: number): string =>
 export const keptCaption = (page: number): string =>
   `Stored on ZONA · ${pageName(page)}`;
 
-/** The reset landed: section 16's confirmation words for the state it confirmed (I.4.16). */
+/**
+ * The reset landed AND was stored: section 16's confirmation words for the
+ * state it confirmed (I.4.16), with the store said since round 4c
+ * (2026-09-12) - the bar's caption after a clear is spoken only after the
+ * PAGESTORE acknowledgement and the re-fetch proof, as keptCaption's is
+ * (D-12). Ledgered in 13.1-COPY-NEW.md.
+ */
 export const clearedCaption = (page: number): string =>
-  `${pageName(page)} reset to its firmware default`;
+  `${pageName(page)} reset to its firmware default and stored`;
 
 // ---------------------------------------------------------------------------
 // The six uncertain outcomes and the lost cable: six titles, on purpose
@@ -595,10 +609,24 @@ export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
  * empties or removes (A-48): the control restores the firmware's own
  * configuration, and a word implying emptiness would be the same class of
  * lie as the never-writes sentence Phase 7 retired. D-21's sentence (`Reset
- * the current page to factory default`) is superseded by D-23.
+ * the current page to factory default`) is superseded by D-23. Since round
+ * 4c (2026-09-12) it says the store too - the first fact, flash side, in
+ * keepLineEnabled's own words (`so it stays after power-off`) - because a
+ * description that stopped at the default would be silent about the one
+ * thing the click now makes permanent. Ledgered in 13.1-COPY-NEW.md.
  */
 export const clearLine = (page: number): string =>
-  `Returns ${pageName(page)} to its firmware default. Your browser draft stays as it is.`;
+  `Returns ${pageName(page)} to its firmware default and stores it, so it stays after power-off. Your browser draft stays as it is.`;
+
+/**
+ * What a clear leaves running in memory when its store never acknowledged
+ * (round 4c, 2026-09-12): the name unconfirmedBlock reads for that one row,
+ * where Store on ZONA's row reads the configuration's own name. The store
+ * sets it as `name` so the zone's block says what is true - the firmware
+ * default is what runs - rather than the route's entry. Ledgered in
+ * 13.1-COPY-NEW.md.
+ */
+export const FIRMWARE_DEFAULT_NAME = "The firmware default";
 
 /** The three reasons, closed like KeepReason. */
 export type ClearReason = "no-snapshot" | "no-session" | "incapable";
@@ -624,9 +652,9 @@ export const liveRestored = (page: number): string =>
   `${pageName(page)} is back to what it was when you connected.`;
 /** Section 16's own line, spoken as a sentence (I.7.4). */
 export const liveKept = (page: number): string => `${keptCaption(page)}.`;
-/** The reset landed, spoken (I.7.5). */
+/** The reset landed and was stored, spoken (I.7.5; the store since round 4c, 2026-09-12). */
 export const liveCleared = (page: number): string =>
-  `${pageName(page)} is reset to its firmware default.`;
+  `${pageName(page)} is reset to its firmware default and stored.`;
 /** The 2000 ms line, spoken once. */
 export const LIVE_STILL_WRITING = "Still writing.";
 
