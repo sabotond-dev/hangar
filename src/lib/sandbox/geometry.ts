@@ -17,8 +17,9 @@
 // the runtime cost of that list on the device is the reason it is not done.
 //
 // THE SAME MAP IS BOTH THE VALIDATOR AND THE EMITTER'S `M`. geometry.ts builds
-// it; emit.ts renders it as `M={[0]=...}`; emit.spec.ts test 3 asserts the
-// rendered numbers equal this array cell for cell. Two structures would drift.
+// it; emit.ts renders it as `M={[0]=...}` (`Emitted.parts.cellMap`);
+// emit.spec.ts test 3 asserts the rendered numbers equal this array cell for
+// cell. Two structures would drift.
 //
 // ---------------------------------------------------------------------------
 // 2. THE SIX RULES (13-14-PLAN.md, the interfaces block)

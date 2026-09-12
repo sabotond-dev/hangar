@@ -12,6 +12,10 @@
 // four-kind surface, spans the system element's fourth event as well (probe
 // 2). 13-15 defines the entry `O(s,i,e,x,y)`; this Setup installs it as the
 // touch callback AFTER the pull-in has run, so `O` exists when it is named.
+// On the wire the Sandbox is a Lua entry: 13-17 lands these two strings
+// beside `TOUCH_LIBRARY` (255/0) and `TOUCH_LIBRARY_TIMER` (255/6) exactly
+// as 12.1-07's `landLua` does for a hand-authored card, and the library's
+// functions are what the runtime calls by name.
 //
 // THE NAMES ARE FREE OF THE LIBRARY'S. The plan's interfaces block calls the
 // table `G` and the paint `Y()`; both are library functions since 12.1 (`G`
@@ -65,12 +69,13 @@
 // `J`, `M` and the paint are the same for every kind - so the parameter reaches
 // the runtime: under the split it is what 13-15 reads to emit the Timer per
 // surface, and under the INLINE contingency it selects which of the four
-// branch texts below go into the callback. The contingency exists because
-// the research measured four vertical faders inline at 697 against 1,166
-// with every branch (13-RESEARCH 3.1), and the plan asks the pair to be
-// re-measured rather than quoted (emit.spec.ts test 2). It carries no Knob
-// branch: the rotary is 13-15's (D-08), and an inline surface with a Knob is
-// refused rather than approximated.
+// branch texts below go into the callback - dead-branch elimination in the
+// research's words, worth about 470 characters there. The contingency
+// exists because the research measured four vertical faders inline at 697
+// against 1,166 with every branch (13-RESEARCH 3.1), and the plan asks the
+// pair to be re-measured rather than quoted (emit.spec.ts test 2). It
+// carries no Knob branch: the rotary is 13-15's (D-08), and an inline
+// surface with a Knob is refused rather than approximated.
 //
 // The inline callback, in prose (its text is `INLINE` below): an end code
 // (`e~=1 and e~=4 and e<9`) hands the contact to the library's `E`, whose
