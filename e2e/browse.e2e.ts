@@ -1618,7 +1618,7 @@ test.describe("the engine hazard this phase created, in a browser", () => {
       `${ID} is running before the tuner has published`,
     ).not.toBe(opening);
 
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
     await expect(page.getByTestId("tuning-region")).toBeAttached();
 
     // BOTH METERS SETTLED, AND THAT IS THE PART THAT ARMS THIS TEST. Ownership

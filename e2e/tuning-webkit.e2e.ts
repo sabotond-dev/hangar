@@ -167,7 +167,9 @@ async function choose(page: Page): Promise<void> {
   await page.goto(`/playground/${ENTRY}/`);
   await waitForFrontDoor(page);
   await waitForPicture(page, ENTRY);
-  await expect(page.getByTestId("chosen-panel")).toBeVisible();
+  // 13.1-06: the tuner's region, not the install column's panel (chosen-panel
+  // left with the column, 13.1-CONTEXT D-06; 13.1-04's swap in radius.e2e.ts).
+  await expect(page.getByTestId("tuning-region")).toBeVisible();
   await expect(page.getByTestId("knob-rack").first()).toBeVisible();
   await settled(page);
 }
@@ -597,7 +599,7 @@ test.describe("the whole site except install, on a phone engine", () => {
     await page.goto(address);
     await waitForFrontDoor(page);
     await expect(
-      page.getByTestId("chosen-panel"),
+      page.getByTestId("tuning-region"),
       "the panel is open on arrival, without the visitor choosing anything",
     ).toBeVisible();
     await settled(page);

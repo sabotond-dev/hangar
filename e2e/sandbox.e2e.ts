@@ -17,9 +17,17 @@
 // The fourth (13-17) is the whole loop on a fake ZONA: a two-element surface
 // exported as a file through transfer.ts, re-imported on My configs, opened
 // onto a fresh surface, applied to the fake as five acknowledged writes in
-// SLOTS order - 255/4 carrying the runtime's second slot - and put back; the
-// codec is asserted untouched on the way (D-14 Q7). Nothing here claims a
-// module would answer the same: runbook row M is where that is asked.
+// SLOTS order - 255/4 carrying the runtime's second slot - and the store
+// confirmation opened and closed with nothing stored; the codec is asserted
+// untouched on the way (D-14 Q7). Nothing here claims a module would answer
+// the same: runbook row M is where that is asked. THE PUT-BACK HALF LEFT AT
+// 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
+// `put-back` and read RESTORED in the bar; the control is on no screen now,
+// so the title ends at the store's refusal, and the bar's zone it reads is
+// DestinationZone.svelte, the one component the workspace mounts too. The
+// fake's owner-utility assertion moved with the click: what it proved - the
+// module's own 255/4 comes back - is the store's putBack() on the fake in
+// install.spec.ts and on the /dev/install/ probe.
 //
 // Every click here is Playwright's `click`, a pointer press and release at
 // one point; only the drag title drags, and it drags a HANDLE - placement
@@ -34,7 +42,6 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../src/lib/catalog/library";
 import {
   IDENTIFIED_CAPTION,
-  restoredCaption,
   settledCaption,
 } from "../src/lib/device/install-copy";
 import { EVENT_SETUP, EVENT_TIMER, EVENT_UTILITY } from "../src/lib/protocol";
@@ -493,7 +500,7 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await context.addInitScript(FAKE_SERIAL);
   });
 
-  test("the whole loop on a fake: a two-element surface exported as a file, re-imported on My configs, opened, applied to the fake ZONA as five acknowledged writes with 255/4 among them, and put back", async ({
+  test("the whole loop on a fake: a two-element surface exported as a file, re-imported on My configs, opened, applied to the fake ZONA as five acknowledged writes with 255/4 among them, and the store refused", async ({
     page,
   }) => {
     // Plan 13-17 (13-CONTEXT D-03, D-14 Q7, D-18, D-19; BUILD-03, BUILD-05,
@@ -663,7 +670,13 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
       String(ACTIVE_PAGE),
     );
     await expect(page.getByTestId("store-on-zona")).toBeDisabled();
-    await expect(page.getByTestId("put-back")).toBeVisible();
+    // No Put back anywhere on the page (13.1-06, D-07) - the zone is
+    // Target, Apply to ZONA, Store on ZONA and nothing else.
+    expect(await page.getByTestId("put-back").count()).toBe(0);
+    await expect(page.getByTestId("apply-to-zona")).toHaveAttribute(
+      "aria-describedby",
+      /-honesty$/,
+    );
 
     // APPLY TO ZONA: enabled once the landing is measured, one click, five
     // acknowledged writes in SLOTS order and the restore heartbeat, PLAYING
@@ -712,23 +725,12 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await page.getByTestId("keep-confirm-no").click();
     await expect(page.getByTestId("store-on-zona")).toBeVisible();
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
-
-    // PUT BACK: the module's own five, the utility included - the owner's
-    // utility script back on their button - and RESTORED in the bar.
-    await page.getByTestId("put-back").click();
-    await expect(page.getByTestId("status-device")).toHaveText(
-      restoredCaption(ACTIVE_PAGE),
-      { timeout: 10_000 },
-    );
-    await expect
-      .poll(() => zona.seen("CONFIG", "EXECUTE"), { timeout: 10_000 })
-      .toBe(10);
-    expect(zona.state.system?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
-    expect(zona.state.system?.[EVENT_TIMER]).toBe(MODULE_SYSTEM_TIMER);
-    expect(zona.state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
-    expect(zona.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
-    expect(zona.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
-    expect(zona.seen("PAGESTORE", "EXECUTE"), "nothing stored").toBe(0);
+    // And after the whole loop the fake still holds the surface's five in
+    // RAM and its own five in flash: no second write, nothing stored, and
+    // no control on the page that would put the module's own page back.
+    expect(zona.seen("CONFIG", "EXECUTE"), "five writes and no more").toBe(5);
+    expect(zona.state.systemFlash?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
+    expect(await page.getByTestId("put-back").count()).toBe(0);
     console.log(
       `the loop on the fake: ${beats + 1} heartbeat(s) to identify; 255/4 carried ${utility.length} characters; Setup ${setup.length}, Timer ${timer.length}`,
     );

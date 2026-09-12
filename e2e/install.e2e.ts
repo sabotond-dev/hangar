@@ -155,16 +155,11 @@ import {
   HONESTY_INCAPABLE,
   IDENTIFIED_CAPTION,
   KEEP_REASONS,
-  KEPT_PROOF_LINE,
   LIVE_STILL_WRITING,
-  PUT_BACK_LABEL,
-  PUT_BACK_NEEDS_ZONA,
-  RESTORED_STORED_LINE,
   STILL_WRITING_LINE,
   TRY_ON_LABEL,
   announceTitle,
   clearLine,
-  clearedBody,
   clearedCaption,
   clearingLabel,
   confirmCaption,
@@ -173,7 +168,6 @@ import {
   honestyReady,
   keepLineEnabled,
   keepingLabel,
-  keptBody,
   keptCaption,
   liveCleared,
   liveKept,
@@ -182,18 +176,23 @@ import {
   liveSnapshotSaved,
   lostBlock,
   pageName,
-  puttingBackLabel,
-  restoredBody,
   restoredCaption,
-  settledBody,
   settledCaption,
   unconfirmedBlock,
   writingLabel,
 } from "../src/lib/device/install-copy";
-import {
-  putBackPageLine,
-  putBackPageLineAfterKeep,
-} from "../src/lib/device/page-target";
+// 13.1-06 (13.1-CONTEXT D-07): the eleven names this file imported from
+// install-copy.ts and page-target.ts for the install column and Put back
+// (PUT_BACK_LABEL, puttingBackLabel, PUT_BACK_NEEDS_ZONA, KEPT_PROOF_LINE,
+// RESTORED_STORED_LINE, settledBody, keptBody, restoredBody, clearedBody,
+// putBackPageLine, putBackPageLineAfterKeep) are retired exports; they are
+// removed from the import lists here ONLY so the file loads - an ESM link
+// error on a missing named export took every title in it down, the CLEAR
+// titles and the zero-writes proof included, and Playwright's --list with
+// them. The titles whose bodies still name them are RED BY DESIGN until
+// 13.1-07 re-aims them at the bar's destination zone (DestinationZone.svelte:
+// install-failure, still-writing, apply-honesty, status-device); they are
+// listed by title in 13.1-06-SUMMARY.md.
 import {
   CAPTION_UNSUPPORTED,
   WRITE_LOCK_REASON,
@@ -1195,7 +1194,9 @@ async function openPanel(page: Page, id: string = ENTRY): Promise<void> {
     "data-ready",
     "true",
   );
-  await expect(page.getByTestId("chosen-panel")).toBeVisible();
+  // 13.1-06: the tuner's region, not the install column's panel (chosen-panel
+  // left with the column, 13.1-CONTEXT D-06; 13.1-04's swap in radius.e2e.ts).
+  await expect(page.getByTestId("tuning-region")).toBeVisible();
   await expect(page.getByTestId("knob-rack").first()).toBeVisible();
   await metersSettled(page);
 }
@@ -1565,7 +1566,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // PLAYING NOW, the label back at rest, KEEP ON DEVICE enabled - the one
     // and only path to it (I4).
     await page.keyboard.press("Escape");
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
     await expect(installState(page)).toContainText(settledCaption(ACTIVE_PAGE));
     await expect(installState(page)).toContainText(
       settledBody(ENTRY_NAME, ACTIVE_PAGE),
@@ -2429,7 +2430,7 @@ test.describe("the install controls on the engine that can never install", () =>
 
     await expect(page.getByTestId("workspace")).toBeVisible();
     await waitForPicture(page, ENTRY);
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
 
     // DEGR-02, all three controls. The primary: present, disabled, the
     // capability sentence in its own slot (I9 precedence 1).
@@ -2516,7 +2517,7 @@ test.describe("the install controls on the engine that can never install", () =>
     await expect(slot).toHaveAttribute("data-slot", "S0a");
     await expect(page.getByTestId("workspace")).toBeVisible();
     await waitForPicture(page, ENTRY);
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
 
     // PRESENT AND DISABLED, WITH ITS REASON. Not hidden: a visitor who cannot
     // install still learns what the control would have done, which is the

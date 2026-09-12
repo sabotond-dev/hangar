@@ -1371,7 +1371,7 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
       "data-ready",
       "true",
     );
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
     const tryOn = page.getByTestId("try-on-device");
     await expect(tryOn).toBeVisible();
     await expect(tryOn).toBeDisabled();
@@ -1448,7 +1448,7 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
       "data-ready",
       "true",
     );
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
     await expect(page.getByTestId("knob-rack").first()).toBeVisible();
     await settled(page);
 

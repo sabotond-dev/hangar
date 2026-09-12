@@ -428,7 +428,7 @@ test.describe("a configuration's page on a browser that cannot install", () => {
       "data-ready",
       "true",
     );
-    await expect(page.getByTestId("chosen-panel")).toBeVisible();
+    await expect(page.getByTestId("tuning-region")).toBeVisible();
 
     // DEGR-02: present and disabled, never hidden.
     const tryOn = page.getByTestId("try-on-device");

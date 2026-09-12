@@ -274,7 +274,9 @@ async function openPanel(page: Page, path: string): Promise<void> {
   await page.goto(path);
   await expect(page.getByTestId("workspace")).toBeVisible();
   await waitForPicture(page, ENTRY);
-  await expect(page.getByTestId("chosen-panel")).toBeVisible();
+  // 13.1-06: the tuner's region, not the install column's panel (chosen-panel
+  // left with the column, 13.1-CONTEXT D-06; 13.1-04's swap in radius.e2e.ts).
+  await expect(page.getByTestId("tuning-region")).toBeVisible();
   await expect(page.getByTestId("knob-rack").first()).toBeVisible();
   await settled(page);
 }
@@ -670,7 +672,7 @@ test.describe("sharing what the visitor made", () => {
     // X-18: the whole content of a tuned link is what somebody moved, and the
     // knobs are the only evidence of it - so it arrives with the tuner open.
     await expect(
-      page.getByTestId("chosen-panel"),
+      page.getByTestId("tuning-region"),
       "a stamped link opens with the panel already open",
     ).toBeVisible();
     await expect(page.getByTestId("workspace-name")).toHaveText(ENTRY_NAME);
@@ -702,7 +704,7 @@ test.describe("sharing what the visitor made", () => {
     await page.goto(`/playground/${ENTRY}/${FOREIGN_STAMP}`);
     await expect(page.getByTestId("workspace")).toBeVisible();
     await expect(
-      page.getByTestId("chosen-panel"),
+      page.getByTestId("tuning-region"),
       "the panel opens so the sentence explaining the link is visible",
     ).toBeVisible();
     await settled(page);
