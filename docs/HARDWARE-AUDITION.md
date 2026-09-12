@@ -364,6 +364,8 @@ report against the configuration it names: the fix is a knob value or a colour i
 
 None yet. This audition has not been run.
 
+**2026-09-12, plan 13-20 (the Phase 13 gate).** The table above is unchanged at twenty-eight rows: Phase 13 added no audition row, because its three bench questions - the page switch, the rotary Knob and the Sandbox surface installed - are install questions and live in `docs/INSTALL-RUNBOOK.md` as rows I, L, M and H, handed over there under "The bench, as the Phase 13 gate hands it over" together with the look of the five PDF pages, the favicon, the wordmark and the six circles. Every cost cell above was re-measured at this gate and every one agreed (the figures are 12.1-09's; 13-19 re-cased twenty-four Config cells in place and moved no Lua). Rows 24-28 are Phase 12.1's and rows 2-23 Phase 12's, all still unanswered; run them with the runbook's rows in one sitting. Nothing in Phase 13 has been hardware-verified.
+
 ## A closing note on colour
 
 Every RGB triple in the eighteen configurations is a starting point chosen on a screen, not a
