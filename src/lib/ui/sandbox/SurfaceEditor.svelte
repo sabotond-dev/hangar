@@ -1,21 +1,38 @@
 <!--
-  THE PLATE: PDF page 3's 571px square, the 9 x 9 lattice, the regions, the
-  selection with its eight handles, the proposed bounds, the keyboard focus
-  cell, and the click-to-place path (plan 13-16; Bible sections 2, 8, 14;
-  BUILD-01, BUILD-06, BUILD-08, PREV-04).
+  THE PLATE: PDF page 3's 571px square, the 9 x 9 lattice, the regions with
+  their kind's own marks, the selection with its eight handles that resize by
+  drag, the proposed bounds, the keyboard focus cell, and the click-to-place
+  path (plan 13-16; 13.1-03 for the drag and the marks; Bible sections 2, 8,
+  14; BUILD-01, BUILD-06, BUILD-08, PREV-04).
 
   NO DRAG IS EVER REQUIRED. Every creation reaches src/lib/sandbox/editor.ts
   through ONE call, `onclick(col, row)`, fired from POINTERDOWN: a click on an
   empty cell starts an area, the next click ends it; a click after the
   palette armed a kind places that kind's default region; a click on a
-  region selects it. A drag is the accelerator and nothing more: pointerup
-  on a DIFFERENT cell from the one pressed fires the same `onclick` for that
-  cell, so press-at-A / release-at-B is exactly click-A / click-B. Pointer
-  MOVE only updates `hover`, which draws the proposed bounds (section 8:
-  "show proposed bounds before committing") and is never required for
-  anything - the keyboard route draws the same proposed box from the focus
-  cell. The spec proves the model needs no move; e2e proves the plate
-  places with clicks.
+  region selects it. Press-at-A / release-at-B is the accelerator for that:
+  pointerup on a DIFFERENT cell from the one pressed fires the same
+  `onclick` for that cell, so it is exactly click-A / click-B. Pointer MOVE
+  updates `hover`, which draws the proposed bounds (section 8: "show
+  proposed bounds before committing"), and is never required for anything -
+  the keyboard route draws the same proposed box from the focus cell.
+
+  THE HANDLE DRAG (13.1-03, 13.1-CONTEXT D-03, bench line 3: "you should be
+  able to resize each element by draggin its points") is the THIRD way to
+  resize, after the numeric fields and the keyboard, and it commits through
+  the same door on release: pointerdown on one of the eight handles captures
+  the pointer on the plate and remembers which handle and the region's box;
+  each move computes the box the handle would make from the cell under the
+  pointer - a corner handle moves two edges, an edge handle one; the anchor
+  is the opposite edge or corner, so the box is never below 1 x 1 and never
+  off the surface - and draws it as the proposed bounds, snapped to the
+  lattice; pointerup hands the box to `onresize`, which is
+  editor.resizeSelectedTo -> geometry.ts applyEdit, and a refused box leaves
+  the region exactly as it was with the refusal in the status line until the
+  next pointer or key (section 8: "preserve the previous valid value"). One
+  drag is one Undo (the editor seals the entry). A drag that ends on the box
+  it started from commits nothing. In Play the handles are not rendered.
+  The spec proves the model needs no move; e2e proves the plate places with
+  clicks and resizes with a drag.
 
   THE KEYBOARD ROUTE (section 14's spatial model): the plate is one tab stop;
   arrows move the focus cell, Enter marks it (the same `onclick`), Escape
@@ -34,11 +51,42 @@
   the SVG stops taking pointer events in Play and the wrapper routes the
   finger to `onfinger`.
 
+  THE MARKS ARE PDF PAGE 3's, MEASURED AT ITS 1500 RENDER (13.1-03; the
+  plate is 571 there, so one measured pixel is one SVG unit). A region
+  hides the lattice under it (the page's regions cover the cells: an opaque
+  ground rect under the tint), the tint at 0.24 (the page's selected Filter,
+  #3e4f21, is the lime at 0.23-0.26 over the ground; its unselected
+  Texture, #29331f, measures 0.14 - below 13-16's 0.18 - so the one value
+  here is the page's selected density, and the SUMMARY says so), the 1px
+  boundary and the 11px uppercase name. Then the kind's own mark:
+    - a FADER: a 12-wide groove (PITCH * 0.19) in the workspace colour from
+      below the name to above the numeral, the value filled in the region's
+      colour from the thumb down, a 39 x 13 thumb (PITCH * 0.61 x 0.2) at
+      0.62 of the travel - the page's rest position - and the controller
+      number as an 11px numeral centred beneath (the page's `74`);
+    - an XY PAD: the crosshair (1px, half strength - the page's #447269 on
+      #173d37), a 14-wide dot at the centre, and `X 0.50 Y 0.50` at the
+      bottom left - the page's readout form at rest; the page draws its dot
+      off-centre at a live value, this one is a static mark in Edit and the
+      live picture in Play is the route's canvas;
+    - a BUTTON: the name centred above the middle and a 59 x 26 chip below
+      it in --color-raised with `OFF` in --color-ink-quiet (the page's chip
+      is a filled raised box, not an outline; at rest a button is off
+      whether it latches or not);
+    - a KNOB: a circle one cell wide (radius 0.16 of the shorter side; the
+      page's is 30 in a 163 box) at a 5px stroke, a 4px pointer tick from
+      the ring inward at twelve o'clock, and the name centred beneath.
+  The names: the fader's, the button's and the knob's centred, the XY
+  pad's at the page's top-left inset; the selected region's in the action
+  colour. Numerals are --font-mono at the label size. Every mark is
+  aria-hidden with the SVG and none is a string of the site's.
+
   THE KNOB'S CIRCLE IS AN SVG <circle> - a true circle by construction, not
   a box with a radius. D-15's exemption is for `border-radius: 50%` on
   square boxes in three CSS files; a circle element is not a border-radius
-  at all, so this file declares no radius above zero and needs no allowlist
-  row. The eight selection handles are <rect>s, square (D-01).
+  at all, so this file declares no radius above zero, no rx or ry on any
+  rect, and needs no allowlist row. The eight selection handles, their hit
+  squares, the thumb and the chip are <rect>s, square (D-01).
 
   "FOLLOW HARDWARE SELECTION" (section 8's optional control) IS DELIBERATELY
   ABSENT and this is where a reader would look for it: ZONA has one touch
@@ -46,8 +94,10 @@
   3). Nothing here listens to the device.
 
   Every number is layout.ts's (SANDBOX_PLATE, SANDBOX_PITCH, SANDBOX_HANDLE,
-  SANDBOX_LABEL_SIZE); the region fill is the stored RGB444 value - the one
-  fill that is not a token, A-09's carve-out, as Swatch.svelte's square.
+  SANDBOX_HANDLE_HIT, SANDBOX_LABEL_SIZE) or a proportion of the pitch
+  measured off the page and named above; the region fill is the stored
+  RGB444 value - the one fill that is not a token, A-09's carve-out, as
+  Swatch.svelte's square.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -70,6 +120,7 @@
     type Cell,
     type EditorState,
   } from "$lib/sandbox/editor";
+  import type { Problem } from "$lib/sandbox/geometry";
   import {
     SURFACE_SIZE,
     colourByte,
@@ -78,10 +129,14 @@
   } from "$lib/sandbox/model";
   import {
     SANDBOX_HANDLE,
+    SANDBOX_HANDLE_HIT,
     SANDBOX_LABEL_SIZE,
     SANDBOX_PITCH,
     SANDBOX_PLATE,
   } from "$lib/ui/shell/layout";
+
+  type Box = { col: number; row: number; w: number; h: number };
+  type HandleName = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
 
   let {
     view,
@@ -90,6 +145,7 @@
     onmark,
     oncancel,
     ondelete,
+    onresize,
     onfinger,
     preview,
   }: {
@@ -104,6 +160,12 @@
     oncancel: () => void;
     /** Delete: the selection. */
     ondelete: () => void;
+    /**
+     * A handle drag's box on release (header: THE HANDLE DRAG). The route
+     * wires editor.resizeSelectedTo; the problem it returns is shown in the
+     * status line. Optional so the spec's render needs no drag.
+     */
+    onresize?: (box: Box) => Problem | undefined;
     /**
      * Play: a finger on the plate, as an offset inside the plate's box and
      * the box's extent, so the route maps it to LED coordinates with
@@ -125,6 +187,11 @@
   const PLATE = SANDBOX_PLATE;
   const PITCH = SANDBOX_PITCH;
   const HANDLE = SANDBOX_HANDLE;
+  const HIT = SANDBOX_HANDLE_HIT;
+  const LABEL = SANDBOX_LABEL_SIZE;
+
+  /** The page's fader at rest: the thumb at 0.62 of the travel (Filter, `74`). */
+  const REST_VALUE = 0.62;
 
   let plate = $state<HTMLDivElement | null>(null);
   /** The cell under the pointer, for the proposed bounds only. */
@@ -132,6 +199,18 @@
   let focused = $state(false);
   /** The cell the pointer went down on, so a release elsewhere is the second click. */
   let downCell: Cell | undefined;
+  /** A handle drag in progress: which handle, and the box it started from. */
+  let drag = $state<{ handle: HandleName; from: Box } | undefined>(undefined);
+  /** The box the drag would commit, drawn as the proposed bounds. */
+  let dragBox = $state<Box | undefined>(undefined);
+  /**
+   * The last drag's refusal, shown in the status line until the next
+   * pointer or key on the plate - or until the surface moves under it (an
+   * Undo, a field, the list): the message names a box against THAT surface.
+   */
+  let refused = $state<
+    { message: string; surface: EditorState["surface"] } | undefined
+  >(undefined);
 
   const play = $derived(view.mode === "play");
   const regions = $derived(view.surface.regions);
@@ -143,9 +222,28 @@
   const x = (col: number) => col * PITCH;
   const y = (row: number) => row * PITCH;
 
-  /** The box the next Enter or click would commit, from the hover cell or the focus cell. */
+  /** A region's box in plate units: edges, size and centre. */
+  const frame = (r: Region) => {
+    const left = x(r.col);
+    const top = y(r.row);
+    const w = r.w * PITCH;
+    const h = r.h * PITCH;
+    return {
+      left,
+      top,
+      w,
+      h,
+      right: left + w,
+      bottom: top + h,
+      cx: left + w / 2,
+      cy: top + h / 2,
+    };
+  };
+
+  /** The box the next Enter or click would commit, from the hover cell or the focus cell - or a drag's. */
   const proposed = $derived.by(() => {
     if (play) return undefined;
+    if (dragBox !== undefined) return dragBox;
     const at = hover ?? view.focus;
     const pending = view.placement;
     if (pending.kind === "element") {
@@ -161,30 +259,30 @@
     return undefined;
   });
 
-  /** The eight handles of the selected region: corners and edge midpoints. */
+  /** The eight handles of the selected region: corners and edge midpoints, named. */
   const handles = $derived.by(() => {
     const r = view.selected;
     if (r === undefined || play) return [];
-    const left = x(r.col);
-    const top = y(r.row);
-    const right = x(r.col + r.w);
-    const bottom = y(r.row + r.h);
-    const midX = (left + right) / 2;
-    const midY = (top + bottom) / 2;
+    const f = frame(r);
+    const midX = (f.left + f.right) / 2;
+    const midY = (f.top + f.bottom) / 2;
     return [
-      [left, top],
-      [midX, top],
-      [right, top],
-      [left, midY],
-      [right, midY],
-      [left, bottom],
-      [midX, bottom],
-      [right, bottom],
+      { name: "nw", x: f.left, y: f.top },
+      { name: "n", x: midX, y: f.top },
+      { name: "ne", x: f.right, y: f.top },
+      { name: "w", x: f.left, y: midY },
+      { name: "e", x: f.right, y: midY },
+      { name: "sw", x: f.left, y: f.bottom },
+      { name: "s", x: midX, y: f.bottom },
+      { name: "se", x: f.right, y: f.bottom },
     ] as const;
   });
 
   /** The status line: what the next click or Enter does, and what is selected. */
   const status = $derived.by(() => {
+    if (refused !== undefined && refused.surface === view.surface) {
+      return refused.message;
+    }
     const pending = view.placement;
     if (pending.kind === "element") {
       return placeInstruction(KIND_LABELS[pending.type]);
@@ -212,6 +310,58 @@
     };
   }
 
+  /**
+   * The box a handle makes from the cell under the pointer (header: THE
+   * HANDLE DRAG). The edges the handle does not hold are the anchor; the
+   * held edge follows the cell but never crosses the anchor, so the box is
+   * at least 1 x 1, and the cell is already inside the surface.
+   */
+  function boxFor(handle: HandleName, from: Box, at: Cell): Box {
+    let left = from.col;
+    let top = from.row;
+    let right = from.col + from.w - 1;
+    let bottom = from.row + from.h - 1;
+    if (handle.includes("w")) left = Math.min(at.col, right);
+    if (handle.includes("e")) right = Math.max(at.col, left);
+    if (handle.includes("n")) top = Math.min(at.row, bottom);
+    if (handle.includes("s")) bottom = Math.max(at.row, top);
+    return { col: left, row: top, w: right - left + 1, h: bottom - top + 1 };
+  }
+
+  const sameBox = (a: Box, b: Box): boolean =>
+    a.col === b.col && a.row === b.row && a.w === b.w && a.h === b.h;
+
+  function startDrag(event: PointerEvent, handle: HandleName): void {
+    const r = view.selected;
+    if (play || r === undefined || event.button !== 0) return;
+    // The plate's own pointerdown must not run: a press on a handle is not a
+    // click on the cell under it.
+    event.stopPropagation();
+    refused = undefined;
+    plate?.focus({ preventScroll: true });
+    try {
+      plate?.setPointerCapture(event.pointerId);
+    } catch {
+      // The element can detach between the event and the capture.
+    }
+    drag = { handle, from: { col: r.col, row: r.row, w: r.w, h: r.h } };
+    dragBox = drag.from;
+  }
+
+  function endDrag(): void {
+    const d = drag;
+    const box = dragBox;
+    drag = undefined;
+    dragBox = undefined;
+    if (d === undefined || box === undefined) return;
+    if (sameBox(box, d.from)) return;
+    const problem = onresize?.(box);
+    refused =
+      problem === undefined
+        ? undefined
+        : { message: problem.message, surface: view.surface };
+  }
+
   function fingerAt(phase: "down" | "move" | "up", event: PointerEvent): void {
     if (plate === null || onfinger === undefined) return;
     const rect = plate.getBoundingClientRect();
@@ -235,6 +385,7 @@
       return;
     }
     if (event.button !== 0) return;
+    refused = undefined;
     const at = cellOf(event);
     if (at === undefined) return;
     // WITHOUT SCROLLING (13-17): a programmatic focus scrolls a partly visible
@@ -255,11 +406,25 @@
       return;
     }
     hover = cellOf(event);
+    // A drag in progress: the proposed bounds follow the cell, nothing commits.
+    if (drag !== undefined && hover !== undefined) {
+      dragBox = boxFor(drag.handle, drag.from, hover);
+    }
   }
 
   function onpointerup(event: PointerEvent): void {
     if (play) {
       fingerAt("up", event);
+      return;
+    }
+    if (drag !== undefined) {
+      try {
+        plate?.releasePointerCapture(event.pointerId);
+      } catch {
+        // Already released.
+      }
+      endDrag();
+      downCell = undefined;
       return;
     }
     const at = cellOf(event);
@@ -276,6 +441,7 @@
 
   function onkeydown(event: KeyboardEvent): void {
     if (play) return;
+    refused = undefined;
     switch (event.key) {
       case "ArrowLeft":
         onmove(-1, 0);
@@ -326,6 +492,7 @@
     class="plate"
     class:play
     class:focused
+    class:dragging={drag !== undefined}
     role="application"
     tabindex="0"
     aria-label={PLATE_NAME}
@@ -360,10 +527,11 @@
         {/each}
       </g>
 
-      <!-- The regions: a tinted fill, a 1px boundary in the region's colour, the 11px uppercase name. -->
+      <!-- The regions: the ground that hides the lattice, the tinted fill, the 1px boundary, the kind's mark, the name (header: THE MARKS). -->
       {#each regions as r (r.id)}
         {@const fill = fillOf(r)}
         {@const selected = r.id === view.selectedId}
+        {@const f = frame(r)}
         <g
           class="region"
           class:selected
@@ -371,101 +539,225 @@
           data-kind={r.kind}
           data-testid="surface-region"
         >
+          <rect class="ground" x={f.left} y={f.top} width={f.w} height={f.h} />
           <rect
             class="body"
-            x={x(r.col)}
-            y={y(r.row)}
-            width={r.w * PITCH}
-            height={r.h * PITCH}
+            x={f.left}
+            y={f.top}
+            width={f.w}
+            height={f.h}
             style:fill
             style:stroke={fill}
           />
           {#if r.kind === "knob"}
+            {@const radius = Math.min(f.w, f.h) * 0.16}
+            {@const kcy = f.top + f.h * 0.34}
             <!-- A true circle: an SVG circle, not a radius (D-15). -->
             <circle
-              class="mark"
-              cx={x(r.col) + (r.w * PITCH) / 2}
-              cy={y(r.row) + (r.h * PITCH) / 2}
-              r={(Math.min(r.w, r.h) * PITCH) / 2 - PITCH * 0.28}
+              class="mark ring"
+              cx={f.cx}
+              cy={kcy}
+              r={radius}
               style:stroke={fill}
             />
             <line
-              class="mark"
-              x1={x(r.col) + (r.w * PITCH) / 2}
-              y1={y(r.row) + (r.h * PITCH) / 2}
-              x2={x(r.col) + (r.w * PITCH) / 2}
-              y2={y(r.row) +
-                (r.h * PITCH) / 2 -
-                ((Math.min(r.w, r.h) * PITCH) / 2 - PITCH * 0.28)}
+              class="mark pointer"
+              x1={f.cx}
+              y1={kcy - radius + 2.5}
+              x2={f.cx}
+              y2={kcy - radius * 0.3}
               style:stroke={fill}
             />
+            <text
+              class="name"
+              class:action={selected && !play}
+              text-anchor="middle"
+              x={f.cx}
+              y={f.top + f.h * 0.72}
+              font-size={LABEL}>{r.name}</text
+            >
           {:else if r.kind === "xy"}
             <line
-              class="mark"
-              x1={x(r.col) + PITCH * 0.3}
-              y1={y(r.row) + (r.h * PITCH) / 2}
-              x2={x(r.col + r.w) - PITCH * 0.3}
-              y2={y(r.row) + (r.h * PITCH) / 2}
+              class="mark hair"
+              x1={f.left + 6}
+              y1={f.cy}
+              x2={f.right - 6}
+              y2={f.cy}
               style:stroke={fill}
             />
             <line
-              class="mark"
-              x1={x(r.col) + (r.w * PITCH) / 2}
-              y1={y(r.row) + PITCH * 0.3}
-              x2={x(r.col) + (r.w * PITCH) / 2}
-              y2={y(r.row + r.h) - PITCH * 0.3}
+              class="mark hair"
+              x1={f.cx}
+              y1={f.top + PITCH * 0.75}
+              x2={f.cx}
+              y2={f.bottom - PITCH * 0.75}
               style:stroke={fill}
             />
+            <circle class="dot" cx={f.cx} cy={f.cy} r={7} style:fill />
+            <text
+              class="numeral"
+              x={f.left + 20}
+              y={f.bottom - 24}
+              font-size={LABEL}
+              style:fill>X 0.50 Y 0.50</text
+            >
+            <text
+              class="name"
+              class:action={selected && !play}
+              x={f.left + 20}
+              y={f.top + 26}
+              font-size={LABEL}>{r.name}</text
+            >
           {:else if r.kind === "fader"}
+            {@const grooveW = PITCH * 0.19}
+            {@const thumbL = PITCH * 0.61}
+            {@const thumbT = PITCH * 0.2}
             {#if (r.orientation ?? "vertical") === "vertical"}
-              <line
-                class="mark"
-                x1={x(r.col) + (r.w * PITCH) / 2}
-                y1={y(r.row) + PITCH * 0.6}
-                x2={x(r.col) + (r.w * PITCH) / 2}
-                y2={y(r.row + r.h) - PITCH * 0.3}
-                style:stroke={fill}
+              {@const gTop = f.top + PITCH * 0.8}
+              {@const gBottom = Math.max(gTop + 10, f.bottom - PITCH * 0.85)}
+              {@const ty = gBottom - REST_VALUE * (gBottom - gTop)}
+              <rect
+                class="groove"
+                x={f.cx - grooveW / 2}
+                y={gTop}
+                width={grooveW}
+                height={gBottom - gTop}
               />
+              <rect
+                class="value"
+                x={f.cx - grooveW / 2}
+                y={ty}
+                width={grooveW}
+                height={gBottom - ty}
+                style:fill
+              />
+              <rect
+                class="thumb"
+                x={f.cx - thumbL / 2}
+                y={ty - thumbT / 2}
+                width={thumbL}
+                height={thumbT}
+                style:fill
+              />
+              <text
+                class="numeral"
+                text-anchor="middle"
+                x={f.cx}
+                y={f.bottom - PITCH * 0.45}
+                font-size={LABEL}
+                style:fill>{r.cc}</text
+              >
             {:else}
-              <line
-                class="mark"
-                x1={x(r.col) + PITCH * 0.3}
-                y1={y(r.row) + (r.h * PITCH) / 2}
-                x2={x(r.col + r.w) - PITCH * 0.3}
-                y2={y(r.row) + (r.h * PITCH) / 2}
-                style:stroke={fill}
+              {@const gLeft = f.left + PITCH * 0.3}
+              {@const gRight = Math.max(gLeft + 10, f.right - PITCH * 0.3)}
+              {@const tx = gLeft + REST_VALUE * (gRight - gLeft)}
+              <rect
+                class="groove"
+                x={gLeft}
+                y={f.cy - grooveW / 2}
+                width={gRight - gLeft}
+                height={grooveW}
               />
+              <rect
+                class="value"
+                x={gLeft}
+                y={f.cy - grooveW / 2}
+                width={tx - gLeft}
+                height={grooveW}
+                style:fill
+              />
+              <rect
+                class="thumb"
+                x={tx - thumbT / 2}
+                y={f.cy - thumbL / 2}
+                width={thumbT}
+                height={thumbL}
+                style:fill
+              />
+              <text
+                class="numeral"
+                text-anchor="middle"
+                x={f.cx}
+                y={f.cy + PITCH * 0.42}
+                font-size={LABEL}
+                style:fill>{r.cc}</text
+              >
             {/if}
+            <text
+              class="name"
+              class:action={selected && !play}
+              text-anchor="middle"
+              x={f.cx}
+              y={f.top + 23}
+              font-size={LABEL}>{r.name}</text
+            >
+          {:else}
+            {@const chipW = PITCH * 0.93}
+            {@const chipH = PITCH * 0.41}
+            {@const chipCy =
+              f.cy + Math.min(PITCH * 0.42, f.h / 2 - chipH / 2 - 2)}
+            <text
+              class="name"
+              class:action={selected && !play}
+              text-anchor="middle"
+              x={f.cx}
+              y={f.cy - PITCH * 0.4 + 4}
+              font-size={LABEL}>{r.name}</text
+            >
+            <!-- At rest a button is off, whether it latches or not. -->
+            <rect
+              class="chip"
+              x={f.cx - chipW / 2}
+              y={chipCy - chipH / 2}
+              width={chipW}
+              height={chipH}
+            />
+            <text
+              class="chip-word"
+              text-anchor="middle"
+              x={f.cx}
+              y={chipCy + 4}
+              font-size={LABEL}>OFF</text
+            >
           {/if}
-          <text
-            class="name"
-            class:action={selected && !play}
-            x={x(r.col) + 6}
-            y={y(r.row) + SANDBOX_LABEL_SIZE + 5}
-            font-size={SANDBOX_LABEL_SIZE}>{r.name}</text
-          >
         </g>
       {/each}
 
-      <!-- The selection: an action-colour 1px outline plus eight square handles (Edit only). -->
+      <!-- The selection: an action-colour 1px outline plus eight square handles with their hit squares beneath (Edit only). -->
       {#if view.selected !== undefined && !play}
         {@const r = view.selected}
+        {@const f = frame(r)}
         <g class="selection" data-testid="surface-selection">
-          <rect
-            class="outline"
-            x={x(r.col)}
-            y={y(r.row)}
-            width={r.w * PITCH}
-            height={r.h * PITCH}
-          />
-          {#each handles as [hx, hy], i (i)}
+          <rect class="outline" x={f.left} y={f.top} width={f.w} height={f.h} />
+          <!--
+            The handles and their hit squares take a pointerdown and have
+            no role: they live inside the aria-hidden SVG and are a pointer
+            accelerator only - the numeric fields are the keyboard route to
+            every box a drag can make (header: NO DRAG IS EVER REQUIRED).
+            The static-element rule is suppressed for both with that reason.
+          -->
+          {#each handles as h (h.name)}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <rect
+              class="handle-hit"
+              data-testid="surface-handle-hit"
+              data-handle={h.name}
+              x={h.x - HIT / 2}
+              y={h.y - HIT / 2}
+              width={HIT}
+              height={HIT}
+              onpointerdown={(event) => startDrag(event, h.name)}
+            />
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <rect
               class="handle"
               data-testid="surface-handle"
-              x={hx - HANDLE / 2}
-              y={hy - HANDLE / 2}
+              data-handle={h.name}
+              x={h.x - HANDLE / 2}
+              y={h.y - HANDLE / 2}
               width={HANDLE}
               height={HANDLE}
+              onpointerdown={(event) => startDrag(event, h.name)}
             />
           {/each}
         </g>
@@ -525,7 +817,8 @@
   /*
     The plate: a square, the PDF's 571 at most, the workspace token under a
     boundary hairline. position: relative so the preview canvas and the
-    SVG stack; touch-action: none so a finger in Play is not a scroll.
+    SVG stack; touch-action: none so a finger in Play is not a scroll and a
+    handle drag on a touch screen is a drag.
   */
   .plate {
     position: relative;
@@ -577,21 +870,68 @@
     vector-effect: non-scaling-stroke;
   }
 
-  /* A region's tinted fill and its 1px boundary, both the stored colour. */
+  /* A region covers the lattice, as the page's regions cover the cells. */
+  .region .ground {
+    fill: var(--color-workspace);
+  }
+
+  /* A region's tinted fill and its 1px boundary, both the stored colour (the tint measured off page 3, header). */
   .region .body {
-    fill-opacity: 0.18;
+    fill-opacity: 0.24;
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
 
+  /* The 1px marks: the XY pad's crosshair at half strength, as the page draws it. */
   .region .mark {
     fill: none;
     stroke-width: 1;
-    stroke-opacity: 0.7;
     vector-effect: non-scaling-stroke;
   }
 
-  /* The 11px uppercase name at the top-left, the micro role's tracking. */
+  .region .hair {
+    stroke-opacity: 0.5;
+  }
+
+  /* The knob's ring and its pointer tick: the page's 5 and 4, scaling with the plate. */
+  .region .ring {
+    stroke-width: 5;
+    vector-effect: none;
+  }
+
+  .region .pointer {
+    stroke-width: 4;
+    vector-effect: none;
+  }
+
+  /* The fader's groove is a darker channel in the workspace colour; the value and the thumb are the region's colour. */
+  .region .groove {
+    fill: var(--color-workspace);
+    fill-opacity: 0.7;
+  }
+
+  /* The button's chip: the page's raised box with the quiet ink. */
+  .region .chip {
+    fill: var(--color-raised);
+  }
+
+  .region .chip-word {
+    fill: var(--color-ink-quiet);
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* Numerals: the mono face, tabular, the region's colour (set inline). */
+  .region .numeral {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+
+  /* The 11px uppercase name, the micro role's tracking. */
   .region .name {
     fill: var(--color-ink);
     font-family: var(--font-display);
@@ -618,6 +958,39 @@
     stroke: var(--color-workspace);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
+    pointer-events: all;
+  }
+
+  /* The hit square under each handle: invisible, but a target (SANDBOX_HANDLE_HIT). */
+  .selection .handle-hit {
+    fill: none;
+    stroke: none;
+    pointer-events: all;
+  }
+
+  .selection [data-handle="nw"],
+  .selection [data-handle="se"] {
+    cursor: nwse-resize;
+  }
+
+  .selection [data-handle="ne"],
+  .selection [data-handle="sw"] {
+    cursor: nesw-resize;
+  }
+
+  .selection [data-handle="n"],
+  .selection [data-handle="s"] {
+    cursor: ns-resize;
+  }
+
+  .selection [data-handle="w"],
+  .selection [data-handle="e"] {
+    cursor: ew-resize;
+  }
+
+  /* While a handle is held the whole plate keeps the drag's meaning. */
+  .plate.dragging {
+    cursor: move;
   }
 
   /* The proposed bounds: the action colour, dashed, before anything commits. */

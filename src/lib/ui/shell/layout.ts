@@ -238,6 +238,14 @@ export const INTRO_WORDS_MIN_W = 460;
 export const SANDBOX_PLATE = 571;
 export const SANDBOX_PITCH = SANDBOX_PLATE / 9;
 export const SANDBOX_HANDLE = 8;
+/**
+ * The invisible hit square under each drawn handle (13.1-03, D-03): 8 is the
+ * PDF's drawn size; a fingertip's target is 44, but the plate's cell pitch
+ * is 63 and a 44 square over a corner would swallow most of the four cells
+ * around it - the click-to-select and the area start must stay reachable
+ * beside a handle. 16 keeps the cell clickable and doubles the target.
+ */
+export const SANDBOX_HANDLE_HIT = 16;
 export const SANDBOX_LABEL_SIZE = 11;
 
 /** Section 7's 24px centre padding; the PDF measures 24-34. */

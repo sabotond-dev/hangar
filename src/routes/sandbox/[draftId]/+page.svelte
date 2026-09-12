@@ -822,6 +822,7 @@
         onmark={() => void editor?.mark()}
         oncancel={() => editor?.cancel()}
         ondelete={remove}
+        onresize={(box) => editor?.resizeSelectedTo(box)}
         {onfinger}
         preview={play ? preview : undefined}
       />

@@ -203,6 +203,14 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(source).not.toContain("requestAnimationFrame");
     expect(source).not.toContain("strokeRect");
     expect(source).toContain('<g class="guides"');
+    // NEVER A ROUNDED CORNER (D-01), on the comment-stripped source: no
+    // border-radius declaration, and no rx / ry on any of the plate's rects
+    // - the handles, their hit squares, the fader's thumb and the button's
+    // chip (13.1-03; 13.1-PLAN-CHECK W-06: no layer of the radius gate reads
+    // an SVG rx). The knob's circle is a <circle>, not a rect with a radius.
+    expect(source).not.toContain("border-radius");
+    expect(source).not.toMatch(/rx=|ry=/);
+    expect(source).toContain("<circle");
 
     // The rail's two sections on an empty surface: four palette rows
     // enabled, and the list saying so in one line.
@@ -402,6 +410,14 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       expect(count(html, 'data-testid="surface-handle"'), "eight handles").toBe(
         8,
       );
+      // The 16px hit squares under them carry their own test id, never the
+      // handle's (13.1-03, W-07): the counts above stay eight.
+      expect(count(html, 'data-testid="surface-handle-hit"')).toBe(8);
+      for (const name of ["nw", "n", "ne", "w", "e", "sw", "s", "se"]) {
+        expect(html).toContain(
+          `data-testid="surface-handle" data-handle="${name}"`,
+        );
+      }
       // The outline sits on the selected region's own box.
       const pitch = 571 / 9;
       expect(html).toMatch(
@@ -451,6 +467,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       count(html, 'data-testid="surface-handle"'),
       "no handles in Play",
     ).toBe(0);
+    expect(count(html, 'data-testid="surface-handle-hit"')).toBe(0);
     expect(count(html, 'data-testid="surface-selection"')).toBe(0);
     expect(html).toContain('data-mode="play"');
 
