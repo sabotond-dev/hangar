@@ -95,12 +95,21 @@
    * equal to BREAKPOINTS. The inspector is the PDF's fraction of the
    * viewport clamped to its band (D-14 Q9); the rail is fixed per band.
    *
-   * THE FRAME IS THE VIEWPORT'S HEIGHT in the wide and compact bands, so the
-   * rail and the inspector scroll their own bodies while the surface and the
-   * context bar's primary action stay put (section 7). In the stacked and
-   * narrow bands the side regions leave the row - the rail above the centre,
-   * the inspector below it, section 13's "below the surface" - and the page
-   * flows. The rail's collapse control at 768-1023 and the drawer and bottom
+   * THE FRAME IS WHAT THE VIEWPORT LEAVES in the wide and compact bands, so
+   * the rail and the inspector scroll their own bodies while the surface and
+   * the context bar's primary action stay put (section 7). The site root is a
+   * 100dvh flex column on every shape (13.1-01 gave the intro this; the quick
+   * task after the 13.1 gate, deferred-items A.4, widened it to the app
+   * pages): the announcer, the shell and the footer at their rendered
+   * heights, the shell flex 1, and inside it the frame flex 1 with
+   * min-block-size 0. The frame's height is DERIVED from the header, the
+   * context bar and the footer as they render, never a calc on HEADER_H,
+   * CONTEXT_H and FOOTER_H: the footer is min-block-size FOOTER_H and renders
+   * 121 (its licence row is a second 44px line), so the calc this rule used
+   * to be left every app page 71px of document scroll (A.1). In the stacked
+   * and narrow bands the side regions leave the row - the rail above the
+   * centre, the inspector below it, section 13's "below the surface" - and
+   * the page flows. The rail's collapse control at 768-1023 and the drawer and bottom
    * sheet below 768 are controls with labels the Bible does not give; the
    * frame stacks the regions honestly and the plan that first renders a rail
    * at those widths (13-08) asks for the words.
@@ -113,10 +122,11 @@
    *
    * THE INTRO IS ONE SCREEN (plan 13.1-01; 13.1-CONTEXT.md D-01; bench line
    * 1, 2026-09-12: "I dont want the index page to be scrollable, always fit
-   * on the screen"). In the wide and compact bands the site root under the
-   * intro variant is a 100dvh flex column: the announcer, the shell (header
-   * over centre) and the footer, each at its own rendered height, and the
-   * centre takes what is left with overflow: hidden. The centre's height is
+   * on the screen"). In the wide and compact bands the site root is the
+   * 100dvh flex column above (under the intro variant since 13.1-01, under
+   * every variant since A.4): the announcer, the shell (header over centre)
+   * and the footer, each at its own rendered height, and the intro's centre
+   * takes what is left with overflow: hidden. The centre's height is
    * DERIVED from the header and the footer as they render, never computed
    * from HEADER_H and FOOTER_H: the footer is min-block-size FOOTER_H and
    * renders taller (its licence row is a second 44px line), so a calc on
@@ -255,10 +265,17 @@
 </div>
 
 <style>
-  /* No box of its own: the custom properties inherit through it and the
-     old routes' layout is untouched by the wrapper. */
+  /*
+    One screen (13.1-01, D-01; widened from the intro to every shape by the
+    quick task after the 13.1 gate, deferred-items A.4): the site root is a
+    100dvh column - announcer, shell, footer - and the shell takes what is
+    left. The custom properties inherit through it as they did when it had
+    no box.
+  */
   .site {
-    display: contents;
+    display: flex;
+    flex-direction: column;
+    block-size: 100dvh;
   }
 
   .shell {
@@ -266,11 +283,17 @@
     flex-direction: column;
   }
 
+  .site .shell {
+    flex: 1 1 0;
+    min-block-size: 0;
+  }
+
   /*
     The frame, wide band: rail | centre | inspector. The inspector is the
     PDF's fraction of the viewport, clamped; the rail is fixed; the centre is
-    the remainder, and the whole row is the viewport less the header, the
-    context bar and the footer, so each column scrolls its own body.
+    the remainder, and the whole row is what the shell's column leaves after
+    the header and the context bar (the footer is the site column's), so each
+    column scrolls its own body. Never a calc on the constants (A.4).
   */
   .frame {
     --inspector-w: clamp(
@@ -280,9 +303,7 @@
     );
     display: grid;
     grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--inspector-w);
-    block-size: calc(
-      100dvh - var(--header-h) - var(--context-h) - var(--footer-h)
-    );
+    flex: 1 1 0;
     min-block-size: 0;
   }
 
@@ -319,18 +340,6 @@
     container-type: size;
   }
 
-  /* One screen: the desktop intro by the user's word (13.1-01, D-01). */
-  .site.intro {
-    display: flex;
-    flex-direction: column;
-    block-size: 100dvh;
-  }
-
-  .site.intro .shell {
-    flex: 1 1 0;
-    min-block-size: 0;
-  }
-
   .inspector-col {
     min-block-size: 0;
     overflow: hidden;
@@ -347,11 +356,19 @@
     }
   }
 
-  /* Stacked band (768-1023): the side regions leave the row, the page flows. */
+  /*
+    Stacked band (768-1023): the side regions leave the row, the page flows.
+    flex: none, as .centre.intro declares below: the shell's column is
+    content-height here (the site root is display: contents), and a flex
+    basis of 0 in a content-height column is a frame of height 0 with the
+    page spilling past it (measured, A.4's quick task: 8522px of document at
+    900 x 720 without this line).
+  */
   @media (max-width: 1023.98px) {
     .frame,
     .frame.no-inspector {
       grid-template-columns: minmax(0, 1fr);
+      flex: none;
       block-size: auto;
     }
 
@@ -369,8 +386,8 @@
       overflow: visible;
     }
 
-    /* The stacked intro flows and may scroll (13-07's stack; D-01 is about the desktop). */
-    .site.intro {
+    /* The stacked page flows and may scroll (13-07's stack; D-01 is about the desktop). */
+    .site {
       display: contents;
     }
 

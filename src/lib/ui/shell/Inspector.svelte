@@ -152,8 +152,17 @@
     color: var(--color-ink-quiet);
   }
 
-  /* The only scroll container in the panel. */
+  /*
+    The only scroll container in the panel, and a containing block: an
+    absolutely positioned descendant - TuningRegion.svelte's sr-only live
+    region, Tailwind's sr-only is position: absolute - would otherwise be
+    contained by the initial containing block, escape this clip and the
+    column's, and extend the DOCUMENT's scrollable overflow to its static
+    position at the foot of the sections (221px on /playground/arc/ at
+    1280 x 720; the quick task after the 13.1 gate, deferred-items A.4).
+  */
   .body {
+    position: relative;
     overflow-y: auto;
     min-block-size: 0;
     padding-inline: 26px;

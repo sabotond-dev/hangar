@@ -484,17 +484,17 @@ describe("the intro (src/lib/ui/intro.spec.ts)", () => {
     const stackedAt = (text: string) =>
       text.indexOf("@media (max-width: 1023.98px)");
 
-    // THE LAYOUT. The site root is a 100dvh flex column under the intro
-    // variant; the centre takes the remainder, clips, and is a size
-    // container. Neither HEADER_H nor FOOTER_H is in the arithmetic: the
-    // footer renders taller than FOOTER_H (its licence row), and a calc on
-    // the constant would leave a document scroll. The stacked band undoes
-    // both, so a phone flows and may scroll (13-07's stack, D.10 open).
+    // THE LAYOUT. The site root is a 100dvh flex column (under the intro
+    // variant at 13.1-01; under every variant since the quick task after the
+    // 13.1 gate, deferred-items A.4, so the selector is .site); the centre
+    // takes the remainder, clips, and is a size container. Neither HEADER_H
+    // nor FOOTER_H is in the arithmetic: the footer renders taller than
+    // FOOTER_H (its licence row), and a calc on the constant would leave a
+    // document scroll. The stacked band undoes both, so a phone flows and
+    // may scroll (13-07's stack, D.10 open).
     expect(layout).toContain('class:intro={fill?.variant === "intro"}');
-    const site = ruleOf(layout, ".site.intro");
-    expect(site, ".site.intro is a 100dvh column").toContain(
-      "block-size: 100dvh",
-    );
+    const site = ruleOf(layout, ".site");
+    expect(site, ".site is a 100dvh column").toContain("block-size: 100dvh");
     expect(site).toContain("flex-direction: column");
     const centre = ruleOf(layout, ".centre.intro");
     for (const decl of [
@@ -511,7 +511,7 @@ describe("the intro (src/lib/ui/intro.spec.ts)", () => {
     ).not.toMatch(/var\(--(header|footer)-h\)/);
     const layoutStacked = stackedAt(layout);
     expect(layoutStacked).toBeGreaterThan(-1);
-    expect(ruleOf(layout, ".site.intro", layoutStacked)).toContain(
+    expect(ruleOf(layout, ".site", layoutStacked)).toContain(
       "display: contents",
     );
     const centreStacked = ruleOf(layout, ".centre.intro", layoutStacked);

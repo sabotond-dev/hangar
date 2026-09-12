@@ -276,12 +276,16 @@ test.describe("the Sandbox, with no hardware attached", () => {
     // 13.1-03 (13.1-CONTEXT D-03, bench line 3: "you should be able to
     // resize each element by draggin its points"). Chromium only: a mouse
     // drag; the phone project is not asked to drag, and 13-16's rule that
-    // no drag is required is what a phone relies on. The viewport is made
-    // taller than the harness's 720 for this title alone: at 720 the app
-    // frame's footer overlays the plate's bottom row (deferred-items A.1),
-    // and a pointerDOWN must land on a visible handle - the moves after it
-    // are captured by the plate wherever the pointer goes.
-    await page.setViewportSize({ width: 1280, height: 900 });
+    // no drag is required is what a phone relies on. The viewport is the
+    // harness's 1280 x 720, set explicitly: 13.1-03 wrote this title at 900
+    // tall because at 720 the app frame's footer overlaid the plate's bottom
+    // row (deferred-items A.1 - the frame was a calc on FOOTER_H while the
+    // footer rendered 121), and a pointerDOWN must land on a visible handle;
+    // the quick task after the 13.1 gate (A.4) made the frame flex in a
+    // 100dvh column, the document no longer scrolls, and the plate's bottom
+    // row is visible at 720 again. The moves after the pointerDOWN are
+    // captured by the plate wherever the pointer goes.
+    await page.setViewportSize({ width: 1280, height: 720 });
     const consoleErrors = collectErrors(page);
     const plate = await openFresh(page);
     const sandbox = page.getByTestId("sandbox");

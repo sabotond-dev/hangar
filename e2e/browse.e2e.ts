@@ -1651,3 +1651,100 @@ test.describe("the engine hazard this phase created, in a browser", () => {
     expect(consoleErrors).toEqual([]);
   });
 });
+
+/*
+  THE APP FRAME FITS THE SCREEN (the quick task after the 13.1 gate,
+  2026-09-12; 13.1-bench-corrections-four/deferred-items.md A.1 and A.4). Until
+  that task every app page scrolled 71px at the harness's 1280 x 720: the
+  frame's height was a calc on layout.ts's FOOTER_H (50) and the footer
+  renders 121 (two 44px rows, 12px padding either side, a hairline, a 4px
+  gap), so the document was 791 tall - and the workspace 1012, because
+  TuningRegion.svelte's sr-only live region (position: absolute, contained by
+  the initial containing block) sat at its static position under the
+  inspector's sections, outside every clip. +layout.svelte's site root is now
+  a 100dvh column on every shape, the frame flex 1 inside it (the shape 13.1-01
+  gave the intro, whose own fit e2e/first-experience.e2e.ts proves at four
+  viewports), and the inspector's body is a containing block. This title is
+  the app pages' half of that proof, measured off document.scrollingElement
+  as the intro's is: four routes, one viewport, chromium only.
+*/
+test.describe("the app frame fits the screen", () => {
+  test("at 1280 x 720 the browse screen, a fresh Sandbox surface, My configs and a workspace put nothing past the viewport: the document does not scroll and the footer's bottom edge is the viewport's", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const consoleErrors = collectErrors(page);
+    const arrivals: [string, () => Promise<void>][] = [
+      [BROWSE, () => waitForCards(page, LISTING.length)],
+      [
+        "/sandbox/?new",
+        async () => {
+          await expect(page).toHaveURL(/[/]sandbox[/]s-[a-z0-9-]+[/]$/);
+          await expect(page.getByTestId("surface-plate")).toBeVisible();
+        },
+      ],
+      [
+        "/my-configs/",
+        async () => {
+          await expect(page.getByTestId("my-configs")).toBeVisible();
+        },
+      ],
+      [
+        "/playground/arc/",
+        async () => {
+          await expect(page.getByTestId("workspace")).toBeVisible();
+          await expect(page.getByTestId("tuning-region")).toHaveAttribute(
+            "data-busy",
+            "false",
+            { timeout: 30_000 },
+          );
+        },
+      ],
+    ];
+    for (const [route, arrived] of arrivals) {
+      await coldGoto(page, route);
+      await arrived();
+      await expect(page.getByTestId("shell-frame")).toBeVisible();
+      // Fonts and two frames, so the footer's two rows have their height.
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            const done = () =>
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => resolve()),
+              );
+            if (document.fonts) document.fonts.ready.then(done, done);
+            else done();
+          }),
+      );
+      const box = await page.evaluate(() => {
+        const doc = document.scrollingElement as HTMLElement;
+        const frame = document.querySelector('[data-testid="shell-frame"]');
+        const footer = document.querySelector("footer");
+        return {
+          scrollHeight: doc.scrollHeight,
+          clientHeight: doc.clientHeight,
+          frameHeight: frame
+            ? Math.round(frame.getBoundingClientRect().height)
+            : 0,
+          footerBottom: footer
+            ? Math.round(footer.getBoundingClientRect().bottom)
+            : 0,
+        };
+      });
+      expect(
+        box.scrollHeight,
+        `${route}: the document is ${box.scrollHeight} tall in a ${box.clientHeight} viewport - the page scrolls (A.1 / A.4)`,
+      ).toBeLessThanOrEqual(box.clientHeight);
+      expect(
+        box.footerBottom,
+        `${route}: the footer's bottom edge sits at ${box.footerBottom}, not at the viewport's 720`,
+      ).toBe(720);
+      expect(
+        box.frameHeight,
+        `${route}: the frame has no height - the site column collapsed it`,
+      ).toBeGreaterThan(300);
+    }
+    expect(consoleErrors).toEqual([]);
+  });
+});
