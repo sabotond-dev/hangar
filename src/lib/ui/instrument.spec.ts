@@ -330,16 +330,11 @@ const PILLED: ReadonlyArray<readonly [string, string, string]> = [
     "word row - the WORD widget only; the swatch row is not a word",
   ],
   ["ColourPicker.svelte", "option", "word row - the knob selector"],
-  // ONE ROW JOINED AT 13-12: the destination review's affirmative wears the
-  // pill as KeepConfirm's does - Secondary, bordered, never filled - because
-  // it is the same kind of control (a confirmation's yes) and the fill is
-  // Apply to ZONA's alone. Its label is in D-05's register (install-copy.ts
-  // says why), which changes the words and not the shape.
-  [
-    "DestinationReview.svelte",
-    "affirmative",
-    "Secondary - the destination review's affirmative (13-12)",
-  ],
+  // ONE ROW JOINED AT 13-12 AND LEFT AT 13.1-02: the destination review's
+  // affirmative wore the pill as KeepConfirm's does. The user struck the
+  // review at the fourth bench (13.1-CONTEXT D-05) and
+  // DestinationReview.svelte was deleted with it, so the row goes with the
+  // file - the walk finds one pilled control fewer and this list says so.
   // THREE ROWS LEFT AT 13-08 with the gallery's re-skin to the Bible's page
   // 2: BrowseToolbar.svelte's SORT word row became a <select>, its Clear
   // filters an outlined rectangle authored in its own rule, and

@@ -362,10 +362,15 @@
 </p>
 
 <!--
-  THE PAGE TARGET'S CONTROLS (13-12; 13-CONTEXT D-06). The request opens the
-  review and sends nothing; the confirm is the affirmative and the ONE click
-  that puts a switch on the wire; the cancel takes the target back. The page
-  asked for is the field. THE DISCARD is the firmware-native revert
+  THE PAGE TARGET'S CONTROLS (13-12; 13-CONTEXT D-06; 13.1-CONTEXT D-05). The
+  request sets the target and sends nothing; the confirm sends and is the
+  ONE method that puts a switch on the wire; the cancel takes the target
+  back - the three halves the store still exposes, driven one at a time. The
+  fourth button is the SHIPPED path: install.switchPage(page), the request
+  and the confirm in one call, as the Target select's change calls it on
+  /playground/[id]/ and in the Sandbox (no review, by the user's word), so
+  the bench can drive it here against hardware and read the status beside
+  it. The page asked for is the field. THE DISCARD is the firmware-native revert
   (PAGEDISCARD), written and UNPROVEN: this button is its only caller on the
   site until docs/INSTALL-RUNBOOK.md row I says what a module does with it.
 -->
@@ -399,6 +404,13 @@
     onclick={() => install.cancelPage()}
   >
     Keep this page
+  </button>
+  <button
+    type="button"
+    data-testid="install-page-switch"
+    onclick={() => void install.switchPage(page)}
+  >
+    Switch (one call)
   </button>
   <button
     type="button"

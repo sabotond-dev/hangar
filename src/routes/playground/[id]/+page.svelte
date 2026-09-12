@@ -41,14 +41,22 @@
   draft's clause is 13-13's wiring and 13-18's words and is not set here.
   The fill is re-made when the phase moves - the snippets in it are the same
   functions, so the rail and the inspector are not re-created. THE
-  DESTINATION ZONE (13-12; 13-CONTEXT D-06; Bible section 9, D02) is the
-  Target select over the pages the module enumerated, Apply to ZONA, and
-  beneath them the destination review, the switching line or the unverified
-  line, while a ZONA is connected - and the PDF's sentence otherwise. It is
-  the one control on the site that moves the hardware, and it does so only
-  from the review's affirmative: the select opens the review and sends
-  nothing, the store gates every write on the module's own page report, and
-  Apply is the same click as TRY ON DEVICE under the surface.
+  DESTINATION ZONE (13-12; 13-CONTEXT D-06; Bible section 9, D02; 13.1-CONTEXT
+  D-05) is the Target select over the pages the module enumerated, Apply to
+  ZONA, and beneath them the switching line or the unverified line, while a
+  ZONA is connected - and the PDF's sentence otherwise. It is the one control
+  on the site that moves the hardware, and THE SELECT'S CHANGE IS THE SWITCH:
+  there is no destination review, by the user's word at the fourth bench
+  ("When you change page form the drop down just change the page and thats
+  it.", bench line 5, which struck 13-CONTEXT D-06's second clause). Opening
+  the menu sends nothing; a change calls install.switchPage(value), which is
+  the target's request() then its confirm() - the restore heartbeat, then
+  exactly one switch - and the store gates every write on the module's own
+  page report until it arrives (the ACK gate, unmoved). Apply waits for that
+  report and is the same click as TRY ON DEVICE under the surface. On a
+  focused, closed select Chromium fires change on every ArrowUp / ArrowDown,
+  so each arrow press is a switch until the select disables at switching:
+  the visitor's own gesture on the one control that moves the hardware.
   THE MONITOR IS ON LUA ENTRIES ONLY (13-10, D-14 Q4b): the bar
   under the surface renders the log the Lua host keeps, read through the
   live engine on every sample, and is ABSENT - not present and empty - on
@@ -151,7 +159,6 @@
   import BrowseLink from "$lib/ui/BrowseLink.svelte";
   import Clear from "$lib/ui/Clear.svelte";
   import CopyLink from "$lib/ui/CopyLink.svelte";
-  import DestinationReview from "$lib/ui/DestinationReview.svelte";
   import FidelityLine from "$lib/ui/FidelityLine.svelte";
   import KeepConfirm from "$lib/ui/KeepConfirm.svelte";
   import KeepOnDevice from "$lib/ui/KeepOnDevice.svelte";
@@ -593,19 +600,21 @@
   const targetId = "destination-target";
   let targetSelect = $state<HTMLSelectElement | null>(null);
 
-  /** The select changed: open the review (sends nothing). A refused request snaps the select back. */
-  function onTargetChange(event: Event): void {
+  /**
+   * THE SELECT CHANGED: THE SWITCH (13.1 D-05). One call - the target's
+   * request() then its confirm(), the heartbeat then the switch - and no
+   * review. A change that did not leave the wire (refused: a switch pending,
+   * a leg in flight, the module's own page, no session; or taken back in
+   * the microtask before the send) resolves false, and the select snaps back
+   * to the target the store holds. The await is inside the handler; the
+   * call site voids it.
+   */
+  async function onTargetChange(event: Event): Promise<void> {
     const value = Number((event.currentTarget as HTMLSelectElement).value);
     if (!Number.isInteger(value)) return;
-    if (!install.requestPage(value) && targetSelect) {
+    if (!(await install.switchPage(value)) && targetSelect) {
       targetSelect.value = String(targetValue ?? "");
     }
-  }
-
-  /** The review closed (its negative, Escape): the target is the module's page again, and focus returns to the select. */
-  function closeReview(): void {
-    install.cancelPage();
-    void tick().then(() => targetSelect?.focus());
   }
 
   /** Apply to ZONA: the bar's click, the same write as TRY ON DEVICE. */
@@ -651,15 +660,20 @@
 
 <!--
   THE CONTEXT BAR'S DESTINATION ZONE while a ZONA is connected (13-12; PDF
-  pages 3 and 5; Bible section 9; 13-CONTEXT D-06): the Target select over
-  the pages the module enumerated, the reported page marked, the requested
-  one pending, Apply to ZONA, and beneath the row either the destination
-  review (a review is open), the switching line (the module's report is
-  awaited) or the unverified line (it never came). Without a session the bar
-  renders its own "Preview without hardware". The page word is the PDF's
-  ("Page 1"), rendered as the module reports it. Nothing here sends: the
-  select opens the review, the review's affirmative is install.confirmPage(),
-  and Apply is install.tryOnDevice() - the same write as TRY ON DEVICE.
+  pages 3 and 5; Bible section 9; 13-CONTEXT D-06; 13.1-CONTEXT D-05): the
+  Target select over the pages the module enumerated, the reported page
+  marked, Apply to ZONA, and beneath the row either the switching line (the
+  module's report is awaited) or the unverified line (it never came). The
+  target's `requested` state is never on the screen: it exists for the one
+  microtask between request() and confirm() inside install.switchPage(), and
+  nothing renders it. Without a session the bar renders its own "Preview
+  without hardware". The page word is the PDF's ("Page 1"), rendered as the
+  module reports it. Opening the menu sends nothing; the select's CHANGE is
+  the switch - install.switchPage(value), the heartbeat then the switch, no
+  review (the user's word, bench line 5) - and on a focused, closed select a
+  keyboard arrow is a change in Chromium, so each arrow press is a switch
+  until the select disables at switching. Apply is install.tryOnDevice() -
+  the same write as TRY ON DEVICE - and waits for the module's own report.
 -->
 {#snippet destination()}
   <div
@@ -678,7 +692,7 @@
         disabled={install.pageStatus === "switching" ||
           install.phase === "writing"}
         aria-describedby={targetPending ? "destination-line" : undefined}
-        onchange={onTargetChange}
+        onchange={(event) => void onTargetChange(event)}
       >
         {#each targetPages as page (page)}
           <option value={String(page)} data-reported={page === reportedPage}>
@@ -696,9 +710,7 @@
         {APPLY_LABEL}
       </button>
     </div>
-    {#if install.pageStatus === "requested"}
-      <DestinationReview name={listed?.name} onclose={closeReview} />
-    {:else if install.pageStatus === "switching" && install.pageRequested !== undefined}
+    {#if install.pageStatus === "switching" && install.pageRequested !== undefined}
       <p
         class="destination-line"
         id="destination-line"

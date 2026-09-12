@@ -56,7 +56,7 @@
 // backslash-free in the same house style.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
@@ -79,7 +79,6 @@ import {
 } from "$lib/device/session-copy";
 import { session } from "$lib/device/session.svelte";
 import { PANEL_ID } from "./device-drawer.svelte";
-import DestinationReview from "./DestinationReview.svelte";
 import DeviceActions from "./DeviceActions.svelte";
 import ConnectionControl from "./shell/ConnectionControl.svelte";
 import ContextBar from "./shell/ContextBar.svelte";
@@ -1947,50 +1946,117 @@ describe("the device UI's structural rules", () => {
     ).toBe(0);
   });
 
-  it("the destination review appears on first use and on every change, names both pages in D-06's sentence, cannot be skipped, and is a group that moves focus in and never traps it", () => {
-    // Plan 13-12; 13-CONTEXT D-06 (second clause); Bible section 9. RENDERED
-    // with the install singleton's mirror set by hand - its fields are plain
-    // own properties under the server transform - and restored in a finally,
-    // so nothing leaks into a later test.
-    const review = code(`${UI_DIR}/DestinationReview.svelte`);
+  it("no destination review: a change on the Target select is the whole switch, nothing under src/lib/ui/ mounts a review, and the store's one caller of the target's confirm() is confirmPage", () => {
+    // Plan 13.1-02; 13.1-CONTEXT D-05 (bench line 5: "Page switch doesnt
+    // need a confirmation window. When you change page form the drop down
+    // just change the page and thats it."), which struck 13-CONTEXT D-06's
+    // second clause. This is 13-12's review test INVERTED: it held that the
+    // review appeared on first use and on every change and could not be
+    // skipped; it now holds that the review does not exist, that the select's
+    // change is the whole gesture, and that the wire's envelope - the one
+    // caller of confirm(), the target's own guard, the heartbeat-first order
+    // page-target.spec.ts asserts off the frames - did not move with it.
     const route = code("src/routes/playground/[id]/+page.svelte");
+    const actions = code(`${UI_DIR}/sandbox/SurfaceActions.svelte`);
     const store = code("src/lib/device/install.svelte.ts");
     const target = code("src/lib/device/page-target.ts");
 
-    // FIRST USE AND EVERY CHANGE. The route mounts the review under exactly
-    // one condition - the target's `requested` state - and the ONE way into
-    // that state from the screen is the select's change handler calling
-    // install.requestPage(). There is no second mount and no other opener.
+    // THE COMPONENT IS GONE, not left mounted nowhere (D-12's precedent).
     expect(
-      occurrences(route, "<DestinationReview"),
-      "the review is mounted once, in the destination zone",
-    ).toBe(1);
-    expect(route).toContain('{#if install.pageStatus === "requested"}');
-    expect(route).toContain("onchange={onTargetChange}");
-    expect(route).toContain("install.requestPage(value)");
-    // And the store routes every request through the target's review state;
-    // the affirmative is refused unless the review is open - page-target.ts
-    // says so in code, which is what makes "cannot be skipped" structural.
-    expect(store).toContain("const opened = target.request(page);");
-    expect(target).toContain('if (this.status !== "requested") return;');
+      existsSync(repo(`${UI_DIR}/DestinationReview.svelte`)),
+      "DestinationReview.svelte is still on disk",
+    ).toBe(false);
+
+    // NOTHING MOUNTS A REVIEW. Every component under src/lib/ui/ and the two
+    // routes that own a destination zone are read - non-vacuity first - and
+    // none carries the review's tag, its testid or its two retired words.
+    const svelteFiles: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(repo(dir), { withFileTypes: true })) {
+        if (entry.isDirectory()) walk(`${dir}/${entry.name}`);
+        else if (entry.name.endsWith(".svelte"))
+          svelteFiles.push(`${dir}/${entry.name}`);
+      }
+    };
+    walk(UI_DIR);
+    expect(
+      svelteFiles.length,
+      "the walk over src/lib/ui/ read components",
+    ).toBeGreaterThan(20);
+    const scanned = [
+      ...svelteFiles,
+      "src/routes/playground/[id]/+page.svelte",
+      "src/routes/sandbox/+page.svelte",
+    ];
+    const REVIEW_TAG = ["<Destination", "Review"].join("");
+    const REVIEW_ID = ["destination", "-review"].join("");
+    const REVIEW_LINE = ["switch", "ReviewLine"].join("");
+    const REVIEW_TITLE = ["replace", "ReviewTitle"].join("");
+    for (const file of scanned) {
+      const source = code(file);
+      for (const needle of [REVIEW_TAG, REVIEW_ID, REVIEW_LINE, REVIEW_TITLE]) {
+        expect(
+          occurrences(source, needle),
+          `${file} carries the review: ${needle}`,
+        ).toBe(0);
+      }
+    }
+    for (const needle of [REVIEW_LINE, REVIEW_TITLE]) {
+      expect(
+        occurrences(target, needle),
+        `page-target.ts still exports ${needle}`,
+      ).toBe(0);
+    }
+
+    // THE CHANGE IS THE WHOLE GESTURE. Both destination zones call the
+    // store's one method from the select's change handler, and neither
+    // reaches for requestPage on its own: the request and the send are one
+    // call, with no state a route could hold a review in between.
+    for (const [file, source] of [
+      ["the workspace route", route],
+      ["SurfaceActions.svelte", actions],
+    ] as const) {
+      expect(source, `${file} switches on change`).toContain(
+        "install.switchPage(value)",
+      );
+      expect(
+        occurrences(source, "install.requestPage("),
+        `${file} opens a request of its own`,
+      ).toBe(0);
+      expect(
+        occurrences(source, 'install.pageStatus === "requested"'),
+        `${file} renders the requested state`,
+      ).toBe(0);
+      expect(source).toContain("onTargetChange");
+    }
+
+    // THE ENVELOPE DID NOT MOVE. The store's switchPage is requestPage then
+    // confirmPage; confirmPage is still the ONLY caller of the target's
+    // confirm(); the target still refuses a send that no request opened; and
+    // switchPage's return is the wire's fact - switching, or cancelled.
+    expect(store).toContain("async switchPage(page: number): Promise<boolean>");
+    expect(store).toContain("if (!this.requestPage(page)) return false;");
+    expect(store).toContain("await this.confirmPage();");
+    expect(store).toContain('if (this.pageStatus !== "switching") {');
     expect(
       occurrences(store, "target.confirm("),
       "confirmPage is the only caller of the target's confirm()",
     ).toBe(1);
+    expect(store).toContain("const opened = target.request(page);");
+    expect(target).toContain('if (this.status !== "requested") return;');
 
-    // CANNOT BE SKIPPED. Section 9's "experienced users may skip repetitive
-    // review for the same destination only when safe and clearly configured"
-    // is NOT implemented, and the reason is written in the component's header:
-    // nothing configures it. So: no checkbox, no remembered destination, no
-    // "don't ask again" anywhere on the path. Needles assembled so this file
-    // never carries them whole.
+    // NOTHING TO REMEMBER, STILL. 13-12 forbade a "don't ask again" on the
+    // path because nothing configured a skip; with no review there is nothing
+    // to skip, and the needles stay at zero so a memory of a destination
+    // cannot arrive under another name. Assembled so this file never carries
+    // them whole.
     const DONT_ASK = ["don", "’t ask"].join("");
     const DONT_ASK_ASCII = ["don", "'t ask"].join("");
     const SKIP = ["skip", "Review"].join("");
     const REMEMBER = ["remember", "Destination"].join("");
     for (const [file, source] of [
-      ["DestinationReview.svelte", review],
       ["the workspace route", route],
+      ["SurfaceActions.svelte", actions],
       ["install.svelte.ts", store],
       ["page-target.ts", target],
     ] as const) {
@@ -2001,93 +2067,21 @@ describe("the device UI's structural rules", () => {
         ).toBe(0);
       }
     }
-    expect(
-      occurrences(review, 'type="checkbox"'),
-      "the review has no checkbox to remember anything with",
-    ).toBe(0);
-    expect(
-      raw(`${UI_DIR}/DestinationReview.svelte`),
-      "the decision is recorded in the header, not merely absent",
-    ).toContain("IT CANNOT BE SKIPPED");
 
-    // BOTH PAGES NAMED, IN D-06'S SENTENCE VERBATIM, AND SECTION 16'S TITLE.
-    const previous = {
-      requested: install.pageRequested,
-      reported: install.pageReported,
-    };
-    try {
-      // Wire pages 2 and 0, which the visitor reads as Page 3 and Page 1
-      // (D-23, batch row I.3.1): the data attributes carry the wire, the
-      // sentence carries the visitor's number.
-      install.pageRequested = 2;
-      install.pageReported = 0;
-      const body = render(DestinationReview, {
-        props: { name: "Arc", onclose: () => undefined },
-      }).body;
-      expect(body).toContain(
-        "Switch your ZONA to Page 3? It will stop playing Page 1.",
-      );
-      expect(body).toContain("Replace the configuration on ZONA · Page 3?");
-      expect(body).toContain("Arc will be applied to Page 3");
-      expect(body).toContain('data-to="2"');
-      expect(body).toContain('data-from="0"');
-      expect(body).toContain("Switch page");
-      expect(body).toContain("Keep this page");
-      // A GROUP THAT MOVES FOCUS IN AND NEVER TRAPS IT - the tree's one focus
-      // contract for a confirmation (KeepConfirm.svelte's header; 13-11).
-      // The plan assumed a shared focus-trap helper; there is none, and the
-      // review's header says why a trap was not built.
-      expect(body).toContain('role="group"');
-      expect(body).toContain('tabindex="-1"');
-      const DIALOG = ["role=", '"dia', 'log"'].join("");
-      const MODAL = ["aria-", "modal"].join("");
-      const INERT = ["in", "ert"].join("");
-      const TRAP = ["focus", "Trap"].join("");
-      for (const needle of [DIALOG, MODAL, INERT, TRAP]) {
-        expect(
-          occurrences(stripComments(review), needle),
-          `the review carries ${needle}`,
-        ).toBe(0);
-      }
-      expect(review).toContain("container?.focus();");
-      expect(
-        review,
-        "Escape inside dismisses, as KeepConfirm's does",
-      ).toContain('if (event.key !== "Escape") return;');
-      expect(
-        route,
-        "the route returns focus to the select when the review closes",
-      ).toContain("targetSelect?.focus()");
-
-      // The pair the review shows is the store's, never a computation of its own.
-      expect(review).toContain("install.pageRequested");
-      expect(review).toContain("install.pageReported");
-      expect(review, "the words come from the modules").toContain(
-        'from "$lib/device/page-target"',
-      );
-      expect(review).toContain('from "$lib/device/install-copy"');
-
-      // No corner, and the 44px floor on both controls (section 14).
-      expect(occurrences(review, "border-radius")).toBe(0);
-      for (const selector of [".affirmative", ".negative"]) {
-        const rule = rulesOf(review)
-          .filter((r) => r.selector === selector)
-          .map((r) => r.body)
-          .join(" ");
-        expect(rule, `${selector} declares the floor`).toContain(
-          "min-block-size: 44px",
-        );
-        expect(rule).toContain("min-inline-size: 44px");
-      }
-    } finally {
-      install.pageRequested = previous.requested;
-      install.pageReported = previous.reported;
-    }
-
-    // Nothing renders when the store has no pair to name: no half-review.
-    const empty = render(DestinationReview, {
-      props: { name: undefined, onclose: () => undefined },
-    }).body;
-    expect(empty).not.toContain('data-testid="destination-review"');
+    // THE DECISION IS RECORDED where the words were, not merely absent: the
+    // store's header names the bench and the arrow-key fact for the gate's
+    // bench row, and both copy modules retire their review strings by name.
+    expect(raw("src/lib/device/install.svelte.ts")).toContain(
+      "13.1-CONTEXT D-05",
+    );
+    expect(raw("src/lib/device/install.svelte.ts")).toContain(
+      "THE KEYBOARD FACT, NAMED",
+    );
+    const targetRaw = raw("src/lib/device/page-target.ts");
+    expect(targetRaw).toContain("RETIRED BY NAME,");
+    expect(targetRaw).toContain("2026-09-12 (13.1-02, 13.1-CONTEXT D-05");
+    expect(raw("src/lib/device/install-copy.ts")).toContain(
+      "THE REVIEW'S TWO LABELS ARE RETIRED BY NAME, 2026-09-12",
+    );
   });
 });

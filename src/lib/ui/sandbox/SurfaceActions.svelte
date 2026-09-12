@@ -5,7 +5,7 @@
 
   TWO ZONES, ONE FILE. `zone="destination"` is the context bar's destination
   zone for the Sandbox - 13-12's Target select, `Apply to ZONA`, and beneath
-  the row the review, the switching line or the unverified line, exactly as
+  the row the switching line or the unverified line, exactly as
   /playground/[id]/ renders them - with section 9's `Store on ZONA` and the
   existing PUT BACK beside Apply, because a surface installed to RAM needs
   its store and its way back where the visitor is standing. `zone="share"`
@@ -23,10 +23,17 @@
   CONTROL'S PLACE (KeepOnDevice.svelte's rule: the control and the
   confirmation are never on the screen together), so the site still has one
   confirmation and it is still that one. PUT BACK is PutBack.svelte, mounted
-  whole. The page target is the store's (13-12): the select opens the review
-  and sends nothing, the review's affirmative is install.confirmPage(), and
-  Apply is enabled on the store's one condition (applyReady) and the
-  landing's refusal.
+  whole. The page target is the store's (13-12; 13.1-CONTEXT D-05): THE
+  SELECT'S CHANGE IS THE SWITCH - install.switchPage(value), the target's
+  request() then its confirm(), the restore heartbeat then exactly one
+  switch, and no destination review, by the user's word at the fourth bench
+  ("When you change page form the drop down just change the page and thats
+  it."). Opening the menu sends nothing; a change that did not leave the
+  wire resolves false and the select snaps back. On a focused, closed select
+  Chromium fires change on every ArrowUp / ArrowDown, so each arrow press is
+  a switch until the select disables at switching - the visitor's gesture.
+  Apply is enabled on the store's one condition (applyReady - the module's
+  own report of the page, the ACK gate unmoved) and the landing's refusal.
 
   OVER BUDGET REFUSES BEFORE THE CLICK (TUNE-05, on a producer it had never
   seen). `refusal` is the meter's sentence when a string is over 908; while
@@ -61,7 +68,6 @@
     NO_LINK_EXPLANATION,
     STORE_LABEL,
   } from "$lib/sandbox/copy";
-  import DestinationReview from "$lib/ui/DestinationReview.svelte";
   import KeepConfirm from "$lib/ui/KeepConfirm.svelte";
   import PutBack from "$lib/ui/PutBack.svelte";
 
@@ -74,7 +80,7 @@
     onexport,
   }: {
     zone: "destination" | "share";
-    /** The surface's name: the store's label, and the review's "configuration name". */
+    /** The surface's name: the store's label for the write. */
     name: string;
     /** The landing's five strings, or undefined while the meter is measuring. */
     config?:
@@ -134,17 +140,13 @@
   let targetSelect = $state<HTMLSelectElement | null>(null);
   let storeButton = $state<HTMLButtonElement | null>(null);
 
-  function onTargetChange(event: Event): void {
+  /** The select changed: the switch, in one call (13.1 D-05). A change that did not leave the wire snaps the select back. */
+  async function onTargetChange(event: Event): Promise<void> {
     const value = Number((event.currentTarget as HTMLSelectElement).value);
     if (!Number.isInteger(value)) return;
-    if (!install.requestPage(value) && targetSelect) {
+    if (!(await install.switchPage(value)) && targetSelect) {
       targetSelect.value = String(targetValue ?? "");
     }
-  }
-
-  function closeReview(): void {
-    install.cancelPage();
-    void tick().then(() => targetSelect?.focus());
   }
 
   /** Apply to ZONA: the same write as TRY ON DEVICE, with the surface's name as its label. */
@@ -181,7 +183,7 @@
         value={String(targetValue ?? "")}
         disabled={install.pageStatus === "switching" || writing}
         aria-describedby={targetPending ? lineId : undefined}
-        onchange={onTargetChange}
+        onchange={(event) => void onTargetChange(event)}
       >
         {#each targetPages as page (page)}
           <option value={String(page)} data-reported={page === reportedPage}>
@@ -238,9 +240,7 @@
         {refusal}
       </p>
     {/if}
-    {#if install.pageStatus === "requested"}
-      <DestinationReview {name} onclose={closeReview} />
-    {:else if install.pageStatus === "switching" && install.pageRequested !== undefined}
+    {#if install.pageStatus === "switching" && install.pageRequested !== undefined}
       <p class="destination-line" id={lineId} data-testid="destination-line">
         {switchingLine(install.pageRequested)}
       </p>
