@@ -61,6 +61,7 @@ import { expect, test, type Page } from "@playwright/test";
 // zero import statements; src/lib/tune/copy.ts is a leaf by design.)
 // The intro's hero, by its one name (13-07). front-door.ts imports nothing.
 import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
+import { TRY_ON_LABEL } from "../src/lib/device/install-copy";
 import { LINK_COPIED, MEASURING } from "../src/lib/tune/copy";
 import { SHARE_SNAPSHOT } from "../src/lib/tune/inspector-copy";
 import { failureCopy } from "../src/lib/transport/transport";
@@ -70,8 +71,8 @@ import { guarded, guardedNot } from "./poll";
 const ENTRY = "aurora";
 const ENTRY_NAME = "Aurora";
 
-/** The label the honesty copy is interpolated with on this control. */
-const PRIMARY_LABEL = "TRY ON DEVICE";
+/** The label the honesty copy is interpolated with on this control: section 9's, from the module (13-18). */
+const PRIMARY_LABEL = TRY_ON_LABEL;
 
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
 

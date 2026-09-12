@@ -43,17 +43,13 @@
   device-ui.spec.ts's control walk requires on every interactive class it finds
   on a listed device component. Do not remove either one as redundant.
 
-  WHY THE LINE CELL RESERVES 48px WHEN THE FORMULA SAYS 24px (A-52). Section
-  12's rule is `ceil(longest / CH_PER_LINE) x 24` and CH_PER_LINE is 43,
-  measured in Inter Variable by plan 10-01 rather than assumed. The four
-  candidates are CLEAR_LINE at 41 and the three reasons at 43, 26 and 36, so
-  the formula's own answer is one line and 24px. IT IS NOT TAKEN. A one-line
-  cap of 43 would put a shipped string exactly on its own cap - the
-  zero-headroom defect plan 10-01 flagged against the old 86-character
-  CLEAR_LINE, reintroduced at a different number. THE SECOND LINE IS HEADROOM
-  RATHER THAN OCCUPANCY, so CLEAR_CAP stays 86 and this cell stays 48px. A
-  later reader who "corrects" this to 24px turns install-copy.spec.ts red,
-  which is where the departure is asserted rather than merely commented.
+  WHY THE LINE CELL RESERVES 48px (A-52, carried). Phase 10 reserved two Body
+  lines here as headroom rather than occupancy, so a shipped string could
+  never sit exactly on its own cap; the measured cap (CLEAR_CAP, 86) and the
+  character counts it was argued from retired with 13-18 under D-05 -
+  install-copy.ts's header says what they were and what replaced them. The
+  48px stays: clearLine (13-18, D-23) is two clauses and takes both lines,
+  and the four twins are rendered so the tallest sets the height.
 
   The mechanism is its two neighbours': one grid cell, every candidate at
   grid-area 1 / 1, the inactive ones visibility: hidden and aria-hidden. The
@@ -70,8 +66,9 @@
   through the leg regardless. The disabling is protective; the line does not
   have to explain it.
 
-  WHY THE BUSY LABEL SWAPS WITH NO TRANSITION (Z-09). CLEARING… replaces CLEAR
-  the instant install.clearToDefault() starts and is replaced the instant its
+  WHY THE BUSY LABEL SWAPS WITH NO TRANSITION (Z-09). `Resetting Page 2…`
+  replaces `Reset active device page` the instant install.clearToDefault()
+  starts and is replaced the instant its
   one leg settles. A 140 ms crossfade on a 40 ms state renders as a smear
   rather than as a change, so the swap is instant by contract - nothing in this
   file animates, and the only transition is the hover colour, declared on the
@@ -95,10 +92,10 @@
 <script lang="ts">
   import { install } from "$lib/device/install.svelte";
   import {
-    CLEARING_LABEL,
     CLEAR_LABEL,
-    CLEAR_LINE,
     CLEAR_REASONS,
+    clearLine,
+    clearingLabel,
     type ClearReason,
   } from "$lib/device/install-copy";
   import { session } from "$lib/device/session.svelte";
@@ -134,6 +131,8 @@
 
   /** The three reasons, from the closed record, in its order. */
   const REASONS = Object.entries(CLEAR_REASONS) as [ClearReason, string][];
+  /** The page the line and the busy label name, as the module reports it (the copy adds one); 0 is never read before a snapshot exists. */
+  const page = $derived(install.snapshotPage ?? 0);
 
   function clear(): void {
     void install.clearToDefault();
@@ -150,7 +149,7 @@
     aria-describedby="clear-line"
     onclick={clear}
   >
-    {busy ? CLEARING_LABEL : CLEAR_LABEL}
+    {busy ? clearingLabel(page) : CLEAR_LABEL}
   </button>
 
   <div class="cell" id="clear-line" data-testid="clear-line">
@@ -159,7 +158,7 @@
       class:twin={shown !== undefined}
       aria-hidden={shown !== undefined}
     >
-      {CLEAR_LINE}
+      {clearLine(page)}
     </p>
     {#each REASONS as [key, text] (key)}
       <p class="line" class:twin={shown !== key} aria-hidden={shown !== key}>
@@ -198,11 +197,10 @@
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
   }

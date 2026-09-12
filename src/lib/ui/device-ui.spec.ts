@@ -61,12 +61,12 @@ import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 import {
-  CLEARED_CAPTION,
-  KEPT_CAPTION,
-  SETTLED_CAPTION,
+  clearedCaption,
+  keptCaption,
   keptMismatchBlock,
   nothingLandedBlock,
   partialBlock,
+  settledCaption,
   unconfirmedBlock,
 } from "$lib/device/install-copy";
 import { type InstallPhase, install } from "$lib/device/install.svelte";
@@ -430,30 +430,25 @@ describe("the device UI's structural rules", () => {
   });
 
   it("monospace is scoped to the numerals and never reaches a sentence", () => {
-    // Y-18: only the firmware and page numerals are monospaced; prose is never
-    // monospaced. --font-mono appears in exactly one of the seven, and there
-    // only on the .mono numeral run.
+    // Y-18: only numerals may be monospaced; prose never is. Through 13-17
+    // the one carrier was DeviceSlot's firmware and page run; 13-18 (D-23)
+    // moved the identity out of the header into Device actions, where
+    // identitySentence is a sentence, so NO device component carries the
+    // mono stack now - and none may gain it for a word.
     const MONO = "--font-mono";
     const carriers = DEVICE_COMPONENTS.filter((name) =>
       code(componentPath(name)).includes(MONO),
     );
     expect(
       carriers,
-      "--font-mono is declared in exactly one device component",
-    ).toEqual(["DeviceSlot.svelte"]);
-
-    const slot = code(componentPath("DeviceSlot.svelte"));
-    const monoSelectors = rulesOf(slot)
-      .filter((r) => r.body.includes(MONO))
-      .map((r) => r.selector);
-    expect(
-      monoSelectors.length,
-      "the mono-bearing rule was found",
-    ).toBeGreaterThan(0);
-    expect(
-      monoSelectors,
-      "--font-mono is declared on a selector other than .mono - it has reached a word rather than a numeral",
-    ).toEqual(monoSelectors.map(() => ".mono"));
+      "--font-mono is declared in a device component - the numeral run left the header with the identity (13-18)",
+    ).toEqual([]);
+    for (const name of DEVICE_COMPONENTS) {
+      const monoSelectors = rulesOf(code(componentPath(name)))
+        .filter((r) => r.body.includes(MONO))
+        .map((r) => r.selector);
+      expect(monoSelectors, `${name} monospaces a selector`).toEqual([]);
+    }
 
     // The prose components declare no font-family at all, so nothing can slip a
     // second stack onto a sentence.
@@ -488,7 +483,7 @@ describe("the device UI's structural rules", () => {
     expect(
       slot,
       "the hidden-name sentence is retyped in DeviceSlot instead of imported",
-    ).not.toContain("No ZONA is connected.");
+    ).not.toContain("Preview only. Connect ZONA");
 
     // aria-expanded derives from a list of exactly four states.
     const expands = /const EXPANDS[^=]*=\s*\[([^\]]*)\]/.exec(slot);
@@ -718,24 +713,32 @@ describe("the device UI's structural rules", () => {
     ).toEqual([]);
 
     // STEADY. PutBack renders all three of its lines - as sizing twins, the
-    // inactive ones hidden - in a cell with the 72px floor (Z-18).
+    // inactive ones hidden - in a cell with the 72px floor (Z-18). Since
+    // 13-18 the three are the needs-zona line and page-target's two
+    // page-naming forms; Phase 10's page-less pair retired (D-23).
     const putBack = code(componentPath("PutBack.svelte"));
     for (const line of [
-      "PUT_BACK_LINE",
-      "PUT_BACK_LINE_AFTER_KEEP",
       "PUT_BACK_NEEDS_ZONA",
+      "putBackPageLine(page)",
+      "putBackPageLineAfterKeep(page)",
     ]) {
       expect(
         occurrences(putBack, `{${line}}`),
         `PutBack renders ${line} in its cell`,
       ).toBe(1);
     }
+    for (const retired of ["PUT_BACK_LINE}", "PUT_BACK_LINE_AFTER_KEEP"]) {
+      expect(
+        occurrences(putBack, retired),
+        `PutBack still renders the retired ${retired}`,
+      ).toBe(0);
+    }
     expect(putBack, "the inactive twins are visibility: hidden").toContain(
       "visibility: hidden",
     );
     expect(
       putBack,
-      "the PUT BACK cell no longer reserves 72px - ceil(101 / 43) x 24 = 72, where 101 is PUT_BACK_LINE_AFTER_KEEP and 43 is the CH_PER_LINE plan 10-01 measured in Inter. The line changes after a keep, so a cell that grows moves a destructive control under a hand already reaching for it (Z-18)",
+      "the Put back cell no longer reserves 72px - three Body lines, the floor Phase 10 measured and 13-18 kept when the caps retired. The line changes after a store, so a cell that grows moves a destructive control under a hand already reaching for it (Z-18)",
     ).toContain("min-block-size: 72px");
     expect(putBack, "the twins are aria-hidden").toContain("aria-hidden=");
 
@@ -792,7 +795,7 @@ describe("the device UI's structural rules", () => {
     const TELLS = [
       ["your ", "ZONA"].join(""),
       ["Setup and ", "Timer"].join(""),
-      ["power ", "cycle"].join(""),
+      ["power", "-off"].join(""),
     ];
     const copyModule = stripComments(
       readFileSync(repo("src/lib/device/install-copy.ts"), "utf8"),
@@ -919,7 +922,7 @@ describe("the device UI's structural rules", () => {
     expect(keepControl, "and no inline padding").toContain("padding-inline: 0");
     expect(
       keep,
-      "the KEEP cell no longer reserves 48px - ceil(82 / 43) x 24 = 48, where 82 is KEEP_LINE_ENABLED, the longest of its seven, and 43 is the CH_PER_LINE plan 10-01 measured in Inter. This line changes when a knob moves (Z-18)",
+      "the Store on ZONA cell no longer reserves 48px - two Body lines, the floor Phase 10 measured and 13-18 kept when the caps retired. This line changes when a knob moves (Z-18)",
     ).toContain("min-block-size: 48px");
 
     // THE HEADER NOTE, 152px TO 24px - the largest single reduction in the
@@ -949,11 +952,11 @@ describe("the device UI's structural rules", () => {
       "the six reasons are iterated from KEEP_REASONS rather than listed",
     ).toBe(true);
     for (const opening of [
-      "Available after",
-      "Try it on again",
+      "Apply to ZONA first",
+      "The knobs moved",
       "Not after a",
-      "Kept on your",
-      "This browser cannot",
+      "Already stored on",
+      "This browser can",
     ]) {
       expect(
         occurrences(keep, opening),
@@ -961,7 +964,7 @@ describe("the device UI's structural rules", () => {
       ).toBe(0);
     }
     expect(keep, "the enabled line is rendered once").toContain(
-      "{KEEP_LINE_ENABLED}",
+      "{keepLineEnabled(page)}",
     );
     expect(keep, "the cell carries its testid").toContain(
       'data-testid="keep-on-device-line"',
@@ -1126,10 +1129,10 @@ describe("the device UI's structural rules", () => {
     // that PUT BACK is enabled in `cleared` - is asserted in install.spec.ts,
     // where the phase table lives.
     const state = code(componentPath("InstallState.svelte"));
-    expect(state, "region 3 renders the FACTORY DEFAULT caption").toContain(
-      "{CLEARED_CAPTION}",
+    expect(state, "region 3 renders the reset caption").toContain(
+      "{clearedCaption(page)}",
     );
-    expect(state, "and its body").toContain("{CLEARED_BODY}");
+    expect(state, "and its body").toContain("{clearedBody(page)}");
     expect(
       state,
       "the cleared branch was not added to the phase chain",
@@ -1308,7 +1311,7 @@ describe("the device UI's structural rules", () => {
     // constants; this asserts it in pixels.
     expect(
       clear,
-      "the CLEAR cell no longer reserves 48px - the longest of its four candidates is 43 and the formula gives 24px, but the second line is HEADROOM rather than occupancy (A-52), so CLEAR_CAP stays 86 and this cell stays two Body lines",
+      "the reset cell no longer reserves 48px - two Body lines, the headroom Phase 10 declared (A-52) and 13-18 kept when the caps retired; clearLine is two clauses and takes both",
     ).toContain("min-block-size: 48px");
     expect(
       clear.includes("min-block-size: 24px"),
@@ -1332,7 +1335,7 @@ describe("the device UI's structural rules", () => {
     );
     expect(clear, "the twins are aria-hidden").toContain("aria-hidden=");
     expect(clear, "the enabled line is rendered once").toContain(
-      "{CLEAR_LINE}",
+      "{clearLine(page)}",
     );
     expect(
       /CLEAR_REASONS[)][^;]*;[^]*[{]#each[ ]+REASONS/.test(clear),
@@ -1341,7 +1344,7 @@ describe("the device UI's structural rules", () => {
     for (const opening of [
       "Needs a copy of",
       "Needs your ZONA",
-      "This browser cannot",
+      "This browser can",
     ]) {
       expect(
         occurrences(clear, opening),
@@ -1369,8 +1372,8 @@ describe("the device UI's structural rules", () => {
     // NOTHING in this file animates: no animation at all, and the one
     // transition is the hover colour on the enabled control, so the drop to
     // the dim rung under a write is instant.
-    expect(clear, "the busy label is install-copy's CLEARING_LABEL").toContain(
-      "CLEARING_LABEL",
+    expect(clear, "the busy label is install-copy's clearingLabel").toContain(
+      "clearingLabel(page)",
     );
     expect(clear, "the busy state carries aria-busy").toContain("aria-busy=");
     expect(
@@ -1430,9 +1433,11 @@ describe("the device UI's structural rules", () => {
           if (value !== "transparent" && value !== "none")
             offenders.push(`${name} -> ${property}: ${value}`);
         }
+        // 0.01em since 13-18: the labels are sentence case (D-05, D-23), so
+        // the tracking is the sentence-case control's, not Micro's 0.18em.
         if (property === "letter-spacing") {
           trackingFound += 1;
-          if (value !== "0.18em")
+          if (value !== "0.01em")
             offenders.push(`${name} -> letter-spacing: ${value}`);
         }
       }
@@ -1450,7 +1455,7 @@ describe("the device UI's structural rules", () => {
     ).toBe(2);
     expect(
       offenders,
-      "a Quiet-tier control has gained a border, a background, a radius, inline padding or a tracking other than Micro's 0.18em - A-41 forbids pilling Quiet and A-46 put CLEAR in it beside KEEP ON DEVICE",
+      "a Quiet-tier control has gained a border, a background, a radius, inline padding or a tracking other than the sentence-case control's 0.01em - A-41 forbids pilling Quiet and A-46 put the reset in it beside Store on ZONA",
     ).toEqual([]);
 
     // THE BARE TIER LEFT NO TRACE. A-24 gave CLEAR a fifth tier distinguished
@@ -1610,6 +1615,7 @@ describe("the device UI's structural rules", () => {
             slot === "S0a" ? CAPTION_UNSUPPORTED : CAPTION_INSECURE,
           );
           expect(text(body, "device-slot-label")).not.toBe(CONNECT_LABEL);
+          expect(text(body, "device-slot-label")).toBe("Preview only");
           expect(body).not.toContain("Chromium");
         }
       }
@@ -1738,10 +1744,14 @@ describe("the device UI's structural rules", () => {
       "nothingLandedBlock",
     ]);
     const titles = [
-      unconfirmedBlock("x").title,
-      keptMismatchBlock().title,
-      partialBlock("The system timer and the page init", "the Setup").title,
-      nothingLandedBlock("try").title,
+      unconfirmedBlock("x", 0).title,
+      keptMismatchBlock(0).title,
+      partialBlock(
+        "The system timer and the page init",
+        "the utility script, the Timer and the Setup",
+        0,
+      ).title,
+      nothingLandedBlock("try", 0).title,
     ];
     expect(
       new Set(titles).size,
@@ -1752,7 +1762,9 @@ describe("the device UI's structural rules", () => {
 
     // THE BAR'S DEVICE CLAUSE: every phase but idle has one, the same words as
     // the block under the surface, and the four uncertain clauses differ.
-    const clauses = new Map(phases.map((p) => [p, deviceClause(p)] as const));
+    const clauses = new Map(
+      phases.map((p) => [p, deviceClause(p, 1)] as const),
+    );
     expect(clauses.get("idle")).toBeUndefined();
     for (const p of phases) {
       if (p === "idle") continue;
@@ -1762,9 +1774,14 @@ describe("the device UI's structural rules", () => {
       new Set(uncertain.map((p) => clauses.get(p as InstallPhase))).size,
       "the four uncertain clauses are pairwise distinct",
     ).toBe(4);
-    expect(clauses.get("settled")).toBe(SETTLED_CAPTION);
-    expect(clauses.get("kept")).toBe(KEPT_CAPTION);
-    expect(clauses.get("cleared")).toBe(CLEARED_CAPTION);
+    expect(clauses.get("settled")).toBe(settledCaption(1));
+    expect(clauses.get("kept")).toBe(keptCaption(1));
+    expect(clauses.get("cleared")).toBe(clearedCaption(1));
+    // The page rides through the bar (13-18): wire 1 reads as Page 2 in
+    // every confirmed clause, and the titles name no page.
+    expect(clauses.get("kept")).toBe("Stored on ZONA · Page 2");
+    expect(deviceClause("kept", 3)).toBe("Stored on ZONA · Page 4");
+    expect(clauses.get("partial")).not.toMatch(/Page d/);
 
     // TWO PROPS, NOT ONE. ContextBar declares `draft` and `device` separately
     // and the layout passes both from the fill's two fields; rendered with
@@ -1786,7 +1803,7 @@ describe("the device UI's structural rules", () => {
     expect(both).toContain('data-testid="status-dotted"');
     expect(both).toContain('data-testid="status-draft"');
     expect(both).toContain('data-testid="status-device"');
-    expect(both).toContain(SETTLED_CAPTION);
+    expect(both).toContain(settledCaption(0));
     expect(both).toContain(" · ");
     expect(both).toContain('data-tone="live"');
     const deviceOnly = render(ContextBar, {
@@ -1797,7 +1814,11 @@ describe("the device UI's structural rules", () => {
     expect(deviceOnly).not.toContain(" · ");
     expect(deviceOnly).toContain('data-tone="uncertain"');
     expect(deviceOnly).toContain(
-      partialBlock("The system timer and the page init", "the Setup").title,
+      partialBlock(
+        "The system timer and the page init",
+        "the utility script, the Timer and the Setup",
+        0,
+      ).title,
     );
     const neither = render(ContextBar, {
       props: {
@@ -1995,8 +2016,11 @@ describe("the device UI's structural rules", () => {
       reported: install.pageReported,
     };
     try {
-      install.pageRequested = 3;
-      install.pageReported = 1;
+      // Wire pages 2 and 0, which the visitor reads as Page 3 and Page 1
+      // (D-23, batch row I.3.1): the data attributes carry the wire, the
+      // sentence carries the visitor's number.
+      install.pageRequested = 2;
+      install.pageReported = 0;
       const body = render(DestinationReview, {
         props: { name: "Arc", onclose: () => undefined },
       }).body;
@@ -2005,8 +2029,8 @@ describe("the device UI's structural rules", () => {
       );
       expect(body).toContain("Replace the configuration on ZONA · Page 3?");
       expect(body).toContain("Arc will be applied to Page 3");
-      expect(body).toContain('data-to="3"');
-      expect(body).toContain('data-from="1"');
+      expect(body).toContain('data-to="2"');
+      expect(body).toContain('data-from="0"');
       expect(body).toContain("Switch page");
       expect(body).toContain("Keep this page");
       // A GROUP THAT MOVES FOCUS IN AND NEVER TRAPS IT - the tree's one focus

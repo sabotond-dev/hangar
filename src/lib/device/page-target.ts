@@ -352,12 +352,18 @@ export class PageTarget {
 // switch sentence, both verbatim.
 
 /**
- * How a page is named to a visitor: the number the module reports, as the
- * PDF and the header's control already show it. Whether that number should
- * be shown one-based is a question for the user (13-COPY-NEW.md), not a
- * decision taken here.
+ * How a page is named to a visitor: FROM ONE (13-CONTEXT D-23, batch row
+ * I.3.1). The module reports its active page from zero on the wire
+ * (`page_activepage`, grid_ui.c:76); Grid Editor shows the same values from
+ * one (Pages.svelte, `{ title: 1, value: 0 }`), and under D-19 the Editor's
+ * numbering is the reference - the PDF's `Page 1` and section 16's `Page 2`
+ * read the same way. The offset is applied here, where the word is written,
+ * and the wire is untouched: every number this module holds, sends and
+ * compares is still the module's own. install-copy.ts and session-copy.ts
+ * carry the same one-line function, because none of the three may import the
+ * others; the three specs pin wire 0 to `Page 1`.
  */
-export const pageName = (page: number): string => `Page ${page}`;
+export const pageName = (page: number): string => `Page ${page + 1}`;
 
 /**
  * THE DESTINATION REVIEW'S SENTENCE - 13-CONTEXT D-06, verbatim: the review
@@ -396,14 +402,14 @@ export const unverifiedLine = (
 /**
  * PUT BACK NAMES ITS PAGE BEFORE IT ACTS (D-06's fourth clause; HANGAR's
  * line, ledgered). The line under the control while a snapshot is in hand,
- * in place of Phase 10's "Restores the Setup and Timer that were on your
- * ZONA when you connected." - the same fact, with the page named, because a
+ * in place of Phase 10's page-less line - the same fact, with the page named, because a
  * visitor who switched pages after a try-on must not be surprised by which
  * page comes back. The snapshot in hand is the ACTIVE page's since the store
  * re-snapshots on a page change, and the line says which that is rather
  * than assuming the visitor knows. Two forms, as the Phase 10 pair has two:
- * the second after a keep this session, when the put-back stores too.
- * Both sit under PUT_BACK_CAP (129) so the 72px cell holds them.
+ * the second after a store this session, when the put-back stores too. The
+ * page-less Phase 10 pair retired with 13-18 (D-23, the batch's Put back row); these
+ * two are the control's only lines with a session.
  */
 export const putBackPageLine = (page: number): string =>
   `Puts ${pageName(page)} back to what it was playing when you connected.`;

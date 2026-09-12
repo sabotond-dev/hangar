@@ -169,6 +169,7 @@
           status={fill.status}
           draft={fill.draft}
           device={fill.device}
+          page={fill.page}
           destination={fill.destination}
         />
         <div

@@ -125,16 +125,16 @@ import {
   type ZonaState,
 } from "../transport/fixtures/synthetic";
 import {
-  LIVE_CLEARED,
-  LIVE_RESTORED,
-  LIVE_SNAPSHOT_SAVED,
   LIVE_STILL_WRITING,
   TRY_ON_LABEL,
   announceTitle,
   confirmRig,
   keptMismatchBlock,
+  liveCleared,
   liveKept,
+  liveRestored,
   liveSettled,
+  liveSnapshotSaved,
   lostBlock,
   nothingLandedBlock,
   partialBlock,
@@ -871,7 +871,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     // Spoken once the window closes, and NOTHING was written to the module.
     await after(500);
-    expect(session.speech).toBe(LIVE_SNAPSHOT_SAVED);
+    expect(session.speech).toBe(liveSnapshotSaved(ACTIVE_PAGE));
     expect(writesOf("CONFIG", "EXECUTE"), "a config write at connect").toBe(0);
     expect(writesOf("PAGESTORE", "EXECUTE"), "a store at connect").toBe(0);
     expect(session.writeLock, "the snapshot is a read; no lock").toBe(false);
@@ -932,7 +932,9 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(storage.map.size, "a record for an empty snapshot").toBe(0);
     expect(writesOf("CONFIG", "EXECUTE")).toBe(0);
     await after(500);
-    expect(session.speech).toBe(announceTitle(snapshotFailedBlock().title));
+    expect(session.speech).toBe(
+      announceTitle(snapshotFailedBlock(ACTIVE_PAGE).title),
+    );
 
     // The click retries the snapshot first, and writes ONLY if that lands.
     // The module is still on the wrong page, so: nothing.
@@ -1025,7 +1027,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(locks).toEqual([true, false]);
     expect(session.writeLock).toBe(false);
     await after(500);
-    expect(session.speech).toBe(liveSettled("Aurora"));
+    expect(session.speech).toBe(liveSettled(ACTIVE_PAGE));
 
     // A knob move onto different strings disarms; onto the same strings, not.
     store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
@@ -1086,7 +1088,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.snapshot, "the way back is still there").toEqual(ORIGINAL);
     expect(session.writeLock).toBe(false);
     await after(500);
-    expect(session.speech).toBe(LIVE_RESTORED);
+    expect(session.speech).toBe(liveRestored(ACTIVE_PAGE));
 
     // The module's RAM is what it was when the visitor connected - on both
     // elements.
@@ -1411,9 +1413,9 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(locks).toEqual([true, false]);
     expect(session.writeLock).toBe(false);
     await after(500);
-    expect(session.speech).toBe(liveKept("Aurora"));
+    expect(session.speech).toBe(liveKept(ACTIVE_PAGE));
     expect(
-      spoken.filter((s) => s === liveKept("Aurora")),
+      spoken.filter((s) => s === liveKept(ACTIVE_PAGE)),
       "spoken once - not for the ACK and again for the proof",
     ).toHaveLength(1);
   });
@@ -1499,7 +1501,9 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.armed).toBe(false);
     expect(session.writeLock).toBe(false);
     await after(500);
-    expect(session.speech).toBe(announceTitle(keptMismatchBlock().title));
+    expect(session.speech).toBe(
+      announceTitle(keptMismatchBlock(ACTIVE_PAGE).title),
+    );
     expect(session.speech.endsWith(".")).toBe(true);
   });
 
@@ -1541,7 +1545,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(session.writeLock).toBe(false);
     await after(500);
     expect(session.speech).toBe(
-      announceTitle(unconfirmedBlock("Aurora").title),
+      announceTitle(unconfirmedBlock("Aurora", ACTIVE_PAGE).title),
     );
 
     store.openConfirm();
@@ -1612,8 +1616,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       [EVENT_UTILITY]: MODULE_SYSTEM_UTILITY,
     });
     await after(500);
-    expect(session.speech).toBe(LIVE_RESTORED);
-    expect(spoken.filter((s) => s === LIVE_RESTORED)).toHaveLength(1);
+    expect(session.speech).toBe(liveRestored(ACTIVE_PAGE));
+    expect(spoken.filter((s) => s === liveRestored(ACTIVE_PAGE))).toHaveLength(
+      1,
+    );
 
     // Part two: a fresh rig whose flash never confirms the put-back's store.
     // Faults are fixed at construction, and a STORE leg is one write per
@@ -1656,11 +1662,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(second.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
     await after(500);
     expect(second.session.speech).toBe(
-      announceTitle(restoredUnconfirmedBlock().title),
+      announceTitle(restoredUnconfirmedBlock(ACTIVE_PAGE).title),
     );
     expect(
-      spokenSecond.includes(LIVE_RESTORED),
-      "LIVE_RESTORED spoken on an unproved store",
+      spokenSecond.includes(liveRestored(ACTIVE_PAGE)),
+      "the restored utterance spoken on an unproved store",
     ).toBe(false);
   });
 
@@ -1729,6 +1735,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         partialBlock(
           "The system timer, the page init, the utility script and the Timer",
           "the Setup",
+          ACTIVE_PAGE,
         ).title,
       ),
     );
@@ -1796,7 +1803,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
     await after(500);
     expect(refused.session.speech).toBe(
-      announceTitle(nothingLandedBlock("try").title),
+      announceTitle(nothingLandedBlock("try", ACTIVE_PAGE).title),
     );
 
     // Part two: every acknowledgement arrives later than executeMs, so the
@@ -1881,7 +1888,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
     await after(500);
     expect(session.speech).toBe(
-      announceTitle(lostBlock(false, TRY_ON_LABEL).title),
+      announceTitle(lostBlock(false, TRY_ON_LABEL, ACTIVE_PAGE).title),
     );
     expect(
       spoken.some((s) => s.includes("Nothing was written")),
@@ -2090,7 +2097,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("kept");
     expect(store.slow, "cleared at settle").toBe(false);
     await after(500);
-    expect(session.speech).toBe(liveKept("Aurora"));
+    expect(session.speech).toBe(liveKept(ACTIVE_PAGE));
     expect(spoken.filter((s) => s === LIVE_STILL_WRITING)).toHaveLength(1);
 
     // And structurally: a setTimeout on the store, zero intervals.
@@ -2209,7 +2216,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(locks, "the header lock closed over the leg").toEqual([true, false]);
     expect(session.writeLock).toBe(false);
     await after(500);
-    expect(session.speech).toBe(LIVE_CLEARED);
+    expect(session.speech).toBe(liveCleared(ACTIVE_PAGE));
 
     // `cleared` is in WRITABLE_PHASES: a clear after a clear is idempotent and
     // harmless, and TRY ON DEVICE works from here.
@@ -2257,6 +2264,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         partialBlock(
           "The system timer, the page init, the utility script and the Timer",
           "the Setup",
+          ACTIVE_PAGE,
         ).title,
       ),
     );
@@ -2604,6 +2612,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         partialBlock(
           "The system timer, the page init, the utility script and the Timer",
           "the Setup",
+          ACTIVE_PAGE,
         ).title,
       ),
     );
@@ -2686,6 +2695,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         partialBlock(
           "The system timer",
           "the page init, the utility script, the Timer and the Setup",
+          ACTIVE_PAGE,
         ).title,
       ),
     );

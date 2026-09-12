@@ -277,14 +277,18 @@ const instrumentFiles = (): string[] =>
 /**
  * EVERY --font-mono USE ON THE SITE, BY FILE AND BY THE RULE THAT DECLARES IT.
  *
- * SIX SINCE PLAN 13-08, SEVEN BEFORE IT, AND THE NUMBER IS THE RULE (A-44).
+ * FIVE SINCE PLAN 13-18, SIX SINCE 13-08, SEVEN BEFORE IT, AND THE NUMBER IS
+ * THE RULE (A-44).
  * 5.2 said "six, and the list is asserted" and was written before 10-10
  * shipped; 19.1c then called the metadata block the sixth, which
  * double-counted the picker's RGB triple. A-44 settled it at seven and
  * required the seventh's argument to be made OUT LOUD - CatalogCard.svelte's
  * metadata block, machine text whose columns must hold. 13-08 rewrote the
  * card to the Bible's page 2, which has no such block, so the seventh use
- * left with it and the list is six again across five files.
+ * left with it and the list was six across five files. 13-18 (D-23) moved
+ * the header's identity - the firmware and page numerals - into Device
+ * actions, where identitySentence is a sentence, so DeviceSlot's use left
+ * with it and the list is five across four files.
  *
  * The list is what is asserted, not the count alone: a use somewhere else
  * would keep the count right and still be a defect.
@@ -292,7 +296,6 @@ const instrumentFiles = (): string[] =>
 const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
   ["BudgetMeter.svelte", "Phase 5", "the two numeric columns"],
   ["CopyLink.svelte", "Phase 5", "the link field"],
-  ["DeviceSlot.svelte", "Phase 5", "the firmware numerals"],
   [
     "Knob.svelte",
     "Phase 5 and 11.3",
@@ -301,8 +304,8 @@ const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
   ["ColourPicker.svelte", "10-10", "the RGB triple - the sixth"],
 ];
 
-/** Six uses across five files: Knob.svelte carries two of them. */
-const MONO_COUNT = 6;
+/** Five uses across four files: Knob.svelte carries two of them. */
+const MONO_COUNT = 5;
 
 const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   [
@@ -633,7 +636,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     }
   });
 
-  it("scan 5: the index form is retired with the Bible, mono is a list of six, and no row gained a rule", () => {
+  it("scan 5: the index form is retired with the Bible, mono is a list of five, and no row gained a rule", () => {
     // ---- A-42's INDEX FORM IS RETIRED (plan 13-08, 13-CONTEXT D-01/D-05).
     // 19.1f put a two-digit index and an em dash beside each facet caption on
     // the gallery (`01 — FOR`). The Bible's page 2 draws one `Use` row with
@@ -727,7 +730,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
       "a device component renders the index form. 10.2 and A-23 forbid step numerals in the device flow: on the chosen panel the regions ARE the device sequence, so numbering them would read as an instruction rather than as a register mark.",
     ).toEqual([]);
 
-    // ---- --font-mono IS A LIST OF SIX, AND THE LIST IS THE ASSERTION.
+    // ---- --font-mono IS A LIST OF FIVE, AND THE LIST IS THE ASSERTION.
     const carriers: string[] = [];
     let declarations = 0;
     for (const name of uiComponents()) {
@@ -740,7 +743,7 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     }
     expect(
       declarations,
-      `${declarations} rules across src/lib/ui/ declare var(--font-mono) and A-44 settles the count at ${MONO_COUNT} since 13-08 retired the card's metadata block (seven before it). The LIST below is what holds it - a use somewhere else keeps the count right and is still a defect.`,
+      `${declarations} rules across src/lib/ui/ declare var(--font-mono) and A-44 settles the count at ${MONO_COUNT} since 13-18 moved the header's numerals into Device actions (six after 13-08, seven before it). The LIST below is what holds it - a use somewhere else keeps the count right and is still a defect.`,
     ).toBe(MONO_COUNT);
     expect(
       carriers.sort(),

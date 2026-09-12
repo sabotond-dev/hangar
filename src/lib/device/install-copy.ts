@@ -14,122 +14,142 @@
 // session-copy.ts - the block shape - is declared here again rather than
 // imported, because a type import is still a specifier.
 //
-// EVERY SENTENCE IS ONE LITERAL, NEVER A CONCATENATION, and every literal is
-// transcribed from 07-UI-SPEC's Copywriting Contract by copy and paste, one
-// sentence per line however long the line. Prettier reflows text inside Svelte
-// markup and Phase 2 lost a load-bearing sentence to exactly that
+// EVERY SENTENCE IS ONE LITERAL, NEVER A CONCATENATION. Prettier reflows text
+// inside Svelte markup and Phase 2 lost a load-bearing sentence to exactly that
 // (02-05-SUMMARY.md), so visitor-facing copy is a named constant and the
-// markup only interpolates it. install-copy.spec.ts holds every literal longer
-// than forty characters against the contract read from disk. Nothing here may
-// be paraphrased, reflowed, re-punctuated or "improved" - if a sentence is
-// wrong, the contract is what changes first.
+// markup only interpolates it.
+//
+// THE REGISTER IS THE BIBLE'S (13-CONTEXT D-05), AND THE WORDS ARE THE USER'S
+// (D-23). Every string here is one of three things, and install-copy.spec.ts
+// test 2 checks which by reading the documents from disk:
+//
+//  - a line the design specification's section 16 or its state table (section
+//    9) gives, taken VERBATIM - `Apply to ZONA`, `Store on ZONA`, `Reset active
+//    device page`, `Applying to Page 2…`, `Storing on Page 2…`, `Applied to
+//    Page 2. Store on ZONA to keep it after power-off.`, `Stored on ZONA ·
+//    Page 2`, `ZONA connected`;
+//  - a line the specification never wrote, PROPOSED in 13-18-BATCH.md with the
+//    state it names and the fact it must carry, and APPROVED as written by
+//    D-23 - everything else in this file; or
+//  - a sentence assembled from those, by a builder that takes a page, a name
+//    or a label and interpolates it raw.
+//
+// The register, as rules: sentence case, short, second person; the action and
+// its result in one line; plain about state, never coy; real apostrophes
+// (U+2019), a real ellipsis (U+2026), a real em dash (U+2014); no exclamation
+// marks; no emoji; no uppercase paragraphs; never "Error", never "loading"; no
+// browser engine named anywhere; and NO CONTROL LABEL PARAPHRASED IN PROSE - a
+// sentence that tells the visitor to click something names the control exactly
+// as the control reads, which is why every step below interpolates the label
+// constant rather than retyping it, and why the six disabled reasons say
+// `Apply to ZONA` and never "try it on".
+//
+// THE FOUR FACTS PHASE 10'S WORDS CARRIED SURVIVE IN THESE (D-05), AND A FIFTH
+// FROM PHASE 12.1. Traced old to new in 13-18-SUMMARY.md and 13-18-BATCH.md
+// section C:
+//
+//  1. RAM against flash - `Apply to ZONA` writes memory and a power cycle
+//     undoes it; `Store on ZONA` writes flash and survives one. honestyReady,
+//     settledCaption, settledBody, keepLineEnabled, keptBody.
+//  2. The snapshot - a copy of the page is taken before anything is written
+//     and `Put back` restores it. snapshottingBody, identifiedBody,
+//     restoredCaption, restoredBody, liveSnapshotSaved.
+//  3. The firmware default - `Reset active device page` writes the module's
+//     own default and the browser draft survives. clearLine, clearedCaption,
+//     clearedBody, liveCleared.
+//  4. Nothing is written without a click - session-copy.ts's SAFE_NOTE; here,
+//     every write is a named click and every step names one.
+//  5. A store carries the page's own scripts - five strings on the wire since
+//     13-17 (the system timer, the page init, the utility script, the touch
+//     Timer and the touch Setup, in that order). confirmReplaces,
+//     snapshottingBody, identifiedBody and the four partial rows.
+//
+// PAGES ARE NUMBERED FROM ONE (D-23, batch row I.3.1). The module reports its
+// active page as 0 to 3 on the wire (`page_activepage`, grid_ui.c); Grid
+// Editor shows those as 1 to 4 (Pages.svelte, `{ title: 1, value: 0 }`), and
+// under D-19 the Editor's numbering is the reference. Every builder here takes
+// the WIRE number and formats it through pageName, so the offset is applied
+// where the word "Page" is written and nowhere else. page-target.ts and
+// session-copy.ts carry the same one-line function, because none of the three
+// may import the others; page-target.spec.ts, session-copy.spec.ts and
+// install-copy.spec.ts each pin wire 0 to `Page 1`.
+//
+// THE HONESTY CAPS ARE RETIRED BY NAME, 2026-09-12 (13-18, D-05). HONESTY_CAP
+// (86), PUT_BACK_CAP (129), KEEP_CAP (86) and CLEAR_CAP (86) were measured
+// maximum lengths per string - `lines x CH_PER_LINE`, with CH_PER_LINE the 43
+// characters plan 10-01 measured as the minimum occupancy of one Body line box
+// in the install column's 372px content column - so that a caption could not
+// outgrow the cell Phase 10's layout reserved for it, and so that a cap was a
+// promise about strings not yet written rather than a description of the ones
+// that existed. install-copy.spec.ts test 3 held all four by name, and
+// tune/copy.ts's tryOnBudgetReason was held to HONESTY_CAP from outside. What
+// superseded them: D-05 changed the register (sentence case, second person,
+// the Bible's own lines verbatim, several of them longer than 86), and the
+// layout the caps were measured against no longer exists - the install column
+// is being re-homed into the Bible's context bar and Device actions panel
+// (13-11, 13-12, 13-20), whose regions are proportional (13-CONTEXT D-14 Q9,
+// D-21) rather than pixel-reserved. A string's fit is now the Bible's geometry
+// and a component's own sizing twin, not a number in this file. The four
+// constants are gone rather than left at a value nothing checks; the OTHER
+// rules those caps travelled with - the punctuation, the register, the
+// no-paraphrase rule, Z-08's one "about a second", A-48's three stems -
+// carry over and are asserted over every export in install-copy.spec.ts.
 //
 // THREE RULES A READER WOULD REVERSE, WRITTEN DOWN:
 //
-//  - THE SIX KEEP ON DEVICE REASONS ARE A CLOSED RECORD OVER A SIX-MEMBER
-//    UNION. The UI spec says the set is closed at six and an executor never
-//    adds a seventh; here that is structural - a seventh key in KEEP_REASONS is
-//    a type error, not a lint finding. Every state row that reads "present,
-//    disabled" without naming a reason uses `never-tried`.
+//  - THE SIX STORE ON ZONA REASONS ARE A CLOSED RECORD OVER A SIX-MEMBER
+//    UNION, AND THE THREE RESET REASONS LIKEWISE. A seventh key in
+//    KEEP_REASONS is a type error, not a lint finding. Every state row that
+//    reads "present, disabled" without naming a reason uses `never-tried`.
+//    13-18 reworded the members and kept the types (D-23; 13-18-PLAN.md).
 //
 //  - {Name} IS INTERPOLATED RAW AND NEVER RE-CASED. The catalog's names are
-//    already the form the panel shows (EUCLID, MORPH); a toUpperCase() here
-//    would be a second opinion about a string somebody else owns.
+//    already the form the panel shows (Arc, Euclid since D-14 Q11b); a
+//    toUpperCase() here would be a second opinion about a string somebody
+//    else owns.
 //
 //  - FAILURE TITLES CARRY NO TERMINAL PUNCTUATION; announceTitle ADDS THE FULL
-//    STOP. A title is a heading in region 3 and a sentence in the live region,
-//    and the full stop belongs to the second job only. Success utterances are
-//    sentences of their own and are never derived from a title.
+//    STOP. A title is a heading in the block and a sentence in the live
+//    region, and the full stop belongs to the second job only. Success
+//    utterances are sentences of their own and are never derived from a
+//    title.
 //
-// THE PUNCTUATION IS LOAD-BEARING. Real apostrophes (U+2019), a real ellipsis
-// (U+2026), a real em dash (U+2014). No emoji, no exclamation marks, never
-// "Error", never "loading", no browser engine named anywhere, no control label
-// that says what the wire does, and no string names a control that is not on
-// the screen - which is why the lost block takes the label of the surface
-// rendering it (Y-13).
-//
-// THE FOUR CAPS - THREE UNTIL PLAN 10-12 - ARE THE CONTRACT'S, NOT THIS
-// MODULE'S TO MOVE.
-//
-// A cap is `lines x CH_PER_LINE`, where CH_PER_LINE is the capacity of one Body
-// line box in the panel's 372px content column. Phases 6 and 7 used 43,
-// measured in Quicksand. Plan 10-02 swapped the body face to Inter Variable, so
-// plan 10-01 re-measured it in two engines over thirty-six full line boxes and
-// got 43 again - the minimum occupancy of a full line box, which is what makes
-// a cap a promise about strings not yet written rather than a description of
-// the ones that exist (10-01-SUMMARY.md).
-//
-//   HONESTY_CAP   2 x 43 =  86   the honesty slot, 48px, two lines
-//   PUT_BACK_CAP  3 x 43 = 129   the PUT BACK cell, 72px, three lines
-//   KEEP_CAP      2 x 43 =  86   the KEEP ON DEVICE cell, 48px, two lines
-//   CLEAR_CAP     2 x 43 =  86   the CLEAR cell, 48px, two lines
-//
-// PUT_BACK_CAP and KEEP_CAP land byte-for-byte on the numbers this module
-// already shipped. HONESTY_CAP moves 129 to 86, which is 10-UI-SPEC 12.2's
-// three-lines-to-two collapse arriving as arithmetic rather than as an edit.
-//
-// WHEN A LITERAL EXCEEDS ITS OWN CAP, THE LITERAL IS SHORTENED - NEVER THE CAP
-// RAISED. A cap widened to admit its own string stops reserving anything, and
-// the reservation is the entire reason the caps exist. HONESTY_READY was 104
-// here and 90 in the approved contract, both over 86, and it is 85 below.
-//
-// CLEAR_CAP'S SECOND LINE IS HEADROOM RATHER THAN OCCUPANCY, AND THAT IS A
-// DEPARTURE FROM THE FORMULA RATHER THAN AN OVERSIGHT (A-52). The sentence
-// that stood here - "CLEAR_LINE is exactly 86, it fits with zero headroom, and
-// one added character breaks it" - IS RETIRED BY NAME, dated 2026-09-08: D-21
-// fixed the line at 41 characters, so it is no longer true of any string this
-// module ships. What replaces it: the four candidates in the CLEAR cell are
-// CLEAR_LINE at 41 and the three reasons at 43, 26 and 36, so 12's rule
-// (ceil(longest / CH_PER_LINE) x 24) would give ONE line and 24px. DO NOT TAKE
-// IT. A one-line cap of 43 would put a shipped string exactly on its own cap -
-// the zero-headroom defect plan 10-01 flagged against the old CLEAR_LINE,
-// reintroduced at a different number. Two lines is the smallest reservation
-// that leaves the cap a promise about strings not yet written, which is the
-// entire reason the caps exist, and the 48px cell is sized for two.
-//
-// The spec asserts every string against its cap by name (Z-18).
+// SIX UNCERTAIN OUTCOMES, SIX TITLES, ON PURPOSE (D-23). Section 16 offers one
+// sentence - "The device stopped responding. Your draft is safe; device state
+// could not be verified." - for a write whose acknowledgement never came, a
+// store that read back differently, a partial landing, nothing landing, a
+// restore whose store did not confirm, and a snapshot that could not be
+// taken. HANGAR measures which one happened and each has its own recovery, so
+// each has its own title and its own steps; the user chose to keep them apart
+// with the cost of collapsing them stated (13-18-BATCH.md section I.5).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 // ---------------------------------------------------------------------------
 // The shapes.
 
-/** One event, as the contract's {Setup|Timer} placeholder writes it - already capitalised. */
+/** One event, as the touch element's two scripts are named - already capitalised. */
 export type EventWord = "Setup" | "Timer";
 
 /**
  * WHAT LANDED, AND WHAT DID NOT, AS THE PARTIAL BLOCK INTERPOLATES THEM.
  *
  * Two CLOSED unions rather than one open string, because the pairings encode a
- * fact about the writer: since 12-03 a RAM leg writes THREE events - the page
- * init (255/0), then the touch Timer, then the touch Setup - sequentially,
- * aborting on the first failure. So exactly two partials exist, they are the
- * two rows below, and "the Setup landed but the page init did not" is not
- * expressible here because the writer cannot produce it. `landed` is
- * sentence-initial and capitalised; `failed` sits mid-sentence and is not.
+ * fact about the writer: a RAM leg writes FIVE strings sequentially, aborting
+ * on the first failure - the system timer (255/6), the page init (255/0), the
+ * utility script (255/4), the touch Timer (0/6), the touch Setup (0/0) - so
+ * exactly four partials exist, they are the four rows below, and "the Setup
+ * landed but the page init did not" is not expressible here because the
+ * writer cannot produce it. `landed` is sentence-initial and capitalised;
+ * `failed` sits mid-sentence and is not. Reading a row left to right is
+ * reading sequence.ts's SLOTS top to bottom.
  *
- *   The page init                | the Timer and the Setup
- *   The page init and the Timer  | the Setup
- *
- * SINCE 12.1-07 A RAM LEG WRITES FOUR - the system timer (255/6) goes first
- * of all - so a third partial exists, the first row below: the store's
- * classifier reads which of four landed off sequence.ts's SLOTS and needs a
- * pairing for the new prefix. 12.1-07 added that one row and left the two
- * older rows understating what landed by one slot; SINCE 12.1-08 EVERY ROW
- * NAMES ALL FOUR IN WRITE ORDER - the landed prefix on the left, the rest on
- * the right, and reading a row left to right is reading SLOTS top to bottom.
  * These are LITERALS, not built from SLOTS[].label (this module imports
  * nothing and authors no grammar); the store publishes the labels separately
- * as landedSlots / failedSlots.
- *
- * SINCE 13-17 A RAM LEG WRITES FIVE - the utility script (255/4, the Sandbox
- * runtime's second slot, 13-CONTEXT D-18 / D-19) goes third, after the page
- * init and before the touch pair - so a fourth partial exists and every row
- * names the five in write order. "The utility script" is HANGAR's word for
- * the slot (the firmware's is the utility button's event; a catalog entry
- * lands the module's own page-next there and a surface lands its runtime),
- * ledgered in 13-COPY-NEW.md under "From 13-17". 13-18 rewrites this file
- * under 13-CONTEXT D-05 and must carry the five-string fact.
+ * as landedSlots / failedSlots. "The utility script" is HANGAR's word for
+ * 255/4 (the firmware's is the utility button's event; a catalog entry lands
+ * the module's own page-next there and a surface lands its runtime), kept by
+ * D-23 (batch row I.5.4).
  *
  *   The system timer                                                  | the page init, the utility script, the Timer and the Setup
  *   The system timer and the page init                                | the utility script, the Timer and the Setup
@@ -148,10 +168,9 @@ export type FailedWords =
   | "the Setup";
 
 /**
- * A failure-shaped block for region 3: a title, a detail, the steps in order.
- * The same shape as session-copy.ts's SessionBlock, declared here rather than
- * imported (see the header); the title is required here because every one of
- * the seven install failures has one.
+ * A failure-shaped block: a title, a detail, the steps in order. The same
+ * shape as session-copy.ts's SessionBlock, declared here rather than imported
+ * because a type import is still a specifier (see the header).
  */
 export interface InstallBlock {
   title: string;
@@ -159,334 +178,280 @@ export interface InstallBlock {
   steps: string[];
 }
 
-// ---------------------------------------------------------------------------
-// The four caps (07-UI-SPEC, Copywriting Contract, last rule; 10-UI-SPEC 12.2,
-// re-derived at the measured CH_PER_LINE). Three until plan 10-12.
-
-/** Every honesty-slot string: TWO lines at 43 characters, 48px reserved. Was 129 at three lines. */
-export const HONESTY_CAP = 86;
-/** Every PUT BACK line: three lines at 43 characters, 72px reserved. */
-export const PUT_BACK_CAP = 129;
-/** The KEEP ON DEVICE enabled line and all six reasons: two lines at 43, 48px. */
-export const KEEP_CAP = 86;
-/** The CLEAR line and all three reasons: two lines at 43, 48px - the second declared headroom (A-52, see the header). */
-export const CLEAR_CAP = 86;
+/** A firmware record, as the identity carries it. */
+export interface Firmware {
+  major: number;
+  minor: number;
+  patch: number;
+}
 
 // ---------------------------------------------------------------------------
-// The labels. Uppercase, wide-tracked, never the wire's words.
+// The page's name.
 
-/** Phase 4's, unchanged. */
-export const TRY_ON_LABEL = "TRY ON DEVICE";
-export const WRITING_LABEL = "WRITING…";
-export const KEEPING_LABEL = "KEEPING…";
-export const PUT_BACK_LABEL = "PUT BACK";
-export const PUTTING_BACK_LABEL = "PUTTING BACK…";
-/** Phase 4's, unchanged. */
-export const KEEP_LABEL = "KEEP ON DEVICE";
-export const NOT_NOW_LABEL = "NOT NOW";
-/** Plan 10-12's fourth click. The Editor's own word, kept (D-21); what it does is said in the line beneath it. */
-export const CLEAR_LABEL = "CLEAR";
-export const CLEARING_LABEL = "CLEARING…";
 /**
- * THE FIFTH WRITE CLICK (Phase 13, plan 13-12; 13-CONTEXT D-06): the
- * destination review's affirmative, the one click that moves the module's
- * active page - a write for SAFE-01's purpose, so it is in WRITE_CLICKS. And
- * its negative beside it. BOTH ARE IN D-05'S REGISTER - sentence case, verbs
- * plainly - and not in Phase 10's uppercase, because the review sits in the
- * Bible's context bar beside `Apply to ZONA` and `Target`, not in the install
- * column; install-copy.spec.ts exempts the two from the uppercase rule BY
- * NAME with this reason, and 13-18's batch decides whether the other nine
- * follow. Ledgered in 13-COPY-NEW.md.
+ * The page as the visitor reads it, from the page as the module reports it:
+ * wire 0 is `Page 1` (D-23, batch row I.3.1; the Editor's numbering under
+ * D-19). The one place in this module the offset is applied. Duplicated by
+ * name in page-target.ts and session-copy.ts, which may not import it; the
+ * three specs pin the three to the same answer.
+ */
+export const pageName = (page: number): string => `Page ${page + 1}`;
+
+// ---------------------------------------------------------------------------
+// The labels. Verbs, plainly, in sentence case (D-05); never the wire's words.
+
+/** Section 9's own label for the RAM write. */
+export const TRY_ON_LABEL = "Apply to ZONA";
+/** Section 9's progress label for the RAM write. */
+export const writingLabel = (page: number): string =>
+  `Applying to ${pageName(page)}…`;
+/** Section 9's progress label for the flash write. */
+export const keepingLabel = (page: number): string =>
+  `Storing on ${pageName(page)}…`;
+/** HANGAR's own restore, as a verb (batch row I.3.2); the line beneath it names the page. */
+export const PUT_BACK_LABEL = "Put back";
+/** Section 9's progress shape, for the restore (I.3.3). */
+export const puttingBackLabel = (page: number): string =>
+  `Putting ${pageName(page)} back…`;
+/** Section 9's own label for the flash write. */
+export const KEEP_LABEL = "Store on ZONA";
+/** The store confirmation's negative (I.4.19). */
+export const NOT_NOW_LABEL = "Not now";
+/** Section 9's own label for the firmware default; what it does is said in the line beneath it. */
+export const CLEAR_LABEL = "Reset active device page";
+/** Section 9's progress shape, for the reset (I.4.20). */
+export const clearingLabel = (page: number): string =>
+  `Resetting ${pageName(page)}…`;
+/**
+ * THE FIFTH WRITE CLICK (13-12; 13-CONTEXT D-06): the destination review's
+ * affirmative, the one click that moves the module's active page - a write
+ * for SAFE-01's purpose, so it is in WRITE_CLICKS. And its negative beside it.
  */
 export const SWITCH_PAGE_LABEL = "Switch page";
 export const KEEP_PAGE_LABEL = "Keep this page";
 
 /**
  * THE NUMBER OF WRITE CLICKS, AS A CONSTANT RATHER THAN AS A WORD IN PROSE.
- *
- * It has now changed twice - three to four, plan 10-12; four to five, plan
- * 13-12 - and it will change again. A sentence saying "one of three clicks" rots silently in a
- * requirements table; a constant of length four, asserted equal to the four
- * control labels, moves with the labels or turns a gate red. Every write this
- * site can perform is attributable to one of these (SAFE-01).
+ * Five since 13-12. REQUIREMENTS.md's SAFE-01 names this constant; a sixth
+ * write control is a change here first.
  */
 export const WRITE_CLICKS = [
-  "TRY ON DEVICE",
-  "PUT BACK",
-  "KEEP ON DEVICE",
-  "CLEAR",
-  // 13-12: the page switch. Nothing writes without a click, and the switch
-  // is a write for this purpose (D-06, first clause).
-  "Switch page",
+  TRY_ON_LABEL,
+  PUT_BACK_LABEL,
+  KEEP_LABEL,
+  CLEAR_LABEL,
+  SWITCH_PAGE_LABEL,
 ] as const;
 
 // ---------------------------------------------------------------------------
-// The honesty slot. Four strings here; the fifth is Phase 5's
-// tryOnBudgetReason, which stays in $lib/tune/copy. "about a second" appears
-// in the first two and nowhere else on the site (Z-08), and install-copy.spec
-// asserts that occurrence count rather than trusting this comment.
+// The honesty slot: the one line under Apply to ZONA, by state (I.4.1-I.4.4).
 
-/**
- * RETIRED AT 106 AND REWRITTEN AT 70, plan 10-03 (10-UI-SPEC 13.3, R-05). The
- * two facts a visitor needs before the first click are what it connects to and
- * what it writes; "and only in memory" said the third thing twice, because the
- * ready form beneath it already names the power cycle.
- */
+/** No session yet: the click connects first. Z-08's "about a second", once of twice. */
 export const HONESTY_NO_SESSION =
-  "Connects to your ZONA and writes this into its memory. About a second.";
-
-/**
- * RETIRED AT 104 AND REWRITTEN AT 85, plan 10-03 (10-UI-SPEC 13.3, R-06).
- *
- * The approved contract's form is 90: `Writes this into your ZONA’s memory in
- * about a second. A power cycle brings your own back.` It does not ship,
- * because 90 is over HONESTY_CAP - 2 x 43 = 86 at the CH_PER_LINE plan 10-01
- * measured - and the rule is to shorten the literal rather than raise the cap.
- * Two words move: "brings" becomes "puts" and "your own" becomes "yours". Both
- * facts survive whole and so does the two-line reservation.
- * install-copy.spec.ts records the amendment by name.
- */
-export const HONESTY_READY =
-  "Writes this into your ZONA’s memory in about a second. A power cycle puts yours back.";
-
-/** Deliberately names no control: PUT BACK is not on the screen yet (I1). */
+  "Connects to your ZONA and applies this to its active page. About a second.";
+/** Ready: the first fact, RAM against flash, before the click. Z-08's second "about a second". */
+export const honestyReady = (page: number): string =>
+  `Applies this to ${pageName(page)} in about a second. It stays until power-off unless you store it.`;
+/** While the snapshot is read: the second fact, said before it is needed. */
 export const HONESTY_SNAPSHOTTING =
-  "Reading what is on your ZONA now, so nothing you do here is one-way.";
-
-/** Precedence 1 in I9: on a browser that cannot write, the standing line would be a lie (Z-06). */
+  "Reading what your ZONA holds first, so anything you apply can be put back.";
+/** On a browser that cannot write (DEGR-02): the standing line would be a lie. */
 export const HONESTY_INCAPABLE =
-  "This browser cannot write to a ZONA. Everything else on this page works.";
+  "This browser can’t write to a ZONA. Everything else on this page works.";
 
 // ---------------------------------------------------------------------------
-// Region 3, the success-shaped blocks: a caption over a body.
+// The install block, state by state.
 
-export const SNAPSHOTTING_CAPTION = "READING ZONA";
-export const SNAPSHOTTING_BODY =
-  "Taking a copy of the Setup and Timer scripts already on your ZONA’s touch element, and the page’s own init script.";
+/** While the snapshot is read (I.4.5). */
+export const SNAPSHOTTING_CAPTION = "Reading your ZONA…";
+/** The second and fifth facts: a copy of the page, five scripts, so it can be put back (I.4.6). */
+export const snapshottingBody = (page: number): string =>
+  `Taking a copy of what ${pageName(page)} holds — the touch element’s Setup and Timer and the page’s own init, timer and utility scripts — so it can be put back.`;
 
-/** Phase 4's caption, unchanged. */
-export const IDENTIFIED_CAPTION = "ZONA IDENTIFIED";
-
-/** Phase 4's identified body, AMENDED (Z-07): PUT BACK is on the screen in I2, so naming it is the point. */
-export function identifiedBody(
-  fw: { major: number; minor: number; patch: number },
-  page: number,
-): string {
-  return `Firmware ${fw.major}.${fw.minor}.${fw.patch}, active page ${page}. Its own Setup and Timer are saved here, and the page’s own init script, so PUT BACK can undo anything you try.`;
+/** Section 9's own label for the ready state. */
+export const IDENTIFIED_CAPTION = "ZONA connected";
+/** The identity, the copy and the way back (I.4.7); names Put back, which is on the screen from here on. */
+export function identifiedBody(fw: Firmware, page: number): string {
+  return `Firmware ${fw.major}.${fw.minor}.${fw.patch}, on ${pageName(page)}. A copy of the page is saved here — its touch Setup and Timer and its own init, timer and utility scripts — so ${PUT_BACK_LABEL} can undo anything you apply.`;
 }
 
-/**
- * The one escape hatch of `writing`, at 2000 ms, and it is arithmetic rather
- * than theatre: no bar, no percentage, no attempt counter (Z-09).
- */
+/** The one escape hatch of `writing`, at 2000 ms (Z-09). */
 export const STILL_WRITING_LINE =
-  "Still writing. Your ZONA is taking longer than it usually does.";
+  "Still writing. Your ZONA is taking longer than usual.";
 
-export const SETTLED_CAPTION = "PLAYING NOW";
-
-/** The third sentence is FEATURES B7, the page-change warning, in the one state where it is true. */
-export function settledBody(name: string): string {
-  return `${name} is running on your ZONA now. It lives in memory only — a power cycle brings your own configuration back. Changing page on your ZONA clears it; try it on again if that happens.`;
+/** Section 16's own line for a RAM apply: the first fact, after the click. */
+export const settledCaption = (page: number): string =>
+  `Applied to ${pageName(page)}. Store on ZONA to keep it after power-off.`;
+/** The clause section 16 has no line for: changing page on the module clears memory (I.4.10). */
+export function settledBody(name: string, page: number): string {
+  return `${name} is running on ${pageName(page)} in memory only. Changing page on your ZONA clears it; apply it again if that happens.`;
 }
 
-export const RESTORED_CAPTION = "RESTORED";
-export const RESTORED_BODY =
-  "Your own Setup and Timer are back on your ZONA’s touch element, exactly as they were when you connected.";
-
-/** Renders only after the PAGESTORE acknowledgement AND the re-fetch proof (D-12): it is a claim about a power cycle. */
+/** The restore landed: section 16's clause shape, with HANGAR's verb (I.4.13). */
+export const restoredCaption = (page: number): string =>
+  `${PUT_BACK_LABEL} · ${pageName(page)}`;
+/** The module's own earlier configuration is back, not a HANGAR default (I.4.14). */
+export const restoredBody = (page: number): string =>
+  `${pageName(page)} holds exactly what it held when you connected — your own configuration, not a HANGAR default.`;
+/** After a restore that also stored (Z-04): the line beneath the body. */
 export const RESTORED_STORED_LINE =
-  "They are stored too, so they stay after a power cycle.";
+  "It’s stored too, so it stays after power-off.";
 
-export const KEPT_CAPTION = "KEPT";
-
-export function keptBody(name: string): string {
-  return `${name} is stored on your ZONA and will still be there after a power cycle.`;
+/** Section 16's own line for a confirmed store. Renders only after the acknowledgement AND the re-fetch proof (D-12). */
+export const keptCaption = (page: number): string =>
+  `Stored on ZONA · ${pageName(page)}`;
+/** The first fact, flash side (I.4.11). */
+export function keptBody(name: string, page: number): string {
+  return `${name} is stored on ${pageName(page)} and will still be there after power-off.`;
 }
-
-/**
- * The restart is not filler: the pad visibly blinks out as the module restarts
- * its Lua VM, and a visitor who was not told would read that as a fault.
- *
- * RETIRED AT 124 AND REWRITTEN AT 53, plan 10-03 (10-UI-SPEC 13.3, R-09). The
- * first sentence was `HANGAR read both scripts back and they match, character
- * for character.` - a boast about a check the site would not have called KEPT
- * without. The caption above it already says KEPT, and the failure form of
- * exactly that check has its own block (keptMismatchBlock), so the read-back is
- * described where it can still go wrong and nowhere else.
- */
+/** The restart is not filler: the pad visibly blinks out as the module reloads the stored page. */
 export const KEPT_PROOF_LINE =
   "The pad restarts once as it loads the stored version.";
 
-/**
- * I14, the fifteenth state (A-50). THE CAPTION NAMES THE STATE, NOT THE
- * BUTTON, exactly as PLAYING NOW names the state TRY ON DEVICE leaves behind -
- * and it is two words, so 5.2's uppercase rule needs no exception.
- */
-export const CLEARED_CAPTION = "FACTORY DEFAULT";
-
-/**
- * The body names PUT BACK, which is enabled in `cleared` by construction (a
- * snapshot is a term of CLEAR's own enablement rule), so the
- * no-string-names-an-absent-control rule holds. And it says what the module is
- * DOING rather than what was taken away: after a clear the pad runs a
- * proximity-weighted touch highlight the firmware itself ships (A-48), so
- * "empty" would be false as well as unkind.
- */
-export const CLEARED_BODY =
-  "Your ZONA is running the firmware’s own default configuration. PUT BACK restores what was there when you connected.";
+/** The reset landed: section 16's confirmation words for the state it confirmed (I.4.16). */
+export const clearedCaption = (page: number): string =>
+  `${pageName(page)} reset to its firmware default`;
+/** The third fact's result: the default runs, Put back restores, the browser draft is untouched (I.4.17). */
+export const clearedBody = (page: number): string =>
+  `${pageName(page)} is running the firmware’s own default. ${PUT_BACK_LABEL} restores what was there when you connected, and your browser draft is untouched.`;
 
 // ---------------------------------------------------------------------------
-// Region 3, the seven failure-shaped blocks. Titles end without punctuation;
-// announceTitle() adds the full stop for the live region.
+// The six uncertain outcomes and the lost cable: six titles, on purpose
+// (D-23; section I.5 of the batch). Titles end in a letter; announceTitle
+// adds the full stop.
 
-const KEPT_MISMATCH_TITLE = "Stored, but the read-back does not match";
-const UNCONFIRMED_TITLE = "Your ZONA did not confirm the store";
-const RESTORED_UNCONFIRMED_TITLE = "Put back for now, not after a power cycle";
+const KEPT_MISMATCH_TITLE = "Stored, but what read back doesn’t match";
+const UNCONFIRMED_TITLE = "Your ZONA didn’t confirm the store";
+const RESTORED_UNCONFIRMED_TITLE = "Put back in memory, not yet stored";
 const NOTHING_LANDED_TITLE = "Nothing reached your ZONA";
-const PARTIAL_TITLE = "Only one of the two scripts landed";
-const LOST_TITLE = "The ZONA was unplugged mid-write";
+const PARTIAL_TITLE = "Only part of this reached your ZONA";
+const LOST_TITLE = "Your ZONA was unplugged mid-write";
 const SNAPSHOT_FAILED_TITLE = "Nothing to put back yet";
 
-/** The step three blocks share. */
-const STEP_OR_PUT_BACK =
-  "Or click PUT BACK to restore what was there when you connected";
+/** The step four blocks share (I.5.8). */
+const STEP_OR_PUT_BACK = `Or click ${PUT_BACK_LABEL} to restore what was there when you connected`;
 
-/** I10. Both named controls are on the screen: TRY ON DEVICE live, KEEP ON DEVICE present and disabled (Z-21). */
-export function keptMismatchBlock(): InstallBlock {
+/** The store was acknowledged and the read-back differs (I.5.2). */
+export function keptMismatchBlock(page: number): InstallBlock {
   return {
     title: KEPT_MISMATCH_TITLE,
-    detail:
-      "Your ZONA acknowledged the store, but reading the two scripts back gave something different. HANGAR will not call that kept.",
-    steps: ["Click TRY ON DEVICE, then KEEP ON DEVICE again", STEP_OR_PUT_BACK],
-  };
-}
-
-/** I11. Memory still holds what the visitor heard, so KEEP ON DEVICE is live and step 1 may name it. */
-export function unconfirmedBlock(name: string): InstallBlock {
-  return {
-    title: UNCONFIRMED_TITLE,
-    detail: `${name} is still running on your ZONA, in memory. No confirmation of the store came back, so HANGAR cannot say whether it will be there after a power cycle.`,
-    steps: ["Click KEEP ON DEVICE to send the store again", STEP_OR_PUT_BACK],
-  };
-}
-
-/** I12. I11's sibling on the PUT BACK side; the sentence that is true here is the opposite of I11's. */
-export function restoredUnconfirmedBlock(): InstallBlock {
-  return {
-    title: RESTORED_UNCONFIRMED_TITLE,
-    detail:
-      "Your own Setup and Timer are running on your ZONA now, in memory. The store did not confirm, so after a power cycle the version kept earlier may come back instead.",
-    steps: ["Click PUT BACK again"],
-  };
-}
-
-/**
- * I13, in its two forms. After TRY ON DEVICE the owner's own scripts are still
- * running and there is nothing to put back; after PUT BACK what was playing is
- * still playing. The second step names the cable, because a timeout with no
- * NACK is the signature of a silent discard (docs/SKELETON-RESULTS.md).
- */
-export function nothingLandedBlock(after: "try" | "put-back"): InstallBlock {
-  const cable = "If it happens twice, check the cable is seated at both ends";
-  return after === "try"
-    ? {
-        title: NOTHING_LANDED_TITLE,
-        detail:
-          "Neither script got through. Nothing on the module changed, so your own Setup and Timer are still running and there is nothing to put back.",
-        steps: ["Click TRY ON DEVICE to send both again", cable],
-      }
-    : {
-        title: NOTHING_LANDED_TITLE,
-        detail:
-          "Neither script got through. Nothing on the module changed, so what was playing is still playing.",
-        steps: ["Click PUT BACK to send both again", cable],
-      };
-}
-
-/**
- * I7, SAFE-07's named case. The two LISTS arrive already cased, as
- * $lib/tune/copy established for the single words this replaced, so this
- * module imports nothing for them and authors no grammar.
- *
- * AMENDED IN 12-03, because a RAM leg writes three events and "Timer reached
- * your ZONA and Setup did not" could no longer say which three-way split had
- * happened. AMENDED AGAIN IN 12.1-08, because a RAM leg writes four (the
- * system timer first) and the step says "all four" for the same reason; AND
- * IN 13-17, because a RAM leg writes five (the utility script third) and the
- * step says "all five". The words themselves are the unions above. The TITLE
- * is unchanged - `PARTIAL_TITLE` is what the panel and the live region read,
- * and it never named a count.
- */
-export function partialBlock(
-  landed: LandedWords,
-  failed: FailedWords,
-): InstallBlock {
-  return {
-    title: PARTIAL_TITLE,
-    detail: `${landed} reached your ZONA and ${failed} did not. What is on the module now is part of this configuration and part of your own.`,
-    steps: ["Click TRY ON DEVICE to send all five again", STEP_OR_PUT_BACK],
-  };
-}
-
-/**
- * I8. "Nothing was stored" is said only where it is true (Z-11): when the leg
- * in flight was a store leg, the detail says instead that HANGAR cannot say what
- * a power cycle brings back. `label` is the control on the surface rendering
- * the block - TRY ON DEVICE in the panel, CONNECT ZONA in the header disclosure
- * - the only place this module takes a control name as an argument.
- */
-export function lostBlock(storeLeg: boolean, label: string): InstallBlock {
-  return {
-    title: LOST_TITLE,
-    detail: storeLeg
-      ? "The store was sent and no confirmation came back before the ZONA was unplugged. HANGAR cannot say what a power cycle brings back."
-      : "Some of this configuration may have reached the module and some may not. Nothing was stored, so a power cycle brings your own configuration back.",
+    detail: `Your ZONA acknowledged the store, but reading ${pageName(page)} back gave something different. HANGAR won’t call that stored.`,
     steps: [
-      "Plug the ZONA back in",
-      `Click ${label} again`,
-      "Then click PUT BACK to restore what was there when you connected",
+      `Click ${TRY_ON_LABEL}, then ${KEEP_LABEL} again`,
+      STEP_OR_PUT_BACK,
     ],
   };
 }
 
-/** I9 cause 4. The click retries the snapshot first and writes only if that lands. */
-export function snapshotFailedBlock(): InstallBlock {
+/** The store's acknowledgement never came inside the retry bound (I.5.1). */
+export function unconfirmedBlock(name: string, page: number): InstallBlock {
+  return {
+    title: UNCONFIRMED_TITLE,
+    detail: `${name} is still running on ${pageName(page)} in memory. No confirmation of the store came back, so HANGAR can’t say whether it survives power-off.`,
+    steps: [`Click ${KEEP_LABEL} to send the store again`, STEP_OR_PUT_BACK],
+  };
+}
+
+/** The restore's store leg did not confirm (I.5.6). */
+export function restoredUnconfirmedBlock(page: number): InstallBlock {
+  return {
+    title: RESTORED_UNCONFIRMED_TITLE,
+    detail: `Your own configuration is running on ${pageName(page)} again, in memory. The store didn’t confirm, so after power-off the version stored earlier may come back instead.`,
+    steps: [`Click ${PUT_BACK_LABEL} again`],
+  };
+}
+
+/**
+ * None of the five landed, in its two forms (I.5.5): after an apply the
+ * module's own configuration is still playing and there is nothing to put
+ * back; after a restore, what was playing is still playing. A NACK is the
+ * signature of a silent discard (docs/SKELETON-RESULTS.md).
+ */
+export function nothingLandedBlock(
+  after: "try" | "put-back",
+  page: number,
+): InstallBlock {
+  const cable = "If it happens twice, check the cable is seated at both ends";
+  return after === "try"
+    ? {
+        title: NOTHING_LANDED_TITLE,
+        detail: `Nothing got through. ${pageName(page)} is unchanged, so your own configuration is still playing and there’s nothing to put back.`,
+        steps: [`Click ${TRY_ON_LABEL} to send it again`, cable],
+      }
+    : {
+        title: NOTHING_LANDED_TITLE,
+        detail: `Nothing got through. ${pageName(page)} is unchanged, so what was playing is still playing.`,
+        steps: [`Click ${PUT_BACK_LABEL} to send it again`, cable],
+      };
+}
+
+/**
+ * SAFE-07's named case (I.5.3): WHICH of the five landed, in write order, from
+ * the two closed unions. The fifth fact rides on the pairings.
+ */
+export function partialBlock(
+  landed: LandedWords,
+  failed: FailedWords,
+  page: number,
+): InstallBlock {
+  return {
+    title: PARTIAL_TITLE,
+    detail: `${landed} reached your ZONA and ${failed} didn’t. ${pageName(page)} now holds part of this configuration and part of your own.`,
+    steps: [`Click ${TRY_ON_LABEL} to send all five again`, STEP_OR_PUT_BACK],
+  };
+}
+
+/**
+ * Unplugged mid-write, in its two forms (I.5.12). "Nothing was stored" is said
+ * only where it is true (Z-11): on the RAM leg. The block takes the label of
+ * the surface rendering it (Y-13), so the step names a control on the screen.
+ */
+export function lostBlock(
+  storeLeg: boolean,
+  label: string,
+  page: number,
+): InstallBlock {
+  return {
+    title: LOST_TITLE,
+    detail: storeLeg
+      ? "The store was sent and nothing came back before your ZONA was unplugged. HANGAR can’t say what power-off brings back."
+      : `Some of this may have reached ${pageName(page)} and some may not. Nothing was stored, so power-off brings your own configuration back.`,
+    steps: [
+      "Plug your ZONA back in",
+      `Click ${label} again`,
+      `Then click ${PUT_BACK_LABEL} to restore what was there when you connected`,
+    ],
+  };
+}
+
+/** The snapshot could not be taken (I.5.7): nothing written, no write until a copy exists. */
+export function snapshotFailedBlock(page: number): InstallBlock {
   return {
     title: SNAPSHOT_FAILED_TITLE,
-    detail:
-      "HANGAR could not read the Setup and Timer already on your ZONA, and it will not write over something it has not copied.",
-    steps: ["Click TRY ON DEVICE to try reading it again"],
+    detail: `HANGAR couldn’t read what ${pageName(page)} holds, and it won’t write over something it hasn’t copied. Nothing was written.`,
+    steps: [`Click ${TRY_ON_LABEL} to read it again`],
   };
 }
 
 // ---------------------------------------------------------------------------
-// The inline confirmation - the only confirmation on the site (SAFE-05).
+// The store confirmation (SAFE-05, SAFE-06).
 
-/** Micro, uppercase, at full ink: the site's one caption at full strength. */
-export const CONFIRM_CAPTION = "PERMANENT";
-
+/** The confirmation's title, in section 16's review shape (I.4.18). */
+export const confirmCaption = (page: number): string =>
+  `Store this on ZONA · ${pageName(page)}?`;
 /**
  * The one string on the site allowed to name the touch element, because
- * SAFE-05 requires exactly that. SINCE 12.1-08 IT NAMES FOUR SCRIPTS: a KEEP
- * stores the page's own timer (255/6) beside its init (255/0) and the touch
- * element's pair, and a sentence that named three was untrue by omission.
- * SINCE 13-17 IT NAMES FIVE: a KEEP stores the page's utility script (255/4)
- * too - the module's own page-next under a catalog configuration, the Sandbox
- * runtime under a surface - for the same reason. Held from both sides by
- * install-copy.spec.ts's AMENDED_BY_THE_FIFTH_SCRIPT.
+ * SAFE-05 requires exactly that; and the fifth fact - a store carries the
+ * page's own init, timer and utility scripts too (12.1-08, 13-17; I.5.9).
  */
-export const CONFIRM_REPLACES =
-  "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init, timer and utility scripts, and it survives a power cycle.";
-
-/** Names PUT BACK, which is in the cell directly above. */
-export const CONFIRM_WAY_BACK =
-  "PUT BACK still restores what was there when you connected.";
+export const confirmReplaces = (page: number): string =>
+  `This replaces what ${pageName(page)} holds on your ZONA — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and it stays after power-off.`;
+/** Names Put back, which is on the screen beside the confirmation (I.5.10). */
+export const CONFIRM_WAY_BACK = `${PUT_BACK_LABEL} still restores what was there when you connected.`;
 
 /**
  * The other modules on the cable, as a sentence would list them: `EN16`,
- * `EN16 and BU16`, `EN16, BU16 and PO16`. Never an Oxford comma, never a bare
- * comma list. `names` arrives already sorted by the session (by sx, then sy)
- * and already carrying its own words for a module that named no type.
+ * `EN16 and BU16`, `EN16, BU16 and PO16`. No Oxford comma.
  */
 export function moduleList(names: readonly string[]): string {
   if (names.length === 0) return "";
@@ -495,10 +460,8 @@ export function moduleList(names: readonly string[]): string {
 }
 
 /**
- * SAFE-06 in full: the other modules named, their pages being stored stated
- * because PAGESTORE is a global broadcast, and the action still allowed. The
- * singular sentence for one module, the plural for several; `undefined` for
- * none, so the block renders no fourth row rather than an empty one.
+ * SAFE-06 in full (I.5.11): the other modules named, their pages being stored
+ * stated as a fact about the protocol, and nothing when there are none.
  */
 export function confirmRig(others: readonly string[]): string | undefined {
   if (others.length === 0) return undefined;
@@ -508,27 +471,22 @@ export function confirmRig(others: readonly string[]): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// The PUT BACK cell's three lines (07-UI-SPEC, PUT BACK). The cell reserves
-// 72px in every state, so the destructive control beneath it never moves.
-
-export const PUT_BACK_LINE =
-  "Restores the Setup and Timer that were on your ZONA when you connected.";
-
-/** After a kept this session: PUT BACK follows its RAM leg with a store (Z-04), and says so before the click. */
-export const PUT_BACK_LINE_AFTER_KEEP =
-  "Restores the Setup and Timer that were on your ZONA when you connected, and stores them so they stay.";
+// The Put back control's line with no session. Its lines WITH a session name
+// the page and live in page-target.ts (putBackPageLine, 13-12); Phase 10's
+// page-less twins retired with 13-18 (I.3.4).
 
 /** No open session, snapshot durable: present and visibly waiting (SAFE-09). */
 export const PUT_BACK_NEEDS_ZONA = "Needs your ZONA connected.";
 
 // ---------------------------------------------------------------------------
-// The KEEP ON DEVICE cell: the enabled line and the six closed reasons.
+// The Store on ZONA control: the enabled line and the six closed reasons.
 
-export const KEEP_LINE_ENABLED =
-  "Stores this configuration in your ZONA’s own memory, so it survives a power cycle.";
+/** The first fact, flash side, before the click (I.6.1). */
+export const keepLineEnabled = (page: number): string =>
+  `Stores this on ${pageName(page)} so it stays after power-off.`;
 
 /**
- * The six reasons KEEP ON DEVICE can be disabled for, and no seventh. Every
+ * The six reasons Store on ZONA can be disabled for, and no seventh. Every
  * state row that reads "present, disabled" without naming one means
  * `never-tried`.
  */
@@ -540,56 +498,36 @@ export type KeepReason =
   | "after-mismatch"
   | "incapable";
 
-/** Closed over KeepReason: a seventh key is a type error (Z-05, Z-21). */
+/** Closed over KeepReason: a seventh key is a type error (Z-05, Z-21). Each names the control it points at verbatim (I.6.2). */
 export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
-  "never-tried": "Available after a try-on.",
-  "knobs-moved":
-    "Try it on again first — the knobs moved since the last try-on.",
-  "after-partial":
-    "Not after a half-written try-on. Send it again, or put your own back.",
+  "never-tried": `${TRY_ON_LABEL} first, then store it.`,
+  "knobs-moved": `The knobs moved since it was applied. ${TRY_ON_LABEL} again first.`,
+  "after-partial": `Not after a partial apply. ${TRY_ON_LABEL} again, or put your own back.`,
   "already-kept":
-    "Kept on your ZONA. Turn a knob and try it on again to keep a new one.",
-  "after-mismatch": "Try it on again first, then keep it again.",
-  incapable: "This browser cannot write to a ZONA.",
+    "Already stored on ZONA. Turn a knob and apply it again to store a new one.",
+  "after-mismatch": `${TRY_ON_LABEL} again first, then store it again.`,
+  incapable: "This browser can’t write to a ZONA.",
 };
 
 // ---------------------------------------------------------------------------
-// The CLEAR cell: one line, and the three reasons it can be disabled for.
+// The Reset active device page control: one line, and the three reasons it
+// can be disabled for.
 
 /**
- * The user's own sentence, verbatim (D-21, A-49), at 41 against a cap of 86.
- *
- * IT SAYS RESET TO FACTORY DEFAULT AND NEVER CLEARS, EMPTIES OR REMOVES. A
- * control labelled CLEAR that restores the firmware's own configuration must
- * not imply emptiness - that would be the same class of lie as the
- * never-writes sentence this phase already retired (A-48). The spec asserts
- * the three stems' absence over every string in this cell rather than trusting
- * this comment.
- *
- * On the way back, which the old line carried and this one does not: 3.1's
- * rule is that a string naming a risk, a consequence or a way back is never
- * retired, and it is satisfied by the action no longer having a consequence
- * that needs one. PUT BACK sits directly above CLEAR, enabled, with its own
- * line naming what it restores. THE COST IS RECORDED RATHER THAN HIDDEN: a
- * visitor is not told that a power cycle brings their STORED configuration
- * back rather than the factory default. That fact is now held by
- * install.spec.ts's by-class assertion and by runbook row C, not by copy.
+ * The third fact, before the click (I.6.3): section 16's confirmation words
+ * for the same fact. It says RESET TO ITS FIRMWARE DEFAULT and never clears,
+ * empties or removes (A-48): the control restores the firmware's own
+ * configuration, and a word implying emptiness would be the same class of
+ * lie as the never-writes sentence Phase 7 retired. D-21's sentence (`Reset
+ * the current page to factory default`) is superseded by D-23.
  */
-export const CLEAR_LINE = "Reset the current page to factory default";
+export const clearLine = (page: number): string =>
+  `Returns ${pageName(page)} to its firmware default. Your browser draft stays as it is.`;
 
-/**
- * The three reasons CLEAR can be disabled for, and no fourth. Closed over the
- * union exactly as KEEP_REASONS is: a fourth key is a type error.
- */
+/** The three reasons, closed like KeepReason. */
 export type ClearReason = "no-snapshot" | "no-session" | "incapable";
 
-/**
- * TWO OF THE THREE ARE PHASE 7 STRINGS REFERENCED RATHER THAN RETYPED, which
- * is the point of a closed record here: `no-session` is PUT BACK's own
- * sentence and `incapable` is KEEP ON DEVICE's own reason, so a rewrite of
- * either moves this table with it and no second copy of a shipped sentence can
- * drift. Only `no-snapshot` is new, and it is SAFE-03 said out loud.
- */
+/** Two of the three are REFERENCES, so a rewrite of the shared sentence moves this table with it. */
 export const CLEAR_REASONS: Readonly<Record<ClearReason, string>> = {
   "no-snapshot": "Needs a copy of what is on your ZONA first.",
   "no-session": PUT_BACK_NEEDS_ZONA,
@@ -597,34 +535,26 @@ export const CLEAR_REASONS: Readonly<Record<ClearReason, string>> = {
 };
 
 // ---------------------------------------------------------------------------
-// The live region. Five success sentences, the 2000 ms line, and the rule for
-// failures: the title, verbatim, plus a full stop because it is spoken.
+// The live region: five success utterances, the 2000 ms line, and every
+// failure title with its full stop (I.7).
 
-/** I1 to I2. Ends with the sentence the whole phase rests on. */
-export const LIVE_SNAPSHOT_SAVED =
-  "Your ZONA’s own Setup and Timer are saved. Nothing has been written.";
-
-export function liveSettled(name: string): string {
-  return `${name} is running on your ZONA. A power cycle brings your own configuration back.`;
-}
-
-export const LIVE_RESTORED = "Your own configuration is back on your ZONA.";
-
-/** Spoken once, after the re-fetch proof - not once for the ACK and again for the verification. */
-export function liveKept(name: string): string {
-  return `${name} is stored on your ZONA and survives a power cycle.`;
-}
-
-/**
- * The thirteenth utterance (A-50). It says what the module is now doing, not
- * what the click was called, and it never says the page was emptied.
- */
-export const LIVE_CLEARED = "The page is reset to factory default.";
-
-/** The only utterance that is not a transition: once, polite, at 2000 ms. */
+/** The snapshot landed: the second fact, spoken (I.7.1). Ends on the sentence the phase rests on. */
+export const liveSnapshotSaved = (page: number): string =>
+  `A copy of ${pageName(page)} is saved. Nothing has been written.`;
+/** Section 16's own line, spoken (I.7.2). */
+export const liveSettled = (page: number): string => settledCaption(page);
+/** The restore landed, spoken (I.7.3). */
+export const liveRestored = (page: number): string =>
+  `${pageName(page)} is back to what it was when you connected.`;
+/** Section 16's own line, spoken as a sentence (I.7.4). */
+export const liveKept = (page: number): string => `${keptCaption(page)}.`;
+/** The reset landed, spoken (I.7.5). */
+export const liveCleared = (page: number): string =>
+  `${pageName(page)} is reset to its firmware default.`;
+/** The 2000 ms line, spoken once. */
 export const LIVE_STILL_WRITING = "Still writing.";
 
-/** A failure announces its title and nothing else; the terminal period is added because it is spoken. */
+/** A failure title as the live region speaks it: the title, then the full stop. */
 export function announceTitle(title: string): string {
   return `${title}.`;
 }

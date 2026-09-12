@@ -143,45 +143,46 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 import {
-  CLEARED_BODY,
-  CLEARED_CAPTION,
-  CLEARING_LABEL,
   CLEAR_LABEL,
-  CLEAR_LINE,
   CLEAR_REASONS,
-  CONFIRM_CAPTION,
-  CONFIRM_REPLACES,
   CONFIRM_WAY_BACK,
   HONESTY_INCAPABLE,
-  HONESTY_READY,
   IDENTIFIED_CAPTION,
-  KEEPING_LABEL,
-  KEEP_LINE_ENABLED,
   KEEP_REASONS,
-  KEPT_CAPTION,
   KEPT_PROOF_LINE,
-  LIVE_CLEARED,
-  LIVE_RESTORED,
-  LIVE_SNAPSHOT_SAVED,
   LIVE_STILL_WRITING,
-  PUTTING_BACK_LABEL,
   PUT_BACK_LABEL,
   PUT_BACK_NEEDS_ZONA,
-  RESTORED_BODY,
-  RESTORED_CAPTION,
   RESTORED_STORED_LINE,
-  SETTLED_CAPTION,
   STILL_WRITING_LINE,
-  WRITING_LABEL,
-  announceTitle,
-  confirmRig,
-  keptBody,
-  liveKept,
-  liveSettled,
-  lostBlock,
-  settledBody,
-  unconfirmedBlock,
   TRY_ON_LABEL,
+  announceTitle,
+  clearLine,
+  clearedBody,
+  clearedCaption,
+  clearingLabel,
+  confirmCaption,
+  confirmReplaces,
+  confirmRig,
+  honestyReady,
+  keepLineEnabled,
+  keepingLabel,
+  keptBody,
+  keptCaption,
+  liveCleared,
+  liveKept,
+  liveRestored,
+  liveSettled,
+  liveSnapshotSaved,
+  lostBlock,
+  pageName,
+  puttingBackLabel,
+  restoredBody,
+  restoredCaption,
+  settledBody,
+  settledCaption,
+  unconfirmedBlock,
+  writingLabel,
 } from "../src/lib/device/install-copy";
 import {
   putBackPageLine,
@@ -276,8 +277,12 @@ function moduleState(nth: number, over: Partial<ZonaState> = {}): ZonaState {
 }
 
 /** The titles the store speaks, from the module that owns them, never a literal. */
-const LOST_SPOKEN = announceTitle(lostBlock(false, TRY_ON_LABEL).title);
-const UNCONFIRMED_SPOKEN = announceTitle(unconfirmedBlock(NAME).title);
+const LOST_SPOKEN = announceTitle(
+  lostBlock(false, TRY_ON_LABEL, ACTIVE_PAGE).title,
+);
+const UNCONFIRMED_SPOKEN = announceTitle(
+  unconfirmedBlock(NAME, ACTIVE_PAGE).title,
+);
 
 /**
  * Only error-level messages are collected: the protocol package logs at
@@ -466,7 +471,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(keepReason(page)).toHaveText("never-tried");
     await expect(readout(page, "install-armed")).toHaveText("false");
     await expect(cause(page)).toHaveText("none");
-    await expect(speech(page)).toHaveText(LIVE_SNAPSHOT_SAVED);
+    await expect(speech(page)).toHaveText(liveSnapshotSaved(ACTIVE_PAGE));
     expect(await stepLines(page)).toEqual([
       "fetch-serial ok 1",
       // SLOTS order since 12.1-06, five rows since 13-17: 255/6, 255/0,
@@ -582,7 +587,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(readout(page, "install-armed")).toHaveText("true");
     await expect(keepReason(page)).toHaveText("live");
     await expect(putBack(page)).toHaveText("enabled");
-    await expect(speech(page)).toHaveText(liveSettled(NAME));
+    await expect(speech(page)).toHaveText(liveSettled(ACTIVE_PAGE));
     expect(await stepLines(page)).toEqual([
       "write-system-timer ok 1",
       "write-system ok 1",
@@ -618,7 +623,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(readout(page, "install-action")).toHaveText("put-back");
     await expect(readout(page, "install-armed")).toHaveText("false");
     await expect(keepReason(page)).toHaveText("never-tried");
-    await expect(speech(page)).toHaveText(LIVE_RESTORED);
+    await expect(speech(page)).toHaveText(liveRestored(ACTIVE_PAGE));
     // The second restore-page-change line: one per RAM leg, read after each.
     expect(await stepLines(page)).toEqual([
       "write-system-timer ok 1",
@@ -674,7 +679,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(keepReason(page)).toHaveText("already-kept");
     await expect(readout(page, "install-armed")).toHaveText("false");
     await expect(putBack(page)).toHaveText("enabled");
-    await expect(speech(page)).toHaveText(liveKept(NAME));
+    await expect(speech(page)).toHaveText(liveKept(ACTIVE_PAGE));
     // One store, one heartbeat waited for, one matching round of FIVE, in
     // SLOTS order.
     expect(await stepLines(page)).toEqual([
@@ -1103,7 +1108,9 @@ const rigModule = (sx: number): ZonaState => ({
 });
 
 /** The sentence a keep or a put-back speaks when the cable comes out mid-write. */
-const LOST_ON_PAGE = announceTitle(lostBlock(false, TRY_ON_LABEL).title);
+const LOST_ON_PAGE = announceTitle(
+  lostBlock(false, TRY_ON_LABEL, ACTIVE_PAGE).title,
+);
 
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
 
@@ -1343,17 +1350,19 @@ async function connectOnPage(
     extraBeats,
   );
   await expect(installState(page)).toContainText(IDENTIFIED_CAPTION);
-  await expect(honesty(page)).toHaveText(HONESTY_READY);
+  await expect(honesty(page)).toHaveText(honestyReady(ACTIVE_PAGE));
   return beats;
 }
 
 /** One try-on on the real page, from ready or any settled state, to PLAYING NOW. */
 async function tryOnPage(page: Page, name: string = ENTRY_NAME): Promise<void> {
   await primary(page).click();
-  await expect(installState(page)).toContainText(SETTLED_CAPTION, {
+  await expect(installState(page)).toContainText(settledCaption(ACTIVE_PAGE), {
     timeout: 10_000,
   });
-  await expect(installState(page)).toContainText(settledBody(name));
+  await expect(installState(page)).toContainText(
+    settledBody(name, ACTIVE_PAGE),
+  );
 }
 
 /** Open the confirmation, commit it, and pace heartbeats until KEPT. */
@@ -1361,8 +1370,15 @@ async function keepOnPage(page: Page, zona: ExposedZona): Promise<number> {
   await keepControl(page).click();
   await expect(page.getByTestId("keep-confirm")).toBeVisible();
   await page.getByTestId("keep-confirm-yes").click();
-  const beats = await beatUntilShows(page, zona, 0, stateShows(KEPT_CAPTION));
-  await expect(installState(page)).toContainText(keptBody(ENTRY_NAME));
+  const beats = await beatUntilShows(
+    page,
+    zona,
+    0,
+    stateShows(keptCaption(ACTIVE_PAGE)),
+  );
+  await expect(installState(page)).toContainText(
+    keptBody(ENTRY_NAME, ACTIVE_PAGE),
+  );
   return beats;
 }
 
@@ -1424,7 +1440,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // I2 on the page a visitor sees: the ready sentence, PUT BACK offered
     // with its line, KEEP ON DEVICE waiting for a try-on.
-    await expect(honesty(page)).toHaveText(HONESTY_READY);
+    await expect(honesty(page)).toHaveText(honestyReady(ACTIVE_PAGE));
     await expect(putBackControl(page)).toBeVisible();
     await expect(putBackControl(page)).toBeEnabled();
     await expect(visibleLine(page, "put-back-line")).toHaveText(
@@ -1448,7 +1464,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // Inside the window: the busy label, and everything I3 says around it,
     // read in one snapshot so the round trips do not spend the window.
-    await expect(primary(page)).toHaveText(WRITING_LABEL);
+    await expect(primary(page)).toHaveText(writingLabel(ACTIVE_PAGE));
     const busySeenAt = Date.now() - clickedAt;
     const during = await page.evaluate(() => {
       const q = (id: string) =>
@@ -1476,7 +1492,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       };
     });
     const snapshotAt = Date.now() - clickedAt;
-    expect(during.label).toBe(WRITING_LABEL);
+    expect(during.label).toBe(writingLabel(ACTIVE_PAGE));
     expect(during.busy).toBe("true");
     expect(during.disabled).toBe(true);
     // I3 rule 3: all three install controls disabled, whichever was clicked.
@@ -1484,7 +1500,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(during.keepDisabled).toBe(true);
     // I3 rule 4: the honesty slot holds whatever string it was holding, and
     // region 3 holds the previous block under aria-busy.
-    expect(during.honesty).toBe(HONESTY_READY);
+    expect(during.honesty).toBe(honestyReady(ACTIVE_PAGE));
     expect(during.statusBusy).toBe("true");
     expect(during.stateBusy).toBe("true");
     expect(during.stateText).toContain(IDENTIFIED_CAPTION);
@@ -1538,17 +1554,19 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // and only path to it (I4).
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("chosen-panel")).toBeVisible();
-    await expect(installState(page)).toContainText(SETTLED_CAPTION);
-    await expect(installState(page)).toContainText(settledBody(ENTRY_NAME));
+    await expect(installState(page)).toContainText(settledCaption(ACTIVE_PAGE));
+    await expect(installState(page)).toContainText(
+      settledBody(ENTRY_NAME, ACTIVE_PAGE),
+    );
     await expect(installState(page)).not.toHaveAttribute("aria-busy", "true");
     await expect(primary(page)).toHaveText(TRY_ON_LABEL);
     await expect(primary(page)).not.toHaveAttribute("aria-busy", "true");
     await expect(primary(page)).toBeEnabled();
-    await expect(honesty(page)).toHaveText(HONESTY_READY);
+    await expect(honesty(page)).toHaveText(honestyReady(ACTIVE_PAGE));
     await expect(putBackControl(page)).toBeEnabled();
     await expect(keepControl(page)).toBeEnabled();
     await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
-      KEEP_LINE_ENABLED,
+      keepLineEnabled(ACTIVE_PAGE),
     );
 
     // The wire: one try-on, all five acknowledgements on attempt 1, nothing
@@ -1583,10 +1601,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(await page.locator("[aria-modal]").count()).toBe(0);
     const sentences = confirm.locator("p");
     await expect(sentences).toHaveCount(3);
-    await expect(sentences.nth(0)).toHaveText(CONFIRM_CAPTION);
-    await expect(sentences.nth(1)).toHaveText(CONFIRM_REPLACES);
-    expect(CONFIRM_REPLACES).toContain("touch element");
-    expect(CONFIRM_REPLACES).toContain("survives a power cycle");
+    await expect(sentences.nth(0)).toHaveText(confirmCaption(ACTIVE_PAGE));
+    await expect(sentences.nth(1)).toHaveText(confirmReplaces(ACTIVE_PAGE));
+    expect(confirmReplaces(ACTIVE_PAGE)).toContain("touch element");
+    expect(confirmReplaces(ACTIVE_PAGE)).toContain("stays after power-off");
     await expect(sentences.nth(2)).toHaveText(CONFIRM_WAY_BACK);
     // The group is labelled by the caption and described by its sentences.
     const captionId = await sentences.nth(0).getAttribute("id");
@@ -1631,9 +1649,16 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await page.getByTestId("keep-confirm-yes").click();
     await expect(confirm).toHaveCount(0);
     await expect(page.getByTestId("connect-status")).toBeFocused();
-    const beats = await beatUntilShows(page, zona, 0, stateShows(KEPT_CAPTION));
+    const beats = await beatUntilShows(
+      page,
+      zona,
+      0,
+      stateShows(keptCaption(ACTIVE_PAGE)),
+    );
     console.log(`test 8: KEPT after ${beats} heartbeat(s)`);
-    await expect(installState(page)).toContainText(keptBody(ENTRY_NAME));
+    await expect(installState(page)).toContainText(
+      keptBody(ENTRY_NAME, ACTIVE_PAGE),
+    );
     await expect(installState(page)).toContainText(KEPT_PROOF_LINE);
     await expect(page.getByTestId("connect-status")).toBeFocused();
     await expect(keepControl(page)).toBeDisabled();
@@ -1711,8 +1736,12 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // and the proof.
     zona.script({ delayAckMs: { class_name: "PAGESTORE", byMs: 600 } });
     await putBackControl(page).click();
-    await expect(putBackControl(page)).toHaveText(PUTTING_BACK_LABEL);
-    await expect(installState(page)).toContainText(RESTORED_CAPTION);
+    await expect(putBackControl(page)).toHaveText(
+      puttingBackLabel(ACTIVE_PAGE),
+    );
+    await expect(installState(page)).toContainText(
+      restoredCaption(ACTIVE_PAGE),
+    );
     const interval = await page.evaluate(() => {
       const q = (id: string) =>
         document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
@@ -1734,7 +1763,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // I3: PUTTING BACK… with aria-busy on PUT BACK itself through the store
     // leg; the primary keeps its resting label, disabled, and carries no busy
     // word - there is no fourth label.
-    expect(interval.putBackLabel).toBe(PUTTING_BACK_LABEL);
+    expect(interval.putBackLabel).toBe(puttingBackLabel(ACTIVE_PAGE));
     expect(interval.putBackBusy).toBe("true");
     expect(interval.putBackDisabled).toBe(true);
     expect(interval.primaryLabel).toBe(TRY_ON_LABEL);
@@ -1744,8 +1773,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // I5's interval: RESTORED's caption and first line, region 3 still busy,
     // and the power-cycle claim NOT yet made.
     expect(interval.stateBusy).toBe("true");
-    expect(interval.stateText).toContain(RESTORED_CAPTION);
-    expect(interval.stateText).toContain(RESTORED_BODY);
+    expect(interval.stateText).toContain(restoredCaption(ACTIVE_PAGE));
+    expect(interval.stateText).toContain(restoredBody(ACTIVE_PAGE));
     expect(interval.stateText).not.toContain(RESTORED_STORED_LINE);
 
     // The proof needs the ZONA's heartbeat after the held acknowledgement
@@ -1789,7 +1818,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await tryOnPage(page);
     await expect(keepControl(page)).toBeEnabled();
     await expect(visibleLine(page, "keep-on-device-line")).toHaveText(
-      KEEP_LINE_ENABLED,
+      keepLineEnabled(ACTIVE_PAGE),
     );
     await keepControl(page).click();
     await expect(page.getByTestId("keep-confirm")).toBeVisible();
@@ -1820,10 +1849,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await connectOnPage(page, zona);
     // I1 to I2: the snapshot sentence, the one the region reads after a
     // connect on a module that answers (07-08 deferred item 9).
-    await expect(sessionLive(page)).toHaveText(LIVE_SNAPSHOT_SAVED);
+    await expect(sessionLive(page)).toHaveText(liveSnapshotSaved(ACTIVE_PAGE));
 
     await tryOnPage(page);
-    await expect(sessionLive(page)).toHaveText(liveSettled(ENTRY_NAME));
+    await expect(sessionLive(page)).toHaveText(liveSettled(ACTIVE_PAGE));
 
     // THE SLOW LINE, on the keep's STORE leg - never a RAM leg, where a
     // 2500 ms hold would make every acknowledgement stale at executeMs 250.
@@ -1837,7 +1866,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await page.getByTestId("keep-confirm-yes").click();
     // Z-19: the primary carries the busy label, because the control that was
     // clicked has left the screen.
-    await expect(primary(page)).toHaveText(KEEPING_LABEL);
+    await expect(primary(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
     await expect(primary(page)).toHaveAttribute("aria-busy", "true");
     await expect(confirm).toHaveCount(0);
     await expect(keepControl(page)).toBeDisabled();
@@ -1853,8 +1882,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // stays chosen, the held block stays, the label stays.
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("chosen-panel")).toHaveCount(1);
-    await expect(primary(page)).toHaveText(KEEPING_LABEL);
-    await expect(installState(page)).toContainText(SETTLED_CAPTION);
+    await expect(primary(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
+    await expect(installState(page)).toContainText(settledCaption(ACTIVE_PAGE));
     await expect(installState(page)).toHaveAttribute("aria-busy", "true");
     await expect(installState(page)).toContainText(STILL_WRITING_LINE);
     await expect(page.getByTestId("chosen-panel")).toHaveCount(1);
@@ -1865,10 +1894,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       page,
       zona,
       0,
-      stateShows(KEPT_CAPTION),
+      stateShows(keptCaption(ACTIVE_PAGE)),
     );
     const keptAt = Date.now() - committedAt;
-    await expect(sessionLive(page)).toHaveText(liveKept(ENTRY_NAME));
+    await expect(sessionLive(page)).toHaveText(liveKept(ACTIVE_PAGE));
     await expect(installState(page)).not.toContainText(STILL_WRITING_LINE);
     await expect(installState(page)).not.toHaveAttribute("aria-busy", "true");
     await expect(primary(page)).toHaveText(TRY_ON_LABEL);
@@ -1876,13 +1905,13 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       `test 10: slow line at +${slowLineAt} ms, KEPT at +${keptAt} ms after ${keptBeats} heartbeat(s)`,
     );
 
-    // The put-back after a keep stores too (Z-04), so LIVE_RESTORED is
+    // The put-back after a keep stores too (Z-04), so liveRestored(ACTIVE_PAGE) is
     // reached only after the store's proof - and spoken exactly once. The
     // next store leg lands at speed; the recorder is on before the click.
     zona.script({});
     await recordLiveRegions(page);
     const before = await liveTexts(page);
-    expect(before.session).toBe(liveKept(ENTRY_NAME));
+    expect(before.session).toBe(liveKept(ACTIVE_PAGE));
     expect(before.tuning).toBe("");
     expect(before.browse).toBeNull();
     await putBackControl(page).click();
@@ -1893,18 +1922,18 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       stateShows(RESTORED_STORED_LINE),
     );
     console.log(`test 10: RESTORED after ${restoredBeats} heartbeat(s)`);
-    await expect(sessionLive(page)).toHaveText(LIVE_RESTORED);
+    await expect(sessionLive(page)).toHaveText(liveRestored(ACTIVE_PAGE));
     // A second of polling: the text never becomes anything else, and the
     // record holds ONE utterance for the whole put-back - never one for the
     // RAM leg and another for the store.
     for (let sampled = 0; sampled < 10; sampled++) {
-      await expect(sessionLive(page)).toHaveText(LIVE_RESTORED);
+      await expect(sessionLive(page)).toHaveText(liveRestored(ACTIVE_PAGE));
       await page.waitForTimeout(100);
     }
     const afterRestore = await liveTexts(page);
-    expect(afterRestore.session).toBe(LIVE_RESTORED);
+    expect(afterRestore.session).toBe(liveRestored(ACTIVE_PAGE));
     expect(utterances(afterRestore.log["session-live"])).toEqual([
-      LIVE_RESTORED,
+      liveRestored(ACTIVE_PAGE),
     ]);
     expect(afterRestore.tuning).toBe("");
     expect(utterances(afterRestore.log["tuning-live"])).toEqual([]);
@@ -1922,7 +1951,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(sessionLive(page)).toHaveText(LOST_ON_PAGE, {
       timeout: 10_000,
     });
-    expect(LOST_ON_PAGE).toBe("The ZONA was unplugged mid-write.");
+    expect(LOST_ON_PAGE).toBe("Your ZONA was unplugged mid-write.");
     await expect(putBackControl(page)).toBeDisabled();
     await expect(visibleLine(page, "put-back-line")).toHaveText(
       PUT_BACK_NEEDS_ZONA,
@@ -1963,7 +1992,9 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(clearControl(page)).toBeVisible();
     await expect(clearControl(page)).toBeEnabled();
     await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
-    await expect(visibleLine(page, "clear-line")).toHaveText(CLEAR_LINE);
+    await expect(visibleLine(page, "clear-line")).toHaveText(
+      clearLine(ACTIVE_PAGE),
+    );
     await expect(keepControl(page)).toBeEnabled();
     expect(await noConfirmOnScreen(page)).toBe(true);
 
@@ -1997,15 +2028,15 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // THE CLICK SENT. No block appeared, nothing waited for a second click,
     // and the busy label is on the control that was clicked. This is the
     // cheapest possible proof that A-45 shipped rather than being planned.
-    await expect(clearControl(page)).toHaveText(CLEARING_LABEL);
+    await expect(clearControl(page)).toHaveText(clearingLabel(ACTIVE_PAGE));
     await expect(clearControl(page)).toHaveAttribute("aria-busy", "true");
     expect(await noConfirmOnScreen(page)).toBe(true);
 
     // I14 lands: the caption names the STATE and the body names PUT BACK,
     // which is on the screen and enabled - the copy rule holds where this
     // phase could most easily have broken it.
-    await expect(installState(page)).toContainText(CLEARED_CAPTION);
-    await expect(installState(page)).toContainText(CLEARED_BODY);
+    await expect(installState(page)).toContainText(clearedCaption(ACTIVE_PAGE));
+    await expect(installState(page)).toContainText(clearedBody(ACTIVE_PAGE));
     await expect(clearControl(page)).toHaveText(CLEAR_LABEL);
     await expect(clearControl(page)).not.toHaveAttribute("aria-busy", "true");
     await expect(clearControl(page)).toBeEnabled();
@@ -2026,21 +2057,25 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // The region is WAITED ON rather than read: session.speech arrives on the
     // store's trailing timer, so a log read the instant region 3 changes is
     // read before the sentence exists.
-    await expect(sessionLive(page)).toHaveText(LIVE_CLEARED);
+    await expect(sessionLive(page)).toHaveText(liveCleared(ACTIVE_PAGE));
 
     // AND THE WAY BACK IS ONE CLICK, which is the whole reason CLEAR needs no
     // confirmation (D-19): the control directly above it undoes the write.
     await putBackControl(page).click();
-    await expect(installState(page)).toContainText(RESTORED_CAPTION);
-    await expect(installState(page)).toContainText(RESTORED_BODY);
+    await expect(installState(page)).toContainText(
+      restoredCaption(ACTIVE_PAGE),
+    );
+    await expect(installState(page)).toContainText(restoredBody(ACTIVE_PAGE));
     await expect(putBackControl(page)).toHaveText(PUT_BACK_LABEL);
-    await expect(sessionLive(page)).toHaveText(LIVE_RESTORED);
+    await expect(sessionLive(page)).toHaveText(liveRestored(ACTIVE_PAGE));
 
     // The live region said the clear once and never called it an emptying.
     const after = await liveTexts(page);
     const spoken = utterances(after.log["session-live"]);
-    expect(spoken.filter((line) => line === LIVE_CLEARED).length).toBe(1);
-    expect(spoken[spoken.length - 1]).toBe(LIVE_RESTORED);
+    expect(
+      spoken.filter((line) => line === liveCleared(ACTIVE_PAGE)).length,
+    ).toBe(1);
+    expect(spoken[spoken.length - 1]).toBe(liveRestored(ACTIVE_PAGE));
     expect(utterances(after.log["tuning-live"])).toEqual([]);
 
     // The wire, by class: the try-on, the clear and the put-back are FIVE
@@ -2160,8 +2195,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(keepControl(page), "the second try-on landed").toBeEnabled({
       timeout: 10_000,
     });
-    await expect(installState(page)).toContainText(SETTLED_CAPTION);
-    await expect(installState(page)).toContainText(settledBody(LUMEN.name));
+    await expect(installState(page)).toContainText(settledCaption(ACTIVE_PAGE));
+    await expect(installState(page)).toContainText(
+      settledBody(LUMEN.name, ACTIVE_PAGE),
+    );
     const tuned = zona.state.configs[EVENT_SETUP];
 
     // THE VERDICT, in bytes.
@@ -2223,10 +2260,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(select).toBeEnabled();
     await expect(select.locator("option")).toHaveCount(4);
     await expect(select.locator("option")).toHaveText([
-      "Page 0",
-      "Page 1",
-      `Page ${ACTIVE_PAGE} · on ZONA`,
-      "Page 3",
+      pageName(0),
+      pageName(1),
+      `${pageName(ACTIVE_PAGE)} · on ZONA`,
+      pageName(3),
     ]);
     await expect(select).toHaveValue(String(ACTIVE_PAGE));
     await expect(apply).toBeEnabled();
@@ -2241,7 +2278,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await select.selectOption(String(TO));
     await expect(review).toBeVisible();
     await expect(page.getByTestId("destination-review-line")).toHaveText(
-      `Switch your ZONA to Page ${TO}? It will stop playing Page ${ACTIVE_PAGE}.`,
+      `Switch your ZONA to ${pageName(TO)}? It will stop playing ${pageName(ACTIVE_PAGE)}.`,
     );
     await expect(review).toHaveAttribute("data-to", String(TO));
     await expect(review).toHaveAttribute("data-from", String(ACTIVE_PAGE));
@@ -2277,7 +2314,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       "switching",
     );
     await expect(page.getByTestId("destination-line")).toHaveText(
-      `Switching to Page ${TO}…`,
+      `Switching to ${pageName(TO)}…`,
     );
     expect(seenBefore()).toEqual({ switches: 1, heartbeats: 1, writes: 0 });
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
@@ -2319,15 +2356,15 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     console.log(`the report needed ${beats} heartbeat(s)`);
     await expect(select).toHaveValue(String(TO));
     await expect(select.locator("option")).toHaveText([
-      "Page 0",
-      "Page 1",
-      `Page ${ACTIVE_PAGE}`,
-      `Page ${TO} · on ZONA`,
+      pageName(0),
+      pageName(1),
+      pageName(ACTIVE_PAGE),
+      `${pageName(TO)} · on ZONA`,
     ]);
     await expect(apply).toBeEnabled();
     await expect(primary(page)).toBeEnabled();
     await expect(page.getByTestId("put-back-page-line")).toHaveText(
-      `Puts Page ${TO} back to what it was playing when you connected.`,
+      `Puts ${pageName(TO)} back to what it was playing when you connected.`,
       { timeout: 10_000 },
     );
     await expect(page.getByTestId("put-back-page-line")).not.toHaveAttribute(

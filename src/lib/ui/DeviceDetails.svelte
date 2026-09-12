@@ -449,10 +449,9 @@
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
     transition: color 160ms ease-out;

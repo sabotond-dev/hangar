@@ -625,6 +625,7 @@
       section: "playground",
       breadcrumb: data.shell.breadcrumb,
       device: install.phase,
+      page: install.snapshotPage,
       destination: reportedPage === undefined ? undefined : destination,
       rail,
       inspector,

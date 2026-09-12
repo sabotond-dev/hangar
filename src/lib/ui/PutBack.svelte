@@ -23,20 +23,19 @@
   This is Phase 5's honesty-slot mechanism, copied declaration for declaration
   from TryOnDevice.svelte: a one-cell grid, every candidate string at
   grid-area 1 / 1, the inactive ones visibility: hidden and aria-hidden, and a
-  72px floor - three Body lines at 16px/1.5, the height the longest string
-  (101 characters, 43 to a line at the 372px column) needs. The cell is
-  therefore the height of the TALLEST of the three at whatever width the panel
-  actually is, and it is that height in every state. The reason is safety
-  rather than tidiness (Z-18): the destructive control, KEEP ON DEVICE, sits
-  DIRECTLY BENEATH this cell in the install column, and this line changes
-  after a keep (its second form) and when the session drops (its third). A
-  cell that changed height with its line would move the site's only
-  irreversible control vertically under a hand already reaching for it.
-  install-copy.spec.ts holds every one of the three under PUT_BACK_CAP so the
-  reservation cannot silently grow.
+  72px floor - three Body lines at 16px/1.5. The cell is therefore the height
+  of the TALLEST of the three at whatever width the panel actually is, and it
+  is that height in every state. The reason is safety rather than tidiness
+  (Z-18): the destructive control, Store on ZONA, sits DIRECTLY BENEATH this
+  cell in the install column, and this line changes after a store (its second
+  form) and when the session drops (its third). A cell that changed height
+  with its line would move the site's only irreversible control vertically
+  under a hand already reaching for it. The three are the twins themselves,
+  rendered; the measured cap that once held them (PUT_BACK_CAP, 129) retired
+  with 13-18 - install-copy.ts's header says what it was and what replaced it.
 
-  WHY THE BUSY LABEL SWAPS WITH NO TRANSITION. `PUTTING BACK…` replaces
-  `PUT BACK` the instant install.putBack() starts and is replaced the instant
+  WHY THE BUSY LABEL SWAPS WITH NO TRANSITION. `Putting Page 2 back…` replaces
+  `Put back` the instant install.putBack() starts and is replaced the instant
   its last leg settles. A RAM leg is roughly 40 ms end to end; a 140 ms
   crossfade on a 40 ms state renders as a smear rather than as a change, so the
   swap is instant by contract (07-UI-SPEC, Motion) and the store leg gets the
@@ -66,13 +65,12 @@
   PUT BACK NAMES ITS PAGE BEFORE IT ACTS (Phase 13, plan 13-12; 13-CONTEXT
   D-06, fourth clause). While a snapshot is in hand the line under the control
   is page-target.ts's putBackPageLine - "Puts Page 2 back to what it was
-  playing when you connected." - and its after-keep form, in place of Phase
-  10's two page-less lines, which stay rendered as the twins they always were
-  and as the fallback for a snapshot with no page (none exists; the type
-  allows it). Five twins in the cell, not three; the 72px reservation holds,
-  because the longest of the five (the page-naming after-keep form, under 90
-  characters) is shorter than the 101-character line the cell was measured
-  for. THE CONTROL IS ALSO DISABLED WHILE THE PAGE TARGET IS NOT AT REST -
+  playing when you connected." - and its after-store form. Phase 10's two
+  page-less lines retired with 13-18 (D-23, batch row I.3.4): a snapshot
+  always has a page, so the fallback they served was unreachable, and the
+  three twins in the cell are the whole of what the control can say. The
+  label is `Put back` and its busy form names the page (I.3.2, I.3.3).
+  THE CONTROL IS ALSO DISABLED WHILE THE PAGE TARGET IS NOT AT REST -
   install.applyReady false, the store's one condition mirrored - because a
   put-back sent while a switch is pending would land on a page about to stop
   being the active one, and the store refuses it anyway (install.putBack).
@@ -83,10 +81,8 @@
   import { install } from "$lib/device/install.svelte";
   import {
     PUT_BACK_LABEL,
-    PUT_BACK_LINE,
-    PUT_BACK_LINE_AFTER_KEEP,
     PUT_BACK_NEEDS_ZONA,
-    PUTTING_BACK_LABEL,
+    puttingBackLabel,
   } from "$lib/device/install-copy";
   import {
     putBackPageLine,
@@ -104,28 +100,24 @@
       writing ||
       (state === "enabled" && !install.applyReady),
   );
-  /** The page the snapshot in hand names - the page PUT BACK will restore. */
-  const page = $derived(install.snapshotPage);
+  /**
+   * The page the snapshot in hand names - the page Put back will restore, as
+   * the module reports it (the copy adds one). Undefined only before a
+   * snapshot exists, when the control is absent or reads its needs-zona line,
+   * so the 0 the builders are handed below is never a page a visitor reads.
+   */
+  const page = $derived(install.snapshotPage ?? 0);
 
   /**
    * Which of the three strings is the visible one. The other two stay
    * rendered as sizing twins - see the style block and the header.
    */
-  const shown:
-    | "line"
-    | "after-keep"
-    | "needs-zona"
-    | "page"
-    | "page-after-keep" = $derived(
+  const shown: "needs-zona" | "page" | "page-after-keep" = $derived(
     state === "needs-zona"
       ? "needs-zona"
-      : page !== undefined
-        ? install.keptThisSession
-          ? "page-after-keep"
-          : "page"
-        : install.keptThisSession
-          ? "after-keep"
-          : "line",
+      : install.keptThisSession
+        ? "page-after-keep"
+        : "page",
   );
 
   function putBack(): void {
@@ -144,24 +136,10 @@
       aria-describedby="put-back-line"
       onclick={putBack}
     >
-      {busy ? PUTTING_BACK_LABEL : PUT_BACK_LABEL}
+      {busy ? puttingBackLabel(page) : PUT_BACK_LABEL}
     </button>
 
     <div class="cell" id="put-back-line" data-testid="put-back-line">
-      <p
-        class="line"
-        class:twin={shown !== "line"}
-        aria-hidden={shown !== "line"}
-      >
-        {PUT_BACK_LINE}
-      </p>
-      <p
-        class="line"
-        class:twin={shown !== "after-keep"}
-        aria-hidden={shown !== "after-keep"}
-      >
-        {PUT_BACK_LINE_AFTER_KEEP}
-      </p>
       <p
         class="line"
         class:twin={shown !== "needs-zona"}
@@ -176,14 +154,14 @@
         aria-hidden={shown !== "page"}
         data-testid="put-back-page-line"
       >
-        {putBackPageLine(page ?? 0)}
+        {putBackPageLine(page)}
       </p>
       <p
         class="line"
         class:twin={shown !== "page-after-keep"}
         aria-hidden={shown !== "page-after-keep"}
       >
-        {putBackPageLineAfterKeep(page ?? 0)}
+        {putBackPageLineAfterKeep(page)}
       </p>
     </div>
   </div>
@@ -231,11 +209,10 @@
     min-block-size: 44px;
     min-inline-size: 44px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink);
     cursor: pointer;
   }
@@ -269,18 +246,16 @@
     declaration.
 
     THE REASON IT EXISTS IS SAFETY, NOT TIDINESS (Z-18). This line changes
-    after a keep, KEEP ON DEVICE's changes when a knob moves, and CLEAR's will
-    change with the session. Any of them changing line count would shift the
-    site's destructive controls vertically UNDER A HAND ALREADY REACHING FOR
-    THEM.
+    after a store, Store on ZONA's changes when a knob moves, and the reset's
+    will change with the session. Any of them changing line count would shift
+    the site's destructive controls vertically UNDER A HAND ALREADY REACHING
+    FOR THEM.
 
-    RE-DERIVED BY PLAN 10-03 AND UNCHANGED IN PIXELS. A reservation is
-    `ceil(longest / CH_PER_LINE) x 24`; CH_PER_LINE is 43, measured in Inter
-    Variable by plan 10-01 rather than assumed. The longest of the three is
-    PUT_BACK_LINE_AFTER_KEEP at 101, and `ceil(101 / 43) x 24 = 72`. The face
-    changed under this cell and the number did not move - which is a result,
-    not a coincidence, and it is stated rather than left to be re-derived by
-    the next reader. PUT_BACK_CAP is 3 x 43 = 129, also unchanged.
+    RE-DERIVED BY PLAN 10-03 AND UNCHANGED IN PIXELS: a reservation of three
+    Body lines, `3 x 24 = 72`. The measured cap that once governed the strings
+    in it (PUT_BACK_CAP, 3 x 43 = 129) retired with 13-18 under D-05; the
+    floor stays because the twins are rendered and the tallest of them sets
+    the height, which is the mechanism, not the number.
   */
   .cell {
     display: grid;

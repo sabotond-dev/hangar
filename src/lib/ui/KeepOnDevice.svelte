@@ -25,23 +25,23 @@
   WHY THE LINE CELL RESERVES 48px AND HOLDS ALL SEVEN STRINGS (Z-18). The
   enabled line and all six reasons are rendered at grid-area 1 / 1, the
   inactive ones visibility: hidden and aria-hidden, under a 48px floor - two
-  Body lines at 16px/1.5, the height the longest string (82 characters, 43 to a
-  line at the 372px column) needs. So the cell is the height of the TALLEST of
-  the seven at whatever width the panel actually is, in every state. The line
-  changes the moment a knob moves after a try-on (Z-05: the reason becomes
-  "the knobs moved since the last try-on"), and a cell that changed height
+  Body lines at 16px/1.5. So the cell is the height of the TALLEST of the
+  seven at whatever width the panel actually is, in every state. The line
+  changes the moment a knob moves after an apply (Z-05: the reason becomes
+  "The knobs moved since it was applied"), and a cell that changed height
   with its line would move the site's only irreversible control vertically
-  under a hand already reaching for it. install-copy.spec.ts holds every one
-  of the seven under KEEP_CAP so the reservation cannot silently grow. The six
-  reasons are iterated from install-copy's closed record, never retyped: a
-  seventh reason is a type error there, and this file cannot disagree with
-  it about the count.
+  under a hand already reaching for it. The measured cap that once held the
+  seven (KEEP_CAP, 86) retired with 13-18 under D-05 - install-copy.ts's
+  header says what it was and what replaced it; the twins are rendered and
+  the tallest sets the height. The six reasons are iterated from
+  install-copy's closed record, never retyped: a seventh reason is a type
+  error there, and this file cannot disagree with it about the count.
 
   WHY THE LINE IS HELD THROUGH A WRITE (I3, rule 4). The store's keepReason()
   reads `never-tried` for the `writing` phase, so during the confirmation's
   own store leg - the only leg where this control is on the screen because
-  of a click on it - a derived line would flip to "Available after a try-on."
-  for as long as the store takes, while the primary reads KEEPING…. Region 3
+  of a click on it - a derived line would flip to the never-tried reason
+  for as long as the store takes, while the primary reads Storing on Page N…. Region 3
   does not swap a block during a write and this cell does not swap a line:
   the last non-writing reason is held in a local written from an effect, and
   the control is disabled through the leg regardless. The disabling is
@@ -58,8 +58,8 @@
   import { install } from "$lib/device/install.svelte";
   import {
     KEEP_LABEL,
-    KEEP_LINE_ENABLED,
     KEEP_REASONS,
+    keepLineEnabled,
     type KeepReason,
   } from "$lib/device/install-copy";
   import { session } from "$lib/device/session.svelte";
@@ -86,6 +86,8 @@
 
   /** The six reasons, from the closed record, in its order. */
   const REASONS = Object.entries(KEEP_REASONS) as [KeepReason, string][];
+  /** The page the enabled line names, as the module reports it (the copy adds one); 0 is never read before a snapshot exists. */
+  const page = $derived(install.snapshotPage ?? 0);
 
   let button = $state<HTMLButtonElement | null>(null);
 
@@ -125,7 +127,7 @@
       class:twin={shown !== undefined}
       aria-hidden={shown !== undefined}
     >
-      {KEEP_LINE_ENABLED}
+      {keepLineEnabled(page)}
     </p>
     {#each REASONS as [key, text] (key)}
       <p class="line" class:twin={shown !== key} aria-hidden={shown !== key}>
@@ -159,11 +161,10 @@
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
   }
@@ -193,15 +194,15 @@
     original of this mechanism and PutBack.svelte's cell its sibling.
 
     THE REASON IT EXISTS IS SAFETY, NOT TIDINESS (Z-18). This line changes when
-    a knob moves, PUT BACK's changes after a keep, and CLEAR's will change with
-    the session. Any of them changing line count would shift the site's
-    destructive controls vertically UNDER A HAND ALREADY REACHING FOR THEM.
+    a knob moves, Put back's changes after a store, and the reset's will
+    change with the session. Any of them changing line count would shift the
+    site's destructive controls vertically UNDER A HAND ALREADY REACHING FOR
+    THEM.
 
-    RE-DERIVED BY PLAN 10-03 AND UNCHANGED IN PIXELS. A reservation is
-    `ceil(longest / CH_PER_LINE) x 24`; CH_PER_LINE is 43, measured in Inter
-    Variable by plan 10-01 rather than assumed. The longest of the seven is the
-    enabled line at 82, and `ceil(82 / 43) x 24 = 48`. The six reasons are 69,
-    69, 62, 42, 36 and 25, all shorter. KEEP_CAP is 2 x 43 = 86, unchanged.
+    RE-DERIVED BY PLAN 10-03 AND UNCHANGED IN PIXELS: two Body lines,
+    `2 x 24 = 48`. The measured cap that once governed the strings in it
+    (KEEP_CAP, 2 x 43 = 86) retired with 13-18 under D-05; the floor stays
+    because the twins are rendered and the tallest sets the height.
   */
   .cell {
     display: grid;

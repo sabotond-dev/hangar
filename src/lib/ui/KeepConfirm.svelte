@@ -74,11 +74,11 @@
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
   import {
-    CONFIRM_CAPTION,
-    CONFIRM_REPLACES,
     CONFIRM_WAY_BACK,
     KEEP_LABEL,
     NOT_NOW_LABEL,
+    confirmCaption,
+    confirmReplaces,
     confirmRig,
   } from "$lib/device/install-copy";
 
@@ -104,6 +104,8 @@
     session.identity?.otherModules.map((m) => m.moduleType ?? "module") ?? [],
   );
   const rig = $derived(confirmRig(others));
+  /** The page the confirmation names, as the module reports it (the copy adds one); the confirmation opens only after an apply, so a snapshot exists. */
+  const page = $derived(install.snapshotPage ?? 0);
   /** Sentences 2 and 3, and 4 when it exists. */
   const sentenceIds = $derived(
     rig ? `${replacesId} ${wayBackId} ${rigId}` : `${replacesId} ${wayBackId}`,
@@ -144,8 +146,8 @@
   aria-describedby={sentenceIds}
   data-testid="keep-confirm"
 >
-  <p class="caption" id={captionId}>{CONFIRM_CAPTION}</p>
-  <p class="body" id={replacesId}>{CONFIRM_REPLACES}</p>
+  <p class="caption" id={captionId}>{confirmCaption(page)}</p>
+  <p class="body" id={replacesId}>{confirmReplaces(page)}</p>
   <p class="body quiet" id={wayBackId}>{CONFIRM_WAY_BACK}</p>
   {#if rig}
     <p class="body quiet" id={rigId}>{rig}</p>
@@ -204,16 +206,17 @@
   }
 
   /*
-    Micro, uppercase, at FULL ink: the one caption on the site at this
-    strength (07-UI-SPEC, Color - the declared exception). Not a heading.
+    The confirmation's title at FULL ink: the one caption on the site at this
+    strength (07-UI-SPEC, Color - the declared exception). A sentence since
+    13-18 - "Store this on ZONA · Page 2?", section 16's review shape (D-23)
+    - so sentence case at Body size, never uppercase (D-05). Not a heading.
   */
   .caption {
     margin: 0;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
     color: var(--color-ink);
   }
 
@@ -254,11 +257,10 @@
     min-block-size: 44px;
     min-inline-size: 44px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink);
     cursor: pointer;
     transition:
@@ -286,11 +288,10 @@
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
     transition: color 140ms ease-out;

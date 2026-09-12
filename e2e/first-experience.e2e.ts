@@ -59,6 +59,7 @@ import { expect, test, type Page } from "@playwright/test";
 // nothing at all - that is the whole reason it exists as a separate module - so
 // pulling it into a Playwright file costs nothing.
 import { FRONT_DOOR, FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
+import { KEEP_REASONS } from "../src/lib/device/install-copy";
 // The routed set, by its one name. src/lib/catalog/listing.ts imports nothing at
 // runtime either, so this costs a Playwright file nothing.
 import { ROUTED } from "../src/lib/catalog/listing";
@@ -310,8 +311,9 @@ test.describe("a configuration's page on a browser that cannot install", () => {
     // DEGR-02 on the third control: the reason is the capability sentence, adjacent.
     await expect(page.getByTestId("keep-on-device")).toBeDisabled();
     await expect(page.getByTestId("keep-on-device-line")).toContainText(
-      "This browser cannot write to a ZONA.",
+      KEEP_REASONS.incapable,
     );
+    expect(KEEP_REASONS.incapable).toBe("This browser can’t write to a ZONA.");
 
     expect(consoleErrors).toEqual([]);
   });

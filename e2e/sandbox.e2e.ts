@@ -28,8 +28,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../src/lib/catalog/library";
 import {
   IDENTIFIED_CAPTION,
-  RESTORED_CAPTION,
-  SETTLED_CAPTION,
+  restoredCaption,
+  settledCaption,
 } from "../src/lib/device/install-copy";
 import { EVENT_SETUP, EVENT_TIMER, EVENT_UTILITY } from "../src/lib/protocol";
 import {
@@ -542,7 +542,7 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     expect(await page.getByTestId("apply-refusal").count()).toBe(0);
     await apply.click();
     await expect(page.getByTestId("status-device")).toHaveText(
-      SETTLED_CAPTION,
+      settledCaption(ACTIVE_PAGE),
       { timeout: 10_000 },
     );
     await expect
@@ -583,7 +583,7 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     // utility script back on their button - and RESTORED in the bar.
     await page.getByTestId("put-back").click();
     await expect(page.getByTestId("status-device")).toHaveText(
-      RESTORED_CAPTION,
+      restoredCaption(ACTIVE_PAGE),
       { timeout: 10_000 },
     );
     await expect

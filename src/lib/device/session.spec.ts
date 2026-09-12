@@ -805,8 +805,9 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     fire(serial, "disconnect", port.port);
     expect(s.phase).toBe("unplugged-while-connected");
     expect(s.identity).toBeNull();
-    expect(s.failureFor(CONNECT_LABEL)?.detail).toBe(
-      "The ZONA was unplugged. Nothing was written.",
+    expect(s.failureFor(CONNECT_LABEL)?.detail).toBe(UNPLUGGED_WHILE_CONNECTED);
+    expect(UNPLUGGED_WHILE_CONNECTED).toBe(
+      "Your ZONA was unplugged. Nothing was written.",
     );
     expect(s.canForget, "S5 still offers to forget the module").toBe(true);
     expect(transport.writes).toHaveLength(0);

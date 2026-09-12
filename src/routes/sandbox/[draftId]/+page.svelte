@@ -590,6 +590,7 @@
       breadcrumb: ["SANDBOX", name.toUpperCase()],
       draft: draftLine,
       device: install.phase,
+      page: install.snapshotPage,
       destination: reportedPage === undefined ? undefined : destination,
       rail,
       inspector,

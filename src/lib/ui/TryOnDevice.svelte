@@ -108,10 +108,11 @@
   import {
     HONESTY_INCAPABLE,
     HONESTY_NO_SESSION,
-    HONESTY_READY,
     HONESTY_SNAPSHOTTING,
-    KEEPING_LABEL,
-    WRITING_LABEL,
+    TRY_ON_LABEL,
+    honestyReady,
+    keepingLabel,
+    writingLabel,
   } from "$lib/device/install-copy";
   import { session } from "$lib/device/session.svelte";
   import {
@@ -174,17 +175,16 @@
   // of these are asserted character for character.
 
   /**
-   * The control's label, and after plan 06-12 its ONE definition on this
-   * surface. It is what the button shows at rest, what session.failureFor() is
-   * handed, and what InstallState interpolates into the lost block's steps, so
-   * the label on the control and the label inside the recovery steps are the
-   * same identifier. It is deliberately neither a static import from
-   * $lib/device/try-on (not a permitted specifier under src/lib/ui/ -
-   * config-shape.spec.ts test 13) nor an export of session-copy
-   * (session-copy.spec.ts test 4 holds that module free of this literal). See
-   * the header.
+   * The control's label: section 9's `Apply to ZONA`, install-copy.ts's
+   * TRY_ON_LABEL (13-18, D-23). It is what the button shows at rest, what
+   * session.failureFor() is handed, and what InstallState interpolates into
+   * the lost block's steps, so the label on the control and the label inside
+   * the recovery steps are the same identifier. install-copy is a permitted
+   * first-paint specifier (config-shape.spec.ts test 13), so the one
+   * definition is imported rather than retyped; try-on.ts re-exports the
+   * same constant for the store side.
    */
-  const PRIMARY = "TRY ON DEVICE";
+  const PRIMARY = TRY_ON_LABEL;
   /**
    * The sizing twin for the budget string, and the reason this component
    * imports from $lib/tune/copy at all. The slot has to reserve room for the
@@ -226,6 +226,16 @@
   //
 
   const writing = $derived(install.phase === "writing");
+  /**
+   * The page every page-naming line here names, as the module reports it
+   * (the copy adds one): the snapshot's page once one is in hand, and the
+   * module's reported page before that. Every string that takes it renders
+   * only once a ZONA has identified itself, so the fallback of 0 is never
+   * read by a visitor; it exists so the builders take a number.
+   */
+  const page = $derived(
+    install.snapshotPage ?? session.identity?.activePage ?? 0,
+  );
   /** WRITING… belongs to a RAM leg started here; KEEPING… to the confirmation's store leg (I3). */
   const writingTry = $derived(writing && install.action === "try");
   const keeping = $derived(writing && install.action === "keep");
@@ -234,9 +244,9 @@
     connecting
       ? CONNECTING_LABEL
       : writingTry
-        ? WRITING_LABEL
+        ? writingLabel(page)
         : keeping
-          ? KEEPING_LABEL
+          ? keepingLabel(page)
           : PRIMARY,
   );
 
@@ -381,7 +391,7 @@
       class:twin={shown !== "ready"}
       aria-hidden={shown !== "ready"}
     >
-      {HONESTY_READY}
+      {honestyReady(page)}
     </p>
     <p
       class="line"
@@ -482,11 +492,10 @@
     border: 1px solid transparent;
     background: var(--color-action);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: #000000;
     cursor: pointer;
     transition:
@@ -644,11 +653,10 @@
     border: 0;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
   }

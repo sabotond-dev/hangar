@@ -124,27 +124,27 @@
   import { install, type InstallPhase } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
   import {
-    CLEARED_BODY,
-    CLEARED_CAPTION,
     IDENTIFIED_CAPTION,
-    KEPT_CAPTION,
     KEPT_PROOF_LINE,
-    RESTORED_BODY,
-    RESTORED_CAPTION,
     RESTORED_STORED_LINE,
-    SETTLED_CAPTION,
-    SNAPSHOTTING_BODY,
     SNAPSHOTTING_CAPTION,
     STILL_WRITING_LINE,
+    clearedBody,
+    clearedCaption,
     identifiedBody,
     keptBody,
+    keptCaption,
     keptMismatchBlock,
     lostBlock,
     nothingLandedBlock,
     partialBlock,
+    restoredBody,
+    restoredCaption,
     restoredUnconfirmedBlock,
     settledBody,
+    settledCaption,
     snapshotFailedBlock,
+    snapshottingBody,
     unconfirmedBlock,
   } from "$lib/device/install-copy";
   import FailureBlock from "./FailureBlock.svelte";
@@ -182,6 +182,14 @@
   /** The store's name from the click, else the entry's. */
   const shownName = $derived(install.name ?? name);
   const identity = $derived(session.identity);
+  /**
+   * The page every block names, as the module reports it (the copy adds one,
+   * D-23): the snapshot's page once one is in hand, else the page the module
+   * reported at identify - which is what the snapshotting block, rendered
+   * before the snapshot lands, has to name. No block renders before a ZONA
+   * has identified itself, so the 0 is never a page a visitor reads.
+   */
+  const page = $derived(install.snapshotPage ?? identity?.activePage ?? 0);
 </script>
 
 {#if restoring || shown !== "idle"}
@@ -193,12 +201,12 @@
     {#key restoring ? "restoring" : shown}
       <div class="block">
         {#if restoring}
-          <p class="caption">{RESTORED_CAPTION}</p>
-          <p class="body">{RESTORED_BODY}</p>
+          <p class="caption">{restoredCaption(page)}</p>
+          <p class="body">{restoredBody(page)}</p>
         {:else if shown === "snapshotting"}
           <!-- spec: before Ready (no row) - the snapshot is taken first -->
           <p class="caption">{SNAPSHOTTING_CAPTION}</p>
-          <p class="body">{SNAPSHOTTING_BODY}</p>
+          <p class="body">{snapshottingBody(page)}</p>
         {:else if shown === "ready"}
           <!-- spec: Ready -->
           {#if identity}
@@ -209,38 +217,39 @@
           {/if}
         {:else if shown === "settled"}
           <!-- spec: Applied temporarily (D03) -->
-          <p class="caption">{SETTLED_CAPTION}</p>
-          <p class="body">{settledBody(shownName)}</p>
+          <p class="caption">{settledCaption(page)}</p>
+          <p class="body">{settledBody(shownName, page)}</p>
         {:else if shown === "restored"}
           <!-- spec: NO ROW - PUT BACK's outcome; the safety rail -->
-          <p class="caption">{RESTORED_CAPTION}</p>
-          <p class="body">{RESTORED_BODY}</p>
+          <p class="caption">{restoredCaption(page)}</p>
+          <p class="body">{restoredBody(page)}</p>
           {#if install.leg === "store"}
             <p class="body quiet">{RESTORED_STORED_LINE}</p>
           {/if}
         {:else if shown === "kept"}
           <!-- spec: Stored (D04) -->
-          <p class="caption">{KEPT_CAPTION}</p>
-          <p class="body">{keptBody(shownName)}</p>
+          <p class="caption">{keptCaption(page)}</p>
+          <p class="body">{keptBody(shownName, page)}</p>
           <p class="body quiet">{KEPT_PROOF_LINE}</p>
         {:else if shown === "cleared"}
           <!-- spec: NO ROW - the firmware default playing (D06's outcome); the safety rail -->
-          <p class="caption">{CLEARED_CAPTION}</p>
-          <p class="body">{CLEARED_BODY}</p>
+          <p class="caption">{clearedCaption(page)}</p>
+          <p class="body">{clearedBody(page)}</p>
         {:else if shown === "kept-mismatch"}
           <!-- spec: Transfer uncertain, body 2 of 4 (D05) -->
-          <FailureBlock block={keptMismatchBlock()} />
+          <FailureBlock block={keptMismatchBlock(page)} />
         {:else if shown === "unconfirmed"}
           <!-- spec: Transfer uncertain, body 1 of 4 (D05) -->
-          <FailureBlock block={unconfirmedBlock(shownName)} />
+          <FailureBlock block={unconfirmedBlock(shownName, page)} />
         {:else if shown === "restored-unconfirmed"}
           <!-- spec: NO ROW - PUT BACK's store did not confirm; the safety rail -->
-          <FailureBlock block={restoredUnconfirmedBlock()} />
+          <FailureBlock block={restoredUnconfirmedBlock(page)} />
         {:else if shown === "nothing-landed"}
           <!-- spec: Transfer uncertain, body 4 of 4 (D05) -->
           <FailureBlock
             block={nothingLandedBlock(
               install.action === "try" ? "try" : "put-back",
+              page,
             )}
           />
         {:else if shown === "partial"}
@@ -250,14 +259,17 @@
               install.landed ??
                 "The system timer, the page init, the utility script and the Timer",
               install.failed ?? "the Setup",
+              page,
             )}
           />
         {:else if shown === "lost"}
           <!-- spec: Disconnected -->
-          <FailureBlock block={lostBlock(install.leg === "store", label)} />
+          <FailureBlock
+            block={lostBlock(install.leg === "store", label, page)}
+          />
         {:else if shown === "snapshot-failed"}
           <!-- spec: NO ROW - nothing copied, so nothing is written; the safety rail -->
-          <FailureBlock block={snapshotFailedBlock()} />
+          <FailureBlock block={snapshotFailedBlock(page)} />
         {/if}
       </div>
     {/key}
@@ -283,14 +295,17 @@
     }
   }
 
-  /* Micro, uppercase, quiet: every state caption (07-UI-SPEC, Color). */
+  /*
+    Every state caption. Sentence case since 13-18 (D-05): the captions are
+    now section 16's own lines - "Applied to Page 2. Store on ZONA to keep it
+    after power-off." - and a sentence is never set in uppercase. Phase 10's
+    Micro uppercase tracking went with its register.
+  */
   .caption {
     margin: 0;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    line-height: 1.4;
     color: var(--color-ink-quiet);
   }
 

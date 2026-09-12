@@ -99,6 +99,8 @@ export interface ShellFill {
    */
   draft?: string | Snippet;
   device?: InstallPhase;
+  /** The page the device clause names, as the module reports it: the install store's snapshotPage. Read beside `device`; absent means no page is known yet. */
+  page?: number;
   /**
    * The context bar's right zone. When absent the bar renders the PDF's
    * sentence "Preview without hardware" (pages 2 and 4) - the zone is a

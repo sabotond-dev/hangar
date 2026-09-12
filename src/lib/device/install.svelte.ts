@@ -194,15 +194,15 @@ import {
   type FailedWords,
   type KeepReason,
   type LandedWords,
-  LIVE_CLEARED,
-  LIVE_RESTORED,
-  LIVE_SNAPSHOT_SAVED,
   LIVE_STILL_WRITING,
   TRY_ON_LABEL,
   announceTitle,
   keptMismatchBlock,
+  liveCleared,
   liveKept,
+  liveRestored,
   liveSettled,
+  liveSnapshotSaved,
   lostBlock,
   nothingLandedBlock,
   partialBlock,
@@ -811,7 +811,11 @@ export class InstallStore {
       set = await T.fetchAll(q, id);
     } catch {
       if (gen !== this.#generation) return;
-      this.#fail("snapshot-failed", "timeout", snapshotFailedBlock().title);
+      this.#fail(
+        "snapshot-failed",
+        "timeout",
+        snapshotFailedBlock(this.#page()).title,
+      );
       return;
     }
     if (gen !== this.#generation) return;
@@ -837,7 +841,11 @@ export class InstallStore {
     // first.
     const guard = P.canWriteBack(T.SLOTS.map((slot) => set[slot.key]));
     if (!guard.ok) {
-      this.#fail("snapshot-failed", "timeout", snapshotFailedBlock().title);
+      this.#fail(
+        "snapshot-failed",
+        "timeout",
+        snapshotFailedBlock(this.#page()).title,
+      );
       return;
     }
     const fetched: ConfigStrings = {
@@ -904,7 +912,7 @@ export class InstallStore {
     this.cause = undefined;
     this.phase = "ready";
     this.#recomputeArmed();
-    this.#session.announce(LIVE_SNAPSHOT_SAVED);
+    this.#session.announce(liveSnapshotSaved(this.#page()));
   }
 
   /** The click on `snapshot-failed`: read the module again. Writes nothing. */
@@ -1138,6 +1146,16 @@ export class InstallStore {
    * while a switch is pending, before the module has reported, while a leg
    * is in flight, and for the page the module is already on.
    */
+  /**
+   * The page the copy names, as the module reports it (install-copy adds one,
+   * D-23): the snapshot's page. Every utterance and title built here follows
+   * a snapshot, so the 0 stands in only for the snapshot-failed title, which
+   * names no page.
+   */
+  #page(): number {
+    return this.snapshotPage ?? 0;
+  }
+
   requestPage(page: number): boolean {
     if (this.#inFlight || this.phase === "writing") return false;
     const target = this.#target;
@@ -1205,16 +1223,21 @@ export class InstallStore {
       await q.request(P.discardPage(), "discard");
       if (gen !== this.#generation) return;
       const kept = this.keptThisSession;
-      const name = this.name ?? "";
       this.lastWritten = undefined;
       this.name = undefined;
       this.cause = undefined;
       this.phase = kept ? "kept" : "restored";
       this.#recomputeArmed();
-      this.#session.announce(kept ? liveKept(name) : LIVE_RESTORED);
+      this.#session.announce(
+        kept ? liveKept(this.#page()) : liveRestored(this.#page()),
+      );
     } catch (err) {
       if (err instanceof T.AbortedError) {
-        this.#fail("lost", "aborted", lostBlock(false, TRY_ON_LABEL).title);
+        this.#fail(
+          "lost",
+          "aborted",
+          lostBlock(false, TRY_ON_LABEL, this.#page()).title,
+        );
         return;
       }
       if (gen !== this.#generation) return;
@@ -1223,7 +1246,7 @@ export class InstallStore {
       this.#fail(
         "restored-unconfirmed",
         err instanceof T.NackError ? "nack" : "timeout",
-        restoredUnconfirmedBlock().title,
+        restoredUnconfirmedBlock(this.#page()).title,
       );
     } finally {
       await T.restorePageChange(q).catch(() => undefined);
@@ -1288,7 +1311,7 @@ export class InstallStore {
     this.cause = undefined;
     this.phase = "settled";
     this.#recomputeArmed();
-    this.#session.announce(liveSettled(name));
+    this.#session.announce(liveSettled(this.#page()));
   }
 
   /**
@@ -1325,7 +1348,7 @@ export class InstallStore {
         this.#fail(
           "restored-unconfirmed",
           outcome === "mismatch" ? "mismatch" : "timeout",
-          restoredUnconfirmedBlock().title,
+          restoredUnconfirmedBlock(this.#page()).title,
         );
         return;
       }
@@ -1334,7 +1357,7 @@ export class InstallStore {
     this.cause = undefined;
     this.phase = "restored";
     this.#recomputeArmed();
-    this.#session.announce(LIVE_RESTORED);
+    this.#session.announce(liveRestored(this.#page()));
   }
 
   // --- the fourth click: CLEAR ---------------------------------------------
@@ -1418,7 +1441,7 @@ export class InstallStore {
     // writer promise.
     this.phase = "cleared";
     this.#recomputeArmed();
-    this.#session.announce(LIVE_CLEARED);
+    this.#session.announce(liveCleared(this.#page()));
   }
 
   // --- the flash store: KEEP ON DEVICE, and the proof ----------------------
@@ -1445,14 +1468,22 @@ export class InstallStore {
       this.cause = undefined;
       this.phase = "kept";
       this.#recomputeArmed();
-      this.#session.announce(liveKept(name));
+      this.#session.announce(liveKept(this.#page()));
       return;
     }
     if (outcome === "mismatch") {
-      this.#fail("kept-mismatch", "mismatch", keptMismatchBlock().title);
+      this.#fail(
+        "kept-mismatch",
+        "mismatch",
+        keptMismatchBlock(this.#page()).title,
+      );
       return;
     }
-    this.#fail("unconfirmed", "timeout", unconfirmedBlock(name).title);
+    this.#fail(
+      "unconfirmed",
+      "timeout",
+      unconfirmedBlock(name, this.#page()).title,
+    );
   }
 
   /**
@@ -1517,7 +1548,11 @@ export class InstallStore {
       // "closed" that bumped it is the same event that rejected the waiter
       // (07-06's ordering, Pitfall 11). The store leg's form of the block.
       if (err instanceof T.AbortedError) {
-        this.#fail("lost", "aborted", lostBlock(true, TRY_ON_LABEL).title);
+        this.#fail(
+          "lost",
+          "aborted",
+          lostBlock(true, TRY_ON_LABEL, this.#page()).title,
+        );
         return false;
       }
       if (gen !== this.#generation) return false;
@@ -1642,7 +1677,11 @@ export class InstallStore {
     // would not be.
     const after = action === "try" ? "try" : "put-back";
     if (err instanceof T.AbortedError) {
-      this.#fail("lost", "aborted", lostBlock(false, TRY_ON_LABEL).title);
+      this.#fail(
+        "lost",
+        "aborted",
+        lostBlock(false, TRY_ON_LABEL, this.#page()).title,
+      );
       return;
     }
     const cause: InstallCause = err instanceof T.NackError ? "nack" : "timeout";
@@ -1685,9 +1724,17 @@ export class InstallStore {
       this.failed = failed;
       this.landedSlots = T.SLOTS.slice(0, landedCount).map((s) => s.label);
       this.failedSlots = T.SLOTS.slice(landedCount).map((s) => s.label);
-      this.#fail("partial", cause, partialBlock(landed, failed).title);
+      this.#fail(
+        "partial",
+        cause,
+        partialBlock(landed, failed, this.#page()).title,
+      );
     } else {
-      this.#fail("nothing-landed", cause, nothingLandedBlock(after).title);
+      this.#fail(
+        "nothing-landed",
+        cause,
+        nothingLandedBlock(after, this.#page()).title,
+      );
     }
     if (cause === "timeout") this.#escalatePacing(modules);
   }

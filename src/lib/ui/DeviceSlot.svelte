@@ -2,8 +2,13 @@
   The header's connection control: one control that reads the session in nine
   states (06-UI-SPEC, The nine slot states; Y-02, Y-03, Y-10, Y-18, Y-19,
   Y-22). Re-skinned by plan 13-11 to the PDF's bordered box and re-homed into
-  the shell's header through ConnectionControl.svelte; every state, every
-  label, every accessible name and every rule below is Phase 6's, unchanged.
+  the shell's header through ConnectionControl.svelte; every state and every
+  rule below is Phase 6's. The WORDS are D-23's (13-18): the label is the
+  PDF's `Connect ZONA` wherever a click connects, section 9's `Preview only`
+  on the three summaries with no device (Phase 10's `NO ZONA` and its hover
+  swap are retired - a control announces what it does, or the state it is
+  in, never what it is not), and S4 reads the PDF's `ZONA connected` with
+  the identity moved into Device actions, as 13-11 said it would.
 
   ONE RULE PRODUCES THE CONTRACT. The slot is a plain BUTTON whenever a click
   does something - S1, S2, S6 and S7 all connect - and a SUMMARY (a button
@@ -32,14 +37,10 @@
   THE ACCESSIBLE NAME IS THE LABEL, NEVER THE CAPTION. The caption line is
   aria-hidden and reaches the control through aria-describedby on a
   visually-hidden twin, so a speech-input user says what the button DOES
-  rather than what it is not (WCAG 2.5.3). In S1 the label swaps NO ZONA to
-  CONNECT ZONA on hover, but the accessible name is CONNECT ZONA in both
-  forms: the CONNECT ZONA span hides by OPACITY, which leaves it in the
-  accessibility tree, and the resting NO ZONA is aria-hidden. S1's describedby
-  twin carries HIDDEN_NAME_IDLE - the one fact the label alone cannot convey
-  once it has swapped to its hovered form. The S4 identity wraps its middle
-  dots in aria-hidden spans, so the name is the words in order and never three
-  "middle dot"s, and its describedby twin carries identityDescription(...).
+  rather than what it is not (WCAG 2.5.3). S1's describedby twin carries
+  HIDDEN_NAME_IDLE - section 16's Disconnected line, the one fact the label
+  alone does not say. S4's carries identityDescription(...): the firmware,
+  the page as the visitor reads it, and that a click opens Device actions.
 
   S6 ACTS, IT DOES NOT EXPAND. A failure raised by the visitor's own header
   click puts its recovery in front of them because THE ARRIVING FAILURE OPENS
@@ -60,17 +61,12 @@
   (Y-11). The summary names the panel in aria-controls; DeviceDetails uses the
   same attribute to tell an opener's click from a click outside.
 
-  THE MULTI-MODULE TAIL COLLAPSES IN CSS, NOT IN JAVASCRIPT (D-08, Y-19). When
-  the identity carries other modules the S4 label ends with a trailing span
-  built from moduleTail(...); it is hidden below 1024px by a media query on
-  that span and by nothing else. Three reasons. A width read in script is
-  wrong on the first paint of a prerendered page and would make the label
-  jump; a resize listener is state that has to be torn down and one more thing
-  to leak; and CSS already does this at the compositor with no frame of its
-  own. The tail's content is ALSO in the disclosure at every width
-  (multiModuleLine), so nothing is lost below 1024px - the tail is the least
-  time-critical part of the identity and the disclosure is one click away.
-  This component reads no viewport width and registers no listener.
+  THE IDENTITY IS IN THE DISCLOSURE, NOT THE LABEL (13-18, D-23; 13-11 named
+  the move). Phase 6's S4 label carried the firmware, the page and a
+  multi-module tail that collapsed below 1024px in CSS (D-08, Y-19); the PDF
+  draws `ZONA connected` and nothing else in the box, and Device actions
+  already renders identitySentence and multiModuleLine at every width. This
+  component reads no viewport width and registers no listener.
 
   WHY data-hydrated EXISTS. slotStateOf maps `starting` to S1, so a
   prerendered document already carries a rendered slot, and a browser test
@@ -102,14 +98,13 @@
     CAPTION_INSECURE,
     CAPTION_UNPLUGGED,
     CAPTION_UNSUPPORTED,
+    CONNECTED_LABEL,
     CONNECTING_LABEL,
     CONNECT_LABEL,
     HIDDEN_NAME_IDLE,
-    NO_ZONA_LABEL,
+    PREVIEW_ONLY_LABEL,
     type SlotState,
-    firmwareText,
     identityDescription,
-    moduleTail,
     slotStateOf,
   } from "$lib/device/session-copy";
   import { PANEL_ID, drawer } from "./device-drawer.svelte";
@@ -193,23 +188,22 @@
     }
   });
 
-  /** How the label renders: the S1 hover swap, the S4 identity, or one line of text. */
-  const labelKind = $derived.by(() => {
-    if (slot === "S1") return "swap" as const;
-    if (slot === "S4") return "identity" as const;
-    return "text" as const;
-  });
+  /** One line of text in every state since 13-18; kept as a data attribute for the tests that read it. */
+  const labelKind = "text" as const;
 
+  /** The verb where a click connects (S1, S2, S6, S7); the state where it does not (S0a, S0b, S5 - the summaries with no device); the identity in S4. */
   const labelText = $derived.by(() => {
     switch (slot) {
       case "S3":
         return CONNECTING_LABEL;
-      case "S2":
-      case "S6":
-      case "S7":
-        return CONNECT_LABEL;
+      case "S4":
+        return CONNECTED_LABEL;
+      case "S0a":
+      case "S0b":
+      case "S5":
+        return PREVIEW_ONLY_LABEL;
       default:
-        return NO_ZONA_LABEL; // S0a, S0b, S5
+        return CONNECT_LABEL; // S1, S2, S6, S7
     }
   });
 
@@ -238,14 +232,6 @@
   });
 
   const identity = $derived(session.identity);
-  const fw = $derived(identity ? firmwareText(identity.zona.firmware) : "");
-  const page = $derived(identity ? identity.activePage : 0);
-  /** The other modules' names, in the session's order; a module that named no type reads as unknown. */
-  const tail = $derived(
-    identity
-      ? moduleTail(identity.otherModules.map((m) => m.moduleType ?? "unknown"))
-      : undefined,
-  );
 
   /** The describedby twin's text: HIDDEN_NAME_IDLE where no ZONA is connected
       and the label alone cannot say so, the identity description while
@@ -299,36 +285,7 @@
       data-kind={labelKind}
       data-tone={labelTone}
     >
-      {#if labelKind === "swap"}
-        <span class="swap">
-          <span class="rest" aria-hidden="true">{NO_ZONA_LABEL}</span>
-          <span class="hover">{CONNECT_LABEL}</span>
-        </span>
-      {:else if labelKind === "identity"}
-        <!-- The spaces are non-breaking entities, not source whitespace:
-             Svelte trims whitespace that touches an element boundary, so a
-             plain space between these spans would vanish and leave
-             "ZONA·fw...". The middle dots are bare "·" in aria-hidden spans
-             and every space the eye and the accessible name need lives in a
-             word span, so with the dots removed the name is
-             "ZONA fw {fw} page {page}" and never a run of "middle dot"s. A
-             {" "} would do the same but the lint rule bans it. -->
-        <span class="word">ZONA&nbsp;</span><span class="sep" aria-hidden="true"
-          >·</span
-        ><span class="word">&nbsp;fw&nbsp;</span><span class="mono">{fw}</span
-        ><span class="word">&nbsp;</span><span class="sep" aria-hidden="true"
-          >·</span
-        ><span class="word">&nbsp;page&nbsp;</span><span class="mono"
-          >{page}</span
-        >{#if tail}<span class="tail"
-            ><span class="word">&nbsp;</span><span
-              class="sep"
-              aria-hidden="true">·</span
-            ><span class="word">&nbsp;</span>{tail}</span
-          >{/if}
-      {:else}
-        {labelText}
-      {/if}
+      {labelText}
     </span>
   </span>
 </button>
@@ -388,27 +345,20 @@
     transition: opacity 160ms ease-out;
   }
 
-  /* The label: the site's control-label form, tracked less than Phase 10's
-     0.18em because the PDF's box sets its words plainly. */
+  /* The label: sentence case since 13-18 (D-05, D-23) - the PDF's box reads
+     `Connect ZONA` and `ZONA connected` as words, not as a shouted label -
+     at the weight and size Phase 6 gave the connected identity, which was
+     the one sentence-case line the box already had (Y-18). */
   .label {
     line-height: 14px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     white-space: nowrap;
     color: var(--color-ink-quiet);
     transition:
       color 160ms ease-out,
       opacity 160ms ease-out;
-  }
-
-  /* The connected identity is a plain sentence-case line, not a shouted label (Y-18). */
-  .label[data-kind="identity"] {
-    letter-spacing: 0.01em;
-    text-transform: none;
-    font-weight: 500;
-    font-size: 13px;
   }
 
   .label[data-tone="dim"] {
@@ -419,80 +369,10 @@
     color: var(--color-ink);
   }
 
-  /*
-    The S1 label swap, sized by a twin so the box never changes width. Both
-    labels occupy one grid cell, so the cell is always as wide as CONNECT ZONA
-    - the longer of the two - and the hover swap moves opacity and colour
-    only, never height and never width. The CONNECT ZONA span hides by OPACITY
-    rather than visibility so it stays in the accessibility tree and is the
-    accessible name in both forms; the resting NO ZONA is aria-hidden.
-  */
-  .swap {
-    display: grid;
-  }
-
-  .swap > .rest,
-  .swap > .hover {
-    grid-area: 1 / 1;
-    transition:
-      color 160ms ease-out,
-      opacity 160ms ease-out;
-  }
-
-  .swap > .rest {
-    opacity: 1;
-    color: var(--color-ink-quiet);
-  }
-
-  .swap > .hover {
-    opacity: 0;
-    color: var(--color-ink);
-  }
-
-  .device-slot:hover .swap > .rest,
-  .device-slot:focus-visible .swap > .rest,
-  .device-slot:active .swap > .rest {
-    opacity: 0;
-  }
-
-  .device-slot:hover .swap > .hover,
-  .device-slot:focus-visible .swap > .hover,
-  .device-slot:active .swap > .hover {
-    opacity: 1;
-  }
-
-  /*
-    The numeric runs only (Y-18): monospace, weight 400, tabular figures, so the
-    page digit does not jitter as the module reports it at 4 Hz. The words ZONA,
-    fw, page and the middle-dot separators stay in the sans face. Prose is never
-    monospaced - this is the one --font-mono use in the device components.
-  */
-  .mono {
-    font-family: var(--font-mono);
-    font-weight: 400;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /*
-    The multi-module tail collapses BELOW 1024px in CSS and nowhere else - no
-    width read, no matchMedia, no resize listener. display: none is deliberate
-    and is the one place this component does not reserve: the tail is at the
-    END of the line, so removing it shortens the label and moves nothing
-    above, below or to its left, and its content is in the disclosure at every
-    width (Y-19).
-  */
-  @media (max-width: 1023.98px) {
-    .tail {
-      display: none;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .device-slot,
     .caption,
-    .label,
-    .swap > .rest,
-    .swap > .hover {
+    .label {
       transition: none;
     }
   }

@@ -1,18 +1,37 @@
 // The install flow's copy contract, made executable: six gates.
 //
-// 07-UI-SPEC.md's Copywriting Contract IS the specification, and 10-UI-SPEC.md
-// amends three of its sentences (R-05, R-06, R-09), so test 2 reads BOTH from
-// disk rather than transcribing either a second time: every literal longer than
-// forty characters must appear in one of those two documents verbatim, with a
-// builder's sample arguments folded back into the contract's placeholders. The
-// one exception is a row in AMENDED_BY_MEASUREMENT, which is asserted from both
-// sides rather than excused. Test 3 holds the FOUR caps the panel's
-// reservations rest on - three until plan 10-12 - by name and as arithmetic
-// over the measured CH_PER_LINE, so a reservation cannot silently grow (Z-18);
-// it holds Z-08, the site's one "about a second", to exactly two occurrences;
-// and it holds A-52's declared headroom and the three stems no string beside
-// CLEAR may say. Tests 4 to 6 are the mechanical rules, the closed sets and
-// the formatters.
+// THE CONTRACT CHANGED HANDS AT 13-18. Through Phase 12 it was 07-UI-SPEC's
+// Copywriting Contract and 10-UI-SPEC's amendments, and test 2 read both from
+// disk. Since 13-CONTEXT D-05 (the register is the Bible's) and D-23 (the
+// batch approved as proposed, 2026-09-12) the documents that author every
+// string in install-copy.ts are three, and test 2 reads all three from disk:
+//
+//  - the design specification (bible/HANGAR-ZONA-GUI-design-specification.md),
+//    whose section 9 state table and section 16 copy table give the lines
+//    taken verbatim;
+//  - 13-18-BATCH.md, the table of every string neither document wrote, each
+//    with the state it names, the fact it must carry and the proposal; and
+//  - 13-CONTEXT.md's D-23, the user's one-word answer that made the proposals
+//    the words.
+//
+// Every string the module can produce, with a builder's sample arguments
+// folded back into the batch's placeholders, must appear in the specification
+// or in the batch. A string that appears in neither was invented after the
+// review and is red here by name.
+//
+// THE HONESTY CAPS ARE RETIRED BY NAME (test 3). HONESTY_CAP, PUT_BACK_CAP,
+// KEEP_CAP and CLEAR_CAP were measured maximum lengths per string - lines x
+// the 43 characters plan 10-01 measured as a Body line box's minimum
+// occupancy in Phase 10's 372px install column - held here so a caption could
+// not outgrow the cell reserved for it and so a cap was a promise about
+// strings not yet written. D-05 changed the register (the Bible's lines are
+// verbatim and several are longer than 86) and the layout the caps were
+// measured against is being replaced by the Bible's proportional regions
+// (13-11, 13-12, 13-20), so a cap measured against it caps nothing. Test 3
+// now asserts the ABSENCE of the four, that the module's header retires them
+// by name with the date, and every rule that travelled with them and did not
+// retire: Z-08's one "about a second", A-48's three stems, the label rules,
+// SAFE-01's WRITE_CLICKS, and the page numbering.
 //
 // Two habits from the house, both load-bearing here:
 //
@@ -28,44 +47,39 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as copy from "./install-copy";
 import {
-  CLEARED_BODY,
-  CLEARED_CAPTION,
-  CLEARING_LABEL,
-  CLEAR_CAP,
   CLEAR_LABEL,
-  CLEAR_LINE,
   CLEAR_REASONS,
-  HONESTY_CAP,
-  HONESTY_INCAPABLE,
   HONESTY_NO_SESSION,
-  HONESTY_READY,
-  HONESTY_SNAPSHOTTING,
-  KEEP_CAP,
+  IDENTIFIED_CAPTION,
   KEEP_LABEL,
-  KEEP_LINE_ENABLED,
   KEEP_REASONS,
-  LIVE_CLEARED,
-  LIVE_RESTORED,
-  LIVE_SNAPSHOT_SAVED,
   LIVE_STILL_WRITING,
-  PUT_BACK_CAP,
   PUT_BACK_LABEL,
-  PUT_BACK_LINE,
-  PUT_BACK_LINE_AFTER_KEEP,
   PUT_BACK_NEEDS_ZONA,
   SWITCH_PAGE_LABEL,
   TRY_ON_LABEL,
   WRITE_CLICKS,
   announceTitle,
+  clearLine,
+  clearedBody,
+  clearedCaption,
+  clearingLabel,
   confirmRig,
+  honestyReady,
+  keptCaption,
   keptMismatchBlock,
+  liveCleared,
   liveKept,
+  liveRestored,
   liveSettled,
+  liveSnapshotSaved,
   lostBlock,
   moduleList,
   nothingLandedBlock,
+  pageName,
   partialBlock,
   restoredUnconfirmedBlock,
+  settledCaption,
   snapshotFailedBlock,
   unconfirmedBlock,
   type ClearReason,
@@ -81,228 +95,31 @@ const read = (relative: string) =>
 const installCopySource = () => read("./install-copy.ts");
 
 /**
- * The approved contracts, read from disk: src/lib/device/ is three levels below
- * the root. TWO documents since plan 10-03, because that plan rewrote three of
- * this module's sentences and the rows holding their new forms are in the Phase
- * 10 contract, not the Phase 7 one. Test 2 asks whether a literal appears in
- * EITHER, and asserts that both were read and that both are approved - a
- * containment check over a document that failed to load is a gate that passes
- * everything.
+ * The three documents that author the words, read from disk: src/lib/device/
+ * is three levels below the root. Each is checked for length and for a
+ * heading before it is searched, because a containment check over a document
+ * that failed to load is a gate that passes everything.
  */
-const UI_SPECS: readonly { path: string; heading: string }[] = [
-  {
-    path: "../../../.planning/phases/07-install-flow/07-UI-SPEC.md",
-    heading: "## Copywriting Contract",
-  },
-  {
-    path: "../../../.planning/phases/10-redesign/10-UI-SPEC.md",
-    heading: "## 13. Copywriting Contract",
-  },
-];
-
-const uiSpecs = () => UI_SPECS.map(({ path }) => read(path));
-
-/**
- * THE ONE LITERAL THE CONTRACTS DO NOT CARRY, AND WHY, BY NAME.
- *
- * 10-UI-SPEC 13.3 authors HONESTY_READY at 90 characters. It cannot ship at 90:
- * plan 10-01 measured CH_PER_LINE at 43 rather than the provisional 46 the
- * contract's arithmetic assumed, which takes HONESTY_CAP to 2 x 43 = 86, and
- * the standing rule is that the literal shortens and the cap never rises - a
- * cap widened to admit its own string stops reserving anything.
- *
- * So this row is an amendment, not an exemption, and it is asserted as one:
- * test 2 requires the CONTRACT's form to be present in a contract (so the row
- * being amended is real and still says what it says), requires it to be OVER
- * the cap (so the amendment is necessary rather than convenient), and requires
- * the SHIPPED form to be under it. Deleting the row makes test 2 red on the
- * shipped string; faking it makes test 2 red on the contract's.
- */
-const AMENDED_BY_MEASUREMENT: readonly {
-  name: string;
-  contract: string;
-  cap: number;
-}[] = [
-  {
-    name: "HONESTY_READY",
-    contract:
-      "Writes this into your ZONA’s memory in about a second. A power cycle brings your own back.",
-    cap: 86,
-  },
-];
-
-/**
- * AMENDED BECAUSE A THIRD SCRIPT MADE THE CONTRACT'S SENTENCE UNTRUE (12-03).
- *
- * The contracts were written when an install was two scripts. Since 12-03 it
- * is three: the SYSTEM element's page-init slot goes on the wire ahead of the
- * touch element's Setup and Timer, is copied at connect, is put back by PUT
- * BACK and is reset by CLEAR. Four sentences named a count or a scope that the
- * third script falsified, and only those four moved - everything else in the
- * contracts is still true of the touch element and is shipped byte for byte.
- *
- * ASSERTED FROM BOTH SIDES, exactly as AMENDED_BY_MEASUREMENT is. Test 2
- * requires the CONTRACT's form to be in an approved contract, so the row being
- * amended is real and still says what it says; requires the SHIPPED form to be
- * the one the module really produces under that name; and, where the
- * amendment is an INSERTION, requires that deleting the inserted words from
- * the shipped string gives the contract's string back character for character
- * - so an amendment cannot quietly rewrite the rest of a sentence under cover
- * of adding a clause. The two rewritten rows (partial's detail, which cannot
- * be an insertion because "half ... and half" is a two-part claim, and its
- * first step, which said "both") are required to NAME the page init instead.
- *
- * Deleting a row makes test 2 red on the shipped string; faking one makes it
- * red on the contract's.
- *
- * AMENDED AGAIN BECAUSE A FOURTH SCRIPT MADE THE THIRD'S SENTENCE UNTRUE
- * (12.1-08). Since 12.1-07 a RAM leg writes FOUR: the SYSTEM element's timer
- * slot (255/6) goes on the wire first of all, ahead of the page init, and a
- * KEEP stores it. The confirmation's clause now names both page scripts (an
- * INSERTION still, so deleting it gives the contract's sentence back), the
- * partial's detail names every landed slot in write order over all three
- * reachable prefixes, and its step says "all four". SNAPSHOTTING_BODY and
- * identifiedBody keep the third script's clause - 13-18 rewrites every one of
- * these under 13-CONTEXT D-05 and carries the four-string fact from
- * 12.1-08-SUMMARY.md. The constant is named for the LATEST amendment.
- *
- * AMENDED ONCE MORE BECAUSE A FIFTH SCRIPT MADE THE FOURTH'S SENTENCE UNTRUE
- * (13-17, D-18 / D-19). Since 13-17 a RAM leg writes FIVE: the SYSTEM
- * element's utility slot (255/4) goes third, after the page init, and a KEEP
- * stores it. The confirmation's clause names the three page scripts (still
- * an INSERTION on the contract), the partial's detail names every landed
- * slot in write order over all four reachable prefixes, and its step says
- * "all five". SNAPSHOTTING_BODY and identifiedBody still keep the third
- * script's clause, as 12.1-08 left them - 13-18's.
- */
-const PAGE_INIT_CLAUSE = "and the page’s own init script";
-const PAGE_SCRIPTS_CLAUSE =
-  "and the page’s own init, timer and utility scripts";
-const AMENDED_BY_THE_FIFTH_SCRIPT: readonly {
-  name: string;
-  contract: string;
-  shipped: string;
-  /** The inserted words, or undefined when the sentence was rewritten rather than extended. */
-  addition?: string;
-  /** What a REWRITTEN sentence has to say instead, so the rewrite is about the third script. */
-  names?: string;
-}[] = [
-  {
-    name: "SNAPSHOTTING_BODY",
-    contract:
-      "Taking a copy of the Setup and Timer scripts already on your ZONA’s touch element.",
-    shipped:
-      "Taking a copy of the Setup and Timer scripts already on your ZONA’s touch element, and the page’s own init script.",
-    addition: `, ${PAGE_INIT_CLAUSE}`,
-  },
-  {
-    name: "identifiedBody",
-    contract:
-      "Firmware {major}.{minor}.{patch}, active page {n}. Its own Setup and Timer are saved here, so PUT BACK can undo anything you try.",
-    shipped:
-      "Firmware {major}.{minor}.{patch}, active page {n}. Its own Setup and Timer are saved here, and the page’s own init script, so PUT BACK can undo anything you try.",
-    addition: `, ${PAGE_INIT_CLAUSE}`,
-  },
-  {
-    name: "CONFIRM_REPLACES",
-    contract:
-      "This replaces the Setup and Timer scripts on your ZONA’s touch element, and it survives a power cycle.",
-    shipped:
-      "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init, timer and utility scripts, and it survives a power cycle.",
-    addition: ` ${PAGE_SCRIPTS_CLAUSE}`,
-  },
-  {
-    name: "partialBlock.detail",
-    contract:
-      "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
-    shipped:
-      "The system timer, the page init, the utility script and the Timer reached your ZONA and the Setup did not. What is on the module now is part of this configuration and part of your own.",
-    names: "system timer",
-  },
-  {
-    name: "partialBlock(utility only).detail",
-    contract:
-      "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
-    shipped:
-      "The system timer, the page init and the utility script reached your ZONA and the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
-    names: "system timer",
-  },
-  {
-    name: "partialBlock(page init only).detail",
-    contract:
-      "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
-    shipped:
-      "The system timer and the page init reached your ZONA and the utility script, the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
-    names: "system timer",
-  },
-  {
-    name: "partialBlock(system timer only).detail",
-    contract:
-      "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
-    shipped:
-      "The system timer reached your ZONA and the page init, the utility script, the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
-    names: "system timer",
-  },
-  {
-    name: "partialBlock.steps[0]",
-    contract: "Click TRY ON DEVICE to send both again",
-    shipped: "Click TRY ON DEVICE to send all five again",
-    names: "all five",
-  },
-  {
-    name: "partialBlock(utility only).steps[0]",
-    contract: "Click TRY ON DEVICE to send both again",
-    shipped: "Click TRY ON DEVICE to send all five again",
-    names: "all five",
-  },
-  {
-    name: "partialBlock(page init only).steps[0]",
-    contract: "Click TRY ON DEVICE to send both again",
-    shipped: "Click TRY ON DEVICE to send all five again",
-    names: "all five",
-  },
-  {
-    name: "partialBlock(system timer only).steps[0]",
-    contract: "Click TRY ON DEVICE to send both again",
-    shipped: "Click TRY ON DEVICE to send all five again",
-    names: "all five",
-  },
-];
-
-/**
- * THE FIVE NAMES IN WRITE ORDER (12.1-08; 13-17). Each reachable partial, as
- * the ONE writer produces it: the landed prefix of sequence.ts's SLOTS on the
- * left, the rest on the right. Read left to right, every row names the five
- * slots in the order they go on the wire - 255/6, 255/0, 255/4, 0/6, 0/0 -
- * and no row skips one. Held as literals here, not read off SLOTS, because
- * this module may import nothing (test 1) and the pairings are what the
- * closed unions encode.
- */
-const SLOT_NAMES_IN_WRITE_ORDER = [
-  "system timer",
-  "page init",
-  "utility script",
-  "Timer",
-  "Setup",
-] as const;
-const PARTIALS_IN_WRITE_ORDER: readonly [LandedWords, FailedWords][] = [
+const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
   [
-    "The system timer",
-    "the page init, the utility script, the Timer and the Setup",
-  ],
-  [
-    "The system timer and the page init",
-    "the utility script, the Timer and the Setup",
-  ],
-  [
-    "The system timer, the page init and the utility script",
-    "the Timer and the Setup",
-  ],
-  [
-    "The system timer, the page init, the utility script and the Timer",
-    "the Setup",
-  ],
-];
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/bible/HANGAR-ZONA-GUI-design-specification.md",
+      heading: "## 16. Copy examples",
+      atLeast: 30_000,
+    },
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/13-18-BATCH.md",
+      heading: "## I. The device band",
+      atLeast: 60_000,
+    },
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/13-CONTEXT.md",
+      heading: "## D-23 [user] The copy batch approved as proposed",
+      atLeast: 20_000,
+    },
+  ];
+
+const documents = () => DOCUMENTS.map(({ path }) => read(path));
 
 /** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
 const strip = (text: string) =>
@@ -310,9 +127,6 @@ const strip = (text: string) =>
     .replace(/^[ ]*[/][/].*$/gm, "")
     .replace(/[/][*][^]*?[*][/]/g, "")
     .replace(/<!--[^]*?-->/g, "");
-
-/** Counted by script, never by eye: code points, not UTF-16 units. */
-const chars = (text: string) => [...text].length;
 
 /** Assembled, never written: the engine name that appears in no string and no comment. */
 const ENGINE = ["Chrom", "ium"].join("");
@@ -322,11 +136,37 @@ const WIRE_WORDS = [
   ["bu", "rn"].join(""),
   ["inst", "all"].join(""),
 ];
+/**
+ * Assembled: Phase 10's register, which no string may carry any more - its
+ * four uppercase labels and the verbs its prose paraphrased them with. A
+ * sentence that says "try it on" when the button says `Apply to ZONA` is the
+ * paraphrase D-05 forbids.
+ */
+const RETIRED_LABELS = [
+  ["TRY ON ", "DEVICE"].join(""),
+  ["KEEP ON ", "DEVICE"].join(""),
+  ["PUT ", "BACK"].join(""),
+  ["NOT ", "NOW"].join(""),
+];
+/** Assembled, matched without case: the verbs Phase 10's prose paraphrased its labels with. */
+const RETIRED_VERBS = [
+  ["try", "-on"].join(""),
+  ["try it ", "on"].join(""),
+  ["keep it ", "again"].join(""),
+  ["power ", "cycle"].join(""),
+];
+/** Assembled: the four retired caps, by name, which the module must not export and must retire in words. */
+const RETIRED_CAPS = ["HONESTY", "PUT_BACK", "KEEP", "CLEAR"].map(
+  (stem) => `${stem}_CAP`,
+);
 
 const FW = { major: 1, minor: 5, patch: 5 };
-const NAME = "EUCLID";
-/** The header disclosure's label - the OTHER surface, so no step can be a literal that matches the panel. */
-const HEADER_LABEL = "CONNECT ZONA";
+/** The catalog's title-case name (D-14 Q11b), as the batch's samples read. */
+const NAME = "Arc";
+/** The wire page every sample is built on: 1, which the visitor reads as Page 2 - the batch's own sample. */
+const PAGE = 1;
+/** The header's connect control - the OTHER surface, so no step can be a literal that matches the panel. */
+const HEADER_LABEL = "Connect ZONA";
 
 /**
  * One sample input per exported function, so every builder's OUTPUT goes
@@ -334,39 +174,61 @@ const HEADER_LABEL = "CONNECT ZONA";
  * here fails test 4 by name, so a sentence added later cannot quietly escape.
  */
 const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
-  identifiedBody: [FW, 3],
-  settledBody: [NAME],
-  keptBody: [NAME],
-  keptMismatchBlock: [],
-  unconfirmedBlock: [NAME],
-  restoredUnconfirmedBlock: [],
-  nothingLandedBlock: ["try"],
+  pageName: [PAGE],
+  writingLabel: [PAGE],
+  keepingLabel: [PAGE],
+  puttingBackLabel: [PAGE],
+  clearingLabel: [PAGE],
+  honestyReady: [PAGE],
+  snapshottingBody: [PAGE],
+  identifiedBody: [FW, PAGE],
+  settledCaption: [PAGE],
+  settledBody: [NAME, PAGE],
+  restoredCaption: [PAGE],
+  restoredBody: [PAGE],
+  keptCaption: [PAGE],
+  keptBody: [NAME, PAGE],
+  clearedCaption: [PAGE],
+  clearedBody: [PAGE],
+  keptMismatchBlock: [PAGE],
+  unconfirmedBlock: [NAME, PAGE],
+  restoredUnconfirmedBlock: [PAGE],
+  nothingLandedBlock: ["try", PAGE],
   partialBlock: [
     "The system timer, the page init, the utility script and the Timer",
     "the Setup",
+    PAGE,
   ],
-  lostBlock: [false, HEADER_LABEL],
-  snapshotFailedBlock: [],
+  lostBlock: [false, HEADER_LABEL, PAGE],
+  snapshotFailedBlock: [PAGE],
+  confirmCaption: [PAGE],
+  confirmReplaces: [PAGE],
   moduleList: [["EN16", "BU16", "PO16"]],
   confirmRig: [["EN16"]],
-  liveSettled: [NAME],
-  liveKept: [NAME],
+  keepLineEnabled: [PAGE],
+  clearLine: [PAGE],
+  liveSnapshotSaved: [PAGE],
+  liveSettled: [PAGE],
+  liveRestored: [PAGE],
+  liveKept: [PAGE],
+  liveCleared: [PAGE],
   announceTitle: ["Nothing reached your ZONA"],
 };
 
 /**
  * The OTHER branch of every two-form builder, so test 2 matches both forms of
- * each against the contract and not only the sampled one.
+ * each against the documents and not only the sampled one.
  */
 const OTHER_BRANCHES: readonly [string, unknown][] = [
-  ["nothingLandedBlock(put-back)", nothingLandedBlock("put-back")],
-  ["lostBlock(store leg)", lostBlock(true, "TRY ON DEVICE")],
-  ["confirmRig(several)", confirmRig(["EN16", "BU16"])],
+  ["nothingLandedBlock(put-back)", nothingLandedBlock("put-back", PAGE)],
+  ["lostBlock(store leg)", lostBlock(true, TRY_ON_LABEL, PAGE)],
+  ["confirmRig(several)", confirmRig(["EN16", "PBF4"])],
   [
     "partialBlock(utility only)",
     partialBlock(
       "The system timer, the page init and the utility script",
       "the Timer and the Setup",
+      PAGE,
     ),
   ],
   [
@@ -374,6 +236,7 @@ const OTHER_BRANCHES: readonly [string, unknown][] = [
     partialBlock(
       "The system timer and the page init",
       "the utility script, the Timer and the Setup",
+      PAGE,
     ),
   ],
   [
@@ -381,32 +244,36 @@ const OTHER_BRANCHES: readonly [string, unknown][] = [
     partialBlock(
       "The system timer",
       "the page init, the utility script, the Timer and the Setup",
+      PAGE,
     ),
   ],
 ];
 
 /**
- * The sample values folded back into the contract's placeholders, in order.
- * `{Name}`, `{Timer}` / `{Setup}`, `{label}`, `{EN16}` / `{EN16 and BU16}` and
- * the firmware line are the only interpolations the contract has.
+ * The sample values folded back into the batch's placeholders, in order. The
+ * batch writes `{landed}` / `{failed}` for the partial's two lists and
+ * `{label}` for the interpolated control; its page, name, firmware and module
+ * samples are the ones above, so those fold to themselves.
  */
 const PLACEHOLDERS: readonly [string, string][] = [
   [
-    "Firmware 1.5.5, active page 3.",
-    "Firmware {major}.{minor}.{patch}, active page {n}.",
-  ],
-  [NAME, "{Name}"],
-  [
-    "Timer reached your ZONA and Setup did not",
-    "{Timer} reached your ZONA and {Setup} did not",
+    "The system timer, the page init, the utility script and the Timer reached your ZONA and the Setup",
+    "{landed} reached your ZONA and {failed}",
   ],
   [
-    "Setup reached your ZONA and Timer did not",
-    "{Timer} reached your ZONA and {Setup} did not",
+    "The system timer, the page init and the utility script reached your ZONA and the Timer and the Setup",
+    "{landed} reached your ZONA and {failed}",
+  ],
+  [
+    "The system timer and the page init reached your ZONA and the utility script, the Timer and the Setup",
+    "{landed} reached your ZONA and {failed}",
+  ],
+  [
+    "The system timer reached your ZONA and the page init, the utility script, the Timer and the Setup",
+    "{landed} reached your ZONA and {failed}",
   ],
   [`Click ${HEADER_LABEL} again`, "Click {label} again"],
-  ["Your EN16 and BU16 are on", "Your {EN16 and BU16} are on"],
-  ["Your EN16 is on", "Your {EN16} is on"],
+  [`Click ${TRY_ON_LABEL} again`, "Click {label} again"],
 ];
 
 const templated = (text: string) =>
@@ -451,22 +318,58 @@ const everyString = () => {
 
 /** The seven failure builders at their samples, named. */
 const failureBlocks = (): readonly [string, InstallBlock][] => [
-  ["keptMismatchBlock", keptMismatchBlock()],
-  ["unconfirmedBlock", unconfirmedBlock(NAME)],
-  ["restoredUnconfirmedBlock", restoredUnconfirmedBlock()],
-  ["nothingLandedBlock", nothingLandedBlock("try")],
+  ["keptMismatchBlock", keptMismatchBlock(PAGE)],
+  ["unconfirmedBlock", unconfirmedBlock(NAME, PAGE)],
+  ["restoredUnconfirmedBlock", restoredUnconfirmedBlock(PAGE)],
+  ["nothingLandedBlock", nothingLandedBlock("try", PAGE)],
   [
     "partialBlock",
     partialBlock(
       "The system timer, the page init, the utility script and the Timer",
       "the Setup",
+      PAGE,
     ),
   ],
-  ["lostBlock", lostBlock(false, HEADER_LABEL)],
-  ["snapshotFailedBlock", snapshotFailedBlock()],
+  ["lostBlock", lostBlock(false, HEADER_LABEL, PAGE)],
+  ["snapshotFailedBlock", snapshotFailedBlock(PAGE)],
 ];
 
-describe("the install flow's copy contract (07-UI-SPEC)", () => {
+/**
+ * THE FIVE NAMES IN WRITE ORDER (12.1-08; 13-17). Each reachable partial, as
+ * the ONE writer produces it: the landed prefix of sequence.ts's SLOTS on the
+ * left, the rest on the right. Read left to right, every row names the five
+ * slots in the order they go on the wire - 255/6, 255/0, 255/4, 0/6, 0/0 -
+ * and no row skips one. Held as literals here, not read off SLOTS, because
+ * this module may import nothing (test 1) and the pairings are what the
+ * closed unions encode.
+ */
+const SLOT_NAMES_IN_WRITE_ORDER = [
+  "system timer",
+  "page init",
+  "utility script",
+  "Timer",
+  "Setup",
+] as const;
+const PARTIALS_IN_WRITE_ORDER: readonly [LandedWords, FailedWords][] = [
+  [
+    "The system timer",
+    "the page init, the utility script, the Timer and the Setup",
+  ],
+  [
+    "The system timer and the page init",
+    "the utility script, the Timer and the Setup",
+  ],
+  [
+    "The system timer, the page init and the utility script",
+    "the Timer and the Setup",
+  ],
+  [
+    "The system timer, the page init, the utility script and the Timer",
+    "the Setup",
+  ],
+];
+
+describe("the install flow's copy contract (the Bible, the batch, D-23)", () => {
   it("imports nothing at all, so any first-paint component may name it", () => {
     const raw = installCopySource();
     expect(raw.length, "the source was actually read").toBeGreaterThan(4000);
@@ -490,90 +393,89 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
     expect(source.includes("require("), "install-copy.ts requires").toBe(false);
   });
 
-  it("holds every long sentence of the contract character for character", () => {
-    const specs = uiSpecs();
-    specs.forEach((spec, i) => {
+  it("holds every string against the documents that authored it: the Bible verbatim, the batch as approved", () => {
+    const docs = documents();
+    docs.forEach((doc, i) => {
       expect(
-        spec.length,
-        `${UI_SPECS[i].path} was actually read`,
-      ).toBeGreaterThan(50_000);
+        doc.length,
+        `${DOCUMENTS[i].path} was actually read`,
+      ).toBeGreaterThan(DOCUMENTS[i].atLeast);
       expect(
-        spec,
-        `${UI_SPECS[i].path} is not the document it claims to be`,
-      ).toContain(UI_SPECS[i].heading);
-      expect(spec, `${UI_SPECS[i].path} is not approved`).toContain(
-        "status: approved",
-      );
+        doc,
+        `${DOCUMENTS[i].path} is not the document it claims to be`,
+      ).toContain(DOCUMENTS[i].heading);
     });
-    const inAContract = (text: string) => specs.some((s) => s.includes(text));
-
-    const long = everyString().filter(({ text }) => chars(text) > 40);
-    expect(
-      long.length,
-      "enough long literals were found to be checking anything",
-    ).toBeGreaterThanOrEqual(40);
-
-    // The measured amendments, asserted from both sides before their names are
-    // excused below: the contract's form is really in a contract and is really
-    // over the cap, so the shortening is necessary rather than convenient.
-    for (const { name, contract, cap } of AMENDED_BY_MEASUREMENT) {
-      expect(
-        inAContract(contract),
-        `${name}'s CONTRACT form is in neither approved contract - the amendment names a row that does not exist`,
-      ).toBe(true);
-      expect(
-        chars(contract),
-        `${name}'s contract form is not over its cap, so there was nothing to amend - delete the row`,
-      ).toBeGreaterThan(cap);
-    }
-    // The third script's amendments, asserted the same way: the contract row
-    // is real, the shipped string is the one the module produces under that
-    // name, and an INSERTION is exactly an insertion - delete the clause and
-    // the contract's sentence comes back, character for character.
-    const shippedByName = new Map(
-      long.map(({ name, text }) => [name, templated(text)]),
+    const [bible, batch, context] = docs;
+    // D-23 is the answer, and it is the one word the plan asked for.
+    const d23 = context.slice(context.indexOf(DOCUMENTS[2].heading));
+    expect(d23, "D-23 records the answer").toContain('> *"approve"*');
+    expect(d23, "D-23 keeps the six transfer lines six").toContain(
+      "six transfer\nlines stay six",
     );
-    for (const row of AMENDED_BY_THE_FIFTH_SCRIPT) {
-      expect(
-        inAContract(row.contract),
-        `${row.name}'s CONTRACT form is in neither approved contract - the amendment names a row that does not exist`,
-      ).toBe(true);
-      expect(
-        shippedByName.get(row.name),
-        `${row.name} does not ship the string this row says it ships`,
-      ).toBe(row.shipped);
-      if (row.addition === undefined) {
-        expect(
-          row.shipped,
-          `${row.name} was rewritten rather than extended, so it has to name what made the contract's sentence untrue`,
-        ).toContain(row.names ?? "");
-        expect(
-          row.names,
-          `${row.name} is a rewrite with nothing declared for it to say`,
-        ).toBeDefined();
-      } else {
-        expect(
-          row.shipped.split(row.addition).join(""),
-          `${row.name}'s amendment is not an insertion - something other than the added clause moved`,
-        ).toBe(row.contract);
-      }
+
+    // THE SIX SECTION-16 LINES THIS MODULE TAKES VERBATIM, and section 9's
+    // labels: each is in the Bible character for character, and the module
+    // produces it character for character. The Bible writes curly quotes
+    // around its rows; the string inside them is what is matched.
+    const verbatim: readonly [string, string][] = [
+      [
+        "settledCaption",
+        "Applied to Page 2. Store on ZONA to keep it after power-off.",
+      ],
+      ["keptCaption", "Stored on ZONA · Page 2"],
+      ["TRY_ON_LABEL", "Apply to ZONA"],
+      ["KEEP_LABEL", "Store on ZONA"],
+      ["CLEAR_LABEL", "Reset active device page"],
+      ["IDENTIFIED_CAPTION", "ZONA connected"],
+      ["writingLabel", "Applying to Page 2…"],
+      ["keepingLabel", "Storing on Page 2…"],
+    ];
+    const produced = new Map(
+      everyString().map(({ name, text }) => [name, text]),
+    );
+    for (const [name, line] of verbatim) {
+      expect(produced.get(name), `${name} is the Bible's line, verbatim`).toBe(
+        line,
+      );
+    }
+    // And the Bible really gives each: section 9 writes the progress labels
+    // and the stored row with `N`, section 16 writes its rows with `2`.
+    for (const line of [
+      "Applied to Page 2. Store on ZONA to keep it after power-off.",
+      "Stored on ZONA · Page 2",
+      "Stored on ZONA · Page N",
+      "Applying to Page N…",
+      "Storing on Page N…",
+      "| Ready | ZONA connected | Apply to ZONA |",
+      "| Applied temporarily | On device · not stored | Store on ZONA |",
+      "**Reset active device page** lives under Device actions",
+    ]) {
+      expect(bible, `the Bible gives ${line}`).toContain(line);
     }
 
-    const amended = new Set([
-      ...AMENDED_BY_MEASUREMENT.map((a) => a.name),
-      ...AMENDED_BY_THE_FIFTH_SCRIPT.map((a) => a.name),
-    ]);
-
-    const misses = long
+    // EVERY OTHER STRING IS IN THE BATCH, as proposed and as approved. The
+    // formatter moduleList is grammar, not copy, and is excused by name; the
+    // page name is a two-word form the batch writes in every row.
+    const excused = new Set(["moduleList", "pageName", "announceTitle"]);
+    const strings = everyString().filter(
+      ({ name }) => !excused.has(name.split(/[.[(]/)[0]),
+    );
+    expect(
+      strings.length,
+      "enough strings were found to be checking anything",
+    ).toBeGreaterThan(70);
+    const misses = strings
       .filter(
-        ({ name, text }) => !amended.has(name) && !inAContract(templated(text)),
+        ({ text }) => !batch.includes(templated(text)) && !bible.includes(text),
       )
       .map(({ name, text }) => `${name}: ${templated(text)}`);
-    expect(misses, "literals neither contract contains").toEqual([]);
+    expect(misses, "strings neither the Bible nor the batch carries").toEqual(
+      [],
+    );
 
-    // The four two-form builders' other branches were walked too, so both
-    // forms of each are held - not only the sampled one.
-    expect(long.map(({ name }) => name)).toEqual(
+    // The two-form builders' other branches were walked too, so both forms
+    // of each are held - not only the sampled one.
+    expect(strings.map(({ name }) => name)).toEqual(
       expect.arrayContaining([
         "nothingLandedBlock(put-back).detail",
         "lostBlock(store leg).detail",
@@ -589,13 +491,13 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
     // five in the order the writer puts them on the wire. A row that skips a
     // slot or names one out of order is red here by that slot's name. Matched
     // case-sensitively on purpose: the three system names are lower-case
-    // phrases and the two touch names are the contract's capitalised event
-    // words, so "system timer" cannot stand in for "Timer" or vice versa.
+    // phrases and the two touch names are the capitalised event words, so
+    // "system timer" cannot stand in for "Timer" or vice versa.
     for (const [landed, failed] of PARTIALS_IN_WRITE_ORDER) {
-      const sentence = `${landed} reached your ZONA and ${failed} did not`;
-      expect(partialBlock(landed, failed).detail.startsWith(sentence)).toBe(
-        true,
-      );
+      const sentence = `${landed} reached your ZONA and ${failed} didn’t`;
+      expect(
+        partialBlock(landed, failed, PAGE).detail.startsWith(sentence),
+      ).toBe(true);
       let cursor = -1;
       for (const slot of SLOT_NAMES_IN_WRITE_ORDER) {
         const at = sentence.indexOf(slot, cursor + 1);
@@ -615,107 +517,88 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
         [...landedNames, ...failedNames],
         `${sentence}: the landed prefix and the rest do not partition the five`,
       ).toEqual([...SLOT_NAMES_IN_WRITE_ORDER]);
-      expect(partialBlock(landed, failed).steps[0]).toBe(
-        "Click TRY ON DEVICE to send all five again",
+      expect(partialBlock(landed, failed, PAGE).steps[0]).toBe(
+        `Click ${TRY_ON_LABEL} to send all five again`,
+      );
+    }
+    // THE FIFTH FACT, in the confirmation and the two snapshot bodies: a
+    // store carries the page's own three scripts beside the touch pair.
+    for (const name of [
+      "confirmReplaces",
+      "snapshottingBody",
+      "identifiedBody",
+    ]) {
+      expect(
+        produced.get(name),
+        `${name} names the page's three scripts`,
+      ).toContain("init, timer and utility scripts");
+      expect(produced.get(name), `${name} names the touch pair`).toContain(
+        "Setup and Timer",
       );
     }
   });
 
-  it("the four caps hold, by name", () => {
-    // The caps are the contract's, re-derived by plan 10-03 at the CH_PER_LINE
-    // plan 10-01 measured in Inter Variable over thirty-six full line boxes in
-    // two engines: 43, the minimum occupancy of a FULL line box, which is what
-    // makes a cap a promise about strings not yet written.
-    //
-    //   HONESTY_CAP  2 x 43 =  86   48px, two lines. WAS 129 at three.
-    //   PUT_BACK_CAP 3 x 43 = 129   72px, three lines. Unchanged.
-    //   KEEP_CAP     2 x 43 =  86   48px, two lines. Unchanged.
-    //   CLEAR_CAP    2 x 43 =  86   48px, two lines. NEW in 10-12.
-    //
-    // Two of the first three land byte-for-byte on the numbers Phase 7
-    // shipped, which is 10-UI-SPEC 12.2's table surviving the measurement
-    // intact; what moved is copy, not layout.
-    //
-    // CLEAR_CAP'S SECOND LINE IS HEADROOM RATHER THAN OCCUPANCY (A-52), and
-    // that is asserted below rather than left to the comment: the longest
-    // string the cell can hold is 43, so 12's formula would give one line, and
-    // taking it would put a shipped string exactly on its own cap - the
-    // zero-headroom defect 10-01 flagged against the old CLEAR_LINE at 86,
-    // reintroduced at a different number.
-    //
-    // They are literals here, not this module's to move.
-    const CH_PER_LINE = 43;
-    expect(HONESTY_CAP, "the honesty slot's cap - 2 x 43").toBe(
-      2 * CH_PER_LINE,
-    );
-    expect(PUT_BACK_CAP, "the PUT BACK cell's cap - 3 x 43").toBe(
-      3 * CH_PER_LINE,
-    );
-    expect(KEEP_CAP, "the KEEP ON DEVICE cell's cap - 2 x 43").toBe(
-      2 * CH_PER_LINE,
-    );
-    expect(CLEAR_CAP, "the CLEAR cell's cap - 2 x 43").toBe(2 * CH_PER_LINE);
-    expect(HONESTY_CAP, "the honesty slot's cap, as a number").toBe(86);
-    expect(PUT_BACK_CAP, "the PUT BACK cell's cap, as a number").toBe(129);
-    expect(KEEP_CAP, "the KEEP ON DEVICE cell's cap, as a number").toBe(86);
-    expect(CLEAR_CAP, "the CLEAR cell's cap, as a number").toBe(86);
-
-    const honesty: readonly [string, string][] = [
-      ["HONESTY_NO_SESSION", HONESTY_NO_SESSION],
-      ["HONESTY_READY", HONESTY_READY],
-      ["HONESTY_SNAPSHOTTING", HONESTY_SNAPSHOTTING],
-      ["HONESTY_INCAPABLE", HONESTY_INCAPABLE],
-    ];
-    for (const [name, text] of honesty) {
-      expect(
-        chars(text),
-        `${name} is over the honesty cap`,
-      ).toBeLessThanOrEqual(HONESTY_CAP);
+  it("the honesty caps are retired by name, and every rule that travelled with them and stayed still holds", () => {
+    // THE FOUR CAPS ARE GONE, NOT LEFT AT A VALUE NOTHING CHECKS. Each name is
+    // absent from the exports and present in the header's retirement, which
+    // has to say what they were, what superseded them and when.
+    const exported = new Set(Object.keys(copy));
+    const raw = installCopySource();
+    expect(raw.length, "the source was actually read").toBeGreaterThan(4000);
+    for (const cap of RETIRED_CAPS) {
+      expect(exported.has(cap), `${cap} is still exported`).toBe(false);
+      expect(raw.includes(cap), `${cap} is retired without being named`).toBe(
+        true,
+      );
     }
-    // The contract's own figures, measured rather than trusted. R-05 and R-06
-    // rewrite the first two: 106 becomes 70, and 104 becomes 85 through the
-    // measured amendment AMENDED_BY_MEASUREMENT records.
-    expect(chars(HONESTY_NO_SESSION), "R-05, rewritten at 70").toBe(70);
-    expect(chars(HONESTY_READY), "R-06, shortened to fit its own cap").toBe(85);
-    expect(chars(HONESTY_SNAPSHOTTING), "68, per the contract").toBe(68);
-    expect(chars(HONESTY_INCAPABLE), "72, per the contract").toBe(72);
+    expect(raw).toContain("THE HONESTY CAPS ARE RETIRED BY NAME, 2026-09-12");
+    expect(raw).toContain("CH_PER_LINE the 43");
+    expect(raw).toContain("D-05 changed the register");
+    for (const value of ["86", "129"]) {
+      expect(raw, `the retirement records the number ${value}`).toContain(
+        value,
+      );
+    }
+
+    // PAGES ARE NUMBERED FROM ONE (D-23, batch row I.3.1): wire 0 is Page 1,
+    // and the offset lives in pageName alone - every builder that names a
+    // page goes through it, so the sample wire page reads as Page 2 in each.
+    expect(pageName(0)).toBe("Page 1");
+    expect(pageName(3)).toBe("Page 4");
+    expect(settledCaption(0)).toContain("Page 1");
+    expect(keptCaption(PAGE)).toBe("Stored on ZONA · Page 2");
+    const source = strip(raw);
+    const offsets = source.split("page + 1").length - 1;
+    expect(offsets, "the offset is applied in exactly one place").toBe(1);
+    const numbered = everyString().filter(({ text }) => /Page \d/.test(text));
+    expect(numbered.length, "the page-naming strings").toBeGreaterThan(20);
+    for (const { name, text } of numbered) {
+      expect(
+        text,
+        `${name} names the wire page rather than the visitor's`,
+      ).not.toMatch(/Page (?:0|1|3)\b/);
+    }
 
     // Z-08, ASSERTED RATHER THAN COMMENTED. "about a second" is the site's one
     // promise about how long a write takes, and it belongs to the two honesty
-    // strings a visitor reads BEFORE clicking. R-05 and R-06 both rewrite those
-    // strings, so the invariant is checked over the module's source after the
-    // rewrite rather than assumed to have survived it. Case-insensitive
-    // deliberately: the no-session form opens a sentence with it and the ready
-    // form carries it mid-sentence, and Z-08 is about the phrase, not the
-    // capital.
-    const source = strip(installCopySource());
+    // strings a visitor reads BEFORE clicking - and nowhere else. Over the
+    // module first, then over the whole of src/, because a second promise
+    // would most naturally be written somewhere else. .spec.ts files are
+    // excluded and that is not a loophole: a copy gate has to quote the
+    // sentence it pins. src/routes/dev/type/+page.svelte is an EXPECTED row,
+    // not an offender: it is the unlinked type probe plan 10-01 measured
+    // CH_PER_LINE on, and its copy of the sentence is a measurement sample.
     const occurrences = source.toLowerCase().split("about a second").length - 1;
-    expect(
-      occurrences,
-      "Z-08: 'about a second' appears somewhere other than the first two honesty strings, or has been lost from one of them",
-    ).toBe(2);
-    expect(
-      HONESTY_NO_SESSION.toLowerCase().includes("about a second"),
-      "Z-08: the no-session honesty string lost 'about a second'",
-    ).toBe(true);
-    expect(
-      HONESTY_READY.toLowerCase().includes("about a second"),
-      "Z-08: the ready honesty string lost 'about a second'",
-    ).toBe(true);
-
-    // And the other half of Z-08 - "nowhere else on the site" - over the whole
-    // of src/ rather than over this module only, because a second promise about
-    // how long a write takes would most naturally be written somewhere else.
-    //
-    // .spec.ts files are excluded and that is not a loophole: a copy gate has
-    // to quote the sentence it pins, so a scan that included them would forbid
-    // its own mechanism. Everything a visitor can reach is in scope.
-    //
-    // src/routes/dev/type/+page.svelte is an EXPECTED row, not an offender. It
-    // is the unlinked type probe plan 10-01 measured CH_PER_LINE on, and its
-    // copy of the sentence is a measurement sample: the contract's 90-character
-    // form, which is what those line-box occupancies were taken against.
-    // Rewriting it would falsify the record of what was measured.
+    expect(occurrences, "Z-08: 'about a second' twice in the module").toBe(2);
+    expect(HONESTY_NO_SESSION.toLowerCase()).toContain("about a second");
+    expect(honestyReady(PAGE).toLowerCase()).toContain("about a second");
+    const speed = everyString()
+      .filter(({ text }) => /about a second/i.test(text))
+      .map(({ name }) => name);
+    expect(speed, "about a second appears only in the honesty slot").toEqual([
+      "HONESTY_NO_SESSION",
+      "honestyReady",
+    ]);
     const SRC = fileURLToPath(new URL("../..", import.meta.url));
     const counted: Record<string, number> = {};
     for (const entry of readdirSync(SRC, { recursive: true })) {
@@ -737,69 +620,25 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       "routes/dev/type/+page.svelte": 1,
     });
 
-    const putBack: readonly [string, string][] = [
-      ["PUT_BACK_LINE", PUT_BACK_LINE],
-      ["PUT_BACK_LINE_AFTER_KEEP", PUT_BACK_LINE_AFTER_KEEP],
-      ["PUT_BACK_NEEDS_ZONA", PUT_BACK_NEEDS_ZONA],
-    ];
-    for (const [name, text] of putBack) {
-      expect(
-        chars(text),
-        `${name} is over the PUT BACK cap`,
-      ).toBeLessThanOrEqual(PUT_BACK_CAP);
-    }
-    expect(chars(PUT_BACK_LINE), "71, per the contract").toBe(71);
-    expect(chars(PUT_BACK_LINE_AFTER_KEEP), "101, per the contract").toBe(101);
-    expect(chars(PUT_BACK_NEEDS_ZONA), "26, per the contract").toBe(26);
-
-    expect(
-      chars(KEEP_LINE_ENABLED),
-      "KEEP_LINE_ENABLED is over the KEEP cap",
-    ).toBeLessThanOrEqual(KEEP_CAP);
-    for (const [reason, text] of Object.entries(KEEP_REASONS)) {
-      expect(
-        chars(text),
-        `KEEP_REASONS.${reason} is over the KEEP cap`,
-      ).toBeLessThanOrEqual(KEEP_CAP);
-    }
-    expect(chars(KEEP_REASONS["after-mismatch"]), "42, per the contract").toBe(
-      42,
-    );
-    expect(chars(LIVE_STILL_WRITING), "14, per the contract").toBe(14);
-
-    // The CLEAR cell (10-UI-SPEC 13.3, A-49 and A-52). Four candidates share
-    // the one 48px cell, so every one of them is held against the cap.
-    const clearCell: readonly [string, string][] = [
-      ["CLEAR_LINE", CLEAR_LINE],
-      ...(Object.entries(CLEAR_REASONS) as [string, string][]),
-    ];
-    for (const [name, text] of clearCell) {
-      expect(chars(text), `${name} is over the CLEAR cap`).toBeLessThanOrEqual(
-        CLEAR_CAP,
-      );
-    }
-    // THE THREE STEMS, over every string in and around the CLEAR control, and
-    // BEFORE the arithmetic below: A-48 is the rule, the character counts are
-    // the reservation, and a rewrite that says "empties" should be told which
-    // rule it broke rather than which number it moved.
-    //
-    // The control restores the firmware's own configuration, so nothing beside
-    // its label may imply emptiness - that would be the same class of lie as
-    // the never-writes sentence this phase already retired. The label itself
-    // is the Editor's own word and is exempt by name.
+    // THE THREE STEMS (A-48), over every string in and around the reset
+    // control. The control restores the firmware's own configuration, so
+    // nothing beside its label may imply emptiness - that would be the same
+    // class of lie as the never-writes sentence Phase 7 retired.
     const STEMS = [
       ["clear", "s"].join(""),
       ["empt", "y"].join("").slice(0, 4),
       ["remov", "e"].join(""),
     ];
     const clearStrings: readonly [string, string][] = [
-      ["CLEARING_LABEL", CLEARING_LABEL],
-      ...clearCell,
-      ["CLEARED_CAPTION", CLEARED_CAPTION],
-      ["CLEARED_BODY", CLEARED_BODY],
-      ["LIVE_CLEARED", LIVE_CLEARED],
+      ["CLEAR_LABEL", CLEAR_LABEL],
+      ["clearingLabel", clearingLabel(PAGE)],
+      ["clearLine", clearLine(PAGE)],
+      ...(Object.entries(CLEAR_REASONS) as [string, string][]),
+      ["clearedCaption", clearedCaption(PAGE)],
+      ["clearedBody", clearedBody(PAGE)],
+      ["liveCleared", liveCleared(PAGE)],
     ];
-    expect(clearStrings.length, "the scan has strings to scan").toBe(8);
+    expect(clearStrings.length, "the scan has strings to scan").toBe(9);
     for (const [name, text] of clearStrings) {
       for (const stem of STEMS) {
         expect(
@@ -808,40 +647,76 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
         ).toBe(false);
       }
     }
+    // And the reset's own strings say what the control does: the firmware
+    // default, by name, in the line, the caption, the body and the utterance.
+    for (const [name, text] of clearStrings
+      .slice(2, 3)
+      .concat(clearStrings.slice(6))) {
+      expect(text, `${name} names the firmware default`).toMatch(
+        /firmware(’s own)? default/,
+      );
+    }
 
-    expect(chars(CLEAR_LABEL), "5, per the contract").toBe(5);
-    expect(chars(CLEARING_LABEL), "9, per the contract").toBe(9);
-    expect(chars(CLEAR_LINE), "41 - D-21, verbatim").toBe(41);
-    expect(chars(CLEAR_REASONS["no-snapshot"]), "43, per the contract").toBe(
-      43,
-    );
-    expect(chars(CLEAR_REASONS["no-session"]), "26, reused").toBe(26);
-    expect(chars(CLEAR_REASONS.incapable), "36, reused").toBe(36);
-    expect(chars(CLEARED_CAPTION), "15, per the contract").toBe(15);
-    expect(chars(CLEARED_BODY), "115, per the contract").toBe(115);
-    expect(chars(LIVE_CLEARED), "37, per the contract").toBe(37);
+    // THE LABEL RULES. Every label - the constants ending in _LABEL and the
+    // four progress builders - is sentence case (D-05: never a shouted
+    // control), and none says what the wire does.
+    const labels: [string, string][] = [
+      ...(Object.entries(copy) as [string, unknown][]).filter(
+        (entry): entry is [string, string] =>
+          entry[0].endsWith("_LABEL") && typeof entry[1] === "string",
+      ),
+      ...(Object.entries(copy) as [string, unknown][])
+        .filter(
+          (entry): entry is [string, (page: number) => string] =>
+            entry[0].endsWith("Label") && typeof entry[1] === "function",
+        )
+        .map(([name, build]) => [name, build(PAGE)] as [string, string]),
+    ];
+    expect(labels.length, "seven constants and four progress labels").toBe(11);
+    for (const [name, label] of labels) {
+      expect(label, `${name} shouts`).not.toBe(label.toUpperCase());
+      expect(label[0], `${name} is sentence case`).toBe(label[0].toUpperCase());
+      for (const word of WIRE_WORDS) {
+        expect(label.toLowerCase().includes(word), `${name} says ${word}`).toBe(
+          false,
+        );
+      }
+    }
 
-    // A-52 ASSERTED RATHER THAN COMMENTED: the longest string in the cell is
-    // 43, so the formula's own answer is ONE line, and the cap is deliberately
-    // two. If a later string reaches the second line this stops being
-    // headroom and the reservation has to be re-argued, not quietly grown.
-    const longest = Math.max(...clearCell.map(([, text]) => chars(text)));
-    expect(longest, "the longest candidate in the CLEAR cell").toBe(43);
+    // SAFE-01's number, as a constant rather than as a word in prose. The
+    // equality FIRST, so a WRITE_CLICKS that has drifted names the label it
+    // lost rather than failing on an arithmetic.
+    expect([...WRITE_CLICKS], "a write click is not a control label").toEqual([
+      TRY_ON_LABEL,
+      PUT_BACK_LABEL,
+      KEEP_LABEL,
+      CLEAR_LABEL,
+      SWITCH_PAGE_LABEL,
+    ]);
+    expect(WRITE_CLICKS.length, "five write clicks").toBe(5);
+    expect(new Set(WRITE_CLICKS).size, "five distinct").toBe(5);
+
+    // NO STRING NAMES A CONTROL THAT IS NOT ON THE SCREEN. The reset's body
+    // names Put back and nothing else among the write clicks - the machine's
+    // half, that Put back is ENABLED in `cleared`, is asserted in
+    // install.spec.ts's phase table.
     expect(
-      Math.ceil(longest / CH_PER_LINE) * CH_PER_LINE,
-      "12's formula would give one line; A-52 declines it, and the departure is the point",
-    ).toBeLessThan(CLEAR_CAP);
+      WRITE_CLICKS.filter((label) => clearedBody(PAGE).includes(label)),
+      "the reset body names a control other than Put back, or none at all",
+    ).toEqual([PUT_BACK_LABEL]);
   });
 
-  it("obeys the copy rules mechanically, over every export and every builder's sample", () => {
+  it("obeys the register mechanically, over every export and every builder's sample: the punctuation, the case, the engine, the paraphrase", () => {
     const strings = everyString();
     expect(
       strings.length,
       "the export walk found the module's strings",
-    ).toBeGreaterThan(60);
+    ).toBeGreaterThan(70);
 
     const APOSTROPHE = String.fromCharCode(39);
     const emoji = /\p{Extended_Pictographic}/u;
+    /** Uppercase runs of two or more letters: only the two names may shout inside a sentence; the module-type samples (EN16, PBF4) are the rig's names. */
+    const ACRONYMS = new Set(["ZONA", "HANGAR", "EN", "BU", "PO", "PBF"]);
 
     for (const { name, text } of strings) {
       expect(text, `${name} is empty`).not.toBe("");
@@ -857,14 +732,37 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       expect(text, `${name} says Error`).not.toMatch(/error/i);
       expect(text, `${name} says loading`).not.toMatch(/loading/i);
       expect(text.includes(ENGINE), `${name} names an engine`).toBe(false);
+      // NO UPPERCASE PARAGRAPHS (D-05): a run of capitals is a name, never a
+      // shouted word, and the module has exactly two names.
+      for (const run of text.match(/[A-Z]{2,}/g) ?? []) {
+        expect(ACRONYMS.has(run), `${name} shouts "${run}"`).toBe(true);
+      }
+      // NO RETIRED REGISTER: Phase 10's labels and the verbs that paraphrased
+      // them are gone from every string, prose included.
+      for (const word of RETIRED_LABELS) {
+        expect(
+          text.includes(word),
+          `${name} carries Phase 10's "${word}"`,
+        ).toBe(false);
+      }
+      for (const word of RETIRED_VERBS) {
+        expect(
+          text.toLowerCase().includes(word),
+          `${name} paraphrases a control with "${word}"`,
+        ).toBe(false);
+      }
     }
 
-    // The real punctuation is present, so the rules above are not vacuously
-    // satisfied by a module that simply has no punctuation.
+    // THE REAL PUNCTUATION IS PRESENT - a POSITIVE test since D-05, because the
+    // Bible writes `you’re` and the register is contractions with real
+    // apostrophes, not the absence of typewriter ones. At least eight
+    // contractions across the module, a real ellipsis and a real em dash.
     const all = strings.map((s) => s.text).join(" ");
-    expect(all.includes(String.fromCharCode(0x2019)), "a real apostrophe").toBe(
-      true,
-    );
+    const contractions = all.match(/[a-z]’(?:t|s|ll|re|ve)\b/g) ?? [];
+    expect(
+      contractions.length,
+      "real apostrophes in real contractions",
+    ).toBeGreaterThanOrEqual(8);
     expect(all.includes(String.fromCharCode(0x2026)), "a real ellipsis").toBe(
       true,
     );
@@ -872,76 +770,41 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       true,
     );
 
-    // The label rules: every _LABEL is uppercase and none says what the wire
-    // does. NINE labels since plan 10-12 - seven, plus CLEAR and CLEARING… -
-    // so the loop is not empty.
-    const labels = (Object.entries(copy) as [string, unknown][]).filter(
-      (entry): entry is [string, string] =>
-        entry[0].endsWith("_LABEL") && typeof entry[1] === "string",
-    );
-    // ELEVEN since 13-12: the destination review's affirmative and negative
-    // joined the nine, and they are the two in D-05's register (sentence
-    // case) rather than Phase 10's uppercase - exempted from the case rule
-    // BY NAME, with install-copy.ts's reason: the review sits in the Bible's
-    // context bar beside `Apply to ZONA`, and 13-18's batch decides the rest.
-    const D05_REGISTER = ["SWITCH_PAGE_LABEL", "KEEP_PAGE_LABEL"];
-    expect(labels.length, "the eleven control labels").toBe(11);
-    for (const [name, label] of labels) {
-      if (D05_REGISTER.includes(name)) {
-        expect(label, `${name} shouts`).not.toBe(label.toUpperCase());
-        expect(label[0], `${name} is sentence case`).toBe(
-          label[0].toUpperCase(),
-        );
-      } else {
-        expect(label, `${name} is not uppercase`).toBe(label.toUpperCase());
-      }
-      for (const word of WIRE_WORDS) {
-        expect(label.toLowerCase().includes(word), `${name} says ${word}`).toBe(
-          false,
-        );
+    // NO CONTROL LABEL PARAPHRASED IN PROSE, as the narrower thing that can be
+    // asserted: every sentence that tells the visitor to click something
+    // names a control exactly as the control reads - one of the five write
+    // clicks, or the label the surface handed in. A step that said "press the
+    // apply button" would be red here by its own words.
+    const allowed = new Set<string>([
+      ...WRITE_CLICKS,
+      HEADER_LABEL,
+      TRY_ON_LABEL,
+    ]);
+    const click = /[Cc]lick /g;
+    let named = 0;
+    for (const { name, text } of strings) {
+      for (const match of text.matchAll(click)) {
+        named += 1;
+        const rest = text.slice((match.index ?? 0) + match[0].length);
+        expect(
+          [...allowed].some((label) => rest.startsWith(label)),
+          `${name} tells the visitor to click "${rest.split(/[,.]/)[0]}", which is not a control as it reads`,
+        ).toBe(true);
       }
     }
-
-    // SAFE-01's number, as a constant rather than as a word in prose. The
-    // equality is the whole point: it is what stops WRITE_CLICKS and the
-    // labels drifting apart, and it is why REQUIREMENTS.md now names the
-    // constant instead of spelling the number.
-    // The equality FIRST, so a WRITE_CLICKS that has drifted names the label
-    // it lost rather than failing on an arithmetic.
-    expect([...WRITE_CLICKS], "a write click is not a control label").toEqual([
-      TRY_ON_LABEL,
-      PUT_BACK_LABEL,
-      KEEP_LABEL,
-      CLEAR_LABEL,
-      SWITCH_PAGE_LABEL,
-    ]);
-    // FIVE since 13-12: the page switch is a write for SAFE-01's purpose
-    // (D-06, first clause), and the review's affirmative is its click.
-    expect(WRITE_CLICKS.length, "five write clicks").toBe(5);
-    expect(new Set(WRITE_CLICKS).size, "five distinct").toBe(5);
-
-    // NO STRING NAMES A CONTROL THAT IS NOT ON THE SCREEN, and `cleared` is
-    // the one state this phase could have broken that rule in. CLEARED_BODY
-    // names PUT BACK and nothing else among the four write clicks - the
-    // machine's half of the pairing, that PUT BACK is ENABLED in `cleared`,
-    // is asserted in install.spec.ts's phase table, where the store lives and
-    // where a copy literal has no business being (the boundary plan 10-12
-    // drew). Between the two files the claim is whole.
-    expect(
-      WRITE_CLICKS.filter((label) => CLEARED_BODY.includes(label)),
-      "the FACTORY DEFAULT body names a control other than PUT BACK, or names none at all - it is the one block whose body points at a control, and the control it points at has to be present and live in that phase",
-    ).toEqual([PUT_BACK_LABEL]);
-
-    // Z-08: the speed claim is made once, before the click. The phrase lives in
-    // the two standing honesty lines and nowhere else - not in settled, not in
-    // kept, not in a live utterance.
-    const speed = strings
-      .filter(({ text }) => /about a second/i.test(text))
-      .map(({ name }) => name);
-    expect(speed, "about a second appears only in the honesty slot").toEqual([
-      "HONESTY_NO_SESSION",
-      "HONESTY_READY",
-    ]);
+    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(12);
+    // And every write click that prose names appears with its own case: a
+    // label never appears re-cased inside a sentence. `Put back` is excused:
+    // it was chosen BECAUSE it is the register's own verb ("can be put back",
+    // "nothing to put back"), and the verb in prose is not the control.
+    for (const { name, text } of strings) {
+      for (const label of WRITE_CLICKS) {
+        if (label === PUT_BACK_LABEL) continue;
+        if (text.toLowerCase().includes(label.toLowerCase())) {
+          expect(text, `${name} re-cases ${label}`).toContain(label);
+        }
+      }
+    }
 
     // And the engine appears nowhere in the file at all, comments included.
     const raw = installCopySource();
@@ -962,11 +825,24 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       [...reasons].sort(),
     );
     expect(new Set(Object.values(KEEP_REASONS)).size, "six distinct").toBe(6);
-    expect(KEEP_REASONS["never-tried"]).toBe("Available after a try-on.");
+    expect(KEEP_REASONS["never-tried"]).toBe(
+      `${TRY_ON_LABEL} first, then store it.`,
+    );
+    // Every reason that points at the apply names it as the button reads.
+    for (const reason of [
+      "never-tried",
+      "knobs-moved",
+      "after-partial",
+      "after-mismatch",
+    ] as const) {
+      expect(KEEP_REASONS[reason], `${reason} names the apply`).toContain(
+        TRY_ON_LABEL,
+      );
+    }
 
-    // CLEAR's three, closed the same way, and TWO OF THEM ARE REFERENCES
+    // The reset's three, closed the same way, and TWO OF THEM ARE REFERENCES
     // RATHER THAN RETYPED SENTENCES - asserted by identity, so a rewrite of
-    // PUT BACK's or KEEP ON DEVICE's string moves this table with it and no
+    // Put back's or Store on ZONA's string moves this table with it and no
     // second copy of a shipped sentence can drift.
     const clearReasons: readonly ClearReason[] = [
       "no-snapshot",
@@ -979,10 +855,10 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
     expect(new Set(Object.values(CLEAR_REASONS)).size, "three distinct").toBe(
       3,
     );
-    expect(CLEAR_REASONS["no-session"], "PUT BACK's, reused").toBe(
+    expect(CLEAR_REASONS["no-session"], "Put back's, reused").toBe(
       PUT_BACK_NEEDS_ZONA,
     );
-    expect(CLEAR_REASONS.incapable, "KEEP ON DEVICE's, reused").toBe(
+    expect(CLEAR_REASONS.incapable, "Store on ZONA's, reused").toBe(
       KEEP_REASONS.incapable,
     );
     const retyped = strip(installCopySource()).split(PUT_BACK_NEEDS_ZONA);
@@ -992,7 +868,10 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
     ).toBe(1);
 
     // Seven failure titles, each ending in a letter, each announced with the
-    // full stop added and nothing else.
+    // full stop added and nothing else. SIX OF THEM ARE THE UNCERTAIN
+    // OUTCOMES SECTION 16 OFFERS ONE LINE FOR, kept six by D-23; the seventh
+    // is the lost cable. None names a page: a title is the same whatever
+    // page it happened on, and the bar reads it with a representative page.
     const blocks = failureBlocks();
     expect(blocks.length, "the seven failure builders").toBe(7);
     const titles: string[] = [];
@@ -1002,23 +881,31 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
         /[A-Za-z]$/.test(block.title),
         `${name}'s title does not end in a letter: ${block.title}`,
       ).toBe(true);
+      expect(block.title, `${name}'s title names a page`).not.toMatch(
+        /Page \d/,
+      );
       expect(announceTitle(block.title)).toBe(`${block.title}.`);
       expect(block.detail, `${name} has no detail`).not.toBe("");
       expect(block.steps.length, `${name} has no steps`).toBeGreaterThan(0);
       titles.push(block.title);
     }
     expect(new Set(titles).size, "seven distinct titles").toBe(7);
+    expect(
+      titles.includes(
+        "The device stopped responding. Your draft is safe; device state could not be verified",
+      ),
+      "section 16's one line for six outcomes is not a title - D-23 kept the six",
+    ).toBe(false);
 
-    // FIVE success utterances since plan 10-12, the 2000 ms line, and seven
-    // announced titles: thirteen distinct strings, the whole of what the live
-    // region can say. The thirteenth is `cleared`'s, and the seven failure
-    // titles did not move - a clear that fails reuses three of them (A-28).
+    // FIVE success utterances, the 2000 ms line, and seven announced titles:
+    // thirteen distinct strings, the whole of what the live region can say.
+    // Two of the five are section 16's own lines spoken as sentences.
     const utterances = [
-      LIVE_SNAPSHOT_SAVED,
-      liveSettled(NAME),
-      LIVE_RESTORED,
-      liveKept(NAME),
-      LIVE_CLEARED,
+      liveSnapshotSaved(PAGE),
+      liveSettled(PAGE),
+      liveRestored(PAGE),
+      liveKept(PAGE),
+      liveCleared(PAGE),
       LIVE_STILL_WRITING,
       ...titles.map(announceTitle),
     ];
@@ -1030,12 +917,20 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       );
     }
     expect(
-      LIVE_SNAPSHOT_SAVED.endsWith("Nothing has been written."),
+      liveSnapshotSaved(PAGE).endsWith("Nothing has been written."),
       "the snapshot utterance ends on the sentence the phase rests on",
     ).toBe(true);
+    expect(liveSettled(PAGE), "the settled utterance is the caption").toBe(
+      settledCaption(PAGE),
+    );
+    expect(
+      liveKept(PAGE),
+      "the stored utterance is the caption, as a sentence",
+    ).toBe(`${keptCaption(PAGE)}.`);
     expect(announceTitle("Nothing reached your ZONA")).toBe(
       "Nothing reached your ZONA.",
     );
+    expect(IDENTIFIED_CAPTION).toBe("ZONA connected");
   });
 
   it("the formatters: moduleList, confirmRig, nothingLandedBlock and lostBlock", () => {
@@ -1062,102 +957,75 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
     expect(two?.endsWith("at once.")).toBe(true);
     expect(confirmRig([]), "no other module, no fourth row").toBeUndefined();
 
-    expect(nothingLandedBlock("try").steps[0]).toBe(
-      "Click TRY ON DEVICE to send both again",
+    expect(nothingLandedBlock("try", PAGE).steps[0]).toBe(
+      `Click ${TRY_ON_LABEL} to send it again`,
     );
-    expect(nothingLandedBlock("put-back").steps[0]).toBe(
-      "Click PUT BACK to send both again",
+    expect(nothingLandedBlock("put-back", PAGE).steps[0]).toBe(
+      `Click ${PUT_BACK_LABEL} to send it again`,
     );
-    expect(nothingLandedBlock("try").detail).not.toBe(
-      nothingLandedBlock("put-back").detail,
+    expect(nothingLandedBlock("try", PAGE).detail).not.toBe(
+      nothingLandedBlock("put-back", PAGE).detail,
     );
+    expect(nothingLandedBlock("try", 2).detail).toContain("Page 3");
 
-    expect(lostBlock(false, HEADER_LABEL).steps[1]).toBe(
-      "Click CONNECT ZONA again",
+    expect(lostBlock(false, HEADER_LABEL, PAGE).steps[1]).toBe(
+      `Click ${HEADER_LABEL} again`,
     );
-    expect(lostBlock(false, "TRY ON DEVICE").steps[1]).toBe(
-      "Click TRY ON DEVICE again",
+    expect(lostBlock(false, TRY_ON_LABEL, PAGE).steps[1]).toBe(
+      `Click ${TRY_ON_LABEL} again`,
     );
     expect(
-      lostBlock(true, "TRY ON DEVICE").detail.startsWith("The store was sent"),
+      lostBlock(true, TRY_ON_LABEL, PAGE).detail.startsWith(
+        "The store was sent",
+      ),
     ).toBe(true);
     expect(
-      lostBlock(false, "TRY ON DEVICE").detail.includes("Nothing was stored"),
+      lostBlock(false, TRY_ON_LABEL, PAGE).detail.includes(
+        "Nothing was stored",
+      ),
       "Z-11: said only where it is true",
     ).toBe(true);
     expect(
-      lostBlock(true, "TRY ON DEVICE").detail.includes("Nothing was stored"),
+      lostBlock(true, TRY_ON_LABEL, PAGE).detail.includes("Nothing was stored"),
       "Z-11: not said on a store leg",
     ).toBe(false);
 
-    // The four partials the ONE writer can produce, and no fifth: the
-    // unions are closed, so a pairing the writer cannot reach is a type error
-    // here rather than a sentence somebody has to notice. Each names the
-    // system timer first, because it is written first (12.1-08), and the
-    // utility script third (13-17).
-    expect(
-      partialBlock(
-        "The system timer, the page init, the utility script and the Timer",
-        "the Setup",
-      ).detail.startsWith(
-        "The system timer, the page init, the utility script and the Timer reached your ZONA and the Setup did not",
-      ),
-    ).toBe(true);
-    expect(
-      partialBlock(
-        "The system timer, the page init and the utility script",
-        "the Timer and the Setup",
-      ).detail.startsWith(
-        "The system timer, the page init and the utility script reached your ZONA and the Timer and the Setup did not",
-      ),
-    ).toBe(true);
-    expect(
-      partialBlock(
-        "The system timer and the page init",
-        "the utility script, the Timer and the Setup",
-      ).detail.startsWith(
-        "The system timer and the page init reached your ZONA and the utility script, the Timer and the Setup did not",
-      ),
-    ).toBe(true);
-    expect(
-      partialBlock(
-        "The system timer",
-        "the page init, the utility script, the Timer and the Setup",
-      ).detail.startsWith(
-        "The system timer reached your ZONA and the page init, the utility script, the Timer and the Setup did not",
-      ),
-    ).toBe(true);
+    // The four partials the ONE writer can produce, and no fifth: the unions
+    // are closed, so a pairing the writer cannot reach is a type error here
+    // rather than a sentence somebody has to notice. Each names the system
+    // timer first, because it is written first (12.1-08), and the utility
+    // script third (13-17).
+    for (const [landed, failed] of PARTIALS_IN_WRITE_ORDER) {
+      expect(
+        partialBlock(landed, failed, PAGE).detail.startsWith(
+          `${landed} reached your ZONA and ${failed} didn’t`,
+        ),
+      ).toBe(true);
+    }
 
     // Every step that names a control names one that is on the screen in its
-    // state: the three install controls, or the interpolated label. Uppercase
-    // runs of two or more words are control names; ZONA and HANGAR are single
-    // words and are not.
-    const allowed = new Set([
-      "TRY ON DEVICE",
-      "PUT BACK",
-      "KEEP ON DEVICE",
-      HEADER_LABEL,
-    ]);
-    const control = /[A-Z]{2,}(?: [A-Z]{2,})+/g;
+    // state: the write clicks, or the interpolated label.
+    const allowed = new Set<string>([...WRITE_CLICKS, HEADER_LABEL]);
     let named = 0;
     for (const [name, block] of [
       ...failureBlocks(),
-      ["nothingLandedBlock(put-back)", nothingLandedBlock("put-back")] as [
-        string,
-        InstallBlock,
-      ],
-      ["lostBlock(store leg)", lostBlock(true, HEADER_LABEL)] as [
+      [
+        "nothingLandedBlock(put-back)",
+        nothingLandedBlock("put-back", PAGE),
+      ] as [string, InstallBlock],
+      ["lostBlock(store leg)", lostBlock(true, HEADER_LABEL, PAGE)] as [
         string,
         InstallBlock,
       ],
     ]) {
       for (const step of block.steps) {
-        for (const match of step.match(control) ?? []) {
-          named += 1;
+        const found = [...allowed].filter((label) => step.includes(label));
+        if (/[Cc]lick /.test(step)) {
+          named += found.length;
           expect(
-            allowed.has(match),
-            `${name} step names ${match}, which is not on the screen`,
-          ).toBe(true);
+            found.length,
+            `${name} step "${step}" clicks a control that is not on the screen`,
+          ).toBeGreaterThan(0);
         }
       }
     }

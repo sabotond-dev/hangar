@@ -17,10 +17,25 @@
 // (02-05-SUMMARY.md), which is why visitor-facing copy is a named constant here
 // and the markup only interpolates it. A sentence assembled from two fragments
 // is a formatter-dependent assertion, so the sentences below sit on one line
-// each however long that line is, and session-copy.spec.ts holds several of
-// them character for character against 06-UI-SPEC's Copywriting Contract.
-// Nothing here may be paraphrased, reflowed, re-punctuated or "improved" - if a
-// sentence is wrong, the contract is what changes first.
+// each however long that line is, and session-copy.spec.ts holds every one of
+// them against the documents that authored it.
+//
+// THE REGISTER IS THE BIBLE'S (13-CONTEXT D-05) AND THE WORDS ARE THE USER'S
+// (D-23, 2026-09-12). A string here is either a line the design specification
+// gives - section 9's `Connect ZONA`, `Disconnected · draft retained`, section
+// 16's `Preview only. Connect ZONA when you’re ready.` - taken verbatim, or a
+// line the specification never wrote, proposed in 13-18-BATCH.md (section I.2)
+// with the state it names and the fact it must carry, and approved as written.
+// Phase 10's register (`NO ZONA`, `CONNECT ZONA`, `FORGET THIS ZONA`) and the
+// measured-length caps that governed its lines are superseded and retired by
+// name in install-copy.ts's header; the facts survive - above all SAFE-01's,
+// that nothing is written without a click, which SAFE_NOTE still carries.
+//
+// PAGES ARE NUMBERED FROM ONE (D-23, batch row I.3.1): the module reports 0 to
+// 3 and the visitor reads 1 to 4, as Grid Editor shows them. pageName below is
+// the one place this module applies the offset; install-copy.ts and
+// page-target.ts carry the same line because none of the three may import the
+// others, and the three specs pin them to the same answer.
 //
 // WHY capabilityOf LIVES HERE RATHER THAN IN try-on.ts. The header note is a
 // reserved region - 152px through Phases 6 and 7, one 24px cell plus the fixed
@@ -37,7 +52,9 @@
 //
 // THE PUNCTUATION IS LOAD-BEARING. Real apostrophes (U+2019), a real ellipsis
 // (U+2026), a real em dash (U+2014). No emoji, no exclamation marks, never
-// "Error", never "loading", no browser engine named anywhere, and no string
+// "Error", never "loading", no browser engine named anywhere (a browser may be
+// named - Chrome for a settings path, Firefox for its own permission prompt -
+// the engine never), no control label paraphrased in prose, and no string
 // names a control that is not on the screen - which is why the recovery steps
 // take the label of the surface rendering them.
 //
@@ -165,28 +182,64 @@ export const NAMED_STATES = [
 // The labels and captions of the header slot (06-UI-SPEC, The nine slot states).
 
 /**
- * The header's connect control, beside try-on.ts's TRY_ON_LABEL, so the two
- * surfaces' recovery steps each name their own button and neither can drift
- * from it (Y-13).
+ * The page as the visitor reads it, from the page as the module reports it:
+ * wire 0 is `Page 1` (D-23, batch row I.3.1). See the header.
  */
-export const CONNECT_LABEL = "CONNECT ZONA";
-export const NO_ZONA_LABEL = "NO ZONA";
-export const CONNECTING_LABEL = "CONNECTING…";
-export const DISCONNECT_LABEL = "DISCONNECT ZONA";
-export const FORGET_LABEL = "FORGET THIS ZONA";
+export const pageName = (page: number): string => `Page ${page + 1}`;
+
+/**
+ * The header's connect control - the PDF's page-1 control, verbatim - beside
+ * try-on.ts's TRY_ON_LABEL, so the two surfaces' recovery steps each name
+ * their own button and neither can drift from it (Y-13). It reads the same at
+ * rest and hovered (batch row I.2.1): NO_ZONA_LABEL, Phase 10's resting form,
+ * is retired - a control announces what it does, never what it is not.
+ */
+export const CONNECT_LABEL = "Connect ZONA";
+export const CONNECTING_LABEL = "Connecting…";
+/**
+ * S4's label: the PDF's own words for the header's box on pages 2-5,
+ * verbatim (section 9's Ready row). The identity - firmware, page, the other
+ * modules on the cable - moved out of the header and into Device actions
+ * with 13-18 (13-11 named the move; D-23 took it), where identitySentence
+ * and multiModuleLine already render it; the box's hidden description
+ * (identityDescription) still carries the page for a screen reader.
+ */
+export const CONNECTED_LABEL = "ZONA connected";
+/**
+ * The label of the three summary states with no device - S0a, S0b and S5 -
+ * where a click opens the reason rather than connecting: section 9's own
+ * visible label for the No connection row, verbatim. A control that cannot
+ * connect must not read `Connect ZONA` (device-ui.spec.ts holds it); Phase
+ * 10's `NO ZONA` said what the control was not, and D-05 retired that.
+ */
+export const PREVIEW_ONLY_LABEL = "Preview only";
+export const DISCONNECT_LABEL = "Disconnect ZONA";
+export const FORGET_LABEL = "Forget this ZONA";
 
 export const CAPTION_DETECTED = "ZONA detected";
-export const CAPTION_UNPLUGGED = "ZONA unplugged";
+/** Section 9's own label for the Disconnected row, verbatim: S5's caption. */
+export const CAPTION_UNPLUGGED = "Disconnected · draft retained";
+/**
+ * S6 as a whole (I.2.7). Section 9's `Device access blocked` is for a denied
+ * permission, which is not a phase HANGAR has - a blocked chooser lands in
+ * `cancelled` or `unknown` - so it is not used here.
+ */
 export const CAPTION_FAILED = "Did not connect";
+/**
+ * Two captions for two facts with two remedies (I.2.5). Section 9's one line -
+ * `Device connection unavailable here` - collapses them; the caption is the
+ * reason in short and the click opens the reason in full.
+ */
 export const CAPTION_UNSUPPORTED = "Not in this browser";
 export const CAPTION_INSECURE = "Needs HTTPS";
 
 /**
- * The visually-hidden description paired with the resting slot. The accessible
- * NAME is always CONNECT_LABEL - a control announces what it does, never what
- * it is not - and this is what `aria-describedby` points at (Y-03).
+ * The visually-hidden description paired with the resting slot: section 16's
+ * own Disconnected line, verbatim (I.2.2). The accessible NAME is always
+ * CONNECT_LABEL - a control announces what it does, never what it is not -
+ * and this is what `aria-describedby` points at (Y-03).
  */
-export const HIDDEN_NAME_IDLE = "No ZONA is connected.";
+export const HIDDEN_NAME_IDLE = "Preview only. Connect ZONA when you’re ready.";
 
 // ---------------------------------------------------------------------------
 // The sentences. One literal each, however long the line.
@@ -210,30 +263,35 @@ export const HIDDEN_NAME_IDLE = "No ZONA is connected.";
 // PickerExplainer.svelte went with the string; nothing under src/ names either.
 
 /**
- * Unconditional, and it says "some browsers" because there is no behavioural
- * signal for the two-step prompt before it appears (Y-05). It lives beneath
- * `Nothing listed?` in `cancelled` and nowhere else, so the header note stays
- * at two paragraphs (Y-09).
+ * The two-step prompt (I.2.8): desktop Firefox 151+ shows a site-permission
+ * prompt before the port picker, and it looks like an add-on being installed.
+ * The sentence names the browser - CONN-02 permits Chrome, Edge and Firefox
+ * by name and forbids the engine - and says what the prompt is not. There is
+ * no behavioural signal for it before it appears (Y-05), so the line is
+ * unconditional; it lives beneath `Nothing listed?` in `cancelled` and
+ * nowhere else (Y-09).
  */
 export const TWO_STEP =
-  "Some browsers ask for permission before they show the list. If you were asked twice, the list appears after the second prompt.";
+  "Firefox asks first whether this site may use serial ports. Allow it and the list appears; nothing is being installed.";
 
-/** Added to the `cancelled` block only when the rejection was a NotAllowedError (Y-06). */
+/** Added to the `cancelled` block only when the rejection was a NotAllowedError (Y-06). Second person, and the way back (I.2.10). */
 export const PERMISSION_DECLINED =
-  "The permission prompt was declined, so the list never opened.";
+  "You declined the permission prompt, so the list never opened. Connect again when you’re ready and allow it.";
 
 /**
- * SAFE-01's guarantee, in 35 characters ON THE CONTROL that would do the
- * writing (10-UI-SPEC.md §10.1, R-03; plan 10-03, form 1).
+ * SAFE-01's guarantee - THE FOURTH FACT - ON THE CONTROL that would do the
+ * writing (10-UI-SPEC.md §10.1, R-03; plan 10-03, form 1), in D-05's register
+ * since 13-18 (batch row I.2.9): two clauses, the promise and what it covers.
+ * Phase 10's form was `Nothing is written without a click.` in 35 characters;
+ * the fact is the same and non-negotiable whatever the words.
  *
  * IT REPLACES SAFE_PROMISE, WHICH WAS 88 CHARACTERS OF PROSE. Phase 6 put the
  * promise in the header note and Phase 7 amended it there; both times it sat
  * in a paragraph, in three of the nine slot states, and it was absent from the
- * panel where the click actually happens. This is the same guarantee said in a
- * quarter of the characters and in more places: beneath the primary on the
- * chosen panel and beneath the header's device slot, in EVERY state - writing,
- * every failure, and cannot-write included. REQUIREMENTS.md's SAFE-01 closure
- * record is amended by name and dated for exactly this change.
+ * panel where the click actually happens. This is the same guarantee in more
+ * places: beneath the primary on the chosen panel and beneath the header's
+ * device slot, in EVERY state - writing, every failure, and cannot-write
+ * included. REQUIREMENTS.md's SAFE-01 closure record names it.
  *
  * ITS CONTRACT, and every clause of it is asserted somewhere:
  *
@@ -249,10 +307,9 @@ export const PERMISSION_DECLINED =
  *    slot beneath it is.
  *  - 12px Micro (title), so it reads as the button's second line rather than
  *    as prose, and 8px beneath the primary, above the honesty slot.
- *
- * 35 characters, counted by script.
  */
-export const SAFE_NOTE = "Nothing is written without a click.";
+export const SAFE_NOTE =
+  "Nothing is written to your ZONA without a click. Browsing and previewing never touch it.";
 
 /**
  * The header note in S2: an offer, never an automatic open (D-06).
@@ -266,18 +323,19 @@ export const SAFE_NOTE = "Nothing is written without a click.";
  */
 export const RECONNECT_OFFER = "ZONA detected. One click connects it.";
 
-/** The second half of S5: replugging returns the session to S2, and never opens the port itself. */
+/** The second half of S5 (I.2.12): replugging returns the session to S2, and never opens the port itself. */
 export const REPLUG_OFFER =
-  "Plug it back in and this offers to connect again — the permission you already gave is still there.";
+  "Plug it back in and you’ll be offered the connection again; the permission you gave still stands.";
 
 /**
  * The quiet line beneath FORGET_LABEL, which is what buys it a click with no
- * dialog (Y-15). Amended in plan 07-04 (07-UI-SPEC, Z-13): revoking a
- * permission never deletes somebody's only copy of their own configuration,
- * and the sentence now says so. 143 characters, asserted.
+ * dialog (Y-15). Revoking a permission never deletes somebody's only copy of
+ * their own configuration (07-UI-SPEC, Z-13), the module is untouched, and the
+ * sentence says both (I.2.14). "Its own page" rather than "Setup and Timer":
+ * the copy has held five scripts since 13-17 and is per page since D-06.
  */
 export const REVOKE_EXPLANATION =
-  "Removes this site’s permission to see your ZONA. The copy of your own Setup and Timer stays, and you can give permission again from the picker.";
+  "This site forgets your ZONA and can no longer see it. Nothing on the module changes, the copy of its own page stays here, and you can allow the site again from the browser’s list.";
 
 // ---------------------------------------------------------------------------
 // The header's Phase 7 strings (07-UI-SPEC, The header device slot, and its
@@ -295,33 +353,31 @@ export const WRITE_LOCK_REASON = "Not while HANGAR is writing to your ZONA.";
 
 /**
  * The S4 disclosure's snapshot line when the copy is in localStorage (D-04,
- * SAFE-04). 108 characters, asserted, under the 129-character honesty cap
- * install-copy.ts exports.
+ * SAFE-04) - THE SECOND FACT, the snapshot, in the panel (I.2.15). "The page"
+ * because the copy holds five scripts since 13-17 and is per page since D-06.
  */
 export const SNAPSHOT_DURABLE_LINE =
-  "A copy of your ZONA’s own Setup and Timer is saved in this browser, so it can be put back even in a new tab.";
+  "A copy of the page your ZONA was on when you connected is kept in this browser, so it can be put back even from a new tab.";
 
 /**
  * The same line when the module's serial went unanswered and the copy is
- * session-only (07-CONTEXT D-04 amended). AUTHORED in plan 07-04 rather than
- * transcribed: 07-UI-SPEC contracts the slot and not this sentence. Held to
- * the same rules and the same cap as its sibling. 114 characters, asserted.
+ * session-only (07-CONTEXT D-04 amended; I.2.16).
  */
 export const SNAPSHOT_SESSION_LINE =
-  "A copy of your ZONA’s own Setup and Timer is held until this tab closes, so it can be put back while you are here.";
+  "A copy of the page your ZONA was on when you connected is held until this tab closes, so it can be put back while you’re here.";
 
-/** Phase 4's sentence, verbatim, lifted out of TryOnDevice.svelte's UNPLUGGED_AFTER. Kept for the case where nothing was in flight. */
+/** S5 with nothing in flight (I.2.18); the caption above it is section 9's. */
 export const UNPLUGGED_WHILE_CONNECTED =
-  "The ZONA was unplugged. Nothing was written.";
+  "Your ZONA was unplugged. Nothing was written.";
 
 /**
  * The second form of the same event, for an unplug that landed under a write
- * (07-UI-SPEC, I8, Z-11): Phase 4's sentence says "Nothing was written", which
- * is false the moment a write was in flight, and one false utterance is worse
- * than two. 54 characters, asserted.
+ * (07-UI-SPEC, I8, Z-11; I.2.19): the first form says "Nothing was written",
+ * which is false the moment a write was in flight, and one false utterance is
+ * worse than two.
  */
 export const UNPLUGGED_WHILE_WRITING =
-  "The ZONA was unplugged while HANGAR was writing to it.";
+  "Your ZONA was unplugged while HANGAR was writing to it.";
 
 /** The three S3 status lines, Phase 4's, verbatim. */
 export const STATUS_CHOOSING = "Pick the ZONA in the browser’s list.";
@@ -411,7 +467,7 @@ export function silentBlock(seconds: number, label: string): SessionBlock {
     title: SILENT_TITLE,
     detail: silentBody(seconds),
     steps: [
-      "Unplug the ZONA and plug it back in",
+      "Unplug your ZONA and plug it back in",
       `Click ${label} again and pick a different port`,
     ],
   };
@@ -470,20 +526,24 @@ export function moduleTail(others: string[]): string | undefined {
   return `with ${others.join(", ")}`;
 }
 
-/** The disclosure's identity line: "Firmware 1.5.5, active page 3." */
+/** The disclosure's identity line (I.2.23): "Firmware 1.5.5, on Page 3." - the page as the visitor reads it. */
 export function identitySentence(
   fw: { major: number; minor: number; patch: number },
   page: number,
 ): string {
-  return `Firmware ${firmwareText(fw)}, active page ${page}.`;
+  return `Firmware ${firmwareText(fw)}, on ${pageName(page)}.`;
 }
 
-/** The connected slot's hidden description, which also says what a click does. */
+/**
+ * The connected slot's hidden description, which also says what a click
+ * does (I.2.24) - and names the panel it opens as the panel is labelled,
+ * `Device actions` (13-11), because a control label is never paraphrased.
+ */
 export function identityDescription(
   fw: { major: number; minor: number; patch: number },
   page: number,
 ): string {
-  return `${identitySentence(fw, page)} Opens device details.`;
+  return `${identitySentence(fw, page)} Opens Device actions.`;
 }
 
 /**

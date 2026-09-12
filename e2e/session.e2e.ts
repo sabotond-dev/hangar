@@ -122,6 +122,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   CAPTION_DETECTED,
   CAPTION_FAILED,
+  CONNECTED_LABEL,
   CAPTION_UNSUPPORTED,
   CONNECTING_LABEL,
   CONNECT_LABEL,
@@ -130,10 +131,11 @@ import {
   LIVE_DETECTED,
   PERMISSION_DECLINED,
   firmwareText,
+  identityDescription,
   identitySentence,
   liveConnected,
 } from "../src/lib/device/session-copy";
-import { LIVE_SNAPSHOT_SAVED } from "../src/lib/device/install-copy";
+import { liveSnapshotSaved } from "../src/lib/device/install-copy";
 import { EVENT_SETUP, EVENT_TIMER } from "../src/lib/protocol";
 import { failureCopy } from "../src/lib/transport/transport";
 import { MEASURING } from "../src/lib/tune/copy";
@@ -1055,20 +1057,23 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await expect(control).toHaveAttribute("data-slot", "S4");
     await expect(control).toBeEnabled();
     expect(await control.getAttribute("aria-busy")).toBeNull();
-    const label = await labelWords(page);
-    expect(label).toContain("ZONA");
-    expect(label).toContain(CAPTURED_FIRMWARE);
-    expect(label).toContain(CAPTURED_PAGE);
-    // The name is the visible words in order, spaced, with no middle dot: the
-    // separators are aria-hidden and every space lives in a word span.
-    const fwPattern = firmwareText(capture.identity.firmware)
-      .split(".")
-      .join("[.]");
-    await expect(control).toHaveAccessibleName(
-      new RegExp(
-        `^ZONA\\s+fw\\s+${fwPattern}\\s+page\\s+${capture.identity.activePage}$`,
+    // The header's box reads the PDF's own words (13-18, D-23); the identity
+    // moved into Device actions and into the control's description, which
+    // names the page as the visitor reads it - wire 3 is Page 4.
+    expect(await labelWords(page)).toBe(CONNECTED_LABEL);
+    await expect(control).toHaveAccessibleName(CONNECTED_LABEL);
+    await expect(control).toHaveAccessibleDescription(
+      identityDescription(
+        capture.identity.firmware,
+        capture.identity.activePage,
       ),
     );
+    expect(
+      identityDescription(
+        capture.identity.firmware,
+        capture.identity.activePage,
+      ),
+    ).toContain(`Page ${capture.identity.activePage + 1}`);
     await expect(control).not.toHaveAccessibleName(/·/);
 
     // S4 is a summary: aria-expanded present and false, then true once opened,
@@ -1129,11 +1134,18 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     const stillConnected = async (route: RegExp): Promise<void> => {
       expect(pathOf(page)).toMatch(route);
       await expect(slot(page)).toHaveAttribute("data-slot", "S4");
-      const label = await labelWords(page);
-      expect(label, `the identity on ${pathOf(page)}`).toContain(
-        CAPTURED_FIRMWARE,
+      expect(await labelWords(page), `the box on ${pathOf(page)}`).toBe(
+        CONNECTED_LABEL,
       );
-      expect(label).toContain(CAPTURED_PAGE);
+      await expect(
+        slot(page),
+        `the identity on ${pathOf(page)}`,
+      ).toHaveAccessibleDescription(
+        identityDescription(
+          capture.identity.firmware,
+          capture.identity.activePage,
+        ),
+      );
       expect(
         await page.evaluate(() => window.__hangarWalk),
         `the same document on ${pathOf(page)}`,
@@ -1459,7 +1471,7 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     );
     // SINCE PHASE 7 (plan 07-08) THE REGION READS THE SNAPSHOT SENTENCE, NOT
     // THE CONNECTED ONE. The install store takes its snapshot the moment the
-    // session is connected and speaks LIVE_SNAPSHOT_SAVED on `ready`; on a
+    // session is connected and speaks liveSnapshotSaved on `ready`; on a
     // module that answers, that is tens of milliseconds after the session
     // queued its own sentence, inside the same 500 ms trailing window, and
     // the coalescer keeps the LAST line (Y-16). So the connected sentence is
@@ -1467,14 +1479,16 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     // the announcer doing what its contract says, and it is recorded as a
     // product observation in 07-08's deferred items, not silently asserted
     // past.
-    expect(afterConnect.session).toBe(LIVE_SNAPSHOT_SAVED);
+    expect(afterConnect.session).toBe(
+      liveSnapshotSaved(capture.identity.activePage),
+    );
     expect(afterConnect.session).not.toBe(connectedSentence);
     // Exactly one utterance: the region was emptied when the first line was
     // queued, emptied again (no change) when the second replaced it, and
     // written once when the window closed - the record is the empty string
     // and then one sentence, and nothing else.
     expect(utterances(afterConnect.log["session-live"])).toEqual([
-      LIVE_SNAPSHOT_SAVED,
+      liveSnapshotSaved(capture.identity.activePage),
     ]);
     expect(afterConnect.tuning).toBe(before.tuning);
     expect(utterances(afterConnect.log["tuning-live"])).toEqual([]);
@@ -1494,7 +1508,9 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
             .map((el) => el.getAttribute("data-testid") ?? el.id ?? el.tagName),
         sentence,
       );
-    expect(await carriersOf(LIVE_SNAPSHOT_SAVED)).toEqual(["session-live"]);
+    expect(
+      await carriersOf(liveSnapshotSaved(capture.identity.activePage)),
+    ).toEqual(["session-live"]);
     expect(
       (
         await carriersOf(

@@ -92,11 +92,12 @@ export function resumeLine(name: string, edited: string): string {
 }
 
 /**
- * The resume card's eyebrow: the Bible's "Pick up where you left off" as a
- * short uppercase label, beside the PDF's `START WITH A BLANK SURFACE`.
- * Ledgered (13-COPY-NEW.md, 13-07) as a case change.
+ * The resume card's eyebrow: the PDF's own page-4 eyebrow above its resume
+ * card, verbatim (13-18, D-23, batch row D.4), beside page 1's `START WITH A
+ * BLANK SURFACE`. 13-07 shipped the Bible's headline in uppercase, which
+ * D-05 forbids for a sentence; the PDF had the label all along.
  */
-export const RESUME_EYEBROW = "PICK UP WHERE YOU LEFT OFF";
+export const RESUME_EYEBROW = "CONTINUE EDITING";
 
 /**
  * The hero's accessible description, read after the canvas's own name

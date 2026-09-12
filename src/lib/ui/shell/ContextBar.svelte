@@ -72,6 +72,7 @@
     status,
     draft,
     device,
+    page,
     destination,
   }: {
     /** The left zone, one entry per crumb; joined with " / " as the PDF writes it. */
@@ -82,6 +83,8 @@
     draft?: string | Snippet;
     /** The dotted line's SECOND clause: the device's state, as the install store's phase. */
     device?: InstallPhase;
+    /** The page that clause names, as the module reports it (the copy adds one); the install store's snapshotPage. */
+    page?: number;
     /** The right zone. Absent means the sentence, never an empty zone. */
     destination?: Snippet;
   } = $props();
@@ -94,7 +97,7 @@
 
   /** The device clause, or undefined when there is no device fact to state. */
   const clause = $derived(
-    device === undefined ? undefined : deviceClause(device),
+    device === undefined ? undefined : deviceClause(device, page ?? 0),
   );
   const tone = $derived(device === undefined ? "none" : deviceTone(device));
   /** The dotted line renders when either fact exists; the sentence otherwise. */

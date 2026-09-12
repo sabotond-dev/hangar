@@ -68,20 +68,20 @@
  */
 import type { InstallPhase } from "$lib/device/install.svelte";
 import {
-  CLEARED_CAPTION,
   IDENTIFIED_CAPTION,
-  KEPT_CAPTION,
-  RESTORED_CAPTION,
-  SETTLED_CAPTION,
   SNAPSHOTTING_CAPTION,
-  WRITING_LABEL,
+  clearedCaption,
+  keptCaption,
   keptMismatchBlock,
   lostBlock,
   nothingLandedBlock,
   partialBlock,
+  restoredCaption,
   restoredUnconfirmedBlock,
+  settledCaption,
   snapshotFailedBlock,
   unconfirmedBlock,
+  writingLabel,
 } from "$lib/device/install-copy";
 
 /**
@@ -109,8 +109,17 @@ export const UNCHARTED_PHASES: readonly InstallPhase[] = [
   "snapshot-failed",
 ];
 
-/** The device clause for a phase, or undefined for `idle`, which has none. */
-export function deviceClause(phase: InstallPhase): string | undefined {
+/**
+ * The device clause for a phase, or undefined for `idle`, which has none.
+ * `page` is the page the clause names, as the module reports it (the copy
+ * adds one, D-23): the snapshot's page, which the route reads off the store.
+ * The seven titles never name a page, so a representative 0 gives a title;
+ * the confirmed captions do, so they take the real one.
+ */
+export function deviceClause(
+  phase: InstallPhase,
+  page: number,
+): string | undefined {
   switch (phase) {
     case "idle":
       return undefined;
@@ -119,32 +128,33 @@ export function deviceClause(phase: InstallPhase): string | undefined {
     case "ready":
       return IDENTIFIED_CAPTION;
     case "writing":
-      return WRITING_LABEL;
+      return writingLabel(page);
     case "settled":
-      return SETTLED_CAPTION;
+      return settledCaption(page);
     case "restored":
-      return RESTORED_CAPTION;
+      return restoredCaption(page);
     case "kept":
-      return KEPT_CAPTION;
+      return keptCaption(page);
     case "cleared":
-      return CLEARED_CAPTION;
+      return clearedCaption(page);
     case "unconfirmed":
-      return unconfirmedBlock("").title;
+      return unconfirmedBlock("", 0).title;
     case "kept-mismatch":
-      return keptMismatchBlock().title;
+      return keptMismatchBlock(0).title;
     case "partial":
       return partialBlock(
         "The system timer and the page init",
         "the utility script, the Timer and the Setup",
+        0,
       ).title;
     case "nothing-landed":
-      return nothingLandedBlock("try").title;
+      return nothingLandedBlock("try", 0).title;
     case "restored-unconfirmed":
-      return restoredUnconfirmedBlock().title;
+      return restoredUnconfirmedBlock(0).title;
     case "lost":
-      return lostBlock(false, "").title;
+      return lostBlock(false, "", 0).title;
     case "snapshot-failed":
-      return snapshotFailedBlock().title;
+      return snapshotFailedBlock(0).title;
   }
 }
 

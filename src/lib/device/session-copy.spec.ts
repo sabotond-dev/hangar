@@ -1,10 +1,17 @@
 // The session's copy contract, made executable.
 //
-// 06-UI-SPEC.md's Copywriting Contract, its table of nine slot states and its
-// nine-state failure taxonomy ARE the specification. These six tests exist so
-// that a reflow, a smart-quote regression, a hard-coded button name, a phase
-// added without a slot state, or an import creeping into an import-free module
-// is a red run naming the thing rather than a surprise in front of a visitor.
+// 06-UI-SPEC.md's table of nine slot states and its nine-state failure
+// taxonomy ARE the specification of the STATES. The WORDS changed hands at
+// 13-18: under 13-CONTEXT D-05 the register is the Bible's and under D-23
+// (2026-09-12) every line the Bible never wrote is the one 13-18-BATCH.md
+// proposed and the user approved, so test 5 reads the Bible, the batch and
+// D-23 from disk and holds every string against them - Phase 6's measured
+// lengths (35, 37, 143, 108, 114) retired with Phase 10's register; the
+// mechanism that replaced them is containment in the documents that author
+// the words. These six tests exist so that a reflow, a smart-quote
+// regression, a hard-coded button name, a phase added without a slot state,
+// or an import creeping into an import-free module is a red run naming the
+// thing rather than a surprise in front of a visitor.
 //
 // Two habits from the house, both load-bearing here:
 //
@@ -39,7 +46,11 @@ import {
   UNPLUGGED_WHILE_CONNECTED,
   UNPLUGGED_WHILE_WRITING,
   WRITE_LOCK_REASON,
+  identityDescription,
+  identitySentence,
+  liveConnected,
   notZonaBlock,
+  pageName,
   silentBlock,
   slotStateOf,
   unpluggedWhileConnectedBlock,
@@ -61,9 +72,39 @@ const strip = (text: string) =>
 /** Assembled, never written: the engine name that appears in no string and no comment. */
 const ENGINE = ["Chrom", "ium"].join("");
 /** Assembled: the label of the OTHER surface, which no string in the module may hard-code. */
-const PANEL_LABEL = ["TRY ON ", "DEVICE"].join("");
-/** Assembled: Phase 4's step 1, which named a control that is not on the screen. */
+const PANEL_LABEL = ["Apply to ", "ZONA"].join("");
+/** Assembled: Phase 4's step 1, which named a control that is not on the screen. Since 13-18 the disconnect control's own label carries the word, so the rule is asserted over the STEPS, where Phase 4 broke it. */
 const OFF_SCREEN_CONTROL = ["Dis", "connect"].join("");
+/** Assembled: Phase 10's register, which no string may carry any more. */
+const RETIRED_LABELS = [
+  ["NO ", "ZONA"].join(""),
+  ["CONNECT ", "ZONA"].join(""),
+  ["FORGET THIS ", "ZONA"].join(""),
+  ["DISCONNECT ", "ZONA"].join(""),
+];
+
+const read = (relative: string) =>
+  readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
+
+/** The three documents that author the words (install-copy.spec.ts reads the same three). */
+const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
+  [
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/bible/HANGAR-ZONA-GUI-design-specification.md",
+      heading: "## 16. Copy examples",
+      atLeast: 30_000,
+    },
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/13-18-BATCH.md",
+      heading: "### I.2 Connecting",
+      atLeast: 60_000,
+    },
+    {
+      path: "../../../.planning/phases/13-gui-overhaul/13-CONTEXT.md",
+      heading: "## D-23 [user] The copy batch approved as proposed",
+      atLeast: 20_000,
+    },
+  ];
 /** Assembled: the scheme of the page the managed-computer sentence would send people to. */
 const INTERNAL_SCHEME = ["about", ":"].join("");
 /** Assembled: the export name the managed-computer sentence would have. */
@@ -119,15 +160,16 @@ const FW = { major: 1, minor: 5, patch: 5 };
  */
 const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   slotStateOf: ["idle"],
+  pageName: [2],
   notZonaBlock: ["EN16", CONNECT_LABEL],
   silentBlock: [1.5, CONNECT_LABEL],
   unpluggedWhileConnectedBlock: [],
   firmwareText: [FW],
   moduleTail: [["EN16", "BU16"]],
-  identitySentence: [FW, 3],
-  identityDescription: [FW, 3],
-  multiModuleLine: [["EN16", "BU16"]],
-  liveConnected: [FW, 3],
+  identitySentence: [FW, 2],
+  identityDescription: [FW, 2],
+  multiModuleLine: [["EN16", "PBF4"]],
+  liveConnected: [FW, 2],
   capabilityOf: [{ hasSerial: true, secure: true }],
 };
 
@@ -273,44 +315,115 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
 
     // Y-14, as a gate. Phase 4 hard-coded the panel's label into `silent` step
     // 2 and told `not-zona` to click a control the closed session had already
-    // removed from the screen.
+    // removed from the screen. The panel's label is absent from the whole
+    // source; the disconnect's word is absent from every STEP (its own label
+    // carries it since 13-18, and a label is not a step).
     const source = strip(sessionCopySource());
     expect(source.length, "the source was actually read").toBeGreaterThan(4000);
     expect(
       source.includes(PANEL_LABEL),
       "session-copy.ts hard-codes the panel's label",
     ).toBe(false);
-    expect(
-      source.includes(OFF_SCREEN_CONTROL),
-      "session-copy.ts names a control that is not on the screen",
-    ).toBe(false);
+    const steps = [
+      ...notZonaBlock("EN16", CONNECT_LABEL).steps,
+      ...silentBlock(1.5, CONNECT_LABEL).steps,
+      ...unpluggedWhileConnectedBlock(true).steps,
+    ];
+    expect(steps.length, "the steps were walked").toBeGreaterThan(3);
+    for (const step of steps) {
+      expect(
+        step.includes(OFF_SCREEN_CONTROL),
+        `a step names a control that is not on the screen: ${step}`,
+      ).toBe(false);
+    }
   });
 
-  it("holds the long sentences character for character", () => {
-    // AMENDED BY NAME, TWICE, AND THE SECOND TIME IS PLAN 10-03.
-    //
-    // Phase 6 held two strings here because 06-UI-SPEC's 152px header note was
-    // arithmetic over them: PICKER_EXPLAINER at 130 and SAFE_PROMISE at 126,
-    // which plan 07-04 rewrote to 88 in the present tense. 10-UI-SPEC.md's
-    // amendment register retires both (R-02, R-03) and rewrites the reconnect
-    // offer from 88 to 37 (R-08), and the note collapses from 152px to one
-    // 24px cell as a consequence.
-    //
-    // What replaces SAFE_PROMISE is SAFE_NOTE: SAFE-01's guarantee in 35
-    // characters, on the control that would do the writing, unconditional, in
-    // every state, on both surfaces that carry the primary. REQUIREMENTS.md's
-    // SAFE-01 closure record is amended by name and dated for it.
-    expect(SAFE_NOTE.length, "SAFE-01, on the control, measured").toBe(35);
-    expect(RECONNECT_OFFER.length, "the reconnect offer, measured").toBe(37);
+  it("holds every string against the documents that authored it: the Bible verbatim, the batch as approved", () => {
+    const docs = DOCUMENTS.map(({ path }) => read(path));
+    docs.forEach((doc, i) => {
+      expect(
+        doc.length,
+        `${DOCUMENTS[i].path} was actually read`,
+      ).toBeGreaterThan(DOCUMENTS[i].atLeast);
+      expect(
+        doc,
+        `${DOCUMENTS[i].path} is not the document it claims to be`,
+      ).toContain(DOCUMENTS[i].heading);
+    });
+    const [bible, batch, context] = docs;
+    const d23 = context.slice(context.indexOf(DOCUMENTS[2].heading));
+    expect(d23, "D-23 records the answer").toContain('> *"approve"*');
 
-    expect(TWO_STEP).toBe(
-      "Some browsers ask for permission before they show the list. If you were asked twice, the list appears after the second prompt.",
+    // THE LINES TAKEN VERBATIM: the PDF's connect control (section 9's own
+    // main action for No connection), section 9's Ready and Disconnected
+    // labels, and section 16's Disconnected line as the resting slot's hidden
+    // description.
+    const verbatim: readonly [string, string][] = [
+      ["CONNECT_LABEL", "Connect ZONA"],
+      ["CONNECTED_LABEL", "ZONA connected"],
+      ["CAPTION_UNPLUGGED", "Disconnected · draft retained"],
+      ["HIDDEN_NAME_IDLE", "Preview only. Connect ZONA when you’re ready."],
+    ];
+    const produced = new Map(
+      everyString().map(({ name, text }) => [name, text]),
     );
-    // Present tense, and nothing about what a release can or cannot do: the
-    // sentence has to stay true on the day TRY ON DEVICE writes - which is
-    // every day since Phase 7, so it is written as a standing fact about a
-    // click rather than as a fact about a release.
-    expect(SAFE_NOTE).toBe("Nothing is written without a click.");
+    for (const [name, line] of verbatim) {
+      expect(bible, `the Bible gives ${name}'s line`).toContain(line);
+      expect(produced.get(name), `${name} is the Bible's line, verbatim`).toBe(
+        line,
+      );
+    }
+
+    // EVERY OTHER STRING IS IN THE BATCH, as proposed and as approved (section
+    // I.2). The two formatters are grammar, not copy, and are excused by name;
+    // the page name is the two-word form the batch writes in every row; the
+    // interpolated label folds back to the batch's placeholder.
+    const excused = new Set([
+      "firmwareText",
+      "moduleTail",
+      "pageName",
+      // Machine identifiers, not copy.
+      "FAILURE_COPY_STATES",
+      "AUTHORED_STATES",
+      "NAMED_STATES",
+      // Batch row I.2.21 approves the three steps by reference ("the three
+      // steps as shipped") rather than by quotation; this test pins them by
+      // value below.
+      "NOTHING_LISTED_STEPS",
+    ]);
+    const templated = (text: string) =>
+      text
+        .split(`Click ${CONNECT_LABEL} again`)
+        .join("Click {label} again")
+        .split("reported itself as EN16")
+        .join("reported itself as {type}")
+        .split("within 1.5 seconds")
+        .join("within {n} seconds");
+    const strings = everyString().filter(
+      ({ name }) => !excused.has(name.split(/[.[(]/)[0]),
+    );
+    expect(
+      strings.length,
+      "enough strings were found to be checking anything",
+    ).toBeGreaterThan(40);
+    const misses = strings
+      .filter(
+        ({ text }) => !batch.includes(templated(text)) && !bible.includes(text),
+      )
+      .map(({ name, text }) => `${name}: ${templated(text)}`);
+    expect(misses, "strings neither the Bible nor the batch carries").toEqual(
+      [],
+    );
+
+    // THE FOURTH FACT, SAFE-01: nothing is written without a click. The
+    // sentence changed register at 13-18 (batch row I.2.9) and the fact did
+    // not - both clauses of it are asserted, so a later shortening cannot drop
+    // the promise while keeping the sentence.
+    expect(SAFE_NOTE).toBe(
+      "Nothing is written to your ZONA without a click. Browsing and previewing never touch it.",
+    );
+    expect(SAFE_NOTE).toContain("without a click");
+    expect(SAFE_NOTE).toContain("Nothing is written");
     expect(RECONNECT_OFFER).toBe("ZONA detected. One click connects it.");
     // The offer and the announcer's detected sentence are ONE literal since
     // R-08 shortened the first onto the second (session-copy.ts says why).
@@ -319,52 +432,36 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     );
 
     // A NAMED AMENDMENT ASSERTS THE ABSENCE AS WELL AS THE PRESENCE. Without
-    // these two, a later reader who found either sentence in a Phase 6 or
-    // Phase 7 document could re-add the export and every test here would stay
-    // green while the site said the same thing twice, in two registers, in two
-    // places - which is exactly what R-02 and R-03 were retired for.
-    expect(
-      Object.keys(copy),
-      "PICKER_EXPLAINER came back - it is retired by R-02, and CONN-03 is carried by SAFE_NOTE and by the browser's own chooser",
-    ).not.toContain("PICKER_EXPLAINER");
-    expect(
-      Object.keys(copy),
-      "SAFE_PROMISE came back - it is retired by R-03 and replaced by SAFE_NOTE, which is 35 characters on the control rather than 88 in a paragraph",
-    ).not.toContain("SAFE_PROMISE");
-    expect(REPLUG_OFFER).toBe(
-      "Plug it back in and this offers to connect again — the permission you already gave is still there.",
-    );
-    // Amended (Z-13): revoking the permission never deletes the copy, and the
-    // sentence says so. 143, measured.
-    expect(REVOKE_EXPLANATION.length, "the revoke line, measured").toBe(143);
-    expect(REVOKE_EXPLANATION).toBe(
-      "Removes this site’s permission to see your ZONA. The copy of your own Setup and Timer stays, and you can give permission again from the picker.",
-    );
+    // these, a later reader who found a retired sentence in an older document
+    // could re-add its export and every test here would stay green while the
+    // site said the same thing twice, in two registers, in two places.
+    for (const retired of [
+      "PICKER_EXPLAINER",
+      "SAFE_PROMISE",
+      "NO_ZONA_LABEL",
+    ]) {
+      expect(
+        Object.keys(copy),
+        `${retired} came back - it is retired by name (R-02, R-03; D-23 for the resting label)`,
+      ).not.toContain(retired);
+    }
 
-    // Phase 7's four header strings (07-UI-SPEC, The header device slot, and
-    // its disclosure), each measured by script rather than assumed. The two
-    // snapshot lines sit under the 129-character honesty cap install-copy.ts
-    // exports; SNAPSHOT_SESSION_LINE is the one authored rather than
-    // transcribed (D-04 amended) and is held to the same figure.
-    expect(UNPLUGGED_WHILE_WRITING.length, "the writing form").toBe(54);
-    expect(UNPLUGGED_WHILE_WRITING).toBe(
-      "The ZONA was unplugged while HANGAR was writing to it.",
-    );
-    expect(WRITE_LOCK_REASON.length, "the lock reason").toBe(41);
-    expect(WRITE_LOCK_REASON).toBe("Not while HANGAR is writing to your ZONA.");
-    expect(SNAPSHOT_DURABLE_LINE.length, "the durable snapshot line").toBe(108);
-    expect(SNAPSHOT_DURABLE_LINE.length).toBeLessThanOrEqual(129);
-    expect(SNAPSHOT_DURABLE_LINE).toBe(
-      "A copy of your ZONA’s own Setup and Timer is saved in this browser, so it can be put back even in a new tab.",
-    );
-    expect(SNAPSHOT_SESSION_LINE.length, "the session-only line").toBe(114);
-    expect(SNAPSHOT_SESSION_LINE.length).toBeLessThanOrEqual(129);
-    expect(SNAPSHOT_SESSION_LINE).toBe(
-      "A copy of your ZONA’s own Setup and Timer is held until this tab closes, so it can be put back while you are here.",
-    );
+    // THE SECOND FACT, the snapshot, in the panel: both forms say what is
+    // kept (the page, five scripts since 13-17), where, and that it can be
+    // put back; the session form says until when.
+    for (const line of [SNAPSHOT_DURABLE_LINE, SNAPSHOT_SESSION_LINE]) {
+      expect(line).toContain("A copy of the page your ZONA was on");
+      expect(line).toContain("put back");
+    }
+    expect(SNAPSHOT_DURABLE_LINE).toContain("kept in this browser");
+    expect(SNAPSHOT_SESSION_LINE).toContain("until this tab closes");
+    // The revoke line carries its three facts (Z-13; I.2.14).
+    expect(REVOKE_EXPLANATION).toContain("can no longer see it");
+    expect(REVOKE_EXPLANATION).toContain("Nothing on the module changes");
+    expect(REVOKE_EXPLANATION).toContain("the copy of its own page stays");
 
     // The two forms of one event (Z-11): the writing form only when asked
-    // for, Phase 4's sentence by default and when asked for nothing.
+    // for, the resting sentence by default and when asked for nothing.
     expect(unpluggedWhileConnectedBlock(true).detail).toBe(
       UNPLUGGED_WHILE_WRITING,
     );
@@ -372,9 +469,13 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
       UNPLUGGED_WHILE_CONNECTED,
     );
     expect(unpluggedWhileConnectedBlock().detail).toBe(
-      "The ZONA was unplugged. Nothing was written.",
+      "Your ZONA was unplugged. Nothing was written.",
     );
     expect(unpluggedWhileConnectedBlock(true).steps).toEqual([]);
+    expect(WRITE_LOCK_REASON).toBe("Not while HANGAR is writing to your ZONA.");
+    expect(REPLUG_OFFER).toBe(
+      "Plug it back in and you’ll be offered the connection again; the permission you gave still stands.",
+    );
 
     expect(NOTHING_LISTED_STEPS).toEqual([
       "Try a different USB cable. A charge-only cable fits the socket and carries no data, and it is the most common reason a list comes up empty.",
@@ -384,9 +485,23 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     expect(CHOOSER_NEVER_APPEARED_BODY).toBe(
       "Your browser may be blocking serial ports for this site. Check the site’s permissions — in Chrome, chrome://settings/content/serialPorts — and try again.",
     );
+
+    // PAGES ARE NUMBERED FROM ONE (D-23, batch row I.3.1): wire 0 is Page 1,
+    // the identity line says "on Page N" with the visitor's number, and the
+    // description names the panel a click opens as the panel is labelled.
+    expect(pageName(0)).toBe("Page 1");
+    expect(identitySentence(FW, 0)).toBe("Firmware 1.5.5, on Page 1.");
+    expect(identityDescription(FW, 2)).toBe(
+      "Firmware 1.5.5, on Page 3. Opens Device actions.",
+    );
+    expect(liveConnected(FW, 2)).toBe(
+      "ZONA connected. Firmware 1.5.5, on Page 3.",
+    );
+    const source = strip(sessionCopySource());
+    expect(source.split("page + 1").length - 1, "the offset, once").toBe(1);
   });
 
-  it("obeys the typography rules, names one browser on purpose, and names no engine", () => {
+  it("obeys the register mechanically, names two browsers on purpose, and names no engine", () => {
     const strings = everyString();
     expect(
       strings.length,
@@ -395,6 +510,16 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
 
     const APOSTROPHE = String.fromCharCode(39);
     const emoji = /\p{Extended_Pictographic}/u;
+    /** Uppercase runs of two or more letters: names and initialisms only, never a shouted word. */
+    const ACRONYMS = new Set([
+      "ZONA",
+      "HANGAR",
+      "USB",
+      "HTTPS",
+      "EN",
+      "BU",
+      "PBF",
+    ]);
 
     for (const { name, text } of strings) {
       expect(text.includes(ENGINE), `${name} names an engine`).toBe(false);
@@ -407,6 +532,18 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
         false,
       );
       expect(emoji.test(text), `${name} has an emoji`).toBe(false);
+      expect(text, `${name} says Error`).not.toMatch(/error/i);
+      expect(text, `${name} says loading`).not.toMatch(/loading/i);
+      // NO UPPERCASE PARAGRAPHS (D-05), and none of Phase 10's shouted labels.
+      for (const run of text.match(/[A-Z]{2,}/g) ?? []) {
+        expect(ACRONYMS.has(run), `${name} shouts "${run}"`).toBe(true);
+      }
+      for (const label of RETIRED_LABELS) {
+        expect(
+          text.includes(label),
+          `${name} carries Phase 10's "${label}"`,
+        ).toBe(false);
+      }
 
       // The MANAGED_POLICY deviation, half one: no sentence sends anyone to a
       // browser-internal page. See .planning/phases/06-device-session/
@@ -426,12 +563,15 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
       ).toBe(false);
     }
 
-    // The real punctuation is present, so the rules above are not vacuously
-    // satisfied by a module that simply has no punctuation.
+    // THE REAL PUNCTUATION IS PRESENT - a POSITIVE test since D-05: the Bible
+    // writes `you’re`, and the register is contractions with real apostrophes,
+    // not the absence of typewriter ones.
     const all = strings.map((s) => s.text).join(" ");
-    expect(all.includes(String.fromCharCode(0x2019)), "a real apostrophe").toBe(
-      true,
-    );
+    const contractions = all.match(/[a-z]’(?:t|s|ll|re|ve)\b/g) ?? [];
+    expect(
+      contractions.length,
+      "real apostrophes in real contractions",
+    ).toBeGreaterThanOrEqual(4);
     expect(all.includes(String.fromCharCode(0x2026)), "a real ellipsis").toBe(
       true,
     );
@@ -439,20 +579,42 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
       true,
     );
 
-    // EXACTLY ONE string names a browser, and it is named here so the one
-    // deviation from "never a browser name outside UNSUPPORTED_DETAIL" is a
-    // recorded exception rather than a hole. A settings path is worthless
-    // without the browser it belongs to.
+    // EXACTLY TWO strings name a browser, and they are named here so the two
+    // deviations from "never a browser name outside UNSUPPORTED_DETAIL" are
+    // recorded exceptions rather than holes: a settings path is worthless
+    // without the browser it belongs to, and Firefox's two-step prompt is
+    // Firefox's alone (batch row I.2.8). CONN-02 permits the names and forbids
+    // the engine.
     const named = strings
       .filter(({ text }) =>
         ["Chrome", "Edge", "Firefox", "Safari", ENGINE].some((browser) =>
           text.includes(browser),
         ),
       )
-      .map(({ name }) => name);
-    expect(named, "one string names a browser, and only one").toEqual([
+      .map(({ name }) => name)
+      .sort();
+    expect(named, "two strings name a browser, and only two").toEqual([
       "CHOOSER_NEVER_APPEARED_BODY",
+      "TWO_STEP",
     ]);
+    expect(TWO_STEP).toContain("Firefox");
+    expect(TWO_STEP).toContain("nothing is being installed");
+
+    // NO CONTROL LABEL PARAPHRASED IN PROSE, as the narrower thing that can be
+    // asserted: every sentence that tells the visitor to click something
+    // names the label the surface handed in, exactly as it reads.
+    let clicks = 0;
+    for (const { name, text } of strings) {
+      for (const match of text.matchAll(/[C]lick /g)) {
+        clicks += 1;
+        const rest = text.slice((match.index ?? 0) + match[0].length);
+        expect(
+          rest.startsWith(CONNECT_LABEL),
+          `${name} tells the visitor to click "${rest.split(/[,.]/)[0]}", which is not the control as it reads`,
+        ).toBe(true);
+      }
+    }
+    expect(clicks, "the steps do name the control").toBeGreaterThanOrEqual(2);
 
     // And the engine appears nowhere in the file at all, comments included -
     // the invariant src/lib/transport/transport.spec.ts test 6 already holds
