@@ -13,11 +13,13 @@ import {
   ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
+  EVENT_UTILITY,
   MODULE_HEARTBEAT_MS,
   PRINTABLE_ASCII,
   PROTOCOL_VERSION,
   SYSTEM_DEFAULT_SETUP,
   SYSTEM_DEFAULT_TIMER,
+  SYSTEM_DEFAULT_UTILITY,
   SYSTEM_EVENTS,
   TOUCH_DEFAULT_SETUP,
   TOUCH_DEFAULT_TIMER,
@@ -128,11 +130,14 @@ describe("protocol constants", () => {
     // as a comparison against the package - never as a literal.
     expect(source("./constants.ts")).not.toMatch(/page init/);
 
-    // Event 4 RESOLVES - firmware declares it and defaultFor will hand it
-    // over - and nothing in constants.ts exports it: the header names that as
-    // 13-17's pending removal under D-19, not a rule. Event 6 is the next
+    // Event 4 RESOLVES - firmware declares it and defaultFor hands it over -
+    // and since 13-17 (D-18, D-19) constants.ts EXPORTS it as the fifth
+    // default, read by event number like the others. Event 6 is the next
     // test's, since 12.1-06.
-    expect(defaultFor(ELEMENT_SYSTEM, 4)).toBe("--[[@cb]]gpl(gpn())");
+    expect(EVENT_UTILITY).toBe(4);
+    expect(defaultFor(ELEMENT_SYSTEM, EVENT_UTILITY)).toBe(
+      "--[[@cb]]gpl(gpn())",
+    );
 
     // A missing ELEMENT throws with the element in the message, the same way a
     // missing event does, and for the same reason: undefined must never reach
@@ -187,17 +192,43 @@ describe("protocol constants", () => {
     expect(flattened.includes(body)).toBe(false);
     expect(flattened.includes(word!)).toBe(false);
 
-    // The utility default still resolves and is still exported by nothing:
-    // every exported default is one of the four, none of them 255/4.
-    expect(defaultFor(ELEMENT_SYSTEM, 4)).toBe("--[[@cb]]gpl(gpn())");
+    // THE FIFTH DEFAULT (13-17; D-18, D-19): the utility event's page-next,
+    // read from the package by event number, 19 characters, printable,
+    // under the limit, canonical - and distinct from the other four, so a
+    // CLEAR that wrote it into 255/6 by a swapped key would be red here. The
+    // header keeps `gpl(gpn())` as the reason 12-02 once refused the slot;
+    // the body's one Lua call is therefore allowed in the header and this
+    // assertion is on the CODE - the comment-stripped source carries no
+    // literal of it.
+    const utility = grid
+      .get_element_events(ElementType.SYSTEM)
+      .find((e: { value: number }) => e.value === EVENT_UTILITY)?.defaultConfig;
+    expect(utility).toBeDefined();
+    expect(SYSTEM_DEFAULT_UTILITY).toBe(utility);
+    expect(SYSTEM_DEFAULT_UTILITY).toBe(
+      defaultFor(ELEMENT_SYSTEM, EVENT_UTILITY),
+    );
+    expect([...SYSTEM_DEFAULT_UTILITY].length, "the utility default").toBe(19);
+    expect(PRINTABLE_ASCII.test(SYSTEM_DEFAULT_UTILITY)).toBe(true);
+    expect(SYSTEM_DEFAULT_UTILITY.length).toBeLessThan(CONFIG_MAX);
+    expect(GridScript.compressScript(SYSTEM_DEFAULT_UTILITY)).toBe(
+      SYSTEM_DEFAULT_UTILITY,
+    );
+    // Distinct from each of the other four (the two Timer defaults are the
+    // same debug print as each other, which is the package's business).
     expect(
       [
         TOUCH_DEFAULT_SETUP,
         TOUCH_DEFAULT_TIMER,
         SYSTEM_DEFAULT_SETUP,
         SYSTEM_DEFAULT_TIMER,
-      ].includes(defaultFor(ELEMENT_SYSTEM, 4)),
+      ].includes(SYSTEM_DEFAULT_UTILITY),
+      "the utility default is its own string",
     ).toBe(false);
+    const code = source("./constants.ts")
+      .replace(/^[ ]*[/][/].*$/gm, "")
+      .replace(/[/][*][^]*?[*][/]/g, "");
+    expect(code.includes("gpl("), "the utility call typed in code").toBe(false);
   });
 
   it("holds both defaults canonical under the pinned minifier", () => {

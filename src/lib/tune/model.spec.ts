@@ -587,15 +587,22 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       TOUCH_LIBRARY_TIMER,
       "the two halves are two strings, or the assertion above is vacuous",
     ).not.toBe(TOUCH_LIBRARY);
-    // Four fields, and only four: the store's wire shape is one field wider
-    // than 12-03's, in write order (sequence.ts SLOTS), and nothing else
-    // rides along.
+    // Five fields, and only five: the store's wire shape is one field wider
+    // than 12.1-07's (13-17: the utility slot, D-18 / D-19), in write order
+    // (sequence.ts SLOTS), and nothing else rides along. A catalog entry has
+    // no utility body, so the fifth is the EMPTY STRING - the store's
+    // `#pageUtility` substitutes the firmware's page-next in one place, as
+    // `#pageInit` did for every entry's page init from 12-03 until 12-07.
     expect(Object.keys(landedLua!)).toEqual([
       "systemTimer",
       "system",
+      "systemUtility",
       "setup",
       "timer",
     ]);
+    expect(landedLua!.systemUtility, "a Lua entry has no utility body").toBe(
+      "",
+    );
     luaTuner.destroy();
 
     // A PRESET LANDS BOTH HALVES TOO, SINCE 12.1-08b (D-27) - INVERTED HERE
@@ -622,9 +629,13 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     expect(Object.keys(landedPreset!)).toEqual([
       "systemTimer",
       "system",
+      "systemUtility",
       "setup",
       "timer",
     ]);
+    expect(landedPreset!.systemUtility, "a preset has no utility body").toBe(
+      "",
+    );
     presetTuner.destroy();
 
     // AN EXPLICIT systemTimer WINS ON THE LUA ROUTE, independently of
@@ -648,10 +659,14 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     ).toBe(TOUCH_LIBRARY);
     overrideTuner.destroy();
 
-    // And the two firmware defaults are named by NO file under src/lib/tune/
+    // And the three firmware defaults are named by NO file under src/lib/tune/
     // - ladder.spec.ts:275 holds the module boundary; this holds the words.
     const source = strip(modelSource());
-    for (const needle of ["SYSTEM_DEFAULT_SETUP", "SYSTEM_DEFAULT_TIMER"]) {
+    for (const needle of [
+      "SYSTEM_DEFAULT_SETUP",
+      "SYSTEM_DEFAULT_TIMER",
+      "SYSTEM_DEFAULT_UTILITY",
+    ]) {
       expect(source.includes(needle), `model.ts names ${needle} in code`).toBe(
         false,
       );

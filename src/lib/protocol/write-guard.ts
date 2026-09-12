@@ -15,12 +15,13 @@ export interface FetchedEvent {
    * the system element's setup is a third fetched string, and a guard sentence
    * that called it "Setup" would send a visitor looking at the wrong slot.
    * "System timer" joined in Phase 12.1 (12.1-06, D-03): the system element's
-   * timer is the fourth, and sequence.ts's SLOTS is where each label is paired
-   * with its element and event. The page's own copy words are
+   * timer is the fourth; "System utility" in Phase 13 (13-17, D-18 / D-19):
+   * the same element's utility event is the fifth, and sequence.ts's SLOTS is
+   * where each label is paired with its element and event. The page's own copy words are
    * install-copy.ts's separate `EventWord`, which 12-03 moves with the
    * classifier; nothing switches exhaustively on this one.
    */
-  label: "System timer" | "System" | "Setup" | "Timer";
+  label: "System timer" | "System" | "System utility" | "Setup" | "Timer";
   actionString: string | undefined;
   actionLength: number | undefined;
 }

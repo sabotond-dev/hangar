@@ -247,7 +247,8 @@
           <!-- spec: Transfer uncertain, body 3 of 4 (D05) -->
           <FailureBlock
             block={partialBlock(
-              install.landed ?? "The system timer, the page init and the Timer",
+              install.landed ??
+                "The system timer, the page init, the utility script and the Timer",
               install.failed ?? "the Setup",
             )}
           />

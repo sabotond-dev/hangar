@@ -135,7 +135,7 @@ export function deviceClause(phase: InstallPhase): string | undefined {
     case "partial":
       return partialBlock(
         "The system timer and the page init",
-        "the Timer and the Setup",
+        "the utility script, the Timer and the Setup",
       ).title;
     case "nothing-landed":
       return nothingLandedBlock("try").title;

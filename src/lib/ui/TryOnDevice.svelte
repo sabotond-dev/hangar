@@ -161,6 +161,7 @@
     config?: {
       systemTimer: string;
       system: string;
+      systemUtility: string;
       setup: string;
       timer: string;
     };

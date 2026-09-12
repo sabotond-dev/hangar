@@ -165,10 +165,20 @@ const AMENDED_BY_MEASUREMENT: readonly {
  * identifiedBody keep the third script's clause - 13-18 rewrites every one of
  * these under 13-CONTEXT D-05 and carries the four-string fact from
  * 12.1-08-SUMMARY.md. The constant is named for the LATEST amendment.
+ *
+ * AMENDED ONCE MORE BECAUSE A FIFTH SCRIPT MADE THE FOURTH'S SENTENCE UNTRUE
+ * (13-17, D-18 / D-19). Since 13-17 a RAM leg writes FIVE: the SYSTEM
+ * element's utility slot (255/4) goes third, after the page init, and a KEEP
+ * stores it. The confirmation's clause names the three page scripts (still
+ * an INSERTION on the contract), the partial's detail names every landed
+ * slot in write order over all four reachable prefixes, and its step says
+ * "all five". SNAPSHOTTING_BODY and identifiedBody still keep the third
+ * script's clause, as 12.1-08 left them - 13-18's.
  */
 const PAGE_INIT_CLAUSE = "and the page’s own init script";
-const PAGE_SCRIPTS_CLAUSE = "and the page’s own init and timer scripts";
-const AMENDED_BY_THE_FOURTH_SCRIPT: readonly {
+const PAGE_SCRIPTS_CLAUSE =
+  "and the page’s own init, timer and utility scripts";
+const AMENDED_BY_THE_FIFTH_SCRIPT: readonly {
   name: string;
   contract: string;
   shipped: string;
@@ -198,7 +208,7 @@ const AMENDED_BY_THE_FOURTH_SCRIPT: readonly {
     contract:
       "This replaces the Setup and Timer scripts on your ZONA’s touch element, and it survives a power cycle.",
     shipped:
-      "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init and timer scripts, and it survives a power cycle.",
+      "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init, timer and utility scripts, and it survives a power cycle.",
     addition: ` ${PAGE_SCRIPTS_CLAUSE}`,
   },
   {
@@ -206,7 +216,15 @@ const AMENDED_BY_THE_FOURTH_SCRIPT: readonly {
     contract:
       "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
     shipped:
-      "The system timer, the page init and the Timer reached your ZONA and the Setup did not. What is on the module now is part of this configuration and part of your own.",
+      "The system timer, the page init, the utility script and the Timer reached your ZONA and the Setup did not. What is on the module now is part of this configuration and part of your own.",
+    names: "system timer",
+  },
+  {
+    name: "partialBlock(utility only).detail",
+    contract:
+      "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
+    shipped:
+      "The system timer, the page init and the utility script reached your ZONA and the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
     names: "system timer",
   },
   {
@@ -214,7 +232,7 @@ const AMENDED_BY_THE_FOURTH_SCRIPT: readonly {
     contract:
       "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
     shipped:
-      "The system timer and the page init reached your ZONA and the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
+      "The system timer and the page init reached your ZONA and the utility script, the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
     names: "system timer",
   },
   {
@@ -222,48 +240,68 @@ const AMENDED_BY_THE_FOURTH_SCRIPT: readonly {
     contract:
       "{Timer} reached your ZONA and {Setup} did not. What is on the module now is half this configuration and half your own.",
     shipped:
-      "The system timer reached your ZONA and the page init, the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
+      "The system timer reached your ZONA and the page init, the utility script, the Timer and the Setup did not. What is on the module now is part of this configuration and part of your own.",
     names: "system timer",
   },
   {
     name: "partialBlock.steps[0]",
     contract: "Click TRY ON DEVICE to send both again",
-    shipped: "Click TRY ON DEVICE to send all four again",
-    names: "all four",
+    shipped: "Click TRY ON DEVICE to send all five again",
+    names: "all five",
+  },
+  {
+    name: "partialBlock(utility only).steps[0]",
+    contract: "Click TRY ON DEVICE to send both again",
+    shipped: "Click TRY ON DEVICE to send all five again",
+    names: "all five",
   },
   {
     name: "partialBlock(page init only).steps[0]",
     contract: "Click TRY ON DEVICE to send both again",
-    shipped: "Click TRY ON DEVICE to send all four again",
-    names: "all four",
+    shipped: "Click TRY ON DEVICE to send all five again",
+    names: "all five",
   },
   {
     name: "partialBlock(system timer only).steps[0]",
     contract: "Click TRY ON DEVICE to send both again",
-    shipped: "Click TRY ON DEVICE to send all four again",
-    names: "all four",
+    shipped: "Click TRY ON DEVICE to send all five again",
+    names: "all five",
   },
 ];
 
 /**
- * THE FOUR NAMES IN WRITE ORDER (12.1-08). Each reachable partial, as the ONE
- * writer produces it: the landed prefix of sequence.ts's SLOTS on the left,
- * the rest on the right. Read left to right, every row names the four slots
- * in the order they go on the wire - 255/6, 255/0, 0/6, 0/0 - and no row
- * skips one. Held as literals here, not read off SLOTS, because this module
- * may import nothing (test 1) and the pairings are what the closed unions
- * encode.
+ * THE FIVE NAMES IN WRITE ORDER (12.1-08; 13-17). Each reachable partial, as
+ * the ONE writer produces it: the landed prefix of sequence.ts's SLOTS on the
+ * left, the rest on the right. Read left to right, every row names the five
+ * slots in the order they go on the wire - 255/6, 255/0, 255/4, 0/6, 0/0 -
+ * and no row skips one. Held as literals here, not read off SLOTS, because
+ * this module may import nothing (test 1) and the pairings are what the
+ * closed unions encode.
  */
 const SLOT_NAMES_IN_WRITE_ORDER = [
   "system timer",
   "page init",
+  "utility script",
   "Timer",
   "Setup",
 ] as const;
 const PARTIALS_IN_WRITE_ORDER: readonly [LandedWords, FailedWords][] = [
-  ["The system timer", "the page init, the Timer and the Setup"],
-  ["The system timer and the page init", "the Timer and the Setup"],
-  ["The system timer, the page init and the Timer", "the Setup"],
+  [
+    "The system timer",
+    "the page init, the utility script, the Timer and the Setup",
+  ],
+  [
+    "The system timer and the page init",
+    "the utility script, the Timer and the Setup",
+  ],
+  [
+    "The system timer, the page init and the utility script",
+    "the Timer and the Setup",
+  ],
+  [
+    "The system timer, the page init, the utility script and the Timer",
+    "the Setup",
+  ],
 ];
 
 /** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
@@ -303,7 +341,10 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   unconfirmedBlock: [NAME],
   restoredUnconfirmedBlock: [],
   nothingLandedBlock: ["try"],
-  partialBlock: ["The system timer, the page init and the Timer", "the Setup"],
+  partialBlock: [
+    "The system timer, the page init, the utility script and the Timer",
+    "the Setup",
+  ],
   lostBlock: [false, HEADER_LABEL],
   snapshotFailedBlock: [],
   moduleList: [["EN16", "BU16", "PO16"]],
@@ -322,15 +363,25 @@ const OTHER_BRANCHES: readonly [string, unknown][] = [
   ["lostBlock(store leg)", lostBlock(true, "TRY ON DEVICE")],
   ["confirmRig(several)", confirmRig(["EN16", "BU16"])],
   [
-    "partialBlock(page init only)",
+    "partialBlock(utility only)",
     partialBlock(
-      "The system timer and the page init",
+      "The system timer, the page init and the utility script",
       "the Timer and the Setup",
     ),
   ],
   [
+    "partialBlock(page init only)",
+    partialBlock(
+      "The system timer and the page init",
+      "the utility script, the Timer and the Setup",
+    ),
+  ],
+  [
     "partialBlock(system timer only)",
-    partialBlock("The system timer", "the page init, the Timer and the Setup"),
+    partialBlock(
+      "The system timer",
+      "the page init, the utility script, the Timer and the Setup",
+    ),
   ],
 ];
 
@@ -406,7 +457,10 @@ const failureBlocks = (): readonly [string, InstallBlock][] => [
   ["nothingLandedBlock", nothingLandedBlock("try")],
   [
     "partialBlock",
-    partialBlock("The system timer, the page init and the Timer", "the Setup"),
+    partialBlock(
+      "The system timer, the page init, the utility script and the Timer",
+      "the Setup",
+    ),
   ],
   ["lostBlock", lostBlock(false, HEADER_LABEL)],
   ["snapshotFailedBlock", snapshotFailedBlock()],
@@ -479,7 +533,7 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
     const shippedByName = new Map(
       long.map(({ name, text }) => [name, templated(text)]),
     );
-    for (const row of AMENDED_BY_THE_FOURTH_SCRIPT) {
+    for (const row of AMENDED_BY_THE_FIFTH_SCRIPT) {
       expect(
         inAContract(row.contract),
         `${row.name}'s CONTRACT form is in neither approved contract - the amendment names a row that does not exist`,
@@ -507,7 +561,7 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
 
     const amended = new Set([
       ...AMENDED_BY_MEASUREMENT.map((a) => a.name),
-      ...AMENDED_BY_THE_FOURTH_SCRIPT.map((a) => a.name),
+      ...AMENDED_BY_THE_FIFTH_SCRIPT.map((a) => a.name),
     ]);
 
     const misses = long
@@ -524,16 +578,17 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
         "nothingLandedBlock(put-back).detail",
         "lostBlock(store leg).detail",
         "confirmRig(several)",
+        "partialBlock(utility only).detail",
         "partialBlock(page init only).detail",
         "partialBlock(system timer only).detail",
       ]),
     );
 
-    // THE FOUR NAMES IN WRITE ORDER (12.1-08): every reachable partial names
-    // all four slots, each landed name before each failed one, and the four
-    // in the order the writer puts them on the wire. A row that skips a slot
-    // or names one out of order is red here by that slot's name. Matched
-    // case-sensitively on purpose: the two system names are lower-case
+    // THE FIVE NAMES IN WRITE ORDER (12.1-08; 13-17): every reachable partial
+    // names all five slots, each landed name before each failed one, and the
+    // five in the order the writer puts them on the wire. A row that skips a
+    // slot or names one out of order is red here by that slot's name. Matched
+    // case-sensitively on purpose: the three system names are lower-case
     // phrases and the two touch names are the contract's capitalised event
     // words, so "system timer" cannot stand in for "Timer" or vice versa.
     for (const [landed, failed] of PARTIALS_IN_WRITE_ORDER) {
@@ -558,10 +613,10 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       );
       expect(
         [...landedNames, ...failedNames],
-        `${sentence}: the landed prefix and the rest do not partition the four`,
+        `${sentence}: the landed prefix and the rest do not partition the five`,
       ).toEqual([...SLOT_NAMES_IN_WRITE_ORDER]);
       expect(partialBlock(landed, failed).steps[0]).toBe(
-        "Click TRY ON DEVICE to send all four again",
+        "Click TRY ON DEVICE to send all five again",
       );
     }
   });
@@ -1035,32 +1090,41 @@ describe("the install flow's copy contract (07-UI-SPEC)", () => {
       "Z-11: not said on a store leg",
     ).toBe(false);
 
-    // The three partials the ONE writer can produce, and no fourth: the
+    // The four partials the ONE writer can produce, and no fifth: the
     // unions are closed, so a pairing the writer cannot reach is a type error
     // here rather than a sentence somebody has to notice. Each names the
-    // system timer first, because it is written first (12.1-08).
+    // system timer first, because it is written first (12.1-08), and the
+    // utility script third (13-17).
     expect(
       partialBlock(
-        "The system timer, the page init and the Timer",
+        "The system timer, the page init, the utility script and the Timer",
         "the Setup",
       ).detail.startsWith(
-        "The system timer, the page init and the Timer reached your ZONA and the Setup did not",
+        "The system timer, the page init, the utility script and the Timer reached your ZONA and the Setup did not",
+      ),
+    ).toBe(true);
+    expect(
+      partialBlock(
+        "The system timer, the page init and the utility script",
+        "the Timer and the Setup",
+      ).detail.startsWith(
+        "The system timer, the page init and the utility script reached your ZONA and the Timer and the Setup did not",
       ),
     ).toBe(true);
     expect(
       partialBlock(
         "The system timer and the page init",
-        "the Timer and the Setup",
+        "the utility script, the Timer and the Setup",
       ).detail.startsWith(
-        "The system timer and the page init reached your ZONA and the Timer and the Setup did not",
+        "The system timer and the page init reached your ZONA and the utility script, the Timer and the Setup did not",
       ),
     ).toBe(true);
     expect(
       partialBlock(
         "The system timer",
-        "the page init, the Timer and the Setup",
+        "the page init, the utility script, the Timer and the Setup",
       ).detail.startsWith(
-        "The system timer reached your ZONA and the page init, the Timer and the Setup did not",
+        "The system timer reached your ZONA and the page init, the utility script, the Timer and the Setup did not",
       ),
     ).toBe(true);
 

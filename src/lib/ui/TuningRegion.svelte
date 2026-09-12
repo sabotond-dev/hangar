@@ -277,7 +277,13 @@
      */
     onconfig?: (
       config:
-        | { systemTimer: string; system: string; setup: string; timer: string }
+        | {
+            systemTimer: string;
+            system: string;
+            systemUtility: string;
+            setup: string;
+            timer: string;
+          }
         | undefined,
     ) => void;
     /**

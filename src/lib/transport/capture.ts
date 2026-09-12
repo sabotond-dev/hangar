@@ -68,6 +68,13 @@ export const STEP_IDS = [
   "fetch-system-timer",
   "write-system-timer",
   "refetch-system-timer",
+  // Phase 13 (13-17, D-18 / D-19): the system element's utility event - the
+  // Sandbox runtime's second slot, 255/4. Three ids ADDED beside the
+  // twenty above, none of which moved; SLOTS puts `write-system-utility`
+  // third of the five, after 255/0 and before the touch pair.
+  "fetch-system-utility",
+  "write-system-utility",
+  "refetch-system-utility",
   // Phase 13 (13-12): the page target. `switch-page` is the fire-and-forget
   // page switch (sendImmediate, no reply exists to wait for);
   // `fetch-page-count` the enumeration; `discard` the firmware-native revert,

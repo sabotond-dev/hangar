@@ -121,6 +121,7 @@ describe("the page target (13-12, D-06)", () => {
       {
         systemTimer: P.SYSTEM_DEFAULT_TIMER,
         system: P.SYSTEM_DEFAULT_SETUP,
+        systemUtility: P.SYSTEM_DEFAULT_UTILITY,
         setup: SETUP,
         timer: TIMER,
       },

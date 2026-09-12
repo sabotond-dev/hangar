@@ -2,9 +2,10 @@
 //
 // Everything here is worth testing and nothing here touches the DOM: identity
 // folded out of inbound heartbeats, the fetches, writeAll - the ONE writer,
-// system timer, then system setup, then Timer, then Setup, that TRY ON
-// DEVICE, PUT BACK and the skeleton's write-back reach (Phase 7, SAFE-03;
-// Phase 12 added the third of the four, Phase 12.1 the fourth) - the store,
+// system timer, then system setup, then system utility, then Timer, then
+// Setup, that TRY ON DEVICE, PUT BACK and the skeleton's write-back reach
+// (Phase 7, SAFE-03; Phase 12 added the third of the five, Phase 12.1 the
+// fourth, Phase 13's 13-17 the fifth) - the store,
 // the burst probe, and the closing heartbeat that gives the module its page
 // changes back. The page is the part that is not worth testing; it wires a
 // transport and a queue to these and renders what they report.
@@ -15,8 +16,8 @@
 // probe page, both e2e files and the runbooks in ONE plan, and the adapters
 // are gone with their promise kept. 12.1-06 turned the order from three lines
 // in a function into SLOTS, one row per slot in write order, so that the
-// fourth string (255/6, D-03) and the fifth (255/4, 13-17's) are rows and not
-// functions. Nothing here counts two or three any more, and sequence.spec.ts
+// fourth string (255/6, D-03) and the fifth (255/4, 13-17, D-18 / D-19) are
+// rows and not functions. Nothing here counts two or three any more, and sequence.spec.ts
 // asserts the removal by name rather than leaving it to a reader's memory.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -26,6 +27,7 @@ import {
   ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
+  EVENT_UTILITY,
   IDENTIFY_WINDOW_MS,
   ZONA_HWCFG,
   type DecodedClass,
@@ -273,9 +275,11 @@ async function writeOne(
  * fifth. Instead the list is the single source: writeAll and fetchAll iterate
  * it, ConfigSet and FetchedSet are keyed by its `key`s, the step ids the
  * captures and install.spec.ts read are its `write` / `fetch` / `refetch`
- * columns, and the label a refusal names is its `label`. 13-17 adds 255/4 as
- * ONE ROW HERE and nowhere else - after 255/6, because whatever the utility
- * button's body calls has to be registered before the body runs.
+ * columns, and the label a refusal names is its `label`. 13-17 added 255/4 as
+ * ONE ROW HERE and nowhere else - after 255/6 and 255/0, before the touch
+ * pair, because whatever the utility body calls has to be registered before
+ * the body runs, and the touch Setup that pulls the body in (`ele[#ele]:map()`)
+ * has to find it registered (reason one, one event over).
  *
  * WHY THIS ORDER AND NO OTHER - three reasons, independent of each other.
  *
@@ -310,10 +314,11 @@ async function writeOne(
  * firmware's debug print, once, at install. Hence 255/6 FIRST OF ALL, before
  * the setup that calls it, on the same rule that already puts 0/6 before 0/0.
  *
- * WHAT IS NOT IN THE LIST. 255/4, the utility button: constants.ts's header
- * names it as 13-17's pending removal under D-19, not a rule, and
- * sequence.spec.ts asserts no frame addresses it until that row exists. Four
- * writes per install, not five.
+ * THE FIFTH ROW (13-17). 255/4, the utility button, under 13-CONTEXT D-19
+ * and D-18: constants.ts's header carries the reason it was once refused and
+ * what writing it changes (the button no longer turns the page while a
+ * Sandbox surface is installed; PUT BACK restores it). Five writes per
+ * install; sequence.spec.ts asserts the row, its place and its bytes.
  */
 export const SLOTS: readonly {
   readonly element: number;
@@ -343,6 +348,15 @@ export const SLOTS: readonly {
     refetch: "refetch-system",
   },
   {
+    element: ELEMENT_SYSTEM,
+    event: EVENT_UTILITY,
+    key: "systemUtility",
+    label: "System utility",
+    write: "write-system-utility",
+    fetch: "fetch-system-utility",
+    refetch: "refetch-system-utility",
+  },
+  {
     element: ELEMENT_TOUCH,
     event: EVENT_TIMER,
     key: "timer",
@@ -363,27 +377,28 @@ export const SLOTS: readonly {
 ];
 
 /**
- * All FOUR strings a module holds for HANGAR, one per SLOTS row: the system
- * element's timer and setup (the library's two halves), the touch element's
- * Timer and Setup.
+ * All FIVE strings a module holds for HANGAR, one per SLOTS row: the system
+ * element's timer and setup (the library's two halves) and its utility (the
+ * Sandbox runtime's second slot, 13-17), the touch element's Timer and Setup.
  */
 export interface FetchedSet {
   systemTimer: FetchedEvent;
   system: FetchedEvent;
+  systemUtility: FetchedEvent;
   setup: FetchedEvent;
   timer: FetchedEvent;
 }
 
 /**
- * Read all FOUR back, one per SLOTS row. THE ONE FETCHER since 12-03.
+ * Read all FIVE back, one per SLOTS row. THE ONE FETCHER since 12-03.
  *
  * FETCH ORDER IS FREE - firmware answers each request on its own and no fetch
  * runs anything - but it is written in SLOTS order anyway so a capture's
  * steps[] reads in the same order as the write below, and a reader comparing
  * a fetch trace with a write trace is not comparing two different orderings.
  *
- * 255/4 is NOT fetched. See constants.ts's header: it is 13-17's row to add,
- * and until then HANGAR does not snapshot what it does not write back.
+ * 255/4 is fetched since 13-17, because it is written since 13-17: HANGAR
+ * snapshots every slot it writes back, and no other.
  *
  * `stage` picks the pinned step ids the run reports under: the cycle and the
  * store proof fetch once before the write and once after it, and plan 05's
@@ -409,14 +424,16 @@ export async function fetchAll(
 }
 
 /**
- * The four strings a full write puts on the wire, keyed by SLOTS' `key`s.
+ * The five strings a full write puts on the wire, keyed by SLOTS' `key`s.
  * Verbatim, never compressed here. `systemTimer` and `system` are the two
- * halves of the shared library (255/6 and 255/0); the other two are the
- * touch element's.
+ * halves of the shared library (255/6 and 255/0); `systemUtility` is 255/4,
+ * the Sandbox runtime's second slot (13-17); the other two are the touch
+ * element's.
  */
 export interface ConfigSet {
   systemTimer: string;
   system: string;
+  systemUtility: string;
   setup: string;
   timer: string;
 }
@@ -435,9 +452,9 @@ export const targetOf = (id: Identity): WriteTarget => ({
 });
 
 /**
- * Write all four into the module's RAM, IN SLOTS ORDER: system timer, then
- * system setup, then touch Timer, then touch Setup. This order and no other;
- * SLOTS' comment carries the three reasons.
+ * Write all five into the module's RAM, IN SLOTS ORDER: system timer, then
+ * system setup, then system utility, then touch Timer, then touch Setup. This
+ * order and no other; SLOTS' comment carries the three reasons.
  *
  * THE ONE WRITER FOR FOUR CLICKS. TRY ON DEVICE, PUT BACK, CLEAR and the
  * skeleton's write-back all come through here; writeBack below is a two-line
@@ -449,7 +466,7 @@ export const targetOf = (id: Identity): WriteTarget => ({
  *
  * Sequential, one acknowledgement at a time, each under its own pinned step
  * id, and aborting on the first failure - so a half-landed write names which
- * quarters landed, and "the system timer did not land but the touch Setup
+ * of the five landed, and "the system timer did not land but the touch Setup
  * did" cannot occur.
  */
 export async function writeAll(
@@ -558,9 +575,9 @@ export async function runNoOpCycle(
   try {
     const before = await fetchAll(q, id);
     // D-09: a write is only provably a no-op when the string it writes back is
-    // one the module really handed over. FOUR strings since 12.1-06, one per
-    // SLOTS row: every slot written back is guarded, and every one is
-    // compared.
+    // one the module really handed over. FIVE strings since 13-17 (four since
+    // 12.1-06), one per SLOTS row: every slot written back is guarded, and
+    // every one is compared.
     const guard = canWriteBack(SLOTS.map((slot) => before[slot.key]));
     if (!guard.ok) throw new Error(guard.reason);
     await writeBack(q, id, before);

@@ -34,10 +34,12 @@
 //
 // NO AGENT WRITES TO A DEVICE. Every write in this file lands in
 // FakeTransport.writes, through the same RequestQueue and writeAll the real
-// panel will use, and nothing here opens a port. SINCE 12.1-07 THAT IS FOUR
-// FRAMES, not three (12-03) or two: the system timer slot (255/6) goes on the
-// wire first of all, then the page init (255/0), then the pair - SLOTS' order
-// in sequence.ts - and since 12.1-08 this file pins all four: the two library
+// panel will use, and nothing here opens a port. SINCE 13-17 THAT IS FIVE
+// FRAMES, not four (12.1-07), three (12-03) or two: the system timer slot
+// (255/6) goes on the wire first of all, then the page init (255/0), then the
+// utility (255/4 - the empty string for every catalog entry, which the store
+// substitutes and this rig does not), then the pair - SLOTS' order in
+// sequence.ts - and since 12.1-08 this file pins the library's two: the two library
 // strings TOUCH_LIBRARY_TIMER and TOUCH_LIBRARY reach 255/6 and 255/0
 // verbatim for a Lua entry (test 2 pins what the tuner publishes, test 3 what
 // the wire carries), and the pair's bytes as before. SINCE 12.1-08b A PRESET
@@ -56,6 +58,7 @@ import {
   ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
+  EVENT_UTILITY,
   FrameScanner,
   TERMINATOR,
   type DecodedClass,
@@ -253,9 +256,11 @@ function stringsOrRefuse(config: ConfigStrings | undefined): WriteDecision {
     ok: true,
     strings: {
       // The fourth key (12.1-07), first in SLOTS; its bytes are pinned on the
-      // wire in test 3 (12.1-08).
+      // wire in test 3 (12.1-08). The fifth (13-17), third in SLOTS; its
+      // bytes - the empty string, for every catalog entry - pinned there too.
       systemTimer: config.systemTimer,
       system: config.system,
+      systemUtility: config.systemUtility,
       setup: config.setup,
       timer: config.timer,
     },
@@ -409,6 +414,7 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         ).toEqual({
           systemTimer: TOUCH_LIBRARY_TIMER,
           system: TOUCH_LIBRARY,
+          systemUtility: "",
           ...rendered,
         });
         // AND THE PAGE INIT IS THE TOUCH LIBRARY, VERBATIM (12-07), AND THE
@@ -492,23 +498,44 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
       await writeAll(queue, TARGET, config);
 
       const writes = configWrites(transport);
-      // FOUR since 12.1-07 (SLOTS: 255/6 first), all four pinned since
-      // 12.1-08: the system timer, then the page init, then Timer, then Setup
-      // - the order writeAll owns, read off the wire by element and event.
-      expect(writes, "four CONFIG/EXECUTE frames").toHaveLength(4);
-      const [systemTimer, system, timer, setup] = writes;
+      // FIVE since 13-17 (SLOTS: 255/6 first, 255/4 third), all five pinned:
+      // the system timer, then the page init, then the utility, then Timer,
+      // then Setup - the order writeAll owns, read off the wire by element
+      // and event.
+      expect(writes, "five CONFIG/EXECUTE frames").toHaveLength(5);
+      const [systemTimer, system, systemUtility, timer, setup] = writes;
       expect(
         writes.map((c) => [
           Number(c.class_parameters.ELEMENTNUMBER),
           Number(c.class_parameters.EVENTTYPE),
         ]),
-        "the four frames are not SLOTS' order",
+        "the five frames are not SLOTS' order",
       ).toEqual([
         [ELEMENT_SYSTEM, EVENT_TIMER],
         [ELEMENT_SYSTEM, EVENT_SETUP],
+        [ELEMENT_SYSTEM, EVENT_UTILITY],
         [ELEMENT_TOUCH, EVENT_TIMER],
         [ELEMENT_TOUCH, EVENT_SETUP],
       ]);
+      // THE FIFTH FRAME'S BYTES (13-17): a catalog entry has no utility body,
+      // so what this rig - writeAll, no store - puts on 255/4 is the EMPTY
+      // STRING at length 0, verbatim from the landing. The install store
+      // substitutes SYSTEM_DEFAULT_UTILITY before it calls writeAll (in one
+      // place, #pageUtility), which install.spec.ts pins; the empty string
+      // reaching the wire here is the proof that writeAll itself substitutes
+      // nothing.
+      expect(Number(systemUtility.class_parameters.ELEMENTNUMBER)).toBe(
+        ELEMENT_SYSTEM,
+      );
+      expect(Number(systemUtility.class_parameters.EVENTTYPE)).toBe(
+        EVENT_UTILITY,
+      );
+      expect(
+        String(systemUtility.class_parameters.ACTIONSTRING),
+        "a preset's 255/4 is not the landing's empty string",
+      ).toBe(config.systemUtility);
+      expect(config.systemUtility).toBe("");
+      expect(Number(systemUtility.class_parameters.ACTIONLENGTH)).toBe(0);
       // A PRESET'S TWO SYSTEM FRAMES CARRY THE LIBRARY SINCE 12.1-08b. From
       // 12-03 until then a preset published the empty string in both slots
       // and this rig put the empty string on the wire (writeAll does not
@@ -569,10 +596,17 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
       const { transport, queue } = rig();
       await writeAll(queue, TARGET, config);
       const writes = configWrites(transport);
-      expect(writes, "four CONFIG/EXECUTE frames for a Lua entry").toHaveLength(
-        4,
+      expect(writes, "five CONFIG/EXECUTE frames for a Lua entry").toHaveLength(
+        5,
       );
-      const [systemTimer, system] = writes;
+      const [systemTimer, system, systemUtility] = writes;
+      expect(Number(systemUtility.class_parameters.EVENTTYPE)).toBe(
+        EVENT_UTILITY,
+      );
+      expect(
+        String(systemUtility.class_parameters.ACTIONSTRING),
+        "a Lua entry's 255/4 is the landing's empty string",
+      ).toBe("");
       expect(Number(systemTimer.class_parameters.ELEMENTNUMBER)).toBe(
         ELEMENT_SYSTEM,
       );
@@ -649,6 +683,7 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
     const tooLong = stringsOrRefuse({
       systemTimer: "",
       system: "",
+      systemUtility: "",
       setup: "-".repeat(EVENT_BUDGET + 1),
       timer: "",
     });

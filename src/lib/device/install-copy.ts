@@ -120,19 +120,30 @@ export type EventWord = "Setup" | "Timer";
  * the right, and reading a row left to right is reading SLOTS top to bottom.
  * These are LITERALS, not built from SLOTS[].label (this module imports
  * nothing and authors no grammar); the store publishes the labels separately
- * as landedSlots / failedSlots. 13-18 rewrites this file under 13-CONTEXT
- * D-05 and must carry the four-string fact.
+ * as landedSlots / failedSlots.
  *
- *   The system timer                              | the page init, the Timer and the Setup
- *   The system timer and the page init            | the Timer and the Setup
- *   The system timer, the page init and the Timer | the Setup
+ * SINCE 13-17 A RAM LEG WRITES FIVE - the utility script (255/4, the Sandbox
+ * runtime's second slot, 13-CONTEXT D-18 / D-19) goes third, after the page
+ * init and before the touch pair - so a fourth partial exists and every row
+ * names the five in write order. "The utility script" is HANGAR's word for
+ * the slot (the firmware's is the utility button's event; a catalog entry
+ * lands the module's own page-next there and a surface lands its runtime),
+ * ledgered in 13-COPY-NEW.md under "From 13-17". 13-18 rewrites this file
+ * under 13-CONTEXT D-05 and must carry the five-string fact.
+ *
+ *   The system timer                                                  | the page init, the utility script, the Timer and the Setup
+ *   The system timer and the page init                                | the utility script, the Timer and the Setup
+ *   The system timer, the page init and the utility script            | the Timer and the Setup
+ *   The system timer, the page init, the utility script and the Timer | the Setup
  */
 export type LandedWords =
   | "The system timer"
   | "The system timer and the page init"
-  | "The system timer, the page init and the Timer";
+  | "The system timer, the page init and the utility script"
+  | "The system timer, the page init, the utility script and the Timer";
 export type FailedWords =
-  | "the page init, the Timer and the Setup"
+  | "the page init, the utility script, the Timer and the Setup"
+  | "the utility script, the Timer and the Setup"
   | "the Timer and the Setup"
   | "the Setup";
 
@@ -400,10 +411,11 @@ export function nothingLandedBlock(after: "try" | "put-back"): InstallBlock {
  * AMENDED IN 12-03, because a RAM leg writes three events and "Timer reached
  * your ZONA and Setup did not" could no longer say which three-way split had
  * happened. AMENDED AGAIN IN 12.1-08, because a RAM leg writes four (the
- * system timer first) and the step says "all four" for the same reason; the
- * words themselves are the unions above. The TITLE is unchanged -
- * `PARTIAL_TITLE` is what the panel and the live region read, and it never
- * named a count.
+ * system timer first) and the step says "all four" for the same reason; AND
+ * IN 13-17, because a RAM leg writes five (the utility script third) and the
+ * step says "all five". The words themselves are the unions above. The TITLE
+ * is unchanged - `PARTIAL_TITLE` is what the panel and the live region read,
+ * and it never named a count.
  */
 export function partialBlock(
   landed: LandedWords,
@@ -412,7 +424,7 @@ export function partialBlock(
   return {
     title: PARTIAL_TITLE,
     detail: `${landed} reached your ZONA and ${failed} did not. What is on the module now is part of this configuration and part of your own.`,
-    steps: ["Click TRY ON DEVICE to send all four again", STEP_OR_PUT_BACK],
+    steps: ["Click TRY ON DEVICE to send all five again", STEP_OR_PUT_BACK],
   };
 }
 
@@ -458,10 +470,13 @@ export const CONFIRM_CAPTION = "PERMANENT";
  * SAFE-05 requires exactly that. SINCE 12.1-08 IT NAMES FOUR SCRIPTS: a KEEP
  * stores the page's own timer (255/6) beside its init (255/0) and the touch
  * element's pair, and a sentence that named three was untrue by omission.
- * Held from both sides by install-copy.spec.ts's AMENDED_BY_THE_FOURTH_SCRIPT.
+ * SINCE 13-17 IT NAMES FIVE: a KEEP stores the page's utility script (255/4)
+ * too - the module's own page-next under a catalog configuration, the Sandbox
+ * runtime under a surface - for the same reason. Held from both sides by
+ * install-copy.spec.ts's AMENDED_BY_THE_FIFTH_SCRIPT.
  */
 export const CONFIRM_REPLACES =
-  "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init and timer scripts, and it survives a power cycle.";
+  "This replaces the Setup and Timer scripts on your ZONA’s touch element and the page’s own init, timer and utility scripts, and it survives a power cycle.";
 
 /** Names PUT BACK, which is in the cell directly above. */
 export const CONFIRM_WAY_BACK =

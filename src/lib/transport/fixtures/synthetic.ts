@@ -441,9 +441,12 @@ const systemFlashOf = (state: ZonaState): Record<number, string> =>
  * package's own default for an event nobody has written - which is what
  * firmware does. That fall-through is how a factory module's 255/6 comes
  * back as SYSTEM_DEFAULT_TIMER since 12.1-06 (the fourth slot, D-03) with no
- * line added here, and how a fetch of 255/4 would be answered on the day
- * 13-17 asks for it. Verified, not restructured, by sequence.spec.ts's
- * four-slot round trip.
+ * line added here, and how its 255/4 comes back as SYSTEM_DEFAULT_UTILITY
+ * since 13-17 (the fifth slot, D-18 / D-19) - page-next, the module's own
+ * utility button - with no line added either; a write to 255/4 is stored
+ * under its event below like any other system write, so a Sandbox install's
+ * utility body is what a refetch reads back and what a power cycle forgets.
+ * Verified, not restructured, by sequence.spec.ts's five-slot round trip.
  */
 const ramRead = (state: ZonaState, element: number, event: number): string => {
   if (element !== ELEMENT_SYSTEM) return state.configs[event] ?? "";

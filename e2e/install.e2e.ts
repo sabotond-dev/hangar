@@ -199,6 +199,7 @@ import {
   ELEMENT_SYSTEM,
   EVENT_SETUP,
   EVENT_TIMER,
+  EVENT_UTILITY,
   TERMINATOR,
   decodeFrame,
 } from "../src/lib/protocol";
@@ -242,6 +243,15 @@ const MODULE_SYSTEM = "--[[@cb]]function M()return 1 end";
  * has been written to.
  */
 const MODULE_SYSTEM_TIMER = "--[[@cb]]function M:tim()return 2 end";
+/**
+ * And in its SYSTEM element's UTILITY slot (255/4) - the slot HANGAR started
+ * writing in 13-17 (D-18 / D-19), third of the five. Deliberately not the
+ * package's 19-character page-next either, for the same reason: this
+ * module's owner had a utility script of their own, which is exactly what
+ * PUT BACK gives back, and a put-back, a clear and a try-on are told apart on
+ * the fifth slot too.
+ */
+const MODULE_SYSTEM_UTILITY = "--[[@cb]]function M:map()return 5 end";
 /** Deliberately not the first page, for sequence.spec.ts's reason: a constant would be caught. */
 const ACTIVE_PAGE = 2;
 
@@ -258,6 +268,7 @@ function moduleState(nth: number, over: Partial<ZonaState> = {}): ZonaState {
     system: {
       [EVENT_SETUP]: MODULE_SYSTEM,
       [EVENT_TIMER]: MODULE_SYSTEM_TIMER,
+      [EVENT_UTILITY]: MODULE_SYSTEM_UTILITY,
     },
     serial: [0x9abcdef0 + nth, 0x12345678, 0, 0],
     ...over,
@@ -299,16 +310,18 @@ async function stepLines(page: Page): Promise<string[]> {
     .filter((line) => line !== "");
 }
 
-/** The FOUR strings the probe's textareas hold, read rather than restated, in write order. */
+/** The FIVE strings the probe's textareas hold, read rather than restated, in write order. */
 async function probePair(page: Page): Promise<{
   systemTimer: string;
   system: string;
+  systemUtility: string;
   setup: string;
   timer: string;
 }> {
   return {
     systemTimer: await readout(page, "install-system-timer").inputValue(),
     system: await readout(page, "install-system").inputValue(),
+    systemUtility: await readout(page, "install-system-utility").inputValue(),
     setup: await readout(page, "install-setup").inputValue(),
     timer: await readout(page, "install-timer").inputValue(),
   };
@@ -438,13 +451,13 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
 
     // The trace holds the transient: idle, the snapshot in flight, ready.
     await expect(trace(page)).toHaveText(/^idle > snapshotting > ready$/);
-    // FOUR LENGTHS, in write order (12.1-08; three since 12-03), and no
-    // record-key suffix: the record was taken from this module under the
-    // newest key. This site is a READOUT STRING rather than a count, so no
-    // grep for a numeric literal finds it; the full suite did, on the first
-    // run.
+    // FIVE LENGTHS, in write order (13-17; four since 12.1-08, three since
+    // 12-03), and no record-key suffix: the record was taken from this module
+    // under the newest key. This site is a READOUT STRING rather than a
+    // count, so no grep for a numeric literal finds it; the full suite did,
+    // on the first run.
     await expect(readout(page, "install-snapshot")).toHaveText(
-      `durable ${MODULE_SYSTEM_TIMER.length} ${MODULE_SYSTEM.length} ${MODULE_SETUP.length} ${MODULE_TIMER.length}`,
+      `durable ${MODULE_SYSTEM_TIMER.length} ${MODULE_SYSTEM.length} ${MODULE_SYSTEM_UTILITY.length} ${MODULE_SETUP.length} ${MODULE_TIMER.length}`,
     );
     expect(await readout(page, "install-module").innerText()).toMatch(
       /^[0-9a-f]{32}$/,
@@ -456,10 +469,12 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(speech(page)).toHaveText(LIVE_SNAPSHOT_SAVED);
     expect(await stepLines(page)).toEqual([
       "fetch-serial ok 1",
-      // SLOTS order since 12.1-06: 255/6, 255/0, 0/6, 0/0 - the fetch order
-      // is the write order, so a capture reads the same way up.
+      // SLOTS order since 12.1-06, five rows since 13-17: 255/6, 255/0,
+      // 255/4, 0/6, 0/0 - the fetch order is the write order, so a capture
+      // reads the same way up.
       "fetch-system-timer ok 1",
       "fetch-system ok 1",
+      "fetch-system-utility ok 1",
       "fetch-timer ok 1",
       "fetch-setup ok 1",
       // 13-12: the enumeration, once per connection, a READ. The pages the
@@ -473,24 +488,24 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     );
     await expect(readout(page, "install-apply-ready")).toHaveText("true");
 
-    // SAFE-01 by class, over the whole journey: one serial fetch, FOUR config
-    // fetches (12.1-08; three before), ONE page-count fetch, and not one write
+    // SAFE-01 by class, over the whole journey: one serial fetch, FIVE config
+    // fetches (13-17; four before), ONE page-count fetch, and not one write
     // of any kind - where,
     // since 13-12, "a write" includes the PAGE SWITCH and the PAGE DISCARD
     // (13-CONTEXT D-06, first clause: a page switch is a click, never a side
     // effect). The class list is EXTENDED here, never excepted: connecting,
     // snapshotting and enumerating moved the module's page zero times.
     expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(1);
-    expect(zona.seen("CONFIG", "FETCH")).toBe(4);
+    expect(zona.seen("CONFIG", "FETCH")).toBe(5);
     expect(zona.seen("PAGECOUNT", "FETCH")).toBe(1);
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(zona.seen(["PAGE", "ACTIVE"].join(""), "EXECUTE")).toBe(0);
     expect(zona.seen(["PAGE", "DISCARD"].join(""), "EXECUTE")).toBe(0);
     expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(0);
-    // Six frames since 12.1-08 (five since 13-12, four since 12-03): the
-    // serial, the four fetches, the page count.
-    expect((await writesOf(page)).length).toBe(6);
+    // Seven frames since 13-17 (six since 12.1-08, five since 13-12, four
+    // since 12-03): the serial, the five fetches, the page count.
+    expect((await writesOf(page)).length).toBe(7);
 
     // A module whose fetch answers empty: the snapshot is refused before the
     // record is consulted (D-03), PUT BACK stays absent, and RETRY after the
@@ -516,10 +531,10 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       /^idle > snapshotting > snapshot-failed > snapshotting > ready$/,
     );
     await expect(putBack(second)).toHaveText("enabled");
-    // Two snapshot attempts, four fetches each; the count fetched ONCE - the
+    // Two snapshot attempts, five fetches each; the count fetched ONCE - the
     // first attempt enumerated before its guard refused, and the retry did
     // not ask again. Still not one write of any class.
-    expect(empty.seen("CONFIG", "FETCH")).toBe(8);
+    expect(empty.seen("CONFIG", "FETCH")).toBe(10);
     expect(empty.seen("PAGECOUNT", "FETCH")).toBe(1);
     expect(empty.seen("CONFIG", "EXECUTE")).toBe(0);
     expect(empty.seen("PAGESTORE", "EXECUTE")).toBe(0);
@@ -529,7 +544,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(secondErrors).toEqual([]);
   });
 
-  test("TRY ON DEVICE lands all four acknowledgements, PUT BACK restores, and the trace names every state", async ({
+  test("TRY ON DEVICE lands all five acknowledgements, PUT BACK restores, and the trace names every state", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
@@ -546,6 +561,10 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       pair.systemTimer,
       "and the fourth, first in write order, something else again",
     ).not.toBe(MODULE_SYSTEM_TIMER);
+    expect(
+      pair.systemUtility,
+      "and the fifth, third in write order, something else again",
+    ).not.toBe(MODULE_SYSTEM_UTILITY);
 
     // Observing the pair arms nothing on its own (Z-05: armed means the
     // module HOLDS the pair).
@@ -567,12 +586,13 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(await stepLines(page)).toEqual([
       "write-system-timer ok 1",
       "write-system ok 1",
+      "write-system-utility ok 1",
       "write-timer ok 1",
       "write-setup ok 1",
       "restore-page-change sent 1",
     ]);
-    // One RAM leg, four writes (12.1-08; three since 12-03).
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(4);
+    // One RAM leg, five writes (13-17; four since 12.1-08, three since 12-03).
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
     expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(1);
     // The module's RAM holds the four; its flash still holds its own. The
     // THIRD line is 12-03's: what the install-system textarea holds is what
@@ -580,13 +600,17 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     // for pasting an arbitrary page init at a module. The FOURTH is
     // 12.1-08's: the same RAM, event 6, from the install-system-timer
     // textarea - the sure route for pasting an arbitrary page timer, which
-    // is what the runbook's page-load row needs.
+    // is what the runbook's page-load row needs. The FIFTH is 13-17's: the
+    // same RAM, event 4, from the install-system-utility textarea - the sure
+    // route for pasting an arbitrary utility body.
     expect(zona.state.configs[EVENT_SETUP]).toBe(pair.setup);
     expect(zona.state.configs[EVENT_TIMER]).toBe(pair.timer);
     expect(zona.state.system?.[EVENT_SETUP]).toBe(pair.system);
     expect(zona.state.system?.[EVENT_TIMER]).toBe(pair.systemTimer);
+    expect(zona.state.system?.[EVENT_UTILITY]).toBe(pair.systemUtility);
     expect(zona.state.flash?.[EVENT_SETUP]).toBe(MODULE_SETUP);
     expect(zona.state.systemFlash?.[EVENT_TIMER]).toBe(MODULE_SYSTEM_TIMER);
+    expect(zona.state.systemFlash?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
 
     await click(page, "install-put-back-click");
     await expect(phase(page)).toHaveText("restored");
@@ -599,13 +623,14 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(await stepLines(page)).toEqual([
       "write-system-timer ok 1",
       "write-system ok 1",
+      "write-system-utility ok 1",
       "write-timer ok 1",
       "write-setup ok 1",
       "restore-page-change sent 1",
     ]);
-    // Two RAM legs, four writes each. The heartbeat count does NOT move:
+    // Two RAM legs, five writes each. The heartbeat count does NOT move:
     // one restore per leg, and there are still two legs.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(8);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
     expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(2);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(zona.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
@@ -616,6 +641,10 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(zona.state.system?.[EVENT_TIMER], "and the page timer too").toBe(
       MODULE_SYSTEM_TIMER,
     );
+    expect(
+      zona.state.system?.[EVENT_UTILITY],
+      "and the owner's own utility script too (13-17)",
+    ).toBe(MODULE_SYSTEM_UTILITY);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -646,20 +675,21 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(readout(page, "install-armed")).toHaveText("false");
     await expect(putBack(page)).toHaveText("enabled");
     await expect(speech(page)).toHaveText(liveKept(NAME));
-    // One store, one heartbeat waited for, one matching round of FOUR, in
+    // One store, one heartbeat waited for, one matching round of FIVE, in
     // SLOTS order.
     expect(await stepLines(page)).toEqual([
       "store ok 1",
       "refetch-system-timer ok 1",
       "refetch-system ok 1",
+      "refetch-system-utility ok 1",
       "refetch-timer ok 1",
       "refetch-setup ok 1",
     ]);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
     // One RAM leg.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(4);
-    // The snapshot s four, plus one refetch round of four.
-    expect(zona.seen("CONFIG", "FETCH")).toBe(8);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
+    // The snapshot s five, plus one refetch round of five.
+    expect(zona.seen("CONFIG", "FETCH")).toBe(10);
     expect(zona.state.flash?.[EVENT_SETUP]).toBe(pair.setup);
     expect(zona.state.flash?.[EVENT_TIMER]).toBe(pair.timer);
     expect(zona.state.systemFlash?.[EVENT_SETUP], "one store, both").toBe(
@@ -667,8 +697,12 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     );
     expect(
       zona.state.systemFlash?.[EVENT_TIMER],
-      "one store, all four - the page timer stored with the rest",
+      "one store, all five - the page timer stored with the rest",
     ).toBe(pair.systemTimer);
+    expect(
+      zona.state.systemFlash?.[EVENT_UTILITY],
+      "and the utility stored with the rest (13-17)",
+    ).toBe(pair.systemUtility);
 
     // A module whose re-fetch never returns what was stored: the ACK already
     // meant stored, the proof runs out after three rounds, and the panel will
@@ -690,10 +724,13 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     const lines = await stepLines(second);
     expect(lines[0]).toBe("store ok 1");
     // THE 3 HERE IS THE ROUND COUNT AND IT DOES NOT MOVE - REFETCH_ROUNDS is
-    // still three. What moved is that a round is four fetches (12.1-08; three
-    // since 12-03), so a fourth line joins the three.
+    // still three. What moved is that a round is five fetches (13-17; four
+    // since 12.1-08, three since 12-03), so a fifth line joins the four.
     expect(
       lines.filter((l) => l.startsWith("refetch-system-timer ")),
+    ).toHaveLength(3);
+    expect(
+      lines.filter((l) => l.startsWith("refetch-system-utility ")),
     ).toHaveLength(3);
     expect(lines.filter((l) => l.startsWith("refetch-system "))).toHaveLength(
       3,
@@ -701,9 +738,9 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(lines.filter((l) => l.startsWith("refetch-setup "))).toHaveLength(3);
     expect(lines.filter((l) => l.startsWith("refetch-timer "))).toHaveLength(3);
     expect(liar.seen("PAGESTORE", "EXECUTE")).toBe(1);
-    expect(liar.seen("CONFIG", "EXECUTE")).toBe(4);
-    // The snapshot s four, plus three rounds of four.
-    expect(liar.seen("CONFIG", "FETCH")).toBe(4 + 12);
+    expect(liar.seen("CONFIG", "EXECUTE")).toBe(5);
+    // The snapshot s five, plus three rounds of five.
+    expect(liar.seen("CONFIG", "FETCH")).toBe(5 + 15);
 
     expect(consoleErrors).toEqual([]);
     expect(secondErrors).toEqual([]);
@@ -718,15 +755,16 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     // a single nth would let attempt 2's acknowledgement land and the trace
     // would end settled.
     //
-    // THE NUMBERS MOVED WITH 12-03 AND AGAIN WITH 12.1-08, AND THEY ARE
-    // DERIVED, NOT COPIED. A RAM leg is FOUR writes now, so acknowledgement 1
-    // is the page timer, 2 the page init and 3 the Timer - all three must
-    // land - and the Setup's three attempts are 4, 5 and 6.
+    // THE NUMBERS MOVED WITH 12-03, WITH 12.1-08 AND AGAIN WITH 13-17, AND
+    // THEY ARE DERIVED, NOT COPIED. A RAM leg is FIVE writes now, so
+    // acknowledgement 1 is the page timer, 2 the page init, 3 the utility
+    // and 4 the Timer - all four must land - and the Setup's three attempts
+    // are 5, 6 and 7.
     const zona = await openProbe(page, moduleState(6), {
       dropAck: [
-        { class_name: "CONFIG", nth: 4 },
         { class_name: "CONFIG", nth: 5 },
         { class_name: "CONFIG", nth: 6 },
+        { class_name: "CONFIG", nth: 7 },
       ],
     });
     await connectAndSnapshot(page, zona);
@@ -744,22 +782,24 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(await stepLines(page)).toEqual([
       "write-system-timer ok 1",
       "write-system ok 1",
+      "write-system-utility ok 1",
       "write-timer ok 1",
       "write-setup timeout 3",
       "restore-page-change sent 1",
     ]);
-    // SIX, NOT SEVEN: the page timer once, the page init once, the Timer
-    // once, the Setup three times. A blanket multiple would have said
-    // seven; the step lines above are where the number comes from.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(6);
+    // SEVEN, NOT EIGHT: the page timer once, the page init once, the utility
+    // once, the Timer once, the Setup three times. A blanket multiple would
+    // have said eight; the step lines above are where the number comes from.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(7);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    // The page timer, the page init and the Timer landed. The Setup's three
-    // writes REACHED the module too - only their acknowledgements were
-    // dropped - so the fake's RAM holds all four, which is exactly what
-    // HANGAR cannot know and why the panel names what landed and offers PUT
-    // BACK.
+    // The page timer, the page init, the utility and the Timer landed. The
+    // Setup's three writes REACHED the module too - only their
+    // acknowledgements were dropped - so the fake's RAM holds all five, which
+    // is exactly what HANGAR cannot know and why the panel names what landed
+    // and offers PUT BACK.
     expect(zona.state.system?.[EVENT_TIMER]).toBe(pair.systemTimer);
     expect(zona.state.system?.[EVENT_SETUP]).toBe(pair.system);
+    expect(zona.state.system?.[EVENT_UTILITY]).toBe(pair.systemUtility);
     expect(zona.state.configs[EVENT_TIMER]).toBe(pair.timer);
     expect(zona.state.configs[EVENT_SETUP]).toBe(pair.setup);
 
@@ -788,8 +828,11 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       "write-system-timer nack 1",
       "restore-page-change sent 1",
     ]);
-    // The abort is proved over all THREE unreached writes, not only the last.
+    // The abort is proved over all FOUR unreached writes, not only the last.
     expect(refusedLines.some((l) => l.startsWith("write-system "))).toBe(false);
+    expect(refusedLines.some((l) => l.startsWith("write-system-utility"))).toBe(
+      false,
+    );
     expect(refusedLines.some((l) => l.startsWith("write-timer"))).toBe(false);
     expect(refusedLines.some((l) => l.startsWith("write-setup"))).toBe(false);
     // ONE, AND UNCHANGED BY THIS PHASE: nackFirstWrite refuses the first write
@@ -798,6 +841,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(refusing.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(refusing.state.system?.[EVENT_TIMER]).toBe(MODULE_SYSTEM_TIMER);
     expect(refusing.state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
+    expect(refusing.state.system?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
     expect(refusing.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
     expect(refusing.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
 
@@ -845,10 +889,11 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     const moduleId = await readout(page, "install-module").innerText();
 
     // The cable comes out as the first CONFIG/EXECUTE leaves: the snapshot's
-    // SIX frames - the serial, four fetches (12.1-08) and the page count
-    // (13-12) - are on the wire already, so the next write is the seventh.
+    // SEVEN frames - the serial, five fetches (13-17; four since 12.1-08) and
+    // the page count (13-12) - are on the wire already, so the next write is
+    // the eighth.
     const n = (await writesOf(page)).length + 1;
-    expect(n).toBe(7);
+    expect(n).toBe(8);
     await page.evaluate(
       (count) => window.__hangarSerial.unplugAfterWrites(0, count),
       n,
@@ -917,9 +962,9 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(snapshotLine.startsWith("durable ")).toBe(true);
     await expect(readout(page, "install-module")).toHaveText(moduleId);
     // The SERIALNUMBER count does NOT move: one per connect, and there are
-    // still two connects. The config fetches are two snapshots of four.
+    // still two connects. The config fetches are two snapshots of five.
     expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(2);
-    expect(zona.seen("CONFIG", "FETCH")).toBe(8);
+    expect(zona.seen("CONFIG", "FETCH")).toBe(10);
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
     expect(consoleErrors).toEqual([]);
   });
@@ -955,9 +1000,9 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(speech(page)).toHaveText(UNCONFIRMED_SPOKEN);
     expect(await stepLines(page)).toEqual(["store timeout 3"]);
     // A STORE leg is one write per attempt, so the PAGESTORE count does not
-    // move. The CONFIG count is one RAM leg of four.
+    // move. The CONFIG count is one RAM leg of five.
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(3);
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(4);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
     const firstLegMs = Date.now() - startedAt;
 
     // A keep that landed, then a put-back whose own store never confirms:
@@ -989,11 +1034,12 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(cause(second)).toHaveText("timeout");
     await expect(keepReason(second)).toHaveText("never-tried");
     await expect(putBack(second)).toHaveText("enabled");
-    // Both legs of one put-back in one record: the RAM leg's FIVE steps, then
+    // Both legs of one put-back in one record: the RAM leg's SIX steps, then
     // the store that never confirmed.
     expect(await stepLines(second)).toEqual([
       "write-system-timer ok 1",
       "write-system ok 1",
+      "write-system-utility ok 1",
       "write-timer ok 1",
       "write-setup ok 1",
       "restore-page-change sent 1",
@@ -1001,8 +1047,8 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     ]);
     // 1 + 3 store attempts, unmoved: a store leg is one write per attempt.
     expect(kept.seen("PAGESTORE", "EXECUTE")).toBe(1 + 3);
-    // Two RAM legs of four.
-    expect(kept.seen("CONFIG", "EXECUTE")).toBe(8);
+    // Two RAM legs of five.
+    expect(kept.seen("CONFIG", "EXECUTE")).toBe(10);
     // RAM is the original again; what the fake's flash holds is exactly what
     // HANGAR cannot know, and is not asserted.
     expect(kept.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
@@ -1505,9 +1551,9 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       KEEP_LINE_ENABLED,
     );
 
-    // The wire: one try-on, all four acknowledgements on attempt 1, nothing
+    // The wire: one try-on, all five acknowledgements on attempt 1, nothing
     // stored.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(4);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(1);
     expect(consoleErrors).toEqual([]);
@@ -1598,8 +1644,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       putBackPageLineAfterKeep(ACTIVE_PAGE),
     );
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
-    // One try-on, four writes.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(4);
+    // One try-on, five writes.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
     expect(zona.state.flash?.[EVENT_SETUP]).not.toBe(MODULE_SETUP);
 
     // On a rig, the fourth sentence names the others and says their pages are
@@ -1640,8 +1686,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await second.getByTestId("keep-confirm-no").click();
     await expect(rigConfirm).toHaveCount(0);
     expect(rig.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    // One try-on, four writes.
-    expect(rig.seen("CONFIG", "EXECUTE")).toBe(4);
+    // One try-on, five writes.
+    expect(rig.seen("CONFIG", "EXECUTE")).toBe(5);
 
     expect(consoleErrors).toEqual([]);
     expect(secondErrors).toEqual([]);
@@ -1758,9 +1804,9 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(page.getByTestId("connect-status")).toBeFocused();
 
     // The wire: the keep and the put-back's store; three RAM legs (two
-    // try-ons and the put-back's), four writes each.
+    // try-ons and the put-back's), five writes each.
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(12);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -1891,10 +1937,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(utterances(afterLost.log["browse-live"])).toEqual([]);
 
     // The wire: the keep and the put-back's store; the two settled RAM legs,
-    // four writes each; the write that caused the unplug never reached the
+    // five writes each; the write that caused the unplug never reached the
     // module.
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(8);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
     console.log(`test 10 wall time ${Date.now() - startedAt} ms`);
     expect(consoleErrors).toEqual([]);
   });
@@ -1937,14 +1983,14 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // the COUNTER rather than on the panel - the counter is what the
     // assertion reads, so the counter is what has to have settled.
     //
-    // The wait implies completion: a try-on is four writes, so the counter
-    // reaching four IS "every frame of it has been answered in Node".
+    // The wait implies completion: a try-on is five writes, so the counter
+    // reaching five IS "every frame of it has been answered in Node".
     await expect
       .poll(() => zona.seen("CONFIG", "EXECUTE"), {
         message: "every frame of the try-on has reached the Node fake",
         timeout: 10_000,
       })
-      .toBe(4);
+      .toBe(5);
     const configBefore = zona.seen("CONFIG", "EXECUTE");
     await clearControl(page).click();
 
@@ -1971,12 +2017,12 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       KEEP_REASONS["never-tried"],
     );
     expect(await noConfirmOnScreen(page)).toBe(true);
-    // FOUR firmware defaults, and the page init and the page timer are two
-    // of them: CLEAR resets BOTH elements (12-03, option A; 12.1-07 for
-    // 255/6), which is what keeps D-21's line - `Reset the current page to
-    // factory default` - literally true of every element HANGAR has ever
-    // written.
-    expect(zona.seen("CONFIG", "EXECUTE") - configBefore).toBe(4);
+    // FIVE firmware defaults, and the page init, the page timer and the
+    // utility are three of them: CLEAR resets BOTH elements (12-03, option
+    // A; 12.1-07 for 255/6; 13-17 for 255/4), which is what keeps D-21's
+    // line - `Reset the current page to factory default` - literally true of
+    // every element HANGAR has ever written.
+    expect(zona.seen("CONFIG", "EXECUTE") - configBefore).toBe(5);
     // The region is WAITED ON rather than read: session.speech arrives on the
     // store's trailing timer, so a log read the instant region 3 changes is
     // read before the sentence exists.
@@ -1997,11 +2043,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(spoken[spoken.length - 1]).toBe(LIVE_RESTORED);
     expect(utterances(after.log["tuning-live"])).toEqual([]);
 
-    // The wire, by class: the try-on, the clear and the put-back are FOUR
-    // CONFIG/EXECUTE each (12.1-08; three since 12-03), and A-26's RAM-only
-    // ruling is a counted zero rather than an intention - a clear stores
-    // nothing.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(12);
+    // The wire, by class: the try-on, the clear and the put-back are FIVE
+    // CONFIG/EXECUTE each (13-17; four since 12.1-08, three since 12-03), and
+    // A-26's RAM-only ruling is a counted zero rather than an intention - a
+    // clear stores nothing.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(consoleErrors).toEqual([]);
   });
@@ -2137,11 +2183,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       `LUMEN on the wire: depth ${fromIndex} -> ${atDefault.length} characters carrying "${literalAt(fromIndex)}", depth ${toIndex} -> ${tuned.length} characters carrying "${literalAt(toIndex)}", differing`,
     );
 
-    // The wire, read only after the second settled state. Two clicks, FOUR
-    // events each since 12.1-07 (three since 12-03 - which is the move 12-01
-    // predicted here in this comment, by name). What changed is the
-    // composition of a click, not the number of clicks.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(8);
+    // The wire, read only after the second settled state. Two clicks, FIVE
+    // events each since 13-17 (four since 12.1-07, three since 12-03 - which
+    // is the move 12-01 predicted here in this comment, by name). What
+    // changed is the composition of a click, not the number of clicks.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(consoleErrors).toEqual([]);
   });

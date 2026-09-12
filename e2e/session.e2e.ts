@@ -298,7 +298,7 @@ const answering = (page: Page): Promise<ExposedZona> =>
  *   1. The fetch counters are polled to their totals FIRST, at every call site.
  *      Since 13-12 the PAGE-COUNT fetch is the last chunk #snapshot issues
  *      (after the timer fetch, before `ready`), so PAGECOUNT/FETCH reaching
- *      `connects` IS "the reads are answered"; CONFIG/FETCH at 3 * connects
+ *      `connects` IS "the reads are answered"; CONFIG/FETCH at 5 * connects
  *      is polled first for the diagnosis's own message. Neither needs
  *      anything from the page.
  *   2. WHERE the row is published, the store is then required to have LEFT
@@ -318,10 +318,10 @@ async function onlyReads(
 ): Promise<void> {
   await expect
     .poll(() => zona.seen("CONFIG", "FETCH"), {
-      message: `all four config reads - the page timer, the page init, the Timer and the Setup, in SLOTS order - of all ${connects} snapshot(s) have been answered; the Setup fetch is the last config chunk #snapshot issues`,
+      message: `all five config reads - the page timer, the page init, the utility, the Timer and the Setup, in SLOTS order - of all ${connects} snapshot(s) have been answered; the Setup fetch is the last config chunk #snapshot issues`,
       timeout: 30_000,
     })
-    .toBe(4 * connects);
+    .toBe(5 * connects);
   await expect
     .poll(() => zona.seen("PAGECOUNT", "FETCH"), {
       message: `the page count - the LAST chunk #snapshot issues since 13-12 - has been answered once per connect`,
@@ -356,13 +356,13 @@ async function onlyReads(
   ).toBe(0);
   expect(zona.seen("HEARTBEAT", "EXECUTE"), "host heartbeats").toBe(0);
   expect(zona.seen("SERIALNUMBER", "FETCH")).toBe(connects);
-  expect(zona.seen("CONFIG", "FETCH")).toBe(4 * connects);
+  expect(zona.seen("CONFIG", "FETCH")).toBe(5 * connects);
   expect(zona.seen("PAGECOUNT", "FETCH")).toBe(connects);
   // SIX chunks per connect since 12.1-08 (five since 13-12, four since
   // 12-03, three before) - and this one is a WRITE count, so no grep for
   // `2 *` would have found it. One SERIALNUMBER/FETCH, four CONFIG/FETCH,
   // one PAGECOUNT/FETCH, and every one of them is a read.
-  expect(await writes(page), "chunks, every one a read").toBe(6 * connects);
+  expect(await writes(page), "chunks, every one a read").toBe(7 * connects);
 }
 
 /**
@@ -774,7 +774,8 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await requests(page)).toBe(0);
     expect(await openCount(page, 0)).toBe(1);
 
-    // The snapshot's four reads (three until 12.1-08) and nothing else.
+    // The snapshot's five reads (four until 13-17, three until 12.1-08) and
+    // nothing else.
     await onlyReads(page, zona, 1);
 
     // THE READOUT IS THE SHIM'S OWN COUNT, AS AN EQUALITY. It used to be two
@@ -934,9 +935,9 @@ test.describe("the session with a granted ZONA on the cable", () => {
     expect(await openCount(page, 0)).toBe(oldOpensBefore);
     expect(await openCount(page, 1)).toBe(1);
 
-    // Two connects, two snapshots, TWELVE reads (ten before 12.1-08, eight
-    // before 13-12), zero writes: each snapshot is one SERIALNUMBER/FETCH,
-    // four CONFIG/FETCH and one PAGECOUNT/FETCH.
+    // Two connects, two snapshots, FOURTEEN reads (twelve before 13-17, ten
+    // before 12.1-08, eight before 13-12), zero writes: each snapshot is one
+    // SERIALNUMBER/FETCH, five CONFIG/FETCH and one PAGECOUNT/FETCH.
     await onlyReads(page, zona, 2);
     expect(consoleErrors).toEqual([]);
   });
@@ -1169,7 +1170,7 @@ test.describe("the shipped header with a granted ZONA on the cable", () => {
     await expect(page.getByTestId("intro")).toBeVisible();
     await stillConnected(/^\/$/);
     // SAFE-01 over the whole walk, before the reload resets the shim: the one
-    // snapshot's four reads at connect, and not one write on any route.
+    // snapshot's five reads at connect, and not one write on any route.
     await onlyReads(page, zona, 1);
 
     // THE THING THAT MUST NOT WORK. A reload is a fresh document: the port
@@ -1535,7 +1536,7 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
     expect(utterances(afterKnob.log["browse-live"])).toEqual([]);
 
     // Still connected, still nothing asked of the picker, nothing written:
-    // the snapshot's four reads and no write through two moments and a
+    // the snapshot's five reads and no write through two moments and a
     // knob.
     await expect(slot(page)).toHaveAttribute("data-slot", "S4");
     expect(await requests(page)).toBe(0);

@@ -251,10 +251,25 @@ export type Tuner = {
  * `install.svelte.ts`'s `#pageTimer` substituted `SYSTEM_DEFAULT_TIMER` beside
  * `#pageInit`; CLEAR's alone now, likewise). The keys are in write order
  * (sequence.ts SLOTS), though the writer owns that order and not this type.
+ *
+ * `systemUtility` IS THE FIFTH STRING (Phase 13, plan 13-17; 13-CONTEXT D-18
+ * and D-19), the system element's utility slot (255/4), on `system`'s terms
+ * once more: not metered, not moved by a knob, published beside the pair on
+ * every landing. A catalog entry - Lua or preset - has NO utility body of its
+ * own and publishes the EMPTY STRING here, exactly as every entry published
+ * `system` from 12-03 until the library existed; `install.svelte.ts`'s
+ * `#pageUtility` substitutes the firmware's own page-next
+ * (`SYSTEM_DEFAULT_UTILITY`) in ONE place before any write, so under a
+ * catalog configuration the module's utility button still turns the page. A
+ * Sandbox surface (`src/lib/sandbox/land.ts`) publishes its runtime's second
+ * slot here - the third producer of this shape - and the store cannot tell
+ * the two apart, which install.spec.ts asserts. The option below exists for
+ * `/dev/install/`'s fifth textarea, as `systemTimer` does for its fourth.
  */
 export type ConfigStrings = {
   readonly systemTimer: string;
   readonly system: string;
+  readonly systemUtility: string;
   readonly setup: string;
   readonly timer: string;
 };
@@ -315,6 +330,16 @@ export type TunerOptions = {
    * for `/dev/install/`'s fourth textarea (12.1-08).
    */
   systemTimer?: string;
+  /**
+   * THE UTILITY STRING THIS ENTRY WANTS (element 255, event 4), the fifth
+   * string (13-17), under `systemSetup`'s rules with one difference: NO
+   * catalog entry has one, so ABSENT means the empty string is published
+   * and the install store's `#pageUtility` substitutes the firmware's own
+   * page-next before any write. An explicit value wins, for `/dev/install/`'s
+   * fifth textarea. The Sandbox does not come through this option: its
+   * landing (`src/lib/sandbox/land.ts`) publishes the same five keys itself.
+   */
+  systemUtility?: string;
   /**
    * The forecast, or `undefined` the moment it is withdrawn or invalidated.
    * Optional, so every existing caller and every existing test is unchanged.
@@ -504,6 +529,10 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   const system = options.systemSetup ?? "";
   // The fourth string, on the same terms (12.1-07).
   const systemTimer = options.systemTimer ?? "";
+  // The fifth (13-17): no catalog entry has a utility body, so the empty
+  // string is published and the install store substitutes the firmware's
+  // page-next in one place - 12-03's placement, one slot over.
+  const systemUtility = options.systemUtility ?? "";
   // THE TOUCH LIBRARY, RESOLVED ONCE PER TUNER AND AHEAD OF THE FIRST
   // MEASUREMENT (12.1-08b). Both routes land it now - the Lua route since
   // 12-07 / 12.1-07, the preset route since 12.1-08b - so it is read here,
@@ -859,6 +888,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     land(measured.setup.used, measured.timer.used, {
       systemTimer: landedSystemTimer,
       system: landedSystem,
+      systemUtility,
       setup: result.setupLua,
       timer: result.timerLua,
     });
@@ -893,6 +923,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     land(setup, timer, {
       systemTimer: landedSystemTimer,
       system: landedSystem,
+      systemUtility,
       setup: lua.setup,
       timer: lua.timer,
     });

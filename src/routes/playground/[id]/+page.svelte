@@ -276,7 +276,13 @@
   /** The reason a disabled TRY ON DEVICE gives, or undefined when in budget. */
   let overBudgetReason: string | undefined = $state(undefined);
   let configStrings:
-    | { systemTimer: string; system: string; setup: string; timer: string }
+    | {
+        systemTimer: string;
+        system: string;
+        systemUtility: string;
+        setup: string;
+        timer: string;
+      }
     | undefined = $state(undefined);
   let shareStamp: string | undefined = $state(undefined);
   let saved = $state(false);
