@@ -595,7 +595,14 @@ radius gate, the e2e suite and the sweep where an entry moves.
 **Requirements**: IDENT-01, CAT-01, BUILD-06, BUILD-07, SAFE-01, SAFE-05, SAFE-09, TUNE-03, TUNE-05,
 CONN-08 (amended or qualified by name at the gate)
 **Depends on:** Phase 13 (gate landed, bench pending)
-**Plans:** 0 plans
+**Plans:** 8 plans in five waves
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 13.1 to break down)
+- [ ] 13.1-01: the intro fits the viewport; the gallery's Explore buttons as the PDF draws them (wave 1)
+- [ ] 13.1-02: the Target select switches on change - the destination review struck (wave 1)
+- [ ] 13.1-03: Sandbox elements resize by dragging their handles, each in its own colour, the fuller look (wave 1)
+- [ ] 13.1-04: Edit color opens inline below the swatch (wave 1)
+- [ ] 13.1-05: a persistent Clear in the header beside ZONA connected (wave 2)
+- [ ] 13.1-06: the install column gone, the bar's zone shared, Put back removed (wave 3)
+- [ ] 13.1-07: MIDI output as two typed fields, the meters hidden, the e2e re-aimed (wave 4)
+- [ ] 13.1-08: the gate - re-measured, the allowlist still empty, requirements amended by the user's word, the bench rows (checkpoint)
