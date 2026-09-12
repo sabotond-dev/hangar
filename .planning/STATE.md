@@ -365,6 +365,7 @@ Ad-hoc work outside the phase plan. Each row is a `.planning/quick/<id>-<slug>/`
 ## Accumulated Context
 
 ### Roadmap Evolution
+- Phase 13.1 inserted after Phase 13 (2026-09-12): Bench corrections four - nine interface changes from the fourth bench round (URGENT)
 - Phase 12.1 inserted after Phase 12 (2026-09-11): Gradient touch - the sensor is not under the LEDs; calibration probe, bilinear G(x,y,b) replacing Q's hit-test, every finger-drawing entry re-fitted; must land before 13-14 (URGENT)
 
 - Phase 12 added 2026-09-10: **Touch Framework** - the user second bench round (`11-bench-corrections/BENCH-2026-09-10.txt`, copied into the phase directory) found EUCLID, STEPS, LUMEN and MORPH unfixed on hardware after fixes the simulator measured as correct, and asked for a finger-to-LED interaction framework. The system element - three events, each 908, and system setup runs before touch setup per `grid_ui.c:986` - makes it a library rather than an idiom. Phase 11 closed the same day with its checkpoint answered by that bench round.

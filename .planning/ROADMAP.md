@@ -576,3 +576,26 @@ criteria are a checklist for a human, not assertions a test suite can make.
 
 ---
 *Roadmap created: 2026-09-02*
+
+### Phase 13.1: Bench corrections four (INSERTED)
+
+**Goal:** The fourth bench round (`BENCH-2026-09-12.txt`) - rows I, L, H and M pass on the
+user's ZONA; the interface differs from the PDF in nine places the user names. Each is a change to
+what Phase 13 built, not a new screen: the intro fits the viewport without scrolling; the gallery's
+Explore buttons match the PDF (grey, Grifter, arrow on the same row); Sandbox elements resize by
+dragging their handles and each carries its own colour and a fuller look; a persistent CLEAR control
+sits top right beside ZONA connected; a page switch from the Target select happens without the
+review (section 9's destination review struck by the user); the install column under the workspace
+surface goes and the context bar's right zone reads Target / Apply to ZONA / Store on ZONA; Edit
+color opens inline below the swatch, not as a popover; MIDI output is two typed fields, CC number
+and Channel, with the PDF's helper line; the budget meters are hidden (over-budget still refuses
+Apply and names the cause). Put back's removal is pending the user's confirmation. Every agent
+on Opus; the Bible stays the Bible; no rounded corners; every change re-proved by the three-layer
+radius gate, the e2e suite and the sweep where an entry moves.
+**Requirements**: IDENT-01, CAT-01, BUILD-06, BUILD-07, SAFE-01, SAFE-05, SAFE-09, TUNE-03, TUNE-05,
+CONN-08 (amended or qualified by name at the gate)
+**Depends on:** Phase 13 (gate landed, bench pending)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 13.1 to break down)
