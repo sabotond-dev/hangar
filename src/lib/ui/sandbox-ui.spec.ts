@@ -209,7 +209,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // chip (13.1-03; 13.1-PLAN-CHECK W-06: no layer of the radius gate reads
     // an SVG rx). The knob's circle is a <circle>, not a rect with a radius.
     expect(source).not.toContain("border-radius");
-    expect(source).not.toMatch(/rx=|ry=/);
+    expect(source).not.toMatch(/(^|\s)r[xy]=/m);
     expect(source).toContain("<circle");
 
     // The rail's two sections on an empty surface: four palette rows

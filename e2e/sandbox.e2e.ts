@@ -1,15 +1,20 @@
 // The Sandbox's interface, the browser half (plan 13-16): PDF page 3 at
 // /sandbox/ on the deployed bytes under wrangler dev, chromium only.
 //
-// THREE TITLES. The first builds a surface end to end with clicks and typed
+// FOUR TITLES. The first builds a surface end to end with clicks and typed
 // numbers - element first from the palette, area first with two clicks on
 // the plate, selection from the list, a refused width that keeps the last
 // valid value, a delete undone, the draft recovered after a reload and the
-// meter saying how much room is left. The second is the mode round trip:
+// meter saying how much room is left. The second (13.1-03, D-03) is the one
+// drag the plate has: a handle pulled to another cell resizes the element
+// through the editor, a handle pulled onto another element is refused with
+// section 16's line and changes nothing, a handle put back where it was
+// commits nothing, and one Undo takes the whole drag back. The third is the
+// mode round trip:
 // Edit -> Play -> Edit with the same region selected and the same undo
 // depth, the palette disabled with its reason and the handles gone in Play,
 // and a finger on the plate in Play reaching the preview without an error.
-// The third (13-17) is the whole loop on a fake ZONA: a two-element surface
+// The fourth (13-17) is the whole loop on a fake ZONA: a two-element surface
 // exported as a file through transfer.ts, re-imported on My configs, opened
 // onto a fresh surface, applied to the fake as five acknowledged writes in
 // SLOTS order - 255/4 carrying the runtime's second slot - and put back; the
@@ -17,9 +22,10 @@
 // module would answer the same: runbook row M is where that is asked.
 //
 // Every click here is Playwright's `click`, a pointer press and release at
-// one point; nothing drags. The static host's answer for the dynamic
-// segment is asserted too: /sandbox/<id>/ is not a file, the host says 404,
-// and the page comes up (src/routes/sandbox/[draftId]/+page.ts).
+// one point; only the drag title drags, and it drags a HANDLE - placement
+// never needs one (13-16's rule, kept by 13.1-03). The static host's answer
+// for the dynamic segment is asserted too: /sandbox/<id>/ is not a file, the
+// host says 404, and the page comes up (src/routes/sandbox/[draftId]/+page.ts).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -255,6 +261,134 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
 
     expect(consoleErrors, "no console error on the whole walk").toEqual([]);
+  });
+
+  test("a handle drag resizes an element through the editor, a refused drag leaves it as it was, and Undo takes the drag back", async ({
+    page,
+  }) => {
+    // 13.1-03 (13.1-CONTEXT D-03, bench line 3: "you should be able to
+    // resize each element by draggin its points"). Chromium only: a mouse
+    // drag; the phone project is not asked to drag, and 13-16's rule that
+    // no drag is required is what a phone relies on. The viewport is made
+    // taller than the harness's 720 for this title alone: at 720 the app
+    // frame's footer overlays the plate's bottom row (deferred-items A.1),
+    // and a pointerDOWN must land on a visible handle - the moves after it
+    // are captured by the plate wherever the pointer goes.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+    const width = page.getByTestId("field-w");
+    const height = page.getByTestId("field-h");
+    const status = page.getByTestId("surface-status");
+
+    // A fader at cell (1, 1), the default 2 x 6 - cols 1-2, rows 1-6 - and a
+    // button at (5, 1), 2 x 2 - cols 5-6, rows 1-2 - placed FIRST so the
+    // drag's entry is the last one and one Undo is the drag alone.
+    await page.getByTestId("palette-fader").click();
+    await clickCell(plate, 1, 1);
+    await page.getByTestId("palette-button").click();
+    await clickCell(plate, 5, 1);
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+    await page.getByTestId("element-row").first().click();
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+    await expect(width).toHaveValue("2");
+    await expect(height).toHaveValue("6");
+    await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+
+    // The whole plate in the viewport, and every box read after the scroll.
+    await plate.scrollIntoViewIfNeeded();
+    const box = await plate.boundingBox();
+    if (box === null) throw new Error("the plate has no box");
+    const pitch = box.width / 9;
+    const centreOf = async (handle: string) => {
+      const h = await page
+        .locator(`[data-testid="surface-handle"][data-handle="${handle}"]`)
+        .boundingBox();
+      if (h === null) throw new Error(`no ${handle} handle`);
+      return { x: h.x + h.width / 2, y: h.y + h.height / 2 };
+    };
+    const body = page
+      .getByTestId("surface-region")
+      .first()
+      .locator("rect.body");
+    const widthBefore = Number(await body.getAttribute("width"));
+    expect(widthBefore).toBeCloseTo(2 * (571 / 9), 3);
+
+    // THE DRAG: the south-east handle sits on the far corner (col 3, row 7
+    // in plate units); pulled in three steps to the centre of the cell one
+    // column right and two rows down of the far corner cell (2, 6) - that
+    // is cell (3, 8) - the fader becomes cols 1-3, rows 1-8: 3 x 8. The
+    // proposed bounds are visible while the pointer is down.
+    const se = await centreOf("se");
+    // The handle is 8 square with a 1px stroke: its centre is within a
+    // pixel of the corner.
+    expect(Math.abs(se.x - (box.x + 3 * pitch))).toBeLessThan(2);
+    expect(Math.abs(se.y - (box.y + 7 * pitch))).toBeLessThan(2);
+    const target = { x: box.x + 3.5 * pitch, y: box.y + 8.5 * pitch };
+    await page.mouse.move(se.x, se.y);
+    await page.mouse.down();
+    for (let step = 1; step <= 3; step += 1) {
+      await page.mouse.move(
+        se.x + ((target.x - se.x) * step) / 3,
+        se.y + ((target.y - se.y) * step) / 3,
+      );
+    }
+    await expect(page.getByTestId("surface-proposed")).toBeVisible();
+    await page.mouse.up();
+    await expect(width).toHaveValue("3");
+    await expect(height).toHaveValue("8");
+    await expect(page.getByTestId("inspector-units")).toHaveText("3 × 8 units");
+    expect(Number(await body.getAttribute("width"))).toBeGreaterThan(
+      widthBefore,
+    );
+    await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    expect(await page.getByTestId("surface-proposed").count()).toBe(0);
+
+    // THE REFUSED DRAG: the east handle (col 4, row 5) pulled onto the
+    // button's column - cols 1-5 would hold the button's cells (5, 1) and
+    // (5, 2) - is section 16's line, naming the button, and the fader is
+    // exactly as it was: no entry, the width still 3.
+    const e = await centreOf("e");
+    await page.mouse.move(e.x, e.y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 5.5 * pitch, box.y + 5.5 * pitch, {
+      steps: 3,
+    });
+    await page.mouse.up();
+    await expect(status).toContainText("overlaps");
+    await expect(status).toHaveText(
+      "This region overlaps Button 1. Choose another area or resize it.",
+    );
+    await expect(width).toHaveValue("3");
+    await expect(height).toHaveValue("8");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+
+    // A HANDLE PUT BACK where it was commits nothing: the north handle
+    // pressed and released inside its own cell is no entry.
+    const n = await centreOf("n");
+    await page.mouse.move(n.x, n.y);
+    await page.mouse.down();
+    await page.mouse.move(n.x + 3, n.y + 3);
+    await page.mouse.up();
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    await expect(width).toHaveValue("3");
+    // And the refusal has cleared with the next press on the plate.
+    await expect(status).not.toContainText("overlaps");
+
+    // ONE UNDO takes the whole drag back: 2 x 6 again, the button still
+    // there, the depth two.
+    await page.getByTestId("undo").click();
+    await expect(width).toHaveValue("2");
+    await expect(height).toHaveValue("6");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+    await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+
+    expect(consoleErrors, "no console error across the drags").toEqual([]);
+    await page.setViewportSize({ width: 1280, height: 720 });
   });
 
   test("Edit -> Play -> Edit with the selection and the undo depth intact, the palette disabled with its reason in Play and a finger reaching the preview", async ({

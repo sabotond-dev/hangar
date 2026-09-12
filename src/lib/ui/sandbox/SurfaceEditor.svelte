@@ -207,8 +207,10 @@
    * The last drag's refusal, shown in the status line until the next
    * pointer or key on the plate - or until the surface moves under it (an
    * Undo, a field, the list): the message names a box against THAT surface.
+   * Raw, so the surface it holds is the editor's own reference and the
+   * identity check in `status` is against the same object, not a proxy.
    */
-  let refused = $state<
+  let refused = $state.raw<
     { message: string; surface: EditorState["surface"] } | undefined
   >(undefined);
 
