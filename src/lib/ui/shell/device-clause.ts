@@ -49,7 +49,10 @@
  * the four clauses are pairwise distinct so the collapse cannot land quietly.
  *
  * THE FOUR ROWS THE SPEC HAS NO LINE FOR ARE THE SAFETY RAIL. `restored` and
- * `restored-unconfirmed` are PUT BACK's two outcomes, `cleared` is the
+ * `restored-unconfirmed` are the restore's two outcomes - putBack()'s, which
+ * since 13.1-06 has no control on the site (13.1-CONTEXT D-07) and is
+ * reachable from the /dev/install/ probe alone, so the bar reads those two
+ * clauses there and nowhere else - `cleared` is the
  * firmware default playing, `snapshot-failed` is the refusal to write over
  * something not yet copied. They are named here rather than folded into a
  * neighbour: after a clear neither "playing now" nor "restored" is true, and

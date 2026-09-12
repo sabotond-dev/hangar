@@ -195,8 +195,13 @@ export const SAVE_REFUSED = "Your browser refused to store the copy.";
 // section 9's and are VERBATIM (the first is page-target.ts's APPLY_LABEL);
 // the rest are HANGAR's, in D-05's register, ledgered under "From 13-17".
 
-/** Section 9's word for the store, verbatim: the same click as KEEP ON DEVICE, the same confirmation. */
-export const STORE_LABEL = "Store on ZONA";
+// STORE_LABEL (`Store on ZONA`, section 9's word, verbatim) IS RETIRED BY
+// NAME, 2026-09-12 (13.1-06, 13.1-CONTEXT D-06, D-11 a): SurfaceActions'
+// destination half - its one reader - moved whole into src/lib/ui/
+// DestinationZone.svelte, the one component both routes mount, and that
+// file reads install-copy.ts's KEEP_LABEL, the same three words, so the
+// button and the confirmation's affirmative read one constant. Nothing dead
+// is left exported (D-12).
 /**
  * The meter when a string is over 908 under three slots: which one, by how
  * much, and the way. What pushed a surface over is an ELEMENT - names are

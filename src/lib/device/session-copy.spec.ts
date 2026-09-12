@@ -13,6 +13,12 @@
 // or an import creeping into an import-free module is a red run naming the
 // thing rather than a surprise in front of a visitor.
 //
+// THE TWO SNAPSHOT LINES WERE REWORDED AT 13.1-06 (13.1-CONTEXT D-07: Put
+// back removed by the user's word). "so it can be put back" promised a
+// control that no longer exists; the copy is still kept and the lines say
+// so. They are in 13.1-COPY-NEW.md, this phase's ledger, which test 5 reads
+// as its FOURTH document beside the Bible, the batch and D-23.
+//
 // Two habits from the house, both load-bearing here:
 //
 // - NON-VACUITY FIRST. Every scan proves it read something before it asserts
@@ -86,7 +92,7 @@ const RETIRED_LABELS = [
 const read = (relative: string) =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
 
-/** The three documents that author the words (install-copy.spec.ts reads the same three). */
+/** The four documents that author the words (install-copy.spec.ts reads the same four). */
 const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
   [
     {
@@ -103,6 +109,11 @@ const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
       path: "../../../.planning/phases/13-gui-overhaul/13-CONTEXT.md",
       heading: "## D-23 [user] The copy batch approved as proposed",
       atLeast: 20_000,
+    },
+    {
+      path: "../../../.planning/phases/13.1-bench-corrections-four/13.1-COPY-NEW.md",
+      heading: "### Retired and rewritten by 13.1-06 (D-06, D-07)",
+      atLeast: 10_000,
     },
   ];
 /** Assembled: the scheme of the page the managed-computer sentence would send people to. */
@@ -350,7 +361,7 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
         `${DOCUMENTS[i].path} is not the document it claims to be`,
       ).toContain(DOCUMENTS[i].heading);
     });
-    const [bible, batch, context] = docs;
+    const [bible, batch, context, ledger] = docs;
     const d23 = context.slice(context.indexOf(DOCUMENTS[2].heading));
     expect(d23, "D-23 records the answer").toContain('> *"approve"*');
 
@@ -408,12 +419,28 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     ).toBeGreaterThan(40);
     const misses = strings
       .filter(
-        ({ text }) => !batch.includes(templated(text)) && !bible.includes(text),
+        ({ text }) =>
+          !batch.includes(templated(text)) &&
+          !bible.includes(text) &&
+          !ledger.includes(text),
       )
       .map(({ name, text }) => `${name}: ${templated(text)}`);
-    expect(misses, "strings neither the Bible nor the batch carries").toEqual(
-      [],
-    );
+    expect(
+      misses,
+      "strings neither the Bible, the batch nor the 13.1 ledger carries",
+    ).toEqual([]);
+    // The ledger is not a blanket: the strings only it carries are the two
+    // snapshot lines 13.1-06 reworded, and no other.
+    expect(
+      strings
+        .filter(
+          ({ text }) =>
+            !batch.includes(templated(text)) && !bible.includes(text),
+        )
+        .map(({ name }) => name)
+        .sort(),
+      "the strings only the 13.1 ledger carries",
+    ).toEqual(["SNAPSHOT_DURABLE_LINE", "SNAPSHOT_SESSION_LINE"]);
 
     // THE FOURTH FACT, SAFE-01: nothing is written without a click. The
     // sentence changed register at 13-18 (batch row I.2.9) and the fact did
@@ -447,11 +474,14 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     }
 
     // THE SECOND FACT, the snapshot, in the panel: both forms say what is
-    // kept (the page, five scripts since 13-17), where, and that it can be
-    // put back; the session form says until when.
+    // kept (the page, five scripts since 13-17), where, and that it is kept
+    // on record; the session form says until when. Since 13.1-06 neither
+    // promises a put-back (D-07: the control is gone; the copy is not).
+    const PUT_BACK = ["put", " back"].join("");
     for (const line of [SNAPSHOT_DURABLE_LINE, SNAPSHOT_SESSION_LINE]) {
       expect(line).toContain("A copy of the page your ZONA was on");
-      expect(line).toContain("put back");
+      expect(line).toContain("kept on record");
+      expect(line.includes(PUT_BACK), "the line offers a put-back").toBe(false);
     }
     expect(SNAPSHOT_DURABLE_LINE).toContain("kept in this browser");
     expect(SNAPSHOT_SESSION_LINE).toContain("until this tab closes");

@@ -355,16 +355,20 @@ export const WRITE_LOCK_REASON = "Not while HANGAR is writing to your ZONA.";
  * The S4 disclosure's snapshot line when the copy is in localStorage (D-04,
  * SAFE-04) - THE SECOND FACT, the snapshot, in the panel (I.2.15). "The page"
  * because the copy holds five scripts since 13-17 and is per page since D-06.
+ * Reworded at 13.1-06 (13.1-CONTEXT D-07; ledgered in 13.1-COPY-NEW.md):
+ * "so it can be put back even from a new tab" promised a control the user
+ * removed; the copy is still kept, and the line says so and no more.
  */
 export const SNAPSHOT_DURABLE_LINE =
-  "A copy of the page your ZONA was on when you connected is kept in this browser, so it can be put back even from a new tab.";
+  "A copy of the page your ZONA was on when you connected is kept in this browser, and kept on record even from a new tab.";
 
 /**
  * The same line when the module's serial went unanswered and the copy is
- * session-only (07-CONTEXT D-04 amended; I.2.16).
+ * session-only (07-CONTEXT D-04 amended; I.2.16); the tab-only twin,
+ * reworded the same way at 13.1-06.
  */
 export const SNAPSHOT_SESSION_LINE =
-  "A copy of the page your ZONA was on when you connected is held until this tab closes, so it can be put back while you’re here.";
+  "A copy of the page your ZONA was on when you connected is held until this tab closes, and kept on record while you’re here.";
 
 /** S5 with nothing in flight (I.2.18); the caption above it is section 9's. */
 export const UNPLUGGED_WHILE_CONNECTED =

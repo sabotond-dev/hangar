@@ -75,6 +75,21 @@
 //     the new page when the module moves). What this plan adds is that PUT
 //     BACK NAMES the page it holds before the click (putBackPageLine).
 //
+// PUT BACK HAS NO CONTROL ON THE SITE SINCE 13.1-06 (13.1-CONTEXT D-07, the
+// user's "remove"; ledgered in 13.1-COPY-NEW.md). Everywhere below, "PUT
+// BACK" names THE RESTORE - putBack(), the snapshot's five strings written
+// back to the page they came from - and since 13.1-06 that action's ONE
+// CALLER is the /dev/install/ probe's own button; PutBack.svelte is deleted,
+// the workspace and the Sandbox render no restore, and the way back after
+// an Apply is Grid Editor or the header's Clear to the firmware default. No
+// code here moved: the snapshot at connect before any write (SAFE-03), the
+// durable record (SAFE-04), the re-snapshot on a page change, putBack() with
+// its `restoring` / `restored` / `restored-unconfirmed` phases, putBackState()
+// and the Z-04 store-after-keep rule all stay, proved on the fake by
+// install.spec.ts and on the probe, so the machinery cannot rot. The lines
+// that named the page under the control (page-target.ts's putBackPageLine
+// pair) retired with it.
+//
 // THE DISCARD (the page-discard class, revertToStored below) is the firmware-native
 // revert D-06's last clause asked to be researched. It is written, it is
 // UNPROVEN on hardware, and it is reachable from the /dev/install/ probe only
@@ -265,8 +280,9 @@ type DecodedClass = import("$lib/protocol").DecodedClass;
  * existing phase describes truthfully. `settled` would claim THIS
  * configuration is on the pad; `restored` would claim the visitor's own is
  * back, and that one is not merely inaccurate but unsafe, because a panel
- * reading RESTORED tells a visitor not to click PUT BACK - the one control
- * that actually would restore them.
+ * reading RESTORED tells a visitor their own page is back when it is not
+ * (and, until 13.1-06, not to click PUT BACK - the one control that
+ * actually would have restored them).
  */
 export type InstallPhase =
   | "idle"
@@ -1065,7 +1081,9 @@ export class InstallStore {
   }
 
   /**
-   * Whether PUT BACK renders, and how (I0, I8, Z-12). Decided on `snapshot`
+   * Whether the restore is offered, and how (I0, I8, Z-12) - read by the
+   * /dev/install/ probe alone since 13.1-06 (its readout and its button;
+   * no visitor-facing control renders it, D-07). Decided on `snapshot`
    * first: `enabled` ONLY when the session is connected AND a snapshot is in
    * hand - including over budget and every failure state with a snapshot;
    * `needs-zona` when a snapshot or a remembered module exists and the session
@@ -1363,7 +1381,9 @@ export class InstallStore {
   }
 
   /**
-   * PUT BACK: the snapshot's strings, the same way, to the page they were
+   * THE RESTORE - putBack(), the probe's since 13.1-06 (D-07: its ONE caller
+   * is the /dev/install/ probe's button; install.spec.ts drives it on the
+   * fake): the snapshot's strings, the same way, to the page they were
    * taken from. After a keep this session the RAM leg is followed by a store
    * leg and the same proof (Z-04, see the header), with no confirmation: the
    * phase stays `writing` between the two, `leg` moves to `store`, and the

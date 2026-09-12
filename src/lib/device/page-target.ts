@@ -79,8 +79,10 @@
 // the one writer is sequence.ts's writeAll and this plan did not move it.
 // Not a snapshot: snapshot.ts has been keyed by module AND page since Phase
 // 7 (its header's rule 2), so the per-page snapshot D-06 asks for already
-// exists; what this plan adds is that PUT BACK NAMES the page in hand before
-// it acts (install-copy.ts, putBackPageLine).
+// exists; the snapshot is per page, and since 13.1-06 the restore that
+// writes it back is the /dev/install/ probe's alone (13.1-CONTEXT D-07) -
+// the lines that named the page under the Put back control retired with it
+// (the words paragraph below).
 //
 // ZERO STATIC SPECIFIERS, and the reason is the chunk guard. This module is
 // reachable from the first paint of `/playground/{id}/` through the install
@@ -397,23 +399,20 @@ export const unverifiedLine = (
     ? `Your ZONA hasn’t confirmed ${pageName(requested)}. Nothing was applied.`
     : `Your ZONA hasn’t confirmed ${pageName(requested)}. It last reported ${pageName(lastReported)}, and nothing was applied.`;
 
-/**
- * PUT BACK NAMES ITS PAGE BEFORE IT ACTS (D-06's fourth clause; HANGAR's
- * line, ledgered). The line under the control while a snapshot is in hand,
- * in place of Phase 10's page-less line - the same fact, with the page named, because a
- * visitor who switched pages after a try-on must not be surprised by which
- * page comes back. The snapshot in hand is the ACTIVE page's since the store
- * re-snapshots on a page change, and the line says which that is rather
- * than assuming the visitor knows. Two forms, as the Phase 10 pair has two:
- * the second after a store this session, when the put-back stores too. The
- * page-less Phase 10 pair retired with 13-18 (D-23, the batch's Put back row); these
- * two are the control's only lines with a session.
+/*
+ * PUT BACK'S TWO PAGE LINES ARE RETIRED BY NAME, 2026-09-12 (13.1-06,
+ * 13.1-CONTEXT D-07; ledgered in 13.1-COPY-NEW.md). putBackPageLine (`Puts
+ * Page 2 back to what it was playing when you connected.`) and
+ * putBackPageLineAfterKeep (`Puts Page 2 back to what it was playing when
+ * you connected, and stores it so it stays.`) were the line under the Put
+ * back control while a snapshot was in hand - D-06's fourth clause, the page
+ * named before the click so a visitor who switched pages after an apply was
+ * not surprised by which page came back. The user removed the control at
+ * the fourth bench ("we dont even need the Put back function"; "remove"), so
+ * the lines have no reader: PutBack.svelte is deleted and the restore is
+ * the /dev/install/ probe's, whose readout names the page from the store.
+ * The snapshot is still per page and still re-taken on a page change.
  */
-export const putBackPageLine = (page: number): string =>
-  `Puts ${pageName(page)} back to what it was playing when you connected.`;
-
-export const putBackPageLineAfterKeep = (page: number): string =>
-  `Puts ${pageName(page)} back to what it was playing when you connected, and stores it so it stays.`;
 
 /**
  * The select's label, the PDF's word. install-copy.ts carries the same

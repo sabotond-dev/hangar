@@ -29,6 +29,23 @@
 // E.11 row (the search field's own Clear), which is a substring accident and
 // not a review: the review is 13.1-COPY-NEW.md's row for this label.
 //
+// PUT BACK IS RETIRED BY THE USER'S WORD (13.1-06; 13.1-CONTEXT D-06, D-07:
+// "we dont even need the Put back function", "remove"). PUT_BACK_LABEL,
+// puttingBackLabel and STEP_OR_PUT_BACK are the value of no export;
+// WRITE_CLICKS is four (Apply, Store, Clear, Target); every sentence that
+// offered Put back as the way back names the header's Clear instead
+// (stepOrClear, CONFIRM_WAY_BACK, lostBlock's third step, the after-partial
+// reason), and no export or builder sample says "put back" except the two
+// the /dev/install/ probe still reaches - restoredCaption and
+// RESTORED_UNCONFIRMED_TITLE, the machinery's own words. The six success
+// bodies InstallState.svelte alone read retired with that file (W-10:
+// snapshottingBody, identifiedBody, settledBody, keptBody, restoredBody,
+// KEPT_PROOF_LINE, clearedBody, and RESTORED_STORED_LINE beside them);
+// STILL_WRITING_LINE stays, homed in DestinationZone.svelte (W-11). Every
+// new or rewritten string is in 13.1-COPY-NEW.md, this phase's ledger, which
+// test 2 reads as the FOURTH document: a string neither the Bible, the
+// batch nor the ledger carries is red by name.
+//
 // THE HONESTY CAPS ARE RETIRED BY NAME (test 3). HONESTY_CAP, PUT_BACK_CAP,
 // KEEP_CAP and CLEAR_CAP were measured maximum lengths per string - lines x
 // the 43 characters plan 10-01 measured as a Body line box's minimum
@@ -59,19 +76,20 @@ import * as copy from "./install-copy";
 import {
   CLEAR_LABEL,
   CLEAR_REASONS,
+  CONFIRM_WAY_BACK,
   HONESTY_NO_SESSION,
+  HONESTY_SNAPSHOTTING,
   IDENTIFIED_CAPTION,
   KEEP_LABEL,
   KEEP_REASONS,
   LIVE_STILL_WRITING,
-  PUT_BACK_LABEL,
-  PUT_BACK_NEEDS_ZONA,
+  NEEDS_ZONA,
+  STILL_WRITING_LINE,
   TARGET_CLICK,
   TRY_ON_LABEL,
   WRITE_CLICKS,
   announceTitle,
   clearLine,
-  clearedBody,
   clearedCaption,
   clearingLabel,
   confirmRig,
@@ -88,9 +106,11 @@ import {
   nothingLandedBlock,
   pageName,
   partialBlock,
+  restoredCaption,
   restoredUnconfirmedBlock,
   settledCaption,
   snapshotFailedBlock,
+  stepOrClear,
   unconfirmedBlock,
   type ClearReason,
   type FailedWords,
@@ -107,10 +127,12 @@ const read = (relative: string) =>
 const installCopySource = () => read("./install-copy.ts");
 
 /**
- * The three documents that author the words, read from disk: src/lib/device/
+ * The four documents that author the words, read from disk: src/lib/device/
  * is three levels below the root. Each is checked for length and for a
  * heading before it is searched, because a containment check over a document
- * that failed to load is a gate that passes everything.
+ * that failed to load is a gate that passes everything. The fourth is Phase
+ * 13.1's ledger (13.1-CONTEXT D-12): every string this phase writes is in
+ * D-05's register and in that file, for the gate's batch.
  */
 const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
   [
@@ -128,6 +150,11 @@ const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
       path: "../../../.planning/phases/13-gui-overhaul/13-CONTEXT.md",
       heading: "## D-23 [user] The copy batch approved as proposed",
       atLeast: 20_000,
+    },
+    {
+      path: "../../../.planning/phases/13.1-bench-corrections-four/13.1-COPY-NEW.md",
+      heading: "### Retired and rewritten by 13.1-06 (D-06, D-07)",
+      atLeast: 10_000,
     },
   ];
 
@@ -177,8 +204,27 @@ const RETIRED_REVIEW_LABELS = ["SWITCH_PAGE", "KEEP_PAGE"].map(
 );
 /** Assembled: section 9's reset label, retired by 13.1-05 under D-04 - the value of no export, named in the header. */
 const RETIRED_RESET_LABEL = ["Reset active", "device page"].join(" ");
+/** Assembled: Put back's three names, retired by 13.1-06 under D-07 - not exported, named in the header. */
+const RETIRED_PUT_BACK = [
+  ["PUT_BACK", "_LABEL"].join(""),
+  ["putting", "BackLabel"].join(""),
+  ["STEP_OR", "_PUT_BACK"].join(""),
+  ["PUT_BACK", "_NEEDS_ZONA"].join(""),
+];
+/** Assembled: the install block's success bodies, InstallState.svelte's alone, retired with it by 13.1-06 (W-10). */
+const RETIRED_BODIES = [
+  ["snapshotting", "Body"].join(""),
+  ["identified", "Body"].join(""),
+  ["settled", "Body"].join(""),
+  ["kept", "Body"].join(""),
+  ["restored", "Body"].join(""),
+  ["cleared", "Body"].join(""),
+  ["KEPT_PROOF", "_LINE"].join(""),
+  ["RESTORED_STORED", "_LINE"].join(""),
+];
+/** Assembled: the retired control's verb, which no visitor-facing string may carry (the probe's two excepted by name). */
+const PUT_BACK_WORD = ["put", " back"].join("");
 
-const FW = { major: 1, minor: 5, patch: 5 };
 /** The catalog's title-case name (D-14 Q11b), as the batch's samples read. */
 const NAME = "Arc";
 /** The wire page every sample is built on: 1, which the visitor reads as Page 2 - the batch's own sample. */
@@ -195,19 +241,13 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   pageName: [PAGE],
   writingLabel: [PAGE],
   keepingLabel: [PAGE],
-  puttingBackLabel: [PAGE],
   clearingLabel: [PAGE],
   honestyReady: [PAGE],
-  snapshottingBody: [PAGE],
-  identifiedBody: [FW, PAGE],
   settledCaption: [PAGE],
-  settledBody: [NAME, PAGE],
   restoredCaption: [PAGE],
-  restoredBody: [PAGE],
   keptCaption: [PAGE],
-  keptBody: [NAME, PAGE],
   clearedCaption: [PAGE],
-  clearedBody: [PAGE],
+  stepOrClear: [PAGE],
   keptMismatchBlock: [PAGE],
   unconfirmedBlock: [NAME, PAGE],
   restoredUnconfirmedBlock: [PAGE],
@@ -423,7 +463,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         `${DOCUMENTS[i].path} is not the document it claims to be`,
       ).toContain(DOCUMENTS[i].heading);
     });
-    const [bible, batch, context] = docs;
+    const [bible, batch, context, ledger] = docs;
     // D-23 is the answer, and it is the one word the plan asked for.
     const d23 = context.slice(context.indexOf(DOCUMENTS[2].heading));
     expect(d23, "D-23 records the answer").toContain('> *"approve"*');
@@ -490,9 +530,12 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       expect(bible, `the Bible gives ${line}`).toContain(line);
     }
 
-    // EVERY OTHER STRING IS IN THE BATCH, as proposed and as approved. The
-    // formatter moduleList is grammar, not copy, and is excused by name; the
-    // page name is a two-word form the batch writes in every row.
+    // EVERY OTHER STRING IS IN THE BATCH, as proposed and as approved - or,
+    // since 13.1-06, in Phase 13.1's ledger, where every string this phase
+    // rewrote under D-07 is written verbatim with the batch row it
+    // supersedes. The formatter moduleList is grammar, not copy, and is
+    // excused by name; the page name is a two-word form the batch writes in
+    // every row.
     const excused = new Set(["moduleList", "pageName", "announceTitle"]);
     const strings = everyString().filter(
       ({ name }) => !excused.has(name.split(/[.[(]/)[0]),
@@ -503,11 +546,47 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     ).toBeGreaterThan(70);
     const misses = strings
       .filter(
-        ({ text }) => !batch.includes(templated(text)) && !bible.includes(text),
+        ({ text }) =>
+          !batch.includes(templated(text)) &&
+          !bible.includes(text) &&
+          !ledger.includes(text),
       )
       .map(({ name, text }) => `${name}: ${templated(text)}`);
-    expect(misses, "strings neither the Bible nor the batch carries").toEqual(
-      [],
+    expect(
+      misses,
+      "strings neither the Bible, the batch nor the 13.1 ledger carries",
+    ).toEqual([]);
+    // And the ledger is not a blanket: the strings it carries are exactly
+    // the ones 13.1-06 rewrote, each with its old form struck beside it.
+    const ledgered = strings.filter(
+      ({ text }) => !batch.includes(templated(text)) && !bible.includes(text),
+    );
+    expect(
+      ledgered.map(({ name }) => name).sort(),
+      "the strings only the 13.1 ledger carries are the D-07 rewrites and no other",
+    ).toEqual(
+      [
+        "HONESTY_SNAPSHOTTING",
+        "restoredCaption",
+        "stepOrClear",
+        "keptMismatchBlock.steps[1]",
+        "unconfirmedBlock.steps[1]",
+        "restoredUnconfirmedBlock.steps[0]",
+        "nothingLandedBlock.detail",
+        "nothingLandedBlock(put-back).steps[0]",
+        "partialBlock.steps[1]",
+        "partialBlock(utility only).steps[1]",
+        "partialBlock(page init only).steps[1]",
+        "partialBlock(system timer only).steps[1]",
+        "lostBlock.steps[2]",
+        "lostBlock(store leg).steps[2]",
+        "snapshotFailedBlock.title",
+        "CONFIRM_WAY_BACK",
+        "KEEP_REASONS.after-partial",
+      ].sort(),
+    );
+    expect(ledger).toContain(
+      "~~`Or click Put back to restore what was there when you connected`~~",
     );
 
     // The two-form builders' other branches were walked too, so both forms
@@ -558,13 +637,10 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         `Click ${TRY_ON_LABEL} to send all five again`,
       );
     }
-    // THE FIFTH FACT, in the confirmation and the two snapshot bodies: a
-    // store carries the page's own three scripts beside the touch pair.
-    for (const name of [
-      "confirmReplaces",
-      "snapshottingBody",
-      "identifiedBody",
-    ]) {
+    // THE FIFTH FACT, in the confirmation: a store carries the page's own
+    // three scripts beside the touch pair. (The two snapshot bodies that
+    // carried it too retired with InstallState.svelte at 13.1-06.)
+    for (const name of ["confirmReplaces"]) {
       expect(
         produced.get(name),
         `${name} names the page's three scripts`,
@@ -573,6 +649,82 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         "Setup and Timer",
       );
     }
+
+    // PUT BACK IS GONE BY THE USER'S WORD (13.1-06, D-07). The three names
+    // and the eight bodies are exported by nothing and retired in the header
+    // by name with the date; STILL_WRITING_LINE is exported (its home is the
+    // zone, W-11); no export or builder sample says the retired control's
+    // verb except the two phase captions the probe still reaches; and every
+    // sentence that offered a way back names the header's Clear.
+    for (const retired of [...RETIRED_PUT_BACK, ...RETIRED_BODIES]) {
+      expect(
+        Object.keys(copy).includes(retired),
+        `${retired} is still exported`,
+      ).toBe(false);
+      expect(
+        installCopySource().includes(retired),
+        `${retired} is retired without being named`,
+      ).toBe(true);
+    }
+    expect(installCopySource()).toContain(
+      "PUT BACK'S STRINGS ARE RETIRED BY NAME, 2026-09-12",
+    );
+    expect(installCopySource()).toContain(
+      "THE INSTALL BLOCK'S SIX SUCCESS BODIES ARE RETIRED BY NAME, 2026-09-12",
+    );
+    expect(STILL_WRITING_LINE, "the still-writing line keeps its screen").toBe(
+      "Still writing. Your ZONA is taking longer than usual.",
+    );
+    const probes = new Set([
+      "restoredCaption",
+      "restoredUnconfirmedBlock.title",
+    ]);
+    const saysPutBack = everyString()
+      .filter(({ text }) => text.toLowerCase().includes(PUT_BACK_WORD))
+      .map(({ name }) => name);
+    expect(
+      saysPutBack.sort(),
+      "a visitor-facing string names the retired control's verb - only the probe's two phase captions may",
+    ).toEqual([...probes].sort());
+    expect(restoredCaption(PAGE)).toBe("Page 2 put back");
+    expect(HONESTY_SNAPSHOTTING).toBe("Reading what your ZONA holds first.");
+    expect(stepOrClear(PAGE)).toBe(
+      `Or click ${CLEAR_LABEL} to return Page 2 to its firmware default`,
+    );
+    for (const [name, step] of [
+      ["keptMismatchBlock", keptMismatchBlock(PAGE).steps[1]],
+      ["unconfirmedBlock", unconfirmedBlock(NAME, PAGE).steps[1]],
+      [
+        "partialBlock",
+        partialBlock(
+          "The system timer, the page init, the utility script and the Timer",
+          "the Setup",
+          PAGE,
+        ).steps[1],
+      ],
+    ] as const) {
+      expect(step, `${name}'s way back is the shared step`).toBe(
+        stepOrClear(PAGE),
+      );
+    }
+    expect(lostBlock(false, HEADER_LABEL, PAGE).steps[2]).toBe(
+      `Then click ${CLEAR_LABEL} if you want the firmware default back`,
+    );
+    expect(CONFIRM_WAY_BACK).toBe(
+      `${CLEAR_LABEL} still returns the page to its firmware default.`,
+    );
+    expect(KEEP_REASONS["after-partial"]).toBe(
+      `Not after a partial apply. ${TRY_ON_LABEL} again, or click ${CLEAR_LABEL}.`,
+    );
+    expect(snapshotFailedBlock(PAGE).title).toBe("Nothing copied yet");
+    // The two probe-only steps name the probe's action, not a click on a
+    // control that does not exist.
+    expect(restoredUnconfirmedBlock(PAGE).steps).toEqual([
+      "Send the restore again",
+    ]);
+    expect(nothingLandedBlock("put-back", PAGE).steps[0]).toBe(
+      "Send the restore again",
+    );
   });
 
   it("the honesty caps are retired by name, and every rule that travelled with them and stayed still holds", () => {
@@ -672,10 +824,14 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       ["clearLine", clearLine(PAGE)],
       ...(Object.entries(CLEAR_REASONS) as [string, string][]),
       ["clearedCaption", clearedCaption(PAGE)],
-      ["clearedBody", clearedBody(PAGE)],
       ["liveCleared", liveCleared(PAGE)],
+      // 13.1-06: the sentences that name Clear as the way back.
+      ["stepOrClear", stepOrClear(PAGE)],
+      ["CONFIRM_WAY_BACK", CONFIRM_WAY_BACK],
+      ["lostBlock.steps[2]", lostBlock(false, HEADER_LABEL, PAGE).steps[2]],
+      ["KEEP_REASONS.after-partial", KEEP_REASONS["after-partial"]],
     ];
-    expect(clearStrings.length, "the scan has strings to scan").toBe(9);
+    expect(clearStrings.length, "the scan has strings to scan").toBe(12);
     for (const [name, text] of clearStrings) {
       for (const stem of STEMS) {
         expect(
@@ -685,10 +841,11 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       }
     }
     // And the reset's own strings say what the control does: the firmware
-    // default, by name, in the line, the caption, the body and the utterance.
+    // default, by name, in the line, the caption, the utterance and the four
+    // way-back sentences.
     for (const [name, text] of clearStrings
       .slice(2, 3)
-      .concat(clearStrings.slice(6))) {
+      .concat(clearStrings.slice(6, 11))) {
       expect(text, `${name} names the firmware default`).toMatch(
         /firmware(’s own)? default/,
       );
@@ -709,7 +866,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         )
         .map(([name, build]) => [name, build(PAGE)] as [string, string]),
     ];
-    expect(labels.length, "five constants and four progress labels").toBe(9);
+    expect(labels.length, "four constants and three progress labels").toBe(7);
     for (const [name, label] of labels) {
       expect(label, `${name} shouts`).not.toBe(label.toUpperCase());
       expect(label[0], `${name} is sentence case`).toBe(label[0].toUpperCase());
@@ -728,15 +885,15 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     // the twin is pinned by reading the other module, as the three pageName
     // twins are - and the review's two labels are gone from the exports and
     // retired in the header by name, with the date and the decision.
+    // FOUR SINCE 13.1-06: Put back removed by the user's word (D-07).
     expect([...WRITE_CLICKS], "a write click is not a control label").toEqual([
       TRY_ON_LABEL,
-      PUT_BACK_LABEL,
       KEEP_LABEL,
       CLEAR_LABEL,
       TARGET_CLICK,
     ]);
-    expect(WRITE_CLICKS.length, "five write clicks").toBe(5);
-    expect(new Set(WRITE_CLICKS).size, "five distinct").toBe(5);
+    expect(WRITE_CLICKS.length, "four write clicks").toBe(4);
+    expect(new Set(WRITE_CLICKS).size, "four distinct").toBe(4);
     expect(TARGET_CLICK).toBe("Target");
     expect(TARGET_CLICK, "the twin of page-target.ts's TARGET_LABEL").toBe(
       TARGET_LABEL,
@@ -755,14 +912,17 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "THE REVIEW'S TWO LABELS ARE RETIRED BY NAME, 2026-09-12",
     );
 
-    // NO STRING NAMES A CONTROL THAT IS NOT ON THE SCREEN. The reset's body
-    // names Put back and nothing else among the write clicks - the machine's
-    // half, that Put back is ENABLED in `cleared`, is asserted in
-    // install.spec.ts's phase table.
+    // NO STRING NAMES A CONTROL THAT IS NOT ON THE SCREEN (13.1-06): the
+    // way back every step offers is the header's Clear and nothing retired -
+    // held in test 2's D-07 block by value, and here by the write clicks.
     expect(
-      WRITE_CLICKS.filter((label) => clearedBody(PAGE).includes(label)),
-      "the reset body names a control other than Put back, or none at all",
-    ).toEqual([PUT_BACK_LABEL]);
+      WRITE_CLICKS.filter((label) => stepOrClear(PAGE).includes(label)),
+      "the shared way-back step names a control other than Clear",
+    ).toEqual([CLEAR_LABEL]);
+    expect(
+      WRITE_CLICKS.filter((label) => CONFIRM_WAY_BACK.includes(label)),
+      "the confirmation's way back names a control other than Clear",
+    ).toEqual([CLEAR_LABEL]);
   });
 
   it("obeys the register mechanically, over every export and every builder's sample: the punctuation, the case, the engine, the paraphrase", () => {
@@ -853,15 +1013,13 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     }
     expect(named, "the steps do name controls").toBeGreaterThanOrEqual(12);
     // And every write click that prose names appears with its own case: a
-    // label never appears re-cased inside a sentence. `Put back` is excused:
-    // it was chosen BECAUSE it is the register's own verb ("can be put back",
-    // "nothing to put back"), and the verb in prose is not the control.
-    // `Clear` is excused on the same ground since 13.1-05 (D-04): the user's
-    // word is the register's own verb too, and settledBody's "changing page
-    // on your ZONA clears it" (D-23) is the wire's fact, not the control.
+    // label never appears re-cased inside a sentence. Since 13.1-06 NOTHING
+    // is excused: `Put back` (excused as the register's own verb) is retired
+    // with its control, and `Clear`'s excuse (settledBody's "clears it", the
+    // wire's verb) went with settledBody - every "clear" left in the module
+    // is the control, named as the control reads.
     for (const { name, text } of strings) {
       for (const label of WRITE_CLICKS) {
-        if (label === PUT_BACK_LABEL || label === CLEAR_LABEL) continue;
         if (text.toLowerCase().includes(label.toLowerCase())) {
           expect(text, `${name} re-cases ${label}`).toContain(label);
         }
@@ -917,13 +1075,13 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(new Set(Object.values(CLEAR_REASONS)).size, "three distinct").toBe(
       3,
     );
-    expect(CLEAR_REASONS["no-session"], "Put back's, reused").toBe(
-      PUT_BACK_NEEDS_ZONA,
+    expect(CLEAR_REASONS["no-session"], "the no-session sentence, reused").toBe(
+      NEEDS_ZONA,
     );
     expect(CLEAR_REASONS.incapable, "Store on ZONA's, reused").toBe(
       KEEP_REASONS.incapable,
     );
-    const retyped = strip(installCopySource()).split(PUT_BACK_NEEDS_ZONA);
+    const retyped = strip(installCopySource()).split(NEEDS_ZONA);
     expect(
       retyped.length - 1,
       "the no-session sentence is written twice - reference it, do not retype it",
@@ -1022,9 +1180,10 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(nothingLandedBlock("try", PAGE).steps[0]).toBe(
       `Click ${TRY_ON_LABEL} to send it again`,
     );
-    expect(nothingLandedBlock("put-back", PAGE).steps[0]).toBe(
-      `Click ${PUT_BACK_LABEL} to send it again`,
-    );
+    expect(
+      nothingLandedBlock("put-back", PAGE).steps[0],
+      "the probe's form names the probe's action (13.1-06)",
+    ).toBe("Send the restore again");
     expect(nothingLandedBlock("try", PAGE).detail).not.toBe(
       nothingLandedBlock("put-back", PAGE).detail,
     );

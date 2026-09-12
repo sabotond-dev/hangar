@@ -52,12 +52,15 @@
 //  1. RAM against flash - `Apply to ZONA` writes memory and a power cycle
 //     undoes it; `Store on ZONA` writes flash and survives one. honestyReady,
 //     settledCaption, settledBody, keepLineEnabled, keptBody.
-//  2. The snapshot - a copy of the page is taken before anything is written
-//     and `Put back` restores it. snapshottingBody, identifiedBody,
-//     restoredCaption, restoredBody, liveSnapshotSaved.
+//  2. The snapshot - a copy of the page is taken before anything is written.
+//     HONESTY_SNAPSHOTTING, SNAPSHOTTING_CAPTION, liveSnapshotSaved,
+//     snapshotFailedBlock; and, for the probe alone since 13.1-06,
+//     restoredCaption and liveRestored (the restore has no control on the
+//     site - see the retirement below).
 //  3. The firmware default - `Clear` (the header's control since 13.1-05)
-//     writes the module's own default and the browser draft survives.
-//     clearLine, clearedCaption, clearedBody, liveCleared.
+//     writes the module's own default and the browser draft survives, and
+//     since 13.1-06 it is THE WAY BACK every step names. clearLine,
+//     clearedCaption, liveCleared, stepOrClear, CONFIRM_WAY_BACK.
 //  4. Nothing is written without a click - session-copy.ts's SAFE_NOTE; here,
 //     every write is a named click and every step names one.
 //  5. A store carries the page's own scripts - five strings on the wire since
@@ -124,6 +127,50 @@
 // the word `Clear` is none of them) and the line beneath it still says
 // what the click restores. Section 9's row stands in the Bible as text;
 // install-copy.spec.ts asserts the old words are exported by nothing.
+//
+// PUT BACK'S STRINGS ARE RETIRED BY NAME, 2026-09-12 (13.1-06, 13.1-CONTEXT
+// D-06 and D-07; ledgered in 13.1-COPY-NEW.md). The user removed the install
+// column under the workspace's surface and Put back with it at the fourth
+// bench ("we dont even need the Put back function that totally unnecessary
+// if we have a clear button", and "remove" when asked), so the control is
+// on no screen: PUT_BACK_LABEL (`Put back`, batch row I.3.2) and
+// puttingBackLabel (`Putting Page 2 back…`, I.3.3) - the second and the
+// progress label of Phase 10's four - are gone from the exports, and
+// WRITE_CLICKS is FOUR. STEP_OR_PUT_BACK (`Or click Put back to restore
+// what was there when you connected`, I.5.8), the step four blocks shared,
+// is replaced by stepOrClear below, because a step must name a control that
+// exists and the way back that exists is the header's Clear to the firmware
+// default. Every other sentence that offered Put back as the way back is
+// rewritten the same way and ledgered: CONFIRM_WAY_BACK (I.5.10),
+// lostBlock's third step (I.5.12), KEEP_REASONS["after-partial"] (I.6.2),
+// nothingLandedBlock("try")'s detail (I.5.5), and HONESTY_SNAPSHOTTING
+// (I.4.3, which promised the copy could be put back). The snapshot itself
+// is not retired - it is taken at connect before any write as before
+// (SAFE-03), and the store's putBack() with the `restoring` and `restored`
+// phases stays for the /dev/install/ probe's own button, so restoredCaption
+// (`Page 2 put back`, I.4.13, reworded without the label) and
+// RESTORED_UNCONFIRMED_TITLE (I.5.6) keep the machinery's own words: the
+// bar's clause would read them from the probe alone. PUT_BACK_NEEDS_ZONA is
+// NEEDS_ZONA - the same sentence, the header's Clear reason for no session
+// (CLEAR_REASONS["no-session"] reads it). SNAPSHOT_FAILED_TITLE reads
+// `Nothing copied yet` (was `Nothing to put back yet`, I.5.7): the fact is
+// the copy, not the control. The consequence, plainly: after an Apply the
+// way back to the module's own page is Grid Editor or a Clear to the
+// firmware default; HANGAR no longer offers to put the module's own
+// configuration back.
+//
+// THE INSTALL BLOCK'S SIX SUCCESS BODIES ARE RETIRED BY NAME, 2026-09-12
+// (13.1-06, D-06; 13.1-PLAN-CHECK W-10; ledgered). InstallState.svelte was
+// their one reader and is deleted with the column; the bar's device clause
+// (device-clause.ts) carries every success caption already, so the facts
+// they carried survive in the captions and in confirmReplaces, and nothing
+// dead is left exported (D-12's rule): snapshottingBody (I.4.6),
+// identifiedBody (I.4.7), settledBody (I.4.10), keptBody (I.4.11),
+// restoredBody (I.4.14), KEPT_PROOF_LINE (I.4.15's proof line), clearedBody
+// (I.4.17) and RESTORED_STORED_LINE (I.4.15, the line under the restore's
+// body after a store). STILL_WRITING_LINE (I.4.9) is NOT retired: it is
+// SAFE-08's visible half and DestinationZone.svelte renders it beneath the
+// bar's row while the store's slow flag is set.
 //
 // THREE RULES A READER WOULD REVERSE, WRITTEN DOWN:
 //
@@ -238,11 +285,6 @@ export const writingLabel = (page: number): string =>
 /** Section 9's progress label for the flash write. */
 export const keepingLabel = (page: number): string =>
   `Storing on ${pageName(page)}…`;
-/** HANGAR's own restore, as a verb (batch row I.3.2); the line beneath it names the page. */
-export const PUT_BACK_LABEL = "Put back";
-/** Section 9's progress shape, for the restore (I.3.3). */
-export const puttingBackLabel = (page: number): string =>
-  `Putting ${pageName(page)} back…`;
 /** Section 9's own label for the flash write. */
 export const KEEP_LABEL = "Store on ZONA";
 /** The store confirmation's negative (I.4.19). */
@@ -267,20 +309,21 @@ export const TARGET_CLICK = "Target";
 
 /**
  * THE NUMBER OF WRITE CLICKS, AS A CONSTANT RATHER THAN AS A WORD IN PROSE.
- * Five since 13-12; the fifth a control that is a SELECT since 13.1-02.
- * REQUIREMENTS.md's SAFE-01 names this constant; a sixth write control is a
+ * Five since 13-12, the fifth a control that is a SELECT since 13.1-02;
+ * FOUR since 13.1-06 - Put back removed by the user's word (D-07).
+ * REQUIREMENTS.md's SAFE-01 names this constant; a fifth write control is a
  * change here first.
  */
 export const WRITE_CLICKS = [
   TRY_ON_LABEL,
-  PUT_BACK_LABEL,
   KEEP_LABEL,
   CLEAR_LABEL,
   TARGET_CLICK,
 ] as const;
 
 // ---------------------------------------------------------------------------
-// The honesty slot: the one line under Apply to ZONA, by state (I.4.1-I.4.4).
+// The honesty line: Apply to ZONA's accessible description, by state
+// (I.4.1-I.4.4; the slot under the column's primary until 13.1-06).
 
 /** No session yet: the click connects first. Z-08's "about a second", once of twice. */
 export const HONESTY_NO_SESSION =
@@ -288,68 +331,49 @@ export const HONESTY_NO_SESSION =
 /** Ready: the first fact, RAM against flash, before the click. Z-08's second "about a second". */
 export const honestyReady = (page: number): string =>
   `Applies this to ${pageName(page)} in about a second. It stays until power-off unless you store it.`;
-/** While the snapshot is read: the second fact, said before it is needed. */
-export const HONESTY_SNAPSHOTTING =
-  "Reading what your ZONA holds first, so anything you apply can be put back.";
+/** While the snapshot is read: the second fact, said before it is needed (I.4.3, reworded at 13.1-06 - the copy is a safety feature, not a control). */
+export const HONESTY_SNAPSHOTTING = "Reading what your ZONA holds first.";
 /** On a browser that cannot write (DEGR-02): the standing line would be a lie. */
 export const HONESTY_INCAPABLE =
   "This browser can’t write to a ZONA. Everything else on this page works.";
 
 // ---------------------------------------------------------------------------
-// The install block, state by state.
+// The install phases' captions - the bar's device clause (device-clause.ts)
+// since 13-11, and since 13.1-06 the ONLY rendering of the six success
+// phases: their bodies retired with InstallState.svelte (the header's
+// retirement paragraph). The captions are section 9's and section 16's where
+// those have a line, HANGAR's where they do not.
 
 /** While the snapshot is read (I.4.5). */
 export const SNAPSHOTTING_CAPTION = "Reading your ZONA…";
-/** The second and fifth facts: a copy of the page, five scripts, so it can be put back (I.4.6). */
-export const snapshottingBody = (page: number): string =>
-  `Taking a copy of what ${pageName(page)} holds — the touch element’s Setup and Timer and the page’s own init, timer and utility scripts — so it can be put back.`;
 
 /** Section 9's own label for the ready state. */
 export const IDENTIFIED_CAPTION = "ZONA connected";
-/** The identity, the copy and the way back (I.4.7); names Put back, which is on the screen from here on. */
-export function identifiedBody(fw: Firmware, page: number): string {
-  return `Firmware ${fw.major}.${fw.minor}.${fw.patch}, on ${pageName(page)}. A copy of the page is saved here — its touch Setup and Timer and its own init, timer and utility scripts — so ${PUT_BACK_LABEL} can undo anything you apply.`;
-}
 
-/** The one escape hatch of `writing`, at 2000 ms (Z-09). */
+/** The one escape hatch of `writing`, at 2000 ms (Z-09; SAFE-08's visible half). Rendered by DestinationZone.svelte beneath the bar's row while the store's slow flag is set. */
 export const STILL_WRITING_LINE =
   "Still writing. Your ZONA is taking longer than usual.";
 
 /** Section 16's own line for a RAM apply: the first fact, after the click. */
 export const settledCaption = (page: number): string =>
   `Applied to ${pageName(page)}. Store on ZONA to keep it after power-off.`;
-/** The clause section 16 has no line for: changing page on the module clears memory (I.4.10). */
-export function settledBody(name: string, page: number): string {
-  return `${name} is running on ${pageName(page)} in memory only. Changing page on your ZONA clears it; apply it again if that happens.`;
-}
 
-/** The restore landed: section 16's clause shape, with HANGAR's verb (I.4.13). */
+/**
+ * The restore landed (I.4.13): section 16's clause shape, with HANGAR's
+ * verb - the register's own, not a control's, since PUT_BACK_LABEL retired
+ * at 13.1-06. The bar reads it from the /dev/install/ probe alone: the
+ * store's putBack() has no control on the site (D-07).
+ */
 export const restoredCaption = (page: number): string =>
-  `${PUT_BACK_LABEL} · ${pageName(page)}`;
-/** The module's own earlier configuration is back, not a HANGAR default (I.4.14). */
-export const restoredBody = (page: number): string =>
-  `${pageName(page)} holds exactly what it held when you connected — your own configuration, not a HANGAR default.`;
-/** After a restore that also stored (Z-04): the line beneath the body. */
-export const RESTORED_STORED_LINE =
-  "It’s stored too, so it stays after power-off.";
+  `${pageName(page)} put back`;
 
 /** Section 16's own line for a confirmed store. Renders only after the acknowledgement AND the re-fetch proof (D-12). */
 export const keptCaption = (page: number): string =>
   `Stored on ZONA · ${pageName(page)}`;
-/** The first fact, flash side (I.4.11). */
-export function keptBody(name: string, page: number): string {
-  return `${name} is stored on ${pageName(page)} and will still be there after power-off.`;
-}
-/** The restart is not filler: the pad visibly blinks out as the module reloads the stored page. */
-export const KEPT_PROOF_LINE =
-  "The pad restarts once as it loads the stored version.";
 
 /** The reset landed: section 16's confirmation words for the state it confirmed (I.4.16). */
 export const clearedCaption = (page: number): string =>
   `${pageName(page)} reset to its firmware default`;
-/** The third fact's result: the default runs, Put back restores, the browser draft is untouched (I.4.17). */
-export const clearedBody = (page: number): string =>
-  `${pageName(page)} is running the firmware’s own default. ${PUT_BACK_LABEL} restores what was there when you connected, and your browser draft is untouched.`;
 
 // ---------------------------------------------------------------------------
 // The six uncertain outcomes and the lost cable: six titles, on purpose
@@ -362,10 +386,17 @@ const RESTORED_UNCONFIRMED_TITLE = "Put back in memory, not yet stored";
 const NOTHING_LANDED_TITLE = "Nothing reached your ZONA";
 const PARTIAL_TITLE = "Only part of this reached your ZONA";
 const LOST_TITLE = "Your ZONA was unplugged mid-write";
-const SNAPSHOT_FAILED_TITLE = "Nothing to put back yet";
+/** I.5.7's title, reworded at 13.1-06: the fact is the copy, not the retired control. */
+const SNAPSHOT_FAILED_TITLE = "Nothing copied yet";
 
-/** The step four blocks share (I.5.8). */
-const STEP_OR_PUT_BACK = `Or click ${PUT_BACK_LABEL} to restore what was there when you connected`;
+/**
+ * The step three blocks share (I.5.8, rewritten at 13.1-06 under D-07): the
+ * way back that exists is the header's Clear to the firmware default. It
+ * names the control as the control reads and the page as the visitor reads
+ * it. Exported so the zone's test and the ledger can read it by name.
+ */
+export const stepOrClear = (page: number): string =>
+  `Or click ${CLEAR_LABEL} to return ${pageName(page)} to its firmware default`;
 
 /** The store was acknowledged and the read-back differs (I.5.2). */
 export function keptMismatchBlock(page: number): InstallBlock {
@@ -374,7 +405,7 @@ export function keptMismatchBlock(page: number): InstallBlock {
     detail: `Your ZONA acknowledged the store, but reading ${pageName(page)} back gave something different. HANGAR won’t call that stored.`,
     steps: [
       `Click ${TRY_ON_LABEL}, then ${KEEP_LABEL} again`,
-      STEP_OR_PUT_BACK,
+      stepOrClear(page),
     ],
   };
 }
@@ -384,24 +415,32 @@ export function unconfirmedBlock(name: string, page: number): InstallBlock {
   return {
     title: UNCONFIRMED_TITLE,
     detail: `${name} is still running on ${pageName(page)} in memory. No confirmation of the store came back, so HANGAR can’t say whether it survives power-off.`,
-    steps: [`Click ${KEEP_LABEL} to send the store again`, STEP_OR_PUT_BACK],
+    steps: [`Click ${KEEP_LABEL} to send the store again`, stepOrClear(page)],
   };
 }
 
-/** The restore's store leg did not confirm (I.5.6). */
+/**
+ * The restore's store leg did not confirm (I.5.6). REACHABLE FROM THE
+ * /dev/install/ PROBE ONLY since 13.1-06: the restore has no control on the
+ * site (D-07), so the step names the probe's action in the probe's words
+ * rather than a click on a control that does not exist.
+ */
 export function restoredUnconfirmedBlock(page: number): InstallBlock {
   return {
     title: RESTORED_UNCONFIRMED_TITLE,
     detail: `Your own configuration is running on ${pageName(page)} again, in memory. The store didn’t confirm, so after power-off the version stored earlier may come back instead.`,
-    steps: [`Click ${PUT_BACK_LABEL} again`],
+    steps: ["Send the restore again"],
   };
 }
 
 /**
  * None of the five landed, in its two forms (I.5.5): after an apply the
- * module's own configuration is still playing and there is nothing to put
- * back; after a restore, what was playing is still playing. A NACK is the
- * signature of a silent discard (docs/SKELETON-RESULTS.md).
+ * module's own configuration is still playing (the "nothing to put back"
+ * clause went at 13.1-06 with the control); after a restore, what was
+ * playing is still playing. A NACK is the signature of a silent discard
+ * (docs/SKELETON-RESULTS.md). THE RESTORE FORM IS REACHABLE FROM THE
+ * /dev/install/ PROBE ONLY since 13.1-06 (D-07), so its step names the
+ * probe's action in the probe's words.
  */
 export function nothingLandedBlock(
   after: "try" | "put-back",
@@ -411,13 +450,13 @@ export function nothingLandedBlock(
   return after === "try"
     ? {
         title: NOTHING_LANDED_TITLE,
-        detail: `Nothing got through. ${pageName(page)} is unchanged, so your own configuration is still playing and there’s nothing to put back.`,
+        detail: `Nothing got through. ${pageName(page)} is unchanged, so your own configuration is still playing.`,
         steps: [`Click ${TRY_ON_LABEL} to send it again`, cable],
       }
     : {
         title: NOTHING_LANDED_TITLE,
         detail: `Nothing got through. ${pageName(page)} is unchanged, so what was playing is still playing.`,
-        steps: [`Click ${PUT_BACK_LABEL} to send it again`, cable],
+        steps: ["Send the restore again", cable],
       };
 }
 
@@ -433,7 +472,7 @@ export function partialBlock(
   return {
     title: PARTIAL_TITLE,
     detail: `${landed} reached your ZONA and ${failed} didn’t. ${pageName(page)} now holds part of this configuration and part of your own.`,
-    steps: [`Click ${TRY_ON_LABEL} to send all five again`, STEP_OR_PUT_BACK],
+    steps: [`Click ${TRY_ON_LABEL} to send all five again`, stepOrClear(page)],
   };
 }
 
@@ -455,7 +494,7 @@ export function lostBlock(
     steps: [
       "Plug your ZONA back in",
       `Click ${label} again`,
-      `Then click ${PUT_BACK_LABEL} to restore what was there when you connected`,
+      `Then click ${CLEAR_LABEL} if you want the firmware default back`,
     ],
   };
 }
@@ -482,8 +521,8 @@ export const confirmCaption = (page: number): string =>
  */
 export const confirmReplaces = (page: number): string =>
   `This replaces what ${pageName(page)} holds on your ZONA — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and it stays after power-off.`;
-/** Names Put back, which is on the screen beside the confirmation (I.5.10). */
-export const CONFIRM_WAY_BACK = `${PUT_BACK_LABEL} still restores what was there when you connected.`;
+/** The way back beside the confirmation (I.5.10, rewritten at 13.1-06 under D-07): the header's Clear, the one that exists. */
+export const CONFIRM_WAY_BACK = `${CLEAR_LABEL} still returns the page to its firmware default.`;
 
 /**
  * The other modules on the cable, as a sentence would list them: `EN16`,
@@ -507,12 +546,13 @@ export function confirmRig(others: readonly string[]): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// The Put back control's line with no session. Its lines WITH a session name
-// the page and live in page-target.ts (putBackPageLine, 13-12); Phase 10's
-// page-less twins retired with 13-18 (I.3.4).
+// The no-session sentence (I.3.4). Put back's line with no session until
+// 13.1-06 (its lines WITH a session, page-target.ts's putBackPageLine pair,
+// retired with the control); the header's Clear reason for no session since,
+// through CLEAR_REASONS below. Written once, referenced.
 
-/** No open session, snapshot durable: present and visibly waiting (SAFE-09). */
-export const PUT_BACK_NEEDS_ZONA = "Needs your ZONA connected.";
+/** No open session: the control is present and visibly waiting (SAFE-09's shape, on Clear). */
+export const NEEDS_ZONA = "Needs your ZONA connected.";
 
 // ---------------------------------------------------------------------------
 // The Store on ZONA control: the enabled line and the six closed reasons.
@@ -538,7 +578,7 @@ export type KeepReason =
 export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
   "never-tried": `${TRY_ON_LABEL} first, then store it.`,
   "knobs-moved": `The knobs moved since it was applied. ${TRY_ON_LABEL} again first.`,
-  "after-partial": `Not after a partial apply. ${TRY_ON_LABEL} again, or put your own back.`,
+  "after-partial": `Not after a partial apply. ${TRY_ON_LABEL} again, or click ${CLEAR_LABEL}.`,
   "already-kept":
     "Already stored on ZONA. Turn a knob and apply it again to store a new one.",
   "after-mismatch": `${TRY_ON_LABEL} again first, then store it again.`,
@@ -566,7 +606,7 @@ export type ClearReason = "no-snapshot" | "no-session" | "incapable";
 /** Two of the three are REFERENCES, so a rewrite of the shared sentence moves this table with it. */
 export const CLEAR_REASONS: Readonly<Record<ClearReason, string>> = {
   "no-snapshot": "Needs a copy of what is on your ZONA first.",
-  "no-session": PUT_BACK_NEEDS_ZONA,
+  "no-session": NEEDS_ZONA,
   incapable: KEEP_REASONS.incapable,
 };
 
@@ -579,7 +619,7 @@ export const liveSnapshotSaved = (page: number): string =>
   `A copy of ${pageName(page)} is saved. Nothing has been written.`;
 /** Section 16's own line, spoken (I.7.2). */
 export const liveSettled = (page: number): string => settledCaption(page);
-/** The restore landed, spoken (I.7.3). */
+/** The restore landed, spoken (I.7.3) - from the /dev/install/ probe alone since 13.1-06. */
 export const liveRestored = (page: number): string =>
   `${pageName(page)} is back to what it was when you connected.`;
 /** Section 16's own line, spoken as a sentence (I.7.4). */
