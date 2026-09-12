@@ -300,11 +300,15 @@
   /*
     The block: the panel's own surface, in the flow, square-cornered, a
     hairline rule above so the picker reads as the row's own. No shadow, no
-    position, no top layer - the rows below simply move down.
+    position, no top layer - the rows below simply move down. The hairline
+    is --color-boundary, not --color-divider: the block is a role="group",
+    and IDENT-01's boundary rule (identity.spec.ts test 5, WCAG 1.4.11)
+    keeps the decorative divider off any edge of anything with a role - the
+    same hairline the swatch square carries.
   */
   .editor {
     padding-block: 12px;
-    border-block-start: 1px solid var(--color-divider);
+    border-block-start: 1px solid var(--color-boundary);
     background: var(--color-panel);
   }
 
