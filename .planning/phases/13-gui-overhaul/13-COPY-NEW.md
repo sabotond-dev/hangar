@@ -560,7 +560,7 @@ the Sandbox-side half of that pair.
 | `GEOMETRY_COPY.offSurface(field)` | `src/lib/sandbox/geometry.ts` (rendered inline at the inspector's Geometry field by 13-16) | landed by 13-14 for 13-18 | rule 1: a column, row, width or height that puts the region past the 9 × 9; the previous valid value stays on screen (rule 5) | which of the four fields to change, and that the surface is 9 × 9 - never "invalid" | _This region doesn’t fit on the surface. A smaller width keeps it inside the 9 × 9._ (the second sentence's subject is the field: _A smaller column_ / _row_ / _width_ / _height_) | none - §16 has the overlap line only; 13-13's import-side twin is _{region} lies outside the 9 × 9 surface._ |
 | `GEOMETRY_COPY.adjacency(a, b)` | same (a warning at both regions, 13-16) | landed by 13-14 for 13-18 | rule 6: two regions share an edge with no cell between them - a WARNING, never a block | both names; that a press on the seam is a coin flip (Probe A Q2's one-unit boundary; a contact keeps the region it landed in, so the flip happens once, at the press); no instruction, because the surface is valid as drawn | _Filter and Space touch with no gap between them. A press on the shared edge could land on either._ | none |
 | `GEOMETRY_COPY.cap(cap)` | same (the palette and Duplicate at the cap, 13-16) | landed by 13-14 for 13-18 | the seventeenth region (D-14 Q4: sixteen with the live budget meter) | the count and that it is a page's most, and the way forward | _This surface holds 16 elements, the most a page can carry. Remove one to add another._ | none - 13-13's import-side twin is _This surface has {count} elements. A surface holds at most 16._ |
-| `GEOMETRY_COPY.tooSmall(kind, w, h)` - **PLACEHOLDER, 13-15's to replace** | same | landed by 13-14 as a placeholder; **13-15 derives the Knob's minimum from the dead-zone arithmetic and ledgers the refusal that names it** | rule 3: a region smaller than its kind's minimum (today only the Knob, 3 × 3 provisional) | the kind and the minimum; 13-15's row will carry WHY (the centre dead zone) | _A knob needs at least 3 × 3 cells._ | none |
+| `GEOMETRY_COPY.tooSmall(kind, w, h)` - placeholder, **replaced by 13-15** (the section below) | same | landed by 13-14 as a placeholder; 13-15 derived the Knob's minimum from the dead-zone arithmetic and ledgered the refusal that names it | rule 3: a region smaller than its kind's minimum (today only the Knob, 3 × 3 provisional) | the kind and the minimum; 13-15's row will carry WHY (the centre dead zone) | _A knob needs at least 3 × 3 cells._ | none |
 
 Questions for the user, from 13-14 (D-01):
 
@@ -570,3 +570,40 @@ Questions for the user, from 13-14 (D-01):
 2. **The `Surface` shape carries no `schema` of its own** - the record that carries it does (13-13's
    envelope rule; `schema.ts`'s header says why). 13-14-PLAN.md's interfaces block drew `schema: 1`
    on the Surface. Keep the tree's one-place rule, or add the second field?
+
+## From 13-15: the Knob's refusal, the fader's and the XY pad's, and the questions D-01 sends to the batch
+
+Landed in `src/lib/sandbox/geometry.ts` as `GEOMETRY_COPY.tooSmall(region, minimum)`, one sentence
+per kind, replacing 13-14's placeholder. The Knob's minimum is DERIVED (`src/lib/sandbox/model.ts`
+section 4b): the rotary reads the angle around the region's centre in raw sensor units, Probe A Q1's
+jitter (one raw unit a sample, sqrt 2 across a still finger's 2 x 2 wander) swings that angle by a whole
+8-degree step inside 10.13 raw units of the centre, so the runtime ignores that circle and a region
+whose ring of cells does not clear it by one unit of jitter has nothing to turn - `(w-1)/2 * 14.2 >=
+10.13 + 1`, so 3 x 3. The fader's and the XY pad's minimums are the other half of the same plan's rule
+(section 4a): the value is read on the calibrated axis between the region's first and last LED centres,
+and a one-cell axis has a zero span - Lua's `//0` raises on the module - so a vertical fader needs two
+rows, a horizontal one two columns and an XY pad 2 x 2. All four are HANGAR's, in D-05's register: the
+fact, then the way or the why; never "invalid".
+
+| Symbol | Module | Plan | The state it names | The fact it must carry | Proposed string | Bible line? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GEOMETRY_COPY.tooSmall(knob, 3 x 3)` | `src/lib/sandbox/geometry.ts` (the inspector's Geometry field and the palette, 13-16) | landed by 13-15 for 13-18 | rule 3: a Knob narrower or shorter than 3 cells (model.ts 4b) | the minimum, and WHY in the user's terms - the centre cannot read a turn, the finger needs a ring - never the arithmetic | _A knob needs at least 3 × 3 cells. Its centre can’t read a turn, so the finger needs a ring of cells around it._ | none |
+| `GEOMETRY_COPY.tooSmall(fader, vertical)` | same | landed by 13-15 for 13-18 | rule 3: a vertical fader one row tall (model.ts 4a) | the one axis it reads, in rows | _A vertical fader needs at least 2 rows._ | none |
+| `GEOMETRY_COPY.tooSmall(fader, horizontal)` | same | landed by 13-15 for 13-18 | rule 3: a horizontal fader one column wide | the one axis it reads, in columns | _A horizontal fader needs at least 2 columns._ | none |
+| `GEOMETRY_COPY.tooSmall(xy)` | same | landed by 13-15 for 13-18 | rule 3: an XY pad one cell along either axis | both axes | _An XY pad needs at least 2 × 2 cells._ | none |
+
+The button's line (_A button needs at least 1 × 1 cells._) exists for the switch's completeness and
+is unreachable: a button's minimum is one cell and rule 1 refuses a zero size first. Not ledgered.
+
+Questions for the user, from 13-15 (D-01):
+
+1. **The Knob's line carries the why.** The register's other refusals state the fact and the way
+   (_Remove one to add another._); this one states the fact and the reason, because there is no way
+   to offer - a smaller knob is not a knob. Keep the reason, or cut to the first sentence?
+2. **The two coarse placements.** Under the measured map a 3 × 3 Knob whose ring includes column 9
+   (6 raw units to the ring's nearest light) or rows 8-9 (11) sits inside or on the dead zone on that
+   side; the uniform rule admits it. Refuse those placements with a line of their own (_This corner
+   of the pad is too coarse for a knob. Move it inward or make it wider._), or leave it to the bench
+   row (docs/INSTALL-RUNBOOK.md row L) and the meter?
+3. **The knob's starting value is 0** and nothing in the schema sets it. A field (_Starts at_) in the
+   inspector's Behaviour section would cost one row column; is one wanted?
