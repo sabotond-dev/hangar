@@ -15,9 +15,13 @@
   it carries the PDF's two buttons, Randomize and Reset settings. Appearance is
   the colour knobs, through the one picker block. MIDI output is the knobs
   that address the wire - ids `cc`, `ccBase`, `channel` and `send` - in PDF
-  page 5's 2 x 2 field grid with section 16's helper line beneath. A section
-  with no knob in it is OMITTED, not rendered empty: an empty disclosure is
-  the thing the next paragraph exists to forbid. The fourth group is the two
+  page 5's 2 x 2 field grid with section 16's helper line beneath - and
+  since 13.1-07 each MIDI knob is a TYPED FIELD (MidiField.svelte) over its
+  own closed list rather than a rail in the rack (13.1-CONTEXT D-09, bench
+  line 7's screenshot: `CC number` and `Channel` as two text inputs). The
+  partition is the same; only what renders it changed, and Knob.svelte did
+  not. A section with no knob in it is OMITTED, not rendered empty: an empty
+  disclosure is the thing the next paragraph exists to forbid. The fourth group is the two
   budget meters under Phase 4's TUNING caption - the spec has no budget meter
   anywhere and HANGAR's honesty is not for cutting (13-RESEARCH Q8). They
   render after the last section, so under MIDI output on an entry that has
@@ -172,6 +176,7 @@
   import BudgetMessage from "./BudgetMessage.svelte";
   import BudgetMeter from "./BudgetMeter.svelte";
   import KnobRack from "./KnobRack.svelte";
+  import MidiField from "./MidiField.svelte";
   import StampNotice from "./StampNotice.svelte";
   import Inspector from "./shell/Inspector.svelte";
   import { INSPECTOR_INSET, NUMERIC_GRID_REFLOW } from "./shell/layout";
@@ -867,22 +872,22 @@
   />
 {/snippet}
 
-<!-- MIDI output: page 5's 2 x 2 field grid (D-21), and section 16's helper line. -->
+<!--
+  MIDI output: page 5's 2 x 2 field grid (D-21), one typed field per MIDI
+  knob (13.1-07, D-09), and section 16's helper line. The grid's column
+  count is the region's answer under D-21, as it was when the rack drew it.
+-->
 {#snippet midi()}
-  <div class="grid-box" bind:this={gridBox} data-testid="midi-grid">
-    <KnobRack
-      entry={{ id: entryId, name }}
-      knobs={midiKnobs}
-      held={heldKnobs}
-      forecast={rackForecast}
-      layout="grid"
-      columns={gridColumns}
-      empty={false}
-      onchange={changeKnob}
-      onreset={resetKnob}
-      onhold={holdKnob}
-      onforecast={forecastKnob}
-    />
+  <div
+    class="grid-box"
+    bind:this={gridBox}
+    data-testid="midi-grid"
+    data-columns={gridColumns}
+    style:--columns={gridColumns}
+  >
+    {#each midiKnobs as knob (knob.id)}
+      <MidiField {knob} onchange={changeKnob} onreset={resetKnob} />
+    {/each}
   </div>
   <p class="helper type-helper">{MIDI_HELPER}</p>
 {/snippet}
@@ -1013,8 +1018,18 @@
     color: var(--color-ink-quiet);
   }
 
-  /* The grid's box, observed for D-21. It is exactly as wide as the body's content. */
+  /*
+    The grid's box, observed for D-21, and since 13.1-07 the grid itself:
+    PDF page 5's two fields side by side with the PDF's 22px gutter, as
+    columns of equal share; --columns is the region's answer under D-21 -
+    two at or above layout.ts's NUMERIC_GRID_REFLOW, one below - and no
+    number is written here. It is exactly as wide as the body's content.
+  */
   .grid-box {
+    display: grid;
+    grid-template-columns: repeat(var(--columns, 1), minmax(0, 1fr));
+    column-gap: 22px;
+    row-gap: 12px;
     inline-size: 100%;
   }
 

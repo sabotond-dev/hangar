@@ -139,6 +139,15 @@ export type KnobView = {
   default: number;
   /** The right-aligned integer, when every value is a single integer. */
   readout?: string;
+  /**
+   * The raw option literals, present exactly when `readout` is (every option
+   * a single integer, X-08), so a typed field can map a number back to an
+   * index (13.1-07, D-09). A worded kind's `values[].label` is a word - a
+   * preset's `send` knob prints pitch names - and a colour's is a hue, so
+   * neither can serve the mapping; the literal is the one string the
+   * firmware and the visitor agree on. Absent otherwise.
+   */
+  literals?: readonly string[];
 };
 
 /** Which of the two 908-character events a meter is showing. */
@@ -808,4 +817,46 @@ export function integerReadout(
   if (index < 0 || index >= values.length) return undefined;
   if (!values.every((v) => INTEGER.test(v))) return undefined;
   return values[index];
+}
+
+/**
+ * The other direction of `integerReadout` (13.1-07, D-09): the index of a
+ * TYPED literal in a knob's closed list, or undefined when the text is not
+ * an integer or names a value the knob does not offer. The text is trimmed
+ * and compared as a number, so `074` finds `74`; it is never clamped,
+ * rounded or snapped to the nearest option, because a typed field over a
+ * closed list moves the knob to a value it offers or refuses - the index is
+ * what the stamp, the forecast and the sweep need, and X-08 forbids
+ * renumbering what is about to be written to hardware.
+ */
+export function typedIndex(
+  literals: readonly string[],
+  text: string,
+): number | undefined {
+  const typed = text.trim();
+  if (!INTEGER.test(typed)) return undefined;
+  const n = Number.parseInt(typed, 10);
+  const at = literals.findIndex(
+    (literal) => INTEGER.test(literal) && Number.parseInt(literal, 10) === n,
+  );
+  return at < 0 ? undefined : at;
+}
+
+/**
+ * The bounds of a CONTIGUOUS integer run - `["0", "1", ..., "15"]` gives
+ * `{ min: 0, max: 15 }` - or undefined when the literals are not integers,
+ * are empty, or skip a number (Arc's `cc` at 1, 16, 20, 74, 102). The typed
+ * field's refusal names a range for a run and the offered values otherwise,
+ * and a Lua entry's channel is the run that starts at 0.
+ */
+export function integerRun(
+  literals: readonly string[],
+): { min: number; max: number } | undefined {
+  if (literals.length === 0) return undefined;
+  if (!literals.every((literal) => INTEGER.test(literal))) return undefined;
+  const first = Number.parseInt(literals[0], 10);
+  for (let at = 1; at < literals.length; at++) {
+    if (Number.parseInt(literals[at], 10) !== first + at) return undefined;
+  }
+  return { min: first, max: first + literals.length - 1 };
 }

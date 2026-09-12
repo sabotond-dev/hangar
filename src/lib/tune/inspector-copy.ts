@@ -45,6 +45,96 @@ export const SECTION_MIDI = "MIDI output";
 export const MIDI_HELPER =
   "Map this CC to a parameter in your instrument or DAW.";
 
+// ---------------------------------------------------------------------------
+// The MIDI output's two typed fields (13.1-07; 13.1-CONTEXT D-09; bench line
+// 7, screenshot 2: "replace MIDI channel selector with MIDI output selector
+// with input fields, exactly as on the attached screenshot"). A field is a
+// text input OVER a knob's closed list, never a free numeric: a typed value
+// the knob offers moves the knob to that index, one it does not is refused
+// in the field with the offered values named. The two labels are the PDF's;
+// the refusals and the cue are HANGAR's and ledgered in 13.1-COPY-NEW.md.
+
+/** PDF page 5's two field labels, verbatim - for a knob with id `cc` and one with id `channel`. */
+export const CC_NUMBER_LABEL = "CC number";
+export const CHANNEL_LABEL = "Channel";
+
+/**
+ * The visible label of a MIDI field: the PDF's word for `cc` and `channel`,
+ * the knob's own for everything else - morph's `ccBase` reads `CC base` and
+ * a preset's `send` reads `Send`, because the PDF's `CC number` would
+ * misname a base (13.1-CONTEXT question 6, shipped this way).
+ */
+export function midiFieldLabel(knob: { id: string; label: string }): string {
+  if (knob.id === "cc") return CC_NUMBER_LABEL;
+  if (knob.id === "channel") return CHANNEL_LABEL;
+  return knob.label;
+}
+
+/** A keystroke that is not a whole number. Ledgered; the Sandbox's G.27 line is the model. */
+export const TYPE_A_NUMBER = "Type a whole number.";
+
+/**
+ * The refusal when a typed whole number is one the knob does not offer,
+ * naming what it does offer (13.1-CONTEXT D-09's ledgered wording). Two
+ * forms from ONE builder, because the workspace's lists are not the full
+ * MIDI range: a list with gaps names its values - `A controller number here
+ * is one of 1, 16, 20, 74 or 102.` - and a contiguous run names its bounds -
+ * `A channel here is 0 to 15.` on a Lua entry, `1 to 16` on a preset. The
+ * Sandbox's G.29 `A channel is 1 to 16.` is deliberately NOT reused: it
+ * cannot serve a Lua channel's 0 to 15 without lying, and one builder for
+ * both bases is the one place to change when question 5 is answered. The
+ * noun is the knob's: `channel` for the channel, `controller number` for
+ * `cc`, `ccBase` and `send`.
+ */
+export function offeredLine(id: string, literals: readonly string[]): string {
+  const noun = id === "channel" ? "A channel" : "A controller number";
+  const run = contiguousRun(literals);
+  if (run !== undefined) return `${noun} here is ${run.min} to ${run.max}.`;
+  const list =
+    literals.length <= 1
+      ? literals.join("")
+      : `${literals.slice(0, -1).join(", ")} or ${literals[literals.length - 1]}`;
+  return `${noun} here is one of ${list}.`;
+}
+
+/**
+ * A contiguous integer run's bounds, or undefined. Restated here rather than
+ * imported from view.ts because this module imports nothing (its header);
+ * view.ts's `integerRun` is the same rule and view.spec.ts holds the two
+ * equal on the same inputs.
+ */
+function contiguousRun(
+  literals: readonly string[],
+): { min: number; max: number } | undefined {
+  if (literals.length === 0) return undefined;
+  const first = Number.parseInt(literals[0], 10);
+  if (!Number.isInteger(first) || !/^-?[0-9]+$/.test(literals[0])) {
+    return undefined;
+  }
+  for (let at = 1; at < literals.length; at++) {
+    if (
+      !/^-?[0-9]+$/.test(literals[at]) ||
+      Number.parseInt(literals[at], 10) !== first + at
+    ) {
+      return undefined;
+    }
+  }
+  return { min: first, max: first + literals.length - 1 };
+}
+
+/**
+ * The cue under a Lua entry's Channel field (13.1-PLAN-CHECK W-16; D-09;
+ * X-08). A hand-authored entry's channel is the firmware's zero-based
+ * literal - `0` is what the Lua sends and what the field shows, because
+ * renumbering a value about to be written to hardware is the lie X-08
+ * forbids - while the PDF and every preset show the DAW's `1`. Until
+ * 13.1-CONTEXT question 5 is answered the field says so, in its description
+ * and under it, so the state is not a silent off-by-one; a preset's channel
+ * (1 to 16) carries no cue. A real apostrophe (D-05).
+ */
+export const LUA_CHANNEL_CUE =
+  "The firmware counts channels from 0; your DAW’s channel 1 is 0 here.";
+
 /**
  * The two action buttons under Behavior. PDF page 5, verbatim. The glyph
  * before Randomize is drawn aria-hidden beside the word; the word is the

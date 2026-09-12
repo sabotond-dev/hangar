@@ -44,6 +44,19 @@ import { UNDO_RANDOMIZE } from "../tune/inspector-copy";
 import { EDIT_COLOR, POPOVER_CLOSE } from "../tune/inspector-copy";
 import { render } from "svelte/server";
 import Swatch from "./Swatch.svelte";
+// The MIDI output's typed fields (13.1-07, 13.1-CONTEXT D-09): the field is
+// RENDERED with svelte/server for its shape, and the mapping it makes is
+// view.ts's pure door, driven here with Arc's own list.
+import MidiField from "./MidiField.svelte";
+import {
+  CC_NUMBER_LABEL,
+  CHANNEL_LABEL,
+  LUA_CHANNEL_CUE,
+  TYPE_A_NUMBER,
+  midiFieldLabel,
+  offeredLine,
+} from "../tune/inspector-copy";
+import { ARC } from "../catalog/entries/arc";
 // The inspector (13-09): the widget rule and its boundary, the copy the
 // inspector renders, layout.ts's D-21 numbers, and a real tuner for the
 // per-field reset - the model.spec.ts harness in brief. The compile surface
@@ -81,6 +94,8 @@ import {
   SCALE_WORDS,
   SEGMENTED_MAX,
   WORD_ROW_MAX,
+  integerRun,
+  typedIndex,
   widgetFor,
   type KnobView,
   type TuneView,
@@ -102,20 +117,25 @@ const repo = (rel: string) =>
 const UI_DIR = "src/lib/ui";
 
 /**
- * The nine tuning components. A literal list is unavoidable - the directory
+ * The ten tuning components. A literal list is unavoidable - the directory
  * also holds Phase 4's components, which these rules do not all bind - so its
  * length is asserted and every name is checked against the directory listing.
- * A rename, a deletion or a TENTH component added without being listed is
+ * A rename, a deletion or an ELEVENTH component added without being listed is
  * then a visible omission rather than a silent gap.
  *
  * The eighth is plan 10-10's ColourPicker.svelte and the ninth is 13-09's
  * Swatch.svelte (the rows and, since 13.1-04, the inline block the picker
  * lives in - a popover from 13-09 to 13.1-04); 10-11's MixTwo.svelte was
  * the ninth from 10-11 to 13-10, when D-12 cut it and its row left with the
- * file. Adding each here is not bookkeeping: a component omitted from a
- * hand-declared list passes every walk in this file silently, which would
- * have left them outside the compiler guard, the scroll prohibition, the
- * 44px floor and the accent census at once.
+ * file. The tenth is 13.1-07's MidiField.svelte, the typed field over a
+ * MIDI knob's closed list (13.1-CONTEXT D-09). BudgetMeter.svelte STAYS on
+ * the list although the workspace no longer mounts it (D-10 hid the fourth
+ * group): the Sandbox route mounts it twice under its own room line, which
+ * D-10 keeps and the gate's bench row asks about. Adding each here is not
+ * bookkeeping: a component omitted from a hand-declared list passes every
+ * walk in this file silently, which would have left them outside the
+ * compiler guard, the scroll prohibition, the 44px floor and the accent
+ * census at once.
  *
  * 13-10's MidiMonitor.svelte is NOT on this list, and that is a ruling: it
  * is section 10's diagnostics bar in the centre column, not a tuning
@@ -131,6 +151,7 @@ const TUNING_COMPONENTS: readonly string[] = [
   "CopyLink.svelte",
   "Knob.svelte",
   "KnobRack.svelte",
+  "MidiField.svelte",
   "StampNotice.svelte",
   "Swatch.svelte",
   "TuningRegion.svelte",
@@ -207,7 +228,7 @@ describe("the tuning UI's structural rules", () => {
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(TUNING_COMPONENTS.length, "nine components were listed").toBe(9);
+    expect(TUNING_COMPONENTS.length, "ten components were listed").toBe(10);
     expect(
       TUNING_COMPONENTS.filter((name) => !present.has(name)),
       "a listed tuning component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -289,7 +310,7 @@ describe("the tuning UI's structural rules", () => {
 
     expect(
       declarations,
-      "the nine components' code was actually read",
+      "the ten components' code was actually read",
     ).toBeGreaterThan(100);
     expect(
       offenders,
@@ -782,6 +803,10 @@ describe("the tuning UI's structural rules", () => {
       "CopyLink.svelte": 1,
       "Knob.svelte": 9,
       "KnobRack.svelte": 0,
+      // THE TYPED MIDI FIELD (13.1-07) SPENDS NONE: its box is the boundary
+      // token, its refused state the error ink, its reset quiet ink, and the
+      // focus ring is app.css's (entry 4) - nothing in the file names accent.
+      "MidiField.svelte": 0,
       // MixTwo.svelte stood here at 0 from 10-11 to 13-10 (Secondary tier,
       // an outline and never a fill) and left with the file under D-12; the
       // total did not move because it never spent any.
@@ -798,7 +823,7 @@ describe("the tuning UI's structural rules", () => {
     });
     expect(
       total,
-      "the accent declaration count across the nine tuning components is no longer twenty-two",
+      "the accent declaration count across the ten tuning components is no longer twenty-two",
     ).toBe(22);
     // Swatch.svelte's one is the open toggle's, by rule, so a move to any
     // other selector in that file is named rather than absorbed by the count.
@@ -864,6 +889,14 @@ describe("the tuning UI's structural rules", () => {
     // (TUNE-05 on a producer it had never seen). That is section 12's
     // "transfer error" half of the same row: a transfer refused before it
     // starts, in this ink, on a sentence and never on the button.
+    //
+    // WIDENED BY ONE MORE AT 13.1-07, ON 13-16's ROW. The workspace's MIDI
+    // output is two typed fields (MidiField.svelte, 13.1-CONTEXT D-09), and
+    // a typed value the knob does not offer is refused the Sandbox field's
+    // way: the typed text kept, its boundary and its message in this ink,
+    // until a keystroke validates. The same validation fact on the same
+    // shape, and still never on a button.
+
     const TOKEN = "--color-error-ink";
     const SURFACE = "--color-error-surface";
     const files = uiFiles().filter((file) => file.endsWith(".svelte"));
@@ -878,6 +911,7 @@ describe("the tuning UI's structural rules", () => {
       `${UI_DIR}/BudgetMessage.svelte`,
       `${UI_DIR}/BudgetMeter.svelte`,
       `${UI_DIR}/DestinationZone.svelte`,
+      `${UI_DIR}/MidiField.svelte`,
       `${UI_DIR}/sandbox/RegionInspector.svelte`,
     ]);
     expect(
@@ -1486,6 +1520,252 @@ describe("the tuning UI's structural rules", () => {
       "{#each view.values as value, at (at)}",
     );
     expect(knob).toContain("<option value={at} selected={at === view.index}>");
+
+    // THE MIDI SECTION IS THE ONE PARTITION THE RACK DOES NOT RENDER (13.1-07,
+    // 13.1-CONTEXT D-09): its snippet renders one MidiField per MIDI knob and
+    // no KnobRack, while Behavior and Appearance still render the rack. The
+    // widget rule is untouched - widgetFor still resolves a five- or
+    // sixteen-integer knob to a rail - and Knob.svelte is not edited; the
+    // region simply hands the partition to the field instead of the rack.
+    const region = code(componentPath("TuningRegion.svelte"));
+    const snippet = (name: string) =>
+      region.slice(
+        region.indexOf(`{#snippet ${name}()}`),
+        region.indexOf("{/snippet}", region.indexOf(`{#snippet ${name}()}`)),
+      );
+    const midi = snippet("midi");
+    expect(midi.length, "the midi snippet was found").toBeGreaterThan(50);
+    expect(midi, "the MIDI section hands its knobs to the rack").not.toContain(
+      "<KnobRack",
+    );
+    expect(midi).toContain("{#each midiKnobs as knob (knob.id)}");
+    expect(midi).toContain(
+      "<MidiField {knob} onchange={changeKnob} onreset={resetKnob} />",
+    );
+    expect(midi, "the field grid lost its D-21 test id").toContain(
+      'data-testid="midi-grid"',
+    );
+    expect(midi, "the grid's columns are not the region's answer").toContain(
+      "style:--columns={gridColumns}",
+    );
+    for (const name of ["behavior", "appearance"]) {
+      expect(
+        snippet(name),
+        `the ${name} section no longer renders the rack`,
+      ).toContain("<KnobRack");
+    }
+  });
+
+  it("MIDI output is two typed fields over the knobs' closed lists: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {
+    // 13.1-07, 13.1-CONTEXT D-09 (bench line 7, screenshot 2: "replace MIDI
+    // channel selector with MIDI output selector with input fields, exactly
+    // as on the attached screenshot"). THREE HALVES. The door: view.ts's
+    // typedIndex maps a typed whole number to the knob's index or to nothing,
+    // never to a nearest option. The field: rendered with svelte/server for
+    // its shape - the PDF's label, a text input with a numeric keyboard, the
+    // knob's own literal, the cue on a Lua channel and not on a preset's. The
+    // wiring: the source routes every keystroke through the door and then
+    // through onchange(knob.id, index), the same call a rail makes, and a
+    // refused keystroke through aria-invalid with the message under it.
+    const cc = ARC.knobs.find((knob) => knob.id === "cc");
+    const channel = ARC.knobs.find((knob) => knob.id === "channel");
+    expect(cc, "Arc has a cc knob").toBeDefined();
+    expect(channel, "Arc has a channel knob").toBeDefined();
+    const ccLiterals = cc!.values;
+    expect(ccLiterals, "Arc's cc list is the one D-09 ledgers").toEqual([
+      "1",
+      "16",
+      "20",
+      "74",
+      "102",
+    ]);
+    const channelLiterals = channel!.values;
+    expect(channelLiterals[0], "a Lua channel is zero-based (X-08)").toBe("0");
+    expect(channelLiterals).toHaveLength(16);
+
+    // ---- THE DOOR. A typed literal to an index; not offered to nothing;
+    // never snapped to the nearest option; leading zeros and spaces are the
+    // same number; a word is nothing.
+    // The plan wrote "the index of 20 is 1"; in Arc's list it is 2 (1, 16, 20).
+    expect(typedIndex(ccLiterals, "20"), "20 is index 2").toBe(2);
+    expect(typedIndex(ccLiterals, "1")).toBe(0);
+    expect(typedIndex(ccLiterals, "102")).toBe(4);
+    expect(typedIndex(ccLiterals, " 74 ")).toBe(3);
+    expect(typedIndex(ccLiterals, "074")).toBe(3);
+    expect(
+      typedIndex(ccLiterals, "99"),
+      "99 is not offered and must not snap to 102",
+    ).toBeUndefined();
+    expect(typedIndex(ccLiterals, "7a")).toBeUndefined();
+    expect(typedIndex(ccLiterals, "")).toBeUndefined();
+    expect(typedIndex(channelLiterals, "0"), "the firmware's 0").toBe(0);
+    expect(typedIndex(channelLiterals, "15")).toBe(15);
+    expect(typedIndex(channelLiterals, "16")).toBeUndefined();
+    // The run: a Lua channel starts at 0, a preset's at 1, Arc's cc is no run.
+    expect(integerRun(channelLiterals)).toEqual({ min: 0, max: 15 });
+    expect(
+      integerRun(Array.from({ length: 16 }, (_, i) => String(i + 1))),
+    ).toEqual({ min: 1, max: 16 });
+    expect(integerRun(ccLiterals)).toBeUndefined();
+    expect(integerRun([])).toBeUndefined();
+
+    // ---- THE WORDS, D-09's ledgered forms from ONE builder. The controller
+    // sentence names the offered values; the channel sentence names the run's
+    // bounds in the knob's own base, so a Lua entry reads 0 to 15 and a preset
+    // 1 to 16 - which is why G.29's "A channel is 1 to 16." is not reused.
+    expect(offeredLine("cc", ccLiterals)).toBe(
+      "A controller number here is one of 1, 16, 20, 74 or 102.",
+    );
+    expect(offeredLine("ccBase", ["16", "24", "32"])).toBe(
+      "A controller number here is one of 16, 24 or 32.",
+    );
+    expect(offeredLine("channel", channelLiterals)).toBe(
+      "A channel here is 0 to 15.",
+    );
+    expect(
+      offeredLine(
+        "channel",
+        Array.from({ length: 16 }, (_, i) => String(i + 1)),
+      ),
+    ).toBe("A channel here is 1 to 16.");
+    expect(TYPE_A_NUMBER).toBe("Type a whole number.");
+    expect(LUA_CHANNEL_CUE).toBe(
+      "The firmware counts channels from 0; your DAW’s channel 1 is 0 here.",
+    );
+    expect(LUA_CHANNEL_CUE, "a real apostrophe (D-05)").not.toContain("'");
+    // The labels: the PDF's two for cc and channel, the knob's own otherwise
+    // (13.1-CONTEXT question 6, shipped this way).
+    expect(CC_NUMBER_LABEL).toBe("CC number");
+    expect(CHANNEL_LABEL).toBe("Channel");
+    expect(midiFieldLabel({ id: "cc", label: "Mod controller" })).toBe(
+      "CC number",
+    );
+    expect(midiFieldLabel({ id: "channel", label: "MIDI channel" })).toBe(
+      "Channel",
+    );
+    expect(midiFieldLabel({ id: "ccBase", label: "CC base" })).toBe("CC base");
+    expect(midiFieldLabel({ id: "send", label: "Send" })).toBe("Send");
+
+    // ---- THE FIELD, RENDERED. Arc's cc at index 3 shows 74 under CC number;
+    // a Lua channel at 0 shows 0 with the cue in its description and under
+    // it; a preset's channel shows 1 with no cue.
+    const field = (
+      id: string,
+      label: string,
+      literals: readonly string[],
+      index: number,
+    ): KnobView => ({
+      id,
+      label,
+      kind: "amount",
+      widget: "rail",
+      skin: "dots",
+      values: literals.map((literal) => ({ label: literal })),
+      literals,
+      index,
+      default: index,
+      readout: literals[index],
+    });
+    const renderField = (knob: KnobView) =>
+      render(MidiField, {
+        props: { knob, onchange: () => undefined, onreset: () => undefined },
+      }).body;
+    const ccBody = renderField(field("cc", "CC number", ccLiterals, 3));
+    expect(ccBody).toContain('data-testid="midi-field-cc"');
+    expect(ccBody, "the field is a text input").toContain('type="text"');
+    expect(ccBody, "with a numeric keyboard").toContain('inputmode="numeric"');
+    expect(ccBody).toContain('autocomplete="off"');
+    expect(ccBody, "the value is the knob's own literal").toMatch(/value="74"/);
+    expect(ccBody).toContain(" CC number</label>");
+    expect(ccBody, "no cue on a controller field").not.toContain(
+      LUA_CHANNEL_CUE,
+    );
+    expect(ccBody, "nothing refused on arrival").not.toContain(
+      'aria-invalid="true"',
+    );
+    expect(ccBody, "the reset is disabled at the default").toMatch(
+      /data-testid="midi-field-cc-reset"[^>]*disabled/,
+    );
+    expect(ccBody).toContain('aria-label="Reset CC number"');
+    const luaBody = renderField(
+      field("channel", "MIDI channel", channelLiterals, 0),
+    );
+    expect(luaBody, "a Lua channel shows the firmware's 0 (X-08)").toMatch(
+      /value="0"/,
+    );
+    expect(luaBody).toContain(" Channel</label>");
+    expect(luaBody, "the cue is under a Lua channel").toContain(
+      LUA_CHANNEL_CUE,
+    );
+    expect(luaBody).toContain('data-testid="midi-field-channel-cue"');
+    expect(luaBody, "the cue is not in the field's aria-describedby").toMatch(
+      /aria-describedby="[^"]*-cue"/,
+    );
+    const presetBody = renderField(
+      field(
+        "channel",
+        "Channel",
+        Array.from({ length: 16 }, (_, i) => String(i + 1)),
+        0,
+      ),
+    );
+    expect(presetBody, "a preset's channel shows the DAW's 1").toMatch(
+      /value="1"/,
+    );
+    expect(presetBody, "a preset's channel carries no cue").not.toContain(
+      LUA_CHANNEL_CUE,
+    );
+    expect(presetBody).not.toContain("aria-describedby");
+    // A moved field: the marker and a live reset.
+    const moved = field("cc", "CC number", ccLiterals, 1);
+    moved.default = 3;
+    const movedBody = renderField(moved);
+    expect(movedBody).toContain('data-testid="midi-field-cc-changed"');
+    expect(movedBody).not.toMatch(
+      /data-testid="midi-field-cc-reset"[^>]*disabled/,
+    );
+    expect(movedBody).toContain('data-changed="true"');
+
+    // ---- THE WIRING, off the source. Every keystroke goes through the door
+    // and then through onchange(knob.id, index); a refused one keeps the text
+    // and names the reason; the last good value is the knob's readout.
+    const source = code(componentPath("MidiField.svelte"));
+    expect(source).toContain("typedIndex(literals, text)");
+    expect(source).toContain("onchange(knob.id, index)");
+    expect(source, "the refusal is not the offered line").toContain(
+      "problem = offeredLine(knob.id, literals)",
+    );
+    expect(source).toContain("problem = TYPE_A_NUMBER");
+    expect(source).toContain("aria-invalid={problem !== undefined}");
+    expect(source, "the field shows the refused text or the readout").toContain(
+      'refused ?? knob.readout ?? ""',
+    );
+    expect(source, "the label is not inspector-copy's rule").toContain(
+      "midiFieldLabel(knob)",
+    );
+    expect(source, "the changed test is section 7's one comparison").toContain(
+      "knob.index !== knob.default",
+    );
+    expect(source).toContain("aria-label={fieldResetName(label)}");
+    expect(source, "no free numeric: never type=number").not.toContain(
+      'type="number"',
+    );
+    // 44px on both controls, both axes on the reset; no corner (D-01).
+    const input = rulesOf(source).find((r) => r.selector.trim() === ".input");
+    expect(input?.body).toContain("min-block-size: 44px");
+    const reset = rulesOf(source).find((r) => r.selector.trim() === ".reset");
+    expect(reset?.body).toContain("min-inline-size: 44px");
+    expect(reset?.body).toContain("min-block-size: 44px");
+    for (const rule of rulesOf(source)) {
+      for (const match of rule.body.matchAll(
+        /border-radius[ ]*:[ ]*([^;]+)/g,
+      )) {
+        expect(match[1].trim(), `${rule.selector} declares a corner`).toBe("0");
+      }
+    }
+    // Never a font the instrument register reserves, never accent.
+    expect(source).not.toContain("--font-mono");
+    expect(source).not.toContain("--color-action");
   });
 
   it("a changed field shows its marker and its own reset restores only that field, with the others proved unmoved", async () => {

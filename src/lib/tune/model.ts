@@ -467,6 +467,10 @@ function knobViews(
     };
     return {
       ...head,
+      // The raw literals ride with the readout and only with it: present
+      // exactly when every option is an integer, for the typed MIDI field's
+      // mapping back to an index (view.ts `typedIndex`, 13.1-07).
+      literals: head.readout === undefined ? undefined : knob.options,
       // The lattice's 4,096 come from the shared cache; every other knob
       // resolves its own handful. See `colourViews`.
       values:
