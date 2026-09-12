@@ -688,6 +688,42 @@ describe("the gallery's structural rules", () => {
     ).toContain('aria-hidden="true"');
     expect(body).toContain("Explore");
 
+    // THE BOX AS PDF PAGE 2 DRAWS IT (13.1-01, D-02; bench line 2: "not the
+    // proper grey color, not grifter, and the arrow is on the second row").
+    // Measured off the page: the fill is --color-panel to the byte, the
+    // hairline --color-divider to the byte, the word in the display face;
+    // and the arrow is on the word's row because the box is one flex row
+    // that never wraps (13-08's display: grid put the text node and the
+    // span in two rows). The declarations are read off the rule itself.
+    const exploreRule =
+      rulesOf(code(CARD)).find((rule) => rule.selector === ".explore")?.body ??
+      "";
+    expect(exploreRule, "the .explore rule exists").not.toBe("");
+    for (const decl of [
+      "display: inline-flex",
+      "align-items: center",
+      "white-space: nowrap",
+      "background: var(--color-panel)",
+      "border: 1px solid var(--color-divider)",
+      "font-family: var(--font-display)",
+      "font-weight: 700",
+      "min-block-size: 44px",
+    ]) {
+      expect(exploreRule, `.explore declares ${decl}`).toContain(decl);
+    }
+    expect(
+      exploreRule,
+      "no grid on the box - that was the second row",
+    ).not.toContain("display: grid");
+    expect(exploreRule, "the sans face is gone from the box").not.toContain(
+      "var(--font-sans)",
+    );
+    // No radius above zero anywhere in the file (the star's explicit 0 is
+    // the one occurrence, and it is a zero - radius.spec.ts's exempt case).
+    for (const m of code(CARD).matchAll(/border-radius:\s*([^;]+);/g)) {
+      expect(m[1].trim(), `a radius in CatalogCard.svelte: ${m[0]}`).toBe("0");
+    }
+
     // The whole card is the link: the overlay is declared on the anchor.
     const card = code(CARD);
     expect(

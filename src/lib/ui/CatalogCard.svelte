@@ -3,7 +3,7 @@
 
   A square live preview, the name with a favorite star at the card's right
   edge, ONE category and ONE tag on an 11px uppercase line, one sentence, and
-  a full-width outlined `Explore` action. Nothing else: Phase 10's FEATURED
+  a full-width filled `Explore` action. Nothing else: Phase 10's FEATURED
   band, its three-tag row and its monospaced metadata block (id + engine +
   motion) are gone with the Bible. `featured` keeps its field and LOSES ITS
   MARK - it is a sort, not a badge, and the PDF draws none.
@@ -13,7 +13,7 @@
   `position: relative` card, so a click anywhere on the card - the preview,
   the sentence, the Explore box - follows the link, while the accessibility
   tree contains ONE link and the tab order gains ONE stop for it. `Explore` is
-  a <span aria-hidden="true"> styled as the PDF's outlined button: it is the
+  a <span aria-hidden="true"> styled as the PDF's filled button: it is the
   visible affordance and it is not a second control, because a second anchor
   would put two entries in a screen reader's links list for one destination
   and a <button> inside a link is invalid markup. THE ONE ACCESSIBLE NAME IS
@@ -71,6 +71,30 @@
   NO RADIUS ANYWHERE (D-01). The plate's 6px, the focus ring's 10px and the
   tag chips' 6px went with this rewrite and the allowlist row went with them.
   Every colour is one of the eleven tokens.
+
+  THE EXPLORE BOX AS PDF PAGE 2 DRAWS IT (plan 13.1-01; 13.1-CONTEXT.md D-02;
+  bench line 2, 2026-09-12, verbatim: "in playground: the explore buttons
+  are not the proper grey color, not grifter, and the arrow is on the second
+  row for each button, make these changes to match the pdf."). Measured off
+  the PDF at its 1500px render on 2026-09-12: the fill is #191c18, which is
+  --color-panel to the byte (D-02 named --color-raised as the nearest by
+  eye and left the choice to the measurement; raised is #22261f, ten levels
+  lighter, and it is not what the page draws); a 1px #383e32 hairline
+  around it, which is --color-divider to the byte - so the PDF DOES draw a
+  boundary on the filled box, and the box keeps it: the box is a decorative
+  span inside the link, not a control, which is exactly what the divider is
+  for (identity.spec.ts test 5's rule is about controls); the word in the
+  display face at about 18px (cap height 13 at 1500; D-17's 17 is the
+  nearest rung) in --color-ink; the box 40 tall (the site's 44 floor
+  stands); and the arrow's ink about 23px after the word's, hence the 20px
+  gap once the glyphs' side bearings are taken off. THE ARROW IS --color-ink
+  ON THE PDF and --color-action here: the plan keeps the action colour, the
+  bench names three facts and the arrow's colour is not one of them, and
+  the difference is recorded for the user rather than decided. The "second
+  row" the bench saw was 13-08's display: grid on the box, which put the
+  text node and the arrow span in two implicit rows; inline-flex with
+  white-space: nowrap puts them on one and they never wrap at any card
+  width the grid produces.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -381,21 +405,29 @@
   }
 
   /*
-    The PDF's full-width outlined `Explore ↗`. A rectangle at the site's
-    44px floor beneath the PDF's 38; the boundary token at rest, the action
-    colour on hover because the whole card is the target it belongs to.
+    The PDF's full-width filled `Explore ↗` (13.1-01, D-02; the header's
+    measurement). One flex row that never wraps; the panel fill and the
+    divider hairline the page draws; the display face at the group-title
+    rung; a rectangle at the site's 44px floor beneath the PDF's 40; the
+    action colour on the hairline on hover because the whole card is the
+    target it belongs to.
   */
   .explore {
-    display: grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
     margin-block-start: auto;
     min-block-size: 44px;
     padding-inline: 16px;
-    border: 1px solid var(--color-boundary);
-    font-family: var(--font-sans);
-    font-size: 16px;
-    font-weight: 500;
+    border: 1px solid var(--color-divider);
+    background: var(--color-panel);
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
     line-height: 1.2;
+    white-space: nowrap;
     color: var(--color-ink);
     transition: border-color 140ms ease-out;
   }
