@@ -42,33 +42,52 @@
   The fill is re-made when the phase moves - the snippets in it are the same
   functions, so the rail and the inspector are not re-created. THE
   DESTINATION ZONE (13-12; 13-CONTEXT D-06; Bible section 9, D02; 13.1-CONTEXT
-  D-05) is the Target select over the pages the module enumerated, Apply to
-  ZONA, and beneath them the switching line or the unverified line, while a
-  ZONA is connected - and the PDF's sentence otherwise. It is the one control
-  on the site that moves the hardware, and THE SELECT'S CHANGE IS THE SWITCH:
-  there is no destination review, by the user's word at the fourth bench
-  ("When you change page form the drop down just change the page and thats
-  it.", bench line 5, which struck 13-CONTEXT D-06's second clause). Opening
-  the menu sends nothing; a change calls install.switchPage(value), which is
-  the target's request() then its confirm() - the restore heartbeat, then
-  exactly one switch - and the store gates every write on the module's own
-  page report until it arrives (the ACK gate, unmoved). Apply waits for that
-  report and is the same click as TRY ON DEVICE under the surface. On a
-  focused, closed select Chromium fires change on every ArrowUp / ArrowDown,
-  so each arrow press is a switch until the select disables at switching:
-  the visitor's own gesture on the one control that moves the hardware.
+  D-05, D-06) is DestinationZone.svelte - THE ONE COMPONENT THIS ROUTE AND
+  THE SANDBOX BOTH MOUNT since 13.1-06, by the user's word at the fourth
+  bench ("the second row in the page (so under the logo) the right side
+  should look like this: Target PAGE 1 on ZONA selector, Apply to ZONA
+  button, Store on ZONA button.", bench line 6): the Target select over the
+  pages the module enumerated, Apply to ZONA, Store on ZONA with the site's
+  one confirmation in its place, and beneath them the store's reason, the
+  over-budget refusal, the switching line or the unverified line, the
+  still-writing line and a write's failure block - while a ZONA is
+  connected, and the PDF's sentence otherwise. This route hands it the
+  entry's name, the tuner's five strings and the tuner's refusal, and
+  nothing else; the zone's header says the rest. It is the one control on
+  the site that moves the hardware, and THE SELECT'S CHANGE IS THE SWITCH:
+  there is no destination review ("When you change page form the drop down
+  just change the page and thats it.", bench line 5, which struck 13-CONTEXT
+  D-06's second clause). Opening the menu sends nothing; a change calls
+  install.switchPage(value), which is the target's request() then its
+  confirm() - the restore heartbeat, then exactly one switch - and the store
+  gates every write on the module's own page report until it arrives (the
+  ACK gate, unmoved). On a focused, closed select Chromium fires change on
+  every ArrowUp / ArrowDown, so each arrow press is a switch until the
+  select disables at switching: the visitor's own gesture on the one control
+  that moves the hardware.
   THE MONITOR IS ON LUA ENTRIES ONLY (13-10, D-14 Q4b): the bar
   under the surface renders the log the Lua host keeps, read through the
   live engine on every sample, and is ABSENT - not present and empty - on
   the nine preset-backed entries, whose vendored simulator keeps no log.
-  MidiMonitor.svelte's header carries the three limits. The install column
-  (TRY ON DEVICE, PUT BACK, KEEP ON DEVICE, CLEAR) is Phase 7's and is STILL
-  rendered here, under the surface, after 13-12 put Apply to ZONA in the bar:
-  the bar's Apply duplicates TRY ON DEVICE for one wave, because PUT BACK,
-  KEEP ON DEVICE, CLEAR and the install blocks have no home in the PDF's
-  page 5 yet (13-11 question 1, Reset under Device actions, is unanswered)
-  and moving the column is a decision 13-12 asked rather than took
-  (13-COPY-NEW.md). Its Escape rules (Z-10) are kept on the window.
+  MidiMonitor.svelte's header carries the three limits. THERE IS NO INSTALL
+  COLUMN UNDER THE SURFACE SINCE 13.1-06 (13.1-CONTEXT D-06, D-07; batch row
+  J.13, owed since the gate). Phase 7's column - TRY ON DEVICE with its
+  honesty block and its connect-state region, the hairline, NEXT, PUT BACK,
+  KEEP ON DEVICE or its confirmation, the reset (the header's since 13.1-05)
+  and DISCONNECT ZONA (Device actions' since 13-11) - was the block the user
+  called "totally unnecessary" once the bar carried Apply; it is gone, and
+  TryOnDevice.svelte, InstallState.svelte, KeepOnDevice.svelte and
+  PutBack.svelte were deleted with it. Put back has no control anywhere on
+  the site by the user's "remove" (D-07); the store's putBack() and the
+  snapshot before every write stay, reachable from the install probe under
+  the unlinked bench routes (named nowhere here: config-shape.spec.ts's
+  probe-route test forbids the path outside its own directory).
+  What the column did that the zone does not is done here instead: the
+  tuner's pair reaches install.observeConfig the moment it changes (the
+  effect below, TryOnDevice's, kept), which is what arms Store on ZONA and
+  closes the confirmation when a knob moves (Z-05, Z-21). The Escape rule
+  (Z-10) is kept on the window; the confirmation's focus return is the
+  zone's own.
 
   THE STAMP LANDING (SHARE-01, SHARE-03, D-13) runs after the engine is
   built and BEFORE the inspector mounts: the tuner builds in its own onMount
@@ -104,7 +123,7 @@
   import { beforeNavigate } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
-  import { onDestroy, onMount, tick, untrack } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import { FEELS_TERMS, FOR_TERMS, LEGACY_TAG_MAP } from "$lib/browse/facets";
   import { filterListing } from "$lib/browse/filter";
   import { forLabel } from "$lib/browse/labels";
@@ -119,13 +138,6 @@
   import { FRONT_DOOR } from "$lib/catalog/front-door";
   import { LISTING, listingById } from "$lib/catalog/listing";
   import { install } from "$lib/device/install.svelte";
-  import {
-    APPLY_LABEL,
-    TARGET_LABEL,
-    pageName,
-    switchingLine,
-    unverifiedLine,
-  } from "$lib/device/page-target";
   import { session } from "$lib/device/session.svelte";
   // Every specifier here is safe under config-shape.spec.ts test 13: none names
   // the vendored tree, the protocol package nor the compile surface. The image
@@ -158,14 +170,11 @@
   } from "$lib/tune/inspector-copy";
   import BrowseLink from "$lib/ui/BrowseLink.svelte";
   import CopyLink from "$lib/ui/CopyLink.svelte";
+  import DestinationZone from "$lib/ui/DestinationZone.svelte";
   import FidelityLine from "$lib/ui/FidelityLine.svelte";
-  import KeepConfirm from "$lib/ui/KeepConfirm.svelte";
-  import KeepOnDevice from "$lib/ui/KeepOnDevice.svelte";
   import MidiMonitor from "$lib/ui/MidiMonitor.svelte";
   import PadCanvas from "$lib/ui/PadCanvas.svelte";
   import PadFrame from "$lib/ui/PadFrame.svelte";
-  import PutBack from "$lib/ui/PutBack.svelte";
-  import TryOnDevice from "$lib/ui/TryOnDevice.svelte";
   import TuningRegion from "$lib/ui/TuningRegion.svelte";
   import Rail, { type RailRow } from "$lib/ui/shell/Rail.svelte";
   import { SURFACE_MAX } from "$lib/ui/shell/layout";
@@ -279,7 +288,7 @@
   /** Knob id to index for THIS entry, held here so the tuner can be re-keyed. */
   let knobIndices: Record<string, number> = $state({});
   let landing: Landing = $state(NO_LANDING);
-  /** The reason a disabled TRY ON DEVICE gives, or undefined when in budget. */
+  /** The reason a disabled Apply to ZONA gives, or undefined when in budget. */
   let overBudgetReason: string | undefined = $state(undefined);
   let configStrings:
     | {
@@ -300,10 +309,7 @@
   let mounted = false;
   /** Which open() is current; a late engine for a previous id is dropped. */
   let generation = 0;
-  let tryOn: ReturnType<typeof TryOnDevice> | undefined = $state(undefined);
   let region: ReturnType<typeof TuningRegion> | undefined = $state(undefined);
-  let panelRoot = $state<HTMLElement | null>(null);
-  let keep = $state<ReturnType<typeof KeepOnDevice> | undefined>(undefined);
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** The session store, or undefined. /playground/ guards it exactly this way. */
@@ -435,7 +441,6 @@
     generation += 1;
     window.removeEventListener("keydown", onWindowKeyDown);
     if (saveTimer !== undefined) clearTimeout(saveTimer);
-    void tryOn?.release();
     host?.destroy();
     host = undefined;
     engine = undefined;
@@ -540,24 +545,19 @@
   }
 
   /**
-   * ChosenPanel's one focus rule (07-UI-SPEC, Focus management), kept: when
-   * the confirmation closes, for any of its four reasons, focus goes to KEEP
-   * ON DEVICE if that control can hold it, and to region 3 otherwise.
+   * THE TUNER'S PAIR REACHES THE STORE the moment it changes - and reaches
+   * it as undefined the moment a knob moves, which is what disables Apply
+   * for the measuring window (D-17) and un-arms Store on ZONA (Z-05, Z-21).
+   * TryOnDevice.svelte's effect, kept here when the column went (13.1-06):
+   * the Sandbox route does the same for its landing. The effect writes a
+   * value it never reads, so there is no loop; untrack because observeConfig
+   * reads the store's own fields to recompute what "armed" means, and this
+   * must re-run on the pair alone.
    */
-  let wasOpen = false;
   $effect(() => {
-    const open = install.confirmOpen;
-    if (wasOpen && !open) void returnFocus();
-    wasOpen = open;
+    const pair = configStrings;
+    untrack(() => install.observeConfig(pair));
   });
-
-  async function returnFocus(): Promise<void> {
-    await tick();
-    if (keep?.focus()) return;
-    panelRoot
-      ?.querySelector<HTMLElement>('[data-testid="connect-status"]')
-      ?.focus();
-  }
 
   /* THE RECORD'S END OF LIFE. See the header. There is no check that the
      navigation is FROM /playground/ - this callback only exists while this
@@ -570,57 +570,14 @@
     clearBrowseReturn(store());
   });
 
-  /* THE DESTINATION ZONE'S STATE (13-12; 13-CONTEXT D-06). The reported page
-     is the module's own, through the session's fold, and it is what decides
-     whether the zone renders at all: no session, the bar's own sentence. The
-     pages offered are the install store's enumeration - the module's PAGECOUNT
-     answer - and the reported page alone until it lands. The select shows the
-     REQUESTED page while a review is open or a switch is pending, the reported
-     one otherwise; changing it opens the review and sends nothing; Apply is
-     enabled on the store's one condition (applyReady) and the tuner's own
-     refusals, and is the same click as TRY ON DEVICE under the surface. */
+  /* THE DESTINATION ZONE (13-12; 13-CONTEXT D-06; 13.1-06). The reported
+     page is the module's own, through the session's fold, and it is what
+     decides whether the zone renders at all: no session, the bar's own
+     sentence. Everything else - the pages offered, the select's value, the
+     switch, Apply's enablement, Store on ZONA and its confirmation, the
+     lines and the failure block - is DestinationZone.svelte's, and this
+     route hands it three props. */
   const reportedPage = $derived(session.identity?.activePage);
-  const targetPages = $derived(
-    install.pages.length > 0
-      ? install.pages
-      : reportedPage === undefined
-        ? []
-        : [reportedPage],
-  );
-  const targetValue = $derived(install.pageRequested ?? reportedPage);
-  const targetPending = $derived(install.pageStatus !== "reported");
-  const applyDisabled = $derived(
-    !install.applyReady ||
-      overBudgetReason !== undefined ||
-      configStrings === undefined ||
-      install.phase === "writing" ||
-      install.phase === "snapshotting",
-  );
-  const targetId = "destination-target";
-  let targetSelect = $state<HTMLSelectElement | null>(null);
-
-  /**
-   * THE SELECT CHANGED: THE SWITCH (13.1 D-05). One call - the target's
-   * request() then its confirm(), the heartbeat then the switch - and no
-   * review. A change that did not leave the wire (refused: a switch pending,
-   * a leg in flight, the module's own page, no session; or taken back in
-   * the microtask before the send) resolves false, and the select snaps back
-   * to the target the store holds. The await is inside the handler; the
-   * call site voids it.
-   */
-  async function onTargetChange(event: Event): Promise<void> {
-    const value = Number((event.currentTarget as HTMLSelectElement).value);
-    if (!Number.isInteger(value)) return;
-    if (!(await install.switchPage(value)) && targetSelect) {
-      targetSelect.value = String(targetValue ?? "");
-    }
-  }
-
-  /** Apply to ZONA: the bar's click, the same write as TRY ON DEVICE. */
-  function applyToZona(): void {
-    if (!listed) return;
-    void install.tryOnDevice(configStrings, listed.name);
-  }
 
   /* The shell, filled for the life of this page (13-05's bridge). The rail,
      the inspector and the destination are snippets and arrive with this
@@ -659,74 +616,20 @@
 
 <!--
   THE CONTEXT BAR'S DESTINATION ZONE while a ZONA is connected (13-12; PDF
-  pages 3 and 5; Bible section 9; 13-CONTEXT D-06; 13.1-CONTEXT D-05): the
-  Target select over the pages the module enumerated, the reported page
-  marked, Apply to ZONA, and beneath the row either the switching line (the
-  module's report is awaited) or the unverified line (it never came). The
-  target's `requested` state is never on the screen: it exists for the one
-  microtask between request() and confirm() inside install.switchPage(), and
-  nothing renders it. Without a session the bar renders its own "Preview
-  without hardware". The page word is the PDF's ("Page 1"), rendered as the
-  module reports it. Opening the menu sends nothing; the select's CHANGE is
-  the switch - install.switchPage(value), the heartbeat then the switch, no
-  review (the user's word, bench line 5) - and on a focused, closed select a
-  keyboard arrow is a change in Chromium, so each arrow press is a switch
-  until the select disables at switching. Apply is install.tryOnDevice() -
-  the same write as TRY ON DEVICE - and waits for the module's own report.
+  pages 3 and 5; Bible section 9; 13-CONTEXT D-06; 13.1-CONTEXT D-05, D-06):
+  DestinationZone.svelte, the one component both routes mount - Target,
+  Apply to ZONA, Store on ZONA, the lines and the failure block beneath.
+  Without a session the bar renders its own "Preview without hardware". The
+  route hands the entry's name (the store's label for the write), the
+  tuner's five strings (undefined while it measures) and the tuner's
+  over-budget sentence (Apply is disabled on it and described by it).
 -->
 {#snippet destination()}
-  <div
-    class="destination"
-    data-testid="destination"
-    data-status={install.pageStatus}
-  >
-    <div class="destination-row">
-      <label class="destination-label" for={targetId}>{TARGET_LABEL}</label>
-      <select
-        bind:this={targetSelect}
-        id={targetId}
-        class="destination-select"
-        data-testid="destination-page"
-        value={String(targetValue ?? "")}
-        disabled={install.pageStatus === "switching" ||
-          install.phase === "writing"}
-        aria-describedby={targetPending ? "destination-line" : undefined}
-        onchange={(event) => void onTargetChange(event)}
-      >
-        {#each targetPages as page (page)}
-          <option value={String(page)} data-reported={page === reportedPage}>
-            {pageName(page)}{page === reportedPage ? " · on ZONA" : ""}
-          </option>
-        {/each}
-      </select>
-      <button
-        class="destination-apply"
-        type="button"
-        data-testid="apply-to-zona"
-        disabled={applyDisabled}
-        onclick={applyToZona}
-      >
-        {APPLY_LABEL}
-      </button>
-    </div>
-    {#if install.pageStatus === "switching" && install.pageRequested !== undefined}
-      <p
-        class="destination-line"
-        id="destination-line"
-        data-testid="destination-line"
-      >
-        {switchingLine(install.pageRequested)}
-      </p>
-    {:else if install.pageStatus === "unverified" && install.pageRequested !== undefined}
-      <p
-        class="destination-line unverified"
-        id="destination-line"
-        data-testid="destination-line"
-      >
-        {unverifiedLine(install.pageRequested, install.pageReported)}
-      </p>
-    {/if}
-  </div>
+  <DestinationZone
+    name={listed?.name ?? ""}
+    config={configStrings}
+    refusal={overBudgetReason}
+  />
 {/snippet}
 
 <!-- PDF page 5's rail: CONFIGURATIONS, the way back, the numbered rows, Save a copy. -->
@@ -897,42 +800,12 @@
       </div>
 
       <div class="fidelity"><FidelityLine entry={listed} /></div>
-
       <!--
-        Phase 7's install column, ChosenPanel.svelte's contents in the order
-        D-08 gave them: the primary control with its honesty line and its
-        connect-state region, a hairline, the NEXT caption and the column PUT
-        BACK / KEEP ON DEVICE (or its confirmation). The share control moved
-        to the inspector's pinned pair. The reset lives in the header since
-        13.1-05 (13.1-CONTEXT D-04: the user's Clear, top right, beside the
-        connection control, on every page) and the column no longer mounts
-        it. 13-11 moves Apply to ZONA into the context bar; the column's
-        remainder goes with 13.1-06 (D-06).
+        Nothing beneath the fidelity line since 13.1-06. Phase 7's install
+        column stood here from 07-10 to 13.1-06 (the header says what it
+        was); the bar's destination zone is the whole of the install
+        interface now, and the reset is the header's.
       -->
-      <section
-        bind:this={panelRoot}
-        class="panel"
-        data-testid="chosen-panel"
-        data-entry={listed.id}
-        aria-label={listed.name}
-      >
-        <TryOnDevice
-          entry={listed}
-          budgetReason={overBudgetReason}
-          config={configStrings}
-          bind:this={tryOn}
-        />
-        <hr class="rule" />
-        <p class="caption" data-testid="next-caption">NEXT</p>
-        <div class="install-row">
-          <PutBack />
-          {#if install.confirmOpen}
-            <KeepConfirm onclose={() => install.dismissConfirm()} />
-          {:else}
-            <KeepOnDevice bind:this={keep} />
-          {/if}
-        </div>
-      </section>
     {/key}
   {:else}
     <!-- An address nobody has heard of: the rail is the way on, and the line says so. -->
@@ -1064,42 +937,6 @@
     margin-inline: auto;
   }
 
-  /* Phase 7's column, in its own outlined box. Square (D-01). */
-  .panel {
-    inline-size: min(100%, var(--surface-max));
-    box-sizing: border-box;
-    margin-inline: auto;
-    padding: 24px;
-    border: 1px solid var(--color-boundary);
-  }
-
-  /* 24px, a hairline, 24px. The only hairline in this region. */
-  .rule {
-    margin-block: 24px;
-    border: 0;
-    border-block-start: 1px solid var(--color-divider);
-  }
-
-  /* The NEXT caption: Micro, uppercase, in the quiet rung, under the hairline. */
-  .caption {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ink-quiet);
-  }
-
-  /* One column at a 16px rhythm: PUT BACK, KEEP ON DEVICE or its confirmation (Z-03); the reset is the header's since 13.1-05. */
-  .install-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-    margin-block-start: 16px;
-  }
-
   /* The rail's pinned Save a copy: page 5's outlined box, full width, 44px. */
   .pinned-save {
     appearance: none;
@@ -1120,91 +957,6 @@
 
   .pinned-save:hover:not(:disabled) {
     border-color: var(--color-action);
-  }
-
-  /* THE DESTINATION ZONE (13-12): the Target label, the select and the filled
-     Apply on one row (PDF pages 3 and 5: the select about 104 wide, the
-     action about 194 x 33 filled in the action colour with near-black
-     label - the 44px floor wins on height, as it does for every control);
-     the review or the one line beneath. No corner anywhere (D-01). */
-  .destination {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-    padding-block: 8px;
-  }
-
-  .destination-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .destination-label {
-    font-family: var(--font-sans);
-    font-size: 13px;
-    line-height: 1.45;
-    color: var(--color-ink-quiet);
-  }
-
-  .destination-select {
-    appearance: auto;
-    min-block-size: 44px;
-    min-inline-size: 104px;
-    padding-inline: 8px;
-    border: 1px solid var(--color-boundary);
-    background: var(--color-workspace);
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-ink);
-    cursor: pointer;
-  }
-
-  .destination-select:disabled {
-    color: var(--color-ink-quiet);
-    cursor: not-allowed;
-  }
-
-  .destination-apply {
-    appearance: none;
-    min-block-size: 44px;
-    min-inline-size: 194px;
-    padding-inline: 24px;
-    border: 1px solid var(--color-action);
-    background: var(--color-action);
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--color-workspace);
-    cursor: pointer;
-  }
-
-  .destination-apply:disabled {
-    border-color: var(--color-boundary);
-    background: transparent;
-    color: var(--color-ink-quiet);
-    cursor: not-allowed;
-  }
-
-  /* The switching line and the unverified line: the bar's quiet 13px, the
-     unverified one at full ink because it is a state the visitor must read,
-     never the alarm red (KeepConfirm.svelte says why the red means one thing
-     on this page). */
-  .destination-line {
-    margin: 0;
-    max-inline-size: 420px;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    line-height: 1.45;
-    text-align: end;
-    color: var(--color-ink-quiet);
-  }
-
-  .destination-line.unverified {
-    color: var(--color-ink);
   }
 
   /* The inspector's pinned pair member: the same outlined box, in its half. */

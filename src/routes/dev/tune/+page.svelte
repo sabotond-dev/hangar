@@ -101,7 +101,7 @@
 <script lang="ts">
   import { portedEntry } from "$lib/catalog";
   import type { FrontDoorEntry } from "$lib/catalog/front-door";
-  import TryOnDevice from "$lib/ui/TryOnDevice.svelte";
+  import DestinationZone from "$lib/ui/DestinationZone.svelte";
   import TuningRegion from "$lib/ui/TuningRegion.svelte";
 
   const ENTRY_ID = "tpad";
@@ -115,9 +115,13 @@
   const entry = portedEntry(ENTRY_ID);
 
   /**
-   * The shape TryOnDevice takes. It is built here rather than looked up in
-   * FRONT_DOOR because tpad is deliberately not in that row - which is the
-   * fourth reason this page exists. `motion` is the value front-door.spec.ts
+   * The entry's shape, as the front door carries one. It is built here
+   * rather than looked up in FRONT_DOOR because tpad is deliberately not in
+   * that row - which is the fourth reason this page exists. Since 13.1-06
+   * only its name is read: the disabled control over budget is the context
+   * bar's Apply to ZONA (DestinationZone.svelte, the one component both
+   * routes mount; TryOnDevice.svelte is deleted), which takes the name, the
+   * pair (none here - this probe measures, it never writes) and the refusal. `motion` is the value front-door.spec.ts
    * derives for tpad from golden-frames.json: it lights nothing at any sampled
    * tick.
    */
@@ -214,7 +218,7 @@
 <p data-testid="probe-stamp">{stamp ?? "none"}</p>
 <p data-testid="probe-previews">{previews}</p>
 
-<TryOnDevice entry={shown} {budgetReason} />
+<DestinationZone name={shown.name} refusal={budgetReason} />
 
 <TuningRegion
   entryId={ENTRY_ID}

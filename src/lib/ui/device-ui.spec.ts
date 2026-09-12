@@ -42,6 +42,29 @@
 // ClearConfirm, no trace of the retired confirmation) lives in the rewritten
 // test. The count is one fewer here and one more in shell.spec.ts.
 //
+// PLAN 13.1-06 DELETES TWO, ADDS ONE AND RE-AIMS THREE. The user removed the
+// install column under the workspace's surface and Put back with it
+// (13.1-CONTEXT D-06, D-07: "the block i attached a screenshot of is totally
+// unnecessary remove that. we dont even need the Put back function"), and
+// asked for the bar's right zone to read Target, Apply to ZONA, Store on
+// ZONA - so TryOnDevice.svelte, InstallState.svelte, KeepOnDevice.svelte and
+// PutBack.svelte are deleted by name, DestinationZone.svelte is the ONE
+// component both routes mount, and the tests whose subject was the column
+// went with it: "the three install leaves: no compiler specifier, the 44px
+// floor, the twin cells, and a group that is not a dialog" and "the reserved
+// cells are the measured arithmetic, the honesty slot holds five twins and no
+// never-writes literal, SAFE_NOTE is not a twin, KEEP ON DEVICE is borderless,
+// and the install row is a column" are DELETED BY TITLE. What they held that
+// still has a subject moved into the new zone test: the zone's specifiers,
+// the 44px floor per control, KeepConfirm as a group and never a dialog, no
+// aria-label, no interval. "every install sentence on screen comes from the
+// copy modules" now walks the two install leaves that remain (the zone and
+// the confirmation); the anti-collapse test reads the zone's phase-to-builder
+// mapping where it read InstallState's branches - the four uncertain phases
+// keep four bodies, and the six success phases have the bar's clause and no
+// body (their bodies retired with the file); "no destination review" reads
+// the one zone where it read two. INSTALL_LEAVES is re-pinned to the two.
+//
 // PLAN 13-11 ADDS THREE, and two of them RENDER rather than scan: the device
 // band was re-skinned and re-homed (the header's control into the shell, the
 // disclosure into the footer as Device actions, the install phase into the
@@ -77,13 +100,21 @@ import {
   CLEAR_LABEL,
   CLEAR_REASONS,
   type ClearReason,
+  HONESTY_INCAPABLE,
+  HONESTY_NO_SESSION,
+  HONESTY_SNAPSHOTTING,
+  KEEP_LABEL,
+  KEEP_REASONS,
+  STILL_WRITING_LINE,
   clearLine,
   clearedCaption,
   clearingLabel,
+  honestyReady,
   keptCaption,
   keptMismatchBlock,
   nothingLandedBlock,
   partialBlock,
+  restoredCaption,
   settledCaption,
   unconfirmedBlock,
 } from "$lib/device/install-copy";
@@ -101,6 +132,7 @@ import {
 } from "$lib/device/session-copy";
 import { session } from "$lib/device/session.svelte";
 import Clear from "./Clear.svelte";
+import DestinationZone from "./DestinationZone.svelte";
 import { PANEL_ID } from "./device-drawer.svelte";
 import DeviceActions from "./DeviceActions.svelte";
 import ConnectionControl from "./shell/ConnectionControl.svelte";
@@ -156,14 +188,17 @@ const SENTENCE_COMPONENTS: readonly string[] = [
 ];
 
 /**
- * The three leaves plan 07-09 adds for the install flow. Listed, like the seven
+ * The install leaves: TWO since 13.1-06. Plan 07-09 added three - InstallState,
+ * KeepConfirm and PutBack - and 13.1-06 deleted two of them with the column
+ * and TryOnDevice (13.1-CONTEXT D-06, D-07); what renders the install store on
+ * a visitor's screen now is the context bar's destination zone and the
+ * confirmation it mounts in Store on ZONA's place. Listed, like the seven
  * above, so a rename is a visible omission; checked against the directory in
- * test 8.
+ * the zone test.
  */
 const INSTALL_LEAVES: readonly string[] = [
-  "InstallState.svelte",
+  "DestinationZone.svelte",
   "KeepConfirm.svelte",
-  "PutBack.svelte",
 ];
 
 /**
@@ -560,7 +595,7 @@ describe("the device UI's structural rules", () => {
     ).toContain("hydrated = true");
   });
 
-  it("exactly one session live region on the site, and the panel is not it", () => {
+  it("exactly one session live region on the site, and the destination zone is not it", () => {
     // 06-UI-SPEC Y-16 and D-17: THREE live regions on the whole site, with
     // disjoint triggers - the session's (SessionAnnouncer.svelte, mounted once
     // in the layout), Phase 5's tuning region (TuningRegion.svelte) and Phase
@@ -584,8 +619,13 @@ describe("the device UI's structural rules", () => {
     //
     // The needle is assembled from fragments so this file's own text never
     // matches it, should the walk ever widen to specs.
+    // THE SUBJECT SINCE 13.1-06 is the context bar's destination zone: it is
+    // what renders the install store's failure blocks and its still-writing
+    // line now that TryOnDevice.svelte and InstallState.svelte are deleted
+    // (13.1-CONTEXT D-06), so it is the surface that would be tempted to
+    // announce a second time.
     const LIVE = ["aria", "live"].join("-");
-    const PANEL = `${UI_DIR}/TryOnDevice.svelte`;
+    const PANEL = `${UI_DIR}/DestinationZone.svelte`;
     const EXPECTED_CARRIERS = [
       `${UI_DIR}/BrowseToolbar.svelte`,
       `${UI_DIR}/SessionAnnouncer.svelte`,
@@ -609,7 +649,7 @@ describe("the device UI's structural rules", () => {
       files.length,
       "the walk over src/lib/ui and src/routes found the site's components",
     ).toBeGreaterThan(20);
-    expect(files, "the chosen panel is inside the walk").toContain(PANEL);
+    expect(files, "the destination zone is inside the walk").toContain(PANEL);
 
     const counts = new Map(
       files.map((file) => [file, occurrences(code(file), LIVE)] as const),
@@ -630,7 +670,7 @@ describe("the device UI's structural rules", () => {
     }
     expect(
       counts.get(PANEL),
-      "TryOnDevice.svelte carries an aria-live - the panel is announcing the session a second time",
+      "DestinationZone.svelte carries an aria-live - the zone is announcing the session a second time",
     ).toBe(0);
     expect(total, "three live regions on the whole site, no more").toBe(3);
 
@@ -643,33 +683,117 @@ describe("the device UI's structural rules", () => {
     ).toBeGreaterThan(occurrences(code(tuning), LIVE));
   });
 
-  it("the three install leaves: no compiler specifier, the 44px floor, the twin cells, and a group that is not a dialog", () => {
-    // Plan 07-09. The three are listed and on disk, like the seven above.
+  it("the destination zone: one component for both routes - Target, Apply described by the honesty line, Store or its confirmation in the same place, the reason, the refusal, the switching or unverified line, a failure's block; no Put back; a group that is not a dialog", () => {
+    // Plan 13.1-06; 13.1-CONTEXT D-06 and D-07 (bench line 6: "the second
+    // row in the page (so under the logo) the right side should look like
+    // this: Target PAGE 1 on ZONA selector, Apply to ZONA button, Store on
+    // ZONA button"; "we dont even need the Put back function"). Absorbs what
+    // the two deleted column tests held that still has a subject.
     const present = new Set(
       readdirSync(repo(UI_DIR))
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(INSTALL_LEAVES.length, "three leaves were listed").toBe(3);
+    expect(INSTALL_LEAVES.length, "two leaves were listed").toBe(2);
     expect(
       INSTALL_LEAVES.filter((name) => !present.has(name)),
-      "a listed install leaf is not on disk - renamed or deleted, and this test has silently stopped covering it",
+      "a listed install leaf is not on disk",
     ).toEqual([]);
-
-    // LIGHT. Every static specifier is one of the chunk guard's permitted
-    // paths, the framework itself, or a sibling component under src/lib/ui/
-    // by relative path (FailureBlock, for the seven failure-shaped blocks).
-    // config-shape.spec.ts test 13 walks the same files; this holds the exact
-    // list directly, so a `$lib/tune/copy` or a `$lib/catalog/front-door` -
-    // both light, both permitted on OTHER panels - is still an offender here,
-    // because a leaf that renders the install store's state needs neither.
-    const specifiers: { file: string; specifier: string }[] = [];
-    for (const name of INSTALL_LEAVES) {
-      const file = componentPath(name);
-      for (const match of code(file).matchAll(/from[ ]*["']([^"']+)["']/g)) {
-        specifiers.push({ file, specifier: match[1] });
-      }
+    // THE FOUR ARE GONE, not left mounted nowhere (D-12's precedent).
+    for (const gone of [
+      "TryOnDevice.svelte",
+      "InstallState.svelte",
+      "KeepOnDevice.svelte",
+      "PutBack.svelte",
+    ]) {
+      expect(present.has(gone), `${gone} is still on disk`).toBe(false);
     }
+
+    // THE SOURCE. The four test ids; no put-back; no dialog; Apply described;
+    // the failure block; the 44px floor on every control's own class; every
+    // border-radius zero; the honesty line derived, not retyped.
+    const zone = code(componentPath("DestinationZone.svelte"));
+    expect(zone.length, "the zone's code was read").toBeGreaterThan(3000);
+    for (const id of [
+      "destination",
+      "destination-page",
+      "apply-to-zona",
+      "store-on-zona",
+      "store-confirm",
+      "store-on-zona-line",
+      "apply-refusal",
+      "destination-line",
+      "apply-honesty",
+      "still-writing",
+    ]) {
+      expect(
+        occurrences(zone, `data-testid="${id}"`),
+        `the zone carries ${id} once`,
+      ).toBe(id === "destination-line" ? 2 : 1);
+    }
+    expect(zone).toContain('testid="install-failure"');
+    const PUT_BACK_ID = ["put", "-back"].join("");
+    expect(
+      occurrences(zone, `data-testid="${PUT_BACK_ID}"`),
+      "the zone carries a Put back control",
+    ).toBe(0);
+    expect(occurrences(zone, "<PutBack"), "the zone mounts PutBack").toBe(0);
+    expect(
+      occurrences(zone, "install.putBack("),
+      "the zone calls the restore",
+    ).toBe(0);
+    const DIALOG = ["role=", '"dia', 'log"'].join("");
+    const MODAL = ["aria-", "modal"].join("");
+    const LABEL = ["aria-", "label="].join("");
+    const INTERVAL = ["set", "Interval"].join("");
+    for (const needle of [DIALOG, MODAL, LABEL, INTERVAL]) {
+      expect(occurrences(zone, needle), `the zone carries ${needle}`).toBe(0);
+    }
+    expect(zone, "Apply is described").toMatch(
+      /data-testid="apply-to-zona"[^>]*aria-describedby=\{applyDescribedBy\}/,
+    );
+    expect(zone).toContain("<FailureBlock block={failure}");
+    expect(zone).toContain("install.tryOnDevice(config, name)");
+    expect(zone).toContain("install.openConfirm()");
+    expect(zone).toContain("install.switchPage(value)");
+    expect(zone).toContain("<KeepConfirm onclose={closeConfirm} />");
+    for (const constant of [
+      "HONESTY_INCAPABLE",
+      "HONESTY_SNAPSHOTTING",
+      "HONESTY_NO_SESSION",
+      "honestyReady(page)",
+      "STILL_WRITING_LINE",
+    ]) {
+      expect(zone, `the zone reads ${constant}`).toContain(constant);
+    }
+    const rules = rulesOf(zone);
+    for (const cls of [
+      "destination-select",
+      "destination-apply",
+      "destination-store",
+    ]) {
+      const body = rules
+        .filter((r) => r.selector.trim() === `.${cls}`)
+        .map((r) => r.body)
+        .join(" ");
+      expect(body, `.${cls} has a rule`).not.toBe("");
+      expect(body, `.${cls} declares the 44px floor`).toContain(
+        "min-block-size: 44px",
+      );
+      expect(body, `.${cls} is square`).toContain("border-radius: 0");
+    }
+    const radii = [...zone.matchAll(/border-radius:[ ]*([^;]+);/g)].map((m) =>
+      m[1].trim(),
+    );
+    expect(radii.length, "the zone declares radii").toBeGreaterThan(0);
+    expect(
+      radii.filter((r) => r !== "0"),
+      "a radius above zero",
+    ).toEqual([]);
+    // Every specifier is a permitted path, the framework, or a sibling.
+    const specifiers = [...zone.matchAll(/from[ ]*["']([^"']+)["']/g)].map(
+      (m) => m[1],
+    );
     expect(specifiers.length, "static imports were collected").toBeGreaterThan(
       3,
     );
@@ -677,145 +801,271 @@ describe("the device UI's structural rules", () => {
       specifier.startsWith("./") &&
       specifier.endsWith(".svelte") &&
       present.has(specifier.slice(2));
-    const offenders = specifiers.filter(
-      ({ specifier }) =>
-        !PERMITTED_SPECIFIERS.includes(specifier) &&
-        specifier !== "svelte" &&
-        !sibling(specifier),
-    );
     expect(
-      offenders.map((o) => `${o.file} -> ${o.specifier}`),
-      "an install leaf names a specifier that is neither a permitted path, the framework, nor a sibling component",
-    ).toEqual([]);
-    expect(
-      specifiers.filter(({ specifier }) =>
-        COMPILER_MARKERS.some((marker) => specifier.includes(marker)),
-      ).length,
-      "the leaves name at least one marker-matching permitted path - if this is zero the exact-list rule above is vacuous",
-    ).toBeGreaterThan(0);
-
-    // REACHABLE. Every class on a <button declares the 44px floor, per
-    // control, the way test 3 holds the seven - and EVERY min-block-size a
-    // control's class declares is 44px, not merely one of them, so a second
-    // declaration that lowers the floor after the first is red too (observed
-    // green under a presence-only check, plan 07-09). InstallState renders no
-    // control at all - a state block is not a tab stop - which is the
-    // discrimination that keeps this rule non-vacuous.
-    const withControls: string[] = [];
-    const withoutControls: string[] = [];
-    const missing: string[] = [];
-    for (const name of INSTALL_LEAVES) {
-      const source = code(componentPath(name));
-      if (!source.includes("<button")) {
-        withoutControls.push(name);
-        continue;
-      }
-      withControls.push(name);
-      const rules = rulesOf(source);
-      for (const cls of new Set(interactiveClassesOf(source))) {
-        const body = rules
-          .filter((r) => r.selector.includes(`.${cls}`))
-          .map((r) => r.body)
-          .join(" ");
-        const floors = [...body.matchAll(/min-block-size:[ ]*([0-9]+px)/g)].map(
-          (m) => m[1],
-        );
-        if (floors.length === 0 || floors.some((px) => px !== "44px"))
-          missing.push(`${name} -> .${cls} [${floors.join(", ")}]`);
-      }
-    }
-    expect(withControls, "PutBack and KeepConfirm render a button").toEqual([
-      "KeepConfirm.svelte",
-      "PutBack.svelte",
-    ]);
-    expect(withoutControls, "InstallState renders no control").toEqual([
-      "InstallState.svelte",
-    ]);
-    expect(
-      missing,
-      "a control's own class does not declare min-block-size: 44px, or declares another floor beside it - the interactive floor is per control",
+      specifiers.filter(
+        (specifier) =>
+          !PERMITTED_SPECIFIERS.includes(specifier) &&
+          specifier !== "svelte" &&
+          !sibling(specifier),
+      ),
+      "the zone names a specifier that is neither a permitted path, the framework, nor a sibling component",
     ).toEqual([]);
 
-    // STEADY. PutBack renders all three of its lines - as sizing twins, the
-    // inactive ones hidden - in a cell with the 72px floor (Z-18). Since
-    // 13-18 the three are the needs-zona line and page-target's two
-    // page-naming forms; Phase 10's page-less pair retired (D-23).
-    const putBack = code(componentPath("PutBack.svelte"));
-    for (const line of [
-      "PUT_BACK_NEEDS_ZONA",
-      "putBackPageLine(page)",
-      "putBackPageLineAfterKeep(page)",
-    ]) {
+    // BOTH ROUTES MOUNT THE ONE ZONE, once each, and mount none of the four.
+    const SANDBOX = "src/routes/sandbox/[draftId]/+page.svelte";
+    for (const [file, source] of [
+      ["the workspace route", code(WORKSPACE)],
+      ["the Sandbox route", code(SANDBOX)],
+    ] as const) {
       expect(
-        occurrences(putBack, `{${line}}`),
-        `PutBack renders ${line} in its cell`,
+        occurrences(source, "<DestinationZone"),
+        `${file} mounts the zone once`,
       ).toBe(1);
-    }
-    for (const retired of ["PUT_BACK_LINE}", "PUT_BACK_LINE_AFTER_KEEP"]) {
+      for (const tag of [
+        "<TryOnDevice",
+        "<PutBack",
+        "<KeepOnDevice",
+        "<InstallState",
+        "<KeepConfirm",
+      ]) {
+        expect(occurrences(source, tag), `${file} mounts ${tag}`).toBe(0);
+      }
       expect(
-        occurrences(putBack, retired),
-        `PutBack still renders the retired ${retired}`,
+        occurrences(source, `data-testid="${PUT_BACK_ID}"`),
+        `${file} draws a Put back`,
       ).toBe(0);
     }
-    expect(putBack, "the inactive twins are visibility: hidden").toContain(
-      "visibility: hidden",
-    );
-    expect(
-      putBack,
-      "the Put back cell no longer reserves 72px - three Body lines, the floor Phase 10 measured and 13-18 kept when the caps retired. The line changes after a store, so a cell that grows moves a destructive control under a hand already reaching for it (Z-18)",
-    ).toContain("min-block-size: 72px");
-    expect(putBack, "the twins are aria-hidden").toContain("aria-hidden=");
-
-    // A GROUP, NOT A DIALOG. The needles it must not carry are assembled from
-    // fragments so this file never contains them whole.
-    const confirm = code(componentPath("KeepConfirm.svelte"));
-    for (const needle of [
-      'role="group"',
-      'tabindex="-1"',
-      "aria-labelledby",
-      "aria-describedby",
+    const workspace = code(WORKSPACE);
+    for (const gone of [
+      'data-testid="chosen-panel"',
+      'data-testid="next-caption"',
+      "install-row",
+      "panelRoot",
     ]) {
-      expect(confirm, `KeepConfirm carries ${needle}`).toContain(needle);
-    }
-    const DIALOG = ["role=", '"dia', 'log"'].join("");
-    const MODAL = ["aria-", "modal"].join("");
-    const INERT = ["in", "ert"].join("");
-    const LABEL = ["aria-", "label="].join("");
-    for (const needle of [DIALOG, MODAL, INERT, LABEL]) {
       expect(
-        occurrences(confirm, needle),
-        `KeepConfirm carries ${needle} - the confirmation is an inline group, never a dialog, never modal, never inert, and its accessible names are its visible labels`,
+        occurrences(workspace, gone),
+        `the column is still here: ${gone}`,
       ).toBe(0);
     }
-    // The strip is load-bearing here too: the header says in prose what the
-    // markup must not carry.
     expect(
-      occurrences(raw(componentPath("KeepConfirm.svelte")), DIALOG),
-      "KeepConfirm's header no longer names the dialog role in prose - the strip has nothing to strip and its reason should be re-examined",
-    ).toBeGreaterThan(0);
-    for (const name of [...INSTALL_LEAVES, ...DEVICE_COMPONENTS]) {
-      expect(
-        occurrences(code(componentPath(name)), LABEL),
-        `${name} carries an aria-label - accessible names are the visible labels`,
-      ).toBe(0);
-    }
+      workspace,
+      "the tuner's pair still reaches the store (TryOnDevice's effect, kept in the route)",
+    ).toContain("install.observeConfig(pair)");
+    const actions = code(`${UI_DIR}/sandbox/SurfaceActions.svelte`);
+    expect(
+      occurrences(actions, "destination"),
+      "SurfaceActions still carries a destination half",
+    ).toBe(0);
+    expect(occurrences(actions, "zone"), "the zone prop is gone").toBe(0);
+    // NOTHING UNDER src/lib/ui/ OR THE ROUTES DRAWS A PUT BACK CONTROL. The
+    // probe under src/routes/dev/ keeps its own button for the machinery.
+    const walk = (dir: string, out: string[] = []): string[] => {
+      for (const entry of readdirSync(repo(dir), { withFileTypes: true })) {
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) {
+          if (rel !== "src/routes/dev") walk(rel, out);
+        } else if (entry.name.endsWith(".svelte")) out.push(rel);
+      }
+      return out;
+    };
+    const drawn = walk(UI_DIR).concat(walk("src/routes"));
+    expect(drawn.length, "the walk read components").toBeGreaterThan(30);
+    expect(
+      drawn.filter(
+        (file) => occurrences(code(file), `data-testid="${PUT_BACK_ID}"`) > 0,
+      ),
+      "a component or route outside the probe draws a Put back control",
+    ).toEqual([]);
+    expect(
+      drawn.filter((file) => occurrences(code(file), "install.putBack(") > 0),
+      "a component or route outside the probe calls the restore",
+    ).toEqual([]);
+    expect(
+      occurrences(
+        code("src/routes/dev/install/+page.svelte"),
+        "install.putBack(",
+      ),
+      "the probe keeps its restore button",
+    ).toBe(1);
+    expect(
+      occurrences(code("src/lib/device/install.svelte.ts"), "async putBack()"),
+      "the store keeps putBack()",
+    ).toBe(1);
 
-    // NO INTERVAL. The 2000 ms line is a setTimeout on the store (Z-09).
-    const INTERVAL = ["set", "Interval"].join("");
-    for (const name of INSTALL_LEAVES) {
+    // RENDERED, over the real singletons, under a hand-set mirror. Every
+    // field written is put back to what it was.
+    const snapshot: ConfigStrings = {
+      systemTimer: "",
+      system: "",
+      systemUtility: "",
+      setup: "",
+      timer: "",
+    };
+    const PAGE = 1;
+    const props = { name: "Arc", config: snapshot };
+    const decode = (t: string) =>
+      t.replace(/&#39;|&#x27;/g, "'").replace(/&#8217;/g, "’");
+    const spanText = (body: string, testid: string) => {
+      const m = new RegExp(`data-testid="${testid}"[^>]*>([^]*?)</span>`).exec(
+        body,
+      );
+      return m ? decode(m[1].replace(/<[^>]+>/g, "").trim()) : undefined;
+    };
+    const before = {
+      session: session.phase,
+      identity: session.identity,
+      phase: install.phase,
+      action: install.action,
+      name: install.name,
+      snapshot: install.snapshot,
+      snapshotPage: install.snapshotPage,
+      applyReady: install.applyReady,
+      slow: install.slow,
+      confirmOpen: install.confirmOpen,
+    };
+    try {
+      session.phase = "connected";
+      install.snapshotPage = PAGE;
+      install.snapshot = snapshot;
+      install.applyReady = true;
+      install.action = undefined;
+      install.name = undefined;
+      install.confirmOpen = false;
+      install.slow = false;
+
+      // READY: the honesty line is Apply's description, Store is disabled
+      // with the never-tried reason, no failure block, no still-writing line.
+      install.phase = "ready";
+      const ready = render(DestinationZone, { props }).body;
+      expect(ready).toContain('data-testid="apply-to-zona"');
+      expect(ready).toContain('data-testid="store-on-zona"');
+      expect(ready).toContain('data-testid="destination-page"');
+      expect(ready).not.toContain(`data-testid="${PUT_BACK_ID}"`);
+      expect(spanText(ready, "apply-honesty"), "ready: the honesty line").toBe(
+        honestyReady(PAGE),
+      );
+      const applyTag = /<button[^>]*data-testid="apply-to-zona"[^>]*>/.exec(
+        ready,
+      )?.[0];
+      expect(applyTag, "Apply renders").toBeDefined();
+      const honestyId = /id="([^"]+)" data-testid="apply-honesty"/.exec(
+        ready,
+      )?.[1];
+      expect(honestyId, "the honesty span has an id").toBeDefined();
+      expect(applyTag, "Apply is described by the honesty line").toContain(
+        `aria-describedby="${honestyId}"`,
+      );
+      expect(ready).toContain(KEEP_LABEL);
+      expect(decode(ready)).toContain(KEEP_REASONS["never-tried"]);
+      expect(ready).not.toContain('data-testid="install-failure"');
+      expect(ready).not.toContain('data-testid="still-writing"');
+      expect(ready).not.toContain(DIALOG);
+
+      // OVER BUDGET: Apply is a real disabled, described by the honesty line
+      // AND the refusal, and the refusal is on the screen.
+      const refused = render(DestinationZone, {
+        props: { ...props, refusal: "Setup is 910 of 908, 2 over." },
+      }).body;
+      const refusedTag = /<button[^>]*data-testid="apply-to-zona"[^>]*>/.exec(
+        refused,
+      )?.[0];
+      expect(refusedTag).toContain(" disabled");
+      expect(refusedTag).toMatch(
+        /aria-describedby="[^"]+-honesty [^"]+-refusal"/,
+      );
+      expect(refused).toContain('data-testid="apply-refusal"');
+      expect(refused).toContain("Setup is 910 of 908, 2 over.");
+
+      // THE HONESTY LINE'S OTHER FORMS: no session, snapshotting, incapable.
+      session.phase = "idle";
+      install.phase = "idle";
       expect(
-        occurrences(code(componentPath(name)), INTERVAL),
-        `${name} reaches ${INTERVAL}`,
-      ).toBe(0);
+        spanText(render(DestinationZone, { props }).body, "apply-honesty"),
+        "no session",
+      ).toBe(HONESTY_NO_SESSION);
+      session.phase = "connected";
+      install.phase = "snapshotting";
+      expect(
+        spanText(render(DestinationZone, { props }).body, "apply-honesty"),
+        "snapshotting",
+      ).toBe(HONESTY_SNAPSHOTTING);
+      session.phase = "unsupported";
+      install.phase = "idle";
+      expect(
+        spanText(render(DestinationZone, { props }).body, "apply-honesty"),
+        "incapable",
+      ).toBe(HONESTY_INCAPABLE);
+      session.phase = "connected";
+
+      // NOTHING LANDED (W-12): the block under install-failure with its
+      // title and its two steps, and the steps name Apply to ZONA and the
+      // cable; the way back to the firmware default is the header's Clear,
+      // which the other three failure blocks' second step names since
+      // 13.1-06 (install-copy.spec.ts holds every step against the write
+      // clicks - the words are that module's contract, not this one's).
+      install.phase = "nothing-landed";
+      install.action = "try";
+      const landed = render(DestinationZone, { props }).body;
+      expect(landed).toContain('data-testid="install-failure"');
+      const block = nothingLandedBlock("try", PAGE);
+      expect(decode(landed)).toContain(block.title);
+      expect(decode(landed)).toContain(block.detail);
+      for (const step of block.steps) expect(decode(landed)).toContain(step);
+      expect(block.steps[0]).toContain("Apply to ZONA");
+      expect(
+        (landed.match(/<li>/g) ?? []).length,
+        "two steps, as a real list",
+      ).toBe(2);
+      expect(decode(landed)).not.toContain(["Put", " back"].join(""));
+      // And a failure whose way back is the firmware default names Clear.
+      install.phase = "kept-mismatch";
+      const mismatch = decode(render(DestinationZone, { props }).body);
+      expect(mismatch).toContain(keptMismatchBlock(PAGE).steps[1]);
+
+      // STILL WRITING (W-11, SAFE-08's visible half): the line beneath the
+      // row while the store's flag is set, and not otherwise.
+      install.phase = "writing";
+      install.action = "try";
+      install.slow = true;
+      const slow = render(DestinationZone, { props }).body;
+      expect(slow).toContain('data-testid="still-writing"');
+      expect(decode(slow)).toContain(STILL_WRITING_LINE);
+      install.slow = false;
+      expect(render(DestinationZone, { props }).body).not.toContain(
+        'data-testid="still-writing"',
+      );
+
+      // THE CONFIRMATION IN STORE'S PLACE: never both on the screen.
+      install.phase = "settled";
+      install.confirmOpen = true;
+      const confirming = render(DestinationZone, { props }).body;
+      expect(confirming).toContain('data-testid="store-confirm"');
+      expect(confirming).not.toContain('data-testid="store-on-zona"');
+      expect(confirming).toContain('role="group"');
+      expect(confirming).not.toContain(DIALOG);
+      install.confirmOpen = false;
+    } finally {
+      session.phase = before.session;
+      session.identity = before.identity;
+      install.phase = before.phase;
+      install.action = before.action;
+      install.name = before.name;
+      install.snapshot = before.snapshot;
+      install.snapshotPage = before.snapshotPage;
+      install.applyReady = before.applyReady;
+      install.slow = before.slow;
+      install.confirmOpen = before.confirmOpen;
     }
   });
 
   it("every install sentence on screen comes from the copy modules", () => {
-    // Plan 07-09. Three tells of a retyped install sentence - the three
-    // phrases nearly every one of them carries - must appear in none of the
-    // three leaves' code. They may appear in a header comment (the strip
-    // removes it) and they DO appear in install-copy.ts, which is what makes
-    // the tells real rather than arbitrary.
+    // Plan 07-09; re-aimed by 13.1-06 at the two leaves that remain. Three
+    // tells of a retyped install sentence - the three phrases nearly every
+    // one of them carries - must appear in neither leaf's code. They may
+    // appear in a header comment (the strip removes it) and they DO appear
+    // in install-copy.ts, which is what makes the tells real rather than
+    // arbitrary. The zone's markup authors no sentence: every line it shows
+    // is a builder's or a constant's.
     const TELLS = [
       ["your ", "ZONA"].join(""),
       ["Setup and ", "Timer"].join(""),
@@ -843,383 +1093,11 @@ describe("the device UI's structural rules", () => {
         'from "$lib/device/install-copy"',
       );
     }
-    expect(read, "the three leaves' code was read").toBeGreaterThan(3000);
+    expect(read, "the two leaves' code was read").toBeGreaterThan(3000);
     expect(
       retyped,
       "an install leaf retypes a sentence in its markup instead of importing it from install-copy",
     ).toEqual([]);
-  });
-
-  it("the reserved cells are the measured arithmetic, the honesty slot holds five twins and no never-writes literal, SAFE_NOTE is not a twin, KEEP ON DEVICE is borderless, and the install row is a column", () => {
-    // Plan 07-10. Four components, four shapes, all on comment-stripped code -
-    // TryOnDevice's header names the retired sentences in prose, and this
-    // test would be red on correct code without the strip.
-
-    // FIVE TWINS, AND NEITHER PROMISE. The slot's strings are each rendered
-    // as a `class:twin` line, so counting that marker counts the twins; the
-    // two Phase 4 literals plan 07-10 retired are matched by fragment
-    // needles, assembled so this file never carries them whole.
-    const tryOn = code(componentPath("TryOnDevice.svelte"));
-    expect(
-      occurrences(tryOn, "class:twin="),
-      "the honesty slot renders exactly five sizing twins (Z-06)",
-    ).toBe(5);
-    const NEVER_WRITES = ["never ", "writes"].join("");
-    const NEXT_RELEASE = ["next ", "release"].join("");
-    for (const needle of [NEVER_WRITES, NEXT_RELEASE]) {
-      expect(
-        occurrences(tryOn, needle),
-        `TryOnDevice's code still carries "${needle}" - a Phase 4 promise that the site never writes, beside a control that does`,
-      ).toBe(0);
-    }
-    expect(
-      occurrences(raw(componentPath("TryOnDevice.svelte")), NEVER_WRITES),
-      "TryOnDevice's header no longer names the retired sentence in prose - the strip has nothing to strip here and its reason should be re-examined",
-    ).toBeGreaterThan(0);
-    expect(
-      tryOn,
-      "the honesty slot no longer reserves 48px - ceil(85 / 43) x 24 = 48, where 85 is the longest of its five candidates after R-05, R-06 and tryOnBudgetReason's shortening, and 43 is the CH_PER_LINE plan 10-01 measured in Inter. It was 72px for three lines at HONESTY_CAP 129; the cap is 2 x 43 = 86 now",
-    ).toContain("min-block-size: 48px");
-
-    // SAFE_NOTE IS NOT A SIZING TWIN, ASSERTED RATHER THAN INTENDED (R-03,
-    // 10-UI-SPEC 10.1). It is rendered exactly once, unconditionally, with no
-    // grid-area placing it in a reserved cell and no hidden sibling holding
-    // height for it. If it ever became a twin it would acquire an alternate
-    // form, and a safety statement with two forms is a safety statement that
-    // can be swapped out.
-    expect(
-      occurrences(tryOn, "{SAFE_NOTE}"),
-      "SAFE_NOTE is rendered other than exactly once beneath the primary - it is unconditional and never swapped",
-    ).toBe(1);
-    expect(
-      occurrences(tryOn, "SAFE_NOTE"),
-      "SAFE_NOTE is named more than twice in TryOnDevice's code - the import and the one render, and nothing else",
-    ).toBe(2);
-    const safeNoteRule = rulesOf(tryOn).filter((r) =>
-      r.selector.includes(".safe-note"),
-    );
-    expect(
-      safeNoteRule.length,
-      "SAFE_NOTE's own rule was found, so the two assertions below are not vacuous",
-    ).toBe(1);
-    expect(
-      safeNoteRule[0].body.includes("grid-area"),
-      "SAFE_NOTE declares grid-area - it has been put into a reserved cell, which is what 10-UI-SPEC 10.1 forbids by name",
-    ).toBe(false);
-    // The element that renders it, read as its own opening tag: no class:twin,
-    // no aria-hidden, no {#if} between the primary and it.
-    const safeNoteTag = tryOn
-      .slice(0, tryOn.indexOf("{SAFE_NOTE}"))
-      .split("<")
-      .pop();
-    expect(
-      safeNoteTag,
-      "the element rendering SAFE_NOTE was found, so the assertions below are not vacuous",
-    ).toContain("safe-note");
-    for (const marker of ["class:twin", "aria-hidden", "{#if"]) {
-      expect(
-        safeNoteTag?.includes(marker),
-        `SAFE_NOTE's element carries ${marker} - it is unconditional, never swapped and never a twin (10-UI-SPEC 10.1)`,
-      ).toBe(false);
-    }
-    expect(tryOn, "the click hands the pair to the install store").toContain(
-      "install.tryOnDevice(",
-    );
-    expect(tryOn, "region 3 renders the install blocks").toContain(
-      "<InstallState",
-    );
-
-    // BORDERLESS, 48px, SIX REASONS FROM THE RECORD. The Quiet tier has no
-    // border and no inline padding; the cell reserves two Body lines; and the
-    // reasons are iterated from install-copy's closed record rather than
-    // retyped - the record is named inside an each block, and none of the six
-    // sentences' opening words appears in the code.
-    const keep = code(componentPath("KeepOnDevice.svelte"));
-    const keepControl = rulesOf(keep)
-      .filter((r) => r.selector.includes(".control"))
-      .map((r) => r.body)
-      .join(" ");
-    expect(
-      /border:[ ]*(0|none)[;]/.test(keepControl),
-      "KEEP ON DEVICE declares no border (the Quiet tier, Z-02)",
-    ).toBe(true);
-    expect(keepControl, "and no inline padding").toContain("padding-inline: 0");
-    expect(
-      keep,
-      "the Store on ZONA cell no longer reserves 48px - two Body lines, the floor Phase 10 measured and 13-18 kept when the caps retired. This line changes when a knob moves (Z-18)",
-    ).toContain("min-block-size: 48px");
-
-    // THE HEADER NOTE, 152px TO 24px - the largest single reduction in the
-    // phase, and the one cell whose collapse is what R-02 and R-03 bought.
-    // Phase 6 reserved two cells, 3 + 3 line boxes plus 8px, for
-    // PICKER_EXPLAINER (130) over SAFE_PROMISE (88). Both are retired; the
-    // longest candidate left is RECONNECT_OFFER at 37, which is one line box.
-    const note = code(componentPath("DeviceNote.svelte"));
-    expect(
-      note,
-      "the header note's cell no longer reserves 24px - ceil(37 / 43) x 24 = 24, where 37 is RECONNECT_OFFER, the longest of its four candidates after R-02 and R-03, and 43 is the CH_PER_LINE plan 10-01 measured in Inter. It was 152px for two cells of three lines each",
-    ).toContain("min-block-size: 24px");
-    for (const gone of ["152px", "72px", "48px"]) {
-      expect(
-        note.includes(`min-block-size: ${gone}`),
-        `the header note still reserves ${gone} somewhere - the collapse to one 24px cell is the whole of what R-02 and R-03 bought`,
-      ).toBe(false);
-    }
-    expect(
-      occurrences(note, "{SAFE_NOTE}"),
-      "the header note renders SAFE_NOTE other than exactly once - it is unconditional wherever the note renders",
-    ).toBe(1);
-    expect(
-      /[{]#each[^}]*KEEP_REASONS|KEEP_REASONS[)][^;]*;[^]*[{]#each[ ]+REASONS/.test(
-        keep,
-      ),
-      "the six reasons are iterated from KEEP_REASONS rather than listed",
-    ).toBe(true);
-    for (const opening of [
-      "Apply to ZONA first",
-      "The knobs moved",
-      "Not after a",
-      "Already stored on",
-      "This browser can",
-    ]) {
-      expect(
-        occurrences(keep, opening),
-        `KeepOnDevice retypes a reason ("${opening}...") instead of iterating the record`,
-      ).toBe(0);
-    }
-    expect(keep, "the enabled line is rendered once").toContain(
-      "{keepLineEnabled(page)}",
-    );
-    expect(keep, "the cell carries its testid").toContain(
-      'data-testid="keep-on-device-line"',
-    );
-
-    // ONE COLUMN, PUT BACK FIRST. The row's rule declares the column, and the
-    // panel mounts PutBack before KeepOnDevice in DOM order. SINCE 13-09 THE
-    // PANEL IS THE WORKSPACE ROUTE'S OWN MARKUP: ChosenPanel.svelte dissolved
-    // into src/routes/playground/[id]/+page.svelte with the coverflow, and the
-    // column, its caption, its one hairline and its order moved there whole.
-    const panel = code(WORKSPACE);
-    const row = rulesOf(panel)
-      .filter((r) => r.selector.includes(".install-row"))
-      .map((r) => r.body)
-      .join(" ");
-    expect(row, "the install row is a column (Z-03)").toContain(
-      "flex-direction: column",
-    );
-    expect(row, "and no longer a space-between row").not.toContain(
-      "space-between",
-    );
-    const putBackAt = panel.indexOf("<PutBack");
-    const keepAt = panel.indexOf("<KeepOnDevice");
-    const confirmAt = panel.indexOf("<KeepConfirm");
-    expect(putBackAt, "the panel mounts PutBack").toBeGreaterThan(-1);
-    expect(keepAt, "the panel mounts KeepOnDevice").toBeGreaterThan(-1);
-    expect(confirmAt, "the panel mounts KeepConfirm").toBeGreaterThan(-1);
-    expect(
-      putBackAt < keepAt && putBackAt < confirmAt,
-      "PUT BACK is the first cell of the column",
-    ).toBe(true);
-
-    // PLAN 10-13, D-04, AS AMENDED BY 13.1-05 (13.1-CONTEXT D-04): the
-    // caption is one Micro word under the hairline the panel already had, and
-    // NO SECOND HAIRLINE - A-46 retired that with the Bare tier it was
-    // separating, so the file declares exactly one border-block-start, the
-    // .rule's. CLEAR is NOT in the column any more: the user asked for it in
-    // the header beside ZONA connected, so the layout mounts it once, in the
-    // header's clear snippet, and the route neither imports nor mounts it.
-    // One control on the site, one `clear` test id on any page.
-    expect(
-      occurrences(panel, "<Clear "),
-      "the workspace mounts Clear - the reset is the header's since 13.1-05 and the column has none",
-    ).toBe(0);
-    expect(
-      occurrences(panel, "Clear.svelte"),
-      "the workspace still imports Clear.svelte",
-    ).toBe(0);
-    const layout = code(LAYOUT);
-    expect(
-      occurrences(layout, "<Clear "),
-      "the layout mounts Clear exactly once",
-    ).toBe(1);
-    expect(
-      /[{]#snippet clear[(][)][}][^]*?<Clear [/]>[^]*?[{][/]snippet[}]/.test(
-        layout,
-      ),
-      "the layout mounts Clear inside its clear snippet",
-    ).toBe(true);
-    expect(layout, "and hands the snippet to the header").toContain("{clear}");
-    // THE SHARE CONTROL LEFT THE COLUMN AT 13-09: it is the inspector's
-    // pinned pair (PDF page 5's Share snapshot), rendered by the route's
-    // actions snippet and never inside the install row - it was never an
-    // install control, and the Bible puts it where the tuner's actions are.
-    const column = panel.slice(
-      panel.indexOf('class="install-row"'),
-      panel.indexOf("</section>", panel.indexOf('class="install-row"')),
-    );
-    expect(column, "the install row was found").toContain("<KeepOnDevice");
-    expect(
-      column,
-      "the share control is back inside the install column",
-    ).not.toContain("<CopyLink");
-    const actions = panel.slice(
-      panel.indexOf("{#snippet actions()}"),
-      panel.indexOf("{/snippet}", panel.indexOf("{#snippet actions()}")),
-    );
-    expect(
-      actions,
-      "the inspector's pinned pair no longer carries the share control",
-    ).toContain("<CopyLink");
-    expect(panel, "the panel carries the NEXT caption").toContain(
-      'data-testid="next-caption"',
-    );
-    expect(
-      occurrences(panel, "border-block-start"),
-      "the workspace declares a border-block-start other than the one hairline Phase 7 gave region 6 - A-46 retired the second hairline with the Bare tier, and D-04's sequence is carried by a caption, an order and an enablement rather than by a rule",
-    ).toBe(1);
-    // Region 4's 152px reservation went with the chosen panel (13-09): the
-    // tuning region is the shell's inspector now, which scrolls its own body
-    // beside the surface rather than beneath the primary control, so nothing
-    // above it can move and there is nothing to reserve.
-    expect(
-      panel,
-      "the workspace still reserves the chosen panel's 152px - the inspector scrolls its own body and reserves nothing",
-    ).not.toContain("min-block-size: 152px");
-
-    // SAFE-02 SURVIVES D-04: THE TWO WEIGHTS ARE NOT EQUALISED. This is the
-    // regression D-04 makes attractive - "one natural sequence" read as "three
-    // equal buttons in a row" - and with CLEAR now in Quiet beside KEEP ON
-    // DEVICE there is one more control that would be dragged up with it. So
-    // the accent fill is asserted site-wide over every interactive class in
-    // src/lib/ui: exactly one component wears it, and it is the primary.
-    const ACCENT_FILL = "background: var(--color-action)";
-    const filled: string[] = [];
-    let interactiveRulesRead = 0;
-    for (const name of readdirSync(repo(UI_DIR))
-      .map(String)
-      .filter((file) => file.endsWith(".svelte"))) {
-      const source = code(componentPath(name));
-      const rules = rulesOf(source);
-      for (const cls of new Set(interactiveClassesOf(source))) {
-        // Matched by inclusion rather than by equality, as every other walk in
-        // this file does: the first rule of a style block carries the `<style>`
-        // tag in its selector capture, so an equality test silently reads no
-        // rule at all - which is how this assertion first went green while
-        // finding nothing.
-        const selfRules = rules.filter((r) => r.selector.includes(`.${cls}`));
-        interactiveRulesRead += selfRules.length;
-        if (selfRules.some((r) => r.body.includes(ACCENT_FILL)))
-          filled.push(`${name} -> .${cls}`);
-      }
-    }
-    expect(
-      interactiveRulesRead,
-      "interactive classes' own rules were read across src/lib/ui, so the accent count below is not vacuous",
-    ).toBeGreaterThan(10);
-    expect(
-      filled,
-      "a control other than TRY ON DEVICE wears the accent fill - SAFE-02's content is that the two install controls are never equal-weight, and D-04's sequence is not allowed to buy itself with the primary's weight",
-    ).toEqual(["TryOnDevice.svelte -> .primary"]);
-    // KEEP ON DEVICE alone since 13.1-05: Clear is the header's bordered box
-    // now (its own test below holds the box), and its fill is still
-    // transparent - the accent walk above already proved only the primary
-    // is filled, so the Quiet clause here has one subject.
-    const clearControl = rulesOf(code(componentPath("Clear.svelte")))
-      .filter((r) => r.selector.includes(".control"))
-      .map((r) => r.body)
-      .join(" ");
-    for (const [name, body] of [["KEEP ON DEVICE", keepControl]] as const) {
-      expect(
-        body,
-        `${name} is no longer fit-content - the primary is the full-width control and the Quiet tier is not`,
-      ).toContain("inline-size: fit-content");
-      expect(
-        body,
-        `${name} no longer declares a transparent background - only the primary is filled`,
-      ).toContain("background: transparent");
-    }
-    expect(
-      clearControl,
-      "the header's Clear declares a fill - only the primary is filled; the box is the boundary and the workspace ground",
-    ).toContain("background: transparent");
-    expect(
-      occurrences(tryOn, '"cleared"'),
-      "TRY ON DEVICE names the `cleared` phase - the primary's disabled set is `writing`, `snapshotting` and a missing config, and plan 10-13 adds no phase to it",
-    ).toBe(0);
-
-    // DEGR-02, AS ONE ASSERTION OVER BOTH BEHAVIOURS. PUT BACK renders NOTHING
-    // when its state is `absent` (Z-12): it offers to restore a specific
-    // module's own configuration and on a browser that never had one there is
-    // nothing for it to name. CLEAR is the opposite ruling and it is
-    // deliberate: it does something meaningful on any module, so there is a
-    // real capability to teach, and it renders present-and-disabled with its
-    // reason inline. The difference is visible here as one file gating its
-    // whole body on putBackState and the other gating nothing.
-    const clearSource = code(componentPath("Clear.svelte"));
-    expect(
-      code(componentPath("PutBack.svelte")),
-      "PUT BACK no longer gates its whole render on putBackState - Z-12 makes it ABSENT rather than disabled when there is no configuration for it to name",
-    ).toContain('{#if state !== "absent"}');
-    expect(
-      occurrences(clearSource, "{#if"),
-      "CLEAR has gained a conditional render - DEGR-02 makes it PRESENT AND DISABLED on a browser that cannot write, with its reason inline, which is the opposite of PUT BACK's ruling and is the difference this assertion exists to hold",
-    ).toBe(0);
-    expect(
-      clearSource,
-      "CLEAR carries a real disabled attribute rather than aria-disabled alone",
-    ).toContain("{disabled}");
-
-    // I14's BLOCK, AND THE CONTROL ITS BODY NAMES. The caption and the body are
-    // install-copy's, never retyped; the store-side half of the naming rule -
-    // that PUT BACK is enabled in `cleared` - is asserted in install.spec.ts,
-    // where the phase table lives.
-    const state = code(componentPath("InstallState.svelte"));
-    expect(state, "region 3 renders the reset caption").toContain(
-      "{clearedCaption(page)}",
-    );
-    expect(state, "and its body").toContain("{clearedBody(page)}");
-    expect(
-      state,
-      "the cleared branch was not added to the phase chain",
-    ).toContain('shown === "cleared"');
-    expect(
-      state,
-      "the nothing-landed form is still selected by action === \"put-back\" - a clear would then fall through to the TRY form by omission, whose detail says the visitor's own scripts are still running. The selector mirrors the store's own #classify (A-28): try is the exception, everything else takes the put-back form",
-    ).toContain('install.action === "try" ? "try" : "put-back"');
-
-    // ESCAPE'S TWO RULES, IN ORDER, ON THE HANDLER ALONE. Since 13-09 the
-    // handler is the workspace route's (Coverflow.svelte left the tree with
-    // the un-choose it guarded): while the store is writing Escape does
-    // nothing, and while the confirmation is open it closes the block. There
-    // is no panel to un-choose any more, so the handler ends there and pushes
-    // no history entry.
-    const workspace = code(WORKSPACE);
-    const keyTest = 'event.key !== "Escape"';
-    const from = workspace.indexOf(keyTest);
-    expect(from, "the Escape handler was found").toBeGreaterThan(-1);
-    const to = workspace.indexOf("dismissConfirm()", from);
-    expect(to, "the handler still closes the confirmation").toBeGreaterThan(
-      from,
-    );
-    const handler = workspace.slice(from, to);
-    const writingAt = handler.indexOf('install.phase === "writing"');
-    const confirmGuardAt = handler.indexOf("install.confirmOpen");
-    expect(
-      writingAt,
-      "Escape is ignored while the store is writing (Z-10)",
-    ).toBeGreaterThan(-1);
-    expect(
-      confirmGuardAt,
-      "Escape closes the confirmation only after the writing guard (Z-10)",
-    ).toBeGreaterThan(writingAt);
-    expect(
-      occurrences(handler, "pushState"),
-      "the Escape handler pushes no history entry",
-    ).toBe(0);
-    expect(
-      occurrences(workspace, "pushState("),
-      "the workspace pushes history - there is no chosen state to push since 13-09",
-    ).toBe(0);
   });
 
   it("the header locks under a write, says where the copy is, and the announcer is untouched", () => {
@@ -1773,7 +1651,7 @@ describe("the device UI's structural rules", () => {
     // THE LAYOUT MOUNTS THE CONTROL ONCE, FOR EVERY ROUTE; no route hands one
     // in any more (13-09's provisional snippet is gone), and the shell's fill
     // no longer carries the two device slots.
-    const layout = code("src/routes/+layout.svelte");
+    const layout = code(LAYOUT);
     expect(occurrences(layout, "<ConnectionControl")).toBe(1);
     expect(occurrences(layout, "<DeviceActions")).toBe(1);
     expect(occurrences(code(WORKSPACE), "DeviceSlot")).toBe(0);
@@ -1797,34 +1675,60 @@ describe("the device UI's structural rules", () => {
       15,
     );
 
-    // Every phase renders: thirteen by a branch of their own, `idle` by the
-    // gate that renders nothing (the panel renders the session's blocks
-    // then), `writing` by holding the last block under aria-busy. Nothing is
-    // unaccounted for and nothing is a fall-through onto a neighbour's shape.
-    const state = code(componentPath("InstallState.svelte"));
-    const branched = phases.filter((p) => state.includes(`shown === "${p}"`));
+    // Every phase renders, in one of two places since 13.1-06 (13.1-CONTEXT
+    // D-06): the seven failure-shaped phases by a case of their own in the
+    // destination zone's phase-to-builder mapping - the block with its
+    // steps under the bar's row - and the six success phases by the bar's
+    // device clause alone (their bodies retired with InstallState.svelte;
+    // the captions carry the facts). `idle` has neither (nothing to say);
+    // `writing` holds the last non-writing phase's block under aria-busy, as
+    // InstallState held it. Nothing is unaccounted for and nothing is a
+    // fall-through onto a neighbour's shape.
+    const zone = code(componentPath("DestinationZone.svelte"));
+    const cased = phases.filter((p) => zone.includes(`case "${p}":`));
+    const FAILURE_SHAPED = [
+      "unconfirmed",
+      "kept-mismatch",
+      "partial",
+      "nothing-landed",
+      "restored-unconfirmed",
+      "lost",
+      "snapshot-failed",
+    ];
     expect(
-      phases.filter((p) => !branched.includes(p)).sort(),
-      "a phase lost its own branch - the two without one are idle (renders nothing) and writing (holds the last block); any other name here is a phase collapsed into a neighbour",
-    ).toEqual(["idle", "writing"]);
-    expect(branched.length, "thirteen phases have a branch").toBe(13);
-    expect(state).toContain('shown !== "idle"');
-    expect(state).toContain("writing ? held : install.phase");
-    expect(state).toContain('aria-busy={writing ? "true" : undefined}');
+      [...cased].sort(),
+      "the seven failure-shaped phases each have a case of their own in the zone's mapping - a name missing here is a phase collapsed into a neighbour, a name added is a success phase that grew a body it should not have",
+    ).toEqual([...FAILURE_SHAPED].sort());
+    expect(zone).toContain("writing ? heldPhase : install.phase");
+    expect(zone).toContain('aria-busy={writing ? "true" : undefined}');
+    expect(zone).toContain('testid="install-failure"');
+    const clauseFor = (p: InstallPhase) => deviceClause(p, 1);
+    for (const p of phases) {
+      if (p === "idle" || p === "writing") continue;
+      const hasBody = cased.includes(p);
+      expect(
+        hasBody || clauseFor(p) !== undefined,
+        `${p}: neither a body in the zone nor a clause in the bar`,
+      ).toBe(true);
+    }
 
     // THE FOUR THE SPEC HAS NO ROW FOR, PRESENT BY NAME. These are the safety
-    // rail; a re-skin that folded one into a neighbour goes red here naming it.
-    for (const phase of [
-      "restored",
-      "restored-unconfirmed",
-      "cleared",
-      "snapshot-failed",
-    ]) {
+    // rail; a re-skin that folded one into a neighbour goes red here naming
+    // it. Two are failure-shaped and keep a body in the zone; two are the
+    // restore's and the reset's success and are the bar's clause, read off
+    // the copy module's own caption for each.
+    for (const phase of ["restored-unconfirmed", "snapshot-failed"]) {
       expect(
-        branched,
+        cased,
         `${phase}: a phase the spec has no row for was collapsed into a neighbour`,
       ).toContain(phase);
     }
+    expect(clauseFor("restored"), "restored: the bar's clause").toBe(
+      restoredCaption(1),
+    );
+    expect(clauseFor("cleared"), "cleared: the bar's clause").toBe(
+      clearedCaption(1),
+    );
     expect([...UNCHARTED_PHASES].sort()).toEqual([
       "cleared",
       "restored",
@@ -1832,7 +1736,7 @@ describe("the device UI's structural rules", () => {
       "snapshot-failed",
     ]);
 
-    // THE FOUR UNCERTAIN PHASES: four branches calling four DIFFERENT builders,
+    // THE FOUR UNCERTAIN PHASES: four cases calling four DIFFERENT builders,
     // whose titles are pairwise distinct. Section 16 offers one sentence for
     // all of them; HANGAR measured four outcomes and keeps four bodies.
     const uncertain = [
@@ -1843,15 +1747,15 @@ describe("the device UI's structural rules", () => {
     ];
     expect([...UNCERTAIN_PHASES].sort()).toEqual([...uncertain].sort());
     const builderOf = (phase: string): string | undefined => {
-      const at = state.indexOf(`shown === "${phase}"`);
-      const next = state.indexOf("{:else if", at + 1);
-      const branch = state.slice(at, next < 0 ? undefined : next);
-      return /block=\{([a-zA-Z]+)\(/.exec(branch)?.[1];
+      const at = zone.indexOf(`case "${phase}":`);
+      const next = zone.indexOf("case ", at + 1);
+      const branch = zone.slice(at, next < 0 ? undefined : next);
+      return /return ([a-zA-Z]+)\(/.exec(branch)?.[1];
     };
     const builders = uncertain.map(builderOf);
     expect(
       builders,
-      "each uncertain phase renders through its own block builder",
+      "each uncertain phase renders through its own block builder in the zone",
     ).toEqual([
       "unconfirmedBlock",
       "keptMismatchBlock",
@@ -1876,7 +1780,7 @@ describe("the device UI's structural rules", () => {
     expect(missing, "an uncertain phase lost its body").toEqual([]);
 
     // THE BAR'S DEVICE CLAUSE: every phase but idle has one, the same words as
-    // the block under the surface, and the four uncertain clauses differ.
+    // the block under the bar's row, and the four uncertain clauses differ.
     const clauses = new Map(
       phases.map((p) => [p, deviceClause(p, 1)] as const),
     );
@@ -2074,6 +1978,7 @@ describe("the device UI's structural rules", () => {
     // page-target.spec.ts asserts off the frames - did not move with it.
     const route = code("src/routes/playground/[id]/+page.svelte");
     const actions = code(`${UI_DIR}/sandbox/SurfaceActions.svelte`);
+    const zone = code(componentPath("DestinationZone.svelte"));
     const store = code("src/lib/device/install.svelte.ts");
     const target = code("src/lib/device/page-target.ts");
 
@@ -2124,26 +2029,36 @@ describe("the device UI's structural rules", () => {
       ).toBe(0);
     }
 
-    // THE CHANGE IS THE WHOLE GESTURE. Both destination zones call the
-    // store's one method from the select's change handler, and neither
-    // reaches for requestPage on its own: the request and the send are one
-    // call, with no state a route could hold a review in between.
+    // THE CHANGE IS THE WHOLE GESTURE. The ONE destination zone (13.1-06:
+    // DestinationZone.svelte, mounted by both routes) calls the store's one
+    // method from the select's change handler and never reaches for
+    // requestPage on its own: the request and the send are one call, with
+    // no state a route could hold a review in between. Neither route nor
+    // the share control carries a select handler of its own any more.
+    expect(zone, "the zone switches on change").toContain(
+      "install.switchPage(value)",
+    );
+    expect(
+      occurrences(zone, "install.requestPage("),
+      "the zone opens a request of its own",
+    ).toBe(0);
+    expect(
+      occurrences(zone, 'install.pageStatus === "requested"'),
+      "the zone renders the requested state",
+    ).toBe(0);
+    expect(zone).toContain("onTargetChange");
     for (const [file, source] of [
       ["the workspace route", route],
       ["SurfaceActions.svelte", actions],
     ] as const) {
-      expect(source, `${file} switches on change`).toContain(
-        "install.switchPage(value)",
-      );
+      expect(
+        occurrences(source, "onTargetChange"),
+        `${file} carries a select handler of its own beside the zone's`,
+      ).toBe(0);
       expect(
         occurrences(source, "install.requestPage("),
         `${file} opens a request of its own`,
       ).toBe(0);
-      expect(
-        occurrences(source, 'install.pageStatus === "requested"'),
-        `${file} renders the requested state`,
-      ).toBe(0);
-      expect(source).toContain("onTargetChange");
     }
 
     // THE ENVELOPE DID NOT MOVE. The store's switchPage is requestPage then
@@ -2173,6 +2088,7 @@ describe("the device UI's structural rules", () => {
     for (const [file, source] of [
       ["the workspace route", route],
       ["SurfaceActions.svelte", actions],
+      ["DestinationZone.svelte", zone],
       ["install.svelte.ts", store],
       ["page-target.ts", target],
     ] as const) {

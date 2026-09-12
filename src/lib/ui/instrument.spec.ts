@@ -308,12 +308,13 @@ const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
 const MONO_COUNT = 5;
 
 const PILLED: ReadonlyArray<readonly [string, string, string]> = [
-  [
-    "TryOnDevice.svelte",
-    "primary",
-    "Primary - the pill's radius on its own accent fill",
-  ],
-  ["PutBack.svelte", "control", "Secondary"],
+  // TWO ROWS LEFT AT 13.1-06 with the install column (13.1-CONTEXT D-06,
+  // D-07): TryOnDevice.svelte's "primary" (Primary - the pill's radius on
+  // its own accent fill) and PutBack.svelte's "control" (Secondary) went
+  // with their files - deleted by name, the user's "remove that" and
+  // "remove". The bar's Apply to ZONA and Store on ZONA are
+  // DestinationZone.svelte's own rectangles (13-12's shape, no pill), so the
+  // derived walk finds two pilled controls fewer and this list says so.
   [
     "KeepConfirm.svelte",
     "secondary",
@@ -358,9 +359,14 @@ const PILLED: ReadonlyArray<readonly [string, string, string]> = [
  * the file, and device-ui.spec.ts holds its box.
  */
 const QUIET: ReadonlyArray<readonly [string, string, string]> = [
-  ["KeepOnDevice.svelte", "control", "KEEP ON DEVICE"],
+  // KEEP ON DEVICE (KeepOnDevice.svelte -> .control) and DISCONNECT ZONA
+  // (TryOnDevice.svelte -> .disconnect) LEFT THE TIER AT 13.1-06 with their
+  // files: the install column under the workspace's surface is gone
+  // (13.1-CONTEXT D-06), Store on ZONA is the bar's bordered control
+  // (DestinationZone.svelte) and Disconnect ZONA is Device actions' quiet
+  // control (DeviceDetails.svelte, 13-11). The list says so in the same
+  // commit; NOT NOW is the tier's install member now.
   ["KeepConfirm.svelte", "quiet-control", "NOT NOW"],
-  ["TryOnDevice.svelte", "disconnect", "DISCONNECT ZONA"],
   ["Knob.svelte", "lock", "HOLD / HELD"],
   ["BrowseToolbar.svelte", "clear", "the search field's own CLEAR"],
 ];
@@ -711,13 +717,14 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
 
     // ---- THE FRONT DOOR'S LINK ROW WENT WITH THE FRONT DOOR (13-09); the
     // device components are what is left to hold free of the index form.
+    // KeepOnDevice, PutBack and TryOnDevice left the list with their files
+    // at 13.1-06 (the install column, 13.1-CONTEXT D-06); the bar's
+    // destination zone took their place as the device flow's surface.
     const numbered: string[] = [];
     for (const name of [
       "Clear.svelte",
-      "KeepOnDevice.svelte",
-      "PutBack.svelte",
+      "DestinationZone.svelte",
       "KeepConfirm.svelte",
-      "TryOnDevice.svelte",
       "DeviceSlot.svelte",
       "DeviceNote.svelte",
     ]) {

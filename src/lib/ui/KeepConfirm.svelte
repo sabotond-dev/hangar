@@ -2,14 +2,19 @@
   The inline flash confirmation - the only confirmation on the site
   (07-UI-SPEC, The inline flash confirmation; SAFE-05, SAFE-06; D-15, Z-01).
 
-  Rendered by the panel while install.confirmOpen, IN PLACE OF the row's KEEP
-  ON DEVICE, so there is never a second KEEP ON DEVICE on the screen: the row's
-  quiet control opens this block, this block's bordered control commits, and
-  the two are never rendered together (WCAG 2.5.3 - a speech-input user saying
-  "click KEEP ON DEVICE" is never ambiguous). The cell above it, PUT BACK, does
-  not move. It reads two singletons and takes one prop, `onclose`, which the
-  panel implements as install.dismissConfirm() followed by a focus move back
-  to the row's KEEP ON DEVICE. Every word is install-copy's.
+  Rendered by the context bar's destination zone (DestinationZone.svelte,
+  since 13.1-06; the workspace's install column and the Sandbox's
+  SurfaceActions before it) while install.confirmOpen, IN PLACE OF the zone's
+  Store on ZONA, so there is never a second Store on ZONA on the screen: the
+  zone's bordered control opens this block, this block's bordered control
+  commits, and the two are never rendered together (WCAG 2.5.3 - a
+  speech-input user saying "click Store on ZONA" is never ambiguous). The
+  select and Apply beside it do not move. It reads two singletons and takes
+  one prop, `onclose`, which the zone implements as install.dismissConfirm()
+  followed by a focus move back to its Store on ZONA. Every word is
+  install-copy's; CONFIRM_WAY_BACK names the header's Clear since 13.1-06
+  (13.1-CONTEXT D-07: Put back is gone), because the way back it offers has
+  to be a control that exists.
 
   WHY THE CONTAINER IS THE FOCUS TARGET, NOT EITHER BUTTON. On mount focus
   moves to the block itself - tabindex="-1", role="group", labelled by the
@@ -86,9 +91,9 @@
     onclose,
   }: {
     /**
-     * NOT NOW and Escape land here. The panel closes the store's confirmation
-     * and returns focus to the row's KEEP ON DEVICE, which it re-renders in
-     * this block's place.
+     * NOT NOW and Escape land here. The zone closes the store's confirmation
+     * and returns focus to its Store on ZONA, which it re-renders in this
+     * block's place.
      */
     onclose: () => void;
   } = $props();

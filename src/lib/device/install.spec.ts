@@ -85,7 +85,7 @@ import { overElementLine } from "$lib/sandbox/copy";
 import { canonical } from "$lib/sandbox/cost";
 import { landSurface, type SurfaceLanding } from "$lib/sandbox/land";
 import type { Region, Surface } from "$lib/sandbox/model";
-import SurfaceActions from "$lib/ui/sandbox/SurfaceActions.svelte";
+import DestinationZone from "$lib/ui/DestinationZone.svelte";
 import {
   DESKTOP_PRE_SEND_DELAY_MS,
   ELEMENT_SYSTEM,
@@ -3275,11 +3275,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       console.log(`page 3 at two slots: ${sentence}`);
 
       // APPLY IS DISABLED BEFORE THE CLICK, described by the sentence: the
-      // destination zone rendered with the refusal carries a real disabled
-      // attribute on Apply and the sentence under it.
-      const html = render(SurfaceActions, {
+      // destination zone (DestinationZone.svelte since 13.1-06 - the one
+      // component the Sandbox and the workspace both mount) rendered with the
+      // refusal carries a real disabled attribute on Apply and the sentence
+      // under it, named in Apply's description beside the honesty line.
+      const html = render(DestinationZone, {
         props: {
-          zone: "destination",
           name: two.label,
           config: two.config,
           refusal: sentence,

@@ -873,12 +873,12 @@ describe("the tuning UI's structural rules", () => {
     expect(files.length, "the ui directory was walked").toBeGreaterThan(7);
     expect(
       carriers.sort(),
-      "the error ink is scoped to the meter, the message, the Sandbox's refused field and the Sandbox's over-budget refusal, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
+      "the error ink is scoped to the meter, the message, the destination zone's over-budget refusal (DestinationZone.svelte since 13.1-06, SurfaceActions.svelte's destination half before it) and the Sandbox's refused field, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
     ).toEqual([
       `${UI_DIR}/BudgetMessage.svelte`,
       `${UI_DIR}/BudgetMeter.svelte`,
+      `${UI_DIR}/DestinationZone.svelte`,
       `${UI_DIR}/sandbox/RegionInspector.svelte`,
-      `${UI_DIR}/sandbox/SurfaceActions.svelte`,
     ]);
     expect(
       surfaces,

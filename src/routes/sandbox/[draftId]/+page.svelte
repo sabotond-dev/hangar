@@ -45,11 +45,14 @@
   five strings in the tuner's own shape - the library's two halves, the
   runtime's 255/4, the packed Timer, the data-half Setup - and the route
   hands them to `install.observeConfig` exactly as the workspace hands the
-  tuner's; the context bar's destination zone (SurfaceActions.svelte) is
-  13-12's Target select and `Apply to ZONA` with section 9's `Store on ZONA`
-  and PUT BACK beside them, every click the install store's own. Over
-  budget, Apply is disabled before the click and the meter names the cause;
-  nothing reaches the wire (install.spec.ts counts zero frames).
+  tuner's; the context bar's destination zone is DestinationZone.svelte -
+  THE ONE COMPONENT BOTH ROUTES MOUNT since 13.1-06 (13.1-CONTEXT D-06):
+  13-12's Target select, `Apply to ZONA` and section 9's `Store on ZONA`,
+  every click the install store's own, a write's failure block beneath.
+  Put back is gone from it by the user's word (D-07); the snapshot is still
+  taken at connect and the store's putBack() is the probe's. Over budget,
+  Apply is disabled before the click and the meter names the cause; nothing
+  reaches the wire (install.spec.ts counts zero frames).
 
   A SURFACE SHARES AS A FILE (D-14 Q7; section 11): `Export as a file`
   beside Save copy goes through 13-13's transfer.ts unchanged - the same
@@ -147,6 +150,7 @@
   import ElementList from "$lib/ui/sandbox/ElementList.svelte";
   import Palette from "$lib/ui/sandbox/Palette.svelte";
   import RegionInspector from "$lib/ui/sandbox/RegionInspector.svelte";
+  import DestinationZone from "$lib/ui/DestinationZone.svelte";
   import SurfaceActions from "$lib/ui/sandbox/SurfaceActions.svelte";
   import SurfaceEditor from "$lib/ui/sandbox/SurfaceEditor.svelte";
   import Rail from "$lib/ui/shell/Rail.svelte";
@@ -632,14 +636,9 @@
   {/if}
 {/snippet}
 
-<!-- The context bar's destination zone (13-12; 13-17): the page target, Apply to ZONA, Store on ZONA, PUT BACK. -->
+<!-- The context bar's destination zone (13-12; 13-17; 13.1-06): the page target, Apply to ZONA, Store on ZONA - the one component both routes mount. -->
 {#snippet destination()}
-  <SurfaceActions
-    zone="destination"
-    {name}
-    config={landing?.config}
-    {refusal}
-  />
+  <DestinationZone {name} config={landing?.config} {refusal} />
 {/snippet}
 
 {#snippet meter()}
@@ -805,12 +804,7 @@
           data-testid="save-copy"
           onclick={save_copy}>{SAVE_COPY}</button
         >
-        <SurfaceActions
-          zone="share"
-          {name}
-          {exported}
-          onexport={export_surface}
-        />
+        <SurfaceActions {exported} onexport={export_surface} />
       </div>
     </div>
 
