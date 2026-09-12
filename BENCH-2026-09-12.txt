@@ -1,0 +1,57 @@
+Bench round 4, 2026-09-12, on the user's ZONA over `npm run dev` (localhost), against the Phase 13
+gate's hand-over (docs/INSTALL-RUNBOOK.md, "The bench, as the Phase 13 gate hands it over").
+Verbatim:
+
+> 1)  working properly.
+> 2) working properly
+> 3) works
+> 4) works
+
+Rows I (the page switch, including the switch immediately after an Apply), L (the rotary Knob,
+3x3 and 4x4), H (HANGAR's own 255/4 write; the utility button after Put back) and M (the PDF's
+page-3 surface on five slots) all pass. No numbers reported for L's feel; "working properly" taken
+as: no jump at the wrap, a value can be held, the dead centre is not broken, 3x3 usable.
+
+> 5) okay so stuff that differs and need to be changed one by one:
+>
+> * I dont want the index page to be scrollable, always fit on the screen
+> * in playground: the explore buttons are not the proper grey color, not grifter, and the arrow is
+>   on the second row for each button, make these changes to match the pdf.
+> * in sandbox: you should be able to resize each element by draggin its points. it has visible
+>   points but they cannot be resized by that as of now. also, each element should have its own
+>   color and better visualization, now its too minimal.
+> * CLEAR button. we need a CLEAR button it should live all the time in the top right corner next
+>   to ZONA connected.
+> * Page switch doesnt need a confirmation window. When you change page form the drop down just
+>   change the page and thats it.
+> * in the configuration panel the block i attached a screenshot of is totally unnecessary remove
+>   that. we dont even need the Put back function that totally unnecessary if we have a clear
+>   button.  the second row in the page (so under the logo) the right side should look like this:
+>   Target PAGE 1 on ZONA selector, Apply to ZONA button, Store on ZONA button.
+> * Edit color should not be pop up window in the left upper corne but instead open down seamlessly
+>   to edit color. replace MIDI channel selector with MIDI output selector with input fields,
+>   exactly as on the attached screenshot.
+> * TUNING, so code limit visualiztation should be removed, lets not show that.
+
+Screenshot 1 (attached): the install column under the workspace surface - the filled "Apply to
+ZONA" button, "Nothing is written to your ZONA without a click. Browsing and previewing never touch
+it.", "Applies this to Page 3 in about a second. It stays until power-off unless you store it.",
+"Put back · Page 3" with its sentence, "Disconnect ZONA", NEXT / Put back / "Puts Page 3 back to
+what it was playing when you connected.", "Store on ZONA" / "Apply to ZONA first, then store it.",
+"Reset active device page" / "Returns Page 3 to its firmware default. Your browser draft stays as it
+is." - the whole block is what the user calls unnecessary (batch row J.13, already owed).
+
+Screenshot 2 (attached): the PDF's "MIDI output" section - two text input fields side by side,
+"CC number" holding 74 and "Channel" holding 1, with the helper line "Map this CC to a parameter in
+your instrument or DAW." beneath. This is what replaces the workspace's channel select.
+
+Orchestrator's reading, to be confirmed by the user where marked:
+- Two Bible rules the user strikes here: section 9's destination review before a page switch (D-06
+  clause 2; 13-CONTEXT D-19 said it stays "unless the user says otherwise" - the user now says
+  otherwise) and TUNE-03's visible budget meters (hidden; over-budget must still disable Apply and
+  name the cause - TUNE-05 - which is a message, not a meter).
+- D-14 Q5 (no free-typed numerics in the Playground) is overridden for CC number and Channel.
+- CLEAR is 12-03's "Reset active device page" made a persistent header control.
+- PUT BACK's removal: CONFIRM WITH THE USER - Clear writes the firmware default; Put back restores
+  the configuration the module held when it connected. Without Put back the only way back to a
+  user's own page after a TRY is Grid Editor. The snapshot machinery (SAFE-03) stays either way.
