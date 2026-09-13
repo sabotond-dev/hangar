@@ -1,26 +1,13 @@
-// The touch library's six gates: what each slot costs, what the library is
-// called, what it is allowed to say, which side of the split each thing lives
-// on, that the knots on the wire are the measured ones, and (since 12.1-08b)
-// that K lands on 0, N sits with the map and G kept its picture.
+// The touch library's six gates: what each slot costs, what the library is called, what it is
+// allowed to say, which side of the split each thing lives on, that the knots on the wire are
+// the measured ones, and that K lands on 0, N sits with the map and G kept its picture.
 //
-// A SERVER SPEC, BY CHOICE, AND THE SWEEP'S MEMBER LIST DOES NOT MOVE. The
-// sweep project exists for the load-sensitive measurement - 1,331 knob
-// combinations through the WASM minifier - and this file measures TWO strings
-// once each. Putting it in the sweep would mean the library's cost was checked
-// per wave instead of per run, on strings every re-fit in the phase calls. So
-// it runs in `server`, `npm run test:sweep` stays at `4 19`, and this paragraph
-// is the record that the choice was made rather than overlooked.
+// A SERVER SPEC, BY CHOICE: this file measures TWO strings once each, so it runs per run in
+// `server` rather than per wave in the sweep, and `npm run test:sweep` stays at `4 19`.
 //
-// SIX TESTS SINCE PLAN 12.1-08b (five since 12.1-02, three since 12-07), AND
-// THE COUNT DOES NOT MOVE WITH THE LIBRARY. Each one loops over the parts or
-// the call sites internally and names what it found, so a fourteenth function
-// - which must arrive with its caller named, see `library.ts` section 5 -
-// moves no number here. 12.1-02 added the split rule (test 4) and the knots'
-// provenance (test 5), both of which exist only because there are two strings
-// and a measured table; 12.1-08b added test 6 for the revision that gave the
-// presets the gradient: `K`'s stamps land on 0 (driven through the real
-// host), `N` is in the map's slot, and `G` through `Z` and `Y` draws exactly
-// what 12.1-03's `G` drew.
+// SIX TESTS, AND THE COUNT DOES NOT MOVE WITH THE LIBRARY. Each loops over the parts or the call
+// sites internally and names what it found, so a fourteenth function - which must arrive with
+// its caller named, see `library.ts` section 5 - moves no number here.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
