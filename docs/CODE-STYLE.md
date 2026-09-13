@@ -160,3 +160,8 @@ that adds one is reworded.** The classes the markup names are asserted still emi
 ## 9. Appended
 
 Later plans add a dated line here only when the rule learned something it did not say.
+
+- 2026-09-13 (13.2-02): a catalog entry's `MECHANISM / WHAT IT SENDS / TRAPS` block is not counted
+  against the ten - `comment-lines.mjs --todo` stops at the `MECHANISM` heading - and a trap
+  paragraph is kept whole; `library.ts` keeps its numbered section banners as a table of contents
+  because other files cite them by number, so `--todo` prints it by construction.
