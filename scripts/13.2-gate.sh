@@ -11,8 +11,10 @@
 # gate/<tag>-after.* and compares against gate/<against>.*; it exits 1 on the first inequality with
 # the term named. The `.txt` beside each record is what the plan's SUMMARY pastes.
 #
-# Terms, in the order they run: HEAD and the dirty flag and the free memory; the wire (set and
-# --full, scripts/gate/hash-wire.mjs); the three string hashes (hash-strings.mjs); the per-file
+# Terms, in the order they run: HEAD and the dirty flag and the free memory; the wire (set,
+# --full and, from plan 02 on, the --sandbox set over every Sandbox fixture the two specs build -
+# a before-record without one reads "not recorded", stated; scripts/gate/hash-wire.mjs); the
+# three string hashes (hash-strings.mjs); the per-file
 # comment-line record (comment-lines.mjs); svelte-check's last line, asserted at --check <n>; lint;
 # the quick suite through check-counts.mjs 94 966 with the JSON reporter for the titles; the build;
 # the fixtures' git status and hash-objects; the raw built CSS (recorded, expected to move - Tailwind
@@ -97,11 +99,14 @@ log "## the wire"
 node --import ./scripts/gate/ts-ext-register.mjs scripts/gate/hash-wire.mjs --out "$REC.wire-set.json" > "$TMP/wire-set.log" 2>&1
 log "$(tail -2 "$TMP/wire-set.log" | sed -nE '1p')"
 log "WIRE SET $(sed -nE 's/^SET sha256 ([0-9a-f]+).*/\1/p' "$TMP/wire-set.log")"
-node --import ./scripts/gate/ts-ext-register.mjs scripts/gate/hash-wire.mjs --full --out "$REC.wire.json" > "$TMP/wire-full.log" 2>&1
+node --import ./scripts/gate/ts-ext-register.mjs scripts/gate/hash-wire.mjs --full --sandbox --out "$REC.wire.json" > "$TMP/wire-full.log" 2>&1
 log "$(tail -2 "$TMP/wire-full.log" | sed -nE '1p')"
 WIRE_FULL=$(sed -nE 's/^SET sha256 ([0-9a-f]+).*/\1/p' "$TMP/wire-full.log")
 log "WIRE FULL $WIRE_FULL"
 WIRE_SET=$(sed -nE 's/^SET sha256 ([0-9a-f]+).*/\1/p' "$TMP/wire-set.log")
+log "$(grep -E '^[0-9]+ Sandbox strings from' "$TMP/wire-full.log")"
+SANDBOX_SET=$(sed -nE 's/^SANDBOX SET sha256 ([0-9a-f]+).*/\1/p' "$TMP/wire-full.log")
+log "WIRE SANDBOX SET $SANDBOX_SET"
 
 # ---- the strings ------------------------------------------------------------------------------------
 log ""
@@ -249,6 +254,20 @@ for (const k of Object.keys(b)) if (!a[k]) console.log("+ " + k);
   fail "the wire"
 fi
 log "wire: equal (set $WIRE_SET, full $WIRE_FULL)"
+B_SANDBOX=$(field "WIRE SANDBOX SET")
+if [ -z "$B_SANDBOX" ]; then
+  log "sandbox set: not recorded on the before side ($against predates --sandbox); recorded now ($SANDBOX_SET), not compared"
+elif [ "$SANDBOX_SET" != "$B_SANDBOX" ]; then
+  node -e '
+const fs = require("node:fs");
+const a = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).sandbox ?? {}, b = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).sandbox ?? {};
+for (const k of Object.keys(a)) if (!b[k]) console.log("- " + k); else if (a[k].sha256 !== b[k].sha256) console.log("~ " + k + " " + a[k].sha256.slice(0, 16) + " -> " + b[k].sha256.slice(0, 16));
+for (const k of Object.keys(b)) if (!a[k]) console.log("+ " + k);
+' "$BEFORE.wire.json" "$REC.wire.json" | while IFS= read -r l; do log "  $l"; done
+  fail "the sandbox set ($B_SANDBOX -> $SANDBOX_SET)"
+else
+  log "sandbox set: equal ($SANDBOX_SET)"
+fi
 
 B_CENSUS=$(sed -nE 's/^literal census sha256 ([0-9a-f]+).*/\1/p' "$BEFORE.txt" | head -1)
 B_COPYX=$(sed -nE 's/^copy exports +sha256 ([0-9a-f]+).*/\1/p' "$BEFORE.txt" | head -1)

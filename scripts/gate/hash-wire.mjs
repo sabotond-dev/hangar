@@ -3,6 +3,7 @@
 //
 //   node hash-wire.mjs            defaults + picker corner + per-knob single sweeps (fast, ~10 s)
 //   node hash-wire.mjs --full     also the whole knob cross-product of every entry (slower)
+//   node hash-wire.mjs --sandbox  also every Sandbox surface the two specs build (a SECOND set line)
 //   node hash-wire.mjs --out F    write the JSON record to F (default: hash-wire.<HEAD>.json here)
 //
 // Coverage:
@@ -15,7 +16,10 @@
 //       single-knob position (a colour knob sampled at the sweep's 27 lattice colours), and at the
 //       "corner" (every knob at its last index); with --full the cross-product over the same samples
 //   S   the Sandbox's five strings for the PDF's page-3 surface (runtime.spec.ts's PAGE3), through
-//       landSurface (canonical) and emitSurface (raw), at the picker corner and at the default colour
+//       landSurface (canonical) and emitSurface (raw), at the picker corner and at the default colour;
+//       with --sandbox every fixture in sandbox-fixtures.mjs (runtime.spec.ts's and emit.spec.ts's
+//       surfaces) the same way plus emitSurface under 2 and 3 slots - recorded and hashed apart as
+//       the SANDBOX SET, so the base SET line reads the same with or without the flag
 //
 // Everything is imported straight from the tree (Node 24 strips types); nothing is written to it.
 // Run with the extension hook: node --import ./scripts/gate/ts-ext-register.mjs scripts/gate/hash-wire.mjs
@@ -32,6 +36,7 @@ const H = fileURLToPath(new URL("../../", import.meta.url))
   .replace(/\/$/, "");
 const SP = `${H}/.planning/phases/13.2-readability/gate`;
 const FULL = process.argv.includes("--full");
+const SANDBOX = process.argv.includes("--sandbox");
 const outIdx = process.argv.indexOf("--out");
 const head = execSync("git rev-parse --short HEAD", { cwd: H })
   .toString()
@@ -58,6 +63,9 @@ const constants = await imp("src/lib/protocol/constants.ts");
 const land = await imp("src/lib/sandbox/land.ts");
 const emit = await imp("src/lib/sandbox/emit.ts");
 const cost = await imp("src/lib/sandbox/cost.ts");
+const fixtures = SANDBOX
+  ? (await import("./sandbox-fixtures.mjs")).SANDBOX_FIXTURES
+  : {};
 
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 const record = {}; // name -> { sha256, length }
@@ -258,6 +266,36 @@ const PAGE3 = {
   put("S/page3/emitted-2-slots/timer", two.timer);
 }
 
+// S under --sandbox: every fixture the two specs build, hashed apart from the base set
+const sandbox = {}; // name -> { sha256, length }
+let sandboxStrings = 0;
+const putS = (name, text) => {
+  if (typeof text !== "string") throw new Error(`${name}: not a string`);
+  sandbox[name] = { sha256: sha(text), length: text.length };
+  sandboxStrings += 1;
+};
+for (const [name, fixture] of Object.entries(fixtures)) {
+  const landing = await land.landSurface(fixture);
+  for (const [k, v] of Object.entries(landing.config))
+    putS(`S/${name}/landed/${k}`, v);
+  for (const slots of [2, 3]) {
+    const own = emit.emitSurface(fixture, { slots });
+    putS(`S/${name}/emitted-${slots}-slots/setup`, own.setup);
+    putS(`S/${name}/emitted-${slots}-slots/timer`, own.timer);
+    putS(`S/${name}/emitted-${slots}-slots/mapmode`, own.mapmode ?? "");
+  }
+  const ownCorner = emit.emitSurface(cost.atPickerCorner(fixture), {
+    slots: land.LANDING_SLOTS,
+  });
+  putS(`S/${name}/emitted-at-corner/setup`, ownCorner.setup);
+  putS(`S/${name}/emitted-at-corner/timer`, ownCorner.timer);
+  putS(`S/${name}/emitted-at-corner/mapmode`, ownCorner.mapmode ?? "");
+}
+const sandboxNames = Object.keys(sandbox).sort();
+const sandboxHash = SANDBOX
+  ? sha(sandboxNames.map((n) => `${n} ${sandbox[n].sha256}\n`).join(""))
+  : undefined;
+
 // the set
 const names = Object.keys(record).sort();
 const setHash = sha(names.map((n) => `${n} ${record[n].sha256}\n`).join(""));
@@ -272,6 +310,14 @@ const out = {
   presetStates,
   set: setHash,
   record,
+  ...(SANDBOX
+    ? {
+        sandboxStrings,
+        sandboxFixtures: Object.keys(fixtures).length,
+        sandboxSet: sandboxHash,
+        sandbox,
+      }
+    : {}),
 };
 writeFileSync(OUT, JSON.stringify(out, null, 1));
 for (const n of names)
@@ -284,3 +330,15 @@ console.log(
 console.log(
   `SET sha256 ${setHash}  (HEAD ${head}${dirty ? ", src dirty" : ""})  -> ${OUT}`,
 );
+if (SANDBOX) {
+  for (const n of sandboxNames)
+    console.log(
+      `${sandbox[n].sha256.slice(0, 16)}  ${String(sandbox[n].length).padStart(6)}  ${n}`,
+    );
+  console.log(
+    `\n${sandboxStrings} Sandbox strings from ${Object.keys(fixtures).length} fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner`,
+  );
+  console.log(
+    `SANDBOX SET sha256 ${sandboxHash}  (HEAD ${head}${dirty ? ", src dirty" : ""})`,
+  );
+}
