@@ -266,7 +266,7 @@ export function isEnvelope(value: unknown): value is { schema: 1 } {
   return isObject(value) && value.schema === SCHEMA_VERSION;
 }
 
-export function isRegion(value: unknown): value is Region {
+function isRegion(value: unknown): value is Region {
   if (!isObject(value)) return false;
   if (!isString(value.id) || !isString(value.name)) return false;
   if (!ELEMENT_KINDS.includes(value.kind as ElementKind)) return false;
@@ -288,7 +288,7 @@ export function isRegion(value: unknown): value is Region {
   return colour.every(isInt);
 }
 
-export function isSurface(value: unknown): value is Surface {
+function isSurface(value: unknown): value is Surface {
   if (!isObject(value)) return false;
   if (!isString(value.id) || !isString(value.name)) return false;
   return Array.isArray(value.regions) && value.regions.every(isRegion);

@@ -49,12 +49,9 @@ import {
   serialiseExport,
   type KnobsOf,
 } from "./transfer";
+import { stripComments } from "../../test-support/source";
 
 const here = (file: string) => fileURLToPath(new URL(file, import.meta.url));
-
-/** The house comment stripper, backslash-free. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 /** A Storage over a Map, with a log of every setItem. */
 function fakeStore() {
@@ -209,7 +206,7 @@ describe("collections at the user's four answers (src/lib/store/collections.ts)"
     expect(createCollection(undefined, "c", "Live set", T0)).toBe("refused");
 
     // The module imports nothing heavy and names no window.
-    const code = strip(readFileSync(here("./collections.ts"), "utf8"));
+    const code = stripComments(readFileSync(here("./collections.ts"), "utf8"));
     for (const word of ["svelte", "catalog", "window", "localStorage"]) {
       expect(code.includes(word), `collections.ts names ${word}`).toBe(false);
     }

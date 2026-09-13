@@ -16,6 +16,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -27,13 +28,6 @@ const repo = (rel: string) =>
  * exception for itself.
  */
 const VM_PACKAGE = ["was", "moon"].join("");
-
-/** Comments removed before any structural match: line, block and markup. */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** Every file under `dir`, repo-relative, in a stable order. */
 function walk(dir: string): string[] {

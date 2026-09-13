@@ -44,20 +44,20 @@ export const OG_TICK = 64;
 /** The pad is nine by nine, as `src/lib/sim/paint.ts` also says. */
 export const GRID_SIDE = 9;
 /** A pad frame: 243 bytes, screen order, RGB, cell n at 3n, 3n+1, 3n+2. */
-export const FRAME_BYTES = GRID_SIDE * GRID_SIDE * 3;
+const FRAME_BYTES = GRID_SIDE * GRID_SIDE * 3;
 
 /** 468 x 468 of face; nine cells of 52; 48 painted inside a 2px gutter. */
-export const CELL_PX = 52;
-export const CELL_GUTTER_PX = 2;
-export const CELL_PAINT_PX = CELL_PX - CELL_GUTTER_PX * 2;
-export const FACE_PX = GRID_SIDE * CELL_PX;
+const CELL_PX = 52;
+const CELL_GUTTER_PX = 2;
+const CELL_PAINT_PX = CELL_PX - CELL_GUTTER_PX * 2;
+const FACE_PX = GRID_SIDE * CELL_PX;
 /** A 6px dot centred in an unlit cell - the CSS dot field, in pixels. */
-export const DOT_PX = 6;
+const DOT_PX = 6;
 
 /** The frame: 484 x 484 centred, radius 12, a 2px stroke. */
-export const FRAME_PX = 484;
-export const FRAME_RADIUS_PX = 12;
-export const FRAME_STROKE_PX = 2;
+const FRAME_PX = 484;
+const FRAME_RADIUS_PX = 12;
+const FRAME_STROKE_PX = 2;
 
 /**
  * `--color-action` from `src/app.css`, as channels.

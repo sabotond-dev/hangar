@@ -49,6 +49,7 @@ import { ladderLine, lowerFirst } from "./copy";
 import { presetKnobs } from "./knobs.preset";
 import { buildTuner, type LadderView, type OverBudgetView } from "./model";
 import { resetAll } from "./state";
+import { stripComments } from "../../test-support/source";
 
 /** The tightest card on the shelf, and the smallest round reserve that tips it. */
 const TPAD_RESERVE: PadReserved = { setup: 20, timer: 0 };
@@ -73,13 +74,6 @@ function mustEntry(id: string): CatalogEntry {
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
-
-/** The house stripper: line, block and markup comments, backslash-free. */
-const strip = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** Every file directly under src/lib/tune/, repo-relative, in a stable order. */
 function tuneFiles(): string[] {
@@ -271,7 +265,7 @@ describe("the fit ladder and the over-budget block (TUNE-04, TUNE-05)", () => {
     const reach = (name: string) => ["lib", name].join("/");
     const offenders: string[] = [];
     for (const rel of files) {
-      const source = strip(readFileSync(repo(rel), "utf8"));
+      const source = stripComments(readFileSync(repo(rel), "utf8"));
       for (const needle of [
         write,
         reach("transport"),

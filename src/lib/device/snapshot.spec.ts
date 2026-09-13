@@ -34,12 +34,9 @@ import {
   type ConfigQuint,
   type SnapshotStore,
 } from "./snapshot";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./snapshot.ts", import.meta.url));
-
-/** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 /** Everything a Storage is, for this module's purposes, over a Map. */
 function fakeStore() {
@@ -162,7 +159,7 @@ describe("the module's original, as a record (src/lib/device/snapshot.ts)", () =
       "localStorage",
     );
 
-    const code = strip(raw);
+    const code = stripComments(raw);
     expect(
       code.length,
       "the stripped source is still the module, not only its comments",

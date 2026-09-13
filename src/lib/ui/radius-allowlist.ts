@@ -66,7 +66,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Values that are zero for this purpose and never counted. */
-export const EXEMPT_VALUES: ReadonlySet<string> = new Set([
+const EXEMPT_VALUES: ReadonlySet<string> = new Set([
   "0",
   "0px",
   "inherit",
@@ -234,7 +234,7 @@ const RADIUS_PROPERTY =
   /(?<![-\w])(border-(?:(?:top|bottom)-(?:left|right)-|(?:start|end)-(?:start|end)-)?radius)\s*:\s*([^;}"'\n]+)/g;
 
 /** Whitespace-normalised, lowercase, so source and minified values compare. */
-export function normaliseValue(value: string): string {
+function normaliseValue(value: string): string {
   return value
     .trim()
     .toLowerCase()
@@ -269,7 +269,7 @@ export function declarationsInText(text: string, file: string): Declaration[] {
 }
 
 /** Every radius declaration in one file on disk. */
-export function declarationsIn(file: string): Declaration[] {
+function declarationsIn(file: string): Declaration[] {
   return declarationsInText(readFileSync(file, "utf8"), rel(file));
 }
 

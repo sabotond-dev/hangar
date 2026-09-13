@@ -86,12 +86,9 @@ import {
 } from "./recent";
 import { hasSeenIntro, markIntroSeen, readIntro } from "./intro";
 import { MOTION_CHOICES, readMotion, writeMotion } from "./motion";
+import { stripComments } from "../../test-support/source";
 
 const here = (file: string) => fileURLToPath(new URL(file, import.meta.url));
-
-/** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 /**
  * Everything a Storage is, for this module's purposes, over a Map - and a log
@@ -189,7 +186,7 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
     expect(raw, "the header names the browser store in prose").toContain(
       "localStorage",
     );
-    const code = strip(raw);
+    const code = stripComments(raw);
     expect(code, "the stripper ate the code").toContain(
       "export function writeJson",
     );
@@ -212,7 +209,7 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
 
     // And schema.ts is data: no specifiers either, and its six keys plus the
     // reserved one are what the plan names.
-    const schema = strip(readFileSync(here("./schema.ts"), "utf8"));
+    const schema = stripComments(readFileSync(here("./schema.ts"), "utf8"));
     expect(schema.includes('from "'), "schema.ts imports").toBe(false);
     expect(OWNED_KEYS).toEqual([
       "hangar.drafts.v1",
@@ -903,7 +900,7 @@ describe("the five stores (src/lib/store/*.ts)", () => {
       "local.ts",
       "schema.ts",
     ]) {
-      const code = strip(readFileSync(here(`./${file}`), "utf8"));
+      const code = stripComments(readFileSync(here(`./${file}`), "utf8"));
       expect(code.includes('"Saved"'), `${file} offers a generic Saved`).toBe(
         false,
       );
@@ -1003,7 +1000,7 @@ describe("the five stores (src/lib/store/*.ts)", () => {
 
     // The Svelte module reads through this one and no longer spells the key
     // or the guard itself: one key, one place.
-    const svelteSide = strip(
+    const svelteSide = stripComments(
       readFileSync(here("../sim/motion.svelte.ts"), "utf8"),
     );
     expect(

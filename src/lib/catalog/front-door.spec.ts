@@ -47,6 +47,7 @@ import {
   type PreviewMotion,
 } from "./front-door";
 import { byId, CATALOG } from "./index";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./front-door.ts", import.meta.url));
 const GOLDEN_URL = new URL("../fidelity/golden-frames.json", import.meta.url);
@@ -83,15 +84,6 @@ function deriveMotion(id: string): PreviewMotion {
   if (records.some((record) => record.nonZeroBytes > 0)) return "static";
   return "dark";
 }
-
-// Deliberately backslash-free: inside a shell-quoted node -e a backslash is
-// eaten and a pattern silently stops matching. The same expression is used by
-// every structural scan in this phase.
-const strip = (text: string): string =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
   it("every row entry is the catalog's own entry, and an engine exists for it", () => {
@@ -270,7 +262,7 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
   // coverflow rendered is gone, and the membership has no window.
 
   it("the module stays out of the compiler's chunk, and the quiet copy is the shelf's own", () => {
-    const source = strip(readFileSync(SOURCE_PATH, "utf8"));
+    const source = stripComments(readFileSync(SOURCE_PATH, "utf8"));
     // "lib/catalog" cannot catch a relative import from inside this very
     // directory, so the two local paths that would pull the compiler in are
     // named as well.

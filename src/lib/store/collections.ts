@@ -106,7 +106,7 @@ const isCollectionsEnvelope = (value: unknown): value is CollectionsEnvelope =>
   isEnvelope(value) &&
   Array.isArray((value as { collections?: unknown }).collections);
 
-export function isCollection(value: unknown): value is Collection {
+function isCollection(value: unknown): value is Collection {
   if (!isObject(value) || value.schema !== SCHEMA_VERSION) return false;
   if (typeof value.id !== "string" || typeof value.name !== "string") {
     return false;

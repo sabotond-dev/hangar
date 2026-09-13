@@ -61,19 +61,13 @@ import {
   slotStateOf,
   unpluggedWhileConnectedBlock,
 } from "./session-copy";
+import { stripComments } from "../../test-support/source";
 
 const sessionCopySource = () =>
   readFileSync(
     fileURLToPath(new URL("./session-copy.ts", import.meta.url)),
     "utf8",
   );
-
-/** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
-const strip = (text: string) =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** Assembled, never written: the engine name that appears in no string and no comment. */
 const ENGINE = ["Chrom", "ium"].join("");
@@ -238,7 +232,7 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     const raw = sessionCopySource();
     expect(raw.length, "the source was actually read").toBeGreaterThan(4000);
 
-    const source = strip(raw);
+    const source = stripComments(raw);
     expect(
       source.length,
       "the stripped source is still the module and not only its comments",
@@ -329,7 +323,7 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     // removed from the screen. The panel's label is absent from the whole
     // source; the disconnect's word is absent from every STEP (its own label
     // carries it since 13-18, and a label is not a step).
-    const source = strip(sessionCopySource());
+    const source = stripComments(sessionCopySource());
     expect(source.length, "the source was actually read").toBeGreaterThan(4000);
     expect(
       source.includes(PANEL_LABEL),
@@ -527,7 +521,7 @@ describe("the session's copy contract (06-UI-SPEC)", () => {
     expect(liveConnected(FW, 2)).toBe(
       "ZONA connected. Firmware 1.5.5, on Page 3.",
     );
-    const source = strip(sessionCopySource());
+    const source = stripComments(sessionCopySource());
     expect(source.split("page + 1").length - 1, "the offset, once").toBe(1);
   });
 

@@ -31,14 +31,9 @@ import {
   isDarkByConstruction,
 } from "./demo";
 import { TouchSampler } from "./touch";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./demo.ts", import.meta.url));
-
-// Deliberately backslash-free, matching every other structural scan in this
-// repository: a backslash inside a shell-quoted heredoc has been halved here
-// before, and the check then matched nothing while reporting something else.
-const strip = (text: string): string =>
-  text.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 type Delivered = { slot: number; event: string; x: number; y: number };
 
@@ -255,7 +250,7 @@ describe("the demonstration finger (src/lib/sim/demo.ts)", () => {
 
   it("imports nothing that reaches the compile surface", () => {
     const source = readFileSync(SOURCE_PATH, "utf8");
-    const stripped = strip(source);
+    const stripped = stripComments(source);
 
     // Three guards against a vacuous pass: a walk that read the wrong file, a
     // scan that collected nothing, and a stripper that ate the whole source.
@@ -307,7 +302,7 @@ describe("the demonstration finger (src/lib/sim/demo.ts)", () => {
       specifiers.filter((s) => s !== ADMITTED_RUNTIME),
       "every other specifier in demo.ts sits on an import type line",
     ).toEqual(erased);
-    const calibrationSource = strip(
+    const calibrationSource = stripComments(
       readFileSync(
         fileURLToPath(new URL(ADMITTED_RUNTIME + ".ts", import.meta.url)),
         "utf8",

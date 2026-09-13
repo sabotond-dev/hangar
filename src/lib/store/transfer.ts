@@ -136,10 +136,10 @@ export const EXPORT_APP = "hangar" as const;
  * and land on the base configuration (step 2). Empty today: version 1 is the
  * first. The first `.v2` adds `1` here and writes the migration beside it.
  */
-export const READABLE_OLDER_SCHEMAS: readonly number[] = [];
+const READABLE_OLDER_SCHEMAS: readonly number[] = [];
 
 /** The file's extension: JSON, marked as HANGAR's so a folder of them reads. */
-export const EXPORT_EXTENSION = ".hangar.json";
+const EXPORT_EXTENSION = ".hangar.json";
 
 /** What the file input accepts. Both forms, because browsers differ on which they honour. */
 export const EXPORT_ACCEPT = "application/json,.json";
@@ -188,7 +188,7 @@ export type ImportResult = Imported & { readonly stored: boolean };
 // Export.
 
 /** The rack as the file writes it: id and option count per knob, in rack order. */
-export function rackOf(knobs: readonly KnobShape[]): readonly RackKnob[] {
+function rackOf(knobs: readonly KnobShape[]): readonly RackKnob[] {
   return knobs.map((knob) => ({ id: knob.id, options: knob.options.length }));
 }
 

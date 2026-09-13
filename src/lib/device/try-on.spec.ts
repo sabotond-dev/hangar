@@ -14,6 +14,7 @@ import type { Capture, GridTransport } from "$lib/transport";
 import { FakeTransport } from "$lib/transport";
 import { heartbeatFrame } from "../transport/fixtures/synthetic";
 import { capabilityOf, identifyOnly } from "./try-on";
+import { stripComments } from "../../test-support/source";
 
 const FIRMWARE = { major: 1, minor: 5, patch: 5 };
 /** Deliberately not page 0, so a constant reached for instead of the report shows up. */
@@ -93,12 +94,6 @@ const clockPastTheWindow = () => {
 const frozenClock = () => 0;
 
 const noSleep = async () => {};
-
-const strip = (t: string) =>
-  t
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const tryOnSource = () =>
   readFileSync(fileURLToPath(new URL("./try-on.ts", import.meta.url)), "utf8");
@@ -183,7 +178,7 @@ describe("TRY ON DEVICE: connect and identify, never write (D-13, D-22)", () => 
     // Half two: no cycle can. The needle is assembled from fragments so this
     // spec's own source does not contain the thing it forbids, in the style of
     // src/lib/protocol/forbidden-instructions.spec.ts.
-    const source = strip(tryOnSource());
+    const source = stripComments(tryOnSource());
     expect(source.length, "the source was actually read").toBeGreaterThan(0);
     for (const needle of [
       [".", "write("].join(""),

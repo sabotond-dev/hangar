@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { crc32, inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { PngSizeError, encodePng } from "./png";
+import { stripComments } from "../../test-support/source";
 
 // The encoder is checked, never trusted. Every assertion below reconstructs the
 // bytes it is asserting about rather than reading a length the encoder also
@@ -119,17 +120,6 @@ const SCANNED_EXTENSIONS = [".ts", ".js", ".mjs", ".svelte"];
 /** The two places allowed to reach the encoder: this directory, and scripts/. */
 const EXEMPT = join("src", "lib", "og");
 const SKIPPED_DIRS = ["node_modules", ".svelte-kit"];
-
-/**
- * Comments removed before the forbid-scan, in this repository's uniform form
- * (line, block and markup). A comment explaining why a module must NOT be
- * imported is correct code, and must never be able to fail a structural check.
- */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 function walkSources(dir: string, found: string[]): string[] {
   for (const name of readdirSync(dir)) {

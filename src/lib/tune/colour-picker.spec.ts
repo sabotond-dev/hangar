@@ -54,6 +54,7 @@ import {
   isColourLattice,
   widgetFor,
 } from "./view";
+import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -62,13 +63,6 @@ const PICKER = "src/lib/ui/ColourPicker.svelte";
 const KNOB = "src/lib/ui/Knob.svelte";
 const RACK = "src/lib/ui/KnobRack.svelte";
 const SWATCH = "src/lib/ui/Swatch.svelte";
-
-/** The house comment stripper: line, block and markup. */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const raw = (rel: string) => readFileSync(repo(rel), "utf8");
 const code = (rel: string) => stripComments(raw(rel));

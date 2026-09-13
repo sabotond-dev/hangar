@@ -77,6 +77,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { stripComments } from "../../test-support/source";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
@@ -84,14 +85,7 @@ const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
 const UI_DIR = "src/lib/ui";
 const APP_CSS = "src/app.css";
 
-/** aesthetic.spec.ts's stripper, verbatim in behaviour and backslash-free. */
-const strip = (text: string) =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
-
-const code = (file: string) => strip(read(file));
+const code = (file: string) => stripComments(read(file));
 
 interface Rule {
   selector: string;

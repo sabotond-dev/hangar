@@ -34,7 +34,7 @@ export const F = (...parts: string[]): string => parts.join("");
 // The pieces every needle and every message is built from.
 export const V = "e";
 export const EQ = F("=", "=");
-export const NE = F("~", "=");
+const NE = F("~", "=");
 export const GE = F(">", "=");
 export const GT = ">";
 export const LT = "<";

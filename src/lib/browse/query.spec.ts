@@ -30,12 +30,9 @@ import {
   type BrowseQuery,
   type BrowseVocabulary,
 } from "./query";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./query.ts", import.meta.url));
-
-/** Line and block comments removed, so a structural scan reads code only. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 /**
  * The declared vocabulary and the legacy table - the argument the page passes.
@@ -439,7 +436,7 @@ describe("the browse query string (src/lib/browse/query.ts)", () => {
 
   it("imports nothing but ./sort, and names no catalog, no $app and no vendor in code", () => {
     const source = readFileSync(SOURCE_PATH, "utf8");
-    const stripped = strip(source);
+    const stripped = stripComments(source);
 
     expect(
       source.length,

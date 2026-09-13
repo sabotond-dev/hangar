@@ -187,7 +187,7 @@ export function buildCellMap(regions: readonly Region[]): CellMapResult {
 // Rule 1: on the surface, with the field named.
 
 /** The first field that puts the region off the surface, or undefined when it is on it. */
-export function offSurfaceField(region: Region): GeometryField | undefined {
+function offSurfaceField(region: Region): GeometryField | undefined {
   const { col, row, w, h } = region;
   if (!Number.isInteger(w) || w < 1) return "w";
   if (!Number.isInteger(h) || h < 1) return "h";
@@ -411,7 +411,7 @@ export type AdjacencyWarning = {
 };
 
 /** True when the two regions share an edge segment with no gap: touching, not overlapping. */
-export function edgeAdjacent(a: Region, b: Region): boolean {
+function edgeAdjacent(a: Region, b: Region): boolean {
   const aRight = a.col + a.w;
   const bRight = b.col + b.w;
   const aBottom = a.row + a.h;

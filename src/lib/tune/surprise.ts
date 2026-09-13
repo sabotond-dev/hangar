@@ -117,13 +117,6 @@ export function rollable(
  */
 export const SURPRISE_ROLL_LIMIT = 12;
 
-/**
- * The UI spec's budget for the whole gesture: if the roll has not landed inside
- * this, the ladder-resolved state is applied instead. Declared here beside the
- * bound it belongs with; the clock that enforces it is the caller's.
- */
-export const SURPRISE_BUDGET_MS = 400;
-
 /** No knob is held. One frozen empty set, so the default allocates nothing. */
 const NONE_HELD: ReadonlySet<string> = Object.freeze(new Set<string>());
 

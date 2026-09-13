@@ -53,15 +53,10 @@ import ElementList from "./sandbox/ElementList.svelte";
 import Palette from "./sandbox/Palette.svelte";
 import RegionInspector from "./sandbox/RegionInspector.svelte";
 import SurfaceEditor from "./sandbox/SurfaceEditor.svelte";
+import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
-
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const code = (rel: string) => stripComments(readFileSync(repo(rel), "utf8"));
 

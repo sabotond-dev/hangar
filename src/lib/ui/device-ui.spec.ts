@@ -142,6 +142,7 @@ import {
   UNCHARTED_PHASES,
   deviceClause,
 } from "./shell/device-clause";
+import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -229,13 +230,6 @@ const PERMITTED_SPECIFIERS = [
   // 13-12: the page target, zero imports, permitted in config-shape.spec.ts.
   "$lib/device/page-target",
 ];
-
-/** Comments removed before a structural match: line, block and markup. */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const raw = (rel: string) => readFileSync(repo(rel), "utf8");
 const code = (rel: string) => stripComments(raw(rel));

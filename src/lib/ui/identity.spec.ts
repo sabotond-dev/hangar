@@ -56,20 +56,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { REPO_ROOT, blankComments, listSourceFiles } from "./radius-allowlist";
+import { stripComments } from "../../test-support/source";
 
 const root = (file: string) => new URL(`../../../${file}`, import.meta.url);
 const text = (file: string) => readFileSync(root(file), "utf8");
-
-/**
- * The one uniform comment stripper. Deliberately backslash-free so the same
- * expression can be quoted into a plan or a shell without an escape being
- * halved in transport.
- */
-const strip = (t: string) =>
-  t
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** Collapse whitespace and drop trailing zeros so `0.50` and `0.5` compare equal. */
 const normalise = (value: string) =>
@@ -142,7 +132,7 @@ const TYPE_ROLES: ReadonlyArray<readonly [string, number, string]> = [
   [".type-field", 15, "sans"],
 ];
 
-const css = strip(text("src/app.css"));
+const css = stripComments(text("src/app.css"));
 const themeBlock = /@theme\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
 
 /** Read a custom property's value out of the stripped source. */
@@ -889,7 +879,7 @@ describe("IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twe
     // 8:1 and cannot be an icon, so the site has two marks with two jobs -
     // the pad outline at 1:1 here, the wordmark at 8:1 in the header.
     const raw = text("src/lib/assets/favicon.svg");
-    const svg = strip(raw);
+    const svg = stripComments(raw);
 
     // The scaffold shipped a framework logo with <title>svelte-logo</title>.
     // IDENT-01 says the mark is the pad; this is what stops it coming back.

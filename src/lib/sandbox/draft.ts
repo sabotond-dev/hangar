@@ -35,7 +35,7 @@ export function mintSurfaceId(now: number = Date.now()): string {
 }
 
 /** The store key a surface's draft lives under. */
-export const surfaceDraftId = (surfaceId: string): string =>
+const surfaceDraftId = (surfaceId: string): string =>
   draftIdFor("sandbox", surfaceId);
 
 /** The draft's surface, or undefined when none is stored or the store refused. */
@@ -49,7 +49,7 @@ export function readSurfaceDraft(
 }
 
 /** The record the surface travels as. `createdAt` is kept by drafts.ts when one exists. */
-export function surfaceRecord(surface: Surface, at: string): SandboxRecord {
+function surfaceRecord(surface: Surface, at: string): SandboxRecord {
   return {
     schema: SCHEMA_VERSION,
     id: surfaceDraftId(surface.id),

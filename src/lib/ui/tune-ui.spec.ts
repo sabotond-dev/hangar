@@ -106,6 +106,7 @@ import {
   NUMERIC_GRID_REFLOW,
   NUMERIC_GRID_W,
 } from "./shell/layout";
+import { stripComments } from "../../test-support/source";
 
 /** Seven and twelve integers, for the totality walk over every kind. */
 const SEVEN_INTEGERS = Array.from({ length: 7 }, (_, i) => String(i));
@@ -156,13 +157,6 @@ const TUNING_COMPONENTS: readonly string[] = [
   "Swatch.svelte",
   "TuningRegion.svelte",
 ];
-
-/** Comments removed before a structural match: line, block and markup. */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const raw = (rel: string) => readFileSync(repo(rel), "utf8");
 const code = (rel: string) => stripComments(raw(rel));

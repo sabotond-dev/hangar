@@ -286,12 +286,12 @@ export const KNOB_MINIMUM_CELLS = Math.ceil(
  * orientation and is `minimumSizeFor`'s to answer; by kind alone a fader has
  * a one-cell minimum here and the orientation rule is applied on top.
  */
-export const DEFAULT_MINIMUM_SIZES: MinimumSizes = {
+const DEFAULT_MINIMUM_SIZES: MinimumSizes = {
   knob: { w: KNOB_MINIMUM_CELLS, h: KNOB_MINIMUM_CELLS },
   xy: { w: 2, h: 2 },
 };
 
-export function minimumSizeOf(
+function minimumSizeOf(
   kind: ElementKind,
   minimums: MinimumSizes = DEFAULT_MINIMUM_SIZES,
 ): CellSize {
@@ -321,11 +321,6 @@ export function minimumSizeFor(
 export const cellIndex = (col: number, row: number): number =>
   row * SURFACE_SIZE + col;
 
-/** The column and the row of a cell index. */
-export function cellAt(index: number): { col: number; row: number } {
-  return { col: index % SURFACE_SIZE, row: Math.floor(index / SURFACE_SIZE) };
-}
-
 /** The region's cells, in reading order. Assumes the region is on the surface. */
 export function cellsOf(region: Region): number[] {
   const out: number[] = [];
@@ -335,15 +330,6 @@ export function cellsOf(region: Region): number[] {
     }
   }
   return out;
-}
-
-/** True when the region's cells are all inside the 9 x 9 and its size is at least 1 x 1. */
-export function isOnSurface(region: Region): boolean {
-  const { col, row, w, h } = region;
-  if (!Number.isInteger(col) || !Number.isInteger(row)) return false;
-  if (!Number.isInteger(w) || !Number.isInteger(h)) return false;
-  if (w < 1 || h < 1 || col < 0 || row < 0) return false;
-  return col + w <= SURFACE_SIZE && row + h <= SURFACE_SIZE;
 }
 
 /** A structurally identical copy - the shape a duplicate starts from. */

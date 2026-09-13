@@ -41,6 +41,7 @@ import {
 } from "./model";
 import { resetAll } from "./state";
 import { COLOUR_LATTICE_SIZE, knobPosition, type TuneView } from "./view";
+import { stripComments } from "../../test-support/source";
 
 /**
  * The card whose ladder is genuinely reachable with a reserve - see
@@ -126,13 +127,6 @@ const same = (a: Uint8Array, b: Uint8Array) =>
 
 const modelSource = () =>
   readFileSync(fileURLToPath(new URL("./model.ts", import.meta.url)), "utf8");
-
-/** The house stripper: line, block and markup comments, backslash-free. */
-const strip = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 describe("the tuner (TUNE-02, TUNE-03)", () => {
   beforeAll(async () => {
@@ -407,7 +401,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     expect(over.fits, "the reserve must really push it over").toBe(false);
     expect(needsLadder(over)).toBe(true);
 
-    const source = strip(modelSource());
+    const source = stripComments(modelSource());
     const sites = [...source.matchAll(/fitState[ ]*[(]/g)];
     expect(
       sites,
@@ -661,7 +655,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
 
     // And the three firmware defaults are named by NO file under src/lib/tune/
     // - ladder.spec.ts:275 holds the module boundary; this holds the words.
-    const source = strip(modelSource());
+    const source = stripComments(modelSource());
     for (const needle of [
       "SYSTEM_DEFAULT_SETUP",
       "SYSTEM_DEFAULT_TIMER",

@@ -12,21 +12,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { STAMP_PREFIX as VENDORED_STAMP_PREFIX } from "../../vendor/botor/_pad";
 import { SITE_ORIGIN, STAMP_PREFIX, shareUrl } from "./url";
+import { stripComments } from "../../test-support/source";
 
 const root = (file: string) => new URL(`../../../${file}`, import.meta.url);
 const text = (file: string) => readFileSync(root(file), "utf8");
-
-/**
- * Comments removed before a structural match, in the uniform form this phase
- * uses everywhere. Deliberately backslash-free: `url.ts`'s own header names
- * every navigation API it refuses to use - correctly, since explaining their
- * absence is the point - so a scan over raw source would go red on right code.
- */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 describe("the share URL", () => {
   it("is the canonical trailing-slash path, with no fragment at the defaults", () => {

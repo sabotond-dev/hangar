@@ -45,6 +45,7 @@ import { madeForRows, railSections } from "$lib/browse/rail";
 import { LISTING, listingById, type ListingEntry } from "$lib/catalog/listing";
 import { readFavorites, toggleFavorite } from "$lib/store/favorites";
 import CatalogCard from "./CatalogCard.svelte";
+import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
   fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
@@ -80,13 +81,6 @@ const browseFiles = (): string[] => [
     .sort()
     .map((name) => `${BROWSE_DIR}/${name}`),
 ];
-
-/** Comments removed before a structural match: line, block and markup. */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const raw = (rel: string) => readFileSync(repo(rel), "utf8");
 const code = (rel: string) => stripComments(raw(rel));

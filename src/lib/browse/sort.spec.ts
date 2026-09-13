@@ -44,12 +44,9 @@ import {
   orderFor,
   sortListing,
 } from "./sort";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./sort.ts", import.meta.url));
-
-/** Line and block comments removed, so a structural scan reads code only. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
 
@@ -284,7 +281,7 @@ describe("the browse sort orders (src/lib/browse/sort.ts)", () => {
     // locale-aware comparison at all. Without this the rule is a comment that
     // somebody deletes while "fixing" the file to match 05.1-RESEARCH.md.
     const source = readFileSync(SOURCE_PATH, "utf8");
-    const stripped = strip(source);
+    const stripped = stripComments(source);
     expect(
       source.length,
       "the scan read a real module, not an empty file",

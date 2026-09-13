@@ -48,23 +48,12 @@ import { describe, expect, it } from "vitest";
 // turns this file red as well as the three that already hold it.
 import { byId } from "../catalog";
 import { DARK_BY_CONSTRUCTION, demoPathFor } from "../sim/demo";
+import { stripComments } from "../../test-support/source";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (file: string) => readFileSync(REPO_ROOT + file, "utf8");
 
 const PAD_FRAME = "src/lib/ui/PadFrame.svelte";
-
-/**
- * identity.spec.ts's stripper, verbatim in behaviour: comments go before
- * anything is matched, so a comment can never pass or fail a check. Backslash
- * free, so any line of it can be quoted into a plan without an escape being
- * halved in transport.
- */
-const strip = (t: string) =>
-  t
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** identity.spec.ts's normaliser: collapse whitespace, drop trailing zeros. */
 const normalise = (value: string) =>
@@ -165,7 +154,7 @@ const COLOUR_LITERAL =
 
 describe("IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59)", () => {
   it("scan 8: the unlit cell is drawn as a cell, in the token, and the pad that lights nothing is still dark", () => {
-    const rules = parseRules(strip(read(PAD_FRAME)));
+    const rules = parseRules(stripComments(read(PAD_FRAME)));
     const dots = rules.filter((rule) => rule.selector === ".dots");
 
     // ---- NON-VACUITY, BEFORE ANY CLAIM ABOUT WHAT WAS FOUND. ----

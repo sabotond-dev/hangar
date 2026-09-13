@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { stripComments } from "../test-support/source";
 
 const root = (file: string) => new URL(`../../${file}`, import.meta.url);
 
@@ -151,19 +152,6 @@ const COMPILE_SURFACE_ALLOWED = [
 ];
 /** The symbol that identifies the chunk carrying the protocol package. */
 const PROTOCOL_SYMBOL = "GRID_PARAMETER_ELEMENT_POTMETER";
-
-/**
- * Comments removed before a structural match, in the one uniform form used
- * across this phase: line, block and markup. Deliberately backslash-free.
- * The components below name the vendored tree and the protocol package in
- * their own comments - correctly, since explaining why they are absent is the
- * point - so a scan over raw source would go red on correct code.
- */
-const stripComments = (source: string) =>
-  source
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 describe("build configuration shape", () => {
   it("has no svelte.config file to shadow the Vite config", () => {

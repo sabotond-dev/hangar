@@ -47,12 +47,9 @@ import {
   NO_FACETS,
   type ActiveFacets,
 } from "./filter";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./filter.ts", import.meta.url));
-
-/** Line and block comments removed, so a structural scan reads code only. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 const ids = (entries: readonly { id: string }[]) => entries.map((e) => e.id);
 const byId = (id: string) => {
@@ -224,7 +221,7 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
     // search for "DIAL" would stop finding Dial. The module says .toLowerCase()
     // in prose; this asserts it in code.
     const source = readFileSync(SOURCE_PATH, "utf8");
-    const stripped = strip(source);
+    const stripped = stripComments(source);
     expect(
       source.length,
       "the scan read a real module, not an empty file",

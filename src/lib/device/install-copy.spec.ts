@@ -120,6 +120,7 @@ import {
 } from "./install-copy";
 // The twin's other half, read from the module that renders it (13.1-02).
 import { TARGET_LABEL } from "./page-target";
+import { stripComments } from "../../test-support/source";
 
 const read = (relative: string) =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
@@ -159,13 +160,6 @@ const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
   ];
 
 const documents = () => DOCUMENTS.map(({ path }) => read(path));
-
-/** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
-const strip = (text: string) =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** Assembled, never written: the engine name that appears in no string and no comment. */
 const ENGINE = ["Chrom", "ium"].join("");
@@ -432,7 +426,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     const raw = installCopySource();
     expect(raw.length, "the source was actually read").toBeGreaterThan(4000);
 
-    const source = strip(raw);
+    const source = stripComments(raw);
     expect(
       source.length,
       "the stripped source is still the module and not only its comments",
@@ -764,7 +758,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(pageName(3)).toBe("Page 4");
     expect(settledCaption(0)).toContain("Page 1");
     expect(keptCaption(PAGE)).toBe("Stored on ZONA · Page 2");
-    const source = strip(raw);
+    const source = stripComments(raw);
     const offsets = source.split("page + 1").length - 1;
     expect(offsets, "the offset is applied in exactly one place").toBe(1);
     const numbered = everyString().filter(({ text }) => /Page \d/.test(text));
@@ -801,7 +795,9 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     for (const entry of readdirSync(SRC, { recursive: true })) {
       const rel = String(entry).split("\\").join("/");
       if (!/[.](ts|svelte)$/.test(rel) || rel.endsWith(".spec.ts")) continue;
-      const body = strip(readFileSync(`${SRC}${rel}`, "utf8")).toLowerCase();
+      const body = stripComments(
+        readFileSync(`${SRC}${rel}`, "utf8"),
+      ).toLowerCase();
       const n = body.split("about a second").length - 1;
       if (n > 0) counted[rel] = n;
     }
@@ -1089,7 +1085,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(CLEAR_REASONS.incapable, "Store on ZONA's, reused").toBe(
       KEEP_REASONS.incapable,
     );
-    const retyped = strip(installCopySource()).split(NEEDS_ZONA);
+    const retyped = stripComments(installCopySource()).split(NEEDS_ZONA);
     expect(
       retyped.length - 1,
       "the no-session sentence is written twice - reference it, do not retype it",

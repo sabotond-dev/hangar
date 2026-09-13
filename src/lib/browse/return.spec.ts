@@ -26,12 +26,9 @@ import {
   writeBrowseReturn,
   type ReturnStore,
 } from "./return";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./return.ts", import.meta.url));
-
-/** Line and block comments removed, so a structural scan reads code only. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 /** Everything a Storage is, for this module's purposes, over a Map. */
 function fakeStore() {
@@ -242,7 +239,7 @@ describe("the browse return record (src/lib/browse/return.ts)", () => {
     // assertions above true by construction rather than by a guard somebody can
     // delete, and it is why this file needs no jsdom.
     const source = readFileSync(SOURCE_PATH, "utf8");
-    const stripped = strip(source);
+    const stripped = stripComments(source);
 
     expect(
       source.length,

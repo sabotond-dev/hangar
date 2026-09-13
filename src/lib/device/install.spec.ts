@@ -159,6 +159,7 @@ import {
   persistIfAbsent,
   rememberLast,
 } from "./snapshot";
+import { stripComments } from "../../test-support/source";
 
 // ---------------------------------------------------------------------------
 // The module, and what it holds.
@@ -762,13 +763,6 @@ const dropThreeAcksFrom = (class_name: string, first: number): Fault[] =>
     nth,
   }));
 
-/** try-on.spec.ts's comment stripper, for tests 8 and 18. */
-const strip = (t: string) =>
-  t
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
-
 const sourceOf = (file: string) =>
   readFileSync(new URL(file, import.meta.url), "utf8");
 
@@ -1287,7 +1281,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // Comment-stripped: the store's header legitimately names every symbol
     // these scans forbid while explaining its absence. Needles are assembled
     // from fragments so this file does not contain what it forbids.
-    const source = strip(sourceOf("./install.svelte.ts"));
+    const source = stripComments(sourceOf("./install.svelte.ts"));
     expect(source.length, "the source was actually read").toBeGreaterThan(1000);
     expect(source, "non-vacuity: the class is there").toContain(
       "class InstallStore",
@@ -1324,7 +1318,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // run here over session.svelte.ts so the two files are checked together.
     // TEN since plan 10-12, and this copy moves with the original or the
     // sentence above it stops being true.
-    const sessionSource = strip(sourceOf("./session.svelte.ts"));
+    const sessionSource = stripComments(sourceOf("./session.svelte.ts"));
     expect(sessionSource.length).toBeGreaterThan(1000);
     for (const needle of [
       [".", "write("].join(""),
@@ -2201,7 +2195,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(spoken.filter((s) => s === LIVE_STILL_WRITING)).toHaveLength(1);
 
     // And structurally: a setTimeout on the store, zero intervals.
-    const source = strip(sourceOf("./install.svelte.ts"));
+    const source = stripComments(sourceOf("./install.svelte.ts"));
     expect(source).toContain("SLOW_LINE_MS = 2000");
     expect(source).toContain(["set", "Timeout("].join(""));
     expect(source.includes(["set", "Interval"].join(""))).toBe(false);
@@ -2671,7 +2665,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ];
     expect(ENABLED.length + DISABLED.length, "fifteen states").toBe(15);
 
-    const declaration = strip(sourceOf("./install.svelte.ts"));
+    const declaration = stripComments(sourceOf("./install.svelte.ts"));
     const union = declaration.slice(
       declaration.indexOf("export type InstallPhase"),
       declaration.indexOf("export type InstallAction"),
@@ -3387,14 +3381,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       // never a branch. And the landing's module stays on the tuner's side
       // of ladder.spec.ts's line: it reaches no protocol, transport or
       // device module, so a firmware default can never be typed into it.
-      const store = strip(sourceOf("./install.svelte.ts"));
+      const store = stripComments(sourceOf("./install.svelte.ts"));
       for (const needle of ["sandbox", "Surface", "surface", ".kind"]) {
         expect(store.includes(needle), `the store names ${needle}`).toBe(false);
       }
       expect(store).toContain(
         "async tryOnDevice(\n    config: ConfigStrings | undefined,\n    name: string,\n  )",
       );
-      const land = strip(sourceOf("../sandbox/land.ts"));
+      const land = stripComments(sourceOf("../sandbox/land.ts"));
       for (const needle of ["lib/protocol", "lib/transport", "lib/device"]) {
         expect(land.includes(needle), `land.ts reaches ${needle}`).toBe(false);
       }

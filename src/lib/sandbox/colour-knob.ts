@@ -40,7 +40,7 @@ function literalAt(position: number): string {
 }
 
 /** The 4,096 resolved colour views, built once. */
-export function latticeValues(): readonly KnobValueView[] {
+function latticeValues(): readonly KnobValueView[] {
   latticeViews ??= Object.freeze(
     Array.from({ length: COLOUR_LATTICE_SIZE }, (_, at) => {
       const literal = literalAt(at);

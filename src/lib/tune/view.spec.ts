@@ -38,6 +38,7 @@ import {
   type KnobKindName,
   type KnobWidget,
 } from "./view";
+import { stripComments } from "../../test-support/source";
 
 // TEST 1, the half a runtime assertion cannot make. If BOTOR's union ever
 // gains or loses a member, one of these two lines stops compiling and
@@ -66,19 +67,6 @@ const SCALE_KINDS: readonly ScaleKind[] = [
 
 const source = (file: string) =>
   readFileSync(new URL(file, import.meta.url), "utf8");
-
-/**
- * Comments removed before a structural match, in the one uniform form used
- * across this repository (src/lib/config-shape.spec.ts). Deliberately
- * backslash-free. view.ts's own header comment names the vendored tree and the
- * protocol package - correctly, since explaining why they are absent is the
- * point - so a scan over raw source would go red on correct code.
- */
-const stripComments = (text: string) =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const rgb = (literal: string) =>
   literal.split(",").map(Number) as [number, number, number];

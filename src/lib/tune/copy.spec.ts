@@ -73,6 +73,7 @@ import {
   tryOnBudgetReason,
 } from "./copy";
 import { RANDOMIZE, RESET_SETTINGS, SHARE_SNAPSHOT } from "./inspector-copy";
+import { stripComments } from "../../test-support/source";
 
 const read = (relative: string) =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
@@ -134,13 +135,6 @@ function everySourceFile(dir: string, out: string[] = []): string[] {
   }
   return out;
 }
-
-/** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
-const stripComments = (text: string) =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** Assembled, never written: the engine name that appears in no string and no comment. */
 const ENGINE = ["Chrom", "ium"].join("");

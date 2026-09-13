@@ -9,16 +9,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FALLBACK_DELAY_MS, IDLE_TIMEOUT_MS, onIdle } from "./idle";
+import { stripComments } from "../../test-support/source";
 
 const source = (file: string) =>
   readFileSync(new URL(file, import.meta.url), "utf8");
-
-/** The house comment stripper (src/lib/config-shape.spec.ts), backslash-free. */
-const stripComments = (text: string) =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 /** A browser that knows what idle means. */
 const chromium = () => {

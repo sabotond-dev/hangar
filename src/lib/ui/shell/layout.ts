@@ -41,9 +41,8 @@
  * had settled only the inspector width on the PDF's authority; the planner
  * extended that to the type scale and, per D-01, asked rather than assumed,
  * and the user chose the PDF's. 13-03 declares the sizes as the .type-*
- * roles in src/app.css; this header is the single place the decision and
- * its provenance are stated, and TYPE_SCALE below is the one export both
- * identity.spec.ts and shell.spec.ts may read.
+ * roles in src/app.css (36 / 30 / 17); this header is the single place the
+ * decision and its provenance are stated.
  *
  * THE TWO SECTION 13 RULES THAT ARE NOT WIDTHS, because they are the easiest
  * to lose: touch targets are sized by pointer capability - "(pointer:
@@ -68,17 +67,14 @@ export const CONTEXT_H = 59;
 /** Footer, about 50 tall: HANGAR / by intech studio left, the two links right. Fixed. */
 export const FOOTER_H = 50;
 
-/** Left rail, x 0 to 224 at 1500. Fixed at 1440 and above; RAIL_FR is its provenance. */
+/** Left rail, x 0 to 224 at 1500. Fixed at 1440 and above. */
 export const RAIL_W = 224;
-
-/** The rail as the PDF's fraction of its viewport, about 0.149. Recorded, not used for layout. */
-export const RAIL_FR = RAIL_W / MEASURED_AT;
 
 /** The compact rail at 1024-1439: section 7's own 200. */
 export const RAIL_COMPACT_W = 200;
 
 /** Right inspector, x 1044 to 1500 at 1500: 456 wide, about 0.304 of the viewport. */
-export const INSPECTOR_W = 456;
+const INSPECTOR_W = 456;
 export const INSPECTOR_FR = INSPECTOR_W / MEASURED_AT;
 
 /** The wide band's clamp (1440 and above): the PDF's fraction, never below 380 nor above the PDF's 456. */
@@ -195,12 +191,9 @@ export const INTRO_PAD_BOTTOM = 48;
 export const INTRO_GAP = 44;
 
 /**
- * The strip: the PDF's rule at y 845 and its text's foot at y 930 at 1500 -
- * 85 tall, of which 32 is the padding between the rule and the numbers.
- * INTRO_STRIP_H is recorded for provenance and read by no rule: the strip's
- * height is its content's, never fixed, so a font change cannot clip it.
+ * The strip's padding between its rule and the numbers. The strip's height is
+ * its content's, never fixed, so a font change cannot clip it.
  */
-export const INTRO_STRIP_H = 85;
 export const INTRO_STRIP_PAD = 32;
 
 /**
@@ -273,16 +266,6 @@ export const BREADCRUMB_SIZE = 11;
 
 /** Section 13's breakpoints, kept as written: wide at 1440 and above, compact from 1024, stacked from 768, narrow below. */
 export const BREAKPOINTS = [1440, 1024, 768] as const;
-
-/**
- * D-17: the PDF's measured type scale. Section 12's written 28-32 / 20 / 14
- * is overridden by measurement, not reconciled with it. See the header.
- */
-export const TYPE_SCALE = {
-  pageTitle: 36,
-  panelTitle: 30,
-  groupTitle: 17,
-} as const;
 
 /** Section 13's four rows, named. */
 export type Band = "wide" | "compact" | "stacked" | "narrow";

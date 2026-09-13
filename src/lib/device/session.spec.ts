@@ -79,6 +79,7 @@ import {
   type SerialLike,
 } from "./session.svelte";
 import { TRY_ON_LABEL } from "./try-on";
+import { stripComments } from "../../test-support/source";
 
 // ---------------------------------------------------------------------------
 // The capture, and what the hardware run recorded in it.
@@ -172,13 +173,6 @@ const movableClock = () => {
     },
   };
 };
-
-/** try-on.spec.ts's comment stripper, for the static half of test 15. */
-const strip = (t: string) =>
-  t
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 const sessionSource = () =>
   readFileSync(new URL("./session.svelte.ts", import.meta.url), "utf8");
@@ -1151,7 +1145,7 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     // extended rather than excepted. (REQUIREMENTS.md said EIGHT until 10-12 - it was already
     // stale at nine before this phase, and the correction is recorded in the
     // same named amendment rather than renumbered quietly.)
-    const source = strip(sessionSource());
+    const source = stripComments(sessionSource());
     expect(source.length, "the source was actually read").toBeGreaterThan(1000);
     for (const needle of [
       [".", "write("].join(""),

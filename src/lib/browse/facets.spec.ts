@@ -28,12 +28,9 @@ import {
   facetOf,
   matchesFacets,
 } from "./facets";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./facets.ts", import.meta.url));
-
-/** Line and block comments removed, so a structural scan reads code only. */
-const strip = (source: string) =>
-  source.replace(/^[ ]*[/][/].*$/gm, "").replace(/[/][*][^]*?[*][/]/g, "");
 
 const ALL_TERMS = [...FOR_TERMS, ...FEELS_TERMS];
 
@@ -252,7 +249,7 @@ describe("the browse facets (src/lib/browse/facets.ts)", () => {
 
   it("imports nothing at all, and bounds the legacy ?tag= table", () => {
     const source = readFileSync(SOURCE_PATH, "utf8");
-    const stripped = strip(source);
+    const stripped = stripComments(source);
     expect(
       source.length,
       "the scan read a real module, not an empty file",

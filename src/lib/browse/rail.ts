@@ -28,7 +28,7 @@ import { FOR_LABELS } from "./labels";
 
 /** The PDF's two section titles, verbatim (uppercase: short section labels, D-05). */
 export const YOUR_LIBRARY = "YOUR LIBRARY";
-export const MADE_FOR = "MADE FOR";
+const MADE_FOR = "MADE FOR";
 
 /** Which of the library's three views the gallery is showing. */
 export type LibraryView = "all" | "favorites" | "recent";

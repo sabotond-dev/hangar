@@ -38,6 +38,7 @@ import {
   demoPathFor,
   isDarkByConstruction,
 } from "../sim/demo";
+import { stripComments } from "../../test-support/source";
 
 const SOURCE_PATH = fileURLToPath(new URL("./listing.ts", import.meta.url));
 const FRAMES_URL = new URL("./frames.json", import.meta.url);
@@ -88,15 +89,6 @@ function naiveMotion(id: string): PreviewMotion {
   if (frames.some((frame) => frame.nonZeroBytes > 0)) return "static";
   return "dark";
 }
-
-// Deliberately backslash-free, matching every other structural scan in this
-// repository: inside a shell-quoted node -e a backslash is eaten and a pattern
-// silently stops matching.
-const strip = (text: string): string =>
-  text
-    .replace(/^[ ]*[/][/].*$/gm, "")
-    .replace(/[/][*][^]*?[*][/]/g, "")
-    .replace(/<!--[^]*?-->/g, "");
 
 describe("the browse listing (src/lib/catalog/listing.ts)", () => {
   it("restates the catalog exactly, field by field", () => {
@@ -356,7 +348,7 @@ describe("the browse listing (src/lib/catalog/listing.ts)", () => {
 
   it("imports nothing at runtime", () => {
     const source = readFileSync(SOURCE_PATH, "utf8");
-    const stripped = strip(source);
+    const stripped = stripComments(source);
 
     // Three guards against a vacuous pass: a walk that read the wrong file, a
     // scan that collected nothing, and a stripper that ate the whole source.
