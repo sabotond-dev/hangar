@@ -1,72 +1,14 @@
-// The CONT-02 gate: everything a hand-authored configuration must be true of
-// before it is allowed into the catalog.
+// The CONT-02 gate: everything a hand-authored configuration must be true of before it is
+// allowed into the catalog. Six tests, and the count NEVER MOVES: every one loops over the Lua
+// entries internally and names the entry and the event in its message, so a wave adds
+// configurations without touching a number here.
 //
-// Six tests, and the count NEVER MOVES. Every one of them loops over the Lua
-// entries internally and names the entry and the event in its message, so waves
-// 5 and 6 add configurations without touching a single number here or in
-// 08-VALIDATION.md. Nothing here is parameterised by the runner, for the same
-// reason: a per-entry test block would make the total move with the catalog.
-//
-// WHY THIS FILE IS NAMED *.sweep.spec.ts (D-08, plan 09-01). It measures 283
-// knob combinations through the WASM minifier - test 6 alone renders every
-// value of every knob plus both corners of every entry, and calls
-// compressScript on each of the two events - which makes it the load-sensitive
-// test of the quick run. docs/TESTING.md records it timing out three times on
-// 2026-09-05 at 0.8 to 1.7 GB free, on a tree that had not changed a vitest
-// file. Phase 9 roughly quadruples the entry count, so it moved before that
-// happened, while the move was still a rename.
-//
-// The move IS the rename. vite.config.ts was not edited: the `server` project
-// already excludes src/**/*.sweep.spec.ts and the `sweep` project already
-// includes it, by a FILE-NAME rule both that file and src/lib/config-shape.spec.ts
-// state in prose. The naming convention is the rule, so honouring it costs no
-// configuration.
-//
-// NOTHING IT COVERS WAS TRIMMED. Six tests before, six tests after, the same
-// 283 combinations. Phase 8's D-10 set the precedent when it moved
-// pad-invariants.test.js for exactly this reason, in exactly these words: it
-// runs less OFTEN, never less FULLY. A wave authoring configurations runs it
-// directly:
-//
-//   npx vitest run --project sweep src/lib/catalog/lua-entries.sweep.spec.ts
-//
-// AMENDMENT, plan 10-08: THE COLOUR DIMENSION IS SAMPLED AT 27 LATTICE
-// LITERALS, AND TEST 6 GOES 701 -> 1,728 COMBINATIONS (1,402 -> 3,456
-// MEASUREMENTS).
-//
-// D-06 lets a picker write any of the 4,096 RGB444 colours into a colour
-// knob's token, so test 6's question changed from "does every declared palette
-// literal fit" to "does every colour a picker could write fit". `luaKnobs`
-// declared 45 colour knobs across 25 of the 27 hand-authored entries when this
-// note was written; after plan 11-01's nine removals it read **29 colour knobs
-// across 16 of 18 entries**, with a total knob count of 91. That sentence went
-// stale twice without anybody noticing, because nothing gates it: plans 11-14
-// and 11-15 each added an entry. COUNTED FROM THE ENTRIES AT PLAN 12-04, after
-// LATTICE, FORGE and SHUTTLE were removed, it is **27 colour knobs across 15
-// of 17 entries, with a total knob count of 85** - counted rather than
-// subtracted, which is why it disagrees with the arithmetic anybody would do
-// on the stale figures.
-// Every number in this file's tests is derived from the entries at run time, so
-// the removal moved this prose and nothing else;
-// enumerating the lattice on each would make this 184,833 combinations of
-// compressScript + measureLua and is simply not an option. The sample is 27
-// literals per colour knob and it is LENGTH-COMPLETE - the licence, and the
-// separability identity it rests on, are quoted at test 6 from `:358-384`
-// rather than restated. NOTHING IS TRIMMED: the non-colour half is still every
-// value of every knob plus both corners.
-//
-// WHY THE FORMATTER GATE IS THE FIRST THING THAT HAPPENS. compressScript throws
-// before the WASM Lua formatter resolves, and checkSyntax silently returns false
-// - so a gate that skipped padReady() would report every correct configuration
-// as broken, and the syntax test would be a permanent, meaningless red.
-//
-// WHY EVERY NEEDLE IN TEST 4 IS ASSEMBLED FROM FRAGMENTS. That test forbids a
-// set of Lua constructs, and a spec that searches for a string it also contains
-// finds itself. src/lib/protocol/forbidden-instructions.spec.ts established the
-// house answer: build the needle at runtime from pieces. The same rule applies
-// to the PROSE here, which is why the list below describes each construct
-// instead of naming it - a comment naming one verbatim would put the literal
-// back in the file and quietly defeat the whole arrangement.
+// A *.sweep.spec.ts (D-08): test 6 renders every value of every knob plus both corners of every
+// entry, the colour dimension sampled at 27 lattice literals (length-complete; the licence is
+// quoted at test 6), and calls compressScript on each event - the load-sensitive test of the
+// suite, run by the `sweep` project and never trimmed. padReady() comes first: compressScript
+// throws and checkSyntax silently returns false before the WASM formatter resolves. Every needle
+// in test 4 is assembled from fragments, and the prose here names none of the constructs.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";

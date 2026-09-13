@@ -1,133 +1,55 @@
-// The class-A gate: a decaying layer must land on phase 0.
+// The class-A gate: a decaying layer must land on phase 0. THREE TESTS, AND THE COUNT NEVER
+// MOVES: each loops over the catalog and names the entry, the event and the site. This file is
+// the permanent home of the decay idiom - both statements of it below were moved here verbatim
+// out of the deleted `entries/life.ts` and `entries/gridlock.ts` and are the only surviving
+// copy; the four numbered sections are what the assertions rest on, and the tests' messages
+// cite them by number.
+// Decided at 11-01; see .planning/phases/11-bench-corrections/11-01-SUMMARY.md
 //
-// THIS FILE IS THE PERMANENT HOME OF THE DECAY IDIOM. Both statements of it
-// below were MOVED here, verbatim, out of `entries/life.ts` and
-// `entries/gridlock.ts` in plan 11-01 - the same plan that deleted those two
-// files. They are not a third restatement; they are the only surviving copy.
-// `11-RESEARCH.md` named the first of them for rescue and missed the second,
-// and the second is the one 11-02 needs for CHORUS.
+// 1. THE MECHANISM
 //
-// ---------------------------------------------------------------------------
-// 1. THE MECHANISM, AND IT IS NOT WHAT THE ROADMAP SAYS
-// ---------------------------------------------------------------------------
-//
-// `pha` is a `uint8_t` and `+=` WRAPS. Firmware's `grid_led.c:190-211` does
-// `pha += fre` on a byte, and `src/vendor/botor/pad-sim.ts:883-891` reproduces
-// it line for line as `L.pha = (L.pha + L.fre) & 255`. NOTHING CLAMPS AND
-// NOTHING STOPS. A "decay" is therefore not a ramp with a floor - it is a walk
-// around a 256-value ring, and a rate above 128 is simply a small step
-// downwards taken by adding a large number.
-//
-// When the `glt` countdown reaches zero, firmware sets the rate to 0 and the
-// layer holds whatever phase it happens to be sitting on, forever, with no
-// Timer necessarily coming back to repaint it. Shape 0 renders intensity =
-// phase, so a layer frozen at phase 3 is a cell that is very slightly, and
-// permanently, lit.
-//
-// THE FREEZE POINT IS THEREFORE EXACTLY:
+// `pha` is a `uint8_t` and `+=` WRAPS: firmware's `grid_led.c:190-211` does `pha += fre` on a
+// byte, and `src/vendor/botor/pad-sim.ts:883-891` reproduces it as `L.pha = (L.pha + L.fre) &
+// 255`. Nothing clamps and nothing stops - a "decay" is a walk around a 256-value ring, and a
+// rate above 128 is a small step downwards taken by adding a large number. When the `glt`
+// countdown reaches zero, firmware sets the rate to 0 and the layer holds whatever phase it is
+// sitting on, forever; shape 0 renders intensity = phase, so a layer frozen at 3 is a cell very
+// slightly and permanently lit. THE FREEZE POINT IS EXACTLY
 //
 //     frozen = (start + rate * timeout) mod 256
 //
-// and the whole rule this file enforces is that it must be 0.
+// and the rule this file enforces is that it must be 0. (255 + 250 * 42) mod 256 is 3 - the
+// pair GHOST and SONAR once shipped; EUCLID's `@TRAIL` at 100 froze at 167 by the same arithmetic.
 //
-// THE ROADMAP'S "THE PHASE WALKS DOWN TO 3 AND STOPS" IS WRONG IN MECHANISM.
-// Nothing walks down to 3 and stops. 3 is simply what
-// `(255 + 250 * 42) mod 256` happens to equal, which is the pair GHOST and
-// SONAR ship; EUCLID's `@TRAIL` at 100 freezes at 167 by the same arithmetic,
-// and no reading of "walks down to 3" predicts that.
-//
-// ---------------------------------------------------------------------------
-// 2. THE LITERAL-PARAMETERISED FORM, MOVED VERBATIM FROM `life.ts:59-61`
-// ---------------------------------------------------------------------------
-//
-//   THE DECAY LENGTH DIVIDES 252. The rate is 256 - 252//28 = 247 and the
-//   starting phase is 252, so the phase steps by 9 and lands on exactly 0 in
-//   exactly 28 ticks. A length that does not divide 252 expires part-way down.
-//
-// written as the shipped shape:
+// 2. THE LITERAL-PARAMETERISED FORM (moved from `life.ts:59-61`)
 //
 //     glpfs(a, l, 252, 256 - 252//T, 0)   plus   glt(a, l, T)
 //
-// AND THE CORRECTION `life.ts` DID NOT STATE. The rule is stricter than
-// "divides 252": T must be an EXACT DIVISOR of 252, because the emitted step is
-// the integer quotient `252//T` and the walk therefore lands on
-// `252 - T * (252//T)`, which is 0 only when the division is exact.
+// T must be an EXACT DIVISOR of 252: the emitted step is the integer quotient `252//T`, so the
+// walk lands on `252 - T * (252//T)`, which is 0 only when the division is exact. The fifteen
+// usable timeouts are 4, 6, 7, 9, 12, 14, 18, 21, 28, 36, 42, 63, 84, 126, 252 (1, 2 and 3
+// satisfy the arithmetic too and are excluded as degenerate - a flicker, not a decay; the tests
+// check the ARITHMETIC, not this list). 252 rather than 255 because it has eighteen divisors
+// against eight; 256 cannot be a starting phase at all. Worked examples: `entries/cull.ts`'s
+// `@FLASH` and `entries/steps.ts`'s `@TRAIL`.
 //
-// THE FIFTEEN USABLE TIMEOUTS ARE:
-//
-//     4, 6, 7, 9, 12, 14, 18, 21, 28, 36, 42, 63, 84, 126, 252
-//
-// AN HONEST FOOTNOTE, because the count is easy to get wrong and 11-01 checked
-// it: 252 = 2^2 x 3^2 x 7 has EIGHTEEN divisors, and 1, 2 and 3 satisfy the
-// arithmetic as completely as the other fifteen do (T=1 emits rate 4 and lands
-// on 252 + 4 = 256 = 0). They are excluded from the list above as DEGENERATE -
-// a decay that finishes inside three ticks at 10 ms a tick is not a decay, it
-// is a flicker - not as illegal. The tests below check the ARITHMETIC and not
-// this list, so an entry that genuinely wanted T=2 would pass. The list is
-// guidance for an author; the arithmetic is the gate.
-//
-// WHY 252 AND NOT 255 OR 256. 252 has eighteen divisors against 255's eight, so
-// it gives an author far more usable decay lengths to choose from. 256 cannot
-// be a starting phase at all - the field is a byte.
-//
-// THE SURVIVING WORKED EXAMPLE IS `entries/cull.ts`, and this header CITES it
-// rather than restating it: see its `@FLASH` knob and the trap note above it.
-// All four of its declared values are exact divisors of 252 - measured in
-// 11-01, and something `11-RESEARCH.md` did not check. `entries/steps.ts`
-// ships the same shape with the same four values.
-//
-// ---------------------------------------------------------------------------
-// 3. THE COMPUTED FORM, MOVED VERBATIM FROM `gridlock.ts:129` AND `:194-200`
-// ---------------------------------------------------------------------------
-//
-// The Lua, from `gridlock.ts`'s Setup:
-//
-//     local p=glim(248-math.max(math.abs(n%9-u),math.abs(n//9-v))*@SPREAD,0,248)
-//     glpfs(a,1,p,4,0) glt(a,1,(256-p)//4)
-//
-// and its rule, from that entry's `@SPREAD` knob comment:
-//
-//   EVERY VALUE IS A MULTIPLE OF FOUR, because the derived timeout is
-//   (256 - p)//4 and it has to be exact. A value that is not would strand a
-//   ring part-way down with no Timer to repaint it.
-//
-// GENERALISED, because this is the shape 11-02 needs for CHORUS's bloom: when
-// the starting phase is COMPUTED at run time and cannot be known here, the
-// timeout must be DERIVED FROM IT rather than fixed, as
+// 3. THE COMPUTED FORM (moved from `gridlock.ts:129` and `:194-200`)
 //
 //     glpfs(a, l, p, R, 0)   plus   glt(a, l, (256 - p)//R)
 //
-// which lands on `p + R * (256 - p)/R = 256 = 0` for every `p` that R divides.
-// The entry then owes one further guarantee the gate cannot see: every value
-// `p` can take must be a multiple of R. GRIDLOCK discharged that by declaring
-// R = 4 and constraining `@SPREAD` to multiples of four.
+// When the starting phase is COMPUTED at run time, the timeout is DERIVED from it: the walk
+// lands on `p + R * (256 - p)/R = 256 = 0` for every `p` that R divides. The entry then owes one
+// guarantee the gate cannot see - every value `p` can take must be a multiple of R (GRIDLOCK
+// declared R = 4 and constrained `@SPREAD` to multiples of four; `entries/chorus.ts` is the live
+// worked example). A COMPUTED START WITH A FIXED TIMEOUT IS THE BUG: CHORUS once shipped
+// `glpfs(a,2,255-...*22//1,@BLOOMRATE,0)` with `glt(a,2,64)`, and `@BLOOMRATE * 64 mod 256` is 0
+// for every multiple of 4, so the layer froze at the brightness it opened on.
 //
-// A COMPUTED START WITH A FIXED TIMEOUT IS THE BUG, and CHORUS was the case.
-// Until plan 11-02 it shipped
-// `glpfs(a,2,255-math.sqrt(p*p+q*q)*22//1,@BLOOMRATE,0)` with `glt(a,2,64)`,
-// and `@BLOOMRATE * 64 mod 256` is 0 for every rate that is a multiple of 4 -
-// so the layer froze at exactly the brightness it opened on and the colour
-// stuck. That is the user's bench report, derived.
-//
-// `entries/chorus.ts` IS NOW THE LIVE WORKED EXAMPLE OF THIS ARM, and it is
-// cited rather than restated: see the block above its Setup and its @SPREAD
-// knob, which carries the multiple-of-four guarantee the gate cannot see.
-// GRIDLOCK held that role and was deleted by 11-01, which left this arm
-// unexercised by any shipped entry for exactly one plan.
-//
-// ---------------------------------------------------------------------------
 // 4. WHAT THIS FILE DOES NOT CHECK
-// ---------------------------------------------------------------------------
 //
-// A `glpfs` whose shape argument is not 0 is a KEEPER, not a decay - a shaped
-// oscillation the author intends to run forever under a long `glt`. ARC,
-// POMODORO and STAGE all carry one deliberately and all are skipped; SHUTTLE
-// did too, until plan 12-04 removed it on the user's bench report.
-// A `glt` of 0 cancels rather than schedules and is skipped too.
-//
-// THREE TESTS, AND THE COUNT NEVER MOVES. Each loops over the catalog
-// internally and names the entry, the event and the site, so a wave that adds
-// or removes a configuration moves no number here.
+// A `glpfs` whose shape argument is not 0 is a KEEPER, not a decay - a shaped oscillation the
+// author intends to run forever under a long `glt`; ARC, POMODORO and STAGE carry one deliberately
+// and all are skipped. A `glt` of 0 cancels rather than schedules and is skipped too.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

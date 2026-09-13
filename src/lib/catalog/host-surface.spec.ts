@@ -1,29 +1,13 @@
-// The D-07 gate: no hand-authored configuration may call a name the HANGAR Lua
-// host does not register.
-//
-// WHY THIS FILE EXISTS, AND WHY IT IS NOT A BLOCKLIST. HANGAR's browser host
-// registers sixteen bare Grid names and nine `self:` methods, and that is the
-// whole surface (`src/lib/sim/lua-host.ts`, HOST_GLOBALS / HOST_SELF_METHODS).
-// It was fifteen until plan 11-10 added `gmss`, the sysex send, so a
-// hand-authored entry could emit one and SEE it in the preview.
-// The vendored compiler's own scanner knows a WIDER surface - `findTraps`
-// guards ten LED calls including `gln`, `gld` and `glx` (`_pad.ts:3513-3524`),
-// none of which the host binds. So recipe-book Lua passes the static gate
-// cleanly and then raises "attempt to call a nil value" at run time, and only
-// if a scripted gesture happens to reach the line. Test 3 below proves that
-// disagreement from both sides rather than describing it.
-//
-// A blocklist naming those three would close today's gap and miss tomorrow's.
-// The classifier here is the other shape: it RESOLVES every call site against
-// the registered surface and refuses everything it cannot account for, so a
-// name nobody has thought of yet is refused by construction.
-//
-// FIVE TESTS, AND THE COUNT NEVER MOVES WITH THE CATALOG. Every one of the
-// first four loops over the entries internally and names the entry, the event,
-// the call and its index, so a wave that adds configurations moves no number
-// here. It moved from four to five in plan 11-10, and that is the other kind of
-// change: a name JOINED THE SURFACE, which happens roughly never and is exactly
-// what test 5 exists to pin. Adding a configuration still moves nothing.
+// The D-07 gate: no hand-authored configuration may call a name the HANGAR Lua host does not
+// register. HANGAR's browser host registers sixteen bare Grid names and nine `self:` methods
+// (`src/lib/sim/lua-host.ts`, HOST_GLOBALS / HOST_SELF_METHODS), and that is the whole surface;
+// the vendored compiler's `findTraps` knows a wider one (`gln`, `gld`, `glx` among ten LED
+// calls the host does not bind), so recipe-book Lua passes the static gate and raises at run
+// time. Not a blocklist: the classifier RESOLVES every call site against the registered surface
+// and refuses everything it cannot account for, so a name nobody has thought of yet is refused
+// by construction. FIVE TESTS, AND THE COUNT NEVER MOVES WITH THE CATALOG: the first four loop
+// over the entries and name the entry, the event, the call and its index; test 5 pins the
+// surface itself, which moves only when a name JOINS it (`gmss`, 11-10).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

@@ -1,40 +1,14 @@
-// CONT-03's copy gate: every string a visitor reads on a card, COUNTED.
+// CONT-03's copy gate: every string a visitor reads on a card, COUNTED. catalog.spec.ts asserts
+// SHAPE (non-empty, one line, at most a hundred and ten characters, lower-case slugs); this file
+// asserts TYPOGRAPHY and VOCABULARY - the house punctuation, the words the tag vocabulary knows,
+// the two search terms the suites lean on - every rule a loop naming the entry, the field and
+// the offending character. It mirrors the description-uniqueness rule of e2e/browse.e2e.ts into
+// the quick run on purpose (a collision found in thirty seconds, not in an evening).
 //
-// WHY A SECOND COPY SPEC EXISTS BESIDE catalog.spec.ts.
-// That file asserts SHAPE - a description is non-empty, one line, at most a
-// hundred and ten characters, and every tag is a lower-case slug. This one
-// asserts TYPOGRAPHY and VOCABULARY, which is a different kind of claim: what
-// punctuation the house writes, which words the tag vocabulary already knows,
-// and which two search terms the shipped suites lean on. Twenty new
-// descriptions and eighty new tags is exactly the volume at which reading them
-// stops being checking them, so every rule below is a loop with the entry, the
-// field and the offending character named in its message.
-//
-// It also mirrors ONE e2e assertion into the quick run on purpose. The
-// description-uniqueness rule lives in e2e/browse.e2e.ts:258-263, against the
-// rendered page. The reason to say it here as well is arithmetic: a collision
-// found in a thirty-second quick run costs a minute, and the same collision
-// found in a hundred-and-twelve-second Playwright run costs an evening.
-//
-// WHY THE APOSTROPHE RULE IS BY SOURCE KIND AND NEVER BY A NAME LIST.
-// A preset entry's name and description are read off the vendored shelf and are
-// asserted byte-equal to it (catalog.spec.ts:113-119), and one of those shelf
-// sentences carries a straight apostrophe. src/lib/browse/typographic.ts turns
-// an ASCII apostrophe BETWEEN TWO LETTERS into U+2019 at render time, so that
-// sentence is correct in the data and correct on the screen, and "fixing" it in
-// the catalog would break the shelf equality and the vendored-diff gate behind
-// it. So the corpus below takes name and description only from entries whose
-// source.kind is NOT "preset". The exemption is a property of where the bytes
-// came from; no id is ever written down as an exception.
-//
-// The quiet lines are held WHOLE, and that is deliberate rather than an
-// oversight. Two of the four in the row come from the shelf and two are
-// HANGAR's own (front-door.ts:147, 164, 181, 190 say which is which), and all
-// four satisfy every rule below as authored. If a vendored quiet line ever did
-// not, the answer would be an exemption recorded here in the same source-kind
-// terms - never an edit to the vendored bytes.
-//
-// Set COPY_CENSUS=1 to print test 5's table.
+// THE APOSTROPHE RULE IS BY SOURCE KIND, NEVER BY A NAME LIST: a preset's name and description
+// are byte-equal to the vendored shelf, and typographic.ts turns an ASCII apostrophe between two
+// letters into U+2019 at render time, so the corpus takes name and description only from entries
+// whose source.kind is not "preset". The quiet lines are held WHOLE. COPY_CENSUS=1 prints test 5.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

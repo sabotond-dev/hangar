@@ -8,7 +8,9 @@
 //                                                        a markdown table of every file whose numbers moved
 //   node scripts/gate/comment-lines.mjs --todo <paths...>
 //                                                        every file whose header, less the copyright line and
-//                                                        one provenance line, exceeds ten lines (13.2-CONTEXT
+//                                                        one provenance line and, in a catalog entry, the
+//                                                        MECHANISM / WHAT IT SENDS / TRAPS block, exceeds ten
+//                                                        lines (13.2-CONTEXT
 //                                                        D-17's "not yet at the rule" test)
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -24,6 +26,8 @@ const COPYRIGHT = /Copyright \(C\) 2026 Botond Sandor/;
 const PROVENANCE = /^\s*(\/\/|\*|<!--)?\s*Decided at\b/;
 /** A comment line carrying no text: a bare //, a bare *, or a block fence - not counted against the ten. */
 const EMPTY_COMMENT = /^\s*(\/\/|\*|\/\*\*?|\*\/|<!--|-->)?\s*$/;
+/** A catalog entry's three headings (docs/CODE-STYLE.md section 4): the count stops at the first. */
+const ENTRY_HEADINGS = /^\s*\/\/\s*MECHANISM\s*$/;
 
 const argv = process.argv.slice(2);
 const outIdx = argv.indexOf("--out");
@@ -136,7 +140,7 @@ function ruleHeader(lines, kinds, isSvelte) {
     for (let n = a; n < b; n++) {
       if (kinds[n] !== "c") continue;
       const line = lines[n];
-      if (COPYRIGHT.test(line)) break;
+      if (COPYRIGHT.test(line) || ENTRY_HEADINGS.test(line)) break;
       if (EMPTY_COMMENT.test(line)) continue;
       if (PROVENANCE.test(line) && provenance === 0) {
         provenance = 1;

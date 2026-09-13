@@ -1,37 +1,14 @@
-// The shape gate on docs/HARDWARE-AUDITION.md, and the writer that produces the
-// exact pasteable bytes the audition is run from.
+// The shape gate on docs/HARDWARE-AUDITION.md, and the writer that produces the exact pasteable
+// bytes the audition is run from. A checklist rots (docs/PIN-POLICY.md's precedent): the
+// document names configurations, an install order and twelve rows, each a claim about the
+// catalog that can silently stop being true. The four tests check STRUCTURE and AGREEMENT WITH
+// THE DATA, never wording - except the install-order rule, which IS its words ("Timer into event
+// 6 first"); test 4 matches it loosely enough to survive a rewrite, both event numbers from ./types.ts.
 //
-// A checklist rots. docs/PIN-POLICY.md set this repository's precedent: an item
-// that names a command and its expected count stops being runnable the moment it
-// stops being true, which is exactly why it is written that way and exactly why
-// something has to hold it to the code. The same applies here. The audition
-// document names configurations, an install order and twelve rows; each of those
-// is a claim about the catalog, and each can silently stop being true.
-//
-// The four tests below check STRUCTURE and AGREEMENT WITH THE DATA, never
-// wording - src/lib/skeleton-results.spec.ts's rule, for the same reason: a gate
-// that fails on an honest edit is a gate that gets deleted. The one exception is
-// the install-order rule, which IS its words: "Timer into event 6 first" is not
-// a structural property, it is the sentence that decides whether the pad moves
-// at all. Test 4 matches it loosely enough to survive a rewrite and tightly
-// enough to fail if the order flips, and takes both event numbers from
-// ./types.ts rather than from literals here.
-//
-// THE DUMP:
-//   AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
-// writes .tmp-audition/<id>.setup.lua and .tmp-audition/<id>.timer.lua for every
-// hand-authored entry, rendered at its defaults, and prints each character count
-// against EVENT_BUDGET.
-//
-// Unlike UPDATE_GOLDEN (src/lib/fidelity/golden-frames.spec.ts) and
-// UPDATE_SYNTHETIC (src/lib/transport/fixtures/synthetic.spec.ts), this writer
-// DOES NOT FAIL THE RUN, and that divergence is a decision rather than an
-// oversight. Those two rewrite a COMMITTED fixture, where a regeneration
-// mistaken for a passing run is a real hazard - the run would be checking the
-// output against itself. This one writes to a gitignored scratch directory and
-// commits nothing, so there is nothing for a green run to be wrong about; and
-// the user runs it at a bench, where a red run for a reason that is not a
-// failure is its own kind of harm.
+// THE DUMP: AUDITION_DUMP=1 npx vitest run --project server src/lib/catalog/audition.spec.ts
+// writes .tmp-audition/<id>.setup.lua and .timer.lua for every hand-authored entry at its
+// defaults and prints each count against EVENT_BUDGET; unlike UPDATE_GOLDEN and UPDATE_SYNTHETIC
+// it DOES NOT FAIL THE RUN - it writes to a gitignored scratch directory and commits nothing.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";

@@ -1,45 +1,13 @@
-// The ported shelf presets as catalog entries (D-09): EIGHT of the nine since
-// plan 12-10.
+// The ported shelf presets as catalog entries (D-09): EIGHT of the nine since 12-10.
 //
-// `name` and `description` are READ from the shelf through presetById, never
-// restated here. What HANGAR owns is the table below: the feel-based tags, the
-// Featured flag, the addedAt date and the resting-black fact.
-//
-// WHY EIGHT, AND WHERE THE NINTH WENT. The user's answer at plan 12-06's
-// checkpoint - "selectable tuning options under Trackpad" - folds the bench's
-// edge-flash ask into ONE trackpad card whose look is a tune option. The
-// vendored `tpad` preset cannot carry a look (the compiler strips every look
-// from a trackpad state, and the preset sits at 907 of 908 at its worst), so
-// the card is the hand-authored entries/trackpad.ts, under the id `trackpad`,
-// and the `tpad` row left this table. THE PRESET DID NOT LEAVE THE SHELF:
-// ../presets.ts still declares all nine, ../presets.spec.ts still diffs all
-// nine against the vendored nine, and `tpad` stays the compiler's over-budget
-// fixture - the one card whose knob band straddles 908 - for
-// src/lib/tune/ladder.spec.ts, /dev/tune/ and e2e/tuning.e2e.ts, which reach it
-// through `portedEntry("tpad")` below rather than through the catalog.
-//
-// WHICH SHELF, AND WHY THE ANSWER CHANGED (plan 11-05). Until 11-05 this read
-// src/vendor/botor/_pad.ts, and the read-through was the guarantee: a BOTOR
-// re-sync that renamed a card showed up in the catalog instead of silently
-// disagreeing with it. HANGAR now DECLARES the nine, in ../presets.ts, because
-// while the definitions lived upstream no bench correction to a preset could be
-// made here at all. So the read-through no longer holds anything against BOTOR,
-// and saying otherwise here would be the exact silence it was written to
-// prevent.
-//
-// WHAT REPLACES IT, in one line: ../presets.spec.ts diffs all nine against the
-// vendored ones across `id`, `name`, `sentence`, `category`, `knobs`,
-// `exclusive`, `quiet` and the whole of `state`, and fails on any difference
-// not written down with a reason. That is strictly more than the two strings
-// this line used to hold. The cost is that an intended divergence must now be
-// DECLARED; an undeclared one is a red test rather than a quiet disagreement.
-// ../catalog.spec.ts still compares these names and sentences to the VENDORED
-// shelf as a second, independent guard - and that comparison became real on the
-// day this import moved, because before it the two sides were one object.
-//
-// The shelf stays the nine and is never extended (D-09). New configurations
-// land in this module's siblings, not in ../presets.ts and not in src/vendor/.
-// A shelf card can LEAVE this table - `tpad` did - but nothing joins it.
+// `name` and `description` are READ from the shelf (../presets.ts, HANGAR's own declaration of
+// the nine since 11-05) through presetById, never restated here; what HANGAR owns is the table
+// below - the feel-based tags, the Featured flag, the addedAt date and the resting-black fact.
+// The ninth, `tpad`, left this table when the hand-authored entries/trackpad.ts took its place
+// (the compiler strips every look from a trackpad state); the preset stays on the shelf as the
+// compiler's over-budget fixture, reached through `portedEntry("tpad")`. The shelf is never
+// extended: a card can leave this table but nothing joins it. ../presets.spec.ts diffs all nine
+// against the vendored nine and fails on any difference not declared with a reason.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { presetById } from "../presets";
@@ -55,19 +23,12 @@ const PORTED_ADDED_AT = "2026-09-02";
 // compiler kind produced it. A look.kind or sends.kind string must never appear
 // here.
 //
-// D-10 re-cut all nine. Each row is EXACTLY THREE terms - one FOR then two
-// FEELS - drawn from the closed vocabulary in src/lib/browse/facets.ts, which
-// was sixteen at 10-06, fourteen after 11-01 and is THIRTEEN after 12-04. The
-// nine used to carry three terms each while the twenty-seven hand-authored
-// entries carried four; that split is gone, and three is now the rule for every
-// entry in the catalog. Nothing here may coin a word: a preset that cannot be
-// described with the thirteen is evidence the vocabulary is wrong.
+// Each row is EXACTLY THREE terms - one FOR then two FEELS - from the closed thirteen in
+// src/lib/browse/facets.ts (D-10); three is the rule for every entry in the catalog. Nothing
+// here may coin a word.
 //
-// restsBlack is a recorded fact, not a preference: frames.spec.ts test 5
-// asserts it in both directions against frames.json. No ported entry rests
-// black since 12-10: tpad was the one that did - it writes no LEDs at all,
-// which golden-frames.spec.ts's own note still records of the VENDORED preset
-// - and it is no longer a catalog entry.
+// restsBlack is a recorded fact: frames.spec.ts test 5 asserts it in both directions against
+// frames.json. No ported entry rests black since 12-10 (tpad was the one that did).
 const PORTED_META = [
   {
     id: "aurora",
@@ -159,11 +120,8 @@ function entryFromMeta(meta: PortedMeta): CatalogEntry {
     addedAt: PORTED_ADDED_AT,
     source,
     preview: previewFor(source),
-    // Empty on purpose. The compiler-driven knob vocabulary for a PadState card
-    // is TUNE-01, which belongs to Phase 5 and reads PadPreset.knobs off the
-    // vendored preset. Phase 8 owns knobs only for hand-authored Lua entries
-    // (D-12), and catalog.spec.ts test 7 encodes exactly that rule: an empty
-    // knobs array is correct on a preset entry and a failure on a Lua one.
+    // Empty on purpose: a PadState card's knobs are TUNE-01's, read off the vendored preset;
+    // catalog.spec.ts test 7 requires an empty array on a preset entry.
     knobs: [],
     defaults: {},
     restsBlack: meta.restsBlack,
