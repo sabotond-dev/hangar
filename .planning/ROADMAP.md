@@ -577,6 +577,29 @@ criteria are a checklist for a human, not assertions a test suite can make.
 ---
 *Roadmap created: 2026-09-02*
 
+### Phase 13.2: Readability (INSERTED)
+
+**Goal:** The user's word on 2026-09-13: "research and clean up your code to make it easily readable
+but without changing any functionality or anything." A refactor-only phase: every source file under
+src/ (not src/vendor/) read for readability - header comments that have become essays, functions
+and components too long to hold in the head, idioms that need a comment to be understood, names
+that say what a thing was rather than what it is, duplicated helpers, dead exports - and rewritten
+so a new reader can follow it, with the behaviour proved unchanged by the tree's own gates: every
+test count unmoved, every e2e title green, the sweep at 4 19, every Lua string on the wire
+byte-identical (the library's two halves, every entry, every preset, the Sandbox runtime),
+frames.json, golden-frames.json, preset-baseline.json and the OG images byte-identical, the radius
+allowlist empty with the six circles unmoved, and no user-facing string changed. The comments
+that carry a decision's provenance keep it in one line with a pointer, not a paragraph. Every agent
+on Opus; the Bible untouched.
+**Requirements**: none new - a refactor claims nothing; the gate re-proves every requirement the
+tree already ticks
+**Depends on:** Phase 13.1 (gate landed, bench pending); the Quick guide (the user's next ask) follows
+this phase
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 13.2 to break down)
+
 ### Phase 13.1: Bench corrections four (INSERTED)
 
 **Goal:** The fourth bench round (`BENCH-2026-09-12.txt`) - rows I, L, H and M pass on the

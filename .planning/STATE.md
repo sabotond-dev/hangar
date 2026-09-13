@@ -376,6 +376,7 @@ Ad-hoc work outside the phase plan. Each row is a `.planning/quick/<id>-<slug>/`
 ## Accumulated Context
 
 ### Roadmap Evolution
+- Phase 13.2 inserted after Phase 13.1 (2026-09-13): Readability - a refactor-only phase, behaviour proved unchanged by the tree's gates (URGENT)
 - Phase 13.1 inserted after Phase 13 (2026-09-12): Bench corrections four - nine interface changes from the fourth bench round (URGENT)
 - Phase 12.1 inserted after Phase 12 (2026-09-11): Gradient touch - the sensor is not under the LEDs; calibration probe, bilinear G(x,y,b) replacing Q's hit-test, every finger-drawing entry re-fitted; must land before 13-14 (URGENT)
 
