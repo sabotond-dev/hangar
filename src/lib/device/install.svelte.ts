@@ -1,228 +1,34 @@
 // The install store: the snapshot at connect, the two RAM clicks, the way
 // back, the flash store and its proof, and every way a write can go wrong
-// (Phase 7, SAFE-01, SAFE-03 to SAFE-09).
+// (Phase 7, SAFE-01, SAFE-03 to SAFE-09). Every write on the site lives here
+// and never in the session (session.spec.ts "writes nothing across a whole
+// visit, and cannot" scans the session for eleven write-shaped needles).
+// Components read the singleton `install`; every node test constructs its
+// own `new InstallStore(session)` and never touches it.
 //
-// WHY THIS IS A SEPARATE FILE AND NOT PART OF THE SESSION. Phase 6 plan 06-04's
-// test 15 scans session.svelte.ts, comment-stripped, for TEN write-shaped
-// needles - the transport write, the queue class, the host heartbeat, the
-// config send, the page store, the fetch, the flash store, the write-back, the
-// clear and the interval - and asserts every one is absent. It was eight when
-// this paragraph was written and nine before Phase 10; plan 10-12's fourth
-// write click made it ten. That scan is a structural guarantee that the
-// session never writes, and it is worth more than the convenience of one file:
-// a write added to the session would turn the gate red with no honest
-// replacement. So every write of this site lives HERE, in a second runes store
-// beside the session and never inside it, and this file borrows from the
-// session exactly what plan 07-04 lent: the `transport` write view, onClass(),
-// onConnection(), announce() and writeLock.
-//
-// WHY EXACTLY FOUR STATIC `from` SPECIFIERS, AND WHICH FOUR. The install
-// panel is on the first paint of `/playground/{id}/`, and this store is reachable from
-// it, so whatever this file names statically is on the cold load. Phase 4's
-// chunk guard (src/lib/config-shape.spec.ts test 13) matches specifier TEXT,
-// and install.spec.ts test 8 counts them:
-//
-//   ./install-copy    zero imports. Every sentence this store speaks.
-//   ./snapshot        zero imports. The durable record, keyed module then page.
-//   ./page-target     zero imports. The page target (Phase 13, 13-12): the
-//                     one control that moves the hardware, and its envelope.
-//   ./session.svelte  Phase 6's four light specifiers (session-copy,
-//                     protocol/usb, transport/ports, transport/transport), all
-//                     of them free of the protocol package.
-//
-// THE PAGE TARGET, AND HOW IT IS FOLDED INTO PHASE 7'S RULES RATHER THAN
-// EXCEPTED FROM THEM (13-CONTEXT D-06 clauses 1 and 3-6; 13.1-CONTEXT D-05
-// for clause 2, struck). page-target.ts holds the four states - reported,
-// requested, switching, unverified - and the two frames a switch puts on the
-// wire, in the one order firmware forces (the restore heartbeat, THEN the
-// switch). This store owns the wiring and the gate:
-//
-//   - the module's page report reaches the target from the SAME class sink
-//     the heartbeat waiters and the page-change re-snapshot already read
-//     (#onClassSeen), one microtask after the session's fold has published
-//     the identity, so the target reads `activePage` the way #pageCheck does;
-//   - a switch is a CLICK and nothing else, and the click is the Target
-//     select's CHANGE. There is no destination review: the user struck it
-//     at the fourth bench (BENCH-2026-09-12.txt line 5, "Page switch doesnt
-//     need a confirmation window. When you change page form the drop down
-//     just change the page and thats it."; 13.1-CONTEXT D-05). switchPage()
-//     is what the select's change handler calls: requestPage() sets the
-//     target and sends nothing, confirmPage() sends - it is still the ONLY
-//     path to the target's confirm() - and the two run back to back in one
-//     call. No navigation, selection, restore, install or report of the
-//     module's own calls either. Opening the menu sends nothing; only a
-//     change sends, and install.e2e.ts's zero-writes proof counts the
-//     switch class at zero across a cycle that opens the menu;
-//   - THE KEYBOARD FACT, NAMED (13.1-PLAN-CHECK W-03): on a focused, CLOSED
-//     <select>, Chromium fires `change` on every ArrowUp / ArrowDown, so
-//     each arrow press is a switch - the heartbeat and the page change - until
-//     the select disables at `switching`. That is the user's own gesture on
-//     the one control that moves the hardware, a click for SAFE-01's
-//     purpose and counted by class like any other; it is NOT a write that
-//     happens without a gesture. The gate's bench row 5 tries it on
-//     hardware;
-//   - EVERY write path reads the target's ONE condition - pageSettled(), which
-//     is canApply(): at rest, and reported === requested - before it touches
-//     the queue: the try-on's refusal list, PUT BACK, CLEAR's enablement and
-//     the keep. Between the change and the module's own report of the
-//     requested page, and through `unverified`, nothing writes. The ACK gate
-//     and the heartbeat-first order are the wire's, not the interface's,
-//     and D-05 moves neither;
-//   - the pages offered are the module's own answer to a PAGECOUNT fetch,
-//     taken once per connection inside the snapshot; never a number;
-//   - the per-page snapshot D-06 asks for has existed since Phase 7
-//     (snapshot.ts rule 2, keyed module then page; #pageCheck re-snapshots
-//     the new page when the module moves). What this plan adds is that PUT
-//     BACK NAMES the page it holds before the click (putBackPageLine).
-//
-// PUT BACK HAS NO CONTROL ON THE SITE SINCE 13.1-06 (13.1-CONTEXT D-07, the
-// user's "remove"; ledgered in 13.1-COPY-NEW.md). Everywhere below, "PUT
-// BACK" names THE RESTORE - putBack(), the snapshot's five strings written
-// back to the page they came from - and since 13.1-06 that action's ONE
-// CALLER is the /dev/install/ probe's own button; PutBack.svelte is deleted,
-// the workspace and the Sandbox render no restore, and the way back after
-// an Apply is Grid Editor or the header's Clear to the firmware default. No
-// code here moved: the snapshot at connect before any write (SAFE-03), the
-// durable record (SAFE-04), the re-snapshot on a page change, putBack() with
-// its `restoring` / `restored` / `restored-unconfirmed` phases, putBackState()
-// and the Z-04 store-after-keep rule all stay, proved on the fake by
-// install.spec.ts and on the probe, so the machinery cannot rot. The lines
-// that named the page under the control (page-target.ts's putBackPageLine
-// pair) retired with it.
-//
-// THE DISCARD (the page-discard class, revertToStored below) is the firmware-native
-// revert D-06's last clause asked to be researched. It is written, it is
-// UNPROVEN on hardware, and it is reachable from the /dev/install/ probe only
-// until docs/INSTALL-RUNBOOK.md row I confirms it. No public control.
-//
-// Every reference to $lib/protocol, $lib/transport or $lib/pad is either an
-// inline `import(...)` TYPE - erased, invisible to a specifier scan, costing no
-// byte - or an `await import(...)` inside an action, where the chunk the
-// session's open path already fetched is in hand and no new fetch happens. The
-// memoised module promise below is module scope for the reason the session's
-// is: ES modules are singletons whatever instance asks for them, and the
-// promise carries no store state. DESKTOP_PRE_SEND_DELAY_MS, PRE_SEND_DELAY_MS,
-// retryBackoffMs, TIMEOUTS and CONFIG_MAX are all read from the awaited
-// protocol module and never through a fourth specifier.
-//
-// WHY THE QUEUE IS FED FROM onClass() AND NEVER FROM onData(). GridTransport
-// carries exactly ONE data callback and the session owns it after
-// identification (07-CONTEXT D-16). A second raw registration would silently
-// unhook the fold that keeps the page number and the rig tail true, and the
-// later writes would then fail as unexplained refusals - the module NACKs a
-// write to a page that is not its active one, and the page on screen would be
-// frozen at connect time (07-RESEARCH Pitfall 1). The session's view throws on
-// onData for exactly this reason; this store subscribes through onClass() and
-// hands every decoded class to the queue's deliver(). The same sink is where
-// the store hears the module's heartbeat - for the proof below, and for the
-// page-change re-snapshot. The spec scans this file for a raw onData
-// registration and expects none.
-//
-// WHY ONE RequestQueue PER CONNECTION, NOT PER CLICK. sendImmediate() drops the
-// restore heartbeat when ITS OWN queue has a write in flight and cannot see
-// another queue's (07-RESEARCH Pitfall 2). Two queues over one transport could
-// interleave a fire-and-forget heartbeat between another queue's write and its
-// acknowledgement. One queue per connection, built at "connected" and dropped
-// at "closed", keeps the one-outstanding-request invariant true for the whole
-// site, and the capture's steps and the retry bound stay true with it. Nothing
-// here calls the transport's write directly; every byte goes through the queue.
-// The one time a queue is rebuilt inside a connection is the pacing escalation
-// below, and the old one is aborted and unsubscribed before the new one exists.
-//
-// WHY THE SNAPSHOT IS TAKEN INTO MEMORY BEFORE STORAGE IS TOUCHED. The
-// in-memory copy is the safety rail; the durable record is a courtesy that
-// makes the rail reach into a fresh tab (SAFE-04). A private window, a full
-// quota or a browser that throws on the storage property itself must never be
-// the reason a visitor has no way back (07-RESEARCH Pitfall 9), so the pair is
-// held in `snapshot` first and persistIfAbsent() is consulted only afterwards,
-// and `ready` publishes whatever the store said.
-//
-// WHY AN EXISTING RECORD WINS OVER A FRESH FETCH. The record is the module's
-// ORIGINAL, not its latest. After TRY ON DEVICE has written, a re-connect's
-// fetch returns HANGAR's own configuration; if the fetch won, PUT BACK would
-// put HANGAR back, and the only copy of what the visitor came in with would be
-// gone. So readSnapshot() is consulted before the in-memory copy is chosen, and
-// persistIfAbsent() never overwrites a valid entry. Nothing in this file
-// deletes a snapshot: `storedThisSession` is cleared by a put-back that stored,
-// and `snapshot` itself is never cleared by an action.
-//
-// ONE CONSEQUENCE OF THE GATED ORDER, NAMED AND NOT FIXED HERE. An empty fetched
-// string lands `snapshot-failed` BEFORE the durable record is consulted, so a
-// remembered module whose RAM reads empty on that page is not offered its own
-// record. The reorder waits on the Z-16 / D-03 question 07-VALIDATION leaves
-// open and is a deferred item for 07-13.
-//
-// WHY THE RE-FETCH AFTER A STORE WAITS FOR A HEARTBEAT FIRST (D-12, D-19,
-// 07-RESEARCH Pitfall 6). The PAGESTORE acknowledgement is sent by the success
-// callback that STARTS the module's page reload and Lua VM restart
-// (grid_decode.c:947-961), and CONFIG/FETCH has no bulk guard. A fetch that
-// races that reload returns a partially loaded string, and the panel would say
-// the store failed when it did not. So `kept` is said only after the ACK, then
-// the module's next heartbeat, then a re-fetch of all five strings that matches
-// byte for byte - bounded to three rounds with retryBackoffMs between them,
-// because nobody has measured how long the load takes (runbook row E records
-// how many rounds it took; `refetchRounds` holds the number).
-//
-// WHY `kept-mismatch` EXISTS AT ALL. It is unreachable on healthy hardware -
-// Phase 2 proved byte identity across three stores - and it exists so that the
-// failure is never silent. The ACK already means stored; the re-fetch is a
-// proof, not the definition, and when the proof runs out the panel says so
-// rather than calling it kept.
-//
-// WHY PUT BACK AFTER A KEEP STORES TOO, AND GETS NO CONFIRMATION (Z-04). A
-// gate on the escape hatch is the one place a gate does harm, so PUT BACK is
-// never confirmed; and without the store a kept-then-put-back would leave the
-// owner's RAM right and their flash still holding HANGAR's work, so after a
-// keep this session the RAM leg is followed by a store leg and the same proof.
-//
-// WHY THE TAXONOMY IS DECIDED BY ERROR TYPE AND NEVER BY MESSAGE TEXT. The
-// queue exposes NackError and AbortedError and refuses to retry either; this
-// store never wraps it in a retry of its own (Pitfall 7) - the queue's three
-// bounded attempts are the whole retry policy. The vendored TRANSIENT_WRITE
-// regex would match AbortedError's "interrupted" and retry a dead link three
-// times (07-RESEARCH Anti-Patterns); here `instanceof` decides, and `partial`
-// is read off the recorded steps, never off a message.
-//
-// WHY THE PRE-SEND GAP ESCALATES, AND ONLY ON A NO-NACK TIMEOUT (D-19,
-// Pitfall 3). 0 ms pacing has never met two back-to-back 957-byte writes
-// against the module's 2,048-byte ring, which discards a whole message silently
-// (docs/SKELETON-RESULTS.md (b)). A `write-*` timeout with zero NACKs in the
-// action is that signature, so it moves the next queue's gap to the desktop's
-// 10 ms and rebuilds the queue; the RETRY the visitor is already offered then
-// runs the experiment. A NACK is a refusal, not congestion, and never escalates.
-//
-// WHY THE 2000 ms LINE IS A setTimeout ON THE STORE. Z-09: nothing animates
-// during `writing`; the one honest line arrives at 2000 ms - roughly 90x the
-// slowest CONFIG/EXECUTE ever observed on a RAM leg, roughly 50x the slowest
-// PAGESTORE/ACKNOWLEDGE on a store leg, and below the 3000 ms pagestoreMs on
-// purpose: the line says busy, and only the timeout says failed. It is a timer
-// on the state, never on a render, never an interval, and it never touches the
-// shared rAF loop.
-//
-// WHY THERE IS NO $derived. Plan 06-01's spike licensed `$state` and
-// `$state.raw` in node - both compile to plain own class fields under the SSR
-// transform, so a node test reads and writes them as data - and it did not
-// license `$derived`. Every derived answer here is a method or is recomputed
-// into a plain `$state` boolean at the point its inputs change (`armed`).
-// Reactive fields are scalars and whole-value snapshots, replaced and never
-// mutated, the house rule of the session.
-//
-// THE CLASS IS EXPORTED BESIDE THE SINGLETON, for the reason the session's is:
-// `install` is for components, one instance per page load; every node test
-// constructs its own `new DeviceSession()` and `new InstallStore(session)` and
-// never touches either singleton, so no test can leak a queue, a snapshot or a
-// phase into the next and the class needs no reset hook.
-//
-// EVERY ACTION SHARES ONE SHAPE. Guard the phase, capture the connection
-// generation, set writeLock, arm the slow line, run the sequence through the
-// ONE queue, classify by error TYPE, and restore page change in a `finally` on
-// every RAM path: a successful CONFIG/EXECUTE clears page_change_enabled
-// (grid_decode.c:1279) and only an inbound HEARTBEAT TYPE 255 sets it back
-// (grid_decode.c:717); the firmware's own timeout restore is commented out.
-// Settled means both acknowledgements arrived AND the restore went out - never
-// a resolved write.
+// Decided at 07-04 (07-CONTEXT D-16); see .planning/phases/07-install-flow/07-04-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+//
+// RULES A SPEC ENFORCES, one line each:
+//   four static specifiers and no more (install.spec.ts "the file's shape"):
+//     ./install-copy, ./page-target, ./snapshot, ./session.svelte; protocol
+//     and transport arrive by await import() in heavyModules()
+//   no $derived (the same title): derived answers are methods, or `armed`
+//   no setInterval, no raw onData, no direct write (the same title)
+//   the write order is SLOTS (sequence.ts): 255/6, 255/0, 255/4, 0/6, 0/0
+//   the page target is folded into Phase 7's rules (13-CONTEXT D-06; 13.1-CONTEXT
+//     D-05 struck clause 2): a switch is the Target select's change and nothing
+//     else; THE KEYBOARD FACT, NAMED (13.1-PLAN-CHECK W-03): a closed <select>
+//     fires change on every arrow press, so each press is a switch until it disables
+//   no comment here spells an erase, clear or page class by name
+//     (forbidden-instructions.spec.ts reads this file raw): the event numbers
+//
+// CONTENTS, the class's banners in order: reactive fields - NOT reactive
+// record - start - the connection lifecycle - the snapshot - the tuner's pair
+// and armed - the two closed decisions - the inline confirmation - the page
+// target - the two RAM clicks - the fourth click, CLEAR - the flash store and
+// the proof - the 2000 ms line - the singleton.
 import {
   type ClearReason,
   type FailedWords,
@@ -260,8 +66,7 @@ import {
 } from "./snapshot";
 import { type ConnectionEvent, DeviceSession, session } from "./session.svelte";
 
-// Type-only references. Erased at compile time, so none is a specifier the
-// chunk guard can see, and none costs a byte on the load path.
+// Type-only references: erased, so none is a specifier the chunk guard sees.
 type Protocol = typeof import("$lib/protocol");
 type Transport = typeof import("$lib/transport");
 type Identity = import("$lib/transport").Identity;
@@ -270,20 +75,12 @@ type CaptureStep = import("$lib/transport").CaptureStep;
 type DecodedClass = import("$lib/protocol").DecodedClass;
 
 /**
- * The FIFTEEN states of 07-UI-SPEC's machine, fourteen until plan 10-12.
- * `snapshot-failed` is I9's cause 4; the other I9 causes are not phases here -
- * they are read off the session's capability, the tuner's budget and this
- * store's `snapshotting` and `writing` by the component.
- *
- * WHY `cleared` IS ITS OWN STATE AND MUST NOT BE COLLAPSED INTO ONE OF THE
- * OTHERS (A-50, D-19's one open question, settled by D-20). After a clear the
- * module runs the firmware's own default configuration - a real state no
- * existing phase describes truthfully. `settled` would claim THIS
- * configuration is on the pad; `restored` would claim the visitor's own is
- * back, and that one is not merely inaccurate but unsafe, because a panel
- * reading RESTORED tells a visitor their own page is back when it is not
- * (and, until 13.1-06, not to click PUT BACK - the one control that
- * actually would have restored them).
+ * The fifteen states of 07-UI-SPEC's machine (fourteen until 10-12).
+ * `cleared` is its own state: after a clear the module runs the firmware's
+ * own default, which neither `settled` nor `restored` describes truthfully
+ * (A-50, D-20). `snapshot-failed` is I9's cause 4; the other I9 causes are
+ * read off the session, the tuner's budget and `snapshotting` / `writing`
+ * by the component.
  */
 export type InstallPhase =
   | "idle"
@@ -301,43 +98,21 @@ export type InstallPhase =
   | "unconfirmed"
   | "restored-unconfirmed"
   | "nothing-landed";
-/**
- * `discard` joined the four in Phase 13, plan 13-12: the firmware-native
- * revert (the page-discard class), reachable from the probe only until the bench.
- */
+/** `discard` joined the four at 13-12: the firmware-native revert (the page-discard class), reachable from the probe only until the bench. */
 export type InstallAction = "try" | "put-back" | "keep" | "clear" | "discard";
 export type InstallLeg = "ram" | "store";
 /** Why an action ended where it did. Rendered by no block in v1; asserted by the spec and recorded in the capture. */
 export type InstallCause = "timeout" | "nack" | "aborted" | "mismatch";
 /**
- * The tuner's FIVE strings, verbatim (D-10). Declared here rather than
- * imported: a type import is still a specifier.
- *
- * `system` is the SYSTEM element's page-init slot (255/0), added in 12-03. It
- * is not metered, it does not move with a knob, and in this plan it is the
- * firmware's own default for every entry - so a TRY after a TRY of another
- * entry leaves the module holding one coherent set rather than a new pair on
- * top of an old library. It travels with the pair everywhere the pair goes:
- * the snapshot, `lastWritten`, `config`, and every write.
- *
- * `systemTimer` is the SYSTEM element's Timer slot (255/6), added in 12.1-07
- * (D-03): the library's second half, which 255/0 arms with `self:tim()`. It
- * follows `system` everywhere `system` goes and on the same terms - not
- * metered, substituted from the empty string in ONE place (`#systemStringOr`),
- * snapshotted, restored and cleared with the other three. The keys are in
- * write order (sequence.ts SLOTS); the writer owns the order, not this type.
- *
- * `systemUtility` is the SYSTEM element's utility slot (255/4), added in
- * 13-17 (13-CONTEXT D-18, D-19): the Sandbox runtime's second slot, which the
- * touch Setup pulls in with `ele[#ele]:map()`. On `system`'s terms once
- * more: not metered, substituted from the empty string in ONE place
- * (`#systemStringOr`) - a catalog entry has no utility body and lands the
- * firmware's own page-next there, so the module's utility button keeps
- * turning the page under a catalog configuration and stops while a surface
- * is installed - snapshotted, restored and cleared with the other four. THE
- * STORE CANNOT TELL A SURFACE FROM AN ENTRY: both reach it as this one shape
- * (the tuner's `landLua` and preset landings, and `src/lib/sandbox/land.ts`),
- * and install.spec.ts asserts the consumption path is one path.
+ * The tuner's FIVE strings, verbatim (D-10), keyed as sequence.ts's SLOTS
+ * names them; the writer owns the order, not this type. Declared here, not
+ * imported: a type import is still a specifier. `system` is the SYSTEM
+ * element's Setup (255/0, 12-03), `systemTimer` its Timer (255/6, 12.1-07),
+ * `systemUtility` its Utility (255/4, 13-17): none metered, each substituted
+ * from "" in #systemStringOr, each snapshotted, restored and cleared with the
+ * touch pair. One shape for every producer - the tuner's measureLuaRoute and
+ * land, the presets, src/lib/sandbox/land.ts - and install.spec.ts pins the
+ * one consumption path.
  */
 export type ConfigStrings = {
   readonly systemTimer: string;
@@ -365,11 +140,9 @@ interface HeavyModules {
 }
 
 /**
- * The phases a write may start from. Everything that is a settled outcome of
- * an earlier action, plus `ready`. `snapshot-failed` is handled separately:
- * the click retries the snapshot and writes only if that lands. The same list
- * is where a page change on the module re-snapshots from - never `writing`,
- * never `snapshotting`.
+ * The phases a write may start from: every settled outcome of an earlier
+ * action, plus `ready`. `snapshot-failed` retries the snapshot first and
+ * writes only if that lands; #pageCheck re-snapshots from the same list.
  */
 const WRITABLE_PHASES: readonly InstallPhase[] = [
   "ready",
@@ -393,9 +166,7 @@ const SLOW_LINE_MS = 2000;
 
 /**
  * One reason per refusal; the guard returns the first that applies.
- * `page-pending` (13-12): the page target is not at rest - a change is on
- * its way to the wire, a switch awaits the module's report, or the window
- * closed unverified.
+ * `page-pending` (13-12): the page target is not at rest.
  */
 type TryRefusal =
   | "measuring"
@@ -405,11 +176,10 @@ type TryRefusal =
   | "over-budget";
 
 /**
- * The memoised module promise. Module scope on purpose, exactly as the
- * session's is and for the same reason: ES modules are singletons, and this
- * promise carries no store state. The session's open path has already awaited
- * both of these before "connected" can fire, so every await of it in an action
- * below resolves from cache.
+ * The memoised module promise, module scope like the session's: ES modules
+ * are singletons and it carries no store state. The session's open path
+ * awaited both before "connected" could fire, so every await below is a
+ * cache hit.
  */
 let heavy: Promise<HeavyModules> | undefined;
 async function loadHeavy(): Promise<HeavyModules> {
@@ -421,8 +191,8 @@ const heavyModules = (): Promise<HeavyModules> => (heavy ??= loadHeavy());
 
 /**
  * The browser's storage, read inside a try: a browser configured to refuse
- * storage can throw on the property ACCESS, not only on use (Pitfall 9), and
- * on the server there is no window at all. `undefined` means session-only.
+ * storage can throw on the property ACCESS (Pitfall 9), and the server has no
+ * window. `undefined` means session-only.
  */
 function defaultStorage(): SnapshotStore | undefined {
   if (typeof window === "undefined") return undefined;
@@ -464,94 +234,46 @@ export class InstallStore {
   /** True from a proved keep - or, since round 4c, a proved clear - until a put-back that stored (Z-04). */
   storedThisSession = $state(false);
   confirmOpen = $state(false);
-  /**
-   * partial's two lists, as the words the block interpolates (I7). Five
-   * writes make them lists rather than single words, and the closed unions in
-   * install-copy.ts say which pairings the ONE writer can produce.
-   */
+  /** partial's two lists as the words the block interpolates (I7); install-copy.ts's closed unions say which pairings the ONE writer can produce. */
   landed = $state.raw<LandedWords | undefined>(undefined);
   failed = $state.raw<FailedWords | undefined>(undefined);
   /**
-   * The same two lists AS SLOT LABELS, in write order, read straight off
-   * sequence.ts's SLOTS by #classify (12.1-07): `landedSlots` is the prefix of
-   * SLOTS whose write was acknowledged, `failedSlots` the rest. Empty outside
-   * `partial`. Rendered by nothing yet - the probe and the spec read them,
-   * and 12.1-08's sentences are built from the same labels - and they exist
-   * so that "which of five landed" is a fact about the list rather than a
-   * sentence somebody has to keep in step with it.
+   * The same two lists as SLOT LABELS in write order, off sequence.ts's SLOTS
+   * by #classify (12.1-07): the acknowledged prefix and the rest. Empty
+   * outside `partial`; read by the probe and the spec.
    */
   landedSlots = $state.raw<readonly string[]>([]);
   failedSlots = $state.raw<readonly string[]>([]);
-  /**
-   * True when the snapshot in hand came from a `hangar.snapshot.v1` record, so
-   * its `system` string is the firmware default rather than one the module
-   * handed over (12-03). Rendered by nothing; the probe page and the spec read
-   * it, and it exists so that the substitution is surfaced rather than silent.
-   */
+  /** True when the snapshot came from a `hangar.snapshot.v1` record, so its `system` is the firmware default (12-03). Read by the probe and the spec. */
   snapshotFromV1 = $state(false);
-  /**
-   * True when the snapshot in hand came from a `hangar.snapshot.v2` record, so
-   * its `systemTimer` string is the firmware's 255/6 default rather than one
-   * the module handed over (12.1-07, D-22) - the v1 flag's shape one version
-   * on. A v1 record substitutes BOTH defaults and sets `snapshotFromV1` alone;
-   * "the timer slot is a default" is therefore either flag. Rendered by
-   * nothing; the probe page's install-snapshot line (12.1-08) and the spec
-   * read it.
-   */
+  /** True when the snapshot came from a `hangar.snapshot.v2` record, so its `systemTimer` is the firmware's default (12.1-07, D-22); a v1 record sets `snapshotFromV1` alone. */
   snapshotFromV2 = $state(false);
-  /**
-   * True when the snapshot in hand came from a `hangar.snapshot.v3` record, so
-   * its `systemUtility` string is the firmware's page-next rather than one the
-   * module handed over (13-17) - the v2 flag's shape one version on. A v2 or
-   * v1 record substitutes the utility too and sets its own flag alone; "the
-   * utility slot is a default" is therefore any of the three. Rendered by
-   * nothing; the probe page's install-snapshot line and the spec read it.
-   */
+  /** True when the snapshot came from a `hangar.snapshot.v3` record, so its `systemUtility` is the firmware's page-next (13-17). Read by the probe and the spec. */
   snapshotFromV3 = $state(false);
-  /**
-   * True once a `write-*` timeout with no NACK has moved the pre-send gap to
-   * the desktop's 10 ms (D-19, Pitfall 3). Shown by the probe; the runbook
-   * asks whether it ever fired. Never reset inside a page load.
-   */
+  /** True once a write timeout with no NACK moved the pre-send gap to the desktop's 10 ms (D-19). Shown by the probe; never reset in a page load. */
   pacingEscalated = $state(false);
   /**
-   * THE PAGE TARGET'S MIRROR (13-12). Four scalars and one list, replaced
-   * whole from page-target.ts's onChange and never mutated - the house rule.
-   * `pageReported` is the page the module last reported beside its
-   * heartbeat; `pageRequested` the page the visitor asked for (equal to the
-   * reported page at rest); `pageStatus` one of the four states; `pages` the
-   * module's own enumeration, empty until the PAGECOUNT answer lands and
-   * empty again on every reconnect. Components render these; the gate they
-   * must obey is pageSettled(), below, and not a comparison of their own.
+   * The page target's mirror (13-12): four scalars and one list, replaced
+   * whole from page-target.ts's onChange. `pages` is the module's own
+   * enumeration, empty until the PAGECOUNT answer lands and on every
+   * reconnect. Components render these and gate on pageSettled(), below.
    */
   pageStatus = $state<TargetStatus>("reported");
   pageReported = $state.raw<number | undefined>(undefined);
   pageRequested = $state.raw<number | undefined>(undefined);
   pages = $state.raw<readonly number[]>([]);
-  /**
-   * pageSettled() as a rune, for the components: assigned from the target's
-   * canApply() in the same mirror, never computed a second time from the
-   * fields above. Apply to ZONA, TRY ON DEVICE, PUT BACK and CLEAR all
-   * disable on this, and the store's own write paths refuse on pageSettled().
-   */
+  /** pageSettled() as a rune for the components, assigned from the target's canApply() in the same mirror. */
   applyReady = $state(false);
 
   // --- NOT reactive: the record of the last action, and the machinery -------
 
   /**
-   * The capture steps of the LAST action - the snapshot or one action's legs -
-   * as the queue reported them, in order. Replaced with a fresh array when an
-   * action starts, so a reader sees one action at a time. Plain, never a rune:
-   * it is written from the queue's onStep and rendered by nothing; #classify
-   * reads it to tell a half-landed write from a whole one, and the pacing rule
-   * reads it for a NACK.
+   * The capture steps of the LAST action as the queue reported them, in
+   * order; replaced when an action starts. Plain, never a rune: #classify and
+   * the pacing rule read it, nothing renders it.
    */
   steps: CaptureStep[] = [];
-  /**
-   * How many re-fetch rounds the last store leg took to match, or ran out at.
-   * Recorded for the runbook (row E: a measurement nobody has), rendered
-   * nowhere. Plain, for the same reason as `steps`.
-   */
+  /** How many re-fetch rounds the last store leg took, for the runbook's row E. Plain, like `steps`. */
   refetchRounds = 0;
 
   readonly #session: DeviceSession;
@@ -561,10 +283,9 @@ export class InstallStore {
   /** The two heavy modules once #attach has awaited them, for the paths that cannot await (the "closed" branch). */
   #modules: HeavyModules | undefined;
   /**
-   * The connection generation (Pitfall 11). Bumped on every "connected" and
-   * every "closed"; every action captures it at its start and discards a
-   * result whose generation is stale, so an action that outlived its link can
-   * never publish against the next one.
+   * The connection generation (Pitfall 11): bumped on every "connected" and
+   * every "closed"; an action captures it at its start and discards a result
+   * whose generation is stale.
    */
   #generation = 0;
   /** The ONE queue of the current connection, or undefined. */
@@ -573,9 +294,9 @@ export class InstallStore {
   /** True while a leg is in flight; "closed" leaves the phase to the leg's catch when it is. */
   #inFlight = false;
   /**
-   * The pre-send gap the next queue is built with. Undefined until the
-   * protocol module is in hand, when it reads PRE_SEND_DELAY_MS (0); escalated
-   * to the desktop's DESKTOP_PRE_SEND_DELAY_MS on a write timeout with no NACK.
+   * The pre-send gap the next queue is built with: PRE_SEND_DELAY_MS (0) once
+   * the protocol module is in hand, DESKTOP_PRE_SEND_DELAY_MS after a write
+   * timeout with no NACK (D-19).
    */
   #preSendDelayMs: number | undefined;
   /** The 2000 ms line's pending timer. A setTimeout, never an interval. */
@@ -585,10 +306,8 @@ export class InstallStore {
     [];
   #started = false;
   /**
-   * The page target (13-12). Built once the protocol module is in hand,
-   * because its window is PAGE_SWITCH_WINDOW_MS and this file names that
-   * constant only through the awaited module; `undefined` before the first
-   * connect, when nothing has a page to target anyway.
+   * The page target (13-12), built once the protocol module is in hand: its
+   * window is PAGE_SWITCH_WINDOW_MS, named only through the awaited module.
    */
   #target: PageTarget | undefined;
 
@@ -615,12 +334,9 @@ export class InstallStore {
 
   /**
    * THE ONE CONDITION EVERY WRITE READS (13-12, D-06): the page target is at
-   * rest and the module's own report agrees with it. False for the microtask
-   * a change spends in `requested`, while a switch awaits the report, and
-   * through `unverified`. Also
-   * false before any module has reported, which every write path already
-   * refuses on other grounds. Delegates to the target's canApply() and
-   * restates nothing.
+   * rest and the module's own report agrees with it. False through
+   * `requested`, `switching` and `unverified`, and before any report.
+   * Delegates to the target's canApply() and restates nothing.
    */
   pageSettled(): boolean {
     return this.#target?.canApply() ?? false;
@@ -635,8 +351,7 @@ export class InstallStore {
 
   /**
    * Reads the record for the "needs your ZONA" form and subscribes to the
-   * session. Idempotent: a second call attaches no second subscriber. It does
-   * not touch the session's phase and opens nothing.
+   * session. Idempotent; touches no phase of the session; opens nothing.
    */
   start(env: InstallEnv = {}): void {
     if (this.#started) return;
@@ -647,7 +362,6 @@ export class InstallStore {
 
     // I0, Z-12: a fresh tab that once identified a module with a durable
     // record renders PUT BACK disabled with "Needs your ZONA connected."
-    // before any connection exists.
     const last = lastModuleId(this.#storage);
     this.rememberedModule =
       last !== undefined && hasSnapshotFor(this.#storage, last);
@@ -663,27 +377,24 @@ export class InstallStore {
       void this.#attach(this.#generation);
       return;
     }
-    // "closed". This also fires from the session's teardown on the not-zona
-    // and silent paths with NO "connected" before it (07-04), so each of the
-    // abort, the unsubscribe and the drop is guarded on existence, and the
+    // "closed" also fires from the session's teardown with NO "connected"
+    // before it (07-04), so each release is guarded on existence and the
     // generation is bumped regardless.
     this.#generation++;
     this.#queue?.abort("closed");
     this.#unsubscribeClass?.();
     this.#unsubscribeClass = undefined;
     this.#queue = undefined;
-    // A store leg waiting for a heartbeat hears the same thing its waiter
-    // would have: the link is gone.
+    // A store leg waiting for a heartbeat hears that the link is gone.
     this.#rejectHeartbeatWaiters("closed");
     // Flash only what you have heard (Z-21): a session drop is one of the
     // confirmation's four exits.
     this.confirmOpen = false;
-    // The page target knows nothing about a module that is gone: a request
-    // is dropped, a pending switch is no longer pending, `unverified` ends the
-    // one way it can end without a report (13-12). The reconnect reports.
+    // The page target knows nothing about a module that is gone (13-12); the
+    // reconnect reports.
     this.#target?.reset();
     if (!this.#inFlight) {
-      // Nothing was in flight: back to idle. `snapshot`, `moduleId` and
+      // Nothing in flight: back to idle. `snapshot`, `moduleId` and
       // `rememberedModule` STAY - the way back survives the unplug.
       this.phase = "idle";
       this.action = undefined;
@@ -696,10 +407,9 @@ export class InstallStore {
   }
 
   /**
-   * Build the ONE queue of this connection over the session's write view, fed
-   * from onClass(), and take the snapshot. The heavy modules are awaited here,
-   * but the session's open path has already resolved them, so this is a cache
-   * hit and no fetch.
+   * Build this connection's ONE queue over the session's write view, fed from
+   * onClass(), and take the snapshot. The heavy modules are a cache hit here:
+   * the session's open path resolved them before "connected" could fire.
    */
   async #attach(gen: number): Promise<void> {
     const modules = await heavyModules();
@@ -719,9 +429,9 @@ export class InstallStore {
   }
 
   /**
-   * The queue over the session's write view, with the current pre-send gap,
-   * subscribed to the session's class pump. Any queue before it is aborted
-   * and unsubscribed first, so there is never a second one delivering. Used at
+   * The queue over the session's write view with the current pre-send gap,
+   * subscribed to the session's class pump; any earlier queue is aborted and
+   * unsubscribed first, so there is never a second one delivering. Used at
    * "connected" and again by the pacing escalation.
    */
   #buildQueue(transportLib: Transport): RequestQueue | undefined {
@@ -745,9 +455,9 @@ export class InstallStore {
   }
 
   /**
-   * The store's own reading of the class pump, beside the queue's. A heartbeat
-   * from the ZONA resolves whichever store leg is waiting for one (the D-12
-   * proof), and asks whether the module's page moved. Anything else is the
+   * The store's own reading of the class pump, beside the queue's: a
+   * heartbeat from the ZONA resolves the store leg waiting for one (the D-12
+   * proof) and asks whether the module's page moved. Anything else is the
    * queue's business.
    */
   #onClassSeen(cls: DecodedClass): void {
@@ -763,12 +473,9 @@ export class InstallStore {
     const waiters = this.#heartbeatWaiters;
     this.#heartbeatWaiters = [];
     for (const waiter of waiters) waiter.resolve();
-    // The session's fold publishes the identity AFTER its sinks have run for
-    // this frame, so the page comparison waits one microtask for it. The page
-    // target reads the same published page in the same microtask (13-12):
-    // the identity's activePage IS the module's page report - D-10's fold
-    // moves it only for a PAGENUMBER riding beside a heartbeat with no
-    // EVENTTYPE and no ACTIONLENGTH, so a CONFIG/REPORT can never land here.
+    // The fold publishes the identity AFTER its sinks ran for this frame, so
+    // the page read waits one microtask; the target reads the same published
+    // page (13-12) - the identity's activePage IS the module's page report.
     queueMicrotask(() => {
       this.#pageCheck();
       const page = this.#session.identity?.activePage;
@@ -795,13 +502,10 @@ export class InstallStore {
   }
 
   /**
-   * Pitfall 4's third layer. The module's reported page differs from the page
-   * the snapshot was taken on, and nothing is in flight: read the module again
-   * for the new page, so PUT BACK writes the page it snapshotted and the
-   * record accumulates a second entry rather than shadowing the first. Never
-   * from `writing` - a successful write disables page change until the restore
-   * heartbeat anyway, which is why this window is narrow - and never from
-   * `snapshotting`.
+   * Pitfall 4's third layer: the module's reported page differs from the
+   * snapshot's and nothing is in flight, so read the module again for the new
+   * page - PUT BACK then writes the page it snapshotted and the record gains
+   * a second entry. Never from `writing` or `snapshotting`.
    */
   #pageCheck(): void {
     const id = this.#session.identity;
@@ -816,18 +520,14 @@ export class InstallStore {
   // --- the snapshot, in the order that gates each step ----------------------
 
   /**
-   * Each step is a gate on the next (07-RESEARCH Code Examples 1):
-   *
-   *   1. the module names itself      - "fetch-serial"; a timeout here
-   *      degrades to a session-only snapshot and never throws;
-   *   2. all FIVE strings come back on the module's REPORTED page and pass
-   *      canWriteBack - D-03: the empty string is exactly the shape a fetch of
-   *      a non-active page produces. A factory module passes: the system
-   *      element's own defaults are 24, 22 and 19 characters, never empty;
-   *   3. the set is held IN MEMORY;
-   *   4. only then is the durable record consulted, and written IF ABSENT.
-   *
-   * Only after all of that does `ready` publish.
+   * Each step gates the next (07-RESEARCH Code Examples 1): 1. the module
+   * names itself ("fetch-serial"; a timeout degrades to a session-only
+   * snapshot and never throws); 2. all FIVE strings come back on the module's
+   * REPORTED page and pass canWriteBack (D-03: the empty string is what a
+   * fetch of a non-active page produces; a factory module's own defaults are
+   * 24, 22 and 19 characters); 3. the set is held IN MEMORY; 4. only then is
+   * the durable record consulted, and written IF ABSENT. `ready` publishes
+   * after all of that.
    */
   async #snapshot(id: Identity, q: RequestQueue, gen: number): Promise<void> {
     this.phase = "snapshotting";
@@ -858,25 +558,19 @@ export class InstallStore {
     }
     if (gen !== this.#generation) return;
 
-    // THE ENUMERATION (13-12), once per connection, after the five config
-    // fetches so their step ids read as they always have and before `ready`
-    // so the destination control never renders a list it has not been given.
-    // A read, never a write; a module that does not answer offers only its
-    // reported page, and enumerate() never throws (Bible section 9: enumerate,
-    // never assume four).
+    // THE ENUMERATION (13-12), once per connection, after the five fetches
+    // (their step ids read as before) and before `ready`. A read, never a
+    // write; enumerate() never throws (Bible section 9: enumerate, never
+    // assume four).
     const target = this.#targetWith(protocolLib);
     if (target.pages.length === 0) {
       await target.enumerate(q, protocolLib, id.zona);
     }
     if (gen !== this.#generation) return;
 
-    // D-03 over Z-16: an empty string is refused here, BEFORE the record is
-    // consulted. A remembered module whose RAM reads empty on this page is
-    // therefore not offered its own record - named in the header, deferred to
-    // 07-13, not fixed here. FIVE strings since 13-17 (four since 12.1-07,
-    // three since 12-03), and the guard runs over all of them, one per SLOTS
-    // row: HANGAR writes all three system slots, so it copies all three
-    // first.
+    // D-03 over Z-16: an empty string is refused BEFORE the record is
+    // consulted, so a remembered module whose RAM reads empty on this page is
+    // not offered its own record (deferred to 07-13). One guard per SLOTS row.
     const guard = protocolLib.canWriteBack(
       transportLib.SLOTS.map((slot) => set[slot.key]),
     );
@@ -896,17 +590,12 @@ export class InstallStore {
       timer: set.timer.actionString ?? "",
     };
 
-    // IN MEMORY FIRST. Storage is a courtesy and must never be the reason a
-    // visitor has no way back (Pitfall 9).
-    //
-    // The DEFAULTS are passed in because snapshot.ts imports nothing (its own
-    // header, and its spec's first test). A record written before Phase 12 has
-    // no page-init string, one written before Phase 12.1 has no system-timer
-    // string (D-22), one written before 13-17 has no utility string, and
-    // each is read with the firmware's own in its place; `fromV1`, `fromV2`
-    // and `fromV3` say when that happened, and all three are published
-    // rather than swallowed. The record is `hangar.snapshot.v4` since 13-17,
-    // beside v3, v2 and v1, which are read and never written.
+    // IN MEMORY FIRST: storage is a courtesy and never the reason a visitor
+    // has no way back (Pitfall 9). The defaults are passed in because
+    // snapshot.ts imports nothing; a record older than v4 (12-03, 12.1-07
+    // D-22, 13-17) is read with the firmware's own in each missing slot and
+    // `fromV1` / `fromV2` / `fromV3` say so. `hangar.snapshot.v4` is written;
+    // v3, v2 and v1 are read and never written.
     const record = moduleId
       ? readSnapshot(this.#storage, moduleId, id.activePage, {
           system: protocolLib.SYSTEM_DEFAULT_SETUP,
@@ -931,9 +620,8 @@ export class InstallStore {
     this.snapshotPage = id.activePage;
     this.moduleId = moduleId;
     if (moduleId) {
-      // The record's timestamp, read once and handed over as a string; nothing
-      // holds or renders the instance. Not a SvelteDate: svelte/reactivity
-      // would be a fourth static specifier.
+      // The record's timestamp, read once as a string. Not a SvelteDate:
+      // svelte/reactivity would be a fifth static specifier.
       // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a timestamp read once; see the comment above
       const takenAt = new Date().toISOString();
       const wrote = persistIfAbsent(
@@ -969,19 +657,16 @@ export class InstallStore {
   observeConfig(config: ConfigStrings | undefined): void {
     this.config = config;
     this.#recomputeArmed();
-    // Flash only what you have heard (Z-05, Z-21): a knob move that leaves the
-    // module holding something other than the pair on screen closes the
-    // confirmation - one of its four exits.
+    // Flash only what you have heard (Z-05, Z-21): a knob move that disarms
+    // closes the confirmation - one of its four exits.
     if (this.confirmOpen && !this.armed) this.confirmOpen = false;
   }
 
   /**
-   * Z-05: the module holds the pair the visitor is looking at. Recomputed here
-   * and after every leg rather than derived, for the header's reason. A knob
-   * move that lands on identical strings keeps it armed - what plays on the
-   * module is what the strings say. No path in this file arms from a phase
-   * other than `settled` or `unconfirmed`: in `unconfirmed` memory still holds
-   * what was heard, and the store may be sent again (I11).
+   * Z-05: the module holds the pair the visitor is looking at. Recomputed
+   * here and after every leg, never derived (the header's rule); a knob move
+   * that lands on identical strings keeps it armed. Arms only from `settled`
+   * or `unconfirmed` - there memory still holds what was heard (I11).
    */
   #recomputeArmed(): void {
     const written = this.lastWritten;
@@ -1001,11 +686,11 @@ export class InstallStore {
    * The system element's string for one event, or the firmware's own default
    * where the tuner published "" - the one substitution point, read by the
    * write path and by `armed` alike (12-03 for 255/0, 12.1-07 for 255/6,
-   * 13-17 for 255/4; the tuner cannot name a firmware default, ladder.spec.ts).
-   * `event` is the slot's event number: 0 the Setup (255/0, `system`), 6 the
-   * Timer (255/6, `systemTimer`), 4 the Utility (255/4, `systemUtility`).
-   * Reads a FIELD, never a kind: the store cannot tell a surface from an
-   * entry (13-17).
+   * 13-17 for 255/4; no module under src/lib/tune/ may name a firmware
+   * default, ladder.spec.ts). `event` is the slot's event number: 0 the
+   * Setup (`system`), 6 the Timer (`systemTimer`), 4 the Utility
+   * (`systemUtility`). Reads a FIELD, never a kind: the store cannot tell a
+   * surface from an entry (13-17).
    */
   #systemStringOr(
     config: ConfigStrings,
@@ -1043,12 +728,10 @@ export class InstallStore {
    *   settled | unconfirmed, not armed           knobs-moved
    *   anything else                              never-tried
    *
-   * The clear row (round 4c, 2026-09-12): a clear whose store never
-   * acknowledged leaves the firmware default in memory and nothing of the
-   * visitor's to store, so the honest reason is the first-apply one and not
-   * `knobs-moved` - no knob moved. Eight rows, still the closed set of six.
-   *
-   * `capable` is the session's: false on `unsupported` and `insecure`.
+   * The clear row (round 4c): a clear whose store never acknowledged leaves
+   * nothing of the visitor's to store, so the reason is the first-apply one,
+   * not `knobs-moved`. `capable` is the session's (not `unsupported`, not
+   * `insecure`).
    */
   keepReason(capable: boolean): KeepReason | undefined {
     if (!capable) return "incapable";
@@ -1066,17 +749,12 @@ export class InstallStore {
 
   /**
    * Whether the restore is offered, and how (I0, I8, Z-12) - read by the
-   * /dev/install/ probe alone since 13.1-06 (its readout and its button;
-   * no visitor-facing control renders it, D-07). Decided on `snapshot`
-   * first: `enabled` ONLY when the session is connected AND a snapshot is in
-   * hand - including over budget and every failure state with a snapshot;
-   * `needs-zona` when a snapshot or a remembered module exists and the session
-   * is not connected; `absent` otherwise - no snapshot and no remembered
-   * module, and also a connected session with no snapshot in hand
-   * (`snapshotting` before the fetch answers, `snapshot-failed` even on a
-   * remembered module: the record is consulted only after a fetch passes
-   * canWriteBack). A remembered module is not a snapshot, and the component's
-   * click writes `snapshot`. `writing` disables it in the component, not here.
+   * /dev/install/ probe alone since 13.1-06 (D-07). `enabled` only when the
+   * session is connected AND a snapshot is in hand; `needs-zona` when a
+   * snapshot or a remembered module exists and the session is not connected;
+   * `absent` otherwise - a remembered module is not a snapshot, and the
+   * record is consulted only after a fetch passes canWriteBack. `writing`
+   * disables it in the component, not here.
    */
   putBackState(): "absent" | "enabled" | "needs-zona" {
     const connected = this.#session.phase === "connected";
@@ -1093,50 +771,37 @@ export class InstallStore {
   }
 
   /**
-   * CLEAR'S ONE ENABLEMENT RULE, IN ONE PLACE (10-UI-SPEC 10.5):
-   *
-   *   phase in WRITABLE_PHASES && snapshot != null && capability.canWrite
-   *
-   * SAFE-03 IS SATISFIED BY CONSTRUCTION rather than by a check somebody
-   * remembered to write: no snapshot, no clear. The write guard is in the
-   * third term and not in a call of its own - canWriteBack gates the snapshot
-   * FETCH (src/lib/protocol/write-guard.ts), so a fetch it refused leaves
-   * `snapshot` undefined and lands `snapshot-failed`, and `capable` is the
-   * browser half of the same verdict (DEGR-02).
-   *
+   * CLEAR's one enablement rule (10-UI-SPEC 10.5): phase in WRITABLE_PHASES
+   * && snapshot != null && capability.canWrite. SAFE-03 by construction: no
+   * snapshot, no clear - canWriteBack gates the snapshot FETCH
+   * (protocol/write-guard.ts) and `capable` is the browser half (DEGR-02).
    * `connected` is not a fourth term: every phase reachable without a session
-   * (`idle`, `lost`) is already outside WRITABLE_PHASES, and clearToDefault()
-   * checks the queue and the session anyway before it touches the wire.
+   * is outside WRITABLE_PHASES, and clearToDefault() checks the queue anyway.
    */
   clearEnabled(capable: boolean): boolean {
     return (
       WRITABLE_PHASES.includes(this.phase) &&
       this.snapshot !== undefined &&
       capable &&
-      // 13-12: and the page target at rest. A clear resets the page the
-      // module is ON, and while a switch is pending that page is in question.
+      // 13-12: and the page target at rest - a clear resets the page the
+      // module is ON.
       this.pageSettled()
     );
   }
 
   /**
-   * Why CLEAR is disabled, or undefined when it is live - the three reasons of
-   * 10-UI-SPEC 10.5's closed table, in precedence order. Two disabled
-   * moments name NO reason with a session and a snapshot in hand, and the
-   * component disables and holds its last line through both: `writing`,
-   * where it renders CLEARING… (or a control disabled under another action's
-   * write), and since 13-12 a page target that is not at rest, whose line is
-   * the destination zone's - the same division of labour PUT BACK uses.
+   * Why CLEAR is disabled, or undefined when live: 10-UI-SPEC 10.5's three
+   * reasons in precedence order. Two disabled moments name no reason -
+   * `writing`, and since 13-12 a page target not at rest - and the component
+   * disables and holds its last line through both.
    */
   clearReason(capable: boolean): ClearReason | undefined {
     if (this.clearEnabled(capable)) return undefined;
     if (!capable) return "incapable";
     if (this.snapshot === undefined) return "no-snapshot";
-    // 13-12: a page target that is not at rest, with a session and a
-    // snapshot in hand, is not "no session" and the closed record has no
-    // word for it on purpose - the destination zone carries that state's
-    // own line, and Clear.svelte disables on `applyReady` and holds its last
-    // reason exactly as it does through a write.
+    // 13-12: a pending page target with a session and a snapshot in hand has
+    // no word in the closed record on purpose - the destination zone carries
+    // that line, and Clear.svelte disables on `applyReady`.
     if (this.#queue && this.#session.phase === "connected") return undefined;
     return "no-session";
   }
@@ -1146,8 +811,7 @@ export class InstallStore {
   /** Opens the inline confirmation. Refused unless keepReason() is undefined. */
   openConfirm(): void {
     if (this.keepReason(this.#capable()) !== undefined) return;
-    // 13-12: not while the page target is pending - what would be stored is
-    // on a page that is about to stop being the active one.
+    // 13-12: not while the page target is pending.
     if (!this.pageSettled()) return;
     this.confirmOpen = true;
   }
@@ -1161,18 +825,12 @@ export class InstallStore {
 
   /**
    * THE SELECT'S CHANGE, IN ONE CALL (13.1-CONTEXT D-05): the target's
-   * request() then its confirm(), back to back, with no review between them.
-   * Resolves TRUE exactly when the switch LEFT - the target is `switching`
-   * after confirmPage() returned - and FALSE otherwise, with nothing sent:
-   * when requestPage() refused (a switch pending, no report yet, a leg in
-   * flight, the module's own page, no session), or when confirmPage()
-   * early-returned on its own guards (they re-check the leg, the phase and
-   * the session after the await). In that second case the target would be
-   * parked at `requested` - Apply disabled, no line on the screen, because
-   * the routes render `switching` and `unverified` only - so it is taken
-   * back with cancelPage() before the false is returned (13.1-PLAN-CHECK
-   * W-04). The routes snap the select back on false. Opening the menu never
-   * reaches here; only a change does.
+   * request() then its confirm(), with no review between. True exactly when
+   * the switch LEFT (the target is `switching` after confirmPage()); false
+   * with nothing sent when requestPage() refused or confirmPage()
+   * early-returned on its own guards - then the target is taken back with
+   * cancelPage() so Apply is not parked disabled at `requested`
+   * (13.1-PLAN-CHECK W-04). The routes snap the select back on false.
    */
   async switchPage(page: number): Promise<boolean> {
     if (!this.requestPage(page)) return false;
@@ -1185,26 +843,20 @@ export class InstallStore {
   }
 
   /**
-   * The visitor chose a destination: SET THE TARGET. Sends nothing - that is
-   * the whole of this method's contract, and install.e2e.ts counts the switch
-   * class at zero across a cycle that opens the menu. switchPage() calls it
-   * first and confirmPage() next; the /dev/install/ probe calls it alone. The
-   * flash confirmation, if open, closes: two confirmations on one screen is
-   * one too many, and a page change under an open KEEP would be exactly the
-   * "flash only what you have heard" failure Z-21 names. Refused - false -
-   * while a switch is pending, before the module has reported, while a leg
-   * is in flight, and for the page the module is already on.
-   */
-  /**
-   * The page the copy names, as the module reports it (install-copy adds one,
-   * D-23): the snapshot's page. Every utterance and title built here follows
-   * a snapshot, so the 0 stands in only for the snapshot-failed title, which
-   * names no page.
+   * The page the copy names: the snapshot's page (install-copy D-23). The 0
+   * stands in only for the snapshot-failed title, which names no page.
    */
   #page(): number {
     return this.snapshotPage ?? 0;
   }
 
+  /**
+   * SET THE TARGET; sends nothing (install.e2e.ts counts the switch class at
+   * zero across a cycle that opens the menu). switchPage() calls it first,
+   * the /dev/install/ probe alone. Closes the flash confirmation if open
+   * (Z-21). False while a switch is pending, before the module has reported,
+   * while a leg is in flight, and for the page the module is already on.
+   */
   requestPage(page: number): boolean {
     if (this.#inFlight || this.phase === "writing") return false;
     const target = this.#target;
@@ -1220,14 +872,12 @@ export class InstallStore {
   }
 
   /**
-   * THE SEND - the second half of the select's change, and the only caller
-   * of the target's confirm(). The restore heartbeat goes out, then the
-   * switch, both through this connection's ONE queue; the module's own
-   * report ends the wait, or the window lands `unverified`. Refused while a
-   * leg is in flight: sendImmediate DROPS a frame while a write is
-   * outstanding (07-RESEARCH Pitfall 2), and a dropped switch would read as a
-   * refusal on the module rather than as what it was. Called by switchPage()
-   * and by the /dev/install/ probe; nothing else.
+   * THE SEND - the second half of the select's change and the only caller of
+   * the target's confirm(): the restore heartbeat, then the switch, through
+   * this connection's one queue; the module's own report ends the wait or the
+   * window lands `unverified`. Refused while a leg is in flight:
+   * sendImmediate drops a frame under an outstanding write (07-RESEARCH
+   * Pitfall 2). Called by switchPage() and by the /dev/install/ probe.
    */
   async confirmPage(): Promise<void> {
     if (this.#inFlight || this.phase === "writing") return;
@@ -1240,19 +890,14 @@ export class InstallStore {
   }
 
   /**
-   * THE FIRMWARE-NATIVE REVERT (the page-discard class): reload the active page from
-   * flash, undoing every RAM write since the last store without needing the
-   * snapshot (grid_decode.c:895-915). UNPROVEN ON HARDWARE and reachable from
-   * the /dev/install/ probe only until docs/INSTALL-RUNBOOK.md row I says
-   * otherwise; no public control calls this. It is a RAM-only action with the
-   * store's wire shape - a broadcast, an id-correlated acknowledgement, the
-   * store's timeout, a page reload that restarts the Lua VM - so it runs
-   * under the same lock, the same slow line and the same generation check as
-   * a store leg, and the restore heartbeat follows it as after every RAM
-   * action. Where it lands: the module now runs what FLASH holds - the kept
-   * configuration if this session stored one (`kept`), the visitor's own
-   * otherwise (`restored`). Gated like a clear: a writable phase, a snapshot
-   * in hand, and the page target at rest.
+   * THE FIRMWARE-NATIVE REVERT (the page-discard class, 13-12): reload the
+   * active page from flash, undoing every RAM write since the last store
+   * without the snapshot (grid_decode.c:895-915). UNPROVEN ON HARDWARE and
+   * reachable from the /dev/install/ probe only until docs/INSTALL-RUNBOOK.md
+   * row I; no public control. A RAM-only action with a store's wire shape, so
+   * it runs under the same lock, slow line and generation check, the restore
+   * heartbeat after it. Lands `kept` if this session stored, else
+   * `restored`. Gated like a clear.
    */
   async revertToStored(): Promise<void> {
     if (!this.clearEnabled(this.#capable())) return;
@@ -1309,11 +954,9 @@ export class InstallStore {
   // --- the two RAM clicks ----------------------------------------------------
 
   /**
-   * The refusal list, one reason per line, the first that applies. An
-   * over-budget state never reaches the queue, let alone the wire (TUNE-05,
-   * D-10): `configMax` is CONFIG_MAX read from the awaited protocol module,
-   * never restated - sendConfig refuses at `>= CONFIG_MAX` too, so the two
-   * ceilings are one constant from two sides.
+   * The refusal list, first match wins. Over budget never reaches the queue
+   * (TUNE-05, D-10): `configMax` is CONFIG_MAX from the awaited protocol
+   * module, and sendConfig refuses at the same constant from the other side.
    */
   #tryRefusal(
     config: ConfigStrings | undefined,
@@ -1331,11 +974,11 @@ export class InstallStore {
   }
 
   /**
-   * TRY ON DEVICE. Refuses - returns without touching the queue - when the
-   * pair is undefined (the tuner is measuring), when the phase is not one a
-   * write may start from, when the session is not connected, or when either
-   * string is at or over the module's limit. From `snapshot-failed` it reads
-   * the module again first and writes only if that lands `ready`.
+   * TRY ON DEVICE: the five strings, the three system slots substituted
+   * through #systemStringOr (12-03, 12.1-07, 13-17), through #ramLeg in SLOTS
+   * order, landing `settled` with `lastWritten` and `name` set. Refuses on
+   * #tryRefusal's list without touching the queue; from `snapshot-failed` it
+   * reads the module again first and writes only if that lands `ready`.
    */
   async tryOnDevice(
     config: ConfigStrings | undefined,
@@ -1365,16 +1008,14 @@ export class InstallStore {
   }
 
   /**
-   * THE RESTORE - putBack(), the probe's since 13.1-06 (D-07: its ONE caller
-   * is the /dev/install/ probe's button; install.spec.ts drives it on the
-   * fake): the snapshot's strings, the same way, to the page they were
-   * taken from. After a keep this session the RAM leg is followed by a store
-   * leg and the same proof (Z-04, see the header), with no confirmation: the
-   * phase stays `writing` between the two, `leg` moves to `store`, and the
-   * component renders RESTORED's caption and first line off that pair. A
-   * store that proved lands `restored` and clears `storedThisSession`; one that
-   * did not lands `restored-unconfirmed` and leaves it set, so the next PUT
-   * BACK stores again. LIVE_RESTORED is spoken once, on entry to `restored`.
+   * THE RESTORE - putBack(), the /dev/install/ probe's alone since 13.1-06
+   * (D-07; install.spec.ts drives it on the fake): the snapshot's five
+   * strings through #ramLeg to the page they came from, then - after a keep
+   * this session - the store leg and the same proof, with no confirmation
+   * (Z-04); `leg` moves to `store` between them. Lands `restored` and clears
+   * `storedThisSession`; a store that did not prove lands
+   * `restored-unconfirmed` and leaves it set, so the next put-back stores
+   * again. LIVE_RESTORED is spoken once, on entry to `restored`.
    */
   async putBack(): Promise<void> {
     const snapshot = this.snapshot;
@@ -1382,12 +1023,11 @@ export class InstallStore {
     if (!WRITABLE_PHASES.includes(this.phase)) return;
     const id = this.#session.identity;
     if (!this.#queue || !id || this.#session.phase !== "connected") return;
-    // 13-12: not while a switch is pending or unverified - the page the
-    // snapshot names may be about to stop being the active one.
+    // 13-12: not while a switch is pending or unverified.
     if (!this.pageSettled()) return;
-    // Pitfall 4: the snapshot is one page's original and goes back to that
-    // page only. The page-change re-snapshot keeps these equal; if it could
-    // not, refusing is the honest answer rather than a cross-page write.
+    // Pitfall 4: one page's original goes back to that page only; the
+    // page-change re-snapshot keeps these equal, and refusing is the honest
+    // answer when it could not.
     if (id.activePage !== this.snapshotPage) return;
     const ok = await this.#ramLeg("put-back", snapshot);
     if (!ok) return;
@@ -1415,101 +1055,36 @@ export class InstallStore {
   // --- the fourth click: CLEAR ---------------------------------------------
 
   /**
-   * CLEAR. Writes the FIRMWARE'S OWN default configuration back into the
-   * module's RAM - not emptiness (A-48, D-20). The Editor's `clearElement()`
-   * is `resetDefault()` followed by `sendToGrid()`, and `resetDefault()` takes
-   * each event's own `defaultConfig`; this is the same strings, through the
-   * same one writer, in the same order.
+   * CLEAR: the firmware's own five defaults - the strings the Editor's
+   * `clearElement()` writes through `resetDefault()` (A-48, D-20), not
+   * emptiness - through #ramLeg in SLOTS order, then the same store leg Store
+   * on ZONA runs (round 4c, 2026-09-12, `61ba376`: "like Store but with
+   * Clear", so a page the Editor STORED does not come back after a power
+   * cycle). One click, no confirmation (13.1 D-04). Lands `cleared` and sets
+   * `storedThisSession` on a proved store; `kept-mismatch` (reused, the
+   * block's sentence is exactly true of a clear's store) when the rounds run
+   * out; `unconfirmed` with FIRMWARE_DEFAULT_NAME as the name when no ACK
+   * came, and keepReason() then reads `never-tried`.
    *
-   * IT RESETS BOTH ELEMENTS, AND THE REASON IS D-21 (12-03, research option
-   * A). The line beside the control is `Reset the current page to factory
-   * default` - 41 characters, locked - and since 12-03 HANGAR writes the
-   * SYSTEM element's page-init slot as well as the touch element's pair. A
-   * clear that reset only the touch element would leave HANGAR's own library
-   * sitting in the page init, and the line would be untrue by one element on a
-   * page HANGAR did write. So the page init is reset too, with the package's
-   * own `SYSTEM_DEFAULT_SETUP` - and since 12.1-07 the system element's Timer
-   * (255/6, the library's second half) with its own `SYSTEM_DEFAULT_TIMER`,
-   * `--[[@cb]]print("tick")`: a debug print that runs once on the module when
-   * the write lands and prints to nobody, and then never again, because the
-   * page init that armed it is the firmware's own and arms nothing - and
-   * since 13-17 the system element's utility (255/4) with its own
-   * `SYSTEM_DEFAULT_UTILITY`, page-next, which is what the module's utility
-   * button did before HANGAR wrote anything.
-   *
-   * AND THAT IS ALSO WHAT MAKES A KEEP AFTER A CLEAR LEAVE NOTHING BEHIND.
-   * Writing an event its OWN default sets `cfg_default_flag`
-   * (`../grid-fw/common/src/c/grid_ui.c:398-409`), and
-   * `grid_ui_bulk_page_store` then DELETES the cfg file rather than writing it
-   * (`:1126-1134`). So a cleared page stored to flash leaves no HANGAR file on
-   * the module at all - 255/6 included, on the same rule (12-RESEARCH 1c).
-   * One more acknowledgement per clear per slot is the whole cost.
-   *
-   * AND THEN IT STORES - ROUND 4C, THE USER'S WORD (BENCH-2026-09-12.txt,
-   * "clear should not be RAM only though!! it should be like Store but with
-   * Clear!"). Until 2026-09-12 the clear was RAM only, asserted by class
-   * (A-26: five CONFIG/EXECUTE and no PAGESTORE/EXECUTE), and a page the
-   * Editor had STORED came back after a power-cycle - the user's case (b).
-   * Now the RAM leg is followed by the SAME store leg Store on ZONA runs
-   * (#storeLeg: one PAGESTORE/EXECUTE through the queue, ACK-gated, then the
-   * D-12 proof - the module's next heartbeat, then a re-fetch of all five
-   * strings compared byte for byte, bounded to REFETCH_ROUNDS), with the
-   * defaults as the strings it proves against. The wire, per click, is
-   * therefore 5 CONFIG/EXECUTE + 1 HEARTBEAT/EXECUTE (the restore) + 1
-   * PAGESTORE/EXECUTE + 5 CONFIG/FETCH per proof round; install.spec.ts
-   * asserts the sequence by step id and e2e/install.e2e.ts counts it by
-   * class. One click, no confirmation, as before (13.1 D-04 stands): the
-   * store here is of the FIRMWARE'S OWN configuration, so what it makes
-   * irreversible is the Editor's stored page - which is the point - and the
-   * snapshot taken at connect still holds the visitor's original for the
-   * probe's putBack(). No new snapshot is taken by a clear.
-   *
-   * THE THREE OUTCOMES OF THE STORE LEG, CLASSIFIED AS Store on ZONA's ARE:
-   * `kept` (the ACK, the heartbeat and a matching round) lands `cleared`
-   * and sets `storedThisSession` - flash was written this session, so a
-   * put-back from the probe stores too (Z-04); `mismatch` (three rounds and
-   * no byte-identical read-back) lands `kept-mismatch`, REUSED rather than a
-   * sixteenth phase, because keptMismatchBlock's sentence - acknowledged,
-   * read back different, not called stored - is exactly true of a clear's
-   * store and its second step names Clear as the retry; `unconfirmed` (no
-   * ACK inside the retry bound) lands `unconfirmed` with FIRMWARE_DEFAULT_NAME
-   * as the name the block reads, because the RAM leg did land and the
-   * firmware default IS what is running in memory. keepReason() reads
-   * `never-tried` for that last row (the closed set's own answer - see the
-   * table there), since nothing of the visitor's is on the module to store.
-   *
-   * WHAT A CLEAR DOES NOT WRITE. The five slots HANGAR knows (SLOTS) are the
-   * five it resets; a slot the Editor wrote and HANGAR never does (the system
-   * element's MIDI RX, say) is untouched by the five writes and survives the
-   * store. The firmware's whole-page reset class (0x064) exists in the pinned
-   * package and would be the Editor-parity answer - that class, then the
-   * store - but forbidden-instructions.spec.ts forbids it by name (which is
-   * why this comment does not spell it) and nothing the user has seen needs
-   * it; the day the user sees case (c) on a slot HANGAR does not write, that
-   * gate is amended as 13-12 amended it for the two page classes under D-19,
-   * and not before.
-   *
-   * NO COMPILER ON THIS PATH, AND THAT IS DELIBERATE. The try-on writes a
-   * configuration the tuner compiled; a clear writes five strings that are
-   * already canonical under the pinned minifier (constants.spec.ts pins that),
-   * sendConfig takes a plain string, and nothing here needs the Lua formatter.
-   * An `await padCompilerReady()` added here would hang 628 KB of WASM off the
-   * cheapest write on the site.
-   *
-   * THE CURRENT PAGE, NOT THE SNAPSHOT'S. Unlike PUT BACK - which carries one
-   * page's original back to the page it came from and refuses a cross-page
-   * write - a clear resets whatever page the module is on, which is exactly
-   * what its line says. The page-change re-snapshot keeps the two equal in
-   * practice; nothing here depends on that.
+   * Both elements are reset (D-21, 12-03): the line beside the control names
+   * the whole page, and HANGAR writes the system element's three slots too.
+   * Writing an event its own default sets `cfg_default_flag`
+   * (grid_ui.c:398-409) and the store then DELETES the cfg file
+   * (grid_ui.c:1126-1134), so a cleared page stored leaves no HANGAR file on
+   * the module. The five SLOTS are all it resets: a slot the Editor wrote and
+   * HANGAR never does survives (the whole-page reset class exists in the
+   * package and stays forbidden by forbidden-instructions.spec.ts). No
+   * compiler on this path: the defaults are canonical already
+   * (constants.spec.ts). The CURRENT page, not the snapshot's; no new snapshot
+   * is taken, so the probe's putBack() still holds the visitor's original.
    */
   async clearToDefault(): Promise<void> {
     // The whole of SAFE-03, and the whole of the enablement rule: one call.
     if (!this.clearEnabled(this.#capable())) return;
     if (!this.#queue || this.#session.phase !== "connected") return;
     const { protocolLib } = await heavyModules();
-    // Read through the lazily resolved protocol module, NEVER from
-    // install-copy.ts: these are wire facts and not copy, and install-copy is
-    // on the first paint of `/` with zero imports for that reason.
+    // Wire facts, read through the awaited protocol module and never from
+    // install-copy.ts (on the first paint of `/` with zero imports).
     const defaults: ConfigStrings = {
       systemTimer: protocolLib.SYSTEM_DEFAULT_TIMER,
       system: protocolLib.SYSTEM_DEFAULT_SETUP,
@@ -1519,22 +1094,19 @@ export class InstallStore {
     };
     const ok = await this.#ramLeg("clear", defaults);
     if (!ok) return;
-    // Nothing of the visitor's and nothing of HANGAR's is on the module now,
-    // so there is nothing to arm and nothing to keep: keepReason() reads
-    // `never-tried` from here, which is the closed set's own answer.
+    // Nothing of the visitor's or HANGAR's is on the module: nothing to arm,
+    // nothing to keep; keepReason() reads `never-tried` from here.
     this.lastWritten = undefined;
     this.name = undefined;
-    // ROUND 4C: the store leg, the same one Store on ZONA runs, proved
-    // against the five defaults. `steps` is NOT reset between the legs (the
-    // put-back after a keep does the same), so the capture reads the whole
-    // click: five writes, the restore, the store, the proof.
+    // Round 4c: the store leg Store on ZONA runs, proved against the five
+    // defaults. `steps` is not reset between the legs, so the capture reads
+    // the whole click: five writes, the restore, the store, the proof.
     const outcome = await this.#storeLeg("clear", defaults);
     if (outcome === false) return;
     if (outcome === "kept") {
-      // SAFE-07 verbatim: `cleared` is reached only through #ramLeg returning
-      // true (every CONFIG/ACKNOWLEDGE) AND #storeLeg returning kept (the
-      // PAGESTORE/ACKNOWLEDGE, the heartbeat, a matching round) - never a
-      // resolved writer promise.
+      // SAFE-07 verbatim: `cleared` only through #ramLeg true (every
+      // CONFIG/ACKNOWLEDGE) AND #storeLeg kept (the PAGESTORE/ACKNOWLEDGE, the
+      // heartbeat, a matching round) - never a resolved writer promise.
       this.storedThisSession = true;
       this.cause = undefined;
       this.phase = "cleared";
@@ -1550,8 +1122,8 @@ export class InstallStore {
       );
       return;
     }
-    // The RAM leg landed and the firmware default is what runs in memory;
-    // the block names it so, rather than the route's entry.
+    // The RAM leg landed and the firmware default runs in memory; the block
+    // names it so, not the route's entry.
     this.name = FIRMWARE_DEFAULT_NAME;
     this.#fail(
       "unconfirmed",
@@ -1563,11 +1135,12 @@ export class InstallStore {
   // --- the flash store: KEEP ON DEVICE, and the proof ----------------------
 
   /**
-   * The confirmation's affirmative. Refused unless the confirmation is open
-   * and the module holds the pair on screen. Stores the pair the module is
-   * playing - `lastWritten`, never `config` - and says `kept` only after the
-   * proof (D-12). `armed` is recomputed after each outcome and is live again
-   * only in `unconfirmed`.
+   * The confirmation's affirmative: one PAGESTORE/EXECUTE of the pair the
+   * module is playing (`lastWritten`, never `config`) through #storeLeg,
+   * landing `kept` only after the proof (D-12), else `kept-mismatch` or
+   * `unconfirmed`. Refused unless the confirmation is open, the module is
+   * armed and the page target is at rest. `armed` is recomputed after each
+   * outcome and is live again only in `unconfirmed`.
    */
   async keepOnDevice(): Promise<void> {
     if (!this.confirmOpen || !this.armed) return;
@@ -1603,15 +1176,15 @@ export class InstallStore {
   }
 
   /**
-   * The store leg, shared by the keep, by a put-back after a keep and - since
-   * round 4c, 2026-09-12 - by every clear. One PAGESTORE/EXECUTE through the queue under pagestoreMs (3000 ms, from the
-   * descriptor; on a rig N acknowledgements resolve it once), then the D-12
-   * proof: wait for the ZONA's next heartbeat, then re-fetch all five strings for
-   * at most REFETCH_ROUNDS rounds with retryBackoffMs between them, kept on the
-   * first byte-identical pair. `mismatch` when the rounds run out;
-   * `unconfirmed` on the queue's timeout - a store dropped under a bulk NVM
-   * operation answers with nothing, no NACK ever (grid_decode.c:979-981);
-   * false when the link died (`lost` is already set) or the generation moved.
+   * The store leg, shared by the keep, by a put-back after a keep and by
+   * every clear (round 4c): one PAGESTORE/EXECUTE through the queue under
+   * pagestoreMs (3000 ms, from the descriptor), then the D-12 proof - the
+   * ZONA's next heartbeat, then a re-fetch of all five strings for at most
+   * REFETCH_ROUNDS rounds with retryBackoffMs between, `kept` on the first
+   * byte-identical set. `mismatch` when the rounds run out; `unconfirmed` on
+   * the queue's timeout (a store dropped under a bulk NVM operation answers
+   * with nothing, never a NACK, grid_decode.c:979-981); false when the link
+   * died (`lost` is already set) or the generation moved.
    */
   async #storeLeg(
     action: InstallAction,
@@ -1633,10 +1206,8 @@ export class InstallStore {
     try {
       await q.request(protocolLib.storePage(), "store");
       if (gen !== this.#generation) return false;
-      // The ACK is sent by the success callback that STARTS the page reload
-      // (grid_decode.c:947-961). Wait for the module's next heartbeat, then
-      // prove the bytes - see the header for why a fetch that races the
-      // reload would call a good store failed.
+      // The ACK is sent by the callback that STARTS the page reload
+      // (grid_decode.c:947-961): wait for the heartbeat, then prove the bytes.
       await this.#nextHeartbeat();
       if (gen !== this.#generation) return false;
       for (let round = 0; round < REFETCH_ROUNDS; round++) {
@@ -1660,9 +1231,8 @@ export class InstallStore {
       }
       return "mismatch";
     } catch (err) {
-      // The link died under us: `lost`, whatever the generation says - the
-      // "closed" that bumped it is the same event that rejected the waiter
-      // (07-06's ordering, Pitfall 11). The store leg's form of the block.
+      // The link died under us: `lost` whatever the generation says (07-06's
+      // ordering, Pitfall 11); the store leg's form of the block.
       if (err instanceof transportLib.AbortedError) {
         this.#fail(
           "lost",
@@ -1681,10 +1251,10 @@ export class InstallStore {
   }
 
   /**
-   * The shape every RAM action shares. True when both acknowledgements
-   * arrived and the generation is still ours; false on every other path, with
-   * the phase already classified. The restore heartbeat goes out in the
-   * `finally` whatever happened, and the lock is released there too.
+   * The shape every RAM action shares: true when every acknowledgement
+   * arrived and the generation is still ours; false on every other path with
+   * the phase already classified. The restore heartbeat and the lock release
+   * are in the `finally`, whatever happened.
    */
   async #ramLeg(
     action: InstallAction,
@@ -1709,16 +1279,14 @@ export class InstallStore {
     this.#session.writeLock = true;
     this.#armSlow();
     try {
-      // The system timer, the page init, the utility, then Timer, then
-      // Setup, ACK each (sequence.ts writeAll over SLOTS, which owns the
-      // order). Verbatim.
+      // 255/6, 255/0, 255/4, 0/6, 0/0, ACK each - sequence.ts writeAll over
+      // SLOTS owns the order. Verbatim.
       await transportLib.writeAll(q, transportLib.targetOf(id), strings);
       if (gen !== this.#generation) return false;
       return true;
     } catch (err) {
-      // The link died under us: `lost`, whatever the generation says - the
-      // "closed" that bumped it is the same event that rejected the waiter,
-      // and it left the phase to this catch (Pitfall 11).
+      // The link died under us: `lost` whatever the generation says - the
+      // "closed" that bumped it left the phase to this catch (Pitfall 11).
       if (err instanceof transportLib.AbortedError) {
         this.#classify(err, modules, action);
         return false;
@@ -1727,11 +1295,10 @@ export class InstallStore {
       this.#classify(err, modules, action);
       return false;
     } finally {
-      // MANDATORY on every path. See sequence.ts restorePageChange: a
-      // successful CONFIG/EXECUTE clears page_change_enabled and only this
-      // sets it back. On a dead link the send throws and is swallowed here.
-      // `q` is this leg's queue even if the pacing rule has since rebuilt it:
-      // sendImmediate works after abort() by design.
+      // MANDATORY on every path (sequence.ts restorePageChange): a successful
+      // CONFIG/EXECUTE clears page_change_enabled and only this sets it back.
+      // `q` is this leg's queue even after a pacing rebuild; sendImmediate
+      // works after abort() by design.
       await transportLib.restorePageChange(q).catch(() => undefined);
       this.#disarmSlow();
       this.#inFlight = false;
@@ -1741,9 +1308,8 @@ export class InstallStore {
 
   /**
    * The taxonomy of a RAM leg, decided by error TYPE and never by message
-   * text: the vendored TRANSIENT_WRITE regex matches AbortedError's
-   * "interrupted" and would retry a dead link three times (07-RESEARCH
-   * Anti-Patterns). Here:
+   * text (07-RESEARCH Anti-Patterns: the vendored TRANSIENT_WRITE regex would
+   * retry a dead link three times):
    *
    *   AbortedError                                lost            aborted
    *   NackError, the first slot already ok        partial         nack
@@ -1751,13 +1317,10 @@ export class InstallStore {
    *   anything else, the first slot ok            partial         timeout
    *   anything else otherwise                     nothing-landed  timeout
    *
-   * FIVE WRITES, FIVE STEP IDS, AND ONLY FOUR PARTIALS CAN OCCUR. The writer
-   * is sequential and aborts on the first failure (sequence.ts writeAll), and
-   * its order is SLOTS' - the system timer, the page init, the utility, the
-   * Timer, the Setup (12.1-06's three reasons, 13-17's row). So what landed
-   * is always a PREFIX of the list, and the classifier reads it as one: it
-   * walks SLOTS in order and stops at the first write that was not
-   * acknowledged.
+   * Five writes, five step ids, four possible partials: writeAll is
+   * sequential in SLOTS order and stops at the first failure, so what landed
+   * is a PREFIX and the classifier walks SLOTS to the first write that was
+   * not acknowledged:
    *
    *   write-system-timer failed                        nothing landed
    *   255/6 ok, write-system bad                       the system timer, and only it
@@ -1765,32 +1328,17 @@ export class InstallStore {
    *   255/6, 255/0 and 255/4 ok, write-timer bad       all but the touch pair
    *   255/6, 255/0, 255/4 and 0/6 ok, write-setup bad  all but the Setup
    *
-   * "A LATER SLOT LANDED AND AN EARLIER ONE DID NOT" CANNOT HAPPEN WITH THIS
-   * WRITER - 12-03's "the page init did not land but the Setup did", one slot
-   * wider - and it is worth saying out loud because 12-RESEARCH Pitfall 6
-   * describes exactly that state and a reader will come here looking for it.
-   * It is a real firmware state - a module can hold a touch Setup calling a
-   * library its page init does not define, or a page init arming a timer
-   * whose body is still firmware's - but nothing HANGAR does produces it,
-   * because the write that would have to fail first is the one that goes
-   * first. The worst case this store can reach is the last row: the module
-   * runs the OLD Setup against a NEW library, which is harmless.
-   *
-   * `partial` is read off the recorded steps, in write order, never off a
-   * message. The words the block interpolates are install-copy.ts's closed
-   * unions (one pairing per reachable row; 12.1-08 wrote the sentences for
-   * four, 13-17 for five), chosen by the length of the landed prefix, as a
-   * table indexed by that length; the labels themselves
-   * are published beside them as `landedSlots` / `failedSlots`. A timeout
-   * cause then asks the pacing rule whether to escalate.
+   * "A later slot landed and an earlier one did not" cannot happen with this
+   * writer (12-RESEARCH Pitfall 6 describes that firmware state; nothing
+   * HANGAR does produces it). The words are install-copy.ts's closed unions
+   * indexed by the prefix length (12.1-08, 13-17); the labels are published
+   * as `landedSlots` / `failedSlots`. A timeout cause asks the pacing rule.
    */
   #classify(err: unknown, modules: HeavyModules, action: InstallAction): void {
     const { transportLib } = modules;
-    // A-28: the three failure states are REUSED, not invented, and so is the
-    // copy. A clear that got neither script through takes PUT BACK's form -
-    // "what was playing is still playing" - because that is exactly true of a
-    // clear, where the try-on's "your own Setup and Timer are still running"
-    // would not be.
+    // A-28: the failure states and their copy are reused. A clear that got
+    // nothing through takes PUT BACK's form - "what was playing is still
+    // playing" is true of a clear where the try-on's sentence would not be.
     const after = action === "try" ? "try" : "put-back";
     if (err instanceof transportLib.AbortedError) {
       this.#fail(
@@ -1804,9 +1352,7 @@ export class InstallStore {
       err instanceof transportLib.NackError ? "nack" : "timeout";
     const landedStep = (id: string): boolean =>
       this.steps.some((s) => s.id === id && s.outcome === "ok");
-    // The landed PREFIX of SLOTS, in write order: the writer stops at the
-    // first failure, so the first slot whose write was not acknowledged ends
-    // the prefix and every later slot was never attempted.
+    // The landed PREFIX of SLOTS: the writer stops at the first failure.
     let landedCount = 0;
     while (
       landedCount < transportLib.SLOTS.length &&
@@ -1815,9 +1361,8 @@ export class InstallStore {
       landedCount++;
     }
     if (landedCount > 0) {
-      // Every row names the landed prefix in write order (12.1-08; 13-17 the
-      // utility script third). One table, indexed by the prefix length; a
-      // sixth row would be a type error against the closed unions.
+      // One table indexed by the prefix length (12.1-08; 13-17 the utility
+      // script third); a sixth row is a type error against the closed unions.
       const PARTIALS: readonly [LandedWords, FailedWords][] = [
         [
           "The system timer",
@@ -1861,12 +1406,11 @@ export class InstallStore {
   }
 
   /**
-   * D-19, Pitfall 3. A `write-*` timeout with NO negative acknowledgement
-   * anywhere in the action is the signature of the module's ring discarding a
-   * frame silently: move the pre-send gap to the desktop's 10 ms and rebuild
-   * the queue on the same transport, so the RETRY already on the screen runs
-   * the experiment. A NACK anywhere means the module heard us and refused,
-   * which is not congestion, and never escalates. Once is enough.
+   * D-19, Pitfall 3: a `write-*` timeout with no NACK anywhere in the action
+   * is the module's ring discarding a frame silently, so the pre-send gap
+   * moves to the desktop's 10 ms and the queue is rebuilt on the same
+   * transport for the RETRY already on screen. A NACK is a refusal, not
+   * congestion, and never escalates. Once per page load.
    */
   #escalatePacing(modules: HeavyModules): void {
     if (this.pacingEscalated) return;
@@ -1879,13 +1423,12 @@ export class InstallStore {
   // --- the 2000 ms line (Z-09) ---------------------------------------------
 
   /**
-   * A setTimeout on the store, armed at the start of every leg and cleared in
-   * its finally. When it fires, `slow` renders the one honest line and the
-   * live region says LIVE_STILL_WRITING once. The arithmetic: 2000 ms is
-   * roughly 90x the slowest CONFIG/EXECUTE ever observed (21.6 ms) on a RAM
-   * leg, roughly 50x the slowest PAGESTORE/ACKNOWLEDGE (38.7 ms) on a store
-   * leg, and below the 3000 ms pagestoreMs on purpose - the line says busy;
-   * only the timeout says failed (I11, I12). Never an interval.
+   * A setTimeout on the store, armed at every leg's start and cleared in its
+   * finally (Z-09): `slow` renders the one honest line and LIVE_STILL_WRITING
+   * is said once. 2000 ms is roughly 90x the slowest CONFIG/EXECUTE observed
+   * (21.6 ms), 50x the slowest PAGESTORE/ACKNOWLEDGE (38.7 ms), and below the
+   * 3000 ms pagestoreMs: the line says busy, only the timeout says failed
+   * (I11, I12). Never an interval.
    */
   #armSlow(): void {
     this.#disarmSlow();
@@ -1911,8 +1454,8 @@ export class InstallStore {
   }
 }
 
-// The singleton is built over the session's singleton, at module scope, and
-// starts nothing: start() is the root layout's to call from onMount.
+// The singleton over the session's singleton, at module scope; start() is the
+// root layout's to call from onMount.
 
 /** The one instance components read. Tests never touch it. */
 export const install = new InstallStore(session);

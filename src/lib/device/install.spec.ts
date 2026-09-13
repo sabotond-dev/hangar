@@ -1,72 +1,13 @@
-// The install store, driven from node against a ZONA that is not there (D-13).
-//
-// WHY THIS FILE IS install.spec.ts AND NOT install.svelte.spec.ts. The module
-// under test is install.svelte.ts, and the obvious name for its spec matches
-// vite.config.ts's `server` project exclude, `src/**/*.svelte.{test,spec}.{js,ts}`,
-// exactly. A spec by that name would be collected by NOTHING in
-// `npm run test:quick`, and the suite would be green and vacuous. This name
-// matches the include and misses the exclude; the file count moving by one in
-// the count gate is what proves it was collected.
-//
-// EVERY TEST CONSTRUCTS ITS OWN `new DeviceSession()` AND `new InstallStore(session)`
-// and never imports either singleton: a suite that shared them would carry one
-// test's queue, snapshot and phase into the next, and would need a reset hook
-// neither production class has a reason to have.
-//
-// NO AGENT WRITES TO A DEVICE. Every byte this file sends lands in
-// FakeTransport.writes, through the store's one RequestQueue, and every one of
-// them is attributable to a named click below (D-11): connect and the snapshot
-// write zero CONFIG/EXECUTE, TRY ON DEVICE writes FIVE, PUT BACK writes five
-// and - after a keep - one PAGESTORE/EXECUTE, CLEAR writes five, KEEP ON
-// DEVICE writes one PAGESTORE/EXECUTE. Nothing here opens a port. The third of
-// the five is the SYSTEM element's page init (255/0), added by 12-03; the
-// fourth is the same element's Timer (255/6), added by 12.1-07, and it goes
-// FIRST on every RAM leg; the fifth is the same element's utility (255/4),
-// added by 13-17 (13-CONTEXT D-18 / D-19), and it goes THIRD - the order is
-// sequence.ts's SLOTS, 255/6, 255/0, 255/4, 0/6, 0/0, and the same list
-// orders every snapshot and every re-fetch round.
-//
-// THE TEE. FakeTransport has no public rx injection - only fromCapture and the
-// responder - so the session is handed a tee: an object implementing
-// GridTransport that delegates isOpen, write, onClose and close to the fake,
-// whose onData(cb) keeps cb and registers on the fake a forwarder into it, and
-// which exposes push(frame) calling that same cb. So a pushed heartbeat and the
-// responder's replies both reach the ONE callback the session registers, and
-// the fake keeps its faults, which the flash-leg gates need. (session.spec.ts's
-// pushable() bus beside a responder would lose the faults.) The tee also logs
-// every frame it delivered, decoded - so a rig's three acknowledgements to one
-// store can be counted - and the clock reading at every write, so the pacing
-// escalation is measured where it lands rather than believed.
-//
-// THE HEARTBEATS THE STORE WAITS FOR ARRIVE THROUGH push(). The store's D-12
-// proof waits for the ZONA's next heartbeat after the PAGESTORE acknowledgement
-// before it re-fetches; the responder never sends one, so every store-leg gate
-// feeds one through the tee, and records the clock reading it was fed at.
-//
-// EVERY FAKE PORT IS `connected: true`. The session's missed-disconnect
-// watchdog (MODULE_GONE_MS 750, session.svelte.ts #armWatchdog) tears the
-// session down only when the module has been silent AND portIsAttached(port)
-// is false. A port that reports attached keeps the watchdog quiet through test
-// 2's ~1.3 s of fake-timer advance and tests 11 and 12's ~9 s, so no test here
-// lands in `unplugged-while-connected` by accident. The one unplug this file
-// stages (test 15) is a `disconnect` fault on the fake, and the one it fires
-// (test 17) is the navigator-level event.
-//
-// THE CLOCK. setTimeout and clearTimeout are faked in every test - the queue's
-// pre-send sleep, its deadlines, its retry backoff, the store's 2000 ms line
-// and the live region's 500 ms window are all setTimeout chains - and the
-// queue's deadline clock is the store's injected `now`, a movable value this
-// file advances IN STEP with the fake timers (until() below). The session's
-// own clock is frozen at zero: with every port attached, the watchdog never has
-// a reason to fire.
-//
-// THE ORDER OF A FAULT LIST IS LOAD-BEARING (tests 12 and 13). fake.ts's
-// dropped() returns at the FIRST due fault and due() counts a fault only when
-// the loop reaches it. Three `nth` drops meant for acknowledgements 2, 3 and 4
-// are therefore listed DESCENDING - nth 4, 3, 2 - so every earlier-listed fault
-// sees every acknowledgement; listed ascending, the nth 2 drop would starve the
-// others of acknowledgement 2, acknowledgement 3 would find nobody due and
-// LAND, and the trace would end `settled`.
+// The install store, driven from node against a ZONA that is not there
+// (D-13). Named install.spec.ts, not install.svelte.spec.ts: vite.config.ts's
+// `server` project excludes `*.svelte.spec.ts`, so that name would be
+// collected by nothing. Every test builds its own DeviceSession and
+// InstallStore and imports no singleton. NO AGENT WRITES TO A DEVICE: every
+// byte lands in FakeTransport.writes through the store's one queue, in SLOTS
+// order (255/6, 255/0, 255/4, 0/6, 0/0), attributable to a named click. The
+// harness: a tee over the fake (pushed heartbeats and the responder's replies
+// reach the session's one callback); fake timers, the store's `now` advanced
+// in step (until()); every port `connected: true`; fault lists DESCENDING by nth.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
