@@ -1,27 +1,13 @@
 // The pad, at 1200 x 630, with no colour anything but the simulator or the
-// identity ladder authored.
-//
-// Everything the browser draws AROUND a pad is CSS. The dot field for unlit
-// cells is a `radial-gradient`, the gutters between cells are a pair of
-// `repeating-linear-gradient`s, and the frame is a `border` - three of
-// `PadCanvas.svelte`'s four layers, none of which exists in Node. So this
-// function does not reproduce the DOM; it reproduces the RECIPE, and
-// 05-UI-SPEC "The OG image" is the recipe, table row by table row.
-//
-// THE RULE THIS MODULE EXISTS TO KEEP: no colour in this image was authored by
-// anything but the simulator or the identity ladder. A lit cell's three bytes
-// are COPIED out of the frame, unmodified and unscaled - the same bytes
-// `src/lib/sim/paint.ts` puts on a canvas, read in the same order. The only
-// other colours in the picture are the accent flattened onto black at the two
-// alphas `src/app.css` already declares, and both are computed here with the
-// arithmetic written beside them rather than typed as a hex, so the identity
-// ladder and the image cannot drift apart. There is nothing else: no grain, no
-// glow, no gradient, and - D-21 - no text, because nothing rasterises a font in
-// Node without a native dependency and Discord renders `og:title` as real text
-// beside the image anyway.
-//
-// This half is PURE and imports nothing at all, so the geometry is testable in
-// node and `png.ts` stays the only node-only module in the directory.
+// identity ladder authored. Everything the browser draws AROUND a pad is CSS
+// (PadCanvas.svelte's dot field, gutters and frame), none of which exists in
+// Node, so this reproduces the RECIPE - 05-UI-SPEC "The OG image", row by row -
+// not the DOM. A lit cell's three bytes are COPIED out of the frame, the same
+// bytes sim/paint.ts puts on a canvas; the only other colours are the accent
+// flattened onto black at app.css's two alphas, computed here with the
+// arithmetic beside them. No grain, no glow, no gradient, no text (D-21:
+// Discord renders og:title as real text). PURE and imports nothing, so the
+// geometry is testable in node and png.ts stays the directory's one node-only module.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

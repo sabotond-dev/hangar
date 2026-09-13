@@ -1,29 +1,13 @@
-// The local stores: one test per failure mode, then one per rule.
-//
-// There is no jsdom and no browser Vitest project in this repository
-// (04-RESEARCH Pitfall 6), so the store is a three-method object over a Map,
-// exactly as src/lib/device/snapshot.spec.ts and src/lib/browse/return.spec.ts
-// build it. The fakes below are snapshot.spec.ts's, copied with their names
-// rather than written a second way: a store that throws on every METHOD
-// (HOSTILE_STORE), a store that reads and refuses every write (fullStore), and
-// - the one this module adds - a store that throws on every PROPERTY ACCESS
-// (ACCESS_THROWS), because a browser configured to refuse storage throws when
-// `getItem` is read off the object and not only when it is called
-// (07-RESEARCH Pitfall 9).
-//
-// The mutations these tests exist to catch, by number: the property access
-// moved outside the try (4); writeJson swallowing the quota error (3); a v2
-// reader falling back to the v1 key (5); a reader that deletes what it cannot
-// parse (2); a cap or a dedupe dropped from recent (6); an edit moving
-// createdAt (7); favorites showing a shorter list without saying so (8); a
-// saved copy overwritten from its source (9); the intro flag reported seen
-// on a refusing store, or the motion word moved by the fold (10).
-//
-// TEN, NOT SEVEN. The plan asked for seven and allowed an eighth for the
-// favorites drop rule. Three subjects had no honest home in the seven: the
-// drop rule (8), the library's never-overwrite rule (9) and the two flags
-// (10). Folding them into 7 to hold a number is the dishonesty the counting
-// rule exists to prevent, so the term is +10 and the SUMMARY says so.
+// The local stores: one test per failure mode, then one per rule. No jsdom
+// and no browser project, so the store is a three-method object over a Map,
+// snapshot.spec.ts's fakes copied with their names: a store that throws on
+// every METHOD (HOSTILE_STORE), one that refuses every write (fullStore), and
+// one that throws on every PROPERTY ACCESS (ACCESS_THROWS). The mutations these
+// tests catch, by number: the access moved outside the try (4); writeJson
+// swallowing the quota error (3); a v2 reader falling back to v1 (5); a reader
+// deleting what it cannot parse (2); a cap or dedupe dropped from recent (6);
+// an edit moving createdAt (7); favorites shorter without saying so (8); a
+// copy overwritten from its source (9); the intro flag or the motion word (10).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

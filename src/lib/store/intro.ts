@@ -1,30 +1,12 @@
 // The returning-visitor flag (13-CONTEXT D-14 Q2): has this browser seen the
-// intro.
-//
-// NOT ONE OF SECTION 9's THREE OBJECTS, and the interface never names it. It
-// changes what the intro OFFERS - a returning visitor's first card becomes
-// "Resume draft" pointing at the newest draft - and never where the visitor
-// lands: `/` stays the intro, always, because it is prerendered, it is every
-// Discord unfurl's target, and it carries the site's one live hero surface.
-// No redirect, no flash.
-//
-// WRITTEN ON THE FIRST SUCCESSFUL MOUNT OF `/`, NEVER ON A FAILED ONE. The
-// caller marks the flag from inside onMount after the page has painted, not
-// at module scope and not before; a mount that threw never reaches the call,
-// so a visitor whose first visit broke sees the intro again rather than a
-// "Resume draft" for a draft that was never made.
-//
-// THE SAFE DIRECTION, STATED AS A DECISION: A REFUSING BROWSER SEES THE
-// INTRO EVERY TIME. When storage is refused, throwing or full, the read
-// degrades to "not seen" and the write is dropped. That visitor gets the
-// welcome on every visit, which is the harmless failure; the other direction
-// - assuming "seen" and hiding the way in - would greet a first visitor with
-// a resume card for nothing. 13-07 renders the card; this module only
-// answers the question.
-//
-// THE FIRST MOMENT IS KEPT. Marking a flag that is already set is a no-op
-// that reports success, so `at` is the first successful visit and never
-// moves; "you have been here before" is a fact about the first time.
+// intro. Not one of section 9's three objects, and the interface never names
+// it; it changes what the intro OFFERS (a returning visitor's first card is
+// "Resume draft"), never where the visitor lands - `/` stays the intro, no
+// redirect, no flash. Written on the first SUCCESSFUL mount of `/`, from
+// onMount after the paint, never before it. The safe direction: a refusing
+// browser sees the intro every time (the read degrades to "not seen", the
+// write is dropped). The first moment is kept - marking a set flag is a no-op
+// that reports success, so `at` never moves.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { probe, readJson, writeJson, type LocalStore } from "./local";

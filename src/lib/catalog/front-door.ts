@@ -1,45 +1,13 @@
-// The front door: the configurations good enough to open the site with, the
-// one of them the intro runs as its hero, and what each does with no finger
-// on it.
-//
-// WHAT THE ROW WAS, AND WHAT THE HERO IS (plan 13-07, 13-CONTEXT.md D-09,
-// D-14 Q2, 2026-09-11). From Phase 4 to 13-06, / rendered FRONT_DOOR as an
-// eight-pad coverflow ring, and the list's ORDER was a design: the opening
-// window, the three largest pads, and "no two quiet pads side by side" were
-// properties of that ring, asserted in front-door.spec.ts. The Bible's page 1
-// has no ring - it has ONE live surface beside the words - so / now renders
-// FRONT_DOOR_HERO (below) through src/lib/ui/intro/HeroSurface.svelte, and
-// FRONT_DOOR survives as a MEMBERSHIP list: the entries curated for the
-// opening, from which the hero is derived. EXCLUDED_FROM_ROW and its reasons
-// survive with it, because the partition is still what the spec asserts.
-//
-// THE RING WENT ON 2026-09-11, IN TWO STEPS. 13-07 deleted the adjacency
-// test by name ("no two quiet pads are adjacent on the ring") when / became
-// the intro; 13-09 deleted Coverflow.svelte, src/lib/coverflow/slots.ts and
-// the two opening-window tests when /playground/{id}/ became the workspace.
-// The ORDER below is now the order the workspace's rail lists the members
-// in for a cold arrival (a visitor who came from the gallery sees the view
-// they left instead) and nothing asserts a ring property of it.
-//
-// WHY THIS FILE RESTATES `name` AND `description` INSTEAD OF READING THEM.
-// The obvious implementation is `byId(id).name`. It is wrong here.
-// src/lib/catalog/entries/ported.ts reads those strings off the vendored shelf
-// through `presetById`, which is a VALUE import from src/vendor/botor/_pad.ts,
-// which imports @intechstudio/grid-protocol at module scope - a 131,101-byte
-// chunk (measured in 04-RESEARCH, Bundle facts). The front door's prerendered
-// HTML needs every entry's name and description at first paint, so the module
-// that carries them has to be reachable without dragging the Lua compiler and
-// its WASM formatter along behind it.
-//
-// So the duplication is deliberate, and it is GATED: front-door.spec.ts looks
-// every id up with `byId` and asserts `name` and `description` are strictly
-// equal to the catalog's. This is the same shape as src/lib/protocol-pin.ts and
-// Phase 8's ZONA_MODULE_TYPE - a literal held against another source by a spec,
-// rather than an import that costs a chunk.
-//
-// Consequently this module imports NOTHING. Not src/vendor, not
-// @intechstudio/grid-protocol, not $lib/pad, and not ./index. The spec's last
-// test scans this file's own source and fails on any of them.
+// The front door: the configurations good enough to open the site with
+// (FRONT_DOOR, a MEMBERSHIP list since 13-07 - the coverflow ring is gone), the
+// one of them the intro runs as its hero (FRONT_DOOR_HERO, through
+// ui/intro/HeroSurface.svelte), and what each does with no finger on it. The
+// order below is what the workspace's rail lists on a cold arrival; nothing
+// asserts a ring property of it. `name` and `description` are RESTATED, not
+// read through byId: ported.ts reaches the vendored shelf and the protocol
+// package at module scope, and the prerendered HTML needs the strings at first
+// paint. The duplication is gated - front-door.spec.ts asserts strict equality
+// with the catalog's. Imports NOTHING: not src/vendor, not $lib/pad, not ./index.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -156,30 +124,13 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
 ];
 
 /**
- * The membership list, in the order the workspace's rail lists it (13-09)
- * and the order the coverflow once rang it. The intro's hero is derived
- * from this list by heroOf() below - the first member that is not dark - so
- * today it is index 0 by consequence, not by decree.
- *
- * | index | id        | motion   | why it sits here                                    |
- * |-------|-----------|----------|-----------------------------------------------------|
- * | 0     | aurora    | animated | featured, and the opening centre                     |
- * | 1     | pinwheel  | animated | featured, first step right                           |
- * | 2     | ninepads  | static   | featured, and the first quiet pad sits two steps out |
- * | 3     | starfield | animated |                                                      |
- * | 4     | joystick  | static   |                                                      |
- * | 5     | radar     | animated |                                                      |
- * | 6     | faders    | static   |                                                      |
- * | 7     | dial      | animated | first step LEFT, so the wrap neighbour moves         |
- *
- * WHAT THIS ORDER ACHIEVED, AS HISTORY. Phase 4's D-20 asked for an
- * opening window that was motion-only, which eight entries with three still
- * ones cannot give; the order put the three quiet pads on 2, 4 and 6 so no
- * two were side by side and the three largest at the opening all moved.
- * The ring is gone (13-07, 13-09) and none of that is asserted now; the
- * order is kept as the rail's order rather than re-derived, because
- * nothing in the Bible says what a rail's order should be and the hero
- * derivation reads index 0.
+ * The membership list, in the order the workspace's rail lists it (13-09) and
+ * the order the coverflow once rang it. The intro's hero is derived by heroOf()
+ * below - the first member that is not dark - so today it is index 0 by
+ * consequence, not by decree. The order once placed the three quiet pads on 2,
+ * 4 and 6 so no two sat side by side on the ring (Phase 4 D-20); the ring is
+ * gone and none of that is asserted, but nothing in the Bible says what a
+ * rail's order should be, so the order is kept rather than re-derived.
  */
 export const FRONT_DOOR: readonly FrontDoorEntry[] = [
   {

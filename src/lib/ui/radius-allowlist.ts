@@ -1,64 +1,14 @@
-// D-01, THE ONE STANDING OVERRIDE, AS A GATE RATHER THAN A CONVENTION.
-//
-// 13-CONTEXT.md D-01, verbatim: "never use rounded corners for anything. The
-// spec's own §12 geometry - control radius 6px, light cells 2-3px, dialogs 10px
-// - is overridden to ZERO EVERYWHERE. This ships as a GATE: a test that fails
-// on any border-radius above 0 in shipped CSS, so it cannot regress by habit."
-//
-// THIS MODULE IS THE ONE DECLARATION THE GATE'S THREE LAYERS SHARE. It is not a
-// spec: src/lib/ui/radius.spec.ts (layer A, the source scan; layer B, the
-// built-CSS scan) and e2e/radius.e2e.ts (layer C, the computed-style sweep in
-// two browser engines) both import it, so the allowlist and the six circles are
-// written once. Nothing in the site imports it - it reads the file system and
-// would never survive a bundle - which is the same arrangement
-// src/lib/catalog/divergence.ts has with presets.spec.ts and frames.spec.ts:
-// a table moved out of a spec so a second reader can exist.
-//
-// D-10 HAS TWO HALVES AND THEY LIVE IN TWO LAYERS ON PURPOSE. "True circles
-// are exempt; rounded rectangles are not." A source scan can see that a value
-// is the literal 50% and CANNOT see the box it sits on: 50% on a 12x12 thumb is
-// a circle and is permitted, 50% on a 40x24 chip is a pill wearing a circle's
-// clothes and is forbidden. So layer A permits the literal 50% - and only at
-// the six file:line pairs D-15 names - and layer C measures every element the
-// browser computes a percentage radius on and fails it if width and height
-// differ by more than one device pixel. Neither layer alone is D-10.
-//
-// D-15 NAMES SIX, BY FILE AND LINE, AND THE COUNT IS ASSERTED AT EXACTLY SIX.
-// D-10 named the colour picker's three; the plan-check found Knob's three -
-// genuine circles on square boxes, and the PDF draws the Movement rate slider
-// with a round lime thumb and the Sandbox Knob as a circle - and the user
-// extended the exemption to all six. A seventh 50% anywhere is red until it is
-// added to D-15 by name and to CIRCLES below on the same day. A circle that
-// moves file or line is red too: that is a deliberate amendment, not a drift.
-// (D-15's own gloss calls :829 "the rail thumb" and :857/:872 "markers"; the
-// source says :829 is the 2px tick, :857 the 12px thumb and :872 the 2px home
-// mark. The PAIRS are the decision; the glosses here follow the source.)
-//
-// THE ALLOWLIST CAN ONLY SHRINK, AND 13-20 ASSERTS IT IS EMPTY. On 2026-09-11
-// the tree carried 41 border-radius declarations (the planner's 43 counted two
-// comment lines, app.css:391 and Knob.svelte:25), in src/app.css and fifteen
-// components. Two are `inherit` and exempt - the focus ring in app.css (:292
-// before 13-01, :428 since 13-03) and Knob.svelte:569, both of which inherit
-// from a box that will be zero - six are the circles, and the remaining
-// THIRTY-THREE were the debt below, one row per file with the plan that clears
-// it. 13-03 cleared the first row the same day (the pill, see below), so the
-// debt is THIRTY-TWO in fifteen files. The shape is presets.spec.ts's
-// INTENDED_DIVERGENCE and vendored-diff.spec.ts's manifest rows: a declared
-// exception with an owner, and a gate that fails when the list grows, when a
-// row over-counts, when a row goes stale, or when a file with no row carries a
-// radius. Every plan that re-skins a component removes its row in the same
-// commit; the empty list at 13-20 is this phase's proof of D-01, not a promise
-// in a document.
-//
-// THE PILL WAS NOT A ROW'S EXCUSE. app.css's pill radius (999px, at :421 on
-// the tree the plan read and :442 after 13-01's header) was a rounded
-// rectangle under D-10 and was REMOVED by 13-03 on 2026-09-11, not re-skinned;
-// its row was cleared in the same commit. src/app.css now carries no
-// border-radius above zero and has no row.
-//
-// ZERO, 0px, inherit, initial AND unset ARE NOT DECLARATIONS FOR THIS PURPOSE.
-// `inherit` from a zero is zero, and the two focus rings inherit from whatever
-// they wrap; `initial` and `unset` are zero by the property's definition.
+// D-01, THE ONE STANDING OVERRIDE, AS A GATE RATHER THAN A CONVENTION: "never
+// use rounded corners for anything ... overridden to ZERO EVERYWHERE". This
+// module is the one declaration the gate's three layers share - radius.spec.ts
+// (layer A the source scan, layer B the built CSS) and e2e/radius.e2e.ts
+// (layer C, computed styles in two engines) import it; nothing in the site
+// does. D-10's two halves live in two layers: layer A permits the literal 50%
+// only at D-15's six file:line pairs (CIRCLES, asserted at exactly six -
+// ColourPicker.svelte :840 the 2px tick, :867 the 12px thumb, :882 the 2px home
+// mark; Knob.svelte :730, :785, :807); layer C fails any percentage radius on a
+// box whose width and height differ. The allowlist can only shrink and is empty.
+// Decided at 13-01 (D-01, D-10, D-15); see .planning/phases/13-gui-overhaul/13-01-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -153,32 +103,11 @@ export interface AllowlistRow {
 }
 
 /**
- * The debt on 2026-09-11: thirty-three declarations in sixteen files as 13-01
- * left it, thirty-two in fifteen after 13-03 removed the pill, twenty-eight
- * in thirteen after 13-04 on the same day: PadFrame's two cleared (the frame's
- * 10px removed under D-01, and Layer S's 4px deleted with the CRT under D-09)
- * and ScreenToggle.svelte deleted with its two (D-09); twenty-three in ten
- * after 13-08 on the same day: BrowseToolbar.svelte's one (the field's 6px),
- * CatalogCard.svelte's three (the plate, the focus ring, the tag chips) and
- * FacetRow.svelte's one (the link member) cleared with the gallery's
- * re-skin; twenty in seven after 13-09 task 1 on the same day: TuningRegion
- * .svelte's one (the action buttons' 6px), Knob.svelte's five (the
- * track, the held bar, the swatch option, the swatch, the lock - its three
- * circles stay, now at :730 / :785 / :807) and CopyLink.svelte's one (the
- * fallback field's 2px) cleared with the inspector; SEVEN IN FOUR after
- * 13-09 task 2 on the same day: ColourPicker.svelte's six (the lock, the
- * result, the focus ring, the detent, the track, the held bar - its three
- * circles stay, now at :840 / :867 / :882), ChosenPanel.svelte's two and
- * NamePlate.svelte's one deleted with their files; FOUR IN THREE after 13-10
- * task 1 on the same day: BudgetMeter.svelte's three (the track, the fill,
- * the ghost) squared with the meters' re-home into the inspector; TWO IN TWO
- * after 13-10 task 2: MixTwo.svelte's two deleted with the file (D-12); ZERO
- * after 13-11 on the same day: DeviceDetails.svelte's one (the floating
- * drawer's 10px, gone with the drawer's move into the footer) and
- * KeepConfirm.svelte's one (the block's 10px, squared). Rows are removed by
- * the plan named, never edited to a smaller number by anyone else. THE LIST
- * IS EMPTY, nine plans before 13-20 asserts it; a row added from here is a
- * new debt and needs a plan's name.
+ * The debt: thirty-three declarations in sixteen files as 13-01 left it, ZERO
+ * after 13-11 - nine plans cleared their rows in the same commit that re-skinned
+ * or deleted the file (the walk is 13-20-SUMMARY.md's). Rows are removed by the
+ * plan named, never edited to a smaller number; a row added from here is a new
+ * debt and needs a plan's name. THE LIST IS EMPTY, and 13-20 asserts it.
  */
 export const ALLOWLIST: readonly AllowlistRow[] = [];
 

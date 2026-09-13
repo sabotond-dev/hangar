@@ -1,26 +1,12 @@
-// The surface as a DRAFT (plan 13-16; Bible section 9; KEEP-01): the record
-// shape 13-13 defined, written through 13-06's drafts.ts as the surface is
-// edited and read back on return.
-//
-// ONE DRAFT PER SURFACE. A sandbox record's `source` is the surface's own
-// id, so `draftIdFor("sandbox", surface.id)` is the one key it lives under
-// and opening the same surface twice finds the same draft. The route's
-// address carries the surface id (`/sandbox/[draftId]/`, the param named
-// for what it opens), and this module spells the store key out of it.
-//
-// A REFUSING STORE DEGRADES TO AN UNSAVED SESSION, NOT AN ERROR. drafts.ts
-// returns false when the store declined the read or the write; the route
-// keeps editing the surface it holds and the context bar says so
-// (DRAFT_UNSAVED) - the honest line, not a dialog. Nothing here throws.
-//
-// THE SAME WIRING WOULD SERVE A PLAYGROUND DRAFT. drafts.ts is already
-// kind-generic (`playground:{entry}` beside `sandbox:{surface}`); what the
-// workspace lacks is a caller that writes its knob vector through
-// writeDraft on change and reads it back on open, which is the shape of
-// `saveSurfaceDraft` and `readSurfaceDraft` below with a PlaygroundRecord in
-// place of a SandboxRecord. 13-13's question 5 (who wires it) stands; this
-// module does not answer it for the Playground, only shows the wiring is
-// one function each way.
+// The surface as a DRAFT (Bible section 9; KEEP-01): the SandboxRecord shape,
+// written through drafts.ts as the surface is edited and read back on return.
+// One draft per surface: a sandbox record's `source` is the surface's own id,
+// so draftIdFor("sandbox", surface.id) is the one key it lives under and the
+// route's `/sandbox/[draftId]/` param names what it opens. A refusing store
+// degrades to an unsaved session, not an error - drafts.ts returns false, the
+// route keeps editing and the context bar says DRAFT_UNSAVED; nothing here
+// throws. The same wiring would serve a Playground draft (drafts.ts is
+// kind-generic); who wires it is 13-13's open question 5, not answered here.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { draftIdFor, readDraft, writeDraft } from "../store/drafts";

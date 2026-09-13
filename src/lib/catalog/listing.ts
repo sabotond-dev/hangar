@@ -1,34 +1,13 @@
-// The browse listing: all sixteen configurations' browse data - name, one-line
-// description, feel tags, the Featured flag, and what each pad does with nobody
-// touching it.
-//
-// THE DATE THEY ARRIVED IS NOT ONE OF THEM ANY MORE (D-11, D-b). `addedAt` is
-// real provenance and it stays on the CATALOG entry, where catalog.spec.ts
-// still holds its format and its parse; what left is the browse PROJECTION of
-// it, because the Newest sort was the only thing that ever read it here and a
-// field nobody reads is a field that drifts.
-//
-// WHY THIS FILE RESTATES THE CATALOG INSTEAD OF READING IT.
-// This is the fourth use of the pattern src/lib/protocol-pin.ts introduced and
-// src/lib/catalog/front-door.ts named: a literal held against another source by
-// a spec, rather than an import that costs a chunk. The measured reason is one
-// line of one file - src/lib/catalog/entries/ported.ts:13 reaches the vendored
-// shelf, which imports @intechstudio/grid-protocol at module scope, and that is
-// a 131,101-byte chunk (measured in 04-RESEARCH, Bundle facts). A prerendered
-// page needs sixteen names, descriptions, tags and dates IN ITS HTML at first
-// paint, so the module carrying them must be reachable without dragging the Lua
-// compiler and its WASM formatter along behind it.
-//
-// So this module imports NOTHING at runtime. The single `import type` line
-// below is erased at build time and is the only permitted specifier; the
-// direction of that import matters too, because importing FROM front-door.ts
-// leaves that file byte-untouched and its own "declares no imports" test green.
-// listing.spec.ts's last test scans this source and fails on anything else.
-//
-// The duplication is deliberate and it is GATED: listing.spec.ts looks every id
-// up in the catalog and asserts name, description, tags, featured, restsBlack
-// and preview are strictly equal, in both directions, so a renamed entry, an
-// edited description, a new tag or a dropped entry is red.
+// The browse listing: every configuration's browse data - name, one-line
+// description, feel tags, the Featured flag, and what each pad does with
+// nobody touching it (`addedAt` stays on the catalog entry; the Newest sort
+// that read it here left at D-11). The catalog is RESTATED, not read: ported.ts
+// reaches the vendored shelf and the protocol package at module scope, and a
+// prerendered page needs these strings in its HTML at first paint. So this
+// module imports NOTHING at runtime - the one `import type` (from front-door.ts,
+// in that direction so that file's own no-imports test stays green) is erased
+// at build time; listing.spec.ts scans this source for anything else. The
+// duplication is gated: listing.spec.ts asserts strict equality with the catalog, both ways.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { FrontDoorEntry, PreviewMotion } from "./front-door";
@@ -96,30 +75,13 @@ export const DEMO_TOUCH_NOTE =
  *   else some(lit bytes)   -> "static"
  *   else                   -> "dark"
  *
- * The first line is not a tidy-up of front-door.ts's rule, it is the fix for a
- * case that rule gets wrong. GHOST reports `animating` at EVERY sampled tick in
- * frames.json and lights ZERO bytes at every sampled tick - its layers really
- * are counting down, they just resolve to black until a finger arrives.
- *
- * THAT IS NOW WHY GHOST HAS A DEMO PATH, rather than why it has a note. Under
- * "any animating -> animated" GHOST classifies as animated, which would have
- * suppressed its quiet line and left the visitor with an unexplained black
- * square; reading restsBlack first (D-14) is what stops that, and listing.spec
- * test 2 pins the trap by name. D-09 then takes the same fact one step further:
- * a configuration whose layers count down to black until a finger arrives is
- * exactly a configuration that should be shown a finger, so `restsBlack` now
- * has a second job. It selects a demonstration gesture in src/lib/sim/demo.ts,
- * and test 3 asserts that selection in both directions. The flag is therefore
- * MORE load-bearing after this phase than before it, which is why R-10 retired
- * the note and kept the fact.
- *
- * The values below are literals, gated in the spec against frames.json. They
- * are not computed here: this module has no access to that fixture and must not
- * gain one, because reading a JSON file is a runtime edge.
- *
- * The order is CATALOG order. No sort lives in this file - sorting is
- * src/lib/browse/sort.ts's job - so a caller that wants Featured, Newest or
- * Name asks for it there and this array stays the one stable reference order.
+ * restsBlack is read FIRST (D-14) because GHOST reports `animating` at every
+ * sampled tick and lights zero bytes - its layers count down to black until a
+ * finger arrives; listing.spec.ts pins the trap by name, and the same flag
+ * selects a demonstration gesture in src/lib/sim/demo.ts (D-09). The values
+ * below are literals, gated in the spec against frames.json - reading the
+ * fixture here would be a runtime edge. The order is CATALOG order; sorting is
+ * src/lib/browse/sort.ts's job.
  */
 export const LISTING: readonly ListingEntry[] = [
   {

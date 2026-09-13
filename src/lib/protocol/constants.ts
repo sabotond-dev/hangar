@@ -1,50 +1,14 @@
-// Pure protocol constants for the walking skeleton (FOUND-01).
-//
-// Anything the pinned protocol package already owns is READ from it rather
-// than restated, so a pin bump moves these in one place and docs/PIN-POLICY.md
-// stays the only ceremony. The numbers that are genuinely HANGAR's - timeouts,
-// retry bound, identify window - are policy, and the two the hardware run
-// settled were revised from the measurements in docs/SKELETON-RESULTS.md.
-//
-// TWO ELEMENTS, FIVE OF THEIR SIX EVENTS. The touch element (0) carries both
-// of its events, Setup (0) and Timer (6). The system element (255) carries
-// three since Phase 13 (plan 13-17): its setup (0), because that slot runs
-// first on every page load - ../grid-fw/common/src/lua/init.lua:46-50 calls
-// `ele[#ele]:post_init_cb()` before the loop over every other element - which
-// is where a library of functions the touch configurations call by name has
-// to live (Phase 12, plan 02); its timer (6), the library's second half,
-// which 255/0 arms with `self:tim()` because the gradient and the expiry
-// machinery do not fit one 908-character slot in any variant
-// (12.1-RESEARCH B.3; permitted by 13-CONTEXT D-19 on 2026-09-10, chosen by
-// the user on 2026-09-11, 12.1-CONTEXT D-03); and its utility event (4), the
-// Sandbox runtime's second slot, which the touch Setup pulls in with
-// `ele[#ele]:map()` (13-CONTEXT D-18, the second probe: the PDF's own page-3
-// surface does not fit two slots and does fit three; 13-15 measured every
-// kind fitting on three, and a Knob beside an XY pad refused on two). Each
-// default is read from the package below, is what CLEAR writes there, and is
-// what a record from before the slot existed restores (12.1 D-22 for the
-// timer; 13-17 for the utility).
-//
-// EVENT 4 OF THE SYSTEM ELEMENT IS WRITTEN SINCE 13-17, UNDER D-19. It was
-// once refused (12-02) because event 4 is the module's physical utility
-// button and its firmware default is `gpl(gpn())` - load the page that
-// page_next names, i.e. advance a page (`gpn` is
-// ../grid-fw/common/src/c/grid_protocol.h:354, `gpl` is :366 and lands in
-// `l_grid_page_load`, ../grid-fw/common/src/c/grid_lua_api.c:1676-1714) - so
-// writing that event changes what a button the visitor paid for does. That
-// sentence is kept as the reason it was once refused; D-19 retired the
-// refusal as a rule (2026-09-10: "HANGAR can do anything the Editor can" -
-// the Editor writes 255/4, so HANGAR may). THE CONSEQUENCE, SAID PLAINLY:
-// while a Sandbox surface is installed, the module's utility button runs the
-// Sandbox runtime and NO LONGER TURNS THE PAGE. A Lua entry or a preset lands
-// the firmware default there (the install store substitutes it for the empty
-// string in one place, as it does for the other two system slots), so under
-// a catalog configuration the button still turns the page. PUT BACK restores
-// whatever the module held - the snapshot covers every slot HANGAR writes
-// (`hangar.snapshot.v4`) - and CLEAR writes the default below. The slot is
-// one row in sequence.ts's SLOTS, after 255/6 and 255/0 and before the touch
-// pair, because a touch Setup that calls `ele[#ele]:map()` needs the body
-// registered before it runs (SLOTS' reason one, one event over).
+// Pure protocol constants (FOUND-01). Anything the pinned package owns is READ
+// from it, never restated, so a pin bump moves these in one place; the numbers
+// that are HANGAR's - timeouts, retry bound, identify window - are policy,
+// measured in docs/SKELETON-RESULTS.md. Two elements, five of their six events:
+// the touch element (0) carries Setup (0) and Timer (6); the system element
+// (255) carries its setup (0) and timer (6) - the library's two halves - and
+// its utility event (4), the Sandbox runtime's second slot. Writing event 4 was
+// once refused because it is the module's page-next button; D-19 retired the
+// refusal, so under an installed surface the button runs the runtime, under a
+// catalog configuration it still turns the page, and PUT BACK restores the slot.
+// Decided at 13-17 (D-18 / D-19); see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -85,7 +49,6 @@ export const ELEMENT_TOUCH = 0;
  *
  * Its setup (0) and its timer (6) are addressed - the library's two halves -
  * and its utility event (4), the Sandbox runtime's second slot since 13-17.
- * The header says why 4 was once refused and what writing it changes.
  */
 export const ELEMENT_SYSTEM = 255;
 export const EVENT_SETUP = EventTypeToNumber(EventType.SETUP);
@@ -98,8 +61,7 @@ export const TOUCH_EVENTS: ElementEvent[] = grid.get_element_events(
 /**
  * Setup (0), utility (4) and timer (6). All three are READ from the package so
  * a pin bump moves them here; all three are put on the wire (12-02, 12.1-06,
- * 13-17), and the header carries the utility-button history for the second
- * and what writing it changes.
+ * 13-17).
  */
 export const SYSTEM_EVENTS: ElementEvent[] = grid.get_element_events(
   ElementType.SYSTEM,
@@ -172,8 +134,8 @@ export const SYSTEM_DEFAULT_TIMER = defaultFor(ELEMENT_SYSTEM, EVENT_TIMER);
  * The firmware's own utility script for the SYSTEM element - 19 characters,
  * page-next, what a factory module's utility button does (13-17; D-18,
  * D-19). Read from the package like the four above, never typed:
- * constants.spec.ts pins the package's value and asserts this file carries
- * no literal of its call outside the header's reason. CLEAR writes it back;
+ * constants.spec.ts pins the package's value and asserts the code carries no
+ * literal of its call. CLEAR writes it back;
  * a Lua entry or a preset lands it through the store's substitution; a
  * snapshot from before 13-17 (`hangar.snapshot.v3` or older) restores it.
  */

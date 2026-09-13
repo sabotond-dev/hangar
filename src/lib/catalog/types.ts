@@ -1,22 +1,12 @@
 // The catalog's shape (D-09, D-10): what a HANGAR configuration is, whether it
-// was ported from the vendored shelf or hand-authored here.
-//
-// This module is deliberately almost empty at runtime - a knob-kind list, three
-// asserted constants and one pure function - because a page whose only job is
-// to list names must be able to import it without dragging anything heavy into
-// its chunk. Two things are therefore NOT imported here, by rule:
-//
-//   - The pinned protocol package. Its module type and its two event numbers
-//     are restated below as literals and asserted against the package inside
-//     catalog.spec.ts, which is the src/lib/protocol-pin.ts pattern. Importing
-//     them as values would pull the whole package's module graph in behind
-//     them.
-//   - The compile surface. build() takes already-compiled Lua as an argument
-//     and never compiles anything, because that surface sits behind the
-//     FOUND-05 WASM gate and the catalog has to be readable without waiting on
-//     628 KB of WebAssembly.
-//
-// The simulator is not imported either. Frames are the fixture's business.
+// was ported from the vendored shelf or hand-authored here. Deliberately almost
+// empty at runtime - a knob-kind list, three asserted constants and one pure
+// function - so a page that only lists names imports it without anything heavy.
+// Not imported here, by rule: the pinned protocol package (its module type and
+// two event numbers are restated as literals and asserted in catalog.spec.ts,
+// the protocol-pin.ts pattern); the compile surface (build() takes compiled
+// Lua as an argument - the surface sits behind the FOUND-05 WASM gate); the
+// simulator (frames are the fixture's business).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { KnobKind, PadState } from "../../vendor/botor/_pad";

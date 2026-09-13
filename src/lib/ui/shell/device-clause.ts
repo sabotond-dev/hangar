@@ -1,71 +1,15 @@
 /**
- * THE CONTEXT BAR'S DEVICE CLAUSE: one line per install phase, Phase 10's
- * words (plan 13-11; Bible section 9 "Device state", section 15 "Draft/device
- * status", section 16).
- *
- * The bar's status zone reads `● {draft} · {device}` on PDF pages 3 and 5.
- * The device half is the install store's phase, rendered as ONE clause: the
- * spec's twelve visible labels sit against HANGAR's FIFTEEN phases, and this
- * table is where the two meet, row by row. It is a labelling exercise over
- * strings that already exist - every clause below is install-copy.ts's own
- * caption, busy label or failure title, so the bar and the install block
- * under the surface cannot word a state differently. 13-18 rewrites the words
- * (section 16's "Applied to Page 2. Store on ZONA to keep it after power-off",
- * "Stored on ZONA · Page 2", and the six lines the uncertain phases still
- * need); this module will then read the new constants and its shape will not
- * move.
- *
- * FIFTEEN PHASES, TWELVE SPEC ROWS, FOUR ROWS THE SPEC NEVER HAD. The table:
- *
- *   spec row              phase(s)                       clause
- *   No connection         (the session's, not a phase)   - the header's control
- *   Permission needed /   (the session's, not a phase)   - the header's control
- *   denied
- *   Unsupported env.      (the session's capability)     - the header's control
- *   Ready                 ready                          IDENTIFIED_CAPTION
- *   Draft differs         (the tuner's dirty flag)       - the DRAFT clause, 13-13
- *   Applying              writing                        WRITING_LABEL
- *   Applied temporarily   settled                        SETTLED_CAPTION
- *   Storing               writing, leg = store           WRITING_LABEL (the leg
- *                                                        is not read here)
- *   Stored                kept                           KEPT_CAPTION
- *   Transfer uncertain    FOUR phases, FOUR clauses:     the four titles
- *                         unconfirmed, kept-mismatch,
- *                         partial, nothing-landed
- *   Disconnected          lost                           lostBlock's title
- *   -                     snapshotting                   SNAPSHOTTING_CAPTION
- *   -                     restored                       RESTORED_CAPTION
- *   -                     restored-unconfirmed           its title
- *   -                     cleared                        CLEARED_CAPTION
- *   -                     snapshot-failed                its title
- *   -                     idle                           no clause
- *
- * THE FOUR UNCERTAIN PHASES ARE FOUR CLAUSES AND NOT ONE. Section 16 offers a
- * single line for "Unknown transfer result"; HANGAR measured four different
- * outcomes (the store unconfirmed with the RAM landed; the store acknowledged
- * but the read-back different; some of the three strings landed and some not;
- * nothing landed) and tells them apart, and four outcomes told apart is
- * strictly more honest than one sentence. device-ui.spec.ts test 15 asserts
- * the four clauses are pairwise distinct so the collapse cannot land quietly.
- *
- * THE FOUR ROWS THE SPEC HAS NO LINE FOR ARE THE SAFETY RAIL. `restored` and
- * `restored-unconfirmed` are the restore's two outcomes - putBack()'s, which
- * since 13.1-06 has no control on the site (13.1-CONTEXT D-07) and is
- * reachable from the /dev/install/ probe alone, so the bar reads those two
- * clauses there and nowhere else - `cleared` is the
- * firmware default playing, `snapshot-failed` is the refusal to write over
- * something not yet copied. They are named here rather than folded into a
- * neighbour: after a clear neither "playing now" nor "restored" is true, and
- * the second is unsafe (install.svelte.ts, `InstallPhase`).
- *
- * WHY THE TITLES COME THROUGH THE BLOCK BUILDERS. install-copy.ts keeps the
- * seven failure titles module-private and exports the builders that carry
- * them; a title never depends on a builder's arguments (12-03 kept PARTIAL's
- * title fixed when the detail changed), so a representative argument gives
- * the title. That keeps this plan out of the copy module, which is 13-18's.
- *
- * Zero imports beyond the copy module and the phase type; the chunk guard's
- * permitted paths (config-shape.spec.ts test 13).
+ * THE CONTEXT BAR'S DEVICE CLAUSE: one line per install phase (Bible section
+ * 9 "Device state", sections 15 and 16). The bar's status zone reads
+ * `● {draft} · {device}`; the device half is the install store's phase as ONE
+ * clause, every clause install-copy.ts's own caption, busy label or failure
+ * title, so the bar and the install block cannot word a state differently.
+ * Fifteen phases against the spec's twelve rows: the session's three rows are
+ * the header's control, "Draft differs" is the draft clause, "Transfer
+ * uncertain" is FOUR clauses (device-ui.spec.ts asserts them pairwise
+ * distinct), and four phases the spec has no row for - restored,
+ * restored-unconfirmed, cleared, snapshot-failed - are the safety rail.
+ * Decided at 13-11; see .planning/phases/13-gui-overhaul/13-11-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

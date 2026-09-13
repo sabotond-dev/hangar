@@ -1,68 +1,14 @@
-// The Sandbox's six geometry rules, and the one data structure that enforces
-// the two that matter most.
-//
-// ---------------------------------------------------------------------------
-// 1. THE CELL MAP IS THE RULE, NOT A CHECK OF THE RULE
-// ---------------------------------------------------------------------------
-//
-// `buildCellMap` writes each region's cells into an 81-entry array where every
-// cell holds ONE region index (1-based, 0 for none). A cell written twice is a
-// conflict, reported with both names, and the map is NOT returned - not
-// half-built, not with the first writer winning. So an overlapping surface has
-// no cell map, and the emitter (emit.ts) takes the cell map as its input, so an
-// overlapping surface cannot be emitted either: the rule is unrepresentable
-// rather than merely discouraged, which is what 13-RESEARCH 3.1 chose and the
-// Bible's section 8 ("default to preventing overlaps") permits. Layered
-// hit-testing (section 8's conditional) would need a cell to hold a LIST, and
-// the runtime cost of that list on the device is the reason it is not done.
-//
-// THE SAME MAP IS BOTH THE VALIDATOR AND THE EMITTER'S `M`. geometry.ts builds
-// it; emit.ts renders it as `M={[0]=...}` (`Emitted.parts.cellMap`);
-// emit.spec.ts test 3 asserts the rendered numbers equal this array cell for
-// cell. Two structures would drift.
-//
-// ---------------------------------------------------------------------------
-// 2. THE SIX RULES (13-14-PLAN.md, the interfaces block)
-// ---------------------------------------------------------------------------
-//
-//   1. On the surface: col + w <= 9, row + h <= 9, col, row >= 0, w, h >= 1.
-//      Refused with the offending FIELD named (`validate`).
-//   2. No overlap: the cell map (above). Reported with BOTH names.
-//   3. A minimum size per kind: derived in model.ts section 4 (13-15) and
-//      still a parameter; a fader's depends on its orientation.
-//   4. Duplicate to a free area: `freeWindow` scans the map in reading order
-//      for a w x h window of zeros; `duplicate` places the copy there, and if
-//      there is none it returns the surface UNCHANGED with `no-space` so the
-//      caller can offer resize. "Never silently delete an existing element"
-//      is section 8's own sentence; geometry.spec.ts test 3 asserts the
-//      original list is byte-identical after a failed duplicate.
-//   5. The previous valid value survives an invalid edit: `applyEdit` returns
-//      the surface it was given, untouched, beside the problem, so a component
-//      keeps showing the last valid value with the message inline until the
-//      edit is corrected (section 8).
-//   6. Edge adjacency is a WARNING, never an error: two regions sharing a
-//      boundary with no gap between them. Probe A Q2 measured the cell
-//      boundary as ONE raw unit wide (a still finger at x=71/72 flips cells),
-//      and Phase 12's hysteresis cannot help on a first sample because there
-//      is no prior cell - a press exactly on the seam is a coin flip. A
-//      contact keeps the region it landed in for the whole gesture (13-15's
-//      runtime), so the coin is flipped once, at onset. The mitigation is
-//      therefore in the editor: name both regions at the region, one step
-//      earlier than section 8's "explain the conflict at the affected region".
-//      `validate` never reads the warnings; test 4 asserts a warned surface
-//      still validates.
-//
-// ---------------------------------------------------------------------------
-// 3. THE STRINGS
-// ---------------------------------------------------------------------------
-//
-// The overlap line is the Bible's section 16 row, verbatim, and is not
-// ledgered: "This region overlaps Filter. Choose another area or resize it."
-// The off-surface message, the adjacency warning and the cap message are
-// HANGAR's, written in D-05's register and ledgered in 13-COPY-NEW.md for
-// 13-18's batch. transfer.ts carries its own import-side sentences for the
-// same three facts (13-13); 13-13's SUMMARY asks that the two become one
-// sentence each at 13-18, and this file does not pre-empt that.
+// The Sandbox's six geometry rules (Bible section 8; the banners below carry
+// the numbers): 1 on the surface, the offending field named; 2 no overlap,
+// both names; 3 a minimum size per kind (model.ts, a parameter); 4 duplicate
+// to a free window or return the surface UNCHANGED with `no-space`; 5 the
+// previous valid value survives an invalid edit (applyEdit returns the surface
+// it was given beside the problem); 6 edge adjacency is a WARNING, never an
+// error. THE CELL MAP IS THE RULE: buildCellMap writes each region's cells into
+// 81 entries, a cell written twice is a conflict and the map is not returned,
+// and emit.ts renders that same array as `M` - an overlapping surface cannot be
+// emitted. The overlap line is the Bible's section 16 row verbatim; the rest are HANGAR's.
+// Decided at 13-14 (13-RESEARCH 3.1, unrepresentable overlaps); see .planning/phases/13-gui-overhaul/13-14-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -83,7 +29,7 @@ import {
 } from "./model";
 
 // ---------------------------------------------------------------------------
-// The strings (section 3).
+// The strings.
 
 /** The Bible's section 16 line, verbatim, with the other region's name in Filter's place. */
 export const overlapLine = (other: string): string =>
@@ -101,7 +47,7 @@ export const GEOMETRY_COPY = {
   cap: (cap: number): string =>
     `This surface holds ${cap} elements, the most a page holds. Remove one to add another.`,
   /**
-   * Rule 3, per kind (13-15; model.ts section 4). A knob's line carries the
+   * Rule 3, per kind (13-15; model.ts). A knob's line carries the
    * reason - its centre cannot read a turn - and the fader's names the one
    * axis it reads. Ledgered in 13-COPY-NEW.md under "From 13-15".
    */
@@ -132,7 +78,7 @@ const FIELD_WORDS: Record<GeometryField, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Rule 2: the cell map (section 1).
+// Rule 2: the cell map.
 
 /** 81 entries, cell -> 1-based region index, 0 for none. */
 export type CellMap = readonly number[];

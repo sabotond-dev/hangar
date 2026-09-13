@@ -1,36 +1,12 @@
-// The browse search and the two facets, pinned against the shipped data.
-//
-// Three things here are contracts rather than implementation details, and each
-// has its own test:
-//
-//   D-05  search is free text over name, description and tags, and there is NO
-//         power syntax - a typed "$tag:play" is four literal words, not a
-//         query language (test 3).
-//   W-04  active chips INTERSECT. Union was considered and rejected in the
-//         approved spec: most tags sat on exactly one entry, so a union would
-//         make a second chip ADD one card, which reads as a bug. RETIRED AND
-//         REPLACED BY NAME IN 10-07 (A-19): within a facet chips are OR, across
-//         facets they are AND (test 4). The old rule was right about the data it
-//         was written against and wrong about the closed sixteen, where `FOR`
-//         gives every entry exactly one term - so a second `FOR` chip under a
-//         pure AND would return zero and disable itself for ever.
-//   D-15  the standing chip row is every tag carried by two or more entries -
-//         DERIVED from the data. RETIRED BY 10-06 (G-09) and DELETED IN 10-07
-//         with chipTags() itself: CHIPS ARE THE FACET MEMBERS. Test 5 now holds
-//         the declared row against the data instead of a derivation against a
-//         declaration, which is the shape a closed vocabulary wants.
-//
-// DERIVED, OR RECORDED. The rule that decides every number in this file:
-//
-//   A number that is ARITHMETIC OVER THE SHIPPED DATA is derived. A number that
-//   is A REVIEW OF THE SHIPPED DATA stays a literal, in one named block, so
-//   that changing it is a decision somebody made rather than a test somebody
-//   silenced.
-//
-// So the id lists, the per-term expectations and the disabled row are computed
-// from LISTING with the same predicate the module is being asked about, and the
-// census - how many entries, how many terms, how many singletons and how many
-// entries carry each - lives in RECORDED and nowhere else.
+// The browse search and the two facets, pinned against the shipped data. Three
+// contracts, each with its own test: D-05 search is free text over name,
+// description and tags with NO power syntax (test 3); W-04 as amended by A-19
+// at 10-07 - within a facet chips are OR, across facets AND (test 4); D-15
+// retired at 10-06 (G-09) - chips are the facet members, so test 5 holds the
+// declared row against the data. DERIVED, OR RECORDED: a number that is
+// arithmetic over the shipped data is derived from LISTING with the module's
+// own predicate; a number that is a review of the shipped data stays a literal
+// in RECORDED and nowhere else, so changing it is a decision somebody made.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

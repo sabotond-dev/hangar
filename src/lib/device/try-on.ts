@@ -1,20 +1,13 @@
-// TRY ON DEVICE: open, listen, name the module - and nothing else (D-13, D-22).
-//
-// There is no request queue here and no heartbeat keeper, and their absence is
-// the feature. Nothing is requested, so nothing is written; and starting the
-// keeper timer would itself be a write to hardware a visitor paid for.
-// docs/SKELETON-RESULTS.md (a) and (d) are what make that sufficient: the host
-// heartbeat is NOT required - arm B ran 271.5 s with it off and received 1,086
-// inbound heartbeats - and the module reports its hardware config, its firmware
-// and its active page four times a second, unprompted. Identification is
-// therefore a purely passive fold over inbound frames, and the write path is
-// not merely unused here but unreachable (asserted in try-on.spec.ts test 3).
-//
-// The whole module is pure over its arguments: it reads no global environment,
-// tests no browser name, and takes an ALREADY OPEN transport, because the click
-// handler that calls it must invoke requestPort() as its first statement with
-// nothing awaited in front of it (transient activation expires). Plan 04-08
-// owns that handler and the rendering of every state named below.
+// TRY ON DEVICE: open, listen, name the module - and nothing else (D-13,
+// D-22). No request queue and no heartbeat keeper, and their absence is the
+// feature: nothing is requested, so nothing is written, and starting the keeper
+// timer would itself be a write to hardware a visitor paid for. The host
+// heartbeat is not required (docs/SKELETON-RESULTS.md (a) and (d): the module
+// reports its hardware config, firmware and active page four times a second,
+// unprompted), so identification is a passive fold over inbound frames and the
+// write path is unreachable (try-on.spec.ts). Pure over its arguments: no
+// global, no browser name, an ALREADY OPEN transport - the click handler must
+// call requestPort() first with nothing awaited in front of it.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { FrameScanner, decodeFrame } from "$lib/protocol";

@@ -1,25 +1,13 @@
-// The two orders a visitor can put the catalog in: Featured and Name.
-//
-// NEWEST WAS THE THIRD, AND D-11 REMOVED IT. `addedAt` holds three distinct
-// values across thirty-six entries and one of them covers twenty, so ordering
-// by date said almost nothing: it produced one block of twenty in name order
-// and called it a ranking. A third order was considered in its place (MOTION,
-// animated first) and rejected as redundant - the FEELS facet's `generative`
-// and `still` answer that question as a filter, which is the better shape.
-// `addedAt` survives on the catalog entry as provenance and has left the browse
-// projection entirely (10-UI-SPEC 9.5, D-b).
-//
-// Pure arithmetic over data handed in as an argument. It lives here rather than
-// inside BrowseToolbar.svelte for the reason src/lib/coverflow/slots.ts gives:
-// this repository collects no .svelte.spec.ts in any Vitest project, so a
-// comparator written inside a component is untested and LOOKS tested.
-//
-// It imports one type and nothing else. A runtime `import { byName } from
-// "$lib/catalog"` here would put entries/ported.ts - and through it the
-// vendored compiler and @intechstudio/grid-protocol, 131,101 bytes measured in
-// 04-RESEARCH - on the first paint of a page whose entire job is to list
-// sixteen names (D-12). sort.spec.ts scans this file and fails on a second
-// specifier or on one that is not `import type`.
+// The two orders a visitor can put the catalog in: Featured and Name. Newest
+// was the third and D-11 removed it (`addedAt` held three distinct values over
+// thirty-six entries, one covering twenty - a block in name order, not a
+// ranking); a MOTION order was rejected as redundant with the FEELS facet.
+// Pure arithmetic over data handed in as an argument, kept out of
+// BrowseToolbar.svelte because this repository collects no .svelte.spec.ts and
+// a comparator inside a component would look tested. Imports one type and
+// nothing else: a runtime import of $lib/catalog would put the vendored compiler
+// and @intechstudio/grid-protocol on /playground/'s first paint (D-12);
+// sort.spec.ts scans this file for a second specifier.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { ListingEntry } from "$lib/catalog/listing";
@@ -36,34 +24,14 @@ export const BROWSE_SORTS: readonly BrowseSort[] = Object.freeze([
 export const DEFAULT_SORT: BrowseSort = "featured";
 
 /**
- * Name ascending, by code point.
- *
- * NEVER a locale-aware comparison - no localeCompare, no Intl.Collator, and
- * sort.spec.ts scans this file with its comments removed to keep it that way.
- * (The two names appear in this sentence and nowhere else in the module; the
- * scan reads code only, and asserts the prose survives, so a stripper that ate
- * the whole source cannot pass vacuously.)
- *
- * This is D-10 as amended, and the reason is
- * already written into src/lib/catalog/index.ts beside the function this one
- * restates: the order a page renders must not depend on the runner's or the
- * visitor's locale. 05.1-UI-SPEC.md W-08 AGREES and names this comparator by
- * name. What is superseded is 05.1-RESEARCH.md - its Standard Stack row and its
- * "Don't Hand-Roll" row both recommend a case-folding collator, and both were
- * overtaken by the D-10 amendment. Anybody reading the research and reaching
- * for one should stop here.
- *
- * index.ts's own comparator is module-private, so this is a RESTATEMENT rather
- * than an import, gated in sort.spec.ts against the byFeatured() and byName()
- * id sequences element for element. Do not reconcile the two by exporting from
- * - or editing - index.ts. byNewest() still ships in index.ts and is still
- * gated by catalog.spec.ts: what D-11 retired is the browse ORDER, not the
- * catalog's own date helper.
- *
- * THE ID TIE-BREAK IS WHAT MAKES BOTH ORDERS TOTAL. Two entries sharing a
- * name would otherwise compare 0 and Array.prototype.sort's stability, not this
- * function, would be deciding the page. Ids are unique by construction, so the
- * last three lines cannot themselves tie.
+ * Name ascending, by code point. NEVER a locale-aware comparison - no
+ * localeCompare, no Intl.Collator (D-10 as amended: the order a page renders
+ * must not depend on the runner's or the visitor's locale; the two names appear
+ * in this sentence only, and sort.spec.ts scans the code to keep it that way).
+ * A RESTATEMENT of src/lib/catalog/index.ts's module-private comparator, gated
+ * in sort.spec.ts against byFeatured() and byName() element for element - do
+ * not reconcile the two by exporting from index.ts. The id tie-break is what
+ * makes both orders total: ids are unique, so the last lines cannot tie.
  */
 const byNameThenId = (a: ListingEntry, b: ListingEntry): number => {
   if (a.name < b.name) return -1;

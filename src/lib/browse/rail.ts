@@ -1,26 +1,13 @@
-// The Playground rail's rows, DERIVED - never typed as a literal.
-//
-// PDF page 2 draws the left rail as YOUR LIBRARY (All configs, Favorites,
-// Recently used, each with a two-digit count) over a divider, then MADE FOR
-// with plain rows and no counts. The PDF shows four MADE FOR rows and the
-// specification proposes three; 13-CONTEXT D-11 chose HANGAR's own FOR terms
-// instead - "honest to the catalog, permitted by the spec's own 'the real
-// configuration schema should determine'" - and named EIGHT of them. Plan
-// 12-04 then retired `keys` (13-VALIDATION D-4), so the honest number on the
-// day this file landed was SEVEN. The decision's own reason is satisfied only
-// by deriving the rows from FOR_TERMS at runtime and asserting the count AS
-// OBSERVED: if a term is ever retired or added the rail follows the vocabulary
-// and browse-ui.spec.ts test 7 prints the number it found. Nothing in this
-// module or in the page that renders it knows the number.
-//
-// The display labels are FOR_LABELS (./labels.ts), provisional until 13-18;
-// the row ids carry a `for:` prefix so a facet term can never collide with the
-// three library rows, and forTermOf() is the one door back from a row id to
-// the machine term the filter understands.
-//
-// This module imports the vocabulary and the labels and nothing heavier, so
-// the gallery page's static graph stays as light as it was (config-shape.spec
-// test 13).
+// The Playground rail's rows, DERIVED - never typed as a literal. PDF page 2
+// draws YOUR LIBRARY (All configs, Favorites, Recently used, each with a count)
+// over a divider, then MADE FOR with plain rows. The MADE FOR rows are HANGAR's
+// own FOR terms (13-CONTEXT D-11: "the real configuration schema should
+// determine"), derived from FOR_TERMS at runtime so a retired or added term
+// moves the rail with the vocabulary; browse-ui.spec.ts prints the count it
+// observes and nothing here knows the number. Labels are FOR_LABELS
+// (./labels.ts); row ids carry a `for:` prefix so a term can never collide with
+// the three library rows, and forTermOf() is the one door back to the term.
+// Imports the vocabulary and the labels and nothing heavier (config-shape.spec.ts).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { FOR_TERMS, type ForTerm } from "./facets";

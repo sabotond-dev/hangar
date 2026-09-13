@@ -1,73 +1,14 @@
 // The surface's landing: the five strings a Sandbox surface installs, in the
-// SAME shape the tuner publishes for a catalog entry (plan 13-17; 13-CONTEXT
-// D-03, D-18, D-19; BUILD-03, BUILD-05, SAFE-01, SAFE-07, TUNE-05).
-//
-// THIS IS THE THIRD PRODUCER OF ONE SHAPE, AND THERE IS NO SECOND WRITE PATH.
-// `src/lib/tune/model.ts` publishes a `ConfigStrings` on every landing - the
-// preset route's and the Lua route's (`landLua`, the summaries' name for
-// `measureLuaRoute`'s `land(...)`) - and `src/lib/device/install.svelte.ts`
-// consumes exactly that: five strings, keyed as sequence.ts's SLOTS keys them,
-// handed to `observeConfig` and `tryOnDevice(config, name)`. A surface lands
-// the same five keys in the same order through `landSurface` below, and the
-// install store cannot tell which producer it is reading - install.spec.ts
-// asserts the consumption path is one path (the same step ids, the same
-// frames, the same phases, and no branch on a kind anywhere in the store).
-// `sequence.ts`'s writeAll, writeBack, fetchAll, storeToFlash and targetOf are
-// not touched; the surface's install is the one writer's fifteen phases,
-// four actions and two legs, and its snapshot is the same snapshot.
-//
-// THE FIVE STRINGS, IN WRITE ORDER (13-15's hand-off; SLOT-ARITHMETIC.md;
-// D-18's second probe):
-//
-//   255/6  systemTimer    TOUCH_LIBRARY_TIMER  the library's second half
-//   255/0  system         TOUCH_LIBRARY        the library's first half -
-//                                              the runtime calls E, G, N, U
-//                                              and X by name, so a surface
-//                                              lands the library exactly as
-//                                              a Lua entry does
-//   255/4  systemUtility  the packer's 255/4   the runtime's head, R, O and
-//                                              the branches that fit (three
-//                                              slots), pulled in by the
-//                                              Setup's `ele[#ele]:map()`
-//   0/6    timer          the packed Timer     gtt(0,100), the rest of the
-//                                              runtime, the expiry sweep
-//   0/0    setup          the data half        J, M, the paint, the pull-ins,
-//                                              self.touch_cb=O
-//
-// Under two slots (`slots: 2`, the emitter's own default) 255/4 is the EMPTY
-// STRING and the install store substitutes the firmware's page-next in one
-// place (#pageUtility) - 12-03's placement, the shape every catalog entry
-// takes - so the module's utility button keeps turning the page. Under three
-// slots, the shipped default here, the button runs the runtime's second
-// slot while the surface is installed and PUT BACK restores whatever the
-// module held. Both are D-19's consequence and constants.ts's header says
-// them plainly.
-//
-// THE LABEL, NOT A KIND. The store takes a `name` beside the config for its
-// captions and its live sentences (`liveSettled(name)`); a surface's label is
-// its name, and that is the only thing about the surface the store ever
-// sees. A field that said "this is a surface" would be the beginning of a
-// second write path, so no such field exists in this shape.
-//
-// MEASURED AT THE PICKER CORNER, CANONICALISED, REFUSED BEFORE THE WIRE
-// (TUNE-05, applied to a producer it had never seen). `measured` is cost.ts's
-// measurement of the surface with every region at level 15 on all three
-// channels, so a colour rail can never push a surface the meter said fitted
-// over the budget; the strings that go on the wire are the surface's OWN
-// colours, run to the minifier's fixed point. When any string is over 908
-// `refusal` names WHICH string and BY HOW MUCH, and the route disables Apply
-// on it; the install store refuses a Setup or Timer at the limit on its own
-// (`#tryRefusal`), and install.spec.ts asserts the frame count is ZERO. What
-// pushed a surface over is an ELEMENT: names are never emitted (the wire
-// carries J, M and the paint, not a name) and colours are measured at their
-// dearest already, so the sentence the meter shows names the last element
-// and offers its removal (copy.ts `overElementLine`). Under three slots the
-// runtime fits every combination of kinds (13-15's table), so the only
-// string that can go over is the Setup, and only past a dozen elements.
-//
-// REACHED THROUGH await import(): this module pulls the minifier's gate
-// (cost.ts -> pad/ready) and the library into its chunk, and the Sandbox
-// route paints its plate before a visitor has touched Apply.
+// SAME shape the tuner publishes for a catalog entry (ConfigStrings, keyed as
+// sequence.ts's SLOTS keys them), so the install store cannot tell which
+// producer it is reading - there is no second write path, and the store sees a
+// `name`, never a kind. Write order: 255/6 systemTimer and 255/0 system (the
+// library's two halves - the runtime calls E, G, N, U and X by name), 255/4
+// systemUtility (the runtime's second slot; the empty string under two slots,
+// which the store fills with the firmware's page-next), 0/6 timer, 0/0 setup.
+// Measured at the picker corner (cost.ts), canonicalised to the minifier's
+// fixed point, refused before the wire when any string is over 908 (TUNE-05).
+// Decided at 13-17 (D-18 / D-19, three slots); see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";

@@ -1,34 +1,13 @@
-// The front-door row's agreement gate.
-//
-// front-door.ts restates each entry's `name` and `description` instead of
-// reading them from $lib/catalog, because reading them would pull the vendored
-// compiler and @intechstudio/grid-protocol (131,101 bytes, measured in
-// 04-RESEARCH) into the front door's first chunk. This file is what keeps the
-// two honest, exactly the way src/lib/protocol-pin.ts is held against the
-// pinned package: the duplication is deliberate, and it is asserted.
-//
-// It also gates the one thing the product actually promises. PREV-01 says every
-// visible pad is animating; four of the nine shelf presets do not animate and
-// one writes no LEDs at all. So `motion` is never a declaration of intent - it
-// is derived here from src/lib/fidelity/golden-frames.json and compared. A
-// mis-declared pad is a red test rather than a dead-looking square on the front
-// door.
-//
-// AMENDMENT (plan 13-07, D-09, 2026-09-11): SEVEN TESTS, FROM EIGHT. The
-// PDF's intro has one live surface where the ring was, so "no two quiet pads
-// are adjacent on the ring" lost its subject and was deleted by name; the
-// motion-derivation test and the restsBlack test survive, re-aimed at the
-// hero as well as the list ("the hero must not be a dark pad" is the same
-// rule with one member).
-//
-// AMENDMENT (plan 13-09, 2026-09-11): FIVE TESTS, FROM SEVEN. The coverflow
-// left the tree with the workspace (PDF page 5), and the two opening-window
-// tests - "no dark pad is in the opening window" and "the three largest pads
-// at the opening all move" - lost their subject with it and were deleted by
-// name, with the windowAt helper only they used. FRONT_DOOR is a MEMBERSHIP
-// list now: the hero is derived from it and the workspace's rail reads it as
-// the nearby set for a cold arrival; its order is the rail's order and
-// nothing asserts a ring property of it.
+// The front-door row's agreement gate. front-door.ts restates each entry's
+// `name` and `description` instead of reading them from $lib/catalog (reading
+// would pull the vendored compiler into the front door's first chunk), and
+// this file keeps the two honest the way protocol-pin.ts is held against the
+// pinned package. It also gates the product's promise (PREV-01): `motion` is
+// never a declaration of intent - it is derived from golden-frames.json and
+// compared, so a mis-declared pad is a red test, not a dark square. Five tests
+// since 13-09 (eight at Phase 4): the ring's adjacency test went at 13-07 and
+// the two opening-window tests at 13-09, each deleted by name with its subject;
+// FRONT_DOOR is a membership list and nothing asserts a ring property of it.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

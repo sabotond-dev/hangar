@@ -1,35 +1,14 @@
 // The Sandbox's live preview: a Lua-backed engine running the surface the
 // visitor built, so Play routes a finger to the same runtime the module would
-// run (plan 13-16; PREV-04's third reach; 13-13 asked whether a sandbox
-// picture could light once 13-15's Lua existed - this is the answer).
-//
-// THE SAME HOST, THE SAME LIBRARY, THE SAME STRINGS. `emitSurface` writes the
-// Setup, the Timer and - under three slots - the 255/4 body that 13-17
-// installs; `createLuaHost` runs them over TOUCH_LIBRARY and
-// TOUCH_LIBRARY_TIMER exactly as it runs a hand-authored entry
-// (lua-pad-sim.ts), and `LuaPadSim` is the SimEngine shape the page's SimHost
-// paints and delivers fingers to. What the preview shows is therefore the
-// emitted text under the pinned library - not a drawing of the regions -
-// which is the only picture that can be honest about a button's 0 or a
-// knob's dead zone.
-//
-// THE TWO STAND-INS, AS runtime.spec.ts USES THEM: the touch element's Setup
-// closes with `self:tim()`, which on the module is the element's own `tim`
-// method (the stored Timer body); the host compiles the Timer as
-// `__hangar_timer` and models `tim` for the SYSTEM element only, so the touch
-// element's is assigned here in front of the Setup. Under three slots - the
-// default since 13-17, when HANGAR started writing 255/4 (D-18, D-19) - the
-// Setup also calls `ele[#ele]:map()`, the system element's utility method,
-// which on the module is the stored 255/4 body; the host models no `map`, so
-// the emitted 255/4 body is assigned as a method of `ele[#ele]` in front of
-// the Setup too, exactly as runtime.spec.ts's `standIns` does. Until 13-17
-// this module refused `slots: 3` because the preview would have run a string
-// the module did not hold; the module holds it now, on the same install
-// that lands the other four.
-//
-// REACHED ONLY THROUGH await import(): this module pulls the Lua host and,
-// through it, wasmoon's glue.wasm into its chunk (ready.ts), and the Sandbox
-// route must paint its plate before a visitor has touched Play.
+// run (PREV-04). The same host, library and strings: emitSurface writes the
+// Setup, the Timer and, under three slots, the 255/4 body; createLuaHost runs
+// them over TOUCH_LIBRARY and TOUCH_LIBRARY_TIMER exactly as a hand-authored
+// entry; LuaPadSim is the SimEngine the page's SimHost paints. Two stand-ins,
+// as runtime.spec.ts uses them: the touch element's `tim` (the Timer body) and
+// `ele[#ele]:map()` (the 255/4 body) are assigned in front of the Setup, because
+// the host models neither for the touch element. Reached only through
+// await import(): this chunk carries the Lua host and wasmoon's glue.wasm.
+// Decided at 13-16 and 13-17 (D-18 / D-19, three slots); see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { PadSim } from "../../vendor/botor/pad-sim";

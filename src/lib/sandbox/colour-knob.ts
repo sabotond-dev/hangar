@@ -1,20 +1,13 @@
 // A region's colour as the one KnobView shape Swatch.svelte and
-// ColourPicker.svelte already render (plan 13-16; 13-09 built the swatch and
-// this plan reuses it UNCHANGED - the picker is the most expensive
-// correctness in the tree and is not re-written for a second caller).
-//
-// A colour knob on the Playground is 4,096 options over the RGB444 lattice
-// with the knob's index a lattice position (view.ts: `colourPosition`). A
-// region stores its colour as three RGB444 LEVELS (schema.ts). This module
-// is the door between the two: `colourKnobView` builds the KnobView whose
-// index is the region's colour as a position, and `levelsOf` turns the
-// position the picker reports back into the three levels the region
-// stores. The 4,096 value views are built once and shared, for the reason
-// src/lib/tune/model.ts gives for its own cache - `swatchName`'s HSL
-// arithmetic 4,096 times per keystroke is the wrong price for a swatch.
-//
-// This module imports src/lib/tune/view.ts, which imports nothing (its
-// header), and never the compiler.
+// ColourPicker.svelte already render - the picker is reused UNCHANGED for a
+// second caller. A Playground colour knob is 4,096 options over the RGB444
+// lattice with the index a lattice position (view.ts `colourPosition`); a
+// region stores three RGB444 LEVELS (schema.ts). This module is the door
+// between the two: colourKnobView builds the KnobView whose index is the
+// region's colour as a position, levelsOf turns the position the picker
+// reports back into levels. The 4,096 value views are built once and shared
+// (swatchName's HSL arithmetic per keystroke is the wrong price, as tune/model.ts
+// found). Imports tune/view.ts, which imports nothing, and never the compiler.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {

@@ -1,25 +1,13 @@
-// Every knob write in this phase, funnelled through one function.
-//
-// `withChange` below is a COPY of a module-private function in the vendored
-// compiler (`src/vendor/botor/_pad.ts:3156`). It is copied rather than
-// imported because `src/vendor/` is read-only in this repository (D-04): a
-// vendored file may not gain an `export` keyword, because the next re-sync
-// from BOTOR would silently drop it and the diff would look like nothing at
-// all. Copying five lines and saying so is the honest version of that
-// constraint.
-//
-// WHY DELETING `preset` IS LOAD-BEARING, not tidiness. `encodeStamp` returns
-// the short form `p<presetId>` for any state whose `preset` field is set
-// (`_pad.ts:2632`). A tuned state that kept its shelf card would therefore
-// encode as the UNTUNED card: the shared link would open, would look correct,
-// and would silently throw away every knob the visitor moved. `soloStream`
-// goes for the neighbouring reason - it is audition-only state that the
-// compiler already refuses to encode, and it must not survive into a
-// measurement either.
-//
-// This module imports the vendored compiler and is therefore on the model side
-// of D-18. No Svelte component may name it; wave 4's model.ts is the seam a
-// component reaches, and only through `await import()`.
+// Every knob write in this phase, funnelled through one function. `withChange`
+// is a COPY of a module-private function in the vendored compiler
+// (src/vendor/botor/_pad.ts): src/vendor/ is read-only (D-04) and may not gain
+// an `export`, because the next re-sync would silently drop it. Deleting
+// `preset` is load-bearing, not tidiness: encodeStamp returns `p<presetId>` for
+// any state whose `preset` is set, so a tuned state that kept its card would
+// encode as the UNTUNED card and a shared link would silently throw away every
+// knob. `soloStream` goes for the neighbouring reason - audition-only state the
+// compiler refuses to encode. Imports the vendored compiler: model side of D-18,
+// no component names it; model.ts is the seam, reached through `await import()`.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {

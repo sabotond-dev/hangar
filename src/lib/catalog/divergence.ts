@@ -1,45 +1,13 @@
 // The record of every place HANGAR's nine deliberately disagree with the
-// vendored nine, and the ONE place that record lives.
-//
-// WHY IT IS A MODULE AND NOT A CONST INSIDE presets.spec.ts, WHICH IS WHERE
-// PLAN 11-05 LANDED IT. Three gates need to read it, not one:
-//
-//   src/lib/catalog/presets.spec.ts  - the field-by-field diff, which fails on
-//                                      any difference no row declares.
-//   src/lib/catalog/catalog.spec.ts  - holds every ported entry's name and
-//                                      description against the VENDORED
-//                                      shelf's name and sentence. Three
-//                                      sentences diverge from 11-06 onward.
-//   src/lib/catalog/frames.spec.ts   - cross-checks each ported entry's frames
-//                                      against src/lib/fidelity/
-//                                      golden-frames.json, whose hashes were
-//                                      sampled over the VENDORED states. A
-//                                      HANGAR state change that moves the
-//                                      picture moves those frames apart.
-//
-// A spec file cannot be imported by another spec file without its `describe`
-// blocks registering twice, so the table had to leave presets.spec.ts for any
-// second reader to exist at all. The alternative was a hand-copied allowance
-// list in each of the three, which is this phase's own warning 3 - a
-// hand-declared list that a walk iterates can pass having read nothing - three
-// times over.
-//
-// WHAT A ROW COSTS AND WHAT IT BUYS. Until plan 11-05 the nine preset values
-// lived in src/vendor/, so a bench correction to one of them was an edit inside
-// a GPLv3 vendored tree that D-02 grants only for fidelity fixes. HANGAR owns
-// the values now, and the price of that is this file: a divergence nobody wrote
-// down is a FAILURE rather than a silence, at all three gates above.
-//
-// A ROW THAT DESCRIBES NO DIFFERENCE FAILS (presets.spec.ts test 2), so rows
-// cannot be written ahead of the change they describe and cannot rot into an
-// amnesty for a change that was reverted or that a re-sync brought upstream.
-//
-// This module imports ONE THING, and it is data: the two knot tables from
-// calibration.ts, because since plan 12.1-08b the nine states carry them as
-// `state.touchLibrary` and a row has to hold the value it declares. Typing
-// the eighteen numbers here would be the second copy 12.1-CONTEXT D-02
-// forbids ("no number is typed twice"). It is still pure data, read only by
-// specs, and it imports nothing that runs.
+// vendored nine, and the ONE place that record lives. Three gates read it:
+// presets.spec.ts (the field-by-field diff, red on any undeclared difference),
+// catalog.spec.ts (name and description against the vendored shelf) and
+// frames.spec.ts (each ported entry's frames against golden-frames.json). A
+// module rather than a const in a spec because a spec cannot be imported by
+// another spec. A divergence nobody wrote down is a FAILURE, not a silence; a
+// row that describes no difference fails too (presets.spec.ts), so rows cannot
+// be written ahead of a change or rot into an amnesty. Imports one thing, data:
+// the knot tables from calibration.ts, because a row must hold the value it declares.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { KX, KY } from "./calibration";

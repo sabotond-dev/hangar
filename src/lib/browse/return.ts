@@ -1,57 +1,13 @@
-// The way back: one record, under one key, holding where the visitor was.
-//
-// W-20 and D-08 in three functions. `/playground/` writes this immediately before it
-// navigates to a `/playground/<id>/` route; the detail page reads it to decide whether its
-// header slot says BACK TO BROWSE or BROWSE ALL; `/playground/` consumes it on
-// arrival.
-//
-// FOUR RULES THE PAGE RELIES ON. They are decisions, not implementation details.
-//
-//  1. IT IS A SESSION STORE. In the browser the argument is `sessionStorage`,
-//     never the persistent one, so a middle-click into a new tab correctly gets
-//     no back control: in a new tab there is nothing to go back to and offering
-//     it would be a lie. It also means the record dies with the tab rather than
-//     greeting a visitor next week with a browse view they have forgotten.
-//
-//  2. THE RECORD IS WRITTEN FROM THE PAGE'S OWN STATE, NOT FROM THE ADDRESS BAR.
-//     The browse address is projected on a 500 ms trailing timer (see
-//     `./query.ts`), so a card clicked 200 ms after a chip toggle would record a
-//     view that is one toggle stale. Composing the href out of the live state at
-//     the moment of leaving - `"/playground/?" + serialiseBrowseQuery(state)` -
-//     removes that race instead of racing it. The href is therefore an
-//     ARGUMENT here: this module never reads an address of its own.
-//
-//  3. RETURNING IS A `goto`, NEVER A `history.back()`. Phase 4's
-//     `Coverflow.choose()` pushes a history entry, so a visitor who arrived from
-//     browse and then tapped the pad is two entries deep, and a back-by-one
-//     lands them on the un-chosen detail page rather than on browse. The control
-//     calls `goto(record.href, { noScroll: true })` and then restores
-//     `record.scrollY` explicitly - deterministic however many entries the
-//     detail page collected. 05.1-UI-SPEC.md adds `replaceState: true` to that
-//     same call so the round trip does not grow the history; both are the page's
-//     to make in wave 9, and neither of them is `history.back()`, which stays
-//     reserved for the browser's own Back button.
-//
-//  4. THE RECORD IS CONSUMED ON ARRIVAL AT `/playground/`. Kit's own back-button
-//     restoration already targets the offset this record holds, so the two
-//     cannot disagree; the record exists for the FORWARD hop, which gets no
-//     restoration at all. It survives a reload of the detail page - the way back
-//     is still there, which is a virtue - and the detail page clears it when the
-//     visitor leaves for anything that is not browse.
-//
-// THE STORE IS AN ARGUMENT AND THIS MODULE IMPORTS NOTHING. `/playground/` is
-// prerendered, so the component that calls these functions renders on a server
-// where no storage of any kind exists; every function is a no-op on `undefined`
-// rather than making each caller remember a guard. That is the same injection
-// `HostDeps` uses in `src/lib/sim/host.ts`, for the same reason: it is what makes
-// the module testable in node with no jsdom. `return.spec.ts` scans this file
-// with its comments removed and fails on any specifier at all, or on the name
-// above appearing in code rather than in this header.
-//
-// NOTHING HERE THROWS. A malformed record, a browser refusing storage in a
-// private window, a quota that is full: all of them degrade to "no way back
-// offered". This runs on a page whose job is to paint, and a way back is a
-// courtesy - it may never be the reason a catalog fails to render.
+// The way back: one record, under one key, holding where the visitor was on
+// /playground/ (W-20, D-08). /playground/ writes it before navigating to a
+// /playground/<id>/ route; the detail page reads it to decide BACK TO BROWSE
+// against BROWSE ALL; /playground/ consumes it on arrival. Four rules: (1) it is
+// a SESSION store - the caller passes sessionStorage, so a new tab gets no back
+// control; (2) the href is written from the page's live state, never read from
+// the address bar (the address trails by 500 ms); (3) returning is a `goto` with
+// the scroll restored, never `history.back()`; (4) the record is consumed on
+// arrival. The store is an argument and this module imports nothing (every
+// function a no-op on undefined - the pages are prerendered); nothing throws.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

@@ -1,40 +1,13 @@
-// Drafts: editable working state, recovered locally. The word is DRAFT.
-//
-// WHICH OF SECTION 9's THREE OBJECTS THIS HOLDS. The Bible names a draft, a
-// saved copy and the device state and says "never use one generic 'Saved'
-// indicator for all three". This module holds the first: what a visitor is
-// working on right now, saved as it is edited so a closed tab or a crashed
-// browser loses nothing. The interface may say "Draft", "Draft saved locally"
-// (the PDF's context-bar status), "Resume draft" and "Your draft is safe". It
-// may not say "Saved" alone - that word belongs to library.ts, and the
-// install store owns "Stored on ZONA".
-//
-// ONE DRAFT PER SOURCE. A Playground draft's source is its catalog entry; a
-// Sandbox draft's source is its surface. draftIdFor() spells the id out of
-// the kind and the source, so opening `arc` twice finds the same draft
-// rather than growing a second, and a sandbox surface can never collide with
-// an entry that happens to share its name.
-//
-// editedAt MOVES ON EVERY WRITE AND createdAt NEVER DOES. writeDraft takes
-// the moment as an argument and stamps it; when a draft already exists under
-// the id, its createdAt is carried over whatever the caller passed, so "Last
-// edited 12 minutes ago" and "created" can never swap. local.spec.ts test 7
-// holds both.
-//
-// NEVER DELETES ANOTHER KIND'S DRAFT, OR ANY ENTRY IT CANNOT READ. Every
-// write is read-modify-write over the whole map, spreading the raw map so an
-// entry a later HANGAR wrote in a shape this one does not read survives
-// beside the one being written. A refused read (local.ts's probe) declines
-// the write rather than writing blind: with no way to know what is there, a
-// fresh record could destroy every draft a visitor has. A corrupt envelope is
-// replaced whole, because nothing in it was ever a draft.
-//
-// NOTHING STORES A THUMBNAIL. A draft is `{ entryId, knobIndices }` or a
-// region list; a 96x96 PNG is roughly 10-30 KB, so 200 of them is
-// megabytes, against a store of about 5 MB, for a picture the live
-// simulator already renders for free sixteen at a time on the gallery.
-// The escape hatch is IndexedDB, and its trigger is written down: STORED
-// THUMBNAILS, IMPORTED BINARIES, OR A CAPTURE LOG. None of the three is v1.
+// Drafts: editable working state, recovered locally. The word is DRAFT - the
+// first of Bible section 9's three objects; the interface may say "Draft",
+// "Draft saved locally", "Resume draft", never "Saved" alone (library.ts's word;
+// the install store owns "Stored on ZONA"). ONE DRAFT PER SOURCE: draftIdFor()
+// spells the id out of the kind and the source, so opening `arc` twice finds
+// the same draft. editedAt moves on every write, createdAt never (carried over
+// whatever the caller passed; local.spec.ts holds both). Every write is
+// read-modify-write over the whole map, spreading the raw map so an entry a
+// later HANGAR wrote survives; a refused read declines the write; a corrupt
+// envelope is replaced whole. Nothing stores a thumbnail (IndexedDB is the hatch).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { probe, writeJson, type LocalStore } from "./local";

@@ -1,63 +1,14 @@
-// The nine shelf presets, DECLARED BY HANGAR.
-//
-// WHAT MOVED AND WHAT DID NOT. `PadPreset`, `PadState` and `KnobKind` are still
-// vendored types and are imported, never restated: HANGAR owns the nine VALUES
-// and never the shapes. The factory below is a re-implementation of the
-// twenty-line module-private `preset()` at src/vendor/botor/_pad.ts:4189-4211 -
-// `defaultState()`, apply the mutator, stamp `state.preset`, normalise - and it
-// calls the vendored `defaultState` and `normalisePadState` directly, so the
-// nine states are still built by the vendored compiler's own rules.
-//
-// WHY. Reading the nine out of `PRESETS` made every bench correction to a
-// preset an edit inside src/vendor/, which D-02 grants only for fidelity fixes
-// with a manifest row and a written reason. Eight of the user's bench notes are
-// preset-definition changes - a colour, a knob, a grid size - and none of them
-// is a fidelity fix. They were unfixable here for a STRUCTURAL reason, not a
-// technical one. This module is what removes that.
-//
-// THE VENDORED `PRESETS` ARRAY IS NOT DELETED AND IS NOT SHRINKING. It is still
-// exported from src/vendor/botor/_pad.ts, it is still what
-// src/lib/fidelity/preset-baseline.spec.ts and golden-frames.spec.ts measure,
-// and it is still what scripts/capture-preset-baseline.mjs captures. Those are
-// the PORT's gate, not the CATALOG's, and pointing them here would make them
-// compare HANGAR against HANGAR.
-//
-// WHAT HOLDS THE TWO TOGETHER. src/lib/catalog/presets.spec.ts diffs every one
-// of the nine against the vendored one field by field - `id`, `name`,
-// `sentence`, `category`, `knobs`, `exclusive`, `quiet` and the whole of
-// `state`, deeply - and fails on any difference not written down in its
-// `INTENDED_DIVERGENCE` table with a reason, a plan and a date. Before this
-// module existed, src/lib/catalog/entries/ported.ts read `name` and `sentence`
-// through `presetById` so a BOTOR rename could not silently disagree. That was
-// two strings. This is everything, and the price is that a divergence now has
-// to be DECLARED rather than merely made.
-//
-// STANDING RULE, INHERITED FROM PLAN 11-04: A HANGAR-OWNED PRESET MUST NEVER
-// SELECT `bloom` OR `disturb` AS ITS `touch.kind`.
-// Both carry the worst cases of the class-A decay defect 11-04 repaired for the
-// comet family: measured residue up to 125 of 255 on every cell a finger
-// crossed, against comet's 1 to 7. Repairing them needs a per-cell timeout
-// derived from a per-cell start - a change to the EMITTED SHAPE - and D-02
-// grants the emitted constants, not the emitted shape. Neither is reachable
-// today, because `touch.kind` is exposed as no knob on any of the nine; this
-// header is what keeps that true the day somebody adds one. None of the nine
-// below selects either, and presets.spec.ts holds every `state` field against
-// the vendored shelf, so a change here that reached for one would have to be
-// declared in writing first.
-//
-// THE NINE CARRY THE TOUCH LIBRARY'S KNOTS SINCE PLAN 12.1-08b (12.1-CONTEXT
-// D-26 item 2, D-27). `state.touchLibrary = { kx: KX, ky: KY }` on every one,
-// from calibration.ts and never typed here, is what makes the vendored
-// compiler emit calls into HANGAR's touch library - `K(x,y,1,252)` for the
-// comets, `K(...,r,g,b)` for PINWHEEL, `G(...)` for JOYSTICK's glow, `N(x,y)`
-// for NINE PADS' zones and FOUR FADERS' rails - and the vendored simulator
-// mirror the same measured map, so the eight cards draw a finger where the
-// LEDs are and as a gradient. The field is a declared manifest divergence in
-// both vendored files, a declared row per preset in divergence.ts here, and
-// it is what the tuner's landing answers by publishing both library strings
-// for a preset (src/lib/tune/model.ts). The vendored `PRESETS` carry no such
-// field and compile byte-identically to upstream, which is what keeps
-// preset-baseline.json still.
+// The nine shelf presets, DECLARED BY HANGAR. `PadPreset`, `PadState` and
+// `KnobKind` stay vendored types; HANGAR owns the nine VALUES, built by the
+// factory below through the vendored defaultState and normalisePadState, so a
+// bench correction to a preset is an edit here and not inside src/vendor/
+// (D-02 grants that only for fidelity fixes). The vendored PRESETS array is not
+// deleted: it is the PORT's gate (preset-baseline, golden-frames). presets.spec.ts
+// diffs every field of the nine against the vendored shelf and fails on any
+// difference not declared in divergence.ts. STANDING RULE (11-04): a HANGAR
+// preset never selects `bloom` or `disturb` as its touch.kind. Every state
+// carries `touchLibrary = { kx: KX, ky: KY }` from calibration.ts (12.1-08b).
+// Decided at 11-05 (HANGAR owns the values); see .planning/phases/11-bench-corrections/11-05-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {

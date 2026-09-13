@@ -1,23 +1,12 @@
 // The browse search and the two facets: folding, matching, and the OR-within /
-// AND-across predicate the chips combine by.
-//
-// THE DERIVED CHIP ROW LEFT THIS FILE IN 10-07 (G-09). chipTags() computed
-// "every tag two or more entries carry, count descending"; the row is now the
-// facet members declared in ./facets.ts, so there is nothing to derive and
-// nothing that can drift as the catalog grows. filter.spec.ts asserted the two
-// were the same sixteen words on the shipped data before the deletion, which is
-// what made it a replacement rather than a change. disabledTags() below did NOT
-// go with it; its predicate narrowed instead.
-//
-// Pure functions over data handed in as an argument, for the same reason
-// sort.ts and src/lib/coverflow/slots.ts are: this repository collects no
-// .svelte.spec.ts in any Vitest project, so matching logic written inside
-// BrowseToolbar.svelte would be untested and would look tested.
-//
-// One `import type` and nothing else. A runtime import of $lib/catalog here
-// would drag entries/ported.ts, the vendored compiler and
-// @intechstudio/grid-protocol (131,101 bytes, measured in 04-RESEARCH) onto the
-// first paint of /playground/ (D-12). filter.spec.ts scans this file.
+// AND-across predicate the chips combine by. The derived chip row left this
+// file at 10-07 (G-09): the row is the facet members declared in ./facets.ts,
+// so nothing is derived and nothing drifts; disabledTags() stayed, its
+// predicate narrowed. Pure functions over data handed in as an argument, kept
+// out of BrowseToolbar.svelte because this repository collects no
+// .svelte.spec.ts. One `import type` and nothing else: a runtime import of
+// $lib/catalog would drag the vendored compiler and @intechstudio/grid-protocol
+// onto /playground/'s first paint (D-12); filter.spec.ts scans this file.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { ListingEntry } from "$lib/catalog/listing";
@@ -89,31 +78,14 @@ export const NO_FACETS: ActiveFacets = Object.freeze({
 });
 
 /**
- * The search and the facet predicate in one pass. Always a new array.
- *
- * OR WITHIN A FACET, AND ACROSS FACETS. This is 05.1-UI-SPEC.md W-04's
- * "active tags combine with AND" as amended by A-19, and the paragraph W-04
- * gave for AND is kept here rather than deleted, because it was RIGHT about the
- * data it was written against: at the time 32 of the 41 tags sat on exactly one
- * entry, so a union would have made a second chip ADD one card to the grid,
- * which reads as a bug rather than as a filter. D-10 re-cut the vocabulary and
- * the argument inverted with it. Under the closed sixteen `FOR` gives every
- * entry EXACTLY ONE term, so under a pure AND any second `FOR` chip would
- * return zero and immediately disable itself - and a facet whose second click
- * is always dead is not a facet.
- *
- * A TERM NOBODY CARRIES IS NOT DROPPED HERE - it simply contributes nothing to
- * its facet's OR, and if it is the only term in that facet the facet returns
- * nothing. The query parser is what drops one it does not know.
- *
- * THE PREDICATE IS A RESTATEMENT OF matchesFacets() IN ./facets.ts, NOT AN
- * IMPORT, and the reason is the same one sort.ts gives for restating nameAsc:
- * this file is scanned by filter.spec.ts and may carry exactly one specifier,
- * an `import type`. Restating three lines is cheaper than widening a scan that
- * exists to keep the browse page's first paint free of the 131,101-byte
- * compiler chunk. A restatement with no gate is a divergence waiting to happen,
- * so filter.spec.ts runs this function and matchesFacets() over every entry and
- * every selection it tests and asserts they agree entry by entry.
+ * The search and the facet predicate in one pass. Always a new array. OR WITHIN
+ * A FACET, AND ACROSS FACETS (05.1-UI-SPEC W-04 as amended by A-19): under the
+ * closed vocabulary FOR gives every entry exactly one term, so a pure AND would
+ * kill every second FOR chip. A term nobody carries contributes nothing to its
+ * facet's OR; the query parser is what drops one it does not know. The
+ * predicate RESTATES matchesFacets() (./facets.ts) rather than importing it -
+ * this file may carry one specifier, an `import type` - and filter.spec.ts
+ * runs both over every entry and selection and asserts they agree.
  */
 export function filterListing(
   entries: readonly ListingEntry[],
@@ -147,31 +119,13 @@ export function allTags(entries: readonly ListingEntry[]): readonly string[] {
 /**
  * The candidates in one facet's row that would return zero, so the toolbar can
  * render them as real disabled checkboxes (05.1-UI-SPEC W-04) with no adjacent
- * reason line - the cause is the active chips two centimetres away.
- *
- * THE PREDICATE NARROWED IN 10-07 AND THE FUNCTION SURVIVED. It used to ask
- * "would adding this tag to the active set empty the grid". Under OR-within /
- * AND-across that question is wrong twice over: adding a term to its OWN facet
- * can only ever WIDEN the result, so a chip beside an active sibling would
- * never disable, and a chip in the other facet has to be judged against that
- * other facet alone. The question is now "would this term, ALONE in its own
- * facet, return zero given the OTHER facet's active set and the query" - which
- * is why the caller says which row it is asking about instead of the function
- * guessing from the term.
- *
- * That makes it RARE rather than common, which is the honest consequence of a
- * closed vocabulary: with nothing active every chip is live by construction,
- * and it takes a real cross-facet emptiness - `FEELS: playable, generative`
- * leaves `FOR: mixing`, `shortcuts` and `pointing` on zero entries - to fire.
- * Rare is not never, and a rule that fires rarely is exactly the one a visitor
- * has no other way of learning.
- *
- * An already-active candidate is judged by the same question as any other, so
- * an active chip is reported disabled only if it genuinely returns nothing -
- * never merely because it is already on.
- *
- * When a QUERY alone empties a chip the chip is still reported, and that is
- * deliberate - a click that cannot change the grid should not look live.
+ * reason line. The question (narrowed at 10-07 for OR-within / AND-across):
+ * "would this term, ALONE in its own facet, return zero given the OTHER facet's
+ * active set and the query" - which is why the caller says which row it asks
+ * about. Rare under a closed vocabulary (`FEELS: playable, generative` leaves
+ * three FOR terms on zero), but a rule that fires rarely is the one a visitor
+ * has no other way of learning. An active chip is reported disabled only if it
+ * genuinely returns nothing; a chip a query alone empties is still reported.
  */
 export function disabledTags(
   entries: readonly ListingEntry[],

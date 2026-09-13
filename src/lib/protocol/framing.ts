@@ -1,16 +1,11 @@
-// The rx frame scanner: EOT + LF, with a cursor and a ceiling (FOUND-01).
-//
-// Shape from grid-editor/src/renderer/serialport/serialport.ts:143-185. Two
-// deliberate differences: a cursor, so a long partial frame is not rescanned
-// from zero on every chunk, and an 8 KB ceiling, so a link that never produces
-// a delimiter cannot grow the buffer without bound.
-//
-// Known limitation, shared with the desktop and worth writing down: the
-// delimiter is not escape-safe. A byte 4 three positions before a byte 10
-// INSIDE a config string would split a frame early; both halves then fail their
-// checksum and are dropped. Minified Lua is printable ASCII, which is why
-// descriptors.ts asserts that before a write - and why the torn-frame test
-// below exists.
+// The rx frame scanner: EOT + LF, with a cursor and a ceiling (FOUND-01). Shape
+// from grid-editor's serialport.ts, with two differences: a cursor, so a long
+// partial frame is not rescanned from zero on every chunk, and an 8 KB
+// ceiling, so a link that never produces a delimiter cannot grow the buffer
+// without bound. Known limitation, shared with the desktop: the delimiter is
+// not escape-safe - a byte 4 three positions before a byte 10 INSIDE a config
+// string splits a frame early and both halves fail their checksum. Minified
+// Lua is printable ASCII, which is why descriptors.ts asserts that before a write.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 export const EOT = 4;

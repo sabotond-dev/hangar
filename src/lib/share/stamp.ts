@@ -1,95 +1,14 @@
-// The stamp: the envelope `/playground/<id>#z.<format><payload>`, HANGAR's own format
-// letter for the Lua route, the entry-consistency check and the three landings.
-//
-// THE ENVELOPE. `STAMP_PREFIX` is `z.` and `STAMP_ALPHABET` is base THIRTY-TWO,
-// not 36 - D-12's "base36" is loose wording and the vendored `BitWriter` packs
-// five bits per character. The stamp lives in the HASH and never in the query
-// string (D-12), which is why `parseHash` refuses anything that is not a real
-// fragment.
-//
-// HANGAR CLAIMS `w`, `x`, `y` AND `z` as format letters, and those four are
-// collision-proof: they sit outside the base-32 payload alphabet
-// (`0123456789abcdefghijklmnopqrstuv`), so BOTOR's own writer can never emit
-// one as payload, and BOTOR - whose letters so far are `a`, `b`, `c`, `d` and
-// `p`, with `e` next - would need eighteen more format bumps to reach them.
-// `x` is the Lua knob-index format; the other three are reserved.
-//
-// `older` IS REACHABLE ONLY THROUGH FORMAT `x`'s SHAPE CHARACTER. `decodeStamp`
-// fails closed on an unknown format, an out-of-domain field, a set reserved
-// bit, a truncated payload and a non-zero tail, and it returns `undefined` for
-// every one of them - so for a compiler-driven entry there is no way to tell an
-// OLD encoding from a CORRUPT one, and every such stamp lands `unreadable`.
-// That is a real limitation of the vendored codec, it is not a defect here, and
-// it is written down so nobody later "fixes" the classifier by guessing.
-//
-// THE CLASSIFICATION, exactly. This is the one place SHARE-03's two strings are
-// chosen between, so the rule is transcribed rather than inferred:
-//
-//   | Condition                                                        | Landing      |
-//   |------------------------------------------------------------------|--------------|
-//   | no hash, or a hash without the `z.` prefix                        | none         |
-//   | format x, right length, every index in range, shape DISAGREES     | older        |
-//   | format x, right length, every index in range, shape agrees        | restored     |
-//   | format x with a wrong length, an out-of-alphabet character, or an |              |
-//   |   index past the end of its options                               | unreadable   |
-//   | format w, right length, every index in range, every colour naming |              |
-//   |   a position of its knob, shape DISAGREES                         | older        |
-//   | format w, the same, shape agrees                                  | restored     |
-//   | format w with a wrong length, a channel step outside 0..15, an    |              |
-//   |   index past the end of its options, or a colour the knob's own   |              |
-//   |   list cannot name                                                | unreadable   |
-//   | format p whose preset id equals this entry's source.presetId      | restored, at |
-//   |                                                                   | every default|
-//   | a BOTOR format that decodeStamp refuses                           | unreadable   |
-//   | a BOTOR format that decodes but fails the consistency check       | unreadable   |
-//   | format x or w on a compiler entry, or a BOTOR format on a Lua     |              |
-//   |   entry                                                           | unreadable   |
-//   | a format letter in neither set                                    | unreadable   |
-//
-// FORMAT `x` IS NEVER REMOVED, ONLY STOPPED BEING EMITTED (plan 10-08, D-06).
-// This is the one change in the phase with an irreversible user-visible
-// failure mode. A colour knob carries 4,096 positions and format `x` encodes
-// one base-32 character per knob, so a 33rd option would not overflow loudly -
-// it would truncate silently and land a shared link on the wrong colour. So
-// `w` is implemented and emitted for the 25 hand-authored entries that carry a
-// colour knob; `cull` and `quadrant` carry none and keep emitting `x`; and
-// EVERY format `x` stamp ever produced keeps decoding to `restored`, forever.
-// `src/lib/share/fixtures/wild-stamps.json` is fifty-four such stamps captured
-// with the encoder as it stood the moment before `w` existed, and
-// `stamp.spec.ts` asserts every one of them still lands. That fixture is the
-// evidence; a round trip of the new encoder against itself would be a
-// tautology.
-//
-// THE `p` ROW IS NOT AN EXCEPTION BOLTED ON; it is the one link the consistency
-// check would otherwise refuse. `p<presetId>` is what `encodeStamp` emits for
-// an untuned card, so it is exactly the stamp a BOTOR base-card link carries -
-// a legitimate, common inbound URL. Run it through the four steps below and it
-// fails: step 3 rebuilds by APPLYING knobs, every apply goes through
-// `withChange`, and `withChange` deletes `state.preset`, so `encodeStamp` of
-// the rebuild is a field dump and can never equal `paurora`. Classifying that
-// unreadable would put SHARE-03's apology on a link that is perfectly correct.
-// So format `p` is decided BEFORE the check, by one string comparison, and it
-// lands `restored` at every default index - the same state a URL with no
-// fragment would have shown. `p<any other preset>` is untouched by this and
-// stays `unreadable`.
-//
-// THE ENTRY-CONSISTENCY CHECK (05-RESEARCH), and it is the whole of SHARE-03's
-// "never a subtly wrong one":
-//
-//   1. decode -> PadState, else unreadable.
-//   2. read each of the entry's knob descriptors OUT of the decoded state.
-//   3. rebuild: start from the entry's base state, apply every knob at its
-//      read index.
-//   4. require encodeStamp(rebuilt) === the payload. Otherwise unreadable.
-//
-// Step 4 is a one-line assertion that the stamp is reachable from THIS entry's
-// knobs and nothing else. It also covers a future vendored re-sync widening a
-// field HANGAR does not expose.
-//
-// This module imports the vendored codec and the knob tables, so it is on the
-// model side of D-18: no Svelte component may name it, and it is reached only
-// through the same dynamic import as `model.ts`. The component-safe half of the
-// sharing story is `src/lib/share/url.ts`, which imports nothing at all.
+// The stamp: the envelope `/playground/<id>#z.<format><payload>`, HANGAR's own
+// format letters for the Lua route (`x` knob indices, `w` indices plus RGB444
+// colours; `y` and `z` reserved - all four outside the base-32 payload alphabet,
+// so BOTOR's writer can never emit one), the entry-consistency check and the
+// three landings `restored | older | unreadable` (`none` for no hash). The stamp
+// lives in the hash, never the query string (D-12). `older` is reachable only
+// through the Lua formats' shape character; a BOTOR stamp that fails the check
+// is `unreadable`, and format `x` is never removed, only stopped being emitted
+// (fixtures/wild-stamps.json holds 54 that must land forever). Model side of
+// D-18: no component names this module; url.ts is the component-safe half.
+// Decided at 10-08 (D-06, format w); see .planning/phases/10-redesign/10-08-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -111,7 +30,7 @@ import {
 } from "../tune/knobs.preset";
 import { applyKnob, baseStateFor } from "../tune/state";
 
-/** The four format letters HANGAR claims. See the header for why these four. */
+/** The four format letters HANGAR claims: outside the base-32 payload alphabet, so never BOTOR payload. */
 export const HANGAR_FORMAT_LETTERS: readonly string[] = ["w", "x", "y", "z"];
 
 /** The Lua knob-index format. One base-32 character per knob. */
@@ -119,11 +38,8 @@ export const HANGAR_FORMAT_LUA = "x";
 
 /**
  * The Lua knob-index-plus-colour format (D-06, plan 10-08). One base-32
- * character per non-colour knob, THREE per colour knob.
- *
- * NO LETTER IS ALLOCATED HERE. `HANGAR_FORMAT_LETTERS` reserved `w`, `x`, `y`
- * and `z` from the start and `w` was always the next one; this is an
- * implementation, not a claim.
+ * character per non-colour knob, THREE per colour knob. The letter was
+ * reserved in HANGAR_FORMAT_LETTERS from the start.
  */
 export const HANGAR_FORMAT_LUA_COLOUR = "w";
 
@@ -412,24 +328,13 @@ export function encodeFor(
 
 /**
  * Format `w`, under a Lua entry. Length and range first, shape last, exactly
- * as format `x` does it.
- *
- * The one step `x` does not have: a stored COLOUR has to become a knob
- * POSITION, and the comparison is made on the QUANTISED literal on both sides.
- * That is not a convenience. A Lua entry's palette is authored freely -
- * `0,200,255`, `255,90,0` - and `w` stores RGB444, so `0,200,255` goes out as
- * `0,204,255` and would match nothing on a raw string comparison. Quantising
- * both sides makes the round trip exact for every position of every colour
- * knob shipped today, which `stamp-roundtrip.sweep.spec.ts`'s Pass A proves
- * over the whole cross-product.
- *
- * A colour the knob's own list cannot name FAILS CLOSED, and that is the
- * seam 10-10 widens rather than a defect here. Nothing today can produce one:
- * the rack writes indices and `encodeFor` reads the literal at the index. When
- * the picker lands, a Lua colour knob's positions become the lattice and this
- * lookup becomes the same arithmetic `knobs.preset.ts` already uses. Until
- * then, an inbound colour off the palette is an unreadable stamp rather than a
- * silently wrong one - which is the rule the whole classifier is built on.
+ * as format `x` does it. The one step `x` does not have: a stored COLOUR has
+ * to become a knob POSITION, and the comparison is made on the QUANTISED
+ * literal on both sides - a Lua palette is authored freely (`0,200,255`) and
+ * `w` stores RGB444 (`0,204,255`), so a raw comparison would match nothing;
+ * stamp-roundtrip.sweep.spec.ts's Pass A proves the round trip over the whole
+ * cross-product. A colour the knob's own list cannot name FAILS CLOSED - an
+ * unreadable stamp rather than a silently wrong one.
  */
 function decodeLuaColour(
   knobs: readonly KnobDescriptor[],
@@ -475,7 +380,10 @@ function decodeLua(knobs: readonly KnobDescriptor[], payload: string): Landing {
 /** A BOTOR format, under a compiler-driven entry. */
 function decodeCompiler(entry: CatalogEntry, payload: string): Landing {
   const source = entry.source;
-  // The `p` row, decided BEFORE the consistency check. See the header.
+  // The `p` row, decided BEFORE the consistency check: `p<presetId>` is the
+  // untuned card's own stamp (a BOTOR base-card link), and the rebuild below
+  // can never equal it because applying a knob deletes state.preset. It lands
+  // restored at every default; any other preset id stays unreadable.
   if (
     payload[0] === STAMP_FORMAT_PRESET &&
     source.kind === "preset" &&

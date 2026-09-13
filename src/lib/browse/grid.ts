@@ -1,11 +1,8 @@
 // The browse grid's arithmetic: how many columns, and where an arrow key goes.
 //
-// It imports nothing at all - not even a type. Everything it needs arrives as a
-// number, which is what lets grid.spec.ts pin the whole keyboard model in node
-// with no DOM. That separation is the house pattern, and
-// src/lib/coverflow/slots.ts states the reason: this repository collects no
-// .svelte.spec.ts in any Vitest project, so arithmetic written inside
-// BrowseGrid.svelte would be untested and would LOOK tested.
+// Imports nothing - every input is a number, so grid.spec.ts pins the whole
+// keyboard model in node with no DOM (the house pattern: arithmetic written
+// inside a .svelte file would be untested and would look tested).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

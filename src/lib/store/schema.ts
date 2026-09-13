@@ -1,77 +1,14 @@
 // The local store's vocabulary: the key names, the version, and the record
-// shapes. Data only - no function here touches a browser, and the module
-// imports nothing at all.
-//
-// THE VERSION IS IN THE KEY NAME AND IN THE BODY, AND THE TWO DO DIFFERENT
-// JOBS. src/lib/device/snapshot.ts set the rule for the key: SNAPSHOT_KEY is
-// "hangar.snapshot.v1", so when Phase 12 needed a third string per entry it
-// wrote "hangar.snapshot.v2" BESIDE it (12-03), and the v1 record was read
-// as `system = default`, never overwritten, never deleted and never shadowed.
-// A version in the key name is a stronger guarantee than a field inside the
-// JSON, because a reader that never opens the other version's record cannot
-// misparse it: an unknown-shaped record is simply a key it does not look at.
-// Every key below ends in `.v1` for that reason, and storeKey() below is the
-// one place the suffix is spelled, so a `.v2` is a call and not a rename.
-//
-// BUT AN EXPORTED FILE HAS NO KEY NAME. Section 11 of the Bible requires
-// export and import, and 13-13 builds them; a file on somebody's disk carries
-// no `hangar.library.v1` with it. So the version goes in the body as well -
-// `schema: 1` on every record that could ever travel - and an import reads
-// the body's version the way a local read reads the key's. Both, always,
-// because each covers the case the other cannot.
-//
-// EVERY KEY HOLDS AN ENVELOPE `{ schema: 1, ... }`, not a bare array or a bare
-// map. KEEP-05 says "every stored record carries its version in the key name
-// and in the body", and a `string[]` under hangar.favorites.v1 would carry it
-// in the key only. The envelope costs eleven characters per key and makes the
-// requirement literal rather than mostly true. The one key that is NOT an
-// envelope is hangar.motion.v1, which holds the bare word `animated` or
-// `still` because 13-04 wrote it that way and e2e/browse.e2e.ts writes it
-// that way; it is a two-word preference and not a record, nothing exports
-// it, and a `.v2` would still sit beside it by the key rule. Stated here so
-// nobody "fixes" it into JSON and breaks the additive-motion proof.
-//
-// THREE OBJECTS, THREE WORDS, THREE STORES (Bible section 9). A DRAFT is
-// editable working state recovered locally - drafts.ts. A SAVED COPY is a
-// named snapshot that can be reopened or shared - library.ts. DEVICE STATE
-// is what is confirmed on a page of a module - the install store, where it
-// already lives, and NOT here. "Never use one generic 'Saved' indicator for
-// all three" is the spec's own sentence; the two record stores share a shape
-// (StoredRecord) and share nothing else, so no module can offer one word for
-// both by accident.
-//
-// hangar.collections.v1 WAS RESERVED HERE AT 13-06 AND IS SPENT AT 13-13.
-// Collections ship in v1 (13-CONTEXT D-13); their shape - many collections
-// per configuration, a session-only undo on delete, the bare "+ New
-// collection" empty state, no membership in an export - was the user's
-// decision at 13-13's checkpoint, recorded as D-22 ("many session bare no",
-// 2026-09-11). collections.ts owns the key and carries the four answers in
-// its header as the specification the Bible never wrote; local.spec.ts's
-// scan still finds the word in schema.ts and in no other 13-06 store.
-//
-// THE SURFACE'S TWO NUMBERS LIVE HERE because a sandbox record is validated
-// against them on import (transfer.ts, step 5) before any Sandbox module is
-// loaded: SURFACE_SIZE is the ZONA's 9, and SURFACE_ELEMENT_CAP is D-14 Q4's
-// sixteen with the live budget meter. 13-14's region model (src/lib/sandbox/
-// model.ts) imports both rather than re-declaring them, so a cap that moves
-// after the budget is measured (13-14's own task) moves in one place.
-//
-// THE REGION AND THE SURFACE ARE DEFINED HERE ONCE AND EXTENDED AT 13-14, NOT
-// DUPLICATED. 13-13 put the shapes here because a sandbox record carries a
-// Surface and the import validates one before any Sandbox module loads. 13-14
-// re-exports them from src/lib/sandbox/model.ts and adds what the editor needs
-// beside them (the named one-based door, the runtime type codes, the minimum
-// sizes); the one field it added HERE is a fader's `orientation`, because the
-// Bible's inspector lists orientation under Geometry (section 8) and 13-13's
-// four kinds had folded both faders into one. A record written before this
-// field existed reads as a vertical fader - the field is optional and its
-// absence IS the default - so no `.v2` is needed. THE VERSION STAYS ON THE
-// RECORD, NOT ON THE SURFACE: a Surface never travels alone (transfer.ts
-// exports the SandboxRecord, whose base carries `schema: 1`), and a second
-// `schema` on the nested surface would be the same number in two places with
-// two readers to keep in step. 13-14-PLAN.md's interfaces block draws a
-// `schema: 1` on the Surface itself; the tree's envelope rule (above) puts it
-// on the record, and 13-14 kept the tree's shape and said so.
+// shapes. Data only - nothing here touches a browser; the module imports nothing.
+// The version is in the KEY NAME (every key ends in `.v1`, spelled once by
+// storeKey, so a `.v2` sits beside its predecessor and never shadows it - the
+// snapshot.ts rule) AND in the BODY (`schema: 1` on every record, because an
+// exported file has no key name; KEEP-05). Every key holds an envelope except
+// hangar.motion.v1, 13-04's bare `animated` / `still` word. Three stores, three
+// words (Bible section 9): DRAFT (drafts.ts), SAVED COPY (library.ts), DEVICE
+// STATE (the install store, not here). Region and Surface live here, extended by
+// sandbox/model.ts, because an import validates a surface before the Sandbox loads.
+// Decided at 13-06 and 13-13 (D-22, collections); see .planning/phases/13-gui-overhaul/13-13-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -105,7 +42,7 @@ export const INTRO_KEY = storeKey("intro", SCHEMA_VERSION);
 
 /**
  * 13-04's key, adopted by name and unchanged: the value under it is the bare
- * word `animated` or `still`, not JSON (see the header).
+ * word `animated` or `still`, not JSON - e2e/browse.e2e.ts writes it that way.
  */
 export const MOTION_KEY = storeKey("motion", SCHEMA_VERSION);
 
@@ -187,7 +124,7 @@ export type Region = {
 
 /**
  * A Sandbox surface: a region list and nothing else. No thumbnail, ever. The
- * version is on the record that carries it, not here (the header says why).
+ * version is on the record that carries it, not here: a Surface never travels alone.
  */
 export type Surface = {
   readonly id: string;

@@ -1,120 +1,13 @@
 // The Sandbox's region model: what a region IS, what a surface may hold, and
 // the doors between the numbers the interface shows and the numbers the model
-// keeps. Data and pure functions only; nothing here touches a browser, the
-// minifier or a device.
+// keeps. Data and pure functions only; no browser, no minifier, no device.
 //
-// ---------------------------------------------------------------------------
-// 1. THE SHAPES ARE 13-13's, EXTENDED HERE AND NOT DUPLICATED
-// ---------------------------------------------------------------------------
-//
-// `Region`, `Surface`, `ElementKind`, `SURFACE_SIZE` and `SURFACE_ELEMENT_CAP`
-// live in src/lib/store/schema.ts, because a sandbox record is validated
-// against them on import (transfer.ts, step 5) before any Sandbox module has
-// loaded. This module re-exports them so the Sandbox has one place to import
-// from, and adds what the editor and the emitter need beside them. The one
-// field added to the schema by this plan is a fader's `orientation`
-// (schema.ts's header says why the version stays on the record and not on the
-// surface).
-//
-// ---------------------------------------------------------------------------
-// 2. ONE-BASED IN THE INTERFACE, ZERO-BASED IN THE MODEL - THE NAMED DOOR
-// ---------------------------------------------------------------------------
-//
-// The PDF's inspector shows `Column 1, Row 1` for the top-left cell. HANGAR is
-// zero-based everywhere else: `glag(0, n)` addresses LED `n = row*9 + col`,
-// the cell map below is indexed 0..80, and every Lua the emitter writes counts
-// from 0. That translation is a real interface between two numbering systems
-// and it gets a NAMED DOOR, `toDisplay` / `fromDisplay`, the way
-// src/lib/tune/view.ts already names `knobPosition` (a view position is not a
-// knob index) and `colourPosition` (a rail detent is not a lattice position).
-// The precedent's lesson, quoted from that file: an inline `knob.index` read
-// where the door should have been was MEASURED as a KEEP ON DEVICE control
-// disabling itself after a write nobody had touched. Four inline `- 1`s in
-// four components are the same bug waiting; every component goes through
-// these two functions, and 13-16's spec asserts the arithmetic appears nowhere
-// else.
-//
-// ---------------------------------------------------------------------------
-// 3. THE CAP, AND WHY THE METER IS THE REAL GATE
-// ---------------------------------------------------------------------------
-//
-// Sixteen regions (13-CONTEXT D-14 Q4), imported from schema.ts. The cap is
-// the coarse rule; the fine one is the budget meter in cost.ts, which measures
-// the emitted Setup under the pinned minifier at the RGB444 picker corner and
-// says "room for about M more" by adding regions and re-measuring. A surface
-// of sixteen tiny faders fits; a surface of eight with three-digit CCs on
-// sixteen channels might not; only the measurement knows which.
-//
-// ---------------------------------------------------------------------------
-// 4. THE MINIMUM SIZE PER KIND IS DERIVED, NOT CHOSEN (13-15)
-// ---------------------------------------------------------------------------
-//
-// 13-14 left the minimum sizes as a parameter with a provisional 3 x 3 Knob;
-// 13-15 replaced the default with the rule below, and the parameter stays so
-// a spec can still move it. Two kinds of minimum, and neither is taste:
-//
-// (a) A FADER OR AN XY PAD NEEDS TWO CELLS ALONG EVERY AXIS IT READS. Since
-//     13-15 a fader's value is computed on the library's calibrated axis
-//     (`U(y,KY)`, LED n at n*64) between the region's first and last LED
-//     CENTRES, so the top and bottom LEDs give 127 and 0 exactly (the Phase
-//     12.1 hand-off's rule); the divisor is the LED span `(h-1)*64`, and on
-//     a one-row fader that is ZERO - Lua's `//0` raises on the module on
-//     every sample. A vertical fader therefore needs h >= 2, a horizontal one
-//     w >= 2 and an XY pad 2 x 2. `minimumSizeFor` reads the orientation,
-//     which `minimumSizeOf` by kind alone cannot.
-//
-// (b) A KNOB NEEDS A RING OUTSIDE ITS DEAD ZONE, and the dead zone's radius
-//     is derived from the probe, not from the nine-cells-per-turn figure.
-//     The rotary (runtime.ts, `I[5]`) reads the angle `math.atan(dy,dx)`
-//     around the region's centre in RAW sensor units (0..127 per axis), and
-//     steps the value once per KNOB_STEP_DEG degrees of accumulated turn.
-//     Probe A Q1 measured a still finger moving ONE raw unit on one axis
-//     per sample (x 65<->66, y 66<->67 at 100 Hz); over a few samples it
-//     visits a 2 x 2 set whose diagonal is sqrt(2) raw units, and that is
-//     the spread this file takes as the jitter (JITTER_DIAGONAL_RAW - the
-//     conservative reading; the per-sample figure is 1). At radius rho from
-//     the centre a tangential spread j swings the angle by about j/rho
-//     radians, i.e. j * (180/pi) / rho degrees. The runtime's truncating
-//     accumulator (runtime.ts section 3) never steps while the spread stays
-//     under one step, so the angle is UNSTABLE - jitter alone steps the value
-//     - wherever j * 57.3 / rho >= KNOB_STEP_DEG, that is inside
-//
-//         rho0 = JITTER_DIAGONAL_RAW * (180 / pi) / KNOB_STEP_DEG raw units
-//              = 1.414 * 57.30 / 8 = 10.13 raw units (KNOB_DEAD_ZONE_RAW),
-//
-//     which is 0.71 of a cell at the uniform 128/9 = 14.2 raw units per
-//     cell (CELL_RAW). The runtime refuses samples inside it outright
-//     (`u*u+v*v<103`, KNOB_DEAD_ZONE_SQUARED = ceil(rho0^2)) and forgets the
-//     contact's previous angle there, so a finger dragged through the centre
-//     lands on the far side without a half-turn jump. EVERY FIGURE ABOVE IS
-//     RESOLUTION: it says where a turn can be read. "Nine cells of travel per
-//     turn" (D-08) is LED FEEDBACK: how many lights a finger walks past on a
-//     3 x 3 ring, which is a different number about a different thing.
-//
-//     THE INEQUALITY. The ring a finger follows on a w-wide region is the
-//     region's outer cells, whose LED centres sit (w-1)/2 cells from the
-//     centre: (w-1)/2 * CELL_RAW raw units. A region is usable when that ring
-//     lies outside the dead zone by at least one unit of per-sample jitter:
-//
-//         (w - 1) / 2 * CELL_RAW  >=  rho0 + JITTER_RAW
-//         w  >=  1 + 2 * (10.13 + 1) / 14.22  =  2.57
-//
-//     so KNOB_MINIMUM_CELLS = 3. A 2 x 2 has its ring 7.1 raw units out,
-//     inside the dead zone, and is refused; a 3 x 3's ring is 14.2 out, 3.1
-//     past it; a 4 x 4's 21.3. The measured map (calibration.ts) is not
-//     uniform - its pitches run 6..22 raw units per cell - and
-//     runtime.spec.ts prints the ring radius of every 3 x 3 placement under
-//     it; the rule here is the uniform one the plan asks for, and the two
-//     placements the measured map puts under the line are a question in
-//     13-15-SUMMARY.md, not a refusal this plan invents.
-//
-//     THE STEP, KNOB_STEP_DEG = 8, is the finest step that keeps the 3 x 3
-//     knob the Bible draws (page 3, "Turn") clear of the dead zone under the
-//     diagonal jitter: at 6 degrees rho0 is 13.5, one unit short of the 3 x
-//     3's ring; at 8 it is 10.1. Forty-five steps a turn, 128/45 = 2.84 turns
-//     from 0 to 127. Nothing about this has been felt on the pad; the bench
-//     row (docs/INSTALL-RUNBOOK.md row L) is where the figure is tested, and
-//     the constant is one number.
+// The shapes (Region, Surface, ElementKind, SURFACE_SIZE, SURFACE_ELEMENT_CAP)
+// live in store/schema.ts - an import is validated against them before any
+// Sandbox module loads - and are re-exported here so the Sandbox imports from
+// one place. Every component reads a cell through toDisplay / fromDisplay: one-
+// based shown, zero-based kept. The minimum size per kind is derived below.
+// Decided at 13-15 (the dead zone, D-08); see .planning/phases/13-gui-overhaul/13-15-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -146,7 +39,7 @@ export const SURFACE_CELLS = SURFACE_SIZE * SURFACE_SIZE;
 export const LAST_CELL = SURFACE_SIZE - 1;
 
 // ---------------------------------------------------------------------------
-// The named door (section 2).
+// The named door: one-based in the interface, zero-based in the model.
 
 /** A model coordinate (0..8) -> the number the interface shows (1..9). */
 export const toDisplay = (zeroBased: number): number => zeroBased + 1;
@@ -232,15 +125,16 @@ export const colourByte = (level: number): number => level * 17;
 export const PICKER_CORNER: readonly [number, number, number] = [15, 15, 15];
 
 // ---------------------------------------------------------------------------
-// The minimum size per kind (section 4).
+// The minimum size per kind: derived from the probe's jitter and the runtime's step, not chosen.
 
 export type CellSize = { readonly w: number; readonly h: number };
 
 /** The minimum size per kind. Absent kinds have a one-cell minimum. */
 export type MinimumSizes = Partial<Record<ElementKind, CellSize>>;
 
-// The Knob's arithmetic (section 4b). Every number below is derived from the
-// two inputs and the one design constant; none is typed twice.
+// The Knob's arithmetic. Every number below is derived from the two inputs
+// (Probe A Q1's jitter, the uniform cell pitch) and the one design constant
+// (the step); none is typed twice. The derivation is 13-15-SUMMARY.md's.
 
 /** One raw sensor unit: Probe A Q1's per-sample wobble on one axis. */
 export const JITTER_RAW = 1;
@@ -282,7 +176,7 @@ export const KNOB_MINIMUM_CELLS = Math.ceil(
 
 /**
  * The derived defaults: a Knob at the dead-zone minimum, an XY pad at two
- * cells on each axis it reads (section 4a). A fader's minimum depends on its
+ * cells on each axis it reads (a one-row fader divides by zero on the module). A fader's minimum depends on its
  * orientation and is `minimumSizeFor`'s to answer; by kind alone a fader has
  * a one-cell minimum here and the orientation rule is applied on top.
  */
@@ -300,7 +194,7 @@ function minimumSizeOf(
 
 /**
  * The minimum size of THIS region: its kind's, and for a fader two cells
- * along the axis it reads (section 4a) - the one rule the kind alone cannot
+ * along the axis it reads - the one rule the kind alone cannot
  * state. geometry.ts's `validate` reads this one.
  */
 export function minimumSizeFor(

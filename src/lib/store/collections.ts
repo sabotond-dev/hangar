@@ -1,68 +1,14 @@
-// Collections: named filing for the personal library (plan 13-13; PDF page 4's
-// COLLECTIONS section - `Live set`, `Studio experiments`, `+ New collection`).
-//
-// THE SPECIFICATION THE BIBLE NEVER WROTE. Section 11 of the design
-// specification lists recoverable drafts, named copies, favorites and
-// export/import, and never mentions collections; the PDF draws them and the
-// user chose to ship them in v1 anyway (13-CONTEXT D-13), so the shape had
-// to be decided by somebody. It was decided BY THE USER, at four forks put to
-// them with their storage and code costs, on 2026-09-11, and the answer is
-// recorded verbatim as 13-CONTEXT D-22:
-//
-//     "many session bare no"
-//
-//   A. MEMBERSHIP: MANY. A configuration may be in many collections. One id
-//      list per collection (`members`), never a field on the record. Costs a
-//      reconciliation on delete - removing a configuration removes it from
-//      every list (removeFromAll) - and a read that drops an id the library
-//      no longer carries and COUNTS the drop, which is favorites.ts's rule
-//      applied identically (readCollections returns `dropped`). The
-//      alternative, one collection per record, was cheaper and refused
-//      because `Live set` and `Studio experiments` are exactly the pair a
-//      thing belongs to both of.
-//   B. DELETE: UNDOABLE FOR THE REST OF THE SESSION. deleteCollection returns
-//      the removed collection as the undo vector and the SCREEN holds it in
-//      memory - one vector, nothing persisted, gone with the tab. No
-//      tombstone record, no expiry rule, no second shape in storage
-//      (collections.spec.ts test 3 asserts the store carries no trace after
-//      a delete). The tombstone was offered and refused; a confirmation
-//      instead of undo was offered and refused because section 11 asks for
-//      undo "where practical" and here it is.
-//   C. EMPTY STATE: BARE. When there are no collections the rail shows the
-//      PDF's `+ New collection` link and nothing else - no suggested first
-//      collection, no hidden section. This module has nothing to do for C;
-//      the route obeys it.
-//   D. EXPORT: MEMBERSHIP DOES NOT TRAVEL. transfer.ts's ExportFile has no
-//      collections field, an import always lands unfiled, and an import can
-//      never create a collection the visitor did not make (test 4). The
-//      alternative - membership travels and the collection is created on
-//      import - was refused because importing one file could create
-//      something the visitor never asked for.
-//
-// These are DECISIONS, not conventions: a later reader who finds them
-// inconvenient changes D-22 first and this header second.
-//
-// THE RECORD. hangar.collections.v1 holds `{ schema: 1, collections:
-// Collection[] }`, an envelope like every other 13-06 key, and each
-// Collection is `{ schema: 1, id, name, createdAt, members: string[] }` - the
-// version in the body too, because a collection could one day travel even
-// though D-22 says a record's membership does not. `members` are record ids
-// from drafts.ts or library.ts (a draft and a saved copy can both be filed).
-// The key was reserved in schema.ts at 13-06 as COLLECTIONS_KEY_RESERVED so
-// no other store could take the name; it is COLLECTIONS_KEY now and this
-// module is its one reader and writer.
-//
-// THE PRIMITIVE IS 13-06's. Every read is a probe classified as absent,
-// corrupt or refused before any write; a refused read declines the write
-// (a fresh record written after a refused read is every collection
-// destroyed); a corrupt envelope is replaced whole on the next write; an
-// individual malformed collection hides no neighbour. Reading never writes:
-// the drop count is reported, and the pruned list is what the next write
-// stores (favorites.ts's rule).
-//
-// THE VALIDATOR IS AN ARGUMENT (13-06's rule): this module cannot know which
-// record ids exist without importing both record stores, and the route
-// already has both lists. `isKnown(id)` is the route's closure over them.
+// Collections: named filing for the personal library (PDF page 4's COLLECTIONS
+// section). The Bible never wrote this shape; the user decided it at four forks
+// - "many session bare no" (13-CONTEXT D-22): (A) a configuration may be in
+// MANY collections - one `members` id list per collection, reconciled on delete
+// by removeFromAll, drops counted on read; (B) delete is undoable for the rest
+// of the SESSION - deleteCollection returns the collection as the undo vector,
+// nothing persisted; (C) the empty state is BARE - the route's to obey; (D)
+// membership does NOT travel - an import lands unfiled. hangar.collections.v1
+// holds an envelope of Collections, each with `schema` in its body. Every read is
+// a probe (local.ts); a refused read declines the write; `isKnown(id)` is an argument.
+// Decided at 13-13 (D-22); see .planning/phases/13-gui-overhaul/13-13-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

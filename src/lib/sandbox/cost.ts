@@ -1,55 +1,13 @@
 // The cost of an emitted surface, MEASURED under the pinned minifier at the
-// RGB444 picker corner - never estimated, never divided. Since 13-15 the
-// Timer (and, under three slots, 255/4) carries the runtime, so `fits` is a
-// statement about every string the surface emits and not the Setup alone.
-//
-// ---------------------------------------------------------------------------
-// 1. HOW A STRING IS MEASURED IN THIS TREE (lua-entries.sweep.spec.ts test 1)
-// ---------------------------------------------------------------------------
-//
-// `GridScript.compressScript` after `padReady()` - the WASM formatter throws
-// before it resolves and `checkSyntax` silently returns false, so every
-// entry point here awaits the gate first. The cost of a text is
-// `max(compressed.length, raw.length)`: the vendored `cost()` charges the raw
-// length when it is larger, which is why every stored body is CANONICAL - a
-// fixed point of the minifier - and why `canonical()` below runs the output
-// back through itself until it stops moving. The emitter is written to be a
-// fixed point already (emit.spec.ts test 1 asserts one round); canonicalising
-// here is what keeps the meter honest if a later edit is not.
-//
-// ---------------------------------------------------------------------------
-// 2. THE PICKER CORNER, FOR A SURFACE
-// ---------------------------------------------------------------------------
-//
-// A hand-authored entry is measured at its longest colour literal (D-06,
-// plan 10-08: `255,255,255`). For a surface that means EVERY REGION at level
-// 15 on all three channels, so a visitor who turns a colour rail can never
-// push a surface over the budget that the meter said fitted. `costOf`
-// measures the surface with every colour replaced by `PICKER_CORNER`; the
-// surface's own colours are never cheaper by more than a few characters and
-// never dearer.
-//
-// ---------------------------------------------------------------------------
-// 3. "ROOM FOR ABOUT M MORE" IS MEASURED, NOT DIVIDED
-// ---------------------------------------------------------------------------
-//
-// The cost of one more region is not the average of the regions already
-// there: a seventeenth-row index makes every one of that region's cells two
-// characters in `M` instead of one, a three-digit controller is two more
-// than a one-digit one, and the sixteen cap is a wall of its own. So
-// `roomFor` ADDS A REPRESENTATIVE REGION AND RE-MEASURES, again and again,
-// until the Setup would exceed the budget, the cap is reached, or the map
-// has no free window - and reports how many it managed to add. The
-// representative is the dearest a region can be in BOTH tables: in `J` a
-// three-digit controller on channel 16 at the picker corner, and in `M`
-// the surface's own LARGEST region shape, because a region's cost in `M`
-// is one character per cell it covers (two once its index passes nine) - a
-// one-cell fader beside a 2 x 6 would report room the 2 x 6 does not have.
-// On an empty surface the shape is one cell. The answer is therefore a
-// floor, which is the honest side to err on for a meter that says "room for
-// four more". Once no window of that shape is free the count goes on with
-// single cells, so a nearly full surface still gets a number rather than a
-// shrug.
+// RGB444 picker corner - never estimated, never divided. `fits` is a statement
+// about every string the surface emits (the Timer and 255/4 carry the runtime).
+// A text costs `max(compressed.length, raw.length)` under GridScript.compressScript
+// after padReady(), which is why every stored body is CANONICAL - a fixed point
+// of the minifier - and `canonical()` runs the output back through itself. The
+// picker corner is EVERY region at level 15 on all three channels, so a colour
+// rail can never push a surface the meter said fitted over the budget. "Room
+// for about M more" ADDS the dearest representative region and re-measures
+// until the budget, the cap or the map's free windows run out - a floor, never a division.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
@@ -141,7 +99,7 @@ export async function measureSurface(
   };
 }
 
-/** Every region at the picker corner (section 2). */
+/** Every region at the picker corner: level 15 on all three channels. */
 export function atPickerCorner(surface: Surface): Surface {
   return {
     ...surface,
@@ -150,7 +108,7 @@ export function atPickerCorner(surface: Surface): Surface {
 }
 
 export type SurfaceCost = MeasuredSurface & {
-  /** How many more representative regions fit before the Setup exceeds the budget (section 3). */
+  /** How many more representative regions fit before the Setup exceeds the budget - measured, not divided. */
   readonly roomFor: number;
   /** What stopped the count: the budget, the cap, or the surface being full. */
   readonly roomLimit: "budget" | "cap" | "space";

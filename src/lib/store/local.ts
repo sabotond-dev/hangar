@@ -1,58 +1,13 @@
 // The guarded primitive under every local store: read, write, remove, each
-// degrading to absent, with the store passed in.
-//
-// THIS IS THE FOURTH INSTANCE OF A SHAPE THAT HAS ALREADY SURVIVED
-// PRERENDERING, QUOTA AND A HOSTILE BROWSER. src/lib/device/snapshot.ts,
-// src/lib/browse/return.ts and the retired ScreenToggle.svelte (now
-// src/lib/sim/motion.svelte.ts) all do the same three things, and this module
-// copies them rather than rediscovering them:
-//
-//  1. THE STORE IS AN ARGUMENT. `+layout.ts` sets `prerender = true`, so every
-//     page that calls a store renders first on a server where no storage of
-//     any kind exists; a module that touched localStorage at import time
-//     would fail `npm run build` and nowhere else. Every function here is a
-//     no-op on `undefined`, the caller passes the real store from inside an
-//     effect or a click, and the name of that global appears in this header
-//     and nowhere in the code - local.spec.ts strips the comments and checks.
-//
-//  2. THE PROPERTY ACCESS IS INSIDE THE TRY. A browser configured to refuse
-//     storage can throw on `store.getItem` - the ACCESS - and not only on the
-//     call (07-RESEARCH Pitfall 9). `store.getItem(key)` is one expression and
-//     the whole of it sits inside the try, so a store that throws on access, a
-//     store that throws on use and a store that is not there all land in the
-//     same catch. local.spec.ts test 4 hands in a Proxy that throws on every
-//     property access; moving the access outside the try turns it red.
-//
-//  3. NOTHING HERE THROWS, AND A READ DEGRADES SILENTLY WHILE A WRITE TELLS
-//     ITS CALLER. A key that is not there, a value that is not JSON, JSON of
-//     the wrong shape and a store that refuses all read as `undefined`: a
-//     missing courtesy may never be the reason a page fails to paint. But a
-//     write that is dropped on a DRAFT is a lost draft, so writeJson returns
-//     `false` when setItem throws - a full quota, a private window - and the
-//     caller decides what to say. Silence is the reader's privilege, not the
-//     writer's.
-//
-// THE READER NEVER REPAIRS BY DELETING. A value that will not parse is left
-// exactly where it is: it is evidence of what went wrong, and a later version
-// of HANGAR - or a person with the developer tools open - may be able to read
-// it. A WRITER may replace it, because there is no other way to store
-// anything under that key, and snapshot.ts makes the same call ("a record
-// this version cannot read is replaced whole"). The distinction is the whole
-// of test 2.
-//
-// probe() IS THE HONEST READ, AND readJson() IS ITS CONVENIENCE. A store that
-// does read-modify-write - drafts.ts, library.ts, favorites.ts, recent.ts -
-// must not write blind after a read the store REFUSED: with no way to know
-// what is there, writing a fresh record could destroy every draft a visitor
-// has. So probe() tells absent from corrupt from refused, the read-modify-
-// write stores decline on refused and replace on corrupt, and readJson()
-// collapses all three to `undefined` for a caller that only wants the value.
-// This is snapshot.ts's REFUSED symbol, given a name a reader can print.
-//
-// THE MOTION KEY IS NOT JSON, so readString and writeString exist beside the
-// JSON pair. 13-04 stored the bare word `animated` or `still` and
-// e2e/browse.e2e.ts writes it that way; folding the key in here must not move
-// that behaviour (13-06's rule), and JSON.parse("animated") throws.
+// degrading to absent, with the store passed in (snapshot.ts's and return.ts's
+// shape). Three rules: (1) the store is an ARGUMENT - every page prerenders on a
+// server with no storage, so every function is a no-op on undefined and the
+// caller passes localStorage from an effect or a click; this module imports
+// nothing and names no window; (2) the property ACCESS is inside the try - a
+// refusing browser can throw on `store.getItem` itself; (3) nothing throws - a
+// read degrades silently, a write returns false. The reader never repairs by
+// deleting; a writer may replace. probe() tells absent from corrupt from REFUSED
+// so no store writes blind after a refused read; readJson() collapses the three.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

@@ -1,30 +1,13 @@
-// The divergence gate that replaces the read-through guarantee.
-//
-// THE TRADE, STATED RATHER THAN PRESENTED AS A FREE UPGRADE. Until plan 11-05,
-// src/lib/catalog/entries/ported.ts read `name` and `description` through
-// `presetById` on the VENDORED shelf, so a BOTOR rename could not silently
-// disagree with the catalog. That guarantee is narrow - TWO STRINGS - and it is
-// gone the moment HANGAR owns the values, which it now does, because while the
-// definitions lived upstream no bench correction to a preset could be made here
-// at all. What replaces it holds `id`, `name`, `sentence`, `category`, `knobs`,
-// `exclusive`, `quiet`, `cost` AND THE WHOLE OF `state`, and it is strictly
-// stronger: a re-sync that renames a card, adds a knob kind or changes a colour
-// still goes red and still names the card. THE DIFFERENCE IS THAT HANGAR NOW
+// The divergence gate that replaces the read-through guarantee. Until 11-05
+// ported.ts read `name` and `description` through `presetById` on the VENDORED
+// shelf - two strings a BOTOR rename could not silently move. HANGAR owns the
+// nine values now, and what replaces the guarantee holds every field AND THE
+// WHOLE OF `state`, strictly stronger. THE DIFFERENCE IS THAT HANGAR NOW
 // HAS TO SAY WHICH DIVERGENCES ARE ON PURPOSE, AND A DIVERGENCE NOBODY WROTE
-// DOWN IS A FAILURE RATHER THAN A SILENCE.
-//
-// That is what it costs. The read-through needed no maintenance because it made
-// disagreement impossible; this needs a row, a reason, a plan and a date every
-// time HANGAR changes one of the nine on purpose. The gain is that changing one
-// on purpose is now possible.
-//
-// WHAT THIS IS NOT. It is not a fidelity gate. src/lib/fidelity/
-// preset-baseline.spec.ts compares the VENDORED compiler's output against a
-// fixture captured by BOTOR's own compiler in BOTOR's own tree, and it keeps
-// importing `PRESETS` from src/vendor/ for exactly that reason - it is the
-// PORT's gate. This file is the CATALOG's gate: it holds HANGAR's nine values
-// against BOTOR's nine values. Two different questions, and running either one
-// against HANGAR on both sides would answer neither.
+// DOWN IS A FAILURE RATHER THAN A SILENCE - a row, a reason, a plan and a
+// date every time one of the nine changes on purpose. Not a fidelity gate:
+// preset-baseline.spec.ts is the PORT's gate (the vendored compiler against
+// BOTOR's fixture); this is the CATALOG's (HANGAR's nine against BOTOR's nine).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

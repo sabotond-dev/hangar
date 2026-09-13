@@ -1,25 +1,13 @@
-// The library: named copies that can be reopened or shared. The word is
-// SAVED COPY.
-//
-// WHICH OF SECTION 9's THREE OBJECTS THIS HOLDS. The second: "a named
-// snapshot that can be reopened or shared". The interface may say "Saved
-// copy", "Save copy" (the PDF's button), "Named copies" and the status word
-// "Saved" ON A COPY. It may not use "Saved" for a draft (that is "Draft saved
-// locally", drafts.ts) or for the device ("Stored on ZONA · Page N", the
-// install store). Three objects, three words, three stores.
-//
-// A COPY IS CREATED, NEVER OVERWRITTEN FROM ITS SOURCE (Bible section 11:
-// "Create a new snapshot; do not overwrite the source preset"). saveCopy
-// declines when the id already exists and says "kept", the way
-// snapshot.ts's persistIfAbsent does for the module's original; a caller
-// that wants to change a copy has rename, duplicate and delete, and each is
-// its own function with its own word. There is no "update copy": a saved
-// copy is what it was when it was saved, which is what makes "share an
-// immutable snapshot" true of the record and not only of the link.
-//
-// editedAt MOVES ON A RENAME AND createdAt NEVER DOES; a duplicate is a new
-// copy with both set to the moment it was made. The read-modify-write and
-// the refused-read rule are drafts.ts's, for the same reason.
+// The library: named copies that can be reopened or shared. The word is SAVED
+// COPY - the second of Bible section 9's three objects; the interface may say
+// "Saved copy", "Save copy", "Named copies" and "Saved" ON A COPY, never for a
+// draft (drafts.ts) or the device (the install store). A copy is CREATED,
+// NEVER OVERWRITTEN FROM ITS SOURCE (section 11): saveCopy declines an existing
+// id with "kept", and a caller that wants change has rename, duplicate and
+// delete, each its own function - there is no "update copy", which is what
+// makes "share an immutable snapshot" true of the record. editedAt moves on a
+// rename, createdAt never; a duplicate is a new copy with both set. The
+// read-modify-write and the refused-read rule are drafts.ts's.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { probe, writeJson, type LocalStore } from "./local";

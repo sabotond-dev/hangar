@@ -1,26 +1,12 @@
 // Recently used: what the visitor opened, most recent first, deduped by id,
-// capped.
-//
-// NOT ONE OF SECTION 9's THREE OBJECTS. An entry here is a fact about the
-// visitor's path, not a thing they made; the interface may say "Recently
-// used" (the PDF's rail row) and "Pick up where you left off", and it must
-// never call an item here saved. Nothing is saved by being opened.
-//
-// TWO NUMBERS, AND WHY THEY DIFFER. The PDF's rail shows `Recently used 06`,
-// so SIX is what a caller asking for the rail gets (RECENT_SHOWN). TWELVE is
-// what is kept (RECENT_CAP), for one reason: a visitor who opens seven
-// things and then reopens the sixth should still find the first behind it,
-// and a cap equal to what is shown would forget an entry the moment it
-// scrolled off the list. Twelve is two rows of the rail's six - enough for a
-// session's worth of wandering, and small enough that the list is one line
-// of JSON. The cap exists at all because an uncapped list grows without
-// bound in a store of about 5 MB shared with every draft.
-//
-// PUSHED ON OPEN, NOT ON EDIT OR ON SAVE. Opening a workspace is the act
-// that makes something "used"; an autosave every few seconds would pin the
-// current draft to the top of the list for as long as it is open, which is
-// true but useless. The caller passes the moment in, so the module is a pure
-// function of its arguments and testable without a clock.
+// capped. Not one of section 9's three objects - a fact about the visitor's
+// path; the interface may say "Recently used" and "Pick up where you left
+// off", never "saved". Two numbers: RECENT_SHOWN is the PDF rail's six,
+// RECENT_CAP is twelve, so an entry that scrolls off the shown six is still
+// behind it when a later one is reopened; the cap exists because an uncapped
+// list grows without bound in a 5 MB store. Pushed on OPEN, not on edit or
+// save - an autosave would pin the current draft to the top for as long as it
+// is open. The caller passes the moment in, so the module is pure and clockless.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { probe, writeJson, type LocalStore } from "./local";

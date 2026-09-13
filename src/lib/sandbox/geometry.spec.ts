@@ -1,26 +1,13 @@
-// The six geometry rules, in four tests (13-14 task 01).
-//
-// FOUR TESTS, AND THE COUNT NEVER MOVES. Each test covers the edge cases of
-// its rule internally and names the case in its message, so a rule that gains
-// a case gains an assertion here and not a title.
-//
-// What each test holds:
+// The six geometry rules, in four tests; each covers its rule's edge cases
+// internally and names the case in its message, so the count never moves.
 //   1. Rule 1 (on the surface) with the offending FIELD named, and rule 5 (the
-//      previous valid value survives an invalid edit) - the same surface
-//      object comes back, not a copy with the bad value in it.
+//      previous valid value survives an invalid edit - the same surface object).
 //   2. Rule 2 (overlap is unrepresentable): two regions sharing one cell give
-//      a conflict naming BOTH, and no map - the result has no `map` at all,
-//      so a caller cannot read a half-built one by accident. The negative
-//      checks the plan names (a cell written twice admitted; a half-built map
-//      returned on conflict) both land here.
+//      a conflict naming BOTH and no `map` at all.
 //   3. Rule 4 (duplicate to a free area): reading order, and a full surface
-//      that returns `no-space` with the original region list byte-identical
-//      afterwards - `JSON.stringify` before and after, not `toEqual`, because
-//      the sentence is "nothing is deleted" and a structural match would pass
-//      a list rebuilt with the same contents.
-//   4. Rule 6 (edge adjacency warns and names both; one cell of gap does
-//      not; a warning never blocks - the warned surface still validates) and
-//      the cap (the seventeenth region refused with the count).
+//      that returns `no-space` with the region list byte-identical afterwards.
+//   4. Rule 6 (edge adjacency warns and names both; a gap does not; a warning
+//      never blocks) and the cap (the seventeenth region refused with the count).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

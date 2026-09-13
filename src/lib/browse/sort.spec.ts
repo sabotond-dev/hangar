@@ -1,34 +1,13 @@
-// The two browse orders, gated against the catalog's own comparators.
-//
-// src/lib/browse/sort.ts RESTATES src/lib/catalog/index.ts's nameAsc, because
-// nameAsc is module-private there and the browse page may not import
-// $lib/catalog at runtime (D-12: entries/ported.ts reaches the vendored
-// compiler, a 131,101-byte chunk, and a page whose job is to list the catalog's
-// names must not drag it onto first paint).
-//
-// A restatement with no gate is a divergence waiting to happen, so tests 2 and
-// 3 run the shipped byFeatured() and byName() and compare id sequences element
-// for element. If somebody changes either side, one of them goes red naming the
-// sort.
-//
-// Test 4 is D-10 as amended in mechanical form: no localeCompare, no Intl,
-// anywhere in the module. 05.1-RESEARCH.md's Standard Stack row and its
-// Don't Hand-Roll row both recommend Intl.Collator and are both superseded;
-// 05.1-UI-SPEC.md W-08 agrees with this file and is not.
-//
-// DERIVED, OR RECORDED. The rule that decides every number in this file, the
-// same one filter.spec.ts states:
-//
-//   A number that is ARITHMETIC OVER THE SHIPPED DATA is derived. A number that
-//   is A REVIEW OF THE SHIPPED DATA stays a literal, in one named block, so
-//   that changing it is a decision somebody made rather than a test somebody
-//   silenced.
-//
-// So every length is LISTING.length, the featured/plain boundary is counted off
-// the data, and the NAME order is a property against a comparator written out
-// below plus two reviewable witness pairs. The NEWEST block-boundary assertion
-// that used to sit between them is retired by name in this file, where it was,
-// rather than deleted quietly.
+// The two browse orders, gated against the catalog's own comparators. sort.ts
+// RESTATES index.ts's module-private nameAsc because the browse page may not
+// import $lib/catalog at runtime (D-12), and a restatement with no gate is a
+// divergence waiting to happen: tests 2 and 3 run byFeatured() and byName()
+// and compare id sequences element for element. Test 4 is D-10 as amended in
+// mechanical form: no localeCompare, no Intl, anywhere in the module. DERIVED,
+// OR RECORDED (filter.spec.ts's rule): every length is LISTING.length, the
+// featured boundary is counted off the data, the NAME order is a property
+// against a comparator written out below plus two reviewable witness pairs. The
+// NEWEST block-boundary assertion is retired by name in this file, where it was.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

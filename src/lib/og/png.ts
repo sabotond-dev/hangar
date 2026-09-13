@@ -1,28 +1,12 @@
 // A PNG encoder with no dependency at all: truecolour, no interlacing, no
-// ancillary chunks, nothing but two functions out of Node's own zlib.
-//
-// D-15 disqualifies every obvious way to make a PNG in Node. `sharp`,
-// `node-canvas`, `skia-canvas` and `@resvg/resvg-js` are native modules; a
-// headless browser is forbidden outright; a paid service is forbidden by the
-// project. What is left is exactly enough, and three measured facts are why
-// (05-RESEARCH, "PNG with node:zlib only"):
-//
-//   - `zlib.crc32()` exists in Node 24 - verified on v24.14.0, and the
-//     package's `engines` field already says `node >= 24`. No hand-rolled
-//     256-entry CRC table, which is the part of a PNG writer people get wrong.
-//   - `zlib.deflateSync` emits an RFC-1950 zlib stream, which is precisely what
-//     an `IDAT` chunk holds. No adler32 by hand either.
-//   - A realistic 1200x630 mostly-black frame with a lime pad deflates to
-//     4,321 bytes of IDAT - a ~4 KB file against Discord's practical ceiling of
-//     a megabyte. The headroom is enormous, so there is no reason to reach for
-//     a smarter filter than None.
-//
-// THE ONE DESIGN RULE: THIS MODULE IS NODE-ONLY. It imports `node:zlib`, so a
-// component that reached it would drag a Node builtin into a browser chunk, and
-// the build error names the builtin rather than the import that caused it -
-// which is a bad afternoon. Only `src/lib/og/` and `scripts/` may import it,
-// and `png.spec.ts`'s last test walks `src/` and `e2e/` and asserts nothing
-// else does.
+// ancillary chunks, nothing but two functions out of Node's own zlib. D-15
+// disqualifies every native module and a headless browser; what is left is
+// exactly enough because `zlib.crc32()` exists in Node 24 (no hand-rolled CRC
+// table), `zlib.deflateSync` emits the RFC-1950 stream an IDAT chunk holds, and
+// a 1200x630 mostly-black frame deflates to about 4 KB against Discord's
+// megabyte ceiling, so filter None will do. THE ONE DESIGN RULE: NODE-ONLY. It
+// imports `node:zlib`, so only `src/lib/og/` and `scripts/` may import it;
+// png.spec.ts walks `src/` and `e2e/` and asserts nothing else does.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

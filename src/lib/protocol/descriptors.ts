@@ -1,38 +1,14 @@
-// The outbound instructions HANGAR is allowed to send (FOUND-01, D-06; Phase
-// 13 D-06 and D-19).
-//
-// Four of them are the walking skeleton's. The fifth, fetchSerialNumber, was
-// added by Phase 7 (07-CONTEXT D-04 amended) because the durable snapshot
-// behind PUT BACK needs a key that names one module and survives a closed tab,
-// and the browser refuses to expose the USB serial it keys its own grant on.
-// Phase 2 closed the set at five and forbade the page-change class by name.
-//
-// THREE MORE SINCE PHASE 13, PLAN 13-12, AND THE OLD RULE THAT FORBADE THEM
-// IS SUPERSEDED BY NAME. 13-CONTEXT D-06: the page target switches the
-// hardware page, and D-19: HANGAR can do anything the Editor can. So
-// pageActive (PAGEACTIVE/EXECUTE - the switch), fetchPageCount
-// (PAGECOUNT/FETCH - the enumeration, never a hard-coded four) and
-// discardPage (PAGEDISCARD/EXECUTE - reload the active page from flash, the
-// firmware-native revert, UNPROVEN on hardware) join the five. The set is
-// closed at eight; forbidden-instructions.spec.ts test 4 counts them, and
-// its tests 1 and 2 were amended in the same plan to forbid what is still
-// forbidden - the NVM erase and the page clear - rather than what D-06 asked
-// for. Nothing about the envelope those three arrive in lives here: the
-// click, the review, the ACK gate and the per-page snapshot are
-// src/lib/device/page-target.ts's and install.svelte.ts's.
-//
-// Parameter names are copied verbatim from grid-editor's
-// src/renderer/serialport/instructions.ts - SendHeartbeatImmediate :28-64,
-// FetchConfig :66-116, SendConfig :118-178, StorePage :341-370. Those names are
-// generated from firmware tables, so a paraphrase is a silent fork. The desktop
-// never sends a serial-number fetch, so that one's names (WORD0..WORD3) come
-// from the pinned package's own tables and grid_protocol.h:952-965. The three
-// page classes' names (PAGENUMBER, LASTHEADER) are read the same way, from
-// the pinned package's class table, and each builder below cites the offset.
-//
-// This is the ONLY shipped module that encodes a packet; everything else under
-// src/lib/protocol/ is decoding or policy, and forbidden-instructions.spec.ts
-// proves both that and the D-06 exclusions structurally.
+// The outbound instructions HANGAR is allowed to send (FOUND-01, D-06; Phase 13
+// D-06 and D-19): the walking skeleton's four, fetchSerialNumber (Phase 7 - the
+// durable snapshot needs a key that names one module), and since 13-12 the
+// three page instructions - pageActive (the switch), fetchPageCount (the
+// enumeration, never a hard-coded four) and discardPage (reload the active page
+// from flash, UNPROVEN on hardware). The set is closed at eight; the NVM erase
+// and the page clear stay forbidden (forbidden-instructions.spec.ts). Parameter
+// names are copied verbatim from grid-editor's instructions.ts and the pinned
+// package's class tables - they are generated from firmware tables, so a
+// paraphrase is a silent fork. This is the ONLY shipped module that encodes a packet.
+// Decided at 13-12 (D-06 / D-19); see .planning/phases/13-gui-overhaul/13-12-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { grid } from "@intechstudio/grid-protocol";

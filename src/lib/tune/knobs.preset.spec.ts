@@ -1,26 +1,12 @@
 // The spec that ties HANGAR's recovered knob semantics back to BOTOR's own
 // declaration, and proves that not one of the resulting knobs is decorative.
-//
-// TEST 2 IS THE ANTI-DRIFT MECHANISM. `KnobKind` is a label, not a binding:
-// the vendored compiler says WHICH KINDS a card exposes and nothing anywhere
-// says which `PadState` field a kind moves. HANGAR recovers the bindings in
-// knobs.preset.ts; this file holds the kind set against
-// `presetById(id).knobs` in both directions, so a re-sync that adds or removes
-// a card's knob goes red and NAMES THE CARD instead of leaving a silently
-// short rack.
-//
-// TEST 5 COMPARES COMPILED BODIES, NOT `setupLua`. `compile` writes the
-// state's stamp into the first action's MARKER NAME (`_pad.ts:2419-2421`), and
-// the stamp changes whenever any encoded field changes - so a gate that
-// compared `setupLua` would pass for a knob that moves a field the emitter
-// never reads. Measured: aurora's four `Axis` values give four distinct
-// `setupLua` strings and only TWO distinct bodies, because the wave emitter
-// branches on `antidiagonal` alone. Comparing `action.script` is what makes
-// this gate mean anything at all.
-//
-// The formatter is deliberately NOT awaited. `compile` emits Lua without
-// measuring it, and only `measure`/`cost` reach `GridScript` (`_pad.ts:3042`),
-// so this suite needs none of the 628 KB of WASM - the 08-03 precedent.
+// Test 2 is the anti-drift mechanism: `KnobKind` is a label, not a binding, so
+// this file holds the kind set against `presetById(id).knobs` in both
+// directions and a re-sync NAMES THE CARD. Test 5 compares compiled BODIES,
+// not `setupLua`: `compile` writes the stamp into the first action's marker
+// name, so `setupLua` differs whenever any encoded field does - aurora's four
+// `Axis` values give four strings and only TWO distinct bodies. The formatter
+// is deliberately NOT awaited: `compile` emits without measuring (08-03).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

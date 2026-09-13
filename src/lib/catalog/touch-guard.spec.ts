@@ -1,83 +1,13 @@
 // The class-B gate: a fast tap is a press AND a lift, and no guard may read it
-// as only one of them.
-//
-// ---------------------------------------------------------------------------
-// WHAT THE FIRMWARE SENDS, AND WHERE THAT IS ALREADY WRITTEN DOWN
-// ---------------------------------------------------------------------------
-//
-// The touch event code is `status & 0x0f`, forwarded untranslated from the
-// maXTouch T100. THIS FILE DOES NOT RESTATE THE TABLE. Two statements of it
-// already exist and a third would drift away from both:
-//
-//   - `src/vendor/botor/pad-sim.ts:228-241` - the simulator's own words, beside
-//     the constants it dispatches with, including the note that firmware
-//     coalesces a sub-cycle press-and-lift into ONE message carrying the raw
-//     T100 DOWNUP nibble and no separate DOWN or UP.
-//   - `../zona-docs/docs/ZONA_REFERENCE.md` section 4.6 - the reference, which
-//     is where a reader who does not have this repository open will look.
-//
-// The four codes that matter to a configuration author are 1 MOVE, 4 DOWN,
-// 5 UP and 9 DOWNUP, and only the first three are ever produced by a finger
-// moving slowly enough to see. 9 is the fast tap.
-//
-// ---------------------------------------------------------------------------
-// THE CONVENTION THIS FILE ENFORCES
-// ---------------------------------------------------------------------------
-//
-// There are four intents an author can have and each has ONE correct spelling:
-//
+// as only one of them. The touch event code is `status & 0x0f` from the
+// maXTouch T100 (pad-sim.ts carries the table): 1 MOVE, 4 DOWN, 5 UP, 9
+// DOWNUP - the fast tap, coalesced into one message. Four intents, one correct
+// spelling each; tests 1 and 2 police the first two (five entries once wrote
+// "ended" with no upper bound and produced NOTHING on a fast tap, 11-02):
 //   this contact ENDED   -> e == 3 or e >= 5 and e < 9
 //   this contact STARTED -> e == 4 or e > 8
 //   this contact is LIVE -> if e ~= 1 and e ~= 4 and e < 9 then return end
 //   taps only, not drags -> if e ~= 4 and e < 9 then return end
-//
-// Tests 1 and 2 police the first two. The other two spellings are self-guarding
-// - they name 9 by admitting everything at or above it - and are not triggers.
-//
-// WHY IT MATTERS, AND IT IS NOT THEORETICAL. Five surviving entries wrote
-// "contact ended" as `e == 3 or e >= 5` with no upper bound, so a fast tap was
-// classified as a lift, the press it also carried was thrown away, and the
-// configuration produced NOTHING AT ALL. Counted through the real Lua host in
-// 11-RESEARCH: LATTICE 0 messages on a fast tap against 2 on a slow one
-// (LATTICE was removed by plan 12-04; the measurement is why this file exists),
-// CHORUS 0 against 6, MORPH 0 against 4, GHOST 0 against 8. That is what the
-// bench reported as "not precise enough" - the entries were not imprecise, they
-// were ignoring the touch. Plan 11-02 fixed all five at +8 characters a site
-// and this file is why the sixth cannot happen: waves 11 to 15 author four new
-// configurations, and six entries were already writing the guard correctly, so
-// this was never a missing convention - it was an unchecked one.
-//
-// `entries/quadrant.ts` IS THE WORKED EXAMPLE OF THE FULL TREATMENT and it is
-// cited rather than restated: it not only escapes 9 from its "ended" guard, it
-// then handles `e == 9` explicitly on the onset path by sending the note-off
-// immediately, because a coalesced tap has no lift coming later to send it.
-//
-// ---------------------------------------------------------------------------
-// HOW THE SCAN WORKS, AND WHY IT IS CHAINS RATHER THAN SUBSTRINGS
-// ---------------------------------------------------------------------------
-//
-// A substring scan cannot tell `(e==1 or e==4)` - a LIVE test, where excluding
-// 9 is correct because the contact is already gone - from a bare `e==4` used as
-// an onset. So the scan collects every event-code COMPARISON in a body and
-// groups consecutive ones into CHAINS, where two comparisons join a chain when
-// the only thing between them is `and` or `or` and brackets. The intent is then
-// read off the chain rather than off one comparison, which is how SHUTTLE's
-// `(e==1 or e==4)` WAS classified as live and skipped with a reason instead of
-// being reported as a missing onset escape. Plan 12-04 removed SHUTTLE; the
-// chain rule is kept because it is the rule, not because that entry needed it.
-//
-// EVERY NEEDLE IS ASSEMBLED FROM FRAGMENTS AT RUN TIME. This file's own prose
-// and failure messages necessarily contain the exact text they forbid, and a
-// gate that matches its own source is a gate nobody can edit. The house answer
-// is `src/lib/protocol/forbidden-instructions.spec.ts`'s and
-// `lua-entries.sweep.spec.ts` test 4's: build the needle from pieces. Today
-// this file scans catalog Lua rather than source files, so the collision is not
-// yet reachable - widening it to a source scan later is one line, and it is
-// safe because of this.
-//
-// THREE TESTS, AND THE COUNT NEVER MOVES. Each loops over the catalog
-// internally and names the entry, the event and the branch, so a wave that adds
-// or removes a configuration moves no number here.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

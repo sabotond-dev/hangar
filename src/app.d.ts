@@ -11,10 +11,7 @@ declare global {
     // interface Error {}
     // interface Locals {}
     // interface PageData {}
-    // PageState carried `chosen` from Phase 4 to 13-09 - the coverflow's
-    // shallow pushState when the centre pad was chosen. The workspace has no
-    // chosen state, so the interface is empty and stays declared for the
-    // next route that needs one.
+    // Empty since 13-09 (the coverflow's `chosen` left with it); declared for the next route that needs one.
     // interface PageState {}
     // interface Platform {}
   }

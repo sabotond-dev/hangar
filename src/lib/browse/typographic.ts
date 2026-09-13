@@ -1,31 +1,13 @@
-// ONE display transform, applied at render time and nowhere else.
-//
-// It replaces an ASCII apostrophe standing BETWEEN TWO LETTERS with U+2019 and
-// changes nothing else: no quotes, no ellipses, no dashes, and no apostrophe at
-// a word edge - pads' stays pads', 'tis stays 'tis, rock 'n' roll stays as
-// authored. Those are already correct, and a broader transform would stop being
-// typography and start editing copy.
-//
-// WHY IT EXISTS AND WHY IT IS NOT A DATA FIX.
-// Three catalog descriptions carry a straight apostrophe and this phase is what
-// puts them on screen. Two are HANGAR's own - GHOST's and MORPH's - and plan
-// 05.1-05 corrects those AT SOURCE. The third is Radar's, and its source is
-// src/vendor/botor/_pad.ts: vendored copy that may never be edited (Phase 3
-// D-04, held by src/lib/fidelity/vendored-diff.spec.ts, mirrored byte-equal in
-// front-door.ts and listing.ts and held there by catalog.spec.ts,
-// front-door.spec.ts and listing.spec.ts). So the card shows finger's with a
-// typographic apostrophe while every one of those equality gates goes on
-// matching the vendored bytes.
-//
-// NOT applied to the meta and og:description tags in
-// src/routes/playground/[id]/+page.svelte. Those stay byte-equal to their source and
-// e2e/first-experience.e2e.ts reads them.
-//
-// NOTHING COMPILED CHANGES. Descriptions are metadata, never Lua, so the 908
-// character budgets, the compressScript fixed points, frames.json and every
-// gate that hashes a rendered pad are all untouched by this file.
-//
-// This module imports nothing.
+// ONE display transform, applied at render time and nowhere else: an ASCII
+// apostrophe BETWEEN TWO LETTERS becomes U+2019, and nothing else changes - no
+// quotes, ellipses or dashes, no apostrophe at a word edge (pads' stays pads').
+// It exists because Radar's description carries a straight apostrophe in
+// src/vendor/botor/_pad.ts, vendored copy that may never be edited and is
+// mirrored byte-equal into front-door.ts and listing.ts under three equality
+// gates; the card shows finger's typographically while every gate goes on
+// matching the vendored bytes. Not applied to the meta / og:description tags
+// (e2e/first-experience.e2e.ts reads them byte-equal). Descriptions are
+// metadata, never Lua, so nothing compiled changes. Imports nothing.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

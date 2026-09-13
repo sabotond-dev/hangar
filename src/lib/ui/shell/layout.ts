@@ -1,56 +1,15 @@
 /**
- * THE SHELL'S NUMBERS, WRITTEN ONCE (plan 13-05, 13-CONTEXT.md D-01, D-14 Q9,
- * D-17). Every proportion the frame draws is declared here and imported;
- * no shell component writes any of these numbers itself, and shell.spec.ts
- * reads the frame's resolved values against this module rather than against
- * a retyped table.
- *
- * PROVENANCE, AND THE CONFIDENCE THAT COMES WITH IT. The pixel figures below
- * were taken by 13-RESEARCH.md section 1 off bible/HANGAR for ZONA.pdf pages
- * 2 to 5 READ AS RASTER IMAGES AT A 1500px RENDER WIDTH. They are MEDIUM
- * confidence for that reason - a raster measurement, not a vector one - and
- * should be read as plus or minus 10%. The centre surface on page 3 measures
- * 571 square, just under the specification's "practical maximum around
- * 600px", which is what puts the render at or near 1:1 with a 1500px design
- * viewport rather than the 1440 the specification's section 7 is written for.
- *
- * THE SPECIFICATION'S 200 / FLEXIBLE / 300 IS SUPERSEDED BY D-14 Q9. Section
- * 7 says "start with a 200px rail, a flexible center, and a 300px inspector"
- * at 1440, and section 13's whole responsive table is keyed to a 300-340px
- * inspector. The PDF draws 224 / 820 / 456 at 1500 - an inspector about 50%
- * wider than the specification allows. D-01 makes the PDF primary on look,
- * and the reason is arithmetic rather than taste: the inspector's 2 x 2
- * numeric grid on page 3 is two 190px fields plus a 22px gutter, 402px,
- * which does not fit in 300 and would collapse to one column. So the
- * inspector is a fraction of the viewport, clamped, and section 13's table is
- * re-derived below as fractions with the breakpoints kept.
- *
- * SECTION 13's TWO INSPECTOR BANDS, QUOTED AGAINST THE RIGHT ROWS
- * (bible/HANGAR-ZONA-GUI-design-specification.md:362-363): 300-340px at 1440
- * and above; 268-300px at 1024-1439. At 1440 and above the PDF's fraction
- * wins (about 30%, clamped 380-456) - above the specification's own 300-340
- * for that row, by D-14 Q9. At 1024-1439 the specification's own 268-300
- * IS the band used: the 402px grid does not fit there either, but neither
- * does a 456px inspector beside a usable surface at 1024, so the row keeps
- * the specification's figure and the grid is the inspector's to reflow.
- *
- * THE TYPE SCALE IS THE PDF's MEASURED 36 / 30 / 17 (page title / panel
- * title / group title), taken off the PDF at 1440. Section 12's WRITTEN
- * 28-32 / 20 / 14 is OVERRIDDEN BY MEASUREMENT per D-17 - overridden, not
- * reconciled: the two are about 20% apart and nothing was averaged. D-14 Q9
- * had settled only the inspector width on the PDF's authority; the planner
- * extended that to the type scale and, per D-01, asked rather than assumed,
- * and the user chose the PDF's. 13-03 declares the sizes as the .type-*
- * roles in src/app.css (36 / 30 / 17); this header is the single place the
- * decision and its provenance are stated.
- *
- * THE TWO SECTION 13 RULES THAT ARE NOT WIDTHS, because they are the easiest
- * to lose: touch targets are sized by pointer capability - "(pointer:
- * coarse)" raises every target to COARSE_TARGET - and never by viewport
- * width; and an orientation change must not reset work. The first is a test
- * (shell.spec.ts test 6 asserts the media query's own text). The second is
- * not reachable from a unit test and is recorded as untested in
- * 13-05-SUMMARY.md; the e2e suite's viewport work is where it would go.
+ * THE SHELL'S NUMBERS, WRITTEN ONCE (13-CONTEXT D-01, D-14 Q9, D-17). Every
+ * proportion the frame draws is declared here and imported; no shell
+ * component writes any of these numbers, and shell.spec.ts reads the frame's
+ * resolved values against this module. The pixel figures were taken off the
+ * PDF's pages 2 to 5 as raster images at a 1500px render width (plus or minus
+ * 10%). The PDF's 224 / 820 / 456 supersedes the specification's 200 /
+ * flexible / 300 (D-14 Q9: the inspector's 2 x 2 grid is 402px and does not
+ * fit in 300), so the inspector is a fraction of the viewport, clamped, and
+ * section 13's table is re-derived as fractions with the breakpoints kept. The
+ * type scale is the PDF's measured 36 / 30 / 17 (D-17; app.css's .type-* roles).
+ * Decided at 13-05; see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */
@@ -98,32 +57,20 @@ export const NUMERIC_GRID_W = NUMERIC_FIELD_W * 2 + NUMERIC_GUTTER;
 export const INSPECTOR_INSET = 26;
 
 /**
- * THE GRID FITS FROM 454, AND THE PLAN'S FLOOR IS 380 - A FINDING, NOT A
- * FIX (13-05, 2026-09-11). 402 plus two 26px insets is 454: the PDF's 456
- * holds the grid with 2px to spare, which is the arithmetic D-14 Q9 rested
- * on and shell.spec.ts test 5 asserts. But the plan's clamp floor of 380
- * does not hold it (380 - 52 = 328), and neither does the fraction at the
- * 1440 breakpoint (0.304 x 1440 = 438, less 52 = 386): the two-column grid
- * fits only from about 1494px of viewport (454 / 0.304). Below that the
- * grid must reflow to one column or its fields must narrow - which is the
- * inspector's schema renderer's (13-09) to do, and the user's to know - or
- * the floor must rise to 454, which makes the wide inspector all but fixed.
- * Recorded here and asserted as a known shortfall in test 5 rather than
- * decided silently (D-01).
+ * The grid fits from 454 (402 plus two 26px insets); the PDF's 456 holds it
+ * with 2px to spare (shell.spec.ts). The clamp floor of 380 does not, and the
+ * fraction at 1440 (438 less 52 = 386) does not either: the two-column grid
+ * fits only from about 1494px of viewport. A finding, not a fix (13-05);
+ * D-21 answers it below with a reflow rather than a higher floor.
  */
 export const GRID_FITS_INSPECTOR = NUMERIC_GRID_W + INSPECTOR_INSET * 2;
 
 /**
- * D-21 (13-CONTEXT.md, given 2026-09-11, "reflow"): THE FLOOR STAYS AND THE
- * GRID REFLOWS. The inspector keeps INSPECTOR_MIN at 380; the 2 x 2 numeric
- * grid (page 5's CC number / Channel pair under MIDI output, and any other
- * two-field row the schema renders) is two columns when the INSPECTOR is at
- * least this wide and one column below. This is the arithmetic above under
- * its own name, written once here and read by the inspector's renderer
- * (TuningRegion.svelte, 13-09) through a ResizeObserver rather than as a
- * container-query literal, because a container query cannot read a custom
- * property and D-21 says the number lives here and not in a component.
- * Nothing else in the inspector changes shape at this width.
+ * D-21 ("reflow"): the floor stays at 380 and the 2 x 2 numeric grid is two
+ * columns when the inspector is at least this wide, one column below. Written
+ * once here and read by TuningRegion.svelte through a ResizeObserver (a
+ * container query cannot read a custom property; tune-ui.spec.ts asserts the
+ * number is written in no component). Nothing else changes shape at this width.
  */
 export const NUMERIC_GRID_REFLOW = GRID_FITS_INSPECTOR;
 
@@ -131,55 +78,20 @@ export const NUMERIC_GRID_REFLOW = GRID_FITS_INSPECTOR;
 export const SURFACE_MAX = 600;
 
 /**
- * THE INTRO FITS THE SCREEN (plan 13.1-01; 13.1-CONTEXT.md D-01; bench line
- * 1, 2026-09-12, verbatim: "I dont want the index page to be scrollable,
- * always fit on the screen"). The numbers the intro's fit arithmetic reads,
- * declared here like every other shell number and handed to Intro.svelte as
- * UNITLESS custom properties, because the CSS multiplies them by a length.
- *
- * HOW THE FIT WORKS, in one paragraph. src/routes/+layout.svelte makes the
- * intro's centre the height the viewport leaves after the header and the
- * footer AS THEY RENDER (a 100dvh flex column, never an arithmetic on
- * FOOTER_H: the footer is min-block-size FOOTER_H and renders taller - its
- * licence row is a second 44px line - so a calc on the constant would leave
- * 71px of document scroll). The centre is a size container and the intro
- * reads its height as 100cqh. INTRO_UNIT, in CSS, is one PDF pixel at the
- * current height: min(1px, 100cqh / INTRO_FIT_H). Every vertical measure in
- * the intro is the PDF's number times a scale: the TYPE scales with the unit
- * and is floored (the headline never below 34px, the sub-lines 15, the card
- * titles 18; the micro and helper roles never scale); the SPACING scales with
- * a steeper ramp that reaches zero at INTRO_SQUEEZE_FROM of the PDF's height,
- * so gaps give before words do; the hero's square is the smaller of its
- * column's width and the height its row leaves (HeroSurface.svelte, cq units
- * on the square's own stage). Below the compact band (1024) none of this
- * applies: the columns stack (13-07) and the phone may scroll - D-01 is the
- * user's rule about the desktop, and deferred-items D.10 (surface first on a
- * phone) is still open.
- *
- * WHAT GIVES WHEN THE VIEWPORT IS SHORT, in order: the spacings (the intro's
- * paddings and gap, the words column's margins, the cards' padding, the
- * strip's padding) along the ramp; the type down to its floors; the hero's
- * surface, which takes whatever height the row leaves. Nothing 13-07 pinned
- * is hidden at any height. Below a centre of about INTRO_SQUEEZE_FROM x
- * INTRO_FIT_H (about 280px, a desktop viewport under about 480px tall with
- * the shell's header and footer) the spacings are zero and the type is at its
- * floors, and the intro overflows its box and is clipped by the centre's
- * overflow: hidden - a desktop that short is not one the bench named, and it
- * is stated here rather than promised away. At a centre TALLER than
- * INTRO_FIT_H the strip stays at the foot and the columns row grows: the
- * hero panel stretches with it and its square, width-bound by then, sits
- * centred in the room the panel's two text rows leave.
- *
- * INTRO_FIT_H IS MEASURED OFF THE TREE, NOT THE PDF, and the difference is
- * stated: PDF page 1 at the 1500px render is 1042 tall and its centre (less
- * the 76 header and the PDF's 50 footer) is 916; the intro as 13-07 built it
- * at the PDF's numbers renders 937 tall at any wide viewport (measured in
- * chromium, 2026-09-12: pad 57 + the hero's 681 + gap 44 + the strip's 107
- * + pad 48), 21 taller than the PDF's page because 13-07 stacks the strip's
- * number above its word where the PDF sets it beside, and the hero's two
- * rows are a few pixels taller than the PDF's. At a centre of 937 or more
- * nothing scales and the intro is exactly 13-07's. MEDIUM confidence, a
- * raster-and-DOM measurement like every other figure here.
+ * THE INTRO FITS THE SCREEN (13.1-CONTEXT D-01: "always fit on the screen").
+ * The numbers the intro's fit arithmetic reads, handed to Intro.svelte as
+ * UNITLESS custom properties. The centre is the height the viewport leaves
+ * after the header and footer AS THEY RENDER (a 100dvh flex column, never a
+ * calc on FOOTER_H - the footer renders taller than its minimum); INTRO_UNIT
+ * is one PDF pixel at the current height, min(1px, 100cqh / INTRO_FIT_H); the
+ * TYPE scales with the unit down to its floors (headline 34, sub-lines 15,
+ * card titles 18), the SPACING on a steeper ramp that reaches zero at
+ * INTRO_SQUEEZE_FROM, so gaps give before words do; the hero's square takes
+ * the smaller of its column's width and its row's height. Below the compact
+ * band the columns stack and the phone may scroll. INTRO_FIT_H is measured
+ * off the tree (937 at any wide viewport, chromium 2026-09-12), 21 taller than
+ * the PDF's 916 because 13-07 stacks the strip's number above its word.
+ * Decided at 13.1-01; see .planning/phases/13.1-bench-corrections-four/13.1-01-SUMMARY.md
  */
 export const INTRO_FIT_H = 937;
 

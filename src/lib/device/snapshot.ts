@@ -1,98 +1,13 @@
-// The module's original, kept somewhere a closed tab cannot reach.
-//
-// This is the first persistent state HANGAR has ever had, and it exists for one
-// sentence in the requirements: PUT BACK survives a closed tab (SAFE-04). The
-// install store takes the snapshot into MEMORY first and that copy is the
-// safety rail; what lives here is the courtesy that makes the rail reach into a
-// fresh tab. Four decisions a reader would otherwise reverse:
-//
-//  1. THE KEY IS THE MODULE'S SERIAL, NOT A HASH OF THE FETCHED STRINGS. The
-//     32-character key comes from SERIALNUMBER/REPORT (07-01's moduleKeyOf), read
-//     off the wire and addressed to the ZONA. A content key looks tidier and is
-//     broken: the fetched strings change the instant TRY ON DEVICE writes, so a
-//     record keyed by their hash stops finding its own snapshot at exactly the
-//     moment PUT BACK matters. The serial is the one thing about the module
-//     that a write does not change.
-//
-//  2. THE RECORD IS KEYED BY PAGE UNDERNEATH THE MODULE. A visitor can change
-//     the ZONA's page between the snapshot and a write (07-RESEARCH Pitfall 4).
-//     Firmware refuses a cross-page write with a NACK, which is a backstop and
-//     not a design; the design is that page 3's original and page 1's original
-//     are two entries, so a page change accumulates a second snapshot rather
-//     than shadowing the first, and PUT BACK writes the page it snapshotted.
-//
-//  3. AN EXISTING PAGE ENTRY IS NEVER OVERWRITTEN. This record is the module's
-//     ORIGINAL, not its latest. Once TRY ON DEVICE has written, a re-connect's
-//     fetch returns HANGAR's own configuration; overwriting would destroy the
-//     only copy of what the visitor came in with and PUT BACK would put HANGAR
-//     back. persistIfAbsent says so in its name and returns "kept" when it
-//     declined. A malformed entry is the one exception: it was never a copy of
-//     anything, so a valid one may take its place.
-//
-//  4. NOTHING HERE DELETES ANYTHING. There is no clear, no forget, no remove
-//     (07-UI-SPEC Z-13). Revoking the site's permission to see a module is not
-//     a reason to destroy somebody's only copy of their own configuration, and
-//     FORGET THIS ZONA's amended explanation promises exactly that. The store
-//     type carries `removeItem` only because it is the shape return.ts
-//     established and the caller hands the same object to both; NO FUNCTION IN
-//     THIS MODULE CALLS removeItem, and snapshot.spec.ts scans for it.
-//
-// FOUR KEYS SINCE PHASE 13 (12-03, 12.1-07, 13-17), AND THE OLDER ONES ARE
-// READ, NEVER WRITTEN. A `.v1` entry holds two strings; a `.v2` entry holds
-// three, because since Phase 12 HANGAR writes the SYSTEM element's page-init
-// slot as well as the touch element's Setup and Timer; a `.v3` entry holds
-// four, because since Phase 12.1 (D-03) it writes the system element's Timer
-// too - the library's second half; a `.v4` entry holds five, because since
-// Phase 13 (13-17, D-18 / D-19) it writes the system element's utility slot
-// as well - the Sandbox runtime's second slot, whose factory body is the
-// module's page-next - and PUT BACK has to put all five back. Rules 3 and 4
-// decide what happens to the records that already exist, and 12-03's two
-// rules are repeated here one version on, verbatim in their shape:
-//
-//   - `readSnapshot` reads v4 first. When there is none it reads v3 and
-//     returns the entry with `systemUtility` set to the DEFAULT the caller
-//     passed in and `fromV3: true` beside it, because a record taken before
-//     13-17 was taken from a module whose utility slot HANGAR had never
-//     written - which is to say a factory one, page-next. When there is no v3
-//     entry either it reads v2 and substitutes `systemTimer` as well with
-//     `fromV2: true` (12.1 D-22); when there is no v2 entry it reads v1 and
-//     substitutes `system` too with `fromV1: true`; a v1 entry has no system
-//     string at all, so all THREE defaults stand in and `fromV1` alone says
-//     so. Writing a default back is therefore leaving the module as the
-//     visitor found it, and it is never guessed silently: the flags are on
-//     the returned entry and the store publishes them.
-//   - `persistIfAbsent` writes v4 ONLY. It never writes v3, v2 or v1 and
-//     never deletes any: a record left by a schema this version does not own
-//     is not this version's to touch, and a browser that opens an older
-//     deploy of HANGAR after this one still finds its own record where it
-//     left it. An older entry for the same module and page is "kept" too,
-//     exactly as 12-03 ruled for v1 under v2, because a v4 entry beside it
-//     would SHADOW it on the next read, which is the same loss with a longer
-//     name.
-//
-// THE DEFAULTS COME FROM THE CALLER, and they have to. This module imports
-// NOTHING - snapshot.spec.ts test 1 asserts zero specifiers of any kind,
-// `import type` included - and all three strings are properties of the
-// pinned protocol package. install.svelte.ts already resolves that package
-// lazily inside an action, so it passes them in; the alternative would be a
-// fifth static specifier on the first paint of `/playground/{id}/` for a
-// 24-character, a 22-character and a 19-character constant.
-//
-// THE STORE IS AN ARGUMENT AND THIS MODULE IMPORTS NOTHING. Zero specifiers,
-// `import type` included, for the reason src/lib/browse/return.ts gives: the
-// pages that call this are prerendered, and on the server there is no storage
-// of any kind, so every function is a no-op on `undefined`. In the browser the
-// caller passes `localStorage`, and it reads that property inside a try of its
-// own, because a browser configured to refuse storage can throw on the property
-// ACCESS and not only on use (07-RESEARCH Pitfall 9). The name of that global
-// appears in this header and nowhere in the code; the spec strips the comments
-// and checks.
-//
-// NOTHING HERE THROWS. A store that throws on getItem, a quota that is full on
-// setItem, a record left by a schema this version does not know, JSON that is
-// not JSON: every one of them degrades to "absent" or "unavailable", and the
-// caller's in-memory copy stands. A missing courtesy may never be the reason a
-// visitor has no way back.
+// The module's original, kept where a closed tab cannot reach it (SAFE-04: PUT
+// BACK survives a closed tab); the install store's in-memory copy is the safety
+// rail, this the courtesy that reaches a fresh tab. Four rules: (1) the key is
+// the module's SERIAL, not a hash of strings a write changes; (2) entries are
+// keyed by page under the module; (3) an existing page entry is NEVER
+// overwritten - persistIfAbsent returns "kept"; (4) nothing here deletes. Four
+// keys, v1..v4 (two to five strings): v4 is written, the older three read and
+// never touched, the caller's firmware defaults standing in for the strings an
+// older entry lacks (fromV1 / fromV2 / fromV3 say which). Imports nothing, names
+// no window: the caller passes localStorage; no-op on undefined; nothing throws.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -145,7 +60,7 @@ export type ReadEntry = ConfigQuint & {
   readonly fromV3: boolean;
 };
 
-/** The three defaults a read substitutes, passed in by the caller (see the header). */
+/** The three defaults a read substitutes, passed in by the caller: this module imports nothing. */
 export type SnapshotDefaults = {
   readonly system: string;
   readonly systemTimer: string;
@@ -451,10 +366,10 @@ export function readSnapshot(
  *
  * A store whose getItem throws is "unavailable" rather than a blind write:
  * with no way to know whether an entry exists, writing could overwrite one,
- * and rule 3 outranks the courtesy.
+ * and never overwriting (rule 3) outranks the courtesy.
  *
  * A V3, V2 OR V1 ENTRY FOR THE SAME PAGE IS "kept" TOO, and it is left
- * exactly where it is. Rule 3 is about the visitor's only copy, not about a
+ * exactly where it is. Never overwriting (rule 3) is about the visitor's only copy, not about a
  * key: writing a v4 entry beside an older one would put HANGAR's own
  * configuration under the newest key on a re-connect, and readSnapshot reads
  * v4 first, so the original would be shadowed rather than destroyed - which

@@ -1,20 +1,12 @@
-// HANGAR's compile / cost / fit / measure / validate surface.
-//
-// Every entry point here awaits the FOUND-05 gate as its first statement, so
-// nothing HANGAR exposes can observe the un-initialised formatter: no throw
-// from the measuring path, and no "not-ready" diagnostic masquerading as a
-// syntax error. Nothing else in HANGAR imports the vendored compiler's
-// measuring functions directly.
-//
-// compile() itself does not need the formatter - it emits Lua without ever
-// measuring it - but compilePreset and compileState await the gate anyway.
-// Every caller of compile in HANGAR immediately costs the result, and one gate
-// across the whole surface is a rule that cannot be misapplied.
-//
-// The simulator is NOT part of this surface and is NOT gated. PadSim takes a
-// PadState, never Lua, and renders with the formatter uninitialised; whoever
-// needs it imports it straight from the vendored pad-sim module, so the catalog
-// never waits on a 628 KB WASM download to draw a frame.
+// HANGAR's compile / cost / fit / measure / validate surface. Every entry point
+// awaits the FOUND-05 gate (./ready) as its first statement, so nothing HANGAR
+// exposes can observe the un-initialised formatter - no throw from the
+// measuring path, no "not-ready" diagnostic masquerading as a syntax error;
+// nothing else in HANGAR imports the vendored compiler's measuring functions.
+// compile() itself needs no formatter, but every caller immediately costs the
+// result, and one gate across the whole surface cannot be misapplied. The
+// simulator is NOT part of this surface and is NOT gated: PadSim takes a
+// PadState, never Lua, so the catalog never waits on the WASM to draw a frame.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { padReady } from "./ready";

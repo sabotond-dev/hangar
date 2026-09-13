@@ -1,53 +1,15 @@
 /**
- * THE BRIDGE BETWEEN A ROUTE AND THE SHELL (plan 13-05).
- *
- * The shell is mounted ONCE, in src/routes/+layout.svelte, and knows nothing
- * about configurations: it renders named slots. A SvelteKit layout cannot
- * take snippets from the page it wraps - the page is the layout's children
- * and nothing else - so the slots are filled through this module. A route
- * calls fillShell() from an effect and gets back the function that empties
- * it; the layout reads `shell` and renders what it finds. Snippets are
- * values in Svelte 5, so a route can hand its rail, its inspector and its
- * destination zone over as snippets without the shell learning what is in
- * them.
- *
- * THREE SHAPES, AND THE THIRD IS THE BENCH'S. `variant: "app"` is the frame
- * the PDF draws on pages 2 to 5 (header with nav, context bar, rail, centre,
- * inspector, footer). `variant: "intro"` is page 1's exception (a header
- * with the wordmark, a secondary link and the connection control, no nav, no
- * context bar, no rail, no inspector). When NO route has filled the shell
- * the layout renders the announcer, the page and the footer and nothing
- * more. Every visitor-facing route fills the shell since 13-09 (/ at 13-07,
- * /playground/ at 13-08, /playground/[id] at 13-09); the unfilled shape
- * stays for the seven instruments under /dev/, which are bench pages with
- * their own chrome and fill nothing - so 13-09 kept the branch it was to
- * remove, and says so here rather than putting a header on the bench.
- *
- * THE FILL IS ONE $state.raw VARIABLE BEHIND A GETTER, NOT A PROPERTY ON A
- * RAW OBJECT - A DEFECT FOUND AND FIXED ON 2026-09-11 (plan 13-09). From
- * 13-05 to 13-09 `shell` was `$state.raw({ fill })` and fillShell() wrote
- * `shell.fill = fill`. A property write on a raw-state OBJECT is not
- * tracked - only reassigning the variable is - so the layout's $derived
- * never re-read the fill and no route's snippets reached the frame: on a
- * served build the gallery's rail, the intro's Quick guide and the
- * workspace's rail and inspector were all absent, while the prerendered
- * DATA fill (variant, section, breadcrumb, status) drew the frame around
- * them, which is why every earlier e2e title stayed green. The fill is now
- * a module-level $state.raw VARIABLE, reassigned whole, read and written
- * through `shell.fill`'s getter and setter so every caller and
- * shell.spec.ts keep their shape and the cleanup's === guard still holds
- * (raw state proxies nothing, so the object read back is the object
- * written). Raw rather than deep, for the reason 13-05 gave: the fill is
- * replaced whole, never mutated a field at a time, and a deep proxy over
- * snippet functions buys nothing.
- *
- * THE DEVICE CHROME LEFT THE FILL AT 13-11. 13-05 reserved `connection` and
- * `deviceActions` here as snippets a route would hand over; the header's
- * control and the footer's Device actions must exist on every page, so the
- * layout mounts them itself and no route names them. A fill that carries a
- * live store value (`device`, the install phase) is re-made by the route's
- * effect when that value moves; the snippets in it are the same functions,
- * so the frame's slots are not re-created - only the bar's clause changes.
+ * THE BRIDGE BETWEEN A ROUTE AND THE SHELL. The shell is mounted once, in
+ * src/routes/+layout.svelte, and renders named slots; a layout cannot take
+ * snippets from the page it wraps, so a route calls fillShell() from an
+ * effect (and gets back the function that empties it) and the layout reads
+ * `shell.fill`. Three shapes: `variant: "app"` is the PDF's frame on pages 2
+ * to 5, `variant: "intro"` is page 1's exception, and an unfilled shell is
+ * the announcer, the page and the footer - the seven /dev/ instruments' shape.
+ * The fill is one module-level $state.raw VARIABLE behind a getter, reassigned
+ * whole: a property write on a raw-state object is not tracked (13-09's find).
+ * The device chrome left the fill at 13-11 - the layout mounts it on every page.
+ * Decided at 13-05 and 13-09; see .planning/phases/13-gui-overhaul/13-09-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

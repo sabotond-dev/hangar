@@ -1,34 +1,17 @@
-// The class-B gate's scanner: the fast-tap needles, in one place.
-//
-// MOVED HERE FROM touch-guard.spec.ts BY PLAN 13-14, VERBATIM. The gate scans
-// hand-authored catalog entries; the Sandbox's emitter (src/lib/sandbox/
-// emit.ts) produces Lua that is not a catalog entry and has to obey the same
-// two rules, and library.spec.ts had already re-assembled the needles once for
-// the touch library. A third copy would be a third thing to keep in step, so
-// the scanner is a module now and the spec imports it. Nothing in it changed:
-// the comparison regex, the chain grouping, the branch extraction and the two
-// rule predicates are the gate's own text, and touch-guard.spec.ts's three
-// tests and their counts are unmoved.
-//
-// EVERY NEEDLE IS ASSEMBLED FROM FRAGMENTS AT RUN TIME. The gate's header says
-// why: its prose and failure messages necessarily contain the exact text it
-// forbids, and a gate that matches its own source is a gate nobody can edit.
-// The fragments are exported so a caller's failure messages can be built the
-// same way.
-//
-// THE CONVENTION (the gate's header, restated in one line each):
-//
+// The class-B gate's scanner: the fast-tap needles, in one place, moved here
+// from touch-guard.spec.ts at 13-14 verbatim so the Sandbox's emitter and the
+// touch library can be held to the same two rules without a third copy. EVERY
+// NEEDLE IS ASSEMBLED FROM FRAGMENTS AT RUN TIME: the gate's prose and failure
+// messages necessarily contain the text it forbids, and a gate that matches its
+// own source is a gate nobody can edit; the fragments are exported so a caller
+// builds its messages the same way. The convention, one line each:
 //   this contact ENDED   -> e == 3 or e >= 5 and e < 9   (`endedEscapes`)
 //   this contact STARTED -> e == 4 or e > 8              (`startedAdmits`)
 //   this contact is LIVE -> if e ~= 1 and e ~= 4 and e < 9 then return end
 //
-// A chain naming code 1 is a LIVE test and is skipped by the onset rule
-// (`isLiveTest`), because excluding 9 there is correct: a coalesced tap is
-// already over.
-//
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
-/** Assembled at run time, never written out. See the header. */
+/** Assembled at run time, never written out: a gate that matches its own source is a gate nobody can edit. */
 export const F = (...parts: string[]): string => parts.join("");
 
 // The pieces every needle and every message is built from.

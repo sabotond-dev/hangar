@@ -1,68 +1,14 @@
 // Randomize's roll (SURPRISE ME until 13-09): a fresh index for every knob in
-// scope, re-rolled until it fits.
-//
-// PURE AND INJECTABLE, which is the whole design. `rng` and `fits` are
-// arguments, so the property test is deterministic and the bound is reachable
-// without a compiler that lies. This module imports nothing at run time - a
-// type and nothing else - so it costs no chunk anywhere and can be exercised
-// two thousand times per entry without instantiating a thing.
-//
-// MEASURED: IT NEVER LOOPS. Over 1,080 kind combinations and 16,645 knob
-// combinations across the nine shelf cards, nothing this compiler can produce is
-// over 908, and every Lua entry was proven in budget across its whole knob
-// cross-product at build time in Phase 8. The bound and the ladder fallback are
-// correct defensive code for a compiler that changes - a vendored re-sync, or
-// Phase 7 passing reserved characters for an install marker, would move every
-// number - and not a hot path. See 05-VALIDATION, the unreachability finding.
-//
-// WHERE THIS FUNCTION STOPS AND model.ts STARTS. `surpriseIndices` signals
-// exhaustion by returning the PREVIOUS indices unchanged. It does not apply the
-// fit ladder, because it has no compiler: `model.ts` owns `fitState` and applies
-// the ladder-resolved state when it sees the exhaustion signal. That split is
-// stated in both files so neither grows the other's job.
-//
-// HELD KNOBS SHRINK THE DOMAIN AND NOTHING ELSE (T1, 10-UI-SPEC 11.5). The
-// twelve-draw bound and the no-op rejection below are unchanged in code; a held
-// knob keeps its previous position and is never offered to `rng`. Two
-// consequences, and the second is the one worth writing down:
-//
-//   - with EVERY knob held no draw can move, so all twelve rolls are rejected
-//     as no-ops and the previous indices come back - the exhaustion signal
-//     already documented above, reached without a single compile. The caller
-//     disables SURPRISE ME rather than letting a button appear to do nothing.
-//   - with all but one knob held the domain is that one knob's own options, so
-//     on a TWO-option knob standing at one of them the no-op rejection can
-//     genuinely burn the whole bound. That path was unreachable before locks
-//     existed and it has its own test.
-//
-// THE SCOPE RULE (plan 13-10, Bible section 7): "Default scope: appearance
-// and compatible expressive behavior. Preserve MIDI destination, channel,
-// routing, and device target." A roll therefore draws every unheld knob
-// that is NOT a MIDI destination, and a MIDI destination keeps its previous
-// position exactly as a held knob does - never offered to `rng`, never a
-// reason for `moved`. Rolling somebody's MIDI channel mid-session is the one
-// surprise nobody wants. This is a BEHAVIOUR CHANGE to the roll, not a
-// re-label: before it, `@CH` (sixteen channels) and `@CC` rolled with
-// everything else on twenty entries.
-//
-// THE PREDICATE IS DERIVED FROM THE DESCRIPTOR, NOT FROM A LIST OF IDS. Both
-// routes produce KnobDescriptor { id, label, kind, options, default } and the
-// kind cannot say it - `send` is a `note` kind, `channel` is `amount` on the
-// preset route and `mode` on the Lua route - so `isMidiDestination` reads
-// the WORDS of the id and the label: a knob whose id or label names a
-// controller (`cc`, `ccBase`, "CC number", "First controller"), a channel
-// ("MIDI channel", "Channel") or the send ("Send", the CC base a gesture
-// sends on) addresses the wire. Measured over every catalog entry on
-// 2026-09-11 (surprise.spec.ts test 6 holds the list by entry and id): 29
-// knobs on 20 entries are excluded, and TuningRegion.svelte partitions its
-// MIDI output section with the SAME predicate, so what the section shows is
-// exactly what Randomize preserves. The kind and the option count of every
-// knob are untouched: exclusion shrinks the roll's domain and nothing else.
-//
-// WHAT UNDO NEEDS FROM HERE: NOTHING. The vector Undo randomize restores is
-// the `previous` argument of the roll that produced the state on screen -
-// this function never mutates it (`kept` is a copy) - and model.ts's
-// `surprise()` hands that vector back to the region, which keeps exactly one.
+// scope, re-rolled until it fits. PURE AND INJECTABLE: `rng` and `fits` are
+// arguments, and the module imports a type and nothing else. Measured never to
+// loop (05-VALIDATION), so the twelve-draw bound and the ladder fallback are
+// defensive; exhaustion returns the PREVIOUS indices unchanged and model.ts,
+// which owns the compiler, applies the ladder. Held knobs shrink the domain and
+// nothing else (10-UI-SPEC 11.5). THE SCOPE RULE (Bible section 7): a MIDI
+// destination, channel or controller is never rolled - the predicate reads the
+// descriptor's id and label words (surprise.spec.ts holds the excluded knobs by
+// entry) and TuningRegion.svelte partitions its MIDI output section with it.
+// Decided at 13-10 (the scope rule); see .planning/phases/13-gui-overhaul/13-10-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { KnobDescriptor } from "./knobs.preset";
@@ -132,7 +78,7 @@ const NONE_HELD: ReadonlySet<string> = Object.freeze(new Set<string>());
  * `held` names the knobs the visitor has locked. They keep their previous
  * position, they never reach `rng` - a roll therefore makes exactly one draw
  * per UNLOCKED, ROLLABLE knob, which is what lets a test count them - and they
- * are never a reason for `moved`. A MIDI destination (see the header) is
+ * are never a reason for `moved`. A MIDI destination (`isMidiDestination`) is
  * treated exactly as a held knob is, on every roll, whether or not it is held.
  *
  * Returns `previous` unchanged when the bound is reached - the exhaustion

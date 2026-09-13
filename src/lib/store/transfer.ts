@@ -1,114 +1,13 @@
-// Export as a file and import with validation BEFORE anything opens (plan
-// 13-13; Bible section 11: "Validate imported schemas and show
-// incompatibilities before opening or applying"; KEEP-04, KEEP-05).
-//
-// THE FILE. An ExportFile is an envelope around one StoredRecord:
-//
-//   { schema: 1, kind: "playground" | "sandbox", exportedAt, app: "hangar", record, rack? }
-//
-// `schema` IS IN THE BODY BECAUSE A FILE HAS NO KEY NAME. schema.ts set the
-// rule at 13-06 - the version in the key name for the local store, AND in the
-// body for anything that could ever travel - and this module is where the
-// body's version is spent: an import reads `schema` the way a local read
-// reads the `.v1` suffix. `app` is the word "hangar" so a JSON file from
-// anywhere else is refused at the first step with a sentence, not a stack
-// trace. `kind` is repeated at the top level so a reader can tell a surface
-// from a Playground variation without opening the record. `record` is the
-// StoredRecord exactly as the library or the drafts store holds it, schema
-// and all, so a round trip is byte-for-byte (transfer.spec.ts test 1).
-//
-// `rack` IS THE STAMP'S SHAPE CHARACTER, WRITTEN OUT. A Playground record
-// holds one index per knob and nothing about the knobs; the codec's `older`
-// is reachable only because format x carries a shape character that trips
-// when a knob is RESIZED - the case where every old index still fits the new
-// list and a restore would be silently wrong (stamp.ts's header; stamp.spec.ts
-// "lands older on a resized knob and never restored on a changed rack"). A
-// file has room to say more than one character, so a playground export
-// carries the rack it was encoded against - each knob's id and how many
-// options it had - and an import compares that against the entry's rack
-// today. Any difference lands `older`. A file without it is not a HANGAR
-// playground export and is refused at step 3; a sandbox file has no rack.
-// The field is on the ENVELOPE, not the record, so the record itself still
-// round-trips byte-for-byte and the library never stores a rack.
-//
-// MEMBERSHIP DOES NOT TRAVEL, AND THE FIELD IS NOT FORGOTTEN. 13-CONTEXT
-// D-22, fork D, answered by the user on 2026-09-11 ("no"): an export carries
-// the record and nothing about which collections it is filed in; an import
-// always lands unfiled and can never create a collection the visitor did
-// not make. So there is no `collections` field on ExportFile, deliberately.
-// Whether the record was a DRAFT or a SAVED COPY does not travel either: the
-// two share one shape (schema.ts's StoredRecord) and an imported file is a
-// named snapshot that arrived, so it lands in the library as a saved copy.
-//
-// THE OUTCOME VOCABULARY IS THE STAMP CODEC'S. src/lib/share/stamp.ts owns
-// `Landing` - `none | restored | older | unreadable` - with a landing
-// behaviour and a test suite behind each, and an import is the same three
-// situations with a file in place of a hash: it opens as written, it opens
-// on the base configuration because its shape has moved on, or it does not
-// open. The union is IMPORTED here as a type and never re-declared; a second
-// set of words for the same three situations is how a codebase ends up
-// explaining one failure two ways. `none` is a member this module never
-// returns - a stamp has "no hash"; a chosen file is always something - and
-// that is stated rather than papered over with a fourth word.
-//
-// THE SIX STEPS, IN ORDER, REFUSING AT THE FIRST FAILURE (13-13-PLAN):
-//
-//   1. the text parses, `app === "hangar"` and `schema` is a version this
-//      build reads                                        -> else unreadable
-//   2. a readable `schema` OLDER than this build's         -> older, and the
-//      file lands on the base configuration exactly as an older stamp does -
-//      never on a subtly wrong one (SHARE-03's own words). No older readable
-//      schema exists today (READABLE_OLDER_SCHEMAS is empty), so this step
-//      is a documented door for the first `.v2`, not a live branch.
-//   3. `kind` is playground or sandbox, and `record` is a StoredRecord of
-//      that kind                                          -> else unreadable
-//   4. playground: the entry exists AND the file's rack is the entry's rack
-//      today AND every index is inside that knob's own option list
-//         - the entry is gone                             -> unreadable
-//         - the entry exists with a different rack (a knob added, removed,
-//           renamed or resized)                           -> older, the knob
-//           named, the record landed at the entry's defaults
-//         - the rack agrees and an index is still past the end of its list,
-//           which no HANGAR export can produce             -> unreadable, the
-//           knob named (the codec's own verdict on that row)
-//   5. sandbox: at most SURFACE_ELEMENT_CAP regions, every region inside the
-//      9 x 9, no two regions sharing a cell               -> else unreadable,
-//      naming the region (section 8 wants a conflict explained at the
-//      affected region; an import is the same situation with no region on
-//      screen to point at, so the sentence carries the name)
-//   6. otherwise                                          -> restored
-//
-// THE CLASSIFICATION IS THE CODEC'S ROW FOR ROW: shape disagrees -> older;
-// shape agrees, an index out of range -> unreadable; shape agrees, every
-// index in range -> restored. One difference, stated: an ADDED or REMOVED
-// knob is `unreadable` in the codec because it moves the payload LENGTH
-// before the shape character is ever read and a wrong length might be
-// corruption; here the rack is a list with names, a record has already
-// passed isStoredRecord, and a count that differs is legibly the rack
-// having moved - so it is `older`, with the count in the sentence.
-//
-// NOTHING TOUCHES STORAGE UNTIL THE WHOLE VALIDATION PASSES. classifyImport
-// is a pure function of the text and the catalog's knob shapes; importText
-// calls it and writes only on a `restored` or `older` outcome, through
-// library.ts's saveCopy, which never overwrites. A half-imported library is
-// worse than a refused file. Test 2 asserts the store's setItem log is
-// empty after an unreadable import, not merely that the function returned.
-//
-// THE CATALOG IS AN ARGUMENT, NEVER AN IMPORT. 13-06's rule: a store module
-// that must validate against the catalog takes the validator as an argument,
-// because the catalog reaches the protocol package at module scope and this
-// module must be importable at a prerendered page's first paint. The caller
-// hands over `knobsOf(entryId)` - stampKnobs(byId(id)) behind a dynamic
-// import - and this module knows a knob only as `{ id, label, options,
-// default }`.
-//
-// EXPORT NEEDS NO PERMISSION AND NO GESTURE BEYOND THE CLICK. A Blob, an
-// object URL and an anchor with a `download` attribute work on every browser
-// HANGAR supports, including the ones that can never install; the URL is
-// revoked once the click has been dispatched. NOT the File System Access
-// API, which is Chromium-only and would break the degrade story on exactly
-// the browsers that already cannot install. Import is `<input type="file">`
-// plus File.text(), which the route owns; this module takes the text.
+// Export as a file and import with validation BEFORE anything opens (Bible
+// section 11; KEEP-04, KEEP-05). An ExportFile is an envelope around one
+// StoredRecord - { schema, kind, exportedAt, app: "hangar", record, rack? } -
+// with the version in the body because a file has no key name, the app word
+// so a foreign JSON is refused with a sentence, and a playground's rack (knob
+// ids and option counts) so a resized knob lands `older`. Membership does not
+// travel. The outcomes are the stamp codec's `Landing`, imported, never
+// re-declared. The catalog is an argument (`knobsOf`), never an import. Nothing
+// touches storage until validation passes: classifyImport is pure, importText writes.
+// Decided at 13-13 (D-22 fork D, no collections field); see .planning/phases/13-gui-overhaul/13-13-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -153,7 +52,7 @@ export type ExportFile = {
   readonly exportedAt: string;
   readonly app: typeof EXPORT_APP;
   readonly record: StoredRecord;
-  /** The entry's rack at export time; playground files only. See the header. */
+  /** The entry's rack at export time; playground files only. On the envelope, so the record still round-trips byte for byte. */
   readonly rack?: readonly RackKnob[];
 };
 
@@ -421,9 +320,18 @@ function checkPlayground(
 }
 
 /**
- * The six steps over the file's text. Pure: reads nothing, writes nothing,
- * never throws. `at` is the moment an `older` record is re-dated to, since
- * its indices were reset on the way in.
+ * The six steps over the file's text, refusing at the first failure:
+ *   1. it parses, app is "hangar", schema is a version this build reads   -> else unreadable
+ *   2. a readable schema older than this build's                          -> older, landed on the base
+ *   3. kind is playground or sandbox and record is a StoredRecord of it   -> else unreadable
+ *   4. playground: the entry exists (else unreadable); its rack is the file's
+ *      (else older, the knob named); every index inside its list (else unreadable)
+ *   5. sandbox: at most the cap, every region on the 9 x 9, no shared cell -> else unreadable, the region named
+ *   6. otherwise                                                          -> restored
+ * The classification is the codec's row for row; the one difference is that an added or removed knob is
+ * `older` here (the rack is a named list, so a changed count is legibly the rack having moved).
+ * Pure: reads nothing, writes nothing, never throws. `at` is the moment an
+ * `older` record is re-dated to, since its indices were reset on the way in.
  */
 export function classifyImport(
   text: string,

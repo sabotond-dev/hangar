@@ -1,28 +1,13 @@
 // The nine per-card knob tables: the semantics the vendored compiler does not
-// carry.
-//
-// `KnobKind` is a LABEL, NOT A BINDING. `_pad.ts` exports a twelve-member union
-// and each `PadPreset` declares two to four of them, and nothing anywhere in
-// the vendored tree says which `PadState` field a given kind moves - `colour`
-// is `look.colour` on four cards, `touch.colour` on the joystick and
-// `sends.gridColour` on the nine pads. BOTOR resolves that in its own panel
-// with a per-card if/else chain over `selPreset.id`, which is both the shape
-// D-02 forbids HANGAR from copying and a file HANGAR must not depend on. This
-// module is the recovered mapping as data, and knobs.preset.spec.ts holds it
-// against `presetById(id).knobs` so that a re-sync which changes a card's
-// declared knobs goes red and names the card.
-//
-// FOUR THINGS ARE READ AND NOT RESTATED, because restating them is how a
-// vendored bump goes unnoticed: the detent tables (`SPEED_TABLE`,
-// `BRIGHTNESS_TABLE`, `DIAL_SENSE_TABLE`, `TRACKPAD_*`) ARE the value sets;
-// the vendored `quantiseColour` IS the colour lattice, imported by
-// `colourIndexOf` rather than reimplemented as a local 17-step round;
-// every default index is DERIVED from the card's own shipped state and throws
-// at import time if that value is not in its own option list; and
-// `padLightsAnything` decides whether a card is offered brightness at all.
-//
-// This module imports the vendored compiler and is therefore on the model side
-// of D-18: no Svelte component may name it.
+// carry. `KnobKind` is a LABEL, NOT A BINDING - nothing in the vendored tree
+// says which `PadState` field a kind moves (`colour` is `look.colour` on four
+// cards, `touch.colour` on the joystick, `sends.gridColour` on the nine pads);
+// BOTOR resolves that in a per-card if/else chain HANGAR may not copy, so this
+// module is the recovered mapping as data, held by knobs.preset.spec.ts against
+// `presetById(id).knobs`. Four things are READ, not restated: the detent tables
+// are the value sets, the vendored quantiseColour is the colour lattice, every
+// default index is derived from the card's shipped state (throwing at import),
+// padLightsAnything decides brightness. Model side of D-18: no component names it.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -125,28 +110,12 @@ const indexOf = (options: readonly string[], value: string): number => {
 // The colour lattice, and the binding rule.
 
 /**
- * THE LATTICE (D-06, plan 10-08). Sixteen steps per channel, 4,096 colours,
- * and no more.
- *
- * `quantiseColour` snaps every stored channel to a multiple of 17
- * (`_pad.ts:490-493`), so a `PadState` holds exactly RGB444 and it does so
- * specifically so the URL stamp round-trips. That is not a limitation to work
- * around - it is the whole reachable colour space, and the picker is built ON
- * it rather than in spite of it.
- *
- * WHAT THIS REPLACES, and why the replacement is not a widening of the old
- * shape. Until 10-08 the colour knob's options were the card's own colour plus
- * a five-member palette, deduped, and its `read`/`apply` were array lookups
- * into that list. An `<input type="color">` was refused, correctly, on the
- * grounds that it would offer 4,096 steps the state cannot hold. The count was
- * right and the conclusion was wrong by one step: the state holds 4,096 steps
- * exactly, so the honest picker offers those and not a sixteen-million-colour
- * field. The palette is gone; the Lua route declares its own literals and never
- * read this one.
- *
- * `read`/`apply` are now INDEX <-> RGB444 ARITHMETIC rather than lookups, which
- * is what makes `read(apply(state, i)) === i` true by construction for all
- * 4,096 rather than true by an array happening to contain what was written.
+ * THE LATTICE (D-06, 10-08). Sixteen steps per channel, 4,096 colours, and no
+ * more: `quantiseColour` snaps every stored channel to a multiple of 17
+ * (`_pad.ts`), so a `PadState` holds exactly RGB444 - the whole reachable
+ * colour space, and the picker is built ON it. `read` / `apply` are INDEX <->
+ * RGB444 ARITHMETIC, not lookups into a palette, which is what makes
+ * `read(apply(state, i)) === i` true by construction for all 4,096.
  */
 export const COLOUR_LATTICE_STEPS = 16;
 export const COLOUR_LATTICE_SIZE =
