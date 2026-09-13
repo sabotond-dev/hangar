@@ -188,12 +188,13 @@ log ""
 log "## the normalised built JS"
 # Every build/_app/immutable/**/*.js: the 40-hex commit sha -> SHA, every .<8>.js / .css / .wasm /
 # .woff2 reference -> .HASH.<ext>, a bare /<8>.js chunk reference -> /HASH.js, the 13-digit version
-# stamp -> VERSION; hashed per file, the per-file hashes sorted (chunk filenames are content hashes,
-# so filename order is not stable) and hashed together.
+# stamp -> VERSION, kit's per-build global `__sveltekit_<hash(version)>` -> __sveltekit_HASH (found
+# by 02: it moved between two builds of the same src); hashed per file, the per-file hashes sorted
+# (chunk filenames are content hashes, so filename order is not stable) and hashed together.
 : > "$REC.js.txt"
 find build/_app/immutable -name '*.js' | sort | while IFS= read -r f; do
   n=$(echo "$f" | sed -E 's/\.[A-Za-z0-9_-]{8}\.js$/.HASH.js/; s#/[A-Za-z0-9_-]{8}\.js$#/HASH.js#')
-  h=$(sed -E 's/[0-9a-f]{40}/SHA/g; s/\.[A-Za-z0-9_-]{8}\.(js|css|wasm|woff2)/.HASH.\1/g; s#/[A-Za-z0-9_-]{8}\.js#/HASH.js#g; s/`[0-9]{13}`/`VERSION`/g' "$f" | sha256sum | cut -d' ' -f1)
+  h=$(sed -E 's/[0-9a-f]{40}/SHA/g; s/\.[A-Za-z0-9_-]{8}\.(js|css|wasm|woff2)/.HASH.\1/g; s#/[A-Za-z0-9_-]{8}\.js#/HASH.js#g; s/`[0-9]{13}`/`VERSION`/g; s/__sveltekit_[a-z0-9]+/__sveltekit_HASH/g' "$f" | sha256sum | cut -d' ' -f1)
   echo "$h $n" >> "$REC.js.txt"
 done
 JS_N=$(wc -l < "$REC.js.txt" | tr -d ' ')
