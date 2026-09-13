@@ -1,27 +1,13 @@
-// The emitter's five tests (13-14 task 02): five costs at the picker corner,
-// the dead-branch pair, the map, both class gates, and the library's names.
+// The emitter's five tests (13-14 task 02): five costs at the picker corner, the dead-branch
+// pair, the map, both class gates, and the library's names. FIVE TESTS, AND THE COUNT NEVER
+// MOVES; each loops over its surfaces and names the surface in its message.
 //
-// FIVE TESTS, AND THE COUNT NEVER MOVES. Each loops over its surfaces and
-// names the surface in its message.
-//
-// EVERY FIGURE HERE IS MEASURED IN THIS TREE under the pinned
-// `GridScript.compressScript` after `padReady()`, `max(compressed, raw)`,
-// canonical, at the RGB444 picker corner (every region at `255,255,255`) -
-// lua-entries.sweep.spec.ts test 1's rule, reused through cost.ts. The
-// research's figures (13-RESEARCH 3.1: 366 at four elements, 811 at sixteen;
-// 697 / 1,166 for the dead-branch pair; `M` 165, a four-row `G` 141) are
-// printed BESIDE the tree's and every difference is named in 13-14-SUMMARY.md
-// as a research correction. The pinned literals below are what this tree
-// measured on 2026-09-12; a minifier bump or an emitter edit that moves one
-// moves the assertion, which is the point of pinning.
-//
-// THE FIVE SURFACES, all at the corner, controllers at three digits and the
-// channel at 16 (the dearest literals a row can carry):
-//   1 element   the PDF's Filter, a 2 x 6 vertical fader
-//   4 elements  the PDF's page 3: Filter, an XY pad, a Button and a Knob
-//   8 elements  four 2 x 6 faders and four 2 x 1 buttons
-//   12 elements eight 1 x 6 faders and four 2 x 2 buttons
-//   16 elements eight 1 x 6 faders and eight 1 x 2 buttons
+// EVERY FIGURE HERE IS MEASURED IN THIS TREE under the pinned `GridScript.compressScript` after
+// `padReady()`, `max(compressed, raw)`, canonical, at the RGB444 picker corner (every region at
+// `255,255,255`) - lua-entries.sweep.spec.ts test 1's rule through cost.ts; a minifier bump or an
+// emitter edit that moves one moves the assertion. The research's figures are printed beside the
+// tree's (13-14-SUMMARY.md names every difference). The five surfaces, controllers at three
+// digits and channel 16: 1 element (the PDF's Filter), 4 (page 3), 8, 12 and 16 (faders + buttons).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
@@ -251,21 +237,13 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         `${name}: ${three} of ${EVENT_BUDGET} at three slots`,
       ).toBeLessThanOrEqual(EVENT_BUDGET);
     }
-    // THE FINDING, CLOSED (13-14-PLAN.md task 02, step 4; 13-15). 13-14
-    // measured sixteen elements at the DEAREST literals - three-digit
-    // controllers on channel 16 at the colour corner - at 922 at two slots,
-    // 14 over, and pinned that figure so the day the emitter shrank enough
-    // the test would say so. It did, at 13-15: the four geometry numbers
-    // are now in the kind's own frame (emit.ts section 2), and a button's
-    // are four zeros where 13-14 wrote its raw span, so eight 1 x 2 buttons
-    // lost about five characters each. The dearest sixteen measure 882 at
-    // two slots and 897 at three, both inside 908, and the cap at the
-    // dearest literals is SIXTEEN - D-14 Q4's figure - at two slots. At
-    // three, `roomFor`'s floor from twelve says fifteen: its representative
-    // is a 1 x 6 FADER at cc 127 (the surface's largest shape, dearer in M
-    // than the 1 x 2 buttons the sixteen actually carry), and the fourth
-    // one tips 908 by the fifteen characters of the second pull-in. The
-    // meter errs on the floor, as cost.ts section 3 says it should.
+    // The dearest sixteen measure 882 at two slots and 897 at three, both
+    // inside 908; the cap at the dearest literals is SIXTEEN at two slots.
+    // At three, `roomFor`'s floor from twelve says fifteen: its
+    // representative is a 1 x 6 fader at cc 127, dearer in M than the 1 x 2
+    // buttons the sixteen carry, and the fourth one tips 908 by the second
+    // pull-in's fifteen characters - the meter errs on the floor. 13-14
+    // measured 922 before the geometry numbers moved into the kind's frame;
     // 13-15-SUMMARY.md closes the finding with the arithmetic.
     const sixteen = over.find((o) => o.name === SIXTEEN.name);
     expect(sixteen?.two, "the dearest sixteen").toBe(882);

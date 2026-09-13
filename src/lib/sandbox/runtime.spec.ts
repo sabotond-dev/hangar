@@ -1,18 +1,13 @@
-// The runtime's seven tests (13-15), every one of the first five in a REAL
-// Lua VM: the strings in runtime.ts were run through `createLuaHost` before
-// they were measured and before a figure was pinned - the order 12-07's
-// lesson prescribes. The host is opened exactly as lua-smoke.spec.ts opens
-// it for a hand-authored entry (`system: TOUCH_LIBRARY`, `systemTimer:
-// TOUCH_LIBRARY_TIMER`, the emitted Setup, the emitted Timer), with two
-// stand-ins the host does not model and a module does: the touch element's
-// own `tim` method, which the Setup's `self:tim()` calls (probe 1), and the
-// system element's `map` method, which `ele[#ele]:map()` calls under three
-// slots (probe 2). Both are one line of Lua in front of the emitted Setup;
-// the emitted strings themselves go in verbatim.
+// The runtime's seven tests (13-15), the first five in a REAL Lua VM: every string in runtime.ts
+// was run through `createLuaHost` before it was measured and before a figure was pinned. The host
+// is opened as lua-smoke.spec.ts opens it for a hand-authored entry (`system: TOUCH_LIBRARY`,
+// `systemTimer: TOUCH_LIBRARY_TIMER`, the emitted Setup, the emitted Timer), with two one-line
+// stand-ins in front of the Setup for what the host does not model and a module does: the touch
+// element's own `tim` (probe 1, `self:tim()`) and the system element's `map` (probe 2,
+// `ele[#ele]:map()` under three slots). The emitted strings go in verbatim.
 //
-// SEVEN TESTS, AND THE COUNT NEVER MOVES. Every coordinate is an LED centre
-// from calibration.ts's measured knots (`KX[c]`, `KY[r]`), so `N(x,y)` lands
-// on the cell by construction and no figure is typed twice.
+// SEVEN TESTS, AND THE COUNT NEVER MOVES. Every coordinate is an LED centre from calibration.ts's
+// measured knots (`KX[c]`, `KY[r]`), so `N(x,y)` lands on the cell by construction.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
@@ -671,7 +666,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
         `the runtime calls ${c}, which the library does not export`,
       ).toBe(true);
     }
-    // Q and W are not on the hot path (runtime.ts section 3).
+    // Q and W are not on the hot path: a contact keeps the region it landed in.
     expect(whole).not.toContain(F("Q", "("));
     expect(whole).not.toContain(F("W", "("));
   });
