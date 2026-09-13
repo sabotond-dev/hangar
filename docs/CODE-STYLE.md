@@ -165,3 +165,8 @@ Later plans add a dated line here only when the rule learned something it did no
   against the ten - `comment-lines.mjs --todo` stops at the `MECHANISM` heading - and a trap
   paragraph is kept whole; `library.ts` keeps its numbered section banners as a table of contents
   because other files cite them by number, so `--todo` prints it by construction.
+- 2026-09-13 (13.2-03): a `RETIRED BY NAME, <date>` entry keeps its first line verbatim, the names
+  it retired, the numbers a spec asserts and one pointer, and nothing else; a module's retirement
+  ledger sits as its own section after the copyright line, so the ten-line header stays the header;
+  and a phrase a spec pins on the raw file (`MIX_TWO 7, MIX_LINE 75, MIX_THIS / MIX_THAT 8 / 8`)
+  must sit on ONE comment line - a reflow across two lines is a red run, not a readability edit.
