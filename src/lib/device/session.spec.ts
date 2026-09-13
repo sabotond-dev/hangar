@@ -1,54 +1,13 @@
-// The device session, driven from node by a fake serial and a fake port (D-14).
-//
-// WHY THIS FILE IS session.spec.ts AND NOT session.svelte.spec.ts. The module
-// under test is session.svelte.ts, and the obvious name for its spec matches
-// vite.config.ts's `server` project exclude, `src/**/*.svelte.{test,spec}.{js,ts}`,
-// exactly. A spec by that name would be collected by NOTHING in
-// `npm run test:quick`, and the suite would be green and vacuous. This name
-// matches the include and misses the exclude; the file count moving by one in
-// the count gate is what proves it was collected.
-//
-// EVERY TEST CONSTRUCTS ITS OWN `new DeviceSession()`. The exported `session`
-// singleton exists for components - one instance per page load is D-05 - and
-// this file never imports it: a suite that shared it would carry one test's
-// port, phase and in-flight guard into the next, and would need a reset hook
-// the production class has no reason to have.
-//
-// Twenty-one gates, in the plans' order. Eight from 06-03: the capability
-// decided in the calling frame; a granted ZONA offered and never opened; an
-// empty list meaning "not plugged in"; two controls and one chooser; a THROWN
-// activation failure caught at the call site; the failure map, one row each; a
-// real hardware capture identifying the module; and a rig refused by name with
-// the port closed afterwards. Seven from 06-04, the half the hardware drives:
-// an unplug that is immediate; a replug that arrives as a DIFFERENT port
-// object and is adopted; arrivals that are ignored; the watchdog firing on the
-// missed disconnect and on nothing else; the identity folding for the life of
-// the connection; forget() closing before it revokes; and zero writes, twice.
-// Two from 06-09, the voice: three transitions in one window are ONE utterance
-// and a fold is none; and a held utterance waits, is replaced by a later one,
-// and is spoken once when the hold lifts. Four from 07-04, the seams the
-// install store stands on (07-CONTEXT D-16): onClass fanning every decoded
-// class out beside a fold that keeps moving; a write view that writes and
-// refuses a raw onData; onConnection reporting connected and closed in order,
-// once each, and a closed with no connected before it; and writeLock keeping
-// the session quiet on an unplug while announce() speaks through the one
-// region. Most of those no browser can produce on demand either, and the fake
-// serial keeps its listeners in a map precisely so a test can fire the events
-// itself.
-//
-// TESTS 12, 16, 17 AND 21 FAKE setTimeout AND NOTHING ELSE. The watchdog and the
-// live region's coalescer are both setTimeout chains, so that is the one timer
-// those tests need to own; the clock the watchdog compares against is the
-// session's INJECTED `now`, never a faked performance.now(). waitFor() yields
-// through setImmediate for exactly this reason - it has to keep polling while
-// setTimeout is frozen.
-//
-// HOW THE VOICE IS COUNTED. `speech` is a $state field, which the server
-// transform compiles to a PLAIN own property (06-01's spike), so recordSpeech
-// replaces it on one instance with an accessor that logs every non-empty
-// write. The empty writes are filtered on purpose: #say empties the region
-// when it queues a line so that a repeated sentence is still a DOM change,
-// and that clearing is the mechanism, not an utterance.
+// The device session, driven from node by a fake serial and a fake port
+// (D-14). Named session.spec.ts, not session.svelte.spec.ts: vite.config.ts's
+// `server` project excludes `*.svelte.spec.ts`, so that name would be
+// collected by nothing. Every test builds its own DeviceSession and never
+// imports the singleton. Twenty-one gates in the plans' order: eight from
+// 06-03 (the visitor's half), seven from 06-04 (the hardware's half, zero
+// writes twice), two from 06-09 (the voice), four from 07-04 (the seams the
+// install store stands on). The harness: the fake serial keeps its listeners
+// in a map so a test fires the events; tests 12, 16, 17 and 21 fake setTimeout
+// only (waitFor() polls through setImmediate); recordSpeech logs `speech`.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
