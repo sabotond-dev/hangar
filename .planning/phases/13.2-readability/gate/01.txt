@@ -1,0 +1,52 @@
+# 13.2 gate --before 01
+HEAD 21c5ff8 (21c5ff8b945a7ac27a874ca74d4280fb6767e95c); dirty (src e2e scripts docs) 2; free memory 1.14 GB; 2026-09-13T11:41:05Z
+
+## the wire
+1735 strings from 18 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b
+1761 strings from 18 Lua entries + 8 presets + library + defaults + Sandbox page 3 (+ cross-products: 232728 Lua states, 126920 preset states)
+WIRE FULL 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b
+
+## the strings
+192 files; 2721 distinct literals (6342 occurrences); 7 copy modules; 320 data-testids
+literal census sha256 e6af80e09d3ddf133752816b38e70bc5ab7293ab9f5536341ed58ae6b4b8c966
+copy exports   sha256 10fad0020ce89919548d2dcb586c2160aa01d415d644e27dec0419f13840ffef
+data-testids   sha256 21fc9eb96531a7161ea6e00facb69c1d792a1e534a57b34893225043bf774ce3
+
+## the comment lines
+192 files; 60539 lines, 29525 code, 27267 comment, 3747 blank, 14072 header
+
+## check and lint
+check: 1789299691985 COMPLETED 654 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 94 files, 966 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 21c5ff8
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object a581ef4ce6aae2427e69503f9aaa543a02e33561 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 26 files, 154136 B, sha256 2a9ccf80cda87bdb3db133d52eb961246e726636c288c00311d9d9f077992f57
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: f89f1f4e7464017c26e4ddd1c3181a079b2f1b87113942c2181a352ac754b1f6 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 f89f1f4e7464017c26e4ddd1c3181a079b2f1b87113942c2181a352ac754b1f6
+SCOPED CSS sha256 e296d0af8e89b880cee457fa2bfc5f7ac1af8abf190efd0ceae22ddd4e4f1237
+UTILITIES 45 classes, 5 named by markup: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 7f4e4d7a07b136277bc2d0418621a0e54bfda9b220155d5d23691751ddfd159c (71 files)
+
+## the titles
+TITLES sha256 b53f2d9c9deaaebb833a0d350c2383d2d199db14906196e7c12ca4a38db0f76b (967 vitest titles incl. todo, 101 playwright runs)
+
+recorded: .planning/phases/13.2-readability/gate/01.{txt,wire.json,wire-set.json,strings.json,lines.json,vitest.json,titles.txt,utilities.txt,js.txt}

@@ -1,0 +1,1740 @@
+{
+ "files": 192,
+ "totals": {
+  "lines": 60539,
+  "code": 29525,
+  "comment": 27267,
+  "blank": 3747,
+  "header": 14072
+ },
+ "perFile": [
+  {
+   "file": "src/app.d.ts",
+   "lines": 24,
+   "code": 7,
+   "comment": 14,
+   "blank": 3,
+   "header": 2,
+   "rule": 2
+  },
+  {
+   "file": "src/lib/browse/facets.ts",
+   "lines": 445,
+   "code": 175,
+   "comment": 253,
+   "blank": 17,
+   "header": 74,
+   "rule": 71
+  },
+  {
+   "file": "src/lib/browse/filter.ts",
+   "lines": 191,
+   "code": 69,
+   "comment": 111,
+   "blank": 11,
+   "header": 22,
+   "rule": 21
+  },
+  {
+   "file": "src/lib/browse/grid.ts",
+   "lines": 115,
+   "code": 41,
+   "comment": 66,
+   "blank": 8,
+   "header": 12,
+   "rule": 9
+  },
+  {
+   "file": "src/lib/browse/labels.ts",
+   "lines": 63,
+   "code": 15,
+   "comment": 45,
+   "blank": 3,
+   "header": 36,
+   "rule": 35
+  },
+  {
+   "file": "src/lib/browse/query.ts",
+   "lines": 228,
+   "code": 59,
+   "comment": 159,
+   "blank": 10,
+   "header": 54,
+   "rule": 53
+  },
+  {
+   "file": "src/lib/browse/rail.ts",
+   "lines": 108,
+   "code": 56,
+   "comment": 39,
+   "blank": 13,
+   "header": 25,
+   "rule": 24
+  },
+  {
+   "file": "src/lib/browse/return.ts",
+   "lines": 162,
+   "code": 50,
+   "comment": 101,
+   "blank": 11,
+   "header": 58,
+   "rule": 55
+  },
+  {
+   "file": "src/lib/browse/sort.ts",
+   "lines": 109,
+   "code": 29,
+   "comment": 71,
+   "blank": 9,
+   "header": 24,
+   "rule": 23
+  },
+  {
+   "file": "src/lib/browse/typographic.ts",
+   "lines": 59,
+   "code": 5,
+   "comment": 50,
+   "blank": 4,
+   "header": 36,
+   "rule": 29
+  },
+  {
+   "file": "src/lib/catalog/calibration.ts",
+   "lines": 203,
+   "code": 57,
+   "comment": 133,
+   "blank": 13,
+   "header": 95,
+   "rule": 92
+  },
+  {
+   "file": "src/lib/catalog/divergence.ts",
+   "lines": 421,
+   "code": 287,
+   "comment": 123,
+   "blank": 11,
+   "header": 44,
+   "rule": 43
+  },
+  {
+   "file": "src/lib/catalog/entries/arc.ts",
+   "lines": 397,
+   "code": 96,
+   "comment": 293,
+   "blank": 8,
+   "header": 264,
+   "rule": 263
+  },
+  {
+   "file": "src/lib/catalog/entries/chorus.ts",
+   "lines": 330,
+   "code": 105,
+   "comment": 217,
+   "blank": 8,
+   "header": 158,
+   "rule": 157
+  },
+  {
+   "file": "src/lib/catalog/entries/console.ts",
+   "lines": 385,
+   "code": 65,
+   "comment": 313,
+   "blank": 7,
+   "header": 276,
+   "rule": 275
+  },
+  {
+   "file": "src/lib/catalog/entries/cull.ts",
+   "lines": 249,
+   "code": 57,
+   "comment": 184,
+   "blank": 8,
+   "header": 144,
+   "rule": 143
+  },
+  {
+   "file": "src/lib/catalog/entries/euclid.ts",
+   "lines": 373,
+   "code": 99,
+   "comment": 266,
+   "blank": 8,
+   "header": 226,
+   "rule": 225
+  },
+  {
+   "file": "src/lib/catalog/entries/ghost.ts",
+   "lines": 442,
+   "code": 96,
+   "comment": 338,
+   "blank": 8,
+   "header": 282,
+   "rule": 281
+  },
+  {
+   "file": "src/lib/catalog/entries/lumen.ts",
+   "lines": 639,
+   "code": 56,
+   "comment": 576,
+   "blank": 7,
+   "header": 530,
+   "rule": 529
+  },
+  {
+   "file": "src/lib/catalog/entries/morph.ts",
+   "lines": 535,
+   "code": 88,
+   "comment": 440,
+   "blank": 7,
+   "header": 376,
+   "rule": 375
+  },
+  {
+   "file": "src/lib/catalog/entries/pomodoro.ts",
+   "lines": 356,
+   "code": 67,
+   "comment": 281,
+   "blank": 8,
+   "header": 215,
+   "rule": 214
+  },
+  {
+   "file": "src/lib/catalog/entries/ported.ts",
+   "lines": 191,
+   "code": 94,
+   "comment": 89,
+   "blank": 8,
+   "header": 44,
+   "rule": 43
+  },
+  {
+   "file": "src/lib/catalog/entries/quadrant.ts",
+   "lines": 261,
+   "code": 62,
+   "comment": 191,
+   "blank": 8,
+   "header": 128,
+   "rule": 127
+  },
+  {
+   "file": "src/lib/catalog/entries/radar-points.ts",
+   "lines": 469,
+   "code": 96,
+   "comment": 365,
+   "blank": 8,
+   "header": 317,
+   "rule": 316
+  },
+  {
+   "file": "src/lib/catalog/entries/snake.ts",
+   "lines": 285,
+   "code": 67,
+   "comment": 210,
+   "blank": 8,
+   "header": 167,
+   "rule": 166
+  },
+  {
+   "file": "src/lib/catalog/entries/sonar.ts",
+   "lines": 417,
+   "code": 96,
+   "comment": 313,
+   "blank": 8,
+   "header": 278,
+   "rule": 277
+  },
+  {
+   "file": "src/lib/catalog/entries/stage.ts",
+   "lines": 389,
+   "code": 58,
+   "comment": 323,
+   "blank": 8,
+   "header": 291,
+   "rule": 290
+  },
+  {
+   "file": "src/lib/catalog/entries/steps.ts",
+   "lines": 384,
+   "code": 76,
+   "comment": 300,
+   "blank": 8,
+   "header": 252,
+   "rule": 251
+  },
+  {
+   "file": "src/lib/catalog/entries/strip.ts",
+   "lines": 392,
+   "code": 65,
+   "comment": 320,
+   "blank": 7,
+   "header": 265,
+   "rule": 264
+  },
+  {
+   "file": "src/lib/catalog/entries/trackpad.ts",
+   "lines": 312,
+   "code": 58,
+   "comment": 246,
+   "blank": 8,
+   "header": 225,
+   "rule": 224
+  },
+  {
+   "file": "src/lib/catalog/entries/wheels.ts",
+   "lines": 508,
+   "code": 76,
+   "comment": 424,
+   "blank": 8,
+   "header": 354,
+   "rule": 353
+  },
+  {
+   "file": "src/lib/catalog/front-door.ts",
+   "lines": 289,
+   "code": 160,
+   "comment": 121,
+   "blank": 8,
+   "header": 54,
+   "rule": 43
+  },
+  {
+   "file": "src/lib/catalog/index.ts",
+   "lines": 132,
+   "code": 97,
+   "comment": 25,
+   "blank": 10,
+   "header": 9,
+   "rule": 8
+  },
+  {
+   "file": "src/lib/catalog/library.ts",
+   "lines": 709,
+   "code": 81,
+   "comment": 603,
+   "blank": 25,
+   "header": 479,
+   "rule": 478
+  },
+  {
+   "file": "src/lib/catalog/listing.ts",
+   "lines": 515,
+   "code": 327,
+   "comment": 179,
+   "blank": 9,
+   "header": 33,
+   "rule": 32
+  },
+  {
+   "file": "src/lib/catalog/presets.ts",
+   "lines": 442,
+   "code": 197,
+   "comment": 240,
+   "blank": 5,
+   "header": 62,
+   "rule": 61
+  },
+  {
+   "file": "src/lib/catalog/touch-guard.ts",
+   "lines": 191,
+   "code": 122,
+   "comment": 51,
+   "blank": 18,
+   "header": 31,
+   "rule": 28
+  },
+  {
+   "file": "src/lib/catalog/types.ts",
+   "lines": 195,
+   "code": 94,
+   "comment": 89,
+   "blank": 12,
+   "header": 21,
+   "rule": 20
+  },
+  {
+   "file": "src/lib/device/install-copy.ts",
+   "lines": 665,
+   "code": 199,
+   "comment": 417,
+   "blank": 49,
+   "header": 210,
+   "rule": 204
+  },
+  {
+   "file": "src/lib/device/install.svelte.ts",
+   "lines": 1939,
+   "code": 870,
+   "comment": 988,
+   "blank": 81,
+   "header": 225,
+   "rule": 224
+  },
+  {
+   "file": "src/lib/device/page-target.ts",
+   "lines": 434,
+   "code": 178,
+   "comment": 224,
+   "blank": 32,
+   "header": 96,
+   "rule": 93
+  },
+  {
+   "file": "src/lib/device/session-copy.ts",
+   "lines": 619,
+   "code": 204,
+   "comment": 363,
+   "blank": 52,
+   "header": 73,
+   "rule": 60
+  },
+  {
+   "file": "src/lib/device/session.svelte.ts",
+   "lines": 1239,
+   "code": 534,
+   "comment": 635,
+   "blank": 70,
+   "header": 134,
+   "rule": 133
+  },
+  {
+   "file": "src/lib/device/snapshot.ts",
+   "lines": 569,
+   "code": 282,
+   "comment": 232,
+   "blank": 55,
+   "header": 102,
+   "rule": 96
+  },
+  {
+   "file": "src/lib/device/try-on.ts",
+   "lines": 135,
+   "code": 62,
+   "comment": 61,
+   "blank": 12,
+   "header": 19,
+   "rule": 18
+  },
+  {
+   "file": "src/lib/fidelity/firmware-oracle.ts",
+   "lines": 485,
+   "code": 162,
+   "comment": 305,
+   "blank": 18,
+   "header": 41,
+   "rule": 0
+  },
+  {
+   "file": "src/lib/index.ts",
+   "lines": 2,
+   "code": 0,
+   "comment": 1,
+   "blank": 1,
+   "header": 2,
+   "rule": 1
+  },
+  {
+   "file": "src/lib/og/png.ts",
+   "lines": 107,
+   "code": 47,
+   "comment": 50,
+   "blank": 10,
+   "header": 28,
+   "rule": 26
+  },
+  {
+   "file": "src/lib/og/render.ts",
+   "lines": 253,
+   "code": 132,
+   "comment": 101,
+   "blank": 20,
+   "header": 28,
+   "rule": 25
+  },
+  {
+   "file": "src/lib/pad/index.ts",
+   "lines": 130,
+   "code": 79,
+   "comment": 42,
+   "blank": 9,
+   "header": 19,
+   "rule": 18
+  },
+  {
+   "file": "src/lib/pad/ready.ts",
+   "lines": 40,
+   "code": 13,
+   "comment": 23,
+   "blank": 4,
+   "header": 18,
+   "rule": 17
+  },
+  {
+   "file": "src/lib/protocol/constants.ts",
+   "lines": 289,
+   "code": 71,
+   "comment": 204,
+   "blank": 14,
+   "header": 49,
+   "rule": 48
+  },
+  {
+   "file": "src/lib/protocol/decode.ts",
+   "lines": 48,
+   "code": 24,
+   "comment": 20,
+   "blank": 4,
+   "header": 6,
+   "rule": 5
+  },
+  {
+   "file": "src/lib/protocol/descriptors.ts",
+   "lines": 447,
+   "code": 219,
+   "comment": 213,
+   "blank": 15,
+   "header": 37,
+   "rule": 36
+  },
+  {
+   "file": "src/lib/protocol/framing.ts",
+   "lines": 55,
+   "code": 30,
+   "comment": 21,
+   "blank": 4,
+   "header": 15,
+   "rule": 14
+  },
+  {
+   "file": "src/lib/protocol/index.ts",
+   "lines": 10,
+   "code": 6,
+   "comment": 3,
+   "blank": 1,
+   "header": 3,
+   "rule": 2
+  },
+  {
+   "file": "src/lib/protocol/match.ts",
+   "lines": 78,
+   "code": 39,
+   "comment": 30,
+   "blank": 9,
+   "header": 10,
+   "rule": 9
+  },
+  {
+   "file": "src/lib/protocol/usb.ts",
+   "lines": 24,
+   "code": 1,
+   "comment": 21,
+   "blank": 2,
+   "header": 22,
+   "rule": 14
+  },
+  {
+   "file": "src/lib/protocol/write-guard.ts",
+   "lines": 78,
+   "code": 38,
+   "comment": 36,
+   "blank": 4,
+   "header": 8,
+   "rule": 7
+  },
+  {
+   "file": "src/lib/protocol-pin.ts",
+   "lines": 10,
+   "code": 1,
+   "comment": 8,
+   "blank": 1,
+   "header": 8,
+   "rule": 6
+  },
+  {
+   "file": "src/lib/sandbox/colour-knob.ts",
+   "lines": 79,
+   "code": 48,
+   "comment": 24,
+   "blank": 7,
+   "header": 19,
+   "rule": 18
+  },
+  {
+   "file": "src/lib/sandbox/copy.ts",
+   "lines": 225,
+   "code": 122,
+   "comment": 81,
+   "blank": 22,
+   "header": 26,
+   "rule": 21
+  },
+  {
+   "file": "src/lib/sandbox/cost.ts",
+   "lines": 247,
+   "code": 157,
+   "comment": 77,
+   "blank": 13,
+   "header": 54,
+   "rule": 53
+  },
+  {
+   "file": "src/lib/sandbox/draft.ts",
+   "lines": 73,
+   "code": 37,
+   "comment": 30,
+   "blank": 6,
+   "header": 25,
+   "rule": 24
+  },
+  {
+   "file": "src/lib/sandbox/editor.ts",
+   "lines": 991,
+   "code": 711,
+   "comment": 202,
+   "blank": 78,
+   "header": 103,
+   "rule": 102
+  },
+  {
+   "file": "src/lib/sandbox/emit.ts",
+   "lines": 442,
+   "code": 220,
+   "comment": 188,
+   "blank": 34,
+   "header": 138,
+   "rule": 137
+  },
+  {
+   "file": "src/lib/sandbox/geometry.ts",
+   "lines": 451,
+   "code": 293,
+   "comment": 128,
+   "blank": 30,
+   "header": 67,
+   "rule": 66
+  },
+  {
+   "file": "src/lib/sandbox/history.ts",
+   "lines": 180,
+   "code": 76,
+   "comment": 90,
+   "blank": 14,
+   "header": 76,
+   "rule": 75
+  },
+  {
+   "file": "src/lib/sandbox/land.ts",
+   "lines": 180,
+   "code": 82,
+   "comment": 90,
+   "blank": 8,
+   "header": 72,
+   "rule": 71
+  },
+  {
+   "file": "src/lib/sandbox/model.ts",
+   "lines": 358,
+   "code": 129,
+   "comment": 186,
+   "blank": 43,
+   "header": 119,
+   "rule": 118
+  },
+  {
+   "file": "src/lib/sandbox/preview.ts",
+   "lines": 81,
+   "code": 33,
+   "comment": 42,
+   "blank": 6,
+   "header": 34,
+   "rule": 33
+  },
+  {
+   "file": "src/lib/sandbox/runtime.ts",
+   "lines": 393,
+   "code": 131,
+   "comment": 238,
+   "blank": 24,
+   "header": 202,
+   "rule": 201
+  },
+  {
+   "file": "src/lib/share/stamp.ts",
+   "lines": 517,
+   "code": 263,
+   "comment": 222,
+   "blank": 32,
+   "header": 94,
+   "rule": 93
+  },
+  {
+   "file": "src/lib/share/url.ts",
+   "lines": 57,
+   "code": 7,
+   "comment": 46,
+   "blank": 4,
+   "header": 31,
+   "rule": 23
+  },
+  {
+   "file": "src/lib/sim/demo.ts",
+   "lines": 392,
+   "code": 121,
+   "comment": 255,
+   "blank": 16,
+   "header": 66,
+   "rule": 65
+  },
+  {
+   "file": "src/lib/sim/engine.ts",
+   "lines": 138,
+   "code": 52,
+   "comment": 80,
+   "blank": 6,
+   "header": 40,
+   "rule": 39
+  },
+  {
+   "file": "src/lib/sim/host.ts",
+   "lines": 786,
+   "code": 378,
+   "comment": 375,
+   "blank": 33,
+   "header": 112,
+   "rule": 111
+  },
+  {
+   "file": "src/lib/sim/lua-host.ts",
+   "lines": 1059,
+   "code": 492,
+   "comment": 477,
+   "blank": 90,
+   "header": 22,
+   "rule": 21
+  },
+  {
+   "file": "src/lib/sim/lua-pad-sim.ts",
+   "lines": 232,
+   "code": 108,
+   "comment": 103,
+   "blank": 21,
+   "header": 17,
+   "rule": 16
+  },
+  {
+   "file": "src/lib/sim/monitor.ts",
+   "lines": 257,
+   "code": 111,
+   "comment": 129,
+   "blank": 17,
+   "header": 54,
+   "rule": 53
+  },
+  {
+   "file": "src/lib/sim/motion.svelte.ts",
+   "lines": 160,
+   "code": 59,
+   "comment": 89,
+   "blank": 12,
+   "header": 50,
+   "rule": 49
+  },
+  {
+   "file": "src/lib/sim/paint.ts",
+   "lines": 81,
+   "code": 22,
+   "comment": 55,
+   "blank": 4,
+   "header": 41,
+   "rule": 38
+  },
+  {
+   "file": "src/lib/sim/ready.ts",
+   "lines": 73,
+   "code": 20,
+   "comment": 47,
+   "blank": 6,
+   "header": 35,
+   "rule": 34
+  },
+  {
+   "file": "src/lib/sim/schedule.ts",
+   "lines": 98,
+   "code": 29,
+   "comment": 59,
+   "blank": 10,
+   "header": 20,
+   "rule": 13
+  },
+  {
+   "file": "src/lib/sim/touch.ts",
+   "lines": 190,
+   "code": 91,
+   "comment": 85,
+   "blank": 14,
+   "header": 22,
+   "rule": 21
+  },
+  {
+   "file": "src/lib/store/collections.ts",
+   "lines": 292,
+   "code": 162,
+   "comment": 110,
+   "blank": 20,
+   "header": 68,
+   "rule": 66
+  },
+  {
+   "file": "src/lib/store/drafts.ts",
+   "lines": 150,
+   "code": 86,
+   "comment": 54,
+   "blank": 10,
+   "header": 39,
+   "rule": 38
+  },
+  {
+   "file": "src/lib/store/favorites.ts",
+   "lines": 119,
+   "code": 59,
+   "comment": 49,
+   "blank": 11,
+   "header": 36,
+   "rule": 35
+  },
+  {
+   "file": "src/lib/store/intro.ts",
+   "lines": 67,
+   "code": 28,
+   "comment": 35,
+   "blank": 4,
+   "header": 29,
+   "rule": 28
+  },
+  {
+   "file": "src/lib/store/library.ts",
+   "lines": 162,
+   "code": 109,
+   "comment": 40,
+   "blank": 13,
+   "header": 24,
+   "rule": 23
+  },
+  {
+   "file": "src/lib/store/local.ts",
+   "lines": 188,
+   "code": 80,
+   "comment": 97,
+   "blank": 11,
+   "header": 64,
+   "rule": 56
+  },
+  {
+   "file": "src/lib/store/motion.ts",
+   "lines": 48,
+   "code": 17,
+   "comment": 25,
+   "blank": 6,
+   "header": 22,
+   "rule": 21
+  },
+  {
+   "file": "src/lib/store/recent.ts",
+   "lines": 89,
+   "code": 41,
+   "comment": 39,
+   "blank": 9,
+   "header": 25,
+   "rule": 24
+  },
+  {
+   "file": "src/lib/store/schema.ts",
+   "lines": 326,
+   "code": 146,
+   "comment": 142,
+   "blank": 38,
+   "header": 78,
+   "rule": 75
+  },
+  {
+   "file": "src/lib/store/transfer.ts",
+   "lines": 505,
+   "code": 282,
+   "comment": 189,
+   "blank": 34,
+   "header": 114,
+   "rule": 112
+  },
+  {
+   "file": "src/lib/transport/capture.ts",
+   "lines": 271,
+   "code": 192,
+   "comment": 57,
+   "blank": 22,
+   "header": 11,
+   "rule": 10
+  },
+  {
+   "file": "src/lib/transport/fake.ts",
+   "lines": 240,
+   "code": 185,
+   "comment": 29,
+   "blank": 26,
+   "header": 19,
+   "rule": 18
+  },
+  {
+   "file": "src/lib/transport/fixtures/synthetic.ts",
+   "lines": 648,
+   "code": 383,
+   "comment": 233,
+   "blank": 32,
+   "header": 33,
+   "rule": 32
+  },
+  {
+   "file": "src/lib/transport/index.ts",
+   "lines": 13,
+   "code": 7,
+   "comment": 5,
+   "blank": 1,
+   "header": 5,
+   "rule": 4
+  },
+  {
+   "file": "src/lib/transport/ports.ts",
+   "lines": 62,
+   "code": 17,
+   "comment": 41,
+   "blank": 4,
+   "header": 20,
+   "rule": 19
+  },
+  {
+   "file": "src/lib/transport/queue.ts",
+   "lines": 391,
+   "code": 302,
+   "comment": 67,
+   "blank": 22,
+   "header": 15,
+   "rule": 14
+  },
+  {
+   "file": "src/lib/transport/sequence.ts",
+   "lines": 654,
+   "code": 372,
+   "comment": 250,
+   "blank": 32,
+   "header": 23,
+   "rule": 22
+  },
+  {
+   "file": "src/lib/transport/transport.ts",
+   "lines": 201,
+   "code": 129,
+   "comment": 64,
+   "blank": 8,
+   "header": 10,
+   "rule": 7
+  },
+  {
+   "file": "src/lib/transport/web-serial.ts",
+   "lines": 178,
+   "code": 105,
+   "comment": 59,
+   "blank": 14,
+   "header": 15,
+   "rule": 14
+  },
+  {
+   "file": "src/lib/tune/copy.ts",
+   "lines": 579,
+   "code": 150,
+   "comment": 368,
+   "blank": 61,
+   "header": 132,
+   "rule": 126
+  },
+  {
+   "file": "src/lib/tune/idle.ts",
+   "lines": 114,
+   "code": 63,
+   "comment": 39,
+   "blank": 12,
+   "header": 9,
+   "rule": 6
+  },
+  {
+   "file": "src/lib/tune/inspector-copy.ts",
+   "lines": 251,
+   "code": 99,
+   "comment": 117,
+   "blank": 35,
+   "header": 27,
+   "rule": 21
+  },
+  {
+   "file": "src/lib/tune/knobs.lua.ts",
+   "lines": 57,
+   "code": 12,
+   "comment": 42,
+   "blank": 3,
+   "header": 23,
+   "rule": 22
+  },
+  {
+   "file": "src/lib/tune/knobs.preset.ts",
+   "lines": 794,
+   "code": 483,
+   "comment": 251,
+   "blank": 60,
+   "header": 27,
+   "rule": 26
+  },
+  {
+   "file": "src/lib/tune/model.ts",
+   "lines": 1169,
+   "code": 613,
+   "comment": 504,
+   "blank": 52,
+   "header": 58,
+   "rule": 57
+  },
+  {
+   "file": "src/lib/tune/state.ts",
+   "lines": 133,
+   "code": 54,
+   "comment": 71,
+   "blank": 8,
+   "header": 24,
+   "rule": 23
+  },
+  {
+   "file": "src/lib/tune/surprise.ts",
+   "lines": 183,
+   "code": 58,
+   "comment": 114,
+   "blank": 11,
+   "header": 67,
+   "rule": 66
+  },
+  {
+   "file": "src/lib/tune/view.ts",
+   "lines": 863,
+   "code": 395,
+   "comment": 403,
+   "blank": 65,
+   "header": 43,
+   "rule": 33
+  },
+  {
+   "file": "src/lib/ui/BrowseGrid.svelte",
+   "lines": 532,
+   "code": 258,
+   "comment": 249,
+   "blank": 25,
+   "header": 92,
+   "rule": 90
+  },
+  {
+   "file": "src/lib/ui/BrowseLink.svelte",
+   "lines": 227,
+   "code": 83,
+   "comment": 132,
+   "blank": 12,
+   "header": 55,
+   "rule": 53
+  },
+  {
+   "file": "src/lib/ui/BrowseToolbar.svelte",
+   "lines": 566,
+   "code": 345,
+   "comment": 174,
+   "blank": 47,
+   "header": 90,
+   "rule": 88
+  },
+  {
+   "file": "src/lib/ui/BudgetMessage.svelte",
+   "lines": 223,
+   "code": 102,
+   "comment": 106,
+   "blank": 15,
+   "header": 66,
+   "rule": 64
+  },
+  {
+   "file": "src/lib/ui/BudgetMeter.svelte",
+   "lines": 378,
+   "code": 161,
+   "comment": 193,
+   "blank": 24,
+   "header": 81,
+   "rule": 79
+  },
+  {
+   "file": "src/lib/ui/CatalogCard.svelte",
+   "lines": 450,
+   "code": 227,
+   "comment": 190,
+   "blank": 33,
+   "header": 100,
+   "rule": 98
+  },
+  {
+   "file": "src/lib/ui/Clear.svelte",
+   "lines": 279,
+   "code": 115,
+   "comment": 148,
+   "blank": 16,
+   "header": 98,
+   "rule": 96
+  },
+  {
+   "file": "src/lib/ui/ColourPicker.svelte",
+   "lines": 953,
+   "code": 506,
+   "comment": 375,
+   "blank": 72,
+   "header": 74,
+   "rule": 72
+  },
+  {
+   "file": "src/lib/ui/CopyLink.svelte",
+   "lines": 258,
+   "code": 121,
+   "comment": 119,
+   "blank": 18,
+   "header": 62,
+   "rule": 60
+  },
+  {
+   "file": "src/lib/ui/DestinationZone.svelte",
+   "lines": 576,
+   "code": 370,
+   "comment": 176,
+   "blank": 30,
+   "header": 117,
+   "rule": 115
+  },
+  {
+   "file": "src/lib/ui/DeviceActions.svelte",
+   "lines": 121,
+   "code": 55,
+   "comment": 57,
+   "blank": 9,
+   "header": 50,
+   "rule": 48
+  },
+  {
+   "file": "src/lib/ui/DeviceDetails.svelte",
+   "lines": 523,
+   "code": 294,
+   "comment": 195,
+   "blank": 34,
+   "header": 104,
+   "rule": 102
+  },
+  {
+   "file": "src/lib/ui/DeviceMark.svelte",
+   "lines": 85,
+   "code": 36,
+   "comment": 43,
+   "blank": 6,
+   "header": 41,
+   "rule": 39
+  },
+  {
+   "file": "src/lib/ui/DeviceNote.svelte",
+   "lines": 318,
+   "code": 144,
+   "comment": 157,
+   "blank": 17,
+   "header": 95,
+   "rule": 93
+  },
+  {
+   "file": "src/lib/ui/DeviceSlot.svelte",
+   "lines": 392,
+   "code": 207,
+   "comment": 157,
+   "blank": 28,
+   "header": 91,
+   "rule": 89
+  },
+  {
+   "file": "src/lib/ui/FacetRow.svelte",
+   "lines": 252,
+   "code": 133,
+   "comment": 103,
+   "blank": 16,
+   "header": 65,
+   "rule": 63
+  },
+  {
+   "file": "src/lib/ui/FailureBlock.svelte",
+   "lines": 103,
+   "code": 49,
+   "comment": 48,
+   "blank": 6,
+   "header": 39,
+   "rule": 37
+  },
+  {
+   "file": "src/lib/ui/FidelityLine.svelte",
+   "lines": 141,
+   "code": 74,
+   "comment": 53,
+   "blank": 14,
+   "header": 34,
+   "rule": 32
+  },
+  {
+   "file": "src/lib/ui/KeepConfirm.svelte",
+   "lines": 320,
+   "code": 181,
+   "comment": 116,
+   "blank": 23,
+   "header": 76,
+   "rule": 74
+  },
+  {
+   "file": "src/lib/ui/Knob.svelte",
+   "lines": 1172,
+   "code": 635,
+   "comment": 448,
+   "blank": 89,
+   "header": 101,
+   "rule": 99
+  },
+  {
+   "file": "src/lib/ui/KnobRack.svelte",
+   "lines": 221,
+   "code": 112,
+   "comment": 102,
+   "blank": 7,
+   "header": 57,
+   "rule": 55
+  },
+  {
+   "file": "src/lib/ui/MidiField.svelte",
+   "lines": 341,
+   "code": 226,
+   "comment": 93,
+   "blank": 22,
+   "header": 55,
+   "rule": 53
+  },
+  {
+   "file": "src/lib/ui/MidiMonitor.svelte",
+   "lines": 381,
+   "code": 266,
+   "comment": 80,
+   "blank": 35,
+   "header": 57,
+   "rule": 55
+  },
+  {
+   "file": "src/lib/ui/MotionControl.svelte",
+   "lines": 126,
+   "code": 73,
+   "comment": 42,
+   "blank": 11,
+   "header": 35,
+   "rule": 33
+  },
+  {
+   "file": "src/lib/ui/PadCanvas.svelte",
+   "lines": 87,
+   "code": 35,
+   "comment": 45,
+   "blank": 7,
+   "header": 19,
+   "rule": 17
+  },
+  {
+   "file": "src/lib/ui/PadFrame.svelte",
+   "lines": 191,
+   "code": 64,
+   "comment": 118,
+   "blank": 9,
+   "header": 57,
+   "rule": 55
+  },
+  {
+   "file": "src/lib/ui/PadSpinner.svelte",
+   "lines": 240,
+   "code": 169,
+   "comment": 60,
+   "blank": 11,
+   "header": 42,
+   "rule": 40
+  },
+  {
+   "file": "src/lib/ui/SessionAnnouncer.svelte",
+   "lines": 49,
+   "code": 11,
+   "comment": 36,
+   "blank": 2,
+   "header": 36,
+   "rule": 34
+  },
+  {
+   "file": "src/lib/ui/StampNotice.svelte",
+   "lines": 102,
+   "code": 39,
+   "comment": 56,
+   "blank": 7,
+   "header": 40,
+   "rule": 38
+  },
+  {
+   "file": "src/lib/ui/Swatch.svelte",
+   "lines": 321,
+   "code": 181,
+   "comment": 120,
+   "blank": 20,
+   "header": 61,
+   "rule": 59
+  },
+  {
+   "file": "src/lib/ui/TagChip.svelte",
+   "lines": 150,
+   "code": 76,
+   "comment": 63,
+   "blank": 11,
+   "header": 53,
+   "rule": 51
+  },
+  {
+   "file": "src/lib/ui/TuningRegion.svelte",
+   "lines": 972,
+   "code": 525,
+   "comment": 390,
+   "blank": 57,
+   "header": 152,
+   "rule": 150
+  },
+  {
+   "file": "src/lib/ui/Wordmark.svelte",
+   "lines": 77,
+   "code": 31,
+   "comment": 41,
+   "blank": 5,
+   "header": 38,
+   "rule": 36
+  },
+  {
+   "file": "src/lib/ui/device-drawer.svelte.ts",
+   "lines": 62,
+   "code": 18,
+   "comment": 39,
+   "blank": 5,
+   "header": 38,
+   "rule": 34
+  },
+  {
+   "file": "src/lib/ui/fidelity-line.ts",
+   "lines": 46,
+   "code": 1,
+   "comment": 43,
+   "blank": 2,
+   "header": 44,
+   "rule": 18
+  },
+  {
+   "file": "src/lib/ui/intro/HeroSurface.svelte",
+   "lines": 310,
+   "code": 190,
+   "comment": 94,
+   "blank": 26,
+   "header": 59,
+   "rule": 57
+  },
+  {
+   "file": "src/lib/ui/intro/Intro.svelte",
+   "lines": 408,
+   "code": 269,
+   "comment": 107,
+   "blank": 32,
+   "header": 70,
+   "rule": 68
+  },
+  {
+   "file": "src/lib/ui/intro/StartCard.svelte",
+   "lines": 144,
+   "code": 88,
+   "comment": 41,
+   "blank": 15,
+   "header": 31,
+   "rule": 29
+  },
+  {
+   "file": "src/lib/ui/intro/card.ts",
+   "lines": 111,
+   "code": 39,
+   "comment": 64,
+   "blank": 8,
+   "header": 36,
+   "rule": 35
+  },
+  {
+   "file": "src/lib/ui/library/LibraryTable.svelte",
+   "lines": 516,
+   "code": 400,
+   "comment": 74,
+   "blank": 42,
+   "header": 44,
+   "rule": 42
+  },
+  {
+   "file": "src/lib/ui/library/ResumeBanner.svelte",
+   "lines": 169,
+   "code": 115,
+   "comment": 39,
+   "blank": 15,
+   "header": 30,
+   "rule": 28
+  },
+  {
+   "file": "src/lib/ui/library/words.ts",
+   "lines": 93,
+   "code": 45,
+   "comment": 36,
+   "blank": 12,
+   "header": 22,
+   "rule": 20
+  },
+  {
+   "file": "src/lib/ui/radius-allowlist.ts",
+   "lines": 360,
+   "code": 192,
+   "comment": 145,
+   "blank": 23,
+   "header": 63,
+   "rule": 62
+  },
+  {
+   "file": "src/lib/ui/sandbox/ElementList.svelte",
+   "lines": 179,
+   "code": 135,
+   "comment": 29,
+   "blank": 15,
+   "header": 25,
+   "rule": 23
+  },
+  {
+   "file": "src/lib/ui/sandbox/Palette.svelte",
+   "lines": 181,
+   "code": 135,
+   "comment": 30,
+   "blank": 16,
+   "header": 25,
+   "rule": 23
+  },
+  {
+   "file": "src/lib/ui/sandbox/RegionInspector.svelte",
+   "lines": 592,
+   "code": 488,
+   "comment": 65,
+   "blank": 39,
+   "header": 48,
+   "rule": 46
+  },
+  {
+   "file": "src/lib/ui/sandbox/SurfaceActions.svelte",
+   "lines": 123,
+   "code": 66,
+   "comment": 48,
+   "blank": 9,
+   "header": 38,
+   "rule": 36
+  },
+  {
+   "file": "src/lib/ui/sandbox/SurfaceEditor.svelte",
+   "lines": 1046,
+   "code": 775,
+   "comment": 206,
+   "blank": 65,
+   "header": 103,
+   "rule": 101
+  },
+  {
+   "file": "src/lib/ui/shell/ConnectionControl.svelte",
+   "lines": 95,
+   "code": 25,
+   "comment": 65,
+   "blank": 5,
+   "header": 49,
+   "rule": 47
+  },
+  {
+   "file": "src/lib/ui/shell/ContextBar.svelte",
+   "lines": 269,
+   "code": 165,
+   "comment": 82,
+   "blank": 22,
+   "header": 63,
+   "rule": 61
+  },
+  {
+   "file": "src/lib/ui/shell/Footer.svelte",
+   "lines": 217,
+   "code": 131,
+   "comment": 66,
+   "blank": 20,
+   "header": 53,
+   "rule": 51
+  },
+  {
+   "file": "src/lib/ui/shell/Header.svelte",
+   "lines": 175,
+   "code": 93,
+   "comment": 70,
+   "blank": 12,
+   "header": 45,
+   "rule": 43
+  },
+  {
+   "file": "src/lib/ui/shell/Inspector.svelte",
+   "lines": 194,
+   "code": 121,
+   "comment": 55,
+   "blank": 18,
+   "header": 34,
+   "rule": 32
+  },
+  {
+   "file": "src/lib/ui/shell/Nav.svelte",
+   "lines": 108,
+   "code": 73,
+   "comment": 26,
+   "blank": 9,
+   "header": 22,
+   "rule": 20
+  },
+  {
+   "file": "src/lib/ui/shell/Rail.svelte",
+   "lines": 283,
+   "code": 188,
+   "comment": 74,
+   "blank": 21,
+   "header": 50,
+   "rule": 48
+  },
+  {
+   "file": "src/lib/ui/shell/device-clause.ts",
+   "lines": 188,
+   "code": 94,
+   "comment": 88,
+   "blank": 6,
+   "header": 71,
+   "rule": 69
+  },
+  {
+   "file": "src/lib/ui/shell/layout.ts",
+   "lines": 369,
+   "code": 101,
+   "comment": 230,
+   "blank": 38,
+   "header": 59,
+   "rule": 55
+  },
+  {
+   "file": "src/lib/ui/shell/shell.svelte.ts",
+   "lines": 177,
+   "code": 64,
+   "comment": 104,
+   "blank": 9,
+   "header": 53,
+   "rule": 51
+  },
+  {
+   "file": "src/routes/+layout.svelte",
+   "lines": 432,
+   "code": 231,
+   "comment": 171,
+   "blank": 30,
+   "header": 0,
+   "rule": 0
+  },
+  {
+   "file": "src/routes/+layout.ts",
+   "lines": 3,
+   "code": 2,
+   "comment": 0,
+   "blank": 1,
+   "header": 0,
+   "rule": 0
+  },
+  {
+   "file": "src/routes/+page.svelte",
+   "lines": 131,
+   "code": 70,
+   "comment": 49,
+   "blank": 12,
+   "header": 35,
+   "rule": 33
+  },
+  {
+   "file": "src/routes/+page.ts",
+   "lines": 25,
+   "code": 4,
+   "comment": 19,
+   "blank": 2,
+   "header": 19,
+   "rule": 18
+  },
+  {
+   "file": "src/routes/dev/catalog/+page.svelte",
+   "lines": 87,
+   "code": 50,
+   "comment": 28,
+   "blank": 9,
+   "header": 25,
+   "rule": 23
+  },
+  {
+   "file": "src/routes/dev/fidelity/+page.svelte",
+   "lines": 91,
+   "code": 28,
+   "comment": 59,
+   "blank": 4,
+   "header": 19,
+   "rule": 17
+  },
+  {
+   "file": "src/routes/dev/install/+page.svelte",
+   "lines": 423,
+   "code": 247,
+   "comment": 145,
+   "blank": 31,
+   "header": 69,
+   "rule": 67
+  },
+  {
+   "file": "src/routes/dev/session/+page.svelte",
+   "lines": 209,
+   "code": 92,
+   "comment": 99,
+   "blank": 18,
+   "header": 69,
+   "rule": 67
+  },
+  {
+   "file": "src/routes/dev/skeleton/+page.svelte",
+   "lines": 680,
+   "code": 557,
+   "comment": 77,
+   "blank": 46,
+   "header": 22,
+   "rule": 20
+  },
+  {
+   "file": "src/routes/dev/tune/+page.svelte",
+   "lines": 243,
+   "code": 94,
+   "comment": 136,
+   "blank": 13,
+   "header": 100,
+   "rule": 98
+  },
+  {
+   "file": "src/routes/dev/type/+page.svelte",
+   "lines": 158,
+   "code": 78,
+   "comment": 70,
+   "blank": 10,
+   "header": 70,
+   "rule": 68
+  },
+  {
+   "file": "src/routes/my-configs/+page.svelte",
+   "lines": 1362,
+   "code": 1073,
+   "comment": 177,
+   "blank": 112,
+   "header": 82,
+   "rule": 80
+  },
+  {
+   "file": "src/routes/my-configs/+page.ts",
+   "lines": 23,
+   "code": 9,
+   "comment": 12,
+   "blank": 2,
+   "header": 12,
+   "rule": 11
+  },
+  {
+   "file": "src/routes/playground/+page.svelte",
+   "lines": 619,
+   "code": 392,
+   "comment": 172,
+   "blank": 55,
+   "header": 79,
+   "rule": 77
+  },
+  {
+   "file": "src/routes/playground/+page.ts",
+   "lines": 32,
+   "code": 9,
+   "comment": 21,
+   "blank": 2,
+   "header": 21,
+   "rule": 20
+  },
+  {
+   "file": "src/routes/playground/[id]/+page.svelte",
+   "lines": 985,
+   "code": 640,
+   "comment": 272,
+   "blank": 73,
+   "header": 120,
+   "rule": 118
+  },
+  {
+   "file": "src/routes/playground/[id]/+page.ts",
+   "lines": 69,
+   "code": 21,
+   "comment": 44,
+   "blank": 4,
+   "header": 38,
+   "rule": 37
+  },
+  {
+   "file": "src/routes/sandbox/+page.svelte",
+   "lines": 111,
+   "code": 77,
+   "comment": 23,
+   "blank": 11,
+   "header": 22,
+   "rule": 20
+  },
+  {
+   "file": "src/routes/sandbox/+page.ts",
+   "lines": 27,
+   "code": 10,
+   "comment": 14,
+   "blank": 3,
+   "header": 14,
+   "rule": 13
+  },
+  {
+   "file": "src/routes/sandbox/[draftId]/+page.svelte",
+   "lines": 1178,
+   "code": 898,
+   "comment": 185,
+   "blank": 95,
+   "header": 96,
+   "rule": 94
+  },
+  {
+   "file": "src/routes/sandbox/[draftId]/+page.ts",
+   "lines": 51,
+   "code": 11,
+   "comment": 37,
+   "blank": 3,
+   "header": 37,
+   "rule": 36
+  }
+ ]
+}
