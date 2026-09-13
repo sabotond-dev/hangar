@@ -595,10 +595,15 @@ on Opus; the Bible untouched.
 tree already ticks
 **Depends on:** Phase 13.1 (gate landed, bench pending); the Quick guide (the user's next ask) follows
 this phase
-**Plans:** 0 plans
+**Plans:** 6 plans, serial, each bracketed by the gate script
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 13.2 to break down)
+- [ ] 13.2-01: the rule in docs/CODE-STYLE.md, the gate script and its five harnesses, the shared source helper, six dead exports out, the leaf modules
+- [ ] 13.2-02: the eighteen entries and the library - history to docs/entries/, the wire hashed full before and after, the sweep run
+- [ ] 13.2-03: the eight copy modules and page-target.ts - the retirement ledgers compact with every pinned phrase carried
+- [ ] 13.2-04: the two stores - comments, the three page methods as one, the library names, storedThisSession
+- [ ] 13.2-05: fifty components and app.css - headers and comments, the built CSS the judge
+- [ ] 13.2-06: routes, sim, transport, model, view, editor; the phase gate against 01 (checkpoint: three files read by the user)
 
 ### Phase 13.1: Bench corrections four (INSERTED)
 
