@@ -1,22 +1,13 @@
-// The words My configs puts beside a record (plan 13-13, PDF page 4): the
-// TYPE column's sentence-case label, the LAST EDITED column's timestamp in
-// words, and the two status words - Draft and Saved - for the two objects
-// section 9 keeps apart. Pure functions, no browser, no catalog: the type
-// label takes the entry's first tag from the caller, who has the listing.
-//
-// TWO WORDS FOR TWO OBJECTS, NEVER ONE FOR THREE. `Draft` is drafts.ts's
-// object and `Saved` is library.ts's; the third object - what is on the
-// device - is the install store's and never appears in this table. The
-// literal "Saved" lives HERE and not in a store module, because
-// local.spec.ts test 9 scans the 13-06 stores for it and this is a screen's
-// word, not a record's.
-//
-// THE TIMESTAMP IS THE PDF'S THREE FORMS: `Today, 10:42` (the day the page
-// is read), `Yesterday`, and `8 Sep 2026` for anything earlier - one
-// formatter, 24-hour, English month abbreviations, no locale call so the
-// e2e title and the prerendered document agree. The resume banner's
-// `Last edited 12 minutes ago` is the intro card's relativeTime
-// (src/lib/ui/intro/card.ts) and is not duplicated here.
+// The words My configs puts beside a record (13-13, PDF page 4): the TYPE
+// column's label, the LAST EDITED column's timestamp in words, and the two
+// status words for the two objects section 9 keeps apart - `Draft` is
+// drafts.ts's and `Saved` is library.ts's; the third object, what is on the
+// device, never appears here. The literal "Saved" lives here and not in a store
+// module (local.spec.ts test 9 scans the stores for it). Pure functions, no
+// browser, no catalog: the type label takes the entry's first tag from the
+// caller. The timestamp is the PDF's three forms - `Today, 10:42`, `Yesterday`,
+// `8 Sep 2026` - with no locale call, so the e2e title and the prerendered
+// document agree; the resume banner's relative time is intro/card.ts's.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 

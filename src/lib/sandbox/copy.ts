@@ -1,23 +1,11 @@
-// Every word the Sandbox's interface shows (plan 13-16), in one module that
-// imports nothing - the shape src/lib/tune/inspector-copy.ts set, so a spec
-// can hold a component to the sentence it renders rather than to a copy.
-//
-// TWO KINDS OF STRING, MARKED. The PDF's page 3 and the Bible's sections 8 and
-// 16 give most of the words, and those are VERBATIM: the rail headings, the
-// four type names, `+ New surface`, `Undo`, `Redo`, `Save copy`, `Edit`,
-// `Play`, the eyebrow, the sub-line, `Element name`, `Position & size`,
-// `Column`, `Row`, `Width`, `Height`, `CC number`, `Channel`, `Appearance`,
-// `MIDI output`, `Duplicate`, `Delete element`, the units chip, the two
-// helper lines, section 8's instruction and section 16's overlap line. The
-// rest - the empty state's second line, the template's name, the cap's
-// reason, the mode-lock reasons, the storage-refused line, the field
-// messages, the meter's sentence, the default element names - are HANGAR's,
-// written in D-05's register (sentence case, the fact then the way, never
-// "invalid", never coy) and ledgered in
-// .planning/phases/13-gui-overhaul/13-COPY-NEW.md under "From 13-16" for
-// 13-18's batch. The geometry refusals themselves live in
-// src/lib/sandbox/geometry.ts (GEOMETRY_COPY, overlapLine) since 13-14 and
-// 13-15 and are not repeated here.
+// Every word the Sandbox's interface shows (13-16, 13-17), in one module that
+// imports nothing - the shape inspector-copy.ts set, so a spec can hold a
+// component to the sentence it renders. Two kinds of string, marked by section:
+// the PDF's page 3 and the Bible's sections 8, 9, 11 and 16 give most of the
+// words, VERBATIM; the rest are HANGAR's, in D-05's register (sentence case, the
+// fact then the way, never "invalid", never coy), ledgered in
+// .planning/phases/13-gui-overhaul/13-COPY-NEW.md under "From 13-16" and "From
+// 13-17". The geometry refusals live in geometry.ts (GEOMETRY_COPY, overlapLine).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -180,7 +168,7 @@ export const overLine = (
   `${word} is ${used} of 908, ${over} over. Two events can’t hold this mix of element kinds; remove one kind to fit.`;
 export const MEASURING = "measuring…";
 
-/** Default names, per kind and ordinal: Fader 1, Button 2. */
+/** Default names, per kind and count: Fader 1, Button 2. */
 export const defaultName = (kind: string, n: number): string => `${kind} ${n}`;
 export const copyName = (name: string): string => `${name} copy`;
 
@@ -190,18 +178,13 @@ export const savedLine = (name: string): string =>
 export const SAVE_REFUSED = "Your browser refused to store the copy.";
 
 // ---------------------------------------------------------------------------
-// The install and the share (plan 13-17; Bible section 9 and section 11;
-// 13-CONTEXT D-14 Q7, D-18, D-19). `Apply to ZONA` and `Store on ZONA` are
-// section 9's and are VERBATIM (the first is page-target.ts's APPLY_LABEL);
-// the rest are HANGAR's, in D-05's register, ledgered under "From 13-17".
+// The install and the share (13-17; Bible sections 9 and 11; 13-CONTEXT D-14
+// Q7, D-18, D-19). `Apply to ZONA` is page-target.ts's APPLY_LABEL; the rest are
+// HANGAR's, ledgered under "From 13-17".
 
 // STORE_LABEL (`Store on ZONA`, section 9's word, verbatim) IS RETIRED BY
-// NAME, 2026-09-12 (13.1-06, 13.1-CONTEXT D-06, D-11 a): SurfaceActions'
-// destination half - its one reader - moved whole into src/lib/ui/
-// DestinationZone.svelte, the one component both routes mount, and that
-// file reads install-copy.ts's KEEP_LABEL, the same three words, so the
-// button and the confirmation's affirmative read one constant. Nothing dead
-// is left exported (D-12).
+// NAME, 2026-09-12 (13.1-06, 13.1-CONTEXT D-06, D-11 a): its one reader moved
+// into DestinationZone.svelte, which reads install-copy.ts's KEEP_LABEL.
 /**
  * The meter when a string is over 908 under three slots: which one, by how
  * much, and the way. What pushed a surface over is an ELEMENT - names are

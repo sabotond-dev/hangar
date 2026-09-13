@@ -1,62 +1,13 @@
-// Every word the device session says, in one place, before any component
-// exists to render it.
-//
-// THIS MODULE IMPORTS NOTHING. Not "no heavy imports", not "no vendor imports":
-// zero specifiers, `import type` included. The reason is Phase 4's chunk guard,
-// which matches specifier TEXT (src/lib/config-shape.spec.ts test 13) rather
-// than a resolved graph, so a module that a header component may name on the
-// first paint of `/` has to be free of the compiler, the protocol and the
-// transport entirely. src/lib/tune/copy.ts is the precedent and holds the same
-// line for the same reason. Anything this module would otherwise have imported
-// arrives as an argument instead - a firmware record, a page number, an already
-// sorted list of module names, and the label of whichever control is on the
-// screen.
-//
-// EVERY SENTENCE IS ONE LITERAL, NEVER A CONCATENATION. Prettier reflows text
-// inside Svelte markup and Phase 2 lost a load-bearing sentence to exactly that
-// (02-05-SUMMARY.md), which is why visitor-facing copy is a named constant here
-// and the markup only interpolates it. A sentence assembled from two fragments
-// is a formatter-dependent assertion, so the sentences below sit on one line
-// each however long that line is, and session-copy.spec.ts holds every one of
-// them against the documents that authored it.
-//
-// THE REGISTER IS THE BIBLE'S (13-CONTEXT D-05) AND THE WORDS ARE THE USER'S
-// (D-23, 2026-09-12). A string here is either a line the design specification
-// gives - section 9's `Connect ZONA`, `Disconnected · draft retained`, section
-// 16's `Preview only. Connect ZONA when you’re ready.` - taken verbatim, or a
-// line the specification never wrote, proposed in 13-18-BATCH.md (section I.2)
-// with the state it names and the fact it must carry, and approved as written.
-// Phase 10's register (`NO ZONA`, `CONNECT ZONA`, `FORGET THIS ZONA`) and the
-// measured-length caps that governed its lines are superseded and retired by
-// name in install-copy.ts's header; the facts survive - above all SAFE-01's,
-// that nothing is written without a click, which SAFE_NOTE still carries.
-//
-// PAGES ARE NUMBERED FROM ONE (D-23, batch row I.3.1): the module reports 0 to
-// 3 and the visitor reads 1 to 4, as Grid Editor shows them. pageName below is
-// the one place this module applies the offset; install-copy.ts and
-// page-target.ts carry the same line because none of the three may import the
-// others, and the three specs pin them to the same answer.
-//
-// WHY capabilityOf LIVES HERE RATHER THAN IN try-on.ts. The header note is a
-// reserved region - 152px through Phases 6 and 7, one 24px cell plus the fixed
-// SAFE_NOTE line since plan 10-03 collapsed it - that is absent entirely in
-// `unsupported` and `insecure` (06-UI-SPEC, Y-23). If the capability could only
-// be read after try-on.ts had
-// been dynamically fetched, every visitor would paint the note and a visitor on
-// a browser that cannot connect would lose it a tick later, moving the headline
-// and the coverflow on the one browser that can least afford a surprise. In an
-// import-free module the session decides the capability SYNCHRONOUSLY, in the
-// first hydrated frame, so the note is either right from the prerendered markup
-// or removed once and never again. try-on.ts re-exports it, so every caller it
-// already had is unchanged.
-//
-// THE PUNCTUATION IS LOAD-BEARING. Real apostrophes (U+2019), a real ellipsis
-// (U+2026), a real em dash (U+2014). No emoji, no exclamation marks, never
-// "Error", never "loading", no browser engine named anywhere (a browser may be
-// named - Chrome for a settings path, Firefox for its own permission prompt -
-// the engine never), no control label paraphrased in prose, and no string
-// names a control that is not on the screen - which is why the recovery steps
-// take the label of the surface rendering them.
+// Every word the device session says, in one place, before any component exists
+// to render it. Imports nothing at all, a type import included: Phase 4's chunk
+// guard matches specifier text (config-shape.spec.ts test 13) and the header
+// names this module on the first paint of `/`. session-copy.spec.ts pins that and
+// holds every string against the Bible (section 9 and 16 lines verbatim),
+// 13-18-BATCH.md section I.2 (D-23) and 13.1-COPY-NEW.md. One literal per
+// sentence, on one line, in D-05's register: sentence case, second person, real
+// apostrophe / ellipsis / em dash, never "Error" or "loading", a browser named for
+// a settings path but never its engine, no control paraphrased or named off the
+// screen. Pages count from one (pageName); capabilityOf is here to be synchronous.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -182,8 +133,9 @@ export const NAMED_STATES = [
 // The labels and captions of the header slot (06-UI-SPEC, The nine slot states).
 
 /**
- * The page as the visitor reads it, from the page as the module reports it:
- * wire 0 is `Page 1` (D-23, batch row I.3.1). See the header.
+ * Wire 0 is `Page 1` (D-23, batch row I.3.1). One of three copies - none of
+ * the three copy modules may import another; the three specs pin the three
+ * to the same answer.
  */
 export const pageName = (page: number): string => `Page ${page + 1}`;
 
@@ -244,23 +196,10 @@ export const HIDDEN_NAME_IDLE = "Preview only. Connect ZONA when you’re ready.
 // ---------------------------------------------------------------------------
 // The sentences. One literal each, however long the line.
 
-// PICKER_EXPLAINER WAS HERE, AND ITS ABSENCE IS AN AMENDMENT RATHER THAN A GAP.
-//
-// CONN-03's pre-click line - 130 characters, asserted at session-copy.spec.ts
-// test 5 and rendered by PickerExplainer.svelte in two mounts - is RETIRED by
-// plan 10-03 (10-UI-SPEC.md, the amendment register, R-02). The audit rule the
-// register closes D-08 with:
-//
-//   A string is retired only when the control beside it, or the pixels beside
-//   it, already say the same thing. A string that names a risk, a consequence,
-//   a way back or a next step is never retired, however long it is.
-//
-// The browser's own port chooser explains itself the instant it appears, and a
-// paragraph predicting it is the definition of unnecessary text. CONN-03 is not
-// dropped: its intent - that the visitor knows nothing is seen or sent until
-// they choose - is carried by SAFE_NOTE below, which is on the screen in EVERY
-// state rather than only in the three resting ones, plus the chooser itself.
-// PickerExplainer.svelte went with the string; nothing under src/ names either.
+// PICKER_EXPLAINER WAS HERE, AND ITS ABSENCE IS AN AMENDMENT RATHER THAN A GAP:
+// CONN-03's pre-click line is RETIRED by plan 10-03 (10-UI-SPEC.md, R-02) - the
+// browser's chooser explains itself, and SAFE_NOTE carries the intent in every
+// state. PickerExplainer.svelte went with it; nothing under src/ names either.
 
 /**
  * The two-step prompt (I.2.8): desktop Firefox 151+ shows a site-permission
@@ -279,47 +218,20 @@ export const PERMISSION_DECLINED =
   "You declined the permission prompt, so the list never opened. Connect again when you’re ready and allow it.";
 
 /**
- * SAFE-01's guarantee - THE FOURTH FACT - ON THE CONTROL that would do the
- * writing (10-UI-SPEC.md §10.1, R-03; plan 10-03, form 1), in D-05's register
- * since 13-18 (batch row I.2.9): two clauses, the promise and what it covers.
- * Phase 10's form was `Nothing is written without a click.` in 35 characters;
- * the fact is the same and non-negotiable whatever the words.
- *
- * IT REPLACES SAFE_PROMISE, WHICH WAS 88 CHARACTERS OF PROSE. Phase 6 put the
- * promise in the header note and Phase 7 amended it there; both times it sat
- * in a paragraph, in three of the nine slot states, and it was absent from the
- * panel where the click actually happens. This is the same guarantee in more
- * places: beneath the primary on the chosen panel and beneath the header's
- * device slot, in EVERY state - writing, every failure, and cannot-write
- * included. REQUIREMENTS.md's SAFE-01 closure record names it.
- *
- * ITS CONTRACT, and every clause of it is asserted somewhere:
- *
- *  - UNCONDITIONAL. It renders whenever its surface renders. There is no state
- *    in which the site is silent about this.
- *  - NEVER SWAPPED. Nothing else is ever shown in its place, so it has no
- *    alternate form to drift from.
- *  - NEVER A SIZING TWIN. It is not a candidate in a reserved cell: no
- *    `grid-area: 1 / 1`, no hidden sibling holding height for it. Its line is
- *    fixed, so it costs one 14px line box permanently and nothing variable.
- *    device-ui.spec.ts holds that shape over TryOnDevice.svelte.
- *  - --color-ink, at 9.26:1. A safety statement is not quiet; the honesty
- *    slot beneath it is.
- *  - 12px Micro (title), so it reads as the button's second line rather than
- *    as prose, and 8px beneath the primary, above the honesty slot.
+ * SAFE-01's guarantee - the fourth fact - on the control that would do the
+ * writing (10-UI-SPEC.md R-03; batch row I.2.9): the promise and what it covers.
+ * It replaced SAFE_PROMISE, the header note's paragraph, and renders beneath
+ * the primary and beneath the header's device slot in EVERY state -
+ * unconditional, never swapped, never a sizing twin (device-ui.spec.ts holds
+ * the shape). REQUIREMENTS.md's SAFE-01 closure record names it.
  */
 export const SAFE_NOTE =
   "Nothing is written to your ZONA without a click. Browsing and previewing never touch it.";
 
 /**
- * The header note in S2: an offer, never an automatic open (D-06).
- *
- * AMENDED BY NAME in plan 10-03 (10-UI-SPEC.md, R-08): 88 characters become
- * 37. The clause that went is "and nothing is sent until you do", and it is a
- * promise MOVED rather than a promise dropped - SAFE_NOTE now carries it in
- * every state instead of this one sentence carrying it in S2 alone. Saying
- * that here, because a reader diffing the two forms would otherwise read the
- * shorter one as the site having quietly stopped promising something.
+ * The header note in S2: an offer, never an automatic open (D-06). Amended by
+ * name in plan 10-03 (R-08): the "nothing is sent until you do" clause moved to
+ * SAFE_NOTE, which carries it in every state.
  */
 export const RECONNECT_OFFER = "ZONA detected. One click connects it.";
 
@@ -567,13 +479,9 @@ export function multiModuleLine(others: string[]): string | undefined {
 // so there is no sixth string here.
 
 /**
- * Since plan 10-03 this is RECONNECT_OFFER itself rather than a second copy of
- * it: R-08 shortened the note's offer to exactly the sentence the announcer
- * was already speaking, and two identical literals in one module is one copy
- * too many (src/lib/ui/fidelity-line.ts's rule). The value is unchanged and
- * the export keeps its own name, so every caller reads the same as before -
- * what is gone is the possibility of the shown line and the spoken line
- * drifting apart.
+ * RECONNECT_OFFER itself since plan 10-03 (R-08), not a second copy: two
+ * identical literals in one module is one copy too many, and the shown line
+ * and the spoken line cannot drift apart.
  */
 export const LIVE_DETECTED = RECONNECT_OFFER;
 
@@ -596,17 +504,10 @@ export type Capability = "unsupported" | "insecure" | "ok";
 
 /**
  * A capability test over an explicit environment record, never a browser test.
- *
- * Absence beats insecurity: with no `navigator.serial` at all there is nothing
- * for HTTPS to secure, and "this browser cannot talk to hardware" names a fix
- * the visitor can act on while "this page needs HTTPS" does not.
- *
- * `insecure` is deliberately reachable here even though the browsers that ship
- * Web Serial can barely produce it - `navigator.serial` is [SecureContext]
- * there, so an insecure page has no serial property and lands in `unsupported`
- * instead. UI-SPEC Screen 4 specifies two states keyed on two conditions, and a
- * pure function over an explicit record is what makes both branches reachable
- * from a test rather than only from a browser nobody has.
+ * Absence beats insecurity: with no `navigator.serial` there is nothing for
+ * HTTPS to secure, and "not in this browser" names a fix the visitor can act
+ * on. `insecure` is reachable here even though a shipping browser can barely
+ * produce it, so both of Screen 4's states are reachable from a test.
  */
 export function capabilityOf(env: {
   hasSerial: boolean;

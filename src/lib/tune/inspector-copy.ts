@@ -1,23 +1,12 @@
-// The workspace's and the inspector's words (plan 13-09, PDF page 5, Bible
-// section 7 and 16). THIS MODULE IMPORTS NOTHING, for the reason copy.ts
-// gives: a component under src/lib/ui/ may name it freely and it costs no
-// chunk.
-//
-// WHY A SECOND COPY MODULE BESIDE copy.ts. copy.ts was Phase 10's register
-// when this module was written and copy.spec.ts held it character for
-// character; 13-19 rewrote it under D-05 and retired the three Phase 10
-// labels whose Bible lines live here (RANDOMIZE, RESET_SETTINGS,
-// SHARE_SNAPSHOT), so each of the three has one home. The strings the Bible's page 5 gives the workspace are the PDF's and
-// are taken VERBATIM here (13-COPY-NEW.md's first rule), and the few HANGAR
-// had to write - the two accessible names, the inspector's one headline -
-// are ledgered there for 13-18. Landing them in copy.ts would move
-// copy.spec.ts's count in a plan whose term does not include it.
-//
-// THE INSPECTOR'S HEADLINE IS ONE CONSTANT, NOT TWENTY-SEVEN. PDF page 5
-// draws "Shape the / movement." above ARC's inspector. Twenty-seven entries
-// have no two-line headline of their own and inventing them is not this
-// plan's to do (D-01); the headline is section-independent, ledgered, and
-// per-entry headlines are recorded as a question for 13-18.
+// The workspace's and the inspector's words (13-09; PDF page 5, Bible sections
+// 7, 10 and 16). Imports nothing, for the reason copy.ts gives: a component
+// under src/lib/ui/ may name it and it costs no chunk. A second copy module
+// beside copy.ts because the Bible's lines for Randomize, Reset settings and
+// Share snapshot live here (RANDOMIZE, RESET_SETTINGS, SHARE_SNAPSHOT), each
+// with one home. The PDF's strings are VERBATIM (13-COPY-NEW.md's first rule);
+// what HANGAR wrote - the accessible names, the inspector's one headline for
+// every entry, the MIDI fields' refusals (13.1-07) and the monitor's controls -
+// is in D-05's register and ledgered in 13-COPY-NEW.md and 13.1-COPY-NEW.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -46,13 +35,10 @@ export const MIDI_HELPER =
   "Map this CC to a parameter in your instrument or DAW.";
 
 // ---------------------------------------------------------------------------
-// The MIDI output's two typed fields (13.1-07; 13.1-CONTEXT D-09; bench line
-// 7, screenshot 2: "replace MIDI channel selector with MIDI output selector
-// with input fields, exactly as on the attached screenshot"). A field is a
-// text input OVER a knob's closed list, never a free numeric: a typed value
-// the knob offers moves the knob to that index, one it does not is refused
-// in the field with the offered values named. The two labels are the PDF's;
-// the refusals and the cue are HANGAR's and ledgered in 13.1-COPY-NEW.md.
+// The MIDI output's two typed fields (13.1-07; 13.1-CONTEXT D-09): a text input
+// OVER a knob's closed list, never a free numeric - a typed value the knob
+// offers moves the knob, one it does not is refused with the offered values
+// named. The labels are the PDF's; the refusals and the cue are ledgered.
 
 /** PDF page 5's two field labels, verbatim - for a knob with id `cc` and one with id `channel`. */
 export const CC_NUMBER_LABEL = "CC number";
@@ -74,17 +60,11 @@ export function midiFieldLabel(knob: { id: string; label: string }): string {
 export const TYPE_A_NUMBER = "Type a whole number.";
 
 /**
- * The refusal when a typed whole number is one the knob does not offer,
- * naming what it does offer (13.1-CONTEXT D-09's ledgered wording). Two
- * forms from ONE builder, because the workspace's lists are not the full
- * MIDI range: a list with gaps names its values - `A controller number here
- * is one of 1, 16, 20, 74 or 102.` - and a contiguous run names its bounds -
- * `A channel here is 0 to 15.` on a Lua entry, `1 to 16` on a preset. The
- * Sandbox's G.29 `A channel is 1 to 16.` is deliberately NOT reused: it
- * cannot serve a Lua channel's 0 to 15 without lying, and one builder for
- * both bases is the one place to change when question 5 is answered. The
- * noun is the knob's: `channel` for the channel, `controller number` for
- * `cc`, `ccBase` and `send`.
+ * The refusal when a typed whole number is one the knob does not offer, naming
+ * what it does offer (13.1-CONTEXT D-09). Two forms from ONE builder: a list
+ * with gaps names its values (`one of 1, 16, 20, 74 or 102`), a contiguous run
+ * its bounds (`0 to 15` on a Lua entry, `1 to 16` on a preset). The noun is
+ * the knob's: `channel` for the channel, `controller number` otherwise.
  */
 export function offeredLine(id: string, literals: readonly string[]): string {
   const noun = id === "channel" ? "A channel" : "A controller number";
@@ -123,23 +103,18 @@ function contiguousRun(
 }
 
 /**
- * The cue under a Lua entry's Channel field (13.1-PLAN-CHECK W-16; D-09;
- * X-08). A hand-authored entry's channel is the firmware's zero-based
- * literal - `0` is what the Lua sends and what the field shows, because
- * renumbering a value about to be written to hardware is the lie X-08
- * forbids - while the PDF and every preset show the DAW's `1`. Until
- * 13.1-CONTEXT question 5 is answered the field says so, in its description
- * and under it, so the state is not a silent off-by-one; a preset's channel
- * (1 to 16) carries no cue. A real apostrophe (D-05).
+ * The cue under a Lua entry's Channel field (D-09; X-08): a hand-authored
+ * entry's channel is the firmware's zero-based literal - renumbering a value
+ * about to be written to hardware is the lie X-08 forbids - while the PDF and
+ * every preset show the DAW's `1`. A preset's channel carries no cue.
  */
 export const LUA_CHANNEL_CUE =
   "The firmware counts channels from 0; your DAW’s channel 1 is 0 here.";
 
 /**
- * The two action buttons under Behavior. PDF page 5, verbatim. The glyph
- * before Randomize is drawn aria-hidden beside the word; the word is the
- * accessible name. 13-10 gives Randomize section 7's scope rule and Undo;
- * this plan only names the control the PDF's way.
+ * The two action buttons under Behavior. PDF page 5, verbatim; the glyph is
+ * drawn aria-hidden and the word is the accessible name (13-10 gives Randomize
+ * its scope rule and Undo).
  */
 export const RANDOMIZE = "Randomize";
 export const RANDOMIZE_GLYPH = "⤬";
@@ -151,10 +126,8 @@ export const UNDO_RANDOMIZE = "Undo randomize";
 export const EDIT_COLOR = "Edit color";
 /**
  * The swatch toggle's word while its colour block is open (13.1-04, D-08):
- * `Edit color` opens the block inline under the row, and the same toggle
- * reads `Close` until it is closed. F.8's approved word, kept; the symbol
- * keeps 13-09's name because three files read it. HANGAR's own (the PDF draws
- * no close) - ledgered.
+ * `Edit color` opens the block inline and the same toggle reads `Close` until
+ * it is closed. HANGAR's own (the PDF draws no close) - ledgered.
  */
 export const POPOVER_CLOSE = "Close";
 

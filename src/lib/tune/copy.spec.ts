@@ -1,22 +1,13 @@
-// Every sentence the tuning panel can say, held character-for-character
-// against the documents that author it: the Bible (section 7) and its PDF for
-// the lines it gives, 13-18-BATCH.md for the line it approved (F.11), and the
-// register (13-CONTEXT D-05) for everything HANGAR had to write itself.
-//
-// These tests exist so that a string cannot be paraphrased, reflowed,
-// re-punctuated or "improved" without a red run naming it - which is the only
-// mechanism that keeps one copy of a sentence one copy.
-//
-// THE MEASURED CAPS ARE RETIRED BY NAME (test 5). This file held five numbers
-// about its strings - tryOnBudgetReason under install-copy.ts's HONESTY_CAP
-// (86), SURPRISE_ALL_HELD at 53, the lock's two labels at 4 / 4, the mix
-// family's 7 / 75 / 8 / 8, the forecast expansion at 44 - and holds none of
-// them now. Test 5 asserts each is absent as an assertion and present, by
-// name with its number, in copy.ts's retirement paragraph, so a mechanism that
-// disappeared has a sentence saying why. The rules that travelled with them
-// and did not retire are asserted where they always were: the U+2212 scope,
-// the lock's state in its accessible name, the reason naming the state and
-// never the control.
+// Every sentence the tuning panel can say, held character for character against
+// the documents that author it: the Bible (section 7) and its PDF, 13-18-BATCH.md
+// row F.11, and the register (13-CONTEXT D-05) for everything HANGAR wrote - so a
+// string cannot be paraphrased, reflowed or "improved" without a red run naming
+// it. The measured caps are retired by name (test 5): the five numbers this file
+// held (HONESTY_CAP 86, SURPRISE_ALL_HELD 53, the lock's 4 / 4, the mix family's
+// 7 / 75 / 8 / 8, the forecast's 44) are asserted absent as assertions and present,
+// by name with their number, in copy.ts's retirement ledger. The rules that stayed
+// are asserted where they always were: the U+2212 scope, the lock's state in its
+// accessible name, the reason naming the state and never the control.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readdirSync, readFileSync } from "node:fs";

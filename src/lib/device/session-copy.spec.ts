@@ -1,31 +1,13 @@
-// The session's copy contract, made executable.
+// The session's copy contract, made executable: six tests over session-copy.ts.
 //
-// 06-UI-SPEC.md's table of nine slot states and its nine-state failure
-// taxonomy ARE the specification of the STATES. The WORDS changed hands at
-// 13-18: under 13-CONTEXT D-05 the register is the Bible's and under D-23
-// (2026-09-12) every line the Bible never wrote is the one 13-18-BATCH.md
-// proposed and the user approved, so test 5 reads the Bible, the batch and
-// D-23 from disk and holds every string against them - Phase 6's measured
-// lengths (35, 37, 143, 108, 114) retired with Phase 10's register; the
-// mechanism that replaced them is containment in the documents that author
-// the words. These six tests exist so that a reflow, a smart-quote
-// regression, a hard-coded button name, a phase added without a slot state,
-// or an import creeping into an import-free module is a red run naming the
-// thing rather than a surprise in front of a visitor.
-//
-// THE TWO SNAPSHOT LINES WERE REWORDED AT 13.1-06 (13.1-CONTEXT D-07: Put
-// back removed by the user's word). "so it can be put back" promised a
-// control that no longer exists; the copy is still kept and the lines say
-// so. They are in 13.1-COPY-NEW.md, this phase's ledger, which test 5 reads
-// as its FOURTH document beside the Bible, the batch and D-23.
-//
-// Two habits from the house, both load-bearing here:
-//
-// - NON-VACUITY FIRST. Every scan proves it read something before it asserts
-//   what it did not find (src/lib/ui/identity.spec.ts).
-// - NEEDLES ASSEMBLED FROM FRAGMENTS, so this file's own source does not
-//   contain the strings it forbids and cannot fail itself
-//   (src/lib/protocol/forbidden-instructions.spec.ts).
+// 06-UI-SPEC.md's nine slot states and nine-state taxonomy are the specification
+// of the STATES; the WORDS changed hands at 13-18 (13-CONTEXT D-05, D-23), so test
+// 5 reads the Bible, 13-18-BATCH.md, D-23 and 13.1-COPY-NEW.md (the two snapshot
+// lines reworded at 13.1-06, D-07) from disk and holds every string against them.
+// A reflow, a smart-quote regression, a hard-coded button name, a phase added
+// without a slot state or an import creeping into an import-free module is a red
+// run naming the thing. Non-vacuity first (identity.spec.ts); needles assembled
+// from fragments so this file cannot fail itself (forbidden-instructions.spec.ts).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
