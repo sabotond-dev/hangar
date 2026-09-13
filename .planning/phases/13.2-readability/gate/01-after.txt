@@ -1,0 +1,137 @@
+# 13.2 gate --after 01 --against 01 --check 655
+HEAD c86de8b (c86de8bddcf3927b091956d95d74396db5e07cc8); dirty (src e2e scripts docs) 2; free memory 0.81 GB; 2026-09-13T12:32:39Z
+before-record HEAD 21c5ff8b945a7ac27a874ca74d4280fb6767e95c
+
+## the wire
+1735 strings from 18 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b
+1761 strings from 18 Lua entries + 8 presets + library + defaults + Sandbox page 3 (+ cross-products: 232728 Lua states, 126920 preset states)
+WIRE FULL 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b
+
+## the strings
+192 files; 2721 distinct literals (6342 occurrences); 7 copy modules; 320 data-testids
+literal census sha256 e6af80e09d3ddf133752816b38e70bc5ab7293ab9f5536341ed58ae6b4b8c966
+copy exports   sha256 10fad0020ce89919548d2dcb586c2160aa01d415d644e27dec0419f13840ffef
+data-testids   sha256 21fc9eb96531a7161ea6e00facb69c1d792a1e534a57b34893225043bf774ce3
+
+## the comment lines
+193 files; 58384 lines, 29520 code, 25118 comment, 3746 blank, 12241 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/app.d.ts | 24 | 21 | 14 | 11 | 2 | 2 |
+| src/lib/browse/facets.ts | 445 | 297 | 253 | 105 | 74 | 15 |
+| src/lib/browse/filter.ts | 191 | 145 | 111 | 65 | 22 | 11 |
+| src/lib/browse/grid.ts | 115 | 112 | 66 | 63 | 12 | 9 |
+| src/lib/browse/query.ts | 228 | 141 | 159 | 72 | 54 | 12 |
+| src/lib/browse/rail.ts | 108 | 95 | 39 | 26 | 25 | 12 |
+| src/lib/browse/return.ts | 162 | 118 | 101 | 57 | 58 | 14 |
+| src/lib/browse/sort.ts | 109 | 77 | 71 | 39 | 24 | 12 |
+| src/lib/browse/typographic.ts | 59 | 41 | 50 | 32 | 36 | 18 |
+| src/lib/catalog/calibration.ts | 203 | 122 | 133 | 52 | 95 | 14 |
+| src/lib/catalog/divergence.ts | 421 | 389 | 123 | 91 | 44 | 12 |
+| src/lib/catalog/front-door.ts | 289 | 240 | 121 | 72 | 54 | 22 |
+| src/lib/catalog/listing.ts | 515 | 477 | 179 | 141 | 33 | 12 |
+| src/lib/catalog/presets.ts | 442 | 393 | 240 | 191 | 62 | 13 |
+| src/lib/catalog/touch-guard.ts | 191 | 174 | 51 | 34 | 31 | 14 |
+| src/lib/catalog/types.ts | 195 | 185 | 89 | 79 | 21 | 11 |
+| src/lib/device/snapshot.ts | 569 | 484 | 232 | 147 | 102 | 17 |
+| src/lib/device/try-on.ts | 135 | 128 | 61 | 54 | 19 | 12 |
+| src/lib/og/png.ts | 107 | 91 | 50 | 34 | 28 | 12 |
+| src/lib/og/render.ts | 253 | 239 | 101 | 87 | 28 | 14 |
+| src/lib/pad/index.ts | 130 | 122 | 42 | 34 | 19 | 11 |
+| src/lib/pad/ready.ts | 40 | 32 | 23 | 15 | 18 | 10 |
+| src/lib/protocol/constants.ts | 289 | 251 | 204 | 166 | 49 | 13 |
+| src/lib/protocol/descriptors.ts | 447 | 423 | 213 | 189 | 37 | 13 |
+| src/lib/protocol/framing.ts | 55 | 50 | 21 | 16 | 15 | 10 |
+| src/lib/protocol/usb.ts | 24 | 18 | 21 | 15 | 22 | 16 |
+| src/lib/sandbox/colour-knob.ts | 79 | 72 | 24 | 17 | 19 | 12 |
+| src/lib/sandbox/cost.ts | 247 | 205 | 77 | 35 | 54 | 12 |
+| src/lib/sandbox/draft.ts | 73 | 59 | 30 | 16 | 25 | 11 |
+| src/lib/sandbox/geometry.ts | 451 | 397 | 128 | 74 | 67 | 13 |
+| src/lib/sandbox/history.ts | 180 | 116 | 90 | 26 | 76 | 12 |
+| src/lib/sandbox/land.ts | 180 | 121 | 90 | 31 | 72 | 13 |
+| src/lib/sandbox/model.ts | 358 | 238 | 186 | 78 | 119 | 12 |
+| src/lib/sandbox/preview.ts | 81 | 60 | 42 | 21 | 34 | 13 |
+| src/lib/share/stamp.ts | 517 | 425 | 222 | 130 | 94 | 13 |
+| src/lib/share/url.ts | 57 | 45 | 46 | 34 | 31 | 19 |
+| src/lib/store/collections.ts | 292 | 238 | 110 | 56 | 68 | 14 |
+| src/lib/store/drafts.ts | 150 | 123 | 54 | 27 | 39 | 12 |
+| src/lib/store/favorites.ts | 119 | 95 | 49 | 25 | 36 | 12 |
+| src/lib/store/intro.ts | 67 | 49 | 35 | 17 | 29 | 11 |
+| src/lib/store/library.ts | 162 | 150 | 40 | 28 | 24 | 12 |
+| src/lib/store/local.ts | 188 | 143 | 97 | 52 | 64 | 19 |
+| src/lib/store/motion.ts | 48 | 37 | 25 | 14 | 22 | 11 |
+| src/lib/store/recent.ts | 89 | 75 | 39 | 25 | 25 | 11 |
+| src/lib/store/schema.ts | 326 | 263 | 142 | 79 | 78 | 15 |
+| src/lib/store/transfer.ts | 505 | 413 | 189 | 97 | 114 | 13 |
+| src/lib/tune/knobs.lua.ts | 57 | 44 | 42 | 29 | 23 | 10 |
+| src/lib/tune/knobs.preset.ts | 794 | 763 | 251 | 220 | 27 | 12 |
+| src/lib/tune/state.ts | 133 | 121 | 71 | 59 | 24 | 12 |
+| src/lib/tune/surprise.ts | 183 | 122 | 114 | 55 | 67 | 13 |
+| src/lib/ui/device-drawer.svelte.ts | 62 | 41 | 39 | 18 | 38 | 17 |
+| src/lib/ui/fidelity-line.ts | 46 | 19 | 43 | 16 | 44 | 17 |
+| src/lib/ui/intro/card.ts | 111 | 87 | 64 | 40 | 36 | 12 |
+| src/lib/ui/radius-allowlist.ts | 360 | 289 | 145 | 74 | 63 | 13 |
+| src/lib/ui/shell/device-clause.ts | 188 | 132 | 88 | 32 | 71 | 15 |
+| src/lib/ui/shell/layout.ts | 369 | 264 | 230 | 134 | 59 | 17 |
+| src/lib/ui/shell/shell.svelte.ts | 177 | 139 | 104 | 66 | 53 | 15 |
+| src/test-support/source.ts (new) | - | 30 | - | 13 | - | 4 |
+| **totals (192 -> 193 files)** | 60539 | 58384 | 27267 | 25118 | 14072 | 12241 |
+
+58 file(s) moved
+
+## check and lint
+check: 1789302787698 COMPLETED 655 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 94 files, 966 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp c86de8b
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object a581ef4ce6aae2427e69503f9aaa543a02e33561 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 26 files, 154136 B, sha256 2a9ccf80cda87bdb3db133d52eb961246e726636c288c00311d9d9f077992f57
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 174411ee5293df366ee05becf716a5494ae56d0a1a313d6c46d462f4ebfc3177 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 174411ee5293df366ee05becf716a5494ae56d0a1a313d6c46d462f4ebfc3177
+SCOPED CSS sha256 e296d0af8e89b880cee457fa2bfc5f7ac1af8abf190efd0ceae22ddd4e4f1237
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+- row-0
+UTILITIES DELTA 45 -> 44: 1 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 69ca1e257153a29411d4ee5e730f5f16c76bca7e536d6bdfb6f52141d3cb4ce3 (71 files)
+
+## the titles
+TITLES sha256 b53f2d9c9deaaebb833a0d350c2383d2d199db14906196e7c12ca4a38db0f76b (967 vitest titles incl. todo, 101 playwright runs)
+
+## src/ against the before-record's HEAD 21c5ff8b945a7ac27a874ca74d4280fb6767e95c
+git diff --name-status: 94 modified, 1 added, 0 deleted, 0 renamed
+  A	src/test-support/source.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against 01
+wire: equal (set a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b, full 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b)
+strings: equal (census e6af80e09d3ddf133752816b38e70bc5ab7293ab9f5536341ed58ae6b4b8c966, copy exports 10fad0020ce89919548d2dcb586c2160aa01d415d644e27dec0419f13840ffef, testids 21fc9eb96531a7161ea6e00facb69c1d792a1e534a57b34893225043bf774ce3)
+scoped CSS: equal (e296d0af8e89b880cee457fa2bfc5f7ac1af8abf190efd0ceae22ddd4e4f1237); the utilities delta is printed above by name
+OG: equal (26 files, 154136 B, 2a9ccf80cda87bdb3db133d52eb961246e726636c288c00311d9d9f077992f57)
+fixtures: equal
+titles: equal (b53f2d9c9deaaebb833a0d350c2383d2d199db14906196e7c12ca4a38db0f76b)
+name-status: no R, no D, A only for src/test-support/source.ts
+check: 655 files, 0 errors, 0 warnings
+lint, quick, build: green
+normalised JS: recorded (69ca1e257153a29411d4ee5e730f5f16c76bca7e536d6bdfb6f52141d3cb4ce3), not compared (no --js-equal)
+
+GATE --after 01 against 01: every compared term equal

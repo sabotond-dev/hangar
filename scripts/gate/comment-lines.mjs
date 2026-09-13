@@ -22,6 +22,8 @@ const H = fileURLToPath(new URL("../../", import.meta.url))
 const HEADER_MAX = 10;
 const COPYRIGHT = /Copyright \(C\) 2026 Botond Sandor/;
 const PROVENANCE = /^\s*(\/\/|\*|<!--)?\s*Decided at\b/;
+/** A comment line carrying no text: a bare //, a bare *, or a block fence - not counted against the ten. */
+const EMPTY_COMMENT = /^\s*(\/\/|\*|\/\*\*?|\*\/|<!--|-->)?\s*$/;
 
 const argv = process.argv.slice(2);
 const outIdx = argv.indexOf("--out");
@@ -111,8 +113,9 @@ function auditHeader(lines, kinds, isSvelte) {
 
 /**
  * The rule's header: the comment lines of the leading run, ending at the copyright line where the
- * file has one (it is the header's last line in this tree), less the copyright line and at most one
- * provenance line. For .svelte the <!-- --> block before <script> and the leading comment inside it.
+ * file has one (it is the header's last line in this tree), less the copyright line, at most one
+ * provenance line, and the lines that carry no text (a bare // or *, a block fence). For .svelte the
+ * <!-- --> block before <script> and the leading comment inside it.
  */
 function ruleHeader(lines, kinds, isSvelte) {
   const runs = [];
@@ -134,6 +137,7 @@ function ruleHeader(lines, kinds, isSvelte) {
       if (kinds[n] !== "c") continue;
       const line = lines[n];
       if (COPYRIGHT.test(line)) break;
+      if (EMPTY_COMMENT.test(line)) continue;
       if (PROVENANCE.test(line) && provenance === 0) {
         provenance = 1;
         continue;

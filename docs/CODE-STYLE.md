@@ -11,8 +11,9 @@ it lives in the plan SUMMARYs under `.planning/`, and a pointer is how a comment
 ## 1. The header: at most ten lines
 
 A header says three things and no more: **what the module is, what it owns, and how it is used.**
-It is at most **ten comment lines**, not counting the copyright line (which stays, and is the header's
-last line) and not counting the one provenance line of section 2. Section headings, ASCII rules,
+It is at most **ten comment lines** of text, not counting the copyright line (which stays, and is the
+header's last line), the one provenance line of section 2, or a bare `//` separator and the `/**` `*/`
+fences of a block comment. Section headings, ASCII rules,
 dated "IT WAS N UNTIL PLAN …" paragraphs and the alternative that lost are not header material.
 
 A header from this rule's first plan (`src/lib/browse/grid.ts`):
