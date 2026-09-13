@@ -23,18 +23,13 @@ import { writeAll } from "$lib/transport/sequence";
 import { PageTarget, type PageTargetView } from "./page-target";
 
 /**
- * Phase 13, plan 13-12: the page target against the scripted ZONA, in node,
- * off the wire. Four tests, each one of D-06's clauses turned into an
- * assertion: the heartbeat-first order, the ACK gate on the module's own
- * report, the timeout that is `unverified` and never switched, and the
- * enumeration from the module's answer rather than from a number.
- *
- * The module here is synthetic.ts's responder, which since this plan models
- * the two firmware facts the switch lives or dies by: a successful config
- * write disables page changes (grid_decode.c:1279) and only a host heartbeat
- * TYPE 255 restores them (:717). So test 1 is not a test of call order in
- * HANGAR's own code - it is a test that the FAKE accepted the switch, which
- * it refuses without the heartbeat exactly as a module would.
+ * 13-12: the page target against the scripted ZONA, in node, off the wire. Four
+ * tests, one per D-06 clause: the heartbeat-first order, the ACK gate on the
+ * module's own report, the timeout that is `unverified` and never switched,
+ * and the enumeration from the module's answer. synthetic.ts's responder models
+ * the two firmware facts the switch lives by - a config write disables page
+ * changes (grid_decode.c:1279) and only a host heartbeat TYPE 255 restores them
+ * (:717) - so test 1 proves the FAKE accepted the switch, as a module would.
  */
 
 const ACTIVE_PAGE = 1;

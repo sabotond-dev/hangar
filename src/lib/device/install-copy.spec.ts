@@ -1,72 +1,14 @@
-// The install flow's copy contract, made executable: six gates.
+// The install flow's copy contract, made executable: six gates over install-copy.ts.
 //
-// THE CONTRACT CHANGED HANDS AT 13-18. Through Phase 12 it was 07-UI-SPEC's
-// Copywriting Contract and 10-UI-SPEC's amendments, and test 2 read both from
-// disk. Since 13-CONTEXT D-05 (the register is the Bible's) and D-23 (the
-// batch approved as proposed, 2026-09-12) the documents that author every
-// string in install-copy.ts are three, and test 2 reads all three from disk:
-//
-//  - the design specification (bible/HANGAR-ZONA-GUI-design-specification.md),
-//    whose section 9 state table and section 16 copy table give the lines
-//    taken verbatim;
-//  - 13-18-BATCH.md, the table of every string neither document wrote, each
-//    with the state it names, the fact it must carry and the proposal; and
-//  - 13-CONTEXT.md's D-23, the user's one-word answer that made the proposals
-//    the words.
-//
-// Every string the module can produce, with a builder's sample arguments
-// folded back into the batch's placeholders, must appear in the specification
-// or in the batch. A string that appears in neither was invented after the
-// review and is red here by name.
-//
-// ONE WORD IS THE USER'S, NOT A DOCUMENT'S (13.1-05; 13.1-CONTEXT D-04). The
-// user asked for the reset by its own word at the fourth bench ("CLEAR
-// button ... next to ZONA connected"), so CLEAR_LABEL is `Clear` and section
-// 9's `Reset active device page` is retired by name in the module's header
-// and exported by nothing; test 2 holds both, and holds that the fact the old
-// label carried - the firmware default, the draft untouched - is still
-// clearLine's. The containment check above passes `Clear` by the batch's
-// E.11 row (the search field's own Clear), which is a substring accident and
-// not a review: the review is 13.1-COPY-NEW.md's row for this label.
-//
-// PUT BACK IS RETIRED BY THE USER'S WORD (13.1-06; 13.1-CONTEXT D-06, D-07:
-// "we dont even need the Put back function", "remove"). PUT_BACK_LABEL,
-// puttingBackLabel and STEP_OR_PUT_BACK are the value of no export;
-// WRITE_CLICKS is four (Apply, Store, Clear, Target); every sentence that
-// offered Put back as the way back names the header's Clear instead
-// (stepOrClear, CONFIRM_WAY_BACK, lostBlock's third step, the after-partial
-// reason), and no export or builder sample says "put back" except the two
-// the /dev/install/ probe still reaches - restoredCaption and
-// RESTORED_UNCONFIRMED_TITLE, the machinery's own words. The six success
-// bodies InstallState.svelte alone read retired with that file (W-10:
-// snapshottingBody, identifiedBody, settledBody, keptBody, restoredBody,
-// KEPT_PROOF_LINE, clearedBody, and RESTORED_STORED_LINE beside them);
-// STILL_WRITING_LINE stays, homed in DestinationZone.svelte (W-11). Every
-// new or rewritten string is in 13.1-COPY-NEW.md, this phase's ledger, which
-// test 2 reads as the FOURTH document: a string neither the Bible, the
-// batch nor the ledger carries is red by name.
-//
-// THE HONESTY CAPS ARE RETIRED BY NAME (test 3). HONESTY_CAP, PUT_BACK_CAP,
-// KEEP_CAP and CLEAR_CAP were measured maximum lengths per string - lines x
-// the 43 characters plan 10-01 measured as a Body line box's minimum
-// occupancy in Phase 10's 372px install column - held here so a caption could
-// not outgrow the cell reserved for it and so a cap was a promise about
-// strings not yet written. D-05 changed the register (the Bible's lines are
-// verbatim and several are longer than 86) and the layout the caps were
-// measured against is being replaced by the Bible's proportional regions
-// (13-11, 13-12, 13-20), so a cap measured against it caps nothing. Test 3
-// now asserts the ABSENCE of the four, that the module's header retires them
-// by name with the date, and every rule that travelled with them and did not
-// retire: Z-08's one "about a second", A-48's three stems, the label rules,
-// SAFE-01's WRITE_CLICKS, and the page numbering.
-//
-// Two habits from the house, both load-bearing here:
-//
-// - NON-VACUITY FIRST. Every scan proves it read something before it asserts
-//   what it did not find (src/lib/ui/identity.spec.ts).
-// - NEEDLES ASSEMBLED FROM FRAGMENTS, so this file's own source does not
-//   contain the strings it forbids and cannot fail itself
-//   (src/lib/protocol/forbidden-instructions.spec.ts).
+// Test 2 reads the four documents that author every string from disk - the Bible
+// (sections 9 and 16), 13-18-BATCH.md, 13-CONTEXT.md's D-23 and 13.1-COPY-NEW.md -
+// and holds every export and every builder's sample against them; a string in
+// none of them is red by name. The same file holds the retirements by name and
+// date: section 9's reset label (13.1-05, D-04), Put back's strings and the six
+// success bodies (13.1-06, D-06 / D-07), the review's two labels (13.1-02) and the
+// honesty caps (13-18; test 3 asserts their absence and every rule that stayed).
+// Non-vacuity first (identity.spec.ts); needles assembled from fragments so this
+// file cannot fail itself (forbidden-instructions.spec.ts).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync, readdirSync } from "node:fs";
