@@ -143,7 +143,7 @@
 // put HANGAR back, and the only copy of what the visitor came in with would be
 // gone. So readSnapshot() is consulted before the in-memory copy is chosen, and
 // persistIfAbsent() never overwrites a valid entry. Nothing in this file
-// deletes a snapshot: `keptThisSession` is cleared by a put-back that stored,
+// deletes a snapshot: `storedThisSession` is cleared by a put-back that stored,
 // and `snapshot` itself is never cleared by an action.
 //
 // ONE CONSEQUENCE OF THE GATED ORDER, NAMED AND NOT FIXED HERE. An empty fetched
@@ -323,7 +323,7 @@ export type InstallCause = "timeout" | "nack" | "aborted" | "mismatch";
  * `systemTimer` is the SYSTEM element's Timer slot (255/6), added in 12.1-07
  * (D-03): the library's second half, which 255/0 arms with `self:tim()`. It
  * follows `system` everywhere `system` goes and on the same terms - not
- * metered, substituted from the empty string in ONE place (`#pageTimer`),
+ * metered, substituted from the empty string in ONE place (`#systemStringOr`),
  * snapshotted, restored and cleared with the other three. The keys are in
  * write order (sequence.ts SLOTS); the writer owns the order, not this type.
  *
@@ -331,7 +331,7 @@ export type InstallCause = "timeout" | "nack" | "aborted" | "mismatch";
  * 13-17 (13-CONTEXT D-18, D-19): the Sandbox runtime's second slot, which the
  * touch Setup pulls in with `ele[#ele]:map()`. On `system`'s terms once
  * more: not metered, substituted from the empty string in ONE place
- * (`#pageUtility`) - a catalog entry has no utility body and lands the
+ * (`#systemStringOr`) - a catalog entry has no utility body and lands the
  * firmware's own page-next there, so the module's utility button keeps
  * turning the page under a catalog configuration and stops while a surface
  * is installed - snapshotted, restored and cleared with the other four. THE
@@ -360,8 +360,8 @@ export interface InstallEnv {
 
 /** The two heavy modules, resolved together and kept. */
 interface HeavyModules {
-  P: Protocol;
-  T: Transport;
+  protocolLib: Protocol;
+  transportLib: Transport;
 }
 
 /**
@@ -413,9 +413,9 @@ type TryRefusal =
  */
 let heavy: Promise<HeavyModules> | undefined;
 async function loadHeavy(): Promise<HeavyModules> {
-  const P = await import("$lib/protocol");
-  const T = await import("$lib/transport");
-  return { P, T };
+  const protocolLib = await import("$lib/protocol");
+  const transportLib = await import("$lib/transport");
+  return { protocolLib, transportLib };
 }
 const heavyModules = (): Promise<HeavyModules> => (heavy ??= loadHeavy());
 
@@ -462,7 +462,7 @@ export class InstallStore {
   /** True exactly when the module holds the pair the visitor is looking at (Z-05). */
   armed = $state(false);
   /** True from a proved keep - or, since round 4c, a proved clear - until a put-back that stored (Z-04). */
-  keptThisSession = $state(false);
+  storedThisSession = $state(false);
   confirmOpen = $state(false);
   /**
    * partial's two lists, as the words the block interpolates (I7). Five
@@ -606,9 +606,9 @@ export class InstallStore {
   }
 
   /** The target, built on first need with the protocol module's window. */
-  #targetWith(P: Protocol): PageTarget {
+  #targetWith(protocolLib: Protocol): PageTarget {
     return (this.#target ??= new PageTarget({
-      windowMs: P.PAGE_SWITCH_WINDOW_MS,
+      windowMs: protocolLib.PAGE_SWITCH_WINDOW_MS,
       onChange: (view) => this.#mirrorTarget(view),
     }));
   }
@@ -707,13 +707,13 @@ export class InstallStore {
     if (gen !== this.#generation) return;
     const id = this.#session.identity;
     if (!id) return;
-    this.#preSendDelayMs ??= modules.P.PRE_SEND_DELAY_MS;
+    this.#preSendDelayMs ??= modules.protocolLib.PRE_SEND_DELAY_MS;
     // The target starts from nothing on every connection and hears the page
     // the identity carried - the module's own first report (13-12).
-    const target = this.#targetWith(modules.P);
+    const target = this.#targetWith(modules.protocolLib);
     target.reset();
     target.observeReport(id.activePage);
-    const queue = this.#buildQueue(modules.T);
+    const queue = this.#buildQueue(modules.transportLib);
     if (!queue) return;
     await this.#snapshot(id, queue, gen);
   }
@@ -724,12 +724,12 @@ export class InstallStore {
    * and unsubscribed first, so there is never a second one delivering. Used at
    * "connected" and again by the pacing escalation.
    */
-  #buildQueue(T: Transport): RequestQueue | undefined {
+  #buildQueue(transportLib: Transport): RequestQueue | undefined {
     const transport = this.#session.transport;
     if (!transport) return undefined;
     this.#queue?.abort("replaced");
     this.#unsubscribeClass?.();
-    const queue = new T.RequestQueue(transport, {
+    const queue = new transportLib.RequestQueue(transport, {
       preSendDelayMs: this.#preSendDelayMs,
       now: this.#now,
       onStep: (step) => {
@@ -787,9 +787,9 @@ export class InstallStore {
     const waiters = this.#heartbeatWaiters;
     this.#heartbeatWaiters = [];
     if (waiters.length === 0) return;
-    const T = this.#modules?.T;
-    const err = T
-      ? new T.AbortedError(`heartbeat wait ended (${reason})`)
+    const transportLib = this.#modules?.transportLib;
+    const err = transportLib
+      ? new transportLib.AbortedError(`heartbeat wait ended (${reason})`)
       : new Error(reason);
     for (const waiter of waiters) waiter.reject(err);
   }
@@ -832,11 +832,11 @@ export class InstallStore {
   async #snapshot(id: Identity, q: RequestQueue, gen: number): Promise<void> {
     this.phase = "snapshotting";
     this.steps = [];
-    const { P, T } = await heavyModules();
+    const { protocolLib, transportLib } = await heavyModules();
 
     let moduleId: string | undefined;
     try {
-      moduleId = await T.fetchModuleKey(q, id);
+      moduleId = await transportLib.fetchModuleKey(q, id);
     } catch {
       // Unproven on hardware (runbook row A). Degrade, never throw: the
       // in-memory half still works and the copy says "this tab only".
@@ -846,7 +846,7 @@ export class InstallStore {
 
     let set: Awaited<ReturnType<Transport["fetchAll"]>>;
     try {
-      set = await T.fetchAll(q, id);
+      set = await transportLib.fetchAll(q, id);
     } catch {
       if (gen !== this.#generation) return;
       this.#fail(
@@ -864,9 +864,9 @@ export class InstallStore {
     // A read, never a write; a module that does not answer offers only its
     // reported page, and enumerate() never throws (Bible section 9: enumerate,
     // never assume four).
-    const target = this.#targetWith(P);
+    const target = this.#targetWith(protocolLib);
     if (target.pages.length === 0) {
-      await target.enumerate(q, P, id.zona);
+      await target.enumerate(q, protocolLib, id.zona);
     }
     if (gen !== this.#generation) return;
 
@@ -877,7 +877,9 @@ export class InstallStore {
     // three since 12-03), and the guard runs over all of them, one per SLOTS
     // row: HANGAR writes all three system slots, so it copies all three
     // first.
-    const guard = P.canWriteBack(T.SLOTS.map((slot) => set[slot.key]));
+    const guard = protocolLib.canWriteBack(
+      transportLib.SLOTS.map((slot) => set[slot.key]),
+    );
     if (!guard.ok) {
       this.#fail(
         "snapshot-failed",
@@ -907,9 +909,9 @@ export class InstallStore {
     // beside v3, v2 and v1, which are read and never written.
     const record = moduleId
       ? readSnapshot(this.#storage, moduleId, id.activePage, {
-          system: P.SYSTEM_DEFAULT_SETUP,
-          systemTimer: P.SYSTEM_DEFAULT_TIMER,
-          systemUtility: P.SYSTEM_DEFAULT_UTILITY,
+          system: protocolLib.SYSTEM_DEFAULT_SETUP,
+          systemTimer: protocolLib.SYSTEM_DEFAULT_TIMER,
+          systemUtility: protocolLib.SYSTEM_DEFAULT_UTILITY,
         })
       : undefined;
     // An existing original WINS over a fresh fetch: after TRY ON DEVICE a
@@ -988,69 +990,42 @@ export class InstallStore {
       (this.phase === "settled" || this.phase === "unconfirmed") &&
       written !== undefined &&
       current !== undefined &&
-      this.#pageTimer(current) === written.systemTimer &&
-      this.#pageInit(current) === written.system &&
-      this.#pageUtility(current) === written.systemUtility &&
+      this.#systemStringOr(current, 6) === written.systemTimer &&
+      this.#systemStringOr(current, 0) === written.system &&
+      this.#systemStringOr(current, 4) === written.systemUtility &&
       current.setup === written.setup &&
       current.timer === written.timer;
   }
 
   /**
-   * THE ONE PLACE THE FIRMWARE'S OWN PAGE INIT IS SUBSTITUTED, and the reason
-   * it is here rather than in the tuner (12-03).
-   *
-   * `$lib/tune/model.ts` publishes `system` verbatim from its `systemSetup`
-   * option, and an entry with none publishes the EMPTY STRING - not the
-   * firmware default, because that module may not know it:
-   * `src/lib/tune/ladder.spec.ts:275` scans every file under `src/lib/tune/`,
-   * comment-stripped, for `lib/protocol`, `lib/transport`, `lib/device` and
-   * the transport write, and asserts the offender list is empty. A firmware
-   * default is a wire fact and it lives behind that line. This store is
-   * already on the right side of it - it resolves the protocol module lazily
-   * inside every action and reads `SYSTEM_DEFAULT_SETUP` for CLEAR - so the
-   * substitution happens HERE, in one function, used by the write path and by
-   * `armed` alike, so the two can never disagree about what is playing.
-   *
-   * The empty string can therefore never reach the wire. 12-07 fills
-   * `systemSetup` in per entry and this stops firing for those entries.
+   * The system element's string for one event, or the firmware's own default
+   * where the tuner published "" - the one substitution point, read by the
+   * write path and by `armed` alike (12-03 for 255/0, 12.1-07 for 255/6,
+   * 13-17 for 255/4; the tuner cannot name a firmware default, ladder.spec.ts).
+   * `event` is the slot's event number: 0 the Setup (255/0, `system`), 6 the
+   * Timer (255/6, `systemTimer`), 4 the Utility (255/4, `systemUtility`).
+   * Reads a FIELD, never a kind: the store cannot tell a surface from an
+   * entry (13-17).
    */
-  #pageInit(config: ConfigStrings, P?: Protocol): string {
-    if (config.system !== "") return config.system;
-    return (P ?? this.#modules?.P)?.SYSTEM_DEFAULT_SETUP ?? "";
-  }
-
-  /**
-   * THE ONE PLACE THE FIRMWARE'S OWN SYSTEM TIMER IS SUBSTITUTED (12.1-07),
-   * beside #pageInit and for its reason, one slot on: the tuner publishes
-   * `systemTimer` verbatim from its `systemTimer` option and the empty string
-   * for an entry with none - the Lua route lands the library's second half
-   * since 12.1-07, a preset lands "" until 12.1-08b - and a firmware default
-   * may not be named on that side of ladder.spec.ts:275's line. So the
-   * substitution to `SYSTEM_DEFAULT_TIMER` (`--[[@cb]]print("tick")`, 22
-   * characters, read from the pinned package) happens HERE, used by the
-   * write path and by `armed` alike. The empty string can never reach 255/6.
-   */
-  #pageTimer(config: ConfigStrings, P?: Protocol): string {
-    if (config.systemTimer !== "") return config.systemTimer;
-    return (P ?? this.#modules?.P)?.SYSTEM_DEFAULT_TIMER ?? "";
-  }
-
-  /**
-   * THE ONE PLACE THE FIRMWARE'S OWN UTILITY SCRIPT IS SUBSTITUTED (13-17),
-   * beside #pageInit and #pageTimer and for their reason, one slot on: a
-   * catalog entry has no utility body and publishes the empty string; a
-   * Sandbox surface publishes its runtime's second slot. The substitution to
-   * `SYSTEM_DEFAULT_UTILITY` (`gpl(gpn())`, page-next, 19 characters, read
-   * from the pinned package) happens HERE, used by the write path and by
-   * `armed` alike, so a catalog configuration leaves the module's utility
-   * button turning the page and the empty string can never reach 255/4. This
-   * function reads a FIELD, never a kind: the store cannot tell a surface
-   * from an entry, and a branch here would be the start of a second write
-   * path (13-17's first rule).
-   */
-  #pageUtility(config: ConfigStrings, P?: Protocol): string {
-    if (config.systemUtility !== "") return config.systemUtility;
-    return (P ?? this.#modules?.P)?.SYSTEM_DEFAULT_UTILITY ?? "";
+  #systemStringOr(
+    config: ConfigStrings,
+    event: 0 | 4 | 6,
+    protocolLib?: Protocol,
+  ): string {
+    const lib = protocolLib ?? this.#modules?.protocolLib;
+    if (event === 6) {
+      return config.systemTimer !== ""
+        ? config.systemTimer
+        : (lib?.SYSTEM_DEFAULT_TIMER ?? "");
+    }
+    if (event === 4) {
+      return config.systemUtility !== ""
+        ? config.systemUtility
+        : (lib?.SYSTEM_DEFAULT_UTILITY ?? "");
+    }
+    return config.system !== ""
+      ? config.system
+      : (lib?.SYSTEM_DEFAULT_SETUP ?? "");
   }
 
   // --- the two closed decisions the components render ----------------------
@@ -1260,8 +1235,8 @@ export class InstallStore {
     const id = this.#session.identity;
     const target = this.#target;
     if (!q || !id || !target || this.#session.phase !== "connected") return;
-    const { P } = await heavyModules();
-    await target.confirm(q, P, id.zona);
+    const { protocolLib } = await heavyModules();
+    await target.confirm(q, protocolLib, id.zona);
   }
 
   /**
@@ -1285,7 +1260,7 @@ export class InstallStore {
     const id = this.#session.identity;
     if (!q || !id || this.#session.phase !== "connected") return;
     const gen = this.#generation;
-    const { P, T } = await heavyModules();
+    const { protocolLib, transportLib } = await heavyModules();
     this.action = "discard";
     this.leg = "ram";
     this.cause = undefined;
@@ -1295,9 +1270,9 @@ export class InstallStore {
     this.#session.writeLock = true;
     this.#armSlow();
     try {
-      await q.request(P.discardPage(), "discard");
+      await q.request(protocolLib.discardPage(), "discard");
       if (gen !== this.#generation) return;
-      const kept = this.keptThisSession;
+      const kept = this.storedThisSession;
       this.lastWritten = undefined;
       this.name = undefined;
       this.cause = undefined;
@@ -1307,7 +1282,7 @@ export class InstallStore {
         kept ? liveKept(this.#page()) : liveRestored(this.#page()),
       );
     } catch (err) {
-      if (err instanceof T.AbortedError) {
+      if (err instanceof transportLib.AbortedError) {
         this.#fail(
           "lost",
           "aborted",
@@ -1320,11 +1295,11 @@ export class InstallStore {
       // store (grid_decode.c:907-909): the restore's own unconfirmed form.
       this.#fail(
         "restored-unconfirmed",
-        err instanceof T.NackError ? "nack" : "timeout",
+        err instanceof transportLib.NackError ? "nack" : "timeout",
         restoredUnconfirmedBlock(this.#page()).title,
       );
     } finally {
-      await T.restorePageChange(q).catch(() => undefined);
+      await transportLib.restorePageChange(q).catch(() => undefined);
       this.#disarmSlow();
       this.#inFlight = false;
       this.#session.writeLock = false;
@@ -1369,13 +1344,13 @@ export class InstallStore {
     if (this.phase === "snapshot-failed" && config !== undefined) {
       await this.retrySnapshot();
     }
-    const { P } = await heavyModules();
-    if (this.#tryRefusal(config, P.CONFIG_MAX) !== undefined) return;
+    const { protocolLib } = await heavyModules();
+    if (this.#tryRefusal(config, protocolLib.CONFIG_MAX) !== undefined) return;
     if (config === undefined) return;
     const strings: ConfigStrings = {
-      systemTimer: this.#pageTimer(config, P),
-      system: this.#pageInit(config, P),
-      systemUtility: this.#pageUtility(config, P),
+      systemTimer: this.#systemStringOr(config, 6, protocolLib),
+      system: this.#systemStringOr(config, 0, protocolLib),
+      systemUtility: this.#systemStringOr(config, 4, protocolLib),
       setup: config.setup,
       timer: config.timer,
     };
@@ -1397,7 +1372,7 @@ export class InstallStore {
    * leg and the same proof (Z-04, see the header), with no confirmation: the
    * phase stays `writing` between the two, `leg` moves to `store`, and the
    * component renders RESTORED's caption and first line off that pair. A
-   * store that proved lands `restored` and clears `keptThisSession`; one that
+   * store that proved lands `restored` and clears `storedThisSession`; one that
    * did not lands `restored-unconfirmed` and leaves it set, so the next PUT
    * BACK stores again. LIVE_RESTORED is spoken once, on entry to `restored`.
    */
@@ -1418,7 +1393,7 @@ export class InstallStore {
     if (!ok) return;
     this.lastWritten = undefined;
     this.name = undefined;
-    if (this.keptThisSession) {
+    if (this.storedThisSession) {
       const outcome = await this.#storeLeg("put-back", snapshot);
       if (outcome === false) return;
       if (outcome !== "kept") {
@@ -1429,7 +1404,7 @@ export class InstallStore {
         );
         return;
       }
-      this.keptThisSession = false;
+      this.storedThisSession = false;
     }
     this.cause = undefined;
     this.phase = "restored";
@@ -1491,7 +1466,7 @@ export class InstallStore {
    *
    * THE THREE OUTCOMES OF THE STORE LEG, CLASSIFIED AS Store on ZONA's ARE:
    * `kept` (the ACK, the heartbeat and a matching round) lands `cleared`
-   * and sets `keptThisSession` - flash was written this session, so a
+   * and sets `storedThisSession` - flash was written this session, so a
    * put-back from the probe stores too (Z-04); `mismatch` (three rounds and
    * no byte-identical read-back) lands `kept-mismatch`, REUSED rather than a
    * sixteenth phase, because keptMismatchBlock's sentence - acknowledged,
@@ -1531,16 +1506,16 @@ export class InstallStore {
     // The whole of SAFE-03, and the whole of the enablement rule: one call.
     if (!this.clearEnabled(this.#capable())) return;
     if (!this.#queue || this.#session.phase !== "connected") return;
-    const { P } = await heavyModules();
+    const { protocolLib } = await heavyModules();
     // Read through the lazily resolved protocol module, NEVER from
     // install-copy.ts: these are wire facts and not copy, and install-copy is
     // on the first paint of `/` with zero imports for that reason.
     const defaults: ConfigStrings = {
-      systemTimer: P.SYSTEM_DEFAULT_TIMER,
-      system: P.SYSTEM_DEFAULT_SETUP,
-      systemUtility: P.SYSTEM_DEFAULT_UTILITY,
-      setup: P.TOUCH_DEFAULT_SETUP,
-      timer: P.TOUCH_DEFAULT_TIMER,
+      systemTimer: protocolLib.SYSTEM_DEFAULT_TIMER,
+      system: protocolLib.SYSTEM_DEFAULT_SETUP,
+      systemUtility: protocolLib.SYSTEM_DEFAULT_UTILITY,
+      setup: protocolLib.TOUCH_DEFAULT_SETUP,
+      timer: protocolLib.TOUCH_DEFAULT_TIMER,
     };
     const ok = await this.#ramLeg("clear", defaults);
     if (!ok) return;
@@ -1560,7 +1535,7 @@ export class InstallStore {
       // true (every CONFIG/ACKNOWLEDGE) AND #storeLeg returning kept (the
       // PAGESTORE/ACKNOWLEDGE, the heartbeat, a matching round) - never a
       // resolved writer promise.
-      this.keptThisSession = true;
+      this.storedThisSession = true;
       this.cause = undefined;
       this.phase = "cleared";
       this.#recomputeArmed();
@@ -1605,7 +1580,7 @@ export class InstallStore {
     const outcome = await this.#storeLeg("keep", sent);
     if (outcome === false) return;
     if (outcome === "kept") {
-      this.keptThisSession = true;
+      this.storedThisSession = true;
       this.cause = undefined;
       this.phase = "kept";
       this.#recomputeArmed();
@@ -1646,7 +1621,7 @@ export class InstallStore {
     const q = this.#queue;
     const id = this.#session.identity;
     if (!q || !id) return false;
-    const { P, T } = await heavyModules();
+    const { protocolLib, transportLib } = await heavyModules();
     this.action = action;
     this.leg = "store";
     this.cause = undefined;
@@ -1656,7 +1631,7 @@ export class InstallStore {
     this.#session.writeLock = true;
     this.#armSlow();
     try {
-      await q.request(P.storePage(), "store");
+      await q.request(protocolLib.storePage(), "store");
       if (gen !== this.#generation) return false;
       // The ACK is sent by the success callback that STARTS the page reload
       // (grid_decode.c:947-961). Wait for the module's next heartbeat, then
@@ -1665,7 +1640,7 @@ export class InstallStore {
       await this.#nextHeartbeat();
       if (gen !== this.#generation) return false;
       for (let round = 0; round < REFETCH_ROUNDS; round++) {
-        const after = await T.fetchAll(
+        const after = await transportLib.fetchAll(
           q,
           this.#session.identity ?? id,
           "refetch",
@@ -1675,20 +1650,20 @@ export class InstallStore {
         // Five for five, one per SLOTS row (12.1-07, 13-17), the way runNoOpCycle
         // compares: a slot added to the list is compared here without a line.
         if (
-          T.SLOTS.every(
+          transportLib.SLOTS.every(
             (slot) => after[slot.key].actionString === sent[slot.key],
           )
         ) {
           return "kept";
         }
-        await this.#sleep(P.retryBackoffMs(round));
+        await this.#sleep(protocolLib.retryBackoffMs(round));
       }
       return "mismatch";
     } catch (err) {
       // The link died under us: `lost`, whatever the generation says - the
       // "closed" that bumped it is the same event that rejected the waiter
       // (07-06's ordering, Pitfall 11). The store leg's form of the block.
-      if (err instanceof T.AbortedError) {
+      if (err instanceof transportLib.AbortedError) {
         this.#fail(
           "lost",
           "aborted",
@@ -1720,7 +1695,7 @@ export class InstallStore {
     const id = this.#session.identity;
     if (!q || !id) return false;
     const modules = await heavyModules();
-    const { T } = modules;
+    const { transportLib } = modules;
     this.action = action;
     this.leg = "ram";
     this.cause = undefined;
@@ -1737,14 +1712,14 @@ export class InstallStore {
       // The system timer, the page init, the utility, then Timer, then
       // Setup, ACK each (sequence.ts writeAll over SLOTS, which owns the
       // order). Verbatim.
-      await T.writeAll(q, T.targetOf(id), strings);
+      await transportLib.writeAll(q, transportLib.targetOf(id), strings);
       if (gen !== this.#generation) return false;
       return true;
     } catch (err) {
       // The link died under us: `lost`, whatever the generation says - the
       // "closed" that bumped it is the same event that rejected the waiter,
       // and it left the phase to this catch (Pitfall 11).
-      if (err instanceof T.AbortedError) {
+      if (err instanceof transportLib.AbortedError) {
         this.#classify(err, modules, action);
         return false;
       }
@@ -1757,7 +1732,7 @@ export class InstallStore {
       // sets it back. On a dead link the send throws and is swallowed here.
       // `q` is this leg's queue even if the pacing rule has since rebuilt it:
       // sendImmediate works after abort() by design.
-      await T.restorePageChange(q).catch(() => undefined);
+      await transportLib.restorePageChange(q).catch(() => undefined);
       this.#disarmSlow();
       this.#inFlight = false;
       this.#session.writeLock = false;
@@ -1810,14 +1785,14 @@ export class InstallStore {
    * cause then asks the pacing rule whether to escalate.
    */
   #classify(err: unknown, modules: HeavyModules, action: InstallAction): void {
-    const { T } = modules;
+    const { transportLib } = modules;
     // A-28: the three failure states are REUSED, not invented, and so is the
     // copy. A clear that got neither script through takes PUT BACK's form -
     // "what was playing is still playing" - because that is exactly true of a
     // clear, where the try-on's "your own Setup and Timer are still running"
     // would not be.
     const after = action === "try" ? "try" : "put-back";
-    if (err instanceof T.AbortedError) {
+    if (err instanceof transportLib.AbortedError) {
       this.#fail(
         "lost",
         "aborted",
@@ -1825,7 +1800,8 @@ export class InstallStore {
       );
       return;
     }
-    const cause: InstallCause = err instanceof T.NackError ? "nack" : "timeout";
+    const cause: InstallCause =
+      err instanceof transportLib.NackError ? "nack" : "timeout";
     const landedStep = (id: string): boolean =>
       this.steps.some((s) => s.id === id && s.outcome === "ok");
     // The landed PREFIX of SLOTS, in write order: the writer stops at the
@@ -1833,8 +1809,8 @@ export class InstallStore {
     // the prefix and every later slot was never attempted.
     let landedCount = 0;
     while (
-      landedCount < T.SLOTS.length &&
-      landedStep(T.SLOTS[landedCount].write)
+      landedCount < transportLib.SLOTS.length &&
+      landedStep(transportLib.SLOTS[landedCount].write)
     ) {
       landedCount++;
     }
@@ -1863,8 +1839,12 @@ export class InstallStore {
       const [landed, failed] = PARTIALS[landedCount - 1];
       this.landed = landed;
       this.failed = failed;
-      this.landedSlots = T.SLOTS.slice(0, landedCount).map((s) => s.label);
-      this.failedSlots = T.SLOTS.slice(landedCount).map((s) => s.label);
+      this.landedSlots = transportLib.SLOTS.slice(0, landedCount).map(
+        (s) => s.label,
+      );
+      this.failedSlots = transportLib.SLOTS.slice(landedCount).map(
+        (s) => s.label,
+      );
       this.#fail(
         "partial",
         cause,
@@ -1891,9 +1871,9 @@ export class InstallStore {
   #escalatePacing(modules: HeavyModules): void {
     if (this.pacingEscalated) return;
     if (this.steps.some((s) => s.outcome === "nack")) return;
-    this.#preSendDelayMs = modules.P.DESKTOP_PRE_SEND_DELAY_MS;
+    this.#preSendDelayMs = modules.protocolLib.DESKTOP_PRE_SEND_DELAY_MS;
     this.pacingEscalated = true;
-    this.#buildQueue(modules.T);
+    this.#buildQueue(modules.transportLib);
   }
 
   // --- the 2000 ms line (Z-09) ---------------------------------------------

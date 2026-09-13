@@ -1389,7 +1389,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.action).toBe("keep");
     expect(store.leg).toBe("store");
     expect(store.cause).toBeUndefined();
-    expect(store.keptThisSession).toBe(true);
+    expect(store.storedThisSession).toBe(true);
     expect(store.refetchRounds).toBe(1);
     expect(store.keepReason(true)).toBe("already-kept");
     expect(store.armed).toBe(false);
@@ -1491,7 +1491,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     expect(store.phase).toBe("kept-mismatch");
     expect(store.cause).toBe("mismatch");
-    expect(store.keptThisSession, "not called kept").toBe(false);
+    expect(store.storedThisSession, "not called kept").toBe(false);
     expect(store.keepReason(true)).toBe("after-mismatch");
     expect(store.putBackState()).toBe("enabled");
     expect(store.armed).toBe(false);
@@ -1532,7 +1532,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     expect(store.phase).toBe("unconfirmed");
     expect(store.cause).toBe("timeout");
-    expect(store.keptThisSession).toBe(false);
+    expect(store.storedThisSession).toBe(false);
     // Memory still holds what was heard, so the store may be sent again.
     expect(store.armed).toBe(true);
     expect(store.keepReason(true)).toBeUndefined();
@@ -1595,7 +1595,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("restored");
     expect(store.action).toBe("put-back");
     expect(store.leg).toBe("store");
-    expect(store.keptThisSession, "cleared by a put-back that stored").toBe(
+    expect(store.storedThisSession, "cleared by a put-back that stored").toBe(
       false,
     );
     expect(state.configs).toEqual({
@@ -1646,7 +1646,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(second.store.phase).toBe("restored-unconfirmed");
     expect(second.store.cause).toBe("timeout");
     expect(
-      second.store.keptThisSession,
+      second.store.storedThisSession,
       "still set: the store did not prove",
     ).toBe(true);
     expect(second.store.putBackState()).toBe("enabled");
@@ -2219,7 +2219,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       true,
     );
     expect(store.clearReason(true)).toBeUndefined();
-    expect(store.keptThisSession, "nothing stored yet this session").toBe(
+    expect(store.storedThisSession, "nothing stored yet this session").toBe(
       false,
     );
     const fedAt = await throughStore(rig, store.clearToDefault());
@@ -2314,7 +2314,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.cause).toBeUndefined();
     expect(store.refetchRounds).toBe(1);
     expect(
-      store.keptThisSession,
+      store.storedThisSession,
       "flash was written this session, so a put-back stores too (Z-04)",
     ).toBe(true);
     expect(state.configs[EVENT_SETUP], "the fake's RAM").toBe(
@@ -2460,7 +2460,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toBe("kept-mismatch");
     expect(store.action).toBe("clear");
     expect(store.cause).toBe("mismatch");
-    expect(store.keptThisSession, "not called stored").toBe(false);
+    expect(store.storedThisSession, "not called stored").toBe(false);
     expect(store.keepReason(true)).toBe("after-mismatch");
     expect(
       store.clearEnabled(true),
@@ -2508,7 +2508,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("unconfirmed");
     expect(store.action).toBe("clear");
     expect(store.cause).toBe("timeout");
-    expect(store.keptThisSession).toBe(false);
+    expect(store.storedThisSession).toBe(false);
     expect(store.name, "the block names what is running").toBe(
       FIRMWARE_DEFAULT_NAME,
     );
@@ -2814,7 +2814,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // until 12.1-08b that was every PRESET - the tuner published the EMPTY
     // STRING for both, because no module under src/lib/tune/ may know a
     // firmware default (ladder.spec.ts:275) - and this store substitutes its
-    // own in ONE place each (#pageInit, #pageTimer), so the empty string can
+    // own in ONE place (#systemStringOr, keyed by the event number), so the empty string can
     // never reach the wire and `armed` is computed over the SUBSTITUTED
     // values or it would never arm at all. SINCE 12.1-08b A PRESET LANDS THE
     // LIBRARY'S TWO STRINGS like every other card (12.1-CONTEXT D-26 item 2,
@@ -2826,7 +2826,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // proves now is the substitution itself, which /dev/install/'s empty
     // textareas and a caller that names none can still reach.
     // THE UTILITY IS THE LIVE CASE OF THE SAME RULE (13-17): every catalog
-    // entry publishes the empty string at 255/4, and #pageUtility substitutes
+    // entry publishes the empty string at 255/4, and #systemStringOr substitutes
     // the firmware's page-next, so the module's utility button keeps turning
     // the page under a catalog configuration.
     const none: ConfigStrings = {
@@ -3129,7 +3129,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(SYSTEM_DEFAULT_UTILITY).toHaveLength(19);
 
     // PUT BACK: the five snapshotted originals, the same order - and,
-    // because the clear STORED this session (Z-04, keptThisSession), a store
+    // because the clear STORED this session (Z-04, storedThisSession), a store
     // leg after them, so the owner's flash holds their original again.
     from = fake.writes.length;
     await throughStore(rig, store.putBack());
@@ -3138,7 +3138,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(state.flash?.[EVENT_SETUP], "flash holds the original again").toBe(
       MODULE_SETUP,
     );
-    expect(store.keptThisSession).toBe(false);
+    expect(store.storedThisSession).toBe(false);
     expect(state.system?.[EVENT_TIMER]).toBe(MODULE_SYSTEM_TIMER);
     expect(state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
     expect(state.system?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);

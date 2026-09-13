@@ -428,7 +428,7 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         // 255/0. Since 12.1-02 the library is in two halves - 255/0 defines G
         // and calls self:tim(); 255/6 defines the rest - and since 12.1-07 the
         // tuner publishes both, so TOUCH_LIBRARY_TIMER is what reaches 255/6
-        // and the store's #pageTimer substitution stops firing the same way.
+        // and the store's #systemStringOr substitution for 255/6 stops firing the same way.
         //
         // The preset half of the rule moved at 12.1-08b and is asserted in the
         // test above: a preset publishes the same two strings now, because
@@ -521,7 +521,7 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
       // so what this rig - writeAll, no store - puts on 255/4 is the EMPTY
       // STRING at length 0, verbatim from the landing. The install store
       // substitutes SYSTEM_DEFAULT_UTILITY before it calls writeAll (in one
-      // place, #pageUtility), which install.spec.ts pins; the empty string
+      // place, #systemStringOr for 255/4), which install.spec.ts pins; the empty string
       // reaching the wire here is the proof that writeAll itself substitutes
       // nothing.
       expect(Number(systemUtility.class_parameters.ELEMENTNUMBER)).toBe(

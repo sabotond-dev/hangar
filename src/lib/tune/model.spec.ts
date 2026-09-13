@@ -516,7 +516,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // calls into the library and a module that did not hold it would raise on
     // the first finger - exactly the reason the Lua route lands it. The
     // firmware default is still not named on this side of `ladder.spec.ts:275`'s
-    // line; `install.svelte.ts`'s `#pageInit` substitution stays in its one
+    // line; `install.svelte.ts`'s `#systemStringOr` substitution for 255/0 stays in its one
     // place and is CLEAR's alone now, install.spec.ts proves that half, and
     // wire-pin.spec.ts test 3 pins the preset's four frames on the wire.
     const preset = recorder();
@@ -585,8 +585,8 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // than 12.1-07's (13-17: the utility slot, D-18 / D-19), in write order
     // (sequence.ts SLOTS), and nothing else rides along. A catalog entry has
     // no utility body, so the fifth is the EMPTY STRING - the store's
-    // `#pageUtility` substitutes the firmware's page-next in one place, as
-    // `#pageInit` did for every entry's page init from 12-03 until 12-07.
+    // `#systemStringOr` substitutes the firmware's page-next for 255/4 in one place, as
+    // it did for every entry's page init (255/0) from 12-03 until 12-07.
     expect(Object.keys(landedLua!)).toEqual([
       "systemTimer",
       "system",
@@ -605,8 +605,8 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // gives. The firmware defaults are still wire facts behind
     // `ladder.spec.ts:275`'s line, and the ONE place an empty string becomes
     // `SYSTEM_DEFAULT_SETUP` or `SYSTEM_DEFAULT_TIMER` is still
-    // `src/lib/device/install.svelte.ts` - `#pageInit` and `#pageTimer`, side
-    // by side - but no landing reaches it now; CLEAR writes the defaults
+    // `src/lib/device/install.svelte.ts` - `#systemStringOr`, one method keyed by
+    // the event number - but no landing reaches it now; CLEAR writes the defaults
     // through its own path, and install.spec.ts proves both halves.
     const preset = recorder();
     const presetTuner = await buildTuner({ entryId: "aurora", ...preset });
