@@ -1,76 +1,14 @@
 <!--
-  The inline flash confirmation - the only confirmation on the site
-  (07-UI-SPEC, The inline flash confirmation; SAFE-05, SAFE-06; D-15, Z-01).
-
-  Rendered by the context bar's destination zone (DestinationZone.svelte,
-  since 13.1-06; the workspace's install column and the Sandbox's
-  SurfaceActions before it) while install.confirmOpen, IN PLACE OF the zone's
-  Store on ZONA, so there is never a second Store on ZONA on the screen: the
-  zone's bordered control opens this block, this block's bordered control
-  commits, and the two are never rendered together (WCAG 2.5.3 - a
-  speech-input user saying "click Store on ZONA" is never ambiguous). The
-  select and Apply beside it do not move. It reads two singletons and takes
-  one prop, `onclose`, which the zone implements as install.dismissConfirm()
-  followed by a focus move back to its Store on ZONA. Every word is
-  install-copy's; CONFIRM_WAY_BACK names the header's Clear since 13.1-06
-  (13.1-CONTEXT D-07: Put back is gone), because the way back it offers has
-  to be a control that exists.
-
-  WHY THE CONTAINER IS THE FOCUS TARGET, NOT EITHER BUTTON. On mount focus
-  moves to the block itself - tabindex="-1", role="group", labelled by the
-  PERMANENT caption and described by its sentences. That puts the naming
-  sentence, the one that says what is replaced and that it survives a power
-  cycle, at the top of what assistive technology reads; and it means NO KEY
-  PRESS COMMITS WITHOUT A DELIBERATE MOVE - the first Tab reaches the
-  affirmative, Enter on the block itself does nothing. A confirmation whose
-  affirmative took focus would let the Enter that opened it be the Enter that
-  stored to flash.
-
-  WHY IT IS NOT A DIALOG. No role="dialog", no aria-modal, no inert background,
-  no focus trap. Phase 6 ruled that a disclosure is not a dialog and the same
-  holds here: the block is inline in the panel, the rest of the panel stays
-  valid and reachable, and Tab walks out of it in DOM order. A modal would
-  claim the whole page for a decision that concerns one control.
-
-  WHY FOCUS LEAVING DOES NOT CLOSE IT. Phase 6's disclosure closes when focus
-  leaves, because a disclosure is reading material and closes when you stop
-  reading it. This is a PENDING DECISION, and it must still be there when the
-  visitor comes back to it - a reader who tabs out to check the knobs and
-  tabs back should find the question where they left it. The exits are
-  deliberate: NOT NOW, Escape inside the block, a knob move and a session drop
-  (the last two are the store's, in observeConfig and onConnection).
-
-  WHY THE AFFIRMATIVE IS BORDERED AND NEVER ACCENT-FILLED. The accent fill
-  means "this is the live control" and it is on exactly one control per
-  screen, TRY ON DEVICE. An accent-filled KEEP ON DEVICE inside this block
-  would be a second primary on the same panel at the exact moment the site is
-  asking somebody to do the irreversible thing - it would out-shout the RAM
-  audition and invert SAFE-02's hierarchy. So it is the secondary tier: a
-  hairline border and a full-ink label. NOT NOW beside it is the quiet tier.
-
-  WHY THERE IS NO COLOUR ON THIS BLOCK (Z-01, one sentence each). A colour
-  would carry nothing the sentence does not already carry, because this block
-  is text and layout end to end and its first sentence already says "survives
-  a power cycle". Reusing the alarm red would overload the one thing it means
-  on this same panel, where 200px away it means "over 908 characters". A
-  fourth hue would break identity.spec.ts's guard for a use that is
-  decorative, and that guard is worth spending only on something that cannot
-  be said any other way. And the site's own precedent - the red is never a
-  button fill, never a button border, never on TRY ON DEVICE - points the same
-  way, because a red here would say "dangerous" when the truth is
-  "deliberate". What carries the warning instead is copy (PERMANENT and the
-  naming sentence), weight (the caption is the one on this site rendered at
-  full ink rather than quiet, the only strength escalation in the phase) and
-  layout (a bordered block that replaces the control that opened it).
-
-  The rig sentence (SAFE-06) renders only when the session's identity carries
-  other modules, already in sx-then-sy order from Phase 6's fold; a module that
-  named no type is listed as "module". install-copy's confirmRig returns
-  undefined for none, so there is no empty fourth paragraph and
-  aria-describedby lists two ids rather than three.
-
-  The block fades IN over 160ms of opacity, CSS only, instant under reduced
-  motion. Its leaving is the panel's, at the {#if} that mounts it (plan 07-10).
+  The inline flash confirmation, the only confirmation on the site: rendered by
+  DestinationZone.svelte while install.confirmOpen, IN PLACE OF its Store on ZONA,
+  so the two are never on the screen together (WCAG 2.5.3). One prop, onclose
+  (NOT NOW and Escape; the zone dismisses and moves focus back). Focus lands on
+  the block itself (tabindex="-1", role="group"), never on a button: no key press
+  commits without a deliberate move. Not a dialog, no trap; focus leaving does not
+  close a pending decision. The affirmative is bordered, never accent-filled (the
+  fill is Apply's alone); no colour on the block - the red means one thing on this
+  panel (Z-01). Every word is install-copy's; CONFIRM_WAY_BACK names the header's Clear.
+  Decided at 07-10 (07-UI-SPEC D-15, Z-01; 13.1-CONTEXT D-07); see .planning/phases/07-install-flow/07-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -90,11 +28,7 @@
   let {
     onclose,
   }: {
-    /**
-     * NOT NOW and Escape land here. The zone closes the store's confirmation
-     * and returns focus to its Store on ZONA, which it re-renders in this
-     * block's place.
-     */
+    /** NOT NOW and Escape land here: the zone closes the store's confirmation and returns focus to its Store on ZONA. */
     onclose: () => void;
   } = $props();
 
@@ -123,11 +57,7 @@
     container?.focus();
   });
 
-  /**
-   * Escape INSIDE the block dismisses it. Handled at the window rather than
-   * on the container, so the group carries no key handler of its own; it acts
-   * only while focus is inside the block.
-   */
+  /** Escape INSIDE the block dismisses it; handled at the window so the group carries no key handler. */
   function onWindowKeydown(event: KeyboardEvent): void {
     if (event.key !== "Escape") return;
     if (!container || !container.contains(event.target as Node)) return;
@@ -178,12 +108,7 @@
 </div>
 
 <style>
-  /*
-    The block: a hairline, the black ground, 16px inside, 8px between its
-    children. No shadow, no glow, no backdrop, no fill (07-UI-SPEC), and no
-    corner (D-01; the 10px went in 13-11 and the allowlist row with it). The
-    fade is opacity alone and never height.
-  */
+  /* The block: a hairline, the black ground, 16px inside, 8px between children; no glow, no fill, no corner (D-01); the fade is opacity alone. */
   .keep-confirm {
     display: flex;
     flex-direction: column;
@@ -210,12 +135,7 @@
     }
   }
 
-  /*
-    The confirmation's title at FULL ink: the one caption on the site at this
-    strength (07-UI-SPEC, Color - the declared exception). A sentence since
-    13-18 - "Store this on ZONA · Page 2?", section 16's review shape (D-23)
-    - so sentence case at Body size, never uppercase (D-05). Not a heading.
-  */
+  /* The title at FULL ink, the one caption on the site at this strength (07-UI-SPEC); a sentence since 13-18 (D-23), sentence case at Body size. Not a heading. */
   .caption {
     margin: 0;
     font-size: 16px;
@@ -246,14 +166,7 @@
     margin-block-start: 8px;
   }
 
-  /*
-    The affirmative: secondary tier, bordered, never filled - and all three of
-    those are src/app.css's .pill since A-41, applied by the class on the button
-    rather than restated here. The 44px floor stays: it is this control's, not
-    the shape's. Auto width, the
-    44px floor on both axes, Micro label at full ink. The hover colour is the
-    one transition.
-  */
+  /* The affirmative: secondary tier - bordered, never filled - is src/app.css's .pill (A-41); the 44px floor on both axes is this control's, Micro label at full ink. */
   .secondary {
     appearance: none;
     display: inline-flex;
@@ -278,10 +191,7 @@
     color: var(--color-action);
   }
 
-  /*
-    NOT NOW: quiet tier. No border, no fill, no inline padding, the label
-    quiet until hovered. It undoes; it does not act.
-  */
+  /* NOT NOW: quiet tier, no fill, no inline padding, the label quiet until hovered. */
   .quiet-control {
     appearance: none;
     display: inline-flex;

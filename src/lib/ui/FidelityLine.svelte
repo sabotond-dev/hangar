@@ -1,34 +1,13 @@
 <!--
-  PREV-03 and D-17: the one quiet line that is always on the screen.
-
-  It states what the simulator matches exactly and what a screen cannot show. It
-  is not conditional on anything - chosen or not, animated or not, it is there -
-  because a fidelity claim that only appears next to the pads that flatter it
-  would not be one.
-
-  Beneath it, when the centred pad is not animated, that entry's own quiet line
-  from src/lib/catalog/front-door.ts. That sentence is what makes a still pad
-  honest rather than broken: three of the eight configurations really are lit
-  pictures that wait for a finger, and the catalog's `motion` flag is derived
-  from src/lib/fidelity/golden-frames.json by front-door.spec.ts rather than
-  declared, so this line can never disagree with what the pad is doing
-  (04-CONTEXT D-20).
-
-  THE ONE EXCEPTION IS `notice`, and it is bounded. An address nobody has heard
-  of lands on the shelf, and the deep-link route hands the explanation down here
-  to stand in the fidelity line's place for UNKNOWN_NOTICE_MS - long enough to
-  read, then it crosses back. The fidelity claim is delayed by four seconds, not
-  suppressed.
-
-  THE CONSTANT IS IMPORTED, NOT WRITTEN HERE, AND IT WAS NEVER MARKUP TEXT.
-  Prettier reflows text inside an element and this sentence is asserted
-  character-for-character - by plan 04-07's build check and again by plan 04-09's
-  end-to-end suite - so it was a script-block constant from the start; Phase 2
-  moved its falsifiable heartbeat definition out of markup for the same reason
-  (02-05-SUMMARY.md). Plan 05.1-08 then lifted it one level further, into
-  ./fidelity-line.ts, because /playground/ states the same claim beneath its grid
-  (05.1-UI-SPEC.md W-13) and a sentence the site says twice is a sentence that
-  can drift. Nothing else about this component moved.
+  PREV-03 and D-17: the one quiet line that is always on the screen - what the
+  simulator matches exactly and what a screen cannot show - unconditional, so the
+  claim never appears only beside the pads that flatter it. Props: entry (its own
+  quiet line from front-door.ts renders beneath when the centred pad is not
+  animated; the `motion` flag is derived from golden-frames.json, never declared),
+  notice (an unknown address's explanation stands in for UNKNOWN_NOTICE_MS, then
+  crosses back). The sentence is ./fidelity-line.ts's constant, imported, never
+  markup text: prettier reflows element text and it is asserted character for character.
+  Decided at 04-07 / 05.1-08 (04-CONTEXT D-17, D-20); see .planning/phases/05.1-catalog-browse/05.1-08-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -46,20 +25,10 @@
     notice?: string;
   } = $props();
 
-  /**
-   * How long the unknown-address notice holds before the fidelity line comes
-   * back. 04-UI-SPEC calls this out as the one piece of timing in the spec with
-   * no precedent in the brief, so it lives in one named constant and is easy to
-   * change.
-   */
+  /** How long the unknown-address notice holds: the one timing with no precedent in the brief (04-UI-SPEC), in one named constant. */
   const UNKNOWN_NOTICE_MS = 4000;
 
-  /**
-   * Read once. untrack is not decoration: reading a prop at component-init
-   * scope otherwise warns that only the initial value is captured - which is
-   * exactly right here, because the notice is a one-shot arrival state and
-   * must never be re-armed by a later prop change.
-   */
+  /** Read once, under untrack: the notice is a one-shot arrival state and must never be re-armed by a later prop change. */
   const arrivedWithNotice = (): boolean => notice !== undefined;
 
   let noticing = $state(untrack(arrivedWithNotice));
@@ -115,10 +84,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    The cross back from the notice, and nothing else in this component ever
-    animates: `arrive` is only ever set once the timer has fired.
-  */
+  /* The cross back from the notice, the only animation here: `arrive` is set once the timer has fired. */
   .arrive {
     animation: cross-back 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }

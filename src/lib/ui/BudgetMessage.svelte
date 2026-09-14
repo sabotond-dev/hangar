@@ -1,66 +1,14 @@
 <!--
-  Message slot B: the two things the compiler can say about the configuration.
-
-  Either the fit ladder trimmed something to stay inside 908, or the state is
-  over 908. Never both, and over budget wins - a line explaining what was turned
-  down to make it fit is not true of a state that did not fit.
-
-  EVERY SENTENCE HERE COMES FROM $lib/tune/model, WHICH BUILT IT FROM
-  $lib/tune/copy. Not one is authored below. The ladder's own words are the
-  COMPILER's - BOTOR writes them as whole sentences ("Stop drawing the control
-  on the pad") and copy.ladderLine lower-cases the first character only, where
-  the label sits inside another sentence. Rewriting them here would be a second
-  copy of the same explanation, and two copies drift.
-
-  WHY THE LABEL ON THE CONTROL IS "TURN IT DOWN" AND DELIBERATELY NOT
-  "PUT IT BACK". Phase 7 owns PUT BACK, for restoring a module's own
-  configuration off a snapshot taken at connect. Two near-identical labels a
-  phase apart on the same panel, one of which rewrites what is on somebody's
-  hardware, would be a genuine hazard - so the two names are kept far apart
-  while there is still only one of them. The string itself is TURN_IT_DOWN in
-  $lib/tune/copy and is not spelled in this file.
-
-  WHEN NOTHING IS RENDERED. The back-off control appears only when there is
-  something to turn down. model.ts resolves it in one order - put the visitor's
-  own knob back if a knob moved and there is a number to put it back to, else
-  apply the compiler's first ladder step - and when fit() is blocked and no knob
-  moved it hands over an EMPTY back-off string, because there is genuinely
-  nothing to offer. An empty control that did nothing would be worse than no
-  control: the over-budget line still says the configuration is over 908, which
-  is the true and complete story in that corner.
-
-  NEVER SHOWN FOR A LUA ENTRY. D-10: their whole knob cross-product was proven
-  in budget at build time in Phase 8, so there is no runtime ladder for them and
-  inventing a line would fake a mechanism that does not exist. This component
-  needs no branch for it - handed nothing, it renders nothing, and model.ts
-  never hands it a ladder for a Lua entry.
-
-  THE APPEARANCE IS OPACITY, NEVER HEIGHT. Slot B is auto height and moves only
-  inert content beneath it; a height transition would animate the whole region
-  under the visitor's pointer while they are still turning the knob that caused
-  it. svelte/transition's fade animates opacity and nothing else by
-  construction, at 160ms linear, and collapses to 0ms under reduced motion.
-
-  X-01 use 3 of 3 lives here: the 2px --color-error-ink left rule on the over-budget
-  block. The SENTENCE stays --color-ink - red is a marker beside the text, never
-  the text itself - and no button in this file is red, bordered red, or filled.
-
-  THE OVER-BUDGET BLOCK SITS ON --color-error-surface (13-10, 13-03's token;
-  Bible section 12: "error message backgrounds"). 13-03 renamed --color-over
-  to --color-error-ink and shipped the surface with no consumer; this block
-  is its first and, with the meter's own rows being 14px of numerals, its
-  only one on the tuning side. Ink on that surface is 13.32:1 and the error
-  ink beside it 9.92:1 (identity.spec.ts recomputes both). The ladder block
-  takes no surface: it is the compiler explaining itself, not a warning.
-
-  This component renders inside the inspector since 13-09, directly under the
-  two meters and therefore under the entry's last section - MIDI output when
-  it has one. TUNE-05's five clauses live across the two files and the model:
-  the primary control is disabled through TuningRegion's onbudget (the
-  reason reaches TRY ON DEVICE as a real `disabled`), the offending meter is
-  red (BudgetMeter.svelte), the knob is NAMED in `over.line` (model.ts's knob
-  case), the back-off is ONE click below, and nothing here ever reaches a
-  port - `over.apply` talks to the tuner and to nothing else.
+  Message slot B: the two things the compiler can say about the configuration -
+  the fit ladder trimmed something (ladder), or the state is over 908 (over, which
+  outranks the ladder). Both shapes declared structurally, never imported. Every
+  sentence is $lib/tune/model's, built from $lib/tune/copy; the control's label is
+  TURN_IT_DOWN (never PUT BACK - Phase 7's word, kept far apart). Handed nothing it
+  renders nothing: a Lua entry never gets a ladder (D-10), and an empty back-off is
+  the true story with nothing to offer. Opacity only, never height (160ms fade).
+  X-01 use 3 of 3: the 2px error-ink rule on the over block, on the error surface;
+  the sentence stays ink and no button is red. Inside the inspector since 13-09.
+  Decided at 05-08 / 13-10 (13-CONTEXT D-10); see .planning/phases/13-gui-overhaul/13-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -70,14 +18,9 @@
   import { TURN_IT_DOWN } from "$lib/tune/copy";
 
   /**
-   * The two shapes slot B renders, declared structurally rather than imported.
-   *
-   * $lib/tune/model is reached only through `await import()` (D-18), and this
-   * component names exactly the fields it renders and no others - so a
-   * `LadderView` and an `OverBudgetView` are each assignable to the prop below
-   * and the compiler checks that at the region's call site. It is the
-   * src/lib/sim/host.ts HostEngine pattern: a structural declaration, no import
-   * either way, and no file shared between the two.
+   * The two shapes slot B renders, declared structurally (the HostEngine pattern):
+   * $lib/tune/model is reached only through `await import()` (D-18), and a LadderView
+   * or an OverBudgetView is assignable to the prop at the region's call site.
    */
   type LadderMessage = {
     /** copy.ladderLine over the compiler's own label. Verbatim. */
@@ -132,10 +75,7 @@
 </div>
 
 <style>
-  /*
-    Auto height, and it takes no space at all when there is nothing to say -
-    which is every state a visitor can actually reach.
-  */
+  /* Auto height; no space at all when there is nothing to say. */
   .slot:not(:empty) {
     margin-block-start: 16px;
   }
@@ -146,11 +86,7 @@
     padding-inline-start: 12px;
   }
 
-  /*
-    X-01 use 3 of 3, and the only red in this file, on section 12's error
-    surface: the rule is the error ink, the block behind it the error
-    surface, the sentence stays --color-ink. Square (D-01).
-  */
+  /* X-01 use 3 of 3, the only red here: the rule in the error ink, the block on the error surface, the sentence in ink. Square (D-01). */
   .block.over {
     padding-block: 12px;
     padding-inline: 14px 12px;
@@ -177,17 +113,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    Phase 4's secondary treatment at 44px, and it is deliberately NOT red: the
-    token is scoped to the meter and to the rule beside this block, and a red
-    button would read as "dangerous" where the truth is "not yet".
-
-    THE SHAPE IS src/app.css's .pill (A-41), applied by the class on the button.
-    It brings the INLINE 44px floor this rule never declared - the label is
-    short, so the block floor alone was the only one it had. Sentence case at
-    13px / 600 / 0.01em since 13-19 (D-05): the word is `Turn it down` and
-    no transform re-cases it.
-  */
+  /* Phase 4's secondary treatment at 44px, NOT red; the shape is src/app.css's .pill (A-41), which brings the inline floor. Sentence case since 13-19 (D-05). */
   .back-off {
     appearance: none;
     inline-size: fit-content;

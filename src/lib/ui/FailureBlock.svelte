@@ -1,39 +1,13 @@
 <!--
-  The one failure block (06-UI-SPEC, The failure states; Y-11, Y-13).
-
-  Title, detail, ordered steps - the markup TryOnDevice.svelte has rendered
-  for every failure since Phase 4, lifted into a component so the header
-  disclosure and the chosen panel cannot word the same failure differently or
-  set it in two type scales. The three text treatments below (.title, .detail,
-  .steps) are copied from TryOnDevice.svelte declaration for declaration
-  rather than rewritten, so the two surfaces cannot drift while both exist.
-
-  TWO RULES MAKE IT ONE COMPONENT.
-
-  1. IT RENDERS IN ONE PLACE AT A TIME. In the chosen panel while the panel is
-     open, in the header disclosure otherwise - never in both at once. A
-     visitor reading the six-step recovery for a held port twice, in two
-     places, in two sizes, is worse off than reading it once.
-
-  2. THE CONTROL LABEL IS THE RENDERING SURFACE'S. Every step that says "Click
-     ... again" names the button on the surface showing it - CONNECT ZONA in
-     the header, TRY ON DEVICE in the panel - which is why this takes a
-     fully-formed `block` rather than a failure key: the session's
-     failureFor(label) has already done the interpolation, and this component
-     authors no sentence and looks nothing up.
-
-  THE SHAPE IS DECLARED, NOT IMPORTED. { title?, detail, steps } is written out
-  below in the Phase 5 leaf-component way (BudgetMessage.svelte), and the
-  reason is stronger than the first-paint chunk guard: a leaf that declares
-  exactly the fields it renders cannot be broken by a change to a module it
-  never names, and its title is OPTIONAL where the transport's FailureCopy has
-  a required one - the S5 sentence and the already-connecting row have a
-  detail and no title, and both render here without a second component.
-
-  NO HEADING, NO CONTROL, NO TAB STOP. Titles are Micro (title) paragraphs, as
-  Phase 4 set them: a disclosure is not a document section (06-UI-SPEC,
-  Accessibility Contract). An empty `steps` renders no list at all rather than
-  an empty <ol>, which is the already-open row and the S5 sentence.
+  The one failure block: title, detail, ordered steps, so no two surfaces word a
+  failure differently or set it in two type scales. Props: block ({ title?, detail,
+  steps }, declared structurally, never imported from the transport - a leaf that
+  names exactly the fields it renders; the title is optional because the S5
+  sentence and the already-connecting row have none), testid. Renders in one
+  place at a time (Y-11); the control label in every step is the surface's,
+  interpolated by the session's failureFor(label) - this file authors no sentence.
+  No heading, no control, no tab stop; an empty steps renders no list at all.
+  Decided at 06-12 (06-UI-SPEC Y-11, Y-13); see .planning/phases/06-device-session/06-12-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -62,11 +36,7 @@
 </div>
 
 <style>
-  /*
-    Micro (title): 12px / 600, sentence case and nearly no tracking. Failure
-    and state titles read as sentences, and a sentence in wide-tracked
-    uppercase is shouting rather than labelling. (TryOnDevice.svelte)
-  */
+  /* Micro (title): 12px / 600, sentence case, nearly no tracking - a failure title reads as a sentence. */
   .title {
     margin: 0;
     font-size: 12px;

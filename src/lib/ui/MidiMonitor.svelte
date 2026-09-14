@@ -1,57 +1,13 @@
 <!--
-  The MIDI monitor: PDF page 5's collapsed bar under the surface, expanded
-  into section 10's six-column log (plan 13-10, Bible section 10 and 14,
-  13-CONTEXT.md D-14 Q4b).
-
-      [ ˅ MIDI monitor ]              Browser preview · No MIDI output  ˅
-
-  Collapsed by default, one bar at the bottom of the centre column. Expanded:
-  Pause and Clear, then the log - timestamp, direction, source, channel,
-  message, value - newest first. It is a RENDER of the log the Lua host
-  already keeps (src/lib/sim/lua-host.ts's `midiLog`, appended by the bridged
-  `__hangar_gms`) plus a clock; the arithmetic is src/lib/sim/monitor.ts and
-  this file paints it. The host is read and never edited.
-
-  THREE HONEST LIMITS. monitor.ts's header carries them in full; in brief:
-
-    1. THE BAR IS ABSENT ON THE NINE PRESET-BACKED ENTRIES, NOT PRESENT AND
-       EMPTY. The vendored pad-sim.ts records no send, so there is nothing to
-       render there. D-14 Q4b chose Lua entries only for v1 over adding a log
-       to src/vendor/ - a declared divergence for a nicety - and this plan
-       declines that divergence by name. The workspace mounts this component
-       inside `{#if listed.preview === "lua"}` and nowhere else, which is why
-       there is no empty state for "this engine has no log" in this file.
-    2. RATE. A still finger sends every 10 ms. Alike messages inside
-       COALESCE_WINDOW_MS fold into one row with an `xN` count and the latest
-       value; the log is a ring of MONITOR_CAP rows.
-    3. `No MIDI output` IS TRUE. Nothing here reaches a port (Phase 6 closed
-       section 19's Web MIDI row). Direction is `out`, source is the PDF's
-       `Browser preview`, and the bar says so at rest, verbatim.
-
-  NOT A LIVE REGION, BY SECTION 14: "do not announce every MIDI event or
-  animation frame." There is no aria-live anywhere in this file. The toggle
-  is a real button with aria-expanded and aria-controls; the log is a real
-  table with column heads; a screen reader reads it when asked and is never
-  interrupted by it.
-
-  THE SAMPLER IS A SELF-RESCHEDULING setTimeout AND RUNS ONLY WHILE THE LOG
-  IS SHOWING. The host pushes nothing - its log is an array - so the monitor
-  polls it, at the coalescing window's own cadence, only while the panel is
-  open and not paused. Collapsed or paused it costs nothing. Never
-  setInterval (Phase 4's rule, site-wide), and never a second animation-frame
-  loop: SimHost owns the page's one rAF and this component does not tick,
-  paint or touch an engine. It therefore cannot fight 13-04's motion control:
-  a still surface that still answers a finger still sends, and the rows that
-  arrive are the log's, not an animation of this component's.
-
-  PAUSE FREEZES THE VIEW. What the surface sends while paused is not shown,
-  and Resume picks up from the moment it is pressed rather than replaying
-  the gap - the paused line says exactly that. Clear empties the visible
-  rows and nothing else: the host's array is the host's.
-
-  The strings: `MIDI monitor` and `Browser preview · No MIDI output` are the
-  PDF's, verbatim. The six heads, `out`, `Pause` / `Resume` / `Clear`, the
-  count form and the two lines are HANGAR's and are ledgered in 13-COPY-NEW.md.
+  The MIDI monitor: PDF page 5's collapsed bar under the surface, expanded into
+  section 10's six-column log - a RENDER of the midiLog lua-host.ts already keeps
+  (monitor.ts is the arithmetic; the host is read and never edited). Props: source
+  (the log, read fresh on every sample) and now (the clock). No live region, no
+  interval, no frame loop of its own: a self-rescheduling timeout while the log shows.
+  Absent on the preset-backed entries, not present and empty: the vendored
+  pad-sim.ts records no send, and D-14 Q4b chose Lua entries only for v1 over
+  adding a log to src/vendor/. Mounted inside {#if listed.preview === "lua"} only.
+  Decided at 13-10 (D-14 Q4b); see .planning/phases/13-gui-overhaul/13-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -85,11 +41,7 @@
     source,
     now = () => performance.now(),
   }: {
-    /**
-     * The engine's MIDI log, read fresh on every sample - a function, not
-     * an array, because the workspace swaps engines under the same id on
-     * every knob turn and the monitor has to follow the live one.
-     */
+    /** The engine's MIDI log, read fresh on every sample: the workspace swaps engines under the same id on every knob turn. */
     source: () => readonly HostMidi[] | undefined;
     /** The clock. A prop so a harness can script it. */
     now?: () => number;
@@ -106,8 +58,7 @@
   /** Newest first. Replaced whole on change, never mutated, so raw is right. */
   let rows: readonly MonitorRow[] = $state.raw([]);
 
-  // Plain locals, outside the reactive graph: a log, a clock origin and a
-  // timer handle are not things to render.
+  // Plain locals outside the reactive graph: a log, a clock origin and a timer handle.
   const log = new MonitorLog();
   let openedAt: number | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -247,11 +198,7 @@
     background: var(--color-panel);
   }
 
-  /*
-    The whole bar is the toggle: PDF page 5 draws a chevron at each end and
-    the status at the right. 44px tall, no fill, the boundary lights on hover
-    like every outlined control on the site.
-  */
+  /* The whole bar is the toggle (page 5: a chevron at each end, the status at the right); 44px tall, no fill. */
   .bar {
     appearance: none;
     display: flex;
@@ -332,11 +279,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    The ring is two hundred rows; the panel shows a window of them and
-    scrolls on the BLOCK axis only. Never the inline axis (D-11): the table is
-    fixed-layout at the panel's width and every cell wraps.
-  */
+  /* A window over the ring, scrolling on the block axis only (D-11): fixed-layout table, every cell wraps. */
   .scroll {
     max-block-size: 320px;
     overflow-y: auto;

@@ -1,95 +1,14 @@
 <!--
-  The header note: the inline region beneath the header row that says, with
-  no click at all, what the picker is and that nothing is ever written
-  (06-UI-SPEC, The header note; Y-23; D-16).
-
-  WHY IT EXISTS. In S1, S2 and S7 the device slot is a plain button that
-  connects, so its explanation cannot hang off it: a control that both acts
-  and expands lies about one of its two jobs. The copy therefore sits here,
-  in a region of its own, on the one surface that exists on every route. It
-  costs a reserved header height on every capable browser for the whole visit,
-  and it buys CONN-03's explanation and SAFE-01's promise read without a click.
-  That trade is 06-UI-SPEC's open question 7, made rather than assumed.
-
-  THE RESERVATION IS MEASURED, AND SINCE PLAN 10-03 IT IS ONE CELL. Phase 6
-  and 7 shipped two Body paragraphs 8px apart: a one-cell grid over every
-  string the first line could show, and beneath it the SAFE-01 sentence, also
-  kept as a twin in the states that did not show it. 06-UI-SPEC's arithmetic
-  at the 372px column was 3 + 3 line boxes + 8px = 152px.
-
-  R-02 retires PICKER_EXPLAINER (130) and R-03 moves SAFE-01's guarantee out
-  of a paragraph and onto the control as SAFE_NOTE, so BOTH of those cells
-  go. What is left in the swapping cell is the reconnect offer at 37 and the
-  three S3 status lines at 36, 17 and 25 - every one of them one line box at
-  the measured CH_PER_LINE of 43 (10-01-SUMMARY.md, thirty-six full line
-  boxes in two engines). The cell is therefore `ceil(37 / 43) x 24 = 24px`,
-  one line, and that is the largest single reduction in the phase: 152px to
-  24px. The candidates still all sit at
-  `grid-area: 1 / 1` with the non-current ones `visibility: hidden` and
-  aria-hidden, so the height is still identical in every state and no session
-  transition can move the headline or the coverflow beneath it. Phase 5's
-  honesty slot (TryOnDevice.svelte) is the pattern, unchanged.
-
-  SAFE_NOTE IS NOT PART OF THAT RESERVATION. It is a fixed 14px Micro line
-  beneath the cell, 8px away: unconditional, never swapped, and with nothing
-  ever rendered in its place. It costs one line box permanently and nothing
-  variable - see session-copy.ts's contract block on the constant.
-
-  STATE BY STATE. `starting` is S1 (session-copy's slotStateOf), so this is
-  the row the PRERENDERED page ships: an empty held cell over SAFE_NOTE. S1 /
-  S7 the same; S2 the reconnect offer; S3 the current status line; S4, S5 and
-  S6 empty with the height held, because that copy is in the disclosure. In
-  every one of those seven, SAFE_NOTE is on the screen. S0a and S0b render
-  NOTHING, with no reservation: capability is decided synchronously before the
-  first hydrated paint and cannot change during the visit, so those two states
-  are terminal, there is no picker to explain, and a visitor on a browser that
-  cannot connect pays nothing for this region. The prerendered document
-  always carries the note, and hydration removes it exactly once, in the
-  first hydrated frame, on those two browsers - a removal, not an absence,
-  which is why a browser-side assertion about the note's absence has to wait
-  for a hydration marker first (plan 06-10's DeviceSlot data-hydrated).
-
-  THE NEVER-BOTH RULE IS ABOUT SURFACES (Y-11). When the chosen panel is
-  open it owns the session's prose and this note holds the space without
-  speaking. `panelOwnsProse` covers every line the two surfaces can both
-  show. Through Phases 6 and 7 that was TWO - the S1 / S7 pre-click explainer
-  and the S3 status line, both rendered by the panel's connect-state region
-  (plan 06-12). Plan 10-03 retires the explainer and adds SAFE_NOTE, which
-  the panel also renders, so it is two again: the S3 status line and
-  SAFE_NOTE. In both cases the note keeps rendering the hidden line, so its
-  height is unchanged and nothing below the header moves when a panel opens
-  or closes; only the visible text goes. One input, not two special cases.
-
-  SAFE_NOTE'S HIDDEN FORM IS THE NEVER-BOTH RULE, NOT A SIZING TWIN, and the
-  difference is worth writing down. A sizing twin exists because SOMETHING
-  ELSE will be swapped into its cell and the taller candidate has to have
-  reserved the room. Nothing is ever swapped into SAFE_NOTE's line: it is
-  hidden here for exactly one reason, that the panel is saying the same
-  sentence eight pixels lower down, and it holds its own height while it is
-  hidden so the header does not jump when a panel opens. The panel's copy,
-  the one beneath the primary control, is unconditional and has no hidden
-  sibling at all - device-ui.spec.ts asserts that over TryOnDevice.svelte.
-
-  NOT A LIVE REGION, AND IT NEVER ANNOUNCES. It changes with the session, and
-  the session already speaks once through SessionAnnouncer.svelte; marking
-  this polite would say every transition twice. No heading, no control, no
-  tab stop, no border, no ground, no icon, no accent: it is prose under a
-  control.
-
-  GEOMETRY AND MOTION. `inline-size: min(372px, 100%)` - Phase 4's panel
-  content column, reused so one sentence wraps to the same number of lines in
-  both surfaces - pushed to the right edge so it sits flush with the device
-  slot's, with the text left-aligned inside it. Line changes are 160ms
-  ease-out on opacity only; the height never animates because it never
-  changes. On / it carries the wordmark's `.covered` treatment verbatim:
-  opacity 0 with no transition while the splash covers the row, then up to
-  1 across the dissolve on the front door's own --arrive-ms.
-
-  EVERY STRING COMES FROM session-copy AND NONE IS RETYPED HERE. Both
-  specifiers below are on the chunk guard's permitted list
-  (src/lib/config-shape.spec.ts test 13); the session and its copy module
-  are free of the protocol package, which is what lets a header component
-  name them on the first paint of /.
+  The header note: the inline region beneath the header row that says, with no
+  click, what the picker is (the swapping cell: the reconnect offer or the S3
+  status line) and that nothing is ever written (SAFE_NOTE, unconditional beneath
+  it). Props: covered (the splash owns the row), panelOwnsProse (Y-11: the panel
+  is saying the same lines, so they hide and hold their height). S0a and S0b render
+  nothing, with no reservation. The cell is one 24px line box - ceil(37 / 43) x 24,
+  the longest candidate over CH_PER_LINE (10-01) - held in every state so no
+  session transition moves the headline beneath. Line changes fade 160ms ease-out on
+  opacity; the height never moves. Not a live region: SessionAnnouncer speaks. Strings: session-copy.
+  Decided at 06-12 / 10-03 (Y-23, D-16); see .planning/phases/10-redesign/10-03-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -110,13 +29,7 @@
   }: {
     /** True while the splash covers the row. Carries the wordmark's treatment verbatim. */
     covered?: boolean;
-    /**
-     * True while the chosen panel is open and rendering the session's prose
-     * (Y-11). The note keeps its hidden lines and its height; only the
-     * visible text goes, so nothing below the header moves when a panel
-     * opens or closes. Two lines are affected: the S3 status line and
-     * SAFE_NOTE.
-     */
+    /** True while the chosen panel renders the session's prose (Y-11): the S3 line and SAFE_NOTE hide and hold their height. */
     panelOwnsProse?: boolean;
   } = $props();
 
@@ -125,7 +38,7 @@
 
   const slot = $derived(slotStateOf(session.phase));
 
-  /** S0a and S0b render nothing at all - see the header. */
+  /** S0a and S0b are terminal (capability is decided before the first hydrated paint) and render nothing. */
   const rendered = $derived(slot !== "S0a" && slot !== "S0b");
 
   /** Which candidate of the first cell is visible; every other one is a twin. */
@@ -185,12 +98,7 @@
         {STATUS_IDENTIFYING}
       </p>
     </div>
-    <!--
-      SAFE-01, on the screen in every state this note renders in. It is hidden
-      only while the chosen panel is saying the same sentence beneath its own
-      primary (the never-both rule), and it holds its height while hidden so
-      opening a panel does not move the coverflow.
-    -->
+    <!-- SAFE-01, on the screen in every state this note renders in; hidden only while the panel says the same sentence, holding its height. -->
     <p
       class="safe-note"
       data-testid="device-note-safe"
@@ -203,12 +111,7 @@
 {/if}
 
 <style>
-  /*
-    Two rows, 8px apart (Phase 4's `sm`), at the panel's 372px content
-    column, flush with the right edge of whatever row sits above. The
-    --arrive-ms is the front door's dissolve; the fallback is its full-motion
-    value so the treatment is the same where no front door declares it.
-  */
+  /* Two rows, 8px apart, at the panel's 372px content column, flush right; --arrive-ms is the front door's dissolve, the fallback its full-motion value. */
   .device-note {
     --note-arrive-ms: var(--arrive-ms, 700ms);
     display: grid;
@@ -220,33 +123,17 @@
     transition: opacity var(--note-arrive-ms) cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
-  /*
-    Held at nothing while the splash owns the screen, and NOT transitioned
-    into that state - absent from the very first painted frame rather than
-    faded out of one. The wordmark's declaration, verbatim.
-  */
+  /* Held at nothing while the splash owns the screen, not transitioned into it: the wordmark's declaration, verbatim. */
   .device-note.covered {
     opacity: 0;
     transition: none;
   }
 
   /*
-    THE ONE-CELL GRID: every candidate of the note's line in the same cell.
-
-    THE REASON IT EXISTS IS SAFETY, NOT TIDINESS (Z-18). This cell changes with
-    the session, and the header sits above the headline and the whole coverflow;
-    a line count changing here moves everything a visitor is looking at, on the
-    one surface that exists on every route.
-
-    24px SINCE PLAN 10-03, DOWN FROM 152px, AND IT IS ARITHMETIC RATHER THAN AN
-    ADJUSTMENT. A reservation is `ceil(longest / CH_PER_LINE) x 24`, where
-    CH_PER_LINE is a Body line box's capacity in this 372px column: 43,
-    measured in Inter Variable over thirty-six full line boxes in two engines
-    by plan 10-01, not the provisional 46. With PICKER_EXPLAINER (130) and
-    SAFE_PROMISE (88) both retired, the longest candidate is RECONNECT_OFFER at
-    37, and `ceil(37 / 43) x 24 = 24`. One line box. The floor is declared as
-    well as measured so device-ui.spec.ts can hold it with the arithmetic in
-    its failure message.
+    The one-cell grid: every candidate in the same cell, so a line count changing
+    here cannot move the headline beneath (Z-18). The floor is ceil(longest /
+    CH_PER_LINE) x 24 = ceil(37 / 43) x 24 = 24px (10-01's 43, 10-03's 37);
+    device-ui.spec.ts holds it with the arithmetic in its failure message.
   */
   .cell {
     display: grid;
@@ -269,14 +156,7 @@
       visibility 0s linear 0s;
   }
 
-  /*
-    SAFE_NOTE, and it is NOT one of the lines above. Micro (title): 12px, 600,
-    a 14px line box, 0.01em, sentence case, in --color-ink at 9.26:1 rather
-    than --color-ink-quiet, because a safety statement is not quiet and the
-    honesty prose beneath it already is. No grid-area: it is the note's second
-    row, 8px below the cell, with nothing ever rendered in its place - so it
-    reserves nothing and costs exactly one 14px line box, permanently.
-  */
+  /* SAFE_NOTE: Micro, 12px 600 on a 14px box, in --color-ink because a safety statement is not quiet; the note's second row, nothing ever in its place. */
   .safe-note {
     margin: 0;
     font-size: 12px;
@@ -289,12 +169,7 @@
       visibility 0s linear 0s;
   }
 
-  /*
-    A twin holds the height and nothing else: out of the accessibility tree
-    by visibility (aria-hidden makes that explicit), out of sight by opacity,
-    and its visibility flips only after its fade so a line change is a fade
-    and never a cut.
-  */
+  /* A twin holds the height and nothing else: out of the tree by visibility, out of sight by opacity, the flip after the fade. */
   .twin {
     opacity: 0;
     visibility: hidden;

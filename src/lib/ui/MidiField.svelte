@@ -1,55 +1,14 @@
 <!--
-  One typed MIDI field: PDF page 5's `CC number` / `Channel` box (13.1-07;
-  13.1-CONTEXT D-09; bench line 7, screenshot 2: "replace MIDI channel
-  selector with MIDI output selector with input fields, exactly as on the
-  attached screenshot").
-
-  A TEXT INPUT OVER A CLOSED LIST, NEVER A FREE NUMERIC. The knob underneath
-  is unchanged - its option list, its index, its default - because a five-bit
-  index is what makes the stamp, the forecast and the sweep possible, and no
-  knob's value count moves here. What the visitor types is mapped back to
-  that list through view.ts's `typedIndex`: a whole number the knob offers
-  moves the knob to that index (`onchange(id, index)`, the same call a rail
-  makes); a whole number it does not offer is REFUSED in the field with the
-  offered values named (`offeredLine`); anything that is not a whole number
-  is refused with `TYPE_A_NUMBER`. Phase 13 D-14 Q5 ("free-typed numerics
-  live only in the Sandbox") is overridden for these fields and no other.
-
-  THE LAST GOOD VALUE SURVIVES A REFUSAL (13-16's rule and its shape,
-  RegionInspector.svelte's numeric field): the field is uncontrolled in one
-  direction only - its value is the model's own literal, or, while a
-  keystroke has been refused, the text that was typed - and a refused text
-  stays in the field with `aria-invalid` and the message under it until a
-  keystroke validates. The model never sees a refused keystroke, so nothing
-  half-typed reaches the stamp, the tuner or the wire. The refusal is
-  cleared when the knob moves from outside (a per-field reset, Reset
-  settings, Undo randomize), so a stale message never sits over a fresh
-  value.
-
-  X-08 IS KEPT, AND THE CUE SAYS SO. The value shown is the knob's own
-  literal as `integerReadout` prints it - on a Lua entry the channel is the
-  firmware's zero-based `0` to `15`, on a preset the DAW's `1` to `16` -
-  because renumbering a value about to be written to hardware is the lie
-  X-08 forbids. The PDF draws `1`. Until 13.1-CONTEXT question 5 is answered
-  a Lua entry's Channel (the run that starts at 0) carries LUA_CHANNEL_CUE
-  as a helper line beneath it and in its aria-describedby, so the asked
-  state is not a silent off-by-one; a preset's Channel carries no cue
-  (13.1-PLAN-CHECK W-16).
-
-  THE LABEL IS THE PDF'S FOR `cc` AND `channel` AND THE KNOB'S OWN FOR THE
-  REST (`CC base`, `Send`), through inspector-copy's `midiFieldLabel` -
-  13.1-CONTEXT question 6, shipped this way. Section 7's changed-field
-  marker and per-field reset are Knob.svelte's, kept here in the same shape
-  (`changed` is the one comparison, the reset named for the field, disabled
-  at the default). The lock is NOT here: a MIDI destination is out of every
-  Randomize roll already (surprise.ts's predicate), so a lock on it would be
-  a control that changes nothing.
-
-  Knob.svelte is not edited and its three circles do not move: the region
-  hands the MIDI partition to this component instead of the rack, and
-  `widgetFor`'s resolution of these knobs (a rail, at five and sixteen
-  integers) is simply never rendered. 44px floor on the input and the reset;
-  no corner anywhere (D-01).
+  One typed MIDI field: PDF page 5's CC number / Channel box. Props: knob (the
+  list, index and default are its), onchange (the same call a rail makes), onreset.
+  A text input over a closed list, never a free numeric: the typed text maps back
+  through view.ts's typedIndex - an offered whole number moves the knob, an
+  unoffered one is refused with the offered values named, anything else with
+  TYPE_A_NUMBER. The last good value survives a refusal (13-16's shape): the
+  refused text stays with aria-invalid until a keystroke validates or the knob
+  moves from outside, and the model never sees it. X-08 kept: a Lua channel shows
+  the firmware's 0-based literal with LUA_CHANNEL_CUE beneath. No lock here. 44px, square.
+  Decided at 13.1-07 (13.1-CONTEXT D-09); see .planning/phases/13.1-bench-corrections-four/13.1-07-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -89,10 +48,7 @@
   const label = $derived(midiFieldLabel(knob));
   /** Section 7's one comparison. */
   const changed = $derived(knob.index !== knob.default);
-  /**
-   * A Lua entry's channel: the contiguous run that starts at the firmware's
-   * 0. A preset's starts at 1 and gets no cue (W-16; question 5).
-   */
+  /** A Lua entry's channel: the contiguous run that starts at the firmware's 0; a preset's starts at 1 and gets no cue (W-16). */
   const zeroBasedChannel = $derived(
     knob.id === "channel" && integerRun(literals)?.min === 0,
   );
@@ -156,11 +112,7 @@
   data-index={knob.index}
   data-changed={changed}
 >
-  <!--
-    The label with section 7's changed-field marker at its start (Knob.svelte's
-    shape): a 6px square in the ink while the field is off its default, and a
-    hidden sentence for a screen reader.
-  -->
+  <!-- The label with section 7's changed-field marker at its start (Knob.svelte's shape): a 6px square in the ink, and a hidden sentence for a screen reader. -->
   <label class="label" for={inputId}>
     {#if changed}
       <span class="changed" data-testid="midi-field-{knob.id}-changed"
@@ -213,13 +165,7 @@
 </div>
 
 <style>
-  /*
-    Knob.svelte's stacked row, kept: a 14px line box for the label, a 4px
-    gap, the box in its 44px row, and the reset spanning both rows at the
-    inline end - so a MIDI field is the same height as the grid field it
-    replaces (14 + 4 + 44 = 62) and the rows below it do not move. The
-    message and the cue take a row of their own beneath, full width.
-  */
+  /* Knob.svelte's stacked row: a 14px label box, a 4px gap, the box in its 44px row (14 + 4 + 44 = 62, the grid field's height), the reset spanning both at the inline end; the message and the cue on a row beneath. */
   .field {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -247,11 +193,7 @@
     overflow-wrap: anywhere;
   }
 
-  /*
-    The changed-field marker: a 6px square in the ink at the label's start.
-    Ink and never accent - a change is information, and the reserved list is
-    held at eight by tune-ui.spec.ts. No radius (D-01).
-  */
+  /* The changed-field marker: a 6px square in the ink, never accent (the reserved list is held at eight by tune-ui.spec.ts). No radius (D-01). */
   .changed {
     position: absolute;
     inset-inline-start: 0;
@@ -261,11 +203,7 @@
     background: var(--color-ink);
   }
 
-  /*
-    The PDF's field box under the 44px floor: a boundary hairline, square
-    (D-01), the workspace's ground, the panel's ink, tabular numerals so a
-    value never jitters. 16px so iOS does not zoom a focused field.
-  */
+  /* The PDF's field box under the 44px floor: a boundary hairline, square (D-01), tabular numerals; 16px so iOS does not zoom a focused field. */
   .input {
     grid-area: control;
     box-sizing: border-box;

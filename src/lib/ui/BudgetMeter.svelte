@@ -1,81 +1,14 @@
 <!--
-  One meter. Two numbers that never lie and never jitter.
-
-  A meter is a caption, a right-aligned character count, a right-aligned
-  percentage and an 8px bar. It renders a MeterView and re-derives NOTHING:
-  `over` is a property of the number and `state` is the model's word for what
-  the feed is doing, both settled in $lib/tune/view's meterView(). Two copies of
-  "is this over 908" is how one screen ends up red while the other is lime.
-
-  WHY THE CAPTION IS NOT MONOSPACED. Monospace is confined to numerals and
-  machine text (05-UI-SPEC, Typography, extending Phase 4's W-03). SETUP and
-  TIMER are Micro captions in Quicksand 600 like every other caption in the
-  region; only the two numeric columns take var(--font-mono) with
-  font-variant-numeric: tabular-nums. Tabular numerals are mandatory rather than
-  decorative: a budget that shifts horizontally while it counts from 702 to 711
-  is the exact failure the mono stack was introduced for.
-
-  WHY STALENESS IS AN ALPHA CHANGE AND NOT THE `measuring…` WORD. During a drag
-  the 120ms debounce fires several times a second. Swapping the numerals for a
-  word and back would strobe; dropping their alpha moves no layout, cannot
-  reflow, and reads as "these numbers are catching up" rather than "these
-  numbers are gone". The word is reserved for the very first measurement, when
-  there is genuinely nothing to show. And staleness never applies while over
-  budget - meterView() makes `over` outrank the feed - because dimming a warning
-  is wrong.
-
-  WHY THERE IS NO ARIA ROLE HERE AT ALL. DEGR-01 requires iOS Safari, where
-  VoiceOver's support for the meter role is partial and inconsistent, and a
-  readout that announces differently on one platform is worse than one that
-  announces as plain text everywhere. So: the caption, the numerals and the
-  percentage are real text in the DOM; the visible numerals are aria-hidden and
-  paired with a visually-hidden sentence that says the same thing in words; the
-  bar is decoration and is aria-hidden. Nothing here is focusable and nothing
-  carries a tabindex either - a readout with no action must never become a dead
-  tab stop. Every assistive technology on every platform understands real text,
-  and it cannot regress.
-
-  THE HEIGHT IS ARITHMETIC, NOT A GUESS. One meter is
-
-      14 (the region's fixed line box) + 4 (gap) + 8 (bar) = 26
-
-  and the two-meter block the region stacks is
-
-      (14 + 4 + 8) x 2 + 4 = 56
-
-  which is the 56px half of Phase 4's reservation that survived D-11's
-  correction, honoured to the pixel. All three cells of the row therefore carry
-  `line-height: 14px` and nothing else - no family, size, weight, tracking or
-  case changes with it. Quicksand's own 1.2 ratio would make the row 14.4 and
-  the block 56.8, and 14.4 divides into neither number. If a later tidy-up
-  deletes one of those three declarations the block silently becomes 56.8px:
-  the declarations are the arithmetic.
-
-  --color-error-ink lives here and in BudgetMessage.svelte, and nowhere else on the
-  site. Two of X-01's three permitted uses are in this file: the offending
-  meter's bar fill with its 2px outline, and that meter's numerals and
-  percentage. It is never a button, never a border elsewhere, never a knob.
-
-  WHERE THE METER LIVES SINCE 13-09 AND WHAT 13-10 CHANGED. Both meters
-  render inside the inspector (TuningRegion.svelte), after its last section -
-  under `MIDI output` when the entry has one - as two `{used} / 908` rows
-  with a percentage: the Bible has no budget meter anywhere, and "you have
-  thirty-three characters left" is what makes a visitor trust the install
-  button (13-RESEARCH Q8). 13-03 renamed the alarm token: `--color-over` is
-  `--color-error-ink`, section 12's validation-and-transfer-error ink, and its
-  surface `--color-error-surface` paints the over-budget MESSAGE block in
-  BudgetMessage.svelte - a meter row is 14px of numerals and takes no surface
-  of its own. 13-10 also squared the track, the fill and the ghost (D-01: no
-  radius above zero anywhere), which cleared this file's allowlist row.
-
-  THE GHOST IS THE THIRD THING IN THE BAR AND IT SPENDS NOTHING (TUNE-02, T2).
-  A hovered or focused knob option publishes what it WOULD cost, and the bar
-  draws the difference in --color-divider - the track's own token, at 0 ms,
-  behind nothing and in front of nothing. It adds no --color-error-ink branch: an
-  option that would cross 908 is already disabled and cannot be hovered, so
-  this file's three var(--color-error-ink) declarations are untouched and X-01 is
-  still at three uses. It adds no accent either: the reserved list stays at
-  eight.
+  One meter: a caption, a right-aligned count, a percentage and an 8px bar,
+  rendering a MeterView and re-deriving NOTHING - over and state are settled in
+  $lib/tune/view's meterView(). Props: view, ghost (a forecast count, TUNE-02).
+  The numerals are the mono stack with tabular-nums so a count never jitters; the
+  caption is not monospaced. Staleness is an alpha change, never the measuring
+  word. No ARIA role (DEGR-01: real text everywhere; the numerals aria-hidden with
+  a visually-hidden sentence beside them). The height is arithmetic: 14 + 4 + 8 =
+  26, two plus a 4px gap = 56 - the three line-height: 14px declarations ARE it.
+  X-01 uses 1 and 2 of 3 live here; the ghost is --color-divider and spends nothing.
+  Decided at 05-08 / 13-10 (D-01, TUNE-02); see .planning/phases/13-gui-overhaul/13-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -98,26 +31,11 @@
   }: {
     /** One meter, already resolved by $lib/tune/view's meterView(). */
     view: MeterView;
-    /**
-     * The character count a hovered or focused knob option WOULD produce on
-     * this event (TUNE-02, T2), or undefined when nothing is being forecast.
-     *
-     * A number, never a percentage: the geometry is this file's, exactly as it
-     * is for `used`, so the ghost and the fill cannot be computed by two
-     * different roundings and disagree by a pixel.
-     */
+    /** The count a hovered or focused option WOULD produce (TUNE-02), or undefined; a number, never a percentage, so the ghost and the fill share one rounding. */
     ghost?: number;
   } = $props();
 
-  /**
-   * The two event words in the case the contract's {Setup|Timer} placeholder
-   * prints them.
-   *
-   * They are a two-word capitalisation table rather than sentences, and
-   * $lib/tune/copy's own header says why they arrive that way: that module
-   * imports nothing, so it cannot name view.ts's MeterEvent and takes the
-   * already-capitalised word instead.
-   */
+  /** The two event words as the contract's {Setup|Timer} placeholder prints them: $lib/tune/copy imports nothing and takes the capitalised word. */
   const WORDS: Readonly<Record<MeterView["event"], EventWord>> = {
     setup: "Setup",
     timer: "Timer",
@@ -127,20 +45,10 @@
     view.event === "setup" ? SETUP_CAPTION : TIMER_CAPTION,
   );
 
-  /**
-   * aria-busy while a number is arriving or catching up, so an assistive
-   * technology does not read a count that is about to change. 05-UI-SPEC words
-   * this as "on the meters block"; it is set per meter because each meter has
-   * its own feed, and the block above is free to be busy when either is.
-   */
+  /** aria-busy while a number is arriving or catching up; per meter, because each has its own feed. */
   const busy = $derived(view.state === "measuring" || view.state === "stale");
 
-  /**
-   * Geometry, not state: the fill is min(100%, used / 908) of the track, and a
-   * meter that has never measured shows a track with nothing in it. Over budget
-   * this expression is already 100 - `over` is `used > 908` - so the full bar
-   * needs no branch of its own.
-   */
+  /** Geometry, not state: min(100%, used / 908) of the track; over budget it is already 100, so the full bar needs no branch. */
   const fillPercent = $derived(
     view.state === "measuring"
       ? 0
@@ -148,28 +56,10 @@
   );
 
   /**
-   * THE GHOST, AS ONE SPAN AND NO DIRECTION BRANCH.
-   *
-   * The forecast is either above the current value or below it, and the
-   * segment between them is the same segment either way: min(current,
-   * forecast) to max(current, forecast). The bar is then three bands, and the
-   * accent fill always ends where the ghost begins:
-   *
-   *   [0, min)    the accent fill, exactly as it always was
-   *   [min, max)  the ghost, --color-divider OVER the track's own
-   *               --color-divider, which composites to 0.36 alpha against
-   *               the track's 0.2 - a real difference, drawn in the material
-   *               of the bar rather than in a colour of its own
-   *   [max, 100]  the empty track
-   *
-   * Forecast above: the ghost is the extra the choice would take, beyond the
-   * fill. Forecast below: the fill really does stop short and the ghost is the
-   * notch cut out of it, at the same alpha, which is what 10-UI-SPEC 14 asks
-   * for. ONE element and one token in both directions, so the two readings
-   * cannot drift apart.
-   *
-   * Nothing is drawn while measuring: there is no current value for a
-   * difference to be taken from.
+   * The ghost as one span and no direction branch: the segment from min(current,
+   * forecast) to max, drawn in --color-divider over the track's own, so a forecast
+   * above is the extra and a forecast below is the notch, at one alpha (10-UI-SPEC 14).
+   * Nothing is drawn while measuring.
    */
   const ghostPercent = $derived(
     ghost === undefined || view.state === "measuring"
@@ -185,14 +75,7 @@
     ghostPercent === undefined ? 0 : Math.abs(ghostPercent - fillPercent),
   );
 
-  /**
-   * The visually-hidden sentence a screen reader gets in place of the numerals.
-   *
-   * MORPH ships an empty Timer, so `0 / 908` is a true measurement rather than
-   * a dead meter and the expansion says which of the two it is in words. There
-   * is no expansion while measuring: the `measuring…` word is left readable
-   * instead, so the meter says what it is waiting for rather than nothing.
-   */
+  /** The visually-hidden sentence in place of the numerals; none while measuring, so the measuring word stays readable. MORPH ships an empty Timer, so 0 / 908 is a true measurement. */
   const expansion = $derived(
     view.event === "timer" && view.used === 0
       ? emptyTimerExpansion()
@@ -254,10 +137,7 @@
     align-items: baseline;
   }
 
-  /*
-    Micro role: 12px / 600 / 0.18em / uppercase, in the quiet rung. Quicksand,
-    NOT monospaced - the caption is a word, not a number.
-  */
+  /* Micro role in the quiet rung; Quicksand, NOT monospaced - the caption is a word. */
   .caption {
     font-size: 12px;
     font-weight: 600;
@@ -267,11 +147,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    The only two monospaced cells in this file, and the only place
-    var(--font-mono) appears in it. Tabular numerals so the columns hold still
-    while the count changes, and the same 14px box as the caption beside them.
-  */
+  /* The only two monospaced cells: tabular numerals in the caption's 14px box. */
   .numerals,
   .percent {
     font-family: var(--font-mono);
@@ -302,24 +178,7 @@
     background: var(--color-divider);
   }
 
-  /*
-    THE GHOST (TUNE-02, T2). --color-divider, the same token the empty track
-    already is, so the forecast is drawn in the material of the bar rather than
-    in a colour of its own: NO ACCENT IS SPENT and X-01's alarm red is not
-    touched, which is what keeps the reserved list at eight and --color-error-ink at
-    exactly three.
-
-    transition: none, AND IT IS NOT AN OVERSIGHT. 10-UI-SPEC 14 lists the ghost
-    at 0 ms deliberately: it tracks a pointer, and a fill that eased in over
-    120 ms would arrive after the pointer had moved on and would read as the
-    real value rather than as a forecast. The fill beside it keeps its 120 ms
-    for the opposite reason - it is a measurement landing, not a pointer.
-
-    NO --color-error-ink BRANCH LIVES HERE, and a reader looking for the fourth use
-    of the alarm red will not find it. An option that would take the event over
-    908 is already `disabled`, so it cannot be hovered and an unaffordable
-    forecast cannot be drawn at all.
-  */
+  /* The ghost (TUNE-02): --color-divider, the track's own token, no accent, no red; transition: none because it tracks a pointer (10-UI-SPEC 14). */
   .ghost {
     position: absolute;
     inset-block: 0;
@@ -328,11 +187,7 @@
     transition: none;
   }
 
-  /*
-    X-01 use 1 of 3: the offending meter's fill and its outline. The outline
-    sits outside the track rather than inside it, so a completely full bar is
-    still visibly a full bar rather than a solid block.
-  */
+  /* X-01 use 1 of 3: the offending meter's fill and its outline, outside the track so a full bar is still visibly a bar. */
   .track.over {
     outline: 2px solid var(--color-error-ink);
     outline-offset: 2px;
@@ -345,23 +200,12 @@
     transition: inline-size 120ms ease-out;
   }
 
-  /*
-    The fill's 120 ms is for a MEASUREMENT LANDING. While a forecast is showing
-    the same declaration is tracking a pointer instead, and an eased fill would
-    arrive after the pointer had moved on - the same reason the ghost itself is
-    at 0 ms. So the transition is dropped for exactly as long as the ghost is
-    on screen and comes straight back when it is withdrawn.
-  */
+  /* The fill's 120 ms is for a measurement landing; while a forecast shows it tracks a pointer, so the transition is dropped for exactly that long. */
   .fill.forecasting {
     transition: none;
   }
 
-  /*
-    Full strength accent while in budget, never --color-ink: the accent-to-over
-    luminance ratio is 3.09:1 and clears WCAG's 3:1 for a non-text graphic, so
-    the two bar states are told apart without hue. At --color-ink that ratio
-    collapses to 1.56:1 (05-UI-SPEC X-02, X-03).
-  */
+  /* Full accent in budget, never --color-ink: accent-to-over is 3.09:1, ink-to-over 1.56:1 (05-UI-SPEC X-02, X-03). */
   .fill.over {
     background: var(--color-error-ink);
   }
