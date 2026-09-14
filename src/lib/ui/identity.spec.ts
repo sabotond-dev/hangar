@@ -1,54 +1,13 @@
 /**
- * IDENT-01, asserted as structure rather than promised in a comment.
- *
- * REWRITTEN BY PLAN 13-03 (2026-09-11), NOT AMENDED. This file shipped in
- * Phase 4 asserting eight tokens and two hexes, was widened to nine and three
- * in Phase 5 (X-27) and again in Phase 10 (G-01), and its central sentence was
- * "the only third hue is the over-budget alarm". That sentence is gone. The
- * Bible (bible/HANGAR-ZONA-GUI-design-specification.md §12, and all five
- * screens of bible/HANGAR for ZONA.pdf) renders every sentence in a
- * near-white, every secondary line in a warm grey, over four warm graphite
- * surfaces, and reserves the action colour for the primary action and the
- * current selection. The count moved from nine to eleven, and the IDEA moved
- * from "one hue at three alphas over black" to "graphite surfaces, near-white
- * text, one action colour". So the central sentence is now: THESE ELEVEN
- * VALUES AND NO TWELFTH.
- *
- * The house style is unchanged: read src/app.css, strip comments before
- * matching so a comment can never pass or fail a check, and prove a walk was
- * not empty before asserting anything about what it found.
- *
- * WHAT IS COMPUTED HERE AND WHY IT IS NOT PASTED. §12 publishes a contrast
- * table; this file recomputes every pair from the values in src/app.css
- * (WCAG 2.x relative luminance, sRGB) and asserts each to two decimals, so a
- * token edited by a tenth of a hex shows up as a ratio that moved. The table
- * was computed against #DCFF71, which is exactly the value D-16 fixed, so the
- * action row is the one the specification published. Two rules fall out of
- * the arithmetic and are gated rather than narrated:
- *
- *   1. --color-divider FAILS 3:1 on every surface (1.71 / 1.56 / 1.39). That
- *      is acceptable only while it is decorative, which is what WCAG 1.4.11
- *      exempts and what §12 calls it. So anything that bounds a control uses
- *      --color-boundary, and test 5 scans the sources for a divider on a
- *      control's border. A test that asserts a known failure (test 4) is how a
- *      decorative-only rule stays decorative.
- *   2. Raised-on-panel is 1.12:1 and panel-on-workspace is 1.09:1, so a
- *      selection distinguished by its fill alone is invisible. The PDF draws
- *      every selected rail row with THREE signals - a 3px action-colour left
- *      rule, the raised fill and an action-coloured label - and test 6 holds
- *      all three together so a later plan cannot drop the rule as decoration.
- *
- * THE TYPE SCALE is the PDF's measured 36 / 30 / 17 (page title, panel title,
- * group title), with §12's written 28-32 / 20 / 14 overridden by measurement
- * per D-17 - an override, not a reconciliation. Test 7 asserts the three
- * sizes and that 11px appears only as tracked uppercase.
- *
- * THREE TESTS ARE CARRIED FROM THE NINE-TOKEN FILE nearly or exactly
- * unchanged: the font stacks (8), every display @font-face named by
- * --font-display (9), and the favicon (11). The favicon is deliberately NOT
- * the wordmark: the site now has two marks with two jobs - the pad outline at
- * 1:1 for the icon, the wordmark at 8:1 for the header - which is what the PDF
- * shows. The focus ring (10) is carried with its token renamed.
+ * IDENT-01 as structure: src/app.css declares the Bible's ELEVEN --color-*
+ * values and no twelfth (section 12; --color-action is #DCFF71, D-16), read
+ * with comments stripped. Every contrast pair is RECOMPUTED from the file
+ * (WCAG 2.x relative luminance) and asserted to two decimals; two rules fall
+ * out of the arithmetic and are gated: the divider fails 3:1 and bounds no
+ * control (tests 4, 5), and a selected row carries three signals together
+ * (test 6). The type scale's 36 / 30 / 17 and 11px only as tracked uppercase
+ * (test 7); the font stacks, the display @font-face, the focus ring, the favicon.
+ * Decided at 13-03 (13-CONTEXT D-16, D-17); see .planning/phases/13-gui-overhaul/13-03-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

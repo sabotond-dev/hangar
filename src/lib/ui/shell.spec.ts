@@ -1,42 +1,13 @@
 /**
- * THE SHELL, SEVEN TESTS (six from plan 13-05; 13-CONTEXT.md D-01, D-03,
- * D-05, D-14 Q9, D-17; Bible sections 4, 7, 12, 13, 14, 15 - and a seventh
- * from plan 13.1-05, 13.1-CONTEXT D-04: the header's Clear beside the
- * connection control).
- *
- * One frame with six regions - a 76px header, a 59px context bar, a rail, a
- * centre, an inspector and a footer - mounted once in src/routes/+layout.svelte
- * and filled by the route through src/lib/ui/shell/shell.svelte.ts. Every
- * number the frame draws lives in src/lib/ui/shell/layout.ts, and EVERY
- * PROPORTION THIS FILE ASSERTS IS IMPORTED FROM THERE, never retyped: the
- * responsive table and the components cannot disagree because there is one
- * table.
- *
- * RENDERED, NOT ONLY SCANNED. The house style for src/lib/ui/ specs is a
- * comment-stripped source scan, and the CSS halves below keep it. But the
- * shell's rules are about what a route GETS - three zones, one of them never
- * empty; a current nav item; the announcer first in the document - and those
- * are properties of the rendered tree. svelte/server's render() runs in the
- * vitest server project (a probe on 2026-09-11 proved it), so the structural
- * halves render the real components with real props and read the markup,
- * which is what lets test 3 drive both shapes of the context bar and test 4
- * both shapes of the footer's pair.
- *
- * WHAT THE FRACTIONS TEST DOES AND DOES NOT GUARANTEE (test 5), said plainly
- * because the plan asked for it: the frame's resolved custom properties are
- * read off the rendered layout and compared to layout.ts, and every shell
- * component's style block is scanned for the layout's own numbers written
- * as px literals. A component that hard-codes `224px` in its <style> is
- * therefore caught. A component that hard-codes the same number some other
- * way - a bare `224` in a style: directive, say - and happens to match is
- * NOT caught by the resolved-value comparison, because a matching literal
- * resolves to the matching value. The literal scan narrows that hole to
- * non-px spellings; it does not close it.
- *
- * ORIENTATION is the one section 13 rule this file cannot reach: a unit
- * test has no viewport to rotate. It is recorded as untested in
- * 13-05-SUMMARY.md, and the e2e suite's viewport work is where it would go
- * if it is ever gated. No third layer is invented for it here.
+ * The shell, seven tests: one frame with six regions - header, context bar,
+ * rail, centre, inspector, footer - mounted once in +layout.svelte and filled
+ * through shell.svelte.ts. EVERY PROPORTION ASSERTED HERE IS IMPORTED FROM
+ * layout.ts, never retyped. Rendered as well as scanned: svelte/server's
+ * render() drives both shapes of the context bar (test 3) and of the footer's
+ * pair (test 4). Test 5 reads the frame's resolved custom properties against
+ * layout.ts and scans every shell <style> for px literals; a matching literal
+ * spelled some other way is not caught. Orientation is untested here (13-05-SUMMARY).
+ * Decided at 13-05 / 13.1-05 (13-CONTEXT D-01, D-03, D-05); see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

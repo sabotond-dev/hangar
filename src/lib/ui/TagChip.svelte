@@ -1,53 +1,14 @@
 <!--
-  One toolbar chip. A real checkbox that looks like a chip, in four states.
-
-  IT IS AN <input type="checkbox"> AND NEVER role="checkbox" ON A DIV. The
-  platform's own checkbox brings Space, the checked state, the disabled state,
-  the label association and every assistive technology's idea of a toggle for
-  free; a div wearing the role brings the announcement and none of the
-  behaviour, and every one of those pieces would then have to be hand-written
-  and hand-tested. Removing an active chip is pressing it again, which is what a
-  checkbox already is - so there is no x, no glyph and no second control per
-  chip (05.1-UI-SPEC W-14). This paragraph is the only place the role's name
-  appears in this file, which is why a structural scan over it strips comments
-  first.
-
-  A CHIP THAT WOULD RETURN NOTHING IS A REAL `disabled` ATTRIBUTE, never
-  aria-disabled alone. The difference is not cosmetic: aria-disabled says
-  "unavailable" to a screen reader while leaving the control clickable to
-  everybody, so a visitor who presses it empties the grid and reads the
-  announcement as a bug. The real attribute is the one the toolbar wants,
-  because the answer to "why can I not press this" is the active chips two
-  centimetres away and the count line beneath them - which is also why there is
-  no adjacent reason line here (05.1-UI-SPEC, The tag chips).
-
-  NO NUMBER IS PRINTED ON A CHIP. Not the count of configurations carrying the
-  tag, not a rank, and nothing else a visitor could read as popularity - CAT-02
-  forbids the metric and the disabled state above is what makes the number
-  unnecessary (W-04). The words this file is forbidden to render appear in this
-  paragraph and nowhere in its markup.
-
-  THE LABEL AND THE TERM ARE TWO PROPS SINCE PLAN 13-08. `tag` is the machine
-  term - it keys the test id and the toggle, and it is never re-cased or
-  re-worded here - and `label` is what the visitor reads: the FOR facet's
-  display label from src/lib/browse/labels.ts (provisional until 13-18), which
-  D-05 requires in place of an upper-cased identifier. Left out, the label is
-  the term, which is what the front door's FEELS-free row and every test
-  fixture get.
-
-  THE SHAPE IS THE PDF's, PAGE 2: a rectangle (D-01, never a corner) with a
-  1px boundary at rest; the active chip carries the ACTION COLOUR on its
-  outline AND on its label, plus the checkbox's own checked state - colour is
-  never the only channel, and selection is never a fill (13-03's second rule:
-  raised-on-panel is 1.12:1, so a chip told apart by background alone would
-  be invisible). Phase 5's lime tint is gone with the pill it sat in. A
-  disabled chip keeps the boundary border - the divider token fails 3:1 and
-  may bound no control (identity.spec.ts test 5) - and says so with the real
-  attribute, the quiet ink and the cursor.
-
-  The 44px floor is on both axes, per chip, because the touch contract is
-  about the box under a finger and a chip reading `play` is four characters
-  wide; browse-ui.spec.ts reads it off this rule by selector.
+  One toolbar chip: a real <input type="checkbox"> in a label, never a role on a
+  div - the platform brings Space, checked, disabled and the label association,
+  and removing an active chip is pressing it again (W-14). Props: tag (the
+  machine term, never re-cased; keys the test id and the toggle), label (what the
+  visitor reads, FOR_LABELS; defaults to the term), active, disabled (a chip that
+  would return nothing is a real disabled attribute, never aria-disabled alone),
+  ontoggle. No number on a chip (CAT-02, W-04). The PDF's rectangle (D-01): a 1px
+  boundary at rest, the action colour on the outline AND the label when active,
+  never a fill; the disabled chip keeps the boundary token. 44px on both axes.
+  Decided at 05.1-04 / 13-08 (W-14, D-05); see .planning/phases/13-gui-overhaul/13-08-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -98,11 +59,7 @@
       border-color 140ms ease-out;
   }
 
-  /*
-    The checkbox is visually hidden, so the focus ring is drawn on the label -
-    the same relocation Knob.svelte makes for its radios and its range. No
-    control on this site is focusable without a visible ring.
-  */
+  /* The checkbox is visually hidden, so the focus ring is drawn on the label (Knob.svelte's relocation). */
   .chip:has(:focus-visible) {
     outline: 2px solid var(--color-action);
     outline-offset: 4px;

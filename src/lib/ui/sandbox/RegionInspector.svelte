@@ -1,48 +1,15 @@
 <!--
-  SELECTED ELEMENT: PDF page 3's right column (plan 13-16; Bible section 8's
-  inspector and geometry rules; BUILD-02, BUILD-07), drawn in
-  Inspector.svelte's panel.
-
-  The eyebrow `SELECTED ELEMENT / FADER`, the name as the headline, the
-  `2 × 6 units` chip beside it; `Element name`; section 8's Identity row as
-  a `Type` select and, on a fader, `Orientation`; `Position & size` as the
-  2 x 2 numeric grid - `Column`, `Row`, `Width`, `Height` - with the PDF's
-  helper *"Snap to light guides. Touch remains continuous."*; `Behavior` on
-  a button (latch); `MIDI output` with `CC number` and `Channel` (and the
-  XY pad's second controller); `Appearance` reusing 13-09's Swatch.svelte
-  UNCHANGED, the region's colour handed over as the one knob it renders;
-  then the budget meters; and the pinned pair `Duplicate` / `Delete element`.
-
-  EVERY NUMERIC EDIT GOES THROUGH THE EDITOR AND THE PREVIOUS VALID VALUE
-  SURVIVES A REJECTION. The field is uncontrolled in one direction only: its
-  value is the state's `texts[field]` - the model's number, or, while a
-  keystroke has been refused, the text that was typed - and every keystroke reports
-  through `onnumber(field, text)`. The editor validates through
-  geometry.ts (`applyEdit`), keeps the surface it had on a refusal, and
-  records the text and the message; the field then shows the typed text
-  with `aria-invalid` and the message under it, and keeps showing it until a
-  keystroke validates (section 8: "keep an inline message until corrected").
-  No half-typed width ever reaches the surface, the history or the draft.
-  Blur and Enter call `oncommit`, which is the history's coalescing
-  boundary (history.ts section 2): the keystrokes were one entry.
-
-  THE 2 x 2 GRID REFLOWS BELOW NUMERIC_GRID_REFLOW (D-21): two columns
-  when the inspector body is 454 or wider, one column below, measured with
-  a ResizeObserver against layout.ts's own number - the same rule and the
-  same constant TuningRegion.svelte reads, never a container-query literal.
-
-  IN PLAY (section 8) every field is read-only with PLAY_LOCKS_FIELDS beside
-  it through aria-describedby, and the pinned pair is disabled with the same
-  reason; the selection stays, the fields keep their values, and the way
-  back is the mode switch in the centre.
-
-  DUPLICATE never deletes: with no free window the editor refuses and this
-  panel shows DUPLICATE_NO_SPACE, which offers resize (section 8's own
-  rule). The overlap message is section 16's line verbatim through
-  geometry.ts; the adjacency WARNING names both regions and never blocks.
-
-  "Follow hardware selection" is not here: ZONA has one touch element
-  (editor.ts section 3).
+  SELECTED ELEMENT: PDF page 3's right column in Inspector.svelte's panel - the
+  eyebrow and the name, the units chip, Element name, Type (and Orientation on a
+  fader), the 2 x 2 Position & size grid with the PDF's helper, Behavior, MIDI
+  output, Appearance through Swatch.svelte unchanged, the meters, then the pinned
+  Duplicate / Delete element. Props: view, the nine callbacks, notice, meter.
+  Every numeric edit goes through the editor (geometry.ts applyEdit) and the
+  previous valid value survives a refusal: the field shows the refused text with
+  aria-invalid until a keystroke validates; blur and Enter are oncommit, the
+  history's coalescing boundary. The grid reflows at NUMERIC_GRID_REFLOW (D-21),
+  measured against layout.ts's number. In Play every field is read-only with PLAY_LOCKS_FIELDS.
+  Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -496,11 +463,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    The PDF's field: 38 tall beneath the 44px floor, a boundary hairline,
-    square (D-01; the user-agent radius zeroed for layer C), the panel's
-    ink. 16px so iOS does not zoom a focused field.
-  */
+  /* The PDF's field: 38 tall beneath the 44px floor, a boundary hairline, square (the user-agent radius zeroed for layer C); 16px so iOS does not zoom. */
   .input {
     box-sizing: border-box;
     inline-size: 100%;

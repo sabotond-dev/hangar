@@ -1,70 +1,15 @@
 <!--
-  PDF page 1: the intro (plan 13-07; 13-CONTEXT.md D-01, D-05, D-09, D-14 Q2;
-  13-RESEARCH.md section 1 "Page 1 - the intro" and section 8).
-
-  FLAT, SOLID, TYPOGRAPHIC, WITH ONE LIVE SURFACE. Two columns and a strip.
-  Left: an eyebrow, a two-line headline with its second line in the action
-  colour, two secondary lines, two stacked start cards, the import line and
-  one bulleted line. Right: the hero panel with the live 9 x 9 surface. Below
-  both: a full-width rule and the three numbered steps. The Bible's section 3
-  would have permitted texture on an introduction screen and the PDF declines
-  it; so does this file. There is no splash, no dissolve, no glyph field and
-  no ceremony: the page is on screen at the first paint and the machine is
-  already running beside the words.
-
-  EVERY VISIBLE STRING IS THE PDF's, VERBATIM, real apostrophes included, and
-  none is ledgered. The two strings HANGAR wrote for the returning visitor's
-  card and the hero's description live in card.ts and are ledgered there.
-  Uppercase appears on exactly the short labels the PDF sets in uppercase -
-  the eyebrow, the two card eyebrows, the panel label, the chip and the
-  hero's caption - and nowhere else (D-05; intro.spec.ts test 1 asserts it).
-
-  THE RETURNING VISITOR CHANGES ONE CARD. `card` is the caller's reading of
-  the local store (card.ts); for `resume` the first card becomes `Resume
-  draft`, named for the draft and dated in words, and points at the draft's
-  own address. Nothing here reads storage and nothing here navigates - the
-  route reads, once, in onMount, and this component only renders what it is
-  handed.
-
-  THE ADDRESSES. `Explore Playground` and `Build in Sandbox` go to the primary
-  nav's own destinations (shell.svelte.ts SECTIONS, the one declaration), and
-  `Import config` to My configs, where the PDF's page 4 keeps import. None of
-  the three routes exists yet - 13-08, 13-10 and 13-12 land them - so
-  vite.config.ts names the three paths for the prerender crawler until they
-  do. A Playground draft resolves through Kit's own `resolve("/playground/[id]")`, the
-  address helper CatalogCard.svelte uses today, so 13-08's move to
-  /playground/<id> (D-20) carries this line with every other call site.
-
-  IT FITS THE SCREEN (plan 13.1-01; 13.1-CONTEXT.md D-01; bench line 1,
-  2026-09-12, verbatim: "I dont want the index page to be scrollable, always
-  fit on the screen"). In the wide and compact bands the layout hands this
-  component a centre that is exactly what the viewport leaves after the
-  header and the footer (+layout.svelte, a 100dvh column; the centre is a
-  size container). The root is a grid of two rows - the columns, then the
-  strip at the foot - and every vertical number below is the PDF's times a
-  scale read off that height: --intro-unit is one PDF pixel at the current
-  height (min(1px, 100cqh / INTRO_FIT_H)) and --intro-squeeze is a steeper
-  ramp for the spacings, zero at INTRO_SQUEEZE_FROM of the PDF's height. The
-  type scales with the unit and is floored here - the headline never below
-  34px, the sub-lines 15, the card titles 18 - and app.css's .type-display
-  role stays at 60 (D-17 is the PDF's scale; this file clamps its own
-  headline locally). The hero's square is the smaller of its column's width
-  and the height its row leaves (HeroSurface.svelte). Nothing 13-07 pinned
-  is hidden at any height; what gives when the screen is short is the
-  spacing first, then the type down to its floors, then the surface. Below
-  1024 none of this applies: the unit and the ramp are 1px, the columns
-  stack, and the phone may scroll (D-01 is about the desktop; D.10 open).
-  The constants and their provenance are in shell/layout.ts, read here as
-  UNITLESS custom properties because the CSS multiplies them by a length.
-  Nothing in this file uses the cq units inside the hero's own stage, whose
-  nearest container is itself, not the centre.
-
-  Measured on the PDF at a 1500px render width (MEDIUM confidence, raster):
-  page inset 72; left column 72-710, right 806-1425 (a 96 gutter); eyebrow at
-  y 170 under a 76 header, panel from y 133; cards 108 tall; strip y 845-930
-  with items at x 76 / 534 / 994. The headline's measured 62-66px is the
-  display role 13-03 declared (.type-display, 60px at 0.95), and the display
-  face is the one D-04 keeps behind one token.
+  PDF page 1, the intro: two columns and a strip - an eyebrow, the two-line
+  headline (second line in the action colour), two sub-lines, two start cards,
+  the import line and one bulleted line at the left; the hero panel with the live
+  9 x 9 surface at the right; a rule and three numbered steps below. Flat, solid,
+  no splash, no dissolve. Props: card (card.ts's reading of the store: a returning
+  visitor's first card becomes Resume draft), hero. Every visible string is the
+  PDF's, verbatim; uppercase only where the PDF sets it (intro.spec.ts). It fits
+  the screen in the wide and compact bands: every vertical number is the PDF's
+  times --intro-unit (min(1px, 100cqh / INTRO_FIT_H)), spacings on the steeper
+  --intro-squeeze ramp, the type floored (headline 34, sub-lines 15, titles 18); layout.ts's constants.
+  Decided at 13-07 / 13.1-01 (13-CONTEXT D-01, D-05; 13.1-CONTEXT D-01); see .planning/phases/13.1-bench-corrections-four/13.1-01-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -203,13 +148,10 @@
 
 <style>
   /*
-    THE FIT (13.1-01, D-01). --intro-unit: one PDF pixel at the centre's
-    height, capped at 1px so nothing ever grows past the PDF's numbers.
-    --intro-squeeze: the spacing ramp, 1px at the PDF's height and 0 at
-    INTRO_SQUEEZE_FROM of it, so gaps give before words. Both are token
-    streams resolved where they are used, and the whole intro sits under one
-    size container (the centre), so 100cqh is the centre everywhere below.
-    Two rows: the columns take what the strip leaves; the strip is at the foot.
+    The fit (13.1-01, D-01): --intro-unit is one PDF pixel at the centre's height,
+    capped at 1px; --intro-squeeze is the spacing ramp, 1px at the PDF's height and 0
+    at INTRO_SQUEEZE_FROM of it. The centre is the one size container, so 100cqh is
+    the centre below. Two rows: the columns take what the strip leaves.
   */
   .intro {
     --intro-unit: min(1px, calc(100cqh / var(--intro-fit-h)));
@@ -232,13 +174,7 @@
     color: var(--color-ink);
   }
 
-  /*
-    Two columns at the PDF's proportions: 638 and 619 across a 96 gutter,
-    the words never narrower than INTRO_WORDS_MIN_W (the cards' bodies on one
-    line at the compact band's foot; layout.ts says why). One explicit row,
-    the height the intro's first row gives, so the hero is bounded by the row
-    and never by the words beside it.
-  */
+  /* Two columns at the PDF's proportions (638 and 619 across a 96 gutter), the words never narrower than INTRO_WORDS_MIN_W; one explicit row, so the hero is bounded by the row. */
   .columns {
     display: grid;
     grid-template-columns:
@@ -262,11 +198,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    The headline's size is clamped HERE, locally: app.css's .type-display
-    stays at 60px (D-17, the PDF's scale). 60 at the PDF's height, never
-    below 34.
-  */
+  /* The headline clamped HERE: app.css's .type-display stays at 60 (D-17); 60 at the PDF's height, never below 34. */
   .headline {
     display: flex;
     flex-direction: column;
@@ -291,11 +223,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    The cards' own vertical numbers travel as custom properties StartCard
-    reads (its padding, gap, title size and minimum height): the PDF's 108
-    tall at the PDF's height, the title never below 18.
-  */
+  /* The cards' vertical numbers travel as custom properties StartCard reads: the PDF's 108 tall, the title never below 18. */
   .cards {
     --start-card-min: calc(108 * var(--intro-unit));
     --start-card-pad: calc(16 * var(--intro-squeeze));
@@ -372,11 +300,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    Below the compact band the columns stack and the strip follows; the page
-    flows and may scroll, at the PDF's numbers (the unit and the ramp are 1px
-    here; the centre is no container, so 100cqh would read the viewport).
-  */
+  /* Below the compact band the columns stack and the page may scroll at the PDF's numbers (the unit and the ramp are 1px; the centre is no container). */
   @media (max-width: 1023.98px) {
     .intro {
       --intro-unit: 1px;

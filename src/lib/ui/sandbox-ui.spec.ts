@@ -1,21 +1,12 @@
-// The Sandbox's interface, eight tests (plan 13-16, tests 7 and 8 by 13.1-03;
-// Bible sections 2, 8, 14, 16; BUILD-01, BUILD-02, BUILD-06, BUILD-07,
-// BUILD-08, PREV-04, KEEP-01).
-//
-// TWO HALVES IN EVERY TEST, AS tune-ui.spec.ts DOES IT. The behaviour half
-// drives src/lib/sandbox/editor.ts - the model every component renders and
-// calls - in node, with no browser and NO POINTER EVENT: the creation tests
-// dispatch no pointer-move because there is nothing to dispatch it to, and
-// the model's own surface is the thing asserted. The shape half renders the
-// components with svelte/server against the model's state and reads the
-// markup (handles present or absent, a row raised, a field read-only with
-// its reason), and scans the source for the rules that are properties of
-// the text (the pointer-move handler never places; the list's rows are
-// buttons with arrow keys). The e2e suite (e2e/sandbox.e2e.ts) proves the
-// same paths with real clicks on the served build.
-//
-// Every scan strips comments first, for tune-ui.spec.ts's reason: the
-// components explain in prose the very things they are forbidden to do.
+// The Sandbox's interface, eight tests (7 and 8 by 13.1-03), two halves each:
+// the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
+// EVENT - the model's own surface is the thing asserted; the shape half renders
+// the components with svelte/server against the model's state and scans the
+// source for the rules that are properties of the text (the pointer-move
+// handler never places; the list's rows are buttons with arrow keys). Every
+// scan strips comments first, except the pins that read a header on purpose
+// (history.ts's headings, TuningRegion.svelte's pointer back at history.ts).
+// Decided at 13-16 / 13.1-03 (Bible sections 2, 8, 14, 16); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

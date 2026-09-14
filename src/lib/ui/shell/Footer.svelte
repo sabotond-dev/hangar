@@ -1,53 +1,14 @@
 <!--
-  THE FOOTER (plan 13-05; PDF pages 2-5, about 50 tall; Bible section 4).
-
-  HANGAR / by intech studio at the left; Help & shortcuts · Device actions at
-  the right; ~13px secondary. Both strings are the PDF's and are not
-  ledgered.
-
-  THREE THINGS LIVE HERE, AND NONE OF THEM IS DECORATION.
-
-  1. THE GPLv3 BLOCK, VERBATIM. GPLv3 section 6(d) - "clear directions next
-     to the object code". It lived in src/routes/+layout.svelte's own footer
-     from plan 04 until this plan, and the five lines below are byte for
-     byte the lines git holds at 07d910f (src/routes/+layout.svelte:60-64):
-     the same hrefs, the same rel="external" (none of these targets is a
-     SvelteKit route - LICENSE, THIRD-PARTY.md and the archive are plain
-     files scripts/postbuild.mjs writes into build/, so the client router
-     must not handle them, which is also what satisfies
-     svelte/no-navigation-without-resolve), the same download attribute,
-     the same commit-sha test id the smoke test reads to derive the archive
-     URL, and __BUILD_DIRTY__ still a separate constant, because
-     concatenating "-dirty" onto the SHA would point the link at an archive
-     that never exists. shell.spec.ts test 4 holds the five lines against
-     the git copy. The block is styled as a second, quieter row; it is on
-     every page that ships the bundle, not on an About page.
-
-  2. HELP & SHORTCUTS IS A DISCLOSURE, AND THE MOTION CONTROL IS UNDER IT.
-     13-04 re-homed the SCREEN switch's one surviving purpose (D-09) as
-     MotionControl.svelte and parked it in the layout's footer with a
-     comment naming this plan as the one that moves it under Help &
-     shortcuts. Moved as a unit, unchanged: the same component, the same
-     strings (ledgered by 13-04), the same additive rule. The disclosure is
-     a button carrying aria-expanded and aria-controls, closed by default,
-     which keeps the footer the PDF's one quiet line until someone asks.
-     The panel is a plain block, never a dialog. Keyboard shortcuts join it
-     when a plan defines some; nothing is invented here to fill it.
-
-  3. DEVICE ACTIONS IS A SLOT, FILLED BY THE LAYOUT SINCE 13-11 with
-     DeviceActions.svelte: the same disclosure shape as Help & shortcuts,
-     and beneath it the device disclosure Phase 6 and 7 wrote (the
-     identity, the snapshot line, DISCONNECT ZONA, FORGET THIS ZONA, the
-     connection recovery), mounted once for the whole site. The slot stays
-     a snippet so the footer knows nothing about the session, and shell
-     .spec.ts test 4 still drives both shapes: absent, the pair reads Help &
-     shortcuts alone with no dead label (D-05); filled, the middle dot and
-     the second label appear. The snippet renders its label AND its panel
-     row; `.device` is display: contents and `.actions` wraps so the panel
-     takes its own line beneath the two labels, hanging from the footer's
-     right where the PDF puts the pair.
-
-  Every number is layout.ts's, imported. No radius anywhere.
+  The footer, PDF pages 2-5 (Bible section 4): HANGAR / by intech studio at the
+  left, Help & shortcuts · Device actions at the right, ~13px secondary, and a
+  quieter second row carrying the GPLv3 block verbatim - the five lines git holds
+  at 07d910f (src/routes/+layout.svelte:60-64), rel="external" because none of
+  the targets is a route, __BUILD_DIRTY__ a separate constant so a dirty SHA never
+  points at an archive that does not exist (shell.spec.ts holds the five lines).
+  Help & shortcuts is a disclosure (aria-expanded, aria-controls, closed) with the
+  motion control under it. Prop: deviceActions, the layout's snippet (absent: no
+  dead label); it renders its label and its panel row, which wraps beneath the pair.
+  Decided at 13-05 / 13-11 (GPLv3 section 6(d), D-09); see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -94,8 +55,7 @@
     {/if}
   </div>
 
-  <!-- The Help & shortcuts panel: the motion control, moved here from the
-       layout's footer by this plan (13-04 parked it there and named 13-05). -->
+  <!-- The Help & shortcuts panel: the motion control (13-04 parked it in the layout's footer; 13-05 moved it). -->
   <div
     class="help"
     id={helpId}
@@ -132,8 +92,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /* The brand sits on the footer's first line whatever a panel beneath the
-     labels does to the line's height. */
+  /* The brand stays on the footer's first line whatever a panel beneath does to the height. */
   .brand {
     display: inline-flex;
     align-items: center;
@@ -152,8 +111,7 @@
     margin-inline-start: auto;
   }
 
-  /* A link-shaped button: no border, no fill, the footer's own colour, and
-     the 44px box on both axes at every pointer. */
+  /* A link-shaped button: no fill, the footer's colour, a 44px box on both axes. */
   .link {
     display: inline-flex;
     align-items: center;
@@ -172,8 +130,7 @@
     color: var(--color-ink);
   }
 
-  /* The slot's label sits in the row; its panel, a flex-basis: 100% child
-     of the snippet, wraps onto the line beneath. */
+  /* The slot's label sits in the row; its panel (flex-basis: 100%) wraps onto the line beneath. */
   .device {
     display: contents;
   }
@@ -187,8 +144,7 @@
     display: none;
   }
 
-  /* The licence row: after the break, the five verbatim elements flow as
-     one quieter line. */
+  /* The licence row: after the break, the five verbatim elements flow as one quieter line. */
   .break {
     flex-basis: 100%;
     block-size: 0;

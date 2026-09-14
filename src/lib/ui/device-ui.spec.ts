@@ -1,95 +1,13 @@
-// The structural gate over the seven components Phase 6 adds to src/lib/ui/.
-//
-// These rules keep the device chrome free of the compiler, free of a fourth
-// colour, reachable by thumb, quiet in exactly one live region, monospaced only
-// on its numerals, and honest about what each control announces. Every one is a
-// property of the SOURCE rather than of a rendered tree, so all seven run in a
-// second and none needs a browser. The e2e and the served-build measurements
-// prove the behaviour; this proves the shape, on every commit rather than on
-// every release. Six are over the seven device components; the seventh (plan
-// 06-12) walks every component and route on the site, because the rule it
-// holds - three live regions, and the chosen panel is not one - is a
-// site-wide count rather than a property of one file.
-//
-// PHASE 7 (plan 07-09) ADDS TWO over the three install leaves - PutBack,
-// KeepConfirm and InstallState: the eighth holds them light (no specifier
-// outside the chunk guard's permitted paths), reachable (the 44px floor on
-// every control), steady (the PUT BACK cell's three sizing twins and its 72px
-// floor) and honest about what the confirmation is (a group, never a dialog);
-// the ninth holds that every install sentence on their screens comes from the
-// copy module rather than being retyped in markup. Plan 07-10 adds the tenth,
-// over the four components it mounts the leaves into: the honesty slot holds
-// five twins and no literal promising the site never writes, KEEP ON DEVICE is
-// the borderless tier with all six reasons in its 48px cell, the install row
-// is one column with PUT BACK first, and the coverflow's Escape handler asks
-// the install store two questions before it un-chooses. Plan 07-11 adds the
-// eleventh, over the header's three: the disclosure locks both of its controls
-// under the session's writeLock on every leg and says where the copy of the
-// module's own configuration is kept, the slot never reads a busy word or
-// shows an install state, and the announcer is untouched - one live region,
-// nothing from the install store, and no logic gained.
-//
-// PLAN 13.1-05 RE-HOMES ONE AND DELETES ONE. The user asked for the reset in
-// the header ("CLEAR button ... next to ZONA connected", 13.1-CONTEXT D-04),
-// so Clear.svelte is the header's bordered box now, mounted by the layout
-// beside the connection control on every page, and the column's test "the
-// CLEAR cell is the measured arithmetic..." is REWRITTEN as a rendered test
-// over the real install and session singletons - the caption reads the
-// reason, the description reads clearLine, one click and no confirmation
-// (A-45 kept), nothing animates - while "CLEAR and KEEP ON DEVICE are
-// shapeless alike..." is DELETED BY TITLE: its subject was the column's pair
-// of Quiet controls, and the pair no longer exists. Its A-45 clause (no
-// ClearConfirm, no trace of the retired confirmation) lives in the rewritten
-// test. The count is one fewer here and one more in shell.spec.ts.
-//
-// PLAN 13.1-06 DELETES TWO, ADDS ONE AND RE-AIMS THREE. The user removed the
-// install column under the workspace's surface and Put back with it
-// (13.1-CONTEXT D-06, D-07: "the block i attached a screenshot of is totally
-// unnecessary remove that. we dont even need the Put back function"), and
-// asked for the bar's right zone to read Target, Apply to ZONA, Store on
-// ZONA - so TryOnDevice.svelte, InstallState.svelte, KeepOnDevice.svelte and
-// PutBack.svelte are deleted by name, DestinationZone.svelte is the ONE
-// component both routes mount, and the tests whose subject was the column
-// went with it: "the three install leaves: no compiler specifier, the 44px
-// floor, the twin cells, and a group that is not a dialog" and "the reserved
-// cells are the measured arithmetic, the honesty slot holds five twins and no
-// never-writes literal, SAFE_NOTE is not a twin, KEEP ON DEVICE is borderless,
-// and the install row is a column" are DELETED BY TITLE. What they held that
-// still has a subject moved into the new zone test: the zone's specifiers,
-// the 44px floor per control, KeepConfirm as a group and never a dialog, no
-// aria-label, no interval. "every install sentence on screen comes from the
-// copy modules" now walks the two install leaves that remain (the zone and
-// the confirmation); the anti-collapse test reads the zone's phase-to-builder
-// mapping where it read InstallState's branches - the four uncertain phases
-// keep four bodies, and the six success phases have the bar's clause and no
-// body (their bodies retired with the file); "no destination review" reads
-// the one zone where it read two. INSTALL_LEAVES is re-pinned to the two.
-//
-// PLAN 13-11 ADDS THREE, and two of them RENDER rather than scan: the device
-// band was re-skinned and re-homed (the header's control into the shell, the
-// disclosure into the footer as Device actions, the install phase into the
-// context bar as one clause) and what has to survive that is behaviour -
-// nine slot states from seventeen phases, three capability answers, a button
-// exactly when a click acts, one mount of the disclosure with two openers,
-// fifteen phases each accounted for, the four the spec has no row for present
-// by name, and the four uncertain phases kept as four bodies and four
-// clauses. svelte/server render() runs in this project (shell.spec.ts, 13-05),
-// so the fourteenth walks the real session store through every phase and the
-// fifteenth renders the bar with two props, one, and none. All thirteen above
-// were run green BEFORE the three were added, and none was edited.
-//
-// EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
-// These components name in prose the very tokens, specifiers and attributes they
-// are forbidden to use - DeviceSlot's header says "no width read, no matchMedia",
-// DeviceDetails' says "no role=dialog", DeviceMark's names the accent - so a scan
-// over raw source would go red on correct code, and the natural fix (deleting the
-// paragraph) would delete the documentation that makes the rule survivable. So
-// the comments stay and the scanner learns to read code.
-//
-// The stripper, the specifier matcher, the rule splitter and the non-vacuity
-// habit are src/lib/ui/tune-ui.spec.ts's and src/lib/config-shape.spec.ts's,
-// copied rather than reinvented, and every regular expression here is
-// backslash-free in the same house style.
+// The structural gate over the device chrome: the header's connection control
+// and its machine, the note, the details, the footer's Device actions, the
+// destination zone and the confirmation - free of the compiler, no fourth
+// colour, the 44px floor per control, one live region, every sentence the copy
+// module's, and honest about what each control announces. Most are properties of
+// the SOURCE (comment-stripped, so a header may name what its code may not);
+// three render the real components with svelte/server. Four raw prose pins read
+// the files unstripped: aria-live in TuningRegion, writeLock in DeviceDetails,
+// the summary-versus-button sentence in DeviceSlot and ConnectionControl.
+// Decided at 06-12 / 07-09 / 13-11 / 13.1-06; see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { existsSync, readFileSync, readdirSync } from "node:fs";

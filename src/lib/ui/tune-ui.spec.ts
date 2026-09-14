@@ -1,24 +1,12 @@
-// The structural gate over the nine components the tuning UI is made of.
-//
-// These are the rules that keep the tuning UI light, scroll-free, reachable by
-// thumb and correctly coloured. Every one of them is a property of the SOURCE
-// rather than of a rendered tree, so all five run in a second and none of them
-// needs a browser. The e2e suite proves the behaviour; this proves the shape,
-// and it proves it on every commit rather than on every release.
-//
-// EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
-// Four of these components explain in prose exactly which token, specifier or
-// declaration they are forbidden to use - Knob.svelte, StampNotice.svelte and
-// CopyLink.svelte each say "--color-error-ink appears nowhere in this file", and
-// TuningRegion.svelte names both the compile surface and setInterval in its
-// header. A scan over raw source would go red on correct code, and the natural
-// fix for that - deleting the paragraph - would delete the documentation that
-// makes the rule survivable. So the comments stay and the scanner learns to
-// read code. Test 5 is the deliberate exception: what it checks IS a comment.
-//
-// The stripper, the specifier matcher and the non-vacuity habit are
-// src/lib/config-shape.spec.ts's, copied rather than reinvented, and every
-// regular expression here is backslash-free in the same house style.
+// The structural gate over the components the tuning UI is made of: light
+// (the compiler only through await import()), scroll-free, reachable by thumb,
+// correctly coloured, with one live region. Properties of the SOURCE, so the
+// suite runs in a second with no browser; the e2e suite proves the behaviour.
+// Every scan strips comments first - a header may name the token, specifier or
+// declaration its code refuses - except where what is checked IS the header:
+// the wording pins on TuningRegion.svelte and MidiMonitor.svelte read the raw
+// file. The stripper and the non-vacuity habit are config-shape.spec.ts's.
+// Decided at 05-08 / 13-09 / 13-10; see .planning/phases/13-gui-overhaul/13-10-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync, readdirSync } from "node:fs";

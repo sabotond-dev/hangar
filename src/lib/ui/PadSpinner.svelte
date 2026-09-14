@@ -1,42 +1,14 @@
 <!--
-  The 9x9 motif, walking. IDENT-01 asks the same outline to be the logo, the pad
-  frame AND the state the site shows while it waits (04-UI-SPEC W-23), and this
-  is the only place in Phase 4 that waits at all.
-
-  32px (by default) of the pad recipe's first layer - one dot per unlit cell,
-  painted once by the browser - with a single cell lit at full accent walking
-  the perimeter, 90ms per step, 32 cells, 2,880ms a lap.
-
-  THE WALK IS A CSS ANIMATION AND NEVER A TIMER. A JavaScript walker would be a
-  second scheduler beside src/lib/sim/host.ts's single requestAnimationFrame
-  loop, running on the one screen where the visitor is already waiting on a
-  port; the compositor can move one 3.5px square without the main thread. The 32
-  keyframes are written out rather than generated because a Svelte component's
-  <style> block is static CSS, and steps(1) is what makes each hop discrete
-  instead of a slide.
-
-  Under prefers-reduced-motion the cell does not walk: three cells light in the
-  top-left corner and stay there, which still reads as the mark and still says
-  "something is happening" without moving anything (04-UI-SPEC, the reduced
-  motion override table).
-
-  This component never uses the word the copy contract forbids. The status line
-  beside it says what is actually being waited for.
-
-  TWO PROPS, NO BEHAVIOUR (Phase 6, 06-UI-SPEC Modified). `size` drives one
-  custom property, --spinner-size, and nothing else: the keyframes below are
-  percentage translates on an 11.111% cell, so the walk scales with no second
-  animation and no new keyframes - which is the whole reason the header's 24px
-  device mark renders THIS component rather than a copy of it. `decorative`
-  drops three attributes together: role="img", aria-label="Connecting" AND
-  data-testid="pad-spinner". The third is not an afterthought. Throughout the
-  connecting state the header's mark and the panel's spinner are on screen AT
-  THE SAME TIME, and a selector that matched two elements would make every
-  existing assertion about the panel's spinner ambiguous; a decorative
-  instance is therefore invisible to the accessibility tree and to the test
-  suite alike, and the text beside it carries the meaning. Both defaults - 32
-  and false - reproduce the Phase 4 output exactly, so TryOnDevice and
-  CatalogCard render what they rendered before these props existed.
+  The 9x9 motif, walking: IDENT-01's outline as the state the site shows while it
+  waits (W-23). 32px by default of the pad recipe's first layer with one cell lit
+  at full accent walking the perimeter, 90ms a step, 32 cells, 2,880ms a lap - a
+  CSS animation, never a timer (the host owns the one frame loop); steps(1) makes
+  each hop discrete. Under prefers-reduced-motion three corner cells light and
+  stay. Props: size (one custom property, --spinner-size; the keyframes are
+  percentage translates, so the walk scales), decorative (drops role="img", the
+  aria-label AND data-testid together, so a second instance never collides with
+  the panel's spinner in a selector). It never uses the word the copy contract forbids.
+  Decided at 04-04 / 06-10 (04-UI-SPEC W-23); see .planning/phases/06-device-session/06-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -47,11 +19,7 @@
   }: {
     /** Drives one custom property. The keyframes are percentage translates, so they scale. */
     size?: number;
-    /**
-     * True drops role="img", aria-label and data-testid, so a decorative
-     * instance never collides with the panel's spinner in a selector - the
-     * two are on screen together throughout the connecting state.
-     */
+    /** True drops role="img", aria-label and data-testid together: a decorative instance never collides with the panel's spinner. */
     decorative?: boolean;
   } = $props();
 </script>
@@ -84,11 +52,7 @@
     background-size: 11.111% 11.111%;
   }
 
-  /*
-    One cell. Its box is exactly one ninth of the field, so translate(100%, 0)
-    is one cell to the right and the keyframes below can be read as grid
-    coordinates rather than as pixels.
-  */
+  /* One cell, one ninth of the field, so translate(100%, 0) is one cell right and the keyframes read as grid coordinates. */
   .walker,
   .still {
     position: absolute;
@@ -120,11 +84,7 @@
     transform: translate(0, 100%);
   }
 
-  /*
-    32 perimeter cells at 3.125% each: nine across the top, eight down the right,
-    eight back along the bottom, seven up the left. The 100% frame returns to the
-    origin so the lap joins itself with no jump.
-  */
+  /* 32 perimeter cells at 3.125% each: nine across, eight down, eight back, seven up; the 100% frame returns to the origin. */
   @keyframes walk {
     0% {
       transform: translate(0, 0);

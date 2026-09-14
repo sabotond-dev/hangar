@@ -1,19 +1,12 @@
 <!--
-  Layer 2 of the pad: the 81 lights, and nothing else.
-
-  This component owns the element and its accessible name. It does not own the
-  pixels. There is deliberately no 2D context taken here, no backing-store size
-  set here and no paint issued here: the simulator host adopts the element in
-  its register() call, sets the 9x9 store itself so exactly one place decides
-  it, keeps one reused ImageData per canvas, and does every paint on the page's
-  single animation frame (04-UI-SPEC W-07, and the note in src/lib/sim/host.ts).
-
-  Consequently the element carries no width or height attribute. CSS sizes the
-  face and image-rendering: pixelated hands the upscale to the compositor, which
-  is what makes one draw call per pad per paint enough.
-
-  A screen reader gets "{name}, live pad simulation" - the picture is the
-  content, and the slot's description completes the accessible name around it.
+  Layer 2 of the pad: the 81 lights, and nothing else. It owns the element and its
+  accessible name ("{name}, live pad simulation"), not the pixels: no 2D context,
+  no backing-store size, no paint here - the simulator host adopts the element in
+  register() and paints on the page's one animation frame (04-UI-SPEC W-07). No
+  width or height attribute; CSS sizes the face and image-rendering: pixelated
+  hands the upscale to the compositor. Props: entry ({ id, name }, structural),
+  hero, onready (hands the element to the parent, which registers it).
+  Decided at 04-04 (04-UI-SPEC W-07); see .planning/phases/04-first-experience/04-04-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -25,21 +18,14 @@
     hero = false,
     onready,
   }: {
-    /**
-     * Declared STRUCTURALLY rather than imported - the `HostEngine` pattern
-     * from src/lib/sim/host.ts, for the same reason: wave 6's browse card
-     * renders this canvas from a `ListingEntry` and the coverflow renders it
-     * from a `FrontDoorEntry`, and one shape serves both with no import either
-     * way. The id keys the registration; the name is the accessible one.
-     */
+    /** Declared structurally (the HostEngine pattern): a ListingEntry and a FrontDoorEntry both fit with no import either way. */
     entry: { id: string; name: string };
     hero?: boolean;
     /** Hands the element to the parent, which is what registers it. */
     onready: (id: string, canvas: HTMLCanvasElement) => void;
   } = $props();
 
-  // A plain binding, never a rune: nothing that holds a canvas belongs in
-  // reactive state (04-RESEARCH, Pitfall 3).
+  // A plain binding, never a rune: nothing holding a canvas belongs in reactive state (04-RESEARCH Pitfall 3).
   let el: HTMLCanvasElement | undefined;
 
   onMount(() => {
@@ -48,18 +34,10 @@
 </script>
 
 <!--
-  Why the next line suppresses the rule rather than obeying it. Svelte counts
-  canvas as interactive because it can be scripted into a control. This one is
-  not a control - it is a picture of 81 lights, and the approved contract
-  (04-UI-SPEC, Accessibility) requires role="img" with the "live pad simulation"
-  name so a screen reader announces an image rather than an unlabelled embedded
-  object. ARIA itself places no role restriction on canvas. The pointer handling
-  that makes the hero playable lives on the slot wrapper in Coverflow.svelte,
-  never on this element.
-
-  The explanation is a separate comment on purpose: everything after the rule
-  name inside a svelte-ignore comment is parsed as further rule names, and
-  svelte/no-unused-svelte-ignore then reports one error per word.
+  A picture of 81 lights, not a control: the approved contract requires role="img"
+  with the "live pad simulation" name (04-UI-SPEC, Accessibility), and ARIA places no
+  role restriction on canvas. Kept apart from the svelte-ignore line: every word after
+  the rule name there is parsed as another rule name.
 -->
 <!-- svelte-ignore a11y_no_interactive_element_to_noninteractive_role -->
 <canvas

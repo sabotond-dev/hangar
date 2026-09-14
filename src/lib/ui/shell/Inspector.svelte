@@ -1,34 +1,14 @@
 <!--
-  THE RIGHT INSPECTOR (plan 13-05; PDF pages 3 and 5; Bible section 7).
-
-  An eyebrow (SELECTED ELEMENT / FADER, CONFIGURATION), a headline, an
-  optional lede, sections with 17px titles, and a bottom-pinned pair of
-  actions (Duplicate / Delete element; Save copy / Share snapshot). NOT THE
-  SCHEMA - 13-09 renders the fields from a validated schema; this component
-  draws the panel they go in.
-
-  THE HEADLINE IS A SNIPPET, NOT A STRING, because page 5's is two lines
-  ("Shape the / movement.") and a route must be able to break it where the
-  PDF does. Page 3 also sets a small raised chip (2 x 6 units) beside its
-  headline; that is the `aside` snippet.
-
-  IT SCROLLS ITS OWN BODY. Section 7: "Inspectors may scroll independently
-  in the production application while the preview and apply control remain
-  visible." That is a CSS constraint, not a sentence: the inspector is a
-  three-row grid whose middle row is the only scroll container, the head
-  and the pinned actions stay put, and the frame gives the inspector column
-  a bounded height so there is something to scroll inside. The primary
-  action (Apply to ZONA) lives in the context bar above the frame and is
-  never inside this scroll.
-
-  The panel is named by its own headline (aria-labelledby); no label is
-  invented. Every size is app.css's type role or layout.ts's; the strings
-  are the route's.
-
-  PAGE 3's `Element name` SITS ABOVE THE FIRST SECTION (plan 13-16): the
-  PDF draws the name field and the type directly under the headline, before
-  `Position & size`, so the body takes an optional `lead` snippet rendered
-  before the sections, inside the one scroll container. Nothing else moved.
+  The right inspector, PDF pages 3 and 5: the panel the fields go in - an eyebrow,
+  a headline (a snippet, because page 5's is two lines), an optional aside chip
+  and lede, an optional lead before the first section (page 3's Element name,
+  13-16), titled sections, children, and the bottom-pinned pair. Not the schema:
+  13-09 renders the fields. IT SCROLLS ITS OWN BODY (section 7): a three-row grid
+  whose middle row is the only scroll container; the head and the pinned actions
+  stay put, and the primary action lives in the context bar, never inside the
+  scroll. Named by its own headline (aria-labelledby). Every size is app.css's
+  type role or layout.ts's; the strings are the route's.
+  Decided at 13-05 / 13-16 (Bible section 7); see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -152,15 +132,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    The only scroll container in the panel, and a containing block: an
-    absolutely positioned descendant - TuningRegion.svelte's sr-only live
-    region, Tailwind's sr-only is position: absolute - would otherwise be
-    contained by the initial containing block, escape this clip and the
-    column's, and extend the DOCUMENT's scrollable overflow to its static
-    position at the foot of the sections (221px on /playground/arc/ at
-    1280 x 720; the quick task after the 13.1 gate, deferred-items A.4).
-  */
+  /* The only scroll container, and a containing block: an absolutely positioned descendant (TuningRegion's sr-only live region) would otherwise escape the clip and extend the document's overflow (13.1 deferred-items A.4). */
   .body {
     position: relative;
     overflow-y: auto;

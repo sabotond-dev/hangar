@@ -1,46 +1,13 @@
 /**
- * FOUND-02 / 10-UI-SPEC §17: the gate `npm run licenses` cannot be.
- *
- * `scripts/gen-licenses.mjs` runs `license-checker-rseidelsohn --production`,
- * which inspects the npm dependency tree and nothing else. It has no
- * visibility into `static/` or `src/lib/assets/`, so a hand-committed `.woff2`
- * sails through `npm run licenses`, `npm run build` and `npm run deploy` and
- * lands in the public source tarball that `scripts/postbuild.mjs` makes with
- * `git archive HEAD`. That tarball is HANGAR's GPLv3 section 6(d)
- * Corresponding Source: a font we may display but may not redistribute has no
- * business in it.
- *
- * THE WALK IS OVER `git ls-files`, NOT THE WORKING DIRECTORY. An untracked
- * font is not in the archive and is not this gate's business; a `.gitignore`d
- * one is not either. `git archive HEAD` ships the index, so the index is what
- * is scanned.
- *
- * THE CENSUS AS THIS FILE ARRIVES, verified in plan 10-01 on 2026-09-08:
- * `git ls-files | grep -Ei "\.(woff2?|ttf|otf)$"` prints NOTHING and exits 1.
- * The only font-shaped tracked path is
- * `licenses/@fontsource/quicksand@5.3.0-LICENSE.txt`, which is a `.txt` and is
- * inside `licenses/`. §17's phrasing - "`git ls-files` returns exactly one
- * font-shaped path" - reads as though that path were a binary; it is not, and
- * this note is the correction. The allowlist was therefore empty on arrival.
- *
- * THE CENSUS AS IT NOW STANDS, after plan 10-02-03 on 2026-09-08:
- * `git ls-files | grep -Ei "\.(woff2?|ttf|otf)$"` prints exactly one path,
- * `static/fonts/GRIFTER-Bold.woff2`, and the allowlist below carries exactly
- * one row for it. Quicksand was uninstalled in the same commit, so its licence
- * text is gone from `licenses/` and the `.txt` used below to prove FONT_SHAPED
- * does NOT fire on a licence path is Inter's. Test 4's vacuous branch is now
- * closed: it reads `.gitattributes` and asserts the path is `export-ignore`d.
- *
- * NO TEST HERE WAS EDITED TO ACCEPT THE ROW. All five were written in 10-01 to
- * take it unchanged, and they did; the two edits in 10-02-03 are this census
- * note and the one fixture string that named an uninstalled package.
- *
- * PLAN 13-03 ADDS A SIXTH TEST, on the one non-font asset the identity now
- * depends on: src/lib/assets/wordmark.svg, derived from the user's supplied
- * bible/hangar-logo-w.svg by exactly three edits (D-14 Q14). It joins this
- * file rather than identity.spec.ts because it is about an ASSET'S SHAPE -
- * what may sit in the tree and the archive - which is this gate's subject.
- * The five font tests are unchanged.
+ * FOUND-02 / 10-UI-SPEC 17: the gate npm run licenses cannot be. The licence
+ * checker inspects the npm tree and nothing else, so a hand-committed .woff2
+ * would land in the GPLv3 section 6(d) source archive unseen. The walk is over
+ * git ls-files (git archive HEAD ships the index): exactly one font-shaped
+ * path, static/fonts/GRIFTER-Bold.woff2, with one allowlist row, and test 4
+ * asserts it is export-ignored in .gitattributes. Test 6 (13-03) holds
+ * src/lib/assets/wordmark.svg as the three-edit derivation of the supplied
+ * bible/hangar-logo-w.svg (D-14 Q14): an asset's shape is this gate's subject.
+ * Decided at 10-01 / 10-02-03 / 13-03; see .planning/phases/13-gui-overhaul/13-03-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

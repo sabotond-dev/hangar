@@ -1,38 +1,12 @@
-// The structural gate over the gallery: the components, the route, and the
-// pure modules underneath them.
-//
-// NINE SINCE PLAN 13-08 (six before it). These are the promises the Bible's
-// page 2 and the earlier specifications make about colour, semantics and
-// honesty, as gates rather than as sentences in a document. Most are
-// properties of the SOURCE and run in well under a second; tests 8 and 9
-// render the card with svelte/server, which the vitest server project can do
-// (13-05 proved it), because "one accessible link name" is a property of the
-// rendered tree and not of a regex. The e2e suite proves the behaviour; this
-// proves the shape, on every commit.
-//
-// WHAT 13-08 DID TO THE SIX. Four survive with their subjects re-aimed at the
-// new chrome (1, 2, 4, 5); test 3 - "the browse screen uses the lime ladder
-// and nothing else" - is REWRITTEN against 13-03's eleven tokens, its name
-// changed and its count not; test 6 survives as written. Three are new: the
-// rail derived from FOR_TERMS with the count printed and exactly one facet
-// row on the page (7); the card's one category, one tag, one sentence and
-// one accessible link name (8); the favorite star's round trip through the
-// store with the dropped-id case counted (9).
-//
-// EVERY SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than tidy.
-// BrowseToolbar.svelte's header contains the sentence "No like count, no view
-// count, no trending, no most, no rank" - correctly, because explaining why a
-// word is absent is exactly what makes the absence survivable - and
-// BrowseGrid.svelte's header names the three roles it refuses and the three
-// pointer handlers it does not install. A scan over raw source would go red on
-// correct code, and the natural fix for that would be deleting the paragraphs
-// that make the rules legible.
-//
-// TEST 1'S NEEDLES ARE ASSEMBLED FROM FRAGMENTS so this file does not contain
-// the words it forbids. The idiom is
-// src/lib/transport/forbidden-instructions.spec.ts's, and the reason is the
-// same: a future rule scanning the repository for a forbidden word must not have
-// to carry an exclusion for the file that forbids it.
+// The structural gate over the gallery: the components, the route and the pure
+// modules underneath them - nine tests since 13-08. Most are properties of the
+// SOURCE; tests 8 and 9 render the card with svelte/server, because one
+// accessible link name is a property of the rendered tree. Every scan strips
+// comments first: a component's header may name the roles and handlers its
+// code refuses. Test 1's needles are assembled from fragments so this file
+// never contains the popularity words it forbids (the idiom of
+// forbidden-instructions.spec.ts).
+// Decided at 05.1-04 / 13-08 (13-CONTEXT D-11); see .planning/phases/13-gui-overhaul/13-08-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { existsSync, readFileSync, readdirSync } from "node:fs";

@@ -1,19 +1,11 @@
-// The colour picker's gate: six tests, and every one of them is a property of
-// the SOURCE or of pure arithmetic, so none of them needs a browser.
-//
-// It lives under src/lib/tune/ rather than beside the component because three
-// of the six have to import the vendored compiler - `colourAt`, `colourIndexOf`
-// and `COLOUR_LATTICE_SIZE` are the real lattice, and the picker's own copy of
-// that arithmetic is only trustworthy if something holds the two together. A
-// spec may import the compiler freely; a spec is never bundled.
-//
-// EVERY SOURCE SCAN STRIPS COMMENTS FIRST, and that is load-bearing rather than
-// tidy: ColourPicker.svelte's header names all six forbidden shapes out loud, so
-// a scan over raw source would go red on correct code and the natural fix would
-// be deleting the documentation that makes the rule survivable. The stripper and
-// the non-vacuity habit are src/lib/config-shape.spec.ts's, copied rather than
-// reinvented, and every regular expression here is backslash-free in the same
-// house style.
+// The colour picker's gate: six tests, each a property of the SOURCE or of
+// pure arithmetic, no browser. Under src/lib/tune/ rather than beside the
+// component because three of the six import the vendored compiler - colourAt,
+// colourIndexOf and COLOUR_LATTICE_SIZE are the real lattice, and the picker's
+// copy of that arithmetic is trustworthy only while something holds the two
+// together; a spec is never bundled. Every source scan strips comments first:
+// ColourPicker.svelte's header names the forbidden shapes out loud.
+// Decided at 10-10 (10-UI-SPEC 11.2); see .planning/phases/10-redesign/10-10-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

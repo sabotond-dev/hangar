@@ -1,50 +1,14 @@
 <!--
-  THE LEFT RAIL (plan 13-05; PDF pages 2-5; Bible sections 7, 13, 14).
-
-  A titled section list, and NOT the catalog and NOT the element list: it
-  takes rows. The four PDF rails are four shapes of the same thing and the
-  props cover all four -
-
-    page 2: YOUR LIBRARY with two-digit counts (All configs 36, Favorites
-            08, Recently used 06), a divider, MADE FOR with plain rows, a
-            quiet two-line note and an outlined + Build your own pinned to
-            the bottom;
-    page 3: ADD AN ELEMENT with a + at each row's right, a divider, ON THIS
-            SURFACE with the element's TYPE at the right (Filter / Fader),
-            and + New surface pinned;
-    page 4: YOUR LIBRARY with counts, a divider, COLLECTIONS with plain rows;
-    page 5: CONFIGURATIONS, a back link, six rows with a two-digit INDEX at
-            the right (Arc 01), and a starred Save a copy pinned.
-
-  A row carries a label and at most one right-hand thing: a count (padded
-  by layout.ts's padCount, which stops padding above 99), a meta string
-  (the type, or the +), or an index (padded the same way). A row with an
-  href is a link; a row without one is a button that reports its id.
-
-  THE SELECTED ROW IS D-03's THREE SIGNALS (app.css's second rule, held by
-  identity.spec.ts test 6): a 3px action-colour left rule, the raised fill,
-  and an action-coloured label - together, because raised-on-panel is
-  1.12:1 and a selection told apart by fill alone is invisible. All three
-  are keyed to aria-current, so the accessibility tree and the paint cannot
-  disagree, and this rail is the first real subject of test 6's scan.
-
-  Section 14's "element list so the surface is not the sole means of
-  selection" is exactly page 3's ON THIS SURFACE section: it is a list of
-  buttons, reachable by keyboard, and it is not optional.
-
-  Every row is a 44px box at every pointer: the site's floor is per control,
-  and layout.ts's RAIL_ROW_H (the PDF's 40) is the row's declared height
-  beneath that floor. Every number is layout.ts's. The section titles and
-  row labels are the route's, so nothing here is ledgered.
-
-  PAGE 3's TWO SECTIONS ARRIVE AS CHILDREN (plan 13-16). The palette's `+`
-  is disabled at the cap with a reason beside it, and the element list has
-  a keyboard model of its own; neither is a row a `RailRow` can describe. So
-  the rail takes an optional `children` snippet, rendered inside the same
-  scroll column after any `sections`, and src/lib/ui/sandbox/Palette.svelte
-  and ElementList.svelte draw their rows at this file's numbers. One aside,
-  one landmark, one scroll container - the frame does not know the
-  difference.
+  The left rail, PDF pages 2-5: a titled section list that takes rows - not the
+  catalog, not the element list. A row carries a label and at most one right-hand
+  thing (a count or an index padded by layout.ts's padCount, or a meta string);
+  a row with an href is a link, one without is a button reporting its id. Props:
+  sections, selected, onselect, lead (page 5's back link), note, action (the
+  pinned foot), children (page 3's Palette and ElementList, drawn at this file's
+  numbers inside the same scroll column, 13-16). The selected row is D-03's three
+  signals keyed to aria-current: the 3px left rule, the raised fill, the action
+  label (identity.spec.ts). Every row a 44px box over RAIL_ROW_H; every number layout.ts's.
+  Decided at 13-05 / 13-16 (13-CONTEXT D-03); see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -62,11 +26,7 @@
     meta?: string;
     /** A one-based index at the right, padded to two digits (page 5). */
     index?: number;
-    /**
-     * A link row. Without it the row is a button that reports its id. Typed
-     * ResolvedPathname so the route hands over a resolve() result and the
-     * navigation lint rule is satisfied by the type, as BrowseLink.svelte does.
-     */
+    /** A link row; without it the row is a button. A ResolvedPathname, so the navigation lint rule is satisfied by the type. */
     href?: ResolvedPathname;
   }
 
@@ -215,12 +175,7 @@
     border-block-start: 1px solid var(--color-divider);
   }
 
-  /*
-    A row: the PDF's 40px beneath the site's 44px floor, on both axes, at
-    every pointer. The 3px left slot is reserved on every row - transparent
-    at rest, the action colour when current - so selection never shifts the
-    label sideways.
-  */
+  /* A row: the PDF's 40px beneath the 44px floor on both axes; the 3px left slot is reserved on every row so selection never shifts the label. */
   .row {
     display: flex;
     align-items: center;

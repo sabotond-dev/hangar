@@ -1,90 +1,15 @@
 <!--
-  The gallery toolbar: PDF page 2's search row, sort select and one `Use`
-  chip row with the count at its right, plus the page's only live region.
-
-  REWRITTEN FOR THE BIBLE BY PLAN 13-08; THE MACHINERY UNDERNEATH IS 10-07's.
-  The state, the address, the return record and the filter live in the page
-  and the pure modules under $lib/browse; this component renders controls and
-  reports presses. What changed is the chrome, and each change has a decision
-  behind it:
-
-    - ONE FACET ROW, NOT TWO (13-CONTEXT D-11; the PDF has no Character
-      filter). The FEELS row is gone from the screen; the six FEELS terms
-      survive as card metadata. FacetRow.svelte renders ONCE here, and
-      browse-ui.spec.ts test 7 counts it. A FEELS term can still arrive in
-      the address (`?feels=` since A-20, or a mapped legacy `?tag=`) and it
-      still filters - the count line says the truth and `Clear filters`
-      clears it - but no chip is rendered for it. Stated, not hidden.
-    - THE SORT IS A <select> (PDF: `SORT BY` over `Featured`). CAT-02 is
-      unchanged in substance: Featured and Name, driven by BROWSE_SORTS, no
-      popularity metric, nothing faked. The words are the sort's own table,
-      exhaustive over BrowseSort, so a third order is a type error before it
-      is a missing option.
-    - THE CHIP ROW OPENS WITH `All` and continues with one chip per FOR term,
-      through the same FOR_LABELS record the rail reads, so a chip and its
-      rail row cannot carry two unrelated strings. If the row is too wide it
-      WRAPS rather than truncating (section 6: the actual matching count and
-      a way to clear each filter).
-    - THE COUNT SITS AT THE ROW's RIGHT END, as the PDF draws it.
-    - THE FIELD HAS THE PDF's PLACEHOLDER AND A REAL <label for>. The label
-      (`SEARCH CONFIGURATIONS`, 11px uppercase) stays visible while the
-      placeholder vanishes under typing, so the field is never nameless.
-      16px, because iOS Safari zooms the viewport when a text input smaller
-      than 16px takes focus.
-
-  FILTERING IS SYNCHRONOUS ON EVERY KEYSTROKE. Twenty-six entries cost nothing
-  to re-filter and a debounce there makes the grid feel broken - observed,
-  with the keystroke and the grid a character out of step. Only the
-  announcement and the address write are debounced, on one 500ms trailing
-  timer.
-
-  ESCAPE IS BOUND ON THE FIELD, NEVER ON THE WINDOW. Phase 4 binds Escape to
-  un-choosing the panel on a different route, and scoping this one to the field
-  is what keeps the two from ever colliding.
-
-  THE CHIPS COMBINE OR WITHIN THE ROW (A-19), AND A CHIP THAT WOULD RETURN
-  NOTHING IS STILL A REAL disabled CHECKBOX. The OR is REQUIRED rather than
-  conventional: FOR gives every configuration exactly one term, so under a pure
-  AND the second chip would return zero and disable itself for ever.
-  disabledTags() closes the remaining gap without printing a number on a chip:
-  given the query, a term that would empty the grid is disabled.
-
-  THE COUNT IS THREE ELEMENTS DOING THREE JOBS, which is Phase 5's meter pattern
-  applied to a number. The visible line updates instantly and is aria-hidden.
-  An always-present visually-hidden expansion sits beside it, is never a live
-  region, and is never behind a "has anything changed" flag: a visitor who
-  opens /playground/?q=ghost has fired no change event, so the live region has
-  nothing to say, and that sentence is the only thing telling them they are
-  looking at four of twenty-six rather than at the whole catalog. The live
-  region is the third thing, and it speaks once per settled change.
-
-  ONE LIVE REGION, AND IT CANNOT CHATTER. Exactly one visually-hidden
-  aria-live="polite" aria-atomic="true" element, fired from a 500ms trailing
-  timer - never per keystroke, never per tick, never per paint, never on scroll
-  and never on an intersection. It is a setTimeout on the state and there is no
-  setInterval in this file. The empty-result sentence it speaks is section 16's
-  own line, verbatim.
-
-  FOCUS IS NEVER ORPHANED. Two controls here can vanish while holding focus, and
-  both move focus deliberately: the field's `Clear` returns it to the field, and
-  `Clear filters` - which removes itself the moment it works - hands it to the
-  field too. `Clear filters` clears the query, every chip and the library view,
-  and does NOT touch the sort: a sort is a view preference, not a filter.
-
-  NO POPULARITY METRIC IS SHOWN OR FAKED. No like count, no view count, no
-  "trending", no "most", no rank, and no bare number beside a tag that could be
-  read as one (W-04). The forbidden words appear in this paragraph and in no
-  markup below it, which is why every structural scan over this file strips
-  comments first.
-
-  NO RADIUS ANYWHERE (D-01): the field's 6px went with this rewrite and the
-  allowlist row with it; the select and the field declare zero explicitly
-  because the user-agent stylesheet would otherwise round them, and
-  e2e/radius.e2e.ts measures the computed value in both engines.
-
-  It imports from $lib/browse and, for one erased type, from $lib/catalog/listing.
-  Never $lib/catalog's index, never the compile surface: this toolbar takes its
-  entries as a prop and the page it sits on is prerendered.
+  The gallery toolbar: PDF page 2's search row (a 16px field with a real label
+  and its Clear), the sort <select> (BROWSE_SORTS, exhaustive), ONE Use chip row
+  (All, then one chip per FOR term through FOR_LABELS; wraps, never scrolls) with
+  the count at its right, Clear filters, and the page's only live region. Props:
+  entries (the full listing, for the disabled chips), sort, q, active, narrowed,
+  showing, total, and the four callbacks. The state, the address and the filter
+  are the page's and $lib/browse's; this renders controls and reports presses.
+  Filtering is synchronous per keystroke; only the announcement and the address
+  write ride one 500ms trailing timer. Escape is bound on the field, never the
+  window. No popularity metric (W-04). No radius (D-01; radius.e2e.ts measures the field).
+  Decided at 10-07 / 13-08 (13-CONTEXT D-11); see .planning/phases/13-gui-overhaul/13-08-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -144,12 +69,7 @@
   const NO_RESULTS =
     "No configurations found. Try a different search or clear your filters.";
 
-  /**
-   * The sort's words, keyed by BrowseSort so the type system keeps the table
-   * exhaustive: a third order added to $lib/browse/sort is a type error here
-   * before it is an option silently missing from the select. `Featured` is
-   * the PDF's own value; `Name` is HANGAR's second order, sentence case.
-   */
+  /** The sort's words keyed by BrowseSort, so a third order is a type error before it is a missing option; Featured is the PDF's, Name HANGAR's. */
   const SORT_WORDS: Readonly<Record<BrowseSort, string>> = {
     featured: "Featured",
     name: "Name",
@@ -176,10 +96,7 @@
   /** The one thing this component speaks. Everything else is said in the DOM. */
   let announcement = $state("");
 
-  /*
-    Plain locals, deliberately outside the reactive graph: a timer handle and
-    the memory of what was last settled. None of them is rendered.
-  */
+  // Plain locals outside the reactive graph: a timer handle and what was last settled.
   let voiceTimer: ReturnType<typeof setTimeout> | undefined;
   /** The last settled sort-query-tags signature, or undefined before arrival. */
   let spokenFor: string | undefined;
@@ -187,11 +104,7 @@
   /** Whether the sort moved since the last utterance, so it can be named once. */
   let sortMoved = false;
 
-  /**
-   * The field element, for the two places focus is moved deliberately. A
-   * plain local rather than $state: the binding sits outside every {#if} in
-   * this file, and nothing renders from it.
-   */
+  /** The field, for the two deliberate focus moves; a plain local, since the binding sits outside every {#if}. */
   let field: HTMLInputElement | undefined;
 
   function clearQuery(): void {
@@ -199,11 +112,7 @@
     field?.focus();
   }
 
-  /**
-   * Escape clears the query and keeps focus in the field. preventDefault
-   * because Chromium's own Escape handling on type="search" empties the
-   * element's value without telling this component about it.
-   */
+  /** Escape clears the query and keeps focus; preventDefault because Chromium's own Escape on type="search" empties the value silently. */
   function fieldKeys(event: KeyboardEvent): void {
     if (event.key !== "Escape") return;
     event.preventDefault();
@@ -231,11 +140,7 @@
     voiceTimer = undefined;
     const sorted = sortMoved;
     sortMoved = false;
-    /*
-      The numbers are read HERE rather than when the timer was set, so five
-      characters typed quickly settle into one sentence carrying the final
-      count instead of the count as it was at the first keystroke.
-    */
+    // The numbers are read HERE, not when the timer was set: five quick keystrokes settle into one sentence with the final count.
     if (showing === 0) {
       announcement = NO_RESULTS;
       return;
@@ -244,13 +149,7 @@
     announcement = sorted ? `Sorted by ${SORT_WORDS[sort]}. ${count}` : count;
   }
 
-  /*
-    The one place the region is fed. It watches the sort, the query, the tags
-    and the library view - never `showing`, which is a consequence of them -
-    and on the FIRST pass it only remembers, because a visitor who has just
-    arrived has changed nothing and the hidden expansion has already told them
-    where they are.
-  */
+  /* The one place the region is fed: the sort, the query, the tags and the library view (never `showing`); the FIRST pass only remembers. */
   $effect(() => {
     const signature = `${sort}|${q}|${active.for.join(" ")}|${active.feels.join(" ")}|${narrowed}`;
     if (spokenFor === undefined) {
@@ -267,8 +166,7 @@
   });
 
   onDestroy(() => {
-    // No effect runs on the server, so there is never a timer to clear after
-    // a server render.
+    // No effect runs on the server, so there is never a timer to clear there.
     if (voiceTimer === undefined) return;
     clearTimeout(voiceTimer);
     voiceTimer = undefined;
@@ -294,12 +192,7 @@
           oninput={(event) => onquery(event.currentTarget.value)}
           onkeydown={fieldKeys}
         />
-        <!--
-          `Clear` renders only while there is something to clear, so it is one
-          of the two controls on this screen that can vanish while holding
-          focus. It hands focus back to the field, which is where the visitor
-          was. Its accessible name says what it clears.
-        -->
+        <!-- Clear renders only while there is something to clear, and hands focus back to the field. -->
         {#if q.length > 0}
           <button
             class="clear"
@@ -331,11 +224,7 @@
     </div>
   </div>
 
-  <!--
-    ONE ROW: `Use`, then `All`, then one chip per FOR term through FOR_LABELS,
-    and the count at the row's right end. It wraps; nothing here scrolls
-    sideways at any width.
-  -->
+  <!-- ONE ROW: Use, All, one chip per FOR term, the count at the right end; it wraps. -->
   <div class="row use">
     <FacetRow
       name="for"
@@ -348,12 +237,7 @@
       ontoggle={(term) => onfacet("for", term)}
     />
 
-    <!--
-      Two of the count's three elements. The visible line is seen and hidden
-      from the accessibility tree; the expansion beside it is read and is
-      ALWAYS in the DOM, whether or not anything has changed. It carries
-      neither aria-live nor aria-hidden, and it is not inside an {#if}.
-    -->
+    <!-- Two of the count's three elements: the visible line, aria-hidden; the expansion beside it, ALWAYS in the DOM, never live. -->
     <p class="count">
       <span data-testid="browse-count" aria-hidden="true"
         >{showing} of {total} configurations.</span
@@ -423,11 +307,7 @@
     position: relative;
   }
 
-  /*
-    Body 16px, and the 16px is the iOS zoom floor rather than a taste. The
-    trailing padding reserves room for Clear so typed text never runs under
-    it. A rectangle: the user-agent's search-field shape is refused.
-  */
+  /* Body 16px, the iOS zoom floor; trailing padding reserves room for Clear; a rectangle, the user-agent's search shape refused. */
   .field input {
     box-sizing: border-box;
     inline-size: 100%;

@@ -1,25 +1,13 @@
 <!--
-  ON THIS SURFACE: PDF page 3's second rail section (plan 13-16; Bible
-  section 14's "an element list so the surface is not the sole means of
-  selection"; BUILD-08).
-
-  One row per placed element, its name left and its TYPE right in secondary
-  (`Filter / Fader`), the selected row raised and ruled with D-03's three
-  signals keyed to aria-current - the same paint as Rail.svelte's rows, at
-  the same numbers. THIS LIST IS NOT DECORATION: it is a complete alternative
-  to the plate for selection. Every row is a real button (a tab stop that
-  Enter and Space activate), ArrowUp and ArrowDown move focus between rows
-  so the list can be walked without leaving it, Home and End jump, and
-  Delete on a focused row is the same delete the inspector offers. A
-  screen reader hears `Filter, Fader` for the row and `current` for the
-  selected one.
-
-  Selection is two-way: a row's click reports its id and the route selects
-  it in the editor; the plate's selection arrives back as `selectedId`
-  and the row re-raises. Nothing here holds state of its own.
-
-  The empty section says so in one quiet line (section 15's "empty" state)
-  rather than vanishing; the centre's empty state carries the instruction.
+  ON THIS SURFACE: PDF page 3's second rail section, one row per placed element
+  (its name left, its TYPE right), the selected row raised and ruled with D-03's
+  three signals keyed to aria-current - Rail.svelte's paint at its numbers. A
+  complete alternative to the plate for selection (section 14, BUILD-08): every
+  row a real button, ArrowUp / ArrowDown walk the rows, Home and End jump, Delete
+  on a focused row is the inspector's delete. Props: regions, selectedId (the
+  plate's selection arrives back and the row re-raises), onselect, ondelete.
+  Nothing here holds state of its own; the empty section says so in one quiet line.
+  Decided at 13-16 (Bible section 14); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->

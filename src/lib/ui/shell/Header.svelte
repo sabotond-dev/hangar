@@ -1,45 +1,14 @@
 <!--
-  THE HEADER BAND (plan 13-05; PDF pages 1-5; Bible section 4 and 15).
-
-  76px tall, a 1px divider beneath it. The wordmark with FOR ZONA at its
-  left, the primary nav beside it, and the connection control's box at the
-  right. Two shapes, chosen by `variant`, and the prop exists for one
-  reason: page 1 is the exception. The intro (13-07) has no nav, no context
-  bar, no rail and no inspector - its header carries only the wordmark, a
-  secondary link (the PDF's Quick guide) and an outlined Connect ZONA. A
-  variant is how the shell renders two shapes without each route tearing
-  the frame apart.
-
-  THE CONNECTION SLOT IS FILLED BY THE LAYOUT SINCE 13-11 with
-  ConnectionControl.svelte, which hosts DeviceSlot.svelte over slotStateOf
-  and keeps its rule that the control is a plain button whenever a click
-  does something and a summary whenever it does not. This component still
-  renders the slot as a snippet and reserves the box at the PDF's 218 x 37
-  (the control inside is 44px tall, the site's floor, so the row is sized by
-  the control and not by the box); it builds nothing itself, so shell.spec.ts
-  can render the header alone and two plans cannot build one control.
-
-  THE ZONE IS A PAIR SINCE 13.1-05 (13.1-CONTEXT D-04; bench line 4 of
-  2026-09-12: "CLEAR button. we need a CLEAR button it should live all the
-  time in the top right corner next to ZONA connected."): the user's Clear
-  box, handed over by the layout in the `clear` snippet, renders 12px to
-  the LEFT of the PDF's box, in both variants, on every page the shell
-  renders. The zone is an inline-size container that takes the row's
-  remaining space rather than its content's width - its flex basis is the
-  PDF's 218 and it grows - so Clear.svelte can render its caption only where
-  the row has room for it (a container query there) and the header never
-  scrolls sideways in the compact and stacked bands, where the slack beside
-  the connection control is 88px at 1024 and nothing at 768 (measured,
-  13.1-05-SUMMARY.md). The two boxes sit at the zone's end; the row's height
-  is still the control's 44px inside the 76px band.
-
-  THE LINK'S ACCESSIBLE NAME is the plain pair the two pieces spell - the
-  mark's own "HANGAR" (Wordmark.svelte's ledgered label) followed by the
-  text FOR ZONA - because the Bible gives no line for the link and 13-03
-  ledgered the question for 13-18. No aria-label is invented here.
-
-  Every number is layout.ts's, imported. FOR ZONA is the PDF's and is not
-  ledgered.
+  The header band, PDF pages 1-5: 76px, a divider beneath; the wordmark with FOR
+  ZONA (the link's name is the plain pair, nothing invented), the primary nav, and
+  the connection zone at the right. Props: variant ("app"; "intro" is page 1's
+  exception - no nav, a secondary Quick guide link, an outlined Connect ZONA),
+  section, secondary, connection (the layout's ConnectionControl.svelte), clear
+  (the layout's Clear.svelte, 12px to the LEFT of the PDF's 218 x 37 box, both
+  variants, since 13.1-05). The zone is an inline-size container that takes the
+  row's remaining space, so Clear can ask how much room there is and the header
+  never scrolls sideways; the row's height is the control's 44px. Every number is layout.ts's.
+  Decided at 13-05 / 13.1-05 (13.1-CONTEXT D-04); see .planning/phases/13.1-bench-corrections-four/13.1-05-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -90,11 +59,7 @@
     <div class="secondary">{@render secondary()}</div>
   {/if}
 
-  <!--
-    The connection zone: the user's Clear (13.1-05) and then the PDF's 218 x
-    37 box, both filled by the layout - Clear.svelte and
-    ConnectionControl.svelte (13-11).
-  -->
+  <!-- The connection zone: the user's Clear, then the PDF's 218 x 37 box, both filled by the layout. -->
   <div class="connection" data-testid="shell-connection">
     {#if clear}{@render clear()}{/if}
     {#if connection}{@render connection()}{/if}
@@ -138,12 +103,7 @@
     align-items: center;
   }
 
-  /*
-    The zone, pushed to the right edge: the reserved box is its basis and its
-    floor, the row's slack is its width (13.1-05), and it is a container so
-    the Clear box inside can ask how much room there is. 12px between the
-    pair.
-  */
+  /* The zone at the right edge: the reserved box is its basis and floor, the row's slack its width, a container so the Clear box can ask for room (13.1-05); 12px between the pair. */
   .connection {
     display: flex;
     align-items: center;
@@ -156,14 +116,7 @@
     container-type: inline-size;
   }
 
-  /*
-    Section 13's narrow band: the band wraps rather than overflowing. The
-    app shape's first phone render was the gallery (plan 13-08), where
-    e2e/browse-webkit.e2e.ts measures the document for sideways scroll at
-    375px; the wordmark, the nav and the reserved connection box do not fit
-    on one line there, so they flow onto rows. The width rule is a layout
-    rule and stays keyed to width; targets stay keyed to pointer.
-  */
+  /* Section 13's narrow band: the band wraps onto rows rather than overflowing (browse-webkit.e2e.ts measures 375px). A layout rule, keyed to width. */
   @media (max-width: 767.98px) {
     .header {
       flex-wrap: wrap;

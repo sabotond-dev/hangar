@@ -1,103 +1,15 @@
 <!--
-  THE PLATE: PDF page 3's 571px square, the 9 x 9 lattice, the regions with
-  their kind's own marks, the selection with its eight handles that resize by
-  drag, the proposed bounds, the keyboard focus cell, and the click-to-place
-  path (plan 13-16; 13.1-03 for the drag and the marks; Bible sections 2, 8,
-  14; BUILD-01, BUILD-06, BUILD-08, PREV-04).
-
-  NO DRAG IS EVER REQUIRED. Every creation reaches src/lib/sandbox/editor.ts
-  through ONE call, `onclick(col, row)`, fired from POINTERDOWN: a click on an
-  empty cell starts an area, the next click ends it; a click after the
-  palette armed a kind places that kind's default region; a click on a
-  region selects it. Press-at-A / release-at-B is the accelerator for that:
-  pointerup on a DIFFERENT cell from the one pressed fires the same
-  `onclick` for that cell, so it is exactly click-A / click-B. Pointer MOVE
-  updates `hover`, which draws the proposed bounds (section 8: "show
-  proposed bounds before committing"), and is never required for anything -
-  the keyboard route draws the same proposed box from the focus cell.
-
-  THE HANDLE DRAG (13.1-03, 13.1-CONTEXT D-03, bench line 3: "you should be
-  able to resize each element by draggin its points") is the THIRD way to
-  resize, after the numeric fields and the keyboard, and it commits through
-  the same door on release: pointerdown on one of the eight handles captures
-  the pointer on the plate and remembers which handle and the region's box;
-  each move computes the box the handle would make from the cell under the
-  pointer - a corner handle moves two edges, an edge handle one; the anchor
-  is the opposite edge or corner, so the box is never below 1 x 1 and never
-  off the surface - and draws it as the proposed bounds, snapped to the
-  lattice; pointerup hands the box to `onresize`, which is
-  editor.resizeSelectedTo -> geometry.ts applyEdit, and a refused box leaves
-  the region exactly as it was with the refusal in the status line until the
-  next pointer or key (section 8: "preserve the previous valid value"). One
-  drag is one Undo (the editor seals the entry). A drag that ends on the box
-  it started from commits nothing. In Play the handles are not rendered.
-  The spec proves the model needs no move; e2e proves the plate places with
-  clicks and resizes with a drag.
-
-  THE KEYBOARD ROUTE (section 14's spatial model): the plate is one tab stop;
-  arrows move the focus cell, Enter marks it (the same `onclick`), Escape
-  cancels a pending placement, Delete deletes the selection. The focus cell
-  is drawn as a square outline and named in the status line beneath the
-  plate, which is role="status" so a screen reader hears what the next
-  Enter will do. The element list beside the plate is the other complete
-  way to select (ElementList.svelte).
-
-  THE LATTICE IS A STATIC OVERLAY. Sixteen <line>s in one <g>, drawn once
-  by the DOM and never redrawn by a frame loop - 13-RESEARCH's "path
-  stroking is the expensive 2D primitive" applies to a canvas repainting 81
-  strokeRects thirty times a second, and an SVG retained by the compositor
-  is the static overlay it prescribes. The live picture in Play is the
-  route's PadCanvas, rendered UNDER this SVG through the `preview` snippet;
-  the SVG stops taking pointer events in Play and the wrapper routes the
-  finger to `onfinger`.
-
-  THE MARKS ARE PDF PAGE 3's, MEASURED AT ITS 1500 RENDER (13.1-03; the
-  plate is 571 there, so one measured pixel is one SVG unit). A region
-  hides the lattice under it (the page's regions cover the cells: an opaque
-  ground rect under the tint), the tint at 0.24 (the page's selected Filter,
-  #3e4f21, is the lime at 0.23-0.26 over the ground; its unselected
-  Texture, #29331f, measures 0.14 - below 13-16's 0.18 - so the one value
-  here is the page's selected density, and the SUMMARY says so), the 1px
-  boundary and the 11px uppercase name. Then the kind's own mark:
-    - a FADER: a 12-wide groove (PITCH * 0.19) in the workspace colour from
-      below the name to above the numeral, the value filled in the region's
-      colour from the thumb down, a 39 x 13 thumb (PITCH * 0.61 x 0.2) at
-      0.62 of the travel - the page's rest position - and the controller
-      number as an 11px numeral centred beneath (the page's `74`);
-    - an XY PAD: the crosshair (1px, half strength - the page's #447269 on
-      #173d37), a 14-wide dot at the centre, and `X 0.50 Y 0.50` at the
-      bottom left - the page's readout form at rest; the page draws its dot
-      off-centre at a live value, this one is a static mark in Edit and the
-      live picture in Play is the route's canvas;
-    - a BUTTON: the name centred above the middle and a 59 x 26 chip below
-      it in --color-raised with `OFF` in --color-ink-quiet (the page's chip
-      is a filled raised box, not an outline; at rest a button is off
-      whether it latches or not);
-    - a KNOB: a circle one cell wide (radius 0.16 of the shorter side; the
-      page's is 30 in a 163 box) at a 5px stroke, a 4px pointer tick from
-      the ring inward at twelve o'clock, and the name centred beneath.
-  The names: the fader's, the button's and the knob's centred, the XY
-  pad's at the page's top-left inset; the selected region's in the action
-  colour. Numerals are --font-mono at the label size. Every mark is
-  aria-hidden with the SVG and none is a string of the site's.
-
-  THE KNOB'S CIRCLE IS AN SVG <circle> - a true circle by construction, not
-  a box with a radius. D-15's exemption is for `border-radius: 50%` on
-  square boxes in three CSS files; a circle element is not a border-radius
-  at all, so this file declares no radius above zero, no rx or ry on any
-  rect, and needs no allowlist row. The eight selection handles, their hit
-  squares, the thumb and the chip are <rect>s, square (D-01).
-
-  "FOLLOW HARDWARE SELECTION" (section 8's optional control) IS DELIBERATELY
-  ABSENT and this is where a reader would look for it: ZONA has one touch
-  element, so there is no hardware selection to follow (editor.ts section
-  3). Nothing here listens to the device.
-
-  Every number is layout.ts's (SANDBOX_PLATE, SANDBOX_PITCH, SANDBOX_HANDLE,
-  SANDBOX_HANDLE_HIT, SANDBOX_LABEL_SIZE) or a proportion of the pitch
-  measured off the page and named above; the region fill is the stored
-  RGB444 value - the one fill that is not a token, A-09's carve-out, as
-  Swatch.svelte's square.
+  The plate: PDF page 3's 571px square, the 9 x 9 lattice (a static SVG overlay,
+  drawn once), the regions with their kind's marks, the selection with its eight
+  drag handles, the proposed bounds, the focus cell and the status line. Props:
+  view, onclick (the ONE creation and selection call, fired from pointerdown; a
+  release on another cell is the second click - no drag is ever required), onmove,
+  onmark, oncancel, ondelete (the keyboard route: one tab stop, arrows, Enter,
+  Escape, Delete), onresize (a handle drag's box on release, one Undo), onfinger
+  and preview (Play: the route's canvas under the SVG). The marks are page 3's,
+  measured at its 1500 render (13.1-03); the knob's circle is an SVG circle, not a
+  radius (D-15). Every number is layout.ts's; the region fill is the stored RGB444 value.
+  Decided at 13-16 / 13.1-03 (13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -160,17 +72,9 @@
     oncancel: () => void;
     /** Delete: the selection. */
     ondelete: () => void;
-    /**
-     * A handle drag's box on release (header: THE HANDLE DRAG). The route
-     * wires editor.resizeSelectedTo; the problem it returns is shown in the
-     * status line. Optional so the spec's render needs no drag.
-     */
+    /** A handle drag's box on release; the route wires editor.resizeSelectedTo and the problem shows in the status line. Optional so the spec's render needs no drag. */
     onresize?: (box: Box) => Problem | undefined;
-    /**
-     * Play: a finger on the plate, as an offset inside the plate's box and
-     * the box's extent, so the route maps it to LED coordinates with
-     * touch.ts's mapAxis and hands it to its host (PREV-04's third reach).
-     */
+    /** Play: a finger on the plate, as an offset inside the plate's box and its extent; the route maps it with touch.ts's mapAxis (PREV-04). */
     onfinger?: (
       phase: "down" | "move" | "up",
       pointerId: number,
@@ -203,13 +107,7 @@
   let drag = $state<{ handle: HandleName; from: Box } | undefined>(undefined);
   /** The box the drag would commit, drawn as the proposed bounds. */
   let dragBox = $state<Box | undefined>(undefined);
-  /**
-   * The last drag's refusal, shown in the status line until the next
-   * pointer or key on the plate - or until the surface moves under it (an
-   * Undo, a field, the list): the message names a box against THAT surface.
-   * Raw, so the surface it holds is the editor's own reference and the
-   * identity check in `status` is against the same object, not a proxy.
-   */
+  /** The last drag's refusal, shown until the next pointer or key or until the surface moves under it. Raw, so the identity check in `status` is against the editor's own reference. */
   let refused = $state.raw<
     { message: string; surface: EditorState["surface"] } | undefined
   >(undefined);
@@ -312,12 +210,7 @@
     };
   }
 
-  /**
-   * The box a handle makes from the cell under the pointer (header: THE
-   * HANDLE DRAG). The edges the handle does not hold are the anchor; the
-   * held edge follows the cell but never crosses the anchor, so the box is
-   * at least 1 x 1, and the cell is already inside the surface.
-   */
+  /** The box a handle makes from the cell under the pointer: the unheld edges are the anchor, the held edge never crosses it, so the box is at least 1 x 1. */
   function boxFor(handle: HandleName, from: Box, at: Cell): Box {
     let left = from.col;
     let top = from.row;
@@ -336,8 +229,7 @@
   function startDrag(event: PointerEvent, handle: HandleName): void {
     const r = view.selected;
     if (play || r === undefined || event.button !== 0) return;
-    // The plate's own pointerdown must not run: a press on a handle is not a
-    // click on the cell under it.
+    // The plate's own pointerdown must not run: a press on a handle is not a click on the cell.
     event.stopPropagation();
     refused = undefined;
     plate?.focus({ preventScroll: true });
@@ -390,13 +282,8 @@
     refused = undefined;
     const at = cellOf(event);
     if (at === undefined) return;
-    // WITHOUT SCROLLING (13-17): a programmatic focus scrolls a partly visible
-    // plate into view, and a page that moves under a pressed pointer makes
-    // the release land on another cell - which the accelerator below reads
-    // as the second click of a drag, so one click placed an element AND
-    // started an area. The pointer is already on the plate; nothing needs to
-    // move for it. Found by 13-17's layout (the tools row grew, the plate
-    // sat partly below the fold) and e2e/sandbox.e2e.ts's first title.
+    // WITHOUT SCROLLING (13-17): a programmatic focus that scrolled the plate would move the
+    // page under a pressed pointer, and the release would land on another cell as a second click.
     plate?.focus({ preventScroll: true });
     downCell = at;
     onclick(at.col, at.row);
@@ -477,15 +364,9 @@
 
 <div class="editor" data-testid="surface-editor" data-mode={view.mode}>
   <!--
-    The plate is one tab stop with a spatial keyboard model of its own
-    (arrows, Enter, Escape, Delete), which is what role="application" tells
-    an assistive technology: pass the keys through. Its name is the PDF's
-    word and its description is the status line beneath it. Svelte's
-    a11y rules count `application` as non-interactive and would rather see
-    a widget role; a grid of gridcells would promise 81 focusable cells this
-    plate does not have (the cell is a position, not a control), so the two
-    rules are suppressed here with that reason, as the workspace's surface
-    suppresses the static-element rule for its finger.
+    One tab stop with its own spatial keyboard model, which is what role="application"
+    tells an assistive technology; a grid of gridcells would promise 81 focusable cells
+    the plate does not have. The two a11y rules are suppressed for that reason.
   -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -731,13 +612,7 @@
         {@const f = frame(r)}
         <g class="selection" data-testid="surface-selection">
           <rect class="outline" x={f.left} y={f.top} width={f.w} height={f.h} />
-          <!--
-            The handles and their hit squares take a pointerdown and have
-            no role: they live inside the aria-hidden SVG and are a pointer
-            accelerator only - the numeric fields are the keyboard route to
-            every box a drag can make (header: NO DRAG IS EVER REQUIRED).
-            The static-element rule is suppressed for both with that reason.
-          -->
+          <!-- The handles and their hit squares take a pointerdown and have no role: a pointer accelerator inside the aria-hidden SVG; the numeric fields are the keyboard route. -->
           {#each handles as h (h.name)}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <rect
@@ -816,12 +691,7 @@
     max-inline-size: var(--plate, 571px);
   }
 
-  /*
-    The plate: a square, the PDF's 571 at most, the workspace token under a
-    boundary hairline. position: relative so the preview canvas and the
-    SVG stack; touch-action: none so a finger in Play is not a scroll and a
-    handle drag on a touch screen is a drag.
-  */
+  /* The plate: a square, the PDF's 571 at most, the workspace token under a boundary hairline; position: relative so the canvas and the SVG stack; touch-action: none so a finger is not a scroll. */
   .plate {
     position: relative;
     box-sizing: border-box;

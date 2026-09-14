@@ -1,31 +1,13 @@
 <!--
-  One of the intro's two start cards (plan 13-07; PDF page 1, left column;
-  13-RESEARCH.md section 1 "Page 1 - the intro").
-
-  TWO VARIANTS, ONE SHAPE. `ruled` is the PDF's Card A: a raised surface with
-  a 3px action-colour rule down its left edge and a 48 x 48 FILLED action
-  square carrying an arrow at its right. `bounded` is Card B: the panel
-  surface inside a 1px boundary, and a 48 x 48 OUTLINED square carrying a
-  plus. Both squares are squares - D-01 makes them so, and the whole card is
-  authored at zero radius; this file takes no allowlist row.
-
-  THE CARD IS ONE LINK. The eyebrow, the title and the body are the link's
-  text in reading order, so its accessible name is the words a visitor reads,
-  and the square is decorative (aria-hidden): the glyph repeats what the title
-  already says. The href is the caller's - the intro chooses the destination
-  and the card never navigates on its own.
-
-  Measured on the PDF at a 1500px render width (MEDIUM confidence, raster):
-  height 108, eyebrow 11px tracked uppercase, title about 24px in the display
-  face, body about 13px in the secondary colour, square 48. Every colour is
-  one of 13-03's eleven tokens.
-
-  ITS VERTICAL NUMBERS ARE THE INTRO'S TO SCALE (plan 13.1-01; D-01): the
-  minimum height, the block padding, the text gap and the title size are
-  read from custom properties the intro's .cards sets, with the PDF's values
-  as the fallbacks, so the card is the PDF's on its own and shrinks with the
-  intro when the screen is short. The square stays 48 at every height - it
-  is the affordance - and the eyebrow and the body keep their roles.
+  One of the intro's two start cards, PDF page 1: `ruled` is Card A (a raised
+  surface, a 3px action rule down its left edge, a 48 x 48 FILLED square with an
+  arrow), `bounded` is Card B (the panel surface in a 1px boundary, an OUTLINED
+  square with a plus). Props: variant, eyebrow, title, body, href (a
+  ResolvedPathname, the caller's - the card never navigates on its own). The card
+  is one link whose name is its words in reading order; the square is decorative.
+  Its vertical numbers are custom properties the intro's .cards sets, the PDF's
+  108 / 24 / 13 as fallbacks; the square stays 48 at every height. Zero radius (D-01).
+  Decided at 13-07 / 13.1-01 (13-CONTEXT D-01); see .planning/phases/13.1-bench-corrections-four/13.1-01-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -45,12 +27,7 @@
     eyebrow: string;
     title: string;
     body: string;
-    /**
-     * Resolved by the caller - resolve() or a SECTIONS entry - and typed
-     * so: svelte/no-navigation-without-resolve accepts a ResolvedPathname
-     * and nothing looser, which is what keeps every address on this page
-     * one 13-08 can move (D-20).
-     */
+    /** Resolved by the caller and typed so: svelte/no-navigation-without-resolve accepts a ResolvedPathname and nothing looser (D-20). */
     href: ResolvedPathname;
     testid: string;
   } = $props();

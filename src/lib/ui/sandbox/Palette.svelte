@@ -1,25 +1,13 @@
 <!--
-  ADD AN ELEMENT: PDF page 3's first rail section (plan 13-16; Bible section
-  8's "element first" path; section 15's palette states - available,
-  incompatible, selected, empty).
-
-  Four rows at the rail's numbers, each the type's name left and a `+`
-  right, and each row IS the control: one click arms the kind, and the next
-  click on the plate places its default region (editor.ts section 1). The
-  armed row is drawn with D-03's three signals keyed to aria-pressed, so the
-  visitor can see which kind the next click will place, and a second click
-  on the same row disarms it.
-
-  DISABLED WITH A REASON, NEVER WITHOUT ONE. At the cap (sixteen, D-14 Q4;
-  the meter is the finer gate) every row is `disabled` and aria-describedby
-  points at GEOMETRY_COPY.cap's sentence rendered under the section; in Play
-  the same rows are disabled with PLAY_LOCKS_PALETTE, because Play routes a
-  click to the surface and an armed kind would have nowhere to land. Both
-  reasons are real text in the section, not a title attribute.
-
-  No number here is its own: RAIL_ROW_H and the 44px floor are layout.ts's
-  and Rail.svelte's; the four names are the PDF's (KIND_LABELS). Square
-  corners (D-01).
+  ADD AN ELEMENT: PDF page 3's first rail section, four rows at the rail's numbers
+  (the type's name left, a + right), and each row IS the control: one click arms
+  the kind, the next click on the plate places its default region (editor.ts
+  section 1); the armed row carries D-03's three signals keyed to aria-pressed,
+  and a second click disarms. Props: mode, placement, atCap, onchoose. Disabled
+  with a reason, never without one: at the cap every row is disabled and described
+  by GEOMETRY_COPY.cap's sentence under the section; in Play by PLAY_LOCKS_PALETTE.
+  No number is its own (layout.ts, Rail.svelte); the names are KIND_LABELS. Square (D-01).
+  Decided at 13-16 (Bible section 8, 15); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->

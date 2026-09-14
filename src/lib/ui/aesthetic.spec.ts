@@ -1,40 +1,12 @@
 /**
- * IDENT-01 / IDENT-02 - what is left of the aesthetic source scans after the
- * CRT went (10-UI-SPEC §8.7, retired in part by 13-CONTEXT.md D-09).
- *
- * WHAT THIS FILE USED TO GATE. Eight scans over the CRT and glitch treatment
- * Phase 10 built: scan 1 held the CRT vocabulary inside an allowlist of four
- * files and every --crt property inside src/app.css; scan 2 held every layer
- * to pointer-events: none and its real elements aria-hidden; scan 3 held the
- * shell's subtree empty of words; scan 5 held every CRT selector off a canvas;
- * scan 6 held the noise tile free of any fill; scan 7 held the shell's five
- * geometry literals string-equal to Coverflow.svelte's .band. Each landed in
- * the same commit as the layer it gated (10-VALIDATION V-01).
- *
- * WHAT WENT, AND WHEN. On 2026-09-11 plan 13-04 deleted the CRT treatment -
- * Layer G on body::before, Layer S on the pad frames, Layers R and T inside
- * the front door's shell, the --crt property and the SCREEN switch - under
- * D-09, because the Bible's §3 asks for solid surfaces inside the working
- * application and the PDF's own intro is flat. Scans 1, 2, 3, 5, 6 and 7 were
- * deleted by name with it: each asserted a non-vacuity floor over a thing that
- * no longer exists, and a floor over nothing is a scheduled failure rather
- * than a gate. The deletion removed its own gate over the vocabulary, so
- * instrument.spec.ts scan 6 now holds that vocabulary absent from every
- * stylesheet and component on every run.
- *
- * WHAT THIS FILE GATES NOW - ONE SCAN, WITH A LIVE SUBJECT.
- *
- * Scan 4 survived 13-04 because its subject was Coverflow.svelte's own 3D
- * context and band rather than the CRT; on 2026-09-11 plan 13-09 deleted the
- * coverflow with the workspace (PDF page 5, 13-VALIDATION D-5) and deleted
- * the scan by name in the same commit - "scan 4: Coverflow.svelte's 3D
- * context stays ungrouped and its band keeps its clip and its mask" - with
- * the rightmost-compound and property-name helpers only it used.
- *
- * Scan 8 is the unlit cell (10-UI-SPEC A-58, A-59): the dot is still there,
- * the wash is the token rather than a colour, the fraction is capped, and the
- * pad that lights nothing is still declared dark. It is about the pad and not
- * about the texture, which is why it stays in place and the file survives.
+ * IDENT-01 / IDENT-02: what is left of the aesthetic source scans after the
+ * CRT went (10-UI-SPEC 8.7; 13-04 under D-09 deleted scans 1, 2, 3, 5, 6 and
+ * 7 by name with the layers they gated, and 13-09 deleted scan 4 with the
+ * coverflow). Scan 8 remains, with a live subject: the unlit cell (A-58,
+ * A-59) - PadFrame's dot is still there, the wash is the token rather than a
+ * colour, the fraction is capped at 50, and the pad that lights nothing is
+ * still declared dark. instrument.spec.ts scan 6 holds the retired vocabulary absent.
+ * Decided at 10-04 / 13-04 (13-CONTEXT D-09); see .planning/phases/13-gui-overhaul/13-04-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

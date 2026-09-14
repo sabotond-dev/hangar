@@ -1,31 +1,13 @@
 /**
- * THE INTRO, FIVE TESTS (plan 13-07; 13-CONTEXT.md D-01, D-05, D-09, D-14 Q2;
- * PDF page 1; 13-RESEARCH.md sections 1 and 8; test 5 from plan 13.1-01,
- * 13.1-CONTEXT.md D-01).
- *
- * TEST 5 IS A SOURCE SCAN AND SAYS SO. It holds that the intro DECLARES its
- * height rule - the centre a 100dvh column's remainder, the intro's unit read
- * off it in cq units, the headline clamped locally, the stacked band opting
- * out - and that the numbers come from layout.ts. It cannot hold that the
- * page fits: a stylesheet can promise a fit it does not deliver, and the fit
- * itself is e2e/first-experience.e2e.ts's four-viewport title in chromium,
- * measured off rendered boxes (13.1-CONTEXT D-11 j; 13.1-PLAN-CHECK W-02).
- *
- * RENDERED AND SCANNED, in the house style 13-05 set for src/lib/ui/ specs:
- * svelte/server's render() runs in the vitest server project, so the page's
- * structure, its two card variants and the hero's markup are read off the
- * rendered tree, and the rules that are about the SOURCE - no navigation
- * anywhere on the route, the host's wake margin, the pointer handlers - are
- * comment-blanked scans of the files themselves.
- *
- * WHAT "ZERO NAVIGATIONS" MEANS HERE, said plainly. onMount does not run
- * under svelte/server, so the mount path is exercised through the pure
- * function it calls (card.ts's introCardFor) rather than through a browser,
- * and the navigation count is a count of navigation CALLS in the route's
- * source - goto, redirect, location, pushState, replaceState, a meta refresh
- * - which is zero in both branches because the branches are one function
- * that returns a card and nothing else. The scan proves itself on a planted
- * line before it is trusted on the real files.
+ * The intro, five tests: rendered through svelte/server (the page's structure,
+ * the two card variants, the hero's markup) and scanned comment-blanked for
+ * the rules that are properties of the source - zero navigation CALLS on the
+ * route (goto, redirect, location, pushState, replaceState, a meta refresh;
+ * the scan proves itself on a planted line first), the host's wake margin,
+ * the pointer handlers. Test 5 holds that the intro DECLARES its fit rule in
+ * cq units off layout.ts's numbers; that the page fits is
+ * e2e/first-experience.e2e.ts's four-viewport title, measured off rendered boxes.
+ * Decided at 13-07 / 13.1-01 (13-CONTEXT D-01, D-05, D-09; 13.1-CONTEXT D-01); see .planning/phases/13.1-bench-corrections-four/13.1-01-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

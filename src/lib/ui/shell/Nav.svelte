@@ -1,22 +1,12 @@
 <!--
-  THE PRIMARY NAV (plan 13-05; Bible section 4; PDF pages 2-5).
-
-  PLAYGROUND / SANDBOX / MY CONFIGS at the PDF's measured 15px, uppercase,
-  0.05em tracking. Three items, and the current one carries TWO signals: the
-  action colour AND a 2px underline of the same colour about 2px below the
-  box - because colour alone is forbidden by section 14 and by
-  identity.spec.ts test 6's reading of it, and because on the PDF the
-  underline is what you see first. The current item is aria-current="page",
-  and the CSS keys both signals to that attribute, so the accessibility
-  tree and the paint cannot disagree.
-
-  NOT A ROUTER. It takes the current section as a prop and renders links;
-  which section is current is the route's to say through the shell fill.
-  The three hrefs come from shell.svelte.ts's SECTIONS, where the reason
-  they are literals rather than resolve() calls is written.
-
-  Every number is layout.ts's, imported. The labels are the PDF's own and
-  are not ledgered (D-05: uppercase for short navigation labels).
+  The primary nav, PDF pages 2-5: PLAYGROUND / SANDBOX / MY CONFIGS at 15px,
+  uppercase, 0.05em. Prop: section (the current one; undefined marks nothing).
+  The current item carries TWO signals - the action colour AND a 2px underline -
+  both keyed to aria-current="page", so the tree and the paint cannot disagree
+  (section 14; identity.spec.ts). Not a router: the route says which section is
+  current through the shell fill, and the three hrefs are shell.svelte.ts's
+  SECTIONS. Every number is layout.ts's; the labels are the PDF's (D-05).
+  Decided at 13-05 (Bible section 4); see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->

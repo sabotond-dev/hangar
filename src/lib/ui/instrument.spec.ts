@@ -1,76 +1,13 @@
 /**
- * IDENT-01 / IDENT-02 / SAFE-02 / CAT-03 - the INSTRUMENT register, held from
- * the side aesthetic.spec.ts does not hold (10-UI-SPEC 19.1g, D-15, D-16).
- *
- * WHY THIS IS A SECOND FILE AND NOT FIVE MORE SCANS IN aesthetic.spec.ts.
- * Its walk is DERIVED FROM THE DIRECTORY, and the three lists it sits beside
- * are not. Every gate over a set of components in this repository is a
- * hand-declared array today, and each one lets an omitted file through in
- * silence:
- *
- *   1. src/lib/ui/device-ui.spec.ts:88's DEVICE_COMPONENTS - SEVEN names since
- *      plan 10-13 added Clear.svelte. The 44px both-axes walk iterates it, and
- *      10-13 proved the hole by experiment: removing Clear.svelte from the list
- *      turned ONLY the length assertion red, and the walk went green having
- *      read nothing about the component it no longer covered.
- *   2. src/lib/ui/browse-ui.spec.ts:60's browseFiles() - a hand list of six
- *      component paths plus the route and the src/lib/browse/*.ts directory. A
- *      new browse component omitted from it escapes every browse gate.
- *   3. src/lib/ui/aesthetic.spec.ts's CRT_FILES - four names, CORRECT for its
- *      purpose because that file's claim was "only these four" - retired with
- *      the CRT by 13-04 (D-09).
- *
- * INSTRUMENT_FILES below is every src/lib/ui/*.svelte MINUS a short declared
- * front-door-only list, asserted against readdirSync with a length and with a
- * totality check - so a component added in a later phase is walked on the day
- * it appears rather than on the day somebody remembers it. That difference is
- * the whole reason 19.1g asked for a second file. It is what covers
- * ChosenPanel.svelte, TryOnDevice.svelte, CopyLink.svelte, Knob.svelte,
- * TagChip.svelte and BrowseToolbar.svelte, none of which appears in
- * DEVICE_COMPONENTS and four of which appeared in no both-axes walk at all
- * before this file existed.
- *
- * THE REGISTER LINE IS A LINE OF AUTHORSHIP, NOT OF DOM CONTAINMENT, AND THAT
- * IS A CORRECTION TO 19.1g RATHER THAN A CONVENIENCE. 19.1g states the line as
- * "the front-door register is everything inside .front-door; the instrument
- * register is everything that is not". As a statement about the rendered tree
- * that is false against what already ships, and provably so: src/routes/+page.svelte
- * and src/routes/playground/[id]/+page.svelte both mount FrontDoor.svelte, whose root IS
- * .front-door, and FrontDoor.svelte mounts Coverflow.svelte, which mounts
- * ChosenPanel.svelte, TryOnDevice.svelte, CopyLink.svelte and
- * TuningRegion.svelte. So the panels, the tuning region and the whole device
- * flow - every surface D-16 moves INTO the instrument register - are DOM
- * descendants of .front-door and always have been.
- *
- * What is implementable, and what is asserted here, is the authorship reading:
- * no instrument rule is AUTHORED inside FrontDoor.svelte or under a
- * .front-door selector. Svelte scopes a component's styles to that component,
- * so TryOnDevice.svelte's pill is authored outside the front door's stylesheet
- * even though its button paints inside the front door's box. The line then
- * lives in exactly one place, cannot be moved in one file and not the other,
- * and says something a scan can check.
- *
- * THE OTHER SIDE OF THE LINE, AND THE GROUND, WENT AT 13-04 (13-CONTEXT.md
- * D-09, 2026-09-11). Until then scan 1 also held every moving or texturing CRT
- * layer to .front-door with Layer G as the one declared exception on every
- * route, scan 3 held the registration lattice's composition and its two roots,
- * scan 4 held the halftone at the one pitch the measurement licensed, and scan
- * 6 held the :where() ground rule with its three exceptions. The Bible's §3
- * asks for solid surfaces inside the working application, so the CRT, the
- * halftone and the lattice were deleted and scans 3 and 4 with them, by name;
- * scan 1 kept its instrument side, scan 2 lost the radius half of its subject
- * (13-03 had already removed the pill's corners under D-10) and scan 6 was
- * re-aimed at the ground rule that survives - the ground is solid, and the
- * retired vocabulary stays retired.
- *
- * Every scan strips comments first. These files name in prose the very things
- * they are forbidden to declare - src/app.css's own header explains why the
- * noise tile is not in it, and this file's header names both registers - so a
- * scan over raw source would go red on correct code and the natural fix would
- * be deleting the documentation. The stripper, the rule parser, the
- * rightmost-compound discipline and the non-vacuity habit are
- * aesthetic.spec.ts's, copied rather than reinvented, and every regular
- * expression here is backslash-free in the same house style.
+ * IDENT-01 / IDENT-02 / SAFE-02 / CAT-03: the instrument register, held from the
+ * side aesthetic.spec.ts does not. The walk is DERIVED FROM THE DIRECTORY -
+ * every src/lib/ui/*.svelte less a declared front-door-only list (none since
+ * 13-09), asserted against readdirSync - so a component added later is walked
+ * the day it appears. The register line is one of AUTHORSHIP: no instrument
+ * rule is authored under a .front-door selector. Scan 1 the pill authored once
+ * in app.css, scan 2 the tiers, scan 5 the row form, scan 6 the solid ground and
+ * the retired texture vocabulary absent (13-04, D-09). Every scan strips comments first.
+ * Decided at 10-13 / 13-04 (10-UI-SPEC 19.1g; 13-CONTEXT D-09); see .planning/phases/13-gui-overhaul/13-04-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
  */

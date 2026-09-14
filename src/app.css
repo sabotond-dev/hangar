@@ -1,42 +1,22 @@
 @import "tailwindcss" source(".");
 
 /*
-  THE SCANNER IS SCOPED TO src/ AND THE rounded FAMILY IS REFUSED AT THE
-  COMPILER (plan 13-01, under D-01's no-radius gate).
-
-  Tailwind v4 detects candidate class names from the whole project root, and on
-  2026-09-11 the shipped stylesheet carried .rounded, .rounded-md and
-  .rounded-full - three corner-radius rules no component uses - because the
-  scanner had tokenised "rounded-md" and "rounded-full" out of a planning
-  document under .planning/ and "rounded" out of comments in src/. A word in a
-  document must not put a rule in the production stylesheet. source(".") is
-  resolved against this file, so detection now starts at src/, and the
-  @source not inline() line refuses the whole named rounded family so a comment
-  in a component cannot emit a corner either. Every utility the markup uses
-  (sr-only, flex, grid, mt-16, px-4, py-6, gap-x-4, gap-y-1, border-t,
-  items-center, text-xs, underline, block, border, flex-wrap) was measured
-  emitted before and after this change. src/lib/ui/radius.spec.ts layer B reads
-  the built CSS and is what caught it; an arbitrary value such as rounded-[3px]
-  cannot be refused by name, and layer B is what still stands in its way.
+  The scanner is scoped to src/ (source(".") resolves against this file) and the
+  rounded family is refused at the compiler: Tailwind v4 emits a utility for every
+  token it finds in any file, comments included, and a word in a document must
+  not put a corner in the production stylesheet (13-01; radius.spec.ts layer B
+  reads the built CSS, and an arbitrary value such as rounded-[3px] is still its
+  to catch). Every utility the markup names was measured emitted before and after.
 */
 @source not inline("rounded{,-{t,r,b,l,s,e,tl,tr,bl,br,ss,se,es,ee}}{,-{none,xs,sm,md,lg,xl,2xl,3xl,4xl,full}}");
 
 /*
-  D-24 / UI-SPEC W-01, amended by 10-UI-SPEC §5.1 (D-14): two faces, both
-  self-hosted, latin only. Inter Variable carries every sentence on the site
-  (D-12: upright, never italic); Grifter carries the wordmark, the one heading
-  and every micro label. Never a CDN — the site works offline, makes no
-  third-party request, and asks no font-src question of a future CSP.
-
-  Inter is written out as an @font-face rather than @import-ed because
-  @fontsource-variable ships only axis-scoped CSS carrying all seven subsets,
-  six of which HANGAR never uses. The relative url() below is §5.1 candidate
-  (b), proved by plan 10-01 under `vite build` AND `vite preview` at this
-  file's own depth: Vite fingerprints it into _app/immutable/assets/ and serves
-  it 200 as font/woff2, 48,256 bytes. The un-fingerprinted path 404s, so the
-  rewrite is load-bearing and a hand-written path would not have worked. A bare
-  package specifier inside url() is NOT a resolution Vite documents and would
-  have shipped verbatim into the built stylesheet.
+  Two faces, both self-hosted, latin only, never a CDN (D-24, UI-SPEC W-01;
+  10-UI-SPEC 5.1, D-14). Inter Variable carries every sentence, upright (D-12);
+  Grifter carries the headlines and the micro labels. Inter is an @font-face, not
+  an @import, because @fontsource-variable ships all seven subsets; the relative
+  url() is 5.1's candidate (b), which Vite fingerprints into _app/immutable/assets/
+  under build and preview alike (10-01) - a bare package specifier would ship verbatim.
 */
 @font-face {
   font-family: "Inter Variable";
@@ -51,20 +31,14 @@
     U+2215, U+FEFF, U+FFFD;
 }
 
-/* THE ONE SWAPPABLE BLOCK (D-14, kept by 13-CONTEXT.md D-04). Grifter, ONE
-   static face, served from the site and excluded from the source archive
-   (D-13). No unicode-range: the shipped .woff2 is not subset, and an
-   incomplete range would silently fall through to system-ui for any character
-   outside it. If the licence answer is no, this block's family, weight and src
-   become one licensed face and --font-display's first family changes. Two
-   lines. Nothing else moves.
-
-   THE LICENCE IS UNRESOLVED AND THIS COMMENT DOES NOT HIDE IT. Grifter's
-   OpenType name table declares PERSONAL USE (D-04, 13-RESEARCH.md). It must be
-   resolved before the site goes public; as of 2026-09-11 (plan 13-03) it has
-   not been, and the two-line swap above is what that resolution costs. The
-   wordmark no longer uses this face (src/lib/assets/wordmark.svg carries the
-   mark as paths), so the face now carries headlines and micro labels only. */
+/*
+  The one swappable block (D-14; 13-CONTEXT D-04): Grifter, one static face,
+  served from the site and excluded from the source archive (D-13). No
+  unicode-range: the shipped .woff2 is not subset. THE LICENCE IS UNRESOLVED: the
+  font's name table declares PERSONAL USE (13-RESEARCH) and it must be resolved
+  before the site goes public; the swap is this block's family, weight and src
+  plus --font-display's first family, two lines. The wordmark no longer uses it.
+*/
 @font-face {
   font-family: "Grifter";
   font-style: normal;
@@ -74,60 +48,20 @@
 }
 
 /*
-  IDENT-01 — the HANGAR design system, rewritten by plan 13-03 (2026-09-11)
-  against the Bible: bible/HANGAR-ZONA-GUI-design-specification.md §12 and the
-  five screens of bible/HANGAR for ZONA.pdf, under 13-CONTEXT.md D-16 and D-17.
-
-  THE PALETTE IS ELEVEN VALUES AND NO TWELFTH. Before this plan the file
-  carried nine tokens: true black, one acid lime at a three-rung ladder of
-  alphas standing in for every grey, and one alarm red. The Bible does not
-  render a sentence in lime. It renders every sentence in --color-ink, every
-  secondary line in --color-ink-quiet, over four warm graphite surfaces, and
-  reserves the action colour for the primary action and the current selection.
-  So the idea changed, not only the count: from "one hue at three alphas" to
-  "graphite surfaces, near-white text, one action colour". Every value below
-  is §12's own, transcribed rather than re-derived, with one exception the
-  decision names: --color-action is #DCFF71, the Bible's, and not HANGAR's
-  Phase 4 #D6FF4E (D-16). §12's contrast figures were computed against #DCFF71
-  and therefore hold as written; identity.spec.ts recomputes every one of them
-  from the values in this block rather than trusting either document.
-
-  WHAT EACH TOKEN REPLACED, so a reader of an old component can translate.
-  --color-workspace replaces --color-ground (the ground stops being true
-  black). --color-divider replaces --color-line-soft and --color-boundary
-  replaces --color-line. --color-ink replaces lime at 0.72; --color-ink-quiet
-  replaces lime at 0.55 AND at 0.5 - the three-rung ladder becomes two rungs,
-  and --color-ink-dim's job (a disabled control's label) is carried by
-  --color-ink-quiet plus the disabled reason the copy already names
-  (install-copy.ts's DisabledReason). --color-action replaces --color-accent.
-  --color-error-ink replaces --color-over. --color-panel, --color-raised,
-  --color-on-action and --color-error-surface are new. --color-glow does not
-  survive: the Bible has no glow token and §3 reserves glow for the light
-  output, the active selection and the primary action, so the one bloom the
-  site keeps is the action colour at an alpha, declared as --action-bloom in
-  the :root block below this one (NOT a --color-* token, and NOT in @theme).
-
-  TWO RULES THE CONTRAST ARITHMETIC FORCES, both gated in identity.spec.ts:
-
-  1. THE DIVIDER IS DECORATIVE ONLY. --color-divider fails 3:1 on every
-     surface (1.71 / 1.56 / 1.39), which WCAG 1.4.11 permits only for a mark
-     that communicates nothing. Anything that bounds a control or draws a real
-     boundary uses --color-boundary (4.57 / 4.18 / 3.73, passing on all three).
-     The divider is used only where removing it would change nothing but taste.
-  2. SELECTION IS NEVER A FILL. Raised-on-panel is 1.12:1 and panel-on-workspace
-     is 1.09:1; a selected row told apart by its background alone is invisible.
-     A selected row carries three signals together - a 3px --color-action left
-     rule, the --color-raised fill and a --color-action label - which is what
-     the PDF draws on every selected rail row and what §14 asks for.
-
-  Pad faces are exempt from the palette: PadSim emits real firmware RGB, and
-  those pixels are content rather than interface.
-
-  Tailwind v4 is CSS-first: this @theme block is the whole configuration and no
-  tailwind config file exists.
+  IDENT-01, the design system against the Bible's section 12 (13-03; 13-CONTEXT
+  D-16, D-17): ELEVEN --color-* values and no twelfth - graphite surfaces,
+  near-white text, one action colour - transcribed from section 12, with
+  --color-action the Bible's #DCFF71 rather than Phase 4's #D6FF4E (D-16).
+  identity.spec.ts recomputes every contrast figure from this block. Two rules
+  the arithmetic forces, both gated there: the divider is decorative only (it
+  fails 3:1 on every surface; a control's boundary is --color-boundary), and
+  selection is never a fill alone (raised-on-panel is 1.12:1; a selected row is
+  the 3px action rule, the raised fill AND an action label, D-03). Pad faces are
+  exempt: firmware RGB is content. This @theme block is the whole Tailwind configuration.
+  Decided at 13-03 (13-CONTEXT D-16, D-17); see .planning/phases/13-gui-overhaul/13-03-SUMMARY.md
 */
 @theme {
-  /* Surfaces - four warm graphites (§12) */
+  /* Surfaces - four warm graphites (section 12) */
   --color-workspace: #101210; /* main background */
   --color-panel: #191c18; /* rail and inspector */
   --color-raised: #22261f; /* selected rows and secondary surfaces */
@@ -148,9 +82,7 @@
   --color-error-ink: #ffc4ad; /* 9.92:1 on its own surface */
   --color-error-surface: #35211d; /* error message backgrounds */
 
-  /* The display face, named once. Editing this line without the @font-face
-     above it — or that block without this line — is red, not a silent fall
-     through to ui-sans-serif. */
+  /* The display face, named once; this line and the Grifter @font-face go together (font-assets.spec.ts). */
   --font-display: "Grifter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-sans:
     "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
@@ -160,33 +92,17 @@
     monospace;
 }
 
-/* ONE CUSTOM PROPERTY OUTSIDE @theme, AND WHY IT IS NOT A TOKEN.
-
-   --action-bloom is the action colour at an alpha, the one static box-shadow
-   bloom the site keeps (PadFrame.svelte's hero frame and TryOnDevice.svelte's
-   hover). The nine-token file carried it as --color-glow; the Bible has no glow
-   token and 13-03 removed it rather than carry a twelfth --color-*. It lives
-   here, in the file identity.spec.ts reads, so the alpha is visible to the
-   colour gate, and it is declared once so two consumers cannot drift.
-
-   IT SURVIVED D-09 BECAUSE IT IS NOT A TEXTURE. §3 reserves glow for the light
-   output, the active selection and the primary action, and those are exactly
-   its two consumers: the hero frame around the light output, and the primary
-   action's hover. The CRT treatment's two colours sat beside it until 13-04
-   removed the CRT on 2026-09-11 (13-CONTEXT.md D-09). */
+/*
+  The one custom property outside @theme: the action colour at an alpha, the one
+  bloom the site keeps (the hero frame around the light output and the primary
+  action's hover - section 3's two permitted glows). Not a --color-* token (the
+  Bible has none for glow) and declared once, here, where identity.spec.ts can see the alpha.
+*/
 :root {
   --action-bloom: rgb(220 255 113 / 0.18);
 }
 
-/* THE GROUND IS SOLID (13-04, 13-CONTEXT.md D-09, 2026-09-11). Until then
-   this file also declared a dot grain and a vignette on the body's ::before,
-   the CRT treatment's gate property switched by an attribute on <html>, and
-   the registration field (10-UI-SPEC 19.1a) with its :where() ground rule; §3
-   asks for solid surfaces inside the working application and the PDF's own
-   intro is flat, so all of it went. The ground is the workspace token on html
-   and body and nothing painted over it; instrument.spec.ts scan 6 holds that,
-   and holds the retired vocabulary absent from every stylesheet and
-   component. */
+/* The ground is solid (13-04, D-09): the workspace token on html and body and nothing painted over it; instrument.spec.ts scan 6 holds the retired texture vocabulary absent. */
 html {
   background: var(--color-workspace);
   color-scheme: dark;
@@ -201,37 +117,14 @@ body {
 }
 
 /*
-  THE TYPE SCALE (plan 13-03, 2026-09-11), in two display tiers and one text
-  face.
-
-  36 / 30 / 17, measured off the PDF at 1440; §12's written 28-32 / 20 / 14
-  overridden by measurement per D-17. Not a reconciliation: the two figures are
-  about 20% apart and no averaging happened. D-14 Q9 had settled the inspector
-  width on the PDF's authority; the planner extended that to the type scale
-  and, per D-01, asked rather than assumed, and the user chose the PDF's
-  measured sizes. src/lib/ui/shell/layout.ts (13-05's single source) carries
-  the same sentence.
-
-  THE DISPLAY FACE HAS TWO TIERS AND NOTHING BETWEEN THEM. The headline tier -
-  Display at 60 (the intro only), Page title at 36, Panel title at 30 - and the
-  micro tier at 11px, uppercase, tracked 0.12em, which is the ONLY uppercase on
-  the site (D-05: uppercase for short labels and breadcrumbs, never for a
-  sentence). Grifter is a bold-only static face at 700 in this tree, and at the
-  intro's 60-66px it reads heavier and narrower than the PDF's face, which
-  sits around 500-600. That is a difference, not a fault, and it is recorded
-  in 13-03-SUMMARY.md beside the rendered result rather than smoothed here.
-  Inter carries every sentence: Group title at 17 semibold, Base at 14 / 1.45,
-  Helper at 13, and the editable field at 15 - 16 under a coarse pointer, §12's
-  iOS zoom floor, already gated by browse-ui.spec.ts.
-
-  Numerals that change - the fader value, the coordinate readouts, the
-  percentages, the two-digit rail counts, both budget meters - take .numerals:
-  the mono stack with tabular figures, so a value that ticks does not shift
-  the text beside it.
-
-  identity.spec.ts reads these eight roles by class name, asserts the three
-  heading sizes at 36 / 30 / 17, and asserts that 11px appears in this file
-  only beside text-transform: uppercase and a letter-spacing.
+  The type scale (13-03): the display face in two tiers and nothing between -
+  Display 60 (the intro only), Page title 36, Panel title 30, and the micro tier
+  at 11px, uppercase, tracked 0.12em, the ONLY uppercase on the site (D-05); Inter
+  carries every sentence - Group title 17, Base 14, Helper 13, the field at 15
+  (16 under a coarse pointer, the iOS zoom floor). 36 / 30 / 17 are measured off
+  the PDF at 1440 and override section 12's written sizes (D-17; layout.ts says
+  the same). .numerals is the mono stack with tabular figures for a value that
+  ticks. identity.spec.ts reads the eight roles by class and holds 11px to the micro role.
 */
 .type-display {
   font-family: var(--font-display);
@@ -302,10 +195,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* The focus ring is never removed and never animated (UI-SPEC, Accessibility
-   Contract). The action colour on the workspace is 16.65:1. border-radius:
-   inherit is exempt from the no-radius gate (radius-allowlist.ts
-   EXEMPT_VALUES): it inherits from a box that is zero, so it is zero. */
+/* The focus ring is never removed and never animated (UI-SPEC, Accessibility Contract); border-radius: inherit inherits zero and is exempt from the radius gate (radius-allowlist.ts EXEMPT_VALUES). */
 :focus-visible {
   outline: 2px solid var(--color-action);
   outline-offset: 4px;
@@ -313,46 +203,13 @@ body {
 }
 
 /*
-  THE PILL, NOW A RECTANGLE (10-UI-SPEC 19.1b, A-41; the SHAPE removed by
-  13-03 on 2026-09-11 under 13-CONTEXT.md D-10).
-
-  ONE RULE, APPLIED BY CLASS, AND THE REASON IS AN ARITHMETIC ONE. Eleven
-  controls across nine files were each authoring the same declarations - a
-  border and a fill - which is eleven places for one shape to drift, and the
-  drift is invisible until two of them sit side by side. That argument stands;
-  what does not is the shape it used to carry.
-
-  WHY THIS FILE AND NOT A COMPONENT. Every colour here is a var(), and
-  src/lib/ui/identity.spec.ts reads THIS FILE AND NOTHING ELSE - so a border
-  colour written into a component <style> would be invisible to every colour
-  gate the site has. That is 10-UI-SPEC 7.1's placement rule.
-
-  THE 999px RADIUS IS GONE. D-10: the pill, a 999px radius on a non-square
-  element, is a rounded rectangle and goes - every chip becomes a rectangle. The declaration was removed rather than allowlisted, and
-  src/lib/ui/radius-allowlist.ts's row for this file was cleared in the same
-  commit, so the file carries no border-radius above zero. The 24px inline
-  padding stays: it was chosen to clear a 22px cap that no longer exists, but
-  it is the lg spacing token and every control that wears the class was
-  measured against it. The border is --color-boundary, the token every control
-  boundary uses (§12; the divider fails 3:1 and is decorative only).
-
-  THE FLOOR IS DECLARED HERE AND STILL DECLARED PER CONTROL, AND THAT
-  DUPLICATION IS DELIBERATE. Phase 4's touch floor is a property of a control
-  rather than of a shape: four separate walks (device-ui.spec.ts twice,
-  browse-ui.spec.ts, tune-ui.spec.ts) read it off the control's OWN rule, and a
-  control that loses its floor is an accessibility defect rather than a shape
-  drift. So this rule guarantees it for anything wearing the class, and each
-  control still declares it for itself - which is what makes
-  instrument.spec.ts's walk able to compute an EFFECTIVE floor rather than a
-  declared one.
-
-  WHICH TIERS TAKE IT (10-UI-SPEC 10.3, three tiers since A-46): Primary takes
-  the shape on its existing action fill, Secondary and the word rows take the
-  outline, and QUIET TAKES NOTHING. Pilling Quiet would give KEEP ON DEVICE and
-  CLEAR a border and flatten two controls into Secondary, which is the exact
-  SAFE-02 regression the ladder exists to prevent. src/lib/ui/instrument.spec.ts
-  scan 2 holds both halves. Every control that wears this class is re-skinned
-  or deleted by 13-04 to 13-11.
+  The pill, a rectangle since 13-03 (10-UI-SPEC 19.1b, A-41; D-10 removed the
+  999px radius and cleared radius-allowlist.ts's row): one rule applied by class,
+  so eleven controls in nine files do not each author the same border and fill.
+  In this file and not a component because identity.spec.ts reads this file and
+  nothing else. The 44px floor is declared here AND per control on purpose: four
+  walks read it off the control's own rule, and instrument.spec.ts computes the
+  effective floor. Primary and Secondary take it; Quiet takes nothing (instrument.spec.ts scan 2).
 */
 .pill {
   min-block-size: 44px;

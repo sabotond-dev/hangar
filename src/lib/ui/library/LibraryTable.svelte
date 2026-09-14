@@ -1,44 +1,14 @@
 <!--
-  The My configs table (plan 13-13; PDF page 4; Bible section 11).
-
-  A TABLE, NOT A CARD GRID. Section 11 says "each item shows a preview, title,
-  kind, timestamp/status" and draws nothing; the PDF draws a table, and the
-  table wins because a timestamp and a status are columns. Four heads at the
-  11px uppercase role over a 1px rule - CONFIGURATION, TYPE, LAST EDITED,
-  STATUS - and 78px rows separated by 1px rules, each carrying a 56 x 56 LIVE
-  thumbnail, the name over `ZONA · Personal configuration`, the type in
-  sentence case, the moment in words, a status chip and a small outlined
-  `Open`. A real <table> with <th scope="col">, so a screen reader gets the
-  column a value sits in; the thumbnail column has an empty head because the
-  PDF's has none and a picture needs no caption of its own.
-
-  TWO WORDS FOR TWO OBJECTS, NEVER ONE FOR THREE (section 9). The chip says
-  `Draft` in the action colour for a drafts.ts record and `Saved` neutral for
-  a library.ts record, and nothing else - what is on the device is the
-  install store's word and is not in this table. The chip is a RECTANGLE
-  (D-01); this file takes no allowlist row.
-
-  THE THUMBNAIL IS LIVE. Every row renders PadFrame + PadCanvas and hands the
-  canvas up through `onready`; the route owns the page's ONE SimHost and
-  registers the canvas with an engine built for the record's source entry.
-  Nothing here stores a picture (13-06's rule) and nothing here reaches the
-  simulator: the words `vendor`, `engine` and `catalog` appear in this comment
-  and in no import. A sandbox record's face is unlit until 13-15's surface
-  engine exists - the frame and the dot field are drawn, the canvas is never
-  registered - and that is a known stub, named in 13-13-SUMMARY.md.
-
-  BEYOND THE PDF, THREE QUIET ACTIONS PER ROW - `Rename`, `Export`, `Delete` -
-  and, when the route hands over collections, an `Add to collection` select.
-  Section 11 requires named copies, export/import and deletion with undo and
-  the PDF's row draws only `Open`, so the extra controls are 13px, quiet,
-  and in a fifth column with no head; the words are HANGAR's and ledgered.
-  Rename is inline: the name becomes a field, Enter or blur commits, Escape
-  cancels, and the field is labelled by the record's own name.
-
-  THE EMPTY STATES ARE THE ROUTE'S SENTENCES, passed in, because which one
-  applies (nothing saved yet, a search that found nothing, a collection with
-  no members) is the route's knowledge and section 16's line for the search
-  miss is reused verbatim there.
+  The My configs table, PDF page 4: a real <table> with <th scope="col"> - an
+  empty head over the 56 x 56 LIVE thumbnail, CONFIGURATION, TYPE, LAST EDITED,
+  STATUS - 78px rows ruled beneath, a status chip (Draft in the action colour for
+  a drafts.ts record, Saved neutral for a library.ts one; never a device word)
+  and a small outlined Open; beyond the PDF, Rename (inline), Export, Delete and
+  an Add to collection select, 13px and quiet. Props: rows (LibraryRow), empty
+  (the route's sentence), collections, memberOf, the seven callbacks, removeFrom.
+  Nothing here stores a picture or reaches the simulator: the route owns the page's
+  one SimHost and registers each canvas handed up through onready. Rectangles (D-01).
+  Decided at 13-13 (Bible section 11); see .planning/phases/13-gui-overhaul/13-13-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -385,10 +355,7 @@
     white-space: nowrap;
   }
 
-  /*
-    The chip: a rectangle (D-01), 13px, the two words for the two objects.
-    Draft in the action colour, Saved neutral - both on the raised surface.
-  */
+  /* The chip: a rectangle (D-01), 13px, Draft in the action colour, Saved neutral, both on the raised surface. */
   .chip {
     display: inline-grid;
     place-items: center;

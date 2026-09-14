@@ -1,59 +1,14 @@
 <!--
-  The intro's live surface (plan 13-07; PDF page 1, right column; 13-CONTEXT.md
-  D-09, D-14 Q2; PREV-04, half-reached here).
-
-  ONE PAD, THE SAME WAY EVERY OTHER PAD IS RUN. The simulator host is HANGAR's
-  own SimHost (src/lib/sim/host.ts): one shared requestAnimationFrame, one
-  IntersectionObserver with { threshold: 0, rootMargin: "200px" } so the pad
-  wakes before it crosses the viewport edge, the reduced-motion carve-out that
-  stills it at its representative frame and lets a finger move it anyway, and
-  the ambient-motion preference folded in through motionDeps() (13-04). Nothing
-  here is a picture and nothing here is a loop: the engine is the catalog
-  entry's own, built by createEngine, and the frame the canvas shows is what
-  the firmware would light.
-
-  THE ENGINE ARRIVES THROUGH A DYNAMIC IMPORT INSIDE onMount, never a static
-  one, for the reason Coverflow.svelte gives: src/vendor/botor/_pad.ts imports
-  @intechstudio/grid-protocol at module scope, a 131 KB chunk, and this page's
-  whole job is to paint at once. The hero is a "padsim" entry by construction
-  (front-door.spec.ts requires it of every FRONT_DOOR member), so the Lua VM's
-  WebAssembly is never fetched on / either - e2e/tuning.e2e.ts asserts it.
-
-  IT IS INTERACTIVE, AND THAT IS PREV-04's FIRST HALF. The wrapper owns the
-  geometry - a pointer position mapped onto the engine's own coordinate range
-  through mapAxis - and the host owns the delivery, at most one sample per
-  contact per firmware tick, which is what keeps the preview faithful rather
-  than pointer-rate dependent. The keyboard has no gesture equivalent, and the
-  surface is a demonstration rather than a control: a visitor without a
-  pointer still sees the configuration running, which is what the panel
-  promises. 13-09 builds the workspace's Configure / Play switch and 13-16 the
-  Sandbox's; 13-20 decides whether the three together close PREV-04. Nothing is
-  ticked here.
-
-  THE DOT FIELD STAYS. PadFrame.svelte draws one dot per unlit cell on a wash
-  and the gutter grid over the canvas; 13-04 kept it because it is the pad's
-  unlit-cell mark (aesthetic.spec.ts scan 8 asserts it), not a texture, and
-  the PDF's matrix shows its unlit cells as dark cells with a visible pitch,
-  which is exactly what those two layers give. The Bible's section 3 declines
-  texture on the intro and this component adds none: the panel is solid, the
-  chip is solid, and the only light is the light output's own bloom on the
-  frame.
-
-  THE SQUARE IS BOUNDED BY ITS ROW (plan 13.1-01; 13.1-CONTEXT.md D-01). The
-  panel is a grid of three rows - the label row, the stage, the caption row
-  - stretched to the height the intro's columns row gives it, and the stage
-  is a size container: the square is min(100cqw, 100cqh) of the stage, so it
-  is the smaller of the column's width and whatever height the two text
-  rows leave, centred in the stage either way. No arithmetic on the panel's
-  padding or gaps is written anywhere, because the stage's own box already
-  excludes them. The panel's padding and gaps scale with the intro's unit
-  (--intro-unit, Intro.svelte; 1px outside it). Below 1024 the stage is no
-  container and the square is the column's width, as 13-07 built it.
-
-  THE STRINGS ARE THE PDF's, VERBATIM: `TRY THE SURFACE`, `BROWSER PREVIEW`,
-  the name-slash-term caption (`ARC / MODULATION` on the PDF; the hero's own
-  name and FOR term here) and "Drag across the surface to preview". The one
-  string HANGAR wrote is the accessible description, ledgered in card.ts.
+  The intro's live surface, PDF page 1's right column: one pad run the way every
+  pad is - SimHost's one frame loop and observer, the reduced-motion carve-out,
+  the ambient-motion preference through motionDeps(). Props: entry (the hero,
+  a padsim entry by construction, so no Lua VM is fetched on /), description
+  (card.ts's heroDescription). The engine arrives through a dynamic import inside
+  onMount, never static (the protocol chunk stays off the first paint). It is
+  interactive (PREV-04's first half): the wrapper owns the geometry through
+  mapAxis, the host the delivery at one sample per contact per tick; no keyboard
+  gesture. The square is min(100cqw, 100cqh) of the stage, bounded by its row (13.1-01).
+  Decided at 13-07 / 13.1-01 (13-CONTEXT D-09, D-14 Q2); see .planning/phases/13-gui-overhaul/13-07-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -81,8 +36,7 @@
   /** The PDF's caption is the name, a slash, and the category. HANGAR's category is the FOR term. */
   const term = $derived(listingById(entry.id)?.tags[0] ?? "");
 
-  // Plain lets, never runes: nothing that holds a canvas or an engine belongs
-  // in reactive state (04-RESEARCH, Pitfall 3).
+  // Plain lets, never runes: nothing holding a canvas or an engine belongs in reactive state (04-RESEARCH Pitfall 3).
   let host: SimHost | undefined;
   let engine: SimEngine | undefined;
   let canvas: HTMLCanvasElement | undefined;
@@ -119,8 +73,7 @@
         }
         engine = await createEngine(configuration);
       } catch (error) {
-        // The frame and the dot field stay; the canvas stays unlit. The same
-        // broken-entry state the coverflow renders, never a blank panel.
+        // The frame and the dot field stay, the canvas unlit: the broken-entry state, never a blank panel.
         console.warn(
           `HeroSurface: no simulator engine for "${entry.id}"; the pad renders unlit.`,
           error,
@@ -155,8 +108,7 @@
     try {
       if (target instanceof Element) target.setPointerCapture(event.pointerId);
     } catch {
-      // The element can detach between the event and the capture; the
-      // contact simply ends.
+      // The element can detach between the event and the capture; the contact simply ends.
     }
     const point = ledPoint(event);
     if (point === undefined) return;
@@ -185,13 +137,7 @@
     <span class="chip type-micro">BROWSER PREVIEW</span>
   </div>
 
-  <!--
-    The pointer target is the wrapper, not the canvas: the canvas is a picture
-    (role="img", named by PadCanvas.svelte) and the wrapper is where a finger
-    lands. There is no keyboard gesture for a pad - see the header - so the
-    static-element rule is suppressed here rather than satisfied with a role
-    that would promise a control this surface is not.
-  -->
+  <!-- The pointer target is the wrapper, not the canvas (a picture); no keyboard gesture exists for a pad, so the static-element rule is suppressed rather than a control promised. -->
   <div class="stage">
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
@@ -220,12 +166,7 @@
 </section>
 
 <style>
-  /*
-    The panel: solid, bounded, square-cornered (D-01). PDF: x 806-1425, y
-    133-802 at 1500. Three rows, the middle one the stage, the whole panel
-    stretched to its grid row (13.1-01); the padding and gaps scale with the
-    intro's unit.
-  */
+  /* The panel: solid, bounded, square (D-01); three rows, the middle one the stage, stretched to its grid row (13.1-01); padding and gaps on the intro's unit. */
   .hero {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
@@ -257,11 +198,7 @@
     color: var(--color-on-action);
   }
 
-  /*
-    The stage is the square's room and its own size container; the square
-    is the smaller of the stage's two sides (13.1-01). PDF: 511 inside 619,
-    which is what the width side gives at the PDF's height.
-  */
+  /* The stage is the square's room and its own size container; the square is the smaller of its two sides (13.1-01). */
   .stage {
     container-type: size;
     display: grid;
