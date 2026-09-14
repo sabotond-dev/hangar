@@ -191,3 +191,14 @@ Later plans add a dated line here only when the rule learned something it did no
     `PadFrame.svelte`'s `sepia`) and names the scoping gap. And a `<style>` or `<script>` spelled
     inside a header comment is a trap for any stripper that removes the block before the comment:
     the census strips `<!-- -->` first since this plan.
+- 2026-09-14 (13.2-06, the phase gate): a route's header DESCRIBES a sibling probe ("the install
+  probe") and never spells its directory - `config-shape.spec.ts` scans every file under
+  `src/routes/` raw, comments included, for `dev/<probe>` outside that probe's own directory; a
+  body comment that pointed at a numbered section of a header it shared the file with ("section
+  2") goes stale the moment the header is cut, so it names the Bible section or the spec instead;
+  dropping `export` from a module-scope `const` moves the normalised built JS (an unexported name
+  is one the minifier may mangle), so `--js-equal` is a comments-only assertion and a plan that
+  demotes exports proves its JS move by a counter-build with the keywords restored; and the whole
+  phase's gate - every hash from 13.2-01's `--before` beside the tree's, the census proved on a
+  worktree at the baseline with the fixed instrument, the per-file table, the runs and the holes -
+  is `docs/TESTING.md`, "Phase 13.2's suites, measured at the gate".

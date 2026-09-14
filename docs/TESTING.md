@@ -3698,6 +3698,549 @@ needs a rebuild before c5. No device, no deploy - the flash write is the user's 
 `src/vendor/`, `library.ts`, `sequence.ts`, `descriptors.ts`, `forbidden-instructions.spec.ts`,
 `Knob.svelte`, `ColourPicker.svelte` untouched. The phase stays gate landed / bench pending.
 
+## Phase 13.2's suites, measured at the gate
+
+**Every count below was observed on 2026-09-14 at the Phase 13.2 gate (plan 13.2-06)**, on the
+tree at `4b1f6e7` (clean apart from the user's three untracked root files and `.claude/`), against
+a fresh production build stamped at that commit, from four `vitest run --project server
+--maxWorkers=2` runs (two with the JSON reporter, inside the two gate runs; two plain), one sweep at
+the gate (and one inside plan 06's task 2 on the same tree), and the Playwright suite in five file
+chunks on fresh detached `wrangler dev` servers on 4173 stopped through PowerShell, the one red
+rerun alone on a fresh server and named. Phase 13.2 is a refactor-only phase on the user's word
+("research and clean up your code to make it easily readable but without changing any functionality
+or anything"), so the gate's one sentence is not a count but a comparison: `scripts/13.2-gate.sh
+--after 06-phase --against 01 --check 655` measured the whole phase against the record plan 13.2-01
+took at `21c5ff8` before the first edit, and every term a visitor, a module or a test can see is
+where it was. **Nothing in this section is hardware-verified by an agent**: no agent in Phase 13.2
+connected to a ZONA, wrote to one or deployed, and nothing this phase shipped changes what a module
+would receive (the wire set and `--full` are byte-equal to the baseline on all 1,761 records).
+
+**This section is appended, and nothing above it is reflowed.** Phase 13.2 ran its six plans in ONE
+SERIAL order, `01 -> 02 -> 03 -> 04 -> 05 -> 06`, alone in the tree (Phases 12, 12.1, 13 and 13.1
+stand at gate landed / bench pending beside it and no plan of theirs ran), so the chain runs from
+the round-4c line (`13.1-quick`, `61ba376`) and its end is the tree. Where the Phase 13.1 section
+above states a figure this phase's edits moved (a comment-line count, a header length), the line is
+left standing: those figures were true of the tree they measured.
+
+### The re-measured block against the round-4c line
+
+| Name              | The round-4c line (carried) | Phase 13.2's chain (six terms) | **Observed at `4b1f6e7`**                                                                                                                                                                                                                                                                                                          |
+| ----------------- | --------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| quick files       | 94                          | +0 x6 = **94**                 | **94**                                                                                                                                                                                                                                                                                                                             |
+| quick tests       | 966 (+1 todo)               | +0 x6 = **966**                | **966 (+1 todo)**; `check-counts.mjs 94 966` matches on all four runs (the two gate runs with the JSON reporter, one inside task 2, one plain at the gate)                                                                                                                                                                         |
+| e2e titles / runs | 86 / 101                    | +0 / +0 x6 = **86 / 101**      | **86 / 101**; `--list` 101 runs in the titles hash; one chunked run at `32 + 22 + 21 + 15 + 11 = 101` (c2's 22 = 21 in the chunk + `browse.e2e.ts:343` alone)                                                                                                                                                                      |
+| `svelte-check`    | 654                         | +1 +0 +0 +0 +0 +0 = **655**    | **655 files, 0 errors, 0 warnings** on both gate runs; the +1 is `src/test-support/source.ts` (13.2-01), the phase's one added source file                                                                                                                                                                                         |
+| `npm run lint`    | clean                       | -                              | clean (prettier and eslint) on both gate runs                                                                                                                                                                                                                                                                                      |
+| sweep             | `4 19`                      | run at 01, 02, 03, 06          | **`4 19`** at the gate, 127 s wall; reachability Pass A 20,270 + Pass B 24,576 = **44,846** in 120.1 s, laddered 8, over budget 0; the kind cross-product 1,296 in 3.3 s, worst 906 of 908 at `none/none/trackpad/hi=false/grid=false`. **No entry file, knob list or vendored file moved this phase** (the wire set is the proof) |
+| build             | 14 s                        | -                              | `postbuild: 4b1f6e7…`, the source archive 2,116 KB; 26 OG images, **154,136 B**, `2a9ccf80…`, byte-identical to 13.1-08's                                                                                                                                                                                                          |
+| catalog           | 26 (8 + 18)                 | +0 x6 = **26**                 | **26**, 8 preset-backed + 18 hand-authored, the ids unmoved (the OG count and the wire's "18 Lua entries + 8 presets" line)                                                                                                                                                                                                        |
+| radius allowlist  | 0 rows                      | +0 x6 = **0**                  | **0 rows**; layer A `34 declarations in 65 files scanned; 0 above zero remaining in 0 allowlisted files (); 6 circles (D-15); 28 exempt`                                                                                                                                                                                           |
+| the six circles   | 6 (D-15)                    | +0 x6 = **6**                  | **6**, at `ColourPicker.svelte:840, :867, :882` and `Knob.svelte:730, :785, :807` - **neither file edited across the whole phase** (`git diff --stat 500e33c..HEAD -- src/lib/ui/Knob.svelte src/lib/ui/ColourPicker.svelte` prints nothing; 13.2-CONTEXT D-03)                                                                    |
+| the manifest      | `dae35d39…`                 | +0                             | untouched; `src/vendor/` untouched (`git diff --stat 500e33c..HEAD -- src/vendor src/lib/fidelity/upstream-manifest.json` prints nothing)                                                                                                                                                                                          |
+
+### The six-term chain, every zero written out, in EXECUTION order
+
+The columns are the phase's serial order (the plans' `wave` field, 1 to 6); each term is the plan's
+OWN observed count line (its SUMMARY's "Observed count line"), never the projection. The term count
+is asserted at six on every row.
+
+```
+order            1     2     3     4     5     6
+plan            01    02    03    04    05    06
+files     94    +0    +0    +0    +0    +0    +0   =  94   (6 terms)
+tests    966    +0    +0    +0    +0    +0    +0   = 966   (6 terms; +1 todo reported, never asserted)
+e2e ttl   86    +0    +0    +0    +0    +0    +0   =  86   (6 terms)
+e2e run  101    +0    +0    +0    +0    +0    +0   = 101   (6 terms)
+check    654    +1    +0    +0    +0    +0    +0   = 655   (6 terms; the +1 is src/test-support/source.ts, 13.2-01 task 2)
+allowlist  0    +0    +0    +0    +0    +0    +0   =   0   (6 terms)
+circles    6    +0    +0    +0    +0    +0    +0   =   6   (6 terms)
+catalog   26    +0    +0    +0    +0    +0    +0   =  26   (6 terms)
+sweep   4 19   4 19  4 19  4 19    -     -   4 19  = 4 19  (run where 13.2-CONTEXT D-18 says: 01, 02, 03, 06; by declaration at 04 and 05)
+```
+
+The observed lines each term is read from, in order: 13.2-01 `94 / 966 (+1 todo) / 86 / 101 /
+check 655 / sweep 4 19 / allowlist 0`; 13.2-02 the same; 13.2-03 the same; 13.2-04 `… / check 655 /
+sweep by declaration / allowlist 0`; 13.2-05 the same; this gate `94 / 966 (+1 todo) / 86 / 101 /
+check 655 / sweep 4 19 / allowlist 0`. No `it(` / `test(` / `describe(` title was added, deleted or
+reworded anywhere in the phase: the sorted-titles hash (`TITLES b53f2d9c…`, 967 vitest titles
+including the todo plus 101 Playwright runs) is equal on every one of the twelve gate records from
+`01` to `06-phase`, and `diff gate/01.titles.txt gate/06-phase-after.titles.txt` is empty.
+
+### Every hash, before and after: plan 01's `--before` at `21c5ff8` beside the gate's `--after 06-phase` at `4b1f6e7`
+
+| Term                                           | `--before 01` (`21c5ff8`, 2026-09-13T11:41Z) | `--after 06-phase` (`4b1f6e7`, 2026-09-14) | State                                                                                                                                                                                                                        |
+| ---------------------------------------------- | -------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the wire set (1,735 strings)                   | `a24b256f…`                                  | `a24b256f…`                                | **equal**; 1,761 records in the `--full` JSON, 0 moved                                                                                                                                                                       |
+| the wire `--full`                              | `514cb2c7…`                                  | `514cb2c7…`                                | **equal**                                                                                                                                                                                                                    |
+| the Sandbox set (154 strings, 11 fixtures)     | not recorded (01 predates `--sandbox`)       | `40b44316…`                                | **equal to 02's `--before`** (`40b44316…`), the first record that carries it, and to every record since                                                                                                                      |
+| the literal census                             | `e6af80e0…` (2,721 / 6,342)                  | `6ac1cdf3…` (2,728 / 6,354)                | **the instrument moved, not the tree** - proved equal another way below; the `--after` reports `FAIL: the literal census` by construction (13.2-CONTEXT D-09: a `--before` record is never rewritten)                        |
+| the copy exports (7 modules)                   | `10fad002…`                                  | `10fad002…`                                | **equal**                                                                                                                                                                                                                    |
+| the data-testids (320)                         | `21fc9eb9…`                                  | `21fc9eb9…`                                | **equal**                                                                                                                                                                                                                    |
+| `frames.json`                                  | `a581ef4c…`                                  | `a581ef4c…`                                | **equal** (`git hash-object`)                                                                                                                                                                                                |
+| `golden-frames.json`                           | `3a1d71da…`                                  | `3a1d71da…`                                | **equal**                                                                                                                                                                                                                    |
+| `preset-baseline.json`                         | `eca808d2…`                                  | `eca808d2…`                                | **equal**                                                                                                                                                                                                                    |
+| `synthetic-zona.json`                          | `8b78c396…`                                  | `8b78c396…`                                | **equal** (`fixtures.spec.ts` regenerates it from `synthetic.ts` and compares; 06 demoted two of that file's exports and the bytes did not move)                                                                             |
+| the OG images                                  | 26 files, 154,136 B, `2a9ccf80…`             | 26 files, 154,136 B, `2a9ccf80…`           | **equal**                                                                                                                                                                                                                    |
+| the SCOPED built CSS (13.2-CONTEXT D-21)       | `e296d0af…`                                  | `e296d0af…`                                | **equal** on every one of the twelve records                                                                                                                                                                                 |
+| the utilities layer                            | 45 classes, 5 named by markup                | 44 classes, 5 named by markup              | **shrink-only**: one class left, `row-0`, at 13.2-01 (its only source was a comment in `calibration.ts`); `block grid outline ring sr-only` intact; 0 appeared on any plan                                                   |
+| the raw built CSS (recorded, expected to move) | `f89f1f4e…`                                  | `174411ee…`                                | **moved once, at 13.2-01, with `row-0`**; equal on every record from `01-after` to `06-phase` (the raw hash is a function of the utility set, D-21)                                                                          |
+| the normalised built JS (recorded)             | `7f4e4d7a…`                                  | `07f50f2a…`                                | **moved on the four plans that drop `export`s or rename, equal on the two comments-only plans** (03 and 05 under `--js-equal`); 06's move is one chunk and is the seven `view.ts` demotions, proved by a counter-build below |
+| the sorted test titles                         | `b53f2d9c…`                                  | `b53f2d9c…`                                | **equal**                                                                                                                                                                                                                    |
+| `svelte-check`                                 | 654 / 0 / 0                                  | 655 / 0 / 0                                | **+1**, `src/test-support/source.ts`                                                                                                                                                                                         |
+| the name-status of `src/` against `21c5ff8`    | -                                            | 234 M, 1 A, 0 D, 0 R                       | **the one A is `src/test-support/source.ts`**; the same four numbers against `500e33c` (the research commit); no `.svelte` renamed, nothing deleted                                                                          |
+| the refused paths' `--stat`                    | -                                            | (empty)                                    | `src/vendor`, the manifest, `Knob.svelte`, `ColourPicker.svelte` untouched across the phase                                                                                                                                  |
+
+**The census, proved another way.** The `--before 01` census was the instrument's number: until
+13.2-05, `scripts/gate/hash-strings.mjs` removed `<style>…</style>` from a `.svelte` file BEFORE it
+removed `<!-- -->`, and `PadSpinner.svelte:15`'s old header spelled `<style>` in prose, so the regex
+matched from inside the header comment through the real `</style>` and the census never counted that
+component's seven template literals (`Connecting`, `pad-spinner`, `spinner`, `walker`, the three
+`still` classes) plus one `img` and four `true`. 13.2-05 fixed the stripper (`9bb9c06`, HTML
+comments first) and the corrected census is `6ac1cdf3…` (2,728 distinct / 6,354 occurrences). The
+`--before` records are not rewritten (D-09), so the phase gate reports the term as `FAIL` against
+`01` by construction. The equality is proved instead on a `git worktree --detach` at `21c5ff8` (the
+phase baseline, before any source edit) with the fixed `hash-strings.mjs` copied in
+(`cc1ffb2a…`, the same bytes as HEAD's) and `node_modules` junctioned: the census at the baseline
+is **`6ac1cdf3…`**, and its JSON record is equal to `gate/06-phase-after.strings.json` on `files`,
+`literals`, `literalOccurrences`, `copyModules`, `testidCount`, `hashes`, `census`, `copyExports`
+and `testids` - only `head` differs (`21c5ff8` vs `4b1f6e7`). The worktree was removed and pruned
+the same minute; `node_modules` is intact. No literal, count, export or testid moved across the phase.
+
+**The normalised JS on plan 06, by counter-build.** `--after 06 --against 06 --js-equal` (the plan's
+own bracket, `681b1e8` to `4b1f6e7`) reported every term equal and the normalised JS moved
+(`da40f09f…` -> `07f50f2a…`, one file of 71: the chunk holding `view.ts`'s word tables, `C#` and
+`Magenta` inside it). Plan 06 demotes seven `view.ts` over-exports (`DOT_RAIL_MAX`,
+`DIRECTION_WORDS`, `MODE_WORDS`, `BEND_WORDS`, `SPRING_WORDS`, `NOTE_NAMES`, `HUE_NAMES`) from
+`export const` to `const`, and an unexported module-scope const is a name the minifier may mangle.
+Proof that the move is exactly that: with the seven `export` keywords put back by `sed` on a scratch
+copy of the tree's own file (the committed blob `4fc1a534…` recorded first), `npm run build` and the
+gate's own normalisation pipeline give **`da40f09f…`** - the `--before 06` figure to the byte - and
+the `export` keywords taken off again return the file to blob `4fc1a534…` with `git status` clean.
+So the phase's JS moves are: 13.2-01 (six dead exports deleted, 28 demoted; `7f4e4d7a…` ->
+`69ca1e25…`), 13.2-02's gate fix `b0c033c` (the normaliser learned kit's per-build
+`__sveltekit_<hash>` global; `69ca1e25…` -> `e754d5f2…` on the same source, then `dacda4eb…` after
+02's own edits), 13.2-04 (three private renames and one method merge; `dacda4eb…` -> `da40f09f…`),
+13.2-06 (the seven demotions; `da40f09f…` -> `07f50f2a…`); 03 and 05 asserted equal.
+
+### The per-file table for the whole phase, from `comment-lines.mjs --against gate/01.lines.json`
+
+The audit's classes (13.2-RESEARCH A.0: a comment line starts with `//`, `*`, `/*` or `<!--` or
+sits inside a block; the header is the leading comment run, blank lines after a comment included,
+so a ten-line header measures 12 to 15 here with its copyright line, its `Decided at` line and the
+fences). Every `.ts` and `.svelte` under `src/` outside `src/vendor/` and outside `*.spec.ts`,
+every file whose numbers moved - 179 of 193 - and the totals; the fourteen that did not move are
+`Knob.svelte` and `ColourPicker.svelte` (D-03) and twelve files that were already at the rule
+(`catalog/index.ts`, `fidelity/firmware-oracle.ts`, `lib/index.ts`, `protocol/decode.ts`,
+`protocol/index.ts`, `protocol/match.ts`, `protocol/write-guard.ts`, `protocol-pin.ts`,
+`sim/schedule.ts`, `transport/index.ts`, `tune/idle.ts`, `routes/+layout.ts`);
+`src/test-support/source.ts` is the one file added (13.2-01) and is not in the baseline record.
+**The code lines: 29,525 at
+`21c5ff8`, 29,538 at `4b1f6e7`** - the difference is 13.2-01's six deleted declarations (-5) and
+13.2-04's `#systemStringOr` merge, which the classifier counts as +18 code lines for the one method
+that replaced three (the wire byte-identical).
+
+| file                                      | lines before | after | comment before | after | header before | after |
+| ----------------------------------------- | -----------: | ----: | -------------: | ----: | ------------: | ----: |
+| src/app.d.ts                              |           24 |    21 |             14 |    11 |             2 |     2 |
+| src/lib/browse/facets.ts                  |          445 |   297 |            253 |   105 |            74 |    15 |
+| src/lib/browse/filter.ts                  |          191 |   145 |            111 |    65 |            22 |    11 |
+| src/lib/browse/grid.ts                    |          115 |   112 |             66 |    63 |            12 |     9 |
+| src/lib/browse/labels.ts                  |           63 |    39 |             45 |    21 |            36 |    12 |
+| src/lib/browse/query.ts                   |          228 |   141 |            159 |    72 |            54 |    12 |
+| src/lib/browse/rail.ts                    |          108 |    95 |             39 |    26 |            25 |    12 |
+| src/lib/browse/return.ts                  |          162 |   118 |            101 |    57 |            58 |    14 |
+| src/lib/browse/sort.ts                    |          109 |    77 |             71 |    39 |            24 |    12 |
+| src/lib/browse/typographic.ts             |           59 |    41 |             50 |    32 |            36 |    18 |
+| src/lib/catalog/calibration.ts            |          203 |   122 |            133 |    52 |            95 |    14 |
+| src/lib/catalog/divergence.ts             |          421 |   389 |            123 |    91 |            44 |    12 |
+| src/lib/catalog/entries/arc.ts            |          397 |   183 |            293 |    79 |           264 |    65 |
+| src/lib/catalog/entries/chorus.ts         |          330 |   192 |            217 |    79 |           158 |    62 |
+| src/lib/catalog/entries/console.ts        |          385 |   146 |            313 |    74 |           276 |    59 |
+| src/lib/catalog/entries/cull.ts           |          249 |   141 |            184 |    76 |           144 |    61 |
+| src/lib/catalog/entries/euclid.ts         |          373 |   185 |            266 |    78 |           226 |    62 |
+| src/lib/catalog/entries/ghost.ts          |          442 |   194 |            338 |    90 |           282 |    71 |
+| src/lib/catalog/entries/lumen.ts          |          639 |   167 |            576 |   104 |           530 |    86 |
+| src/lib/catalog/entries/morph.ts          |          535 |   185 |            440 |    90 |           376 |    69 |
+| src/lib/catalog/entries/pomodoro.ts       |          356 |   161 |            281 |    86 |           215 |    66 |
+| src/lib/catalog/entries/ported.ts         |          191 |   149 |             89 |    47 |            44 |    12 |
+| src/lib/catalog/entries/quadrant.ts       |          261 |   144 |            191 |    74 |           128 |    55 |
+| src/lib/catalog/entries/radar-points.ts   |          469 |   193 |            365 |    89 |           317 |    68 |
+| src/lib/catalog/entries/snake.ts          |          285 |   159 |            210 |    84 |           167 |    67 |
+| src/lib/catalog/entries/sonar.ts          |          417 |   186 |            313 |    82 |           278 |    65 |
+| src/lib/catalog/entries/stage.ts          |          389 |   151 |            323 |    85 |           291 |    70 |
+| src/lib/catalog/entries/steps.ts          |          384 |   165 |            300 |    81 |           252 |    64 |
+| src/lib/catalog/entries/strip.ts          |          392 |   152 |            320 |    80 |           265 |    62 |
+| src/lib/catalog/entries/trackpad.ts       |          312 |   142 |            246 |    76 |           225 |    58 |
+| src/lib/catalog/entries/wheels.ts         |          508 |   185 |            424 |   101 |           354 |    76 |
+| src/lib/catalog/front-door.ts             |          289 |   240 |            121 |    72 |            54 |    22 |
+| src/lib/catalog/library.ts                |          709 |   401 |            603 |   295 |           479 |   188 |
+| src/lib/catalog/listing.ts                |          515 |   477 |            179 |   141 |            33 |    12 |
+| src/lib/catalog/presets.ts                |          442 |   393 |            240 |   191 |            62 |    13 |
+| src/lib/catalog/touch-guard.ts            |          191 |   174 |             51 |    34 |            31 |    14 |
+| src/lib/catalog/types.ts                  |          195 |   185 |             89 |    79 |            21 |    11 |
+| src/lib/device/install-copy.ts            |          665 |   473 |            417 |   224 |           210 |    53 |
+| src/lib/device/install.svelte.ts          |         1939 |  1462 |            988 |   498 |           225 |    31 |
+| src/lib/device/page-target.ts             |          434 |   328 |            224 |   118 |            96 |    15 |
+| src/lib/device/session-copy.ts            |          619 |   520 |            363 |   264 |            73 |    24 |
+| src/lib/device/session.svelte.ts          |         1239 |   975 |            635 |   368 |           134 |    28 |
+| src/lib/device/snapshot.ts                |          569 |   484 |            232 |   147 |           102 |    17 |
+| src/lib/device/try-on.ts                  |          135 |   128 |             61 |    54 |            19 |    12 |
+| src/lib/og/png.ts                         |          107 |    91 |             50 |    34 |            28 |    12 |
+| src/lib/og/render.ts                      |          253 |   239 |            101 |    87 |            28 |    14 |
+| src/lib/pad/index.ts                      |          130 |   122 |             42 |    34 |            19 |    11 |
+| src/lib/pad/ready.ts                      |           40 |    32 |             23 |    15 |            18 |    10 |
+| src/lib/protocol/constants.ts             |          289 |   251 |            204 |   166 |            49 |    13 |
+| src/lib/protocol/descriptors.ts           |          447 |   423 |            213 |   189 |            37 |    13 |
+| src/lib/protocol/framing.ts               |           55 |    50 |             21 |    16 |            15 |    10 |
+| src/lib/protocol/usb.ts                   |           24 |    18 |             21 |    15 |            22 |    16 |
+| src/lib/sandbox/colour-knob.ts            |           79 |    72 |             24 |    17 |            19 |    12 |
+| src/lib/sandbox/copy.ts                   |          225 |   208 |             81 |    64 |            26 |    14 |
+| src/lib/sandbox/cost.ts                   |          247 |   205 |             77 |    35 |            54 |    12 |
+| src/lib/sandbox/draft.ts                  |           73 |    59 |             30 |    16 |            25 |    11 |
+| src/lib/sandbox/editor.ts                 |          991 |   901 |            202 |   112 |           103 |    13 |
+| src/lib/sandbox/emit.ts                   |          442 |   325 |            188 |    71 |           138 |    12 |
+| src/lib/sandbox/geometry.ts               |          451 |   397 |            128 |    74 |            67 |    13 |
+| src/lib/sandbox/history.ts                |          180 |   116 |             90 |    26 |            76 |    12 |
+| src/lib/sandbox/land.ts                   |          180 |   121 |             90 |    31 |            72 |    13 |
+| src/lib/sandbox/model.ts                  |          358 |   238 |            186 |    78 |           119 |    12 |
+| src/lib/sandbox/preview.ts                |           81 |    60 |             42 |    21 |            34 |    13 |
+| src/lib/sandbox/runtime.ts                |          393 |   217 |            238 |    62 |           202 |    12 |
+| src/lib/share/stamp.ts                    |          517 |   425 |            222 |   130 |            94 |    13 |
+| src/lib/share/url.ts                      |           57 |    45 |             46 |    34 |            31 |    19 |
+| src/lib/sim/demo.ts                       |          392 |   211 |            255 |    74 |            66 |    13 |
+| src/lib/sim/engine.ts                     |          138 |    87 |             80 |    29 |            40 |    12 |
+| src/lib/sim/host.ts                       |          786 |   533 |            375 |   122 |           112 |    13 |
+| src/lib/sim/lua-host.ts                   |         1059 |   785 |            477 |   203 |            22 |    12 |
+| src/lib/sim/lua-pad-sim.ts                |          232 |   167 |            103 |    38 |            17 |     9 |
+| src/lib/sim/monitor.ts                    |          257 |   184 |            129 |    56 |            54 |    13 |
+| src/lib/sim/motion.svelte.ts              |          160 |    95 |             89 |    24 |            50 |    12 |
+| src/lib/sim/paint.ts                      |           81 |    42 |             55 |    16 |            41 |    12 |
+| src/lib/sim/ready.ts                      |           73 |    44 |             47 |    18 |            35 |    13 |
+| src/lib/sim/touch.ts                      |          190 |   141 |             85 |    36 |            22 |     9 |
+| src/lib/store/collections.ts              |          292 |   238 |            110 |    56 |            68 |    14 |
+| src/lib/store/drafts.ts                   |          150 |   123 |             54 |    27 |            39 |    12 |
+| src/lib/store/favorites.ts                |          119 |    95 |             49 |    25 |            36 |    12 |
+| src/lib/store/intro.ts                    |           67 |    49 |             35 |    17 |            29 |    11 |
+| src/lib/store/library.ts                  |          162 |   150 |             40 |    28 |            24 |    12 |
+| src/lib/store/local.ts                    |          188 |   143 |             97 |    52 |            64 |    19 |
+| src/lib/store/motion.ts                   |           48 |    37 |             25 |    14 |            22 |    11 |
+| src/lib/store/recent.ts                   |           89 |    75 |             39 |    25 |            25 |    11 |
+| src/lib/store/schema.ts                   |          326 |   263 |            142 |    79 |            78 |    15 |
+| src/lib/store/transfer.ts                 |          505 |   413 |            189 |    97 |           114 |    13 |
+| src/lib/transport/capture.ts              |          271 |   239 |             57 |    25 |            11 |    11 |
+| src/lib/transport/fake.ts                 |          240 |   229 |             29 |    18 |            19 |     8 |
+| src/lib/transport/fixtures/synthetic.ts   |          648 |   540 |            233 |   125 |            33 |    13 |
+| src/lib/transport/ports.ts                |           62 |    40 |             41 |    19 |            20 |     9 |
+| src/lib/transport/queue.ts                |          391 |   382 |             67 |    58 |            15 |     6 |
+| src/lib/transport/sequence.ts             |          654 |   510 |            250 |   106 |            23 |    10 |
+| src/lib/transport/transport.ts            |          201 |   168 |             64 |    31 |            10 |    10 |
+| src/lib/transport/web-serial.ts           |          178 |   158 |             59 |    39 |            15 |     8 |
+| src/lib/tune/copy.ts                      |          579 |   412 |            368 |   200 |           132 |    37 |
+| src/lib/tune/inspector-copy.ts            |          251 |   224 |            117 |    90 |            27 |    16 |
+| src/lib/tune/knobs.lua.ts                 |           57 |    44 |             42 |    29 |            23 |    10 |
+| src/lib/tune/knobs.preset.ts              |          794 |   763 |            251 |   220 |            27 |    12 |
+| src/lib/tune/model.ts                     |         1169 |   887 |            504 |   222 |            58 |    13 |
+| src/lib/tune/state.ts                     |          133 |   121 |             71 |    59 |            24 |    12 |
+| src/lib/tune/surprise.ts                  |          183 |   122 |            114 |    55 |            67 |    13 |
+| src/lib/tune/view.ts                      |          863 |   639 |            403 |   179 |            43 |    18 |
+| src/lib/ui/BrowseGrid.svelte              |          532 |   359 |            249 |    76 |            92 |    14 |
+| src/lib/ui/BrowseLink.svelte              |          227 |   131 |            132 |    36 |            55 |    14 |
+| src/lib/ui/BrowseToolbar.svelte           |          566 |   446 |            174 |    54 |            90 |    15 |
+| src/lib/ui/BudgetMessage.svelte           |          223 |   149 |            106 |    32 |            66 |    14 |
+| src/lib/ui/BudgetMeter.svelte             |          378 |   222 |            193 |    37 |            81 |    14 |
+| src/lib/ui/CatalogCard.svelte             |          450 |   302 |            190 |    42 |           100 |    14 |
+| src/lib/ui/Clear.svelte                   |          279 |   167 |            148 |    36 |            98 |    14 |
+| src/lib/ui/CopyLink.svelte                |          258 |   168 |            119 |    29 |            62 |    14 |
+| src/lib/ui/DestinationZone.svelte         |          576 |   444 |            176 |    44 |           117 |    14 |
+| src/lib/ui/DeviceActions.svelte           |          121 |    80 |             57 |    16 |            50 |    13 |
+| src/lib/ui/DeviceDetails.svelte           |          523 |   368 |            195 |    40 |           104 |    14 |
+| src/lib/ui/DeviceMark.svelte              |           85 |    56 |             43 |    14 |            41 |    12 |
+| src/lib/ui/DeviceNote.svelte              |          318 |   193 |            157 |    32 |            95 |    14 |
+| src/lib/ui/DeviceSlot.svelte              |          392 |   273 |            157 |    38 |            91 |    14 |
+| src/lib/ui/FacetRow.svelte                |          252 |   179 |            103 |    30 |            65 |    14 |
+| src/lib/ui/FailureBlock.svelte            |          103 |    73 |             48 |    18 |            39 |    13 |
+| src/lib/ui/FidelityLine.svelte            |          141 |   107 |             53 |    19 |            34 |    13 |
+| src/lib/ui/KeepConfirm.svelte             |          320 |   230 |            116 |    26 |            76 |    14 |
+| src/lib/ui/KnobRack.svelte                |          221 |   151 |            102 |    32 |            57 |    14 |
+| src/lib/ui/MidiField.svelte               |          341 |   279 |             93 |    31 |            55 |    14 |
+| src/lib/ui/MidiMonitor.svelte             |          381 |   324 |             80 |    23 |            57 |    13 |
+| src/lib/ui/MotionControl.svelte           |          126 |   100 |             42 |    16 |            35 |    13 |
+| src/lib/ui/PadCanvas.svelte               |           87 |    65 |             45 |    23 |            19 |    12 |
+| src/lib/ui/PadFrame.svelte                |          191 |   100 |            118 |    27 |            57 |    14 |
+| src/lib/ui/PadSpinner.svelte              |          240 |   200 |             60 |    20 |            42 |    14 |
+| src/lib/ui/SessionAnnouncer.svelte        |           49 |    26 |             36 |    13 |            36 |    13 |
+| src/lib/ui/StampNotice.svelte             |          102 |    65 |             56 |    19 |            40 |    13 |
+| src/lib/ui/Swatch.svelte                  |          321 |   243 |            120 |    42 |            61 |    14 |
+| src/lib/ui/TagChip.svelte                 |          150 |   107 |             63 |    20 |            53 |    14 |
+| src/lib/ui/TuningRegion.svelte            |          972 |   694 |            390 |   112 |           152 |    15 |
+| src/lib/ui/Wordmark.svelte                |           77 |    52 |             41 |    16 |            38 |    13 |
+| src/lib/ui/device-drawer.svelte.ts        |           62 |    41 |             39 |    18 |            38 |    17 |
+| src/lib/ui/fidelity-line.ts               |           46 |    19 |             43 |    16 |            44 |    17 |
+| src/lib/ui/intro/HeroSurface.svelte       |          310 |   247 |             94 |    31 |            59 |    14 |
+| src/lib/ui/intro/Intro.svelte             |          408 |   332 |            107 |    31 |            70 |    15 |
+| src/lib/ui/intro/StartCard.svelte         |          144 |   121 |             41 |    18 |            31 |    13 |
+| src/lib/ui/intro/card.ts                  |          111 |    87 |             64 |    40 |            36 |    12 |
+| src/lib/ui/library/LibraryTable.svelte    |          516 |   483 |             74 |    41 |            44 |    14 |
+| src/lib/ui/library/ResumeBanner.svelte    |          169 |   152 |             39 |    22 |            30 |    13 |
+| src/lib/ui/library/words.ts               |           93 |    84 |             36 |    27 |            22 |    13 |
+| src/lib/ui/radius-allowlist.ts            |          360 |   289 |            145 |    74 |            63 |    13 |
+| src/lib/ui/sandbox/ElementList.svelte     |          179 |   167 |             29 |    17 |            25 |    13 |
+| src/lib/ui/sandbox/Palette.svelte         |          181 |   169 |             30 |    18 |            25 |    13 |
+| src/lib/ui/sandbox/RegionInspector.svelte |          592 |   555 |             65 |    28 |            48 |    15 |
+| src/lib/ui/sandbox/SurfaceActions.svelte  |          123 |    93 |             48 |    18 |            38 |    13 |
+| src/lib/ui/sandbox/SurfaceEditor.svelte   |         1046 |   916 |            206 |    76 |           103 |    15 |
+| src/lib/ui/shell/ConnectionControl.svelte |           95 |    47 |             65 |    17 |            49 |    14 |
+| src/lib/ui/shell/ContextBar.svelte        |          269 |   214 |             82 |    27 |            63 |    15 |
+| src/lib/ui/shell/Footer.svelte            |          217 |   173 |             66 |    22 |            53 |    14 |
+| src/lib/ui/shell/Header.svelte            |          175 |   128 |             70 |    23 |            45 |    14 |
+| src/lib/ui/shell/Inspector.svelte         |          194 |   166 |             55 |    27 |            34 |    14 |
+| src/lib/ui/shell/Nav.svelte               |          108 |    98 |             26 |    16 |            22 |    12 |
+| src/lib/ui/shell/Rail.svelte              |          283 |   238 |             74 |    29 |            50 |    14 |
+| src/lib/ui/shell/device-clause.ts         |          188 |   132 |             88 |    32 |            71 |    15 |
+| src/lib/ui/shell/layout.ts                |          369 |   264 |            230 |   134 |            59 |    17 |
+| src/lib/ui/shell/shell.svelte.ts          |          177 |   139 |            104 |    66 |            53 |    15 |
+| src/routes/+layout.svelte                 |          432 |   320 |            171 |    59 |             0 |    11 |
+| src/routes/+page.svelte                   |          131 |   104 |             49 |    22 |            35 |    13 |
+| src/routes/+page.ts                       |           25 |    12 |             19 |     6 |            19 |     6 |
+| src/routes/dev/catalog/+page.svelte       |           87 |    72 |             28 |    13 |            25 |    12 |
+| src/routes/dev/fidelity/+page.svelte      |           91 |    50 |             59 |    18 |            19 |    10 |
+| src/routes/dev/install/+page.svelte       |          423 |   328 |            145 |    50 |            69 |    15 |
+| src/routes/dev/session/+page.svelte       |          209 |   137 |             99 |    27 |            69 |    14 |
+| src/routes/dev/skeleton/+page.svelte      |          680 |   647 |             77 |    44 |            22 |    11 |
+| src/routes/dev/tune/+page.svelte          |          243 |   147 |            136 |    40 |           100 |    15 |
+| src/routes/dev/type/+page.svelte          |          158 |   103 |             70 |    15 |            70 |    15 |
+| src/routes/my-configs/+page.svelte        |         1362 |  1274 |            177 |    89 |            82 |    15 |
+| src/routes/my-configs/+page.ts            |           23 |    17 |             12 |     6 |            12 |     6 |
+| src/routes/playground/+page.svelte        |          619 |   529 |            172 |    82 |            79 |    15 |
+| src/routes/playground/+page.ts            |           32 |    19 |             21 |     8 |            21 |     8 |
+| src/routes/playground/[id]/+page.svelte   |          985 |   840 |            272 |   127 |           120 |    15 |
+| src/routes/playground/[id]/+page.ts       |           69 |    42 |             44 |    17 |            38 |    11 |
+| src/routes/sandbox/+page.svelte           |          111 |   102 |             23 |    14 |            22 |    12 |
+| src/routes/sandbox/+page.ts               |           27 |    20 |             14 |     7 |            14 |     7 |
+| src/routes/sandbox/[draftId]/+page.svelte |         1178 |  1068 |            185 |    75 |            96 |    15 |
+| src/routes/sandbox/[draftId]/+page.ts     |           51 |    25 |             37 |    11 |            37 |    11 |
+| src/test-support/source.ts (new)          |            - |    30 |              - |    13 |             - |     4 |
+| **totals (192 -> 193 files)**             |        60539 | 45774 |          27267 | 12490 |         14072 |  3830 |
+
+179 file(s) moved
+
+**The totals, against the research's audit.** 13.2-RESEARCH counted 193 files / 60,710 lines /
+27,480 comment / 14,072 header; the gate's `--before 01` record at `21c5ff8` reads **192 files /
+60,539 lines / 27,267 comment / 14,072 header** (the research included `src/app.css`, which
+`comment-lines.mjs` does not walk - 13.2-01 SUMMARY), and the gate's `--after 06-phase` reads **193
+files / 45,774 lines / 12,490 comment / 3,830 header**: 14,777 comment lines and 10,242 header lines
+gone, the code lines +13 by the two code changes named above, the blank lines 3,747 -> 3,746. By
+plan, the tree's comment lines: 27,267 -> 25,118 (01) -> 20,383 (02) -> 19,740 (03) -> 18,983 (04)
+-> 15,624 (05) -> 12,490 (06); the headers 14,072 -> 12,241 -> 8,040 -> 7,602 -> 7,302 -> 5,114 ->
+3,830. `node scripts/gate/comment-lines.mjs --todo` over every non-spec `.ts` and `.svelte` under
+`src/` prints exactly `src/lib/ui/ColourPicker.svelte header 62`, `src/lib/ui/Knob.svelte header
+83` (the two files D-03 excludes) and `src/lib/catalog/library.ts header 162` (its ten numbered
+banners kept as a table of contents, 13.2-02, CODE-STYLE section 9) and nothing else. Over the
+specs it still prints sixteen - `radius.spec.ts` (45; D-01's own record, the exception 05 named)
+and `decay-idiom.spec.ts` (39; the four numbered sections the tests' messages cite, 13.2-02
+D-20), `wire-pin.spec.ts` (46), `lua-parity.spec.ts` (26), `stamp.spec.ts` and `transfer.spec.ts`
+(18), `query.spec.ts`, `ready.spec.ts` and `collections.spec.ts` (16), `snapshot.spec.ts` (15),
+`listing.spec.ts` and `surprise.spec.ts` (14), `return.spec.ts` (13), `facets.spec.ts` (12),
+`typographic.spec.ts` and `calibration.spec.ts` (11) - none of them on any plan's file list: the
+phase's spec headers were the ones its plans named, and these sixteen are what it did not do,
+stated rather than folded in.
+
+**The spec headers, by plan** (the table above walks no `*.spec.ts`): 01 eight (the leaf tier's),
+02 `library.spec.ts` and five catalog specs (`lua-entries.sweep`, `decay-idiom` to 52 by D-20, `host-surface`, `copy`, `audition`), 03 the four copy specs, 04 `install.spec.ts` (71 -> 10)
+and `session.spec.ts`, 05 eleven ui specs plus `colour-picker.spec.ts` (every body byte-identical
+after the copyright line, proved by a sha256 over the body per file), 06 `model.spec.ts` (20 -> 6),
+`ladder.spec.ts` (26 -> 7), `reachability.sweep.spec.ts` (57 -> 10), `demo.spec.ts` (14 -> 5),
+`host.spec.ts` (12 -> 5), `lua-host.spec.ts` (17 -> 6), `lua-smoke.spec.ts` (60 -> 10) and
+`stamp-roundtrip.sweep.spec.ts` (43 -> 10); `view.spec.ts` and the other sim and transport specs
+were already under the rule and were not touched.
+
+### The docs created, and the one source file
+
+`docs/CODE-STYLE.md` (the rule, written once by 13.2-01; its section 9 gained one dated line at each
+of 02, 03, 04, 05 and this gate); the twenty files under `docs/entries/` (eighteen entries'
+histories moved verbatim into a fenced block each by 13.2-02, plus `library.md` and
+`sandbox-runtime.md`); the gate itself - `scripts/13.2-gate.sh` over `scripts/gate/` (`hash-wire.mjs`,
+`hash-strings.mjs`, `ts-ext-register.mjs`, `ts-ext-hooks.mjs`, `comment-lines.mjs`, `css-terms.mjs`,
+`e2e-chunks.sh`, and `sandbox-fixtures.mjs` from 13.2-02's `--sandbox` term) with its records under
+`.planning/phases/13.2-readability/gate/` (`<tag>.*` and `<tag>-after.*` for `01` to `06`, plus
+`06-phase-after.*`); and **one source file, `src/test-support/source.ts`** - the one `stripComments`
+that 33 specs import (24 with the three-replace body, 9 with the two-replace body, proved equal over
+every input the specs feed them before the swap; 13.2-01), the reason `svelte-check` reads 655.
+
+### The spec bodies edited across the phase, by title, and the re-aims
+
+Titles: none - the titles hash is equal on every record. Bodies, all of them named in advance by
+13.2-VALIDATION "Spec bodies this phase may edit": **13.2-01** the 33 `stripComments` swaps (the
+local `strip` / `stripComments` copy and its doc comment deleted, one import added, the call sites
+unchanged in count: `install.spec.ts` 6, `install-copy.spec.ts` 4, `local.spec.ts` 4,
+`session-copy.spec.ts` 3, `demo.spec.ts` 2, `model.spec.ts` 2, `identity.spec.ts` 2, one each in the
+rest); **13.2-04** the eleven `keptThisSession` -> `storedThisSession` lines in `install.spec.ts`
+(ten assertions and one comment) and the seven spec comments naming `#pageInit` / `#pageTimer` /
+`#pageUtility` reworded to `#systemStringOr` (`install.spec.ts` two, `wire-pin.spec.ts` two,
+`model.spec.ts` three; the plan's `install.spec.ts` line numbers were six high); **13.2-02, 03, 05
+and 06: headers only**, every body byte-identical after the copyright line. **Re-aims: zero.** Every
+spec needle that reads a comment as text was kept on ONE line where a spec pins the phrase
+(`MIX_TWO 7, MIX_LINE 75, MIX_THIS / MIX_THAT 8 / 8` in 03; `THERE IS NO ADVANCED SECTION`, `Use
+actual parameter names`, `NOT GENERAL UNDO`, `Not a history, not a stack, not a tree`, `D-14 Q4b`,
+`src/vendor/`, `midiLog`, `history.ts` in 05; the raw `aria-live`, `writeLock` and `summary …
+whenever it does not` counts in 05), and 06's route headers name no other probe's directory
+(`config-shape.spec.ts`'s raw `dev/<probe>` scan over every file under `src/routes/`, grepped
+before the commit: no mention outside its own directory).
+
+### The refuse-list, proved (13.2-CONTEXT D-06; CODE-STYLE section 6)
+
+`src/vendor/`, `src/lib/fidelity/upstream-manifest.json`, `Knob.svelte` and `ColourPicker.svelte`:
+`git diff --stat 500e33c..HEAD` over the four prints nothing (`vendored-diff.spec.ts` green in every
+quick run). Every Lua literal: the wire set and `--full` equal on all 1,761 records, the Sandbox set
+equal from its first record. The four fixtures and the OG images: the hash-objects and the OG bytes
+above. Every persisted key, every user-facing literal, every `data-testid`: the census (proved), the
+copy exports and the testid hash. Every test title: the titles hash. Every `.svelte` filename: the
+scoped CSS hash and the name-status (0 R, 0 D). No new spec file: `check-counts.mjs 94 966` on every
+run. `CIRCLES`: the allowlist row above.
+
+### The runs, with the free memory beside each, and every rerun named
+
+| Run                                                                  | Free memory | Result                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--before 06` at `681b1e8`                                           | 3.38 GB     | recorded (every hash equal to `05-after`'s)                                                                                                                                                                                                      |
+| task 2's own: check, lint, quick, sweep                              | -           | 655 / 0 / 0; clean; `94 / 966 (+1 todo)`; `4 19`                                                                                                                                                                                                 |
+| `--after 06 --against 06 --check 655 --js-equal` at `4b1f6e7`        | 1.74 GB     | every term equal; `FAIL: the normalised JS` on the last term - the seven `view.ts` demotions, proved by the counter-build; quick `94 / 966`, JSON reporter                                                                                       |
+| `--after 06-phase --against 01 --check 655` at `4b1f6e7`             | 1.16 GB     | `FAIL: the literal census` by construction (the instrument's baseline); every other term compared by hand from the two `.txt` records and equal, the JSON records equal field by field; quick `94 / 966`, JSON reporter                          |
+| the counter-build (exports restored)                                 | -           | normalised JS `da40f09f…`; the file returned to blob `4fc1a534…`; the final build rebuilt at `4b1f6e7` and its normalised JS `07f50f2a…` equal to both gate runs'                                                                                |
+| c1 (`install`, `session`)                                            | 2.13 GB     | **32 passed** (1.2 m); `install.e2e.ts:1957` (13.2-RESEARCH A.21) green on both engines                                                                                                                                                          |
+| c2 (`browse`, `browse-webkit`)                                       | 2.30 GB     | 1 failed / 21 passed (32.7 s): `browse.e2e.ts:343` "searching and tag chips narrow the grid, and CLEAR FILTERS brings it back" - `toHaveCount(5)` received 26, the filtered grid counted before the filter hydrated                              |
+| c2-alone-343                                                         | 2.38 GB     | **1 passed** (2.7 s), alone on a fresh server                                                                                                                                                                                                    |
+| c3 (`tuning`, `tuning-webkit`)                                       | 2.37 GB     | **21 passed** (22.4 s)                                                                                                                                                                                                                           |
+| c4 (`catalog`, `fidelity`, `first-experience`, `library`, `sandbox`) | 2.42 GB     | **15 passed** (16.9 s); `catalog.e2e.ts` proves a cold catalog load fetches no `glue.wasm`                                                                                                                                                       |
+| c5 (`artifacts`, `radius`, `skeleton`, `smoke`)                      | 2.40 GB     | **11 passed** (11.8 s); layer C STRICT on the twelve routes in both engines                                                                                                                                                                      |
+| the fourth quick run, plain                                          | 2.34 GB     | `94 / 966 (+1 todo)`                                                                                                                                                                                                                             |
+| `radius.spec.ts` alone, verbose                                      | -           | layer A `34 declarations in 65 files scanned; 0 above zero remaining in 0 allowlisted files (); 6 circles (D-15); 28 exempt`; layer B `36 radius declarations in 14 built stylesheets; 6 of them 50%; tolerated values from the allowlist: none` |
+| the sweep at the gate                                                | -           | `4 19`, 127 s wall; 44,846 states in 120.1 s, laddered 8, over budget 0; the kind cross-product 1,296, worst 906 of 908                                                                                                                          |
+
+101 of 101 runs green in a chunk or alone; one rerun, named. Port 4173 answered `000` after every
+stop; `test-results/` removed; the Playwright and wrangler logs in the session scratchpad, outside
+the tree. The one red is the browse hydration race every plan of this phase has named
+(`browse:299 / :343 / :1186 / :1404`, green alone on a fresh server; 13.1-08 and 13.2-05 saw the
+same two titles red in a chunk at 2.3 and 3.78 GB free), and `BrowseGrid.svelte` and
+`BrowseToolbar.svelte` compile identically to their pre-phase form (13.2-05's `svelte/compiler`
+proof), so the shape is not this phase's. The user's dev server on 5173 was not touched.
+
+### Where this phase's planner was wrong
+
+Every figure 13.2-VALIDATION, 13.2-PLAN-CHECK or a PLAN stated that a SUMMARY observed differently,
+stated here rather than corrected quietly:
+
+- **"35 `strip` copies" (13.2-RESEARCH A.5, A.17): 33.** 24 with the three-replace body and 9 with
+  the two-replace body; `radius-allowlist.ts`'s `blankComments` is a third function with different
+  semantics and stayed (13.2-CONTEXT D-13; 01).
+- **"10 dead exports deleted" (A.6, B.1): six.** `cellAt`, `isOnSurface`, `SURPRISE_BUDGET_MS`,
+  `RAIL_FR`, `INTRO_STRIP_H`, `TYPE_SCALE`; four kept by name (D-10; 01).
+- **"`store.keptThisSession` x3 asserted" (A.4): eleven lines** in `install.spec.ts`, ten of them
+  assertions (D-12; 04), and the plan's line numbers for them six high.
+- **The research's totals (193 / 60,710 / 27,480) included `src/app.css`**, which the gate's counter
+  does not walk; the baseline is 192 / 60,539 / 27,267 (01).
+- **"The SCOPED built-CSS hash is the baseline's (Vite strips `<style>` comments)"**: true of
+  `<style>` comments and of `app.css`, false of a header comment that is the ONLY source of a
+  utility carrying a top-level `@property --tw-*` rule (the gate hole below; 05 kept `ease-out`,
+  `sepia` and `invert` in two headers rather than move the hash).
+- **"The census is equal after every plan"**: equal in fact, but the recorded baseline was blind to
+  one component's template (the instrument, above); 05's `--after` and this gate report the term as
+  `FAIL` against the uncorrected records by construction.
+- **"The normalised JS is equal on a comments-only plan"**: true only while the NUMBER of
+  `<!-- -->` comment nodes between two template siblings is kept - Svelte emits one whitespace
+  character per comment node into the built template literal (05 deviation 3; CODE-STYLE section 9).
+- **The gate's `--after` runs the quick suite BEFORE its own build**, so `radius.spec.ts` layer B
+  refuses a build older than the last source edit; 05's second `--after` read `quick exit 1` for
+  that reason, and this plan built on the final tree before each `--after` (deferred-items row 3).
+- **`bash scripts/gate/e2e-chunks.sh c3` does not run chunk c3** (02 deviation 3): a single argument
+  is a chunk NAME plus its files; the whole set runs with no arguments.
+- **`library.ts` "eleven numbered section headings": ten** (02); "sixteen by a strict regex,
+  eighteen by a loose one": fourteen (02); the entries' plan expected classes to leave the
+  utilities with the entries' prose: none left (02, 03 - `ordinal` stayed through
+  `instrument.spec.ts:643` and `:663`).
+- **Plan 06's `--after 06 … --js-equal`** (the orchestrator's line; the plan's own task 3 and
+  13.2-CONTEXT D-09 say recorded, not asserted, on a plan that drops `export`s): the term moved by
+  exactly the seven demotions, proved by the counter-build rather than explained away.
+- **The `view.spec.ts` header** the plan lists among the four to cut was already at eight lines
+  and is untouched; `schedule.ts`, `transport/index.ts` and `tune/idle.ts` likewise.
+- **"the seven routes' headers … `dev/skeleton/+page.svelte`'s `open` at 142 lines is a dev probe"**:
+  the tree's `open` is 142 lines and stays whole, as the plan said; the plan's "three routes over
+  980 lines" are `my-configs` 1,361, `[draftId]` 1,177 and `[id]` 984 before, 1,274 / 1,068 / 840
+  after.
+
+### The gate holes, as observed (13.2-PLAN-CHECK H-1, H-4, H-5, H-6)
+
+- **H-1, the Tailwind utilities layer is a function of the comment vocabulary.** `src/app.css:1` is
+  `@import "tailwindcss" source(".")`, so every token in every file under `src/` - comments and
+  specs included - that spells a utility emits a rule. The gate's CSS term is therefore the SCOPED
+  hash (`css-terms.mjs`, the `@layer properties` and `@layer utilities` blocks removed
+  brace-balanced) plus the utilities list with its markup-named subset asserted intact; the raw
+  hash is recorded and moved once (`row-0`). **The scoped hash is still not fully independent of
+  the vocabulary (13.2-05 deviation 2, deferred row 1):** Tailwind emits one top-level `@property
+--tw-<name>` rule per utility family in use, OUTSIDE both layers, so a utility carrying one
+  (`ease-out` -> `--tw-ease`; `sepia`, `invert`, `blur`, `ordinal`, `tabular-nums`, `ring-*`,
+  `shadow`, `backdrop-filter`, `transform`, `border`, `outline`) whose only source is a comment
+  moves the scoped hash when the comment goes. 05 kept the words where they were still a fact; 06
+  cut no such sole source (the build after each of its tasks printed `44 -> 44, 0 disappeared, 0
+appeared` and the raw hash `174411ee…` unmoved). The classes that left across the phase, by name:
+  **`row-0`** (13.2-01, `calibration.ts:31`'s old comment). 45 -> 44 -> 44 -> 44 -> 44 -> 44 -> 44.
+  The fix that removes the hole - `source(none)` plus `@source "./**/*.svelte"` and `@source
+"./app.html"` in `app.css` - is a visible one-time CSS delta and is 13.2-CONTEXT question 7, not
+  this phase's.
+- **H-4, test titles.** Held by count (`check-counts.mjs`) before 13.2-01 and by the sorted-titles
+  hash (`b53f2d9c…`, vitest JSON plus `playwright --list`) from 01's `--before` on, equal on every
+  record.
+- **H-5, the normalised built JS.** Recorded on every plan; asserted equal on 03 and 05; the four
+  moves attributed above (01, 02's normaliser, 04, 06), the last by counter-build.
+- **H-6, the census's blind spots.** The instrument's own defect (the `<style>` order) is fixed;
+  what the census still does not see, by design, is rule-only ("the template untouched", proved on
+  05 by `svelte/compiler` line for line and on the routes by the stripped-source equality and the
+  gate's JS): backtick literals in markup (six, three of them user-facing in
+  `RegionInspector.svelte`), text nodes that mix prose with `{expr}` (thirteen, e.g.
+  `BrowseToolbar.svelte`'s `Showing {showing} of {total} configurations.`), and the four
+  `data-testid={expr}` attributes. `PadUserCode` is uncovered and unused; the stamp codec is the
+  sweep's (`stamp-roundtrip.sweep.spec.ts`, 44,078 + 234,784 round trips).
+- **The `<!-- -->` node count** (05): a readability edit keeps the NUMBER of template comment nodes
+  between two siblings; merging two moved the JS by one whitespace character in `nodes/0`.
+- **The `dev/<probe>` scan** (`config-shape.spec.ts:304-320`, 13.2-PLAN-CHECK's note on 06): every
+  file under `src/routes/` is scanned RAW for the seven probe directories, only a probe's own
+  directory exempt; 06's route headers describe the siblings ("the install probe", "the fidelity
+  probe") and spell none.
+- **The rule-only refuse items**: "no route gains or loses an import" (the `from` shapes
+  `config-shape.spec.ts` scans on the skeleton page `:251` and the front door `:267`, `:333` are
+  code, stripped, and green), the seven `localStorage` guards kept in place (D-15; `intro.spec.ts`
+  pins the front door's inline), `{#snippet clear()} <Clear /> {/snippet}` (`shell.spec.ts`), the
+  Sandbox header's box arithmetic in `[draftId]/+page.svelte` (13.1 deferred row 12; the measured
+  numbers kept in its `<style>` comments), `lazy.spec.ts`'s dynamic-import spelling in `engine.ts`,
+  `ready.ts` the one module naming the VM package, `transport.ts` naming no engine, and no comment
+  under `src/lib/**/*.ts` spelling an erase, clear or page class outside `descriptors.ts`
+  (`forbidden-instructions.spec.ts` scans comments; 06 grepped before each commit).
+
+### The requirement rows, the ROADMAP row and the checkpoint
+
+**No requirement row moved and none was claimed**: every plan's `requirements` frontmatter is `[]`
+(a refactor claims nothing), `requirements mark-complete` was not run, and `.planning/REQUIREMENTS.md`
+and `.planning/ROADMAP.md` are unedited across the phase (`git diff --quiet` exits 0). **CAT-04
+stays `[ ]` - the ninth decline in a row** (10-06, 10-07, 10-14, 11-16, 12-12, 12.1-09, 13-20,
+13.1-08, and this gate): PROVED, the catalog is still a static set of TypeScript modules with no
+backend, 26 = 8 + 18 at every one of the six plans, no entry string moved (the wire set); NOT
+PROVED, its subject, the SHAPE of the data file, which no plan of this phase touched or claimed.
+
+The ROADMAP row, for whoever updates it: **Phase 13.2 Readability - 6 plans, 6 of 6 landed, the
+gate landed at `4b1f6e7` on 2026-09-14, the checkpoint (13.2-06 task 04, three files read by the
+user) PENDING; not complete until the user answers; no requirement claimed.** The checkpoint asks
+the user to name any three files under `src/` (the per-file table above is the menu; the largest
+cuts - `install.svelte.ts` 490 comment lines gone, `entries/lumen.ts` 472, `entries/morph.ts` 350,
+`entries/wheels.ts` 323, `library.ts` 308, `tune/model.ts` 282, `TuningRegion.svelte` 278,
+`entries/radar-points.ts` 276, `sim/lua-host.ts` 274, `session.svelte.ts` 267, `sim/host.ts` 253 -
+are the best sample), open each at HEAD beside `git show 500e33c:<path>`, and say whether the HEAD
+form reads better and whether anything they relied on in the old comments is now missing (it is in
+the plan SUMMARY that moved it, and in `docs/entries/` for an entry). Saying "approved" records the
+phase as gate landed and reviewed; it ticks no requirement and edits no ROADMAP line. The six
+questions 13.2-CONTEXT could not decide stand for the user: `placeInWords`, `DISCARD_LABEL`, the
+`localStorage` guards, `ColourPicker.svelte:66`'s stale line, the public "keep" API, and
+`buildTuner`'s helpers (plus the seventh, Tailwind's scanner reach).
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

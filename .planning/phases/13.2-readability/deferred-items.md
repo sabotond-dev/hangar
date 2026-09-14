@@ -54,3 +54,34 @@ only what the current task's own files touch).
   `.claude/launch.json`, the three bible files at the root, the `gate/05.*` records) intent-to-add;
   `git reset -- .` undid it the same minute, nothing was committed from it, and the working files
   were never touched. Named so the next reader of the reflog is not surprised.
+
+## From 13.2-06 (2026-09-14), and the rows above closed
+
+- **13.2-04's seven stale-name comment lines: closed.** `src/lib/tune/model.ts`'s six lines
+  (`:234`, `:251`, `:252`, `:261`, `:326`, `:337` at `ccf9cc3`) and
+  `src/routes/dev/install/+page.svelte:91` now read `#systemStringOr` (keyed by the event number);
+  no comment in the tree names `#pageInit`, `#pageTimer`, `#pageUtility`, `keptThisSession`,
+  `askForecast` or `landLua` at all (`grep -rn` over every `.ts` and `.svelte` under `src/`
+  prints nothing).
+- **13.2-05's scoped-CSS `@property` gap: observed, not closed.** 06 cut no comment that was a
+  utility's sole source (the build after each task printed `44 -> 44, 0 disappeared, 0 appeared`,
+  the raw CSS `174411ee` unmoved), so the gap did not bite; it stands as CODE-STYLE section 9's
+  13.2-05 line and TESTING.md's H-1 paragraph. Closing it (strip top-level `@property --tw-*` from
+  the scoped term, or `source(none)` in `app.css`) is 13.2-CONTEXT question 7, the user's.
+- **13.2-05's census baseline: closed by proof, not by rewrite.** The phase gate reports `FAIL: the
+  literal census` against `gate/01.*` by construction; a `git worktree --detach` at `21c5ff8` with
+  the fixed `hash-strings.mjs` copied in measures `6ac1cdf3`, and its JSON is equal to
+  `gate/06-phase-after.strings.json` on every field but `head`. Recorded in TESTING.md.
+- **13.2-05's quick-before-build order in `--after`: worked around, not changed.** 06 ran `npm run
+  build` on the final tree before each `--after`, so layer B never refused. The script is unchanged
+  (a gate script edit at the last plan would itself be unbracketed); for a later phase that reuses
+  it, build first or move the build above the quick suite.
+- **Sixteen spec headers over ten lines that no plan named** (`radius.spec.ts` 45 by D-01's
+  exception, `decay-idiom.spec.ts` 39 by 13.2-02 D-20, `wire-pin.spec.ts` 46, `lua-parity.spec.ts`
+  26, `stamp.spec.ts` 18, `transfer.spec.ts` 18, `query.spec.ts` 16, `ready.spec.ts` 16,
+  `collections.spec.ts` 16, `snapshot.spec.ts` 15, `listing.spec.ts` 14, `surprise.spec.ts` 14,
+  `return.spec.ts` 13, `facets.spec.ts` 12, `typographic.spec.ts` 11, `calibration.spec.ts` 11):
+  outside every plan's file list, left as they are, named in TESTING.md as what the phase did not do.
+- **`library.ts` prints under `--todo` by construction** (header 162: the ten banners kept as a
+  table of contents, CODE-STYLE section 9's 13.2-02 line); a later reader of the `--todo` list
+  should not take it for a missed file.
