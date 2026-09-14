@@ -6,9 +6,11 @@
 // the presence of the secret, removing it means deleting the secret and the
 // run_worker_first flag, not rewriting this file.
 //
-// SITE_USER and SITE_PASSWORD are Worker secrets:
+// Credentials are Worker secrets, locally from .dev.vars (gitignored):
+//   SITE_USER / SITE_PASSWORD   the first account (SITE_USER defaults to "hangar")
+//   SITE_USERS                  further accounts as "user:password,user:password"
 //   npx wrangler secret put SITE_PASSWORD
-// Locally they come from .dev.vars (gitignored).
+//   npx wrangler secret put SITE_USERS
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -40,11 +42,17 @@ function safeEqual(a, b) {
 
 export default {
   async fetch(request, env) {
-    const expectedUser = env.SITE_USER || "hangar";
-    const expectedPass = env.SITE_PASSWORD;
+    const accounts = [];
+    if (env.SITE_PASSWORD) {
+      accounts.push([env.SITE_USER || "hangar", env.SITE_PASSWORD]);
+    }
+    for (const pair of (env.SITE_USERS || "").split(",")) {
+      const at = pair.indexOf(":");
+      if (at > 0) accounts.push([pair.slice(0, at), pair.slice(at + 1)]);
+    }
 
-    // Fail closed: with no secret configured nothing is reachable.
-    if (!expectedPass) return unauthorized();
+    // Fail closed: with no account configured nothing is reachable.
+    if (accounts.length === 0) return unauthorized();
 
     const header = request.headers.get("Authorization") || "";
     if (!header.startsWith("Basic ")) return unauthorized();
@@ -62,10 +70,15 @@ export default {
     const user = decoded.slice(0, split);
     const pass = decoded.slice(split + 1);
 
-    // Evaluate both so a wrong username costs the same as a wrong password.
-    const okUser = safeEqual(user, expectedUser);
-    const okPass = safeEqual(pass, expectedPass);
-    if (!(okUser && okPass)) return unauthorized();
+    // Every account is compared, both halves each time, so a wrong username
+    // costs the same as a wrong password and the account count does not leak.
+    let ok = false;
+    for (const [expectedUser, expectedPass] of accounts) {
+      const okUser = safeEqual(user, expectedUser);
+      const okPass = safeEqual(pass, expectedPass);
+      if (okUser && okPass) ok = true;
+    }
+    if (!ok) return unauthorized();
 
     const asset = await env.ASSETS.fetch(request);
     const res = new Response(asset.body, asset);
