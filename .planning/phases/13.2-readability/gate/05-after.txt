@@ -1,0 +1,127 @@
+# 13.2 gate --after 05 --against 05 --check 655 --js-equal
+HEAD 9bb9c06 (9bb9c067d498871947a26bc136ea4d46402119d2); dirty (src e2e scripts docs) 0; free memory 1.79 GB; 2026-09-14T08:35:11Z
+before-record HEAD ccf9cc3761d88f7caff454e826d8528b590e61b3
+
+## the wire
+1735 strings from 18 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+192 files; 2728 distinct literals (6354 occurrences); 7 copy modules; 320 data-testids
+literal census sha256 6ac1cdf373b4c86f29af1eed0ddc3733f875150d6ce1aa57c4a7a6f834377f99
+copy exports   sha256 10fad0020ce89919548d2dcb586c2160aa01d415d644e27dec0419f13840ffef
+data-testids   sha256 21fc9eb96531a7161ea6e00facb69c1d792a1e534a57b34893225043bf774ce3
+- 2 -> 3	"img"
+- 57 -> 61	"true"
++ 0 -> 1	"Connecting"
++ 0 -> 1	"pad-spinner"
++ 0 -> 1	"spinner"
++ 0 -> 1	"still still-a"
++ 0 -> 1	"still still-b"
++ 0 -> 1	"still still-c"
++ 0 -> 1	"walker"
+
+## the comment lines
+193 files; 48908 lines, 29538 code, 15624 comment, 3746 blank, 5114 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/ui/BrowseGrid.svelte | 532 | 359 | 249 | 76 | 92 | 14 |
+| src/lib/ui/BrowseLink.svelte | 227 | 131 | 132 | 36 | 55 | 14 |
+| src/lib/ui/BrowseToolbar.svelte | 566 | 446 | 174 | 54 | 90 | 15 |
+| src/lib/ui/BudgetMessage.svelte | 223 | 149 | 106 | 32 | 66 | 14 |
+| src/lib/ui/BudgetMeter.svelte | 378 | 222 | 193 | 37 | 81 | 14 |
+| src/lib/ui/CatalogCard.svelte | 450 | 302 | 190 | 42 | 100 | 14 |
+| src/lib/ui/Clear.svelte | 279 | 167 | 148 | 36 | 98 | 14 |
+| src/lib/ui/CopyLink.svelte | 258 | 168 | 119 | 29 | 62 | 14 |
+| src/lib/ui/DestinationZone.svelte | 576 | 444 | 176 | 44 | 117 | 14 |
+| src/lib/ui/DeviceActions.svelte | 121 | 80 | 57 | 16 | 50 | 13 |
+| src/lib/ui/DeviceDetails.svelte | 523 | 368 | 195 | 40 | 104 | 14 |
+| src/lib/ui/DeviceMark.svelte | 85 | 56 | 43 | 14 | 41 | 12 |
+| src/lib/ui/DeviceNote.svelte | 318 | 193 | 157 | 32 | 95 | 14 |
+| src/lib/ui/DeviceSlot.svelte | 392 | 273 | 157 | 38 | 91 | 14 |
+| src/lib/ui/FacetRow.svelte | 252 | 179 | 103 | 30 | 65 | 14 |
+| src/lib/ui/FailureBlock.svelte | 103 | 73 | 48 | 18 | 39 | 13 |
+| src/lib/ui/FidelityLine.svelte | 141 | 107 | 53 | 19 | 34 | 13 |
+| src/lib/ui/KeepConfirm.svelte | 320 | 230 | 116 | 26 | 76 | 14 |
+| src/lib/ui/KnobRack.svelte | 221 | 151 | 102 | 32 | 57 | 14 |
+| src/lib/ui/MidiField.svelte | 341 | 279 | 93 | 31 | 55 | 14 |
+| src/lib/ui/MidiMonitor.svelte | 381 | 324 | 80 | 23 | 57 | 13 |
+| src/lib/ui/MotionControl.svelte | 126 | 100 | 42 | 16 | 35 | 13 |
+| src/lib/ui/PadCanvas.svelte | 87 | 65 | 45 | 23 | 19 | 12 |
+| src/lib/ui/PadFrame.svelte | 191 | 100 | 118 | 27 | 57 | 14 |
+| src/lib/ui/PadSpinner.svelte | 240 | 200 | 60 | 20 | 42 | 14 |
+| src/lib/ui/SessionAnnouncer.svelte | 49 | 26 | 36 | 13 | 36 | 13 |
+| src/lib/ui/StampNotice.svelte | 102 | 65 | 56 | 19 | 40 | 13 |
+| src/lib/ui/Swatch.svelte | 321 | 243 | 120 | 42 | 61 | 14 |
+| src/lib/ui/TagChip.svelte | 150 | 107 | 63 | 20 | 53 | 14 |
+| src/lib/ui/TuningRegion.svelte | 972 | 694 | 390 | 112 | 152 | 15 |
+| src/lib/ui/Wordmark.svelte | 77 | 52 | 41 | 16 | 38 | 13 |
+| src/lib/ui/intro/HeroSurface.svelte | 310 | 247 | 94 | 31 | 59 | 14 |
+| src/lib/ui/intro/Intro.svelte | 408 | 332 | 107 | 31 | 70 | 15 |
+| src/lib/ui/intro/StartCard.svelte | 144 | 121 | 41 | 18 | 31 | 13 |
+| src/lib/ui/library/LibraryTable.svelte | 516 | 483 | 74 | 41 | 44 | 14 |
+| src/lib/ui/library/ResumeBanner.svelte | 169 | 152 | 39 | 22 | 30 | 13 |
+| src/lib/ui/sandbox/ElementList.svelte | 179 | 167 | 29 | 17 | 25 | 13 |
+| src/lib/ui/sandbox/Palette.svelte | 181 | 169 | 30 | 18 | 25 | 13 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 592 | 555 | 65 | 28 | 48 | 15 |
+| src/lib/ui/sandbox/SurfaceActions.svelte | 123 | 93 | 48 | 18 | 38 | 13 |
+| src/lib/ui/sandbox/SurfaceEditor.svelte | 1046 | 916 | 206 | 76 | 103 | 15 |
+| src/lib/ui/shell/ConnectionControl.svelte | 95 | 47 | 65 | 17 | 49 | 14 |
+| src/lib/ui/shell/ContextBar.svelte | 269 | 214 | 82 | 27 | 63 | 15 |
+| src/lib/ui/shell/Footer.svelte | 217 | 173 | 66 | 22 | 53 | 14 |
+| src/lib/ui/shell/Header.svelte | 175 | 128 | 70 | 23 | 45 | 14 |
+| src/lib/ui/shell/Inspector.svelte | 194 | 166 | 55 | 27 | 34 | 14 |
+| src/lib/ui/shell/Nav.svelte | 108 | 98 | 26 | 16 | 22 | 12 |
+| src/lib/ui/shell/Rail.svelte | 283 | 238 | 74 | 29 | 50 | 14 |
+| **totals (193 -> 193 files)** | 52267 | 48908 | 18983 | 15624 | 7302 | 5114 |
+
+48 file(s) moved
+
+## check and lint
+check: 1789374935137 COMPLETED 655 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 94 files, 966 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 9bb9c06
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object a581ef4ce6aae2427e69503f9aaa543a02e33561 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 26 files, 154136 B, sha256 2a9ccf80cda87bdb3db133d52eb961246e726636c288c00311d9d9f077992f57
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 174411ee5293df366ee05becf716a5494ae56d0a1a313d6c46d462f4ebfc3177 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 174411ee5293df366ee05becf716a5494ae56d0a1a313d6c46d462f4ebfc3177
+SCOPED CSS sha256 e296d0af8e89b880cee457fa2bfc5f7ac1af8abf190efd0ceae22ddd4e4f1237
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 da40f09fea7badec9aa2792a39ccd25d1f161af4673f603da12526a67f640f11 (71 files)
+
+## the titles
+TITLES sha256 b53f2d9c9deaaebb833a0d350c2383d2d199db14906196e7c12ca4a38db0f76b (967 vitest titles incl. todo, 101 playwright runs)
+
+## src/ against the before-record's HEAD ccf9cc3761d88f7caff454e826d8528b590e61b3
+git diff --name-status: 60 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against 05
+wire: equal (set a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b, full 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b)
+sandbox set: equal (40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01)
+FAIL: the literal census (e6af80e09d3ddf133752816b38e70bc5ab7293ab9f5536341ed58ae6b4b8c966 -> 6ac1cdf373b4c86f29af1eed0ddc3733f875150d6ce1aa57c4a7a6f834377f99; the -/+ lines above name every literal whose count moved)

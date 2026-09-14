@@ -178,3 +178,16 @@ Later plans add a dated line here only when the rule learned something it did no
   plan's eleven `install.spec.ts` lines all moved by six between the plan and the tree); and a
   private-name rename that a spec's own namespace alias happens to share (`P` in
   `page-target.spec.ts`) is left alone - the grep names it, the rename does not.
+- 2026-09-14 (13.2-05): a `.svelte` template's `<!-- -->` comments are counted by the compiler -
+  Svelte emits one whitespace character into the built template literal per comment node between
+  two siblings, so merging two adjacent template comments into one (or splitting one into two)
+  moves the built JS; a readability edit keeps the NUMBER of comment nodes between two siblings and
+  edits their text only. A `$effect` that holds a value across a phase (the `held` / `heldPhase` /
+  `seenIndex` latches) keeps its one comment: a `$derived` cannot hold a previous value. Tailwind's
+  top-level `@property --tw-*` rules sit OUTSIDE the two layers the scoped CSS hash removes, so a
+  utility that carries one (`ease-out`, `sepia`, `blur`, `shadow`, `ring`, `ordinal`,
+  `tabular-nums`, ...) whose only source is a comment moves the scoped hash when that comment goes
+  - the plan keeps the word where it is still a fact (`DeviceNote.svelte`'s `ease-out`,
+    `PadFrame.svelte`'s `sepia`) and names the scoping gap. And a `<style>` or `<script>` spelled
+    inside a header comment is a trap for any stripper that removes the block before the comment:
+    the census strips `<!-- -->` first since this plan.
