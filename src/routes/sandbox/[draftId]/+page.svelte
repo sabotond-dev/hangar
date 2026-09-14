@@ -1,96 +1,15 @@
 <!--
-  /sandbox/{id}/ - the Sandbox: PDF page 3 on 13-05's shell (plan 13-16;
-  Bible sections 2, 8, 14, 16; BUILD-01, BUILD-02, BUILD-06, BUILD-07,
-  BUILD-08, PREV-04, KEEP-01).
-
-  THREE REGIONS, ALL THE PDF'S. The rail: ADD AN ELEMENT (Palette.svelte),
-  a divider, ON THIS SURFACE (ElementList.svelte), and `+ New surface`
-  pinned. The centre: the eyebrow `SANDBOX / MY PERFORMANCE`, the name with
-  `Rename` beside it and the two-segment `Edit` / `Play` switch at the right
-  of the SAME row (PDF page 3: the name at y 207, the switch's boxes at
-  186-226, centred on the name's line), the sub-line with the persistent
-  mode line under it, then ONE toolbar row - `Undo` and `Redo` left, `Save
-  copy` and `Export as a file` right, four outlined 44px boxes on one
-  baseline (the PDF's row at y 289-323: `Undo` `Redo` left, `Save copy`
-  right; the export is HANGAR's, D-14 Q7, and takes the PDF's shape beside
-  Save copy) - then the plate (SurfaceEditor.svelte) with `ZONA ·
-  CONTINUOUS TOUCH SURFACE` and the element count beneath it. The helper
-  lines LEFT THE ROWS on the fourth bench's round 4b ("all over the place"):
-  the mode line sat under the switch and the export's explanation under its
-  button, so the row's four controls sat at four heights; the PDF draws no
-  helper under the switch and none under the row. The mode line stays
-  visible because section 8 says "a persistent visible mode label", so it
-  is the sub-line's second line; the export's explanation is the button's
-  description alone (sr-only, still its `aria-describedby`). The inspector:
-  RegionInspector.svelte, handed to the shell as a snippet, with the budget
-  meters after its last section.
-
-  ONE MODEL, RENDERED. src/lib/sandbox/editor.ts holds the surface, the
-  selection, the mode, the pending placement, the focus cell, the field
-  states and the history; every component reads the one EditorState value
-  this route keeps in raw state and replaces on every change, and every
-  edit is a method call on the editor. The route owns what the model
-  cannot: the store, the meter, the live preview and the frame.
-
-  THE DRAFT IS SAVED AS IT IS EDITED (section 9; KEEP-01) through 13-06's
-  drafts.ts, debounced a beat behind the keystrokes, under
-  `sandbox:{surface id}`; the context bar's draft clause says `Draft saved
-  locally` once the first write lands, and when the store refuses it says
-  so in one honest line and the session goes on unsaved - no dialog, no
-  error. On return the draft is read back and loaded without a history
-  entry. The first write waits for the first edit, so opening an empty
-  surface leaves no Draft row behind in My configs.
-
-  THE METER IS cost.ts's, MEASURED (13-14, 13-15): after every change,
-  `costOf` measures the emitted Setup, Timer and 255/4 under the pinned
-  minifier at the picker corner and re-measures with representative regions
-  for "room for about M more". It reaches the minifier through await
-  import(), after the plate has painted. `SLOTS` IS 3 SINCE 13-17 (13-CONTEXT
-  D-18, D-19): HANGAR writes 255/4, so the Sandbox emits against the three
-  slots the install lands, and every combination of kinds fits (13-15's
-  measured ceiling) - the PDF's own page 3 included. The two-slot refusal
-  line 13-16 rendered is kept in copy.ts for `slots: 2` and is unreachable
-  from this route; when a string is over 908 here it is the Setup, an
-  element pushed it, and the meter says so in the error ink.
-
-  THE INSTALL IS THE ONE WRITER'S (13-17; D-03; BUILD-03, BUILD-05, SAFE-01
-  to SAFE-09). After every measurement `landSurface` (land.ts) publishes the
-  five strings in the tuner's own shape - the library's two halves, the
-  runtime's 255/4, the packed Timer, the data-half Setup - and the route
-  hands them to `install.observeConfig` exactly as the workspace hands the
-  tuner's; the context bar's destination zone is DestinationZone.svelte -
-  THE ONE COMPONENT BOTH ROUTES MOUNT since 13.1-06 (13.1-CONTEXT D-06):
-  13-12's Target select, `Apply to ZONA` and section 9's `Store on ZONA`,
-  every click the install store's own, a write's failure block beneath.
-  Put back is gone from it by the user's word (D-07); the snapshot is still
-  taken at connect and the store's putBack() is the probe's. Over budget,
-  Apply is disabled before the click and the meter names the cause; nothing
-  reaches the wire (install.spec.ts counts zero frames).
-
-  A SURFACE SHARES AS A FILE (D-14 Q7; section 11): `Export as a file`
-  beside Save copy goes through 13-13's transfer.ts unchanged - the same
-  envelope My configs exports and imports - and a copy opened from My
-  configs (`?from=<record id>`, minted onto a fresh surface id by /sandbox/)
-  lands back on this route.
-
-  PLAY ROUTES THE FINGER TO THE PREVIEW (PREV-04's third reach, after the
-  intro's hero and the workspace). Entering Play builds a Lua engine
-  running the surface's OWN emitted strings under the pinned library
-  (preview.ts), registers it with this page's one SimHost under the plate,
-  and the plate's wrapper hands every pointer sample to the host through
-  touch.ts's mapAxis - tick-locked, one sample per contact per tick, as the
-  workspace does. Structure is locked meanwhile (editor.ts section 3);
-  selection and history survive the round trip and the spec asserts it in
-  both directions. 13-20 decides whether the three reaches close PREV-04.
-
-  KEYBOARD: Ctrl+Z / Cmd+Z undo and Ctrl+Shift+Z / Ctrl+Y redo from
-  anywhere on the page that is not a text field (a field's own undo is the
-  browser's). The plate and the list carry their own models
-  (SurfaceEditor.svelte, ElementList.svelte).
-
-  "Follow hardware selection" is not built: ZONA has one touch element
-  (editor.ts section 3). Nothing on this page writes to a device except
-  through the install store's clicks in the destination zone.
+  /sandbox/{id}/ - the Sandbox: PDF page 3 on the shell (13-16; Bible sections 2, 8, 14, 16;
+  BUILD-01/02/06/07/08, PREV-04, KEEP-01). The rail (Palette, ElementList, `+ New surface`) and
+  the inspector (RegionInspector) are snippets handed to the shell; the centre is the name row with
+  the Edit / Play switch, one toolbar row (Undo, Redo, Save copy, Export as a file) and the plate.
+  One model: src/lib/sandbox/editor.ts holds the surface, selection, mode, focus and history; this
+  route keeps the one EditorState in raw state and owns the store, the meter, the preview and the frame.
+  The draft is saved as it is edited (drafts.ts, debounced, `sandbox:{id}`); the meter is cost.ts's
+  under the pinned minifier with SLOTS 3 (13-17); after every measurement landSurface's five strings
+  go to install.observeConfig, and DestinationZone is the one component both routes mount (13.1-06).
+  Play builds a Lua engine on the surface's own strings and routes the finger through touch.ts's mapAxis, tick-locked.
+  Decided at 13-16 / 13-17 / 13.1-06 (13-CONTEXT D-18, D-19; 13.1-CONTEXT D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -172,13 +91,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  /**
-   * THREE SLOTS SINCE 13-17 (13-CONTEXT D-18, D-19). The emitter, the meter,
-   * the preview and the landing all measure against the slots the install
-   * lands: the touch Timer and the system element's utility (255/4), which
-   * HANGAR writes and PUT BACK restores. 13-16 held this at 2 with the
-   * two-slot refusal rendered; the flip and the write are one commit.
-   */
+  /** Three slots since 13-17 (13-CONTEXT D-18, D-19): the touch Timer and the system element's utility (255/4). */
   const SLOTS = 3 as const;
   const SAVE_DEBOUNCE_MS = 250;
   const MEASURE_DEBOUNCE_MS = 120;
@@ -214,6 +127,7 @@
   let costOfSurface: typeof import("$lib/sandbox/cost").costOf | undefined;
   let landSurface: typeof import("$lib/sandbox/land").landSurface | undefined;
 
+  /** The route's edge to the browser store, one per route (13.2-CONTEXT D-15). */
   function local(): LocalStore | undefined {
     if (!browser) return undefined;
     try {
@@ -269,10 +183,8 @@
   }
 
   /**
-   * The meter and the landing, from one measurement. The landing is withdrawn
-   * the instant the feed goes stale (`observeConfig(undefined)`), so a click
-   * inside the debounce cannot write the previous surface's strings -
-   * 07-RESEARCH Pitfall 5, the tuner's own discipline.
+   * The meter and the landing, from one measurement; the landing is withdrawn the instant the feed
+   * goes stale (`observeConfig(undefined)`) so a click inside the debounce cannot write stale strings.
    */
   async function measure(): Promise<void> {
     measureTimer = undefined;
@@ -319,10 +231,7 @@
     ),
   );
 
-  /**
-   * The over sentence when a string is over 908 - which one, by how much,
-   * the way (land.ts's refusal, first in write order) - or undefined.
-   */
+  /** The over sentence when a string is over 908 (land.ts's refusal, first in write order), or undefined. */
   const refusal = $derived.by((): string | undefined => {
     const r = landing?.refusal;
     if (r === undefined) return undefined;
@@ -466,11 +375,7 @@
     }, CONFIRM_MS);
   }
 
-  /**
-   * Export as a file (D-14 Q7; section 11): the surface as the record shape
-   * 13-13 defined, through transfer.ts's own envelope and download - the
-   * same door My configs opens, and no code of this route's own.
-   */
+  /** Export as a file (D-14 Q7; section 11): the record shape through transfer.ts's own envelope and download. */
   function export_surface(): void {
     if (editor === undefined) return;
     const at = new Date().toISOString();
@@ -534,11 +439,8 @@
   // Mount: the store, the model, the host.
 
   /**
-   * A saved copy, opened from My configs: `?from=<record id>` names a
-   * sandbox record in the library, and its surface is loaded onto THIS
-   * surface id (a fresh one, minted by /sandbox/) so the copy stays a copy
-   * and the first edit writes a draft of its own. A draft under this id
-   * wins over the query, so a return visit resumes the edits.
+   * A saved copy opened from My configs (`?from=<record id>`) is loaded onto THIS fresh surface id, so
+   * the copy stays a copy; a draft under this id wins over the query, so a return visit resumes.
    */
   function fromCopy(store: LocalStore | undefined, id: string) {
     const from = page.url.searchParams.get("from");
@@ -594,9 +496,7 @@
     untrack(() => open(id));
   });
 
-  /* THE DESTINATION ZONE renders while a ZONA is connected (13-12's rule, the
-     workspace's own): without a session the bar says "Preview without
-     hardware" on its own. */
+  /* The destination zone renders while a ZONA is connected (13-12's rule); without a session the bar says so itself. */
   const reportedPage = $derived(session.identity?.activePage);
 
   /* The shell: SANDBOX current, the breadcrumb, the draft's clause, the device's, the destination, the rail and the inspector. */
@@ -983,16 +883,10 @@
     color: var(--color-ink-quiet);
   }
 
-  /* ONE toolbar row (PDF page 3): Undo, Redo left; Save copy and the export
-     right; every box 44 tall on one line. Above 480 of column the row does
-     not wrap: the two transient outcome lines (saved, exported) are the only
-     things that give, shrinking and folding beside their buttons for the
-     four seconds they show, the boxes centred on the row (measured at 1280
-     and 1440: one line beside its button stays one row of 44; both at once
-     make the row 56 for those seconds). They fold anywhere, so a file name
-     never sets the row's minimum and the centre never scrolls sideways
-     (measured at 1024: without this the column slid 55px while both lines
-     showed). */
+  /* ONE toolbar row (PDF page 3): Undo, Redo left; Save copy and the export right; every box 44 tall.
+     Above 480 of column the row never wraps: the two transient outcome lines shrink and fold beside
+     their buttons (measured at 1280 and 1440: one line stays one row of 44, both make it 56 for four
+     seconds), so a file name never sets the row's minimum (measured at 1024: 55px of slide without this). */
   .tools {
     display: flex;
     align-items: center;
@@ -1048,12 +942,8 @@
     }
   }
 
-  /* Under 480 of column (the centre is 372 at 1024, 619 at 1280) an outcome
-     line beside the boxes has no room - the four boxes and their gaps are
-     353 - so for its four seconds the right pair drops to a second line
-     rather than fold to a column of letters. Above 480 the row never wraps
-     and the line folds beside its button. Measured, not the Bible's:
-     Clear.svelte's 480 is the same threshold for the same reason. */
+  /* Under 480 of column (372 at 1024) an outcome line has no room beside the boxes (353 with gaps), so
+     the right pair drops to a second line for its four seconds; Clear.svelte's 480 is the same threshold. */
   @container (width < 480px) {
     .tools {
       flex-wrap: wrap;

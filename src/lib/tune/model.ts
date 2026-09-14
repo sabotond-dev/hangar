@@ -1,59 +1,14 @@
-// The tuning model: descriptors, indices, the immediate preview, the debounced
-// compile, the two meters, the fit-ladder line and the over-budget block.
-//
-// D-18: THIS MODULE IS REACHED ONLY THROUGH `await import("$lib/tune/model")`.
-// It imports the vendored compiler and `$lib/pad`, and NOTHING under
-// `src/lib/ui/` may name it in a static import - not even `import type`.
-// `src/lib/config-shape.spec.ts` test 13 is what enforces that: it strips
-// comments from every non-spec file under `src/lib/ui/` and fails on any
-// `from "..."` specifier containing `vendor`, `intechstudio` or `lib/pad`,
-// matching the SPECIFIER TEXT rather than the binding, so a type-only import
-// fails it exactly as a value import would. The module a component may name
-// instead is `src/lib/tune/view.ts`, which imports nothing at all and carries
-// the types, the widget rule and the meter arithmetic.
-//
-// THE PADSIM PREVIEW IS BUILT HERE, from `../../vendor/botor/pad-sim`, and that
-// is the one place this module reaches past `$lib/pad`. Two deliberate absences
-// meet at this line and neither is a gap to route around:
-//
-//   - `src/lib/pad/index.ts` re-exports only the MEASURING surface, all of it
-//     behind `padReady()`. It does not re-export `PadSim`, because `PadSim`
-//     takes a `PadState` and never Lua and must never wait on 628 KB of WASM to
-//     draw a frame.
-//   - `createEngine` (`src/lib/sim/engine.ts:95-96`) deliberately IGNORES
-//     compiler knobs. A padsim entry's knobs move a `PadState`, which is this
-//     phase's job, so `createEngine` refuses to half-apply them.
-//
-// So the immediate-preview route constructs its own `PadSim` from the applied
-// state. `src/lib/sim/engine.ts:42` already imports that exact specifier
-// statically, so this is the house pattern rather than a new one, and it is NOT
-// the Lua VM - `src/lib/sim/lazy.spec.ts` guards `wasmoon`, not `pad-sim`. It
-// costs Phase 4's chunk guards nothing either: `model.ts` is never statically
-// imported from `src/lib/ui/`, the UI reaches it through a dynamic import that
-// gets its own chunk and is not preloaded, so `config-shape.spec.ts` tests 13
-// and 14 stay green with this import in place.
-//
-// THE LUA WRAPPER IS IMPORTED DYNAMICALLY, for the reason `engine.ts` states in
-// full: a static `from "../sim/lua-pad-sim"` would put the Lua VM's module
-// graph - and with it the fingerprinted glue.wasm URL - into this module's
-// chunk, for a route most visitors never take.
-//
-// THE ONE SYNCHRONOUS MEASUREMENT, and why it exists. `surpriseIndices` takes a
-// SYNCHRONOUS `fits` predicate, because a bounded re-roll cannot be written
-// against an async one without either duplicating the bound in two files or
-// making the roll unbounded in time. `$lib/pad`'s surface is async by
-// construction - every entry point awaits the FOUND-05 gate - so `surprise()`
-// awaits `padReady()` FIRST, through that same surface, and only then calls the
-// vendored `compile`/`fits` synchronously inside the predicate. The gate's
-// invariant is untouched: nothing measures before the formatter is initialised.
-// `fitsAfterGate` below is the only place in HANGAR that calls a vendored
-// measuring function without an await in front of it, and its name is the
-// precondition.
-//
-// NOTHING HERE GOES INTO A SVELTE RUNE. This module returns plain objects and
-// plain engines. A component may put the VIEW in a rune because it is scalars
-// and strings; the engine it receives goes straight to `SimHost` and never into
-// `$state`.
+// The tuning model: descriptors, indices, the immediate preview, the debounced compile, the two
+// meters, the fit-ladder line and the over-budget block. Reached ONLY through
+// `await import("$lib/tune/model")`: it imports the vendored compiler and `$lib/pad`, and nothing
+// under `src/lib/ui/` may name it in a static import, not even `import type` (config-shape.spec.ts
+// test 13 matches the specifier text); a component names `tune/view.ts` instead, which imports nothing.
+// The PadSim preview is built here from `../../vendor/botor/pad-sim` (the one place this module
+// reaches past `$lib/pad`, which re-exports only the measuring surface); the Lua wrapper and the
+// touch library arrive by dynamic import. `fitsAfterGate` is the one synchronous vendored measurement
+// in HANGAR, called only after `padReady()`. Nothing here goes into a Svelte rune: plain objects and
+// plain engines; the engine a component receives goes straight to `SimHost`.
+// Decided at 05-04 (05-CONTEXT D-18) / 10-10 / 12.1-08b; see .planning/phases/12.1-gradient-touch/12.1-08b-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -105,15 +60,9 @@ import {
 } from "./view";
 
 /**
- * The recompile debounce.
- *
- * MEASURED, not guessed: `compile() + cost()` is 1.1-4.0 ms in node
- * (starfield 1.13, pinwheel 1.15, faders 1.73, radar 1.87, joystick 2.23,
- * dial 2.54, aurora 2.79, ninepads 2.81, tpad 3.99) and `cost()` crosses the
- * WASM boundary twice. A slider drag emits thirty changes a second; this
- * collapses one into one compile and is generous. The PREVIEW is not debounced
- * at all - `PadSim` takes a `PadState` and rebuilds in microseconds (D-05,
- * D-06).
+ * The recompile debounce. Measured: `compile() + cost()` is 1.1-4.0 ms in node and `cost()` crosses
+ * the WASM boundary twice; a slider drag emits thirty changes a second. The preview is not debounced:
+ * `PadSim` takes a `PadState` and rebuilds in microseconds (D-05, D-06).
  */
 export const COMPILE_DEBOUNCE_MS = 120;
 
@@ -142,14 +91,8 @@ export type OverBudgetView = {
 };
 
 /**
- * What a choice WOULD cost, published before it is made (TUNE-02, T2).
- *
- * Both events, because the rack has two meters and each draws its own ghost,
- * and both deltas, because a signed number is the only form in which "what
- * would this cost" is answerable in one glance. The deltas are measured
- * against the SAME function that measured the forecast - never against the
- * published meter numbers - so a Lua entry's forecast is never a compiler
- * measurement minus a minifier one.
+ * What a choice WOULD cost, published before it is made (TUNE-02, T2): both events, both deltas,
+ * measured against the SAME function that measured the forecast, never against the published meters.
  */
 export type ForecastView = {
   knobId: string;
@@ -174,24 +117,16 @@ export type Tuner = {
   reset(knobId: string): void;
   resetAll(): void;
   /**
-   * The roll. `held` names the knobs the visitor has locked (T1) and is the
-   * caller's ephemeral state - the tuner never stores it, so it can never
-   * reach `encodeFor` and the stamp is a function of the indices alone.
-   *
-   * RESOLVES TO THE VECTOR THE ROLL REPLACED (13-10, Bible section 7's
-   * "Undo randomize"): a copy of every index as it stood the moment before
-   * the draw, or undefined when nothing was rolled (destroyed). The region
-   * keeps exactly one of these and hands it to `restore`. It is not a
-   * history and the tuner keeps none.
+   * The roll. `held` names the knobs the visitor has locked (T1) and is the caller's ephemeral state -
+   * never stored here, so it can never reach `encodeFor`. Resolves to a copy of every index as it stood
+   * before the draw (13-10, "Undo randomize"), or undefined when nothing was rolled; not a history.
    */
   surprise(
     held?: ReadonlySet<string>,
   ): Promise<Readonly<Record<string, number>> | undefined>;
   /**
-   * Every knob to the position the vector names, in one move and one
-   * recompile - Undo randomize's whole mechanism. A position outside a
-   * knob's range, or a knob the vector does not name, is that knob's
-   * default, the way a decoded stamp is treated.
+   * Every knob to the position the vector names, in one move and one recompile; a position outside a
+   * knob's range, or a knob the vector does not name, is that knob's default (as a decoded stamp is).
    */
   restore(indices: Readonly<Record<string, number>>): void;
   /** Undefined at the defaults: a URL with no fragment IS the base configuration. */
@@ -200,71 +135,16 @@ export type Tuner = {
 };
 
 /**
- * The exact bytes a write would put on the wire, beside the numbers that
- * measured them (07-CONTEXT D-17).
- *
- * D-10's pin, and why these are never compressed on the way out. `cost()`
- * budgets each event as `Math.max(measure(lua), lua.length) + reserved`, and
- * the uncompressed figure is the larger by exactly one character per action -
- * the space after each `]]` the minifier deletes. So with the shipped reserve
- * of 0 / 0, `setup.length === cost().setup.used` for every preset, both events,
- * zero mismatches (07-RESEARCH, the measurement that pins D-10;
- * src/lib/device/wire-pin.spec.ts holds it across every catalog entry). The
- * strings therefore go on the wire verbatim: the written length IS the meter,
- * and the module's own compressed-length check has one character of slack per
- * action. A Lua entry's rendered text is already a fixed point of the
- * compressor (lua-entries.sweep.spec.ts test 1), so both routes agree.
- */
-/**
- * `system` IS NOT METERED AND DOES NOT MOVE WITH A KNOB (Phase 12, 12-03). It
- * is the string the page-init slot (element 255, event 0) is written with, and
- * it is published beside the pair so that the install store has one wire shape
- * for every entry.
- *
- * EVERY CARD LANDS THE TOUCH LIBRARY SINCE 12.1-08b, and this is the type that
- * carries it. A hand-authored entry lands `TOUCH_LIBRARY`
- * (`src/lib/catalog/library.ts`) since 12-07, because from 12-08 on its Setup
- * calls that library by name and a module without it would raise on the first
- * finger. A PRESET lands the same string since 12.1-08b (12.1-CONTEXT D-26
- * item 2, D-27): its state carries the library's knots (`touchLibrary`, set
- * by `src/lib/catalog/presets.ts`), so the vendored compiler emits `K`, `G`
- * and `N` calls into the library and a module without it would raise on the
- * first finger exactly as a hand-authored entry's would. From 12-03 until
- * 12.1-08b a preset published the EMPTY STRING here - "this entry has no page
- * init of its own" - and `install.svelte.ts`'s `#pageInit` substituted the
- * firmware default in ONE place; that substitution stays where it is, because
- * this module may not know a firmware default (`src/lib/tune/ladder.spec.ts:275`
- * refuses `lib/protocol` to every file under `src/lib/tune/`, and a firmware
- * default is a wire fact), but it is CLEAR's alone now and no landing reaches
- * it. What the two landings publish is pinned by `src/lib/device/wire-pin.spec.ts`
- * tests 1 and 2, and what reaches the wire by its test 3.
- *
- * It is NOT part of the 908 budget either: the two meters measure the touch
- * element's two events, which are what the visitor's knobs move.
- *
- * `systemTimer` IS THE FOURTH STRING (Phase 12.1, 12.1-07), the system
- * element's Timer slot (255/6), and it follows `system`'s rules to the letter:
- * not metered, not moved by a knob, published beside the pair on every
- * landing, `TOUCH_LIBRARY_TIMER` - the library's second half, which 255/0's
- * `self:tim()` arms (12.1 D-03) - for every card since 12.1-08b (a preset
- * published the empty string here from 12.1-07 until then, and
- * `install.svelte.ts`'s `#pageTimer` substituted `SYSTEM_DEFAULT_TIMER` beside
- * `#pageInit`; CLEAR's alone now, likewise). The keys are in write order
- * (sequence.ts SLOTS), though the writer owns that order and not this type.
- *
- * `systemUtility` IS THE FIFTH STRING (Phase 13, plan 13-17; 13-CONTEXT D-18
- * and D-19), the system element's utility slot (255/4), on `system`'s terms
- * once more: not metered, not moved by a knob, published beside the pair on
- * every landing. A catalog entry - Lua or preset - has NO utility body of its
- * own and publishes the EMPTY STRING here, exactly as every entry published
- * `system` from 12-03 until the library existed; `install.svelte.ts`'s
- * `#pageUtility` substitutes the firmware's own page-next
- * (`SYSTEM_DEFAULT_UTILITY`) in ONE place before any write, so under a
- * catalog configuration the module's utility button still turns the page. A
- * Sandbox surface (`src/lib/sandbox/land.ts`) publishes its runtime's second
- * slot here - the third producer of this shape - and the store cannot tell
- * the two apart, which install.spec.ts asserts. The option below exists for
- * `/dev/install/`'s fifth textarea, as `systemTimer` does for its fourth.
+ * The exact bytes a write would put on the wire, beside the numbers that measured them (07-CONTEXT
+ * D-17), in write order (sequence.ts SLOTS; the writer owns that order). Never compressed on the way
+ * out: `cost()` budgets `Math.max(measure(lua), lua.length) + reserved`, and with the shipped reserve
+ * `setup.length === cost().setup.used` on every preset (D-10; wire-pin.spec.ts holds it). `system`
+ * (255/0), `systemTimer` (255/6) and `systemUtility` (255/4) are metered by nothing and move with no
+ * knob: every card lands the touch library's two halves since 12.1-08b, and no catalog entry has a
+ * utility body, so the empty string is published there and the install store's `#systemStringOr`
+ * substitutes the firmware default in one place per slot, keyed by the event number (this module may
+ * not know a firmware default: ladder.spec.ts refuses `lib/protocol` to every file under `src/lib/tune/`).
+ * A Sandbox surface (`sandbox/land.ts`) is the third producer of this shape; wire-pin.spec.ts tests 1-3 pin what lands.
  */
 export type ConfigStrings = {
   readonly systemTimer: string;
@@ -284,60 +164,26 @@ export type TunerOptions = {
   onladder(ladder: LadderView | undefined): void;
   onover(over: OverBudgetView | undefined): void;
   /**
-   * The compiled pair, emitted with every settled measurement, and UNDEFINED
-   * the instant the feed goes stale - which is what makes "the debounce cannot
-   * land a new compile between the click and the write" a structural property
-   * rather than a race (07-RESEARCH Pitfall 5). Optional, so every existing
-   * caller and every existing test is unchanged.
+   * The compiled pair, emitted with every settled measurement, and UNDEFINED the instant the feed goes
+   * stale - so the debounce cannot land a new compile between the click and the write (07-RESEARCH Pitfall 5).
    */
   onconfig?(config: ConfigStrings | undefined): void;
   /**
-   * THE PAGE-INIT STRING THIS ENTRY WANTS (element 255, event 0), published
-   * verbatim on every landing and metered by nothing.
-   *
-   * ABSENT MEANS "this entry has no page init of its own", and the empty
-   * string is what gets published - NOT the firmware default, because THIS
-   * MODULE MAY NOT KNOW IT. `src/lib/tune/ladder.spec.ts:275` scans every file
-   * under `src/lib/tune/`, comment-stripped, for `lib/protocol`,
-   * `lib/transport`, `lib/device` and the transport write, and asserts the
-   * offender list is empty - the structural half of "nothing in the tuning
-   * model can reach a port". A firmware default is a wire fact and it lives
-   * behind that line; `src/lib/device/install.svelte.ts`, which already
-   * resolves the protocol module lazily inside an action, substitutes its own
-   * `SYSTEM_DEFAULT_SETUP` for an empty string before any write, in ONE place.
-   *
-   * SINCE 12-07 THE LUA ROUTE NO LONGER NEEDS THIS OPTION and no longer
-   * publishes the empty string: `measureLuaRoute` lands the touch library for
-   * every hand-authored entry, so the substitution above stops firing for them.
-   * SINCE 12.1-08b THE PRESET ROUTE DOES NOT EITHER: `measurePadsim` lands the
-   * same two strings, because a preset's state carries the library's knots
-   * and its compiled handler calls the library by name. The option stays, and
-   * it still WINS where it is given, because `/dev/install/`'s third textarea
-   * is the site's only route for pasting an arbitrary page init at a module
-   * and 12-03 built it to be exactly that.
+   * The page-init string this entry wants (255/0), published verbatim and metered by nothing. Absent
+   * means "none of its own": both routes then land `TOUCH_LIBRARY` (the Lua route since 12-07, the
+   * preset route since 12.1-08b). An explicit value wins, for the install probe's textarea - the site's
+   * only route for pasting an arbitrary page init at a module.
    */
   systemSetup?: string;
   /**
-   * THE SYSTEM TIMER STRING THIS ENTRY WANTS (element 255, event 6), the
-   * fourth string (12.1-07), under exactly `systemSetup`'s rules: published
-   * verbatim on every landing, metered by nothing, ABSENT meaning "none of
-   * its own" and the empty string published for it - never the firmware
-   * default, which this module may not know (`ladder.spec.ts:275`;
-   * `install.svelte.ts`'s `#pageTimer` substitutes `SYSTEM_DEFAULT_TIMER` in
-   * ONE place). Both routes land `TOUCH_LIBRARY_TIMER` when this is not
-   * given, as they land `TOUCH_LIBRARY` for `systemSetup` (the Lua route since
-   * 12.1-07, the preset route since 12.1-08b); an explicit value wins on both,
-   * for `/dev/install/`'s fourth textarea (12.1-08).
+   * The system timer string this entry wants (255/6; 12.1-07), under `systemSetup`'s rules: absent
+   * lands `TOUCH_LIBRARY_TIMER` on both routes; an explicit value wins, for the install probe's textarea.
    */
   systemTimer?: string;
   /**
-   * THE UTILITY STRING THIS ENTRY WANTS (element 255, event 4), the fifth
-   * string (13-17), under `systemSetup`'s rules with one difference: NO
-   * catalog entry has one, so ABSENT means the empty string is published
-   * and the install store's `#pageUtility` substitutes the firmware's own
-   * page-next before any write. An explicit value wins, for `/dev/install/`'s
-   * fifth textarea. The Sandbox does not come through this option: its
-   * landing (`src/lib/sandbox/land.ts`) publishes the same five keys itself.
+   * The utility string this entry wants (255/4; 13-17), under `systemSetup`'s rules with one difference:
+   * no catalog entry has one, so absent publishes the empty string and the install store substitutes
+   * the firmware's page-next. The Sandbox publishes its five keys itself (`sandbox/land.ts`).
    */
   systemUtility?: string;
   /**
@@ -348,25 +194,17 @@ export type TunerOptions = {
 };
 
 /**
- * The single decision point for whether the ladder runs at all.
- *
- * `fit()` compiles once per ladder step, so it is N+1 minifier calls and must
- * never run on a knob change. Per the phase's headline finding it is also never
- * true in practice - 16,645 reachable states, zero over 908 - which is exactly
- * why the branch has to be one named function with one call site rather than a
- * condition repeated wherever it felt convenient.
+ * The single decision point for whether the ladder runs at all: `fit()` compiles once per ladder step
+ * (N+1 minifier calls) and must never run on a knob change; never true in practice
+ * (reachability.sweep.spec.ts), which is why it is one named function with one call site.
  */
 export function needsLadder(cost: PadCost): boolean {
   return !cost.fits;
 }
 
 /**
- * The synchronous fit test, and the ONE place HANGAR calls a vendored measuring
- * function without an await in front of it.
- *
- * PRECONDITION: `padReady()` has already resolved. Every caller below awaits it
- * through `$lib/pad` first. See the module comment for why a synchronous
- * predicate is required at all.
+ * The synchronous fit test, and the ONE place HANGAR calls a vendored measuring function without an
+ * await in front of it. PRECONDITION: `padReady()` has resolved; every caller awaits it through `$lib/pad` first.
  */
 function fitsAfterGate(state: PadState, reserved: PadReserved | undefined) {
   return vendorFits(vendorCompile(state), reserved);
@@ -393,10 +231,8 @@ function positionOf(
 }
 
 /**
- * One option, resolved for display. TOTAL, in the same sense `widgetFor` is:
- * a word if the kind has one, a swatch name if it is a colour, the raw integer
- * if every option on the knob is one, and a position otherwise. Never a Lua
- * literal that a visitor would have to decode.
+ * One option, resolved for display - total, as `widgetFor` is: a word if the kind has one, a swatch
+ * name for a colour, the raw integer if every option is one, a position otherwise. Never a Lua literal.
  */
 function valueView(
   kind: KnobKindName,
@@ -421,25 +257,10 @@ function valueView(
 }
 
 /**
- * The 4,096 resolved colour views, built ONCE and shared.
- *
- * THE WINDOW IS GONE AND THIS IS WHAT REPLACES IT (plan 10-10). Between 10-08
- * and 10-10 a lattice colour knob was shown as a two-swatch WINDOW - where the
- * card ships and where the visitor is - because `Knob.svelte`'s swatch row
- * draws one element per option and 4,096 radio inputs was not a slow row but a
- * broken panel: measured on /dev/tune/, the row overflowed and intercepted the
- * pointer events of RESET ALL, SURPRISE ME and COPY LINK, and thirteen of the
- * twenty tuning e2e tests went red. `ColourPicker.svelte` draws forty-eight
- * detents instead of 4,096 options, so the window and `KnobView.positions` and
- * `SWATCH_ROW_MAX` all went with it.
- *
- * What did NOT go away is the cost of MATERIALISING 4,096 views, and that is
- * why this is a module-scope cache rather than a map inside `knobViews`. Every
- * colour-bearing preset offers the same 4,096 literals in the same order
- * (`knobs.preset.ts` builds them once from `colourAt`), so the resolved views
- * are the same list too - and resolving them per emit would run `swatchName`'s
- * HSL arithmetic 4,096 times on every knob turn, inside a debounce window
- * whose whole purpose is to keep a drag cheap.
+ * The 4,096 resolved colour views, built ONCE and shared: every colour-bearing preset offers the same
+ * 4,096 literals in the same order (`knobs.preset.ts`), and resolving them per emit would run
+ * `swatchName`'s HSL arithmetic 4,096 times on every knob turn. The two-swatch window,
+ * `KnobView.positions` and `SWATCH_ROW_MAX` went with ColourPicker.svelte's forty-eight detents (10-10).
  */
 let latticeViews: readonly KnobValueView[] | undefined;
 
@@ -507,14 +328,9 @@ const budgetWord = (events: OverBudgetView["events"]): BudgetEvents =>
   events === "both" ? "Setup and Timer" : eventWord(events);
 
 /**
- * The entry, or a named throw. The closures below need a narrowed local.
- *
- * THE SHELF IS THE FALLBACK, AND ONE CARD USES IT. Since plan 12-10 the `tpad`
- * preset is on HANGAR's shelf but not in the catalog - the hand-authored
- * TRACKPAD replaced it as the card - while /dev/tune/ and ladder.spec.ts still
- * mount it as the compiler's over-budget fixture, the only card whose knob
- * band straddles 908. `portedEntry` builds the entry the catalog used to hold;
- * an id on neither the catalog nor the shelf still throws, by name.
+ * The entry, or a named throw. The shelf is the fallback since 12-10: `tpad` is on HANGAR's shelf but
+ * not in the catalog (TRACKPAD replaced it as the card) and the tune probe and ladder.spec.ts still
+ * mount it as the over-budget fixture, through `portedEntry`; an id on neither still throws, by name.
  */
 function entryFor(id: string): CatalogEntry {
   const found = byId(id) ?? portedEntry(id);
@@ -525,48 +341,26 @@ function entryFor(id: string): CatalogEntry {
 export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   const entry = entryFor(options.entryId);
 
-  // THE PAGE-INIT STRING THIS ENTRY WANTS, or the empty string meaning "none
-  // of its own". Read once, here, so `land()` stays SYNCHRONOUS - putting a
-  // real asynchronous boundary in the middle of a landing stops the preset
-  // route landing at all under the fixed microtask hops model.spec.ts and
-  // wire-pin.spec.ts wait on, which is measured rather than guessed.
+  // The page-init string, or the empty string meaning "none of its own". Read once here so `land()`
+  // stays synchronous under the fixed microtask chain model.spec.ts and wire-pin.spec.ts await (12.1-08b).
   const system = options.systemSetup ?? "";
   // The fourth string, on the same terms (12.1-07).
   const systemTimer = options.systemTimer ?? "";
-  // The fifth (13-17): no catalog entry has a utility body, so the empty
-  // string is published and the install store substitutes the firmware's
-  // page-next in one place - 12-03's placement, one slot over.
+  // The fifth (13-17): no catalog entry has a utility body; the install store substitutes the firmware's page-next.
   const systemUtility = options.systemUtility ?? "";
-  // THE TOUCH LIBRARY, RESOLVED ONCE PER TUNER AND AHEAD OF THE FIRST
-  // MEASUREMENT (12.1-08b). Both routes land it now - the Lua route since
-  // 12-07 / 12.1-07, the preset route since 12.1-08b - so it is read here,
-  // where `land()` can stay SYNCHRONOUS on the preset route: the first
-  // landing runs through the fixed promise chain model.spec.ts and
-  // wire-pin.spec.ts flush with a fixed number of microtask hops, and an
-  // `await import()` in the middle of `measurePadsim` would put a real
-  // asynchronous boundary inside that chain. Dynamic, never static, for the
-  // same discipline as `renderLua` below, and memoised by the module system;
-  // `buildTuner` is itself reached through a dynamic import from the UI, so
-  // the catalog's first paint still carries neither string.
+  // The touch library, resolved once per tuner and ahead of the first measurement: read here so `land()`
+  // stays synchronous on the preset route (12.1-08b). Dynamic, never static, as `renderLua` below.
   const { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } = await import(
     "../catalog/library"
   );
-  // An explicit `systemTimer` or `systemSetup` still wins: /dev/install/'s
-  // fourth and third textareas are the site's only route for pasting an
-  // arbitrary library at a module, and 12-03 built it to be exactly that.
+  // An explicit `systemTimer` or `systemSetup` still wins: the install probe's textareas paste an arbitrary library.
   const landedSystem = system === "" ? TOUCH_LIBRARY : system;
   const landedSystemTimer =
     systemTimer === "" ? TOUCH_LIBRARY_TIMER : systemTimer;
 
-  // The two routes, resolved once, THROUGH THE STAMP'S OWN RESOLVERS. A
-  // `state`-kind source is compiler driven and has no descriptor table of its
-  // own, so it exposes no knobs and still gets both meters - a true answer
-  // rather than an invented rack.
-  //
-  // These two calls used to be inline. They are the stamp module's now because
-  // `encodeFor` has to encode against EXACTLY the knobs the rack shows, in the
-  // same order: two copies of the rule agreeing today is not the same property
-  // as one copy that cannot disagree.
+  // The two routes, resolved once, through the stamp's own resolvers (`encodeFor` must encode against
+  // exactly the knobs the rack shows, in the same order). A `state`-kind source exposes no knobs and
+  // still gets both meters.
   const tuned: readonly PresetKnob[] = compilerKnobs(entry);
   const knobs: readonly KnobDescriptor[] = stampKnobs(entry);
 
@@ -588,53 +382,27 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   let inBudget: { setup: number; timer: number } | undefined;
   /** The most recently moved knob since the last in-budget measurement. */
   let moved: { knob: PresetKnob; from: number } | undefined;
-  /**
-   * A state the ladder resolved, held until the next knob moves.
-   *
-   * TUNE-04 offers and never applies, so this is only ever set by the visitor
-   * clicking TURN IT DOWN. Everything else derives the state from the indices,
-   * which is the property that keeps the preview showing exactly what the knobs
-   * describe.
-   */
+  /** A state the ladder resolved, held until the next knob moves; set only by TURN IT DOWN (TUNE-04 offers, never applies). */
   let resolved: PadState | undefined;
   let engine: SimEngine | undefined;
   /**
-   * The engine most recently handed to the consumer. OWNERSHIP TRANSFERS AT
-   * `onpreview`: from that moment the row holds it in its session engines map
-   * and `SimHost` is painting it, so `destroy()` closing it would blank a live
-   * pad. On a Lua detail page whose row is one entry, that pad is the only one
-   * there (05.1-CONTEXT D-18).
-   *
-   * `swapEngine` already closes the PREVIOUS engine after the handover, so
-   * nothing leaks: at most one live engine per tuner, and it is the one the row
-   * is using. The engine `destroy()` may still close is the other kind - one
-   * built for a measurement that went stale before it was ever published.
+   * The engine most recently handed to the consumer. Ownership transfers at `onpreview`: the row holds
+   * it and `SimHost` paints it, so `destroy()` never closes it; `swapEngine` closes the PREVIOUS engine
+   * after the handover, so at most one live engine per tuner.
    */
   let published: SimEngine | undefined;
   /**
-   * The share payload, RECOMPUTED EAGERLY rather than on demand.
-   *
-   * That precomputation is what makes COPY LINK gesture-safe: Safari expires
-   * the transient user activation across an `await`, so the click handler must
-   * contain no `await` before `navigator.clipboard.writeText`. `encodeFor` is
-   * pure string and state arithmetic - it never crosses the WASM boundary - so
-   * recomputing it on every emit costs microseconds and removes a whole class
-   * of "the copy silently did nothing on iOS" bug.
+   * The share payload, recomputed eagerly: COPY LINK's click handler may contain no `await` before
+   * `navigator.clipboard.writeText` (Safari expires the activation), and `encodeFor` never crosses the WASM boundary.
    */
   let payload: string | undefined;
   /**
-   * THE FORECAST'S MEMO, keyed on the index vector.
-   *
-   * A vector's cost is a pure function of the vector, so a hit never goes
-   * stale and never needs invalidating - which is what lets a re-hover publish
-   * on the same tick rather than through the debounce. The cap exists because
-   * a visitor sweeping a word row for a minute is otherwise an unbounded map;
-   * at the cap the whole memo is dropped rather than evicted one entry at a
-   * time, because an LRU here would be more code than the thing it protects.
+   * The forecast's memo, keyed on the index vector; a vector's cost is pure, so a hit never goes stale.
+   * At the cap the whole memo is dropped rather than evicted one entry at a time.
    */
   const forecasts = new Map<string, { setup: number; timer: number }>();
   const FORECAST_MEMO_MAX = 512;
-  /** The debounce for a MISS. A hit does not use it. See `askForecast`. */
+  /** The debounce for a MISS; a hit does not use it (`forecast` below). */
   let forecastPending: ReturnType<typeof setTimeout> | undefined;
   /** What was last asked for, so a late answer to an old hover is dropped. */
   let forecastAsk: string | undefined;
@@ -659,21 +427,10 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     knobs.map((knob) => at[knob.id]).join(",");
 
   /**
-   * THE FORECAST'S ONE MEASUREMENT, AND IT IS `cost()`, NEVER `fit()`.
-   *
-   * `fit()` compiles once per ladder step - N+1 minifier calls, roughly 4.4 ms
-   * on a state that already fits - so forecasting the n options of a knob
-   * through it would be n times that on a pointer path. `cost()` is one
-   * compile and one measurement, 1.1-4.0 ms once and then free from the memo,
-   * and it answers the only question the forecast asks: where would the two
-   * numbers land. `model.spec.ts` holds `fitState` to its single call site
-   * inside `needsLadder`'s branch, which is what stops this function quietly
-   * acquiring a ladder later.
-   *
-   * Both routes measure exactly what `land()` measures for the same vector -
-   * the compiler route through compileState + costOf, the Lua route through
-   * renderLua + measureLua - so a forecast and the landing that follows it
-   * cannot disagree.
+   * The forecast's one measurement, and it is `cost()`, never `fit()`: one compile and one measurement,
+   * then free from the memo, where `fit()` is N+1 minifier calls (model.spec.ts holds `fitState` to its
+   * single call site inside `needsLadder`'s branch). Both routes measure exactly what `land()` measures
+   * for the same vector, so a forecast and the landing that follows it cannot disagree.
    */
   async function costFor(
     at: Readonly<Record<string, number>>,
@@ -767,13 +524,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   }
 
   /**
-   * A landing publishes the numbers AND the strings they were measured from,
-   * in that order, from one call. The set is a parameter rather than a module
-   * variable emit() could read, so no path can publish numbers without the
-   * bytes behind them and no stale emit can republish an old set (D-17).
-   *
-   * `numbers` still carries TWO figures, and that is the point: `config.system`
-   * is published on the same call and metered by nothing.
+   * A landing publishes the numbers AND the strings they were measured from, from one call; the set is
+   * a parameter, so no path can publish numbers without the bytes behind them (D-17).
    */
   function land(setup: number, timer: number, config: ConfigStrings): void {
     numbers = { setup, timer };
@@ -803,11 +555,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
         ? overBudgetArrivedBoth(setupBy, timerBy)
         : overBudgetArrived(word, by);
 
-    // The back-off resolves in one order: put the visitor's own knob back if
-    // there is a knob and a number to put it back to, else apply the compiler's
-    // first step. When fit() is blocked and no knob moved there is genuinely
-    // nothing to offer, and saying so with an empty control is honest where
-    // inventing one would not be.
+    // The back-off in one order: the visitor's own knob back if there is one and a number to put it
+    // back to, else the compiler's first step; nothing when fit() is blocked and no knob moved.
     const at = event === "setup" ? inBudget?.setup : inBudget?.timer;
     const saved = event === "setup" ? step?.saves.setup : step?.saves.timer;
     const backOff =
@@ -859,12 +608,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   }
 
   /**
-   * The ladder, and the ONE call site of fitState in the whole tuning model.
-   *
-   * Both callers - the debounced measurement and SURPRISE ME's exhausted roll -
-   * come through here, because fit() compiles once per ladder step and a second
-   * call site is a second N+1 minifier run nobody counted. The guard is the last
-   * statement before the call for exactly that reason.
+   * The ladder, and the ONE call site of fitState in the tuning model: the debounced measurement and
+   * SURPRISE ME's exhausted roll both come through here. The guard is the last statement before the call.
    */
   async function ladderFor(
     state: PadState,
@@ -884,11 +629,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const result = await compileState(state);
     const measured = await costOf(result, options.reserved);
     if (stale(mine)) return;
-    // A PRESET LANDS THE LIBRARY'S TWO HALVES SINCE 12.1-08b, exactly as the
-    // Lua route below does: its state carries `touchLibrary`, so the
-    // compiled handler calls K, G and N on the module. 12-03's "a preset
-    // lands the defaults" is inverted here, and only here; CLEAR still
-    // writes the four firmware defaults through the install store.
+    // A preset lands the library's two halves since 12.1-08b, as the Lua route does: its state carries
+    // `touchLibrary`, so the compiled handler calls K, G and N on the module.
     land(measured.setup.used, measured.timer.used, {
       systemTimer: landedSystemTimer,
       system: landedSystem,
@@ -911,12 +653,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   async function measureLuaRoute(mine: number): Promise<void> {
     // Dynamic, never static. See the module comment.
     const { renderLua } = await import("../sim/lua-pad-sim");
-    // THE PAGE INIT A HAND-AUTHORED ENTRY WANTS IS THE TOUCH LIBRARY (12-07),
-    // AND ITS SYSTEM TIMER IS THE LIBRARY'S SECOND HALF (12.1-07, D-03): the
-    // two strings are one library over two slots, 255/0 arming 255/6 with
-    // `self:tim()`, so an entry that lands one lands both. Since 12.1-08b the
-    // preset route above lands the same two - resolved once in `buildTuner`,
-    // where the reason is written.
+    // A hand-authored entry's page init is the touch library (12-07) and its system timer the library's
+    // second half (12.1-07): one library over two slots, 255/0 arming 255/6 with `self:tim()`.
     const lua = renderLua(entry, indices);
     // An empty Timer is a TRUE measurement of zero, not a dead meter: MORPH
     // ships one, and 0 / 908 tells the visitor something real.
@@ -974,16 +712,10 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     // Anything already in flight is now measuring a state nobody asked for.
     generation++;
     if (feed !== "measuring") feed = "stale";
-    // THE STRINGS ARE WITHDRAWN HERE, on the same tick as the feed goes stale
-    // and before the trailing compile can land (07-RESEARCH Pitfall 5). A
-    // visitor who drags a knob and clicks TRY ON DEVICE inside the 120 ms
-    // window would otherwise write the previous strings under the current
-    // meters. With this line the install store's `config` is undefined for
-    // exactly those 120 ms, the primary control is disabled with the same
-    // measuring language the meters already use, and the next defined pair is
-    // the one land() publishes beside the new numbers. Unconditional on
-    // purpose: while the feed is still "measuring" nothing has been published
-    // yet, and undefined is already the truth.
+    // The strings are withdrawn here, on the same tick as the feed goes stale and before the trailing
+    // compile can land (07-RESEARCH Pitfall 5): the install store's `config` is undefined for the 120 ms
+    // window, the primary control is disabled in the meters' measuring language, and the next defined
+    // pair is the one land() publishes beside the new numbers. Unconditional on purpose.
     options.onconfig?.(undefined);
     emit();
     if (entry.preview === "padsim") {
@@ -1020,14 +752,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     },
     set,
     /**
-     * THE HOVER PATH. A hit answers on a microtask; a miss waits out the same
-     * COMPILE_DEBOUNCE_MS a recompile waits, which is the debounce shape
-     * TUNE-02 already uses rather than a second one with its own number.
-     *
-     * The asymmetry is deliberate and it is what keeps the ghost off the
-     * pointer's heels: a visitor sweeping a word row schedules one compile per
-     * 120 ms, and a visitor coming back to an option they have already hovered
-     * gets the fill back with no delay at all.
+     * The hover path: a hit answers on a microtask; a miss waits out COMPILE_DEBOUNCE_MS (TUNE-02's
+     * shape, not a second number), so a re-hover gets the fill back with no delay.
      */
     forecast(knobId: string, position: number | undefined): void {
       if (destroyed) return;
@@ -1093,10 +819,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       // it is the state the draw actually replaced, and before moveTo.
       const before: Readonly<Record<string, number>> = { ...indices };
       const reserved = options.reserved;
-      // `held` is READ AND DROPPED. It is never assigned to anything this
-      // module keeps, which is what makes T1's ephemerality structural rather
-      // than a promise: `payload` is computed by encodeFor(entry, indices) and
-      // there is no third argument for a lock to travel in.
+      // `held` is read and dropped: `payload` is encodeFor(entry, indices) and there is no third
+      // argument for a lock to travel in - T1's ephemerality is structural.
       const drawn = surpriseIndices(
         knobs,
         indices,
@@ -1115,15 +839,9 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       const exhausted = knobs.every(
         (knob) => drawn[knob.id] === indices[knob.id],
       );
-      // AND THE ONE EXHAUSTION THAT IS NOT A COMPILER FAILURE. With every
-      // ROLLABLE knob held the roll cannot move anything - a MIDI destination
-      // is out of scope on every roll (surprise.ts, section 7) and a held
-      // knob is out of it on this one - so it returns the previous indices
-      // for a reason that has nothing to do with 908 and the ladder has
-      // nothing to resolve. The region disables Randomize in exactly this
-      // state, so this guard is unreachable from the interface; it is here so
-      // that a caller which does not disable the control cannot make a lock
-      // silently turn a knob down.
+      // The one exhaustion that is not a compiler failure: with every rollable knob held the roll cannot
+      // move anything and the ladder has nothing to resolve. The region disables Randomize in exactly
+      // this state; the guard is here so a caller that does not cannot make a lock silently turn a knob down.
       const inScope = rollable(knobs);
       const allHeld =
         inScope.length === 0 ||

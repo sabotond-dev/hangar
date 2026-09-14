@@ -1,69 +1,13 @@
-// The phase's load-bearing claim, as a test that runs.
-//
-// TUNE-04 (the fit-ladder line) and TUNE-05 (the over-budget block) ship as
-// tested GUARDS rather than as live features, and the whole justification for
-// that shape is one measured finding: no state a visitor can produce is over
-// 908 characters. A claim that load-bearing does not belong in a research
-// document. It belongs in the suite, in the project whose entire purpose is
-// anti-drift, and `src/vendor/botor/tests/pad-invariants.test.js` is the
-// precedent this file follows - including reporting a table rather than merely
-// passing.
-//
-// WHAT IT PROVES AND WHAT IT DOES NOT. It proves the finding FOR THE PINNED
-// COMPILER: the vendored `_pad.ts` at `a0fb69d5` measured through
-// `@intechstudio/grid-protocol` at the version `src/lib/protocol-pin.ts` names.
-// It is a property of a version, not a law. Re-run it after ANY vendored
-// re-sync or protocol pin bump - `docs/PIN-POLICY.md` learns that in 05-12 -
-// and if it goes red, the answer is that TUNE-04 and TUNE-05 stopped being
-// unreachable, which is news rather than a bug.
-//
-// WHY `fitState` RUNS ON A SCOPED SET AND `cost()` DOES NOT. `cost()` runs on
-// EVERY state, with no sampling. `fit()` is N+1 minifier calls - 05-04 measures
-// it at 4.4 ms on a fitting state - so laddering per state would add well over
-// a minute on top of the `cost()` pass and buy nothing, because `fit()` is
-// defined to return `{ fits: true, steps: [] }` for any state `cost()` has
-// already accepted. So the ladder runs on every state whose `cost().fits` is
-// false (expected: zero) plus the measured worst-cost state for each preset
-// (nine more). The scoping is arithmetic, not squeamishness, and it is written
-// here so a later reader can see the trade rather than guess at it.
-//
-// THE MEASUREMENT, honestly. 05-VALIDATION set this file a 60 s threshold from
-// a projected 16,645-state cross-product. The knob tables plan 05-03 actually
-// shipped are wider than the ones the research proposed, so the real
-// cross-product is 32,852 states and the file runs over that threshold. The
-// numbers are recorded in 05-05-SUMMARY.md. The sweep is not trimmed to fit a
-// projection: D-10's precedent is a separate PROJECT, never a shortened
-// comparison.
-//
-// AMENDMENT, G-07, plan 10-08: THE SWEEP IS RESTRUCTURED INTO TWO PASSES AND
-// THE HONEST TOTAL RISES.
-//
-// D-06 turns the colour knob into the whole reachable RGB444 lattice - 4,096
-// stored, quantise-stable colours - and a 4,096-option knob replacing a
-// six-option one multiplies each colour-bearing preset's cross-product by 683.
-// `ninepads` alone would go from 7,680 to 5,242,880 and this file would never
-// finish. So the single cross-product becomes two passes:
-//
-//   PASS A - every NON-colour knob cross-producted exactly as before, with the
-//            colour pinned at the literal MEASURED dearest for that preset.
-//   PASS B - the colour dimension alone, every other knob at its default index.
-//
-// The direction of the change is stated rather than softened: the total RISES,
-// 32,852 -> 44,078, +11,226 and +34%. 10-UI-SPEC's first pass said it would
-// fall "well below" today's; it does not, and the number planned against is the
-// real one. The structure is still right for two reasons. The alternative is
-// 683x. And the growth is ADDITIVE: a tenth preset carrying a colour knob costs
-// its own Pass A cross-product PLUS 4,096, never TIMES 4,096.
-//
-// WHAT THE TWO PASSES PROVE TOGETHER, and it is not the full cross-product.
-// Pass A x Pass B is not enumerated. What licenses the split is that a colour
-// contributes to an event's length only through the three decimal literals
-// `glc(a, layer, r, g, b, 1)` writes, and that contribution is independent of
-// every other knob's value: it is occurrences times the literal's length, the
-// same pure literal arithmetic `lua-entries.sweep.spec.ts:358-384` proves for
-// the other route. So the colour that is dearest at the defaults is the colour
-// that is dearest everywhere, which is why Pass B runs FIRST and hands Pass A
-// the pin it measured rather than being handed `255,255,255` and hoping.
+// The phase's load-bearing claim as a test that runs: no state a visitor can produce is over 908
+// characters, so TUNE-04 and TUNE-05 ship as tested guards. Proved FOR THE PINNED COMPILER (the
+// vendored `_pad.ts` through the protocol pin) - a property of a version, re-run after any re-sync
+// or pin bump; red means the guards stopped being unreachable, which is news. `cost()` runs on every
+// state; `fit()` (N+1 minifier calls) only on states whose `cost().fits` is false plus each preset's
+// measured worst state. Two passes since 10-08 (G-07): Pass A every non-colour knob cross-producted
+// with the colour pinned at the measured dearest literal, Pass B the colour dimension alone - a
+// colour's cost is occurrences times the literal's length, independent of every other knob, so Pass B
+// runs first and hands Pass A its pin. The total is 44,078 states (32,852 before D-06's lattice).
+// Decided at 05-05 / 10-08 (G-07); see .planning/phases/10-redesign/10-08-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { beforeAll, describe, expect, it } from "vitest";

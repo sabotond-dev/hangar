@@ -1,120 +1,15 @@
 <!--
-  /playground/{id}/ - the workspace: PDF page 5 on 13-05's shell (plan 13-09).
-
-  (At /c/{id}/ from Phase 5 to 13-08, which moved it here under 13-CONTEXT
-  D-20, move-clean; until this plan it rendered the front door's coverflow
-  with the chosen panel beneath it. FrontDoor.svelte, Coverflow.svelte,
-  NamePlate.svelte, ChosenPanel.svelte and src/lib/coverflow/ left the tree
-  with this rewrite.)
-
-  THREE REGIONS, ALL THE PDF'S. The rail lists the nearby configurations -
-  `CONFIGURATIONS`, the `All configs` way back, one numbered row per entry
-  with this one raised and ruled, and `Save a copy` pinned at the foot. The
-  centre carries the eyebrow (`EXPLORE / MODULATION`: the FOR label through
-  13-08's FOR_LABELS), the name, the two-segment `Configure` / `Play` switch,
-  the sentence, the surface at the PDF's square with its 1px lattice, the
-  `ZONA · 9 × 9 LIGHT MATRIX` line with the live `X / Y` readout, and the
-  collapsed MIDI monitor (13-10) under them. The inspector is the schema
-  renderer, TuningRegion.svelte, handed to the shell as a snippet.
-
-  "NEARBY" IS THE BROWSE-RETURN SET IF THERE IS ONE, ELSE THE FRONT-DOOR
-  MEMBERSHIP. Section 6's preserved-context rule is why the return record
-  exists, so a visitor who filtered the gallery down to six sees those six
-  in the rail, in the order they saw them; a cold arrival sees the curated
-  eight. The entry on the page is always in the list - prepended when the set
-  does not carry it - so the raised row is never missing.
-
-  THE MODE SWITCH IS PREV-04's SECOND HALF, AND IT IS NOT TICKED HERE. Play
-  routes the pointer to the preview as mouse-as-finger through the host's
-  tick-locked delivery (the intro's hero was the first half, 13-07); Configure
-  leaves the surface a picture you look at while tuning. Nothing is locked -
-  a catalog entry has no structure to lock, which is the Sandbox's rule at
-  13-16. 13-20 decides the requirement's tick.
-
-  THE CONNECTION CONTROL IS THE SHELL'S (13-11). The layout mounts
-  ConnectionControl.svelte in the header and DeviceActions.svelte in the
-  footer on every page; this route hands neither over any more (13-09's
-  provisional DeviceSlot snippet is gone). WHAT THIS ROUTE HANDS THE CONTEXT
-  BAR (13-11): the device's clause, `device: install.phase`, so the bar's
-  status zone reads the install store's fifteen phases through
-  ContextBar.svelte's own mapping (section 9's device-state object); the
-  draft's clause is 13-13's wiring and 13-18's words and is not set here.
-  The fill is re-made when the phase moves - the snippets in it are the same
-  functions, so the rail and the inspector are not re-created. THE
-  DESTINATION ZONE (13-12; 13-CONTEXT D-06; Bible section 9, D02; 13.1-CONTEXT
-  D-05, D-06) is DestinationZone.svelte - THE ONE COMPONENT THIS ROUTE AND
-  THE SANDBOX BOTH MOUNT since 13.1-06, by the user's word at the fourth
-  bench ("the second row in the page (so under the logo) the right side
-  should look like this: Target PAGE 1 on ZONA selector, Apply to ZONA
-  button, Store on ZONA button.", bench line 6): the Target select over the
-  pages the module enumerated, Apply to ZONA, Store on ZONA with the site's
-  one confirmation in its place, and beneath them the store's reason, the
-  over-budget refusal, the switching line or the unverified line, the
-  still-writing line and a write's failure block - while a ZONA is
-  connected, and the PDF's sentence otherwise. This route hands it the
-  entry's name, the tuner's five strings and the tuner's refusal, and
-  nothing else; the zone's header says the rest. It is the one control on
-  the site that moves the hardware, and THE SELECT'S CHANGE IS THE SWITCH:
-  there is no destination review ("When you change page form the drop down
-  just change the page and thats it.", bench line 5, which struck 13-CONTEXT
-  D-06's second clause). Opening the menu sends nothing; a change calls
-  install.switchPage(value), which is the target's request() then its
-  confirm() - the restore heartbeat, then exactly one switch - and the store
-  gates every write on the module's own page report until it arrives (the
-  ACK gate, unmoved). On a focused, closed select Chromium fires change on
-  every ArrowUp / ArrowDown, so each arrow press is a switch until the
-  select disables at switching: the visitor's own gesture on the one control
-  that moves the hardware.
-  THE MONITOR IS ON LUA ENTRIES ONLY (13-10, D-14 Q4b): the bar
-  under the surface renders the log the Lua host keeps, read through the
-  live engine on every sample, and is ABSENT - not present and empty - on
-  the nine preset-backed entries, whose vendored simulator keeps no log.
-  MidiMonitor.svelte's header carries the three limits. THERE IS NO INSTALL
-  COLUMN UNDER THE SURFACE SINCE 13.1-06 (13.1-CONTEXT D-06, D-07; batch row
-  J.13, owed since the gate). Phase 7's column - TRY ON DEVICE with its
-  honesty block and its connect-state region, the hairline, NEXT, PUT BACK,
-  KEEP ON DEVICE or its confirmation, the reset (the header's since 13.1-05)
-  and DISCONNECT ZONA (Device actions' since 13-11) - was the block the user
-  called "totally unnecessary" once the bar carried Apply; it is gone, and
-  TryOnDevice.svelte, InstallState.svelte, KeepOnDevice.svelte and
-  PutBack.svelte were deleted with it. Put back has no control anywhere on
-  the site by the user's "remove" (D-07); the store's putBack() and the
-  snapshot before every write stay, reachable from the install probe under
-  the unlinked bench routes (named nowhere here: config-shape.spec.ts's
-  probe-route test forbids the path outside its own directory).
-  What the column did that the zone does not is done here instead: the
-  tuner's pair reaches install.observeConfig the moment it changes (the
-  effect below, TryOnDevice's, kept), which is what arms Store on ZONA and
-  closes the confirmation when a knob moves (Z-05, Z-21). The Escape rule
-  (Z-10) is kept on the window; the confirmation's focus return is the
-  zone's own.
-
-  THE STAMP LANDING (SHARE-01, SHARE-03, D-13) runs after the engine is
-  built and BEFORE the inspector mounts: the tuner builds in its own onMount
-  with whatever indices it is handed, so a stamped link's knobs have to be
-  decoded first or the tuner would open on the defaults. `arrived` is that
-  gate. NEVER A PARTIAL RESTORE: `restored` sets every index; `older` and
-  `unreadable` leave every knob at its default and say so through the notice.
-
-  THE COMPILER AND THE SIMULATOR ARRIVE THROUGH `await import()` AND NEVER
-  STATICALLY. src/lib/config-shape.spec.ts test 13 walks this file for a
-  `from` specifier naming the vendored tree, the protocol package or the
-  compile surface; test 14 asserts the built page references no chunk
-  carrying the package. The static imports below are the light half of the
-  tree: the listing, the front-door membership, the browse stores, the
-  install and session stores the layout already names, and the host.
-
-  THE RECORD'S END OF LIFE. A browse return is written by /playground/ on the
-  way in and consumed by /playground/ on the way back, and if the visitor
-  leaves for anywhere else it has to be forgotten here. Two deliberate
-  exceptions: /playground/ itself (the record being USED), and another
-  /playground/<id>/ (a visitor who came from browse and followed the rail to
-  a second configuration still came from browse). It is beforeNavigate and
-  not afterNavigate, and that was measured rather than assumed (05.1-09:
-  afterNavigate's callback is deleted in the teardown that runs while the
-  new page renders, so it never fires for the one departure it exists for).
-  A reload or an address-bar hop carries `willUnload` and is skipped: the
-  way back survives a reload, which 05.1-UI-SPEC.md calls a virtue.
+  /playground/{id}/ - the workspace: PDF page 5 on the shell (13-09; at /c/{id}/ until 13-08, D-20).
+  Hands the shell three snippets - the rail (CONFIGURATIONS, `All configs`, one row per nearby entry,
+  `Save a copy` pinned), the inspector (TuningRegion.svelte, the schema renderer) and the destination
+  (DestinationZone.svelte, the one component both routes mount, 13.1-06) - and `device: install.phase`.
+  Nearby is the browse-return set if there is one, else the front-door membership; this entry is always in it.
+  Play routes the pointer to the preview through the host's tick-locked delivery (PREV-04's second half);
+  MidiMonitor mounts inside `{#if listed.preview === "lua"}` only (13-10, D-14 Q4b).
+  The stamp lands after the engine is built and before the inspector mounts (`arrived`); never a partial restore.
+  The compiler and the simulator arrive through `await import()` and never statically: config-shape.spec.ts
+  test 13 walks this file for a `from` specifier naming them and test 14 the built page (the one rule).
+  Decided at 13-09 / 13-12 / 13.1-06 (13-CONTEXT D-06, D-20; 13.1-CONTEXT D-05, D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -196,11 +91,8 @@
   const copyName = (name: string) => `${name} copy`;
   const CONFIRM_MS = 2000;
 
-  /* The head's fixed half. 05-UI-SPEC, The OG image. twitter:card is what makes
-     Discord render a large embed rather than an 80x80 thumbnail; nothing here
-     is about Twitter. Every value is a const rather than inline markup text,
-     because Prettier reflows element text and Phase 2 lost a load-bearing
-     sentence to exactly that. */
+  /* The head's fixed half (05-UI-SPEC, The OG image): twitter:card makes Discord render a large embed.
+     Every value is a const, not inline markup text, because Prettier reflows element text. */
   const OG_TYPE = "website";
   const OG_IMAGE_TYPE = "image/png";
   const OG_IMAGE_WIDTH = "1200";
@@ -272,10 +164,7 @@
   // ---------------------------------------------------------------------------
   // The surface, the host and the finger (PREV-04, second half).
 
-  /* stamp.ts's own union, imported as a type (erased; not a specifier the
-     chunk guard can see) rather than re-declared - 13-13's rule, applied here
-     by 13-12 while it edited this file. The module itself still arrives
-     through the awaited import below. */
+  /* stamp.ts's own union as a type import (erased, so not a specifier the chunk guard can see). */
   const NO_LANDING: Landing = { kind: "none" };
 
   let mode: "configure" | "play" = $state("configure");
@@ -322,6 +211,7 @@
     }
   }
 
+  /** The route's edge to the browser store, one per route (13.2-CONTEXT D-15). */
   function local(): LocalStore | undefined {
     if (!browser) return undefined;
     try {
@@ -501,9 +391,8 @@
   }
 
   /**
-   * Save copy (Bible section 11; library.ts): a NEW named copy, never a write
-   * over its source. The id carries the moment so two saves are two copies;
-   * the indices are the knob vector the stamp encodes, in knob order.
+   * Save copy (Bible section 11; library.ts): a NEW named copy, never a write over its source; the id
+   * carries the moment, the indices are the knob vector the stamp encodes, in knob order.
    */
   function save(): void {
     if (listed === undefined) return;
@@ -528,12 +417,8 @@
   }
 
   /**
-   * Escape, from anywhere on the page (07-UI-SPEC Z-10, I3 rule 9). While the
-   * install store is writing, Escape does nothing at all: the state lasts
-   * about two seconds on a RAM leg and about five on a store leg by
-   * construction - a pause, not a trap. While the flash confirmation is open,
-   * Escape closes the block. There is no panel to un-choose any more, so
-   * nothing else happens and no history entry is pushed.
+   * Escape, from anywhere on the page (07-UI-SPEC Z-10, I3 rule 9): nothing while the install store is
+   * writing (a pause, not a trap); closes the flash confirmation while it is open; nothing else.
    */
   function onWindowKeyDown(event: KeyboardEvent): void {
     if (event.key !== "Escape") return;
@@ -545,23 +430,21 @@
   }
 
   /**
-   * THE TUNER'S PAIR REACHES THE STORE the moment it changes - and reaches
-   * it as undefined the moment a knob moves, which is what disables Apply
-   * for the measuring window (D-17) and un-arms Store on ZONA (Z-05, Z-21).
-   * TryOnDevice.svelte's effect, kept here when the column went (13.1-06):
-   * the Sandbox route does the same for its landing. The effect writes a
-   * value it never reads, so there is no loop; untrack because observeConfig
-   * reads the store's own fields to recompute what "armed" means, and this
-   * must re-run on the pair alone.
+   * The tuner's pair reaches the store the moment it changes, and as undefined the moment a knob
+   * moves - which disables Apply for the measuring window (D-17) and un-arms Store on ZONA (Z-05,
+   * Z-21). TryOnDevice.svelte's effect, kept here when the column went (13.1-06). untrack because
+   * observeConfig reads the store's own fields; this must re-run on the pair alone.
    */
   $effect(() => {
     const pair = configStrings;
     untrack(() => install.observeConfig(pair));
   });
 
-  /* THE RECORD'S END OF LIFE. See the header. There is no check that the
-     navigation is FROM /playground/ - this callback only exists while this
-     route's component is mounted, so it cannot fire anywhere else. */
+  /* The browse-return record's end of life: written by /playground/ on the way in, forgotten here on a
+     departure to anywhere but /playground/ (the record being used) or another /playground/<id>/ (the
+     rail's hop still came from browse); a reload carries `willUnload` and is skipped. beforeNavigate,
+     not afterNavigate - measured rather than assumed (05.1-09: afterNavigate's callback is deleted in
+     the teardown that runs while the new page renders). The callback exists only while this component is mounted. */
   beforeNavigate((navigation) => {
     if (navigation.willUnload) return;
     const to = navigation.to?.url.pathname ?? "";
@@ -570,20 +453,12 @@
     clearBrowseReturn(store());
   });
 
-  /* THE DESTINATION ZONE (13-12; 13-CONTEXT D-06; 13.1-06). The reported
-     page is the module's own, through the session's fold, and it is what
-     decides whether the zone renders at all: no session, the bar's own
-     sentence. Everything else - the pages offered, the select's value, the
-     switch, Apply's enablement, Store on ZONA and its confirmation, the
-     lines and the failure block - is DestinationZone.svelte's, and this
-     route hands it three props. */
+  /* The reported page is the module's own, through the session's fold, and decides whether the zone
+     renders at all; everything else is DestinationZone.svelte's, and this route hands it three props. */
   const reportedPage = $derived(session.identity?.activePage);
 
-  /* The shell, filled for the life of this page (13-05's bridge). The rail,
-     the inspector and the destination are snippets and arrive with this
-     effect; the breadcrumb travelled as data so the prerendered document
-     already carries it. `device` is the install store's phase, read here so
-     the effect re-fills when it moves (see the header). */
+  /* The shell, filled for the life of this page (13-05's bridge): the three snippets arrive here, the
+     breadcrumb travelled as data; `device` is read so the fill re-makes when the phase moves. */
   $effect(() =>
     fillShell({
       variant: "app",
@@ -615,14 +490,9 @@
 </svelte:head>
 
 <!--
-  THE CONTEXT BAR'S DESTINATION ZONE while a ZONA is connected (13-12; PDF
-  pages 3 and 5; Bible section 9; 13-CONTEXT D-06; 13.1-CONTEXT D-05, D-06):
-  DestinationZone.svelte, the one component both routes mount - Target,
-  Apply to ZONA, Store on ZONA, the lines and the failure block beneath.
-  Without a session the bar renders its own "Preview without hardware". The
-  route hands the entry's name (the store's label for the write), the
-  tuner's five strings (undefined while it measures) and the tuner's
-  over-budget sentence (Apply is disabled on it and described by it).
+  The context bar's destination zone while a ZONA is connected (13-12; 13.1-06): DestinationZone.svelte,
+  handed the entry's name (the store's label for the write), the tuner's five strings (undefined while
+  it measures) and the tuner's over-budget sentence. Without a session the bar renders its own sentence.
 -->
 {#snippet destination()}
   <DestinationZone
@@ -750,11 +620,8 @@
       </header>
 
       <!--
-        The pointer target is the wrapper, not the canvas: the canvas is a
-        picture (role="img", named by PadCanvas.svelte) and the wrapper is
-        where a finger lands in Play. There is no keyboard gesture for a pad,
-        so the static-element rule is suppressed rather than satisfied with a
-        role that would promise a control this surface is not.
+        The pointer target is the wrapper, not the canvas (a picture, role="img"); there is no keyboard
+        gesture for a pad, so the static-element rule is suppressed rather than satisfied with a false role.
       -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
@@ -787,11 +654,8 @@
       {/if}
 
       <!--
-        THE MONITOR BAR (PDF page 5: a collapsed `MIDI monitor` bar with
-        `Browser preview · No MIDI output`), on Lua entries only - D-14 Q4b.
-        The source is a closure over the live engine, because the tuner swaps
-        engines under the same id on every knob turn and the monitor has to
-        read the one that is playing.
+        The monitor bar (PDF page 5), on Lua entries only (D-14 Q4b). The source is a closure over the
+        live engine: the tuner swaps engines under the same id on every knob turn.
       -->
       <div class="monitor-slot" data-testid="monitor-slot">
         {#if listed.preview === "lua"}
@@ -800,12 +664,7 @@
       </div>
 
       <div class="fidelity"><FidelityLine entry={listed} /></div>
-      <!--
-        Nothing beneath the fidelity line since 13.1-06. Phase 7's install
-        column stood here from 07-10 to 13.1-06 (the header says what it
-        was); the bar's destination zone is the whole of the install
-        interface now, and the reset is the header's.
-      -->
+      <!-- Nothing beneath the fidelity line since 13.1-06: the bar's destination zone is the whole install interface. -->
     {/key}
   {:else}
     <!-- An address nobody has heard of: the rail is the way on, and the line says so. -->
@@ -856,11 +715,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /*
-    PDF page 5's two-segment switch: two outlined boxes, the active one
-    outlined in the action colour with its word in the action colour. 44px
-    on both axes at every pointer. Square (D-01).
-  */
+  /* PDF page 5's two-segment switch: two outlined boxes, the active one in the action colour, 44px on both axes. Square (D-01). */
   .mode {
     display: flex;
     gap: 12px;

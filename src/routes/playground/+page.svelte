@@ -1,79 +1,15 @@
 <!--
-  /playground/ - PDF page 2, the configuration gallery, on 13-05's shell.
-
-  MOVED FROM /browse/ BY PLAN 13-08 UNDER 13-CONTEXT D-20 (move-clean): the
-  gallery lives at /playground/ and a configuration at /playground/<id>/;
-  /browse/ and /c/<id>/ are gone with no forwarding page. The machinery below
-  is 05.1-08's and 10-07's and is NOT rebuilt - the wall of live pads behind
-  one clock, one tab stop across the grid, IntersectionObserver gating, the
-  search landmark, the live region, the sessionStorage browse-return store
-  that restores scroll, filters and search when a configuration is closed
-  (section 6 asks for exactly that, and readBrowseReturn already is it). THE
-  LOGIC KEEPS; THE CHROME IS REWRITTEN.
-
-  WHAT THIS PAGE RENDERS, AND WHERE. The centre column: the eyebrow, the
-  headline, the sub, the search row with its sort select, ONE `Use` chip row
-  with the count at its right, the three-column card grid, the fidelity line.
-  The left rail is handed to the shell as a snippet through fillShell():
-  YOUR LIBRARY with two-digit counts, a divider, MADE FOR with one row per
-  FOR_TERMS member DERIVED at runtime through the provisional FOR_LABELS
-  record (never typed as a literal; browse-ui.spec.ts test 7 prints the count
-  it found - 13-CONTEXT D-11's "eight" was superseded by 12-04's retirement of
-  `keys`, 13-VALIDATION D-4), the PDF's two quiet lines and `+ Build your own`
-  pinned to the bottom. The frame's shape travels as page data (+page.ts) so
-  the prerendered document carries the header, the nav and the breadcrumb;
-  the rail arrives with the effect.
-
-  THE RAIL AND THE CHIP ROW ARE ONE STATE. A MADE FOR row is the FOR facet with
-  exactly that term active; `All configs` is the facet with nothing active.
-  Pressing a row sets the facet; pressing a chip moves the rail's selection.
-  The rail's other two rows - Favorites, Recently used - are a LIBRARY VIEW
-  over the store (src/lib/store/favorites.ts, recent.ts) and narrow the grid
-  to what the visitor starred or opened. THE LIBRARY VIEW IS NOT IN THE
-  ADDRESS, deliberately: a favorite is local to this browser, and a shared
-  link reading ?show=favorites would show somebody else a different set - a
-  link that lies. The address carries the sort, the query and the chips, as it
-  always has; the view resets to All configs on arrival. Whether that is the
-  right shape for the two rows is recorded in 13-COPY-NEW.md as a question.
-  `Recently used` counts what the workspace records on open (touchRecent) -
-  13-09 rebuilds that page and calls it; until then the row reads 00, which is
-  honest. Favorites whose ids the catalog no longer carries are dropped on
-  read and COUNTED (`dropped`); no sentence is shown for the count, because
-  the sentence would be invented (13-06's question 1, still open).
-
-  THE ADDRESS IS A PROJECTION OF THE STATE, seeded once at component init
-  behind a `browser` guard, never a $derived over page.url - Kit's
-  replaceState never updates page.url, and reading searchParams during
-  prerender throws. Written on a 500 ms trailing timer, replaceState and never
-  pushState, flushed before leaving. The popstate re-seed reads
-  window.location because Kit's own idea of the URL is a visit behind on a
-  shallow write (measured, 05.1-10). All of that is unchanged from /browse/
-  and its reasons are in the git history of that file.
-
-  THE SCROLL IS THE CENTRE COLUMN's, NOT THE WINDOW's, IN THE WIDE AND COMPACT
-  BANDS. 13-05's frame gives the centre its own scroll container so the rail
-  stays put; below 1024 the page flows and the window scrolls. The return
-  record therefore reads and restores the nearest scrolling ancestor of this
-  section, whichever it is, rather than window.scrollY - the same record, the
-  same forward-hop-only rule, one honest reader.
-
-  FOUR THINGS THIS PAGE REFUSES, each the obvious reflex: no `export const
-  snapshot` (its restore runs after Kit has set the scroll); no
-  `data-sveltekit-noscroll`; no `content-visibility: auto` on the cards (it
-  destroys scroll restoration); no `pushState` (sixteen chip presses must not
-  cost sixteen Back presses).
-
-  THE PAGE'S ONLY CATALOG SPECIFIER IS $lib/catalog/listing. Not $lib/catalog,
-  not its index: entries/ported.ts reaches the vendored shelf and with it the
-  131,101-byte protocol chunk, onto the first paint of a page whose job is to
-  list twenty-six names (D-12). config-shape.spec.ts test 13 holds that rule
-  over this file by NAME, and its test 14 walks build/playground/index.html's
-  static import graph to prove it after a build. The store modules take the
-  browser store as an argument and import nothing heavy.
-
-  Every visible string is the PDF's verbatim; the ones HANGAR wrote (the page
-  title, `Clear`, `Clear filters`, the star's two names) are ledgered in
-  13-COPY-NEW.md for 13-18.
+  /playground/ - PDF page 2, the configuration gallery, on the shell (13-08; at /browse/ until D-20).
+  The centre: eyebrow, headline, sub, the search row with its sort, one `Use` chip row with the count,
+  the three-column card grid and the fidelity line. The rail is a snippet through fillShell(): YOUR
+  LIBRARY's counts, MADE FOR with one row per FOR_TERMS member (FOR_LABELS), `+ Build your own` pinned;
+  the frame's shape travels as page data (+page.ts). The rail and the chip row are one state; Favorites
+  and Recently used are a library view over the store, never in the address (a shared link must not lie).
+  The address is a projection of the state, seeded once at init behind a `browser` guard, written on a
+  500 ms trailing timer by replaceState, flushed before leaving; the browse-return record (sessionStorage)
+  restores scroll, filters and search from the nearest scrolling ancestor. The page's only catalog
+  specifier is $lib/catalog/listing - config-shape.spec.ts test 13 holds it by name, test 14 on the build.
+  Decided at 13-08 (13-CONTEXT D-11, D-12, D-20); see .planning/phases/13-gui-overhaul/13-08-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -151,10 +87,7 @@
   const OG_IMAGE_HEIGHT = "630";
   const TWITTER_CARD = "summary_large_image";
 
-  /* No gallery-level picture, and inventing one would be a second composition
-     to keep true to the site - so the gallery unfurls on the catalog's first
-     entry, read out of LISTING so this page's only catalog specifier stays the
-     import-free one. */
+  /* No gallery-level picture: the gallery unfurls on the catalog's first entry, read out of LISTING. */
   const OPENING = LISTING[0];
   const OG_IMAGE = `${SITE_ORIGIN}/og/${OPENING.id}.png`;
   const OG_IMAGE_ALT = ogAlt(OPENING.name);
@@ -220,9 +153,8 @@
   );
 
   /**
-   * The current rail row: the library view when it is not All configs; else
-   * the one active FOR term's row; else All configs; else - two or more FOR
-   * chips, which the rail cannot express - nothing.
+   * The current rail row: the library view when not All configs; else the one active FOR term's row;
+   * else All configs; else (two or more FOR chips, which the rail cannot express) nothing.
    */
   const selected = $derived.by((): string | undefined => {
     if (library !== "all") return library;
@@ -234,10 +166,7 @@
     return undefined;
   });
 
-  /*
-    Plain locals, deliberately outside the reactive graph: a mounted flag, a
-    timer handle, the section element. None is rendered.
-  */
+  /* Plain locals outside the reactive graph: a mounted flag, a timer handle, the section element. */
   let mounted = false;
   let addressTimer: ReturnType<typeof setTimeout> | undefined;
   let root: HTMLElement | undefined;
@@ -252,7 +181,7 @@
     }
   }
 
-  /** The local store, or undefined - the same guard, for the favorites and recents. */
+  /** The local store, or undefined - the route's own edge to the browser store (13.2-CONTEXT D-15). */
   function local(): Storage | undefined {
     if (!browser) return undefined;
     try {
@@ -271,9 +200,8 @@
   }
 
   /**
-   * The nearest scrolling ancestor of this page, or the window. In the wide
-   * and compact bands that is the shell's centre column; below 1024 the page
-   * flows and it is the window. Read on the forward hop, written on return.
+   * The nearest scrolling ancestor of this page (the shell's centre column in the wide and compact
+   * bands; the window below 1024). Read on the forward hop, written on return.
    */
   function scroller(): { read(): number; write(y: number): void } {
     let el: HTMLElement | null = root?.parentElement ?? null;
@@ -303,11 +231,8 @@
   }
 
   /**
-   * Write the address. resolve() accepts a pathname carrying a search string,
-   * so both branches satisfy svelte/no-navigation-without-resolve with no
-   * suppression and no cast. page.state rather than {}: replacing somebody
-   * else's shallow state with an empty object is the kind of thing that
-   * breaks quietly a phase later.
+   * Write the address. resolve() accepts a pathname carrying a search string, so both branches satisfy
+   * svelte/no-navigation-without-resolve; page.state rather than {} so nobody's shallow state is replaced.
    */
   function writeAddress(): void {
     if (!mounted) return;
@@ -388,10 +313,8 @@
   }
 
   /*
-    THE RETURN RECORD, written from the STATE rather than from the address bar,
-    on the forward hop into a configuration only. The address is flushed first
-    so the two agree at the moment of leaving. `/playground/` itself is not a
-    configuration, so a same-route navigation writes nothing.
+    The return record, written from the state on the forward hop into a configuration only, after the
+    address is flushed so the two agree; a same-route navigation writes nothing.
   */
   beforeNavigate((navigation) => {
     const to = navigation.to?.url.pathname ?? "";
@@ -404,12 +327,9 @@
   });
 
   /*
-    THE SECOND SEED, for the browser's own Back button only. Kit's replaceState
-    records page.url.href - the page store's url, which replaceState itself
-    never updates - into the history entry, so a popstate hands the page an
-    address one visit stale. window.location.search is the browser's own
-    answer and is correct in every case; it is read only here, only in the
-    browser, and only on a popstate. Measured in four journeys (05.1-10).
+    The second seed, for the browser's Back button only: Kit's replaceState records the page store's
+    url, which it never updates, so a popstate hands the page an address one visit stale;
+    window.location.search is the browser's own answer. Measured in four journeys (05.1-10).
   */
   afterNavigate((navigation) => {
     if (!browser || navigation.type !== "popstate") return;
@@ -427,12 +347,10 @@
   });
 
   /*
-    THE SCROLL RESTORE, for the FORWARD hop only, against the record's href so
-    a record written against ?for=show never scrolls a plain /playground/ to
-    an offset that means nothing there. Cleared either way. A legacy address
-    (?tag=, a retired sort) is re-written once on arrival through the
-    ordinary timer, so the screen and the address bar cannot disagree; a
-    canonical arrival writes nothing and the live region stays silent.
+    The scroll restore, for the forward hop only, against the record's href; cleared either way. A
+    legacy address (?tag=, a retired sort) is re-written once on arrival through the ordinary timer.
+    Refused on purpose: `export const snapshot`, `data-sveltekit-noscroll`, `content-visibility: auto`
+    on the cards (it destroys scroll restoration), `pushState` (sixteen chip presses, sixteen Backs).
   */
   onMount(() => {
     mounted = true;
@@ -517,11 +435,7 @@
     />
   </div>
 
-  <!--
-    `onreorder` is deliberately NOT wired: flushing the address there would
-    write it on every keystroke, which the trailing timer exists to stop.
-    `dropped` is read and not rendered - see the header.
-  -->
+  <!-- `onreorder` is not wired (it would write the address on every keystroke); `dropped` is read and not rendered. -->
   <div class="grid" data-dropped={dropped}>
     <BrowseGrid
       entries={shown}
@@ -531,11 +445,7 @@
     />
   </div>
 
-  <!--
-    THE FIDELITY LINE, BENEATH THE GRID AND UNCONDITIONAL (W-13): the largest
-    fidelity claim on the site is this wall, and the line is one source shared
-    with FidelityLine.svelte.
-  -->
+  <!-- The fidelity line, beneath the grid and unconditional (W-13): one source shared with FidelityLine.svelte. -->
   <p class="fidelity" data-testid="fidelity-line">{FIDELITY_LINE}</p>
 </section>
 

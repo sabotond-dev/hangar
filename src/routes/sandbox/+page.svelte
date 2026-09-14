@@ -1,22 +1,12 @@
 <!--
-  /sandbox/ - creates or resumes (plan 13-16; Bible section 8; KEEP-01).
-
-  The nav's SANDBOX lands here. With a sandbox draft in the store the page
-  goes to the newest one - "pick up where you left off" is section 11's
-  promise and a draft is section 9's first object; with none, or with
-  `?new` in the address (My configs' `New surface`), it mints a surface id
-  and goes to an empty surface under it; with `?from=<record id>` (a saved
-  or imported copy's `Open` on My configs, 13-17) it mints a surface id and
-  carries the query on, so the copy's surface opens under a fresh id and
-  the copy stays a copy. /sandbox/[draftId]/ is where every
-  surface is edited; this page holds no editor of its own, so there is one
-  place a surface is built. The navigation replaces this entry in the
-  history, so Back from the editor is Back to wherever the visitor came
-  from, not to a page that would forward them again.
-
-  What the prerendered document shows before the effect runs is the frame
-  and one quiet line (ledgered); a visitor without JavaScript sees the
-  frame and the line, and a visitor with it sees the editor a moment later.
+  /sandbox/ - creates or resumes (13-16; Bible section 8; KEEP-01). The nav's SANDBOX lands here.
+  With a sandbox draft in the store the effect goes to the newest one; with none, or with `?new` (My
+  configs' `New surface`), it mints a surface id and goes to an empty surface under it; with
+  `?from=<record id>` (a copy's `Open`, 13-17) it mints an id and carries the query on, so the copy
+  stays a copy. /sandbox/[draftId]/ is where every surface is edited; this page holds no editor.
+  The navigation replaces this entry in the history, so Back from the editor is Back to where the
+  visitor came from. The prerendered document shows the frame and one quiet line (ledgered).
+  Decided at 13-16 / 13-17; see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -39,6 +29,7 @@
 
   const BREADCRUMB = ["SANDBOX"];
 
+  /** The route's edge to the browser store, one per route (13.2-CONTEXT D-15). */
   function local(): LocalStore | undefined {
     if (!browser) return undefined;
     try {

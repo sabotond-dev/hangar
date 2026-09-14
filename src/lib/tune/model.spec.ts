@@ -1,21 +1,9 @@
-// The tuner's behaviour, in node, before a pixel of it exists.
-//
-// THE ONE THING THIS FILE IS FOR: proving that a knob turn produces a new
-// picture on the same tick and a new character count a tenth of a second later,
-// and that the meters say which of those two they are showing. Everything else
-// here is scaffolding for that.
-//
-// FAKE TIMERS EVERYWHERE EXCEPT TESTS 3 AND 6. The debounce is a setTimeout, so
-// vi.useFakeTimers() is what makes "five turns inside 120 ms" a statement about
-// the code rather than about the machine. Test 3 wants a genuinely cold
-// formatter and test 6 instantiates a real Lua VM; neither is a timer question
-// and both are steadier on the real clock.
-//
-// WHY settle() IS A MICROTASK LOOP AND NOT A CLOCK ADVANCE. The FIRST
-// measurement is not scheduled on a timer at all - buildTuner starts it
-// immediately, and it lands through a promise chain that goes
-// padReady -> compileState -> costOf. Advancing a fake clock does not move a
-// promise chain, so the flush is a fixed number of microtask hops.
+// The tuner's behaviour, in node: a knob turn produces a new picture on the same tick and a new
+// character count a tenth of a second later, and the meters say which of the two they are showing.
+// Fake timers everywhere except tests 3 (a genuinely cold formatter) and 6 (a real Lua VM). settle()
+// is a microtask loop, not a clock advance: the FIRST measurement lands through the promise chain
+// padReady -> compileState -> costOf, which a fake clock does not move, so the flush is a fixed
+// number of microtask hops.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

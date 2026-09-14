@@ -1,46 +1,21 @@
-// The tuning panel's view seam: the types a component names, the rule that
-// turns a knob into a widget, the meter arithmetic and the readouts.
-//
-// THIS MODULE IMPORTS NOTHING. Not the vendored compiler, not
-// @intechstudio/grid-protocol, not $lib/pad, not $lib/catalog - and not even
-// `import type`. That is not tidiness, it is the shape D-18 forced:
-// src/lib/config-shape.spec.ts's front-door guard strips comments from every
-// non-spec file under src/lib/ui/ and fails on any `from "..."` specifier
-// containing `vendor`, `intechstudio` or `lib/pad`. It matches the SPECIFIER
-// TEXT, so a type-only import of the compiler fails it exactly as a value
-// import would. The guard exists because the vendored compiler pulls a
-// 131,101-byte protocol chunk onto the critical path of a page whose whole job
-// is to paint in under two seconds.
-//
-// So the split is:
-//
-//   src/lib/tune/view.ts   <- this file. Plain types and pure rules, zero
-//                             imports. A component may name it freely.
-//   src/lib/tune/copy.ts   <- every sentence. Zero imports.
-//   src/lib/tune/idle.ts   <- one browser shim. Zero imports.
-//   src/lib/tune/model.ts  <- the compiler side. Reached ONLY by await import().
-//
-// WHAT IS RESTATED HERE, AND WHAT HOLDS IT HONEST. Three facts belong to the
-// vendored compiler and are written below as literals rather than imported:
-// the twelve knob kinds, EVENT_BUDGET = 908, and the words the compiler already
-// writes for its own scales, axes and switches. Every one of them is asserted
-// against its real source in view.spec.ts - a type-level Exclude over the
-// vendored KnobKind and ScaleKind unions, a runtime equality against the
-// catalog's KNOB_KINDS, and a runtime equality against the vendored
-// EVENT_BUDGET. That is the src/lib/protocol-pin.ts and
-// src/lib/catalog/front-door.ts pattern: a literal held against another source
-// by a spec, rather than an import that costs a chunk.
+// The tuning panel's view seam: the types a component names, the rule that turns a knob into a
+// widget, the meter arithmetic, the colour lattice for the picker and the readouts.
+// This module imports nothing at all - not even `import type` - because config-shape.spec.ts test 13
+// fails any file under src/lib/ui/ whose `from "..."` specifier names the vendored compiler, the
+// protocol package or $lib/pad by SPECIFIER TEXT, and a component must be able to name this file
+// freely (view.spec.ts asserts the zero-import shape). The split: view.ts (types and pure rules),
+// copy.ts (every sentence), idle.ts (one shim), model.ts (the compiler side, reached only by
+// `await import()`). Three facts are restated here as literals and held against their real source by
+// a spec rather than imported: the twelve knob kinds and EVENT_BUDGET = 908 (view.spec.ts), and the
+// colour lattice's arithmetic (colour-picker.spec.ts walks all 4,096 positions against `colourAt`).
+// Decided at 05-04 (05-CONTEXT D-18) / 10-10 / 13-09; see .planning/phases/13-gui-overhaul/13-09-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 // ---------------------------------------------------------------------------
 // The vocabulary.
 
-/**
- * The vendored compiler's `KnobKind` union, restated. view.spec.ts test 1
- * asserts both directions of `Exclude` against the real union, so a member
- * added or removed upstream stops `npm run check` compiling.
- */
+/** The vendored compiler's `KnobKind` union, restated; view.spec.ts test 1 asserts both directions of `Exclude`. */
 export type KnobKindName =
   | "colour"
   | "speed"
@@ -72,48 +47,24 @@ export const KNOB_KIND_NAMES: readonly KnobKindName[] = [
 ];
 
 /**
- * Five names, four row skins and one picker.
- *
- * `swatch`, `words`, `select` and `rail` are what a KNOB ROW can be, and
- * `widgetFor` chooses between the last three. `colour` is the fifth, and it
- * is not a row at all: it is the whole ColourPicker block, which the rack
- * renders ONCE per panel however many colour knobs an entry declares
- * (10-UI-SPEC §11.2) - since 13-09 behind a swatch and a popover.
- *
- * `widgetFor` never returns `swatch` any more. The picker synthesises it for
- * the one case that still needs it - a hand-authored Lua palette, whose four
- * or five literals cannot be reached from three sixteen-detent rails - and
- * hands that view to the SHIPPED `Knob.svelte` swatch row rather than drawing
- * a second one. See ColourPicker.svelte's header.
- *
- * `select` ARRIVED AT 13-09 AND IT IS A RENDERING CHANGE, NOT A VALUE-COUNT
- * CHANGE (Bible section 7, PDF page 5's `On release`). Section 7's control
- * inventory is segmented buttons for a few alternatives and a select for a
- * larger enumeration; the PDF draws the select at four visible words. A
- * worded knob with up to SEGMENTED_MAX options is still the word row
- * (segmented radios); one with more, up to WORD_ROW_MAX, is a `<select>`.
- * No knob's options moved and no stamp changed - the seven knobs that cross
- * the line are listed in 13-09-SUMMARY.md by entry and id.
+ * Five names, four row skins and one picker. `swatch`, `words`, `select` and `rail` are what a KNOB
+ * ROW can be, and `widgetFor` chooses between the last three; `colour` is the whole ColourPicker
+ * block, rendered once per panel (10-UI-SPEC 11.2; behind a swatch and a popover since 13-09).
+ * `widgetFor` never returns `swatch`: the picker synthesises it for a hand-authored Lua palette. A
+ * worded knob with up to SEGMENTED_MAX options is the word row, one with more (up to WORD_ROW_MAX) a
+ * `<select>` (13-09, a rendering change: no option moved, no stamp changed).
  */
 export type KnobWidget = "colour" | "swatch" | "words" | "select" | "rail";
 
 /** A rail's two skins: a dot per option, or a track with a thumb. */
 export type RailSkin = "dots" | "track";
 
-/**
- * Above this many options a worded knob is a `<select>` rather than a row of
- * segmented radios (13-09, section 7). At or below it, the row.
- */
+/** Above this many options a worded knob is a `<select>` rather than segmented radios (13-09, section 7). */
 export const SEGMENTED_MAX = 4;
-/**
- * Above this many options a worded knob will not fit a closed enumeration
- * either, and a rail is used. The name is the one view.spec.ts and
- * tune-ui.spec.ts read; since 13-09 it is the select's ceiling, with
- * SEGMENTED_MAX the row's, and the two together are the one boundary.
- */
+/** Above this many options a worded knob is a rail; the select's ceiling since 13-09 (view.spec.ts and tune-ui.spec.ts read the name). */
 export const WORD_ROW_MAX = 8;
 /** Above this many options a dot rail becomes a detent track. */
-export const DOT_RAIL_MAX = 8;
+const DOT_RAIL_MAX = 8;
 
 // ---------------------------------------------------------------------------
 // The view types a component names.
@@ -140,12 +91,8 @@ export type KnobView = {
   /** The right-aligned integer, when every value is a single integer. */
   readout?: string;
   /**
-   * The raw option literals, present exactly when `readout` is (every option
-   * a single integer, X-08), so a typed field can map a number back to an
-   * index (13.1-07, D-09). A worded kind's `values[].label` is a word - a
-   * preset's `send` knob prints pitch names - and a colour's is a hue, so
-   * neither can serve the mapping; the literal is the one string the
-   * firmware and the visitor agree on. Absent otherwise.
+   * The raw option literals, present exactly when `readout` is (every option a single integer, X-08),
+   * so a typed field can map a number back to an index (13.1-07, D-09). Absent otherwise.
    */
   literals?: readonly string[];
 };
@@ -183,12 +130,8 @@ export type TuneView = {
 // The word tables, transcribed verbatim from 05-UI-SPEC's "Word tables".
 
 /**
- * Semitone-offset set -> mode name, plus the compiler's own four `ScaleKind`
- * members, which arrive as bare words rather than sets.
- *
- * `as const` on purpose: view.spec.ts asserts
- * `Exclude<ScaleKind, keyof typeof SCALE_WORDS>` is `never`, which needs the
- * keys to be literal types.
+ * Semitone-offset set -> mode name, plus the compiler's own four `ScaleKind` members. `as const`:
+ * view.spec.ts asserts `Exclude<ScaleKind, keyof typeof SCALE_WORDS>` is `never`.
  */
 export const SCALE_WORDS = {
   "0,2,4,5,7,9,11": "Major",
@@ -209,7 +152,7 @@ export const SCALE_WORDS = {
 } as const;
 
 /** The compiler's `Axis`, as directions a visitor can picture. */
-export const DIRECTION_WORDS = {
+const DIRECTION_WORDS = {
   x: "Across",
   y: "Down",
   diagonal: "Rising",
@@ -217,27 +160,27 @@ export const DIRECTION_WORDS = {
 } as const;
 
 /** The compiler's `DialMode`. */
-export const MODE_WORDS = {
+const MODE_WORDS = {
   relative: "Relative",
   absolute: "Absolute",
 } as const;
 
 /** The compiler's `BendAxis`. */
-export const BEND_WORDS = {
+const BEND_WORDS = {
   none: "No bend",
   x: "Left-right",
   y: "Up-down",
 } as const;
 
 /** The joystick's `spring` plus `springTo`, as one vocabulary. */
-export const SPRING_WORDS = {
+const SPRING_WORDS = {
   off: "Stays put",
   centre: "Springs to centre",
   zero: "Springs to zero",
 } as const;
 
 /** Sharps, never flats. C4 = 60. */
-export const NOTE_NAMES: readonly string[] = [
+const NOTE_NAMES: readonly string[] = [
   "C",
   "C#",
   "D",
@@ -256,7 +199,7 @@ export const NOTE_NAMES: readonly string[] = [
  * Twelve 30-degree hue buckets, plus three neutrals below 10% saturation.
  * Index 0 is hue 0 and each step is 30 degrees.
  */
-export const HUE_NAMES: readonly string[] = [
+const HUE_NAMES: readonly string[] = [
   "Red",
   "Orange",
   "Amber",
@@ -274,11 +217,7 @@ export const HUE_NAMES: readonly string[] = [
 // ---------------------------------------------------------------------------
 // The budget.
 
-/**
- * The per-event character budget, restated from the vendored compiler's
- * `EVENT_BUDGET`. view.spec.ts test 4 asserts the two are equal, so this
- * number cannot drift from the one the minifier is actually measured against.
- */
+/** The per-event budget, restated from the vendored `EVENT_BUDGET`; view.spec.ts test 4 asserts the two equal, so it cannot drift. */
 export const EVENT_BUDGET = 908;
 
 // ---------------------------------------------------------------------------
@@ -350,13 +289,7 @@ export function wordFor(
   return undefined;
 }
 
-/**
- * The kinds a word row is offered to BY NAME, because they have a table.
- *
- * Not the only route to a word row since plan 12-05: a knob of any kind whose
- * values are at most two integers gets one too, labelled by the integers
- * themselves. See `widgetFor`.
- */
+/** The kinds a word row is offered to BY NAME, because they have a table; a knob of any kind with at most two integers gets one too (12-05). */
 const WORD_KINDS: readonly KnobKindName[] = [
   "direction",
   "mode",
@@ -367,60 +300,12 @@ const WORD_KINDS: readonly KnobKindName[] = [
 ];
 
 /**
- * The widget rule, and it is TOTAL: every kind and every value set resolves to
- * one of three widgets, so no knob can ever fail to render.
- *
- * A `scale` whose semitone set is not in the table, a `note` with more than
- * eight options and every kind with no table of its own all fall through to a
- * rail. That fall-through is the design, not a safety net: a rail always works,
- * because position is always meaningful.
- *
- * THE X-05 / X-06 AMENDMENT, BY NAME (10-UI-SPEC §11.2, plans 10-08 and
- * 10-10). X-05 and X-06 say widget selection is "chosen by `kind` and by `n`,
- * never per configuration". `colour` is chosen by `kind` ALONE. The reason is
- * not tidiness: under D-06 a colour knob carries `n = 4096`, and any rule that
- * consults `n` sends it to a single detent track - one 4,096-position rail,
- * which is precisely the picker that lies about what the pad can show. The
- * colour widget is the PICKER at any `n`. Every other kind's mapping is
- * untouched, and `view.spec.ts` compares the whole mapping rather than the one
- * row that moved.
- *
- * The old `values.every(v => rgbOf(v) !== undefined)` guard is gone with it.
- * It was a per-configuration test - exactly what X-05 forbids - and at 4,096
- * options it would have walked the whole lattice on every render to conclude
- * what the kind already says.
- *
- * THE TWO-INTEGER RULE (plan 12-05), AND IT IS KIND-BLIND ON PURPOSE. NINE
- * PADS' `Pads` knob has exactly two values, `9` and `16`, and its kind is
- * `count`, which has no word table - so it rendered as a two-dot rail, fifth in
- * a five-knob rack, with `9` right-aligned beside it. A TWO-POSITION RAIL IS
- * THE LEAST LEGIBLE CONTROL ON THE PANEL: two dots over an invisible range
- * input do not read as a choice, and the user's bench note for that card is
- * "make a 16 pads cause nothing changed" - a report about a control nobody saw,
- * because 12-01 had already proved the knob reaches the module's RAM. So a
- * knob with at most two INTEGER values renders as words.
- *
- * KIND-BLIND RATHER THAN "ADMIT `count` TO WORD_KINDS", and the reason is that
- * the alternative cannot state its own rule. Admitting `count` would need a
- * `wordFor("count", literal)` branch that returns the literal - a second
- * spelling of what `integerReadout` already does - and it would leave a
- * two-valued `size` or `amount` knob a rail for no reason anybody could write
- * down. Chosen by `n` and by whether a label exists at all, which is the same
- * pair of questions the WORD_KINDS branch above asks.
- *
- * WHY IT TESTS THE VALUES AND WHY THAT IS NOT WHAT X-05 FORBIDS. The two-value
- * knobs that ship are AURORA's `direction`, STARFIELD's `edge`, NINE PADS'
- * `grid` and DIAL's `mode`; `edge` is `feel` with the values "soft" and "hard",
- * and `feel` has no table, so a rule keyed on `n` ALONE would render it as a
- * word row reading "1 of 2" and "2 of 2" - strictly worse than the rail it
- * replaced. The integer test is the same question the branch above asks with
- * `wordFor`: IS THERE A LABEL. What X-05 forbids is a rule whose answer depends
- * on which colours a card happens to declare, over 4,096 of them; this reads at
- * most two strings and asks whether they are numbers.
- *
- * The labels come from `model.ts`'s `valueView`, which already falls through
- * `wordFor` to `integerReadout` and hands back the literal - so `Pads` shows
- * `9` and `16`, raw, the way X-08 requires of every integer this panel prints.
+ * The widget rule, and it is TOTAL: every kind and every value set resolves to one widget, and the
+ * fall-through is a rail, where position is always meaningful. `colour` is chosen by `kind` ALONE
+ * (X-05 / X-06; 10-08, 10-10): a colour knob carries `n = 4096` and any rule that consulted `n`
+ * would send it to a 4,096-position rail; the widget is the picker at any `n`. A knob with at most
+ * two INTEGER values renders as words, kind-blind (12-05: NINE PADS' `Pads` at `9` and `16` was a
+ * two-dot rail nobody saw); the test is whether a label exists, which is what X-05 permits.
  */
 /** Two. Above this an integer knob is a rail, where position carries meaning. */
 export const INTEGER_WORD_ROW_MAX = 2;
@@ -436,7 +321,7 @@ export function widgetFor(
       return "rail";
     }
     // The 4/5 boundary (13-09): a row of segmented radios up to four worded
-    // options, a select from five to eight. Rendering only; see the header.
+    // options, a select from five to eight. Rendering only (13-09).
     return values.length <= SEGMENTED_MAX ? "words" : "select";
   }
   if (
@@ -450,25 +335,10 @@ export function widgetFor(
 }
 
 /**
- * The KNOB POSITION a view is currently at: the ONE named door between a
- * view's coordinate system and the knob's.
- *
- * It is the identity for every knob today, and it is kept as a function rather
- * than inlined because the class of bug it was introduced for is not
- * hypothetical. Plan 10-08 gave a lattice colour knob a two-swatch WINDOW and
- * `KnobView.positions` to translate the slots back; `TuningRegion.svelte` read
- * `knob.index` directly and reported window slot 0 where the knob stood at
- * lattice position 95, which was MEASURED as `install.e2e.ts` disabling KEEP
- * ON DEVICE with `knobs-moved` after a write nobody had touched. Plan 10-10
- * removed the window with the picker that replaces it, so the translation is
- * the identity again - and `model.spec.ts` asserts it for EVERY knob on every
- * view, which is what makes the identity a measurement rather than an
- * assumption.
- *
- * A VIEW POSITION IS STILL NOT A KNOB INDEX, and the picker is where that is
- * live: a rail detent is 0..15 and the knob position it composes to is
- * 0..4095. That translation has its own named door, `colourPosition`, for
- * exactly the same reason this one exists.
+ * The KNOB POSITION a view is at: the one named door between a view's coordinate system and the
+ * knob's. The identity for every knob today (10-10 removed the two-swatch window whose slot 0 was
+ * once reported for lattice position 95), and model.spec.ts asserts it for every knob on every view.
+ * The picker's own door is `colourPosition` (a detent is 0..15, a position 0..4095).
  */
 export function knobPosition(view: KnobView): number {
   return view.index;
@@ -480,30 +350,13 @@ export function railSkin(n: number): RailSkin {
 }
 
 // ---------------------------------------------------------------------------
-// The colour lattice, restated for the picker (D-06, 10-UI-SPEC §11.2).
-//
-// WHY IT IS RESTATED HERE RATHER THAN IMPORTED. The real arithmetic is
-// src/lib/tune/knobs.preset.ts's `colourAt` / `colourIndexOf`, which go through
-// the vendored `quantiseColour`. That file imports the vendored compiler, and
-// D-18's front-door guard fails any file under src/lib/ui/ that names it - by
-// SPECIFIER TEXT, so even a type-only import fails. So this is the same move
-// EVENT_BUDGET and the KnobKind union already make in this file: a literal
-// restatement HELD AGAINST ITS REAL SOURCE BY A SPEC. `colour-picker.spec.ts`
-// walks all 4,096 positions and asserts `colourLevels`/`colourChannel` against
-// the vendored `colourAt`, and `colourPosition` against `colourIndexOf`, in
-// both directions. A drift in `_pad.ts`'s 17-step quantisation stops the suite,
-// not the picker.
-//
-// This is what "every detent is index-to-RGB444 arithmetic through the lattice
-// knob, never a hand-typed list" means in a file that may not import the knob.
+// The colour lattice, restated for the picker (D-06, 10-UI-SPEC 11.2): the real arithmetic is
+// knobs.preset.ts's `colourAt` / `colourIndexOf` through the vendored `quantiseColour`, which this
+// file may not import; colour-picker.spec.ts holds every function below against it over all 4,096.
 
 /** Sixteen detents per rail. Three rails span 16^3 = 4,096 and no more. */
 export const COLOUR_RAIL_STEPS = 16;
-/**
- * 255 / 15. `quantiseColour` snaps every stored channel to a multiple of 17
- * (`src/vendor/botor/_pad.ts:490-493`), which is what makes the lattice exactly
- * sixteen steps wide and exactly reachable.
- */
+/** 255 / 15: `quantiseColour` snaps every stored channel to a multiple of 17 (`src/vendor/botor/_pad.ts:490-493`). */
 export const COLOUR_RAIL_STEP = 17;
 /** 4,096. The whole reachable colour space, not a sample of it. */
 export const COLOUR_LATTICE_SIZE =
@@ -533,13 +386,7 @@ export function colourLevels(
   return [(i >> 8) & 15, (i >> 4) & 15, i & 15];
 }
 
-/**
- * Three rail levels -> the lattice position.
- *
- * THE PICKER'S `knobPosition`. A detent is 0..15 and a knob position is
- * 0..4095, and every place the picker reports a move upward comes through
- * here, for the reason `knobPosition`'s comment gives.
- */
+/** Three rail levels -> the lattice position: the picker's `knobPosition`, the one door upward. */
 export function colourPosition(
   levels: readonly [number, number, number],
 ): number {
@@ -556,25 +403,16 @@ export function colourChannel(level: number): number {
 }
 
 /**
- * "102, 102, 102" - the three STORED INTEGERS, and this is what a rail's
- * `aria-valuetext` announces.
- *
- * NEVER A HEX. `#666666` would be a number the state does not hold written in
- * a base the firmware never sees, and it implies a 24-bit resolution the pad
- * cannot reach. The spaces after the commas are deliberate: a screen reader
- * pauses on them and reads three numbers rather than one long one.
+ * "102, 102, 102" - the three STORED integers, what a rail's `aria-valuetext` announces. Never a hex
+ * (a resolution the pad cannot reach); the spaces after the commas make a screen reader read three numbers.
  */
 export function colourValueText(position: number): string {
   return colourLevels(position).map(colourChannel).join(", ");
 }
 
 /**
- * How many characters `glc(a, layer, r, g, b, 1)` spends on this colour: three
- * decimal literals and the two commas between them.
- *
- * The whole lattice is worth SIX characters - `0,0,0` is five and `102,102,102`
- * is eleven - and that is the entire arithmetic the affordability guard rests
- * on, because a colour change moves nothing else in the emitted script.
+ * How many characters `glc(a, layer, r, g, b, 1)` spends on this colour: three decimal literals and
+ * two commas. The whole lattice is worth six characters (`0,0,0` five, `102,102,102` eleven).
  */
 export function colourLiteralLength(position: number): number {
   return colourLevels(position).reduce(
@@ -584,13 +422,8 @@ export function colourLiteralLength(position: number): number {
 }
 
 /**
- * The cheap-step rule, DERIVED from the literal rather than listed.
- *
- * A marked step is one whose channel literal is one or two digits, plus 255.
- * That is `0` (one digit), `17` `34` `51` `68` `85` (two), and `255` - the top
- * of the rail, marked because a visitor reaching for full brightness should not
- * have to learn that it is the expensive end. `102` and everything between it
- * and `238` is three digits and unmarked.
+ * The cheap-step rule, derived from the literal: a channel literal of one or two digits (`0`, `17`
+ * to `85`), plus `255` at the top of the rail so full brightness is marked too.
  */
 export function colourCheapLevel(level: number): boolean {
   const value = colourChannel(level);
@@ -598,13 +431,8 @@ export function colourCheapLevel(level: number): boolean {
 }
 
 /**
- * What the picker is allowed to spend, or `undefined` when nothing has
- * measured yet.
- *
- * `free` is the characters left on the tighter of the two events at the colour
- * the knob currently stands at; `copies` is how many times the emitted script
- * writes the literal (one on every card but `ninepads`, whose checkerboard
- * emits a dimmed second copy).
+ * What the picker may spend, or `undefined` before anything has measured: `free` is the characters
+ * left on the tighter event; `copies` how many times the script writes the literal (two on `ninepads`).
  */
 export type ColourBudget = { free: number; copies: number };
 
@@ -621,24 +449,15 @@ export type ColourDetent = {
   rgb: readonly [number, number, number];
   cheap: boolean;
   /**
-   * False when this colour's literal would push the state past 908.
-   *
-   * MEASURED AT ZERO ON TODAY'S SHELF: the dearest colour-bearing preset is
-   * `ninepads` at 640 of 908, leaving 268 free, and the whole lattice is worth
-   * six characters per copy. The guard ships because it makes that claim
-   * CHECKABLE, because the Lua route's hand-authored templates have far less
-   * headroom, and because the catalog grows.
+   * False when this colour's literal would push the state past 908. Measured at zero on today's shelf
+   * (`ninepads` is the dearest at 640 of 908); the guard ships because it makes the claim checkable.
    */
   affordable: boolean;
 };
 
 /**
- * One rail, resolved: sixteen detents of `axis`, each painted in the colour it
- * would produce GIVEN THE OTHER TWO RAILS WHERE THEY STAND.
- *
- * That "given the other two" is why a rail re-paints when either other rail
- * moves, and it is what makes the strip sixteen discrete storable colours
- * rather than a gradient.
+ * One rail, resolved: sixteen detents of `axis`, each painted in the colour it would produce GIVEN
+ * THE OTHER TWO RAILS WHERE THEY STAND - sixteen discrete storable colours, not a gradient.
  */
 export function colourRail(
   axis: 0 | 1 | 2,
@@ -669,18 +488,9 @@ export function colourRail(
 }
 
 /**
- * The highest level a rail's `<input type="range">` may reach.
- *
- * ABSENT AS A COLOUR, PRESENT AS A POSITION. An unaffordable detent is still
- * painted - in `--color-workspace` behind a 1px `--color-divider` hairline - so
- * the rail keeps its shape and a visitor can see that the space continues; the
- * control's own `max` is what stops there, which is what makes the exclusion
- * real rather than decorative and what makes the platform announce it.
- *
- * The unaffordable set is always a SUFFIX, and that is arithmetic rather than
- * luck: the cost of a colour is the digit count of its three channels, and a
- * channel's digit count is monotonic in its level (1 digit at 0, 2 up to 85, 3
- * from 102). So there is always a single top level and never a hole.
+ * The highest level a rail's `<input type="range">` may reach. An unaffordable detent is still painted
+ * (in `--color-workspace` behind a hairline) so the rail keeps its shape; the control's `max` is what
+ * stops there. The unaffordable set is always a suffix: a channel's digit count is monotonic in its level.
  */
 export function colourRailMax(rail: readonly ColourDetent[]): number {
   let top = 0;
@@ -692,43 +502,22 @@ export function colourRailMax(rail: readonly ColourDetent[]): number {
 }
 
 /**
- * True when this colour knob carries the whole lattice rather than a
- * hand-authored palette.
- *
- * THIS IS NOT WIDGET SELECTION AND IT IS NOT X-05's `n`. `widgetFor` has
- * already chosen the picker by kind alone; this is the picker asking what it
- * is holding. A compiler-route colour knob IS the lattice (`knobs.preset.ts`
- * builds its options from `colourAt` over all 4,096). A Lua entry's colour knob
- * is still the four or five literals its author wrote, and three sixteen-detent
- * rails cannot travel between `0,204,255` and `255,85,0` without passing
- * through 4,094 colours that knob cannot name - so the picker shows that knob
- * the SHIPPED swatch row instead, inside the same block, with the same caption
- * and the same selector. Widening the Lua route onto the lattice regenerates
- * every colour-bearing entry's frames and is `deferred-items.md` item 3.
+ * True when this colour knob carries the whole lattice rather than a hand-authored palette. Not widget
+ * selection (that is by kind alone): the picker asking what it holds. A Lua entry's colour knob is the
+ * four or five literals its author wrote, so the picker shows it the shipped swatch row instead;
+ * widening the Lua route onto the lattice is deferred-items.md item 3.
  */
 export function isColourLattice(values: readonly unknown[]): boolean {
   return values.length === COLOUR_LATTICE_SIZE;
 }
 
-/**
- * The percentage, floored inside the budget and ceiled outside it.
- *
- * The asymmetry is the point: 100% must mean "exactly at the limit" and must
- * never mean "nearly there". 907 reads 99, 908 reads 100, 909 reads 101, 941
- * reads 104.
- */
+/** The percentage, floored inside the budget and ceiled outside it: 907 reads 99, 908 100, 909 101. */
 export function percentOf(used: number): number {
   const raw = (used / EVENT_BUDGET) * 100;
   return used > EVENT_BUDGET ? Math.ceil(raw) : Math.floor(raw);
 }
 
-/**
- * One meter, resolved.
- *
- * `over` is derived from the number rather than asked for, and it outranks
- * staleness: a warning is never dimmed. A meter that has never measured is not
- * over anything, however large the placeholder it was handed.
- */
+/** One meter, resolved. `over` is derived from the number and outranks staleness; a meter that never measured is not over. */
 export function meterView(
   event: MeterEvent,
   used: number,
@@ -802,13 +591,8 @@ export function swatchName(
 }
 
 /**
- * The right-aligned integer beside a rail, when every value on that knob is a
- * single integer - and nothing at all otherwise, so `3,5,7` shows nothing.
- *
- * The literal is returned RAW and is never reinterpreted (X-08). A MIDI channel
- * whose Lua literal is `0` displays `0`, because the firmware is zero-based and
- * showing `1` would be HANGAR silently renumbering a value it is about to write
- * to someone's hardware.
+ * The right-aligned integer beside a rail when every value on that knob is a single integer, nothing
+ * otherwise. Returned RAW, never reinterpreted (X-08): a zero-based MIDI channel displays `0`.
  */
 export function integerReadout(
   values: readonly string[],
@@ -820,14 +604,9 @@ export function integerReadout(
 }
 
 /**
- * The other direction of `integerReadout` (13.1-07, D-09): the index of a
- * TYPED literal in a knob's closed list, or undefined when the text is not
- * an integer or names a value the knob does not offer. The text is trimmed
- * and compared as a number, so `074` finds `74`; it is never clamped,
- * rounded or snapped to the nearest option, because a typed field over a
- * closed list moves the knob to a value it offers or refuses - the index is
- * what the stamp, the forecast and the sweep need, and X-08 forbids
- * renumbering what is about to be written to hardware.
+ * The other direction of `integerReadout` (13.1-07, D-09): the index of a TYPED literal in a knob's
+ * closed list, or undefined. Trimmed and compared as a number (`074` finds `74`); never clamped,
+ * rounded or snapped, because X-08 forbids renumbering what is about to be written to hardware.
  */
 export function typedIndex(
   literals: readonly string[],
@@ -843,11 +622,8 @@ export function typedIndex(
 }
 
 /**
- * The bounds of a CONTIGUOUS integer run - `["0", "1", ..., "15"]` gives
- * `{ min: 0, max: 15 }` - or undefined when the literals are not integers,
- * are empty, or skip a number (Arc's `cc` at 1, 16, 20, 74, 102). The typed
- * field's refusal names a range for a run and the offered values otherwise,
- * and a Lua entry's channel is the run that starts at 0.
+ * The bounds of a CONTIGUOUS integer run (`["0", ..., "15"]` gives `{ min: 0, max: 15 }`), or
+ * undefined when the literals are not integers, are empty or skip a number (Arc's `cc`).
  */
 export function integerRun(
   literals: readonly string[],

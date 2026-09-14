@@ -1,104 +1,14 @@
-// The Sandbox editor's model: one surface, one selection, one mode, one
-// pending placement, one keyboard focus cell, the history, and the field
-// states that let an invalid keystroke stay on screen without ever reaching
-// the surface. Pure TypeScript with no browser in it, for the reason
-// src/lib/tune/model.ts is: the components in src/lib/ui/sandbox/ render this
-// and call it, and src/lib/ui/sandbox-ui.spec.ts drives it in node - which is
-// the only honest way to prove that a surface can be built with NO
-// POINTER-MOVE EVENT, because the test dispatches none and the model has no
-// method that would take one.
-//
-// ---------------------------------------------------------------------------
-// 1. THE TWO CREATION PATHS, AND WHY NEITHER NEEDS A DRAG (Bible sections 2, 8, 14)
-// ---------------------------------------------------------------------------
-//
-// WCAG 2.2 asks for a single-pointer alternative to dragging, and section 8
-// gives both paths in click-only form. Both are `clickCell(col, row)`:
-//
-//   ELEMENT FIRST: `choose(kind)` arms a placement (the palette's `+`); the
-//   next click places that kind's DEFAULT region with its top-left at the cell,
-//   pulled back onto the surface if the default would run off the edge.
-//
-//   AREA FIRST: with nothing armed, a click on an EMPTY cell marks the start
-//   corner; the next click is the far corner and the region is the box
-//   between them. The kind is compatible by construction: a box one cell
-//   wide and one tall is a Button, a taller-than-wide box is a vertical Fader
-//   and a wider-than-tall one a horizontal Fader - a Fader needs two cells
-//   along the axis it reads (model.ts section 4a) and every other box has
-//   them. The inspector's Type control is where the visitor chooses
-//   otherwise (section 8: "then choose a compatible element"), and that
-//   change is validated like any other edit.
-//
-//   A click on a cell a region already holds SELECTS that region (and
-//   cancels an area start). A drag is the plate's accelerator and lives in
-//   the component; it arrives here as the same two calls.
-//
-// THE KEYBOARD ROUTE ACROSS THE PLATE is the same two calls again: arrows
-// move `focus`, Enter is `mark()` = `clickCell(focus)`. Section 14's "spatial
-// keyboard model".
-//
-// THE NUMERIC ROUTE is `editNumber(field, text)`: place anything, then type
-// Column, Row, Width, Height. The third complete route.
-//
-// THE HANDLE DRAG (13.1-03, 13.1-CONTEXT D-03, bench line 3: "you should be
-// able to resize each element by draggin its points") is `resizeSelectedTo(
-// box)`: the plate draws the proposed bounds while a handle is dragged and
-// hands the box here ONCE, on release. It is the same `applyEdit` the
-// numeric fields use, under the edit kind `resize`, so an off-surface,
-// overlapping or too-small box is refused with its line and the region stays
-// as it was (section 8: "preserve the previous valid value"); the entry is
-// sealed on the spot, so one drag is one Undo. Nothing about it is required:
-// the numeric fields and the keyboard reach every box a drag can.
-//
-// EVERY NEW REGION TAKES THE NEXT COLOUR OF `PALETTE` (D-03: "each element
-// should have its own color"), indexed by `created` - a counter of regions
-// this editor has created, seeded by `load()` from the loaded count - and
-// NOT by `minted`, which advances inside `mint()` before the colour is
-// chosen and skips colliding ids on a loaded surface (13.1-PLAN-CHECK W-05).
-// The picker still recolours any region; a duplicate keeps its source's.
-//
-// ---------------------------------------------------------------------------
-// 2. THE MODEL IS NEVER TRANSIENTLY INVALID (section 8; geometry.ts rule 5)
-// ---------------------------------------------------------------------------
-//
-// `editNumber` parses the text and runs the edit through geometry.ts's
-// `applyEdit`, which returns the surface it was handed on a refusal. On a
-// refusal THIS module keeps the previous surface and records `{ text,
-// message }` for the field, so the component shows what was typed with the
-// message under it while the model still holds the last valid value; on the
-// next keystroke that validates, the surface moves and the record clears.
-// The message therefore stays exactly until the edit is corrected, and no
-// intermediate invalid surface ever exists anywhere - not in the history,
-// not in the draft, not on the plate.
-//
-// ---------------------------------------------------------------------------
-// 3. WHAT PLAY LOCKS (section 8)
-// ---------------------------------------------------------------------------
-//
-// In Play every structural method returns without touching the surface:
-// `choose`, `clickCell`, `mark`, `editNumber`, `rename`, `setKind`,
-// `duplicate`, `remove`, `undo`, `redo` and the rest. Selection is kept,
-// the history is kept, a pending placement is cancelled (a click in Play is
-// a touch, not a corner). `setMode` never clears `selectedId` and never
-// touches `history` - the round trip is asserted in both directions.
-//
-// "FOLLOW HARDWARE SELECTION" IS DELIBERATELY ABSENT. Section 8 offers it as
-// optional and defaults to keeping the inspector stable. ZONA has ONE touch
-// element (element 0; the system element is 255), so there is no hardware
-// selection to follow: the module never reports "the user touched element
-// 3" because there is no element 3. The option would be a control that can
-// never change anything, and this file says so rather than leaving a reader
-// to look for it.
-//
-// ---------------------------------------------------------------------------
-// 4. THE CAP AND THE METER
-// ---------------------------------------------------------------------------
-//
-// `atCap` is `regions.length >= cap` (schema.ts's sixteen, D-14 Q4; 13-15
-// closed 13-14's finding: the dearest sixteen fit at 882). The palette
-// disables its `+` on it with GEOMETRY_COPY.cap as the reason. The meter is
-// cost.ts's and lives in the route, because it is async and measured under
-// the minifier; this model knows the count and nothing about characters.
+// The Sandbox editor's model: one surface, one selection, one mode, one pending placement, one
+// keyboard focus cell, the history, and the field states that let an invalid keystroke stay on
+// screen without reaching the surface. Pure TypeScript with no browser in it: src/lib/ui/sandbox/
+// renders and calls it, sandbox-ui.spec.ts drives it in node, and a surface can be built with NO
+// pointer-move event because no method takes one. Every creation path is two calls - `choose(kind)`
+// then `clickCell` (element first), two clicks on empty cells (area first, the kind compatible by
+// construction), arrows plus `mark()` (the keyboard route), `editNumber` (the numeric route), and
+// the plate's handle drag as one `resizeSelectedTo(box)` on release (13.1-03). The model is never
+// transiently invalid: a refused edit keeps the previous surface and records `{ text, message }` for
+// the field. Play locks every structural method and keeps selection and history; `atCap` is schema.ts's sixteen.
+// Decided at 13-16 / 13.1-03 (13-CONTEXT D-03, D-14 Q4; 13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -145,7 +55,7 @@ export type Mode = "edit" | "play";
 
 export type Cell = { readonly col: number; readonly row: number };
 
-/** What the next click on the plate will do (section 1). */
+/** What the next click on the plate will do. */
 export type Placement =
   | { readonly kind: "idle" }
   | { readonly kind: "element"; readonly type: ElementKind }
@@ -164,7 +74,7 @@ export const NUMERIC_FIELDS: readonly NumericField[] = [
   "channel",
 ];
 
-/** A field showing typed text the model refused, with the message that stays until corrected (section 2). */
+/** A field showing typed text the model refused, with the message that stays until corrected. */
 export type FieldProblem = {
   readonly text: string;
   readonly message: string;
@@ -439,7 +349,7 @@ export class SandboxEditor {
   }
 
   // -------------------------------------------------------------------------
-  // The two creation paths (section 1).
+  // The two creation paths, neither needing a drag (Bible sections 2, 8, 14).
 
   /** Element first: arm a kind. False at the cap or in Play - the palette is disabled there. */
   choose(kind: ElementKind): boolean {
@@ -550,7 +460,7 @@ export class SandboxEditor {
   }
 
   // -------------------------------------------------------------------------
-  // The keyboard route across the plate (section 1).
+  // The keyboard route across the plate: arrows move `focus`, Enter is `mark()` (Bible section 14).
 
   moveFocus(dcol: number, drow: number): void {
     this._focus = {
@@ -571,7 +481,7 @@ export class SandboxEditor {
   }
 
   // -------------------------------------------------------------------------
-  // Selection and mode (section 3).
+  // Selection and mode: Play locks every structural method and keeps the selection and the history (Bible section 8).
 
   /** From the element list or the plate. Never an entry in the history. */
   select(id: string | undefined): void {
@@ -599,7 +509,7 @@ export class SandboxEditor {
   }
 
   // -------------------------------------------------------------------------
-  // The inspector's edits, every one through geometry.ts (section 2).
+  // The inspector's edits, every one through geometry.ts: the model is never transiently invalid (Bible section 8; geometry.ts rule 5).
 
   private applyPatch(
     patch: Partial<Omit<Region, "id">>,
@@ -620,7 +530,7 @@ export class SandboxEditor {
    * A numeric field's text, as typed. Column and Row arrive ONE-BASED (the
    * interface's numbers) and go through the named door; the rest are what
    * they are. A refusal leaves the surface as it was and records the text
-   * and the message for the field (section 2).
+   * and the message for the field.
    */
   editNumber(field: NumericField, text: string): boolean {
     const id = this._selectedId;
@@ -855,7 +765,7 @@ export class SandboxEditor {
     return { ok: true, region: result.region };
   }
 
-  /** Delete the selection. Undoable (section 8's own requirement). */
+  /** Delete the selection. Undoable (Bible section 8's own requirement). */
   remove(): boolean {
     const region = this.selected;
     if (region === undefined || this._mode === "play") return false;

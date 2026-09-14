@@ -1,4 +1,15 @@
 <script lang="ts">
+  // The persistent layout: the shell (13-05), mounted once and filled by the route through
+  // shell.svelte.ts - "app" (PDF pages 2-5: header with nav, context bar, rail, centre, inspector,
+  // footer), "intro" (page 1: header with the wordmark, Quick guide and the connection slot), or
+  // unfilled (the bench instruments under /dev/ draw their own chrome). Starts the session and the
+  // install store once, from onMount, for the whole site (D-05, D-03); mounts the device chrome -
+  // ConnectionControl and Clear in the header, DeviceActions in the footer - on every shape (13-11,
+  // 13.1-05). The frame's numbers are layout.ts's as custom properties; the three breakpoints are
+  // literals in the queries, held equal to BREAKPOINTS by shell.spec.ts test 5. The site root is a
+  // 100dvh column (announcer, shell, footer) whose frame height is derived, never a calc (A.4).
+  // The static imports of the session and the install store are the chunk guard's two allowed cases (config-shape.spec.ts test 13).
+  // Decided at 13-05 / 13-11 / 13.1-01 / 13.1-05 (13.1-CONTEXT D-01, D-04); see .planning/phases/13.1-bench-corrections-four/13.1-05-SUMMARY.md
   import "../app.css";
   import { onMount } from "svelte";
   import { page } from "$app/state";
@@ -36,13 +47,9 @@
   let { children } = $props();
 
   /**
-   * The shape a route DECLARED as data (plan 13-07), read only while no
-   * effect has filled the shell. On the server this is the only fill there
-   * can be - see shellFromData - and it is what puts the intro's header in
-   * the prerendered document. `page` is bound to the current request and
-   * throws outside one; the one place the layout renders outside a request
-   * is src/lib/ui/shell.spec.ts's render(), where there is no declared
-   * shape either, so the throw reads as "none".
+   * The shape a route declared as data (13-07), read only while no effect has filled the shell; on
+   * the server it is the only fill there can be. `page` throws outside a request (shell.spec.ts's
+   * render()), and the throw reads as "none".
    */
   function declared(): ShellFill | undefined {
     try {
@@ -53,114 +60,21 @@
   }
 
   /**
-   * The device session is started HERE, once, for the whole site (D-05), and
-   * from onMount rather than at module scope on purpose: +layout.ts sets
-   * prerender = true, so this component's module scope runs in the
-   * prerenderer, where there is no window and no navigator.serial to read.
-   * start() is idempotent on the instance, so the session probe page - which
-   * starts the singleton from its own onMount as well - attaches nothing
-   * twice. The static imports of the session and the install store are the
-   * two cases the chunk guard allows for this file (src/lib/config-shape.spec.ts
-   * test 13): the session and its four specifiers, and the install store and
-   * its three, are all free of the protocol package.
+   * The device session starts here, once, for the whole site (D-05), from onMount because the module
+   * scope runs in the prerenderer; start() is idempotent, so the session probe's own start attaches nothing twice.
    */
   onMount(() => {
     session.start();
-    // Phase 7 (07-08): the install store subscribes to the session's
-    // connection seam here so the snapshot is taken at "connected" on every
-    // route, before any panel mounts (D-03). Idempotent, like the session's.
+    // The install store subscribes to the session's connection seam here, so the snapshot is taken at
+    // "connected" on every route before any panel mounts (07-08, D-03). Idempotent.
     install.start();
   });
 
   /**
-   * THE SHELL (plan 13-05). Mounted once, here, and filled by the route
-   * through src/lib/ui/shell/shell.svelte.ts: the layout reads the fill and
-   * renders the frame's named slots; it knows nothing about configurations.
-   * Three shapes. "app" is the PDF's pages 2-5 (header with nav, context
-   * bar, rail, centre, inspector, footer). "intro" is page 1's exception
-   * (13-07): a header with the wordmark, a secondary link and the
-   * connection slot, and nothing else above the page. UNFILLED - no route
-   * has called fillShell() - renders the announcer, the page and the
-   * footer. Every visitor-facing route fills the shell since 13-09 (/,
-   * /playground/, /playground/[id]); the unfilled branch stays for the
-   * seven bench instruments under /dev/, which draw their own chrome and
-   * fill nothing, so 13-09 kept it rather than putting a header on the
-   * bench.
-   *
-   * THE FRAME'S NUMBERS ARE layout.ts's, SET AS CUSTOM PROPERTIES BELOW and
-   * read by the rules in the style block; no number is written in the stylesheet.
-   * The three breakpoints are the one exception CSS forces: a media query
-   * cannot read a custom property, so section 13's 1440 / 1024 / 768 appear
-   * in the queries as literals, and shell.spec.ts test 5 holds each of them
-   * equal to BREAKPOINTS. The inspector is the PDF's fraction of the
-   * viewport clamped to its band (D-14 Q9); the rail is fixed per band.
-   *
-   * THE FRAME IS WHAT THE VIEWPORT LEAVES in the wide and compact bands, so
-   * the rail and the inspector scroll their own bodies while the surface and
-   * the context bar's primary action stay put (section 7). The site root is a
-   * 100dvh flex column on every shape (13.1-01 gave the intro this; the quick
-   * task after the 13.1 gate, deferred-items A.4, widened it to the app
-   * pages): the announcer, the shell and the footer at their rendered
-   * heights, the shell flex 1, and inside it the frame flex 1 with
-   * min-block-size 0. The frame's height is DERIVED from the header, the
-   * context bar and the footer as they render, never a calc on HEADER_H,
-   * CONTEXT_H and FOOTER_H: the footer is min-block-size FOOTER_H and renders
-   * 121 (its licence row is a second 44px line), so the calc this rule used
-   * to be left every app page 71px of document scroll (A.1). In the stacked
-   * and narrow bands the side regions leave the row - the rail above the
-   * centre, the inspector below it, section 13's "below the surface" - and
-   * the page flows. The rail's collapse control at 768-1023 and the drawer and bottom
-   * sheet below 768 are controls with labels the Bible does not give; the
-   * frame stacks the regions honestly and the plan that first renders a rail
-   * at those widths (13-08) asks for the words.
-   *
-   * TOUCH TARGETS ARE KEYED TO POINTER CAPABILITY, NEVER TO WIDTH (section
-   * 13): under (pointer: coarse) every control inside the shell resolves
-   * COARSE_TARGET on both axes, whatever the viewport. Checkboxes and radios
-   * are excluded because their label row is the target, as
-   * MotionControl.svelte already declares.
-   *
-   * THE INTRO IS ONE SCREEN (plan 13.1-01; 13.1-CONTEXT.md D-01; bench line
-   * 1, 2026-09-12: "I dont want the index page to be scrollable, always fit
-   * on the screen"). In the wide and compact bands the site root is the
-   * 100dvh flex column above (under the intro variant since 13.1-01, under
-   * every variant since A.4): the announcer, the shell (header over centre)
-   * and the footer, each at its own rendered height, and the intro's centre
-   * takes what is left with overflow: hidden. The centre's height is
-   * DERIVED from the header and the footer as they render, never computed
-   * from HEADER_H and FOOTER_H: the footer is min-block-size FOOTER_H and
-   * renders taller (its licence row is a second 44px line), so a calc on
-   * the constants would leave the document 71px of scroll. The centre is a
-   * size container, and Intro.svelte reads its height as 100cqh to scale
-   * the PDF's numbers (layout.ts, INTRO_FIT_H and the paragraph above it).
-   * Below 1024 the root is display: contents again, the columns stack
-   * (13-07) and the phone may scroll - D-01 is the user's rule about the
-   * desktop; deferred-items D.10 is still open.
-   *
-   * THE DEVICE CHROME IS THE SHELL'S, NOT A ROUTE'S (plan 13-11). The
-   * header's connection control and the footer's Device actions read the
-   * two singletons this layout starts, so the layout mounts both, once, on
-   * every shape - the intro's header, the app pages' header, and the footer
-   * under all three shapes including the unfilled bench. 13-05 reserved the
-   * two slots as snippets a route would hand over; 13-09 filled the first
-   * provisionally from the workspace route. Neither is a route's business:
-   * a control that must exist on every page belongs to the one component
-   * that is on every page. The snippet props stay on Header and Footer so
-   * shell.spec.ts can render either shape alone.
-   *
-   * THE USER'S CLEAR IS THE HEADER'S TOO (plan 13.1-05; 13.1-CONTEXT D-04;
-   * bench line 4, 2026-09-12: "CLEAR button. we need a CLEAR button it
-   * should live all the time in the top right corner next to ZONA
-   * connected."). Clear.svelte - the store's clearToDefault() as one click,
-   * disabled with its reason otherwise - is handed to the header's `clear`
-   * snippet here, once, beside the connection snippet, so it renders on
-   * every page and in both header variants: the intro's header carries it
-   * as the app pages' does, because "all the time" is the user's word. The
-   * workspace's install column no longer mounts it. Clear.svelte names the
-   * session, the install store and install-copy and nothing else - the
-   * chunk guard's permitted paths (config-shape.spec.ts test 13;
-   * device-ui.spec.ts test 1 reads the component), all free of the protocol
-   * package, so the header still paints without it.
+   * The fill: the route's, else the declared shape. Every visitor-facing route fills the shell since
+   * 13-09; the unfilled branch renders the announcer, the page and the footer for the bench. Touch
+   * targets are keyed to pointer capability, never to width (section 13); the intro is one screen
+   * (13.1-01, D-01) and the phone may scroll below 1024 (deferred-items D.10 open).
    */
   const fill = $derived(shell.fill ?? declared());
 </script>
@@ -180,14 +94,8 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <!--
-  The one session live region, BEFORE the page (D-17). It precedes the tuning
-  and browse regions in the document, and that document order plus the store's
-  trailing timer is the whole of "the session speaks first"; there is no
-  cross-region scheduler. See SessionAnnouncer.svelte.
-
-  13-05 put the shell AROUND this line rather than moving it: the announcer is
-  the first element in the document on every route, ahead of the header, and
-  the shell's regions follow it. Nothing about its order changed.
+  The one session live region, first in the document on every route, before the header (D-17): that
+  order plus the store's trailing timer is the whole of "the session speaks first". SessionAnnouncer.svelte.
 -->
 <SessionAnnouncer />
 
@@ -254,23 +162,16 @@
   {/if}
 
   <!--
-    GPLv3 section 6(d) — "clear directions next to the object code". The block
-    lives in Footer.svelte since 13-05, verbatim (the five lines are held
-    against git by src/lib/ui/shell.spec.ts test 4), and the footer is mounted
-    here, in the persistent layout, so it is on every page that ships the
-    bundle - filled shell or not - and not on an About page. The motion control
-    13-04 parked in this file's own footer went with it, under Help & shortcuts.
+    GPLv3 section 6(d): the directions block lives in Footer.svelte (shell.spec.ts test 4 holds its five
+    lines against git), mounted here so it is on every page that ships the bundle, filled shell or not.
   -->
   <Footer {deviceActions} />
 </div>
 
 <style>
   /*
-    One screen (13.1-01, D-01; widened from the intro to every shape by the
-    quick task after the 13.1 gate, deferred-items A.4): the site root is a
-    100dvh column - announcer, shell, footer - and the shell takes what is
-    left. The custom properties inherit through it as they did when it had
-    no box.
+    One screen (13.1-01, D-01; every shape since A.4): the site root is a 100dvh column - announcer,
+    shell, footer - and the shell takes what is left. The custom properties inherit through it.
   */
   .site {
     display: flex;
@@ -289,11 +190,9 @@
   }
 
   /*
-    The frame, wide band: rail | centre | inspector. The inspector is the
-    PDF's fraction of the viewport, clamped; the rail is fixed; the centre is
-    the remainder, and the whole row is what the shell's column leaves after
-    the header and the context bar (the footer is the site column's), so each
-    column scrolls its own body. Never a calc on the constants (A.4).
+    The frame, wide band: rail | centre | inspector. The inspector is the PDF's fraction of the viewport,
+    clamped; the rail is fixed; the centre the remainder; the row is what the shell's column leaves after
+    the header and the context bar, so each column scrolls its own body. Never a calc on the constants (A.4).
   */
   .frame {
     --inspector-w: clamp(
@@ -326,11 +225,8 @@
   }
 
   /*
-    The intro's centre (13.1-01, D-01): a flex child of the 100dvh site
-    column below, sized by what the header and the footer leave, clipped at
-    its edge, and a size container so Intro.svelte can read its height in
-    cq units. The e2e title in first-experience.e2e.ts proves the fit at four
-    desktop viewports off the rendered boxes, not off this stylesheet.
+    The intro's centre (13.1-01, D-01): a flex child of the 100dvh column, clipped at its edge, a size
+    container so Intro.svelte reads its height in cq units; first-experience.e2e.ts proves the fit at four viewports.
   */
   .centre.intro {
     flex: 1 1 0;
@@ -357,12 +253,9 @@
   }
 
   /*
-    Stacked band (768-1023): the side regions leave the row, the page flows.
-    flex: none, as .centre.intro declares below: the shell's column is
-    content-height here (the site root is display: contents), and a flex
-    basis of 0 in a content-height column is a frame of height 0 with the
-    page spilling past it (measured, A.4's quick task: 8522px of document at
-    900 x 720 without this line).
+    Stacked band (768-1023): the side regions leave the row, the page flows. flex: none because the
+    shell's column is content-height here and a flex basis of 0 would be a frame of height 0 with the
+    page spilling past it (measured, A.4's quick task: 8522px of document at 900 x 720 without this line).
   */
   @media (max-width: 1023.98px) {
     .frame,
@@ -405,12 +298,7 @@
     }
   }
 
-  /*
-    Section 13: pointer capability sizes targets, never the viewport. Every
-    control inside the shell - the frame, the header, the footer, and
-    whatever a route renders in a slot - is at least the coarse target on
-    both axes under a coarse pointer, at any width.
-  */
+  /* Section 13: every control inside the shell is at least the coarse target on both axes under a coarse pointer, at any width. */
   @media (pointer: coarse) {
     .site
       :global(

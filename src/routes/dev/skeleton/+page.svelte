@@ -1,22 +1,11 @@
 <!--
-  FOUND-01: the walking skeleton's operator surface.
-
-  Prerendered (prerender.entries: ["*"] in vite.config.ts) and linked from
-  nowhere, exactly like the fidelity probe (described rather than spelled: the
-  source scan in src/lib/config-shape.spec.ts reads comments, on purpose). Its
-  only job is to drive one provable no-op against a real ZONA and to record
-  every byte of it.
-
-  D-05's "bare" rule is the reason this file looks the way it does: the only
-  module specifiers anywhere in it are "svelte", "$lib/protocol" and
-  "$lib/transport", and a spec in src/lib/config-shape.spec.ts asserts exactly
-  that against the source. The two surfaces are loaded dynamically from
-  onMount, so the server build never pulls the protocol package into the
-  prerendered page's graph, and so the click handler below can call
-  requestPort() with nothing awaited in front of it.
-
-  Nothing here is styled beyond legibility. It is a diagnostic, and Phase 4
-  owns the design system.
+  The walking skeleton's operator surface (FOUND-01): one provable no-op against a real ZONA, every
+  byte of it recorded. Prerendered and linked from nowhere, like the fidelity probe (described, not
+  spelled: config-shape.spec.ts's probe scan reads comments). D-05's "bare" rule: the only module
+  specifiers in this file are "svelte", "$lib/protocol" and "$lib/transport", and config-shape.spec.ts
+  asserts exactly that against the source. The two surfaces are loaded dynamically from onMount, so the
+  server build never pulls the protocol package into the prerendered graph and the click handler can
+  call requestPort() with nothing awaited in front of it. Styled for legibility only: a diagnostic.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -57,12 +46,7 @@
   let log: string[] = $state([]);
   let captureExists = $state(false);
 
-  /**
-   * The falsifiable definition, kept as one string rather than as markup so
-   * the four numbers cannot be reflowed apart from their units by a formatter
-   * - the page's own acceptance greps read them, and so will the person
-   * writing the results document.
-   */
+  /** The falsifiable definition as one string, so a formatter cannot reflow the four numbers from their units (the acceptance greps read them). */
   const HEARTBEAT_REQUIRED =
     "With the host heartbeat off, within a 10 s window from connect: inbound " +
     "HEARTBEAT frames arrive at 3 per second or more; both CONFIG/FETCH " +
@@ -84,11 +68,8 @@
   let detachHide: (() => void) | undefined;
 
   onMount(async () => {
-    // Dynamic and inside onMount, exactly as the fidelity probe does. Two reasons
-    // agree: at module scope the SERVER build would pull the protocol package
-    // into the prerendered page's graph for nothing, and a dynamic import
-    // inside the CLICK handler would be a network round trip that could
-    // outlast the transient activation requestPort() needs.
+    // Dynamic and inside onMount, as the fidelity probe does: at module scope the server build would
+    // pull the protocol package in for nothing; inside the click it could outlast the transient activation.
     P = await import("$lib/protocol");
     T = await import("$lib/transport");
     serialAvailable = T.webSerialAvailable();
@@ -129,11 +110,8 @@
   }
 
   async function connect(): Promise<void> {
-    // FIRST statement. Nothing is awaited before it. Transient activation
-    // EXPIRES (about 4.9 s in current engines) rather than being consumed, so
-    // an await here makes the picker reject for a reason that reads as a
-    // permissions bug. Do not write the browser-family word here - this file's
-    // own acceptance grep counts comments.
+    // FIRST statement, nothing awaited before it: transient activation EXPIRES (about 4.9 s in current
+    // engines), so an await here makes the picker reject. No browser-family word here (the acceptance grep counts comments).
     const picked = await navigator.serial
       .requestPort({ filters: [P!.ZONA_USB] })
       .catch((err: unknown) => {
@@ -163,10 +141,8 @@
     detachHide = grid.closeOnHide();
     portOpen = true;
 
-    // DESKTOP_PRE_SEND_DELAY_MS, not PRE_SEND_DELAY_MS: results (b) dropped the
-    // shipped default to 0, and reading it here would send at 0 in both toggle
-    // positions while still stamping the run id from the number - mislabelling
-    // an arm rather than merely disabling the experiment.
+    // DESKTOP_PRE_SEND_DELAY_MS, not PRE_SEND_DELAY_MS: results (b) dropped the shipped default to 0, and
+    // reading it here would send at 0 in both toggle positions while still stamping the run id from it.
     const preSendDelayMs = pacedTenMs ? protocol.DESKTOP_PRE_SEND_DELAY_MS : 0;
     const record = new surface.CaptureRecorder(
       {
@@ -208,10 +184,7 @@
     queue = new surface.RequestQueue(recording, {
       preSendDelayMs,
       onStep: (step) => {
-        // The keeper beat is ambient traffic, not a step of the run. Its bytes
-        // are on the record as tx events either way; two hundred of them in
-        // the step list would bury the eight transactions the results document
-        // is written from.
+        // The keeper beat is ambient traffic, not a step of the run; its bytes are on the record as tx events.
         if (keeperBeat) return;
         record.step(step);
         steps = [...steps, step];
@@ -327,10 +300,7 @@
         .finally(() => {
           keeperBeat = false;
         });
-      // One timer that schedules the next one, never a repeating timer: a
-      // repeating chain is one of the intensive-throttling triggers a
-      // backgrounded tab applies, which is also why the note below asks for
-      // this tab to stay in front.
+      // One timer that schedules the next, never a repeating timer (an intensive-throttling trigger in a backgrounded tab).
       keeperTimer = setTimeout(beat, P!.HOST_HEARTBEAT_MS);
     };
     keeperTimer = setTimeout(beat, P!.HOST_HEARTBEAT_MS);
@@ -357,11 +327,8 @@
       after = null;
       byteIdentical = undefined;
       writesAcknowledged = false;
-      // D-09: the write buttons stay disabled unless every fetched string is
-      // trustworthy, and the page names the event and the reason. FIVE since
-      // 13-17 (the utility, D-18 / D-19; four since 12.1-06), so the fifth
-      // string is inside this page's no-op proof rather than silently outside
-      // it.
+      // D-09: the write buttons stay disabled unless every fetched string is trustworthy, and the page names
+      // the event and the reason. Five strings since 13-17 (the utility; four since 12.1-06).
       const guard = P!.canWriteBack([
         before.systemTimer,
         before.system,

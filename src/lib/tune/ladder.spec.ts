@@ -1,35 +1,10 @@
-// TUNE-04 and TUNE-05, against a genuinely over-budget measurement.
-//
-// THIS SPEC HAS NO MODULE OF ITS OWN. It is the guard over model.ts, fitState
-// and copy.ts together - the fit-ladder line and the over-budget block are made
-// of all three and of none of them alone - which is why it is a spec without a
-// source file beside it.
-//
-// > Over budget is unreachable for anything a visitor can produce. These five
-// > tests are what make TUNE-04 and TUNE-05 real code rather than a claim, and
-// > they reach the branch the only honest way - by passing the compiler a real
-// > `reserved`, which is exactly what Phase 7's install marker will do.
-//
-// THE RESERVES ARE MEASURED, NOT GUESSED, and there are two of them because one
-// number cannot do both jobs. Measured here on 2026-09-04:
-//
-//   tpad at its defaults costs Setup 902 of 908 - the tightest card on the
-//   shelf. The smallest round reserve that puts it over with a margin of at
-//   least ten characters is 20: Setup 922, free -14. That is TEST 1's reserve.
-//
-//   But tpad can never produce a LADDER. Its only sheet is `sends`, and the
-//   compiler refuses to shed sends - "a fader bank quietly becoming three
-//   faders is the silent lie this product exists to prevent" - so fit() returns
-//   `{ fits: false, steps: [], blocked: "sends" }` at every reserve, 400
-//   included. The researcher's { setup: 400, timer: 0 } therefore reaches the
-//   over-budget branch and not the ladder branch. The measurement wins: tests 2
-//   to 5 use `dial` at { setup: 300, timer: 0 } - Setup 946, free -38, four
-//   ladder steps, plan.fits true - which is the only pairing on this shelf that
-//   exercises TUNE-04 and TUNE-05 at once.
-//
-// THE OVER-BUDGET SENTENCE IS READ, NEVER RESTATED. It is the vendored
-// compiler's own wording and this file does not contain a copy of it; the
-// assertion checks the shape it must have and the number it must carry.
+// TUNE-04 and TUNE-05, against a genuinely over-budget measurement. This spec has no module of its
+// own: it is the guard over model.ts, fitState and copy.ts together, reached the only honest way - a
+// real `reserved` passed to the compiler. The reserves are measured (2026-09-04): tpad at its defaults
+// costs Setup 902 of 908 and { setup: 20 } puts it over by 14 (test 1); tpad can never produce a
+// ladder (its only sheet is `sends`, which the compiler refuses to shed), so tests 2 to 5 use `dial`
+// at { setup: 300 } - Setup 946, four ladder steps, plan.fits true. The over-budget sentence is the
+// compiler's own and is read, never restated.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync, readdirSync, statSync } from "node:fs";

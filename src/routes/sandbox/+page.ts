@@ -1,15 +1,8 @@
-// /sandbox/ - the Sandbox's front door (plan 13-16): it creates or resumes,
-// and the surface itself is edited at /sandbox/[draftId]/.
-//
-// PRERENDERED, LIKE EVERY SECTION ROOT. The nav's SANDBOX and My configs'
-// `New surface` both point here; the document carries the header, the nav
-// with SANDBOX current and the context bar's breadcrumb as data (13-07's
-// pattern), and the page's effect decides where to go: the newest sandbox
-// draft in the visitor's store, or a freshly minted surface id. `?new`
-// forces a fresh surface (My configs' `New surface`). The decision reads
-// the browser store, so it cannot be made here, and a prerendered page
-// that then navigates is exactly what /playground/[id]'s unknown-id path
-// does - the document is a real page, not a redirect.
+// /sandbox/ - the Sandbox's front door (13-16): creates or resumes; the surface is edited at
+// /sandbox/[draftId]/. Prerendered like every section root: the document carries the header, the nav
+// with SANDBOX current and the breadcrumb as data (13-07's pattern), and the page's effect decides
+// where to go - the newest sandbox draft in the visitor's store, or a freshly minted surface id (`?new`
+// forces a fresh one). The decision reads the browser store, so it cannot be made here.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import type { PageLoad } from "./$types";

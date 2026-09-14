@@ -1,82 +1,15 @@
 <!--
-  /my-configs/ - PDF page 4, the personal library, on 13-05's shell (plan
-  13-13; Bible sections 9 and 11; KEEP-01..06, SHARE-03).
-
-  WHAT THIS PAGE RENDERS, AND WHERE. The rail, handed to the shell as a
-  snippet: YOUR LIBRARY with four two-digit counts - All saved, Drafts,
-  Favorites, Recently used - then a divider and COLLECTIONS (13-13 task 3).
-  The centre: the eyebrow, the headline "Pick up where you left off.", the
-  sub, `Import config` outlined and `New surface` filled at the top right; the
-  RESUME BANNER over the newest draft (ResumeBanner.svelte), shown only when
-  a draft exists; the search row with its `Last edited` sort; the count line;
-  and the TABLE (LibraryTable.svelte) - a table and not a card grid, because
-  a timestamp and a status are columns. The frame's shape travels as page
-  data (+page.ts) so the prerendered document carries the header, the nav
-  and the breadcrumb; the rail and the rows arrive with the effect, read from
-  the visitor's own browser store.
-
-  ALL SAVED IS BOTH RECORD STORES. The PDF's `All saved 12` over a table that
-  carries a `Draft` row: the table lists drafts.ts's records and library.ts's
-  records together, sorted by the moment they were last edited, and the
-  STATUS chip says which is which - two words for two objects, never one for
-  three (section 9). `Drafts` narrows the table to the first store.
-
-  FAVORITES AND RECENTLY USED ARE DESTINATIONS HERE, NOT FILTERS - 13-08's
-  open question, decided from the PDF. Both pages draw the same YOUR LIBRARY
-  rows with the same counts (08, 06), and both lists are lists of CATALOG
-  ENTRIES: a favorite is a starred Playground configuration and a recent is
-  one the workspace opened. This table lists PERSONAL configurations - a
-  draft or a saved copy - so narrowing it by either list would show a count
-  the table cannot match (eight favorites, two copies made from them), which
-  is the coy state D-05 forbids. The two rows therefore link to the gallery,
-  where the two lists live as views, and their counts are the stores' own.
-  The gallery cannot yet be asked to arrive WITH a view selected - 13-08
-  keeps the library view out of the address so a shared link never shows
-  somebody else's favorites - so a visitor lands on All configs and clicks
-  once more. That gap is ledgered as a question (13-COPY-NEW.md, 13-13).
-
-  THE THUMBNAILS ARE LIVE. This page owns ONE SimHost and one animation frame;
-  the banner and every row hand their canvas up and the page registers it
-  with an engine built for the record's SOURCE entry through the same
-  dynamic import the gallery uses. A hand-authored (Lua) entry's engine takes
-  the record's own knob indices, so a saved variation shows AS SAVED; a
-  preset-backed entry's knobs move a PadState through the compiler and its
-  thumbnail is the base configuration - the workspace's tuner is the one
-  place that compiles, and twelve compiles for twelve thumbnails is not a
-  price this page pays. Nothing stores a picture (13-06). A sandbox record's
-  face is unlit until 13-15's surface engine exists (a known stub, named in
-  the SUMMARY).
-
-  OPEN AND RESUME GO THROUGH THE STAMP. The workspace reads its knob vector
-  from the URL's hash and nothing else (13-09), so `Open` on a Playground
-  record is `/playground/{source}/#z.{stamp}` with the stamp ENCODED from the
-  record's indices through stamp.ts's own encodeFor - the codec used, never
-  touched, and a draft resumes at the positions it was left at. A sandbox
-  record opens in the Sandbox, a later wave's route (13-16).
-
-  EXPORT AND IMPORT ARE transfer.ts's. Export: one click, a Blob behind an
-  object URL on an anchor with `download`, the URL revoked - no permission
-  and no API beyond what every supported browser has. Import: a hidden
-  <input type="file">, File.text(), and the six steps, which write nothing
-  until all pass; the outcome is one of the codec's Landing words and the
-  refusal names its reason in a sentence. A `restored` Playground import
-  OPENS (section 11: "before opening"); an `older` one stays here with its
-  explanation and a row at the base configuration; `unreadable` stays here
-  with the reason and no row.
-
-  DELETE IS UNDOABLE FOR THE REST OF THE SESSION (D-22 fork B, applied to
-  records and collections alike): the deleted thing is held in a module-level
-  variable - one vector, nothing persisted, gone with the tab - and one
-  `Undo` puts it back through the store's own write.
-
-  THE CATALOG HERE IS $lib/catalog/listing AND NOTHING HEAVIER AT MODULE
-  SCOPE: names and tags for the TYPE column come from the import-free listing;
-  the codec, the full catalog and the engine factory arrive through dynamic
-  imports from onMount, after the frame has painted.
-
-  Every visible string the PDF draws is verbatim; the ones HANGAR wrote (the
-  title, the empty states, the import and delete notices, the sort's second
-  option, the three row actions) are ledgered in 13-COPY-NEW.md for 13-18.
+  /my-configs/ - PDF page 4, the personal library on the shell (13-13; Bible sections 9 and 11;
+  KEEP-01..06, SHARE-03). The frame's shape travels as page data (+page.ts); the rail (YOUR
+  LIBRARY's four counts, a divider, COLLECTIONS) and the rows arrive with the effect.
+  The table lists drafts.ts's and library.ts's records together, sorted by last edit, the STATUS
+  chip saying which; Favorites and Recently used link to the gallery (they are catalog lists).
+  One SimHost and one animation frame own every thumbnail: a Lua entry's engine takes the record's
+  own indices, a preset-backed one shows the base configuration; nothing stores a picture (13-06).
+  Open and Resume encode the record's indices through stamp.ts; export and import are transfer.ts's;
+  a deletion is held in a module-level variable for one Undo (D-22 fork B). At module scope the
+  catalog is $lib/catalog/listing; the codec, the catalog and the engine factory arrive by dynamic import from onMount.
+  Decided at 13-13 (D-22 fork B); see .planning/phases/13-gui-overhaul/13-13-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -98,11 +31,7 @@
       }
     | { readonly kind: "collection"; readonly collection: Collection };
 
-  /**
-   * THE SESSION'S UNDO VECTOR (D-22 fork B): the last deletion, held for the
-   * life of the tab and never written anywhere. Module-level so it survives a
-   * hop to the workspace and back; a reload or a closed tab ends it.
-   */
+  /** The session's undo vector (D-22 fork B): the last deletion, module-level, never written anywhere. */
   let held: Deletion | undefined;
 </script>
 
@@ -279,17 +208,10 @@
     );
   }
 
-  /**
-   * Where a record opens: the workspace with its stamp, or the Sandbox. A
-   * sandbox DRAFT opens at its own surface (/sandbox/{source}/, 13-16); a
-   * saved sandbox copy opens the Sandbox's front door until 13-17 gives a
-   * copy a way back onto a surface.
-   */
+  /** Where a record opens: the workspace with its stamp, or the Sandbox (13-16, 13-17). */
   function hrefOf(record: StoredRecord): ResolvedPathname {
     if (record.kind === "sandbox") {
-      // A draft opens its own surface; a saved or imported COPY opens onto a
-      // fresh surface id through /sandbox/?from=<id> (13-17), so the copy
-      // stays a copy and its edits become a draft of their own.
+      // A draft opens its own surface; a saved or imported copy opens onto a fresh surface id (13-17).
       return drafts.some((d) => d.id === record.id)
         ? resolve("/sandbox/[draftId]", { draftId: record.source })
         : fromCopyHref(record.id);
@@ -348,11 +270,7 @@
           : EMPTY_LIBRARY,
   );
 
-  /*
-    The rail: YOUR LIBRARY, a divider, COLLECTIONS. Fork C (bare): with no
-    collection the second section is the `+ New collection` row and nothing
-    else - no suggested first collection, and the section is never hidden.
-  */
+  /* The rail: YOUR LIBRARY, a divider, COLLECTIONS (fork C: the `+ New collection` row is never hidden). */
   const sections = $derived<readonly RailSection[]>([
     {
       title: YOUR_LIBRARY,
@@ -423,6 +341,7 @@
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
   const registered = new Set<string>();
 
+  /** The route's edge to the browser store, one per route (13.2-CONTEXT D-15). */
   function local(): LocalStore | undefined {
     if (!browser) return undefined;
     try {
@@ -532,10 +451,7 @@
     registered.clear();
   });
 
-  /**
-   * The codec, the catalog and the engine factory, behind dynamic imports
-   * so the prerendered page never carries the protocol chunk. One load.
-   */
+  /** The codec, the catalog and the engine factory, behind dynamic imports; one load. */
   async function loadCodec(): Promise<void> {
     const [{ encodeFor, stampKnobs }, { byId }, { createEngine }] =
       await Promise.all([
@@ -732,11 +648,7 @@
     downloadExport(exportFile(record, moment(), codec?.knobsOf));
   }
 
-  /**
-   * Delete: the record leaves its store AND every collection it was in
-   * (fork A's reconciliation, removeFromAll), and is held for one Undo with
-   * the memberships it had.
-   */
+  /** Delete: the record leaves its store and every collection (fork A's removeFromAll), held for one Undo. */
   function ondelete(record: StoredRecord): void {
     const store = local();
     const isDraft = drafts.some((draft) => draft.id === record.id);

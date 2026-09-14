@@ -1,29 +1,16 @@
 <!--
-  D-14: the production-build laziness proof.
-
-  This page is prerendered (prerender.entries: ["*"] in vite.config.ts) and
-  linked from nowhere. Its only job is to make the lazy seam observable from
-  outside the process: the catalog is imported STATICALLY at module scope, so it
-  is on the page from the first paint, while an engine is built only from an
-  explicit click through a DYNAMIC import. That placement is load-bearing and
-  not stylistic - it is the exact line e2e/catalog.e2e.ts measures, by counting
-  .wasm responses before and after the click. A static import of $lib/sim/engine
-  here would put the Lua VM's module graph, and with it the fingerprinted
-  glue.wasm URL, into this page's chunk, and the cold-load assertion would go
-  red for a reason that has nothing to do with the catalog.
-
-  Both handlers write their failure branch into the same element rather than
-  throwing, exactly as the fidelity probe's page does, so a broken run
-  produces a readable assertion diff instead of a Playwright timeout carrying
-  no information. (That sibling is described rather than spelled: the source
-  scan in src/lib/config-shape.spec.ts reads comments, on purpose.)
+  The catalog probe: D-14's production-build laziness proof, prerendered and linked from nowhere.
+  The catalog is imported statically at module scope (on the page from the first paint); an engine
+  is built only from an explicit click through a dynamic import - the exact line e2e/catalog.e2e.ts
+  measures by counting .wasm responses before and after the click. A static import of $lib/sim/engine
+  here would put the VM's module graph and the glue.wasm URL into this chunk. Both handlers write
+  their failure branch into the same element rather than throwing, as the fidelity probe does (that
+  sibling is described, not spelled: config-shape.spec.ts's probe scan reads comments).
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  // STATIC, at module scope, on purpose. The catalog is pure data and types by
-  // construction - it names neither the compile surface nor the VM package -
-  // and this page is what proves that end to end in a real browser.
+  // Static, at module scope, on purpose: the catalog names neither the compile surface nor the VM package.
   import { CATALOG } from "$lib/catalog";
 
   const TICKS = 30;
@@ -33,9 +20,7 @@
 
   async function probe(preview: "lua" | "padsim"): Promise<string> {
     try {
-      // DYNAMIC, inside the click handler. Never at module scope, never in
-      // onMount: onMount runs on load, which is precisely the moment the
-      // cold-load assertion is taken.
+      // Dynamic, inside the click handler; never in onMount, which runs at the moment the cold-load assertion is taken.
       const { createEngine } = await import("$lib/sim/engine");
       const entry = CATALOG.find((e) => e.preview === preview);
       if (entry === undefined)
