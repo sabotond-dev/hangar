@@ -28,3 +28,10 @@ playwright-report/
 .tmp-format-parity/
 .tmp-e2e/
 .tmp-audition/
+
+# The root copies of the design Bible are the user's working files; the byte-exact copies HANGAR reads live under .planning/phases/13-gui-overhaul/bible/
+/HANGAR for ZONA.pdf
+/HANGAR-ZONA-GUI-design-specification.md
+/hangar-logo-w.svg
+# Local editor and harness tooling
+/.claude/
