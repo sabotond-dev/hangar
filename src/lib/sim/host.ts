@@ -1,113 +1,14 @@
-// SimHost: one clock, one finger, one painter, for every pad on the page.
-//
-// The reference design is the vendored host, src/vendor/botor/pad-sim-host.ts,
-// which HANGAR reads and never imports (04-RESEARCH §Pitfall 2: it was written
-// for a fixed nine-card rail plus one preview inside an Electron panel, its cell
-// sizes and its single render interval are module constants, its painter is
-// module-private, and src/vendor may not be edited). Every rule it encodes is a
-// bug somebody already paid for, so the explanations are carried over verbatim
-// in comments while the code is HANGAR's own.
-//
-// What HANGAR keeps unchanged:
-//
-//   - One requestAnimationFrame for the whole page. N loops is N times the
-//     scheduler overhead and N chances to desync.
-//   - The self-cancelling loop: the last frame with nothing running does not ask
-//     for another, so a row of still instruments costs no CPU at all. Every
-//     event that could wake an engine calls wake().
-//   - Paint on the render cadence AND on the frame an animation expires, so the
-//     freeze frame shown is the true final state and not a stale one.
-//   - The reduced-motion carve-out: a pad animates under reduced motion only
-//     while a pointer is actually down on it. The user causing the motion is the
-//     carve-out; uninvited ambient motion is not.
-//   - One destroy() that cancels the frame, drops the observers and the media
-//     listener, and releases every held contact.
-//
-// What HANGAR changes (04-CONTEXT D-15, 04-RESEARCH §Architecture Pattern 2):
-//
-//   - Per-slot paint intervals instead of one global: the hero at 33 ms, the
-//     receding sides at 50 ms.
-//   - { threshold: 0, rootMargin: "200px" } instead of a bare { threshold: 0 },
-//     so a pad wakes BEFORE it crosses the viewport edge instead of showing a
-//     frozen frame for a beat.
-//   - running = inWindow AND intersecting, not intersecting alone. In a
-//     coverflow the far pad is on screen, scaled to a third and hidden behind
-//     three others, and an IntersectionObserver answers a geometric question it
-//     happily reports as intersecting (04-RESEARCH §Pitfall 4).
-//   - One engine per catalog entry for the whole session instead of a separate
-//     preview engine, so stepping away and back never restarts a pad at tick 0.
-//   - paintPad (one putImageData into a 9x9 backing store) instead of blit.
-//
-// A DEAD 2D CONTEXT IS NOTICED TWICE, AND NEITHER HALF IS REDUNDANT
-// (plan 11-08.1, .planning/phases/11-bench-corrections/CANVAS-CONTEXT-LOSS.md).
-//
-// Until that plan, `grep -rn "contextlost\|contextrestored\|isContextLost" src/`
-// returned NOTHING. BrowseGrid.svelte builds a card's engine exactly once ever,
-// register() took the 2D context once and cached it, and paint() wrote through
-// that cached context forever. So when an engine dropped a pad's backing store -
-// which is what WebKit does on a memory-constrained device with 27 canvas layers
-// on /playground/, each scaled up by image-rendering: pixelated - HANGAR never
-// noticed and never recovered. The visitor got permanently black pads, and iOS
-// can never install (DEGR-01), so the shelf IS the entire product for them.
-// .planning/research/PITFALLS.md:465 predicted it and nobody acted on it.
-//
-// The two halves below are BOTH required. Deleting either one as duplication
-// reopens a case the other cannot reach:
-//
-//   HALF                        CATCHES                    CANNOT CATCH
-//   ------------------------    -----------------------    --------------------
-//   contextlost / contextre-    a STILL card, which         an engine that drops
-//   stored listeners on each    never paints again and      a backing store
-//   registered canvas           which nothing else would    WITHOUT EMITTING THE
-//                               ever repaint                EVENTS
-//
-//   the paint() guard, which    any ANIMATING card, on      a STILL card - it
-//   re-acquires when the ctx    its very next paint, with   settles to zero CPU
-//   is missing or reports       no event at all             by design and paint()
-//   isContextLost()                                         is never called again
-//
-// The still-card column is not hypothetical: "the last frame with nothing
-// running does not ask for another" is this file's own proudest property, four
-// paragraphs up, and it is exactly what makes the paint guard insufficient
-// alone. Whether WebKit emits the 2D events at all is the open question, which
-// is why the guard is not optional either.
-//
-// preventDefault() IS OPPOSITE BETWEEN WebGL AND CANVAS 2D, AND THIS CODE DOES
-// NOT CALL IT. For `webglcontextlost`, preventDefault() is what makes the UA
-// attempt restoration. For canvas 2D the polarity is inverted: HTML Living
-// Standard §4.12.5.1.10 "Canvas context lost and restored" runs
-// `Let shouldRestore be the result of firing an event named contextlost at
-// canvas, with cancelable initialized to true` and then `If shouldRestore is
-// false, then abort these steps` - and firing returns false exactly when the
-// event was canceled. MDN says the same in one sentence: canceling contextlost
-// prevents the browser from attempting to restore the context. So calling
-// preventDefault() here, by copying the WebGL idiom from memory, would suppress
-// the very restoration this code exists to survive. The e2e proof asserts
-// defaultPrevented is still false after our listener has run.
-//
-// isContextLost() IS DECLARED BY THIS TOOLCHAIN and needs no local structural
-// type: TypeScript 6.0.3's lib.dom.d.ts puts `isContextLost(): boolean` on the
-// CanvasState mixin of CanvasRenderingContext2D. It is still FEATURE-DETECTED at
-// the call site, because it ships in Chrome 130+ and Firefox 151+ and is not in
-// the Chrome 89 baseline HANGAR's support matrix names.
-//
-// THE SCRATCH CLEAR IS DEFENSIVE, NOT LOAD-BEARING, AND THAT IS A MEASUREMENT
-// RATHER THAN A GUESS. entry.scratch is ctx.createImageData(9, 9), and the
-// obvious worry is that one minted by a dead context is unusable. 11-08.1 ran
-// the negative check - carry the scratch across the loss, rebuild only the ctx -
-// and all 21 tests in host.spec.ts stayed GREEN. An ImageData is a plain object
-// and putImageData accepts it. The clear is KEPT with this label, because the
-// cost is one allocation on a path that runs once per loss; what it must not be
-// is claimed as a check that bites.
-//
-// Nothing here may go into a Svelte rune: $state deep-proxies, and a proxy trap
-// inside a 100 Hz tick loop turns a 0.35 us tick into something else entirely
-// (04-RESEARCH §Pitfall 3). Engines, canvases and frame buffers live in the
-// plain Map below, and only scalars cross into a component.
-//
-// There is no setInterval anywhere in this design, so after destroy() there is
-// nothing left to leak - which is why the two listeners above are removed by
-// unregister() AND by destroy(), asserted as a count in host.spec.ts.
+// SimHost: one clock, one finger, one painter, for every pad on the page. The reference design is
+// the vendored src/vendor/botor/pad-sim-host.ts, read and never imported; its rules are this file's
+// contract: one requestAnimationFrame for the whole page; whole 10 ms ticks from an accumulator
+// clamped by MAX_CATCHUP_MS (schedule.ts); paint on the per-slot render cadence (HERO_INTERVAL_MS,
+// SIDE_INTERVAL_MS) and on the frame an animation expires; a pad runs only while inWindow AND
+// intersecting ({ threshold: 0, rootMargin: "200px" }, so it wakes before the viewport edge); the
+// self-cancelling loop (the last frame with nothing running asks for no other; every event that could
+// wake an engine calls wake()); reduced motion holds one frame at REDUCED_MOTION_TICKS (64) and animates
+// only under the visitor's own finger; one engine per entry for the session. A dead 2D context is
+// noticed twice (the listener pair and the paint() guard; 11-08.1); nothing here goes into a Svelte rune.
+// Decided at 04-04 (04-CONTEXT D-15) / 11-08.1; see .planning/phases/11-bench-corrections/11-08.1-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { type DemoPath, driveDemo } from "./demo";
@@ -121,11 +22,7 @@ import {
 } from "./schedule";
 import { TouchSampler } from "./touch";
 
-/**
- * The engine shape the host accepts, declared structurally rather than imported.
- * The vendored PadSim satisfies it today and Phase 8's Lua engine satisfies it
- * later, which is what keeps this file free of any dependency on src/vendor.
- */
+/** The engine shape the host accepts, structural rather than imported: PadSim and the Lua engine both satisfy it, and this file names nothing under src/vendor. */
 export interface HostEngine {
   tick(): void;
   run(n: number): void;
@@ -141,13 +38,7 @@ export interface HostEngine {
   touchUp(id: number, x: number, y: number): void;
 }
 
-/**
- * Everything the host needs from a browser, in one injectable record.
- *
- * Each has a real default below. Injecting them is not a testing nicety: there
- * is no browser Vitest project in this repository (04-RESEARCH §Pitfall 6), so
- * this is the only way the loop is testable at all.
- */
+/** Everything the host needs from a browser, injectable: there is no browser Vitest project, so this is how the loop is tested. */
 export interface HostDeps {
   now(): number;
   raf(cb: (now: number) => void): number;
@@ -168,32 +59,12 @@ type Entry = {
   scratch: ImageData | undefined;
   engine: HostEngine;
   hero: boolean;
-  /**
-   * The demonstration gesture this pad replays, or undefined for every pad that
-   * has a picture of its own (D-09, src/lib/sim/demo.ts).
-   */
+  /** The demonstration gesture this pad replays, or undefined for a pad with a picture of its own (D-09, demo.ts). */
   demo: DemoPath | undefined;
   /**
-   * ONE SAMPLER PER DEMO ENTRY, and this is the reason it is here rather than
-   * on the host. touch.ts caps a sampler at MAX_CONTACTS = 5, which is what the
-   * hardware tracks, and it keys a contact by POINTER ID - so a shared sampler
-   * is not merely crowded, it is wrong in three ways at once.
-   *
-   * MEASURED, by handing every demo entry `this.sampler` and putting four demo
-   * cards and five fingers on one page:
-   *
-   *   - the visitor's five fingers came back true, true, true, FALSE, FALSE -
-   *     three of five, the other two refused outright;
-   *   - of the three that were accepted, the hero's engine received ZERO. Every
-   *     one of them was delivered to the first demo card's engine, because
-   *     deliver() empties the queue into whichever engine ticks first;
-   *   - and three of the four demo cards received nothing at all, because their
-   *     paths use the same pointer ids and down() refuses a pointer already
-   *     tracked.
-   *
-   * The interactive preview's guarantee is then not the one Phase 4 signed off,
-   * and it fails SILENTLY - the pointer is simply never captured. The hero
-   * keeps the host's own sampler, untouched.
+   * One sampler per demo entry, never the host's: touch.ts caps a sampler at MAX_CONTACTS = 5 and keys
+   * a contact by pointer id, so a shared one refused two of a visitor's five fingers, delivered the
+   * rest to whichever engine ticked first and starved three of four demo cards (measured, 10-06).
    */
   demoSampler: TouchSampler | undefined;
   /** The demo's own tick counter. driveDemo takes the period's modulo. */
@@ -204,24 +75,15 @@ type Entry = {
   wasRunning: boolean;
   lastPaint: number;
   unobserve: () => void;
-  /**
-   * Removes BOTH the contextlost and the contextrestored listener. Held on the
-   * entry rather than re-derived, because removeEventListener matches on
-   * function identity and these two closures capture this entry.
-   */
+  /** Removes BOTH context listeners; held on the entry because removeEventListener matches on function identity. */
   unlisten: () => void;
 };
 
 const noop = (): void => {};
 
 /**
- * The browser implementations, each guarded so this module can be imported in a
- * node test with none of them existing.
- *
- * `raf` returns 0 when there is no animation clock. A browser's
- * requestAnimationFrame is specified to return a non-zero handle, so 0 is an
- * unambiguous "nothing here can animate" and wake() treats it as such rather
- * than latching a handle it can never cancel.
+ * The browser implementations, each guarded so this module imports in node. `raf` returns 0 when there
+ * is no animation clock (a browser handle is never 0), and wake() treats it as "nothing can animate".
  */
 function defaultDeps(): HostDeps {
   return {
@@ -304,25 +166,11 @@ export class SimHost {
   }
 
   /**
-   * Adopt a canvas and an engine under an id.
-   *
-   * The host sets the backing store to 9 by 9 itself, so a component cannot
-   * forget it (04-UI-SPEC W-07): putImageData ignores the transform matrix, so
-   * any other size paints a 9x9 patch in the corner of a larger canvas. The
-   * first frame is painted immediately, before the loop has ever run, so a still
-   * pad shows its picture at once.
-   *
-   * Registering an engine that was registered before does NOT reset it. That is
-   * the whole point of one engine per entry for the session: a visitor stepping
-   * away and back never sees a pad restart at tick 0.
-   *
-   * THE FOURTH ARGUMENT IS OPTIONAL AND EVERY EXISTING CALLER IS UNCHANGED.
-   * `options.demo` makes this pad a demo card: it replays an authored gesture
-   * through its own TouchSampler, at the same one-sample-per-contact-per-tick
-   * rate a real finger gets (D-09). It is passed from CatalogCard.svelte, which
-   * is the only surface that mounts a dark entry - 10-VALIDATION V-04, because
-   * PadFrame.svelte holds no engine and a `demo` prop on it would be an unused
-   * prop and a lint failure.
+   * Adopt a canvas and an engine under an id. The host sets the backing store to 9 by 9 itself
+   * (putImageData ignores the transform matrix; 04-UI-SPEC W-07) and paints the first frame at once.
+   * Registering an engine that was registered before does NOT reset it: one engine per entry for the
+   * session. `options.demo` makes this pad a demo card, replaying an authored gesture through its own
+   * TouchSampler at the same one-sample-per-contact-per-tick rate a finger gets (D-09); passed from CatalogCard.svelte only.
    */
   register(
     id: string,
@@ -345,13 +193,9 @@ export class SimHost {
       demo,
       demoSampler: typeof demo === "undefined" ? undefined : new TouchSampler(),
       demoTick: 0,
-      // A pad with no stated slot opinion is in the window; the coverflow
-      // narrows it. A component that forgets setInWindow animates rather than
-      // silently freezing the whole row.
+      // A pad with no stated slot opinion is in the window; a component that forgets setInWindow animates rather than freezing.
       inWindow: true,
-      // Until the observer's first callback the pad is treated as hidden. The
-      // immediate paint below means it still shows its picture, it just does not
-      // tick yet.
+      // Hidden until the observer's first callback; the immediate paint below still shows its picture.
       intersecting: false,
       wasRunning: false,
       lastPaint: this.deps.now(),
@@ -371,18 +215,10 @@ export class SimHost {
   }
 
   /**
-   * Swap the engine under an id, keeping the canvas, the observer and the slot
-   * state.
-   *
-   * NOT register(). register() calls unregister(), which sets canvas.width = 0,
-   * and re-enters with intersecting: false - so a knob turn would blank the hero
-   * for a frame and then stall it until the IntersectionObserver fires again
-   * (05-RESEARCH, Pitfall 3). This is the mechanism behind D-06's "the previous
-   * engine keeps painting until the new one has run Setup": the caller awaits the
-   * new engine first and swaps second, so the old one paints for the whole await.
-   *
-   * Unknown ids are a no-op rather than a throw: a knob turn racing an unmount is
-   * a real sequence, not a programming error.
+   * Swap the engine under an id, keeping the canvas, the observer and the slot state. NOT register():
+   * that calls unregister() (canvas.width = 0) and re-enters with intersecting: false, so a knob turn
+   * would blank the hero for a frame (05-RESEARCH Pitfall 3). The caller awaits the new engine first
+   * and swaps second, so the old one paints for the whole await (D-06). Unknown ids are a no-op.
    */
   replaceEngine(id: string, engine: HostEngine): void {
     if (this.destroyed) return;
@@ -398,18 +234,9 @@ export class SimHost {
   }
 
   /**
-   * Repaint every registered pad from its engine's current frame, without
-   * touching the engines, the observers or the backing stores.
-   *
-   * NOT register(). register() calls unregister(), which sets canvas.width = 0
-   * and re-enters with intersecting: false - the exact bug replaceEngine was
-   * added to avoid in Phase 5. This exists for one caller: the browse grid, after
-   * a sort or a filter has moved cards in the DOM. A still pad does not tick, so
-   * nothing else would repaint it, and whether a canvas bitmap survives a
-   * re-parenting move is not a question this repository wants to depend on.
-   *
-   * It does NOT call wake(). Repainting is not a reason to start the loop, and a
-   * wall of settled still pads must stay at zero CPU.
+   * Repaint every registered pad from its engine's current frame, touching nothing else. One caller:
+   * the browse grid after a sort or filter has moved cards in the DOM (a still pad does not tick, and
+   * whether a bitmap survives a re-parenting move is not a question to depend on). Does NOT wake().
    */
   repaintAll(): void {
     if (this.destroyed) return;
@@ -417,17 +244,12 @@ export class SimHost {
     for (const entry of this.entries.values()) this.paint(entry, now);
   }
 
-  /**
-   * Drop one pad, releasing its backing store. The engine is untouched: it
-   * belongs to the session, not to one mount.
-   */
+  /** Drop one pad, releasing its backing store. The engine belongs to the session, not to one mount. */
   unregister(id: string): void {
     const entry = this.entries.get(id);
     if (typeof entry === "undefined") return;
     entry.unobserve();
-    // Both context listeners come off with the observer. A surviving listener
-    // would hold this entry - and its engine - alive on a canvas the host has
-    // let go of, which falsifies the header's no-leak promise.
+    // Both context listeners come off with the observer: a survivor would hold the entry and its engine alive.
     entry.unlisten();
     entry.canvas.width = 0;
     this.entries.delete(id);
@@ -458,13 +280,9 @@ export class SimHost {
   }
 
   /**
-   * Start a contact. The coordinates are LED coordinates, never client ones:
-   * the component owns the canvas rect and maps them with mapAxis from ./touch.
-   * The host is testable in node precisely because no DOM geometry crosses into
-   * it.
-   *
-   * Returns false when the pointer is already tracked or all five slots are
-   * taken, so the component knows not to capture the pointer.
+   * Start a contact in LED coordinates (the component maps client coordinates with mapAxis from
+   * ./touch, so no DOM geometry crosses in). False when the pointer is already tracked or all five
+   * slots are taken, so the component knows not to capture the pointer.
    */
   touchDown(pointerId: number, x: number, y: number): boolean {
     if (this.destroyed) return false;
@@ -485,10 +303,7 @@ export class SimHost {
     this.wake();
   }
 
-  /**
-   * The single teardown hook. The destroyed flag is set first, so a frame
-   * callback already queued does nothing when it runs.
-   */
+  /** The single teardown hook; the destroyed flag is set first, so a queued frame callback does nothing. */
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
@@ -499,9 +314,7 @@ export class SimHost {
     for (const entry of this.entries.values()) {
       entry.unobserve();
       entry.unlisten();
-      // Nine mounted pads at a large backing store are megabytes of compositor
-      // memory; width = 0 is what releases them
-      // (.planning/research/PITFALLS.md C14).
+      // width = 0 is what releases a backing store's compositor memory (.planning/research/PITFALLS.md C14).
       entry.canvas.width = 0;
     }
     this.entries.clear();
@@ -534,15 +347,8 @@ export class SimHost {
         entry.inWindow && entry.intersecting && this.active(entry);
       if (running) {
         for (let i = 0; i < ticks; i++) {
-          // Once per TICK, before the tick - never once per frame. Delivering
-          // per frame silently restores the pointer-rate dependence the sampler
-          // exists to remove (src/vendor/botor/pad-sim-host.ts:449-452).
-          //
-          // THE HERO WINS. A pad that is both the hero and a demo card belongs
-          // to the visitor: their finger is on it, and two fingers - one of
-          // them ours - would fight over the same pad. The demo simply pauses
-          // and picks its loop back up when the pad stops being the hero. On
-          // the browse grid, where every demo card lives, nothing is ever hero.
+          // Once per TICK, before the tick, never per frame (pad-sim-host.ts:449-452). The hero wins over
+          // a demo: the visitor's finger is on it, and the demo pauses until the pad stops being the hero.
           if (entry.hero) this.sampler.deliver(entry.engine);
           else this.driveDemoTick(entry);
           entry.engine.tick();
@@ -555,10 +361,7 @@ export class SimHost {
         );
         if (due || !still) this.paint(entry, now);
         entry.wasRunning = still;
-        // Only a pad that is STILL running asks for another frame. The frame an
-        // animation expires on has already painted its true final state, so
-        // there is nothing a further frame could do, and every event that could
-        // change that calls wake().
+        // Only a pad still running asks for another frame; the frame an animation expires on has already painted its true final state.
         if (still) any = true;
       } else if (entry.wasRunning) {
         this.paint(entry, now);
@@ -571,13 +374,9 @@ export class SimHost {
   };
 
   /**
-   * Queue and deliver one tick of a demo entry's gesture, from ITS OWN sampler.
-   *
-   * driveDemo queues; the sampler delivers. Nothing here calls the engine's
-   * touch methods, which is the line that keeps a demo card firmware-faithful:
-   * it is subject to the same one-sample-per-contact-per-tick rate, the same
-   * MOVE coalescing and the same slot allocation as a visitor's finger. A
-   * non-demo entry is a no-op.
+   * Queue and deliver one tick of a demo entry's gesture from ITS OWN sampler: driveDemo queues, the
+   * sampler delivers, nothing calls the engine's touch methods - the same rate, coalescing and slot
+   * allocation as a visitor's finger. A non-demo entry is a no-op.
    */
   private driveDemoTick(entry: Entry): void {
     if (
@@ -597,26 +396,10 @@ export class SimHost {
   }
 
   /**
-   * Is there anything for this pad to do? Reduced motion animates a pad only
-   * while a pointer is actually down on it, and only the hero has one.
-   *
-   * Three terms, each with its own job:
-   *
-   *   1. the hero's finger, unchanged from Phase 4;
-   *   2. a demo card with a gesture in flight - this is the term that stops a
-   *      demo being judged frozen and having its rAF cancelled mid-stroke, on
-   *      exactly the same size / pendingTouches test the hero gets. It survives
-   *      under reduced motion on purpose: a contact that is already down has to
-   *      be released, and a preference change is not a reason to leave a finger
-   *      stuck on a pad;
-   *   3. a demo card at all, while motion is allowed. The gesture LOOPS, and
-   *      between two gestures its sampler is momentarily empty and its engine
-   *      may have settled - MORPH and ETCH both report animating: false with
-   *      their picture still on the pad. Term 2 alone would stop the loop
-   *      there, and nothing could ever restart it: the only thing that queues a
-   *      demo sample is a tick, so a demo that stops between gestures is a demo
-   *      that never resumes. Under reduced motion this term is false and the
-   *      card holds stillFrame()'s single replay instead.
+   * Is there anything for this pad to do? Three terms: the hero's finger; a demo card with a gesture
+   * in flight (kept under reduced motion so a contact already down is released); and a demo card at
+   * all while motion is allowed - the gesture LOOPS, and between two gestures its sampler is empty and
+   * its engine may have settled (MORPH, ETCH), so term 2 alone would stop a loop nothing could restart.
    */
   private active(entry: Entry): boolean {
     const heroTouch =
@@ -634,20 +417,14 @@ export class SimHost {
   }
 
   // ---------------------------------------------------------------------------
-  // Noticing a dead 2D context. See the two-halves table in the file header:
-  // the listener pair below is one half, the guard inside paint() is the other,
-  // and NEITHER IS REDUNDANT.
+  // Noticing a dead 2D context, twice (11-08.1): the listener pair catches a STILL card, which never
+  // paints again; the guard in paint() catches an ANIMATING card whose engine dropped the backing store
+  // without emitting the events. Neither is redundant.
 
   /**
-   * Attach the contextlost / contextrestored pair to one canvas. Returns the
-   * remover for both, which unregister() and destroy() call.
-   *
-   * NO preventDefault(). The polarity is inverted from WebGL's - see the header
-   * - and canceling this event is what tells the user agent NOT to restore.
-   *
-   * The typeof guard is not defensive dressing: this module is imported in node
-   * tests with no DOM, and the engine shape is structural, so a canvas that is
-   * not an EventTarget is a real input rather than a programming error.
+   * Attach the contextlost / contextrestored pair to one canvas; returns the remover for both. NO
+   * preventDefault(): for canvas 2D, canceling contextlost tells the user agent NOT to restore (HTML
+   * 4.12.5.1.10; the opposite of WebGL's idiom). The typeof guard is real: node tests pass no EventTarget.
    */
   private listen(entry: Entry): () => void {
     const target = entry.canvas;
@@ -664,9 +441,7 @@ export class SimHost {
       entry.scratch = undefined;
     };
     const onRestored = (): void => {
-      // The half a paint guard can never reach: a still pad settles to zero CPU
-      // and paint() is never called on it again, so the picture only comes back
-      // because this listener puts it back.
+      // The half a paint guard can never reach: a still pad's picture only comes back because this listener puts it back.
       this.reacquire(entry);
       this.paint(entry, this.deps.now());
     };
@@ -679,14 +454,8 @@ export class SimHost {
   }
 
   /**
-   * Take the 2D context again and rebuild the scratch FROM THE NEW ONE.
-   *
-   * The scratch is never carried across a loss. entry.scratch is
-   * ctx.createImageData(9, 9), and putImageData may well accept one minted by a
-   * context that has since died - an ImageData is a plain object - so this is
-   * recorded as DEFENSIVE rather than claimed as load-bearing. 11-08.1 measured
-   * it; the summary carries the answer.
-   *
+   * Take the 2D context again and rebuild the scratch from the new one. The scratch rebuild is
+   * DEFENSIVE, not load-bearing (11-08.1 measured: an ImageData carried across a loss still paints).
    * Returns whether there is a context to paint through.
    */
   private reacquire(entry: Entry): boolean {
@@ -697,13 +466,8 @@ export class SimHost {
   }
 
   /**
-   * Is this entry's cached context unusable?
-   *
-   * ONE FEATURE-DETECTED CALL ON THE HOT PATH, never a getContext per paint per
-   * card. isContextLost is declared by TypeScript 6.0.3's lib.dom but ships in
-   * Chrome 130+ / Firefox 151+, so it is detected rather than assumed - and an
-   * engine that has neither the method nor the events is exactly the case the
-   * missing-ctx branch above still covers.
+   * Is this entry's cached context unusable? One feature-detected call on the hot path, never a
+   * getContext per paint: isContextLost ships in Chrome 130+ / Firefox 151+, not the Chrome 89 baseline.
    */
   private lost(entry: Entry): boolean {
     const ctx = entry.ctx;
@@ -715,9 +479,7 @@ export class SimHost {
 
   private paint(entry: Entry, now: number): void {
     entry.lastPaint = now;
-    // The other half of the header's table: an ANIMATING card comes back on its
-    // very next paint with no event at all, which is what makes the fix
-    // independent of whether WebKit emits the 2D events.
+    // The other half: an ANIMATING card comes back on its next paint with no event at all.
     if (this.lost(entry) && !this.reacquire(entry)) return;
     if (
       typeof entry.ctx === "undefined" ||
@@ -728,24 +490,9 @@ export class SimHost {
   }
 
   /**
-   * The representative frame, in two branches.
-   *
-   * A NORMAL ENTRY runs to tick 64. Restarting from tick 0 makes it
-   * deterministic instead of whatever tick the loop happened to reach, and the
-   * tick count is chosen so a sine look sits near its peak - the still frame
-   * shows colour and pattern rather than a black square.
-   *
-   * A DEMO ENTRY resets and replays its path to the end, ONCE, and freezes
-   * (10-UI-SPEC 14). Running it to tick 64 instead would show a pad two thirds
-   * of the way through its first stroke, or - for a path whose first contact
-   * lands later - a black square, which is the one thing D-09 forbids. And it
-   * replays only once because the demo is UNINVITED motion: a visitor who asked
-   * for less of it gets the picture the gesture produced and no loop.
-   *
-   * Both branches are idempotent: reset() puts the engine back to the state
-   * right after Setup, the demo's sampler is emptied with it, and the replay is
-   * a pure function of the path. Calling this twice paints the same frame,
-   * which is what makes it safe on every one of the three call sites.
+   * The representative frame. A normal entry restarts and runs to tick 64 (deterministic; a sine look
+   * near its peak). A demo entry resets and replays its path to the end ONCE and freezes (10-UI-SPEC 14):
+   * uninvited motion gets the picture and no loop. Both branches are idempotent, so it is safe on all three call sites.
    */
   private stillFrame(entry: Entry): void {
     entry.engine.reset();

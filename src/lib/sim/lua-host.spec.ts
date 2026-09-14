@@ -1,23 +1,9 @@
-// The Lua host's own proof.
-//
-// ORDER MATTERS. Test 1 observes the VM gate cold - two calls sharing one
-// promise, one factory serving every host - and it can only see that state
-// once per file, because Vitest isolates module state per file and the memo is
-// resolved from the first await onwards. It MUST stay first, and it is the only
-// test permitted to call resetLuaReadyForTests(). Do not reorder.
-//
-// Every test drives a tiny purpose-built Lua string rather than a catalog
-// entry. The catalog does not exist to this module; plan 08-03 is where real
-// configurations meet the host, and a spec that reached for one here would fail
-// for two unrelated reasons at once.
-//
-// The four traps below are the ones that pass SILENTLY when they are wrong: an
-// identity glag paints a plausible, mirrored picture; a fractional argument that
-// rounds instead of zeroing looks like a rounding choice; a clamped colour looks
-// like a brightness choice; and an automatically re-armed timer hides the
-// pcall-death that a real Timer with its gtt in the wrong place would suffer on
-// hardware. None of them fails loudly on their own, so each one is pinned by a
-// test that goes red when the behaviour is removed.
+// The Lua host's own proof. ORDER MATTERS: test 1 observes the VM gate cold, which a file can see
+// only once (Vitest isolates module state per file and the memo resolves from the first await); it
+// stays first and is the only test permitted to call resetLuaReadyForTests(). Every test drives a
+// tiny purpose-built Lua string, never a catalog entry. The four traps that pass SILENTLY when wrong
+// are each pinned: an identity glag (a plausible mirrored picture), a fractional argument that rounds
+// instead of zeroing, a clamped colour, and an automatically re-armed timer hiding a pcall death.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

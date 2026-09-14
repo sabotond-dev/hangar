@@ -1,67 +1,13 @@
-// The execution gate: every hand-authored configuration actually RUNS.
-//
-// THIRTY-EIGHT tests since plan 12.1-08b, which appended one to the gradient
-// block: K, the decaying bilinear stamp the eight preset cards take through
-// the vendored compiler - the twin's starts at the five readings, a
-// zero-weight neighbour's trail left alone, the colour set only when handed,
-// and G's picture unchanged through Z and Y.
-// THIRTY-SEVEN since plan 12.1-08a, which appended one to the gradient
-// block: GHOST under N and G - the erase key at LED (8,8) and not at LED
-// (7,7), where the naive divisor read cell 80 and a finger on a playing loop
-// erased it; the comet, the gradient and the ghost on the LED's own cell at
-// all 81 centres; the midpoint pair; the code-9 tap.
-// THIRTY-SIX since plan 12.1-04, which appended two to the gradient
-// block: CHORUS, CONSOLE, MORPH and LUMEN under G at nine LED centres and a
-// midpoint in their own colours (MORPH's lift and second finger, LUMEN's A
-// byte-identical to 12-11), and TRACKPAD's flash centre through the map.
-// THIRTY-FOUR since plan 12.1-03, which appended two: the four sequencers
-// under G at all 81 LED centres with the sweeps' centre dot on both expiry
-// paths, and ARC's stop through N. THIRTY-TWO since plan 12.1-02, which
-// appended the gradient block at
-// the end of the file (three tests) and re-aimed every gesture that reads a
-// cell through the library's `Q` at the MEASURED sensor map (calibration.ts)
-// instead of the naive `t*9//128` centres. TWENTY-NINE since plan 12-10
-// (TRACKPAD's) -
-// counted from the runner's own report at the 12-12 gate, which found this
-// line reading TWENTY-THREE: 12-10 added its one to 12-04's 22 and skipped the
-// six between them (12-05 +1, 12-07 +2, 12-08 +1, 12-09 +2), so 22 + 1 + 6 =
-// 29 and the header was wrong by six for two plans. The count never moves
-// WITH THE CATALOG - each of the
-// catalog-wide ones loops over the Lua entries internally and names the entry
-// in its message, so a wave that adds a configuration touches no number here.
-// A test that pins ONE entry's answer to ONE bench note is the exception, and
-// it is named in its own title: phase 11 spent it in thirteen plans, taking
-// this file from 3 tests to 25 (11-02 +2, 11-04 +1, 11-07 +4, 11-08 +2,
-// 11-09 +2, 11-09.1 +2, 11-09.2 +1, 11-10 +1, 11-11 +1, 11-12 +1, 11-13 +2,
-// 11-14 +1, 11-15 +2). PLAN 12-04 TOOK IT BACK TO 22, AND IT IS THE FIRST
-// WAVE THAT EVER SUBTRACTED HERE: the three per-entry titles for FORGE,
-// LATTICE and SHUTTLE left with their entries on the user's bench report, and
-// so did the sweep helpers only those three used (sweepForge, sweepLattice,
-// FORGE_GKS_ARITY, FORGE_KEY_ARG and NO_SEND). That is what a per-entry title
-// costs when the entry goes, and it is the reverse of the sentence above.
-// This header read "Thirteen tests" from 11-09's first
-// commit (c9a621a, when the file briefly held thirteen) until the 11-16 gate,
-// through eight waves that each left it for the gate to correct rather than
-// make one stale count look checked; 11-16 counted the file from the runner's
-// own report rather than from this sentence. The
-// budget, canonical form and subset questions belong to
-// src/lib/catalog/lua-entries.sweep.spec.ts; this file asks the only question
-// a static analysis cannot: does it work.
-//
-// Every entry is put through the SAME scripted gesture, so the gate is uniform:
-// a drag (a press followed by six moves along a diagonal, two ticks apart), a
-// lift, and a fast tap - firmware event 9, which several configurations treat as
-// their only programming gesture, and which is coalesced from a sub-cycle
-// press-and-lift so it arrives with no separate press or lift of its own.
-//
-// The engine is assembled here from renderLua plus createLuaHost rather than
-// through createEngine, for one reason: the pitfall-1 guard has to read the raw
-// layer records, and a SimEngine deliberately exposes only the rendered frame.
-// The Lua text and the wrapped simulator are identical either way - this is the
-// same construction createLuaPadSim performs.
-//
-// Set SMOKE_REPORT=1 to print the per-entry MIDI and HID summary test 2 asserts
-// on.
+// The execution gate: every hand-authored configuration actually RUNS - the one question a static
+// analysis cannot ask (the budget, canonical form and subset questions are lua-entries.sweep.spec.ts's).
+// Thirty-eight tests since 12.1-08b (the count is read from the runner's report, never from this
+// line; it moved with every phase 11 and 12 bench note and the 12-12 gate found it six stale). The
+// catalog-wide tests loop over the Lua entries internally and name the entry in their message, so a
+// wave that adds a configuration touches no number here; a per-entry title leaves with its entry.
+// Every entry is put through the SAME scripted gesture: a drag (a press and six diagonal moves two
+// ticks apart), a lift, and a fast tap (firmware event 9, coalesced from a sub-cycle press-and-lift).
+// The engine is assembled from renderLua plus createLuaHost rather than createEngine because the
+// pitfall-1 guard reads the raw layer records. SMOKE_REPORT=1 prints the per-entry MIDI and HID summary.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

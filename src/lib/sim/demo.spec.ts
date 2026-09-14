@@ -1,19 +1,8 @@
-// The demonstration finger's two gates.
-//
-// A demo path is HANGAR's own gesture played into somebody else's firmware, so
-// the two things that can go wrong are both about the boundary rather than
-// about the picture:
-//
-//   1. A path that opens a contact and never closes it leaves a finger down on
-//      that card forever. That is not a cosmetic bug - it is the firmware's own
-//      dropped-release bug, reproduced by us on purpose, on a pad the visitor
-//      never touched. touch.ts:126-137 exists because of it, and a gate is
-//      exactly what stops us re-introducing it from the other side.
-//   2. A driver that reached engine.touchDown directly would bypass the sampler
-//      and with it the whole rate contract - at most one sample per contact per
-//      10 ms tick - which is what makes a demo card firmware-faithful rather
-//      than an animation. So the replay below runs through a REAL TouchSampler
-//      and asserts the rate on the delivered calls, not on the authored ones.
+// The demonstration finger's two gates, both about the boundary: a path that opens a contact and
+// never closes it leaves a finger down on that card forever (the firmware's own dropped-release bug,
+// reproduced on purpose); and a driver that reached engine.touchDown directly would bypass the
+// sampler and the rate contract, so the replay runs through a REAL TouchSampler and the rate is
+// asserted on the delivered calls, not the authored ones.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";

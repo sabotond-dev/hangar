@@ -1,34 +1,14 @@
-// Inbound frames a real ZONA would send, built from real encoder output.
-//
-// This is the ONLY file outside src/lib/protocol/descriptors.ts allowed to call
-// encode_packet, and (with descriptors.ts, since 13-12) one of two allowed to
-// name the page-change class. forbidden-instructions.spec.ts excludes
-// `fixtures/` from its scans, because everything here is a frame HANGAR
-// RECEIVES - or, since Phase 13, plan 13-12, the scripted module's ANSWER to
-// one it sends: the responder below models the page switch (D-06), the
-// page-count report and the page discard, and the two firmware facts the
-// switch lives or dies by - a successful config write disables page changes
-// (grid_decode.c:1279) and only a host heartbeat TYPE 255 restores them
-// (:717). A fake that did not model those two would let a switch sent
-// straight after a write pass in every test and be refused on every module.
-//
-// Three facts shape every builder below, all executed against the pinned
-// package rather than assumed:
-//
-//   1. encode_packet emits exactly ONE class block (dist/index.js:3925-3998).
-//      A USB-attached module's heartbeat carries TWO - the heartbeat and the
-//      active page beside it (grid_transport.c:199-203) - so that frame is
-//      spliced by hand and its BRC LEN and checksum are rewritten.
-//   2. encode_packet forces SX and SY to zero on the wire, and the decoder
-//      subtracts 127 from both, so an encoder-built frame decodes as SX -127.
-//      A directly attached module reports SX 0. The address bytes are rewritten
-//      here for exactly that reason.
-//   3. The SERIALNUMBER report is the ONE inbound frame built WITHOUT that
-//      rewrite. Firmware builds it with grid_msg_init_brc(...,
-//      GRID_PARAMETER_GLOBAL_POSITION, ...) (grid_decode.c:839-869), so a real
-//      report genuinely arrives from SX -127, SY -127 - a source address HANGAR
-//      cannot use. That is the wire fact that forces the FETCH to be addressed
-//      to one module rather than broadcast (Phase 7, 07-CONTEXT D-04 amended).
+// Inbound frames a real ZONA would send, built from real encoder output, and the scripted module that
+// answers a live FakeTransport. The ONLY file outside src/lib/protocol/descriptors.ts allowed to call
+// encode_packet and (with descriptors.ts, 13-12) to name the page-change class: forbidden-instructions
+// .spec.ts excludes `fixtures/` because everything here is a frame HANGAR RECEIVES or the module's
+// answer. Three facts shape every builder, executed against the pinned package: encode_packet emits
+// exactly ONE class block (dist/index.js:3925-3998), so the USB-attached heartbeat's second block
+// (grid_transport.c:199-203) is spliced by hand with LEN and checksum rewritten; encode_packet forces
+// SX and SY to zero and the decoder subtracts 127, so the address bytes are rewritten to the module's
+// own; the SERIALNUMBER report alone is built WITHOUT that rewrite, because firmware sends it from the
+// global position (grid_decode.c:839-869) - the wire fact that forces the FETCH to be addressed (07-CONTEXT D-04).
+// Decided at 12-02 / 13-12; see .planning/phases/13-gui-overhaul/13-12-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { grid } from "@intechstudio/grid-protocol";
@@ -47,14 +27,10 @@ const ETX = 3;
 const EOT = 4;
 
 /**
- * The class name on the second block of a USB-attached module's heartbeat: a
- * REPORT, something the module tells the host, beside every type-1 heartbeat
- * (grid_transport.c:199-203). Since 13-12 the responder below also ACCEPTS the
- * EXECUTE form of the same class - the switch descriptors.ts builds under
- * Phase 13's D-06 - and moves `activePage` the way grid_ui.c:1017 does, so
- * the next heartbeatFrame() built from the state carries the new page. That
- * is the whole confirmation firmware gives: the EXECUTE itself is answered by
- * nothing (grid_decode.c:302-357).
+ * The class on the second block of a USB-attached module's heartbeat: a REPORT beside every type-1
+ * heartbeat (grid_transport.c:199-203). Since 13-12 the responder also ACCEPTS the EXECUTE form (the
+ * switch descriptors.ts builds under D-06) and moves `activePage` as grid_ui.c:1017 does; the EXECUTE
+ * itself is answered by nothing (grid_decode.c:302-357) - the next heartbeat is the whole confirmation.
  */
 const PAGE_CLASS = "PAGEACTIVE";
 
@@ -100,12 +76,8 @@ function writeField(msg: number[], name: string, value: number): void {
 }
 
 /**
- * Rewrite BRC LEN and append the checksum.
- *
- * decode_packet_frame requires `array.length - 2 === LEN` (dist/index.js:
- * 4045-4048), so LEN is the message length EXCLUDING the two checksum
- * characters - which is exactly `msg.length` at this point. Checksum is the XOR
- * of every byte before it, as two lowercase hex characters (:3987-3993).
+ * Rewrite BRC LEN and append the checksum: decode_packet_frame requires `array.length - 2 === LEN`
+ * (dist/index.js:4045-4048), and the checksum is the XOR of every byte before it, two lowercase hex characters (:3987-3993).
  */
 function seal(msg: number[]): number[] {
   writeField(msg, "LEN", msg.length);
@@ -193,12 +165,8 @@ export function configReportFrame(opts: {
   event: number;
   config: string;
   /**
-   * The element the report is ABOUT, echoed back exactly as the module echoes
-   * it (grid_decode.c:1337-1338 maps the system element back to 255 before it
-   * builds the REPORT). Optional and defaulting to the touch element, so every
-   * fixture literal written before Phase 12 is unchanged; the responder below
-   * passes the element it was asked about, which is what lets a fetch of 255
-   * be answered instead of timing out against its own filter.
+   * The element the report is ABOUT, echoed back as the module echoes it (grid_decode.c:1337-1338 maps
+   * the system element back to 255). Defaults to the touch element, so every pre-Phase-12 literal is unchanged.
    */
   element?: number;
 }): number[] {
@@ -278,22 +246,15 @@ export function pagestoreAckFrame(opts: {
         class_instr: "ACKNOWLEDGE",
         class_parameters: { LASTHEADER: opts.lastheader },
       },
-      // The store is a global broadcast and so is its acknowledgement; the
-      // address is the module's own only because it has to be something. On a
-      // rig each module answers from its own, which is how a test can count
-      // three acknowledgements to one store (Pitfall 8).
+      // The store is a global broadcast and so is its acknowledgement; on a rig each module answers from
+      // its own address, which is how a test counts three acknowledgements to one store (Pitfall 8).
       { sx: opts.sx ?? 0, sy: opts.sy ?? 0 },
     ),
   );
 }
 
-/**
- * The answer to a PAGEDISCARD/EXECUTE once the reload has finished: the
- * success callback's acknowledgement echoing the request id
- * (grid_decode.c:872-885). Built exactly as the store's is, for the same
- * reason - the discard is a global broadcast too (Phase 13, plan 13-12).
- */
-export function pagediscardAckFrame(opts: {
+/** The answer to a PAGEDISCARD/EXECUTE once the reload has finished: the success callback's acknowledgement echoing the request id (grid_decode.c:872-885); a global broadcast, built as the store's is. */
+function pagediscardAckFrame(opts: {
   lastheader: number;
   sx?: number;
   sy?: number;
@@ -312,14 +273,10 @@ export function pagediscardAckFrame(opts: {
 }
 
 /**
- * The answer to a PAGECOUNT/FETCH: the module's page count in a REPORT from
- * the global position (grid_decode.c:359-385 builds it with
- * GRID_PARAMETER_GLOBAL_POSITION, like the serial-number report - so, like
- * that one, it is built with encodeOne and NOT with inbound()). The number is
- * the STATE's, never a literal here: the fixture's default is firmware's own
- * initial value and is named where the state is declared.
+ * The answer to a PAGECOUNT/FETCH: the page count in a REPORT from the global position
+ * (grid_decode.c:359-385), so built with encodeOne, not inbound(). The number is the STATE's, never a literal here.
  */
-export function pageCountReportFrame(count: number): number[] {
+function pageCountReportFrame(count: number): number[] {
   return seal(
     message(
       encodeOne({
@@ -333,14 +290,8 @@ export function pageCountReportFrame(count: number): number[] {
 }
 
 /**
- * The answer to a SERIALNUMBER/FETCH: WORD0..WORD3 in a 62-byte class block.
- *
- * Built with encodeOne and NOT with inbound(): fact 3 in the header. Firmware
- * sends this report from the global position, so its SX and SY decode as
- * -127, -127 whichever module answered. The one inbound frame HANGAR receives
- * whose source address is deliberately unusable - which is why the FETCH that
- * provokes it is addressed, and why a broadcast fetch on a rig gets N answers
- * nobody can tell apart.
+ * The answer to a SERIALNUMBER/FETCH: WORD0..WORD3 in a 62-byte class block, built with encodeOne and
+ * NOT with inbound() (fact 3 in the header): its SX and SY decode as -127, -127 whichever module answered.
  */
 export function serialNumberReportFrame(
   words: readonly [number, number, number, number],
@@ -363,19 +314,9 @@ export function serialNumberReportFrame(
 }
 
 /**
- * THE TWO ELEMENTS ARE HELD IN TWO MAPS, EACH KEYED BY EVENT NUMBER, and that
- * is a deliberate choice against the obvious one.
- *
- * 12-RESEARCH proposed a single map keyed `${element}/${event}`. It is the
- * tidier shape and it is not the one taken. `configs` keyed by event number is
- * what the `moduleState` FACTORY in e2e/install.e2e.ts and every state literal
- * in synthetic.spec.ts already pass, and re-keying them would be an edit at
- * every one of those call sites - in a file 12-03 also edits, with an edit list
- * already twenty-two numeric sites and eleven step-line arrays long. So
- * `configs` stays exactly as it was and `system` arrives BESIDE it, with
- * `systemFlash` beside `flash` for the same reason: install.spec.ts asserts
- * `state.flash` with `toEqual` against a two-key object, and a flash map that
- * had grown a system key would have moved that assertion for no gain.
+ * The two elements are held in two maps, each keyed by event number: `configs` keyed by event is what
+ * the `moduleState` factory in e2e/install.e2e.ts and every state literal in synthetic.spec.ts pass,
+ * so `system` arrived BESIDE it (12-03), with `systemFlash` beside `flash` for the same reason.
  */
 export interface ZonaState {
   sx: number;
@@ -383,36 +324,20 @@ export interface ZonaState {
   activePage: number;
   /** RAM, the TOUCH element's. What a fetch returns and what a write replaces. */
   configs: Record<number, string>;
-  /**
-   * RAM, the SYSTEM element's (255) - the page-init slot the shared library
-   * lives in. Absent means a factory module: it is materialised on first use
-   * as the package's own default, never a literal.
-   */
+  /** RAM, the SYSTEM element's (255). Absent means a factory module, materialised on first use as the package's own default. */
   system?: Record<number, string>;
-  /**
-   * Flash. What a store copies configs into and what powerCycle restores.
-   * Optional so every existing literal keeps working: it is allocated as a
-   * copy of configs the first time RAM and flash can diverge - the first
-   * write, the first store, or the first power cycle, whichever comes first.
-   */
+  /** Flash: what a store copies configs into and what powerCycle restores; allocated as a copy of configs the first time RAM and flash can diverge. */
   flash?: Record<number, string>;
   /** The same, for the system element. Allocated on the same three occasions. */
   systemFlash?: Record<number, string>;
   /** WORD0..WORD3. Undefined means the module does not answer a SERIALNUMBER/FETCH at all. */
   serial?: readonly [number, number, number, number];
-  /**
-   * What a PAGECOUNT/FETCH is answered with (Phase 13, plan 13-12). Absent
-   * means firmware's own initial value, 4 (../grid-fw/common/src/c/grid_ui.c:77)
-   * - a fact about the fake's model of the module, and the ONE place that
-   * number is written: nothing shipped may assume it (Bible section 9).
-   */
+  /** What a PAGECOUNT/FETCH is answered with (13-12). Absent means firmware's initial value, 4 (grid_ui.c:77), the ONE place that number is written. */
   pageCount?: number;
   /**
-   * grid_ui_state.page_change_enabled (13-12). Absent means enabled, as a
-   * module boots (grid_ui.c:79). A successful CONFIG/EXECUTE clears it
-   * (grid_decode.c:1279); a host heartbeat TYPE 255 sets it and any other
-   * type above 127 clears it (:717); a page switch is silently refused while
-   * it is clear (:319). Optional so every existing literal is unchanged.
+   * grid_ui_state.page_change_enabled (13-12). Absent means enabled, as a module boots (grid_ui.c:79). A
+   * successful CONFIG/EXECUTE clears it (grid_decode.c:1279); a host heartbeat TYPE 255 sets it and any
+   * other type above 127 clears it (:717); a page switch is silently refused while it is clear (:319).
    */
   pageChangeEnabled?: boolean;
 }
@@ -424,11 +349,7 @@ const FIRMWARE_INITIAL_PAGE_COUNT = 4;
 const flashOf = (state: ZonaState): Record<number, string> =>
   (state.flash ??= { ...state.configs });
 
-/**
- * The system element's RAM, allocated on first need as what a factory module
- * holds there: the package's own 24-character page-init default, READ from the
- * pin through SYSTEM_DEFAULT_SETUP and never typed here (D-20's rule).
- */
+/** The system element's RAM, allocated on first need as a factory module's: the package's own page-init default through SYSTEM_DEFAULT_SETUP, never typed here (D-20). */
 const systemOf = (state: ZonaState): Record<number, string> =>
   (state.system ??= { [EVENT_SETUP]: SYSTEM_DEFAULT_SETUP });
 
@@ -437,16 +358,10 @@ const systemFlashOf = (state: ZonaState): Record<number, string> =>
   (state.systemFlash ??= { ...systemOf(state) });
 
 /**
- * What one element's RAM answers for one event. The system element answers the
- * package's own default for an event nobody has written - which is what
- * firmware does. That fall-through is how a factory module's 255/6 comes
- * back as SYSTEM_DEFAULT_TIMER since 12.1-06 (the fourth slot, D-03) with no
- * line added here, and how its 255/4 comes back as SYSTEM_DEFAULT_UTILITY
- * since 13-17 (the fifth slot, D-18 / D-19) - page-next, the module's own
- * utility button - with no line added either; a write to 255/4 is stored
- * under its event below like any other system write, so a Sandbox install's
- * utility body is what a refetch reads back and what a power cycle forgets.
- * Verified, not restructured, by sequence.spec.ts's five-slot round trip.
+ * What one element's RAM answers for one event. The system element answers the package's own default
+ * for an event nobody has written, as firmware does: a factory module's 255/6 comes back as
+ * SYSTEM_DEFAULT_TIMER (12.1-06) and its 255/4 as SYSTEM_DEFAULT_UTILITY (13-17) with no line added
+ * here; a write to 255/4 is stored under its event like any other system write.
  */
 const ramRead = (state: ZonaState, element: number, event: number): string => {
   if (element !== ELEMENT_SYSTEM) return state.configs[event] ?? "";
@@ -455,12 +370,7 @@ const ramRead = (state: ZonaState, element: number, event: number): string => {
   return SYSTEM_EVENTS.find((e) => e.value === event)?.defaultConfig ?? "";
 };
 
-/**
- * What a power cycle does: RAM becomes flash, for BOTH elements. Pure, in
- * place. A module that was written to but never stored comes back with what it
- * had before the write, which is the whole reason PUT BACK exists and the fact
- * runbook row D checks on hardware.
- */
+/** What a power cycle does: RAM becomes flash, for BOTH elements. Pure, in place; the fact runbook row D checks on hardware. */
 export function powerCycle(state: ZonaState): void {
   state.configs = { ...flashOf(state) };
   state.system = { ...systemFlashOf(state) };
@@ -476,13 +386,9 @@ const isGlobal = (outbound: DecodedClass): boolean =>
   Number(outbound.brc_parameters.DY) === GLOBAL_ADDRESS;
 
 /**
- * The scripted ZONA a live FakeTransport answers with.
- *
- * It answers what firmware accepts, by address: CONFIG is IS_ME only, PAGESTORE
- * and SERIALNUMBER are IS_ME | IS_GLOBAL (grid_decode.c:839-869 for the serial,
- * the store's broadcast in storePage()'s comment). That rule is what lets
- * rigResponder be a plain fan-out - a broadcast is answered by every module,
- * an addressed request by one.
+ * The scripted ZONA a live FakeTransport answers with. It answers what firmware accepts, by address:
+ * CONFIG is IS_ME only, PAGESTORE and SERIALNUMBER are IS_ME | IS_GLOBAL (grid_decode.c:839-869), which
+ * is what lets rigResponder be a plain fan-out.
  */
 export function zonaResponder(
   state: ZonaState,
@@ -491,10 +397,7 @@ export function zonaResponder(
     const { class_name, class_instr, class_parameters } = outbound;
     const event = Number(class_parameters.EVENTTYPE);
     const page = Number(class_parameters.PAGENUMBER);
-    // THE ELEMENT THE REQUEST NAMES, routed on and echoed back. An absent
-    // field decodes as undefined and coerces to NaN, which is neither element
-    // and would be answered from `configs` - so it is defaulted to the touch
-    // element explicitly rather than left to a coercion.
+    // The element the request names, routed on and echoed back; an absent field coerces to NaN, so it is defaulted explicitly.
     const element = Number(class_parameters.ELEMENTNUMBER ?? ELEMENT_TOUCH);
     const me = isMe(outbound, state);
     const meOrGlobal = me || isGlobal(outbound);
@@ -530,10 +433,8 @@ export function zonaResponder(
           }),
         ];
       }
-      // RAM and flash are about to diverge: fix flash first if it never was.
-      // The two elements' RAMs are SEPARATE, so a write to 255 can never
-      // overwrite the touch Setup - the conflation 12-RESEARCH's Pitfall 1
-      // names, and the one this branch exists to make impossible.
+      // RAM and flash are about to diverge: fix flash first if it never was. The two elements' RAMs are
+      // SEPARATE, so a write to 255 can never overwrite the touch Setup (12-RESEARCH Pitfall 1).
       const written = String(class_parameters.ACTIONSTRING ?? "");
       if (element === ELEMENT_SYSTEM) {
         systemFlashOf(state);
@@ -550,16 +451,10 @@ export function zonaResponder(
       ];
     }
     if (class_name === PAGE_CLASS && class_instr === "EXECUTE" && me) {
-      // THE SWITCH (Phase 13, plan 13-12), as grid_decode.c:302-357 has it and
-      // answered by NOTHING, whatever happens: already on that page (:310),
-      // page changes disabled by a write (:319), or the load started (:349,
-      // the active page moving at grid_ui.c:1017). The only confirmation a
-      // host ever gets is the next heartbeat carrying the new page, which
-      // heartbeatFrame() builds from `activePage`. THE FAKE HOLDS ONE PAGE'S
-      // STRINGS: a real module loads the target page's own configuration
-      // from NVM, and this one reloads RAM from its single flash instead -
-      // the shape of a load without a second page's contents. Stated as the
-      // fixture's limit, not hidden.
+      // The switch (13-12), as grid_decode.c:302-357 has it and answered by NOTHING: already on that page
+      // (:310), page changes disabled by a write (:319), or the load started (:349; grid_ui.c:1017). The
+      // fake holds ONE page's strings and reloads RAM from its single flash - the shape of a load without
+      // a second page's contents, stated as the fixture's limit.
       if (page === state.activePage) return [];
       if (state.pageChangeEnabled === false) return [];
       state.activePage = page;
@@ -624,10 +519,7 @@ export function zonaResponder(
     ) {
       return [serialNumberReportFrame(state.serial)];
     }
-    // A host heartbeat is answered by nothing at all. Firmware records it and
-    // re-enables page changes; it never replies. Nor does a module answer a
-    // request addressed to somebody else, or a serial fetch it has no serial
-    // for.
+    // A host heartbeat is answered by nothing; nor is a request addressed to somebody else, or a serial fetch with no serial.
     return [];
   };
 }

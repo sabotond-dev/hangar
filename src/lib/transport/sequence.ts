@@ -1,24 +1,11 @@
-// The walking skeleton's run, as functions instead of as a page (FOUND-01).
-//
-// Everything here is worth testing and nothing here touches the DOM: identity
-// folded out of inbound heartbeats, the fetches, writeAll - the ONE writer,
-// system timer, then system setup, then system utility, then Timer, then
-// Setup, that TRY ON DEVICE, PUT BACK and the skeleton's write-back reach
-// (Phase 7, SAFE-03; Phase 12 added the third of the five, Phase 12.1 the
-// fourth, Phase 13's 13-17 the fifth) - the store,
-// the burst probe, and the closing heartbeat that gives the module its page
-// changes back. The page is the part that is not worth testing; it wires a
-// transport and a queue to these and renders what they report.
-//
-// ONE FETCHER AND ONE WRITER, EACH OVER ONE ORDERED LIST. 12-02 shipped
-// fetchAll and writeAll beside two-event adapters, so that nothing above the
-// transport moved inside that plan; 12-03 moved the store, the tuner, the
-// probe page, both e2e files and the runbooks in ONE plan, and the adapters
-// are gone with their promise kept. 12.1-06 turned the order from three lines
-// in a function into SLOTS, one row per slot in write order, so that the
-// fourth string (255/6, D-03) and the fifth (255/4, 13-17, D-18 / D-19) are
-// rows and not functions. Nothing here counts two or three any more, and sequence.spec.ts
-// asserts the removal by name rather than leaving it to a reader's memory.
+// The walking skeleton's run as functions instead of a page (FOUND-01): identity folded out of
+// inbound heartbeats, ONE fetcher and ONE writer over ONE ordered list (SLOTS, one row per slot in
+// write order: 255/6, 255/0, 255/4, 0/6, 0/0 - the five strings every write since 13-17 lands, which
+// every install click and the skeleton's write-back reach), the store, the burst probe, and the
+// closing heartbeat that gives the module its page changes back. Nothing here touches the DOM; the
+// page wires a transport and a queue to these and renders what they report. Nothing here counts two
+// or three any more (12-03 removed the two-event adapters; sequence.spec.ts asserts it by name).
+// Decided at 12-03 / 12.1-06 / 13-17; see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { grid } from "@intechstudio/grid-protocol";
@@ -59,20 +46,11 @@ export interface Identity {
   zona: ModuleSeen;
   activePage: number;
   otherModules: ModuleSeen[];
-  /**
-   * Informational since Phase 7. Phase 2's D-12 refused a page store on this
-   * field; SAFE-06 (07-CONTEXT D-05) allows the store on a rig and names the
-   * other modules in a confirmation instead. Nothing refuses on this field any
-   * more - it is still here because the captures and fixtures.spec.ts shape it.
-   */
+  /** Informational since Phase 7 (SAFE-06 names the other modules in a confirmation instead of refusing); the captures and fixtures.spec.ts shape it. */
   storeAllowed: boolean;
 }
 
-/**
- * The accumulator absorbFrame folds heartbeats into. activePage starts
- * undefined on purpose: the page is unknown until a heartbeat reports it, and a
- * zero default is exactly the silent no-op D-10 exists to prevent.
- */
+/** The accumulator absorbFrame folds heartbeats into. activePage starts undefined: a zero default is the silent no-op D-10 exists to prevent. */
 export interface IdentifyState {
   /** Keyed `${sx},${sy}`. */
   seen: Map<string, ModuleSeen>;
@@ -111,12 +89,7 @@ export function newIdentifyState(startedAt: number = now()): IdentifyState {
   return { seen: new Map(), activePage: undefined, firstSeenAt: startedAt };
 }
 
-/**
- * True once the identify window has passed with nothing to show for it. Its
- * absence means the module is not the USB-attached one (or is on firmware
- * older than the piggybacked page report), so the page refuses and says so
- * rather than guessing a page.
- */
+/** True once the identify window has passed with nothing seen: the module is not the USB-attached one (or its firmware predates the page report), so the page refuses rather than guessing. */
 export function identifyTimedOut(
   state: IdentifyState,
   at: number = now(),
@@ -125,16 +98,10 @@ export function identifyTimedOut(
 }
 
 /**
- * Fold one decoded frame's classes into the seen-module map and the active
- * page.
- *
- * Both numeric coercions are required and the desktop does both
- * (runtime.ts:2366, :2370): module_type_from_hwcfg needs a NUMBER, and
- * module_hwcfgs() stores its hwcfg as a STRING.
- *
- * `at` is the clock reading `lastSeen` is stamped with. It defaults to this
- * module's own clock so every existing caller is unchanged; the session passes
- * its injected clock, so its liveness watchdog and this fold agree about time.
+ * Fold one decoded frame's classes into the seen-module map and the active page. Both numeric
+ * coercions are required, as the desktop does (runtime.ts:2366, :2370): module_type_from_hwcfg needs
+ * a NUMBER and module_hwcfgs() stores its hwcfg as a STRING. `at` is the clock `lastSeen` is stamped
+ * with; the session passes its injected clock so its liveness watchdog and this fold agree.
  */
 export function absorbFrame(
   classes: DecodedClass[],
@@ -172,17 +139,10 @@ export function absorbFrame(
     });
   }
 
-  // Three conditions, all required, before the active page moves (D-10):
-  //
-  //   1. the class carries a PAGENUMBER;
-  //   2. a HEARTBEAT rode in the SAME decoded frame - firmware appends the
-  //      page report to its own heartbeat and to nothing else
-  //      (grid_transport.c:199-203);
-  //   3. the class carries neither EVENTTYPE nor ACTIONLENGTH.
-  //
-  // Without 2 and 3 a CONFIG/REPORT - which also carries a PAGENUMBER, and
-  // arrives on every single fetch - would silently retarget the whole run at
-  // whatever page was last fetched.
+  // Three conditions before the active page moves (D-10): the class carries a PAGENUMBER; a HEARTBEAT
+  // rode in the SAME decoded frame (firmware appends the page report to its own heartbeat and to nothing
+  // else, grid_transport.c:199-203); and the class carries neither EVENTTYPE nor ACTIONLENGTH. Without
+  // the last two a CONFIG/REPORT, which also carries a PAGENUMBER, would retarget the run at whatever page was last fetched.
   if (!heartbeatInThisFrame) return;
   for (const cls of classes) {
     const p = cls.class_parameters;
@@ -193,11 +153,8 @@ export function absorbFrame(
 }
 
 /**
- * Resolve once a ZONA reporting heartbeat type 1 - the USB-attached module,
- * `grid_decode.c:695-700` - and an active page have both been seen. Anything
- * else on the bus is another module; it is named in `otherModules` so the
- * identity line and the flash confirmation can say so (SAFE-06). Its presence
- * no longer disables anything - `storeAllowed` is informational since Phase 7.
+ * Resolve once a ZONA reporting heartbeat type 1 (the USB-attached module, `grid_decode.c:695-700`)
+ * and an active page have both been seen; anything else on the bus is named in `otherModules` (SAFE-06).
  */
 export function identify(state: IdentifyState): Identity | undefined {
   if (state.activePage === undefined) return undefined;
@@ -230,12 +187,7 @@ const fetched = (
   };
 };
 
-/**
- * ONE FETCH, ONE STEP ID, ONE FetchedEvent - the primitive the fetcher below is
- * built from. It stayed after 12-03 removed the two-event adapters it was
- * written to keep honest, because the alternative is four near-identical
- * request-and-label blocks inside one function.
- */
+/** ONE FETCH, ONE STEP ID, ONE FetchedEvent: the primitive fetchAll is built from. */
 async function fetchOne(
   q: RequestQueue,
   id: Identity,
@@ -267,58 +219,28 @@ async function writeOne(
 }
 
 /**
- * ONE ROW PER SLOT HANGAR WRITES, IN WRITE ORDER (Phase 12.1, plan 06).
+ * ONE ROW PER SLOT HANGAR WRITES, IN WRITE ORDER (12.1-06). The order is data, not a function body:
+ * writeAll and fetchAll iterate it, ConfigSet and FetchedSet are keyed by its `key`s, the step ids the
+ * captures and install.spec.ts read are its `write` / `fetch` / `refetch` columns, and the label a
+ * refusal names is its `label`. Why this order and no other - three reasons, independent of each other:
  *
- * THE ORDER IS DATA, NOT A FUNCTION BODY. 12-02 wrote it as three writeOne
- * lines with two reasons in writeAll's header; a fourth string (D-03) would
- * have been a fourth line, and 13-17's fifth (255/4, under 13-CONTEXT D-19) a
- * fifth. Instead the list is the single source: writeAll and fetchAll iterate
- * it, ConfigSet and FetchedSet are keyed by its `key`s, the step ids the
- * captures and install.spec.ts read are its `write` / `fetch` / `refetch`
- * columns, and the label a refusal names is its `label`. 13-17 added 255/4 as
- * ONE ROW HERE and nowhere else - after 255/6 and 255/0, before the touch
- * pair, because whatever the utility body calls has to be registered before
- * the body runs, and the touch Setup that pulls the body in (`ele[#ele]:map()`)
- * has to find it registered (reason one, one event over).
+ *   REASON ONE (Phase 12). A written body is registered AND RUN IMMEDIATELY, in write order
+ *   (../grid-fw/common/src/c/grid_decode.c:1283-1288), so a touch Setup that calls a library function
+ *   before the system setup defining it has landed raises `attempt to call a nil value` once, at
+ *   install, and installs no `touch_cb`. The library belongs in 255/0, the slot firmware runs first
+ *   on a page load (../grid-fw/common/src/lua/init.lua:46-50). Hence 255/0 before 0/6 and 0/0.
  *
- * WHY THIS ORDER AND NO OTHER - three reasons, independent of each other.
+ *   REASON TWO (Phase 2, _pad.ts:3908-3913, cited by filename, never imported). Timer (6) before
+ *   Setup (0): gtt is a no-op until the Timer event holds a stored action, and Setup runs immediately
+ *   in the live VM, so a Setup-first write arms a timer that does not exist yet. Hence 0/6 before 0/0.
  *
- * REASON ONE (Phase 12). A written body is registered AND RUN IMMEDIATELY, in
- * write order: ../grid-fw/common/src/c/grid_decode.c:1283-1288 calls
- * `grid_ui_register_script` and then `grid_ui_process_single` inside the same
- * accepted-write branch. So at install time the initialisation order is
- * HANGAR's, not the firmware's page-load order. A touch Setup that calls a
- * library function by name before the system setup that defines it has been
- * written raises `attempt to call a nil value` ONCE, at install, on the user's
- * desk - and installs no `touch_cb` at all, so the pad goes dead rather than
- * looking wrong. The system element's setup is where the library belongs
- * because it is the slot firmware runs first on a page load
- * (../grid-fw/common/src/lua/init.lua:46-50), and 12-00's slot probe confirmed
- * on hardware that an event body is callable from another event's body and
- * that its globals persist. Hence 255/0 before 0/6 and 0/0.
+ *   REASON THREE (12.1, D-03). The library's second half lives in 255/6 and 255/0 arms it with
+ *   `self:tim()`; a 255/0 written before 255/6 would run the firmware's debug print once, at install.
+ *   Hence 255/6 FIRST OF ALL.
  *
- * REASON TWO (Phase 2, _pad.ts:3908-3913 - vendored, cited by filename only,
- * never imported here). Timer (6) before Setup (0), and it is not stylistic:
- * gtt is a no-op until the Timer event holds at least one stored action, and
- * Setup runs immediately in the live VM - so a Setup-first write arms a timer
- * that does not exist yet and the pad simply sits still. It is also why the
- * BOTOR mixed-state incident left the Timer landed and the Setup missing
- * rather than the reverse. Hence 0/6 before 0/0.
- *
- * REASON THREE (Phase 12.1, D-03), and it is reason one and reason two
- * together: the library's second half lives in the system element's TIMER
- * (255/6) and 255/0 arms it with `self:tim()`. A CONFIG/EXECUTE runs the body
- * it registers (reason one), so 255/0 runs the moment it lands and calls the
- * method the 255/6 write registers (reason two's shape, one element up) - a
- * 255/0 written before 255/6 would arm a timer whose body is still the
- * firmware's debug print, once, at install. Hence 255/6 FIRST OF ALL, before
- * the setup that calls it, on the same rule that already puts 0/6 before 0/0.
- *
- * THE FIFTH ROW (13-17). 255/4, the utility button, under 13-CONTEXT D-19
- * and D-18: constants.ts's header carries the reason it was once refused and
- * what writing it changes (the button no longer turns the page while a
- * Sandbox surface is installed; PUT BACK restores it). Five writes per
- * install; sequence.spec.ts asserts the row, its place and its bytes.
+ * The fifth row, 255/4 (13-17; 13-CONTEXT D-18, D-19), sits after 255/0 and before the touch pair:
+ * whatever the utility body calls must be registered before the body runs. sequence.spec.ts asserts
+ * the row, its place and its bytes; constants.ts's header carries why it was once refused.
  */
 export const SLOTS: readonly {
   readonly element: number;
@@ -376,11 +298,7 @@ export const SLOTS: readonly {
   },
 ];
 
-/**
- * All FIVE strings a module holds for HANGAR, one per SLOTS row: the system
- * element's timer and setup (the library's two halves) and its utility (the
- * Sandbox runtime's second slot, 13-17), the touch element's Timer and Setup.
- */
+/** All FIVE strings a module holds for HANGAR, one per SLOTS row. */
 export interface FetchedSet {
   systemTimer: FetchedEvent;
   system: FetchedEvent;
@@ -390,19 +308,9 @@ export interface FetchedSet {
 }
 
 /**
- * Read all FIVE back, one per SLOTS row. THE ONE FETCHER since 12-03.
- *
- * FETCH ORDER IS FREE - firmware answers each request on its own and no fetch
- * runs anything - but it is written in SLOTS order anyway so a capture's
- * steps[] reads in the same order as the write below, and a reader comparing
- * a fetch trace with a write trace is not comparing two different orderings.
- *
- * 255/4 is fetched since 13-17, because it is written since 13-17: HANGAR
- * snapshots every slot it writes back, and no other.
- *
- * `stage` picks the pinned step ids the run reports under: the cycle and the
- * store proof fetch once before the write and once after it, and plan 05's
- * gate reads those ids to tell the two apart.
+ * Read all FIVE back, one per SLOTS row - the one fetcher since 12-03. Fetch order is free (no fetch
+ * runs anything) but written in SLOTS order so a capture's steps[] reads as the write does. `stage`
+ * picks the pinned step ids: the cycle and the store proof fetch once before the write and once after.
  */
 export async function fetchAll(
   q: RequestQueue,
@@ -423,13 +331,7 @@ export async function fetchAll(
   return set as FetchedSet;
 }
 
-/**
- * The five strings a full write puts on the wire, keyed by SLOTS' `key`s.
- * Verbatim, never compressed here. `systemTimer` and `system` are the two
- * halves of the shared library (255/6 and 255/0); `systemUtility` is 255/4,
- * the Sandbox runtime's second slot (13-17); the other two are the touch
- * element's.
- */
+/** The five strings a full write puts on the wire, keyed by SLOTS' `key`s. Verbatim, never compressed here. */
 export interface ConfigSet {
   systemTimer: string;
   system: string;
@@ -452,22 +354,11 @@ export const targetOf = (id: Identity): WriteTarget => ({
 });
 
 /**
- * Write all five into the module's RAM, IN SLOTS ORDER: system timer, then
- * system setup, then system utility, then touch Timer, then touch Setup. This
- * order and no other; SLOTS' comment carries the three reasons.
- *
- * THE ONE WRITER FOR FOUR CLICKS. TRY ON DEVICE, PUT BACK, CLEAR and the
- * skeleton's write-back all come through here; writeBack below is a two-line
- * adapter. The strings go on the wire VERBATIM - never compressed here
- * (07-RESEARCH, the D-10 measurement: cost().used === setupLua.length with
- * reserve 0/0). THE ORDER IS NOT THE CALLER'S TO GET WRONG: it lives in
- * SLOTS, so a caller that hands the set over with its keys in another order
- * changes nothing at all, and sequence.spec.ts asserts that.
- *
- * Sequential, one acknowledgement at a time, each under its own pinned step
- * id, and aborting on the first failure - so a half-landed write names which
- * of the five landed, and "the system timer did not land but the touch Setup
- * did" cannot occur.
+ * Write all five into the module's RAM, in SLOTS order and no other (SLOTS carries the three reasons;
+ * a caller's key order changes nothing, sequence.spec.ts asserts it). THE ONE WRITER for every click.
+ * The strings go on the wire VERBATIM (D-10: cost().used === setupLua.length with reserve 0/0).
+ * Sequential, one acknowledgement at a time under its own pinned step id, aborting on the first
+ * failure, so a half-landed write names which of the five landed.
  */
 export async function writeAll(
   q: RequestQueue,
@@ -498,12 +389,8 @@ export async function writeBack(
 }
 
 /**
- * The module's own key, or a throw the caller degrades from (D-04 amended).
- *
- * Addressed to the ZONA's SX/SY, never broadcast - see fetchSerialNumber's
- * comment for the wire fact behind that. A module that does not answer times
- * out on the queue's bounded attempts; the caller's fallback is a session-only
- * snapshot with honest copy, never a guessed key.
+ * The module's own key, or a throw the caller degrades from (D-04 amended). Addressed to the ZONA's
+ * SX/SY, never broadcast (fetchSerialNumber's comment); the caller's fallback is a session-only snapshot.
  */
 export async function fetchModuleKey(
   q: RequestQueue,
@@ -517,29 +404,13 @@ export async function fetchModuleKey(
 }
 
 /**
- * Commit the module's RAM config to flash. Outside the cycle, behind its own
- * click (D-11).
- *
- * The store is a GLOBAL BROADCAST (storePage() addresses -127,-127 and
- * firmware accepts it as IS_ME | IS_GLOBAL): every module on the bus stores
- * its own active page and answers with its own acknowledgement echoing the
- * same LASTHEADER. The queue resolves on the first and the rest are delivered
- * to nobody (queue.ts `settle` nulls the waiter). That is SAFE-06's whole
- * reason for existing, and in Phase 7 it is a confirmation sentence naming the
- * other modules - not a refusal. Phase 2's D-12 threw here on
- * `id.storeAllowed`; that rule was the skeleton's and is undone by name
- * (07-CONTEXT D-18). `id` stays a parameter for the step's provenance and for
- * symmetry with the other sequences; it is currently unread.
- *
- * Two honest caveats, both worth saying out loud on the page:
- *
- *   - the module's border LEDs animate yellow-dim while the store runs and
- *     then settle (grid_decode.c:986-987). That is the store working, not a
- *     fault.
- *   - the success callback reloads the page from flash and restarts the Lua VM
- *     (grid_decode.c:956-960). So "provable no-op" is a claim about the stored
- *     bytes, not about the running script, which is restarted exactly as a
- *     page change would restart it.
+ * Commit the module's RAM config to flash, outside the cycle, behind its own click (D-11). A GLOBAL
+ * BROADCAST (storePage() addresses -127,-127, accepted as IS_ME | IS_GLOBAL): every module on the bus
+ * stores its own active page and acknowledges; the queue resolves on the first (SAFE-06's reason,
+ * a confirmation naming the others since Phase 7; Phase 2's throw on `id.storeAllowed` is undone by
+ * 07-CONTEXT D-18, and `id` stays for provenance). The border LEDs animate yellow-dim while it runs
+ * (grid_decode.c:986-987), and the success callback reloads the page from flash and restarts the Lua
+ * VM (grid_decode.c:956-960), so "provable no-op" is a claim about the stored bytes.
  */
 export async function storeToFlash(
   q: RequestQueue,
@@ -550,14 +421,9 @@ export async function storeToFlash(
 }
 
 /**
- * Send one HEARTBEAT/EXECUTE TYPE 255.
- *
- * Firmware clears page_change_enabled on every successful config write
- * (grid_decode.c:1279) and only this restores it (grid_decode.c:717) - the
- * timeout restore at grid_esp32_port.c:480 is commented out. So this runs
- * after every cycle, in both A/B arms, after an error, and from a button the
- * user can press at any time. Without it the module cannot change page until
- * it is power-cycled, which is not a no-op.
+ * Send one HEARTBEAT/EXECUTE TYPE 255. Firmware clears page_change_enabled on every successful config
+ * write (grid_decode.c:1279) and only this restores it (grid_decode.c:717; the timeout restore at
+ * grid_esp32_port.c:480 is commented out), so it runs after every cycle, after an error, and from a button.
  */
 export async function restorePageChange(q: RequestQueue): Promise<void> {
   await q.sendImmediate(hostHeartbeat(), "restore-page-change");
@@ -574,10 +440,8 @@ export async function runNoOpCycle(
   let cycle: CycleResult | undefined;
   try {
     const before = await fetchAll(q, id);
-    // D-09: a write is only provably a no-op when the string it writes back is
-    // one the module really handed over. FIVE strings since 13-17 (four since
-    // 12.1-06), one per SLOTS row: every slot written back is guarded, and
-    // every one is compared.
+    // D-09: a write is provably a no-op only when the string it writes back is one the module really
+    // handed over. Five strings since 13-17, one per SLOTS row, every one guarded and compared.
     const guard = canWriteBack(SLOTS.map((slot) => before[slot.key]));
     if (!guard.ok) throw new Error(guard.reason);
     await writeBack(q, id, before);
@@ -593,25 +457,17 @@ export async function runNoOpCycle(
     };
     return cycle;
   } finally {
-    // Mandatory. See restorePageChange's own comment: this runs even when a
-    // write rejects, which is exactly the case that would otherwise leave the
-    // user's module unable to change page until it is power-cycled.
+    // Mandatory even when a write rejects: otherwise the module cannot change page until power-cycled.
     await restorePageChange(q);
     if (cycle) cycle.pageChangeRestored = true;
   }
 }
 
 /**
- * Twenty consecutive read-only fetches, one outstanding at a time.
- *
- * Better evidence than the two writes the cycle performs: a CONFIG/FETCH is 49
- * bytes out and produces a roughly 690-byte REPORT, against a 512-byte CDC RX
- * buffer feeding a 2048-byte ring that silently discards a whole message when
- * it cannot fit (grid_transport.c:151-153). Nothing is written to the module.
- *
- * `preSendDelayMs` is recorded, not applied: the queue owns the pacing, and
- * this is the value it was built with, so the capture cannot report a gap the
- * run did not use.
+ * Twenty consecutive read-only fetches, one outstanding at a time: a CONFIG/FETCH is 49 bytes out and
+ * produces a roughly 690-byte REPORT, against a 512-byte CDC RX buffer feeding a 2048-byte ring that
+ * discards a whole message when it cannot fit (grid_transport.c:151-153). Nothing is written.
+ * `preSendDelayMs` is recorded, not applied: the queue owns the pacing.
  */
 export async function runBurstProbe(
   q: RequestQueue,

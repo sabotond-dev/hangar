@@ -1,20 +1,9 @@
-// FakeTransport: a ZONA that is not there (FOUND-01, D-07).
-//
-// Two modes, one class:
-//
-//   REPLAY - reads ONLY `events[].dir === "rx" && kind === "chunk"` from a
-//   capture and hands those bytes back at their recorded boundaries. The
-//   `frame` and `classes` entries are for assertions, never for replay; using
-//   the chunks is what makes the framing tests exercise real chunk splits
-//   instead of a tidy one-frame-per-callback fiction.
-//
-//   LIVE - decodes each outbound frame, asks a responder what the module would
-//   say, and feeds the answer back as rx chunks. The request id is read off the
-//   wire from the frame's own BRC header, so "the acknowledgement echoes the
-//   request id" is a genuine round trip rather than a value handed to the fake.
-//
-// Five faults, one per failure the queue has to survive. Every one of them
-// changes exactly the behaviour it names and nothing else.
+// FakeTransport: a ZONA that is not there (FOUND-01, D-07). Two modes, one class. REPLAY reads ONLY
+// `events[].dir === "rx" && kind === "chunk"` from a capture and hands those bytes back at their
+// recorded boundaries (the `frame` and `classes` entries are for assertions), so the framing tests
+// exercise real chunk splits. LIVE decodes each outbound frame, asks a responder what the module would
+// say, and feeds the answer back as rx chunks, the request id read off the frame's own BRC header.
+// Five faults, one per failure the queue has to survive, each changing exactly the behaviour it names.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { TERMINATOR, type DecodedClass, decodeFrame } from "$lib/protocol";

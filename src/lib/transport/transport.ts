@@ -32,13 +32,9 @@ export interface FailureCopy {
 }
 
 /**
- * CONN-01: a capability test, never a browser test.
- *
- * The installed typings declare `Navigator.serial` as non-optional, so
- * TypeScript will happily let a Safari build call it; this has to be a real
- * runtime branch. `isSecureContext` is checked here too because a build opened
- * from disk over `file://` is not one, and `navigator.serial` is simply absent
- * there - a symptom that reads as a browser problem and is not.
+ * CONN-01: a capability test, never a browser test. The typings declare `Navigator.serial` as
+ * non-optional, so this has to be a real runtime branch; `isSecureContext` too, because a build opened
+ * over `file://` has no `navigator.serial` at all.
  */
 export function webSerialAvailable(): boolean {
   return (
@@ -50,17 +46,9 @@ export function webSerialAvailable(): boolean {
 }
 
 /**
- * Turn whatever `requestPort()` or `open()` threw into one named state.
- *
- * Matched on `DOMException.name`. The message a busy port carries is the
- * literal `Failed to open serial port.` on all three desktop platforms, but
- * that is a secondary signal to record, never to branch on (PITFALLS C1): it
- * is not specified anywhere and it is localisable.
- *
- * `port` is the port that was being opened. Its `connected` flag is what tells
- * an unplug apart from a busy port, since both surface as `NetworkError`. It
- * is feature-detected because `SerialPort.connected` is Chrome 130+ and
- * Firefox 151+ while the baseline here is Chrome 89.
+ * Turn whatever `requestPort()` or `open()` threw into one named state, matched on `DOMException.name`
+ * (the message is recorded, never branched on: unspecified and localisable, PITFALLS C1). `port.connected`
+ * tells an unplug from a busy port (both are `NetworkError`), feature-detected: Chrome 130+ / Firefox 151+.
  */
 export function classifyOpenError(
   err: unknown,
@@ -74,17 +62,9 @@ export function classifyOpenError(
       }
       return "port-busy";
     }
-    // Both InvalidStateError forms are HANGAR bugs wearing a DOMException:
-    //   "The port is already open."               (serial_port.cc:121-122)
-    //   "A call to open() is already in progress." (serial_port.cc:114-116)
-    // A per-panel connect control could not reach either; a site-wide session
-    // with a header control AND a panel control bound to one action reaches
-    // them on a double click. The in-flight guard in the session is the fix
-    // and this branch is the net under it.
-    //
-    // Branched on `name` for the same reason the busy case is: the two message
-    // strings above are the browser's own, are specified nowhere, and are
-    // localisable.
+    // Both InvalidStateError forms ("The port is already open.", serial_port.cc:121-122; "A call to open()
+    // is already in progress.", serial_port.cc:114-116) are HANGAR bugs wearing a DOMException, reached by
+    // a double click on two controls bound to one action; the session's in-flight guard is the fix and this is the net.
     if (err.name === "InvalidStateError") return "already-open";
   }
   return "unknown";
@@ -98,19 +78,9 @@ const UNSUPPORTED_DETAIL =
   "run without any hardware.";
 
 /**
- * What the page shows for each failure. `raw` is the original error text and
- * is only used by the `unknown` case, so nothing is ever swallowed.
- *
- * `controlLabel` names the button the recovery steps tell the visitor to
- * click. Phase 2's page calls it Connect; Phase 4's calls it TRY ON DEVICE
- * (D-23, UI-SPEC W-18), and copy naming a button that is not on the screen is
- * worse than no copy.
- *
- * It is appended THIRD, after `raw`, and never in `raw`'s place: three
- * callers already pass `raw` positionally, so a label inserted second would
- * silently retarget all three onto the new parameter and fail nowhere except in
- * front of a visitor. An options object would rewrite exactly the three call
- * sites this trailing parameter exists to leave alone.
+ * What the page shows for each failure. `raw` is the original error text, used by the `unknown` case
+ * only. `controlLabel` names the button the recovery steps say to click (D-23, UI-SPEC W-18) and is
+ * appended THIRD, after `raw`: three callers pass `raw` positionally.
  */
 export function failureCopy(
   f: OpenFailure,
@@ -177,11 +147,8 @@ export function failureCopy(
         ],
       };
     case "already-open":
-      // The `unknown` row's title with a sentence in place of the raw report,
-      // and NO steps at all: this failure is a bug in this site, so there is
-      // nothing for the visitor to do about it and no step that would help.
-      // `raw` is deliberately not interpolated - the browser's own words here
-      // describe HANGAR's mistake and mean nothing to the person reading them.
+      // The `unknown` row's title with a sentence in place of the raw report and NO steps: this failure is
+      // a bug in this site, and the browser's own words would mean nothing to the person reading them.
       return {
         title: "The port wouldn’t open",
         detail: "HANGAR is already connecting — one moment.",

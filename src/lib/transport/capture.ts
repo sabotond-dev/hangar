@@ -35,20 +35,12 @@ export type CaptureEvent =
       reason: string;
     };
 
-/**
- * The step vocabulary, pinned here so plan 03's sequence, the page's status
- * list, the exported capture and plan 05's post-checkpoint gate all name the
- * same things. A gate that asserts a step id cannot be written against ids
- * that are only discovered after the hardware run.
- */
+/** The step vocabulary, pinned so the sequence, the page's status list, the exported capture and the gate all name the same things. */
 export const STEP_IDS = [
   "identify",
   // Phase 7 (07-01): the module's own key, fetched before the snapshot.
   "fetch-serial",
-  // Phase 12 (12-02): the system element's setup - the page-init slot the
-  // library lives in. The three `-system` ids were ADDED beside the four touch
-  // ids, never in place of them, and the four touch ids are byte-unchanged:
-  // 12-03 then moved the store onto all six fetch and write ids at once.
+  // Phase 12 (12-02): the system element's setup, 255/0. The `-system` ids were ADDED beside the touch ids, which are byte-unchanged.
   "fetch-system",
   "fetch-setup",
   "fetch-timer",
@@ -61,24 +53,16 @@ export const STEP_IDS = [
   "refetch-timer",
   "restore-page-change",
   "burst",
-  // Phase 12.1 (12.1-06, D-03): the system element's timer - the library's
-  // second half, 255/6. Three ids ADDED beside the twelve above, none of
-  // which moved; sequence.ts's SLOTS pairs them with their element and event
-  // and its write order puts `write-system-timer` first of the four.
+  // Phase 12.1 (12.1-06, D-03): the system element's timer, 255/6; SLOTS puts `write-system-timer` first.
   "fetch-system-timer",
   "write-system-timer",
   "refetch-system-timer",
-  // Phase 13 (13-17, D-18 / D-19): the system element's utility event - the
-  // Sandbox runtime's second slot, 255/4. Three ids ADDED beside the
-  // twenty above, none of which moved; SLOTS puts `write-system-utility`
-  // third of the five, after 255/0 and before the touch pair.
+  // Phase 13 (13-17, D-18 / D-19): the system element's utility, 255/4; SLOTS puts `write-system-utility` third.
   "fetch-system-utility",
   "write-system-utility",
   "refetch-system-utility",
-  // Phase 13 (13-12): the page target. `switch-page` is the fire-and-forget
-  // page switch (sendImmediate, no reply exists to wait for);
-  // `fetch-page-count` the enumeration; `discard` the firmware-native revert,
-  // unproven. Added beside the fourteen, none of which moved.
+  // Phase 13 (13-12): the page target - `switch-page` is fire-and-forget (sendImmediate; no reply exists),
+  // `fetch-page-count` the enumeration, `discard` the firmware-native revert, unproven.
   "switch-page",
   "fetch-page-count",
   "discard",
@@ -157,17 +141,9 @@ const toHex = (bytes: Uint8Array | number[]): string =>
   [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 export interface CaptureOptions {
-  /**
-   * `"hardware"` from the page, `"synthetic"` from the fixture generator.
-   * There is no default: a capture that cannot say where it came from is
-   * worse than no capture, because plan 05's gate reads exactly this field.
-   */
+  /** `"hardware"` from the page, `"synthetic"` from the fixture generator; no default, because the gate reads exactly this field. */
   source: "synthetic" | "hardware";
-  /**
-   * Defaults to `performance.now()`. Milliseconds WITH the fraction, because
-   * `Date.now()` is millisecond-granular and a 9 ms acknowledgement rounds to
-   * noise in it. Injected so a generated capture is deterministic.
-   */
+  /** Defaults to `performance.now()`, milliseconds WITH the fraction (a 9 ms acknowledgement rounds to noise in Date.now()); injected for determinism. */
   now?: () => number;
   /** Pinned by the fixture generator so regeneration is idempotent. */
   capturedAt?: string;
@@ -203,11 +179,7 @@ export class CaptureRecorder {
     });
   }
 
-  /**
-   * One raw chunk from the reader. These are the ONLY events FakeTransport
-   * replays: frames alone would make every framing assertion synthetic, and
-   * the real chunk boundaries are the thing worth keeping.
-   */
+  /** One raw chunk from the reader: the ONLY events FakeTransport replays, so the real chunk boundaries are what is kept. */
   rxChunk(chunk: Uint8Array): void {
     this.events.push({
       n: this.n++,
@@ -218,11 +190,7 @@ export class CaptureRecorder {
     });
   }
 
-  /**
-   * One scanner-emitted frame and what the decoder made of it. A refused frame
-   * is recorded with its reason rather than dropped - the package logs those
-   * to `console.log`, which is not a record of anything.
-   */
+  /** One scanner-emitted frame and what the decoder made of it; a refused frame is recorded with its reason, not dropped. */
   rxFrame(bytes: number[], decoded: DecodedFrame): void {
     const head = {
       n: this.n++,

@@ -1,23 +1,13 @@
-// The Lua VM host: a real Lua 5.4 engine driving the vendored simulator's
-// firmware LED engine.
-//
-// The insight this file rests on (08-RESEARCH, route 1c) is that PadSim is two
-// things fused - a TypeScript transcription of what the compiler WOULD emit,
-// and the firmware LED engine itself (ledTick transcribed from
-// grid_led.c:191-211, weightsOf, shapeIntensity, the 256-entry SINE_LOOKUP,
-// the divide-by-512 after the layer sum). The second half is exactly what a Lua
-// host needs, it is exactly what src/lib/fidelity/firmware-oracle.spec.ts
-// independently pins, and pad-sim.ts already exposes it publicly through
-// layer(), pokeLayer(), tick() and frame. So no vendored byte moves: this host
-// implements the Grid API a ZONA configuration calls and writes the result
-// through pokeLayer alone.
-//
-// The sim handed in must be blank and fully detached - every PadSlot owned by
-// "user" - so that rebuild() arms nothing, its own timerPeriod stays null and
-// its own touch FIFO stays empty. sim.tick() then degenerates to exactly
-// "grid_led_tick, then render", which is the half this host wants. The host
-// keeps its own FIFO and its own timer because the sim's belong to compiled
-// handlers that are not attached here.
+// The Lua VM host: a real Lua 5.4 engine driving the vendored simulator's firmware LED engine
+// (08-RESEARCH route 1c). PadSim is two things fused - a transcription of what the compiler would
+// emit, and the firmware LED engine itself (ledTick from grid_led.c:191-211, weightsOf, shapeIntensity,
+// SINE_LOOKUP, the divide-by-512), which pad-sim.ts exposes through layer(), pokeLayer(), tick() and
+// frame - so no vendored byte moves: this host implements the Grid API a ZONA configuration calls and
+// writes the result through pokeLayer alone. The sim handed in must be blank and fully detached (every
+// PadSlot owned by "user"), so sim.tick() degenerates to grid_led_tick plus the render; the host keeps
+// its own touch FIFO and its own one-shot timer. Owns HOST_GLOBALS and HOST_SELF_METHODS, the whole
+// surface a hand-authored entry may call (host-surface.spec.ts refuses every call outside them).
+// Decided at 08-02 / 12-07 / 12.1-07; see .planning/phases/12.1-gradient-touch/12.1-07-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { CELLS, GRID } from "../../vendor/botor/_pad";
@@ -34,14 +24,9 @@ export type HostMidi = {
 };
 
 /**
- * One recorded HID output, in the order the configuration issued it.
- *
- * The compiler's own out-call set is `["gms", "gmms", "gmbs", "gks"]`
- * (_pad.ts OUT_CALLS). `gms` is MIDI and has its own typed log; the other three
- * are the trackpad and keyboard recipes' mouse-move, mouse-button and key
- * sends. HANGAR has no host to send them to, so they are recorded and nothing
- * more - but they must EXIST, because tpad's compiled Setup opens with a bare
- * `gmbs(3,0)` and would otherwise raise before writing a single LED.
+ * One recorded HID output, in the order the configuration issued it: the compiler's other three
+ * out-calls (`gmms`, `gmbs`, `gks`; _pad.ts OUT_CALLS), recorded and nothing more - they must EXIST
+ * because tpad's compiled Setup opens with a bare `gmbs(3,0)`.
  */
 export type HostHid = {
   readonly call: "gmms" | "gmbs" | "gks";
@@ -49,98 +34,48 @@ export type HostHid = {
 };
 
 /**
- * One recorded sysex message, in the order the configuration issued it.
- *
- * A THIRD LOG RATHER THAN A WIDENED `HostHid` OR A WIDENED `HostMidi`, and the
- * reason is the shape of the message, not taste. Sysex is not a human
- * interface device, so putting it in a type named for mouse clicks and key
- * codes would make the `call` union unreadable; and it is not a voice message
- * either, so `HostMidi`'s five fixed fields (`ch`, `cmd`, `p1`, `p2`, `mode`)
- * have no meaning for it - four of the five would be permanently zero. What a
- * sysex message IS is a variable-length run of bytes, so that is what is
- * recorded.
- *
- * NO `call` DISCRIMINANT, DELIBERATELY. `gmss` is the only sysex emitter in the
- * whole Grid global table (`../zona-docs/docs/ZONA_REFERENCE.md:1249-1250`,
- * `grid_lua_api.c:2220-2221`), so a union here would have exactly one member
- * and a discriminant that never discriminates.
- *
- * `bytes` is what the configuration ASKED to send, byte for byte and in call
- * order - not what a wire would carry. Nothing narrows it to seven bits, which
- * is what makes an illegal data byte visible in a test instead of hidden by a
- * clamp. See `recordSysex`.
+ * One recorded sysex message, in the order the configuration issued it: a variable-length run of
+ * bytes, so a third log rather than a widened `HostHid` or `HostMidi`; no `call` discriminant because
+ * `gmss` is the only sysex emitter in the Grid table (`ZONA_REFERENCE.md:1249-1250`,
+ * `grid_lua_api.c:2220-2221`). `bytes` is what was ASKED for, never narrowed to seven bits (`recordSysex`).
  */
 export type HostSysex = {
   readonly bytes: readonly number[];
 };
 
 export type LuaHostOptions = {
-  /**
-   * A blank, fully "user"-owned PadSim. The host owns every slot; the sim
-   * contributes its LED engine and nothing else.
-   */
+  /** A blank, fully "user"-owned PadSim: the host owns every slot; the sim contributes its LED engine. */
   sim: PadSim;
   /** Canonical Setup Lua, event marker included. Run exactly once, at create. */
   setup: string;
   /**
-   * The SYSTEM element's Setup (element 255, event 0) - HANGAR's touch library
-   * for a hand-authored entry, absent for a preset.
-   *
-   * THE ORDER IS THE FIRMWARE'S, IN BOTH OF THE FIRMWARE'S OWN SENSES.
-   * `../grid-fw/common/src/lua/init.lua:46-50` runs `ele[#ele]:post_init_cb()`
-   * first and every other element afterwards, and on a ZONA `ele[#ele]` IS the
-   * system element - so on a page load the library exists before any touch
-   * Setup runs. `grid_decode.c:1283-1288` is the install-time half: a written
-   * body runs IMMEDIATELY, so the order there is HANGAR's WRITE order, which is
-   * why the install store writes 255/0 before 0/0 (plan 12-03). This host
-   * matches both by running `system` before `setup`.
-   *
-   * WHERE IT RUNS RELATIVE TO THE PRISTINE SNAPSHOT IS PITFALL 3 AND IT IS NOT
-   * COSMETIC - see `install()` and `restart()` below.
+   * The SYSTEM element's Setup (255/0) - HANGAR's touch library for a hand-authored entry, absent for
+   * a preset. Run before `setup`, as the firmware does in both senses: `init.lua:46-50` runs
+   * `ele[#ele]:post_init_cb()` first on a page load, and `grid_decode.c:1283-1288` runs a written body
+   * immediately (why the install store writes 255/0 before 0/0). Runs AFTER the pristine snapshot -
+   * Pitfall 3, see `install()` and `restart()`.
    */
   system?: string;
   /**
-   * The SYSTEM element's Timer (element 255, event 6) - the second half of
-   * HANGAR's touch library since phase 12.1: the painters and the senders
-   * (`V G Z Y K A D` since 12.1-08b), while `system` holds state and the map
-   * (`U W E Q X N`).
-   *
-   * THE ORDER IS THE MODULE'S. On the module 255/6 is written FIRST, because a
-   * written body runs at once (`grid_decode.c:1286-1287`) and 255/0 closes with
-   * `self:tim()`, which needs the system element's `tim` method registered
-   * before it runs; on a page load `init.lua:25-50` registers every stored
-   * body as a method before the system `ini` runs, so `self:tim()` finds it
-   * there too. This host models that shape exactly: `systemTimer` is installed
-   * as the `tim` method of a stand-in `self`, and `system` is then run as a
-   * chunk whose closing `self:tim()` runs the Timer body - which is what
-   * defines `G` and the other four. Both run AFTER the pristine snapshot and
-   * BEFORE `setup`, and both run again on every `restart()`, for Pitfall 3's
-   * reason: `B`, the block-by-contact table `G` keeps, is per-contact state a
-   * remounted card must not inherit.
-   *
-   * WHEN `systemTimer` IS ABSENT AND `system` IS PRESENT, `tim` IS A NO-OP.
-   * That stands for a module whose 255/6 still holds the firmware default -
-   * `--[[@cb]]print("tick")`, which defines nothing - so the install does not
-   * raise on `self:tim()` and `G` is simply undefined. The first `G(` an entry
-   * reaches then raises "attempt to call a nil value (global 'G')" into
-   * `errors`, which is the loud failure `lua-host.spec.ts` pins: a Sandbox
-   * that forgot the second string cannot forget it silently.
+   * The SYSTEM element's Timer (255/6) - the library's second half since 12.1: the painters and the
+   * senders (`V G Z Y K A D`), while `system` holds state and the map (`U W E Q X N`). On the module
+   * 255/6 is written FIRST (`grid_decode.c:1286-1287`) and 255/0 closes with `self:tim()`, so this host
+   * installs `systemTimer` as the `tim` method of a stand-in `self` and then runs `system`; both run
+   * after the snapshot, before `setup`, and again on every `restart()` (`B`, the block-by-contact table,
+   * is per-contact state a remount must not inherit). Absent with `system` present, `tim` is a no-op
+   * (the firmware default `--[[@cb]]print("tick")` defines nothing) and the first `G(` raises into
+   * `errors` - the loud failure lua-host.spec.ts pins.
    */
   systemTimer?: string;
   /**
-   * Canonical Timer Lua, or undefined for an entry with no Timer event. An
-   * empty string is a Timer that exists and does nothing, which is not the same
-   * thing: firmware's gtt is a no-op until the Timer event holds at least one
-   * stored action (_pad.ts:3908-3916), and the host models that distinction.
+   * Canonical Timer Lua, or undefined for an entry with no Timer event. An empty string is a Timer that
+   * exists and does nothing: gtt is a no-op until the event holds a stored action (_pad.ts:3908-3916).
    */
   timer?: string;
 };
 
-// Firmware event codes, as pad-sim.ts documents them. 9 is the fast tap:
-// firmware coalesces a sub-cycle press-and-lift into ONE message with no
-// separate DOWN or UP. The compiled guards read "contact ended" as
-// `e == 3 or e >= 5`, so a config filtering on `e ~= 4 and e ~= 9` is tap-only
-// and one filtering on `e == 3 or e >= 5` is lift-only. Both shapes ship.
+// Firmware event codes, as pad-sim.ts documents them. 9 is the fast tap: a sub-cycle press-and-lift
+// coalesced into ONE message; "contact ended" reads `e == 3 or e >= 5`.
 const EVT_MOVE = 1;
 const EVT_DOWN = 4;
 const EVT_UP = 5;
@@ -157,38 +92,23 @@ const ERROR_LOG_CAP = 20;
 
 type Sample = { i: number; e: number; x: number; y: number };
 
-/**
- * Anything Lua hands a JS callback, reduced to a usable number. Absent
- * arguments arrive as undefined and a non-finite value cannot reach a firmware
- * register, so both become 0.
- */
+/** Anything Lua hands a JS callback, as a usable number: undefined and non-finite both become 0. */
 function num(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
 /**
- * The F2Ieq rule. The module builds Lua with LUA_FLOORN2I = F2Ieq, so
- * lua_tointeger on a fractional value FAILS and the C argument conversion
- * yields 0 - it does not round and it does not truncate. glp(a, 1, 127.5)
- * therefore stores phase 0, and a swirl that forgot its `// 1` gives every cell
- * phase 0 and the whole grid breathes in unison.
- *
- * This must be applied in the stub, before pokeLayer: PadSim's wrapU8 THROWS on
- * a non-integer ("non-integer value ${v} reached a uint8 narrowing"), which is
- * the right assertion for a compiler that closes every float with `// 1` and
- * the wrong behaviour for a hand-authored config the firmware would silently
- * zero.
+ * The F2Ieq rule: the module builds Lua with LUA_FLOORN2I = F2Ieq, so a fractional value converts to
+ * 0 - no round, no truncation - and glp(a, 1, 127.5) stores phase 0. Applied before pokeLayer, whose
+ * wrapU8 THROWS on a non-integer (right for the compiler, wrong for a hand-authored config).
  */
 function f2i(v: number): number {
   return Number.isInteger(v) ? v : 0;
 }
 
 /**
- * The colour rule: F2Ieq first, then the uint8 narrowing firmware does on
- * assignment. Truncation, never a clamp - 260 becomes 4 and a bright cell turns
- * almost black with no warning, which is why any knob that scales a channel
- * needs a compile-time range check. Phase and index arguments ARE guarded, so
- * off-grid brushes are free; colours are not.
+ * The colour rule: F2Ieq, then firmware's uint8 narrowing on assignment - truncation, never a clamp
+ * (260 becomes 4). Phase and index arguments are guarded; colours are not.
  */
 function u8(v: number): number {
   const i = f2i(v);
@@ -200,19 +120,11 @@ function clampIndex(n: number): number {
 }
 
 /**
- * Every Grid name a hand-authored entry may call BARE, and nothing else.
- *
- * This is the list, not a description of the list: registerGlobals() below
- * iterates it, so a name added here without a binding fails to construct and a
- * binding added without a name here is unreachable. src/lib/catalog/host-surface.spec.ts
- * refuses any call outside it, and cross-checks this array against a booted
- * VM's own _G rather than trusting it.
- *
- * gms is ABSENT on purpose - it is bridged under a private name so a bare
- * gms(...) still raises. gmms, gmbs and gks are PRESENT on purpose - tpad's
- * Setup opens with a bare gmbs(3,0). gmss is PRESENT on purpose too, and for a
- * different reason: firmware gives it no `self:` form at all
- * (`ZONA_REFERENCE.md:2022`), so bare is the only spelling there is.
+ * Every Grid name a hand-authored entry may call BARE, and nothing else. registerGlobals() iterates
+ * it; host-surface.spec.ts refuses any call outside it and cross-checks it against a booted VM's _G.
+ * gms is ABSENT (bridged under a private name, so a bare gms(...) raises); gmms, gmbs, gks are PRESENT
+ * (tpad's Setup opens with a bare gmbs(3,0)); gmss is PRESENT because firmware gives it no `self:`
+ * form (`ZONA_REFERENCE.md:2022`).
  */
 export const HOST_GLOBALS = [
   "glag",
@@ -249,24 +161,10 @@ export const HOST_SELF_METHODS = [
 /** One bare Grid call, as the VM sees it: everything in, anything out. */
 type HostBinding = (...args: unknown[]) => unknown;
 
-// `self` is the element table every configuration hangs its state off. Its four
-// colon-called methods bridge into JS; everything else a config puts on it
-// (self.q, self.m, self.h, its own helper methods) is the config's own state
-// and the host never touches it.
-//
-// touch_pop / tid / tev / txv / tyv are firmware's touch QUEUE accessors, and
-// they are what the compiled trackpad handler drains its backlog with:
-// `o=s:touch_pop() i=s:tid() e=s:tev() x=s:txv() y=s:tyv()` inside a
-// `while o and g<24` loop (_pad.ts:2259). Without them tpad raises on the first
-// finger rather than on load, which is the worst place for a gap to be.
-//
-// HOST_SELF_METHODS above names exactly what this prelude installs. It is a
-// plain restatement rather than a generated one, because the prelude is Lua
-// SOURCE and a generated string would be less readable than the list it
-// replaced. What holds the two together is a test, not a loop:
-// src/lib/sim/lua-host.spec.ts asserts every member is a function on `self`,
-// and src/lib/catalog/host-surface.spec.ts asserts it again from the catalog's
-// side and refuses every `self:` call outside it.
+// `self` is the element table every configuration hangs its state off; its colon-called methods bridge
+// into JS, everything else on it is the config's own. touch_pop / tid / tev / txv / tyv are firmware's
+// touch QUEUE accessors, which the compiled trackpad handler drains its backlog with (_pad.ts:2259).
+// HOST_SELF_METHODS restates what this prelude installs; lua-host.spec.ts and host-surface.spec.ts hold the two together.
 const SELF_PRELUDE = [
   "self = {}",
   "self.gms = function(s, ch, cmd, p1, p2, mode) __hangar_gms(ch, cmd, p1, p2, mode) end",
@@ -280,9 +178,7 @@ const SELF_PRELUDE = [
   "self.tyv = function(s) return __hangar_tfield(3) end",
 ].join("\n");
 
-// Reads self.touch_cb at call time and invokes it with self as its first
-// parameter, which is the shape every config declares:
-// self.touch_cb = function(s, i, e, x, y) ... end
+// Reads self.touch_cb at call time and invokes it with self first: `self.touch_cb = function(s, i, e, x, y) ... end`.
 const TOUCH_DISPATCH = [
   "__hangar_touch = function(i, e, x, y)",
   "  local f = self.touch_cb",
@@ -290,16 +186,10 @@ const TOUCH_DISPATCH = [
   "end",
 ].join("\n");
 
-// restart()'s two halves. The snapshot runs once, after the Grid API and the
-// prelude are in place and BEFORE Setup, so every key it records is one the
-// host put there; the wipe removes everything Setup (or a Timer, or a touch
-// handler) added afterwards. Clearing a field of a table while traversing it
-// with pairs() is explicitly permitted in Lua - only ADDING one during a
-// traversal is undefined - so the wipe is a single pass and needs no key list.
-//
-// This is what makes restart() a real reset rather than a re-run over a dirty
-// global table: after it, _G holds exactly the keys it held before Setup first
-// ran, and `self` is a brand new empty table.
+// restart()'s two halves: the snapshot runs once, after the Grid API and the prelude and BEFORE Setup,
+// so every key it records is the host's; the wipe removes everything added afterwards (clearing a
+// field while traversing with pairs() is permitted in Lua; only adding one is undefined). After it
+// _G holds exactly the keys it held before Setup first ran, and `self` is a new empty table.
 const PRISTINE_SNAPSHOT = [
   "__hangar_pristine = {}",
   "for k in pairs(_G) do __hangar_pristine[k] = true end",
@@ -334,10 +224,7 @@ export class LuaHost {
 
   private msClock = 0;
   private _tickCount = 0;
-  /**
-   * The one-shot timer deadline in host milliseconds, or null when nothing is
-   * armed. gtt arms it; a fire consumes it; the body's own gtt is what re-arms.
-   */
+  /** The one-shot deadline in host ms, or null: gtt arms it, a fire consumes it, the body's own gtt re-arms. */
   private timerDeadline: number | null = null;
 
   private _coordMax: 127 | 1023 = 127;
@@ -360,10 +247,7 @@ export class LuaHost {
     try {
       await host.install(opts.setup, opts.timer, opts.system, opts.systemTimer);
     } catch (error) {
-      // A Setup that raises - a typo calling a function the host does not
-      // register is exactly that - must not leak a VM. Nothing else in HANGAR
-      // holds a reference to this engine, so if create() does not release it
-      // here nobody ever will.
+      // A Setup that raises must not leak a VM: nothing else holds a reference to this engine.
       engine.global.close();
       throw error;
     }
@@ -381,23 +265,16 @@ export class LuaHost {
     this.systemTimerSource = systemTimer;
     this.registerGlobals();
 
-    // `self` is created in LUA, never marshalled in from JS. A configuration
-    // assigns arbitrary fields to it (self.q, self.m, self.h, its own methods)
-    // and those must be real Lua values living in the VM, not properties of a
-    // proxied JS object.
+    // `self` is created in LUA, never marshalled in from JS: a configuration's fields on it must be real Lua values.
     await this.engine.doString(SELF_PRELUDE);
 
     // The Timer wrapper is compiled BEFORE Setup runs, because Setup's closing
     // gtt(0, ...) must find a Timer event to arm.
     if (typeof timer === "string") {
       this.hasTimerEvent = true;
-      // Compiled ONCE. A configuration's Timer runs at 100 Hz and the smoke
-      // gate samples to tick 1009; a per-tick doString would put the Lua parser
-      // at the top of the profile instead of the simulation. The `--[[@cb]]`
-      // event marker is a Lua BLOCK comment, so wrapping the body in a function
-      // is safe - the marker comments itself out and the remaining statements
-      // become the function body. `self` resolves as a global inside it, which
-      // is exactly how every stored Timer reads it (`local s = self`).
+      // Compiled ONCE: a Timer runs at 100 Hz and a per-tick doString would put the parser at the top of
+      // the profile. The `--[[@cb]]` marker is a block comment, so wrapping the body in a function is
+      // safe; `self` resolves as a global inside it, as every stored Timer reads it.
       await this.engine.doString(
         "__hangar_timer = function() " + timer + " end",
       );
@@ -408,55 +285,27 @@ export class LuaHost {
     // before Setup runs so restart() can tell the two apart.
     await this.engine.doString(PRISTINE_SNAPSHOT);
 
-    // THE SYSTEM SETUP RUNS AFTER THE SNAPSHOT AND BEFORE SETUP, AND BOTH
-    // HALVES OF THAT ARE PITFALL 3.
-    //
-    // Before Setup, because that is the firmware's order in both of its senses
-    // (see LuaHostOptions.system): a touch Setup that called the library before
-    // it existed would raise "attempt to call a nil value" on the first line
-    // that named it.
-    //
-    // After the snapshot, because the library's globals - its ten functions
-    // and its per-contact state tables - are NOT the host's furniture. Kept on
-    // the pristine side they would survive RESTART_WIPE, and a card remounted
-    // after a gesture would inherit the last mount's `H[i]`: a contact holding
-    // a cell nobody is touching, on a pad that just reset. Recorded outside it,
-    // they are wiped and rebuilt, which is what restart() below relies on.
-    //
-    // THE PAIR RUNS IN THE MODULE'S ORDER: the system Timer first, as the
-    // `tim` method the system Setup's closing `self:tim()` reaches. See
-    // LuaHostOptions.systemTimer and systemPair().
+    // The system pair runs AFTER the snapshot and BEFORE Setup (Pitfall 3): before Setup because that is
+    // the firmware's order (LuaHostOptions.system); after the snapshot because the library's globals
+    // and per-contact tables are not the host's furniture - kept on the pristine side they would survive
+    // RESTART_WIPE and a remounted card would inherit the last mount's `H[i]`. The Timer first, as the
+    // `tim` method the Setup's closing `self:tim()` reaches (systemPair()).
     const pair = this.systemPair();
     if (pair !== undefined) await this.engine.doString(pair);
 
     await this.engine.doString(setup);
 
-    // Installed AFTER Setup, so it reads the self.touch_cb Setup assigned. The
-    // dispatcher reads the field on every call rather than capturing it, so a
-    // configuration that reassigns touch_cb later is honoured.
+    // Installed AFTER Setup, so it reads the self.touch_cb Setup assigned; read on every call, so a later reassignment is honoured.
     await this.engine.doString(TOUCH_DISPATCH);
     this.touchFn = this.readTouchFn();
   }
 
   /**
-   * The system element's two strings as ONE Lua chunk, in the order the module
-   * runs them, or undefined when the host was given neither.
-   *
-   * `self` is saved, replaced by a stand-in table whose `tim` is a function
-   * wrapping the 255/6 body, and restored afterwards - so the system Setup's
-   * `self:tim()` runs the Timer body exactly as the system element's own
-   * method would on the module, and nothing the pair does leaks into the
-   * touch element's `self` that SELF_PRELUDE builds (or has built). Wrapping
-   * the body in a function is safe for the same reason the Timer wrapper
-   * relies on: the `--[[@cb]]` marker is a block comment and comments itself
-   * out, and every `function G(` form inside defines a plain global, which is
-   * what the module does too (`grid_ui.c:370-383`).
-   *
-   * `systemTimer` absent: `tim` is a no-op, standing for the firmware default
-   * in 255/6 (see LuaHostOptions.systemTimer). `system` absent: the Timer body
-   * is run once through `self:tim()` anyway, standing for the write of 255/6
-   * running its body on the module (`grid_decode.c:1286-1287`) - not a case
-   * HANGAR builds, but not one that should silently define nothing either.
+   * The system element's two strings as ONE Lua chunk in the module's order, or undefined when the host
+   * was given neither. `self` is saved, replaced by a stand-in whose `tim` wraps the 255/6 body, and
+   * restored, so nothing the pair does leaks into the touch element's `self`; every `function G(` form
+   * inside defines a plain global, as on the module (`grid_ui.c:370-383`). `systemTimer` absent: `tim` is
+   * a no-op. `system` absent: the Timer body runs once through `self:tim()` anyway (`grid_decode.c:1286-1287`).
    */
   private systemPair(): string | undefined {
     const system = this.systemSource;
@@ -487,28 +336,14 @@ export class LuaHost {
   }
 
   /**
-   * Firmware page-load semantics, in the VM this host already owns.
-   *
-   * grid_led_reset zeroes every stop, phase, rate, shape and timeout on all 81
-   * LEDs and all three layers, then Setup rebuilds from scratch - PadSim.reset()
-   * is exactly that half. This adds the Lua half: every global Setup created is
-   * removed, `self` is rebuilt empty, Setup re-runs, and the touch dispatcher is
-   * reinstalled over whatever touch_cb the new Setup assigned.
-   *
-   * SYNCHRONOUS on purpose. SimEngine.reset() is synchronous because
-   * src/lib/sim/host.ts calls it from register() on the reduced-motion path,
-   * where there is nothing to await into; the VM is already loaded by
-   * construction, so doStringSync has nothing to wait for. The Timer wrapper is
-   * NOT recompiled - it was compiled once at create and resolves `self` as a
-   * global at call time, so it picks up the new table for free.
-   *
-   * Setup is re-run under the same pcall discipline as any other handler
-   * (grid_lua.c:369): it already ran once at create, so a raise here is close to
-   * impossible, and recording it beats throwing out of a row's mount.
+   * Firmware page-load semantics in the VM this host owns: grid_led_reset's half is PadSim.reset(); this
+   * adds the Lua half - every global Setup created is removed, `self` is rebuilt empty, Setup re-runs
+   * and the touch dispatcher is reinstalled. SYNCHRONOUS because sim/host.ts calls SimEngine.reset()
+   * from register() on the reduced-motion path; the Timer wrapper is not recompiled (it resolves `self`
+   * at call time). Setup re-runs under the same pcall discipline as any handler (grid_lua.c:369).
    */
   restart(): void {
-    // Host state first, so a Setup that calls txma or gtt writes into a clean
-    // slate rather than being overwritten a line later.
+    // Host state first, so a Setup that calls txma or gtt writes into a clean slate.
     this.fifo.length = 0;
     this.gate.clear();
     this.current = undefined;
@@ -525,16 +360,10 @@ export class LuaHost {
 
     this.guarded(() => {
       this.engine.doStringSync(RESTART_WIPE);
-      // The wipe has just removed the library along with everything else Setup
-      // and the gesture left behind, so it is rebuilt here - before Setup, as
-      // at install, and before the prelude because nothing in it names the
-      // TOUCH element's `self` (the pair carries its own stand-in for the
-      // system element's, whose `tim` is the 255/6 body; a library function
-      // that needs the touch element takes it as a parameter, `Q(s, ...)`,
-      // because the system element's own self carries no touch accessors -
-      // `grid_ui_system.c:9-15`). H, T, C, P and B come back EMPTY, which is
-      // the whole of Pitfall 3: a remounted card must not inherit a contact
-      // table or a block it drew.
+      // The wipe removed the library with everything else, so it is rebuilt here - before Setup, as at
+      // install (a library function that needs the touch element takes it as a parameter, `Q(s, ...)`:
+      // the system element's own self carries no touch accessors, `grid_ui_system.c:9-15`). H, T, C, P
+      // and B come back EMPTY, which is the whole of Pitfall 3.
       const pair = this.systemPair();
       if (pair !== undefined) this.engine.doStringSync(pair);
       this.engine.doStringSync(SELF_PRELUDE);
@@ -544,11 +373,7 @@ export class LuaHost {
     });
   }
 
-  /**
-   * The keys currently in the VM's global table. Test-facing: it is what lets a
-   * spec assert that restart() really restored a clean _G rather than re-running
-   * Setup over a dirty one.
-   */
+  /** The keys in the VM's global table. Test-facing: proves restart() restored a clean _G. */
   globalKeys(): readonly string[] {
     const keys = this.engine.doStringSync(
       "local t = {} for k in pairs(_G) do t[#t+1] = tostring(k) end return t",
@@ -557,16 +382,9 @@ export class LuaHost {
   }
 
   /**
-   * How many entries one GLOBAL TABLE holds, or undefined when that global is
-   * not a table. Test-facing, and the third of the three read hooks.
-   *
-   * IT EXISTS BECAUSE `globalKeys()` CANNOT SEE THIS (plan 12-07). The touch
-   * library's contract across a remount is not "H is still a global" - the wipe
-   * would leave that true either way if the library sat on the pristine side -
-   * it is "H IS EMPTY". A per-contact table that survived a restart is a
-   * contact holding a cell nobody is touching, and the only honest observable
-   * is its size. Counted with `pairs`, so a table keyed by contact id counts
-   * the same way the library's own loops walk it.
+   * How many entries one GLOBAL TABLE holds, or undefined when it is not a table. Test-facing (12-07):
+   * the library's contract across a remount is "H IS EMPTY", which `globalKeys()` cannot see. Counted
+   * with `pairs`, as the library's own loops walk it.
    */
   globalSize(name: string): number | undefined {
     const value = this.engine.doStringSync(
@@ -578,22 +396,9 @@ export class LuaHost {
   }
 
   /**
-   * One NUMERIC field of the VM's `self` table, or undefined when it is absent
-   * or is not a number. Test-facing, and the sibling of `globalKeys()` above:
-   * `self` is a global like any other, and this is the read half of it.
-   *
-   * IT EXISTS BECAUSE A CONFIGURATION'S INTERNAL STATE IS SOMETIMES THE ONLY
-   * HONEST OBSERVABLE (plan 12-05). ARC's fix for "MIDI stops reliably but the
-   * visual on ZONA doesn't" has to prove TWO things about a stopped card under
-   * a wobbling finger: that the swirl is not re-armed, which the LED layers
-   * show, and that the drag GOES ON TRACKING so the resume is exact, which
-   * nothing outside the VM shows until the resume has already happened. The
-   * alternative was to infer `self.r` from the rate the resume writes, which
-   * is a derived quantity asserted in place of the thing itself.
-   *
-   * NUMBERS ONLY, deliberately. A general marshaller would hand a spec a Lua
-   * table across the wasmoon boundary and invite assertions about object
-   * identity that mean nothing on the other side of it.
+   * One NUMERIC field of the VM's `self` table, or undefined. Test-facing (12-05): a configuration's
+   * internal state is sometimes the only honest observable (ARC's stopped swirl must go on tracking the
+   * drag). Numbers only: a general marshaller would invite assertions about object identity across the VM boundary.
    */
   selfNumber(field: string): number | undefined {
     const value = this.engine.doStringSync(
@@ -604,44 +409,18 @@ export class LuaHost {
   }
 
   // -------------------------------------------------------------------------
-  // The Grid API.
-  //
-  // Exactly the surface the shipped configurations call, and nothing else. An
-  // unlisted call must surface as a Lua "attempt to call a nil value", never as
-  // a silent no-op: a typo that does nothing is a card that looks subtly wrong
-  // forever, and a typo that raises is a card that fails its gate.
+  // The Grid API: exactly the surface the shipped configurations call. An unlisted call must surface
+  // as a Lua "attempt to call a nil value", never as a silent no-op.
 
   private registerGlobals(): void {
     const g = this.engine.global;
 
-    // THE REGISTRATION IS THE LIST. This record is keyed by HOST_GLOBALS, so
-    // TypeScript itself fails the build on a name in the list with no binding
-    // and on a binding with no name in the list - there is no third place the
-    // two could drift apart in. The loop below is what installs them, and
-    // src/lib/catalog/host-surface.spec.ts refuses every call outside the same
-    // array.
-    //
-    // grxm, txma and tyma appear here AND in HOST_SELF_METHODS: the recipe
-    // book's own configurations call `grxm(0,2)` bare while calling
-    // `self:txma(1023)` with a colon, so both spellings are real and both must
-    // work.
-    //
-    // gmms, gmbs and gks are the compiler's other three out-calls, recorded and
-    // otherwise inert. These ARE called bare - tpad's Setup opens
-    // `self:txma(1023)self:tyma(1023)gmbs(3,0)` - so unlike gms they cannot be
-    // method-only. Variadic on purpose: what matters here is that the symbol
-    // resolves and the call is observable, not that HANGAR re-derives a HID
-    // arity it has no host for.
-    //
-    // gmss is a FOURTH out-call of the same character - fire and forget, no
-    // return value - and the compiler's OUT_CALLS does not know it at all
-    // (`_pad.ts:3563`), because no compiled recipe sends sysex. A HAND-AUTHORED
-    // entry can, so the host binds it: without it a configuration that sends
-    // sysex would run on a ZONA and raise in its own catalog card, which is the
-    // one outcome the preview exists to prevent. Variadic for firmware's own
-    // reason this time rather than HANGAR's: `gmss` takes two or more
-    // arguments and each is one payload byte, so there is no fixed arity to
-    // re-derive.
+    // The registration is the list: keyed by HOST_GLOBALS, so a name without a binding or a binding
+    // without a name fails the build. grxm, txma and tyma appear here AND in HOST_SELF_METHODS: the
+    // recipe book calls `grxm(0,2)` bare and `self:txma(1023)` with a colon. gmms, gmbs and gks are
+    // recorded and inert, variadic on purpose (the symbol must resolve and the call be observable).
+    // gmss is a fourth out-call the compiler's OUT_CALLS does not know (`_pad.ts:3563`); a hand-authored
+    // entry can send sysex, and `gmss` takes two or more arguments, one payload byte each.
     const bindings: Record<(typeof HOST_GLOBALS)[number], HostBinding> = {
       glag: (_slot: unknown, n: unknown) => this.glag(n),
       glc: (
@@ -666,24 +445,14 @@ export class LuaHost {
       gmms: (...args: unknown[]) => this.recordHid("gmms", args),
       gmbs: (...args: unknown[]) => this.recordHid("gmbs", args),
       gks: (...args: unknown[]) => this.recordHid("gks", args),
-      // Its OWN recorder rather than recordHid's, because a sysex message is a
-      // variable-length run of bytes and not a mouse click, so it gets a list
-      // whose element type says so instead of a `call` union widened past what
-      // it is named for.
+      // Its own recorder: a sysex message is a variable-length run of bytes, not a mouse click.
       gmss: (...args: unknown[]) => this.recordSysex(args),
     };
     for (const name of HOST_GLOBALS) g.set(name, bindings[name]);
 
-    // THE THREE BRIDGES, DELIBERATELY OUTSIDE THE LIST. Each is bound under a
-    // private __hangar_ name that no configuration may spell, so the only way
-    // to reach it is the `self:` form SELF_PRELUDE installs over it. They are
-    // not members of HOST_GLOBALS because they are not part of the surface an
-    // entry may call; HOST_SELF_METHODS is where their public spelling lives.
-    //
-    // gms is the one that matters: bridging it here rather than binding it bare
-    // is what makes a bare `gms(...)` still raise. The touch queue's four
-    // accessors have no bare form in firmware either, so tpop and tfield follow
-    // the same rule.
+    // The three bridges, outside the list: each is bound under a private __hangar_ name no configuration
+    // may spell, reached only through the `self:` form SELF_PRELUDE installs. gms is the one that
+    // matters (a bare `gms(...)` still raises); the touch queue's accessors have no bare form in firmware either.
     g.set(
       "__hangar_gms",
       (ch: unknown, cmd: unknown, p1: unknown, p2: unknown, mode: unknown) =>
@@ -699,32 +468,19 @@ export class LuaHost {
   }
 
   /**
-   * Records one sysex message, WHOLE and in call order.
-   *
-   * Every argument is one payload byte and the CONFIGURATION supplies 0xF0 and
-   * 0xF7 itself (`grid_lua_api.c:905-935`; `grid_decode.c:96-100` logs a
-   * warning if they are missing and transmits anyway), so the framing bytes are
-   * part of the recorded payload rather than something the host adds. A
-   * recorder that stored only a count or only a length would make the entry's
-   * own test unwritable.
-   *
-   * F2Ieq and nothing else, exactly as recordHid does. NO seven-bit narrowing
-   * and no range check: a data byte above 127 is not transmissible as sysex,
-   * and masking it here would turn a real defect in a configuration into a
-   * message that looks fine in the preview and is wrong on the wire. HANGAR has
-   * no sysex host to send to, so a recorded message is a record of what was
-   * asked for and nothing more.
+   * Records one sysex message, WHOLE and in call order: every argument is one payload byte and the
+   * configuration supplies 0xF0 and 0xF7 itself (`grid_lua_api.c:905-935`; `grid_decode.c:96-100` warns
+   * and transmits anyway). F2Ieq and nothing else - no seven-bit narrowing, so a data byte above 127
+   * stays visible in a test rather than hidden by a mask.
    */
   private recordSysex(args: readonly unknown[]): void {
     this.sysexLog.push({ bytes: args.map((a) => f2i(num(a))) });
   }
 
   /**
-   * firmware's touch_pop: take the next queued sample and make it the current
-   * one, or report that the queue is empty. This is how a compiled handler
-   * drains a backlog INSIDE one dispatch - the trackpad recipe loops up to 24
-   * times - so it shares the host's one FIFO with tick()'s own pop rather than
-   * keeping a second queue that could disagree with pendingTouches.
+   * firmware's touch_pop: take the next queued sample and make it current, or report empty. A compiled
+   * handler drains a backlog INSIDE one dispatch (the trackpad loops up to 24 times), so it shares the
+   * host's one FIFO with tick()'s own pop.
    */
   private touchPop(): boolean {
     const next = this.fifo.shift();
@@ -745,13 +501,9 @@ export class LuaHost {
   }
 
   /**
-   * led_address_get: a LOGICAL cell index to the HARDWARE index.
-   *
-   * This is NOT the identity, and it is the single biggest trap in the phase.
-   * The firmware's table (grid_module.c:445-458, transcribed as screenToHw in
-   * pad-sim.ts) mirrors EVEN rows: row 0 reads 8,7,6,...,0 and row 1 reads
-   * 9,10,...,17. An identity stub moves 40 of the 81 cells to the wrong place
-   * and produces a picture that looks plausible and is wrong.
+   * led_address_get: a LOGICAL cell index to the HARDWARE index. NOT the identity: the firmware's table
+   * (grid_module.c:445-458; screenToHw in pad-sim.ts) mirrors EVEN rows, and an identity stub moves 40
+   * of the 81 cells to a plausible wrong place.
    */
   private glag(n: unknown): number {
     const logical = clampIndex(f2i(num(n)));
@@ -786,11 +538,7 @@ export class LuaHost {
     this.sim.pokeLayer(hw, layer, { pha: f2i(num(p)) });
   }
 
-  /**
-   * led_animation_rate. Rate ONLY: pokeLayer leaves every field the patch does
-   * not name alone, so there is no phase reset here. That is what makes an
-   * accelerating swirl accelerate instead of restarting.
-   */
+  /** led_animation_rate. Rate ONLY, no phase reset: pokeLayer leaves every unnamed field alone, so an accelerating swirl accelerates. */
   private glf(a: unknown, l: unknown, f: unknown): void {
     const hw = this.addr(a);
     const layer = this.lay(l);
@@ -835,13 +583,9 @@ export class LuaHost {
   }
 
   /**
-   * timer_start. A ONE-SHOT, as firmware's is: arming sets a deadline, a fire
-   * consumes it, and the body's own gtt is the only thing that re-arms. That is
-   * why a Timer must open with gtt - the handler runs inside a pcall
-   * (grid_lua.c:369), so a re-arm placed at the END dies permanently on the
-   * first raise. Modelling the re-arm as automatic (which is what PadSim can
-   * afford, because every body the compiler emits is gtt-first by construction)
-   * would make that failure mode invisible to a hand-authored config.
+   * timer_start. A ONE-SHOT, as firmware's is: a fire consumes the deadline and only the body's own gtt
+   * re-arms it. A handler runs inside a pcall (grid_lua.c:369), so a re-arm placed at the END dies
+   * permanently on the first raise - which an automatic re-arm would hide from a hand-authored config.
    */
   private gtt(ms: unknown): void {
     // gtt is a no-op until the Timer event holds at least one stored action
@@ -875,12 +619,7 @@ export class LuaHost {
     this._rxMode = f2i(num(mode));
   }
 
-  /**
-   * touch_x_max / touch_y_max. Firmware takes an arbitrary maximum; HANGAR's
-   * engine surface types it as 127 | 1023 because those are the only two values
-   * any compiled or hand-authored configuration uses, so anything wider than
-   * 127 reads as the hi-res range.
-   */
+  /** touch_x_max / touch_y_max. Typed as 127 | 1023, the only two values any configuration uses; wider than 127 reads as hi-res. */
   private axisMax(v: unknown): void {
     this._coordMax = f2i(num(v)) > 127 ? 1023 : 127;
   }
@@ -896,12 +635,9 @@ export class LuaHost {
   }
 
   // -------------------------------------------------------------------------
-  // Touch. The host keeps its OWN FIFO rather than delegating to the sim's: the
-  // sim's feeds its own compiled handlers, which are all detached here. The
-  // rules are the sim's rules - a change gate per contact on (x, y, event), a
-  // 10-deep cap with a silent drop when full, and at most one sample popped per
-  // tick. A motionless finger therefore produces nothing at all, which is why a
-  // held-still comet dot visibly fades.
+  // Touch. The host keeps its OWN FIFO (the sim's feeds its detached compiled handlers) under the sim's
+  // rules: a change gate per contact on (x, y, event), a 10-deep cap with a silent drop, at most one
+  // sample popped per tick - so a motionless finger produces nothing and a held-still comet dot fades.
 
   touchDown(id: number, x: number, y: number): void {
     this.enqueue(id, EVT_DOWN, x, y);
@@ -940,9 +676,8 @@ export class LuaHost {
   }
 
   // -------------------------------------------------------------------------
-  // The tick. PadSim's pinned interleave, with the Lua half where the compiled
-  // half would be: pop one touch sample and dispatch it, run the timer if due,
-  // then hand over to the sim for grid_led_tick and the render.
+  // The tick: PadSim's pinned interleave with the Lua half where the compiled half would be - pop one
+  // touch sample and dispatch it, run the timer if due, then the sim's grid_led_tick and render.
 
   tick(): void {
     const sample = this.fifo.shift();
@@ -957,16 +692,12 @@ export class LuaHost {
 
     this.msClock += TICK_MS;
     if (this.timerDeadline !== null && this.msClock >= this.timerDeadline) {
-      // Consume the one-shot BEFORE the body runs. The body's opening gtt
-      // re-arms it; a body that raises before re-arming stops for good, which
-      // is the firmware behaviour a hand-authored Timer has to respect.
+      // Consume the one-shot BEFORE the body runs: a body that raises before re-arming stops for good.
       this.timerDeadline = null;
       this.guarded(() => this.timerFn?.());
     }
 
-    // The sim's own FIFO is empty and its own timer is null because every slot
-    // is "user"-owned, so this is grid_led_tick plus the render and nothing
-    // more.
+    // Every slot is "user"-owned, so this is grid_led_tick plus the render and nothing more.
     this.sim.tick();
     this._tickCount += 1;
   }
@@ -975,12 +706,7 @@ export class LuaHost {
     for (let i = 0; i < n; i++) this.tick();
   }
 
-  /**
-   * Firmware runs every handler inside a pcall (grid_lua.c:369): a raise stops
-   * that one call and nothing else. Recording rather than rethrowing is what
-   * lets the execution smoke gate assert "no configuration raised" instead of
-   * discovering it as a crashed test run.
-   */
+  /** Firmware runs every handler inside a pcall (grid_lua.c:369): a raise stops that call and is recorded, never rethrown. */
   private guarded(fn: () => unknown): void {
     try {
       fn();

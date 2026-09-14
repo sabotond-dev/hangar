@@ -1,17 +1,8 @@
-// The whole loop, driven by a fake clock in node.
-//
-// There is no browser Vitest project in this repository (04-RESEARCH
-// §Pitfall 6), so every dependency the host needs from a browser -
-// requestAnimationFrame, cancelAnimationFrame, performance.now, an
-// IntersectionObserver and a prefers-reduced-motion subscription - is injected.
-// That is not a testing nicety: it is the only reason a 100 Hz scheduler with a
-// self-cancelling frame loop can be asserted at all. Frames here advance only
-// when a test says so, at a timestamp a test chose, which makes assertions about
-// tick counts and paint cadence exact rather than flaky.
-//
-// The recording context is the shape paint.spec.ts uses, copied rather than
-// exported from a spec file. Each fake canvas records the timestamp of every
-// paint it received, so per-entry paint cadence is measurable per pad.
+// The whole loop, driven by a fake clock in node: there is no browser Vitest project, so every
+// dependency the host needs from a browser - rAF, cancel, performance.now, an IntersectionObserver
+// and a prefers-reduced-motion subscription - is injected, and frames advance only when a test says
+// so, at a timestamp it chose. The recording context is paint.spec.ts's shape, copied rather than
+// exported from a spec; each fake canvas records the timestamp of every paint it received.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

@@ -1,36 +1,20 @@
-// The real Web Serial transport (FOUND-01, CONN-03, CONN-06).
-//
-// THIS FILE HAS NO UNIT TEST, and cannot have one: every line of it needs a
-// real `SerialPort`, which Vitest's node environment does not have and which
-// no polyfill can supply - Web Serial is an operating-system capability, not
-// an API shape. Its behaviour is covered by the hardware checklist in plan 04
-// and by the no-Web-Serial degrade e2e in plan 03; everything about it that a
-// machine CAN check offline lives in transport.ts and is tested there.
-//
-// Structurally a port of grid-editor/src/renderer/serialport/serial-transport.ts
-// (186 lines), with four deliberate changes recorded at their sites: the read
-// buffer size, the deleted local port interface, the navigator-level connect
-// and disconnect listeners, and the close ordering.
+// The real Web Serial transport (FOUND-01, CONN-03, CONN-06). No unit test, and none possible: every
+// line needs a real `SerialPort`, which no polyfill can supply; the hardware runbook and the
+// no-Web-Serial degrade e2e cover it, and everything a machine CAN check offline lives in transport.ts.
+// Structurally a port of grid-editor/src/renderer/serialport/serial-transport.ts with four deliberate
+// changes recorded at their sites: the read buffer size, the deleted local port interface, the
+// navigator-level connect and disconnect listeners, and the close ordering.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { BAUD_RATE, READ_BUFFER_SIZE, ZONA_USB } from "$lib/protocol";
 import type { GridTransport } from "./transport";
-// grantedZonaPorts and portIsAttached moved to ./ports, the half of this file
-// that needs nothing from the protocol package (06-03). The barrel re-exports
-// them from there; this file does not, so there is exactly one path to each.
+// grantedZonaPorts and portIsAttached live in ./ports, the half that needs nothing from the protocol package (06-03).
 
 /**
- * Ask the user for a ZONA and open it.
- *
- * `requestPort()` MUST be the first statement in the click handler that calls
- * this, with nothing awaited before it. The reason is not that the call
- * consumes the user activation - the WICG Serial spec has no consume step -
- * but that transient activation EXPIRES, in about 4.9 seconds in Chromium. An
- * awaited dynamic import on a cold cache can outlast that, so the page loads
- * its modules in `onMount` and the handler awaits nothing before this call.
- *
- * The filter is CONN-07's: the application identity only. The bootloader
- * product id is never listed, so this chooser cannot reach a module in DFU.
+ * Ask the user for a ZONA and open it. `requestPort()` MUST be the first statement in the click handler,
+ * nothing awaited before it: transient activation EXPIRES (about 4.9 seconds), and an awaited dynamic
+ * import on a cold cache can outlast it, so the page loads its modules in `onMount`. The filter is
+ * CONN-07's application identity only; the bootloader product id is never listed.
  */
 export async function openZonaPort(): Promise<SerialPort> {
   const port = await navigator.serial.requestPort({ filters: [ZONA_USB] });
@@ -99,10 +83,8 @@ export class WebSerialTransport implements GridTransport {
   }
 
   async close(): Promise<void> {
-    // The desktop releases the lock inside close() while the read loop's own
-    // `finally` also releases it (serial-transport.ts:63-84 and :175-184); the
-    // second release throws and is swallowed by a console.warn. Own the
-    // ordering instead: cancel, wait for the loop to exit, release once, close.
+    // The desktop releases the lock in close() and again in the read loop's `finally` (serial-transport.ts:63-84,
+    // :175-184), swallowing the second throw; here the ordering is owned: cancel, wait for the loop, release once, close.
     this.opened = false;
     this.detach();
     await this.reader?.cancel().catch(() => {});
@@ -117,10 +99,8 @@ export class WebSerialTransport implements GridTransport {
   }
 
   /**
-   * PITFALLS C1, symmetric: while this page holds the port, Grid Editor cannot
-   * open it, and the user's next Editor session fails for a reason they will
-   * never connect to a browser tab they closed. The page calls this on
-   * `pagehide` - not `beforeunload`, which a bfcache restore skips.
+   * PITFALLS C1, symmetric: while this page holds the port, Grid Editor cannot open it. Called on
+   * `pagehide`, not `beforeunload`, which a bfcache restore skips.
    */
   closeOnHide(): () => void {
     const onHide = () => {

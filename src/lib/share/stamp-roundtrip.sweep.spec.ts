@@ -1,56 +1,14 @@
-// The stamp codec, over EVERY knob position either route can produce.
-//
-// Two tests, no sampling. SHARE-01 says a shared link restores the knobs
-// exactly, and "exactly" is a claim about a cross-product, not about a handful
-// of hand-picked vectors: `stamp.spec.ts` proves the mechanism on examples, and
-// this file proves the property on the whole space.
-//
-// NO FORMATTER IS NEEDED. `encodeStamp` and `decodeStamp` never cross the WASM
-// boundary - they are bit writers over a `PadState` - and formats `x` and `w`
-// are pure string arithmetic. So this file runs in the sweep project for
-// membership rather than for cost: it belongs beside the reachability sweep
-// because they share the same cross-product, and running it per task would say
-// nothing that `stamp.spec.ts` does not already say per task.
-//
-// IT IS A PROPERTY OF THE PINNED COMPILER, like everything else here. A
-// vendored re-sync that widened a `PadState` field HANGAR does not expose would
-// break the entry-consistency check for exactly the reason the check exists,
-// and this file is where that would be seen first.
-//
-// AMENDMENT, plan 10-08: THE SAME TWO PASSES AS THE REACHABILITY SWEEP, AND THE
-// TWO HALVES MOVE IN OPPOSITE DIRECTIONS.
-//
-// D-06 gives a colour knob the whole RGB444 lattice, so a single cross-product
-// would multiply each colour-bearing rack by 683. Both halves therefore split:
-//
-//   PASS A - every NON-colour knob cross-producted, colour knobs at their
-//            defaults.
-//   PASS B - the colour dimension alone, every other knob at its default.
-//
-//   compiler half   32,852 -> 44,078   = Pass A 19,502 + Pass B 24,576   (+34%)
-//   Lua half       276,160 -> 234,784  = Pass A 50,464 + Pass B 184,320  (-15%)
-//
-// THE LUA HALF GETS CHEAPER, and that is the check that the passes were not
-// accidentally cross-producted: a Lua rack's colour knobs carry four or five
-// options today, so lifting them out of the cross-product divides more than
-// the linear pass adds back. If this half ever grows, the two passes were
-// multiplied rather than summed.
-//
-// THE TWO HALVES' PASS B ARE DIFFERENT SHAPES, DELIBERATELY, and the asymmetry
-// is the seam between this plan and 10-10 rather than an inconsistency:
-//
-//   - On the COMPILER route the lattice IS the knob. `knobs.preset.ts` gives
-//     the colour knob 4,096 positions, so Pass B enumerates the knob's own
-//     options and round-trips each through `encodeFor`/`decodeFor` exactly as
-//     Pass A does. 4,096 x 6 colour knobs = 24,576.
-//   - On the LUA route the lattice is the FORMAT'S CAPACITY, not yet the
-//     knob's. A Lua colour knob still offers the literals its entry declares;
-//     what 10-08 lands is format `w`, which stores a COLOUR rather than an
-//     index and therefore has to carry all 4,096 before the picker at 10-10
-//     can write them. So Pass B enumerates the payload space per colour knob:
-//     4,096 x 45 colour knobs = 184,320, asserted through
-//     `readLuaColourPayload` rather than through a knob index, because a knob
-//     index is exactly the thing the format stopped being.
+// The stamp codec over EVERY knob position either route can produce: SHARE-01's "exactly" is a
+// claim about a cross-product, so `stamp.spec.ts` proves the mechanism on examples and this file the
+// property on the whole space. No formatter is needed (the codec never crosses the WASM boundary); it
+// runs in the sweep project for membership beside the reachability sweep. A property of the pinned
+// compiler. Two passes since 10-08, as the reachability sweep: Pass A every non-colour knob
+// cross-producted with colour knobs at their defaults, Pass B the colour dimension alone. The
+// compiler half 32,852 -> 44,078 (Pass A 19,502 + Pass B 24,576: the lattice IS the knob, 4,096 x 6);
+// the Lua half 276,160 -> 234,784 (Pass A 50,464 + Pass B 184,320: the lattice is format `w`'s
+// CAPACITY, 4,096 x 45 colour knobs, asserted through `readLuaColourPayload`). The Lua half getting
+// cheaper is the check that the passes were summed, not multiplied.
+// Decided at 05-05 / 10-08; see .planning/phases/10-redesign/10-08-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";

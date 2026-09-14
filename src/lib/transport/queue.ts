@@ -1,16 +1,7 @@
-// RequestQueue: the five invariants of grid-editor's write path, none of its
-// machinery (ARCHITECTURE 1.7).
-//
-// Location note for Phase 6: ARCHITECTURE 3.3 puts this under device/, beside
-// the session. It lives in transport/ this phase because device/ does not exist
-// yet and this file depends only on GridTransport plus the pure matcher.
-// Moving it is Phase 6's call - a decision, not a drift.
-//
-// The one thing this file must never grow is the desktop's serialisation
-// strategy: a module-global waiter polled by a `while` + `await sleep(1)` loop
-// (engine.store.ts:170, :357-370). A background tab clamps timers to 1 Hz, so
-// that poll becomes one second per iteration (PITFALLS C11). A promise chain
-// costs nothing and cannot be throttled.
+// RequestQueue: the five invariants of grid-editor's write path, none of its machinery (ARCHITECTURE
+// 1.7). One outstanding request on a promise chain, never the desktop's module-global waiter polled
+// by `while` + `await sleep(1)` (engine.store.ts:170, :357-370): a background tab clamps timers to
+// 1 Hz, so that poll becomes one second per iteration (PITFALLS C11), and a chain cannot be throttled.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
