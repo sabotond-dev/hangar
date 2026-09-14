@@ -170,3 +170,11 @@ Later plans add a dated line here only when the rule learned something it did no
   ledger sits as its own section after the copyright line, so the ten-line header stays the header;
   and a phrase a spec pins on the raw file (`MIX_TWO 7, MIX_LINE 75, MIX_THIS / MIX_THAT 8 / 8`)
   must sit on ONE comment line - a reflow across two lines is a red run, not a readability edit.
+- 2026-09-13 (13.2-04): a file whose shape a spec scans lists the rules it obeys under its header,
+  one line each, as a `RULES A SPEC ENFORCES` block after the copyright line (with a contents line
+  built from the file's own section banners where it has them), so the ten-line header stays the
+  header and `--todo` prints nothing; a rule line cites the spec by TITLE, not by line number,
+  because a header trim in that spec moves every number below it (13.2-03 deviation 3, and this
+  plan's eleven `install.spec.ts` lines all moved by six between the plan and the tree); and a
+  private-name rename that a spec's own namespace alias happens to share (`P` in
+  `page-target.spec.ts`) is left alone - the grep names it, the rename does not.
