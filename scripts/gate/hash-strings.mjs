@@ -86,13 +86,17 @@ for (const f of files) {
   const rel = relative(H, f).replace(/\\/g, "/");
   let text = readFileSync(f, "utf8");
   if (f.endsWith(".svelte")) {
-    // script blocks through the TS scanner; the template's text nodes and attribute values by regex, comments removed
-    const scripts = [...text.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
+    // script blocks through the TS scanner; the template's text nodes and attribute values by regex,
+    // comments removed. HTML comments go FIRST: a `<style>` spelled inside a header comment
+    // (PadSpinner.svelte:15 until 13.2-05) otherwise swallows the whole template as a style block.
+    const uncommented = text.replace(/<!--[\s\S]*?-->/g, "");
+    const scripts = [
+      ...uncommented.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g),
+    ];
     for (const m of scripts) scanTs(m[1], rel);
-    let tpl = text
+    let tpl = uncommented
       .replace(/<script[^>]*>[\s\S]*?<\/script>/g, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/g, "")
-      .replace(/<!--[\s\S]*?-->/g, "");
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/g, "");
     for (const m of tpl.matchAll(/data-testid="([^"]+)"/g)) add(testids, m[1]);
     // attribute string values and text nodes with at least one letter
     for (const m of tpl.matchAll(/=\s*"([^"{}]*[A-Za-z][^"{}]*)"/g))

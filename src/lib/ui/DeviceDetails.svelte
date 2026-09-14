@@ -211,7 +211,8 @@
       {#if install.snapshot !== undefined}
         <p class="body quiet" data-testid="snapshot-line">{snapshotLine}</p>
       {/if}
-      <!-- The lock (Z-15): a real disabled on both controls while the session's writeLock is on, the reason line beneath as their description. SAFE_PROMISE is retired (10-03, R-03). -->
+      <!-- SAFE_PROMISE was here; retired site-wide by 10-03 (R-03), SAFE-01's guarantee is SAFE_NOTE on the control that writes. -->
+      <!-- The lock (Z-15): a real disabled on both controls while the session's writeLock is on, the reason line beneath as their description. -->
       <button
         type="button"
         class="action"
