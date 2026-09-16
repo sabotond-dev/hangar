@@ -1,0 +1,85 @@
+# 13.2 gate --after change-3 --against change-3 --check 654
+HEAD 1e78f4b (1e78f4b0bc72503edb82538e438187740267ce64); dirty (src e2e scripts docs) 1; free memory 1.75 GB; 2026-09-16T12:11:18Z
+before-record HEAD 227aba1453f25843600e54668d9973e59ac7bf1c
+
+## the wire
+1735 strings from 18 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+191 files; 2685 distinct literals (6269 occurrences); 7 copy modules; 312 data-testids
+literal census sha256 40660d18acf5d31765104d42d09cedb699d6ccda619a2b58d19e11788e569237
+copy exports   sha256 25468f7e045359c1e089cb8320aed9d025da87924226aa03398dfb15c6ade309
+data-testids   sha256 cebf17b5237a87317426e88328cbf594553648408dca8a2f1724d0537e9e5c63
+- 1 -> 0	"${} is still running on ${} in memory. No confirmation of the store came back, so HANGAR can’t say whether it survives power-off."
+- 1 -> 0	"Click ${} to send the store again"
+- 1 -> 0	"The firmware default"
+- 1 -> 0	"Your ZONA acknowledged the store, but reading ${} back gave something different. HANGAR won’t call that stored."
+- 1 -> 0	"Your ZONA didn’t confirm the store"
+- 1 -> 2	"fetchAll"
+- 23 -> 24	"kept"
+- 9 -> 6	"mismatch"
+- 11 -> 8	"timeout"
+- 10 -> 0	"unconfirmed"
++ 0 -> 1	"Reading ${} back after the store gave something different. HANGAR won’t call that stored."
+
+## the comment lines
+192 files; 45524 lines, 29245 code, 12573 comment, 3706 blank, 3863 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/device/install-copy.ts | 444 | 447 | 241 | 255 | 81 | 98 |
+| src/lib/device/install.svelte.ts | 1544 | 1564 | 538 | 566 | 32 | 32 |
+| src/lib/ui/DestinationZone.svelte | 391 | 387 | 58 | 58 | 15 | 15 |
+| src/lib/ui/shell/device-clause.ts | 131 | 126 | 31 | 31 | 15 | 15 |
+| **totals (192 -> 192 files)** | 45510 | 45524 | 12531 | 12573 | 3846 | 3863 |
+
+4 file(s) moved
+
+## check and lint
+check: 1789560700813 COMPLETED 654 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 94 files, 966 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 1e78f4b
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object a581ef4ce6aae2427e69503f9aaa543a02e33561 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 26 files, 154136 B, sha256 2a9ccf80cda87bdb3db133d52eb961246e726636c288c00311d9d9f077992f57
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: fc20dd559918148a4dd52df19d25cb147d4aa9ad9b1907310bc2d2acd646c3be (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 fc20dd559918148a4dd52df19d25cb147d4aa9ad9b1907310bc2d2acd646c3be
+SCOPED CSS sha256 661eab32a76c1596997974c52e65e6715b3205295294141ef3709b97a7d6da23
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 d315d6dc6aa2007fe0788abfda0dbe2ba110add32a9fab7af69f59e684b8c9fa (71 files)
+
+## the titles
+TITLES sha256 5b5a92bb81064022b3bca1e1d303fd70ac047f8920cc5c13e0c904f616443b98 (967 vitest titles incl. todo, 101 playwright runs)
+
+## src/ against the before-record's HEAD 227aba1453f25843600e54668d9973e59ac7bf1c
+git diff --name-status: 8 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-3
+wire: equal (set a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b, full 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b)
+sandbox set: equal (40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01)
+FAIL: the literal census (e27b7442f645efa07090afba21618734516b0bfabef87a3f8b033e5cb34042e9 -> 40660d18acf5d31765104d42d09cedb699d6ccda619a2b58d19e11788e569237; the -/+ lines above name every literal whose count moved)

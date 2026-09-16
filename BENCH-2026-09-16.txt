@@ -317,3 +317,103 @@ the store again`, `Or click Clear to return Page 2 to its firmware default` - th
 as `stepOrClear`), `FIRMWARE_DEFAULT_NAME` (`The firmware default`, the name a clear's unconfirmed
 row read). Kept by name: `restoredUnconfirmedBlock` and `RESTORED_UNCONFIRMED_TITLE` (the probe's
 put-back on a read-back that never matches, and the discard).
+
+### Done, 2026-09-16
+
+Four commits, no push, no device, no deploy: `42892f8` feat(install) - the store, the copy, the
+zone, the bar's clause, the probe's comment, the four node specs and the string ledger above (the
+copy spec reads this file as its fifth document); `15dcdff` test(e2e) - the probe's sixth title
+re-aimed; `1e78f4b` refactor(install) - the clause's header back at ten lines; then this paragraph
+with `docs/TESTING.md`'s "2026-09-16 change 3", the runbook's dated label-map line, and the gate
+records `gate/change-3.*` / `gate/change-3-after.*`.
+
+**What `grid_decode.c` says** (`:940-1000`, read only). The `PAGESTORE/ACKNOWLEDGE` is built and
+broadcast in one place - `grid_protocol_nvm_store_success_callback` (`:939-960`), the completion
+callback of the bulk store, so it is sent only once the NVM write has finished; the callback then
+starts a page reload (`:958`), itself a bulk operation. `grid_decode_pagestore_to_ui` (`:962-1000`)
+drops a `PAGESTORE/EXECUTE` that arrives while any bulk operation is in progress with `return 1` and
+no reply at all (`:979-981`) - no NACK exists for the store. So the acknowledgement is conditional
+(an idle module, a write that finishes inside 3000 ms), it is matched per attempt by request id
+(a late ACK for attempt 1 matches nothing once attempt 2 minted a new id), and attempts 2 and 3
+land during the reload the store itself started and are dropped - which lands `unconfirmed` with
+the page genuinely in flash. One full explanation of the screenshot; not verified on hardware here.
+
+**The interpretation taken.** The acknowledgement is not waited on for the outcome: `#storeLeg`
+runs the request to its bound (three attempts at `pagestoreMs`, about 9.4 s when nothing answers -
+the still-writing line at 2 s), catches its timeout, and proceeds to the proof as after an
+acknowledgement - the heartbeat, then up to three rounds of the five fetches, a round whose fetch
+is unanswered or refused skipped for the next. **Sub-cases:** (A) acknowledged, read-back matches -
+`kept` (unchanged); (B) acknowledged, different bytes in every completed round - `kept-mismatch`
+(unchanged); (C) acknowledgement late or missing, read-back matches - **`kept`** (was unconfirmed);
+(D) late or missing, different bytes - **`kept-mismatch`** (was unconfirmed); (E) no round completed
+at all - **`kept`** by the user's word, the comment in `#storeLeg` citing this section and
+`grid_decode.c:939-960` / `:979-981` (was unconfirmed). `clearToDefault()` runs the same leg:
+(A)/(C)/(E) `cleared`, (B)/(D) `kept-mismatch`; `FIRMWARE_DEFAULT_NAME` had no other reader and is
+retired. `putBack()` (probe-only) keeps `restored-unconfirmed` for a read-back that never matches
+(cause `mismatch`), and the discard still lands it on its own timeout or NACK - kept by name.
+
+**`unconfirmed` left the union.** Nothing lands it, so the fifteen-phase union is fourteen,
+`WRITABLE_PHASES` is 13-12's list less one, `UNCERTAIN_PHASES` three, the zone's mapping six cases,
+the bar's clause and tone lose their case; the anti-collapse test reads fourteen / six / three and
+asserts the name absent, its comment naming the retirement as the user's (13-18 kept six on purpose;
+this retires one by the user's word). **Copy:** `UNCONFIRMED_TITLE`, `unconfirmedBlock` and
+`FIRMWARE_DEFAULT_NAME` retired by name (the ledger above); **one string rewritten beyond the
+brief** - `keptMismatchBlock.detail` claimed "Your ZONA acknowledged the store", false in sub-case
+(D), and says what HANGAR read now (the ledger above, old form struck). `restoredUnconfirmedBlock`
+kept by name. The testid set is unmoved (312). The frame sequence per Store is unchanged (eighteen
+on the fake when the ACK comes; 12 + 3 attempts + 5 fetches when it never does).
+
+**Retitled tests** (none deleted; the count term is `+0 / +0`): five in `install.spec.ts` (the
+late-acknowledgement title; the clear's title in three parts; the put-back's; the enablement table;
+the phase-list pin), one in `device-ui.spec.ts`, one in `install-copy.spec.ts`, one in
+`e2e/install.e2e.ts` - the full old -> new list in `docs/TESTING.md` "2026-09-16 change 3". The
+brief's second title ("different bytes land kept-mismatch") is the clear title's second part, not a
+standalone test: the acknowledged-and-different case already had one.
+
+**The census diff, by string** (`hash-strings.mjs --diff`, `gate/change-3-after.txt`): out - `${} is
+still running on ${} in memory. No confirmation of the store came back, so HANGAR can’t say whether
+it survives power-off.`, `Click ${} to send the store again`, `The firmware default`, `Your ZONA
+acknowledged the store, but reading ${} back gave something different. HANGAR won’t call that
+stored.`, `Your ZONA didn’t confirm the store`, the key `unconfirmed` 10 -> 0; in - `Reading ${}
+back after the store gave something different. HANGAR won’t call that stored.`; counts moved -
+`kept` 23 -> 24, `mismatch` 9 -> 6, `timeout` 11 -> 8, `fetchAll` 1 -> 2. 2690 -> 2685 distinct
+literals; the copy exports two left, none joined.
+
+**The gate's terms** (`--before change-3` at `227aba1`, `--after change-3 --against change-3
+--check 654` at `1e78f4b`): equal - the wire set `a24b256f…`, full `514cb2c7…`, the sandbox set
+`40b44316…`, the fixtures' four hash-objects, the OG (26 files, 154136 B, `2a9ccf80…`), the
+testids `cebf17b5…` (312), **the SCOPED CSS `661eab32…` and the raw CSS `fc20dd55…`** (no component
+left), the utilities 44 -> 44, check 654 / 0 / 0, lint, quick 94 / 966, the build, the refuse-list
+`--stat` empty; moved - the census `e27b7442…` -> `40660d18…`, the copy exports `18e53279…` ->
+`25468f7e…`, the titles `61c1f546…` -> `5b5a92bb…` (967 vitest and 101 playwright either side), the
+normalised JS `23e3bfa5…` -> `d315d6dc…`, `src/` 8 modified / 0 added / 0 deleted / 0 renamed. The
+script exits 1 at the census by design; the later terms were compared from the two records by hand.
+
+**Chunks** (`scripts/gate/e2e-chunks.sh`, fresh detached servers, stopped through PowerShell, HTTP
+000 after each): `install.e2e.ts` alone first, 16 passed (36 heartbeats per leg on the re-aimed
+title); c1 **32** (first run; `install:1957`, A.21's CLEAR title, green on both engines at 4 and 5
+heartbeats - this change leaves its CONFIG acknowledgements alone and it did not flake), c2 **22** =
+21 in the chunk at `--workers 1` twice (`browse:343` the one red both times, the known hydration
+race; run one at three workers red on `:299` / `:343` / `:1404`; the browse files untouched) plus
+`:343` green alone on a fresh server, c3 **21**, c4 **15**, c5 **11** on its second run (the first
+run's one red was `artifacts.e2e.ts:63`'s stamp check against a HEAD that had moved under the two
+source commits made after the build - a harness fact; green on the gate's fresh build). Counts:
+quick 94 / 966 (+0 / +0), check 654 (+0), e2e 86 titles / 101 runs (+0 / +0).
+
+**Questions for the user.** (a) Sub-case (E) - the store acknowledged or not, and then no fetch
+answered inside three rounds - lands `kept` by your word as the brief read it; `kept-mismatch` would
+be the other honest landing, and its sentence would be false there. Confirm `kept`, or say which.
+(b) The wait: when the acknowledgement never comes, the bar reads `Storing on Page N…` for about 9.4 s
+(three attempts at 3000 ms) before the proof begins and the store lands. Cutting the attempts to one
+would land in about 3 s but is a queue-wide setting (`RETRY_ATTEMPTS`) or a descriptor change
+(`descriptors.ts`, untouched by the rules); say if the wait matters. (c) `keptMismatchBlock.detail`
+was reworded because it claimed an acknowledgement (above) - keep the new sentence, or supply one.
+(d) Changes 1 and 2's questions still stand.
+
+**Not supported by the tree / departures from the brief:** the hardware cause is argued from
+`grid_decode.c`, not measured (no device); the brief's "different bytes land kept-mismatch" title is
+a part, not a test (above); `keptMismatchBlock.detail` rewritten beyond item 2 (above);
+`FIRMWARE_DEFAULT_NAME` retired beyond the two names the brief listed because nothing read it once
+the block left; a fourth commit (`1e78f4b`) for the clause's header, which the first cut had at
+eleven lines. Next gate: amend SAFE-07 ("acknowledged before done", the store leg) - this change;
+SAFE-05 and SAFE-06 (change 2); SAFE-02 and PROJECT.md's line (change 1); CAT-04 stays `[ ]`.

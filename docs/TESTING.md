@@ -4502,6 +4502,177 @@ PROJECT.md's line from change 1; CAT-04 stays `[ ]`. No device, no deploy; `src/
 `library.ts`, `sequence.ts`, the Lua literals, the manifest, the fixtures, the OG, `Knob.svelte`,
 `ColourPicker.svelte` untouched (the gate's `--stat`).
 
+## 2026-09-16 change 3 - the "Your ZONA didn't confirm the store" block goes; the read-back decides
+
+Outside the GSD cycle, the user's word recorded verbatim in `BENCH-2026-09-16.txt` section 3, under
+a screenshot of a Store that worked on the bench and showed the `unconfirmed` block: "remove this,
+this is not a true bug report, it works fine." Three source commits, then this section: the store,
+the copy, the zone, the clause, the probe's comment and the four node specs (`42892f8`); the e2e
+re-aim (`15dcdff`); the clause's header back at ten lines (`1e78f4b`); then this section, the
+runbook's dated label-map line, the record's Done paragraph and the gate records `gate/change-3.*` /
+`gate/change-3-after.*`.
+
+**What the firmware says about the acknowledgement** (`../grid-fw/common/src/c/grid_decode.c`,
+read only). `grid_decode_pagestore_to_ui` (`:962-1000`) handles `PAGESTORE/EXECUTE` by starting the
+bulk store with `grid_protocol_nvm_store_success_callback` as its completion callback (`:975-983`);
+if a bulk operation is already in progress the frame is dropped with `return 1` and NO reply of any
+kind - no ACK, no NACK (`:979-981`). The `PAGESTORE/ACKNOWLEDGE` is built and broadcast ONLY inside
+that success callback (`:939-960`), i.e. once the NVM write has finished, with `LASTHEADER` echoing
+the request id and the debug text `nvm store success`; the callback then starts a page reload
+(`grid_ui_bulk_page_load`, `:958`) - itself a bulk operation, so a second `PAGESTORE/EXECUTE`
+arriving during it is dropped silently, and a `CONFIG/FETCH` during it is NACKed
+(`grid_ui_event_recall_configuration` returns "nvm busy", `grid_ui.c:466-469`, answered at
+`grid_decode.c:1318-1333` with a NACK and then a REPORT). There is no failure callback that sends a
+`PAGESTORE/NACKNOWLEDGE`. So the acknowledgement is conditional on the module being idle when the
+frame arrives and on the write finishing inside HANGAR's 3000 ms bound, and it is matched by
+request id per attempt - an ACK for attempt 1 that arrives after attempt 1's deadline matches
+nothing (attempt 2 minted a new id), and attempts 2 and 3 arrive during the reload the store itself
+started and are dropped. That is one full explanation of the screenshot with the store genuinely
+in flash; it is not verified on hardware here (no device).
+
+**The store.** `#storeLeg` no longer treats the request's outcome as the leg's: `q.request(storePage())`
+runs to its bound as before (three attempts at `pagestoreMs` 3000, `retryBackoffMs` between - about
+9.4 s when nothing answers) and its timeout - or a refusal firmware never sends - is caught and
+falls through; only `AbortedError` (the link died) is rethrown and lands `lost`. Then the leg does
+what it always did after an acknowledgement: `#nextHeartbeat()`, then up to `REFETCH_ROUNDS` (3)
+rounds of `fetchAll`. A round whose fetch is unanswered or refused (a fetch during the reload is
+NACKed) is caught and skipped for the next round; `refetchRounds` still counts it. **The sub-cases:**
+(A) acknowledged, read-back matches - `kept` (unchanged); (B) acknowledged, every completed round
+reads back different bytes - `kept-mismatch` (unchanged); (C) acknowledgement late or missing,
+read-back matches - `kept` (was `unconfirmed`); (D) acknowledgement late or missing, every completed
+round reads back different bytes - `kept-mismatch` (was `unconfirmed`); (E) acknowledged or not, no
+round completed at all (every round's fetch unanswered or refused inside its bound) - `kept`, by the
+user's word, the comment in `#storeLeg` naming this change and `grid_decode.c:939-960` / `:979-981`
+(was `unconfirmed`). `StoreOutcome` is `"kept" | "mismatch" | false`. `clearToDefault()` runs the same
+leg: (A)/(C)/(E) land `cleared` with `storedThisSession` set and no `name` (nothing of the visitor's
+is on the module - `FIRMWARE_DEFAULT_NAME` had no other reader and left); (B)/(D) land
+`kept-mismatch`. `keepOnDevice()`: (A)/(C)/(E) `kept`, (B)/(D) `kept-mismatch`. `putBack()` (the
+probe's) keeps `restored-unconfirmed` for a read-back that never matches (its cause is `mismatch`
+now - the leg has no timeout outcome to hand it) and `revertToStored()` (the discard) still lands it
+on its own request's timeout or NACK, so the phase and its block stay by name.
+
+**Phases.** `unconfirmed` LEFT the fifteen-phase union: nothing lands it - the keep's and the clear's
+store legs land `kept` / `cleared` / `kept-mismatch`, the put-back's lands `restored` /
+`restored-unconfirmed`. The union is fourteen, `WRITABLE_PHASES` is 13-12's list less one,
+`UNCERTAIN_PHASES` is three, the zone's phase-to-builder mapping is six cases, the bar's clause and
+tone lose their case. The anti-collapse test (`device-ui.spec.ts`) reads fourteen phases, six
+failure-shaped, three uncertain bodies and three uncertain clauses pairwise distinct, and asserts
+`unconfirmed` absent from the union - its comment names the retirement as the user's ("13-18 kept
+six uncertain outcomes on purpose ... retired BY THE USER'S WORD ... a deliberate retirement of one,
+not a collapse into a neighbour").
+
+**Copy.** Retired by name in `install-copy.ts`'s ledger ("THE UNCONFIRMED STORE'S STRINGS ARE
+RETIRED BY NAME, 2026-09-16"): `UNCONFIRMED_TITLE` (`Your ZONA didn’t confirm the store`),
+`unconfirmedBlock` (its detail and its two steps; `stepOrClear` stays, shared), `FIRMWARE_DEFAULT_NAME`
+(`The firmware default`). **One string rewritten** beyond the brief: `keptMismatchBlock.detail` said
+`Your ZONA acknowledged the store, but reading Page N back gave something different.` - false in
+sub-case (D), which this change creates - and reads `Reading Page N back after the store gave
+something different. HANGAR won’t call that stored.` now, recorded verbatim in the bench file's
+section 3 with the old form struck (the copy spec reads that file as a document and pins both).
+Kept by name: `restoredUnconfirmedBlock`, `RESTORED_UNCONFIRMED_TITLE` (the probe's put-back and the
+discard). `keptCaption`'s and `clearedCaption`'s comments no longer say "after the acknowledgement".
+
+**Elsewhere in `src/`.** `DestinationZone.svelte`: the `unconfirmed` case and the `shownName`
+derived (its one reader) leave; no `<style>` rule and no template comment node moves, so the scoped
+CSS is byte-equal (below). `device-clause.ts`: the case in both switches, the import, the header at
+ten lines (the first cut spent an eleventh on the date; `1e78f4b`). `/dev/install/+page.svelte`: the
+`NAME` comment no longer names the unconfirmed sentence. `install.svelte.ts`: `#armSlow`'s comment no
+longer says "only the timeout says failed".
+
+**Counts, carried + delta.** Quick **94 / 966 (+1 todo)**, `+0 / +0` - no vitest test added or
+deleted: the brief's two titles ("a late acknowledgement lands kept when the read-back matches";
+"different bytes land kept-mismatch") are one retitled test and the second part of another (below),
+because the acknowledged-and-different case already had "a read-back that never matches is
+kept-mismatch after three rounds"; check **654 / 0 / 0** (`+0`); lint clean; e2e **86 titles / 101
+runs** (`+0 / +0`, one title re-aimed under a new name). Chunks on fresh detached servers
+(`scripts/gate/e2e-chunks.sh`, stopped through PowerShell, HTTP 000 after each; `install.e2e.ts`
+alone ran first, 16 passed, the re-aimed title at 36 heartbeats per leg): c1 **32 passed** (first
+run; `install.e2e.ts:1957`, A.21's CLEAR title, green on both engines at 4 and 5 heartbeats - this
+change does not touch its CONFIG acknowledgements and it did not flake), c2 **22** = 21 in the chunk
+at `--workers 1` on runs one and two (run one at `--workers 3` red on `browse:299` / `:343` /
+`:1404`, runs two and three at `--workers 1` red on `:343` alone - the known hydration race,
+`toHaveCount(5)` received 26; `git diff 227aba1 HEAD` over the browse files is empty) plus `:343`
+**1 passed** alone on a fresh server (the resolution 13.2-06 recorded), c3 **21**, c4 **15**, c5 **11**
+on its second run (the first run's one red was `artifacts.e2e.ts:63`, the source-archive stamp
+against a HEAD that had moved under the two source commits made after the build - a harness fact,
+not a change fact; green on the gate's fresh build at `1e78f4b`).
+
+**Retitled tests, old -> new** (no test deleted; the count term is `+0`):
+
+- `install.spec.ts`: "a store that never acknowledges is unconfirmed, and Store on ZONA stays live"
+  -> "a late acknowledgement lands kept when the read-back matches" (the same dropped-ACK fault;
+  `fedAt` defined, the store step `timeout 3` followed by the five `refetch-* ok`, `kept`, cause
+  none, `already-kept`, the fake's flash read); "a clear whose store never acknowledges is
+  unconfirmed with the firmware default named, Store on ZONA reads never-tried, and the RAM leg alone
+  never stores" -> "a clear whose store never acknowledges is cleared once the read-back matches,
+  different bytes land kept-mismatch, and a read-back that never answers is cleared by the user's
+  word" (three parts: sub-case (C) `cleared`; sub-case (D) `kept-mismatch` after three rounds under
+  the same dropped ACKs with the lying Setup read-back; sub-case (E) - every fetch after the store
+  unanswered, three `refetch-system-timer timeout` rounds - `cleared`); "after a keep, PUT BACK
+  stores too; when its store never confirms, it is restored-unconfirmed" -> "after a keep, PUT BACK
+  stores too; when its read-back never matches, it is restored-unconfirmed" (part two drops the
+  put-back's three ACKs AND lies on the read-back: `restored-unconfirmed`, cause `mismatch`, fifteen
+  re-fetch steps); "no snapshot, no clear - and the fifteen-row enablement table" -> "... the
+  fourteen-row enablement table"; "CLEAR writes five defaults and PUT BACK five originals in SLOTS
+  order, the classifier reads the first, the third and the fourth write, and the phase list is
+  13-12's" -> "... and the phase list is 13-12's less the store's unconfirmed" (the `WRITABLE_PHASES`
+  pin loses its `"unconfirmed",` line; the union count is fourteen). `throughStore` feeds the
+  heartbeat after a store step that is `ok` OR `timeout`. SAFE-07's classifier titles (the partial
+  titles, the CONFIG legs) are untouched.
+- `device-ui.spec.ts`: "fifteen phases are each accounted for, the four the spec has no row for are
+  present by name, the four uncertain phases keep four distinct bodies and four distinct clauses,
+  and the bar takes the draft and the device as two props" -> "fourteen phases ..., the three
+  uncertain phases keep three distinct bodies and three distinct clauses, ...".
+- `install-copy.spec.ts`: "the closed sets: three reasons, three more, thirteen utterances, and
+  titles that end without a full stop" -> "... twelve utterances ..." (six failure builders, six
+  titles). Test 2 gains `RETIRED_UNCONFIRMED` (three names, assembled), the record's section-3
+  heading, the new detail pinned and the old struck form read; the ledgered-strings list loses
+  `FIRMWARE_DEFAULT_NAME` and `unconfirmedBlock.steps[1]`; the recorded-strings list gains
+  `keptMismatchBlock.detail`; the named-steps floor is ten in both places (the block's two named
+  steps left); the unused `NAME` sample leaves.
+- `e2e/install.e2e.ts`: "a store that never confirms, on both the keep and the put-back legs, is said
+  out loud" -> "a store whose acknowledgement never comes is proved by the read-back: kept on the
+  keep leg, restored on the put-back leg" (`beatUntil(..., "kept", 120)` paces about 9.4 s of
+  heartbeats through the bound; 3 `PAGESTORE/EXECUTE`, 15 `CONFIG/EXECUTE`, 10 `CONFIG/FETCH`; the
+  put-back lands `restored` with 1 + 3 and 20). The unused `NAME` and `UNCONFIRMED_SPOKEN` leave.
+
+**The census diff, by string** (`hash-strings.mjs --diff`, `gate/change-3-after.txt`): out - `${} is
+still running on ${} in memory. No confirmation of the store came back, so HANGAR can’t say whether
+it survives power-off.`, `Click ${} to send the store again`, `The firmware default`, `Your ZONA
+acknowledged the store, but reading ${} back gave something different. HANGAR won’t call that
+stored.`, `Your ZONA didn’t confirm the store`, the key `unconfirmed` (10 -> 0); in - `Reading ${}
+back after the store gave something different. HANGAR won’t call that stored.`; counts moved -
+`kept` 23 -> 24, `mismatch` 9 -> 6, `timeout` 11 -> 8, `fetchAll` 1 -> 2. 2690 -> 2685 distinct
+literals (6287 -> 6269 occurrences), 191 files either side; the testid set UNMOVED at 312
+(`cebf17b5…`, no control left); the copy exports `18e53279…` -> `25468f7e…` (two left:
+`unconfirmedBlock`, `FIRMWARE_DEFAULT_NAME`; `UNCONFIRMED_TITLE` was never exported; none joined).
+
+**The gate** (`bash scripts/13.2-gate.sh --before change-3` at `227aba1`, `--after change-3
+--against change-3 --check 654` at `1e78f4b` - rerun after the header commit, the first `--after`
+at `15dcdff` reading the same hashes on every term but the comment-lines table; `gate/change-3.txt`
+and `gate/change-3-after.txt`). The script exits 1 at its first inequality - the census, by design
+of a behaviour change - so the terms after it are compared here from the two records. **Equal:** the
+wire set `a24b256f…`, the wire full `514cb2c7…`, the sandbox set `40b44316…` (the script's own
+comparison); the fixtures' four hash-objects and the OG (26 files, 154136 B, `2a9ccf80…`); the
+`data-testid` set `cebf17b5…` (312); **the SCOPED CSS `661eab32…`** and the raw CSS `fc20dd55…` -
+no component left and no rule moved; the utilities 44 -> 44 with the five markup-named intact; check
+654; lint; quick 94 / 966; the build; the refuse-list `--stat` empty. **Moved, as a behaviour change
+moves them:** the literal census `e27b7442…` -> `40660d18…` (above), the copy exports (above), the
+titles `61c1f546…` -> `5b5a92bb…` (the retitles above; 967 vitest and 101 playwright either side),
+the normalised JS `23e3bfa5…` -> `d315d6dc…`, the name-status of `src/` 8 modified / 0 added / 0
+deleted / 0 renamed. Comment lines: 4 files moved, 12531 -> 12573 comment lines, 3846 -> 3863
+header lines (the ledger entry in `install-copy.ts`, which sits after the copyright line as its own
+section); `comment-lines.mjs --todo` prints nothing over the four.
+
+**Outside `src/`:** the runbook's dated label-map line (the block gone; what a Store reports now,
+sub-case by sub-case; the firmware lines); `.planning/ROADMAP.md`, `REQUIREMENTS.md` and `STATE.md`
+untouched - **SAFE-07's "acknowledged before done" is retired for the store leg by the user's word
+and is the next gate's to amend**, with SAFE-05 and SAFE-06 (change 2), SAFE-02 and PROJECT.md's line
+(change 1); CAT-04 stays `[ ]`. No device, no deploy; `src/vendor/`, `library.ts`, `sequence.ts`,
+`descriptors.ts`, the Lua literals, the manifest, the fixtures, the OG, `Knob.svelte`,
+`ColourPicker.svelte`, `synthetic.ts` untouched (the gate's `--stat`; the fake's ACK-drop fault is
+the test's `drop` fault over `PAGESTORE/ACKNOWLEDGE` and the shim's `dropAck`, reused as they were).
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
