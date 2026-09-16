@@ -3,13 +3,14 @@
 // Test 2 reads the five documents that author every string from disk - the Bible
 // (sections 9 and 16), 13-18-BATCH.md, 13-CONTEXT.md's D-23, 13.1-COPY-NEW.md and
 // BENCH-2026-09-16.txt (Apply to ZONA gone, every Store clearing first; the
-// store confirmation gone) - and holds every export and every builder's sample
+// store confirmation gone; the unconfirmed store gone) - and holds every
+// export and every builder's sample
 // against them; a string in none of them is red by name. The same file holds the
 // retirements by name and date: section 9's reset label (13.1-05, D-04), Put
 // back's strings and the six success bodies (13.1-06, D-06 / D-07), the review's
 // two labels (13.1-02), the honesty caps (13-18; test 3 asserts their absence
-// and every rule that stayed), Apply to ZONA's strings and the confirmation's
-// (2026-09-16).
+// and every rule that stayed), Apply to ZONA's strings, the confirmation's
+// and the unconfirmed store's (2026-09-16).
 // Non-vacuity first (identity.spec.ts); needles assembled from fragments so this
 // file cannot fail itself (forbidden-instructions.spec.ts).
 //
@@ -50,7 +51,6 @@ import {
   settledCaption,
   snapshotFailedBlock,
   stepOrClear,
-  unconfirmedBlock,
   type ClearReason,
   type FailedWords,
   type InstallBlock,
@@ -173,6 +173,12 @@ const RETIRED_APPLY = [
   ["HONESTY_", "NO_SESSION"].join(""),
   ["honesty", "Ready"].join(""),
 ];
+/** Assembled: the unconfirmed store's three names, retired 2026-09-16 (change 3) by the user's word - not exported, named in the header. */
+const RETIRED_UNCONFIRMED = [
+  ["UNCONFIRMED", "_TITLE"].join(""),
+  ["unconfirmed", "Block"].join(""),
+  ["FIRMWARE_DEFAULT", "_NAME"].join(""),
+];
 /** Assembled: the store confirmation's six names, retired 2026-09-16 (change 2) by the user's word - not exported, named in the header. */
 const RETIRED_CONFIRMATION = [
   ["NOT_NOW", "_LABEL"].join(""),
@@ -183,8 +189,6 @@ const RETIRED_CONFIRMATION = [
   ["module", "List"].join(""),
 ];
 
-/** The catalog's title-case name (D-14 Q11b), as the batch's samples read. */
-const NAME = "Arc";
 /** The wire page every sample is built on: 1, which the visitor reads as Page 2 - the batch's own sample. */
 const PAGE = 1;
 /** The header's connect control - the OTHER surface, so no step can be a literal that matches the panel. */
@@ -205,7 +209,6 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   clearedCaption: [PAGE],
   stepOrClear: [PAGE],
   keptMismatchBlock: [PAGE],
-  unconfirmedBlock: [NAME, PAGE],
   restoredUnconfirmedBlock: [PAGE],
   nothingLandedBlock: ["store", PAGE],
   partialBlock: [
@@ -325,10 +328,9 @@ const everyString = () => {
   return out;
 };
 
-/** The seven failure builders at their samples, named. */
+/** The six failure builders at their samples, named (seven until 2026-09-16, change 3). */
 const failureBlocks = (): readonly [string, InstallBlock][] => [
   ["keptMismatchBlock", keptMismatchBlock(PAGE)],
-  ["unconfirmedBlock", unconfirmedBlock(NAME, PAGE)],
   ["restoredUnconfirmedBlock", restoredUnconfirmedBlock(PAGE)],
   ["nothingLandedBlock", nothingLandedBlock("store", PAGE)],
   [
@@ -509,8 +511,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     // And the ledger is not a blanket: the strings it carries are exactly
     // the ones 13.1-06 rewrote, each with its old form struck beside it -
     // and, since the round-4c quick task (2026-09-12, Clear stores the
-    // defaults), the four Clear strings that say the store and the one name
-    // the unconfirmed row reads, each in the same shape.
+    // defaults), the four Clear strings that say the store, each in the same
+    // shape (the name the unconfirmed row read left with it, 2026-09-16).
     const ledgered = strings.filter(
       ({ text }) =>
         !batch.includes(templated(text)) &&
@@ -527,11 +529,9 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         "clearingLabel",
         "clearedCaption",
         "liveCleared",
-        "FIRMWARE_DEFAULT_NAME",
         "restoredCaption",
         "stepOrClear",
         "keptMismatchBlock.steps[1]",
-        "unconfirmedBlock.steps[1]",
         "restoredUnconfirmedBlock.steps[0]",
         "nothingLandedBlock(put-back).steps[0]",
         "partialBlock.steps[1]",
@@ -549,8 +549,9 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     // Nor is the record: the strings only BENCH-2026-09-16.txt carries are
     // change 1's - Store's description, its already-kept reason, the store
     // form of the nothing-landed block and the three steps that named Apply -
-    // each with its old form struck (the confirmation's sentence left with
-    // change 2).
+    // and change 3's one rewrite, the kept-mismatch detail that no longer says
+    // the store was acknowledged, each with its old form struck (the
+    // confirmation's sentence left with change 2).
     const recorded = strings.filter(
       ({ text }) =>
         !batch.includes(templated(text)) &&
@@ -559,11 +560,12 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     );
     expect(
       recorded.map(({ name }) => name).sort(),
-      "the strings only the 2026-09-16 record carries are change 1's, and no other",
+      "the strings only the 2026-09-16 record carries are change 1's and change 3's one, and no other",
     ).toEqual(
       [
         "keepLineEnabled",
         "KEEP_REASONS.already-kept",
+        "keptMismatchBlock.detail",
         "nothingLandedBlock.detail",
         "nothingLandedBlock.steps[0]",
         "partialBlock.steps[0]",
@@ -617,6 +619,35 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         `Store's description says ${fact}`,
       ).toContain(fact);
     }
+    // THE UNCONFIRMED STORE IS GONE BY THE USER'S WORD (2026-09-16, change
+    // 3: "remove this, this is not a true bug report, it works fine"). Its
+    // three names are exported by nothing and retired in the header by name
+    // with the date; the record's third section carries the word; the
+    // kept-mismatch detail no longer claims an acknowledgement the leg does
+    // not wait for, and its old form is struck in the record.
+    expect(installCopySource()).toContain(
+      "THE UNCONFIRMED STORE'S STRINGS ARE RETIRED BY NAME, 2026-09-16",
+    );
+    expect(record).toContain(
+      '## 3. The "Your ZONA didn\'t confirm the store" block goes',
+    );
+    for (const retired of RETIRED_UNCONFIRMED) {
+      expect(
+        Object.keys(copy).includes(retired),
+        `${retired} is still exported`,
+      ).toBe(false);
+      expect(
+        installCopySource().includes(retired),
+        `${retired} is retired without being named`,
+      ).toBe(true);
+    }
+    expect(keptMismatchBlock(PAGE).detail).toBe(
+      "Reading Page 2 back after the store gave something different. HANGAR won’t call that stored.",
+    );
+    expect(keptMismatchBlock(PAGE).detail).not.toContain("acknowledged");
+    expect(record).toContain(
+      "~~`Your ZONA acknowledged the store, but reading Page 2 back gave something different. HANGAR won’t call that stored.`~~",
+    );
 
     // The two-form builders' other branches were walked too, so both forms
     // of each are held - not only the sampled one.
@@ -719,7 +750,6 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     );
     for (const [name, step] of [
       ["keptMismatchBlock", keptMismatchBlock(PAGE).steps[1]],
-      ["unconfirmedBlock", unconfirmedBlock(NAME, PAGE).steps[1]],
       [
         "partialBlock",
         partialBlock(
@@ -1025,7 +1055,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         ).toBe(true);
       }
     }
-    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(12);
+    // Ten since 2026-09-16 (change 3): the unconfirmed block's two named steps left with it.
+    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(10);
     // And every write click that prose names appears with its own case: a
     // label never appears re-cased inside a sentence. Since 13.1-06 NOTHING
     // is excused: `Put back` (excused as the register's own verb) is retired
@@ -1046,7 +1077,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(raw.includes(ENGINE), "install-copy.ts names an engine").toBe(false);
   });
 
-  it("the closed sets: three reasons, three more, thirteen utterances, and titles that end without a full stop", () => {
+  it("the closed sets: three reasons, three more, twelve utterances, and titles that end without a full stop", () => {
     // THREE SINCE 2026-09-16 (six until Apply to ZONA left): no apply exists
     // to be first, stale, partial or mismatched against, so those four rows
     // are retired by name and the store is the retry from every failure.
@@ -1101,13 +1132,14 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "the no-session sentence is written twice - reference it, do not retype it",
     ).toBe(1);
 
-    // Seven failure titles, each ending in a letter, each announced with the
-    // full stop added and nothing else. SIX OF THEM ARE THE UNCERTAIN
-    // OUTCOMES SECTION 16 OFFERS ONE LINE FOR, kept six by D-23; the seventh
-    // is the lost cable. None names a page: a title is the same whatever
+    // Six failure titles, each ending in a letter, each announced with the
+    // full stop added and nothing else. FIVE OF THEM ARE THE UNCERTAIN
+    // OUTCOMES SECTION 16 OFFERS ONE LINE FOR - kept six by D-23, one retired
+    // by the user's word on 2026-09-16 (change 3, the unconfirmed store); the
+    // sixth is the lost cable. None names a page: a title is the same whatever
     // page it happened on, and the bar reads it with a representative page.
     const blocks = failureBlocks();
-    expect(blocks.length, "the seven failure builders").toBe(7);
+    expect(blocks.length, "the six failure builders").toBe(6);
     const titles: string[] = [];
     for (const [name, block] of blocks) {
       expect(block.title, `${name} has no title`).not.toBe("");
@@ -1123,7 +1155,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       expect(block.steps.length, `${name} has no steps`).toBeGreaterThan(0);
       titles.push(block.title);
     }
-    expect(new Set(titles).size, "seven distinct titles").toBe(7);
+    expect(new Set(titles).size, "six distinct titles").toBe(6);
     expect(
       titles.includes(
         "The device stopped responding. Your draft is safe; device state could not be verified",
@@ -1131,8 +1163,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "section 16's one line for six outcomes is not a title - D-23 kept the six",
     ).toBe(false);
 
-    // FIVE success utterances, the 2000 ms line, and seven announced titles:
-    // thirteen distinct strings, the whole of what the live region can say.
+    // FIVE success utterances, the 2000 ms line, and six announced titles:
+    // twelve distinct strings, the whole of what the live region can say.
     // Two of the five are section 16's own lines spoken as sentences.
     const utterances = [
       liveSnapshotSaved(PAGE),
@@ -1143,8 +1175,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       LIVE_STILL_WRITING,
       ...titles.map(announceTitle),
     ];
-    expect(utterances.length).toBe(13);
-    expect(new Set(utterances).size, "thirteen distinct utterances").toBe(13);
+    expect(utterances.length).toBe(12);
+    expect(new Set(utterances).size, "twelve distinct utterances").toBe(12);
     for (const utterance of utterances) {
       expect(utterance.endsWith("."), `${utterance} is not a sentence`).toBe(
         true,
@@ -1239,6 +1271,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         }
       }
     }
-    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(12);
+    // Ten since 2026-09-16 (change 3): the unconfirmed block's two named steps left with it.
+    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(10);
   });
 });

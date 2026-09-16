@@ -18,7 +18,7 @@
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
 
-  /** The name TRY ON DEVICE and the store hand the install store. A test asserting the settled or the unconfirmed sentence spells the same word. */
+  /** The name TRY ON DEVICE and the store hand the install store; the already-kept row reads it after a proved store. */
   const NAME = "Probe";
 
   /**

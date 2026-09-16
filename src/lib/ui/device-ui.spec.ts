@@ -34,7 +34,6 @@ import {
   partialBlock,
   restoredCaption,
   settledCaption,
-  unconfirmedBlock,
 } from "$lib/device/install-copy";
 import {
   type ConfigStrings,
@@ -1641,10 +1640,17 @@ describe("the device UI's structural rules", () => {
     expect(fill).not.toContain("deviceActions?:");
   });
 
-  it("fifteen phases are each accounted for, the four the spec has no row for are present by name, the four uncertain phases keep four distinct bodies and four distinct clauses, and the bar takes the draft and the device as two props", () => {
+  it("fourteen phases are each accounted for, the four the spec has no row for are present by name, the three uncertain phases keep three distinct bodies and three distinct clauses, and the bar takes the draft and the device as two props", () => {
     // Plan 13-11, task 2 - THE ANTI-COLLAPSE TEST. The union is read from the
-    // store's source so the fifteen cannot drift from the fourteen or the
-    // sixteen without this test noticing.
+    // store's source so the fourteen cannot drift from the thirteen or the
+    // fifteen without this test noticing. FOURTEEN SINCE 2026-09-16 (change
+    // 3, BENCH-2026-09-16.txt section 3): 13-18 kept six uncertain outcomes
+    // on purpose, and this test held four bodies for the four the spec's one
+    // "Transfer uncertain" row maps onto; the store's `unconfirmed` is
+    // retired BY THE USER'S WORD ("this is not a true bug report, it works
+    // fine") - a store's acknowledgement decides nothing, the read-back does,
+    // so no leg lands it. A deliberate retirement of one, not a collapse into
+    // a neighbour: three bodies, three clauses, pairwise distinct.
     const union = /export type InstallPhase =([^;]+);/.exec(
       code("src/lib/device/install.svelte.ts"),
     );
@@ -1652,12 +1658,17 @@ describe("the device UI's structural rules", () => {
     const phases = [
       ...(union as RegExpExecArray)[1].matchAll(/"([^"]+)"/g),
     ].map((m) => m[1] as InstallPhase);
-    expect(phases.length, "fifteen phases (fourteen until plan 10-12)").toBe(
-      15,
-    );
+    expect(
+      phases.length,
+      "fourteen phases (fifteen from 10-12 to 2026-09-16)",
+    ).toBe(14);
+    expect(
+      phases,
+      "the store's unconfirmed left by the user's word",
+    ).not.toContain("unconfirmed");
 
     // Every phase renders, in one of two places since 13.1-06 (13.1-CONTEXT
-    // D-06): the seven failure-shaped phases by a case of their own in the
+    // D-06): the six failure-shaped phases by a case of their own in the
     // destination zone's phase-to-builder mapping - the block with its
     // steps under the bar's row - and the six success phases by the bar's
     // device clause alone (their bodies retired with InstallState.svelte;
@@ -1668,7 +1679,6 @@ describe("the device UI's structural rules", () => {
     const zone = code(componentPath("DestinationZone.svelte"));
     const cased = phases.filter((p) => zone.includes(`case "${p}":`));
     const FAILURE_SHAPED = [
-      "unconfirmed",
       "kept-mismatch",
       "partial",
       "nothing-landed",
@@ -1678,7 +1688,7 @@ describe("the device UI's structural rules", () => {
     ];
     expect(
       [...cased].sort(),
-      "the seven failure-shaped phases each have a case of their own in the zone's mapping - a name missing here is a phase collapsed into a neighbour, a name added is a success phase that grew a body it should not have",
+      "the six failure-shaped phases each have a case of their own in the zone's mapping - a name missing here is a phase collapsed into a neighbour, a name added is a success phase that grew a body it should not have",
     ).toEqual([...FAILURE_SHAPED].sort());
     expect(zone).toContain("writing ? heldPhase : install.phase");
     expect(zone).toContain('aria-busy={writing ? "true" : undefined}');
@@ -1717,15 +1727,11 @@ describe("the device UI's structural rules", () => {
       "snapshot-failed",
     ]);
 
-    // THE FOUR UNCERTAIN PHASES: four cases calling four DIFFERENT builders,
-    // whose titles are pairwise distinct. Section 16 offers one sentence for
-    // all of them; HANGAR measured four outcomes and keeps four bodies.
-    const uncertain = [
-      "unconfirmed",
-      "kept-mismatch",
-      "partial",
-      "nothing-landed",
-    ];
+    // THE THREE UNCERTAIN PHASES: three cases calling three DIFFERENT
+    // builders, whose titles are pairwise distinct. Section 16 offers one
+    // sentence for all of them; HANGAR measured four outcomes and kept four
+    // bodies until the user retired the store's unconfirmed (above).
+    const uncertain = ["kept-mismatch", "partial", "nothing-landed"];
     expect([...UNCERTAIN_PHASES].sort()).toEqual([...uncertain].sort());
     const builderOf = (phase: string): string | undefined => {
       const at = zone.indexOf(`case "${phase}":`);
@@ -1737,14 +1743,8 @@ describe("the device UI's structural rules", () => {
     expect(
       builders,
       "each uncertain phase renders through its own block builder in the zone",
-    ).toEqual([
-      "unconfirmedBlock",
-      "keptMismatchBlock",
-      "partialBlock",
-      "nothingLandedBlock",
-    ]);
+    ).toEqual(["keptMismatchBlock", "partialBlock", "nothingLandedBlock"]);
     const titles = [
-      unconfirmedBlock("x", 0).title,
       keptMismatchBlock(0).title,
       partialBlock(
         "The system timer and the page init",
@@ -1755,13 +1755,13 @@ describe("the device UI's structural rules", () => {
     ];
     expect(
       new Set(titles).size,
-      "four distinct titles - two uncertain outcomes read as one sentence",
-    ).toBe(4);
+      "three distinct titles - two uncertain outcomes read as one sentence",
+    ).toBe(3);
     const missing = uncertain.filter((p, i) => builders[i] === undefined);
     expect(missing, "an uncertain phase lost its body").toEqual([]);
 
     // THE BAR'S DEVICE CLAUSE: every phase but idle has one, the same words as
-    // the block under the bar's row, and the four uncertain clauses differ.
+    // the block under the bar's row, and the three uncertain clauses differ.
     const clauses = new Map(
       phases.map((p) => [p, deviceClause(p, 1)] as const),
     );
@@ -1772,8 +1772,8 @@ describe("the device UI's structural rules", () => {
     }
     expect(
       new Set(uncertain.map((p) => clauses.get(p as InstallPhase))).size,
-      "the four uncertain clauses are pairwise distinct",
-    ).toBe(4);
+      "the three uncertain clauses are pairwise distinct",
+    ).toBe(3);
     expect(clauses.get("settled")).toBe(settledCaption(1));
     expect(clauses.get("kept")).toBe(keptCaption(1));
     expect(clauses.get("cleared")).toBe(clearedCaption(1));

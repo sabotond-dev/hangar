@@ -16,6 +16,23 @@
 // Each entry keeps its heading and its names; the argument is in the SUMMARY
 // it points at (13.2-CONTEXT D-05).
 //
+// THE UNCONFIRMED STORE'S STRINGS ARE RETIRED BY NAME, 2026-09-16
+// (BENCH-2026-09-16.txt section 3, the user's word: "remove this, this is not
+// a true bug report, it works fine"): UNCONFIRMED_TITLE (`Your ZONA didn’t
+// confirm the store`), unconfirmedBlock (its detail `N is still running on
+// Page N in memory. No confirmation of the store came back, so HANGAR can’t
+// say whether it survives power-off.` and its two steps, `Click Store on ZONA
+// to send the store again` and stepOrClear) and FIRMWARE_DEFAULT_NAME (`The
+// firmware default`, the name a clear's unconfirmed row read). The phase
+// `unconfirmed` left the install store's union with them: a store's
+// acknowledgement decides nothing, the read-back does, so a late or missing
+// PAGESTORE/ACKNOWLEDGE lands `kept` (or `cleared`) when the page reads back
+// as sent and `kept-mismatch` when it reads back different. keptMismatchBlock's
+// detail no longer says the store was acknowledged (it may not have been).
+// restoredUnconfirmedBlock stays: the probe's put-back on a read-back that
+// never matches, and the discard. SAFE-07's "acknowledged" is the next gate's
+// to amend for the store leg.
+//
 // THE STORE CONFIRMATION'S STRINGS ARE RETIRED BY NAME, 2026-09-16
 // (BENCH-2026-09-16.txt section 2, the user's word: "no opting when pressing
 // ZONA, nothing opens down under storing, it just stores it with one click"):
@@ -209,27 +226,26 @@ export const settledCaption = (page: number): string =>
 export const restoredCaption = (page: number): string =>
   `${pageName(page)} put back`;
 
-/** Section 16's own line for a confirmed store. Renders only after the acknowledgement AND the re-fetch proof (D-12). */
+/** Section 16's own line for a proved store. Renders only after the re-fetch proof (D-12); the acknowledgement is not waited on since 2026-09-16 (change 3). */
 export const keptCaption = (page: number): string =>
   `Stored on ZONA · ${pageName(page)}`;
 
 /**
  * The reset landed AND was stored (I.4.16; the store said since round 4c,
- * 2026-09-12): spoken only after the PAGESTORE acknowledgement and the re-fetch
- * proof, as keptCaption's is (D-12). Ledgered in 13.1-COPY-NEW.md.
+ * 2026-09-12): spoken only after the re-fetch proof, as keptCaption's is
+ * (D-12). Ledgered in 13.1-COPY-NEW.md.
  */
 export const clearedCaption = (page: number): string =>
   `${pageName(page)} reset to its firmware default and stored`;
 
 // ---------------------------------------------------------------------------
-// The six uncertain outcomes and the lost cable: six titles, on purpose (D-23;
-// section I.5 of the batch - each has its own recovery, so each has its own
-// title and steps). Titles end in a letter; announceTitle adds the full stop.
-// `name` is interpolated raw and never re-cased: the catalog's names are the
-// form the panel shows.
+// The five uncertain outcomes and the lost cable: six titles, on purpose (D-23
+// kept six uncertain; the store's unconfirmed left on 2026-09-16, the ledger
+// above; section I.5 of the batch - each has its own recovery, so each has its
+// own title and steps). Titles end in a letter; announceTitle adds the full
+// stop. `name` is interpolated raw and never re-cased where a builder takes one.
 
 const KEPT_MISMATCH_TITLE = "Stored, but what read back doesn’t match";
-const UNCONFIRMED_TITLE = "Your ZONA didn’t confirm the store";
 const RESTORED_UNCONFIRMED_TITLE = "Put back in memory, not yet stored";
 const NOTHING_LANDED_TITLE = "Nothing reached your ZONA";
 const PARTIAL_TITLE = "Only part of this reached your ZONA";
@@ -245,21 +261,16 @@ const SNAPSHOT_FAILED_TITLE = "Nothing copied yet";
 export const stepOrClear = (page: number): string =>
   `Or click ${CLEAR_LABEL} to return ${pageName(page)} to its firmware default`;
 
-/** The store was acknowledged and the read-back differs (I.5.2). */
+/**
+ * The read-back after the store differs (I.5.2). Since 2026-09-16 (change 3)
+ * the detail does not say the store was acknowledged: the leg no longer
+ * waits on that, so the sentence names only what HANGAR read.
+ */
 export function keptMismatchBlock(page: number): InstallBlock {
   return {
     title: KEPT_MISMATCH_TITLE,
-    detail: `Your ZONA acknowledged the store, but reading ${pageName(page)} back gave something different. HANGAR won’t call that stored.`,
+    detail: `Reading ${pageName(page)} back after the store gave something different. HANGAR won’t call that stored.`,
     steps: [`Click ${KEEP_LABEL} again`, stepOrClear(page)],
-  };
-}
-
-/** The store's acknowledgement never came inside the retry bound (I.5.1). */
-export function unconfirmedBlock(name: string, page: number): InstallBlock {
-  return {
-    title: UNCONFIRMED_TITLE,
-    detail: `${name} is still running on ${pageName(page)} in memory. No confirmation of the store came back, so HANGAR can’t say whether it survives power-off.`,
-    steps: [`Click ${KEEP_LABEL} to send the store again`, stepOrClear(page)],
   };
 }
 
@@ -398,14 +409,6 @@ export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
  */
 export const clearLine = (page: number): string =>
   `Returns ${pageName(page)} to its firmware default and stores it, so it stays after power-off. Your browser draft stays as it is.`;
-
-/**
- * What a clear leaves running in memory when its store never acknowledged
- * (round 4c, 2026-09-12): the store sets it as `name`, so unconfirmedBlock's
- * one row says the firmware default is what runs rather than the route's
- * entry. Ledgered in 13.1-COPY-NEW.md.
- */
-export const FIRMWARE_DEFAULT_NAME = "The firmware default";
 
 /** The three reasons, closed like KeepReason. */
 export type ClearReason = "no-snapshot" | "no-session" | "incapable";

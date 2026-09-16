@@ -67,7 +67,6 @@ import {
   type ZonaState,
 } from "../transport/fixtures/synthetic";
 import {
-  FIRMWARE_DEFAULT_NAME,
   KEEP_LABEL,
   LIVE_STILL_WRITING,
   announceTitle,
@@ -82,7 +81,6 @@ import {
   partialBlock,
   restoredUnconfirmedBlock,
   snapshotFailedBlock,
-  unconfirmedBlock,
 } from "./install-copy";
 import {
   type ConfigStrings,
@@ -548,11 +546,12 @@ type Rig = Awaited<ReturnType<typeof connected>>;
 
 /**
  * Run an action with a store leg the way the module would let it run: the
- * PAGESTORE goes out, and once its acknowledgement is recorded the cable's
- * heartbeats are fed - after a 20 ms pause in which a store that did NOT wait
- * for them would already have re-fetched. Returns the clock reading the
- * heartbeats were fed at, or undefined when the leg ended without one (a
- * store that never acknowledged, a refusal).
+ * PAGESTORE goes out, and once its request is recorded - acknowledged, or
+ * timed out at its bound (the leg proceeds to the proof either way since
+ * 2026-09-16, change 3) - the cable's heartbeats are fed, after a 20 ms
+ * pause in which a store that did NOT wait for them would already have
+ * re-fetched. Returns the clock reading the heartbeats were fed at, or
+ * undefined when the leg ended without one (a refusal, a RAM leg's failure).
  */
 async function throughStore(
   rig: Rig,
@@ -560,14 +559,17 @@ async function throughStore(
 ): Promise<number | undefined> {
   const finish = begin(action);
   await settle();
-  const acknowledged = () =>
-    rig.store.steps.some((s) => s.id === "store" && s.outcome === "ok");
+  const requested = () =>
+    rig.store.steps.some(
+      (s) =>
+        s.id === "store" && (s.outcome === "ok" || s.outcome === "timeout"),
+    );
   await until(
-    () => acknowledged() || rig.store.phase !== "writing",
-    "the store acknowledgement or a failure",
+    () => requested() || rig.store.phase !== "writing",
+    "the store request to settle or a failure",
   );
   let fedAt: number | undefined;
-  if (rig.store.phase === "writing" && acknowledged()) {
+  if (rig.store.phase === "writing" && requested()) {
     await after(20);
     fedAt = clock.t;
     rig.heartbeat();
@@ -1620,7 +1622,16 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(session.speech.endsWith(".")).toBe(true);
   });
 
-  it("a store that never acknowledges is unconfirmed, and Store on ZONA stays live", async () => {
+  it("a late acknowledgement lands kept when the read-back matches", async () => {
+    // 2026-09-16, change 3 (BENCH-2026-09-16.txt section 3, the user's word:
+    // a store the bench saw survive power-off was reported as unconfirmed).
+    // The fault drops every PAGESTORE acknowledgement and nothing else: the
+    // scripted module stores on the first attempt, as firmware does, and
+    // HANGAR hears nothing back. The request runs to its bound - three
+    // attempts at pagestoreMs with two backoffs - and then the leg does what
+    // it always did after an acknowledgement: waits for the heartbeat and
+    // reads the page back. Five for five, so `kept`; the timeout is a step in
+    // the capture and nothing in the phase.
     const rig = await connected({
       faults: [
         {
@@ -1629,15 +1640,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         },
       ],
     });
-    const { store, session, writesOf } = rig;
+    const { store, state, session, writesOf } = rig;
     store.observeConfig(PAIR);
     const started = clock.t;
     const fedAt = await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
-    // The two RAM legs land at speed; then three bounded attempts at
-    // pagestoreMs each, two backoffs between, and no heartbeat was ever
-    // waited for because no acknowledgement came.
-    expect(fedAt).toBeUndefined();
+    expect(fedAt, "a heartbeat was waited for after the timeout").toBeDefined();
     expect(clock.t - started).toBeGreaterThanOrEqual(
       RETRY_ATTEMPTS * TIMEOUTS.pagestoreMs +
         retryBackoffMs(0) +
@@ -1648,28 +1656,34 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(outcomes(store.steps)).toEqual([
       ...STORE_CLICK_STEPS.slice(0, 12),
       ["store", "timeout"],
+      ...STORE_CLICK_STEPS.slice(13),
     ]);
     expect(store.steps[12].attempts).toBe(RETRY_ATTEMPTS);
+    // The re-fetch went out strictly after the heartbeat was fed.
+    expect(store.steps[13].sentAt).toBeGreaterThanOrEqual(
+      fedAt ?? Number.POSITIVE_INFINITY,
+    );
+    expect(store.refetchRounds, "one matching round").toBe(1);
 
-    expect(store.phase).toBe("unconfirmed");
-    expect(store.cause).toBe("timeout");
-    expect(store.storedThisSession).toBe(false);
-    // Memory holds the pair - the block names it - so the store may be sent
-    // again: armed, no reason in the record.
+    expect(store.phase).toBe("kept");
+    expect(store.cause).toBeUndefined();
+    expect(store.storedThisSession).toBe(true);
     expect(store.lastWritten).toEqual(PAIR);
     expect(store.name).toBe("Aurora");
-    expect(store.armed).toBe(true);
-    expect(store.keepReason(true)).toBeUndefined();
+    expect(store.keepReason(true), "the pair is on the module").toBe(
+      "already-kept",
+    );
     expect(store.putBackState()).toBe("enabled");
     expect(store.slow, "the slow line is cleared with the leg").toBe(false);
     expect(session.writeLock).toBe(false);
+    // What the fake's flash holds is what HANGAR read back.
+    expect(state.flash?.[EVENT_SETUP]).toBe(PAIR.setup);
+    expect(state.flash?.[EVENT_TIMER]).toBe(PAIR.timer);
     await after(500);
-    expect(session.speech).toBe(
-      announceTitle(unconfirmedBlock("Aurora", ACTIVE_PAGE).title),
-    );
+    expect(session.speech).toBe(liveKept(ACTIVE_PAGE));
   });
 
-  it("after a keep, PUT BACK stores too; when its store never confirms, it is restored-unconfirmed", async () => {
+  it("after a keep, PUT BACK stores too; when its read-back never matches, it is restored-unconfirmed", async () => {
     // Part one: the store lands and is proved.
     const rig = await connected();
     const { store, fake, state, session, writesOf } = rig;
@@ -1736,13 +1750,43 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       1,
     );
 
-    // Part two: a fresh rig whose flash never confirms the put-back's store.
-    // Faults are fixed at construction, and a STORE leg is one write per
-    // attempt - so this one is unmoved by 12-03: the keep takes
-    // acknowledgement 1, and the put-back's three attempts are 2, 3 and 4,
-    // listed DESCENDING (see dropThreeAcksFrom and the header).
+    // Part two: a fresh rig whose put-back store never acknowledges AND
+    // whose page reads back different afterwards. Since 2026-09-16 (change 3)
+    // the dropped acknowledgement decides nothing - the leg runs its request
+    // to the bound, waits for the heartbeat and reads the page back - so it
+    // is the read-back that lands `restored-unconfirmed` here, with the cause
+    // `mismatch`. The keep takes acknowledgement 1; the put-back's three
+    // attempts are 2, 3 and 4, listed DESCENDING (see dropThreeAcksFrom and
+    // the header); after the second PAGESTORE every fetch of the touch Setup
+    // answers something other than the original.
+    let stores = 0;
     const second = await connected({
       faults: dropThreeAcksFrom("PAGESTORE", 2),
+      wrap: (inner) => (outbound, requestId) => {
+        const p = outbound.class_parameters;
+        if (
+          stores >= 2 &&
+          outbound.class_name === "CONFIG" &&
+          outbound.class_instr === "FETCH" &&
+          Number(p.ELEMENTNUMBER) === ELEMENT_TOUCH &&
+          Number(p.EVENTTYPE) === EVENT_SETUP
+        ) {
+          return [
+            configReportFrame({
+              sx: 0,
+              sy: 0,
+              page: Number(p.PAGENUMBER),
+              event: EVENT_SETUP,
+              config: "--[[@cb]]print(9)",
+              element: ELEMENT_TOUCH,
+            }),
+          ];
+        }
+        const replies = inner(outbound, requestId);
+        if (outbound.class_name === "PAGESTORE") stores++;
+        return replies;
+      },
+      sleep: async () => {},
     });
     await storedOn(second);
     expect(second.store.phase).toBe("kept");
@@ -1759,20 +1803,25 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
       ["store", "timeout"],
+      ...STORE_CLICK_STEPS.slice(13),
+      ...STORE_CLICK_STEPS.slice(13),
+      ...STORE_CLICK_STEPS.slice(13),
     ]);
+    expect(second.store.refetchRounds).toBe(3);
     expect(second.store.phase).toBe("restored-unconfirmed");
-    expect(second.store.cause).toBe("timeout");
+    expect(second.store.cause).toBe("mismatch");
     expect(
       second.store.storedThisSession,
       "still set: the store did not prove",
     ).toBe(true);
     expect(second.store.putBackState()).toBe("enabled");
     expect(second.store.keepReason(true), "the store is live").toBeUndefined();
-    // RAM is the original. The fake's flash is not asserted: zonaResponder
-    // stores before the fault drops its acknowledgement, so what the fake's
-    // flash holds is exactly what HANGAR cannot know - the sentence I12 speaks.
+    // RAM is the original; the fake's flash took it too (the store ran before
+    // its acknowledgement was dropped) - the READ-BACK is what lied, which is
+    // the one thing this phase now stands for.
     expect(second.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
     expect(second.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
+    expect(second.state.flash?.[EVENT_SETUP]).toBe(MODULE_SETUP);
     await after(500);
     expect(second.session.speech).toBe(
       announceTitle(restoredUnconfirmedBlock(ACTIVE_PAGE).title),
@@ -2678,13 +2727,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
   });
 
-  it("a clear whose store never acknowledges is unconfirmed with the firmware default named, Store on ZONA reads never-tried, and the RAM leg alone never stores", async () => {
-    // Part one: the store's acknowledgement is dropped on every attempt.
-    // Three bounded attempts at pagestoreMs, no heartbeat waited for, and
-    // the phase is `unconfirmed` - with the block's name set to the firmware
-    // default, because that is what the RAM leg left running in memory,
-    // and Store on ZONA disabled for the first-apply reason (no knob moved;
-    // there is nothing of the visitor's on the module to store).
+  it("a clear whose store never acknowledges is cleared once the read-back matches, different bytes land kept-mismatch, and a read-back that never answers is cleared by the user's word", async () => {
+    // 2026-09-16, change 3 (BENCH-2026-09-16.txt section 3): the store's
+    // acknowledgement decides nothing on a clear either. PART ONE: every
+    // PAGESTORE acknowledgement is dropped and nothing else is; the scripted
+    // module stored the defaults on the first attempt, the request runs to
+    // its bound (three attempts at pagestoreMs), the heartbeat is waited for
+    // and the five defaults read back - `cleared`, storedThisSession set, no
+    // name (nothing of the visitor's is on the module), Store on ZONA live.
     const rig = await connected({
       faults: [
         {
@@ -2697,7 +2747,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await triedOn(rig);
     const fedAt = await throughStore(rig, store.clearToDefault());
 
-    expect(fedAt).toBeUndefined();
+    expect(fedAt, "a heartbeat was waited for after the timeout").toBeDefined();
     expect(writesOf("PAGESTORE", "EXECUTE")).toBe(RETRY_ATTEMPTS);
     expect(outcomes(store.steps)).toEqual([
       ["write-system-timer", "ok"],
@@ -2707,42 +2757,128 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       ["write-setup", "ok"],
       ["restore-page-change", "sent"],
       ["store", "timeout"],
+      ...STORE_CLICK_STEPS.slice(13),
     ]);
-    expect(store.phase).toBe("unconfirmed");
+    expect(store.phase).toBe("cleared");
     expect(store.action).toBe("clear");
-    expect(store.cause).toBe("timeout");
-    expect(store.storedThisSession).toBe(false);
-    expect(store.name, "the block names what is running").toBe(
-      FIRMWARE_DEFAULT_NAME,
-    );
+    expect(store.cause).toBeUndefined();
+    expect(store.storedThisSession, "the read-back is the proof").toBe(true);
+    expect(store.name).toBeUndefined();
     expect(store.lastWritten).toBeUndefined();
-    expect(store.armed, "Store is live from unconfirmed").toBe(true);
+    expect(store.armed, "Store is live from cleared").toBe(true);
     expect(
       store.keepReason(true),
-      "no row: the store is the retry, and nothing of the visitor's is on the module to be already kept",
+      "no row: nothing of the visitor's is on the module to be already kept",
     ).toBeUndefined();
-    expect(store.clearEnabled(true), "Clear is the retry").toBe(true);
+    expect(store.clearEnabled(true)).toBe(true);
     expect(state.configs[EVENT_SETUP], "the RAM leg did land").toBe(
       TOUCH_DEFAULT_SETUP,
     );
-    // The fault drops the ACKNOWLEDGE, not the store: the scripted module
-    // took the default into flash and HANGAR cannot know that. Saying
-    // `unconfirmed` on what it heard is the whole of SAFE-07 on this leg.
     expect(
       state.flash?.[EVENT_SETUP],
-      "the module stored; HANGAR heard nothing",
+      "the module stored, and the read-back is how HANGAR knows",
     ).toBe(TOUCH_DEFAULT_SETUP);
     await after(500);
-    expect(session.speech).toBe(
-      announceTitle(unconfirmedBlock(FIRMWARE_DEFAULT_NAME, ACTIVE_PAGE).title),
+    expect(session.speech).toBe(liveCleared(ACTIVE_PAGE));
+
+    // PART TWO: the same dropped acknowledgements, and after the store every
+    // fetch of the touch Setup answers something other than the default that
+    // was sent. The bytes decide: `kept-mismatch`, cause `mismatch`, after
+    // three rounds - the same landing as an acknowledged store that reads
+    // back different (the title above), never `cleared`.
+    let stored = false;
+    const lying = await connected({
+      faults: [
+        {
+          kind: "drop",
+          match: { class_name: "PAGESTORE", class_instr: "ACKNOWLEDGE" },
+        },
+      ],
+      wrap: (inner) => (outbound, requestId) => {
+        const p = outbound.class_parameters;
+        if (
+          stored &&
+          outbound.class_name === "CONFIG" &&
+          outbound.class_instr === "FETCH" &&
+          Number(p.ELEMENTNUMBER) === ELEMENT_TOUCH &&
+          Number(p.EVENTTYPE) === EVENT_SETUP
+        ) {
+          return [
+            configReportFrame({
+              sx: 0,
+              sy: 0,
+              page: Number(p.PAGENUMBER),
+              event: EVENT_SETUP,
+              config: "--[[@cb]]print(9)",
+              element: ELEMENT_TOUCH,
+            }),
+          ];
+        }
+        const replies = inner(outbound, requestId);
+        if (outbound.class_name === "PAGESTORE") stored = true;
+        return replies;
+      },
+      sleep: async () => {},
+    });
+    await triedOn(lying);
+    await throughStore(lying, lying.store.clearToDefault());
+    expect(lying.writesOf("PAGESTORE", "EXECUTE")).toBe(RETRY_ATTEMPTS);
+    expect(outcomes(lying.store.steps).slice(6, 7)).toEqual([
+      ["store", "timeout"],
+    ]);
+    expect(lying.store.refetchRounds, "three rounds, then the answer").toBe(3);
+    expect(lying.store.phase).toBe("kept-mismatch");
+    expect(lying.store.action).toBe("clear");
+    expect(lying.store.cause).toBe("mismatch");
+    expect(lying.store.storedThisSession, "not called stored").toBe(false);
+    expect(lying.store.armed, "the store is the retry").toBe(true);
+    await after(500);
+    expect(lying.session.speech).toBe(
+      announceTitle(keptMismatchBlock(ACTIVE_PAGE).title),
     );
-    // And an apply from here puts the entry's name back on the block's
-    // path: the action moves, so the eighth row no longer matches.
-    store.observeConfig(PAIR);
-    await drive(store.tryOnDevice(PAIR, "Aurora"));
-    expect(store.phase).toBe("settled");
-    expect(store.name).toBe("Aurora");
-    expect(store.keepReason(true)).toBeUndefined();
+
+    // PART THREE: the store is acknowledged, and then the module answers no
+    // fetch at all. Each round's first fetch runs to its own bound and the
+    // round is skipped for the next; three rounds with no bytes read back
+    // land `cleared` - the user's word is that the store works, and a
+    // read-back that never completed has nothing to hold against it.
+    let quiet = false;
+    const silent = await connected({
+      wrap: (inner) => (outbound, requestId) => {
+        if (
+          quiet &&
+          outbound.class_name === "CONFIG" &&
+          outbound.class_instr === "FETCH"
+        ) {
+          return [];
+        }
+        const replies = inner(outbound, requestId);
+        if (outbound.class_name === "PAGESTORE") quiet = true;
+        return replies;
+      },
+      sleep: async () => {},
+    });
+    await triedOn(silent);
+    await throughStore(silent, silent.store.clearToDefault());
+    expect(silent.writesOf("PAGESTORE", "EXECUTE")).toBe(1);
+    expect(outcomes(silent.store.steps)).toEqual([
+      ["write-system-timer", "ok"],
+      ["write-system", "ok"],
+      ["write-system-utility", "ok"],
+      ["write-timer", "ok"],
+      ["write-setup", "ok"],
+      ["restore-page-change", "sent"],
+      ["store", "ok"],
+      ["refetch-system-timer", "timeout"],
+      ["refetch-system-timer", "timeout"],
+      ["refetch-system-timer", "timeout"],
+    ]);
+    expect(silent.store.refetchRounds, "three rounds, none read back").toBe(3);
+    expect(silent.store.phase).toBe("cleared");
+    expect(silent.store.cause).toBeUndefined();
+    expect(silent.store.storedThisSession).toBe(true);
+    await after(500);
+    expect(silent.session.speech).toBe(liveCleared(ACTIVE_PAGE));
   });
 
   it("a clear whose second acknowledgement never comes is partial, never cleared", async () => {
@@ -2811,7 +2947,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.clearEnabled(true)).toBe(true);
   });
 
-  it("no snapshot, no clear - and the fifteen-row enablement table", async () => {
+  it("no snapshot, no clear - and the fourteen-row enablement table", async () => {
     // SAFE-03 BY CONSTRUCTION, over the one state that produces it honestly:
     // the module answers a fetch of a non-active page with an empty string,
     // canWriteBack (src/lib/protocol/write-guard.ts) refuses it, and the phase
@@ -2844,9 +2980,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // its own reason.
     expect(refused.store.clearReason(false)).toBe("incapable");
 
-    // The whole partition, over every phase the machine has. A sixteenth phase
+    // The whole partition, over every phase the machine has. A fifteenth phase
     // added without a row here fails on the source scan below rather than
-    // quietly defaulting to disabled.
+    // quietly defaulting to disabled (fifteen until 2026-09-16, when the
+    // store's `unconfirmed` left by the user's word - change 3).
     const ENABLED: InstallPhase[] = [
       "ready",
       "settled",
@@ -2855,7 +2992,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "cleared",
       "partial",
       "nothing-landed",
-      "unconfirmed",
       "kept-mismatch",
       "restored-unconfirmed",
     ];
@@ -2866,7 +3002,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "lost",
       "snapshot-failed",
     ];
-    expect(ENABLED.length + DISABLED.length, "fifteen states").toBe(15);
+    expect(ENABLED.length + DISABLED.length, "fourteen states").toBe(14);
 
     const declaration = stripComments(sourceOf("./install.svelte.ts"));
     const union = declaration.slice(
@@ -2923,7 +3059,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       );
     }
     // And the snapshot term dominates the phase term: with no copy of the
-    // module, not one of the fifteen enables the control.
+    // module, not one of the fourteen enables the control.
     store.snapshot = undefined;
     for (const phase of [...ENABLED, ...DISABLED]) {
       store.phase = phase;
@@ -3306,7 +3442,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     }
   });
 
-  it("CLEAR writes five defaults and PUT BACK five originals in SLOTS order, the classifier reads the first, the third and the fourth write, and the phase list is 13-12's", async () => {
+  it("CLEAR writes five defaults and PUT BACK five originals in SLOTS order, the classifier reads the first, the third and the fourth write, and the phase list is 13-12's less the store's unconfirmed", async () => {
     // THE FOURTH STRING, END TO END (12.1-07, SAFE-03 / SAFE-05 / SAFE-07),
     // AND THE FIFTH (13-17):
     // one test that reads the write order OFF THE LIST rather than from a
@@ -3440,9 +3576,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
     expect(fourth.store.failed).toBe("the Timer and the Setup");
 
-    // 13-12'S STATES ARE UNTOUCHED: WRITABLE_PHASES is byte-identical to the
-    // list as 13-12 left it (read from HEAD 98e3868 at this plan's start and
-    // pinned here as text), and the fifteen-phase union still has fifteen.
+    // 13-12'S STATES, LESS ONE: WRITABLE_PHASES is the list as 13-12 left it
+    // (read from HEAD 98e3868 at this plan's start and pinned here as text)
+    // with `unconfirmed` gone - the user's word on 2026-09-16 (change 3,
+    // BENCH-2026-09-16.txt section 3) - and the union has fourteen.
     const source = sourceOf("./install.svelte.ts");
     const list = source.match(
       /const WRITABLE_PHASES: readonly InstallPhase\[\] = \[[^\]]*\];/,
@@ -3460,7 +3597,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         '  "cleared",',
         '  "partial",',
         '  "nothing-landed",',
-        '  "unconfirmed",',
         '  "kept-mismatch",',
         '  "restored-unconfirmed",',
         "];",
@@ -3470,8 +3606,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(union, "the phase union is declared").not.toBeNull();
     expect(
       (union?.[1].match(/\| "/g) ?? []).length,
-      "fifteen phases, as 13-12 left them",
-    ).toBe(15);
+      "fourteen phases: 13-12's fifteen less the store's unconfirmed",
+    ).toBe(14);
   });
 
   // -------------------------------------------------------------------------

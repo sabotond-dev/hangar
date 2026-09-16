@@ -28,7 +28,6 @@
     partialBlock,
     restoredUnconfirmedBlock,
     snapshotFailedBlock,
-    unconfirmedBlock,
     type InstallBlock,
     type KeepReason,
   } from "$lib/device/install-copy";
@@ -136,19 +135,16 @@
     if (install.phase !== "writing") heldPhase = install.phase;
   });
   const shown: InstallPhase = $derived(writing ? heldPhase : install.phase);
-  /** The store's name from the click, else the caller's. */
-  const shownName = $derived(install.name ?? name);
   /**
-   * The seven failure-shaped phases, one builder each (device-ui.spec.ts reads that the
-   * four uncertain outcomes keep four bodies); the six success phases return nothing -
+   * The six failure-shaped phases, one builder each (device-ui.spec.ts reads that the
+   * three uncertain outcomes keep three bodies; the store's `unconfirmed` left on
+   * 2026-09-16, change 3); the six success phases return nothing -
    * their captions are the bar's device clause. The two restore phases are the
    * /dev/install/ probe's since 13.1-06. A Store's leg takes the store form of the
    * nothing-landed block; the header's Clear keeps the form it had.
    */
   const failure = $derived.by((): InstallBlock | undefined => {
     switch (shown) {
-      case "unconfirmed":
-        return unconfirmedBlock(shownName, page);
       case "kept-mismatch":
         return keptMismatchBlock(page);
       case "partial":

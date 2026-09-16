@@ -33,7 +33,6 @@
 import {
   type ClearReason,
   type FailedWords,
-  FIRMWARE_DEFAULT_NAME,
   KEEP_LABEL,
   type KeepReason,
   type LandedWords,
@@ -50,7 +49,6 @@ import {
   partialBlock,
   restoredUnconfirmedBlock,
   snapshotFailedBlock,
-  unconfirmedBlock,
 } from "./install-copy";
 import {
   PageTarget,
@@ -76,14 +74,17 @@ type CaptureStep = import("$lib/transport").CaptureStep;
 type DecodedClass = import("$lib/protocol").DecodedClass;
 
 /**
- * The fifteen states of 07-UI-SPEC's machine (fourteen until 10-12).
- * `cleared` is its own state: after a clear the module runs the firmware's
- * own default, which neither `settled` nor `restored` describes truthfully
- * (A-50, D-20). `snapshot-failed` is I9's cause 4; the other I9 causes are
- * read off the session, the tuner's budget and `snapshotting` / `writing`
- * by the component. Since 2026-09-16 `settled` is the /dev/install/ probe's
- * alone, like `restored`: no route reaches a RAM-only landing (the bar's
- * clause and the anti-collapse test keep it in the union by name).
+ * The fourteen states of 07-UI-SPEC's machine (fourteen until 10-12, fifteen
+ * until 2026-09-16). `cleared` is its own state: after a clear the module
+ * runs the firmware's own default, which neither `settled` nor `restored`
+ * describes truthfully (A-50, D-20). `snapshot-failed` is I9's cause 4; the
+ * other I9 causes are read off the session, the tuner's budget and
+ * `snapshotting` / `writing` by the component. Since 2026-09-16 `settled` is
+ * the /dev/install/ probe's alone, like `restored`: no route reaches a
+ * RAM-only landing (the bar's clause and the anti-collapse test keep it in
+ * the union by name). `unconfirmed` LEFT the union the same day
+ * (BENCH-2026-09-16.txt section 3, the user's word): a store's
+ * acknowledgement is not an outcome, the read-back is, so nothing lands it.
  */
 export type InstallPhase =
   | "idle"
@@ -98,7 +99,6 @@ export type InstallPhase =
   | "lost"
   | "snapshot-failed"
   | "kept-mismatch"
-  | "unconfirmed"
   | "restored-unconfirmed"
   | "nothing-landed";
 /** `discard` joined the four at 13-12: the firmware-native revert (the page-discard class), reachable from the probe only until the bench. */
@@ -124,8 +124,12 @@ export type ConfigStrings = {
   readonly setup: string;
   readonly timer: string;
 };
-/** What a store leg concluded; false means the connection is no longer ours and the phase is already set. */
-type StoreOutcome = "kept" | "mismatch" | "unconfirmed" | false;
+/**
+ * What a store leg concluded; false means the connection is no longer ours
+ * and the phase is already set. Two outcomes since 2026-09-16 (change 3):
+ * the read-back decides, the acknowledgement does not.
+ */
+type StoreOutcome = "kept" | "mismatch" | false;
 
 export interface InstallEnv {
   /** Injected for node; defaults to a guarded read of the browser's local storage (Pitfall 9). */
@@ -157,7 +161,6 @@ const WRITABLE_PHASES: readonly InstallPhase[] = [
   "cleared",
   "partial",
   "nothing-landed",
-  "unconfirmed",
   "kept-mismatch",
   "restored-unconfirmed",
 ];
@@ -744,8 +747,8 @@ export class InstallStore {
    * Every other disabled moment - measuring, over budget, the snapshot or a
    * leg in flight, the page target not at rest - is `armed` false with no
    * sentence of this record's; the zone disables on `armed`. From `partial`,
-   * `kept-mismatch`, `unconfirmed`, `nothing-landed` and `cleared` the store
-   * IS the retry, so none of them is a row. `capable` is the session's (not
+   * `kept-mismatch`, `nothing-landed` and `cleared` the store IS the retry,
+   * so none of them is a row. `capable` is the session's (not
    * `unsupported`, not `insecure`).
    */
   keepReason(capable: boolean): KeepReason | undefined {
@@ -1036,9 +1039,11 @@ export class InstallStore {
    * strings through #ramLeg to the page they came from, then - after a keep
    * this session - the store leg and the same proof, with no confirmation
    * (Z-04); `leg` moves to `store` between them. Lands `restored` and clears
-   * `storedThisSession`; a store that did not prove lands
-   * `restored-unconfirmed` and leaves it set, so the next put-back stores
-   * again. LIVE_RESTORED is spoken once, on entry to `restored`.
+   * `storedThisSession`; a store whose read-back never matches lands
+   * `restored-unconfirmed` (kept by name: the discard lands it too) and
+   * leaves it set, so the next put-back stores again. Since 2026-09-16
+   * (change 3) a late acknowledgement alone lands nothing: the read-back
+   * decides. LIVE_RESTORED is spoken once, on entry to `restored`.
    */
   async putBack(): Promise<void> {
     const snapshot = this.snapshot;
@@ -1062,7 +1067,7 @@ export class InstallStore {
       if (outcome !== "kept") {
         this.#fail(
           "restored-unconfirmed",
-          outcome === "mismatch" ? "mismatch" : "timeout",
+          "mismatch",
           restoredUnconfirmedBlock(this.#page()).title,
         );
         return;
@@ -1085,9 +1090,11 @@ export class InstallStore {
    * Clear", so a page the Editor STORED does not come back after a power
    * cycle). One click, no confirmation (13.1 D-04). Lands `cleared` and sets
    * `storedThisSession` on a proved store; `kept-mismatch` (reused, the
-   * block's sentence is exactly true of a clear's store) when the rounds run
-   * out; `unconfirmed` with FIRMWARE_DEFAULT_NAME as the name when no ACK
-   * came; Store on ZONA is live from every one of them (the store is the retry).
+   * block's sentence is exactly true of a clear's store) when the read-back
+   * returns different bytes for every round. The acknowledgement decides
+   * nothing since 2026-09-16 (change 3; #storeLeg): a clear whose store
+   * never acknowledged but reads back as the five defaults is `cleared`.
+   * Store on ZONA is live from either (the store is the retry).
    *
    * Both elements are reset (D-21, 12-03): the line beside the control names
    * the whole page, and HANGAR writes the system element's three slots too.
@@ -1127,9 +1134,10 @@ export class InstallStore {
     const outcome = await this.#storeLeg("clear", defaults);
     if (outcome === false) return;
     if (outcome === "kept") {
-      // SAFE-07 verbatim: `cleared` only through #ramLeg true (every
-      // CONFIG/ACKNOWLEDGE) AND #storeLeg kept (the PAGESTORE/ACKNOWLEDGE, the
-      // heartbeat, a matching round) - never a resolved writer promise.
+      // `cleared` only through #ramLeg true (every CONFIG/ACKNOWLEDGE) AND
+      // #storeLeg kept (the heartbeat, then the module's own page read back
+      // as the five defaults) - never a resolved writer promise. SAFE-07's
+      // "acknowledged" is retired for the store leg (2026-09-16, change 3).
       this.storedThisSession = true;
       this.cause = undefined;
       this.phase = "cleared";
@@ -1137,21 +1145,10 @@ export class InstallStore {
       this.#session.announce(liveCleared(this.#page()));
       return;
     }
-    if (outcome === "mismatch") {
-      this.#fail(
-        "kept-mismatch",
-        "mismatch",
-        keptMismatchBlock(this.#page()).title,
-      );
-      return;
-    }
-    // The RAM leg landed and the firmware default runs in memory; the block
-    // names it so, not the route's entry.
-    this.name = FIRMWARE_DEFAULT_NAME;
     this.#fail(
-      "unconfirmed",
-      "timeout",
-      unconfirmedBlock(FIRMWARE_DEFAULT_NAME, this.#page()).title,
+      "kept-mismatch",
+      "mismatch",
+      keptMismatchBlock(this.#page()).title,
     );
   }
 
@@ -1165,9 +1162,10 @@ export class InstallStore {
    * #systemStringOr - through #ramLeg again, then one PAGESTORE/EXECUTE
    * through #storeLeg and the proof (D-12): eighteen frames on the fake -
    * five writes, the restore heartbeat, five writes, the restore, the store,
-   * five fetches. Lands `kept` only after the proof, else `kept-mismatch` or
-   * `unconfirmed`; a RAM leg that fails lands `partial`, `nothing-landed` or
-   * `lost` as any RAM leg does, and stores nothing. One click and nothing
+   * five fetches. Lands `kept` only after the proof, else `kept-mismatch`
+   * (the acknowledgement decides nothing since 2026-09-16, change 3; the
+   * read-back does - #storeLeg); a RAM leg that fails lands `partial`,
+   * `nothing-landed` or `lost` as any RAM leg does, and stores nothing. One click and nothing
    * opens (BENCH-2026-09-16.txt section 2): refused unless the store is armed
    * and keepReason() names nothing; from `snapshot-failed` it reads the
    * module again first and writes only if that lands `ready`. The whole
@@ -1210,8 +1208,8 @@ export class InstallStore {
     this.lastWritten = undefined;
     this.name = undefined;
     if (!(await this.#ramLeg("keep", sent, true))) return;
-    // Memory holds the configuration: `unconfirmed` names it, and a store
-    // that proves lands `kept` over it.
+    // Memory holds the configuration; the already-kept row reads these two
+    // once the store proves.
     this.lastWritten = sent;
     this.name = name;
     const outcome = await this.#storeLeg("keep", sent);
@@ -1224,18 +1222,10 @@ export class InstallStore {
       this.#session.announce(liveKept(this.#page()));
       return;
     }
-    if (outcome === "mismatch") {
-      this.#fail(
-        "kept-mismatch",
-        "mismatch",
-        keptMismatchBlock(this.#page()).title,
-      );
-      return;
-    }
     this.#fail(
-      "unconfirmed",
-      "timeout",
-      unconfirmedBlock(name, this.#page()).title,
+      "kept-mismatch",
+      "mismatch",
+      keptMismatchBlock(this.#page()).title,
     );
   }
 
@@ -1245,10 +1235,22 @@ export class InstallStore {
    * pagestoreMs (3000 ms, from the descriptor), then the D-12 proof - the
    * ZONA's next heartbeat, then a re-fetch of all five strings for at most
    * REFETCH_ROUNDS rounds with retryBackoffMs between, `kept` on the first
-   * byte-identical set. `mismatch` when the rounds run out; `unconfirmed` on
-   * the queue's timeout (a store dropped under a bulk NVM operation answers
-   * with nothing, never a NACK, grid_decode.c:979-981); false when the link
-   * died (`lost` is already set) or the generation moved.
+   * byte-identical set. `mismatch` when a round read back different bytes
+   * and no round matched; false when the link died (`lost` is already set)
+   * or the generation moved.
+   *
+   * THE ACKNOWLEDGEMENT IS NOT WAITED ON FOR THE OUTCOME (2026-09-16,
+   * BENCH-2026-09-16.txt section 3, the user's word: a store the bench saw
+   * survive power-off was reported as unconfirmed). Firmware answers a
+   * PAGESTORE/EXECUTE only from the store's success callback, once the NVM
+   * write has finished (grid_decode.c:939-960), and drops the frame with no
+   * reply at all - never a NACK - while a bulk operation is running
+   * (:979-981; the callback itself starts one, the page reload, :958). So the
+   * request runs to its bound, its timeout is not an outcome, and the
+   * module's own page read back is the proof either way: a round that
+   * matches is `kept`; a round whose fetch goes unanswered or is refused (a
+   * fetch during the reload is NACKed, :1318-1333) is skipped for the next;
+   * and rounds that never completed at all land `kept` too, by that word.
    */
   async #storeLeg(
     action: InstallAction,
@@ -1269,35 +1271,54 @@ export class InstallStore {
     this.#session.writeLock = true;
     this.#armSlow();
     try {
-      await q.request(protocolLib.storePage(), "store");
+      // A timeout (or a refusal firmware never sends) falls through to the
+      // proof; only a dead link is rethrown.
+      await q
+        .request(protocolLib.storePage(), "store")
+        .catch((err: unknown) => {
+          if (err instanceof transportLib.AbortedError) throw err;
+        });
       if (gen !== this.#generation) return false;
       // The ACK is sent by the callback that STARTS the page reload
       // (grid_decode.c:947-961): wait for the heartbeat, then prove the bytes.
       await this.#nextHeartbeat();
       if (gen !== this.#generation) return false;
+      let readBack = false;
       for (let round = 0; round < REFETCH_ROUNDS; round++) {
-        const after = await transportLib.fetchAll(
-          q,
-          this.#session.identity ?? id,
-          "refetch",
-        );
+        let after: Awaited<ReturnType<Transport["fetchAll"]>> | undefined;
+        try {
+          after = await transportLib.fetchAll(
+            q,
+            this.#session.identity ?? id,
+            "refetch",
+          );
+        } catch (err) {
+          if (err instanceof transportLib.AbortedError) throw err;
+        }
         if (gen !== this.#generation) return false;
         this.refetchRounds = round + 1;
-        // Five for five, one per SLOTS row (12.1-07, 13-17), the way runNoOpCycle
-        // compares: a slot added to the list is compared here without a line.
-        if (
-          transportLib.SLOTS.every(
-            (slot) => after[slot.key].actionString === sent[slot.key],
-          )
-        ) {
-          return "kept";
+        if (after !== undefined) {
+          readBack = true;
+          // Five for five, one per SLOTS row (12.1-07, 13-17), the way
+          // runNoOpCycle compares: a slot added to the list is compared here
+          // without a line.
+          const set = after;
+          if (
+            transportLib.SLOTS.every(
+              (slot) => set[slot.key].actionString === sent[slot.key],
+            )
+          ) {
+            return "kept";
+          }
         }
         await this.#sleep(protocolLib.retryBackoffMs(round));
       }
-      return "mismatch";
+      return readBack ? "mismatch" : "kept";
     } catch (err) {
       // The link died under us: `lost` whatever the generation says (07-06's
-      // ordering, Pitfall 11); the store leg's form of the block.
+      // ordering, Pitfall 11); the store leg's form of the block. Nothing
+      // else is thrown on this path (the request and the fetches are caught
+      // above, the heartbeat wait rejects only on a disconnect).
       if (err instanceof transportLib.AbortedError) {
         this.#fail(
           "lost",
@@ -1306,8 +1327,7 @@ export class InstallStore {
         );
         return false;
       }
-      if (gen !== this.#generation) return false;
-      return "unconfirmed";
+      throw err;
     } finally {
       this.#disarmSlow();
       this.#inFlight = false;
@@ -1509,8 +1529,8 @@ export class InstallStore {
    * finally (Z-09): `slow` renders the one honest line and LIVE_STILL_WRITING
    * is said once. 2000 ms is roughly 90x the slowest CONFIG/EXECUTE observed
    * (21.6 ms), 50x the slowest PAGESTORE/ACKNOWLEDGE (38.7 ms), and below the
-   * 3000 ms pagestoreMs: the line says busy, only the timeout says failed
-   * (I11, I12). Never an interval.
+   * 3000 ms pagestoreMs: the line says busy, and a store's timeout says
+   * nothing since 2026-09-16 (the proof does). Never an interval.
    */
   #armSlow(): void {
     this.#disarmSlow();

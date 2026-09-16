@@ -299,3 +299,21 @@ whose writes were acknowledged lands `kept` when the read-back matches or when t
 acknowledgement is simply late or absent; only a read-back that returns DIFFERENT bytes still says
 so (kept-mismatch). SAFE-07's "acknowledged before done" is retired for the store leg by the user's
 word; the next gate amends it.
+
+### The strings change 3 wrote and retired, verbatim (D-05's register)
+
+Rewritten, in `src/lib/device/install-copy.ts`; the sample page is wire 1, read as `Page 2`:
+
+- `keptMismatchBlock.detail` (I.5.2 rewritten - the leg no longer waits on the acknowledgement,
+  so the sentence names only what HANGAR read):
+  `Reading Page 2 back after the store gave something different. HANGAR won’t call that stored.`
+  ~~`Your ZONA acknowledged the store, but reading Page 2 back gave something different. HANGAR won’t call that stored.`~~
+
+Retired by name (the ledger block in `install-copy.ts`, "THE UNCONFIRMED STORE'S STRINGS ARE
+RETIRED BY NAME, 2026-09-16"): `UNCONFIRMED_TITLE` (`Your ZONA didn’t confirm the store`),
+`unconfirmedBlock` (detail `Arc is still running on Page 2 in memory. No confirmation of the store
+came back, so HANGAR can’t say whether it survives power-off.`; steps `Click Store on ZONA to send
+the store again`, `Or click Clear to return Page 2 to its firmware default` - the shared step stays
+as `stepOrClear`), `FIRMWARE_DEFAULT_NAME` (`The firmware default`, the name a clear's unconfirmed
+row read). Kept by name: `restoredUnconfirmedBlock` and `RESTORED_UNCONFIRMED_TITLE` (the probe's
+put-back on a read-back that never matches, and the discard).
