@@ -1,0 +1,124 @@
+# 13.2 gate --after change-1 --against change-1 --check 655
+HEAD b43b0b0 (b43b0b0dc8cbab0a709cf5d781285493dbe58011); dirty (src e2e scripts docs) 1; free memory 2.82 GB; 2026-09-16T10:08:22Z
+before-record HEAD f30489168255554dc73f9efdf8fd922acbd5ebd9
+
+## the wire
+1735 strings from 18 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+192 files; 2713 distinct literals (6329 occurrences); 7 copy modules; 319 data-testids
+literal census sha256 b807b2bfac2ffb158c1e342308385d300621dbcb797d210ad9c4522b4fca501f
+copy exports   sha256 1ad9d1df67c1ab570a6a2fe0274cd43b72fd7377ebb63f785e28720ac170d736
+data-testids   sha256 2200a0d8f77ca2b619c7f20d3c12b2eac20bc702c9b0cb5bf27a8ba97f52a5e9
+- 3 -> 4	"${} ${} ${}"
+- 1 -> 0	"${} again first, then store it again."
+- 1 -> 0	"${} first, then store it."
+- 1 -> 0	"./install-copy"
+- 1 -> 0	"Already stored on ZONA. Turn a knob and apply it again to store a new one."
+- 1 -> 0	"Applies this to ${} in about a second. It stays until power-off unless you store it."
+- 2 -> 0	"Apply to ZONA"
+- 1 -> 0	"Applying to ${}…"
+- 5 -> 6	"Click ${} again"
+- 1 -> 0	"Click ${}, then ${} again"
+- 1 -> 0	"Connects to your ZONA and applies this to its active page. About a second."
+- 1 -> 0	"Not after a partial apply. ${} again, or click ${}."
+- 1 -> 0	"Nothing got through. ${} is unchanged, so your own configuration is still playing."
+- 1 -> 0	"Over the 908-character budget on ${}. Turn something down to apply it."
+- 1 -> 0	"Stores this on ${} so it stays after power-off."
+- 1 -> 0	"The knobs moved since it was applied. ${} again first."
+- 1 -> 0	"This replaces what ${} holds on your ZONA — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and it stays after power-off."
+- 3 -> 0	"after-mismatch"
+- 3 -> 0	"after-partial"
+- 1 -> 0	"apply-honesty"
+- 1 -> 0	"apply-refusal"
+- 1 -> 0	"apply-to-zona"
+- 98 -> 97	"button"
+- 8 -> 7	"clear"
+- 1 -> 0	"destination-apply"
+- 23 -> 24	"idle"
+- 2 -> 6	"keep"
+- 9 -> 8	"kept-mismatch"
+- 3 -> 0	"knobs-moved"
+- 4 -> 0	"never-tried"
+- 5 -> 8	"no-session"
+- 8 -> 7	"partial"
+- 12 -> 10	"settled"
+- 9 -> 11	"snapshot-failed"
+- 6 -> 5	"snapshotting"
+- 8 -> 13	"store"
+- 9 -> 2	"try"
+- 13 -> 10	"unconfirmed"
++ 0 -> 1	"Already stored on ZONA. Change something to store it again."
++ 0 -> 1	"Nothing of this reached ${}, and nothing was stored."
++ 0 -> 1	"Over the 908-character budget on ${}. Turn something down to store it."
++ 0 -> 1	"Returns ${} to its firmware default, then writes this and stores it, so it stays after power-off."
++ 0 -> 1	"This returns ${} to its firmware default, then writes this configuration — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and stores it, so it stays after power-off."
++ 0 -> 1	"no reason"
++ 0 -> 1	"store-honesty"
++ 0 -> 1	"store-refusal"
+
+## the comment lines
+193 files; 45870 lines, 29552 code, 12575 comment, 3743 blank, 3847 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/device/install-copy.ts | 473 | 470 | 224 | 246 | 53 | 67 |
+| src/lib/device/install.svelte.ts | 1462 | 1576 | 498 | 549 | 31 | 32 |
+| src/lib/device/page-target.ts | 328 | 329 | 118 | 121 | 15 | 15 |
+| src/lib/device/try-on.ts | 128 | 122 | 54 | 50 | 12 | 12 |
+| src/lib/tune/copy.ts | 412 | 413 | 200 | 201 | 37 | 37 |
+| src/lib/ui/DestinationZone.svelte | 444 | 415 | 44 | 52 | 14 | 15 |
+| src/lib/ui/KeepConfirm.svelte | 230 | 245 | 26 | 29 | 14 | 15 |
+| src/routes/dev/install/+page.svelte | 328 | 331 | 50 | 51 | 15 | 15 |
+| **totals (193 -> 193 files)** | 45774 | 45870 | 12490 | 12575 | 3830 | 3847 |
+
+8 file(s) moved
+
+## check and lint
+check: 1789553325728 COMPLETED 655 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 94 files, 966 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp b43b0b0
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object a581ef4ce6aae2427e69503f9aaa543a02e33561 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 26 files, 154136 B, sha256 2a9ccf80cda87bdb3db133d52eb961246e726636c288c00311d9d9f077992f57
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: b542d9e38f5003e171d86a79e0b9925ec8cd90a27a70b7cf68da820f80c9615d (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 b542d9e38f5003e171d86a79e0b9925ec8cd90a27a70b7cf68da820f80c9615d
+SCOPED CSS sha256 e8841c5f74538e07a14d7c6540f29373a70744d4c5bca9902b17f6cedc2ea610
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 e3350ea710c5a389f1e12f92b365b80cc6104cab1424213c20d5b6330df8b7c3 (71 files)
+
+## the titles
+TITLES sha256 3ad0c8926b6fb722a0236e6732011386f3be954ed4ed8c90f6f54bd0f14e3f96 (967 vitest titles incl. todo, 101 playwright runs)
+
+## src/ against the before-record's HEAD f30489168255554dc73f9efdf8fd922acbd5ebd9
+git diff --name-status: 18 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-1
+wire: equal (set a24b256f7f075b7ba811a251545905480d327fba683cc5e40e43aedb8ddb769b, full 514cb2c7c3a43228b76beb056630180dbd3b3556602a33374bae11752c719f9b)
+sandbox set: equal (40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01)
+FAIL: the literal census (6ac1cdf373b4c86f29af1eed0ddc3733f875150d6ce1aa57c4a7a6f834377f99 -> b807b2bfac2ffb158c1e342308385d300621dbcb797d210ad9c4522b4fca501f; the -/+ lines above name every literal whose count moved)

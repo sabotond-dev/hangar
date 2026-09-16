@@ -4241,6 +4241,123 @@ questions 13.2-CONTEXT could not decide stand for the user: `placeInWords`, `DIS
 `localStorage` guards, `ColourPicker.svelte:66`'s stale line, the public "keep" API, and
 `buildTuner`'s helpers (plus the seventh, Tailwind's scanner reach).
 
+## 2026-09-16 change 1 - Apply to ZONA goes; every Store clears first
+
+Outside the GSD cycle, the user's word recorded verbatim in `BENCH-2026-09-16.txt` section 1: "we
+dont need the apply to ZONA, only Store stays. also every Store should send a Clear before Storing."
+Three commits: the store, the copy, the zone and the node specs (`58eb603`); the e2e re-aims
+(`b43b0b0`); this section, the runbook's row O and label-map line, the record's Done paragraph and
+the gate records.
+
+**The frame sequence per Store click, as observed on the fake** (`install.spec.ts` "a Store returns
+the page to its firmware default, writes the configuration, stores it, and kept is said after the
+acknowledgement, a heartbeat and a matching re-fetch - eighteen frames, one click"): five
+`CONFIG/EXECUTE` carrying the five firmware defaults verbatim in SLOTS order (255/6, 255/0, 255/4,
+0/6, 0/0), one `HEARTBEAT/EXECUTE` (the RAM leg's restore, `sequence.ts`), five `CONFIG/EXECUTE`
+carrying the configuration's five (the system slots substituted through `#systemStringOr`), one
+`HEARTBEAT/EXECUTE` (the second leg's restore), one `PAGESTORE/EXECUTE`, five `CONFIG/FETCH` (the
+D-12 proof, after the module's heartbeat) - **EIGHTEEN frames and eighteen steps**, not the
+brief's seventeen: every RAM leg restores `page_change_enabled` in its `finally`, so a click of two
+RAM legs carries two restore heartbeats. By class: 10 `CONFIG/EXECUTE`, 2 `HEARTBEAT/EXECUTE`,
+1 `PAGESTORE/EXECUTE`, 5 `CONFIG/FETCH` (10 with the snapshot's). The header lock closes over each
+of the three legs (`[true, false, true, false, true, false]`), a gap no browser poll sees. On the
+shim (`e2e/install.e2e.ts`) the same click reads ten `CONFIG/EXECUTE` and one `PAGESTORE/EXECUTE`;
+KEPT after 1-2 heartbeats on the real page, 4-5 through the Clear walk's held acknowledgements.
+
+**The store.** `keepOnDevice(config, name)` takes the configuration directly; `armed` is Store's
+readiness (a queue, a writable phase or `snapshot-failed` - the click re-reads first - the page
+target at rest, a pair inside 908; `#storeRefusal` over `#tryRefusal`); `keepReason` is three rows
+
+- `no-session`, `already-kept` (kept and the module holds the pair on screen, the old `armed`
+  predicate as `#holdsConfig`), `incapable` - and reads `phase` first so a `$derived` over it tracks
+  the queue's arrival (the first two c1 runs were red on that: `no-session` stuck in the probe's
+  readout and the zone's line). The whole click is one action `keep` and one capture (`#ramLeg`'s
+  `keepSteps`, the classifier's `from`). A RAM leg publishes `writing` before any await, so the zone's
+  focus rule reads a disabled control in the click's flush (test 8 was red on an enabled one that
+  disabled a tick later). `tryOnDevice` stays for the probe; `settled` stays in the union by name.
+
+**The zone.** Target · Store on ZONA; `store-honesty` (the description: `HONESTY_INCAPABLE`,
+`HONESTY_SNAPSHOTTING`, `keepLineEnabled(page)`, `NEEDS_ZONA`) and `store-refusal`; the confirmation
+in Store's place hands the store the same config and name. Store is bordered as it was (nothing took
+Apply's fill - question for the user). The bar's `writing` clause is `keepingLabel`.
+
+**Counts, carried + delta.** Quick **94 / 966 (+1 todo)**, `+0 / +0` - every change a rewrite or a
+retitle inside an existing title, no title added or deleted; check **655 / 0 / 0** (`+0`); lint
+clean; e2e **86 titles / 101 runs** (`+0 / +0`). Chunks on fresh detached servers
+(`scripts/gate/e2e-chunks.sh`, stopped through PowerShell, HTTP 000 after each): c1 **32 passed**
+(third run; runs one and two red on the two fixes named above, both in the feat commit), c3 **21**,
+c4 **15**, c5 **11**, c2 **22** on the fourth run at `--workers 1` - runs one to three red only on
+`browse:299` / `browse:343`, the known hydration races (`git diff` on the browse files empty). Run
+one of c1 also lost the wrangler dev server mid-chunk ("Error inside ProxyWorker: Network connection
+lost", tests 5-18 `ERR_CONNECTION_REFUSED`) while the failing tests tore pages down; not seen again.
+
+**Retitled tests, old -> new** (no test deleted; the count term is `+0`):
+
+- `install-copy.spec.ts`: "the closed sets: six reasons, three more, thirteen utterances, and titles
+  that end without a full stop" -> "the closed sets: three reasons, three more, …".
+- `install.spec.ts`: "nothing is written without a click, and TRY ON DEVICE writes exactly five, the
+  system timer first and the utility third, verbatim" -> "nothing is written without a click, armed
+  means Store may write, and the probe's TRY ON DEVICE writes exactly five, …"; "kept is said after
+  the store acknowledgement, a heartbeat, and a matching re-fetch" -> "a Store returns the page to its
+  firmware default, writes the configuration, stores it, and kept is said after the acknowledgement,
+  a heartbeat and a matching re-fetch - eighteen frames, one click"; "a store that never acknowledges
+  is unconfirmed, and KEEP ON DEVICE stays live" -> "… and Store on ZONA stays live"; "one landed
+  script is partial, and it names what landed" -> "… - on the probe's TRY and on a Store's second
+  leg, whose classifier reads that leg alone"; "flash only what you have heard - the confirmation
+  closes on a knob move and a session drop, …" -> "… the confirmation stays open on a change inside
+  the budget, closes when the pair is withdrawn and on a session drop, …"; "a partial names which of
+  the five landed, and the partial that cannot happen does not" -> "a partial names which of the five
+  landed on a Store's second leg, …"; "over budget refuses before the wire: a surface over 908
+  disables Apply, names the cause, and sends zero frames" -> "… disables Store, …".
+- `device-ui.spec.ts`: "the destination zone: one component for both routes - Target, Apply described
+  by the honesty line, Store or its confirmation in the same place, …; no Put back; …" -> "… Target,
+  Store described by the honesty line or its confirmation in the same place, …; no Apply, no Put
+  back; …".
+- `e2e/install.e2e.ts`: "KEEP ON DEVICE is kept only after the read-back matches, and a mismatch is
+  named" -> "KEEP ON DEVICE returns the page to its default, writes the pair, and is kept only after
+  the read-back matches; a mismatch is named"; "the panel writes on a click, says PLAYING NOW, and
+  locks the header while it writes" -> "the bar writes on a click - the page's default, the
+  configuration, the store - says storing, and locks the header while it writes"; "after a store, a
+  second store waits for another apply" -> "… waits for a change"; "the destination menu … Apply
+  waits for the module's own report, …" -> "… Store waits for the module's own report, …".
+- `e2e/sandbox.e2e.ts`: "the whole loop on a fake: … applied to the fake ZONA as five acknowledged
+  writes with 255/4 among them, and the store refused" -> "… stored on the fake ZONA - the five
+  defaults, five acknowledged writes with 255/4 among them, the store proved - after the
+  confirmation was first refused".
+- `e2e/tuning.e2e.ts`: "an over-budget configuration shows the refusal line and disables Apply" ->
+  "… disables Store".
+
+**The gate** (`bash scripts/13.2-gate.sh --before change-1` at `f304891`, `--after change-1
+--against change-1 --check 655` at `b43b0b0`; `gate/change-1.txt` and `gate/change-1-after.txt`).
+The script exits 1 at its first inequality - the census, by design of a behaviour change - so the
+terms after it are compared here from the two records. **Equal:** the wire set
+`a24b256f…`, the wire full `514cb2c7…`, the sandbox set `40b44316…` (the script's own
+comparison); the fixtures' four hash-objects and the OG (26 files, 154136 B, `2a9ccf80…`); the
+utilities 44 -> 44 with the five markup-named intact; check 655 / 0 / 0; lint; quick; build; the
+name-status of `src/` 18 modified, 0 added, 0 deleted, 0 renamed; the refuse-list `--stat` empty.
+**Moved, as a behaviour change moves them:** the literal census `6ac1cdf3…` -> `b807b2bf…`
+(2728 -> 2713 distinct literals; the `-/+` lines in the after record name every one - the retired
+strings and the four `KEEP_REASONS` keys out, the five new strings and `no reason` in, `try`
+9 -> 2, `store` 8 -> 13, `keep` 2 -> 6), the copy exports `10fad002…` -> `1ad9d1df…` (five exports
+left: `TRY_ON_LABEL`, `writingLabel`, `HONESTY_NO_SESSION`, `honestyReady`, `APPLY_LABEL`; none
+joined), the `data-testid` set `21fc9eb9…` -> `2200a0d8…` (320 -> 319: `apply-to-zona`,
+`apply-honesty`, `apply-refusal` out; `store-honesty`, `store-refusal` in), the titles
+`b53f2d9c…` -> `3ad0c892…` (the retitles above, 967 vitest and 101 playwright either side), the
+normalised JS `07f50f2a…` -> `e3350ea7…`. **And one term the brief asked to hold that a control's
+departure cannot: the SCOPED CSS** `e296d0af…` -> `e8841c5f…`. Proved by compiling
+`DestinationZone.svelte` at `f304891` and at HEAD with `svelte/compiler` under one filename: the
+diff is exactly the two rules `.destination-apply` and `.destination-apply:disabled` gone, every
+other selector and its scope hash unchanged; `KeepConfirm.svelte`'s compiled CSS is byte-identical.
+The raw CSS moved with it (`174411ee…` -> `b542d9e3…`). Comment lines: 8 files moved, 12490 ->
+12575 comment lines, 3830 -> 3847 header lines (`comment-lines.mjs --todo` prints nothing new).
+
+**Outside `src/`:** `scripts/local/README.md`'s two install lines are one (Store's); the runbook's
+row O and its dated label-map line; `.planning/ROADMAP.md`, `REQUIREMENTS.md` and `STATE.md`
+untouched - SAFE-02 and SAFE-05's RAM-before-flash wording and PROJECT.md's "flash writes stay
+separate from RAM auditions" are the next gate's to amend, named in the record. No device, no
+deploy; `src/vendor/`, `library.ts`, `sequence.ts`, the Lua literals, the manifest, the fixtures,
+the OG, `Knob.svelte`, `ColourPicker.svelte` untouched (the gate's `--stat`).
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

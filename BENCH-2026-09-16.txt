@@ -55,3 +55,106 @@ to ZONA again first.`), `KEEP_REASONS.after-partial` (`Not after a partial apply
 or click Clear.`), `KEEP_REASONS.after-mismatch` (`Apply to ZONA again first, then store it again.`),
 `nothingLandedBlock`'s `try` form; and `page-target.ts`'s `APPLY_LABEL` (`Apply to ZONA`), its own
 ledger line. Kept by name, the probe's alone: `settledCaption`, `liveSettled`.
+
+### Done, 2026-09-16
+
+Three commits, no push, no device, no deploy: `58eb603` feat(install) - the store, the copy, the
+zone, KeepConfirm, the bar's clause, the probe's Keep, the local README, the five node specs and the
+string ledger above (the copy spec reads this file as its fifth document); `b43b0b0` test(e2e) - the
+six e2e files; then this paragraph with `docs/TESTING.md`'s "2026-09-16 change 1", the runbook's
+row O and dated label-map line, and the gate records `gate/change-1.*` / `gate/change-1-after.*`.
+
+**The interpretation taken.** Every Store is one click and one action (`keep`) of three legs - the
+five firmware defaults through `#ramLeg` (the same five writes Clear sends; run under the action
+`keep`, not `clear`, so a failure inside a Store is a Store's failure in the zone's block and the
+probe's readout, and so the click is one capture), the configuration's five through `#ramLeg`, the
+page store through `#storeLeg`, the D-12 proof - landing `kept`; a RAM leg that fails lands
+`partial` / `nothing-landed` / `lost` as any RAM leg does, with the classifier reading that leg's
+steps alone, and stores nothing; a store leg that fails lands `kept-mismatch` / `unconfirmed` as
+today. `armed` is Store's readiness (the old Z-05 meaning is `keepReason`'s already-kept row);
+`keepReason` is three rows and the store is the retry from every failure, so the four rows that
+pointed at Apply are retired rather than renamed; the confirmation stays on Store and closes when a
+change would disable the control (over budget, the pair withdrawn, or back to the pair already
+stored) but stays open across a change inside the budget - the click writes what the screen shows.
+`tryOnDevice` and `settled` stay for the probe by name. The bar's `writing` clause is
+`keepingLabel` ("Storing on Page N…"), since every write from a route is a store or a clear;
+`settledCaption` / `liveSettled` are kept by name (the probe's, and the bar's clause for a phase the
+anti-collapse test requires). The nothing-landed block has a `store` form for a Store's leg; the
+header's Clear keeps the put-back form it had. `tryOnBudgetReason` says "store" and keeps its name.
+
+**The frame sequence per Store click, observed on the fake:** 5 `CONFIG/EXECUTE` (the defaults,
+verbatim, SLOTS order) · 1 `HEARTBEAT/EXECUTE` · 5 `CONFIG/EXECUTE` (the configuration) · 1
+`HEARTBEAT/EXECUTE` · 1 `PAGESTORE/EXECUTE` · 5 `CONFIG/FETCH` = **18 frames, 18 steps** - the
+brief's 17 omits the second leg's restore heartbeat, which `sequence.ts` sends on every RAM leg's
+every path. On the shim: 10 `CONFIG/EXECUTE`, 1 `PAGESTORE/EXECUTE` per click.
+
+**The zone as shipped:** `Target` · `Store on ZONA` (bordered, as before; nothing took Apply's
+fill); `store-honesty` is Store's sr-only description (`keepLineEnabled(page)` while connected,
+`HONESTY_SNAPSHOTTING` during the snapshot, `HONESTY_INCAPABLE`, else `NEEDS_ZONA`);
+`store-on-zona-line` the record's three reasons; `store-refusal` the over-budget line, which
+disables Store (TUNE-05: zero frames, `install.spec.ts`); the confirmation in Store's place
+(SAFE-05), handed the config and the name. `keepReason`'s union: `"no-session" | "already-kept" |
+"incapable"`.
+
+**Retitled tests** (none deleted; the count term is `+0 / +0`): see `docs/TESTING.md`
+"2026-09-16 change 1" for the full old -> new list - one in `install-copy.spec.ts`, seven in
+`install.spec.ts`, one in `device-ui.spec.ts`, four in `e2e/install.e2e.ts`, one each in
+`e2e/sandbox.e2e.ts` and `e2e/tuning.e2e.ts`.
+
+**The census diff, by string** (`hash-strings.mjs --diff`, `gate/change-1-after.txt`): out -
+`Apply to ZONA` (2 -> 0), `Applying to ${}…`, `Applies this to ${} in about a second. It stays
+until power-off unless you store it.`, `Connects to your ZONA and applies this to its active page.
+About a second.`, `${} first, then store it.`, `The knobs moved since it was applied. ${} again
+first.`, `Not after a partial apply. ${} again, or click ${}.`, `${} again first, then store it
+again.`, `Already stored on ZONA. Turn a knob and apply it again to store a new one.`, `Nothing got
+through. ${} is unchanged, so your own configuration is still playing.`, `Click ${}, then ${}
+again`, `Stores this on ${} so it stays after power-off.`, `This replaces what ${} holds on your
+ZONA — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and
+it stays after power-off.`, `Over the 908-character budget on ${}. Turn something down to apply
+it.`, the keys `never-tried` (4 -> 0), `knobs-moved` (3 -> 0), `after-partial` (3 -> 0),
+`after-mismatch` (3 -> 0), the testids `apply-to-zona`, `apply-honesty`, `apply-refusal`, the class
+`destination-apply`, the specifier `./install-copy` (try-on.ts's re-export); in - `Returns ${} to its
+firmware default, then writes this and stores it, so it stays after power-off.`, `Already stored on
+ZONA. Change something to store it again.`, `This returns ${} to its firmware default, then writes
+this configuration — … — and stores it, so it stays after power-off.`, `Nothing of this reached ${},
+and nothing was stored.`, `Over the 908-character budget on ${}. Turn something down to store it.`,
+`no reason` (the probe's readout), the testids `store-honesty`, `store-refusal`; counts moved -
+`Click ${} again` 5 -> 6, `no-session` 5 -> 8, `store` 8 -> 13, `keep` 2 -> 6, `try` 9 -> 2,
+`settled` 12 -> 10, `snapshot-failed` 9 -> 11, `unconfirmed` 13 -> 10, `kept-mismatch` 9 -> 8,
+`partial` 8 -> 7, `idle` 23 -> 24, `snapshotting` 6 -> 5, `clear` 8 -> 7, `button` 98 -> 97,
+`${} ${} ${}` 3 -> 4. 2728 -> 2713 distinct literals.
+
+**The gate's terms:** equal - the wire set, full and sandbox set, the fixtures, the OG, the
+utilities (44 -> 44), check 655 / 0 / 0, lint, quick 94 / 966, the build, `src/` 18 modified / 0
+added / 0 deleted / 0 renamed, the refuse-list empty; moved - the census, the copy exports (five
+left, none joined), the testids (320 -> 319, the five named), the titles, the normalised JS, and the
+SCOPED CSS - which the brief asked to hold and a control's departure cannot: proved to be exactly
+`.destination-apply` and `.destination-apply:disabled` leaving `DestinationZone.svelte`, every other
+selector and scope hash unchanged (`svelte/compiler` at `f304891` and HEAD under one filename;
+`KeepConfirm.svelte`'s CSS byte-identical). The script exits 1 at the census by design; the later
+terms were compared from the two records by hand.
+
+**Chunks:** c1 32 (third run - the first two red on two fixes then made: `keepReason` reading
+`phase` first so a `$derived` tracks the queue's arrival, and a RAM leg publishing `writing` before
+any await so the zone's focus rule reads a disabled Store), c3 21, c4 15, c5 11, c2 22 (fourth run
+at `--workers 1`; runs one to three red only on the known `browse:299` / `browse:343` hydration
+races). Counts: quick 94 / 966 (+0 / +0), check 655 (+0), e2e 86 titles / 101 runs (+0 / +0).
+
+**Questions for the user.** (a) Should `settled` (and `restored`) leave the union now that no route
+reaches them, at the cost of the anti-collapse test's fifteen and two bar clauses? Kept by name
+here. (b) Does the confirmation stay on Store? Kept (SAFE-05); it now says the default first.
+(c) Should Store take Apply's filled style now that it is the bar's one write? Kept bordered.
+(d) `already-kept` disables Store after a store until something changes - keep that row, or let a
+second identical store go through? (e) `nothingLandedBlock`'s put-back form still renders for the
+header's Clear ("Send the restore again"), as before this change; a `clear` form is one string
+away. (f) `partialBlock`'s detail ("part of this configuration and part of your own") is imprecise
+on a Store's second leg (the other part is the firmware default) and on a Clear, as it was before;
+reworded on request. (g) The runbook's rows B-M name Apply; row O and the label-map line read them
+across rather than rewriting them (append-only) - say if you want the rows rewritten.
+
+**Not supported by the tree / departures from the brief:** 17 frames is 18 (above); the scoped CSS
+cannot hold when a control with its own rules leaves (above); the defaults leg runs under the action
+`keep`, not `clear` (above); `WRITABLE_PHASES`'s comment still says "TRY ON DEVICE works from here"
+because `install.spec.ts` pins that text byte-for-byte and TRY does still work from there on the
+probe. Next gate: amend SAFE-02 and SAFE-05 (RAM-before-flash) and PROJECT.md's "flash writes stay
+separate from RAM auditions"; CAT-04 stays `[ ]`.
